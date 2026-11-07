@@ -6,6 +6,7 @@ Endpoints and models have no defaults in code (B2460, R8); they come from config
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Literal
 
 from pydantic import Field, HttpUrl, SecretStr
 from pydantic_settings import (
@@ -35,6 +36,23 @@ class Settings(BaseSettings):
     hardware_tiers_file: Path = Field(
         description="Tier thresholds (content/hardware/tiers.json); relative to the config file.",
     )
+
+    # Decider (B3)
+    decider_backend: Literal["ollama", "mock", "replay"]
+    decider_prompt: str = Field(pattern=r"^[a-z][a-z0-9_]*/[a-z][a-z0-9_-]*$")
+    decider_prompt_version: int = Field(ge=1)
+    temperature: float = Field(ge=0, le=2)
+    num_ctx: int = Field(ge=512, le=131072)
+    prompt_char_budget: int = Field(ge=500, le=100000)
+    max_retries: int = Field(ge=0, le=2, description="Handbook: at most two retries.")
+    queue_size: int = Field(ge=1, le=10000)
+    keep_alive: str = Field(min_length=1, max_length=16)
+
+    # Folders; relative paths are relative to the config file.
+    prompts_dir: Path
+    content_dir: Path
+    schemas_dir: Path
+    log_dir: Path
     token: SecretStr | None = Field(
         default=None,
         description="Per-session token set by the game via GW_AI_TOKEN; never stored in files.",
@@ -68,7 +86,9 @@ def load_settings(config_file: Path | None = None) -> Settings:
         model_config = SettingsConfigDict(toml_file=path)
 
     settings = _Configured()  # pyright: ignore[reportCallIssue]
-    if not settings.hardware_tiers_file.is_absolute():
-        resolved = (path.parent / settings.hardware_tiers_file).resolve()
-        settings = settings.model_copy(update={"hardware_tiers_file": resolved})
-    return settings
+    resolved: dict[str, Path] = {}
+    for name in ("prompts_dir", "content_dir", "schemas_dir", "log_dir", "hardware_tiers_file"):
+        value: Path = getattr(settings, name)
+        if not value.is_absolute():
+            resolved[name] = (path.parent / value).resolve()
+    return settings.model_copy(update=resolved) if resolved else settings

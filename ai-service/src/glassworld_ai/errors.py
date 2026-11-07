@@ -23,12 +23,14 @@ STATUS_BY_CODE: dict[str, int] = {
 _RETRYABLE = {"timeout", "model_unavailable", "overloaded", "invalid_model_output"}
 
 
-def error_response(code: str, message: str) -> JSONResponse:
+def error_response(
+    code: str, message: str, *, request_id: str | None = None, tick: int | None = None
+) -> JSONResponse:
     body = ServiceError.model_validate(
         {
             "contract_version": CONTRACT_VERSION,
-            "request_id": None,
-            "tick": None,
+            "request_id": request_id,
+            "tick": tick,
             "code": code,
             "message": message[:500],
             "retryable": code in _RETRYABLE,
