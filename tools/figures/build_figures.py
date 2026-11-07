@@ -32,11 +32,27 @@ def smooth(a, b, x):
     return t * t * (3 - 2 * t)
 
 
+def orient_outward(bm, inside=None):
+    """Makes every face point away from the inside point (default: the centroid of the part).
+
+    The axis mappings into the rig frame include a mirror (+X left, -Y forward), which reverses the
+    winding of generated primitives; Godot culls by winding, so inverted parts would show their inside.
+    """
+    bm.normal_update()
+    if inside is None:
+        inside = sum((v.co for v in bm.verts), Vector()) / max(1, len(bm.verts))
+    flip = [f for f in bm.faces if f.normal.dot(f.calc_center_median() - inside) < 0]
+    if flip:
+        bmesh.ops.reverse_faces(bm, faces=flip)
+        bm.normal_update()
+    return bm
+
+
 class Part:
     """One piece of a body: a bmesh plus functions for region and bone weights per vertex."""
 
-    def __init__(self, bm, region, weights):
-        self.bm = bm
+    def __init__(self, bm, region, weights, inside=None):
+        self.bm = orient_outward(bm, inside)
         self.region = region if callable(region) else (lambda p, r=region: r)
         self.weights = weights if callable(weights) else (lambda p, w=weights: {w: 1.0})
 
@@ -207,7 +223,7 @@ def build_body(rig, spec):
         sx = 1 if s == "L" else -1
         sho, ua, fa, hand = f"DEF-shoulder.{s}", f"DEF-upper_arm.{s}", f"DEF-forearm.{s}", f"DEF-hand.{s}"
         a, b, c = rig.h(ua), rig.h(fa), rig.h(hand)
-        parts.append(Part(ellipsoid(a + Vector((-sx * 0.01, 0, 0)), sh["upper_arm"][0] * 1.25, sh["upper_arm"][0] * 1.15, sh["upper_arm"][0] * 1.1, 12, 8), TOP,
+        parts.append(Part(ellipsoid(a + Vector((-sx * 0.01, 0, 0)), sh["upper_arm"][0] * 1.08, sh["upper_arm"][0] * 1.05, sh["upper_arm"][0] * 1.02, 12, 8), TOP,
                           lambda p, sho=sho, ua=ua: {sho: 0.5, ua: 0.5}))
         parts.append(Part(capsule(a, b, sh["upper_arm"][0], sh["upper_arm"][1]), TOP, along(ua, a, b, parent=sho, child=fa)))
         parts.append(Part(capsule(b, c, sh["forearm"][0], sh["forearm"][1]), FOREARM, along(fa, b, c, parent=ua, child=hand)))
@@ -268,15 +284,20 @@ def hair_parts(style, centre, r):
         if not keep:
             remove.append(v)
     bmesh.ops.delete(shell, geom=remove, context="VERTS")
-    parts = [Part(shell, HAIR, "DEF-head")]
+    parts = [Part(shell, HAIR, "DEF-head", inside=centre)]
     if style == "long":
         back = []
-        for k in range(8):
-            t = k / 7
-            z = centre.z - r * 0.1 - t * (r * 1.55)
-            c = centre - FWD * (r * (0.62 + 0.12 * t))
-            back.append((Vector((c.x, c.y, z)), LEFT, r * (0.9 - 0.15 * t), FWD, r * (0.42 - 0.12 * t)))
-        parts.append(Part(loft(back, 16), HAIR, lambda p, z0=centre.z - r: {"DEF-head": 1.0 - smooth(z0, z0 - 0.3, p.z) * 0.6, "DEF-neck": smooth(z0, z0 - 0.3, p.z) * 0.6}))
+        steps = 10
+        for k in range(steps + 1):
+            t = k / steps
+            z = centre.z - r * 0.1 - t * (r * 1.5)
+            c = centre - FWD * (r * (0.6 + 0.12 * t))
+            # full width at the head, then narrowing and rounding off at the tips
+            round_off = math.sqrt(max(0.0, 1 - max(0.0, (t - 0.65) / 0.35) ** 2))
+            width = r * (0.92 - 0.2 * t) * max(0.18, round_off)
+            depth = r * (0.45 - 0.12 * t) * max(0.25, round_off)
+            back.append((Vector((c.x, c.y, z)), LEFT, width, FWD, depth))
+        parts.append(Part(loft(back, 18), HAIR, lambda p, z0=centre.z - r: {"DEF-head": 1.0 - smooth(z0, z0 - 0.3, p.z) * 0.6, "DEF-neck": smooth(z0, z0 - 0.3, p.z) * 0.6}))
     elif style == "bun":
         parts.append(Part(ellipsoid(centre - FWD * (r * 0.95) + UP * (r * 0.45), r * 0.4, r * 0.36, r * 0.38, 14, 10), HAIR, "DEF-head"))
     elif style == "tousled":
@@ -305,6 +326,7 @@ def make_object(name, parts, armature):
                 pass
         part.bm.free()
         del offset
+    bm.normal_update()
     mesh = bpy.data.meshes.new(name)
     bm.to_mesh(mesh)
     bm.free()

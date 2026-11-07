@@ -1,21 +1,55 @@
 {
   "description": "Authoring parameters for tools/figures/build_figures.py (A1436, Marcel F5257=A): cute round bodies after D355 on the Quaternius Universal Animation Library rig. Lengths in metres on the adult rig; the child is built on the same rig and scaled in the game. Placeholders until Marcel's picture question.",
-  "hair_styles": ["short", "long", "bun", "tousled"],
+  "hair_styles": [
+    "short",
+    "long",
+    "bun",
+    "tousled"
+  ],
   "bodies": [
     {
       "id": "adult_female",
       "head_radius": 0.168,
       "head_squash": 0.94,
       "neck_radius": 0.045,
-      "chest": [0.135, 0.095],
-      "waist": [0.115, 0.085],
-      "hips": [0.135, 0.1],
-      "upper_arm": [0.048, 0.04],
-      "forearm": [0.04, 0.034],
-      "thigh": [0.068, 0.055],
-      "shin": [0.052, 0.04],
-      "hand": [0.05, 0.022, 0.06],
-      "foot": [0.05, 0.12, 0.045],
+      "chest": [
+        0.143,
+        0.103
+      ],
+      "waist": [
+        0.122,
+        0.092
+      ],
+      "hips": [
+        0.135,
+        0.1
+      ],
+      "upper_arm": [
+        0.06,
+        0.05
+      ],
+      "forearm": [
+        0.051,
+        0.044
+      ],
+      "thigh": [
+        0.083,
+        0.067
+      ],
+      "shin": [
+        0.065,
+        0.05
+      ],
+      "hand": [
+        0.05,
+        0.022,
+        0.06
+      ],
+      "foot": [
+        0.05,
+        0.12,
+        0.045
+      ],
       "skirt": true
     },
     {
@@ -23,15 +57,44 @@
       "head_radius": 0.172,
       "head_squash": 0.93,
       "neck_radius": 0.052,
-      "chest": [0.155, 0.105],
-      "waist": [0.135, 0.095],
-      "hips": [0.13, 0.095],
-      "upper_arm": [0.055, 0.046],
-      "forearm": [0.046, 0.038],
-      "thigh": [0.072, 0.058],
-      "shin": [0.056, 0.044],
-      "hand": [0.054, 0.024, 0.064],
-      "foot": [0.054, 0.13, 0.048],
+      "chest": [
+        0.164,
+        0.113
+      ],
+      "waist": [
+        0.143,
+        0.103
+      ],
+      "hips": [
+        0.13,
+        0.095
+      ],
+      "upper_arm": [
+        0.069,
+        0.057
+      ],
+      "forearm": [
+        0.059,
+        0.049
+      ],
+      "thigh": [
+        0.088,
+        0.071
+      ],
+      "shin": [
+        0.07,
+        0.055
+      ],
+      "hand": [
+        0.054,
+        0.024,
+        0.064
+      ],
+      "foot": [
+        0.054,
+        0.13,
+        0.048
+      ],
       "skirt": false
     },
     {
@@ -39,15 +102,44 @@
       "head_radius": 0.215,
       "head_squash": 0.95,
       "neck_radius": 0.055,
-      "chest": [0.15, 0.115],
-      "waist": [0.145, 0.11],
-      "hips": [0.14, 0.105],
-      "upper_arm": [0.06, 0.052],
-      "forearm": [0.052, 0.046],
-      "thigh": [0.08, 0.066],
-      "shin": [0.064, 0.052],
-      "hand": [0.062, 0.028, 0.07],
-      "foot": [0.06, 0.13, 0.055],
+      "chest": [
+        0.159,
+        0.124
+      ],
+      "waist": [
+        0.154,
+        0.119
+      ],
+      "hips": [
+        0.14,
+        0.105
+      ],
+      "upper_arm": [
+        0.075,
+        0.065
+      ],
+      "forearm": [
+        0.067,
+        0.059
+      ],
+      "thigh": [
+        0.098,
+        0.081
+      ],
+      "shin": [
+        0.08,
+        0.065
+      ],
+      "hand": [
+        0.062,
+        0.028,
+        0.07
+      ],
+      "foot": [
+        0.06,
+        0.13,
+        0.055
+      ],
       "skirt": false
     }
   ]
