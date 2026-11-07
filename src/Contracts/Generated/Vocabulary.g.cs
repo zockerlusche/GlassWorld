@@ -132,5 +132,9 @@ namespace GlassWorld.Contracts
         Shape = 13,
 
 
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("guard_reason")]
+        Guard_reason = 14,
+
+
     }
 }

@@ -1,0 +1,30 @@
+{
+  "contract_version": "0.2",
+  "kind": "guard_reason",
+  "entries": [
+    {
+      "id": "living_being",
+      "description": "An invented animal, plant, person or other living being (B2531)."
+    },
+    {
+      "id": "harmful",
+      "description": "A weapon, trap, hunting or catching tool, poison, or meant to hurt (youth protection)."
+    },
+    {
+      "id": "material",
+      "description": "Uses a material that is not in reach, or uses it in an impossible way."
+    },
+    {
+      "id": "tech_level",
+      "description": "Needs a higher tech level than the world has."
+    },
+    {
+      "id": "too_large",
+      "description": "Too big or too much effort; a smaller version is possible."
+    },
+    {
+      "id": "implausible",
+      "description": "Could not really be made or used this way."
+    }
+  ]
+}

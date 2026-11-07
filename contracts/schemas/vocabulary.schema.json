@@ -30,7 +30,8 @@
         "process",
         "heat_level",
         "tech_level",
-        "shape"
+        "shape",
+        "guard_reason"
       ]
     },
     "entries": {
