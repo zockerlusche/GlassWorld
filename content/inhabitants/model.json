@@ -1,0 +1,58 @@
+{
+  "contract_version": "0.1",
+  "needs": [
+    { "id": "hunger", "decay_per_hour": 0.03, "neglect_below": 0.15 },
+    { "id": "thirst", "decay_per_hour": 0.05, "neglect_below": 0.15 },
+    { "id": "sleep", "decay_per_hour": 0.04, "neglect_below": 0.1 },
+    { "id": "warmth", "decay_per_hour": 0.0, "neglect_below": 0.1 },
+    { "id": "safety", "decay_per_hour": 0.0, "neglect_below": 0.1 },
+    { "id": "company", "decay_per_hour": 0.01, "neglect_below": 0.0 },
+    { "id": "fun", "decay_per_hour": 0.02, "neglect_below": 0.0 },
+    { "id": "purpose", "decay_per_hour": 0.005, "neglect_below": 0.0 }
+  ],
+  "moods": [
+    { "id": "joy", "baseline": 0.4, "return_per_hour": 0.02 },
+    { "id": "sadness", "baseline": 0.1, "return_per_hour": 0.02 },
+    { "id": "fear", "baseline": 0.05, "return_per_hour": 0.05 },
+    { "id": "frustration", "baseline": 0.05, "return_per_hour": 0.03 },
+    { "id": "boredom", "baseline": 0.1, "return_per_hour": 0.02 }
+  ],
+  "mood_drivers": [
+    { "need": "hunger", "below": 0.3, "mood": "joy", "delta_per_hour": -0.04 },
+    { "need": "hunger", "below": 0.3, "mood": "frustration", "delta_per_hour": 0.03 },
+    { "need": "thirst", "below": 0.3, "mood": "joy", "delta_per_hour": -0.04 },
+    { "need": "sleep", "below": 0.2, "mood": "frustration", "delta_per_hour": 0.03 },
+    { "need": "fun", "below": 0.3, "mood": "boredom", "delta_per_hour": 0.05 },
+    { "need": "company", "below": 0.3, "mood": "sadness", "delta_per_hour": 0.02 }
+  ],
+  "will_to_live": {
+    "start": 0.8,
+    "neglect_hours_before_decline": 72,
+    "decline_per_hour": 0.004,
+    "recover_per_hour": 0.002,
+    "fading_below": 0.2
+  },
+  "start": {
+    "count": 2,
+    "traits": [
+      { "id": "curiosity", "min": 0.2, "max": 0.9 },
+      { "id": "patience", "min": 0.2, "max": 0.9 },
+      { "id": "sociability", "min": 0.2, "max": 0.9 },
+      { "id": "diligence", "min": 0.2, "max": 0.9 },
+      { "id": "courage", "min": 0.2, "max": 0.9 },
+      { "id": "creativity", "min": 0.2, "max": 0.9 },
+      { "id": "orderliness", "min": 0.2, "max": 0.9 },
+      { "id": "kindness", "min": 0.2, "max": 0.9 }
+    ],
+    "needs": [
+      { "id": "hunger", "min": 0.6, "max": 0.8 },
+      { "id": "thirst", "min": 0.6, "max": 0.8 },
+      { "id": "sleep", "min": 0.7, "max": 0.9 },
+      { "id": "warmth", "min": 0.8, "max": 1.0 },
+      { "id": "safety", "min": 0.6, "max": 0.8 },
+      { "id": "company", "min": 0.3, "max": 0.5 },
+      { "id": "fun", "min": 0.5, "max": 0.7 },
+      { "id": "purpose", "min": 0.4, "max": 0.6 }
+    ]
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/utility-weights.schema.json",
+  "title": "UtilityWeights",
+  "description": "Data file content/behaviour/utility.json: how the routine layer (utility AI, fallback when no AI answer is there) scores the options the core offers. A score is weight x curve(need value) x belief factor; curves are point tables with linear interpolation (no transcendental math in the core). Placeholders until Marcel decides.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "move_speed_m_per_minute", "perception_radius_m", "distance_falloff", "learning_step", "unknown_target_belief", "considerations"],
+  "properties": {
+    "contract_version": { "$ref": "common.schema.json#/$defs/ContractVersion" },
+    "move_speed_m_per_minute": { "type": "number", "minimum": 0.1, "maximum": 1000 },
+    "perception_radius_m": { "type": "number", "minimum": 1, "maximum": 10000 },
+    "distance_falloff": { "description": "Score factor lost at the edge of the perception radius (linear with distance; 0 = distance does not matter).", "type": "number", "minimum": 0, "maximum": 1 },
+    "learning_step": { "description": "Confidence added per experience (frame for learning; B4a extends it).", "type": "number", "minimum": 0, "maximum": 1 },
+    "unknown_target_belief": { "description": "Belief factor for a target whose property the inhabitant does not know yet (trying unknown things).", "type": "number", "minimum": 0, "maximum": 1 },
+    "considerations": { "type": "array", "minItems": 1, "maxItems": 256, "items": { "$ref": "#/$defs/Consideration" } }
+  },
+  "$defs": {
+    "Consideration": {
+      "description": "Scores an action. With target_property the core offers the action on every perceived object; the belief that the object has that property scales the score.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["action", "target_property", "need", "weight", "curve"],
+      "properties": {
+        "action": { "$ref": "common.schema.json#/$defs/VocabId" },
+        "target_property": { "anyOf": [{ "$ref": "common.schema.json#/$defs/VocabId" }, { "type": "null" }] },
+        "need": { "description": "Need whose value is the curve input; null = constant input 1.", "anyOf": [{ "$ref": "common.schema.json#/$defs/VocabId" }, { "type": "null" }] },
+        "weight": { "type": "number", "minimum": 0, "maximum": 100 },
+        "curve": {
+          "description": "Points [x, y] with ascending x in 0..1.",
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 16,
+          "items": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "type": "number", "minimum": 0, "maximum": 1 } }
+        }
+      }
+    }
+  }
+}
