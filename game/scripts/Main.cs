@@ -55,7 +55,7 @@ public partial class Main : Node3D
         GetTree().AutoAcceptQuit = false;
         var textsLoaded = TextCatalogs.Install();
         ReadArguments();
-        _contentDirectory = System.IO.Path.GetFullPath(System.IO.Path.Combine(ProjectSettings.GlobalizePath("res://"), "..", "content"));
+        _contentDirectory = ContentLocator.ContentDirectory();
         var audioLoaded = RetroAudio.Load();
         _baseStyle = UiSetup.Load();
         _mix = ContractSerializer.Deserialize<SoundMix>(System.IO.File.ReadAllText(System.IO.Path.Combine(_contentDirectory, "sound", "mix.json")));
