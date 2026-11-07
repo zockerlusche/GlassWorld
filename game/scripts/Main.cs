@@ -241,6 +241,7 @@ public partial class Main : Node3D
             AddChild(_screen);
             _screen.Setup(_world, _style);
             _screen.ApplySettings(_settings, _style);
+            _screen.SetupChronicle(ContractSerializer.Deserialize<ChronicleKinds>(System.IO.File.ReadAllText(System.IO.Path.Combine(_contentDirectory, "chronicle", "kinds.json"))));
             _world.SaveFailed += _ => _screen?.ShowHint(SaveFailedHint());
             _screen.PauseRequested += OpenPause;
         }

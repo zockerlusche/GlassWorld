@@ -3,16 +3,18 @@
 
 from __future__ import annotations
 
-from enum import StrEnum
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-
-class ChronicleParam(StrEnum):
-    inhabitant = 'inhabitant'
-    target = 'target'
-    action = 'action'
+type ChronicleParam = Annotated[
+    str,
+    Field(
+        ...,
+        description='inhabitant = who (name or neutral number), target = the thing (its name), action = the action or process (vocabulary text). A pattern, not an enum: generated C# cannot read arrays of enums.',
+        pattern='^(inhabitant|target|action)$',
+    ),
+]
 
 
 class ChronicleKind(BaseModel):
@@ -35,7 +37,7 @@ class ChronicleKind(BaseModel):
         ...,
         description='Text key of the base line; placeholders are the parameter names in braces.',
         max_length=64,
-        pattern='^chronicle\\.[a-z0-9_.]+$',
+        pattern='^msg\\.chronicle\\.[a-z0-9_]+$',
     )
     params: list[ChronicleParam] = Field(
         ...,

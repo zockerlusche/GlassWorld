@@ -3,15 +3,15 @@
   "locale": "de",
   "entries": [
     {
-      "key": "chronicle.discovered_process",
+      "key": "msg.chronicle.discovered_process",
       "text": "{inhabitant} hat einen neuen Arbeitsschritt entdeckt: {action}."
     },
     {
-      "key": "chronicle.first_use",
+      "key": "msg.chronicle.first_use",
       "text": "{inhabitant} benutzt zum ersten Mal {target}."
     },
     {
-      "key": "chronicle.invented",
+      "key": "msg.chronicle.invented",
       "text": "{inhabitant} hat etwas Neues erfunden: {target}."
     },
     {

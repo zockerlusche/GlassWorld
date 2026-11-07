@@ -59,13 +59,13 @@ public sealed class ChronicleBook(ChronicleKinds kinds, WorldCalendar calendar)
             {
                 switch (param)
                 {
-                    case ChronicleParam.Inhabitant:
+                    case "inhabitant":
                         args["inhabitant"] = names.Inhabitant(e.InhabitantId);
                         break;
-                    case ChronicleParam.Target:
+                    case "target":
                         args["target"] = (e.TargetId is null ? null : names.Target(e.TargetId)) ?? "ui.chronicle.something";
                         break;
-                    case ChronicleParam.Action:
+                    case "action":
                         args["action"] = e.Action is null ? "ui.chronicle.something" : names.Action(e.Action);
                         break;
                 }

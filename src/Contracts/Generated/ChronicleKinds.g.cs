@@ -35,29 +35,7 @@ namespace GlassWorld.Contracts
         /// Parameters of the base line, used as {placeholders} in the text.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("params")]
-        // TODO(system.text.json): Add ItemConverterType with enum converter when supported
-        public System.Collections.Generic.ICollection<ChronicleParam> Params { get; set; } = new System.Collections.ObjectModel.Collection<ChronicleParam>();
-
-    }
-
-    /// <summary>
-    /// inhabitant = who (name or neutral number), target = the thing (its name), action = the action or process (vocabulary text).
-    /// </summary>
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
-    public enum ChronicleParam
-    {
-
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("inhabitant")]
-        Inhabitant = 0,
-
-
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("target")]
-        Target = 1,
-
-
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("action")]
-        Action = 2,
-
+        public System.Collections.Generic.ICollection<string> Params { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
     }
 

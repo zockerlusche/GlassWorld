@@ -44,7 +44,7 @@
         "text_key": {
           "description": "Text key of the base line; placeholders are the parameter names in braces.",
           "type": "string",
-          "pattern": "^chronicle\\.[a-z0-9_.]+$",
+          "pattern": "^msg\\.chronicle\\.[a-z0-9_]+$",
           "maxLength": 64
         },
         "params": {
@@ -59,13 +59,9 @@
       }
     },
     "ChronicleParam": {
-      "description": "inhabitant = who (name or neutral number), target = the thing (its name), action = the action or process (vocabulary text).",
+      "description": "inhabitant = who (name or neutral number), target = the thing (its name), action = the action or process (vocabulary text). A pattern, not an enum: generated C# cannot read arrays of enums.",
       "type": "string",
-      "enum": [
-        "inhabitant",
-        "target",
-        "action"
-      ]
+      "pattern": "^(inhabitant|target|action)$"
     }
   }
 }
