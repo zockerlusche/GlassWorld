@@ -1,0 +1,378 @@
+{
+  "contract_version": "0.1",
+  "locale": "de",
+  "entries": [
+    {
+      "key": "time.phase.dawn",
+      "text": "Morgendämmerung"
+    },
+    {
+      "key": "time.phase.day",
+      "text": "Tag"
+    },
+    {
+      "key": "time.phase.dusk",
+      "text": "Abenddämmerung"
+    },
+    {
+      "key": "time.phase.night",
+      "text": "Nacht"
+    },
+    {
+      "key": "time.season.autumn",
+      "text": "Herbst"
+    },
+    {
+      "key": "time.season.spring",
+      "text": "Frühling"
+    },
+    {
+      "key": "time.season.summer",
+      "text": "Sommer"
+    },
+    {
+      "key": "time.season.winter",
+      "text": "Winter"
+    },
+    {
+      "key": "vocab.action.approach",
+      "text": "Annähern"
+    },
+    {
+      "key": "vocab.action.combine",
+      "text": "Kombinieren"
+    },
+    {
+      "key": "vocab.action.drink",
+      "text": "Trinken"
+    },
+    {
+      "key": "vocab.action.drop",
+      "text": "Ablegen"
+    },
+    {
+      "key": "vocab.action.eat",
+      "text": "Essen"
+    },
+    {
+      "key": "vocab.action.idle",
+      "text": "Ausruhen"
+    },
+    {
+      "key": "vocab.action.inspect",
+      "text": "Untersuchen"
+    },
+    {
+      "key": "vocab.action.move_to",
+      "text": "Hingehen"
+    },
+    {
+      "key": "vocab.action.pick_up",
+      "text": "Aufheben"
+    },
+    {
+      "key": "vocab.action.sleep",
+      "text": "Schlafen"
+    },
+    {
+      "key": "vocab.action.talk_to",
+      "text": "Ansprechen"
+    },
+    {
+      "key": "vocab.action.wander",
+      "text": "Umherstreifen"
+    },
+    {
+      "key": "vocab.expression.back_away",
+      "text": "Weicht zurück"
+    },
+    {
+      "key": "vocab.expression.cheer",
+      "text": "Jubelt"
+    },
+    {
+      "key": "vocab.expression.hum",
+      "text": "Summt"
+    },
+    {
+      "key": "vocab.expression.laugh",
+      "text": "Lacht"
+    },
+    {
+      "key": "vocab.expression.look_around",
+      "text": "Schaut sich um"
+    },
+    {
+      "key": "vocab.expression.ponder",
+      "text": "Denkt nach"
+    },
+    {
+      "key": "vocab.expression.sit_sadly",
+      "text": "Sitzt traurig da"
+    },
+    {
+      "key": "vocab.expression.spin_with_joy",
+      "text": "Dreht sich vor Freude"
+    },
+    {
+      "key": "vocab.expression.stomp",
+      "text": "Stampft"
+    },
+    {
+      "key": "vocab.expression.stretch",
+      "text": "Streckt sich"
+    },
+    {
+      "key": "vocab.expression.wave",
+      "text": "Winkt"
+    },
+    {
+      "key": "vocab.expression.yawn",
+      "text": "Gähnt"
+    },
+    {
+      "key": "vocab.mood.anger",
+      "text": "Wut"
+    },
+    {
+      "key": "vocab.mood.boredom",
+      "text": "Langeweile"
+    },
+    {
+      "key": "vocab.mood.fear",
+      "text": "Angst"
+    },
+    {
+      "key": "vocab.mood.frustration",
+      "text": "Frust"
+    },
+    {
+      "key": "vocab.mood.jealousy",
+      "text": "Eifersucht"
+    },
+    {
+      "key": "vocab.mood.joy",
+      "text": "Freude"
+    },
+    {
+      "key": "vocab.mood.love",
+      "text": "Liebe"
+    },
+    {
+      "key": "vocab.mood.pride",
+      "text": "Stolz"
+    },
+    {
+      "key": "vocab.mood.sadness",
+      "text": "Trauer"
+    },
+    {
+      "key": "vocab.mood.shame",
+      "text": "Scham"
+    },
+    {
+      "key": "vocab.need.company",
+      "text": "Gesellschaft"
+    },
+    {
+      "key": "vocab.need.fun",
+      "text": "Freude"
+    },
+    {
+      "key": "vocab.need.hunger",
+      "text": "Hunger"
+    },
+    {
+      "key": "vocab.need.purpose",
+      "text": "Sinn"
+    },
+    {
+      "key": "vocab.need.safety",
+      "text": "Sicherheit"
+    },
+    {
+      "key": "vocab.need.sleep",
+      "text": "Schlaf"
+    },
+    {
+      "key": "vocab.need.thirst",
+      "text": "Durst"
+    },
+    {
+      "key": "vocab.need.warmth",
+      "text": "Wärme"
+    },
+    {
+      "key": "vocab.property.braidable",
+      "text": "Flechtbar"
+    },
+    {
+      "key": "vocab.property.building_material",
+      "text": "Baumaterial"
+    },
+    {
+      "key": "vocab.property.burnable",
+      "text": "Brennbar"
+    },
+    {
+      "key": "vocab.property.container",
+      "text": "Behälter"
+    },
+    {
+      "key": "vocab.property.cooling",
+      "text": "Kühlend"
+    },
+    {
+      "key": "vocab.property.drinkable",
+      "text": "Trinkbar"
+    },
+    {
+      "key": "vocab.property.edible",
+      "text": "Essbar"
+    },
+    {
+      "key": "vocab.property.fibrous",
+      "text": "Faserig"
+    },
+    {
+      "key": "vocab.property.hard",
+      "text": "Hart"
+    },
+    {
+      "key": "vocab.property.hardens_in_fire",
+      "text": "Härtet im Feuer"
+    },
+    {
+      "key": "vocab.property.healing",
+      "text": "Heilend"
+    },
+    {
+      "key": "vocab.property.hot",
+      "text": "Heiß"
+    },
+    {
+      "key": "vocab.property.insulating",
+      "text": "Isolierend"
+    },
+    {
+      "key": "vocab.property.long_lasting",
+      "text": "Haltbar"
+    },
+    {
+      "key": "vocab.property.malleable",
+      "text": "Formbar"
+    },
+    {
+      "key": "vocab.property.poisonous",
+      "text": "Giftig"
+    },
+    {
+      "key": "vocab.property.portable",
+      "text": "Tragbar"
+    },
+    {
+      "key": "vocab.property.salty",
+      "text": "Salzig"
+    },
+    {
+      "key": "vocab.property.scratchable",
+      "text": "Ritzbar"
+    },
+    {
+      "key": "vocab.property.sharp",
+      "text": "Scharf"
+    },
+    {
+      "key": "vocab.property.sparks",
+      "text": "Schlägt Funken"
+    },
+    {
+      "key": "vocab.property.splittable",
+      "text": "Spaltbar"
+    },
+    {
+      "key": "vocab.property.sticky",
+      "text": "Klebrig"
+    },
+    {
+      "key": "vocab.time_of_day.dawn",
+      "text": "Morgendämmerung"
+    },
+    {
+      "key": "vocab.time_of_day.day",
+      "text": "Tag"
+    },
+    {
+      "key": "vocab.time_of_day.dusk",
+      "text": "Abenddämmerung"
+    },
+    {
+      "key": "vocab.time_of_day.night",
+      "text": "Nacht"
+    },
+    {
+      "key": "vocab.trait.courage",
+      "text": "Mut"
+    },
+    {
+      "key": "vocab.trait.creativity",
+      "text": "Kreativität"
+    },
+    {
+      "key": "vocab.trait.curiosity",
+      "text": "Neugier"
+    },
+    {
+      "key": "vocab.trait.diligence",
+      "text": "Fleiß"
+    },
+    {
+      "key": "vocab.trait.kindness",
+      "text": "Gutmütigkeit"
+    },
+    {
+      "key": "vocab.trait.orderliness",
+      "text": "Ordnung"
+    },
+    {
+      "key": "vocab.trait.patience",
+      "text": "Geduld"
+    },
+    {
+      "key": "vocab.trait.sociability",
+      "text": "Geselligkeit"
+    },
+    {
+      "key": "vocab.weather.clear",
+      "text": "Klar"
+    },
+    {
+      "key": "vocab.weather.cloudy",
+      "text": "Bewölkt"
+    },
+    {
+      "key": "vocab.weather.fog",
+      "text": "Nebel"
+    },
+    {
+      "key": "vocab.weather.frost",
+      "text": "Frost"
+    },
+    {
+      "key": "vocab.weather.heat",
+      "text": "Hitze"
+    },
+    {
+      "key": "vocab.weather.rain",
+      "text": "Regen"
+    },
+    {
+      "key": "vocab.weather.snow",
+      "text": "Schnee"
+    },
+    {
+      "key": "vocab.weather.storm",
+      "text": "Sturm"
+    }
+  ]
+}

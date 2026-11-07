@@ -49,6 +49,10 @@ if grep -Eq '^(ERROR|SCRIPT ERROR|USER ERROR)|Unhandled exception' "$LOG"; then
   echo "SMOKE_FAIL: errors in Godot output" >&2
   exit 1
 fi
+if ! grep -Eq '^I18N_OK locales=[a-z,]+ keys=[1-9][0-9]*$' "$LOG"; then
+  echo "SMOKE_FAIL: text catalogs not loaded or language switch failed (marker 'I18N_OK' missing)" >&2
+  exit 1
+fi
 if ! grep -q "^SMOKE_OK frames=$FRAMES\$" "$LOG"; then
   echo "SMOKE_FAIL: success marker 'SMOKE_OK frames=$FRAMES' missing" >&2
   exit 1
