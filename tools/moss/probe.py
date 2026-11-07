@@ -62,6 +62,11 @@ def main() -> int:
     )
     parser.add_argument("--clips", type=int, default=3, help="how many of the test clips to render")
     parser.add_argument(
+        "--offload",
+        action="store_true",
+        help="official diffsynth VRAM management: only the model of the current phase stays on the GPU",
+    )
+    parser.add_argument(
         "--compile",
         action="store_true",
         help="allow torch.compile/Triton (default off: TORCHDYNAMO_DISABLE=1)",
@@ -100,6 +105,11 @@ def main() -> int:
             parameter.data = parameter.data.to(torch.bfloat16)
         torch.cuda.empty_cache()
     result["dit_dtype"] = str(next(pipe.engine.dit.parameters()).dtype)
+    result["offload"] = args.offload
+    if args.offload:
+        pipe.engine.enable_cpu_offload()
+        pipe.engine.load_models_to_device([])
+        torch.cuda.empty_cache()
     result["load_seconds"] = round(time.perf_counter() - start, 2)
     free, total = torch.cuda.mem_get_info()
     result["device_free_after_load_mib"] = round(free / 2**20)
