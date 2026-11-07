@@ -59,6 +59,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- The UI theme (frames, fonts, colours, text size, high contrast) reaches the game screen and the main menu: Godot does not pass a theme through a CanvasLayer, so both used the engine default theme; their UI roots are now bound to the current theme (`UiSetup.Bind`). Windows over the game sit in an overlay that stays visible in "watch only". The smoke checks that the card uses the theme's frame.
 - Loading a save game never changes the file: empty or foreign files are refused read-only, older versions are migrated in a temporary copy (review GW3 #50 K2).
 - Inhabitant card stays beside the side bar and its open panel and is re-fitted when the UI size changes (found in the 3840x1600 screenshots at 175 %: the card kept its old place, covered the inhabitant list and ran off the screen). The smoke checks the card at the smallest and largest UI size.
 - Smoke test accepts `SMOKE_OK frames=N` with N at least the requested frames: the game waits for its own checks before quitting, which can take a few frames longer on a slow CI runner (seen: 614 of 600).

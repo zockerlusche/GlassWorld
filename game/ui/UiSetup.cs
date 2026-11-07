@@ -30,7 +30,10 @@ public static class UiSetup
         }
     }
 
-    /// <summary>Applies a style to the root window.</summary>
+    /// <summary>Raised after a new theme was applied (UI roots below CanvasLayers take it over).</summary>
+    public static event Action<Theme>? ThemeApplied;
+
+    /// <summary>Applies a style to the root window and to every bound UI root.</summary>
     public static void Apply(Window root, UiStyle style)
     {
         ArgumentNullException.ThrowIfNull(root);
@@ -39,6 +42,29 @@ public static class UiSetup
         root.Theme = CurrentTheme;
         root.ContentScaleFactor = (float)style.ContentScaleFactor;
         Current = style;
+        ThemeApplied?.Invoke(CurrentTheme);
+    }
+
+    /// <summary>
+    /// Gives a UI root below a CanvasLayer the current theme and keeps it updated. Godot does not pass a
+    /// theme through nodes that are neither Control nor Window (a CanvasLayer breaks the chain), so
+    /// without this the screens fall back to the engine's default theme: no frames, fonts, colours or
+    /// text size (found with the A1362 frame screenshots).
+    /// </summary>
+    public static void Bind(Control uiRoot)
+    {
+        ArgumentNullException.ThrowIfNull(uiRoot);
+        uiRoot.Theme = CurrentTheme;
+        void Update(Theme theme)
+        {
+            if (GodotObject.IsInstanceValid(uiRoot))
+            {
+                uiRoot.Theme = theme;
+            }
+        }
+
+        ThemeApplied += Update;
+        uiRoot.TreeExiting += () => ThemeApplied -= Update;
     }
 
     private static string Read(string name)
