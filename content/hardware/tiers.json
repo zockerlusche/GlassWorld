@@ -3,18 +3,34 @@
   "tiers": [
     {
       "id": "minimum",
-      "description": "Language model only, no image AI; construction-kit builder.",
-      "requires_any": [{ "min_largest_gpu_vram_mib": 8192 }]
+      "description": "Nominal 8 GB VRAM (threshold about 5 % lower because cards report slightly less). Language model only, no image AI; construction-kit builder.",
+      "requires_any": [
+        {
+          "min_largest_gpu_vram_mib": 7680
+        }
+      ]
     },
     {
       "id": "standard",
-      "description": "Language model by day, image and sound AI in the computing night.",
-      "requires_any": [{ "min_largest_gpu_vram_mib": 10240 }]
+      "description": "Nominal 10-12 GB VRAM (threshold about 5 % lower). Language model by day, image and sound AI in the computing night.",
+      "requires_any": [
+        {
+          "min_largest_gpu_vram_mib": 9728
+        }
+      ]
     },
     {
       "id": "comfort",
-      "description": "All AI models in parallel.",
-      "requires_any": [{ "min_largest_gpu_vram_mib": 24576 }, { "min_gpu_count": 2 }]
+      "description": "Nominal 24 GB VRAM, or two cards of at least the minimum size (thresholds about 5 % lower). All AI models in parallel.",
+      "requires_any": [
+        {
+          "min_largest_gpu_vram_mib": 23552
+        },
+        {
+          "min_largest_gpu_vram_mib": 7680,
+          "min_second_largest_gpu_vram_mib": 7680
+        }
+      ]
     }
   ]
 }

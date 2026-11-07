@@ -14,11 +14,13 @@ class Requirement(BaseModel):
     )
     min_largest_gpu_vram_mib: int | None = Field(
         None,
-        description='VRAM of the largest NVIDIA GPU in MiB (as reported by nvidia-smi).',
+        description='VRAM of the largest NVIDIA GPU in MiB as reported by nvidia-smi. Cards report slightly less than their nominal size, so thresholds carry a tolerance.',
         ge=0,
     )
-    min_gpu_count: int | None = Field(
-        None, description='Number of detected NVIDIA GPUs.', ge=0
+    min_second_largest_gpu_vram_mib: int | None = Field(
+        None,
+        description='VRAM of the second-largest NVIDIA GPU in MiB (0 if there is only one). Use it for multi-GPU tiers so that a small second card does not count.',
+        ge=0,
     )
     min_ram_mib: int | None = Field(
         None, description='Installed system RAM in MiB.', ge=0

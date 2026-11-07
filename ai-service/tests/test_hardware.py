@@ -85,10 +85,15 @@ def test_detect_uses_the_documented_query() -> None:
         (info(), None),  # no NVIDIA GPU
         (info(6 * GIB), None),  # below minimum
         (info(8 * GIB), "minimum"),
-        (info(10 * GIB), "standard"),  # reference PC: RTX 3080 10 GB
+        (info(8188), "minimum"),  # 8 GB card reporting slightly less
+        (info(7982), "minimum"),
+        (info(10240), "standard"),  # reference PC: RTX 3080 10 GB
         (info(12 * GIB), "standard"),
-        (info(24 * GIB), "comfort"),
-        (info(8 * GIB, 8 * GIB), "comfort"),  # two cards (concept)
+        (info(24564), "comfort"),  # RTX 4090 as reported by nvidia-smi
+        (info(8188, 8188), "comfort"),  # two cards of minimum size (concept)
+        (info(4 * GIB, 4 * GIB), None),  # two small cards are not comfort
+        (info(12 * GIB, 4 * GIB), "standard"),  # small second card does not count
+        (info(24564, 4 * GIB), "comfort"),
     ],
 )
 def test_select_tier(hardware: HardwareInfo, expected: str | None) -> None:
@@ -100,6 +105,7 @@ def test_tiers_file_is_ordered_from_lowest_to_highest() -> None:
     ids = [t.id for t in tiers]
     assert len(ids) == len(set(ids))
     first_vram = [t.requires_any[0].min_largest_gpu_vram_mib or 0 for t in tiers]
+    assert all(v > 0 for v in first_vram)
     assert first_vram == sorted(first_vram)
 
 

@@ -148,10 +148,10 @@ def load_tiers(path: Path) -> HardwareTiers:
 
 
 def _meets(requirement: Requirement, info: HardwareInfo) -> bool:
-    largest_vram = max((g.vram_mib for g in info.gpus), default=0)
+    vram = [*sorted((g.vram_mib for g in info.gpus), reverse=True), 0, 0]
     checks = [
-        (requirement.min_largest_gpu_vram_mib, largest_vram),
-        (requirement.min_gpu_count, len(info.gpus)),
+        (requirement.min_largest_gpu_vram_mib, vram[0]),
+        (requirement.min_second_largest_gpu_vram_mib, vram[1]),
         (requirement.min_ram_mib, info.ram_mib or 0),
     ]
     return all(actual >= minimum for minimum, actual in checks if minimum is not None)
