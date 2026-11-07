@@ -15,6 +15,7 @@ probe_timeout_s = 2.0
 
 # Hardware tiers and thresholds (data, not code). Relative paths are relative to this file.
 hardware_tiers_file = "../content/hardware/tiers.json"
+model_footprints_file = "../content/hardware/models.json"   # B7 S2 residency
 # --- Decider (B3) ---
 # ollama = real model, mock = deterministic stand-in (CI), replay = answers from the call log
 decider_backend = "ollama"

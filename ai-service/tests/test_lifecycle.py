@@ -13,7 +13,7 @@ from pathlib import Path
 
 import httpx
 
-from conftest import TOKEN, FakeProbes, make_app
+from conftest import REFERENCE_PC, TOKEN, FakeProbes, make_app
 from glassworld_ai.app import create_app
 from glassworld_ai.config import Settings
 from glassworld_ai.decider.backends import MockDecider
@@ -92,6 +92,7 @@ def test_lifespan_warms_up_and_always_unloads_and_shutdown_blocks_new_calls(
         settings,
         allowed_hosts=frozenset({"testserver"}),
         probes=FakeProbes(),
+        hardware=REFERENCE_PC,  # CI runners have no GPU: budget 0 would refuse the warm-up
         decider=MockDecider(),
         request_exit=lambda: exits.append("exit"),
         transport=httpx.MockTransport(handler),

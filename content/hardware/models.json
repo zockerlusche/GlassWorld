@@ -1,0 +1,50 @@
+{
+  "contract_version": "0.2",
+  "game_vram_mib": 2560,
+  "models": [
+    {
+      "id": "qwen3.5:9b",
+      "role": "language",
+      "runtime": "ollama",
+      "vram_mib": 6615,
+      "load_s": 8.2,
+      "measured": true,
+      "source": "L673 B7-S3 (num_ctx 8192, peak over idle desktop; Ollama reports 5479 MiB size_vram)",
+      "never_with": []
+    },
+    {
+      "id": "z-image-turbo",
+      "role": "image",
+      "runtime": "comfyui",
+      "vram_mib": 7412,
+      "load_s": 11.2,
+      "measured": true,
+      "source": "L673 B7-S3 (1024x1024, 8 steps, cold peak; warm image 13.7 s)",
+      "never_with": []
+    },
+    {
+      "id": "qwen-image-edit-2511",
+      "role": "image_edit",
+      "runtime": "comfyui",
+      "vram_mib": 9933,
+      "load_s": 60.0,
+      "measured": true,
+      "source": "D391 (9.7 GB peak; comfort tier and assets only)",
+      "never_with": [
+        "qwen3.5:9b"
+      ]
+    },
+    {
+      "id": "moss-sound",
+      "role": "sound",
+      "runtime": "hook",
+      "vram_mib": 5734,
+      "load_s": 50.0,
+      "measured": true,
+      "source": "D440 (GW3: 5.6 GB reserved with offload, load 48-50 s)",
+      "never_with": [
+        "qwen3.5:9b"
+      ]
+    }
+  ]
+}
