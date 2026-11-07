@@ -1,0 +1,15 @@
+<Project Sdk="Godot.NET.Sdk/4.7.2">
+  <!-- Godot presentation layer. Depends on the core, never the other way round (ADR-0002). -->
+  <PropertyGroup>
+    <RootNamespace>GlassWorld.Game</RootNamespace>
+    <AssemblyName>GlassWorld.Game</AssemblyName>
+    <!-- Explicit, otherwise Godot's import rewrites the project to its minimum (net8.0). ADR-0001. -->
+    <TargetFramework>net10.0</TargetFramework>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <!-- Godot node scripts are not a public API; XML docs are not required here. -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\src\Simulation.Core\Simulation.Core.csproj" />
+  </ItemGroup>
+</Project>

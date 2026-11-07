@@ -15,6 +15,7 @@ desktop.ini
 .import/
 export_presets.cfg
 /game/export/
+*.csproj.old
 /build/
 
 # --- .NET ---

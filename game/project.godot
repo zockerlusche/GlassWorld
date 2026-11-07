@@ -1,0 +1,19 @@
+; Engine configuration file.
+; Godot 4.7.2 .NET project for GlassWorld (presentation, input, UI).
+
+config_version=5
+
+[application]
+
+config/name="GlassWorld"
+config/description="Open AI life simulation."
+run/main_scene="res://scenes/main.tscn"
+config/features=PackedStringArray("4.7", "C#", "Forward Plus")
+
+[dotnet]
+
+project/assembly_name="GlassWorld.Game"
+
+[rendering]
+
+renderer/rendering_method="forward_plus"
