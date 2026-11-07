@@ -61,7 +61,7 @@ REFERENCES = [
     ("world/spawns.json", "mandatory[].properties_all[]", "property"),
     ("world/spawns.json", "mandatory[].properties_none[]", "property"),
     ("climate/temperate.json", "weather.states[].weather", "weather"),
-    ("climate/temperate.json", "weather.seasons[].transitions[].from", "weather"),
+    ("climate/temperate.json", "weather.seasons[].transitions[].from_weather", "weather"),
     ("climate/temperate.json", "weather.seasons[].transitions[].to[].weather", "weather"),
     ("look/epochs.json", "epochs[].id", "epoch"),
     ("look/daylight.json", "phases[].phase", "time_of_day"),
