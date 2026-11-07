@@ -1,0 +1,19 @@
+{
+  "contract_version": "0.1",
+  "groups": [
+    { "group": 1, "x": -120, "z": 0 },
+    { "group": 2, "x": 120, "z": 0 }
+  ],
+  "member_spread_m": 6,
+  "objects": [
+    { "type": "apple", "count_per_group": 160, "radius_m": 40 },
+    { "type": "blue_berry", "count_per_group": 60, "radius_m": 40 },
+    { "type": "red_berry", "count_per_group": 20, "radius_m": 40 },
+    { "type": "spring_water", "count_per_group": 2, "radius_m": 25 },
+    { "type": "sea_water", "count_per_group": 2, "radius_m": 50 },
+    { "type": "flint", "count_per_group": 6, "radius_m": 40 },
+    { "type": "pyrite", "count_per_group": 3, "radius_m": 40 },
+    { "type": "dry_wood", "count_per_group": 20, "radius_m": 40 },
+    { "type": "dry_grass", "count_per_group": 20, "radius_m": 40 }
+  ]
+}

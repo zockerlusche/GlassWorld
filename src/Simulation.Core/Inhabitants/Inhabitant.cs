@@ -17,10 +17,13 @@ public sealed record Activity(string Action, string? TargetId, Position Destinat
 public sealed class Inhabitant
 {
     /// <summary>Creates an inhabitant.</summary>
-    public Inhabitant(string id, Position position, IDictionary<string, double> needs, IDictionary<string, double> moods, IDictionary<string, double> traits, double willToLive)
+    public Inhabitant(string id, string sex, int group, Position position, IDictionary<string, double> needs, IDictionary<string, double> moods, IDictionary<string, double> traits, double willToLive)
     {
         ArgumentException.ThrowIfNullOrEmpty(id);
+        ArgumentException.ThrowIfNullOrEmpty(sex);
         Id = id;
+        Sex = sex;
+        Group = group;
         Position = position;
         Needs = new SortedDictionary<string, double>(needs, StringComparer.Ordinal);
         Moods = new SortedDictionary<string, double>(moods, StringComparer.Ordinal);
@@ -30,6 +33,12 @@ public sealed class Inhabitant
 
     /// <summary>Entity id, e.g. <c>inh-000001</c>.</summary>
     public string Id { get; }
+
+    /// <summary>Sex (<c>female</c> or <c>male</c>, B2517); partnership rules in B9 (B2519).</summary>
+    public string Sex { get; }
+
+    /// <summary>Start group (members wake up near each other, F5249).</summary>
+    public int Group { get; }
 
     /// <summary>Where the inhabitant is.</summary>
     public Position Position { get; internal set; }
@@ -55,17 +64,29 @@ public sealed class Inhabitant
     /// <summary>Current activity, or null when the routine has to choose.</summary>
     public Activity? Activity { get; internal set; }
 
+    /// <summary>
+    /// A decided activity that waits until the current one is finished (an answer of the decider never
+    /// breaks off an action in progress, e.g. sleep).
+    /// </summary>
+    public Activity? Planned { get; internal set; }
+
     /// <summary>Writes the complete state in canonical order.</summary>
     public void WriteState(StateHasher hasher)
     {
         ArgumentNullException.ThrowIfNull(hasher);
-        hasher.Write(Id).Write(Position.X).Write(Position.Z).Write(WillToLive).Write(NeglectTicks);
+        hasher.Write(Id).Write(Sex).Write(Group).Write(Position.X).Write(Position.Z).Write(WillToLive).Write(NeglectTicks);
         WriteRegister(hasher, Needs);
         WriteRegister(hasher, Moods);
         WriteRegister(hasher, Traits);
         Beliefs.WriteState(hasher);
-        hasher.Write(Activity is not null);
-        if (Activity is { } a)
+        WriteActivity(hasher, Activity);
+        WriteActivity(hasher, Planned);
+    }
+
+    private static void WriteActivity(StateHasher hasher, Activity? activity)
+    {
+        hasher.Write(activity is not null);
+        if (activity is { } a)
         {
             hasher.Write(a.Action).Write(a.TargetId ?? string.Empty).Write(a.Destination.X).Write(a.Destination.Z).Write(a.RemainingTicks ?? -1);
         }

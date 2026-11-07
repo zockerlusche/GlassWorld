@@ -41,6 +41,10 @@
     {
       "pattern": "hardware/tiers.json",
       "schema": "hardware-tiers"
+    },
+    {
+      "pattern": "world/placeholder-start.json",
+      "schema": "placeholder-start"
     }
   ]
 }

@@ -20,10 +20,17 @@
       "description": "Scores an action. With target_property the core offers the action on every perceived object; the belief that the object has that property scales the score.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["action", "target_property", "need", "weight", "curve"],
+      "required": ["action", "target_property", "avoid_properties", "need", "weight", "curve"],
       "properties": {
         "action": { "$ref": "common.schema.json#/$defs/VocabId" },
         "target_property": { "anyOf": [{ "$ref": "common.schema.json#/$defs/VocabId" }, { "type": "null" }] },
+        "avoid_properties": {
+          "description": "Properties that make the option worse when the inhabitant believes the target has them (factor 1 - confidence each), e.g. salty for drinking.",
+          "type": "array",
+          "uniqueItems": true,
+          "maxItems": 8,
+          "items": { "$ref": "common.schema.json#/$defs/VocabId" }
+        },
         "need": { "description": "Need whose value is the curve input; null = constant input 1.", "anyOf": [{ "$ref": "common.schema.json#/$defs/VocabId" }, { "type": "null" }] },
         "weight": { "type": "number", "minimum": 0, "maximum": 100 },
         "curve": {

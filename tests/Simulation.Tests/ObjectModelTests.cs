@@ -73,14 +73,20 @@ public sealed class ObjectModelTests
     [Theory]
     [InlineData("flint", "pyrite")]
     [InlineData("pyrite", "flint")]
-    [InlineData("flint", "flint")]
-    public void TwoSparkStonesMakeASparkInAnyOrder(string a, string b)
+    public void PyriteAndFlintMakeASparkInAnyOrder(string a, string b)
     {
+        // TL #18657 / B2514 FT4: pyrite is the spark partner of flint.
         var matches = Content.Combinations.Match("combine", [a, b]);
         var match = Assert.Single(matches);
-        Assert.Equal("spark_from_two_spark_stones", match.Rule.Id);
+        Assert.Equal("spark_from_pyrite_and_flint", match.Rule.Id);
         Assert.Equal(["spark"], match.Rule.Creates);
     }
+
+    [Theory]
+    [InlineData("flint", "flint")]
+    [InlineData("pyrite", "pyrite")]
+    public void TwoEqualStonesMakeNoSpark(string a, string b) =>
+        Assert.Empty(Content.Combinations.Match("combine", [a, b]));
 
     [Fact]
     public void UnfittingObjectsOrActionsDoNotCombine()

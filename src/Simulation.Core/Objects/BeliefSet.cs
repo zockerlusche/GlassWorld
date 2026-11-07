@@ -30,6 +30,10 @@ public sealed class BeliefSet
     /// <summary>The belief about a property, if any.</summary>
     public bool TryGet(string typeId, string propertyId, out Belief belief) => _beliefs.TryGetValue((typeId, propertyId), out belief);
 
+    /// <summary>All beliefs in canonical order (save games).</summary>
+    public IEnumerable<(string TypeId, string PropertyId, Belief Belief)> All =>
+        _beliefs.Select(b => (b.Key.TypeId, b.Key.PropertyId, b.Value));
+
     /// <summary>All beliefs about one type, in property order.</summary>
     public IEnumerable<(string PropertyId, Belief Belief)> About(string typeId) =>
         _beliefs.Where(b => b.Key.TypeId == typeId).Select(b => (b.Key.PropertyId, b.Value));

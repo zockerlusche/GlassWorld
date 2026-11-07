@@ -26,6 +26,12 @@ namespace GlassWorld.Contracts
         public string? TargetProperty { get; set; } = default!;
 
         /// <summary>
+        /// Properties that make the option worse when the inhabitant believes the target has them (factor 1 - confidence each), e.g. salty for drinking.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("avoid_properties")]
+        public System.Collections.Generic.ICollection<string> AvoidProperties { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
         /// Need whose value is the curve input; null = constant input 1.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("need")]

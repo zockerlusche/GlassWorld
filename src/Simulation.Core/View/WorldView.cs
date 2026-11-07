@@ -8,6 +8,7 @@ namespace GlassWorld.Simulation.View;
 
 /// <summary>Read-only picture of one inhabitant for the UI (no Godot types, ids only, texts via keys).</summary>
 /// <param name="Id">Inhabitant id.</param>
+/// <param name="Sex">female or male.</param>
 /// <param name="Position">Position in metres.</param>
 /// <param name="Needs">Needs 0..1 by id.</param>
 /// <param name="Moods">Feelings 0..1 by id.</param>
@@ -19,6 +20,7 @@ namespace GlassWorld.Simulation.View;
 /// <param name="OpenQuestionIds">Open questions (ids only: the question window shows that, not what, B2487).</param>
 public sealed record InhabitantSnapshot(
     string Id,
+    string Sex,
     Position Position,
     FrozenDictionary<string, double> Needs,
     FrozenDictionary<string, double> Moods,
@@ -54,6 +56,7 @@ public static class WorldView
             world.Now,
             [.. inhabitants.All.Select(i => new InhabitantSnapshot(
                 i.Id,
+                i.Sex,
                 i.Position,
                 i.Needs.ToFrozenDictionary(StringComparer.Ordinal),
                 i.Moods.ToFrozenDictionary(StringComparer.Ordinal),

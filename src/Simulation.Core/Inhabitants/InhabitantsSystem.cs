@@ -109,12 +109,13 @@ public sealed class InhabitantsSystem : IWorldSystem
     {
         ArgumentNullException.ThrowIfNull(world);
         ArgumentNullException.ThrowIfNull(positions);
-        if (positions.Count < _model.Start.Count)
+        var starters = _model.Start.Inhabitants.ToList();
+        if (positions.Count < starters.Count)
         {
-            throw new ArgumentException($"Need {_model.Start.Count} start positions.", nameof(positions));
+            throw new ArgumentException($"Need {starters.Count} start positions.", nameof(positions));
         }
 
-        for (var i = 0; i < _model.Start.Count; i++)
+        for (var i = 0; i < starters.Count; i++)
         {
             var id = string.Create(CultureInfo.InvariantCulture, $"inh-{i + 1:000000}");
             var rng = world.Random.Get($"inhabitant/{id}/start");
@@ -126,7 +127,8 @@ public sealed class InhabitantsSystem : IWorldSystem
             }
 
             var moods = _model.Moods.ToDictionary(m => m.Id, m => m.Baseline, StringComparer.Ordinal);
-            Add(new Inhabitant(id, positions[i], needs, moods, traits, _model.WillToLive.Start));
+            var sex = starters[i].Sex == StartInhabitantSex.Female ? "female" : "male";
+            Add(new Inhabitant(id, sex, starters[i].Group, positions[i], needs, moods, traits, _model.WillToLive.Start));
         }
     }
 
@@ -220,6 +222,12 @@ public sealed class InhabitantsSystem : IWorldSystem
 
     private void Act(World world, Inhabitant inhabitant)
     {
+        if (inhabitant.Activity is null && inhabitant.Planned is not null)
+        {
+            inhabitant.Activity = inhabitant.Planned;
+            inhabitant.Planned = null;
+        }
+
         inhabitant.Activity ??= Choose(world, inhabitant);
         var activity = inhabitant.Activity;
         if (activity is null)
