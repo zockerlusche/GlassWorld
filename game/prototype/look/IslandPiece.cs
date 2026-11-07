@@ -120,6 +120,8 @@ public static class IslandPiece
                 var lip = SmoothStep(0.1f, 0.0f, Mathf.Abs(inside - 0.1f) - 0.12f) * grassAmount;
                 var bank = (1 - SmoothStep(0.95f, 1.35f, stream)) * SmoothStep(-0.2f, 0.2f, inside);
                 var color = beach.Lerp(grass, grassAmount).Lerp(edge, Mathf.Max(lip * 0.85f, bank));
+                // Alpha = share of the per-pixel shape (island_ground.gdshader); 0 near the stream.
+                color.A = SmoothStep(1.25f, 1.75f, stream);
                 tool.SetColor(color);
                 tool.SetUV(new Vector2(x, z));
                 tool.AddVertex(new Vector3(x, Height(x, z), z));

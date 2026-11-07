@@ -19,6 +19,14 @@ float hash(vec2 p) {
 	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
 }
 
+// Same shore line as the ground (island_ground.gdshader); bands near the shore use the distance to it,
+// so the coast is a smooth curve instead of following the terrain triangles.
+uniform bool use_shore_line = true;
+
+float shore_x(float z) {
+	return 7.5 + 3.2 * sin(0.13 * z + 0.5) + 1.1 * sin(0.33 * z);
+}
+
 void fragment() {
 	float scene_depth = texture(depth_texture, SCREEN_UV).r;
 	vec4 world = INV_PROJECTION_MATRIX * vec4(SCREEN_UV * 2.0 - 1.0, scene_depth, 1.0);
@@ -42,6 +50,14 @@ void fragment() {
 	vec2 local = fract(wp.xz * 0.8) - 0.5;
 	float dash = smoothstep(0.06, 0.0, abs(local.y)) * smoothstep(0.3, 0.1, abs(local.x));
 	color = mix(color, vec3(1.0), dash * blink * glint_amount * step(0.7, h) * smoothstep(0.4, 1.2, water_depth));
+
+	if (use_shore_line) {
+		float seaward = wp.x - shore_x(wp.z);
+		float aa = max(fwidth(seaward), 0.002);
+		float foam_band = 0.45 + 0.25 * breathe;
+		vec3 near_shore = mix(foam_color.rgb, shallow_color.rgb, smoothstep(foam_band - aa, foam_band + aa, seaward));
+		color = mix(near_shore, color, smoothstep(2.2, 3.4, seaward));
+	}
 
 	ALBEDO = color;
 }

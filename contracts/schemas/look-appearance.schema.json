@@ -14,7 +14,10 @@
     "hair_colors",
     "clothing_styles",
     "clothing_colors",
-    "age_stages"
+    "age_stages",
+    "shapes",
+    "head_scale",
+    "elder_hair_colors"
   ],
   "properties": {
     "contract_version": {
@@ -87,6 +90,29 @@
         "$ref": "#/$defs/AppearanceAgeStage"
       },
       "maxItems": 16
+    },
+    "shapes": {
+      "description": "Body shape blend weights drawn per inhabitant from the seed (B2528); several shapes combine. Ids match the blend shapes of the figure models (body_<id>).",
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 16,
+      "items": {
+        "$ref": "#/$defs/AppearanceShapeRange"
+      }
+    },
+    "head_scale": {
+      "$ref": "#/$defs/AppearanceNumberRange"
+    },
+    "elder_hair_colors": {
+      "description": "Hair colours of elders (grey and white).",
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 16,
+      "items": {
+        "description": "Colour as lowercase #rrggbb.",
+        "type": "string",
+        "pattern": "^#[0-9a-f]{6}$"
+      }
     }
   },
   "$defs": {
@@ -136,6 +162,55 @@
           "type": "number",
           "minimum": 0.1,
           "maximum": 1.5
+        }
+      }
+    },
+    "AppearanceShapeRange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "min",
+        "max"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "min": {
+          "description": "Smallest weight.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "max": {
+          "description": "Largest weight.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "AppearanceNumberRange": {
+      "description": "Range (min <= max).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "min",
+        "max"
+      ],
+      "properties": {
+        "min": {
+          "description": "Smallest value.",
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 3
+        },
+        "max": {
+          "description": "Largest value.",
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 3
         }
       }
     }
