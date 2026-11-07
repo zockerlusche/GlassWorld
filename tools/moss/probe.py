@@ -5,7 +5,7 @@ pinned commit) and only through the AMW GPU queue (KR5):
 
     amw lauf ausfuehren --gpu --aufgabe 1353 --ergebnis <out>/log.txt -- \
         <venv>/python tools/moss/probe.py \
-        --model-dir <weights> --code-dir <MOSS-TTS> --out-dir <out> --dit-dtype bf16 --offload
+        --model-dir <weights> --code-dir <MOSS-TTS> --out-dir <out> --dit-dtype bfloat16 --offload
 
 Measures model load time, generation time per clip, peak VRAM (PyTorch allocator and the whole
 process via nvidia-smi), and checks every WAV (length, peak, not silent). Writes result.json next
@@ -20,6 +20,7 @@ import json
 import os
 import subprocess
 import sys
+import threading
 import time
 from pathlib import Path
 
@@ -43,6 +44,35 @@ def gpu_used_mib() -> int | None:
         return int(out.strip().splitlines()[0])
     except (OSError, subprocess.SubprocessError, ValueError, IndexError):
         return None
+
+
+class GpuPeakSampler:
+    """Polls nvidia-smi every interval while a clip renders and keeps the maximum (whole GPU).
+
+    The value after a clip misses the real peak of the offload phases (text encoder, DiT, VAE);
+    the residency budget needs the peak (GW2 review #52).
+    """
+
+    def __init__(self, interval_s: float = 0.1) -> None:
+        self._interval_s = interval_s
+        self._stop = threading.Event()
+        self._thread = threading.Thread(target=self._run, daemon=True)
+        self.peak_mib = 0
+
+    def _run(self) -> None:
+        while not self._stop.is_set():
+            used = gpu_used_mib()
+            if used is not None:
+                self.peak_mib = max(self.peak_mib, used)
+            self._stop.wait(self._interval_s)
+
+    def __enter__(self) -> GpuPeakSampler:
+        self._thread.start()
+        return self
+
+    def __exit__(self, *_: object) -> None:
+        self._stop.set()
+        self._thread.join()
 
 
 def main() -> int:
@@ -124,11 +154,14 @@ def main() -> int:
     for name, prompt, seconds in PROMPTS[: args.clips]:
         torch.cuda.reset_peak_memory_stats()
         start = time.perf_counter()
-        audio = pipe(prompt=prompt, seconds=seconds, num_inference_steps=args.steps, seed=args.seed)
-        torch.cuda.synchronize()
+        with GpuPeakSampler() as sampler:
+            audio = pipe(
+                prompt=prompt, seconds=seconds, num_inference_steps=args.steps, seed=args.seed
+            )
+            torch.cuda.synchronize()
         took = time.perf_counter() - start
         used = gpu_used_mib() or 0
-        process_peak = max(process_peak, used)
+        process_peak = max(process_peak, used, sampler.peak_mib)
         samples = audio[0].detach().float().cpu().numpy()
         mono = samples.mean(axis=0) if samples.ndim == 2 else samples
         path = out / f"{name}.wav"
@@ -139,6 +172,8 @@ def main() -> int:
             {
                 "name": name,
                 "prompt": prompt,
+                "seed": args.seed,
+                "steps": args.steps,
                 "seconds": seconds,
                 "file": path.name,
                 "generate_seconds": round(took, 2),
@@ -146,6 +181,7 @@ def main() -> int:
                 "peak_allocated_mib": round(torch.cuda.max_memory_allocated() / 2**20),
                 "peak_reserved_mib": round(torch.cuda.max_memory_reserved() / 2**20),
                 "gpu_used_after_mib": used,
+                "gpu_used_peak_mib": max(used, sampler.peak_mib),
                 "duration_s": round(len(mono) / pipe.sample_rate, 3),
                 "sample_rate": pipe.sample_rate,
                 "peak": round(peak, 4),
