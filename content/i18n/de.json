@@ -3,6 +3,18 @@
   "locale": "de",
   "entries": [
     {
+      "key": "chronicle.discovered_process",
+      "text": "{inhabitant} hat einen neuen Arbeitsschritt entdeckt: {action}."
+    },
+    {
+      "key": "chronicle.first_use",
+      "text": "{inhabitant} benutzt zum ersten Mal {target}."
+    },
+    {
+      "key": "chronicle.invented",
+      "text": "{inhabitant} hat etwas Neues erfunden: {target}."
+    },
+    {
       "key": "msg.command.no_inhabitant",
       "text": "Diesen Bewohner gibt es hier nicht mehr."
     },
@@ -105,6 +117,18 @@
     {
       "key": "ui.card.will_to_live",
       "text": "Lebenswille"
+    },
+    {
+      "key": "ui.chronicle.day",
+      "text": "{season}, Tag {day}, Jahr {year}"
+    },
+    {
+      "key": "ui.chronicle.empty",
+      "text": "Noch ist nichts Besonderes geschehen."
+    },
+    {
+      "key": "ui.chronicle.something",
+      "text": "etwas Unbekanntes"
     },
     {
       "key": "ui.chronicle.title",

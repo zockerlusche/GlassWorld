@@ -141,6 +141,10 @@
     {
       "pattern": "processes/*.json",
       "schema": "process-rules"
+    },
+    {
+      "pattern": "chronicle/kinds.json",
+      "schema": "chronicle-kinds"
     }
   ]
 }

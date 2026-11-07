@@ -1,0 +1,32 @@
+{
+  "contract_version": "0.2",
+  "kinds": [
+    {
+      "id": "invented",
+      "event": "invented",
+      "text_key": "chronicle.invented",
+      "params": [
+        "inhabitant",
+        "target"
+      ]
+    },
+    {
+      "id": "first_use",
+      "event": "first_use",
+      "text_key": "chronicle.first_use",
+      "params": [
+        "inhabitant",
+        "target"
+      ]
+    },
+    {
+      "id": "discovered_process",
+      "event": "discovered_process",
+      "text_key": "chronicle.discovered_process",
+      "params": [
+        "inhabitant",
+        "action"
+      ]
+    }
+  ]
+}
