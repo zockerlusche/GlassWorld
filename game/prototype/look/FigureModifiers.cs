@@ -116,6 +116,12 @@ public partial class LookAtModifier : SkeletonModifier3D
             return;
         }
 
+        // Target straight behind: the arc between opposite vectors is undefined, so do not turn.
+        if (forward.Dot(wanted) < -0.999f)
+        {
+            return;
+        }
+
         var angle = forward.AngleTo(wanted);
         var limit = Mathf.DegToRad(MaxAngleDegrees);
         var share = angle > limit ? limit / angle : 1f;
@@ -176,6 +182,9 @@ public partial class ProportionModifier : SkeletonModifier3D
     /// <summary>Forward bend of the upper spine in degrees (elders).</summary>
     public float Stoop { get; set; }
 
+    /// <summary>Backward straightening of the upper spine in degrees (everyone else).</summary>
+    public float Upright { get; set; } = 7f;
+
     /// <inheritdoc/>
     public override void _ProcessModificationWithDelta(double delta)
     {
@@ -191,7 +200,9 @@ public partial class ProportionModifier : SkeletonModifier3D
             skeleton.SetBonePoseScale(head, Vector3.One * HeadScale);
         }
 
-        if (Stoop > 0)
+        // Upright: the idle clip leans forward, which with the big head looks bent (TL #19090).
+        var bend = Stoop > 0 ? Stoop : -Upright;
+        if (!Mathf.IsZeroApprox(bend))
         {
             foreach (var name in new[] { "DEF-spine.002", "DEF-spine.003" })
             {
@@ -202,8 +213,8 @@ public partial class ProportionModifier : SkeletonModifier3D
                 }
 
                 var pose = skeleton.GetBoneGlobalPose(bone);
-                var bend = new Quaternion(Vector3.Right, Mathf.DegToRad(Stoop * 0.5f));
-                skeleton.SetBoneGlobalPose(bone, new Transform3D(new Basis(bend) * pose.Basis, pose.Origin));
+                var turn = new Quaternion(Vector3.Right, Mathf.DegToRad(bend * 0.5f));
+                skeleton.SetBoneGlobalPose(bone, new Transform3D(new Basis(turn) * pose.Basis, pose.Origin));
             }
         }
     }

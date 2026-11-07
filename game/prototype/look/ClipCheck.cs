@@ -13,6 +13,7 @@ public partial class ClipCheck : Node3D
 
     private readonly List<(string Body, AnimationPlayer Player, Skeleton3D Skeleton, string[] Clips)> _subjects = [];
     private readonly List<string> _failures = [];
+    private string[] _expected = [];
     private int _clip;
     private int _frame;
     private int _checked;
@@ -29,35 +30,53 @@ public partial class ClipCheck : Node3D
             var clips = player.GetAnimationList().Where(c => c != "A_TPose").Order(StringComparer.Ordinal).ToArray();
             _subjects.Add((body, player, skeleton, clips));
         }
+
+        // Reference: the clips of the Quaternius source library, not one of the rebuilt bodies.
+        var source = GD.Load<PackedScene>("res://assets/characters/quaternius-ual1/ual1_standard.glb").Instantiate<Node3D>();
+        var sourcePlayer = source.FindChildren("*", "AnimationPlayer", true, false).OfType<AnimationPlayer>().Single();
+        _expected = sourcePlayer.GetAnimationList().Where(c => c != "A_TPose").Order(StringComparer.Ordinal).ToArray();
+        source.Free();
+        if (_expected.Length == 0)
+        {
+            _failures.Add("source library has no clips");
+        }
+
+        foreach (var (body, _, _, clips) in _subjects)
+        {
+            var missing = _expected.Except(clips, StringComparer.Ordinal).ToList();
+            var extra = clips.Except(_expected, StringComparer.Ordinal).ToList();
+            if (missing.Count > 0)
+            {
+                _failures.Add($"{body} misses clips: {string.Join(',', missing)}");
+            }
+
+            if (extra.Count > 0)
+            {
+                _failures.Add($"{body} has clips not in the source: {string.Join(',', extra)}");
+            }
+        }
     }
 
     /// <inheritdoc/>
     public override void _Process(double delta)
     {
         // Every body must carry exactly the clips of the source library (compared by name, not index).
-        var expected = _subjects[0].Clips;
-        if (_clip == 0 && _frame == 0)
-        {
-            foreach (var (body, _, _, clips) in _subjects)
-            {
-                var missing = expected.Except(clips, StringComparer.Ordinal).Concat(clips.Except(expected, StringComparer.Ordinal)).ToList();
-                if (missing.Count > 0)
-                {
-                    _failures.Add($"{body} clip set differs: {string.Join(',', missing)}");
-                }
-            }
-        }
-
+        var expected = _expected;
         var count = expected.Length;
         if (_clip >= count)
         {
             var bodies = string.Join(',', _subjects.Select(s => s.Body));
+            if (_checked != count * _subjects.Count)
+            {
+                _failures.Add($"checked {_checked} of {count * _subjects.Count} body clips");
+            }
+
             if (_failures.Count > 0)
             {
                 GD.PushError($"CLIPS_FAIL {string.Join("; ", _failures)}");
             }
 
-            GD.Print($"CLIPS_OK bodies={bodies} clips={count} checked={_checked} failures={_failures.Count}");
+            GD.Print($"CLIPS_OK bodies={bodies} reference=ual1_standard clips={count} checked={_checked} failures={_failures.Count}");
             GetTree().Quit();
             _clip = int.MaxValue - 1;
             return;

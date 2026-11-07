@@ -41,6 +41,9 @@ public static class FigureFactory
     /// <summary>Clips used by the prototype, all from the Quaternius standard library.</summary>
     public static readonly string[] Clips = ["Idle_Loop", "Walk_Loop", "Jog_Fwd_Loop"];
 
+    /// <summary>Clearance radius around the arm for the given limb thickness factor (1 = slim body).</summary>
+    public static float ArmRadiusFor(float limbs) => (0.067f * limbs) + 0.025f;
+
     /// <summary>Builds one figure; <paramref name="comic"/> is the shared warm comic shader.</summary>
     public static Figure Build(FigureLook look, Shader comic, Shader? outline)
     {
@@ -95,7 +98,7 @@ public static class FigureFactory
         skeleton.AddChild(new ArmRestModifier { Spread = look.ArmSpread });
         // Arm thickness grows with the heavy and strong shapes (blend shapes widen the limbs too).
         var limbs = 1f + (0.3f * (look.Shapes?.GetValueOrDefault("heavy") ?? 0)) + (0.3f * (look.Shapes?.GetValueOrDefault("strong") ?? 0));
-        skeleton.AddChild(new ArmClearanceModifier { Profile = TorsoProfile.Of(body, skeleton), ArmRadius = (0.06f * limbs) + 0.02f });
+        skeleton.AddChild(new ArmClearanceModifier { Profile = TorsoProfile.Of(body, skeleton), ArmRadius = ArmRadiusFor(limbs) });
         var wave = new WaveModifier();
         skeleton.AddChild(wave);
         var lookAt = new LookAtModifier();

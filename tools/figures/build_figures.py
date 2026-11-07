@@ -16,6 +16,7 @@ game switches by appearance data. Body regions are written into the vertex colou
 """
 
 import contextlib
+import hashlib
 import itertools
 import json
 import math
@@ -317,9 +318,10 @@ def build_body(rig, spec, expression="neutral", blink=False):
         (hips_z + 0.12, 0.0),
         (hips_z + 0.24, 0.5),
         (hips_z + 0.36, 1.0),
-        (top_z - 0.06, 1.0),
-        (top_z - 0.01, 0.75),
-        (top_z + 0.015, 0.38),
+        (top_z - 0.08, 1.0),
+        (top_z - 0.03, 0.9),
+        (top_z + 0.0, 0.66),
+        (top_z + 0.02, 0.34),
     ]
     for i, (z, k) in enumerate(profile):
         if i < 3:
@@ -397,14 +399,15 @@ def build_body(rig, spec, expression="neutral", blink=False):
         )
         a, b, c = rig.h(ua), rig.h(fa), rig.h(hand)
         d_ua = (b - a).normalized()
-        inner = a - d_ua * (sh["upper_arm"][0] * 1.2)
+        # the sleeve starts deep inside the torso and slimmer, so no ball stands out at the shoulder
+        inner = a - d_ua * (sh["upper_arm"][0] * 1.7)
         sleeve = sh.get("sleeve", 0.5)
         parts.append(
             Part(
-                capsule(inner, b, sh["upper_arm"][0] * 1.05, sh["upper_arm"][1]),
-                lambda p, a=a, b=b, s=sleeve: TOP
-                if (p - a).dot(b - a) / (b - a).length_squared < s
-                else FOREARM,
+                capsule(inner, b, sh["upper_arm"][0] * 0.9, sh["upper_arm"][1]),
+                lambda p, a=a, b=b, s=sleeve: (
+                    TOP if (p - a).dot(b - a) / (b - a).length_squared < s else FOREARM
+                ),
                 along(ua, inner, b, parent=sho, child=fa, parent_share=0.6),
             )
         )
@@ -415,8 +418,8 @@ def build_body(rig, spec, expression="neutral", blink=False):
                     capsule(
                         hem - d_ua * 0.012,
                         hem + d_ua * 0.012,
-                        sh["upper_arm"][0] * 1.16,
-                        sh["upper_arm"][0] * 1.12,
+                        sh["upper_arm"][0] * 1.07,
+                        sh["upper_arm"][0] * 1.06,
                         14,
                         1,
                         2,
@@ -439,6 +442,12 @@ def build_body(rig, spec, expression="neutral", blink=False):
         thumb_a = c + d * (hl * 0.35) + FWD * (hw * 0.6)
         thumb_b = thumb_a + d * (hl * 0.45) + FWD * (hw * 0.55)
         parts.append(Part(capsule(thumb_a, thumb_b, ht * 0.55, ht * 0.45, 8, 3, 2), SKIN, hand))
+        # open hand: four short fingers lie straight beyond the palm (weighted to the hand bone)
+        for k in range(4):
+            across = (k - 1.5) * hw * 0.5
+            root = palm + d * (hl * 0.8) + FWD * across
+            tip = root + d * (hl * 0.75)
+            parts.append(Part(capsule(root, tip, ht * 0.42, ht * 0.36, 8, 3, 2), SKIN, hand))
 
     # legs, round shoes
     for s in ("L", "R"):
@@ -447,9 +456,9 @@ def build_body(rig, spec, expression="neutral", blink=False):
         shorts = sh.get("shorts", 0.0)
         thigh_region = (
             (
-                lambda p, a=a, b=b, s=shorts: BOTTOM
-                if (p - a).dot(b - a) / (b - a).length_squared < s
-                else SHIN
+                lambda p, a=a, b=b, s=shorts: (
+                    BOTTOM if (p - a).dot(b - a) / (b - a).length_squared < s else SHIN
+                )
             )
             if shorts > 0
             else BOTTOM
@@ -587,7 +596,15 @@ def hair_parts(style, centre, r):
                 },
             )
         )
-    elif style == "bun":
+    if style in ("short", "tousled"):
+        for k, side in enumerate((-0.38, 0.0, 0.38)):
+            lobe = (
+                centre - FWD * (r * 0.78) + LEFT * (side * r) + UP * (r * (-0.28 - 0.06 * (k % 2)))
+            )
+            parts.append(
+                Part(ellipsoid(lobe, r * 0.34, r * 0.28, r * 0.36, 12, 8), HAIR, "DEF-head")
+            )
+    if style == "bun":
         parts.append(
             Part(
                 ellipsoid(
@@ -712,6 +729,33 @@ def main():
         keys = [k.name for k in body.data.shape_keys.key_blocks][1:]
         print(f"FIGURE_SHAPES {spec['id']} {','.join(keys)}")
         print(f"FIGURE_BUILT {spec['id']} actions={len(bpy.data.actions)} meshes={counts}")
+    write_manifest(source, config_path, out_dir, [spec["id"] for spec in config["bodies"]])
+
+
+def sha256(path):
+    with open(path, "rb") as file:
+        return hashlib.sha256(file.read()).hexdigest()
+
+
+def write_manifest(source, config_path, out_dir, ids):
+    """Records the inputs and outputs of a build, so a rebuild with other inputs shows in review.
+
+    The GLB bytes differ from build to build (Blender export order); the body hashes identify the
+    committed files, the input hashes and the Blender version say how to rebuild them.
+    """
+    manifest = {
+        "tool": "tools/figures/build_figures.py",
+        "tool_sha256": sha256(__file__),
+        "blender": bpy.app.version_string,
+        "source": source.replace("\\", "/"),
+        "source_sha256": sha256(source),
+        "config_sha256": sha256(config_path),
+        "bodies": {i: sha256(f"{out_dir}/{i}.glb") for i in ids},
+    }
+    with open(f"{out_dir}/manifest.json", "w", encoding="utf-8", newline="\n") as file:
+        json.dump(manifest, file, indent=2)
+        file.write("\n")
+    print(f"FIGURE_MANIFEST {out_dir}/manifest.json")
 
 
 main()

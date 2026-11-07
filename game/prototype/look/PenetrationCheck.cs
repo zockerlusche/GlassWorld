@@ -19,7 +19,7 @@ public partial class PenetrationCheck : Node3D
 
     private readonly List<(string Body, AnimationPlayer Player, MeshInstance3D Mesh, string[] Clips)> _subjects = [];
     private readonly Dictionary<MeshInstance3D, Skinning> _skinning = [];
-    private readonly Dictionary<MeshInstance3D, float> _measured = [];
+    private readonly Dictionary<MeshInstance3D, (float Depth, string Where)> _measured = [];
     private readonly List<string> _worst = [];
     private int _clip;
     private int _time;
@@ -39,7 +39,7 @@ public partial class PenetrationCheck : Node3D
             var mesh = root.FindChildren("Body", "MeshInstance3D", true, false).OfType<MeshInstance3D>().Single();
             mesh.SetBlendShapeValue(mesh.FindBlendShapeByName("body_heavy"), 1f);
             skeleton.AddChild(new ArmRestModifier { Spread = 0.8f });
-            skeleton.AddChild(new ArmClearanceModifier { Profile = TorsoProfile.Of(mesh, skeleton), ArmRadius = (0.06f * 1.3f) + 0.02f });
+            skeleton.AddChild(new ArmClearanceModifier { Profile = TorsoProfile.Of(mesh, skeleton), ArmRadius = FigureFactory.ArmRadiusFor(1.3f) });
             var player = root.FindChildren("*", "AnimationPlayer", true, false).OfType<AnimationPlayer>().Single();
             _skinning[mesh] = Skinning.Of(mesh, skeleton, "body_heavy");
 
@@ -69,12 +69,19 @@ public partial class PenetrationCheck : Node3D
                 GD.Print($"PENETRATION_CLIP {group.Key} over={group.Count()}");
             }
 
-            if (_worst.Count > 0)
+            // Clips the figures actually play must be clean (TL #19090); the rest are reported only.
+            var used = _worst.Where(w => FigureFactory.Clips.Any(c => w.Split('/')[1].Split('@')[0] == c.Replace("_Loop", string.Empty, StringComparison.Ordinal))).ToList();
+            foreach (var sample in used)
             {
-                GD.PushError("PENETRATION_FAIL " + string.Join("; ", _worst.Take(12)));
+                GD.Print($"PENETRATION_USED {sample}");
             }
 
-            GD.Print(line);
+            if (used.Count > 0)
+            {
+                GD.PushError("PENETRATION_FAIL used clips: " + string.Join("; ", used));
+            }
+
+            GD.Print(line + $" used_clips={string.Join(',', FigureFactory.Clips)} used_over={used.Count}");
             GetTree().Quit();
             _clip = int.MaxValue - 1;
             return;
@@ -104,11 +111,12 @@ public partial class PenetrationCheck : Node3D
                 continue;
             }
 
-            if (!_measured.TryGetValue(mesh, out var depth))
+            if (!_measured.TryGetValue(mesh, out var found))
             {
                 continue;
             }
 
+            var (depth, where) = found;
             _samples++;
             if (depth > _deepest)
             {
@@ -118,7 +126,7 @@ public partial class PenetrationCheck : Node3D
 
             if (depth > ToleranceM)
             {
-                _worst.Add(string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{body}/{clips[_clip]}@{Times[_time]} {depth * 100:F1} cm"));
+                _worst.Add(string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{body}/{clips[_clip]}@{Times[_time]} {depth * 100:F1} cm ({where})"));
             }
         }
 
@@ -132,13 +140,13 @@ public partial class PenetrationCheck : Node3D
     }
 
     /// <summary>Deepest forearm vertex inside the torso surface, in metres (0 if none).</summary>
-    private static float Measure((Vector3[] Positions, string[] Dominant) posed)
+    private static (float Depth, string Where) Measure((Vector3[] Positions, string[] Dominant) posed)
     {
         var (positions, dominant) = posed;
         // Torso and arm vertices by their dominant bone (sleeves share the shirt colour, so colour
         // regions would count the upper arms as torso).
         var torso = new List<Vector3>();
-        var arms = new List<Vector3>();
+        var arms = new List<(Vector3 P, string Bone)>();
         for (var i = 0; i < positions.Length; i++)
         {
             var bone = dominant[i];
@@ -148,13 +156,13 @@ public partial class PenetrationCheck : Node3D
             }
             else if (bone.Contains("forearm", StringComparison.Ordinal) || bone.Contains("hand", StringComparison.Ordinal))
             {
-                arms.Add(positions[i]);
+                arms.Add((positions[i], bone));
             }
         }
 
         if (torso.Count == 0 || arms.Count == 0)
         {
-            return 0;
+            return (0, "-");
         }
 
         var minY = torso.Min(p => p.Y);
@@ -183,7 +191,8 @@ public partial class PenetrationCheck : Node3D
         }
 
         var deepest = 0f;
-        foreach (var p in arms)
+        var deepestWhere = "-";
+        foreach (var (p, bone) in arms)
         {
             var s = (int)((p.Y - minY) / SlabM);
             if (s < 0 || s >= slabs || counts[s] == 0)
@@ -193,10 +202,14 @@ public partial class PenetrationCheck : Node3D
 
             var offset = new Vector2(p.X, p.Z) - centre[s];
             var inside = radius[s, Sector(offset)] - offset.Length();
-            deepest = Mathf.Max(deepest, inside);
+            if (inside > deepest)
+            {
+                deepest = inside;
+                deepestWhere = string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{bone} {(p.Y - minY) * 100:F0} cm above torso bottom");
+            }
         }
 
-        return deepest;
+        return (deepest, deepestWhere);
     }
 
     private static int Sector(Vector2 offset) =>

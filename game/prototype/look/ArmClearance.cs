@@ -139,7 +139,10 @@ public partial class ArmClearanceModifier : SkeletonModifier3D
                 var chest = skeleton.GetBoneGlobalPose(chestBone).Origin;
                 var shoulder = skeleton.GetBoneGlobalPose(upper);
                 var handPose = skeleton.GetBoneGlobalPose(hand);
-                Vector3[] points = [skeleton.GetBoneGlobalPose(fore).Origin, handPose.Origin, handPose.Origin + (handPose.Basis.Y.Normalized() * 0.08f)];
+                // Elbow, two points along the forearm, wrist, middle of the hand and the finger tips (the open hand reaches ~0.6 forearm lengths).
+                var elbow = skeleton.GetBoneGlobalPose(fore).Origin;
+                var along = handPose.Basis.Y.Normalized() * (handPose.Origin - elbow).Length();
+                Vector3[] points = [elbow, elbow.Lerp(handPose.Origin, 0.33f), elbow.Lerp(handPose.Origin, 0.67f), handPose.Origin, handPose.Origin + (along * 0.3f), handPose.Origin + (along * 0.6f)];
                 var push = 0f;
                 var outward = Vector3.Zero;
                 foreach (var p in points)

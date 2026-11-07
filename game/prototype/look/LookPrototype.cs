@@ -160,14 +160,14 @@ public partial class LookPrototype : Node3D
             BackgroundColor = _look!.Srgb("sea_deep"),
             AmbientLightSource = Godot.Environment.AmbientSource.Color,
             AmbientLightColor = new Color(1f, 0.97f, 0.92f),
-            AmbientLightEnergy = 0.5f,
+            AmbientLightEnergy = 0.42f,
             TonemapMode = Godot.Environment.ToneMapper.Linear,
         };
         AddChild(new WorldEnvironment { Environment = environment });
         var sun = new DirectionalLight3D
         {
             Name = "Sun",
-            LightEnergy = 0.58f,
+            LightEnergy = 0.6f,
             LightColor = new Color(1f, 0.96f, 0.88f),
             ShadowEnabled = true,
             ShadowBlur = 2.5f,

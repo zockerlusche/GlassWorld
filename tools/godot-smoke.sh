@@ -109,9 +109,17 @@ fi
 # Figure bodies (A1436): every Quaternius clip moves the skeleton of every GlassWorld body.
 CLIP_LOG="$(mktemp)"
 timeout "$TIMEOUT_S" "$GODOT" --headless --path "$GAME" --quit-after 2000 res://prototype/look/clip_check.tscn >"$CLIP_LOG" 2>&1
-if ! grep -Eq '^CLIPS_OK bodies=[a-z_,]+ clips=[1-9][0-9]* checked=[1-9][0-9]* failures=0$' "$CLIP_LOG"; then
+if ! grep -Eq '^CLIPS_OK bodies=adult_female,adult_male,child reference=ual1_standard clips=[1-9][0-9]* checked=[1-9][0-9]* failures=0$' "$CLIP_LOG"; then
   cat "$CLIP_LOG" >&2
   echo "SMOKE_FAIL: a clip does not move a figure body (marker 'CLIPS_OK ... failures=0' missing)" >&2
+  exit 1
+fi
+# Arms and torso (B2528, TL #19090): the clips the figures play must not push an arm into the body.
+PEN_LOG="$(mktemp)"
+timeout "$TIMEOUT_S" "$GODOT" --headless --path "$GAME" --quit-after 6000 res://prototype/look/penetration_check.tscn >"$PEN_LOG" 2>&1
+if ! grep -Eq '^PENETRATION_OK samples=[1-9][0-9]* .* used_over=0$' "$PEN_LOG"; then
+  cat "$PEN_LOG" >&2
+  echo "SMOKE_FAIL: an arm goes into the body in a clip the figures play (marker 'PENETRATION_OK ... used_over=0' missing)" >&2
   exit 1
 fi
 echo "SMOKE_PASS: $FRAMES frames without errors"
