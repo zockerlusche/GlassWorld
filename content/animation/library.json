@@ -260,6 +260,21 @@
       "clip": "handle"
     },
     {
+      "kind": "action",
+      "id": "warn",
+      "clip": "talk"
+    },
+    {
+      "kind": "action",
+      "id": "show",
+      "clip": "handle"
+    },
+    {
+      "kind": "action",
+      "id": "teach",
+      "clip": "talk"
+    },
+    {
       "kind": "expression",
       "id": "look_around",
       "clip": "look_around"
