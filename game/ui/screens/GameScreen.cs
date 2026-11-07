@@ -26,6 +26,7 @@ public partial class GameScreen : CanvasLayer
     private ChronicleBook? _chronicle;
     private Contracts.ChronicleKinds? _kinds;
     private int _chronicleShown = -1;
+    private int _chronicleCount;
     private readonly List<(Button Button, TimeChoice Choice)> _timeButtons = [];
     private readonly Dictionary<string, ProgressBar> _cardBars = new(StringComparer.Ordinal);
     private Label? _cardAction;
@@ -132,7 +133,7 @@ public partial class GameScreen : CanvasLayer
                 _board.Push(hint, fastForward: _presenter.Speed > 1);
             }
 
-            _chronicle?.Add(events, ChronicleNamesNow());
+            _chronicle?.Add(events);
         }
 
         _sinceRefreshMs += delta * 1000;
@@ -263,9 +264,10 @@ public partial class GameScreen : CanvasLayer
             ["year"] = Number(entry.Year),
         });
 
-        // Parameters are names (shown as they are) or text keys (translated now, so a language switch works).
-        var args = entry.Args.ToDictionary(a => a.Key, a => TextKeys.LooksLikeKey(a.Value) ? Tr(a.Value).ToString() : a.Value, StringComparer.Ordinal);
-        return date + "\n" + TextFill.Fill(Tr(entry.TextKey), args);
+        // Names are resolved now (GW1 review #64 C2); parameters that are keys are translated now.
+        var (key, raw) = ChronicleBook.Line(entry, ChronicleNamesNow());
+        var args = raw.ToDictionary(a => a.Key, a => TextKeys.LooksLikeKey(a.Value) ? Tr(a.Value).ToString() : a.Value, StringComparer.Ordinal);
+        return date + "\n" + TextFill.Fill(Tr(key), args);
     }
 
     /// <summary>Smoke: every chronicle kind gives a full line (no placeholder or key left) in DE and EN.</summary>
@@ -283,7 +285,7 @@ public partial class GameScreen : CanvasLayer
             {
                 Localization.TextCatalogs.SetLanguage(locale);
                 var book = new ChronicleBook(_kinds!, host.World.Calendar);
-                book.Add(_kinds!.Kinds.Select(k => new GlassWorld.Simulation.Inhabitants.WorldEvent(k.Event, 1, "inh-000001", "eat", "obj-000001")), ChronicleNamesNow());
+                book.Add(_kinds!.Kinds.Select(k => new GlassWorld.Simulation.Inhabitants.WorldEvent(k.Event, 1, "inh-000001", "eat", "obj-000001")));
                 foreach (var entry in book.Entries)
                 {
                     var text = ChronicleText(entry);
@@ -314,12 +316,19 @@ public partial class GameScreen : CanvasLayer
             return;
         }
 
-        // Rebuilt only when an entry was added or the language changed (calm, no 250 ms churn).
+        // New entries are added on top (GW1 review #64 C3); everything is rebuilt only after a language
+        // switch (_chronicleShown = -1). Paging comes with the core chronicle API of D5.
+        var rebuild = _chronicleShown < 0;
         _chronicleShown = _chronicle.Version;
-        foreach (var child in _chronicleList.GetChildren())
+        if (rebuild || _chronicleCount == 0)
         {
-            _chronicleList.RemoveChild(child);
-            child.QueueFree();
+            foreach (var child in _chronicleList.GetChildren())
+            {
+                _chronicleList.RemoveChild(child);
+                child.QueueFree();
+            }
+
+            _chronicleCount = 0;
         }
 
         if (_chronicle.Entries.Count == 0)
@@ -328,16 +337,21 @@ public partial class GameScreen : CanvasLayer
             return;
         }
 
-        foreach (var entry in _chronicle.Entries)
+        var fresh = _chronicle.Entries.Count - _chronicleCount;
+        for (var i = fresh - 1; i >= 0; i--)
         {
-            _chronicleList.AddChild(new Label
+            var label = new Label
             {
-                Text = ChronicleText(entry),
+                Text = ChronicleText(_chronicle.Entries[i]),
                 AutoTranslateMode = AutoTranslateModeEnum.Disabled,
                 AutowrapMode = TextServer.AutowrapMode.WordSmart,
                 SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-            });
+            };
+            _chronicleList.AddChild(label);
+            _chronicleList.MoveChild(label, 0);
         }
+
+        _chronicleCount = _chronicle.Entries.Count;
     }
 
     /// <summary>Shows a calm hint (e.g. saving failed).</summary>

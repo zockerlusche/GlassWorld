@@ -28,18 +28,18 @@ public sealed class ChronicleBookTests
                 new WorldEvent("invented", 5, "inh-000002", null, "obj-000007"),
                 new WorldEvent(InhabitantsSystem.ActionStarted, 6, "inh-000002", "eat", null),
                 new WorldEvent("first_use", day2, "inh-000003", "use", "obj-000007"),
-            ],
-            Names);
+            ]);
 
         Assert.Equal(2, added);
         Assert.Equal(1, book.Version);
         var newest = book.Entries[0];
-        Assert.Equal("msg.chronicle.first_use", newest.TextKey);
-        Assert.Equal("Bewohner 3", newest.Args["inhabitant"]);
-        Assert.Equal("Steinbeil", newest.Args["target"]);
+        var (key, args) = ChronicleBook.Line(newest, Names);
+        Assert.Equal("msg.chronicle.first_use", key);
+        Assert.Equal("Bewohner 3", args["inhabitant"]);
+        Assert.Equal("Steinbeil", args["target"]);
         Assert.Equal(2, newest.Day);
         var oldest = book.Entries[1];
-        Assert.Equal("msg.chronicle.invented", oldest.TextKey);
+        Assert.Equal("msg.chronicle.invented", ChronicleBook.Line(oldest, Names).TextKey);
         Assert.Equal(1, oldest.Day);
         Assert.Equal(1, oldest.Year);
         Assert.StartsWith("time.season.", oldest.SeasonKey, StringComparison.Ordinal);
@@ -49,9 +49,19 @@ public sealed class ChronicleBookTests
     public void UnknownThingsAndActionsGetANeutralWord()
     {
         var book = new ChronicleBook(Kinds, Calendar);
-        book.Add([new WorldEvent("invented", 1, "inh-000001", null, "obj-999999"), new WorldEvent("discovered_process", 2, "inh-000001", null, null)], Names);
-        Assert.Equal("ui.chronicle.something", book.Entries[1].Args["target"]);
-        Assert.Equal("ui.chronicle.something", book.Entries[0].Args["action"]);
+        book.Add([new WorldEvent("invented", 1, "inh-000001", null, "obj-999999"), new WorldEvent("discovered_process", 2, "inh-000001", null, null)]);
+        Assert.Equal("ui.chronicle.something", ChronicleBook.Line(book.Entries[1], Names).Args["target"]);
+        Assert.Equal("ui.chronicle.something", ChronicleBook.Line(book.Entries[0], Names).Args["action"]);
+    }
+
+    [Fact]
+    public void NamesAreResolvedWhenShownNotWhenAdded()
+    {
+        // GW1 review #64 C2: a name given later (or another language) shows in old entries too.
+        var book = new ChronicleBook(Kinds, Calendar);
+        book.Add([new WorldEvent("invented", 1, "inh-000004", null, "obj-000007")]);
+        var later = Names with { Inhabitant = _ => "Mara" };
+        Assert.Equal("Mara", ChronicleBook.Line(book.Entries[0], later).Args["inhabitant"]);
     }
 
     [Fact]
