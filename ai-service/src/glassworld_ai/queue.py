@@ -22,6 +22,10 @@ class Priority(IntEnum):
     BACKGROUND = 2  # computing-night work, chronicle
 
 
+class QueueClosedError(Exception):
+    """The service is stopping; no model call starts any more (ServiceError 'model_unavailable')."""
+
+
 class QueueFullError(Exception):
     """The queue holds its maximum number of waiting calls (ServiceError 'overloaded')."""
 
@@ -42,6 +46,7 @@ class ModelQueue:
         self._waiting: list[tuple[int, int]] = []
         self._sequence = itertools.count()
         self._busy = False
+        self._closed = False
         self._condition = asyncio.Condition()
 
     @property
@@ -51,6 +56,18 @@ class ModelQueue:
     @property
     def busy(self) -> bool:
         return self._busy
+
+    @property
+    def closed(self) -> bool:
+        return self._closed
+
+    async def close(self) -> None:
+        """Stop accepting calls; waiting calls end with QueueClosedError at once (the running
+        call finishes). Used on shutdown so nothing loads the model again before it is unloaded.
+        """
+        async with self._condition:
+            self._closed = True
+            self._condition.notify_all()
 
     def _remaining(self, deadline: float) -> float:
         return deadline - self._clock()
@@ -63,6 +80,8 @@ class ModelQueue:
         Raises QueueFullError if too many calls wait, DeadlineExpiredError if the deadline passes
         while waiting (work is then never started) or while working (work is cancelled).
         """
+        if self._closed:
+            raise QueueClosedError("service is stopping")
         if self._remaining(deadline) <= 0:
             raise DeadlineExpiredError("deadline already passed")
         if len(self._waiting) >= self._max_waiting:
@@ -73,9 +92,13 @@ class ModelQueue:
         try:
             async with self._condition:
                 await asyncio.wait_for(
-                    self._condition.wait_for(lambda: not self._busy and self._waiting[0] == ticket),
+                    self._condition.wait_for(
+                        lambda: self._closed or (not self._busy and self._waiting[0] == ticket)
+                    ),
                     timeout=self._remaining(deadline),
                 )
+                if self._closed:
+                    raise QueueClosedError("service is stopping")
                 heapq.heappop(self._waiting)
                 self._busy = True
         except BaseException as error:

@@ -31,7 +31,8 @@
     {
       "option_id": "o1",
       "action": "essen",
-      "target": null
+      "target": null,
+      "partners": []
     }
   ]
 }

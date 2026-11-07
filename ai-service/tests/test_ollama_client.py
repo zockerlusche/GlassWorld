@@ -10,6 +10,7 @@ import pytest
 from glassworld_ai.llm.ollama import (
     ChatMessage,
     OllamaClient,
+    OllamaRequestError,
     OllamaResponseError,
     OllamaUnavailableError,
 )
@@ -76,7 +77,7 @@ def test_connection_error_means_unavailable() -> None:
 
 @pytest.mark.parametrize(
     ("status", "error"),
-    [(404, OllamaUnavailableError), (500, OllamaUnavailableError), (400, OllamaResponseError)],
+    [(404, OllamaUnavailableError), (500, OllamaUnavailableError), (400, OllamaRequestError)],
 )
 def test_http_errors_are_mapped(status: int, error: type[Exception]) -> None:
     def handle(_: httpx.Request) -> httpx.Response:

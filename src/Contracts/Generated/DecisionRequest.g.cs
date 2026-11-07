@@ -123,6 +123,12 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("target")]
         public string? Target { get; set; } = default!;
 
+        /// <summary>
+        /// Further objects used together with target (e.g. combine flint with pyrite), sorted by id; empty for actions with one object or none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("partners")]
+        public System.Collections.Generic.ICollection<string> Partners { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
     }
 
     /// <summary>

@@ -1,6 +1,7 @@
 {
   "contract_version": "0.1",
   "status": "ok",
+  "detail": null,
   "service_version": "0.1.0",
   "dependencies": [],
   "decider_model": {

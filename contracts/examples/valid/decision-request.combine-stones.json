@@ -1,0 +1,107 @@
+{
+  "contract_version": "0.1",
+  "request_id": "5c9e2d71-0a3b-4c8d-9e1f-2a3b4c5d6e7f",
+  "tick": 7300,
+  "seed": 424242,
+  "deadline_ms": 8000,
+  "display_locale": "de",
+  "inhabitant": {
+    "id": "inh-0001",
+    "needs": [
+      {
+        "id": "hunger",
+        "value": 0.18
+      },
+      {
+        "id": "sleep",
+        "value": 0.55
+      },
+      {
+        "id": "thirst",
+        "value": 0.7
+      }
+    ],
+    "mood": [
+      {
+        "id": "boredom",
+        "value": 0.3
+      },
+      {
+        "id": "sadness",
+        "value": 0.2
+      }
+    ],
+    "will_to_live": 0.8,
+    "traits": [
+      {
+        "id": "courage",
+        "value": 0.35
+      },
+      {
+        "id": "curiosity",
+        "value": 0.8
+      },
+      {
+        "id": "patience",
+        "value": 0.4
+      }
+    ]
+  },
+  "environment": {
+    "time_of_day": "day",
+    "temperature_c": 17.5,
+    "weather": [
+      "cloudy"
+    ]
+  },
+  "perception": {
+    "objects": [
+      {
+        "id": "obj-0101",
+        "type": "flint",
+        "distance_m": 0.0,
+        "known_properties": [
+          {
+            "property": "hard",
+            "value": true,
+            "confidence": 1.0
+          }
+        ]
+      },
+      {
+        "id": "obj-0102",
+        "type": "pyrite",
+        "distance_m": 0.0,
+        "known_properties": []
+      },
+      {
+        "id": "obj-0103",
+        "type": "dry_grass",
+        "distance_m": 1.5,
+        "known_properties": []
+      }
+    ]
+  },
+  "options": [
+    {
+      "option_id": "o1",
+      "action": "combine",
+      "target": "obj-0101",
+      "partners": [
+        "obj-0102"
+      ]
+    },
+    {
+      "option_id": "o2",
+      "action": "inspect",
+      "target": "obj-0103",
+      "partners": []
+    },
+    {
+      "option_id": "o3",
+      "action": "idle",
+      "target": null,
+      "partners": []
+    }
+  ]
+}

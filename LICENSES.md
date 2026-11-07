@@ -41,6 +41,9 @@ Distributions must ship the license notices of all listed components.
 | click | 8.5.1 (via uvicorn) | Python runtime library | BSD-3-Clause | https://github.com/pallets/click | ai-service |
 | python-dotenv | 1.2.4 (via pydantic-settings) | Python runtime library | BSD-3-Clause | https://github.com/theskumar/python-dotenv | ai-service |
 | certifi | 2026.10.23 (via httpx) | Python runtime library | MPL-2.0, unmodified | https://github.com/certifi/python-certifi | ai-service |
+| attrs | locked (via jsonschema) | Python runtime library | MIT | https://github.com/python-attrs/attrs | ai-service |
+| rpds-py | locked (via jsonschema) | Python runtime library | MIT | https://github.com/crate-py/rpds | ai-service |
+| jsonschema-specifications | locked (via jsonschema) | Python runtime library | MIT | https://github.com/python-jsonschema/jsonschema-specifications | ai-service |
 | other transitive Python packages | see `uv.lock` | Python | MIT or Apache-2.0 | PyPI | dev tools |
 | NJsonSchema | 11.6.1 | NuGet package (runtime contract validation, generator) | MIT | https://github.com/RicoSuter/NJsonSchema | src/Contracts, tests/, tools/ |
 | NJsonSchema.CodeGeneration / .CSharp | 11.6.1 | NuGet package (dev tool) | MIT | https://github.com/RicoSuter/NJsonSchema | tools/ContractGen |
