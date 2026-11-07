@@ -13,4 +13,14 @@
     <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
     <InvariantGlobalization>true</InvariantGlobalization>
   </PropertyGroup>
+  <!-- Godot exports build with Configuration=ExportRelease/ExportDebug and pass it on to referenced
+       projects such as Simulation.Core, which only know Debug/Release. Map them explicitly,
+       otherwise the core ships unoptimized in release exports. -->
+  <PropertyGroup Condition="'$(Configuration)' == 'ExportRelease'">
+    <Optimize>true</Optimize>
+    <DebugType>portable</DebugType>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'ExportDebug'">
+    <Optimize>false</Optimize>
+  </PropertyGroup>
 </Project>
