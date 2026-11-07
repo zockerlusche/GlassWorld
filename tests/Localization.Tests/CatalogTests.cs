@@ -91,11 +91,31 @@ public sealed class CatalogTests
         Assert.True(missing.Count == 0, $"world time names without display text: {string.Join(", ", missing)}");
     }
 
+    [Fact]
+    public void EveryPlayerDataIdShownInTheUiHasADisplayText()
+    {
+        var keys = Catalogs.Value["en"].Keys.ToHashSet(StringComparer.Ordinal);
+        var player = Path.Combine(RepoPaths.Root, "content", "player");
+        var expected = Ids(Path.Combine(player, "message_kinds.json"), "kinds").Select(id => $"msg.mail.kind.{id}")
+            .Concat(Ids(Path.Combine(player, "world_options.json"), "sizes").Select(id => $"ui.new_world.size.{id}"))
+            .Concat(Ids(Path.Combine(player, "world_options.json"), "climates").Select(id => $"ui.new_world.climate.{id}"))
+            .ToList();
+        Assert.NotEmpty(expected);
+        var missing = expected.Where(k => !keys.Contains(k)).ToList();
+        Assert.True(missing.Count == 0, $"player data ids without display text: {string.Join(", ", missing)}");
+    }
+
     [Theory]
     [InlineData("Hello {name}, day {day}.", new[] { "day", "name" })]
     [InlineData("No placeholder.", new string[0])]
     [InlineData("{a} and {a}", new[] { "a" })]
     public void PlaceholdersAreFound(string text, string[] expected) => Assert.Equal(expected, TextCatalog.Placeholders(text));
+
+    private static IEnumerable<string> Ids(string file, string arrayName)
+    {
+        using var doc = JsonDocument.Parse(File.ReadAllText(file));
+        return [.. doc.RootElement.GetProperty(arrayName).EnumerateArray().Select(e => e.GetProperty("id").GetString()!)];
+    }
 
     private static IEnumerable<string> VocabularyKeys()
     {

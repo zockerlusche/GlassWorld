@@ -16,6 +16,10 @@ public static class RepoPaths
     public static IEnumerable<string> PlayerFacingSourceFolders =>
         new[] { Path.Combine(Root, "game"), Path.Combine(Root, "src", "Game.Presentation") }.Where(Directory.Exists);
 
+    /// <summary>Folders whose code may hand translation keys to the UI (e.g. reasons of rejected commands).</summary>
+    public static IEnumerable<string> KeySourceFolders =>
+        PlayerFacingSourceFolders.Concat(new[] { Path.Combine(Root, "src", "Simulation.Core") }.Where(Directory.Exists));
+
     /// <summary>Files below <paramref name="folder"/> with the given extension, skipping build and editor output.</summary>
     public static IEnumerable<string> FilesBelow(string folder, string extension) =>
         Directory.EnumerateFiles(folder, "*" + extension, SearchOption.AllDirectories)

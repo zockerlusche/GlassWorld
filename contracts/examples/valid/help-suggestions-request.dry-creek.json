@@ -1,0 +1,22 @@
+{
+  "contract_version": "0.1",
+  "request_id": "7c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f",
+  "tick": 91000,
+  "seed": 99,
+  "deadline_ms": 8000,
+  "display_locale": "de",
+  "inhabitant_id": "inh-000001",
+  "trigger": "futile_effort",
+  "missing": [
+    "drinkable",
+    "thirst"
+  ],
+  "failed_attempts": 4,
+  "allowed_gifts": [
+    {
+      "type_id": "water_bowl",
+      "max_amount": 2
+    }
+  ],
+  "max_suggestions": 3
+}

@@ -1,0 +1,24 @@
+{
+  "contract_version": "0.1",
+  "maximum": 100,
+  "start_options": [
+    25,
+    50,
+    100
+  ],
+  "regrow_per_hour": 2,
+  "costs": [
+    {
+      "intervention": "conversation",
+      "cost": 2
+    },
+    {
+      "intervention": "gift",
+      "cost": 10
+    },
+    {
+      "intervention": "weather",
+      "cost": 40
+    }
+  ]
+}

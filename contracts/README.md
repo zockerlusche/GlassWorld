@@ -8,7 +8,7 @@ from them, never written by hand.
 
 | Path | Content |
 |---|---|
-| `schemas/` | `common`, `decision-request`, `decision-response`, `service-error`, `health-status`, `vocabulary`, `i18n`, `hardware-tiers`, `safety-rules`; UI data files `ui-tokens`, `ui-frames` (D366); sound data files `sound-map`, `synth-recipes` (B8) |
+| `schemas/` | `common`, `decision-request`, `decision-response`, `service-error`, `health-status`, `vocabulary`, `i18n`, `hardware-tiers`, `safety-rules`; B6: `player-message`, `conversation-request`/`-response`, `help-suggestions-request`/`-response`, data files `favor-settings`, `gift-rules`, `message-kinds`, `world-options`; UI data files `ui-tokens`, `ui-frames` (D366); sound data files `sound-map`, `synth-recipes` (B8) |
 | `examples/valid/`, `examples/invalid/` | Example messages named `<schema>.<case>.json`; both languages test against them |
 | `python/` | Package `glassworld_contracts` with generated pydantic v2 models (checked in) |
 | `generate_python.py` | Regenerates the Python models; `--check` fails if they are stale |
@@ -30,7 +30,11 @@ from them, never written by hand.
 - Vocabulary ids are only checked by pattern in the schemas; allowed values live in
   `content/vocabulary/`, so adding an action or property is a data change (B2460).
 - Ids are language-neutral English; player-facing text uses translation keys
-  `vocab.<kind>.<id>` (ADR-0007). Only `thought.text` is generated in the player's language.
+  `vocab.<kind>.<id>` (ADR-0007). Texts generated at runtime in the player's language are
+  `thought.text` and every `GeneratedText` (`locale` + `text`) of the B6 contracts.
+- `$defs` names are global for the generated types: the same name in two schemas must have the
+  same content (`SharedDefinitionTests`); the schema file name is the title in kebab case
+  (`SchemaNamingTests`).
 
 ## Decision flow (v0)
 
@@ -40,6 +44,19 @@ from them, never written by hand.
    `ServiceError`. It never makes substitute decisions.
 3. The core checks the proposal against the world truth and applies it at a fixed tick
    (ADR-0002, ADR-0005, ADR-0006).
+
+## Player flows (B6)
+
+- **Conversation:** the player's text passes the core's deterministic content check, then the core
+  sends a `ConversationRequest` (speaker state, understanding 0..1, relation to the player, recent
+  lines). The answer proposes `reply`, `gesture`, `not_understood` (the core opens a question with a
+  question mark, W1595/B2487) or `decline`; the core checks any reply text again.
+- **Help and gifts (F5238):** after futile effort or a knock, the core sends a
+  `HelpSuggestionsRequest` listing what is missing and which gifts it would allow; the service
+  proposes 1–3 suggestions (`gift` or `answer`). Gifts are never a fixed list.
+- **Mailbox:** `PlayerMessage` is the stored mailbox record (AI text or system key, urgency,
+  repeats, status). Values for favour, gift rules, message kinds and new-world options live in
+  `content/player/` and are placeholders until Marcel decides.
 
 ## Commands
 

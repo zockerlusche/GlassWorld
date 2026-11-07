@@ -65,6 +65,22 @@
     {
       "pattern": "safety/rules.json",
       "schema": "safety-rules"
+    },
+    {
+      "pattern": "player/favor.json",
+      "schema": "favor-settings"
+    },
+    {
+      "pattern": "player/gift_rules.json",
+      "schema": "gift-rules"
+    },
+    {
+      "pattern": "player/message_kinds.json",
+      "schema": "message-kinds"
+    },
+    {
+      "pattern": "player/world_options.json",
+      "schema": "world-options"
     }
   ]
 }

@@ -1,0 +1,7 @@
+{
+  "contract_version": "0.1",
+  "futile_attempts_threshold": 3,
+  "suggestion_expiry_hours": 24,
+  "max_open_suggestions": 3,
+  "min_distance_to_inhabitant_m": 1.5
+}

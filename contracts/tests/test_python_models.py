@@ -13,9 +13,14 @@ from pydantic import BaseModel, ValidationError
 
 from glassworld_contracts import (
     CONTRACT_VERSION,
+    ConversationRequest,
+    ConversationResponse,
     DecisionRequest,
     DecisionResponse,
     HealthStatus,
+    HelpSuggestionsRequest,
+    HelpSuggestionsResponse,
+    PlayerMessage,
     ServiceError,
     Vocabulary,
 )
@@ -29,6 +34,11 @@ MODELS: dict[str, type[BaseModel]] = {
     "decision-response": DecisionResponse,
     "service-error": ServiceError,
     "health-status": HealthStatus,
+    "player-message": PlayerMessage,
+    "conversation-request": ConversationRequest,
+    "conversation-response": ConversationResponse,
+    "help-suggestions-request": HelpSuggestionsRequest,
+    "help-suggestions-response": HelpSuggestionsResponse,
 }
 
 # Schema rules the generated pydantic models do not enforce. JSON Schema validation

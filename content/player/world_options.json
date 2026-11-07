@@ -1,0 +1,24 @@
+{
+  "contract_version": "0.1",
+  "sizes": [
+    {
+      "id": "small",
+      "island_radius_m": 120
+    },
+    {
+      "id": "medium",
+      "island_radius_m": 200
+    }
+  ],
+  "climates": [
+    {
+      "id": "temperate"
+    },
+    {
+      "id": "warm"
+    }
+  ],
+  "default_size": "small",
+  "default_climate": "temperate",
+  "name_max_length": 32
+}

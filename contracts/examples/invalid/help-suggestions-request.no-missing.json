@@ -1,0 +1,14 @@
+{
+  "contract_version": "0.1",
+  "request_id": "7c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f",
+  "tick": 91000,
+  "seed": 99,
+  "deadline_ms": 8000,
+  "display_locale": "de",
+  "inhabitant_id": "inh-000001",
+  "trigger": "knock",
+  "missing": [],
+  "failed_attempts": 0,
+  "allowed_gifts": [],
+  "max_suggestions": 2
+}

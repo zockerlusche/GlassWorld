@@ -25,7 +25,7 @@ public sealed class GameTextTests
     {
         var known = TextCatalog.Load(Path.Combine(RepoPaths.I18n, "en.json")).Keys.ToHashSet(StringComparer.Ordinal);
         var unknown = Scenes().SelectMany(s => GameTextScanner.ScanScene(s.File, s.Content).Keys)
-            .Concat(CodeFiles().SelectMany(c => GameTextScanner.ScanCode(c.File, c.Content).Keys))
+            .Concat(KeySourceFiles().SelectMany(c => GameTextScanner.ScanCode(c.File, c.Content).Keys))
             .Where(k => !known.Contains(k.Key))
             .Select(k => $"{k.File}:{k.Line}: {k.Key}")
             .ToList();
@@ -118,6 +118,11 @@ public sealed class GameTextTests
     private static IEnumerable<(string File, string Content)> Scenes() =>
         RepoPaths.PlayerFacingSourceFolders
             .SelectMany(f => RepoPaths.FilesBelow(f, ".tscn"))
+            .Select(f => (RepoPaths.Relative(f), File.ReadAllText(f)));
+
+    private static IEnumerable<(string File, string Content)> KeySourceFiles() =>
+        RepoPaths.KeySourceFolders
+            .SelectMany(f => RepoPaths.FilesBelow(f, ".cs"))
             .Select(f => (RepoPaths.Relative(f), File.ReadAllText(f)));
 
     private static IEnumerable<(string File, string Content)> CodeFiles() =>

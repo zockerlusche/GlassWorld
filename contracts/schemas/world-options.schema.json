@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/world-options.schema.json",
+  "title": "WorldOptions",
+  "description": "Choices offered in New World (B6 R3): world sizes and climates (B2514 FT3: at least temperate and warm). Display texts: ui.new_world.size.<id>, ui.new_world.climate.<id>. All numbers are placeholders until Marcel decides (PR4, F5231).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "sizes",
+    "climates",
+    "default_size",
+    "default_climate",
+    "name_max_length"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "sizes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/SizeOption"
+      }
+    },
+    "climates": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/ClimateOption"
+      }
+    },
+    "default_size": {
+      "$ref": "common.schema.json#/$defs/VocabId"
+    },
+    "default_climate": {
+      "$ref": "common.schema.json#/$defs/VocabId"
+    },
+    "name_max_length": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 64
+    }
+  },
+  "$defs": {
+    "SizeOption": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "island_radius_m"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "island_radius_m": {
+          "type": "number",
+          "minimum": 10,
+          "maximum": 10000
+        }
+      }
+    },
+    "ClimateOption": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        }
+      }
+    }
+  }
+}
