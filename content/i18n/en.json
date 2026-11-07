@@ -13,14 +13,28 @@
     {
       "key": "msg.chronicle.invented",
       "text": "{inhabitant} invented something new: {target}."
+      "key": "msg.command.no_favor",
+      "text": "Your favour is not enough for that right now."
     },
     {
       "key": "msg.command.no_inhabitant",
       "text": "This inhabitant is no longer here."
     },
     {
+      "key": "msg.command.no_position",
+      "text": "Choose a spot in the world."
+    },
+    {
+      "key": "msg.command.too_close",
+      "text": "Too close to an inhabitant – place it a little further away."
+    },
+    {
       "key": "msg.command.unknown",
       "text": "That is not possible right now."
+    },
+    {
+      "key": "msg.command.unknown_type",
+      "text": "That does not exist in this world."
     },
     {
       "key": "msg.hint.question",
@@ -627,6 +641,26 @@
       "text": "Yawns"
     },
     {
+      "key": "vocab.heat_level.embers",
+      "text": "Embers"
+    },
+    {
+      "key": "vocab.heat_level.furnace",
+      "text": "Furnace"
+    },
+    {
+      "key": "vocab.heat_level.kiln",
+      "text": "Kiln"
+    },
+    {
+      "key": "vocab.heat_level.open_fire",
+      "text": "Open fire"
+    },
+    {
+      "key": "vocab.heat_level.warm",
+      "text": "Warm"
+    },
+    {
       "key": "vocab.mood.anger",
       "text": "Anger"
     },
@@ -697,6 +731,62 @@
     {
       "key": "vocab.need.warmth",
       "text": "Warmth"
+    },
+    {
+      "key": "vocab.process.bind",
+      "text": "Bind"
+    },
+    {
+      "key": "vocab.process.braid",
+      "text": "Braid"
+    },
+    {
+      "key": "vocab.process.char",
+      "text": "Char"
+    },
+    {
+      "key": "vocab.process.cut",
+      "text": "Cut"
+    },
+    {
+      "key": "vocab.process.dry",
+      "text": "Dry"
+    },
+    {
+      "key": "vocab.process.fire",
+      "text": "Fire"
+    },
+    {
+      "key": "vocab.process.grind",
+      "text": "Grind"
+    },
+    {
+      "key": "vocab.process.heat",
+      "text": "Heat"
+    },
+    {
+      "key": "vocab.process.melt",
+      "text": "Melt"
+    },
+    {
+      "key": "vocab.process.mix",
+      "text": "Mix"
+    },
+    {
+      "key": "vocab.process.shape",
+      "text": "Shape"
+    },
+    {
+      "key": "vocab.process.soak",
+      "text": "Soak"
+    },
+    {
+      "key": "vocab.process.split",
+      "text": "Split"
+    },
+    {
+      "key": "vocab.process.strike",
+      "text": "Strike"
     },
     {
       "key": "vocab.property.braidable",
@@ -793,6 +883,58 @@
     {
       "key": "vocab.property.sticky",
       "text": "Sticky"
+    },
+    {
+      "key": "vocab.shape.bowl",
+      "text": "Bowl"
+    },
+    {
+      "key": "vocab.shape.box",
+      "text": "Box"
+    },
+    {
+      "key": "vocab.shape.cone",
+      "text": "Cone"
+    },
+    {
+      "key": "vocab.shape.cylinder",
+      "text": "Cylinder"
+    },
+    {
+      "key": "vocab.shape.plank",
+      "text": "Plank"
+    },
+    {
+      "key": "vocab.shape.ring",
+      "text": "Ring"
+    },
+    {
+      "key": "vocab.shape.sphere",
+      "text": "Sphere"
+    },
+    {
+      "key": "vocab.shape.wedge",
+      "text": "Wedge"
+    },
+    {
+      "key": "vocab.tech_level.hut",
+      "text": "Hut"
+    },
+    {
+      "key": "vocab.tech_level.metal",
+      "text": "Metal"
+    },
+    {
+      "key": "vocab.tech_level.tool",
+      "text": "Tool"
+    },
+    {
+      "key": "vocab.tech_level.wilderness",
+      "text": "Wilderness"
+    },
+    {
+      "key": "vocab.tech_level.workshop",
+      "text": "Workshop"
     },
     {
       "key": "vocab.time_of_day.dawn",

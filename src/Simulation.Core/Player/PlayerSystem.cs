@@ -45,16 +45,16 @@ public sealed class PlayerSystem : IWorldSystem
     public const string PlaceGift = "place_gift";
 
     /// <summary>Reason: not enough favour.</summary>
-    public const string ReasonNoFavor = "no_favor";
+    public const string ReasonNoFavor = "msg.command.no_favor";
 
     /// <summary>Reason: the type is not in the object catalog.</summary>
-    public const string ReasonUnknownType = "unknown_type";
+    public const string ReasonUnknownType = "msg.command.unknown_type";
 
     /// <summary>Reason: too close to an inhabitant.</summary>
-    public const string ReasonTooClose = "too_close";
+    public const string ReasonTooClose = "msg.command.too_close";
 
     /// <summary>Reason: no position given.</summary>
-    public const string ReasonNoPosition = "no_position";
+    public const string ReasonNoPosition = "msg.command.no_position";
 
     private const string GiftIntervention = "gift";
 

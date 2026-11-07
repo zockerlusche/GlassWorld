@@ -13,14 +13,28 @@
     {
       "key": "msg.chronicle.invented",
       "text": "{inhabitant} hat etwas Neues erfunden: {target}."
+      "key": "msg.command.no_favor",
+      "text": "Dafür reicht deine Gunst gerade nicht."
     },
     {
       "key": "msg.command.no_inhabitant",
       "text": "Diesen Bewohner gibt es hier nicht mehr."
     },
     {
+      "key": "msg.command.no_position",
+      "text": "Wähle eine Stelle in der Welt."
+    },
+    {
+      "key": "msg.command.too_close",
+      "text": "Zu nah an einem Bewohner – leg es etwas weiter weg."
+    },
+    {
       "key": "msg.command.unknown",
       "text": "Das geht gerade nicht."
+    },
+    {
+      "key": "msg.command.unknown_type",
+      "text": "Das gibt es in dieser Welt nicht."
     },
     {
       "key": "msg.hint.question",
@@ -627,6 +641,26 @@
       "text": "Gähnt"
     },
     {
+      "key": "vocab.heat_level.embers",
+      "text": "Glut"
+    },
+    {
+      "key": "vocab.heat_level.furnace",
+      "text": "Schmelzofen"
+    },
+    {
+      "key": "vocab.heat_level.kiln",
+      "text": "Brennofen"
+    },
+    {
+      "key": "vocab.heat_level.open_fire",
+      "text": "Offenes Feuer"
+    },
+    {
+      "key": "vocab.heat_level.warm",
+      "text": "Warm"
+    },
+    {
       "key": "vocab.mood.anger",
       "text": "Wut"
     },
@@ -697,6 +731,62 @@
     {
       "key": "vocab.need.warmth",
       "text": "Wärme"
+    },
+    {
+      "key": "vocab.process.bind",
+      "text": "Binden"
+    },
+    {
+      "key": "vocab.process.braid",
+      "text": "Flechten"
+    },
+    {
+      "key": "vocab.process.char",
+      "text": "Verkohlen"
+    },
+    {
+      "key": "vocab.process.cut",
+      "text": "Schneiden"
+    },
+    {
+      "key": "vocab.process.dry",
+      "text": "Trocknen"
+    },
+    {
+      "key": "vocab.process.fire",
+      "text": "Brennen"
+    },
+    {
+      "key": "vocab.process.grind",
+      "text": "Zerreiben"
+    },
+    {
+      "key": "vocab.process.heat",
+      "text": "Erhitzen"
+    },
+    {
+      "key": "vocab.process.melt",
+      "text": "Schmelzen"
+    },
+    {
+      "key": "vocab.process.mix",
+      "text": "Mischen"
+    },
+    {
+      "key": "vocab.process.shape",
+      "text": "Formen"
+    },
+    {
+      "key": "vocab.process.soak",
+      "text": "Einweichen"
+    },
+    {
+      "key": "vocab.process.split",
+      "text": "Spalten"
+    },
+    {
+      "key": "vocab.process.strike",
+      "text": "Schlagen"
     },
     {
       "key": "vocab.property.braidable",
@@ -793,6 +883,58 @@
     {
       "key": "vocab.property.sticky",
       "text": "Klebrig"
+    },
+    {
+      "key": "vocab.shape.bowl",
+      "text": "Schale"
+    },
+    {
+      "key": "vocab.shape.box",
+      "text": "Quader"
+    },
+    {
+      "key": "vocab.shape.cone",
+      "text": "Kegel"
+    },
+    {
+      "key": "vocab.shape.cylinder",
+      "text": "Zylinder"
+    },
+    {
+      "key": "vocab.shape.plank",
+      "text": "Brett"
+    },
+    {
+      "key": "vocab.shape.ring",
+      "text": "Ring"
+    },
+    {
+      "key": "vocab.shape.sphere",
+      "text": "Kugel"
+    },
+    {
+      "key": "vocab.shape.wedge",
+      "text": "Keil"
+    },
+    {
+      "key": "vocab.tech_level.hut",
+      "text": "Hütte"
+    },
+    {
+      "key": "vocab.tech_level.metal",
+      "text": "Metall"
+    },
+    {
+      "key": "vocab.tech_level.tool",
+      "text": "Werkzeug"
+    },
+    {
+      "key": "vocab.tech_level.wilderness",
+      "text": "Wildnis"
+    },
+    {
+      "key": "vocab.tech_level.workshop",
+      "text": "Werkstatt"
     },
     {
       "key": "vocab.time_of_day.dawn",
