@@ -66,6 +66,13 @@ public sealed class BaseSoundsTests
     [InlineData("water trickles over stones", "ambience.stream")]
     [InlineData("stone clacks when struck", "object.knock_stone")]
     [InlineData("Chop! The axe splits wood.", "object.chop_wood")]
+    [InlineData("crackling fire", "object.fire")]
+    [InlineData("door creaking", "object.creak")]
+    [InlineData("chopping wood", "object.chop_wood")]
+    [InlineData("footsteps on sand", "step.sand")]
+    [InlineData("splashing in shallow water", "step.water")]
+    [InlineData("a bird singing", "animal.songbird.song")]
+    [InlineData("leaves rustling in the wind", "ambience.leaves")]
     [InlineData("hums quietly", null)]
     [InlineData("a wooden bowl", null)]
     [InlineData("glass clinks", null)]
@@ -73,6 +80,16 @@ public sealed class BaseSoundsTests
     [InlineData("", null)]
     [InlineData(null, null)]
     public void DescriptionFallsBackToTheBestBaseSound(string? description, string? expected) => Assert.Equal(expected, Sounds.Fallback(description));
+
+    [Theory]
+    [InlineData("crackling", "crackle")]
+    [InlineData("crackles", "crackle")]
+    [InlineData("chopping", "chop")]
+    [InlineData("creaking", "creaks")]
+    [InlineData("footsteps", "footstep")]
+    [InlineData("splashes", "splash")]
+    [InlineData("tapping", "tap")]
+    public void StemsMeet(string a, string b) => Assert.Equal(BaseSounds.Stem(b), BaseSounds.Stem(a));
 
     [Fact]
     public void VariantsWrapAroundAndUnknownIdsHaveNoFile()

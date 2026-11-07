@@ -59,7 +59,7 @@ public sealed class BaseSounds
             .Select(Stem)
             .ToHashSet(StringComparer.Ordinal);
         return _sounds.Values
-            .Select(s => (s.Id, Score: (2 * s.SoundWords.Count(k => words.Contains(Stem(k.ToUpperInvariant())))) + s.ContextWords.Count(k => words.Contains(Stem(k.ToUpperInvariant())))))
+            .Select(s => (s.Id, Score: (2 * Matches(s.SoundWords, words)) + Matches(s.ContextWords.Except(s.SoundWords, StringComparer.Ordinal), words)))
             .Where(s => s.Score >= Library.FallbackMinScore)
             .OrderByDescending(s => s.Score)
             .ThenBy(s => s.Id, StringComparer.Ordinal)
@@ -67,5 +67,28 @@ public sealed class BaseSounds
             .FirstOrDefault();
     }
 
-    private static string Stem(string word) => word.Length > 3 && word.EndsWith('S') && !word.EndsWith("SS", StringComparison.Ordinal) ? word[..^1] : word;
+    /// <summary>Distinct word stems of a list that occur in the description (a stem counts once).</summary>
+    private static int Matches(IEnumerable<string> list, HashSet<string> words) =>
+        list.Select(k => Stem(k.ToUpperInvariant())).Distinct(StringComparer.Ordinal).Count(words.Contains);
+
+    /// <summary>
+    /// Small English stemmer for sound descriptions, applied to both sides: -ing, -ed, -es, -s and a
+    /// final -e are cut when at least three letters stay, then a doubled final consonant is reduced
+    /// (crackling/crackles/crackle, chopping/chop, creaking/creaks; GW1 review #62 R1).
+    /// </summary>
+    public static string Stem(string word)
+    {
+        ArgumentNullException.ThrowIfNull(word);
+        var stem = word.ToUpperInvariant();
+        foreach (var suffix in new[] { "ING", "ED", "ES", "S", "E" })
+        {
+            if (stem.EndsWith(suffix, StringComparison.Ordinal) && stem.Length - suffix.Length >= 3)
+            {
+                stem = stem[..^suffix.Length];
+                break;
+            }
+        }
+
+        return stem.Length >= 4 && stem[^1] == stem[^2] && !"AEIOU".Contains(stem[^1], StringComparison.Ordinal) ? stem[..^1] : stem;
+    }
 }
