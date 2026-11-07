@@ -7,6 +7,7 @@ JobFailedError with a ServiceError code. A handler never invents an answer when 
 
 from __future__ import annotations
 
+import asyncio
 import time
 from dataclasses import dataclass
 from typing import ClassVar
@@ -45,6 +46,7 @@ from glassworld_ai.words import plain_id
 from glassworld_contracts import GenerationJob
 
 ROLE = "question"
+NO_WAIT_LIMIT_S = 7 * 24 * 3600.0  # queue wait for questions: practically unlimited (B2487)
 
 
 def _fail(code: str, message: str) -> JobFailedError:
@@ -76,7 +78,7 @@ class QuestionSettings:
     temperature: float
     num_ctx: int
     max_retries: int
-    call_timeout_s: float  # per model call; the question itself has no deadline (B2487)
+    call_timeout_s: float  # per model call; waiting in the queue has no limit (B2487)
 
 
 class OllamaQuestions:
@@ -150,9 +152,14 @@ class OllamaQuestions:
                     timeout=self._settings.call_timeout_s,
                 )
 
-            deadline = time.monotonic() + self._settings.call_timeout_s
+            # The queue deadline covers waiting AND the call; the call itself is limited by the
+            # HTTP timeout (call_timeout_s), so the wait is practically unlimited.
+            deadline = time.monotonic() + NO_WAIT_LIMIT_S
             try:
                 result = await self._queue.run(Priority.BACKGROUND, deadline, call)
+            except asyncio.CancelledError:
+                log("cancelled", None, "job cancelled (DELETE or shutdown)")
+                raise
             except QueueClosedError as error:
                 log("unavailable", None, str(error))
                 raise _fail("model_unavailable", "service is stopping") from error
@@ -232,30 +239,41 @@ class ReplayQuestions:
         self._log = log
         self._template = template
         self._vocab = vocab
+        self._answers: dict[str, dict[str, object]] | None = None
+
+    def _index(self) -> dict[str, dict[str, object]]:
+        """First valid answer per job id; the log is read once (replays use a finished log)."""
+        if self._answers is None:
+            self._answers = {}
+            for row in self._log.read():
+                job_id = row.get("request_id")
+                if (
+                    row.get("role") == ROLE
+                    and isinstance(job_id, str)
+                    and row.get("outcome") == "ok"
+                    and isinstance(row.get("raw_output"), str)
+                ):
+                    self._answers.setdefault(job_id, row)
+        return self._answers
 
     async def __call__(self, job: GenerationJob) -> JobOutcome:
         job_id = plain_id(job.request_id)
         schema = _schema(self._template, self._vocab)
-        for row in self._log.read():
-            if (
-                row.get("role") == ROLE
-                and row.get("request_id") == job_id
-                and row.get("outcome") == "ok"
-                and isinstance(row.get("raw_output"), str)
-            ):
-                try:
-                    answer = parse_answer(str(row["raw_output"]), schema)
-                except InvalidQuestionOutputError as error:
-                    raise _fail(
-                        "model_unavailable", f"recorded answer does not fit job {job_id}"
-                    ) from error
-                attempts = row.get("attempt", 1)
-                return JobOutcome(
-                    result=_result(plain_id(job.display_locale), answer),
-                    source="replay",
-                    model=str(row.get("model", "replay"))[:128],
-                    prompt_version=str(row.get("prompt_version", "")) or None,
-                    latency_ms=0,
-                    attempts=attempts if isinstance(attempts, int) else 1,
-                )
+        row = self._index().get(job_id)
+        if row is not None:
+            try:
+                answer = parse_answer(str(row["raw_output"]), schema)
+            except InvalidQuestionOutputError as error:
+                raise _fail(
+                    "model_unavailable", f"recorded answer does not fit job {job_id}"
+                ) from error
+            attempts = row.get("attempt", 1)
+            return JobOutcome(
+                result=_result(plain_id(job.display_locale), answer),
+                source="replay",
+                model=str(row.get("model", "replay"))[:128],
+                prompt_version=str(row.get("prompt_version", "")) or None,
+                latency_ms=0,
+                attempts=attempts if isinstance(attempts, int) else 1,
+            )
         raise _fail("model_unavailable", f"no recorded answer for job {job_id}")

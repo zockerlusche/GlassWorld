@@ -45,7 +45,7 @@ Character:
 - patience: medium (0.40)
 
 ## Your story so far
-Woke up alone on a beach. Found a stream. Met another person yesterday who seems friendly.
+> Woke up alone on a beach. Found a stream. Met another person yesterday who seems friendly.
 
 ## What you know about it
 - thing 'spring water' is drinkable (sure 1.0; you tried it yourself)
@@ -75,6 +75,7 @@ Woke up alone on a beach. Found a stream. Met another person yesterday who seems
 - salty (Salty; drinking it makes thirstier instead of quenching thirst.)
 - scratchable (Marks can be scratched into it.)
 - sharp (Has a sharp edge or point; cuts or pricks.)
+- sheltering (Gives shelter from wind and rain.)
 - sparks (Throws sparks when struck against a suitable stone.)
 - splittable (Splits into flat pieces.)
 - sticky (Sticks things together.)

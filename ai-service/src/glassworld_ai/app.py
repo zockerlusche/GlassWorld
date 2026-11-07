@@ -211,6 +211,15 @@ def create_app(
             return error_response(
                 "model_unavailable", "Service is stopping.", request_id=rid, tick=rtick
             )
+        if settings.decider_backend == "ollama" and getattr(app.state, "tier", "unknown") is None:
+            # R9 like /decide: below the minimum tier no AI jobs; the hardware does not change.
+            return error_response(
+                "model_unavailable",
+                "Hardware is below the minimum tier; routine mode only.",
+                request_id=rid,
+                tick=rtick,
+                retryable=False,
+            )
         if not runner.supports(kind):
             return error_response(
                 "model_unavailable",

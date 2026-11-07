@@ -99,7 +99,7 @@ def build_values(job: GenerationJob, template: PromptTemplate, vocab: Vocabulary
             for t in traits
         )
         or NOTHING,
-        "memory": summary or "(you remember nothing special yet)",
+        "memory": quote(summary) if summary else "(you remember nothing special yet)",
         "knowledge": "\n".join(_knowledge_line(k, settings, sources) for k in knowledge)
         or "- (you know nothing about it yet)",
         "perception": "\n".join(
@@ -114,6 +114,14 @@ def build_values(job: GenerationJob, template: PromptTemplate, vocab: Vocabulary
         "max_guesses": str(max_guesses),
         "thought_language": language,
     }
+
+
+def quote(text: str) -> str:
+    """Generated text (memory summary) as a quoted data block: every line starts with "> ", so
+    nothing in it can look like a heading or an instruction of the prompt."""
+    return "\n".join(
+        "> " + line.strip().lstrip("#").strip() for line in text.splitlines() if line.strip()
+    )
 
 
 def _knowledge_line(entry: Any, settings: dict[str, Any], sources: dict[str, str]) -> str:
