@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/action-effects.schema.json",
+  "title": "ActionEffects",
+  "description": "Data files content/effects/*.json: what an action does, decided by the TRUE properties of the target (the world knows the truth). An action without a target uses rules with requires_property null. All numbers are placeholders until Marcel decides.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "actions", "rules"],
+  "properties": {
+    "contract_version": { "$ref": "common.schema.json#/$defs/ContractVersion" },
+    "actions": { "type": "array", "maxItems": 128, "items": { "$ref": "#/$defs/ActionTiming" } },
+    "rules": { "type": "array", "maxItems": 512, "items": { "$ref": "#/$defs/EffectRule" } }
+  },
+  "$defs": {
+    "ActionTiming": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["action", "duration_minutes", "reach_m", "destination"],
+      "properties": {
+        "action": { "$ref": "common.schema.json#/$defs/VocabId" },
+        "duration_minutes": { "type": "integer", "minimum": 1, "maximum": 1440 },
+        "reach_m": { "description": "Distance to the target at which the action can start.", "type": "number", "minimum": 0, "maximum": 100 },
+        "destination": { "description": "Where an action without a target happens: here, or at a random spot within the perception radius (own seed stream).", "type": "string", "enum": ["here", "random_nearby"] }
+      }
+    },
+    "EffectRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["action", "requires_property", "consumes_target", "effects"],
+      "properties": {
+        "action": { "$ref": "common.schema.json#/$defs/VocabId" },
+        "requires_property": {
+          "description": "True property the target must have; null for actions without a target.",
+          "anyOf": [{ "$ref": "common.schema.json#/$defs/VocabId" }, { "type": "null" }]
+        },
+        "consumes_target": { "type": "boolean" },
+        "effects": { "type": "array", "maxItems": 16, "items": { "$ref": "#/$defs/Effect" } }
+      }
+    },
+    "Effect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "id", "delta"],
+      "properties": {
+        "kind": { "type": "string", "enum": ["need", "mood", "will_to_live"] },
+        "id": { "description": "Need or mood id; ignored for will_to_live.", "$ref": "common.schema.json#/$defs/VocabId" },
+        "delta": { "type": "number", "minimum": -1, "maximum": 1 }
+      }
+    }
+  }
+}

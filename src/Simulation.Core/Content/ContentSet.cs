@@ -1,5 +1,6 @@
 using GlassWorld.Contracts;
 using GlassWorld.Contracts.Validation;
+using GlassWorld.Simulation.Behaviour;
 using GlassWorld.Simulation.Objects;
 using GlassWorld.Simulation.Time;
 
@@ -13,12 +14,22 @@ namespace GlassWorld.Simulation.Content;
 /// </summary>
 public sealed class ContentSet
 {
-    private ContentSet(WorldCalendar calendar, ObjectCatalog objects, CombinationRuleSet combinations, IReadOnlyDictionary<VocabularyKind, Vocabulary> vocabularies)
+    private ContentSet(
+        WorldCalendar calendar,
+        ObjectCatalog objects,
+        CombinationRuleSet combinations,
+        IReadOnlyDictionary<VocabularyKind, Vocabulary> vocabularies,
+        InhabitantModel inhabitantModel,
+        ActionRules actions,
+        UtilityBrain brain)
     {
         Calendar = calendar;
         Objects = objects;
         Combinations = combinations;
         Vocabularies = vocabularies;
+        InhabitantModel = inhabitantModel;
+        Actions = actions;
+        Brain = brain;
     }
 
     /// <summary>World time.</summary>
@@ -32,6 +43,15 @@ public sealed class ContentSet
 
     /// <summary>Vocabularies by kind.</summary>
     public IReadOnlyDictionary<VocabularyKind, Vocabulary> Vocabularies { get; }
+
+    /// <summary>How needs, moods and the will to live behave; start ranges (content/inhabitants/model.json).</summary>
+    public InhabitantModel InhabitantModel { get; }
+
+    /// <summary>What actions do (content/effects).</summary>
+    public ActionRules Actions { get; }
+
+    /// <summary>Routine layer (content/behaviour/utility.json).</summary>
+    public UtilityBrain Brain { get; }
 
     /// <summary>Loads and checks the content folder.</summary>
     public static ContentSet Load(string contentDirectory)
@@ -47,7 +67,42 @@ public sealed class ContentSet
             Files(contentDirectory, "rules").Select(f => ContractSerializer.Deserialize<CombinationRules>(File.ReadAllText(f))),
             objects,
             Required(vocabularies, VocabularyKind.Action));
-        return new ContentSet(calendar, objects, combinations, vocabularies);
+        var model = ContractSerializer.Deserialize<InhabitantModel>(File.ReadAllText(Path.Combine(contentDirectory, "inhabitants", "model.json")));
+        var needs = Ids(vocabularies, VocabularyKind.Need);
+        var moods = Ids(vocabularies, VocabularyKind.Mood);
+        CheckModel(model, needs, moods, Ids(vocabularies, VocabularyKind.Trait));
+        var actions = ActionRules.Create(
+            Files(contentDirectory, "effects").Select(f => ContractSerializer.Deserialize<ActionEffects>(File.ReadAllText(f))),
+            objects,
+            Required(vocabularies, VocabularyKind.Action),
+            needs,
+            moods,
+            calendar.Settings.TicksPerHour);
+        var brain = new UtilityBrain(
+            ContractSerializer.Deserialize<UtilityWeights>(File.ReadAllText(Path.Combine(contentDirectory, "behaviour", "utility.json"))),
+            actions,
+            needs,
+            objects.PropertyVocabulary);
+        return new ContentSet(calendar, objects, combinations, vocabularies, model, actions, brain);
+    }
+
+    private static HashSet<string> Ids(Dictionary<VocabularyKind, Vocabulary> vocabularies, VocabularyKind kind) =>
+        Required(vocabularies, kind).Entries.Select(e => e.Id).ToHashSet(StringComparer.Ordinal);
+
+    private static void CheckModel(InhabitantModel model, HashSet<string> needs, HashSet<string> moods, HashSet<string> traits)
+    {
+        var unknown = model.Needs.Select(n => n.Id).Where(id => !needs.Contains(id))
+            .Concat(model.Moods.Select(m => m.Id).Where(id => !moods.Contains(id)))
+            .Concat(model.MoodDrivers.SelectMany(d => new[] { d.Need, d.Mood }).Where(id => !needs.Contains(id) && !moods.Contains(id)))
+            .Concat(model.Start.Traits.Select(r => r.Id).Where(id => !traits.Contains(id)))
+            .Concat(model.Start.Needs.Select(r => r.Id).Where(id => !needs.Contains(id)))
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+        var badRanges = model.Start.Traits.Concat(model.Start.Needs).Where(r => r.Min > r.Max).Select(r => r.Id).ToList();
+        if (unknown.Count > 0 || badRanges.Count > 0)
+        {
+            throw new InvalidDataException($"Inhabitant model: unknown ids [{string.Join(", ", unknown)}], min > max for [{string.Join(", ", badRanges)}].");
+        }
     }
 
     private static IEnumerable<string> Files(string contentDirectory, string folder) =>

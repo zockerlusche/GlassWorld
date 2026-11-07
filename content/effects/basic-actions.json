@@ -1,0 +1,40 @@
+{
+  "contract_version": "0.1",
+  "actions": [
+    { "action": "eat", "destination": "here", "duration_minutes": 10, "reach_m": 1.5 },
+    { "action": "drink", "destination": "here", "duration_minutes": 5, "reach_m": 1.5 },
+    { "action": "sleep", "destination": "here", "duration_minutes": 480, "reach_m": 0 },
+    { "action": "inspect", "destination": "here", "duration_minutes": 5, "reach_m": 2 },
+    { "action": "idle", "destination": "here", "duration_minutes": 15, "reach_m": 0 },
+    { "action": "wander", "destination": "random_nearby", "duration_minutes": 30, "reach_m": 0 }
+  ],
+  "rules": [
+    { "action": "eat", "requires_property": "edible", "consumes_target": true, "effects": [
+      { "kind": "need", "id": "hunger", "delta": 0.35 },
+      { "kind": "mood", "id": "joy", "delta": 0.05 }
+    ] },
+    { "action": "eat", "requires_property": "poisonous", "consumes_target": true, "effects": [
+      { "kind": "mood", "id": "fear", "delta": 0.3 },
+      { "kind": "mood", "id": "joy", "delta": -0.2 },
+      { "kind": "will_to_live", "id": "will_to_live", "delta": -0.05 }
+    ] },
+    { "action": "drink", "requires_property": "drinkable", "consumes_target": false, "effects": [
+      { "kind": "need", "id": "thirst", "delta": 0.5 }
+    ] },
+    { "action": "drink", "requires_property": "salty", "consumes_target": false, "effects": [
+      { "kind": "need", "id": "thirst", "delta": -0.6 },
+      { "kind": "mood", "id": "frustration", "delta": 0.1 }
+    ] },
+    { "action": "sleep", "requires_property": null, "consumes_target": false, "effects": [
+      { "kind": "need", "id": "sleep", "delta": 0.9 }
+    ] },
+    { "action": "inspect", "requires_property": null, "consumes_target": false, "effects": [
+      { "kind": "need", "id": "fun", "delta": 0.05 },
+      { "kind": "mood", "id": "boredom", "delta": -0.05 }
+    ] },
+    { "action": "wander", "requires_property": null, "consumes_target": false, "effects": [
+      { "kind": "need", "id": "fun", "delta": 0.08 },
+      { "kind": "mood", "id": "boredom", "delta": -0.1 }
+    ] }
+  ]
+}
