@@ -1,0 +1,14 @@
+{
+  "source": "f37131210fa19f9a8c7e8aab050f4497c4caff67e46bc932112d3e65716f1426.png",
+  "size": [
+    384,
+    128
+  ],
+  "margins": {
+    "left": 48,
+    "top": 48,
+    "right": 48,
+    "bottom": 48
+  },
+  "nine_slice": true
+}

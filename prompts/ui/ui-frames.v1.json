@@ -1,0 +1,60 @@
+{
+  "id": "ui-frames",
+  "version": 1,
+  "purpose": "A1362 (Marcel W1600): window frame, button, bar and speech bubble in the warm comic style of the game (reference D355), three candidate looks for Marcel's choice; the chosen look is then cut into 9-slice graphics.",
+  "workflow": "tools/comfyui/workflows/z-image-turbo-t2i.api.json",
+  "models": [
+    "z-image-turbo",
+    "z-image-vae",
+    "qwen3-4b"
+  ],
+  "seed": 20261107,
+  "template": "A single empty {element} for a calm, friendly video game user interface, flat front view, perfectly centered on a plain light grey background, symmetrical. {style} Empty inside: no text, no letters, no numbers, no icons, no people.",
+  "elements": [
+    {
+      "id": "window",
+      "label_de": "Fensterrahmen",
+      "text": "rectangular window panel with a decorative frame and rounded corners",
+      "width": 1024,
+      "height": 1024
+    },
+    {
+      "id": "button",
+      "label_de": "Knopf",
+      "text": "wide rounded button",
+      "width": 1024,
+      "height": 384
+    },
+    {
+      "id": "bar",
+      "label_de": "Leiste",
+      "text": "long horizontal toolbar strip with rounded ends",
+      "width": 1344,
+      "height": 384
+    },
+    {
+      "id": "bubble",
+      "label_de": "Sprechblase",
+      "text": "speech bubble with a small tail at the bottom left",
+      "width": 1024,
+      "height": 768
+    }
+  ],
+  "variants": [
+    {
+      "id": "ink_paper",
+      "label_de": "Tusche auf Papier",
+      "style": "Hand-inked comic style: bold uneven dark brown ink outline, warm cream paper fill with a light halftone dot texture, warm colours like a children's book illustration."
+    },
+    {
+      "id": "driftwood",
+      "label_de": "Treibholz und Tusche",
+      "style": "Comic illustration of a frame made of smooth driftwood planks with a bold ink outline, warm sand-coloured fill, painted with warm saturated colours."
+    },
+    {
+      "id": "soft_watercolor",
+      "label_de": "Weiches Aquarell-Comic",
+      "style": "Soft comic style: thick rounded dark outline, gentle watercolour fill in warm peach and sand tones, slightly hand-drawn edges."
+    }
+  ]
+}

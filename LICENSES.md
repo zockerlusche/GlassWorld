@@ -44,6 +44,7 @@ Distributions must ship the license notices of all listed components.
 | attrs | locked (via jsonschema) | Python runtime library | MIT | https://github.com/python-attrs/attrs | ai-service |
 | rpds-py | locked (via jsonschema) | Python runtime library | MIT | https://github.com/crate-py/rpds | ai-service |
 | jsonschema-specifications | locked (via jsonschema) | Python runtime library | MIT | https://github.com/python-jsonschema/jsonschema-specifications | ai-service |
+| UI frames (driftwood, comic) | game/ui/frames/*_v1.png | Asset, self-generated | MIT (project) | z-image-turbo (Apache-2.0) via ComfyUI, prompts/ui/ui-frames.v1/v2, seed 20261107, AMW docs D379-D381, D392-D395, processed with tools/ui/nine_slice.py | game UI (A1362, Marcel F5251=B) |
 | other transitive Python packages | see `uv.lock` | Python | MIT or Apache-2.0 | PyPI | dev tools |
 | NJsonSchema | 11.6.1 | NuGet package (runtime contract validation, generator) | MIT | https://github.com/RicoSuter/NJsonSchema | src/Contracts, tests/, tools/ |
 | NJsonSchema.CodeGeneration / .CSharp | 11.6.1 | NuGet package (dev tool) | MIT | https://github.com/RicoSuter/NJsonSchema | tools/ContractGen |
