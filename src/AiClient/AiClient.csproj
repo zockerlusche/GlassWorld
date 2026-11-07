@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- HTTP connection from the game to the local AI service (ADR-0006). Implements the core's decider port;
+       the core itself has no IO. -->
+  <PropertyGroup>
+    <RootNamespace>GlassWorld.AiClient</RootNamespace>
+    <AssemblyName>GlassWorld.AiClient</AssemblyName>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Simulation.Core\Simulation.Core.csproj" />
+  </ItemGroup>
+</Project>
