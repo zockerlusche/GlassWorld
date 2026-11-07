@@ -439,6 +439,10 @@
       "text": "Laden"
     },
     {
+      "key": "ui.worlds.no_code",
+      "text": "Für diese Welt gibt es keinen Welt-Code (älterer Spielstand oder unbekannte Startwerte)."
+    },
+    {
       "key": "ui.worlds.title",
       "text": "Welten"
     },

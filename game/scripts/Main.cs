@@ -64,7 +64,7 @@ public partial class Main : Node3D
         if (_baseStyle is not null)
         {
             _menuData = LoadMenuData(_library);
-            _limits = new SettingsLimits(_baseStyle.Tokens, TextCatalogs.SupportedLocales, _mix.PlayerVolumeDb, _menuData.Options.PlayerNameMaxLength);
+            _limits = new SettingsLimits(_baseStyle.Tokens, TextCatalogs.SupportedLocales, _mix.PlayerVolumeDb, _menuData.Options.PlayerNameMaxLength, _menuData.Guard);
 
             // Check runs use the defaults, so a player's settings file never changes a smoke result.
             _settingsPath = SettingsStore.DefaultPath;

@@ -248,12 +248,28 @@ public partial class MainMenu : CanvasLayer
         table.RowSelected += id => selected = id;
         window.Content.AddChild(table);
         window.AddAction("ui.common.cancel").Pressed += window.Close;
+        var copyProblem = new Label { Visible = false, AutowrapMode = TextServer.AutowrapMode.WordSmart };
+        window.Content.AddChild(copyProblem);
         window.AddAction("ui.worlds.copy_code").Pressed += () =>
         {
             var world = worlds.FirstOrDefault(w => w.Id == selected);
-            if (world is not null && data.Favor.StartOptions.Contains(world.StartFavor))
+            if (world is null)
             {
-                DisplayServer.ClipboardSet(WorldCode.Encode(new WorldStart(world.Seed, world.Size, world.Climate, world.StartFavor), data.Options, data.Favor));
+                return;
+            }
+
+            // The seed comes from the save game (the truth); size, climate and favour from meta.json.
+            // Unknown values (older worlds, edited files) give a calm message instead of nothing.
+            try
+            {
+                var seed = Simulation.Data.SaveGameStore.Load(data.Worlds.SavePath(world.Id)).Seed;
+                DisplayServer.ClipboardSet(WorldCode.Encode(new WorldStart(seed, world.Size, world.Climate, world.StartFavor), data.Options, data.Favor));
+                copyProblem.Visible = false;
+            }
+            catch (Exception e) when (e is ArgumentException or InvalidDataException or IOException or Microsoft.Data.Sqlite.SqliteException)
+            {
+                copyProblem.Text = "ui.worlds.no_code";
+                copyProblem.Visible = true;
             }
         };
         window.AddAction("ui.worlds.load").Pressed += () =>

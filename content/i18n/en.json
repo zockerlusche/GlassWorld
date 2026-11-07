@@ -439,6 +439,10 @@
       "text": "Load"
     },
     {
+      "key": "ui.worlds.no_code",
+      "text": "This world has no world code (older save game or unknown start values)."
+    },
+    {
       "key": "ui.worlds.title",
       "text": "Worlds"
     },

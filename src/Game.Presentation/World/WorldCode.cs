@@ -14,7 +14,9 @@ public sealed record WorldStart(ulong Seed, string Size, string Climate, int Sta
 /// Short world code to copy and share (B2534): seed, size, climate and start favour; the same code
 /// gives the same start world. Format <c>GW-XXXX-XXXX-…</c> in Crockford base 32 (no I, L, O, U;
 /// reading is forgiving: lower case, spaces, missing dashes, I/L as 1 and O as 0). Options are coded
-/// by their position in the data, so a code carries a format version; a checksum catches typos.
+/// by their position in the data; one byte hashes the option lists, so a code made with other option
+/// data is refused instead of silently meaning another world (GW1 review #58 C2). A checksum catches
+/// typos.
 /// </summary>
 public static class WorldCode
 {
@@ -35,7 +37,7 @@ public static class WorldCode
         var climate = IndexOf(options.Climates.Select(c => c.Id), start.Climate, nameof(start.Climate));
         var favorIndex = IndexOf(favor.StartOptions.Select(f => f.ToString(System.Globalization.CultureInfo.InvariantCulture)), start.StartFavor.ToString(System.Globalization.CultureInfo.InvariantCulture), nameof(start.StartFavor));
 
-        var bytes = new List<byte> { (byte)Version, (byte)size, (byte)climate, (byte)favorIndex };
+        var bytes = new List<byte> { (byte)Version, OptionsHash(options, favor), (byte)size, (byte)climate, (byte)favorIndex };
         var seed = start.Seed;
         do
         {
@@ -65,14 +67,15 @@ public static class WorldCode
         }
 
         var bytes = FromBase32(text[Prefix.Length..]);
-        if (bytes is null || bytes.Length < 6 || bytes[0] != Version || Checksum(bytes.AsSpan(0, bytes.Length - 1).ToArray()) != bytes[^1])
+        if (bytes is null || bytes.Length < 7 || bytes[0] != Version || Checksum(bytes.AsSpan(0, bytes.Length - 1).ToArray()) != bytes[^1]
+            || bytes[1] != OptionsHash(options, favor))
         {
             return false;
         }
 
         ulong seed = 0;
         var shift = 0;
-        var i = 4;
+        var i = 5;
         for (; i < bytes.Length - 1; i++)
         {
             if (shift > 63)
@@ -88,13 +91,23 @@ public static class WorldCode
             }
         }
 
-        if (i != bytes.Length - 2 || bytes[1] >= options.Sizes.Count || bytes[2] >= options.Climates.Count || bytes[3] >= favor.StartOptions.Count)
+        if (i != bytes.Length - 2 || bytes[2] >= options.Sizes.Count || bytes[3] >= options.Climates.Count || bytes[4] >= favor.StartOptions.Count)
         {
             return false;
         }
 
-        start = new WorldStart(seed, options.Sizes.ElementAt(bytes[1]).Id, options.Climates.ElementAt(bytes[2]).Id, favor.StartOptions.ElementAt(bytes[3]));
+        start = new WorldStart(seed, options.Sizes.ElementAt(bytes[2]).Id, options.Climates.ElementAt(bytes[3]).Id, favor.StartOptions.ElementAt(bytes[4]));
         return true;
+    }
+
+    /// <summary>One byte over the ordered option lists (sizes, climates, start favours).</summary>
+    public static byte OptionsHash(WorldOptions options, FavorSettings favor)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(favor);
+        var text = string.Join('|', options.Sizes.Select(s => s.Id)) + "#" + string.Join('|', options.Climates.Select(c => c.Id)) + "#"
+            + string.Join('|', favor.StartOptions.Select(f => f.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+        return Checksum(Encoding.UTF8.GetBytes(text));
     }
 
     private static int IndexOf(IEnumerable<string> ids, string id, string what)

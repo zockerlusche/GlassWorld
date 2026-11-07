@@ -9,7 +9,8 @@ namespace GlassWorld.Presentation.Ui;
 /// <param name="Locales">Languages with a text catalog.</param>
 /// <param name="VolumeDb">Range of the volume sliders (content/sound/mix.json).</param>
 /// <param name="PlayerNameMaxLength">Longest player name (content/player/world_options.json).</param>
-public sealed record SettingsLimits(UiTokens Tokens, IReadOnlyCollection<string> Locales, MixPlayerRange VolumeDb, int PlayerNameMaxLength);
+/// <param name="Guard">Content guard (R13); a blocked name from a hand-edited file is dropped.</param>
+public sealed record SettingsLimits(UiTokens Tokens, IReadOnlyCollection<string> Locales, MixPlayerRange VolumeDb, int PlayerNameMaxLength, GlassWorld.Simulation.Safety.TextGuard Guard);
 
 /// <summary>
 /// The player's settings (B6 R4): stored in the user folder (<c>user://settings.json</c>), never in a
@@ -91,12 +92,15 @@ public sealed record PlayerSettings
     /// <summary>The hint part for <see cref="ToastBoard"/>.</summary>
     public ToastSettings ToToastSettings() => new(HintDurationFactor, HintsUntilDismissed);
 
-    /// <summary>A hand-edited name: trimmed, no control characters, cut to the length limit; empty = null.</summary>
-    private static string? CleanName(string? name, int maxLength)
+    /// <summary>
+    /// A hand-edited name: trimmed, no control characters, cut to the length limit, and through the
+    /// content guard like an input in the window (GW1 review #58 C1); empty or blocked = null.
+    /// </summary>
+    private static string? CleanName(string? name, int maxLength, GlassWorld.Simulation.Safety.TextGuard guard)
     {
         var clean = new string((name ?? string.Empty).Where(c => !char.IsControl(c)).ToArray()).Trim();
         clean = clean.Length > maxLength ? clean[..maxLength].TrimEnd() : clean;
-        return clean.Length == 0 ? null : clean;
+        return clean.Length == 0 || !guard.Check(clean).Allowed ? null : clean;
     }
 
     /// <summary>Values forced into the allowed ranges.</summary>
@@ -107,7 +111,7 @@ public sealed record PlayerSettings
         return this with
         {
             Language = Language is not null && limits.Locales.Contains(Language, StringComparer.Ordinal) ? Language : null,
-            PlayerName = CleanName(PlayerName, limits.PlayerNameMaxLength),
+            PlayerName = CleanName(PlayerName, limits.PlayerNameMaxLength, limits.Guard),
             UiScale = UiScaling.Snap(UiScale, tokens.UiScale),
             TextScale = UiScaling.Snap(TextScale, tokens.TextScale),
             HintDurationFactor = Math.Clamp(HintDurationFactor, 1, tokens.Toast.MaxDurationFactor),

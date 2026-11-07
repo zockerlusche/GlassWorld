@@ -38,7 +38,7 @@ public sealed class WorldCodeTests
 
     [Fact]
     public void SmallSeedsGiveShortCodes()
-        => Assert.True(WorldCode.Encode(new WorldStart(42, Options.DefaultSize, Options.DefaultClimate, Favor.StartOptions.First()), Options, Favor).Length <= 16);
+        => Assert.True(WorldCode.Encode(new WorldStart(42, Options.DefaultSize, Options.DefaultClimate, Favor.StartOptions.First()), Options, Favor).Length <= 17);
 
     [Fact]
     public void ReadingIsForgiving()
@@ -61,6 +61,15 @@ public sealed class WorldCodeTests
         Assert.False(WorldCode.TryDecode("", Options, Favor, out _));
         Assert.False(WorldCode.TryDecode(null, Options, Favor, out _));
         Assert.False(WorldCode.TryDecode("GW-!!", Options, Favor, out _));
+    }
+
+    [Fact]
+    public void CodeFromOtherOptionDataIsRefused()
+    {
+        var code = WorldCode.Encode(new WorldStart(77, Options.DefaultSize, Options.DefaultClimate, Favor.StartOptions.First()), Options, Favor);
+        var reordered = ContractSerializer.Deserialize<Contracts.WorldOptions>(File.ReadAllText(Path.Combine(TestPaths.Root, "content", "player", "world_options.json")));
+        reordered.Sizes = [.. reordered.Sizes.Reverse()];
+        Assert.False(WorldCode.TryDecode(code, reordered, Favor, out _));
     }
 
     [Fact]
