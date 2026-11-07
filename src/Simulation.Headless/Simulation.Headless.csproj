@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Headless runner: advances a world without Godot as fast as possible (tests, long runs, R14). -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>GlassWorld.Simulation.Headless</RootNamespace>
+    <AssemblyName>GlassWorld.Simulation.Headless</AssemblyName>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Simulation.Core\Simulation.Core.csproj" />
+  </ItemGroup>
+</Project>

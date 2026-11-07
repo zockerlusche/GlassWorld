@@ -128,7 +128,12 @@ def test_response_example_answers_its_request(path: Path) -> None:
 
 
 # Schemas for data files are covered by the files in content/, not by message examples.
-DATA_FILE_SCHEMAS = {"common", "vocabulary", "hardware-tiers"}
+# Data file schemas: common plus every schema named in contracts/content-map.json (same rule as the
+# C# test). They are checked through their content files instead of examples.
+DATA_FILE_SCHEMAS = {"common"} | {
+    entry["schema"]
+    for entry in json.loads((ROOT / "content-map.json").read_text(encoding="utf-8"))["entries"]
+}
 
 
 @pytest.mark.parametrize(

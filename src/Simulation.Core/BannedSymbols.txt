@@ -1,0 +1,37 @@
+# Determinism rules for Simulation.Core (ADR-0002). Every use is a build error.
+# Wall clock: simulation time comes from World.Tick only.
+P:System.DateTime.Now;Use World.Tick / World.Now (no wall clock in the core)
+P:System.DateTime.UtcNow;Use World.Tick / World.Now (no wall clock in the core)
+P:System.DateTime.Today;Use World.Tick / World.Now (no wall clock in the core)
+P:System.DateTimeOffset.Now;Use World.Tick / World.Now (no wall clock in the core)
+P:System.DateTimeOffset.UtcNow;Use World.Tick / World.Now (no wall clock in the core)
+P:System.Environment.TickCount;No wall clock in the core
+P:System.Environment.TickCount64;No wall clock in the core
+T:System.Diagnostics.Stopwatch;No wall clock in the core (measure in the headless runner)
+T:System.TimeProvider;No wall clock in the core
+# Randomness: only seeded streams.
+T:System.Random;Use World.Random (seeded PCG32 streams)
+M:System.Guid.NewGuid;Derive ids from seed and counters
+# Per-process randomized hashes.
+M:System.String.GetHashCode;Randomized per process; use RandomStreams.Fnv1a64 or ordinal comparers
+T:System.HashCode;Randomized per process
+# Parallel state changes have no defined order.
+T:System.Threading.Tasks.Parallel;State changes must run in a defined order
+# Transcendental functions may differ between platforms; use data tables with linear interpolation.
+M:System.Math.Sin(System.Double);Platform-dependent result; use a data table
+M:System.Math.Cos(System.Double);Platform-dependent result; use a data table
+M:System.Math.Tan(System.Double);Platform-dependent result; use a data table
+M:System.Math.Asin(System.Double);Platform-dependent result; use a data table
+M:System.Math.Acos(System.Double);Platform-dependent result; use a data table
+M:System.Math.Atan(System.Double);Platform-dependent result; use a data table
+M:System.Math.Atan2(System.Double,System.Double);Platform-dependent result; use a data table
+M:System.Math.Exp(System.Double);Platform-dependent result; use a data table
+M:System.Math.Log(System.Double);Platform-dependent result; use a data table
+M:System.Math.Log10(System.Double);Platform-dependent result; use a data table
+M:System.Math.Log2(System.Double);Platform-dependent result; use a data table
+M:System.Math.Pow(System.Double,System.Double);Platform-dependent result; use a data table
+M:System.Math.Cbrt(System.Double);Platform-dependent result; use a data table
+M:System.Math.Sinh(System.Double);Platform-dependent result; use a data table
+M:System.Math.Cosh(System.Double);Platform-dependent result; use a data table
+M:System.Math.Tanh(System.Double);Platform-dependent result; use a data table
+T:System.MathF;Use double with basic arithmetic or a data table

@@ -5,4 +5,15 @@
     <AssemblyName>GlassWorld.Simulation.Core</AssemblyName>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Contracts\Contracts.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="GlassWorld.Simulation.Tests" />
+  </ItemGroup>
+  <!-- Determinism rules as build errors (ADR-0002): see BannedSymbols.txt. -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" PrivateAssets="all" />
+    <AdditionalFiles Include="BannedSymbols.txt" />
+  </ItemGroup>
 </Project>
