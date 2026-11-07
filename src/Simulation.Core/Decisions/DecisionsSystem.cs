@@ -16,12 +16,13 @@ namespace GlassWorld.Simulation.Decisions;
 /// <param name="RequestId">Request sent to the decider.</param>
 /// <param name="AskedTick">Tick the question was asked.</param>
 /// <param name="Options">Options offered (option id → action, target), to check the answer against.</param>
-public sealed record OpenQuestion(string Id, string InhabitantId, string Kind, string Subject, string RequestId, long AskedTick, IReadOnlyList<(string OptionId, string Action, string? TargetId)> Options);
+/// <param name="RetryAtTick">After a retryable error: tick at which the question is sent again (B2487).</param>
+public sealed record OpenQuestion(string Id, string InhabitantId, string Kind, string Subject, string RequestId, long AskedTick, IReadOnlyList<(string OptionId, string Action, string? TargetId)> Options, long? RetryAtTick = null);
 
 /// <summary>A command from the player, checked by the core at the next tick (ADR-0005).</summary>
 /// <param name="Kind">Command kind (in B1: <c>inhabitant_clicked</c>).</param>
-/// <param name="InhabitantId">Inhabitant concerned.</param>
-public sealed record PlayerCommand(string Kind, string InhabitantId);
+/// <param name="InhabitantId">Inhabitant concerned, or null for commands without one (weather, gifts in B6).</param>
+public sealed record PlayerCommand(string Kind, string? InhabitantId);
 
 /// <summary>Result of a player command.</summary>
 /// <param name="Accepted">True if the core accepted it.</param>
@@ -46,6 +47,12 @@ public sealed class DecisionsSystem : IWorldSystem
     /// <summary>Player command: an inhabitant was clicked.</summary>
     public const string InhabitantClicked = "inhabitant_clicked";
 
+    /// <summary>Text key: unknown command.</summary>
+    public const string ReasonUnknownCommand = "msg.command.unknown";
+
+    /// <summary>Text key: the command names no existing inhabitant.</summary>
+    public const string ReasonNoInhabitant = "msg.command.no_inhabitant";
+
     private readonly SortedDictionary<string, OpenQuestion> _open = new(StringComparer.Ordinal);
     private readonly SortedDictionary<string, long> _lastAsked = new(StringComparer.Ordinal);
     private readonly Queue<PlayerCommand> _commands = new();
@@ -56,11 +63,15 @@ public sealed class DecisionsSystem : IWorldSystem
     private readonly UtilityBrain _brain;
     private readonly IDecisionPort _port;
     private readonly string _displayLocale;
+    private readonly IReadOnlyDictionary<string, VocabularyEntryTarget> _actionTargets;
+    private ILookup<long, PlayerCommand>? _replayCommands;
     private long _counter;
 
     /// <summary>Creates the system.</summary>
-    public DecisionsSystem(DeciderSettings settings, InhabitantsSystem inhabitants, WorldObjects objects, ActionRules actions, UtilityBrain brain, IDecisionPort port, string displayLocale)
+    public DecisionsSystem(DeciderSettings settings, InhabitantsSystem inhabitants, WorldObjects objects, ActionRules actions, UtilityBrain brain, Vocabulary actionVocabulary, IDecisionPort port, string displayLocale)
     {
+        ArgumentNullException.ThrowIfNull(actionVocabulary);
+        _actionTargets = actionVocabulary.Entries.ToDictionary(e => e.Id, e => e.Target ?? VocabularyEntryTarget.None, StringComparer.Ordinal);
         _settings = settings;
         _inhabitants = inhabitants;
         _objects = objects;
@@ -83,18 +94,30 @@ public sealed class DecisionsSystem : IWorldSystem
     public IReadOnlyList<string> OpenQuestionIds(string inhabitantId) =>
         [.. _open.Values.Where(q => q.InhabitantId == inhabitantId).Select(q => q.Id)];
 
+    /// <summary>
+    /// Replay mode: player commands come from a recorded log at the ticks they took effect (they change the
+    /// world, so they belong to the replay like the answers of the decider).
+    /// </summary>
+    public void LoadReplay(DecisionLog log)
+    {
+        ArgumentNullException.ThrowIfNull(log);
+        _replayCommands = log.Entries
+            .Where(e => e.Kind == DecisionLogKind.Command)
+            .ToLookup(e => e.Tick, e => System.Text.Json.JsonSerializer.Deserialize<PlayerCommand>(e.Json)!);
+    }
+
     /// <summary>Queues a player command; it takes effect at the next tick.</summary>
     public CommandResult Submit(PlayerCommand command)
     {
         ArgumentNullException.ThrowIfNull(command);
         if (command.Kind != InhabitantClicked)
         {
-            return new CommandResult(false, "command.rejected.unknown");
+            return new CommandResult(false, ReasonUnknownCommand);
         }
 
-        if (!_inhabitants.All.Any(i => i.Id == command.InhabitantId))
+        if (command.InhabitantId is null || !_inhabitants.All.Any(i => i.Id == command.InhabitantId))
         {
-            return new CommandResult(false, "command.rejected.no_inhabitant");
+            return new CommandResult(false, ReasonNoInhabitant);
         }
 
         _commands.Enqueue(command);
@@ -110,12 +133,27 @@ public sealed class DecisionsSystem : IWorldSystem
             Apply(world, message);
         }
 
+        if (_replayCommands is not null)
+        {
+            _commands.Clear();
+            foreach (var replayed in _replayCommands[world.Tick])
+            {
+                _commands.Enqueue(replayed);
+            }
+        }
+
         while (_commands.TryDequeue(out var command))
         {
-            if (Enabled(NoticedPlayer))
+            Log.Add(new DecisionLogEntry(DecisionLogKind.Command, string.Empty, world.Tick, System.Text.Json.JsonSerializer.Serialize(command), null));
+            if (command.InhabitantId is not null && Enabled(NoticedPlayer))
             {
                 Ask(world, _inhabitants.Get(command.InhabitantId), NoticedPlayer, "player", null);
             }
+        }
+
+        foreach (var due in _open.Values.Where(q => q.RetryAtTick is { } at && at <= world.Tick).ToList())
+        {
+            Resend(world, due);
         }
 
         if (Enabled(UnknownObject))
@@ -138,7 +176,7 @@ public sealed class DecisionsSystem : IWorldSystem
         hasher.Write(_counter).Write(_open.Count);
         foreach (var q in _open.Values)
         {
-            hasher.Write(q.Id).Write(q.InhabitantId).Write(q.Kind).Write(q.Subject).Write(q.RequestId).Write(q.AskedTick).Write(q.Options.Count);
+            hasher.Write(q.Id).Write(q.InhabitantId).Write(q.Kind).Write(q.Subject).Write(q.RequestId).Write(q.AskedTick).Write(q.RetryAtTick ?? -1).Write(q.Options.Count);
             foreach (var (optionId, action, target) in q.Options)
             {
                 hasher.Write(optionId).Write(action).Write(target ?? string.Empty);
@@ -178,35 +216,55 @@ public sealed class DecisionsSystem : IWorldSystem
         }
 
         _counter++;
-        var requestId = DecisionIds.RequestId(world.Seed, world.Tick, inhabitant.Id, _counter);
-        var options = BuildOptions(target);
-        var request = BuildRequest(world, inhabitant, requestId, options);
-        var json = ContractSerializer.Serialize(request);
-        var question = new OpenQuestion(string.Create(CultureInfo.InvariantCulture, $"q-{_counter:000000}"), inhabitant.Id, kind, subject, requestId, world.Tick, options);
+        var questionId = string.Create(CultureInfo.InvariantCulture, $"q-{_counter:000000}");
+        var question = Send(world, inhabitant, questionId, kind, subject, target);
         _open.Add(question.Id, question);
         _lastAsked[cooldownKey] = world.Tick;
-        Log.Add(new DecisionLogEntry(DecisionLogKind.Request, requestId, world.Tick, json, null));
         _inhabitants.Report(new WorldEvent("question_opened", world.Tick, inhabitant.Id, null, question.Id));
-        _port.Send(requestId, json);
     }
 
-    /// <summary>Options the core allows: target actions on the subject (reach &gt; 0), and every action without a target.</summary>
+    private OpenQuestion Send(World world, Inhabitant inhabitant, string questionId, string kind, string subject, WorldObject? target)
+    {
+        var requestId = DecisionIds.RequestId(world.Seed, world.Tick, inhabitant.Id, _counter);
+        var options = BuildOptions(target);
+        var json = ContractSerializer.Serialize(BuildRequest(world, inhabitant, requestId, options));
+        Log.Add(new DecisionLogEntry(DecisionLogKind.Request, requestId, world.Tick, json, null));
+        _port.Send(requestId, json);
+        return new OpenQuestion(questionId, inhabitant.Id, kind, subject, requestId, world.Tick, options);
+    }
+
+    /// <summary>Sends a question again after a retryable error, with the current state and a new request id.</summary>
+    private void Resend(World world, OpenQuestion question)
+    {
+        _counter++;
+        WorldObject? target = null;
+        var targetId = question.Options.Select(o => o.TargetId).FirstOrDefault(id => id is not null);
+        if (targetId is not null && _objects.TryGet(targetId, out var found))
+        {
+            target = found;
+        }
+
+        var resent = Send(world, _inhabitants.Get(question.InhabitantId), question.Id, question.Kind, question.Subject, target);
+        _open[question.Id] = resent with { AskedTick = question.AskedTick };
+    }
+
+    /// <summary>Options the core allows: object actions on the subject and every action without a target (target kind from the action vocabulary).</summary>
     private List<(string OptionId, string Action, string? TargetId)> BuildOptions(WorldObject? target)
     {
         var raw = new List<(string Action, string? TargetId)>();
         foreach (var action in _actions.Actions)
         {
-            var timing = _actions.Timing(action);
-            if (timing.ReachM > 0)
+            switch (_actionTargets.GetValueOrDefault(action, VocabularyEntryTarget.None))
             {
-                if (target is not null)
-                {
+                case VocabularyEntryTarget.Object when target is not null:
                     raw.Add((action, target.Id));
-                }
-            }
-            else
-            {
-                raw.Add((action, null));
+                    break;
+                case VocabularyEntryTarget.None:
+                    raw.Add((action, null));
+                    break;
+                default:
+                    // Inhabitant targets need inhabitant perception (B3/B9); object actions need a subject.
+                    break;
             }
         }
 
@@ -254,10 +312,17 @@ public sealed class DecisionsSystem : IWorldSystem
 
     private void Apply(World world, PortMessage message)
     {
-        var question = _open.Values.FirstOrDefault(q => q.RequestId == message.RequestId);
+        var question = _open.Values.FirstOrDefault(q => q.RequestId == message.RequestId && q.RetryAtTick is null);
         if (message.IsError)
         {
             Log.Add(new DecisionLogEntry(DecisionLogKind.Error, message.RequestId, world.Tick, message.Json, ReplayNotes.ServiceError));
+            if (question is not null && IsRetryable(message.Json))
+            {
+                // B2487: no fixed time limit; the question stays open and is asked again later.
+                _open[question.Id] = question with { RetryAtTick = world.Tick + ((long)_settings.RetryAfterMinutes * world.Calendar.Settings.TicksPerHour / 60) };
+                return;
+            }
+
             Close(world, question, "question_failed");
             return;
         }
@@ -294,6 +359,18 @@ public sealed class DecisionsSystem : IWorldSystem
         var destination = targetId is not null && _objects.TryGet(targetId, out var target) ? target.Position : inhabitant.Position;
         inhabitant.Activity = new Activity(action, targetId, destination, null);
         Close(world, question, "question_answered");
+    }
+
+    private static bool IsRetryable(string json)
+    {
+        try
+        {
+            return ContractSerializer.Deserialize<ServiceError>(json).Retryable;
+        }
+        catch (ContractViolationException)
+        {
+            return false;
+        }
     }
 
     private void Close(World world, OpenQuestion? question, string eventKind)

@@ -49,6 +49,12 @@ class DeciderSettings(BaseModel):
     max_open_questions: int = Field(
         ..., description='Open questions per inhabitant at the same time.', ge=1, le=16
     )
+    retry_after_minutes: int = Field(
+        ...,
+        description='After a retryable ServiceError the question stays open and is sent again after this many game minutes (B2487: no fixed time limit).',
+        ge=1,
+        le=10080,
+    )
     ask_cooldown_hours: int = Field(
         ...,
         description='Game hours before the same inhabitant asks about the same subject again.',

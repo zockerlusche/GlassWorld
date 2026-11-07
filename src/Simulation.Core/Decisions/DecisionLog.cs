@@ -14,6 +14,9 @@ public enum DecisionLogKind
 
     /// <summary>An answer arrived but no longer fitted (question closed, option unknown).</summary>
     Discarded,
+
+    /// <summary>A player command took effect (part of the replay, it changes the world).</summary>
+    Command,
 }
 
 /// <summary>One entry of the authoritative replay log (ADR-0006: the core keeps it).</summary>
@@ -53,7 +56,7 @@ public sealed class ReplayDecisionPort : IDecisionPort
     {
         ArgumentNullException.ThrowIfNull(log);
         _byTick = log.Entries
-            .Where(e => e.Kind != DecisionLogKind.Request)
+            .Where(e => e.Kind is not DecisionLogKind.Request and not DecisionLogKind.Command)
             .ToLookup(e => e.Tick, e => new PortMessage(e.RequestId, e.Json, e.Kind == DecisionLogKind.Error && e.Note == ReplayNotes.ServiceError));
     }
 

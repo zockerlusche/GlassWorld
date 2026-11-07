@@ -1,8 +1,9 @@
 {
   "contract_version": "0.1",
-  "deadline_ms": 8000,
+  "deadline_ms": 60000,
   "max_open_questions": 2,
   "ask_cooldown_hours": 6,
+  "retry_after_minutes": 30,
   "triggers": [
     { "kind": "unknown_object", "enabled": true },
     { "kind": "noticed_player", "enabled": true }

@@ -138,7 +138,9 @@ public sealed class DecisionTests
     {
         var w = NewWorld(1, new SilentPort());
         Assert.False(w.Decisions.Submit(new PlayerCommand("throw_stone", "inh-000001")).Accepted);
-        Assert.Equal("command.rejected.no_inhabitant", w.Decisions.Submit(new PlayerCommand(DecisionsSystem.InhabitantClicked, "inh-999999")).ReasonKey);
+        Assert.Equal(DecisionsSystem.ReasonUnknownCommand, w.Decisions.Submit(new PlayerCommand("throw_stone", "inh-000001")).ReasonKey);
+        Assert.Equal(DecisionsSystem.ReasonNoInhabitant, w.Decisions.Submit(new PlayerCommand(DecisionsSystem.InhabitantClicked, "inh-999999")).ReasonKey);
+        Assert.Equal(DecisionsSystem.ReasonNoInhabitant, w.Decisions.Submit(new PlayerCommand(DecisionsSystem.InhabitantClicked, null)).ReasonKey);
         Assert.True(w.Decisions.Submit(new PlayerCommand(DecisionsSystem.InhabitantClicked, "inh-000002")).Accepted);
 
         w.World.Step();
@@ -164,6 +166,98 @@ public sealed class DecisionTests
     }
 
     [Fact]
+    public void RetryableErrorKeepsTheQuestionOpenAndAsksAgain()
+    {
+        var port = new ScriptedPort(request => ContractSerializer.Serialize(new ServiceError
+        {
+            ContractVersion = "0.1",
+            RequestId = request.RequestId,
+            Tick = request.Tick,
+            Code = ServiceErrorCode.Overloaded,
+            Message = "busy",
+            Retryable = true,
+        }), isError: true);
+        var w = NewWorld(1, port);
+        w.Objects.Spawn("blue_berry", new Position(2, 0));
+        w.World.Run(3);
+        var question = Assert.Single(w.Decisions.Open);
+        Assert.NotNull(question.RetryAtTick);
+
+        w.World.Run(question.RetryAtTick!.Value - w.World.Tick + 1);
+        Assert.Equal(2, w.Decisions.Log.Entries.Count(e => e.Kind == DecisionLogKind.Request));
+        Assert.Equal(question.Id, Assert.Single(w.Decisions.Open).Id);
+    }
+
+    [Fact]
+    public void NonRetryableErrorClosesTheQuestion()
+    {
+        var port = new ScriptedPort(request => ContractSerializer.Serialize(new ServiceError
+        {
+            ContractVersion = "0.1",
+            RequestId = request.RequestId,
+            Tick = request.Tick,
+            Code = ServiceErrorCode.Bad_request,
+            Message = "bad",
+            Retryable = false,
+        }), isError: true);
+        var w = NewWorld(1, port);
+        w.Objects.Spawn("blue_berry", new Position(2, 0));
+        w.World.Run(3);
+        Assert.Empty(w.Decisions.Open);
+        Assert.Contains(w.Inhabitants.Events, e => e.Kind == "question_failed");
+    }
+
+    [Fact]
+    public void PlayerCommandsAreReplayedFromTheLog()
+    {
+        var original = NewWorld(4, new MockDecisionPort());
+        original.World.Run(10);
+        original.Decisions.Submit(new PlayerCommand(DecisionsSystem.InhabitantClicked, "inh-000002"));
+        original.World.Run(200);
+        Assert.Contains(original.Decisions.Log.Entries, e => e.Kind == DecisionLogKind.Command);
+
+        var replay = NewWorld(4, new ReplayDecisionPort(original.Decisions.Log));
+        replay.Decisions.LoadReplay(original.Decisions.Log);
+        replay.World.Run(210);
+        Assert.Equal(original.World.StateHash(), replay.World.StateHash());
+    }
+
+    [Fact]
+    public void OnlyObjectActionsGetAnObjectTarget()
+    {
+        var w = NewWorld(1, new SilentPort());
+        w.Objects.Spawn("blue_berry", new Position(2, 0));
+        w.World.Step();
+        var request = ContractSerializer.Deserialize<DecisionRequest>(w.Decisions.Log.Entries.Single(e => e.Kind == DecisionLogKind.Request).Json);
+        var targets = Content.Vocabularies[VocabularyKind.Action].Entries.ToDictionary(e => e.Id, e => e.Target);
+        Assert.All(request.Options, o => Assert.Equal(targets[o.Action] == VocabularyEntryTarget.Object, o.Target is not null));
+        Assert.DoesNotContain(request.Options, o => targets[o.Action] == VocabularyEntryTarget.Inhabitant);
+    }
+
+    [Fact]
+    public void EventsSinceDeliversEverythingAfterAGivenNumber()
+    {
+        var w = NewWorld(2, new MockDecisionPort());
+        Feed(w.Objects);
+        var seen = 0L;
+        var all = new List<SequencedEvent>();
+        for (var frame = 0; frame < 50; frame++)
+        {
+            w.World.Run(64);
+            var fresh = w.Inhabitants.EventsSince(seen);
+            all.AddRange(fresh);
+            if (fresh.Count > 0)
+            {
+                seen = fresh[^1].Seq;
+            }
+        }
+
+        Assert.NotEmpty(all);
+        Assert.Equal(Enumerable.Range(1, all.Count).Select(i => (long)i), all.Select(e => e.Seq));
+        Assert.Equal(w.Inhabitants.LastEventSeq, seen);
+    }
+
+    [Fact]
     public void RequestIdsAreDeterministicUuidV8()
     {
         var a = DecisionIds.RequestId(1, 100, "inh-000001", 1);
@@ -183,10 +277,11 @@ public sealed class DecisionTests
             DeadlineMs = Settings.DeadlineMs,
             MaxOpenQuestions = Settings.MaxOpenQuestions,
             AskCooldownHours = Settings.AskCooldownHours,
+            RetryAfterMinutes = Settings.RetryAfterMinutes,
             Triggers = [],
             FallbackEnvironment = Settings.FallbackEnvironment,
         };
-        var decisions = new DecisionsSystem(settings, inhabitants, objects, Content.Actions, Content.Brain, port, "de");
+        var decisions = new DecisionsSystem(settings, inhabitants, objects, Content.Actions, Content.Brain, Content.Vocabularies[VocabularyKind.Action], port, "de");
         world.Add(objects).Add(decisions).Add(inhabitants);
         inhabitants.SpawnStartInhabitants(world, [new Position(0, 0), new Position(500, 500)]);
         return (world, objects, inhabitants, decisions);
@@ -214,12 +309,12 @@ public sealed class DecisionTests
     }
 
     /// <summary>Answers every request at the next tick with a scripted JSON.</summary>
-    private sealed class ScriptedPort(Func<DecisionRequest, string> answer) : IDecisionPort
+    private sealed class ScriptedPort(Func<DecisionRequest, string> answer, bool isError = false) : IDecisionPort
     {
         private readonly Queue<PortMessage> _ready = new();
 
         public void Send(string requestId, string requestJson) =>
-            _ready.Enqueue(new PortMessage(requestId, answer(ContractSerializer.Deserialize<DecisionRequest>(requestJson)), IsError: false));
+            _ready.Enqueue(new PortMessage(requestId, answer(ContractSerializer.Deserialize<DecisionRequest>(requestJson)), isError));
 
         public IReadOnlyList<PortMessage> Receive(long tick)
         {

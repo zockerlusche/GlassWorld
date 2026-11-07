@@ -51,6 +51,12 @@ namespace GlassWorld.Contracts
         public int MaxOpenQuestions { get; set; } = default!;
 
         /// <summary>
+        /// After a retryable ServiceError the question stays open and is sent again after this many game minutes (B2487: no fixed time limit).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("retry_after_minutes")]
+        public int RetryAfterMinutes { get; set; } = default!;
+
+        /// <summary>
         /// Game hours before the same inhabitant asks about the same subject again.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("ask_cooldown_hours")]

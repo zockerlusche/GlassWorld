@@ -14,6 +14,11 @@ namespace GlassWorld.Simulation.Inhabitants;
 /// <param name="TargetId">Target object id, if any.</param>
 public sealed record WorldEvent(string Kind, long Tick, string InhabitantId, string? Action, string? TargetId);
 
+/// <summary>An event with its running number (UI and sound read everything since their last number).</summary>
+/// <param name="Seq">Running number, starting at 1, never reused.</param>
+/// <param name="Event">The event.</param>
+public sealed record SequencedEvent(long Seq, WorldEvent Event);
+
 /// <summary>
 /// All inhabitants (a world system): needs decay, moods follow drivers, the will to live sinks only after
 /// long neglect (B2484), and the routine layer chooses and performs actions whose effects come from the
@@ -39,6 +44,7 @@ public sealed class InhabitantsSystem : IWorldSystem
     private readonly WorldObjects _objects;
     private readonly int _ticksPerHour;
     private long _eventsTick = -1;
+    private readonly LinkedList<SequencedEvent> _history = new();
 
     /// <summary>Creates the system.</summary>
     public InhabitantsSystem(InhabitantModel model, ActionRules actions, UtilityBrain brain, WorldObjects objects, int ticksPerHour)
@@ -61,7 +67,22 @@ public sealed class InhabitantsSystem : IWorldSystem
     /// <summary>Events of the most recent tick that had events (UI, sound and tests read them each tick).</summary>
     public IReadOnlyList<WorldEvent> Events => _events;
 
-    /// <summary>Adds an event; the list is cleared when the first event of a new tick arrives.</summary>
+    /// <summary>
+    /// How many events are kept for <see cref="EventsSince"/>. Technical buffer, not a game value: at
+    /// x16 the game advances up to max_ticks_per_frame ticks per frame and reads once per frame.
+    /// </summary>
+    public const int EventHistoryCapacity = 4096;
+
+    /// <summary>Running number of the last event (0 = none yet).</summary>
+    public long LastEventSeq { get; private set; }
+
+    /// <summary>
+    /// All kept events with a running number greater than <paramref name="seq"/>, oldest first. A reader
+    /// that falls behind by more than <see cref="EventHistoryCapacity"/> events sees a gap in the numbers.
+    /// </summary>
+    public IReadOnlyList<SequencedEvent> EventsSince(long seq) => [.. _history.Where(e => e.Seq > seq)];
+
+    /// <summary>Adds an event; the per-tick list is cleared when the first event of a new tick arrives.</summary>
     public void Report(WorldEvent worldEvent)
     {
         ArgumentNullException.ThrowIfNull(worldEvent);
@@ -72,6 +93,12 @@ public sealed class InhabitantsSystem : IWorldSystem
         }
 
         _events.Add(worldEvent);
+        LastEventSeq++;
+        _history.AddLast(new SequencedEvent(LastEventSeq, worldEvent));
+        if (_history.Count > EventHistoryCapacity)
+        {
+            _history.RemoveFirst();
+        }
     }
 
     /// <summary>

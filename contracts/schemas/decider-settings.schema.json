@@ -5,11 +5,12 @@
   "description": "Data file content/decider/settings.json: when inhabitants ask the decider (W1595: whatever an inhabitant does not understand becomes a question to the AI; B2487: questions wait without a fixed time limit), and the environment values used until weather (B2) and temperature (B5) exist. Placeholders until Marcel decides.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["contract_version", "deadline_ms", "max_open_questions", "ask_cooldown_hours", "triggers", "fallback_environment"],
+  "required": ["contract_version", "deadline_ms", "max_open_questions", "ask_cooldown_hours", "retry_after_minutes", "triggers", "fallback_environment"],
   "properties": {
     "contract_version": { "$ref": "common.schema.json#/$defs/ContractVersion" },
     "deadline_ms": { "description": "Service time budget per request (ADR-0006); the core itself never waits for the clock.", "type": "integer", "minimum": 100, "maximum": 60000 },
     "max_open_questions": { "description": "Open questions per inhabitant at the same time.", "type": "integer", "minimum": 1, "maximum": 16 },
+    "retry_after_minutes": { "description": "After a retryable ServiceError the question stays open and is sent again after this many game minutes (B2487: no fixed time limit).", "type": "integer", "minimum": 1, "maximum": 10080 },
     "ask_cooldown_hours": { "description": "Game hours before the same inhabitant asks about the same subject again.", "type": "integer", "minimum": 0, "maximum": 1000 },
     "triggers": {
       "type": "array",
