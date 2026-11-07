@@ -55,6 +55,13 @@ def main() -> int:
     parser.add_argument("--steps", type=int, default=100)
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument(
+        "--dit-dtype",
+        choices=["float32", "bfloat16"],
+        default="bfloat16",
+        help="the official loader keeps the DiT in float32 (5.2 GB); bfloat16 halves it",
+    )
+    parser.add_argument("--clips", type=int, default=3, help="how many of the test clips to render")
+    parser.add_argument(
         "--compile",
         action="store_true",
         help="allow torch.compile/Triton (default off: TORCHDYNAMO_DISABLE=1)",
@@ -87,13 +94,22 @@ def main() -> int:
         args.model_dir, torch_dtype=torch.bfloat16, device="cuda"
     )
     torch.cuda.synchronize()
+    if args.dit_dtype == "bfloat16":
+        # Parameters only: the DiT keeps complex rotary buffers (freqs) that must stay complex.
+        for parameter in pipe.engine.dit.parameters():
+            parameter.data = parameter.data.to(torch.bfloat16)
+        torch.cuda.empty_cache()
+    result["dit_dtype"] = str(next(pipe.engine.dit.parameters()).dtype)
     result["load_seconds"] = round(time.perf_counter() - start, 2)
+    free, total = torch.cuda.mem_get_info()
+    result["device_free_after_load_mib"] = round(free / 2**20)
+    result["device_total_mib"] = round(total / 2**20)
     result["vram_after_load_mib"] = round(torch.cuda.memory_allocated() / 2**20)
     result["gpu_used_after_load_mib"] = gpu_used_mib()
 
     clips = []
     process_peak = result["gpu_used_after_load_mib"] or 0
-    for name, prompt, seconds in PROMPTS:
+    for name, prompt, seconds in PROMPTS[: args.clips]:
         torch.cuda.reset_peak_memory_stats()
         start = time.perf_counter()
         audio = pipe(prompt=prompt, seconds=seconds, num_inference_steps=args.steps, seed=args.seed)
@@ -114,6 +130,7 @@ def main() -> int:
                 "seconds": seconds,
                 "file": path.name,
                 "generate_seconds": round(took, 2),
+                "seconds_per_step": round(took / args.steps, 3),
                 "peak_allocated_mib": round(torch.cuda.max_memory_allocated() / 2**20),
                 "peak_reserved_mib": round(torch.cuda.max_memory_reserved() / 2**20),
                 "gpu_used_after_mib": used,
