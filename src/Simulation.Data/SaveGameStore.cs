@@ -120,7 +120,7 @@ public static class SaveGameStore
     /// <summary>Schema version of a file (0 = empty).</summary>
     public static int VersionOf(string path)
     {
-        using var connection = Open(path);
+        using var connection = Open(path, readOnly: true);
         return UserVersion(connection);
     }
 
