@@ -9,6 +9,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - Inhabitant card stays beside the side bar and its open panel and is re-fitted when the UI size changes (found in the 3840x1600 screenshots at 175 %: the card kept its old place, covered the inhabitant list and ran off the screen). The smoke checks the card at the smallest and largest UI size.
 
+### Fixed
+
+- Smoke test accepts `SMOKE_OK frames=N` with N at least the requested frames: the game waits for its own checks before quitting, which can take a few frames longer on a slow CI runner (seen: 614 of 600).
+
 ### Added
 
 - **Contract version 0.2** (B4a S1): `InhabitantState` with memory, knowledge (source and teller), relationships and habits; `perception.inhabitants`; shared defs in common (`LevelEntry`, `KnownProperty`, `Thought` 140 chars, `GeneratedText` 280 chars, `ResponseMeta`); actions `warn`/`show`/`teach`; lint against Python keywords as field names; all messages and data files carry `contract_version` 0.2; C# `ContractInfo.Version` replaces version literals (test against the schema constant).
