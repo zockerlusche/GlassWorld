@@ -46,6 +46,9 @@ class Settings(BaseSettings):
     prompt_char_budget: int = Field(ge=500, le=100000)
     max_retries: int = Field(ge=0, le=2, description="Handbook: at most two retries.")
     queue_size: int = Field(ge=1, le=10000)
+    job_capacity: int = Field(
+        ge=1, le=1024, description="Jobs held in memory (B7 S1); finished ones make room first."
+    )
     keep_alive: str = Field(min_length=1, max_length=16)
     warm_up: bool = Field(description="Load the decider model right after start.")
     warm_up_retry_s: float = Field(gt=0, le=3600, description="Retry a failed warm-up after.")

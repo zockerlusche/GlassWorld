@@ -1,0 +1,231 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/job-status.schema.json",
+  "title": "JobStatus",
+  "description": "AI service -> core (GET /jobs/{id}): state of one job. The service guarantees: done -> result and provenance set, error null; failed -> error set, result and provenance null; open states -> all three null.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "job_id",
+    "tick",
+    "kind",
+    "state",
+    "result",
+    "error",
+    "provenance"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "job_id": {
+      "$ref": "common.schema.json#/$defs/RequestId"
+    },
+    "tick": {
+      "description": "Echo of the job tick.",
+      "$ref": "common.schema.json#/$defs/Tick"
+    },
+    "kind": {
+      "$ref": "common.schema.json#/$defs/JobKind"
+    },
+    "state": {
+      "$ref": "common.schema.json#/$defs/JobState"
+    },
+    "result": {
+      "description": "Set when state is done.",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/JobResult"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "error": {
+      "description": "Set when state is failed.",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/JobError"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "provenance": {
+      "description": "Set when state is done (B7 R1: model, prompt version, seed).",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/JobProvenance"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "JobResult": {
+      "description": "One optional field per job kind; exactly the field named like the kind is set (checked by the service and the core). Unset fields are left out by both type systems (pydantic exclude_unset, C# WhenWritingNull), so a new kind is not a breaking change (review GW1 M1).",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "question": {
+          "$ref": "#/$defs/QuestionResult"
+        }
+      },
+      "minProperties": 1,
+      "maxProperties": 1
+    },
+    "QuestionResult": {
+      "description": "A GUESS coloured by character, never the truth (ADR-0005). The core stores it as knowledge with source guessed; trying it out shows the truth.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "understood",
+        "guesses",
+        "idea",
+        "thought",
+        "rationale"
+      ],
+      "properties": {
+        "understood": {
+          "description": "false = the inhabitant does not understand it (allowed, W1595); guesses may then be empty.",
+          "type": "boolean"
+        },
+        "guesses": {
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/Guess"
+          }
+        },
+        "idea": {
+          "description": "Optional idea what to do (action id from the vocabulary); a proposal, the core decides.",
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/VocabId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "thought": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/Thought"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "rationale": {
+          "type": "string",
+          "maxLength": 280
+        }
+      }
+    },
+    "Guess": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "property",
+        "value",
+        "confidence"
+      ],
+      "properties": {
+        "property": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "value": {
+          "type": "boolean"
+        },
+        "confidence": {
+          "$ref": "common.schema.json#/$defs/UnitValue"
+        }
+      }
+    },
+    "JobError": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "message",
+        "retryable"
+      ],
+      "properties": {
+        "code": {
+          "$ref": "common.schema.json#/$defs/ServiceErrorCode"
+        },
+        "message": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "retryable": {
+          "description": "true = the core may try again with a NEW request_id (new attempt); false = give up (e.g. kind not supported).",
+          "type": "boolean"
+        }
+      }
+    },
+    "JobProvenance": {
+      "description": "Where the result came from, for logs and replays.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source",
+        "model",
+        "prompt_version",
+        "seed",
+        "latency_ms",
+        "attempts"
+      ],
+      "properties": {
+        "source": {
+          "type": "string",
+          "enum": [
+            "ollama",
+            "comfyui",
+            "mock",
+            "replay",
+            "local_model"
+          ],
+          "description": "ollama = language model, comfyui = image model, local_model = other local models run in-process (e.g. MOSS sound, B8), mock/replay = tests."
+        },
+        "model": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "prompt_version": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 64
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "seed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "latency_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "format": "int64"
+        },
+        "attempts": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3
+        }
+      }
+    }
+  }
+}

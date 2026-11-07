@@ -7,7 +7,7 @@ import contextlib
 import json
 import re
 import time
-from collections.abc import AsyncGenerator, Callable
+from collections.abc import AsyncGenerator, Callable, Mapping
 from contextlib import asynccontextmanager
 from typing import cast
 
@@ -29,6 +29,7 @@ from glassworld_ai.decider.backends import (
 from glassworld_ai.errors import error_response, install_error_handlers
 from glassworld_ai.hardware import HardwareInfo, detect_hardware, load_tiers, select_tier
 from glassworld_ai.health import health_status
+from glassworld_ai.jobs import Handler, JobConflictError, JobRunner, JobsFullError
 from glassworld_ai.llm.ollama import (
     OllamaClient,
     OllamaResponseError,
@@ -40,7 +41,14 @@ from glassworld_ai.queue import ModelQueue
 from glassworld_ai.security import make_access_guard
 from glassworld_ai.validation import ContractValidator
 from glassworld_ai.vocabulary import Vocabulary
-from glassworld_contracts import DecisionRequest, HealthStatus
+from glassworld_contracts import (
+    CONTRACT_VERSION,
+    DecisionRequest,
+    GenerationJob,
+    HealthStatus,
+    JobAccepted,
+    JobList,
+)
 
 READY_LINE = "AI_SERVICE_READY port={port}"
 
@@ -56,6 +64,7 @@ def create_app(
     on_started: Callable[[], None] | None = None,
     request_exit: Callable[[], None] | None = None,
     transport: httpx.AsyncBaseTransport | None = None,
+    job_handlers: Mapping[str, Handler] | None = None,
 ) -> FastAPI:
     """Build the app.
 
@@ -95,6 +104,7 @@ def create_app(
                 # the queue (waiting calls end at once, nothing reloads the model), then unload.
                 app.state.stopping = True
                 await app.state.queue.close()
+                await app.state.jobs.close()
                 if settings.decider_backend == "ollama":
                     with contextlib.suppress(
                         OllamaUnavailableError, OllamaResponseError, httpx.HTTPError
@@ -111,6 +121,8 @@ def create_app(
     )
     validator = ContractValidator(settings.schemas_dir)
     app.state.queue = queue or ModelQueue(settings.queue_size)
+    # Job kinds get their handlers in their own steps (question: B4a S2, image: B7 S5, ...).
+    app.state.jobs = JobRunner(job_handlers or {}, settings.job_capacity)
 
     def _set_hardware(target: FastAPI, info: HardwareInfo) -> None:
         target.state.hardware = info
@@ -148,15 +160,103 @@ def create_app(
         """Stop the server (ADR-0006). The model is unloaded when the app ends (lifespan)."""
         app.state.stopping = True  # no new model calls: they would load the model again
         await app.state.queue.close()  # waiting calls end now with model_unavailable
+        await app.state.jobs.close()
         if request_exit is not None:
             asyncio.get_running_loop().call_soon(request_exit)
         return {"status": "stopping"}
 
+    @app.post("/jobs")
+    async def submit_job(request: Request) -> Response:
+        """Accept a generation job (B7 R1); 202 with JobAccepted, also for a known job id."""
+        body = await _read_body(request)
+        if body is None:
+            return error_response("bad_request", f"Request body above {MAX_BODY_BYTES} bytes.")
+        try:
+            data: object = json.loads(body)
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            return error_response("bad_request", "Request body is not valid JSON.")
+        problems = validator.errors("generation-job", data)
+        rid, rtick = _ids_if_valid(data)
+        if problems:
+            return error_response(
+                "bad_request",
+                "Invalid GenerationJob: " + "; ".join(problems[:3]),
+                request_id=rid,
+                tick=rtick,
+            )
+        job = GenerationJob.model_validate(data)
+        kind = str(job.kind.value)
+        parts = sorted(job.payload.model_dump(exclude_none=True))
+        if parts != [kind]:
+            return error_response(
+                "bad_request",
+                f"payload must hold exactly the part '{kind}', got {parts}",
+                request_id=rid,
+                tick=rtick,
+            )
+        runner: JobRunner = app.state.jobs
+        if app.state.stopping:
+            return error_response(
+                "model_unavailable", "Service is stopping.", request_id=rid, tick=rtick
+            )
+        if not runner.supports(kind):
+            return error_response(
+                "model_unavailable",
+                f"Job kind '{kind}' is not supported by this service version.",
+                request_id=rid,
+                tick=rtick,
+                retryable=False,
+            )
+        try:
+            state, _ = runner.submit(job)
+        except JobConflictError as error:
+            return error_response("bad_request", str(error), request_id=rid, tick=rtick)
+        except JobsFullError as error:
+            return error_response("overloaded", str(error), request_id=rid, tick=rtick)
+        accepted = JobAccepted.model_validate(
+            {"contract_version": CONTRACT_VERSION, "job_id": rid, "state": state}
+        )
+        return JSONResponse(status_code=202, content=accepted.model_dump(mode="json"))
+
+    @app.get("/jobs/{job_id}")
+    async def job_status(job_id: str) -> Response:
+        runner: JobRunner = app.state.jobs
+        status = runner.status(job_id)
+        if status is None:
+            # Retryable: the service may have restarted; the core sends a new attempt (new id).
+            return error_response(
+                "not_found",
+                "Unknown job id (the service may have restarted).",
+                request_id=job_id if _UUID.fullmatch(job_id) else None,
+                retryable=True,
+            )
+        return JSONResponse(status.model_dump(mode="json", exclude_unset=True))
+
+    @app.delete("/jobs/{job_id}", status_code=204)
+    async def cancel_job(job_id: str) -> Response:
+        """Forget a job (orphaned after loading a save); idempotent, unknown ids are fine."""
+        runner: JobRunner = app.state.jobs
+        runner.cancel(job_id)
+        return Response(status_code=204)
+
+    @app.get("/jobs")
+    async def list_jobs(state: str | None = None) -> Response:
+        if state is not None and state not in _JOB_STATES:
+            return error_response("bad_request", f"Unknown job state '{state}'.")
+        runner: JobRunner = app.state.jobs
+        listing = JobList.model_validate(
+            {"contract_version": CONTRACT_VERSION, "jobs": runner.listing(state)[:1024]}
+        )
+        return JSONResponse(listing.model_dump(mode="json"))
+
     @app.post("/decide")
     async def decide(request: Request) -> Response:
         received = time.monotonic()
+        body = await _read_body(request)
+        if body is None:
+            return error_response("bad_request", f"Request body above {MAX_BODY_BYTES} bytes.")
         try:
-            data: object = json.loads(await request.body())
+            data: object = json.loads(body)
         except (json.JSONDecodeError, UnicodeDecodeError):
             return error_response("bad_request", "Request body is not valid JSON.")
         problems = validator.errors("decision-request", data)
@@ -203,6 +303,22 @@ def create_app(
     return app
 
 
+MAX_BODY_BYTES = 256 * 1024  # largest request; real ones are a few KiB
+
+
+async def _read_body(request: Request) -> bytes | None:
+    """The request body, or None if it is larger than MAX_BODY_BYTES (read stops there)."""
+    chunks: list[bytes] = []
+    size = 0
+    async for chunk in request.stream():
+        size += len(chunk)
+        if size > MAX_BODY_BYTES:
+            return None
+        chunks.append(chunk)
+    return b"".join(chunks)
+
+
+_JOB_STATES = frozenset({"queued", "running", "done", "failed", "deferred"})
 _UUID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
 
 

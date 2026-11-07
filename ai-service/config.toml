@@ -25,6 +25,7 @@ num_ctx = 8192
 prompt_char_budget = 6000
 max_retries = 2            # engineering handbook: at most two retries
 queue_size = 64
+job_capacity = 256         # generation jobs held in memory (B7); the core resubmits after a restart
 keep_alive = "30m"
 warm_up = true             # load the model at start; /health says "starting" meanwhile
 warm_up_retry_s = 30.0     # a failed warm-up (e.g. Ollama not up yet) is retried

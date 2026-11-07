@@ -34,9 +34,6 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("tick")]
         public long? Tick { get; set; } = default!;
 
-        /// <summary>
-        /// HTTP mapping: timeout=504, model_unavailable=503, overloaded=503, invalid_model_output=502, bad_request=422, forbidden=403 (host or session token), not_found=404, internal=500.
-        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("code")]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ServiceErrorCode>))]
         public ServiceErrorCode Code { get; set; } = default!;
@@ -46,44 +43,6 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("retryable")]
         public bool Retryable { get; set; } = default!;
-
-    }
-
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
-    public enum ServiceErrorCode
-    {
-
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("timeout")]
-        Timeout = 0,
-
-
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("model_unavailable")]
-        Model_unavailable = 1,
-
-
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("overloaded")]
-        Overloaded = 2,
-
-
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("invalid_model_output")]
-        Invalid_model_output = 3,
-
-
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("bad_request")]
-        Bad_request = 4,
-
-
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("forbidden")]
-        Forbidden = 5,
-
-
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("not_found")]
-        Not_found = 6,
-
-
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("internal")]
-        Internal = 7,
-
 
     }
 }

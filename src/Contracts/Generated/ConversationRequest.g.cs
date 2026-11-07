@@ -329,6 +329,113 @@ namespace GlassWorld.Contracts
 
     }
 
+    /// <summary>
+    /// What a generation job produces (B7 R1). Payload and result carry the part of the same name; a kind without a payload definition is not supported yet.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public enum JobKind
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("question")]
+        Question = 0,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("memory")]
+        Memory = 1,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("dream")]
+        Dream = 2,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("chronicle")]
+        Chronicle = 3,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("image")]
+        Image = 4,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("sound")]
+        Sound = 5,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("model3d")]
+        Model3d = 6,
+
+
+    }
+
+    /// <summary>
+    /// queued = waiting; running; done = result ready; failed = error set; deferred = moved to the next computing night (B7 R4).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public enum JobState
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("queued")]
+        Queued = 0,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("running")]
+        Running = 1,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("done")]
+        Done = 2,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("failed")]
+        Failed = 3,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("deferred")]
+        Deferred = 4,
+
+
+    }
+
+    /// <summary>
+    /// HTTP mapping: timeout=504, model_unavailable=503, overloaded=503, invalid_model_output=502, bad_request=422, forbidden=403 (host or session token), not_found=404, internal=500.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public enum ServiceErrorCode
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("timeout")]
+        Timeout = 0,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("model_unavailable")]
+        Model_unavailable = 1,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("overloaded")]
+        Overloaded = 2,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("invalid_model_output")]
+        Invalid_model_output = 3,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("bad_request")]
+        Bad_request = 4,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("forbidden")]
+        Forbidden = 5,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("not_found")]
+        Not_found = 6,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("internal")]
+        Internal = 7,
+
+
+    }
+
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class Speaker
     {

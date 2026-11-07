@@ -222,14 +222,17 @@ class InhabitantState(BaseModel):
     needs: list[LevelEntry] = Field(
         ...,
         description='Need satisfaction: 0 = fully unsatisfied (urgent, e.g. hunger 0.1 = very hungry), 1 = fully satisfied. Sorted by id by the core.',
+        max_length=32,
     )
     mood: list[LevelEntry] = Field(
         ...,
         description='Current emotions with intensity 0 = absent, 1 = very strong. Only emotions above zero are listed. Sorted by id by the core.',
+        max_length=32,
     )
     traits: list[LevelEntry] = Field(
         ...,
         description='Long-term character traits, 0 = very low, 1 = very high. Sorted by id by the core.',
+        max_length=32,
     )
     will_to_live: float = Field(
         ...,
@@ -268,3 +271,32 @@ class GeneratedText(BaseModel):
         max_length=280,
         min_length=1,
     )
+
+
+class JobKind(StrEnum):
+    question = 'question'
+    memory = 'memory'
+    dream = 'dream'
+    chronicle = 'chronicle'
+    image = 'image'
+    sound = 'sound'
+    model3d = 'model3d'
+
+
+class JobState(StrEnum):
+    queued = 'queued'
+    running = 'running'
+    done = 'done'
+    failed = 'failed'
+    deferred = 'deferred'
+
+
+class ServiceErrorCode(StrEnum):
+    timeout = 'timeout'
+    model_unavailable = 'model_unavailable'
+    overloaded = 'overloaded'
+    invalid_model_output = 'invalid_model_output'
+    bad_request = 'bad_request'
+    forbidden = 'forbidden'
+    not_found = 'not_found'
+    internal = 'internal'
