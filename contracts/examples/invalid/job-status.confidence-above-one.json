@@ -1,0 +1,34 @@
+{
+  "contract_version": "0.2",
+  "job_id": "7d1e2f30-4a5b-4c6d-8e9f-0a1b2c3d4e5f",
+  "tick": 1210,
+  "kind": "question",
+  "state": "done",
+  "result": {
+    "question": {
+      "understood": true,
+      "guesses": [
+        {
+          "property": "edible",
+          "value": true,
+          "confidence": 1.5
+        }
+      ],
+      "idea": "inspect",
+      "thought": {
+        "locale": "de",
+        "text": "Rote Beeren... vielleicht essbar, vielleicht nicht. Lieber erst genau ansehen."
+      },
+      "rationale": "Cautious: unknown red berries could be either; inspect first."
+    }
+  },
+  "error": null,
+  "provenance": {
+    "source": "mock",
+    "model": "mock",
+    "prompt_version": "question.v1",
+    "seed": 77,
+    "latency_ms": 1,
+    "attempts": 1
+  }
+}

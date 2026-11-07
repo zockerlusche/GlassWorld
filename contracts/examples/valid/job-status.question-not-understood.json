@@ -1,0 +1,28 @@
+{
+  "contract_version": "0.2",
+  "job_id": "7d1e2f30-4a5b-4c6d-8e9f-0a1b2c3d4e5f",
+  "tick": 1210,
+  "kind": "question",
+  "state": "done",
+  "result": {
+    "question": {
+      "understood": false,
+      "guesses": [],
+      "idea": null,
+      "thought": {
+        "locale": "de",
+        "text": "Was ist das nur? Ich verstehe es nicht."
+      },
+      "rationale": "Nothing to compare with."
+    }
+  },
+  "error": null,
+  "provenance": {
+    "source": "mock",
+    "model": "mock",
+    "prompt_version": "question.v1",
+    "seed": 77,
+    "latency_ms": 1,
+    "attempts": 1
+  }
+}

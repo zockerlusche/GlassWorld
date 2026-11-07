@@ -45,6 +45,7 @@ public static partial class Generator
             };
             var code = new CSharpGenerator(schema, settings).GenerateFile();
             code = PostProcess(code);
+            code = OmitUnsetOptionals(code, OptionalProperties(schema));
             foreach (Match match in TypeDeclaration().Matches(code))
             {
                 emitted.Add(match.Groups["name"].Value);
@@ -75,6 +76,73 @@ public static partial class Generator
     private static string PostProcess(string code) =>
         EnumMember().Replace(code, "[System.Text.Json.Serialization.JsonStringEnumMemberName(${value})]")
             .Replace("\r\n", "\n", StringComparison.Ordinal);
+
+    /// <summary>
+    /// Optional (not required) JSON properties per generated class: the root schema by its title,
+    /// definitions by their key (the bundle keeps the PascalCase definition names as class names).
+    /// </summary>
+    private static Dictionary<string, HashSet<string>> OptionalProperties(JsonSchema root)
+    {
+        var result = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+        void Add(string? className, JsonSchema schema)
+        {
+            if (string.IsNullOrEmpty(className))
+            {
+                return;
+            }
+
+            var optional = schema.ActualProperties.Where(p => !p.Value.IsRequired).Select(p => p.Key).ToHashSet(StringComparer.Ordinal);
+            if (optional.Count > 0)
+            {
+                result[className] = optional;
+            }
+        }
+
+        Add(root.Title, root);
+        foreach (var (key, definition) in root.Definitions)
+        {
+            Add(key, definition.ActualSchema);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Not-required properties are left out when null instead of being written as <c>null</c>, so a JSON
+    /// document round-trips the same through the C# types and pydantic (<c>exclude_unset</c>). Required
+    /// properties, nullable or not, are always written.
+    /// </summary>
+    private static string OmitUnsetOptionals(string code, Dictionary<string, HashSet<string>> optional)
+    {
+        var lines = code.Split('\n');
+        var output = new List<string>(lines.Length);
+        string? current = null;
+        foreach (var line in lines)
+        {
+            var declaration = ClassDeclaration().Match(line);
+            if (declaration.Success)
+            {
+                current = declaration.Groups["name"].Value;
+            }
+
+            var property = PropertyName().Match(line);
+            if (property.Success && current is not null && optional.TryGetValue(current, out var names) && names.Contains(property.Groups["json"].Value))
+            {
+                var indent = line[..(line.Length - line.TrimStart().Length)];
+                output.Add(indent + "[System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]");
+            }
+
+            output.Add(line);
+        }
+
+        return string.Join('\n', output);
+    }
+
+    [GeneratedRegex(@"public partial class (?<name>\w+)")]
+    private static partial Regex ClassDeclaration();
+
+    [GeneratedRegex(@"\[System\.Text\.Json\.Serialization\.JsonPropertyName\(""(?<json>[^""]+)""\)\]")]
+    private static partial Regex PropertyName();
 
     private static string ToPascal(string kebab) =>
         string.Concat(kebab.Split('-', StringSplitOptions.RemoveEmptyEntries)
