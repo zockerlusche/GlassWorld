@@ -12,7 +12,8 @@
     "max_open_suggestions",
     "min_distance_to_inhabitant_m",
     "urgent_below",
-    "missing_radius_m"
+    "missing_radius_m",
+    "search_actions"
   ],
   "properties": {
     "contract_version": {
@@ -52,6 +53,16 @@
       "type": "number",
       "minimum": 1,
       "maximum": 1000
+    },
+    "search_actions": {
+      "description": "Actions that count as trying to find something (searching, examining); only these count as futile effort, not sleeping or resting (GW1 review #67 S2).",
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 8,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "common.schema.json#/$defs/VocabId"
+      }
     }
   }
 }

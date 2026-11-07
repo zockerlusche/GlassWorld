@@ -131,6 +131,42 @@ public sealed class PlayerTests : IDisposable
         Assert.Equal(host.Player.Open, loaded.Player.Open);
     }
 
+    [Fact]
+    public void StartFavourIsPartOfTheStartState()
+    {
+        // GW1 review #67 S1: the same world code with another favour is another start state.
+        var low = WorldWithThirsty(out _);
+        var high = WorldWithThirsty(out _);
+        low.Player.SetStartFavor(low.Content.Favor.StartOptions.Min());
+        high.Player.SetStartFavor(high.Content.Favor.StartOptions.Max());
+        Assert.NotEqual(low.World.StateHash(), high.World.StateHash());
+    }
+
+    [Fact]
+    public void AReplayedGiftGivesTheSameWorld()
+    {
+        // GW1 review #67 T1: the command comes back from the log at the same tick.
+        var original = WorldWithThirsty(out _);
+        original.World.Run(10);
+        original.Decisions.Submit(new PlayerCommand(PlayerSystem.PlaceGift, null) { TypeId = "apple", X = 6, Z = 2 });
+        original.World.Run(500);
+
+        var replay = WorldWithThirsty(out _);
+        replay.Decisions.LoadReplay(original.Decisions.Log);
+        replay.World.Run(510);
+        Assert.Equal(original.World.StateHash(), replay.World.StateHash());
+        Assert.Contains(replay.Objects.All, o => o.TypeId == "apple");
+    }
+
+    [Fact]
+    public void TheDataDecidesWhenEffortCounts()
+    {
+        // GW1 review #67 T1: with a lower threshold for "pressing", the same thirst never counts.
+        var host = WorldWithThirsty(out var inhabitant);
+        inhabitant.Needs["thirst"] = host.Content.GiftRules.UrgentBelow + 0.01;
+        Assert.Null(RunUntil(host, PlayerSystem.HelpNeeded, days: 0.1, detail: "thirst"));
+    }
+
     private static SimulationHost WorldWithThirsty(out Inhabitant inhabitant)
     {
         var host = SimulationHost.CreateEmpty(ContentDirectory, 1, new MockDecisionPort(), "de");
@@ -141,10 +177,10 @@ public sealed class PlayerTests : IDisposable
         return host;
     }
 
-    private static WorldEvent? RunUntil(SimulationHost host, string kind, int days, string? detail = null)
+    private static WorldEvent? RunUntil(SimulationHost host, string kind, double days, string? detail = null)
     {
         var seq = host.Inhabitants.LastEventSeq;
-        for (long t = 0; t < host.World.Calendar.TicksPerDay * days; t++)
+        for (long t = 0; t < (long)(host.World.Calendar.TicksPerDay * days); t++)
         {
             host.World.Step();
             var found = host.Inhabitants.EventsSince(seq).Select(e => e.Event).FirstOrDefault(e => e.Kind == kind && (detail is null || e.Detail == detail));

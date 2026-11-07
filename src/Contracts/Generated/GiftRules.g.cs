@@ -55,5 +55,11 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("missing_radius_m")]
         public double MissingRadiusM { get; set; } = default!;
 
+        /// <summary>
+        /// Actions that count as trying to find something (searching, examining); only these count as futile effort, not sleeping or resting (GW1 review #67 S2).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("search_actions")]
+        public System.Collections.Generic.ICollection<string> SearchActions { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
     }
 }

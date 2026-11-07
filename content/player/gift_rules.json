@@ -5,5 +5,9 @@
   "max_open_suggestions": 3,
   "min_distance_to_inhabitant_m": 1.5,
   "urgent_below": 0.3,
-  "missing_radius_m": 100
+  "missing_radius_m": 100,
+  "search_actions": [
+    "wander",
+    "inspect"
+  ]
 }

@@ -24,8 +24,8 @@ public sealed record PlayerState(double Favor, IReadOnlyList<KeyValuePair<string
 /// <list type="bullet">
 /// <item>Favour grows back slowly up to its maximum; interventions cost favour (all values from
 /// content/player/favor.json).</item>
-/// <item>Futile effort: when an action ends while a need is pressing and nothing in sight seems to
-/// help (by the inhabitant's own beliefs), that is a futile attempt. After enough attempts the core
+/// <item>Futile effort: when a search action (data) ends while a need is pressing and nothing in
+/// sight seems to help (by the inhabitant's own beliefs), that is a futile attempt. After enough attempts the core
 /// checks against the truth whether a helping thing is really missing nearby; only then a call for
 /// help opens (event <see cref="HelpNeeded"/>). Otherwise the inhabitant is to search on.</item>
 /// <item>Gifts: the player places an object (command <see cref="PlaceGift"/>); it belongs to nobody,
@@ -105,7 +105,10 @@ public sealed class PlayerSystem : IWorldSystem
         Favor = favor;
     }
 
-    /// <summary>Checks a gift command without changing anything (the UI shows the reason).</summary>
+    /// <summary>
+    /// Checks a gift command without changing anything (the UI shows the reason). Walkable ground is not
+    /// checked yet: the island terrain query comes with B2 (GW1 review #67 S3).
+    /// </summary>
     public CommandResult Check(PlayerCommand command)
     {
         ArgumentNullException.ThrowIfNull(command);
@@ -152,8 +155,9 @@ public sealed class PlayerSystem : IWorldSystem
         var expiry = (long)(_rules.SuggestionExpiryHours * _ticksPerHour);
         _open.RemoveAll(c => world.Tick - c.Tick >= expiry);
 
+        // Only searching counts as effort (search_actions of the data), not sleeping or resting.
         var finished = _inhabitants.Events
-            .Where(e => e.Tick == world.Tick && e.Kind == InhabitantsSystem.ActionFinished)
+            .Where(e => e.Tick == world.Tick && e.Kind == InhabitantsSystem.ActionFinished && e.Action is not null && _rules.SearchActions.Contains(e.Action))
             .Select(e => e.InhabitantId)
             .ToHashSet(StringComparer.Ordinal);
         foreach (var inhabitant in _inhabitants.All)
