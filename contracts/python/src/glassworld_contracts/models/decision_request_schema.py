@@ -69,6 +69,11 @@ class Option(BaseModel):
     target: common_schema.EntityId | None = Field(
         ..., description='Target instance, or null for actions without target.'
     )
+    partners: list[common_schema.EntityId] = Field(
+        ...,
+        description='Further objects used together with target (e.g. combine flint with pyrite), sorted by id; empty for actions with one object or none.',
+        max_length=3,
+    )
 
 
 class LevelEntry(BaseModel):
