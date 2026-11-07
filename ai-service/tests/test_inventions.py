@@ -295,6 +295,6 @@ def test_reason_codes_come_from_the_data(settings: Settings) -> None:
             verdict("reject", reasons=["looks_odd"]),
             verdict("reject", reasons=["harmful"]),
         ],
-    )  # noqa: E501
+    )
     result = _result(asyncio.run(handler(JOB)))  # the unknown code is invalid, the retry is used
     assert result["rounds"][0]["reasons"] == ["harmful"]
