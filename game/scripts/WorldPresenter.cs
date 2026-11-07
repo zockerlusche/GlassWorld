@@ -96,6 +96,7 @@ public partial class WorldPresenter : Node3D
             // At least 20 s: the service unloads the model first (GW2 #30).
             _service.StopAsync(TimeSpan.FromSeconds(20)).GetAwaiter().GetResult();
             _service.Dispose();
+            GD.Print("AI_SERVICE stopped");
             _service = null;
         }
     }
