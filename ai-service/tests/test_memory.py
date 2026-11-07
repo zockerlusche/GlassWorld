@@ -213,3 +213,17 @@ def test_memory_jobs_run_over_jobs_with_the_mock_backend(settings: Settings) -> 
     assert ContractValidator(settings.schemas_dir).errors("job-status", status) == []
     assert status["result"]["question"] is None
     assert status["result"]["memory"]["kept"] == FORMATIVE
+
+
+def test_impossible_budget_fails_without_asking_the_model(settings: Settings) -> None:
+    data = copy.deepcopy(JOB_DATA)
+    data["payload"]["memory"]["events"] = [
+        {"tick": 3000 + i, "kind": "felt_pain", "about": None, "formative": True} for i in range(10)
+    ]
+    data["payload"]["memory"]["max_chars"] = 100  # 10 formative events cannot fit
+    handler, log, seeds = _handler(settings, [])
+    with pytest.raises(JobFailedError) as failure:
+        asyncio.run(handler(GenerationJob.model_validate(data)))
+    assert (failure.value.code, failure.value.retryable) == ("bad_request", False)
+    assert seeds == []
+    assert log.read() == []

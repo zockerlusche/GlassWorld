@@ -18,7 +18,7 @@ from typing import Any, cast
 from jsonschema import Draft202012Validator
 
 from glassworld_ai.calllog import CallLog
-from glassworld_ai.jobs import JobOutcome
+from glassworld_ai.jobs import JobFailedError, JobOutcome
 from glassworld_ai.llm.jobcall import (
     InvalidOutputError,
     ModelCallSettings,
@@ -34,6 +34,8 @@ from glassworld_ai.words import ContextError, humanize, plain_id
 from glassworld_contracts import GenerationJob
 
 ROLE = "memory"
+# Technical floor, not a balancing value: a formative event needs at least a short sentence.
+MIN_CHARS_PER_FORMATIVE = 20
 
 
 @dataclass(frozen=True)
@@ -136,7 +138,16 @@ class OllamaMemory:
 
     async def __call__(self, job: GenerationJob) -> JobOutcome:
         formative = formative_ticks(job)
-        schema = output_schema(memory_payload(job).max_chars, formative)
+        max_chars = memory_payload(job).max_chars
+        if len(formative) * MIN_CHARS_PER_FORMATIVE > max_chars:
+            # Cannot be met by any model: not retryable, the core must split the events or
+            # raise the budget (review GW1 M2; otherwise it would resend forever, B2487).
+            raise JobFailedError(
+                "bad_request",
+                f"{len(formative)} formative events do not fit into {max_chars} characters",
+                retryable=False,
+            )
+        schema = output_schema(max_chars, formative)
         rendered = self._template.render(build_values(job, self._template))
         answer = await ask_model(
             role=ROLE,
