@@ -82,22 +82,26 @@
     {
       "option_id": "o1",
       "action": "inspect",
-      "target": "obj-0042"
+      "target": "obj-0042",
+      "partners": []
     },
     {
       "option_id": "o2",
       "action": "eat",
-      "target": "obj-0042"
+      "target": "obj-0042",
+      "partners": []
     },
     {
       "option_id": "o3",
       "action": "move_to",
-      "target": "obj-0007"
+      "target": "obj-0007",
+      "partners": []
     },
     {
       "option_id": "o4",
       "action": "idle",
-      "target": null
+      "target": null,
+      "partners": []
     }
   ]
 }

@@ -106,6 +106,12 @@ def test_request_example_uses_known_vocabulary(path: Path) -> None:
     weather = request["environment"]["weather"]
     assert set(weather) <= _vocab_ids("weather")
     assert weather == sorted(weather), "core sends weather sorted by id"
+    perceived = {o["id"] for o in request["perception"]["objects"]}
+    for option in request["options"]:
+        partners = option["partners"]
+        assert partners == sorted(partners), "core sends partners sorted by id"
+        assert set(partners) <= perceived, "partners are perceived objects"
+        assert option["target"] not in partners
     option_ids = [o["option_id"] for o in request["options"]]
     assert len(option_ids) == len(set(option_ids)), "option_ids must be unique"
 

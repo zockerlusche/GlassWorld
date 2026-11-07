@@ -35,6 +35,7 @@ MODELS: dict[str, type[BaseModel]] = {
 # (jsonschema in the AI service, JsonSchema.Net in C#) is the authority for these.
 KNOWN_GENERATOR_GAPS = {
     "decision-request.duplicate-weather.json": "uniqueItems is not enforced by pydantic",
+    "decision-request.partners-duplicate.json": "uniqueItems is not enforced by pydantic",
 }
 
 

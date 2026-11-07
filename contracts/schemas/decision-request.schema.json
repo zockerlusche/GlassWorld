@@ -174,7 +174,8 @@
       "required": [
         "option_id",
         "action",
-        "target"
+        "target",
+        "partners"
       ],
       "properties": {
         "option_id": {
@@ -193,6 +194,15 @@
               "type": "null"
             }
           ]
+        },
+        "partners": {
+          "description": "Further objects used together with target (e.g. combine flint with pyrite), sorted by id; empty for actions with one object or none.",
+          "type": "array",
+          "maxItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/EntityId"
+          }
         }
       }
     },
