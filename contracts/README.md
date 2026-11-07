@@ -8,7 +8,7 @@ from them, never written by hand.
 
 | Path | Content |
 |---|---|
-| `schemas/` | `common`, `decision-request`, `decision-response`, `service-error`, `health-status`, `vocabulary`, `i18n`, `hardware-tiers`; UI data files `ui-tokens`, `ui-frames` (D366); sound data files `sound-map`, `synth-recipes` (B8) |
+| `schemas/` | `common`, `decision-request`, `decision-response`, `service-error`, `health-status`, `vocabulary`, `i18n`, `hardware-tiers`, `safety-rules`; UI data files `ui-tokens`, `ui-frames` (D366); sound data files `sound-map`, `synth-recipes` (B8) |
 | `examples/valid/`, `examples/invalid/` | Example messages named `<schema>.<case>.json`; both languages test against them |
 | `python/` | Package `glassworld_contracts` with generated pydantic v2 models (checked in) |
 | `generate_python.py` | Regenerates the Python models; `--check` fails if they are stale |

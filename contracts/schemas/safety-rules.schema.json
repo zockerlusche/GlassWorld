@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/safety-rules.schema.json",
+  "title": "SafetyRules",
+  "description": "Deterministic content check for player texts and inhabitant texts (B6 R13, B2472, ages 12+). The core and the AI service apply the same rules before any model call; subtle cases are left to the AI rule guard. Terms are matched as whole words after a platform-independent fold (full-width to ASCII, combining umlauts composed, other marks and invisible characters removed), lower case, leetspeak map and joined single letters.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "max_length",
+    "leet",
+    "categories",
+    "allowed_words"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "max_length": {
+      "description": "Longer texts are refused (characters after normalisation).",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 2000
+    },
+    "leet": {
+      "description": "Character replacements against simple obfuscation.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/LeetMapping"
+      }
+    },
+    "categories": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/SafetyCategory"
+      }
+    },
+    "allowed_words": {
+      "description": "Whole words that are never blocked even if a pattern would match them.",
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 2,
+        "maxLength": 60,
+        "pattern": "^[a-zäöüß0-9 ]+$"
+      }
+    }
+  },
+  "$defs": {
+    "LeetMapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "from",
+        "to"
+      ],
+      "properties": {
+        "from": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1
+        },
+        "to": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1,
+          "pattern": "^[a-z]$"
+        }
+      }
+    },
+    "SafetyCategory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "terms_de",
+        "terms_en",
+        "patterns"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "enum": [
+            "sexual",
+            "violence",
+            "self_harm",
+            "hate",
+            "personal_data",
+            "drugs",
+            "injection"
+          ]
+        },
+        "terms_de": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 60,
+            "pattern": "^[a-zäöüß0-9 ]+$"
+          }
+        },
+        "terms_en": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 60,
+            "pattern": "^[a-zäöüß0-9 ]+$"
+          }
+        },
+        "patterns": {
+          "description": "Regular expressions (.NET and Python compatible subset) on the normalised text, e.g. e-mail addresses.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 200
+          }
+        }
+      }
+    }
+  }
+}

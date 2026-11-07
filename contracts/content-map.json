@@ -61,6 +61,10 @@
     {
       "pattern": "sound/synth_recipes.json",
       "schema": "synth-recipes"
+    },
+    {
+      "pattern": "safety/rules.json",
+      "schema": "safety-rules"
     }
   ]
 }
