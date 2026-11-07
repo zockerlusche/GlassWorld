@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/job-accepted.schema.json",
+  "title": "JobAccepted",
+  "description": "AI service -> core (answer to POST /jobs, HTTP 202): the job is known to the service.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "job_id",
+    "state"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "job_id": {
+      "description": "Equal to the request_id of the job.",
+      "$ref": "common.schema.json#/$defs/RequestId"
+    },
+    "state": {
+      "$ref": "common.schema.json#/$defs/JobState"
+    }
+  }
+}

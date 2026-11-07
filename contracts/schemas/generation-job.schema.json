@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/generation-job.schema.json",
+  "title": "GenerationJob",
+  "description": "Core -> AI service (POST /jobs): one generation job (B7 R1). The service keeps jobs only in memory; the core owns open jobs. request_id is the job id. Sending the SAME job again (same id, same content) is harmless and returns the existing job, e.g. after a lost answer. A NEW attempt (after a failed job, or after the service restarted and answers not_found) always gets a NEW request_id, like Resend for decisions. Same id with different content is rejected (bad_request, not retryable).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "request_id",
+    "tick",
+    "seed",
+    "display_locale",
+    "kind",
+    "priority",
+    "inhabitant",
+    "object",
+    "payload"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "request_id": {
+      "description": "Deterministic id from the core; also the job id. New attempt = new id.",
+      "$ref": "common.schema.json#/$defs/RequestId"
+    },
+    "tick": {
+      "description": "Tick at which the core created the job.",
+      "$ref": "common.schema.json#/$defs/Tick"
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 2147483647
+    },
+    "display_locale": {
+      "$ref": "common.schema.json#/$defs/Locale"
+    },
+    "kind": {
+      "$ref": "common.schema.json#/$defs/JobKind"
+    },
+    "priority": {
+      "description": "Higher runs first; ties in order of arrival. Values come from data in the core (B7 O2).",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "inhabitant": {
+      "description": "Inhabitant the job is about, if any.",
+      "anyOf": [
+        {
+          "$ref": "common.schema.json#/$defs/EntityId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "object": {
+      "description": "Object the job is about, if any.",
+      "anyOf": [
+        {
+          "$ref": "common.schema.json#/$defs/EntityId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "payload": {
+      "$ref": "#/$defs/JobPayload"
+    }
+  },
+  "$defs": {
+    "JobPayload": {
+      "description": "Exactly one part, named like the job kind. The schema checks 'exactly one' (minProperties/maxProperties); that the part matches kind is checked by the service (no if/then in the conservative schema subset the C# generator reads).",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "question": {
+          "$ref": "#/$defs/QuestionPayload"
+        }
+      },
+      "minProperties": 1,
+      "maxProperties": 1
+    },
+    "QuestionPayload": {
+      "description": "An inhabitant does not understand something and asks (W1595). No deadline (B2487): answered at once on strong PCs, at the latest in the computing night.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "question",
+        "subject",
+        "inhabitant",
+        "perception"
+      ],
+      "properties": {
+        "question": {
+          "description": "what_is = what is this; can_i_eat; is_dangerous; what_can_i_do = what can I do with it; why = why did this happen.",
+          "type": "string",
+          "enum": [
+            "what_is",
+            "can_i_eat",
+            "is_dangerous",
+            "what_can_i_do",
+            "why"
+          ]
+        },
+        "subject": {
+          "$ref": "common.schema.json#/$defs/Subject"
+        },
+        "inhabitant": {
+          "$ref": "common.schema.json#/$defs/InhabitantState"
+        },
+        "perception": {
+          "description": "What the inhabitant notices about the subject right now (observable properties only, no truth).",
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          }
+        }
+      }
+    }
+  }
+}

@@ -17,12 +17,14 @@ from glassworld_contracts import (
     ConversationResponse,
     DecisionRequest,
     DecisionResponse,
+    GenerationJob,
     HealthStatus,
     HelpSuggestionsRequest,
     HelpSuggestionsResponse,
+    JobAccepted,
+    JobList,
+    JobStatus,
     PlayerMessage,
-    QuestionAnswer,
-    QuestionRequest,
     ServiceError,
     Vocabulary,
 )
@@ -41,8 +43,10 @@ MODELS: dict[str, type[BaseModel]] = {
     "conversation-response": ConversationResponse,
     "help-suggestions-request": HelpSuggestionsRequest,
     "help-suggestions-response": HelpSuggestionsResponse,
-    "question-request": QuestionRequest,
-    "question-answer": QuestionAnswer,
+    "generation-job": GenerationJob,
+    "job-accepted": JobAccepted,
+    "job-status": JobStatus,
+    "job-list": JobList,
 }
 
 # Schema rules the generated pydantic models do not enforce. JSON Schema validation
@@ -50,6 +54,7 @@ MODELS: dict[str, type[BaseModel]] = {
 KNOWN_GENERATOR_GAPS = {
     "decision-request.duplicate-weather.json": "uniqueItems is not enforced by pydantic",
     "decision-request.partners-duplicate.json": "uniqueItems is not enforced by pydantic",
+    "generation-job.empty-payload.json": "minProperties is not enforced by pydantic",
 }
 
 

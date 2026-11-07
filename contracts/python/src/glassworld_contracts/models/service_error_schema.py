@@ -3,23 +3,11 @@
 
 from __future__ import annotations
 
-from enum import StrEnum
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from . import common_schema
-
-
-class Code(StrEnum):
-    timeout = 'timeout'
-    model_unavailable = 'model_unavailable'
-    overloaded = 'overloaded'
-    invalid_model_output = 'invalid_model_output'
-    bad_request = 'bad_request'
-    forbidden = 'forbidden'
-    not_found = 'not_found'
-    internal = 'internal'
 
 
 class ServiceError(BaseModel):
@@ -36,9 +24,6 @@ class ServiceError(BaseModel):
     tick: common_schema.Tick | None = Field(
         ..., description='Null only if the request could not be parsed.'
     )
-    code: Code = Field(
-        ...,
-        description='HTTP mapping: timeout=504, model_unavailable=503, overloaded=503, invalid_model_output=502, bad_request=422, forbidden=403 (host or session token), not_found=404, internal=500.',
-    )
+    code: common_schema.ServiceErrorCode
     message: str = Field(..., max_length=500)
     retryable: bool

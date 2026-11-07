@@ -1,0 +1,19 @@
+{
+  "contract_version": "0.2",
+  "jobs": [
+    {
+      "job_id": "7d1e2f30-4a5b-4c6d-8e9f-0a1b2c3d4e5f",
+      "kind": "question",
+      "state": "done",
+      "priority": 40,
+      "tick": 1210
+    },
+    {
+      "job_id": "0b9e6c1a-2d3f-8a4b-9c5d-6e7f8091a2b3",
+      "kind": "question",
+      "state": "queued",
+      "priority": 10,
+      "tick": 1215
+    }
+  ]
+}
