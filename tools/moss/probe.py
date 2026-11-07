@@ -3,12 +3,14 @@
 Runs outside the uv workspace in the MOSS virtual environment (torch cu128, official code at a
 pinned commit) and only through the AMW GPU queue (KR5):
 
-    amw lauf ausfuehren --gpu --schwer --aufgabe 1353 --ergebnis <out>/result.json -- \
+    amw lauf ausfuehren --gpu --aufgabe 1353 --ergebnis <out>/log.txt -- \
         <venv>/python tools/moss/probe.py \
-        --model-dir <weights> --code-dir <MOSS-TTS> --out-dir <out>
+        --model-dir <weights> --code-dir <MOSS-TTS> --out-dir <out> --dit-dtype bf16 --offload
 
 Measures model load time, generation time per clip, peak VRAM (PyTorch allocator and the whole
-process via nvidia-smi), and checks every WAV (length, peak, not silent). Writes result.json.
+process via nvidia-smi), and checks every WAV (length, peak, not silent). Writes result.json next
+to the WAVs (the AMW result file takes the run log). Use --offload on 10 GB cards: without it MOSS
+reserves about 11.8 GB and Windows swaps to system memory (measurement report 2, AMW D440).
 """
 
 from __future__ import annotations
