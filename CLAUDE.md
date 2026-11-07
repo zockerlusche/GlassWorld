@@ -9,7 +9,8 @@ All project knowledge lives in the AMW database, not in this file:
 - Mission (Leitbild): `python F:/amw/amw-cli.py leitbild zeigen`
 - Decisions: `python F:/amw/amw-cli.py zeige B2456` … (B2456–B2473 and later)
 - Rules: `python F:/amw/amw-cli.py regeln`
-- Concept and engineering handbook: AMW document D324
+- Concept: AMW document D333 · Engineering handbook: AMW document D334
+- Architecture decisions: `docs/adr/` (ADR-0001 … ADR-0007)
 
 Always pass `--von <agent>` to AMW commands.
 
