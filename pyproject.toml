@@ -3,16 +3,17 @@ name = "glassworld-workspace"
 version = "0.0.0"
 description = "uv workspace root for the Python parts of GlassWorld (not a package)."
 requires-python = ">=3.12,<3.13"
-dependencies = ["glassworld-contracts"]
+dependencies = ["glassworld-contracts", "glassworld-ai-service"]
 
 [tool.uv]
 package = false
 
 [tool.uv.workspace]
-members = ["contracts/python"]
+members = ["contracts/python", "ai-service"]
 
 [tool.uv.sources]
 glassworld-contracts = { workspace = true }
+glassworld-ai-service = { workspace = true }
 
 [dependency-groups]
 dev = [
@@ -31,11 +32,16 @@ extend-exclude = ["contracts/python/src/glassworld_contracts/models"]
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "N", "SIM", "RUF"]
 
+[tool.ruff.lint.isort]
+known-first-party = ["glassworld_ai", "glassworld_contracts", "conftest"]
+
 [tool.pyright]
 pythonVersion = "3.12"
 typeCheckingMode = "strict"
-include = ["contracts"]
+include = ["contracts", "ai-service"]
 exclude = ["**/__pycache__", ".venv"]
 
 [tool.pytest.ini_options]
-addopts = "-ra --strict-markers"
+addopts = "-ra --strict-markers --import-mode=importlib"
+pythonpath = ["ai-service/tests"]
+testpaths = ["contracts", "ai-service"]

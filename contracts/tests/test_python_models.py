@@ -9,14 +9,16 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from pydantic import BaseModel, ValidationError
+
 from glassworld_contracts import (
     CONTRACT_VERSION,
     DecisionRequest,
     DecisionResponse,
+    HealthStatus,
     ServiceError,
     Vocabulary,
 )
-from pydantic import BaseModel, ValidationError
 
 CONTRACTS = Path(__file__).resolve().parents[1]
 EXAMPLES = CONTRACTS / "examples"
@@ -26,6 +28,7 @@ MODELS: dict[str, type[BaseModel]] = {
     "decision-request": DecisionRequest,
     "decision-response": DecisionResponse,
     "service-error": ServiceError,
+    "health-status": HealthStatus,
 }
 
 # Schema rules the generated pydantic models do not enforce. JSON Schema validation
