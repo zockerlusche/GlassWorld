@@ -11,7 +11,7 @@ namespace GlassWorld.Game.Audio;
 /// </summary>
 public static class RetroAudio
 {
-    private static readonly Dictionary<(string Id, int Variant), AudioStreamWav> Streams = [];
+    private static readonly Dictionary<(string Id, int Variant, ulong WorldSeed), AudioStreamWav> Streams = [];
 
     /// <summary>The loaded library; null if the data was invalid.</summary>
     public static SoundLibrary? Library { get; private set; }
@@ -39,7 +39,7 @@ public static class RetroAudio
             throw new InvalidOperationException("audio data not loaded");
         }
 
-        if (Streams.TryGetValue((soundId, variant), out var stream))
+        if (Streams.TryGetValue((soundId, variant, worldSeed), out var stream))
         {
             return stream;
         }
@@ -61,7 +61,7 @@ public static class RetroAudio
             LoopMode = Library.Recipe(soundId).Loop ? AudioStreamWav.LoopModeEnum.Forward : AudioStreamWav.LoopModeEnum.Disabled,
             LoopEnd = pcm.Length,
         };
-        Streams[(soundId, variant)] = stream;
+        Streams[(soundId, variant, worldSeed)] = stream;
         return stream;
     }
 

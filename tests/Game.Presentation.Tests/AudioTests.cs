@@ -118,6 +118,16 @@ public sealed class AudioTests
     }
 
     [Fact]
+    public void CacheSeparatesWorlds()
+    {
+        var library = SoundLibrary.FromJson(MapJson, RecipesJson);
+        var worldOne = library.Render("animal.songbird.song", 0, 1);
+        var worldTwo = library.Render("animal.songbird.song", 0, 2);
+        Assert.NotEqual(Hash([worldOne]), Hash([worldTwo]));
+        Assert.Same(worldOne, library.Render("animal.songbird.song", 0, 1));
+    }
+
+    [Fact]
     public void SeedOfIsStable() => Assert.Equal(0xcbf29ce484222325UL ^ 0, SplitMix64.SeedOf(string.Empty));
 
     private static string Hash(IEnumerable<short[]> buffers)

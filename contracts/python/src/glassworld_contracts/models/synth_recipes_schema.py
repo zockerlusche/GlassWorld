@@ -4,9 +4,9 @@
 from __future__ import annotations
 
 from enum import IntEnum, StrEnum
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, RootModel
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class SampleRate(IntEnum):
@@ -31,19 +31,23 @@ class Wave(StrEnum):
     noise = 'noise'
 
 
-class LowpassHz(RootModel[float]):
-    root: float = Field(
+type LowpassHz = Annotated[
+    float,
+    Field(
         ..., description='One-pole low-pass cut-off; null = off.', ge=20.0, le=20000.0
-    )
+    ),
+]
 
 
-class TremoloHz(RootModel[float]):
-    root: float = Field(
+type TremoloHz = Annotated[
+    float,
+    Field(
         ...,
         description='Amplitude wobble (e.g. wings, croak); null = off.',
         ge=0.1,
         le=100.0,
-    )
+    ),
+]
 
 
 class SynthLayer(BaseModel):

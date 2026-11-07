@@ -10,8 +10,8 @@ namespace GlassWorld.Presentation.Audio;
 public sealed class SoundLibrary
 {
     private readonly Dictionary<string, SynthRecipe> _recipes;
-    private readonly Dictionary<(string Id, int Variant), short[]> _cache = [];
-    private readonly Queue<(string Id, int Variant)> _cacheOrder = new();
+    private readonly Dictionary<(string Id, int Variant, ulong WorldSeed), short[]> _cache = [];
+    private readonly Queue<(string Id, int Variant, ulong WorldSeed)> _cacheOrder = new();
     private readonly int _cacheLimit;
 
     private SoundLibrary(SoundMap map, SynthRecipes recipes, int cacheLimit)
@@ -64,15 +64,15 @@ public sealed class SoundLibrary
     /// <summary>Rendered PCM of one variant, cached; the seed depends on world seed, sound id and variant.</summary>
     public short[] Render(string soundId, int variant, ulong worldSeed)
     {
-        if (_cache.TryGetValue((soundId, variant), out var cached))
+        if (_cache.TryGetValue((soundId, variant, worldSeed), out var cached))
         {
             return cached;
         }
 
         var seed = SplitMix64.SeedOf($"{worldSeed}/{soundId}/{variant}");
         var pcm = RetroSynth.Render(_recipes[soundId], SampleRate, Recipes.Peak, seed);
-        _cache[(soundId, variant)] = pcm;
-        _cacheOrder.Enqueue((soundId, variant));
+        _cache[(soundId, variant, worldSeed)] = pcm;
+        _cacheOrder.Enqueue((soundId, variant, worldSeed));
         while (_cacheOrder.Count > _cacheLimit)
         {
             _cache.Remove(_cacheOrder.Dequeue());
