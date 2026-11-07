@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/chronicle-kinds.schema.json",
+  "title": "ChronicleKinds",
+  "description": "Which core events become chronicle entries and how their base line reads (B8 R9/R10, D471 D8): the core logs events language-neutrally; the base line is a text key with parameters (DE/EN, no AI). New kinds are data, not code.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "kinds"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "kinds": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/ChronicleKind"
+      }
+    }
+  },
+  "$defs": {
+    "ChronicleKind": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "event",
+        "text_key",
+        "params"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "event": {
+          "description": "Kind of the core event (WorldEvent.kind) that makes the entry.",
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$",
+          "maxLength": 48
+        },
+        "text_key": {
+          "description": "Text key of the base line; placeholders are the parameter names in braces.",
+          "type": "string",
+          "pattern": "^msg\\.chronicle\\.[a-z0-9_]+$",
+          "maxLength": 64
+        },
+        "params": {
+          "description": "Parameters of the base line, used as {placeholders} in the text.",
+          "type": "array",
+          "maxItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/ChronicleParam"
+          }
+        }
+      }
+    },
+    "ChronicleParam": {
+      "description": "inhabitant = who (name or neutral number), target = the thing (its name), action = the action or process (vocabulary text). A pattern, not an enum: generated C# cannot read arrays of enums.",
+      "type": "string",
+      "pattern": "^(inhabitant|target|action)$"
+    }
+  }
+}

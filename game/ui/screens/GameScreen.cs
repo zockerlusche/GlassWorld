@@ -22,6 +22,11 @@ public partial class GameScreen : CanvasLayer
     private readonly GwSideBar _sideBar = new();
     private readonly GwTable _inhabitants = new() { SizeFlagsVertical = Control.SizeFlags.ExpandFill };
     private readonly GwTable _questions = new() { SizeFlagsVertical = Control.SizeFlags.ExpandFill };
+    private readonly VBoxContainer _chronicleList = new() { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+    private ChronicleBook? _chronicle;
+    private Contracts.ChronicleKinds? _kinds;
+    private int _chronicleShown = -1;
+    private int _chronicleCount;
     private readonly List<(Button Button, TimeChoice Choice)> _timeButtons = [];
     private readonly Dictionary<string, ProgressBar> _cardBars = new(StringComparer.Ordinal);
     private Label? _cardAction;
@@ -69,6 +74,7 @@ public partial class GameScreen : CanvasLayer
         _questions.RowSelected += OpenCard;
         _sideBar.Add("inhabitants", "ui.inhabitants.title").Content.AddChild(_inhabitants);
         _sideBar.Add("questions", "ui.questions.title").Content.AddChild(_questions);
+        _sideBar.Add("chronicle", "ui.chronicle.title").Content.AddChild(_chronicleList);
         _root.AddChild(_sideBar);
         foreach (var panel in _sideBar.Panels)
         {
@@ -126,6 +132,8 @@ public partial class GameScreen : CanvasLayer
             {
                 _board.Push(hint, fastForward: _presenter.Speed > 1);
             }
+
+            _chronicle?.Add(events);
         }
 
         _sinceRefreshMs += delta * 1000;
@@ -147,6 +155,7 @@ public partial class GameScreen : CanvasLayer
             }
 
             _cardShape = string.Empty;
+            _chronicleShown = -1;
             _sinceRefreshMs = double.MaxValue;
         }
     }
@@ -225,6 +234,126 @@ public partial class GameScreen : CanvasLayer
         window.FitInto(GetViewport().GetVisibleRect().Size);
     }
 
+    /// <summary>
+    /// Names of inventions for the chronicle (D471 D8): the runtime object types of D5 bring a generated
+    /// name in the player's language; until then null, and the line says "something unknown".
+    /// </summary>
+    public Func<string, string?> InventionName { get; set; } = _ => null;
+
+    /// <summary>Starts the chronicle window with the chronicle kinds of the data (B8 R9/R10).</summary>
+    public void SetupChronicle(Contracts.ChronicleKinds kinds)
+    {
+        ArgumentNullException.ThrowIfNull(kinds);
+        if (_presenter?.Host is { } host)
+        {
+            _chronicle = new ChronicleBook(kinds, host.World.Calendar);
+            _kinds = kinds;
+        }
+
+        _chronicleShown = -1;
+    }
+
+    /// <summary>The text of a chronicle entry in the current language (date line and base line).</summary>
+    public string ChronicleText(ChronicleEntry entry)
+    {
+        ArgumentNullException.ThrowIfNull(entry);
+        var date = TextFill.Fill(Tr("ui.chronicle.day"), new Dictionary<string, string>
+        {
+            ["season"] = Tr(entry.SeasonKey),
+            ["day"] = Number(entry.Day),
+            ["year"] = Number(entry.Year),
+        });
+
+        // Names are resolved now (GW1 review #64 C2); parameters that are keys are translated now.
+        var (key, raw) = ChronicleBook.Line(entry, ChronicleNamesNow());
+        var args = raw.ToDictionary(a => a.Key, a => TextKeys.LooksLikeKey(a.Value) ? Tr(a.Value).ToString() : a.Value, StringComparer.Ordinal);
+        return date + "\n" + TextFill.Fill(Tr(key), args);
+    }
+
+    /// <summary>Smoke: every chronicle kind gives a full line (no placeholder or key left) in DE and EN.</summary>
+    private string CheckChronicle()
+    {
+        if (_chronicle is null || _presenter?.Host is not { } host)
+        {
+            return "chronicle not set up";
+        }
+
+        var language = TranslationServer.GetLocale();
+        try
+        {
+            foreach (var locale in Localization.TextCatalogs.SupportedLocales)
+            {
+                Localization.TextCatalogs.SetLanguage(locale);
+                var book = new ChronicleBook(_kinds!, host.World.Calendar);
+                book.Add(_kinds!.Kinds.Select(k => new GlassWorld.Simulation.Inhabitants.WorldEvent(k.Event, 1, "inh-000001", "eat", "obj-000001")));
+                foreach (var entry in book.Entries)
+                {
+                    var text = ChronicleText(entry);
+                    if (text.Contains('{', StringComparison.Ordinal) || text.Split(' ', '\n').Any(w => TextKeys.LooksLikeKey(w.TrimEnd('.', ':'))))
+                    {
+                        return $"chronicle line '{text}' ({locale}) is not complete";
+                    }
+                }
+            }
+        }
+        finally
+        {
+            Localization.TextCatalogs.SetLanguage(language);
+        }
+
+        return string.Empty;
+    }
+
+    private ChronicleNames ChronicleNamesNow() => new(
+        id => DisplayName(new InhabitantRow(id, WorldFeed.NumberOf(id), 0, false, null, 0)),
+        id => InventionName(id),
+        action => "vocab.action." + action);
+
+    private void RefreshChronicle()
+    {
+        if (_chronicle is null || _chronicle.Version == _chronicleShown)
+        {
+            return;
+        }
+
+        // New entries are added on top (GW1 review #64 C3); everything is rebuilt only after a language
+        // switch (_chronicleShown = -1). Paging comes with the core chronicle API of D5.
+        var rebuild = _chronicleShown < 0;
+        _chronicleShown = _chronicle.Version;
+        if (rebuild || _chronicleCount == 0)
+        {
+            foreach (var child in _chronicleList.GetChildren())
+            {
+                _chronicleList.RemoveChild(child);
+                child.QueueFree();
+            }
+
+            _chronicleCount = 0;
+        }
+
+        if (_chronicle.Entries.Count == 0)
+        {
+            _chronicleList.AddChild(new Label { Text = "ui.chronicle.empty", AutowrapMode = TextServer.AutowrapMode.WordSmart });
+            return;
+        }
+
+        var fresh = _chronicle.Entries.Count - _chronicleCount;
+        for (var i = fresh - 1; i >= 0; i--)
+        {
+            var label = new Label
+            {
+                Text = ChronicleText(_chronicle.Entries[i]),
+                AutoTranslateMode = AutoTranslateModeEnum.Disabled,
+                AutowrapMode = TextServer.AutowrapMode.WordSmart,
+                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            };
+            _chronicleList.AddChild(label);
+            _chronicleList.MoveChild(label, 0);
+        }
+
+        _chronicleCount = _chronicle.Entries.Count;
+    }
+
     /// <summary>Shows a calm hint (e.g. saving failed).</summary>
     public void ShowHint(ToastMessage message) => _board?.Push(message, fastForward: false);
 
@@ -253,6 +382,8 @@ public partial class GameScreen : CanvasLayer
         {
             return;
         }
+
+        RefreshChronicle();
 
         var rows = _feed.Inhabitants();
         _inhabitants.SetRows([.. rows.Select(r => new GwRow(r.Id, [DisplayName(r), Number(r.WillToLivePercent), Number(r.OpenQuestions)], [r.Number, r.WillToLivePercent, r.OpenQuestions]))]);
@@ -321,7 +452,8 @@ public partial class GameScreen : CanvasLayer
             return "question mark missing";
         }
 
-        return await CheckCardPlacementAsync();
+        var chronicle = CheckChronicle();
+        return chronicle.Length > 0 ? chronicle : await CheckCardPlacementAsync();
     }
 
     /// <summary>
