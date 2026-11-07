@@ -12,6 +12,7 @@ from them, never written by hand.
 | `examples/valid/`, `examples/invalid/` | Example messages named `<schema>.<case>.json`; both languages test against them |
 | `python/` | Package `glassworld_contracts` with generated pydantic v2 models (checked in) |
 | `generate_python.py` | Regenerates the Python models; `--check` fails if they are stale |
+| `content-map.json` | Which schema validates which file under `content/` (shared with the C# tests); every JSON file in `content/` must match exactly one entry |
 | `tests/` | Contract tests (pytest) |
 | `../content/vocabulary/` | Vocabulary data files (actions, properties, needs, moods, traits, expressions, time of day, weather), validated by `schemas/vocabulary.schema.json` |
 | `../content/i18n/` | Player-facing texts, one catalog per language (`de.json`, `en.json`), validated by `schemas/i18n.schema.json`; keys `vocab.*`, `ui.*`, `msg.*`, `time.*` (ADR-0007) |
@@ -22,7 +23,9 @@ from them, never written by hand.
   version and an ADR.
 - Conservative schema subset so that C# generation works: `type`, `properties`, `required`,
   `$ref`, `$defs`, `enum`, `const`, `pattern`, min/max, `anyOf` with `null`, `format: int64`.
-  No `$dynamicRef`, `unevaluatedProperties` or `if`/`then`.
+  No `$dynamicRef`, `unevaluatedProperties` or `if`/`then`; next to `$ref` only `description`,
+  `title` or `$comment` (C# reads the schemas as draft-07, which ignores `$ref` siblings).
+  A test enforces this.
 - `additionalProperties: false` everywhere. AI output is data and never executed.
 - Vocabulary ids are only checked by pattern in the schemas; allowed values live in
   `content/vocabulary/`, so adding an action or property is a data change (B2460).
