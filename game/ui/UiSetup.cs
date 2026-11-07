@@ -63,8 +63,30 @@ public static class UiSetup
             }
         }
 
+        // Subscribed while in the tree; a root that is moved (out and in again) gets the current theme
+        // and further updates again (GW1 review #65 T2).
         ThemeApplied += Update;
         uiRoot.TreeExiting += () => ThemeApplied -= Update;
+        uiRoot.TreeEntered += () =>
+        {
+            ThemeApplied -= Update;
+            ThemeApplied += Update;
+            uiRoot.Theme = CurrentTheme;
+        };
+    }
+
+    /// <summary>
+    /// Smoke run only (GW1 review #65 T1): every Control directly below a CanvasLayer carries a theme
+    /// itself, since the root window's theme does not reach it.
+    /// </summary>
+    /// <returns>Paths of controls without a theme.</returns>
+    public static IReadOnlyList<string> UnthemedCanvasRoots(Node root)
+    {
+        ArgumentNullException.ThrowIfNull(root);
+        return [.. root.FindChildren("*", nameof(CanvasLayer), recursive: true, owned: false)
+            .SelectMany(layer => layer.GetChildren().OfType<Control>())
+            .Where(c => c.Theme is null)
+            .Select(c => c.GetPath().ToString())];
     }
 
     private static string Read(string name)

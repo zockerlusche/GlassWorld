@@ -468,6 +468,16 @@ public partial class GameScreen : CanvasLayer
             return "the UI theme does not reach the game screen";
         }
 
+        // Text size too, not only the frames (GW1 review #65 T3).
+        var label = new Label();
+        _card.Content.AddChild(label);
+        var size = label.GetThemeFontSize("font_size");
+        label.Free();
+        if (_style is not null && size != _style.FontPx(UiFontSizeId.Body))
+        {
+            return $"label text size {size} px, theme says {_style.FontPx(UiFontSizeId.Body)} px";
+        }
+
         return await CheckCardPlacementAsync();
     }
 
