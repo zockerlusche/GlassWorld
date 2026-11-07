@@ -1,0 +1,117 @@
+# CI for GlassWorld (Phase 0, R12). Runs on every pull request and on main.
+# No GPU and no real AI model: the AI service is tested with its mock only.
+# Actions are pinned to commit SHAs (supply chain, ADR-0001).
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_NOLOGO: "true"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "true"
+  CI: "true"
+  GODOT_VERSION: "4.7.2"
+  GODOT_ZIP: "Godot_v4.7.2-stable_mono_linux_x86_64.zip"
+  # From SHA512-SUMS.txt of https://github.com/godotengine/godot-builds/releases/tag/4.7.2-stable
+  GODOT_ZIP_SHA512: "1855960b27ee3ef5e66e5e228cced69d55637b24334a7411162687dcd077d8f9f645348cdb8eae984bec8135d49ed855a1e3a16476786b8bce60774fd8402d13"
+  UV_VERSION: "0.11.10"
+
+jobs:
+  dotnet:
+    name: dotnet (format, build, test)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          global-json-file: global.json
+      - name: Restore
+        run: dotnet restore
+      - name: Format
+        run: dotnet format --verify-no-changes --no-restore
+      - name: Build
+        run: dotnet build --no-restore -c Release
+      - name: Test
+        run: dotnet test --no-build -c Release
+
+  python:
+    name: python (ruff, pyright, pytest, contracts)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Detect Python workspace
+        id: detect
+        run: |
+          if [ -f pyproject.toml ] && [ -f uv.lock ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No uv workspace in this revision yet; Python checks skipped."
+          fi
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        if: steps.detect.outputs.present == 'true'
+        with:
+          version: ${{ env.UV_VERSION }}
+      - name: Sync (locked)
+        if: steps.detect.outputs.present == 'true'
+        run: uv sync --locked --all-packages
+      - name: Ruff
+        if: steps.detect.outputs.present == 'true'
+        run: |
+          uv run ruff check
+          uv run ruff format --check
+      - name: Pyright
+        if: steps.detect.outputs.present == 'true'
+        run: uv run pyright
+      - name: Generated models up to date
+        if: steps.detect.outputs.present == 'true' && hashFiles('contracts/generate_python.py') != ''
+        run: uv run python contracts/generate_python.py --check
+      - name: Pytest (contracts + AI service with mock)
+        if: steps.detect.outputs.present == 'true'
+        run: uv run pytest
+
+  godot-smoke:
+    name: godot-smoke (headless, 600 frames)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          lfs: true
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          global-json-file: global.json
+      - name: Cache Godot
+        id: cache-godot
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/godot
+          key: godot-${{ env.GODOT_VERSION }}-mono-linux-x86_64-${{ env.GODOT_ZIP_SHA512 }}
+      - name: Download Godot ${{ env.GODOT_VERSION }} mono (verified)
+        if: steps.cache-godot.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/godot
+          curl -fsSL -o "/tmp/$GODOT_ZIP" "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-stable/$GODOT_ZIP"
+          echo "$GODOT_ZIP_SHA512  /tmp/$GODOT_ZIP" | sha512sum -c -
+          unzip -q "/tmp/$GODOT_ZIP" -d ~/godot
+      - name: Locate Godot binary
+        run: |
+          bin="$(find ~/godot -maxdepth 2 -type f -name 'Godot_v*_mono_linux.x86_64' | head -n 1)"
+          test -n "$bin"
+          chmod +x "$bin"
+          echo "GODOT=$bin" >> "$GITHUB_ENV"
+          "$bin" --version
+      - name: Headless smoke test
+        run: bash tools/godot-smoke.sh 600
