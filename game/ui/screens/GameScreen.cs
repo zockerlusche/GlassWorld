@@ -460,7 +460,11 @@ public partial class GameScreen : CanvasLayer
         }
 
         var chronicle = CheckChronicle();
-        return chronicle.Length > 0 ? chronicle : await CheckCardPlacementAsync();
+        if (chronicle.Length > 0)
+        {
+            return chronicle;
+        }
+
         // The theme must reach the screen below its CanvasLayer (frames, fonts, text size), not only the
         // root window (Godot does not pass themes through a CanvasLayer).
         if (UiSetup.CurrentTheme is { } theme && _card.GetThemeStylebox("panel", UiTheme.WindowPanel) != theme.GetStylebox("panel", UiTheme.WindowPanel))
