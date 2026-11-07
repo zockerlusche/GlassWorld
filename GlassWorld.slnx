@@ -6,12 +6,14 @@
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/Contracts/Contracts.csproj" />
+    <Project Path="src/Game.Presentation/Game.Presentation.csproj" />
     <Project Path="src/Simulation.Core/Simulation.Core.csproj" />
     <Project Path="src/Simulation.Data/Simulation.Data.csproj" />
     <Project Path="src/Simulation.Headless/Simulation.Headless.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Contracts.Tests/Contracts.Tests.csproj" />
+    <Project Path="tests/Game.Presentation.Tests/Game.Presentation.Tests.csproj" />
     <Project Path="tests/Localization.Tests/Localization.Tests.csproj" />
     <Project Path="tests/Simulation.Tests/Simulation.Tests.csproj" />
   </Folder>

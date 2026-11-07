@@ -57,6 +57,10 @@ if ! grep -Eq '^WORLD_OK seed=[0-9]+ inhabitants=[1-9][0-9]* objects=[0-9]+ hash
   echo "SMOKE_FAIL: core world not loaded (marker 'WORLD_OK' missing)" >&2
   exit 1
 fi
+if ! grep -q '^UI_OK$' "$LOG"; then
+  echo "SMOKE_FAIL: UI standard check failed (marker 'UI_OK' missing)" >&2
+  exit 1
+fi
 if ! grep -q "^SMOKE_OK frames=$FRAMES\$" "$LOG"; then
   echo "SMOKE_FAIL: success marker 'SMOKE_OK frames=$FRAMES' missing" >&2
   exit 1

@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/ui-frames.schema.json",
+  "title": "UiFrames",
+  "description": "9-slice frames of the UI (D366 8a, B2521 driftwood and ink). Pictures live in game/ui/frames; sizes and margins are given in source pixels (source_scale times the logical size).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "source_scale",
+    "frames"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "source_scale": {
+      "description": "Source pictures are drawn at this multiple of the logical size.",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4
+    },
+    "frames": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/UiFrame"
+      }
+    }
+  },
+  "$defs": {
+    "UiFrame": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "file",
+        "width",
+        "height",
+        "margins",
+        "content_padding",
+        "nine_slice"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "enum": [
+            "window",
+            "header",
+            "button",
+            "bar",
+            "tooltip",
+            "bubble",
+            "bubble_tail"
+          ]
+        },
+        "file": {
+          "description": "PNG file name in game/ui/frames.",
+          "type": "string",
+          "pattern": "^ui_[a-z_]+_v[0-9]+\\.png$"
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 8,
+          "maximum": 4096
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 8,
+          "maximum": 4096
+        },
+        "margins": {
+          "$ref": "#/$defs/UiMargins"
+        },
+        "content_padding": {
+          "description": "Extra inner padding in logical pixels.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 256
+        },
+        "nine_slice": {
+          "type": "boolean"
+        }
+      }
+    },
+    "UiMargins": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "left",
+        "top",
+        "right",
+        "bottom"
+      ],
+      "properties": {
+        "left": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2048
+        },
+        "top": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2048
+        },
+        "right": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2048
+        },
+        "bottom": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2048
+        }
+      }
+    }
+  }
+}

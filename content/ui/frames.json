@@ -1,0 +1,104 @@
+{
+  "contract_version": "0.1",
+  "source_scale": 2,
+  "frames": [
+    {
+      "id": "window",
+      "file": "ui_frame_window_v1.png",
+      "width": 512,
+      "height": 512,
+      "margins": {
+        "left": 96,
+        "top": 96,
+        "right": 96,
+        "bottom": 96
+      },
+      "content_padding": 24,
+      "nine_slice": true
+    },
+    {
+      "id": "header",
+      "file": "ui_frame_header_v1.png",
+      "width": 512,
+      "height": 128,
+      "margins": {
+        "left": 96,
+        "top": 48,
+        "right": 96,
+        "bottom": 48
+      },
+      "content_padding": 12,
+      "nine_slice": true
+    },
+    {
+      "id": "button",
+      "file": "ui_button_v1.png",
+      "width": 384,
+      "height": 128,
+      "margins": {
+        "left": 48,
+        "top": 48,
+        "right": 48,
+        "bottom": 48
+      },
+      "content_padding": 8,
+      "nine_slice": true
+    },
+    {
+      "id": "bar",
+      "file": "ui_bar_v1.png",
+      "width": 512,
+      "height": 160,
+      "margins": {
+        "left": 64,
+        "top": 56,
+        "right": 64,
+        "bottom": 56
+      },
+      "content_padding": 8,
+      "nine_slice": true
+    },
+    {
+      "id": "tooltip",
+      "file": "ui_tooltip_v1.png",
+      "width": 256,
+      "height": 128,
+      "margins": {
+        "left": 40,
+        "top": 40,
+        "right": 40,
+        "bottom": 40
+      },
+      "content_padding": 8,
+      "nine_slice": true
+    },
+    {
+      "id": "bubble",
+      "file": "ui_bubble_v1.png",
+      "width": 384,
+      "height": 256,
+      "margins": {
+        "left": 72,
+        "top": 72,
+        "right": 72,
+        "bottom": 72
+      },
+      "content_padding": 12,
+      "nine_slice": true
+    },
+    {
+      "id": "bubble_tail",
+      "file": "ui_bubble_tail_v1.png",
+      "width": 128,
+      "height": 128,
+      "margins": {
+        "left": 0,
+        "top": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "content_padding": 0,
+      "nine_slice": false
+    }
+  ]
+}

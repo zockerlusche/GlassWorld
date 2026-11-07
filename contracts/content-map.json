@@ -45,6 +45,14 @@
     {
       "pattern": "world/placeholder-start.json",
       "schema": "placeholder-start"
+    },
+    {
+      "pattern": "ui/tokens.json",
+      "schema": "ui-tokens"
+    },
+    {
+      "pattern": "ui/frames.json",
+      "schema": "ui-frames"
     }
   ]
 }

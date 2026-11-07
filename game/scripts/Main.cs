@@ -1,4 +1,6 @@
 using GlassWorld.Game.Localization;
+using GlassWorld.Game.Ui;
+using GlassWorld.Presentation.Ui;
 using GlassWorld.Simulation;
 using Godot;
 
@@ -18,6 +20,7 @@ public partial class Main : Node3D
     private int _frame;
     private ulong _seed = 1;
     private WorldPresenter? _world;
+    private bool _uiCheckDone = true;
 
     public override void _Ready()
     {
@@ -46,9 +49,53 @@ public partial class Main : Node3D
         var host = _world.Host!;
         GD.Print($"WORLD_OK seed={_seed} inhabitants={host.Inhabitants.All.Count()} objects={host.Objects.Count} hash={host.World.StateHash()[..12]}");
 
+        var style = UiSetup.Load();
+        if (style is not null)
+        {
+            UiSetup.Apply(GetTree().Root, style);
+        }
+
         if (_smokeFrames > 0)
         {
             CheckTexts(textsLoaded);
+            _uiCheckDone = false;
+            _ = CheckUiAsync(style);
+        }
+    }
+
+    /// <summary>Smoke run only: the UI standard data is valid and a sample window fits every reference case.</summary>
+    private async Task CheckUiAsync(UiStyle? style)
+    {
+        try
+        {
+            if (style is null)
+            {
+                GD.PushError("UI_FAIL ui data not loaded");
+                return;
+            }
+
+            var layer = new CanvasLayer();
+            AddChild(layer);
+            var problems = await UiLayoutCheck.RunAsync(layer, style);
+            foreach (var problem in problems)
+            {
+                GD.PushError($"UI_FAIL {problem}");
+            }
+
+            if (problems.Count == 0)
+            {
+                GD.Print("UI_OK");
+            }
+
+            layer.QueueFree();
+        }
+        catch (Exception e) when (e is not OutOfMemoryException)
+        {
+            GD.PushError($"UI_FAIL {e.GetType().Name}: {e.Message}");
+        }
+        finally
+        {
+            _uiCheckDone = true;
         }
     }
 
@@ -73,7 +120,7 @@ public partial class Main : Node3D
         }
 
         _frame++;
-        if (_frame >= _smokeFrames)
+        if (_frame >= _smokeFrames && _uiCheckDone)
         {
             GD.Print($"WORLD_TICKS {_world?.Host?.World.Tick ?? -1}");
             GD.Print($"SMOKE_OK frames={_frame}");
