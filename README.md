@@ -38,6 +38,14 @@ local open-source AI only, until they grow a family and a culture.
 
 Exact versions are recorded in `docs/adr/0001-versions.md`.
 
+## Build and test (.NET)
+
+```sh
+dotnet build
+dotnet test
+dotnet format --verify-no-changes
+```
+
 ## License
 
 MIT – see [LICENSE](LICENSE). Third-party licenses are listed in [LICENSES.md](LICENSES.md).

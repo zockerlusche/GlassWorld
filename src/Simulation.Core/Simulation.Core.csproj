@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Engine-independent simulation core. Must never reference Godot (ADR-0002). -->
+  <PropertyGroup>
+    <RootNamespace>GlassWorld.Simulation</RootNamespace>
+    <AssemblyName>GlassWorld.Simulation.Core</AssemblyName>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+</Project>
