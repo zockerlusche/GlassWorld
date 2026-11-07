@@ -7,7 +7,7 @@
     "ContractVersion": {
       "description": "Contract version. Incompatible changes require a new major version and an ADR.",
       "type": "string",
-      "const": "0.1"
+      "const": "0.2"
     },
     "RequestId": {
       "description": "Unique id of a request, set by the core. Lowercase UUID.",
@@ -49,6 +49,386 @@
       "type": "number",
       "minimum": 0,
       "maximum": 1
+    },
+    "LevelEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "value"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/VocabId"
+        },
+        "value": {
+          "$ref": "#/$defs/UnitValue"
+        }
+      },
+      "description": "A named level 0..1 (need satisfaction, emotion intensity or trait strength)."
+    },
+    "KnownProperty": {
+      "description": "What the inhabitant believes about an object property (belief, not world truth).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "property",
+        "value",
+        "confidence"
+      ],
+      "properties": {
+        "property": {
+          "$ref": "#/$defs/VocabId"
+        },
+        "value": {
+          "type": "boolean"
+        },
+        "confidence": {
+          "$ref": "#/$defs/UnitValue"
+        }
+      }
+    },
+    "ResponseMeta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source",
+        "model",
+        "latency_ms",
+        "attempts"
+      ],
+      "properties": {
+        "source": {
+          "description": "model = real LLM, mock = test double, replay = answer replayed from a log.",
+          "type": "string",
+          "enum": [
+            "model",
+            "mock",
+            "replay"
+          ]
+        },
+        "model": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "latency_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "format": "int64"
+        },
+        "attempts": {
+          "description": "Model calls used (1 + at most 2 retries, per handbook).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3
+        }
+      }
+    },
+    "KnowledgeSource": {
+      "description": "How the inhabitant came to know it (concept): experienced = sure; heard = as sure as the trust in the teller; guessed = AI guess; read = as sure as the source seems.",
+      "type": "string",
+      "enum": [
+        "experienced",
+        "heard",
+        "guessed",
+        "read"
+      ]
+    },
+    "Subject": {
+      "description": "What a knowledge entry or question is about: a type of thing, one object, a person or an event kind.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "id"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "type",
+            "object",
+            "inhabitant",
+            "event"
+          ]
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_.-]*$",
+          "maxLength": 64
+        }
+      }
+    },
+    "KnowledgeEntry": {
+      "description": "One belief of an inhabitant with its origin (B4a R3). The world keeps the truth; this is what the inhabitant believes.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "subject",
+        "property",
+        "value",
+        "confidence",
+        "source",
+        "told_by",
+        "tick"
+      ],
+      "properties": {
+        "subject": {
+          "$ref": "#/$defs/Subject"
+        },
+        "property": {
+          "$ref": "#/$defs/VocabId"
+        },
+        "value": {
+          "type": "boolean"
+        },
+        "confidence": {
+          "$ref": "#/$defs/UnitValue"
+        },
+        "source": {
+          "$ref": "#/$defs/KnowledgeSource"
+        },
+        "told_by": {
+          "description": "Teller for source heard (or writer for read); null otherwise.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EntityId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tick": {
+          "$ref": "#/$defs/Tick"
+        }
+      }
+    },
+    "MemoryEvent": {
+      "description": "One remembered event, language-neutral (kind + ids); the core picks the important ones.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tick",
+        "kind",
+        "about"
+      ],
+      "properties": {
+        "tick": {
+          "$ref": "#/$defs/Tick"
+        },
+        "kind": {
+          "$ref": "#/$defs/VocabId"
+        },
+        "about": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Subject"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "Memory": {
+      "description": "Short life summary (English, condensed by the AI service, B4a R5) plus the latest important events.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "summary",
+        "recent"
+      ],
+      "properties": {
+        "summary": {
+          "type": "string",
+          "maxLength": 1200,
+          "description": "Internal English text for the AI (B4a R5); never shown to the player (player texts only via keys or GeneratedText)."
+        },
+        "recent": {
+          "type": "array",
+          "maxItems": 12,
+          "items": {
+            "$ref": "#/$defs/MemoryEvent"
+          }
+        }
+      }
+    },
+    "Relationship": {
+      "description": "How this inhabitant feels about another one (B4a R7, values 0..1).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "other",
+        "affection",
+        "trust",
+        "respect"
+      ],
+      "properties": {
+        "other": {
+          "$ref": "#/$defs/EntityId"
+        },
+        "affection": {
+          "$ref": "#/$defs/UnitValue"
+        },
+        "trust": {
+          "$ref": "#/$defs/UnitValue"
+        },
+        "respect": {
+          "$ref": "#/$defs/UnitValue"
+        }
+      }
+    },
+    "Habit": {
+      "description": "A routine or preference that grew from repetition (B4a R6).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action",
+        "time_of_day",
+        "about",
+        "strength"
+      ],
+      "properties": {
+        "action": {
+          "$ref": "#/$defs/VocabId"
+        },
+        "time_of_day": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/VocabId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "about": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Subject"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "strength": {
+          "$ref": "#/$defs/UnitValue"
+        }
+      }
+    },
+    "InhabitantState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "needs",
+        "mood",
+        "traits",
+        "will_to_live",
+        "memory",
+        "knowledge",
+        "relationships",
+        "habits"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/EntityId"
+        },
+        "needs": {
+          "description": "Need satisfaction: 0 = fully unsatisfied (urgent, e.g. hunger 0.1 = very hungry), 1 = fully satisfied. Sorted by id by the core.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LevelEntry"
+          }
+        },
+        "mood": {
+          "description": "Current emotions with intensity 0 = absent, 1 = very strong. Only emotions above zero are listed. Sorted by id by the core.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LevelEntry"
+          }
+        },
+        "traits": {
+          "description": "Long-term character traits, 0 = very low, 1 = very high. Sorted by id by the core.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LevelEntry"
+          }
+        },
+        "will_to_live": {
+          "description": "Main wellbeing value, normalised to 0..1 (shown to the player as 0-100).",
+          "$ref": "#/$defs/UnitValue"
+        },
+        "memory": {
+          "$ref": "#/$defs/Memory"
+        },
+        "knowledge": {
+          "description": "Relevant beliefs (about perceived things first), sorted by subject.",
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "$ref": "#/$defs/KnowledgeEntry"
+          }
+        },
+        "relationships": {
+          "description": "Towards perceived inhabitants, sorted by id.",
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "$ref": "#/$defs/Relationship"
+          }
+        },
+        "habits": {
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/Habit"
+          }
+        }
+      },
+      "description": "Everything the AI may know about the inhabitant it speaks for (shared by decider and questions)."
+    },
+    "Thought": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "locale",
+        "text"
+      ],
+      "properties": {
+        "locale": {
+          "$ref": "#/$defs/Locale"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 140
+        }
+      },
+      "description": "AI-generated thought bubble in the player's language (one short sentence)."
+    },
+    "GeneratedText": {
+      "description": "Player-facing text generated at runtime (not a translation key, ADR-0007 exception for AI texts).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "locale",
+        "text"
+      ],
+      "properties": {
+        "locale": {
+          "$ref": "#/$defs/Locale"
+        },
+        "text": {
+          "description": "Text in the player's language, generated by the AI and checked by the content guard.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 280
+        }
+      }
     }
   }
 }

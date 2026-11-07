@@ -71,7 +71,7 @@ def case(
             option["partners"] = sorted(partners[0]) if partners else []
         opts.append(option)
     request = {
-        "contract_version": "0.1",
+        "contract_version": "0.2",
         "request_id": str(uuid.UUID(int=0xA1330_0000_0000_0000_0000 + n)),
         "tick": 1000 + n * 10,
         "seed": 10_000 + n,
@@ -83,9 +83,14 @@ def case(
             "mood": [{"id": k, "value": v} for k, v in sorted((moods or {}).items()) if v > 0],
             "traits": [{"id": k, "value": v} for k, v in sorted(tr.items())],
             "will_to_live": will,
+            # contract 0.2: memory, knowledge, relationships and habits come with B4a test sets
+            "memory": {"summary": "", "recent": []},
+            "knowledge": [],
+            "relationships": [],
+            "habits": [],
         },
         "environment": {"time_of_day": tod, "temperature_c": temp, "weather": sorted(weather)},
-        "perception": {"objects": objects},
+        "perception": {"objects": objects, "inhabitants": []},
         "options": opts,
     }
     plaus = [o["option_id"] for o in opts if o["action"] + ":" + str(o["target"]) in plausible]

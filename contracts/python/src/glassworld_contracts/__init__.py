@@ -13,10 +13,12 @@ from glassworld_contracts.models.health_status_schema import HealthStatus
 from glassworld_contracts.models.help_suggestions_request_schema import HelpSuggestionsRequest
 from glassworld_contracts.models.help_suggestions_response_schema import HelpSuggestionsResponse
 from glassworld_contracts.models.player_message_schema import PlayerMessage
+from glassworld_contracts.models.question_answer_schema import QuestionAnswer
+from glassworld_contracts.models.question_request_schema import QuestionRequest
 from glassworld_contracts.models.service_error_schema import ServiceError
 from glassworld_contracts.models.vocabulary_schema import Vocabulary
 
-CONTRACT_VERSION: str = "0.1"
+CONTRACT_VERSION: str = "0.2"
 
 __all__ = [
     "CONTRACT_VERSION",
@@ -29,6 +31,8 @@ __all__ = [
     "HelpSuggestionsRequest",
     "HelpSuggestionsResponse",
     "PlayerMessage",
+    "QuestionAnswer",
+    "QuestionRequest",
     "ServiceError",
     "Vocabulary",
 ]

@@ -10,20 +10,6 @@ from pydantic import BaseModel, ConfigDict, Field
 from . import common_schema
 
 
-class KnownProperty(BaseModel):
-    model_config = ConfigDict(
-        extra='forbid',
-    )
-    property: str = Field(
-        ...,
-        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
-        max_length=64,
-        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
-    )
-    value: bool
-    confidence: float = Field(..., ge=0.0, le=1.0)
-
-
 class PerceivedObject(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -41,14 +27,7 @@ class PerceivedObject(BaseModel):
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
     distance_m: float = Field(..., ge=0.0)
-    known_properties: list[KnownProperty]
-
-
-class Perception(BaseModel):
-    model_config = ConfigDict(
-        extra='forbid',
-    )
-    objects: list[PerceivedObject] = Field(..., max_length=64)
+    known_properties: list[common_schema.KnownProperty]
 
 
 class Option(BaseModel):
@@ -76,19 +55,6 @@ class Option(BaseModel):
     )
 
 
-class LevelEntry(BaseModel):
-    model_config = ConfigDict(
-        extra='forbid',
-    )
-    id: str = Field(
-        ...,
-        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
-        max_length=64,
-        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
-    )
-    value: float = Field(..., ge=0.0, le=1.0)
-
-
 class EnvironmentState(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -113,7 +79,7 @@ class EnvironmentState(BaseModel):
     )
 
 
-class InhabitantState(BaseModel):
+class PerceivedInhabitant(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
@@ -123,23 +89,16 @@ class InhabitantState(BaseModel):
         max_length=64,
         pattern='^[a-z][a-z0-9_-]*$',
     )
-    needs: list[LevelEntry] = Field(
-        ...,
-        description='Need satisfaction: 0 = fully unsatisfied (urgent, e.g. hunger 0.1 = very hungry), 1 = fully satisfied. Sorted by id by the core.',
+    distance_m: float = Field(..., ge=0.0)
+
+
+class Perception(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
     )
-    mood: list[LevelEntry] = Field(
-        ...,
-        description='Current emotions with intensity 0 = absent, 1 = very strong. Only emotions above zero are listed. Sorted by id by the core.',
-    )
-    traits: list[LevelEntry] = Field(
-        ...,
-        description='Long-term character traits, 0 = very low, 1 = very high. Sorted by id by the core.',
-    )
-    will_to_live: float = Field(
-        ...,
-        description='Main wellbeing value, normalised to 0..1 (shown to the player as 0-100).',
-        ge=0.0,
-        le=1.0,
+    objects: list[PerceivedObject] = Field(..., max_length=64)
+    inhabitants: list[PerceivedInhabitant] = Field(
+        ..., description='Other inhabitants in sight, nearest first.', max_length=16
     )
 
 
@@ -147,7 +106,7 @@ class DecisionRequest(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
-    contract_version: Literal['0.1'] = Field(
+    contract_version: Literal['0.2'] = Field(
         ...,
         description='Contract version. Incompatible changes require a new major version and an ADR.',
     )
@@ -170,7 +129,7 @@ class DecisionRequest(BaseModel):
         le=60000,
     )
     display_locale: common_schema.Locale
-    inhabitant: InhabitantState
+    inhabitant: common_schema.InhabitantState
     environment: EnvironmentState
     perception: Perception
     options: list[Option] = Field(

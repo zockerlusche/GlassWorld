@@ -51,7 +51,7 @@ class LookDaylight(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
-    contract_version: Literal['0.1'] = Field(
+    contract_version: Literal['0.2'] = Field(
         ...,
         description='Contract version. Incompatible changes require a new major version and an ADR.',
     )

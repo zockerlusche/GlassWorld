@@ -45,7 +45,14 @@
         "id": "patience",
         "value": 0.4
       }
-    ]
+    ],
+    "memory": {
+      "summary": "",
+      "recent": []
+    },
+    "knowledge": [],
+    "relationships": [],
+    "habits": []
   },
   "environment": {
     "time_of_day": "day",
@@ -74,7 +81,8 @@
           }
         ]
       }
-    ]
+    ],
+    "inhabitants": []
   },
   "options": [
     {

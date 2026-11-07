@@ -1,0 +1,30 @@
+{
+  "contract_version": "0.2",
+  "request_id": "7d1e2f30-4a5b-4c6d-8e9f-0a1b2c3d4e5f",
+  "tick": 1210,
+  "understood": true,
+  "guesses": [
+    {
+      "property": "edible",
+      "value": true,
+      "confidence": 0.4
+    },
+    {
+      "property": "poisonous",
+      "value": true,
+      "confidence": 0.3
+    }
+  ],
+  "idea": "inspect",
+  "thought": {
+    "locale": "de",
+    "text": "Rote Beeren... vielleicht essbar, vielleicht nicht. Lieber erst genau ansehen."
+  },
+  "rationale": "Cautious: unknown red berries could be either; inspect first.",
+  "meta": {
+    "source": "mock",
+    "model": "mock",
+    "latency_ms": 1,
+    "attempts": 1
+  }
+}

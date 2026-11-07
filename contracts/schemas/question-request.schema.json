@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/question-request.schema.json",
+  "title": "QuestionRequest",
+  "description": "Core -> AI service (as job kind question, B7): an inhabitant does not understand something and asks (W1595). No deadline (B2487): answered at once on strong PCs, at the latest in the computing night.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "request_id",
+    "tick",
+    "seed",
+    "display_locale",
+    "kind",
+    "subject",
+    "inhabitant",
+    "perception"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "request_id": {
+      "$ref": "common.schema.json#/$defs/RequestId"
+    },
+    "tick": {
+      "$ref": "common.schema.json#/$defs/Tick"
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 2147483647
+    },
+    "display_locale": {
+      "$ref": "common.schema.json#/$defs/Locale"
+    },
+    "kind": {
+      "description": "what_is = what is this; can_i_eat; is_dangerous; what_can_i_do = what can I do with it; why = why did this happen.",
+      "type": "string",
+      "enum": [
+        "what_is",
+        "can_i_eat",
+        "is_dangerous",
+        "what_can_i_do",
+        "why"
+      ]
+    },
+    "subject": {
+      "$ref": "common.schema.json#/$defs/Subject"
+    },
+    "inhabitant": {
+      "$ref": "common.schema.json#/$defs/InhabitantState"
+    },
+    "perception": {
+      "description": "What the inhabitant notices about the subject right now (observable properties only, no truth).",
+      "type": "array",
+      "maxItems": 16,
+      "items": {
+        "$ref": "common.schema.json#/$defs/VocabId"
+      }
+    }
+  }
+}

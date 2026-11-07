@@ -1,5 +1,5 @@
 {
-  "contract_version": "0.1",
+  "contract_version": "0.2",
   "locale": "de",
   "entries": [
     {
@@ -405,6 +405,18 @@
     {
       "key": "vocab.action.combine",
       "text": "Kombinieren"
+    },
+    {
+      "key": "vocab.action.warn",
+      "text": "Warnen"
+    },
+    {
+      "key": "vocab.action.show",
+      "text": "Zeigen"
+    },
+    {
+      "key": "vocab.action.teach",
+      "text": "Beibringen"
     },
     {
       "key": "vocab.action.drink",

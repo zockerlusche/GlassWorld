@@ -140,7 +140,7 @@ public sealed class DecisionTests
     {
         var port = new ScriptedPort(request => ContractSerializer.Serialize(new DecisionResponse
         {
-            ContractVersion = "0.1",
+            ContractVersion = ContractInfo.Version,
             RequestId = request.RequestId,
             Tick = request.Tick,
             OptionId = "o99",
@@ -191,7 +191,7 @@ public sealed class DecisionTests
     {
         var port = new ScriptedPort(request => ContractSerializer.Serialize(new ServiceError
         {
-            ContractVersion = "0.1",
+            ContractVersion = ContractInfo.Version,
             RequestId = request.RequestId,
             Tick = request.Tick,
             Code = ServiceErrorCode.Overloaded,
@@ -214,7 +214,7 @@ public sealed class DecisionTests
     {
         var port = new ScriptedPort(request => ContractSerializer.Serialize(new ServiceError
         {
-            ContractVersion = "0.1",
+            ContractVersion = ContractInfo.Version,
             RequestId = request.RequestId,
             Tick = request.Tick,
             Code = ServiceErrorCode.Bad_request,
@@ -283,7 +283,7 @@ public sealed class DecisionTests
     {
         var port = new ScriptedPort(request => ContractSerializer.Serialize(new DecisionResponse
         {
-            ContractVersion = "0.1",
+            ContractVersion = ContractInfo.Version,
             RequestId = request.RequestId,
             Tick = request.Tick,
             OptionId = request.Options.First().OptionId,

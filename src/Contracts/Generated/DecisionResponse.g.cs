@@ -12,19 +12,6 @@ namespace GlassWorld.Contracts
 {
     #pragma warning disable // Disable all warnings
 
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
-    public partial class Thought
-    {
-
-        [System.Text.Json.Serialization.JsonPropertyName("locale")]
-        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<Locale>))]
-        public Locale Locale { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("text")]
-        public string Text { get; set; } = default!;
-
-    }
-
     /// <summary>
     /// AI service -&gt; core: the decider's proposal. Only a proposal; the core's rule guard has the final say.
     /// </summary>

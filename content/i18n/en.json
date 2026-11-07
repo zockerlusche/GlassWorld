@@ -1,5 +1,5 @@
 {
-  "contract_version": "0.1",
+  "contract_version": "0.2",
   "locale": "en",
   "entries": [
     {
@@ -405,6 +405,18 @@
     {
       "key": "vocab.action.combine",
       "text": "Combine"
+    },
+    {
+      "key": "vocab.action.warn",
+      "text": "Warn"
+    },
+    {
+      "key": "vocab.action.show",
+      "text": "Show"
+    },
+    {
+      "key": "vocab.action.teach",
+      "text": "Teach"
     },
     {
       "key": "vocab.action.drink",

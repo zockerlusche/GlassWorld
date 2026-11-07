@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-from enum import StrEnum
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -11,43 +10,11 @@ from pydantic import BaseModel, ConfigDict, Field
 from . import common_schema
 
 
-class Thought(BaseModel):
-    model_config = ConfigDict(
-        extra='forbid',
-    )
-    locale: common_schema.Locale
-    text: str = Field(..., max_length=140, min_length=1)
-
-
-class Source(StrEnum):
-    model = 'model'
-    mock = 'mock'
-    replay = 'replay'
-
-
-class ResponseMeta(BaseModel):
-    model_config = ConfigDict(
-        extra='forbid',
-    )
-    source: Source = Field(
-        ...,
-        description='model = real LLM, mock = test double, replay = answer replayed from a log.',
-    )
-    model: str = Field(..., max_length=64)
-    latency_ms: int = Field(..., ge=0)
-    attempts: int = Field(
-        ...,
-        description='Model calls used (1 + at most 2 retries, per handbook).',
-        ge=1,
-        le=3,
-    )
-
-
 class DecisionResponse(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
-    contract_version: Literal['0.1'] = Field(
+    contract_version: Literal['0.2'] = Field(
         ...,
         description='Contract version. Incompatible changes require a new major version and an ADR.',
     )
@@ -75,8 +42,8 @@ class DecisionResponse(BaseModel):
         description='Short English reasoning for logs and the debug view. Never shown to the player.',
         max_length=280,
     )
-    thought: Thought | None = Field(
+    thought: common_schema.Thought | None = Field(
         ...,
         description="Optional thought bubble in the player's language; null if none.",
     )
-    meta: ResponseMeta
+    meta: common_schema.ResponseMeta

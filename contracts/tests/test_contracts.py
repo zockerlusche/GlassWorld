@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import fnmatch
 import json
+import keyword
 from pathlib import Path
 from typing import Any
 
@@ -194,6 +195,9 @@ def test_schema_stays_in_the_conservative_subset(path: Path) -> None:
             assert not extra, (
                 f"{path.name} {where}: keywords next to $ref are ignored in C#: {extra}"
             )
+        if where.endswith("/properties"):
+            reserved = [name for name in node if keyword.iskeyword(name)]
+            assert not reserved, f"{path.name} {where}: Python keywords as field names: {reserved}"
         # "properties" maps names to schemas, so its keys are not keywords.
         if not where.endswith("/properties"):
             used = FORBIDDEN_KEYWORDS & set(node)
@@ -211,7 +215,8 @@ CONTENT_FILES = sorted(CONTENT.rglob("*.json"))
 
 def _content_entries() -> list[tuple[str, str]]:
     data = _load(CONTENT_MAP)
-    assert data["contract_version"] == "0.1"
+    common = _load(SCHEMAS / "common.schema.json")
+    assert data["contract_version"] == common["$defs"]["ContractVersion"]["const"]
     return [(entry["pattern"], entry["schema"]) for entry in data["entries"]]
 
 

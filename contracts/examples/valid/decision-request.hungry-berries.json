@@ -1,5 +1,5 @@
 {
-  "contract_version": "0.1",
+  "contract_version": "0.2",
   "request_id": "3f2b8c1e-5d4a-4b6f-9e21-0c7d8a9b1f00",
   "tick": 1200,
   "seed": 424242,
@@ -45,6 +45,72 @@
         "id": "patience",
         "value": 0.4
       }
+    ],
+    "memory": {
+      "summary": "Woke up alone on a beach. Found a stream. Met another person yesterday who seems friendly.",
+      "recent": [
+        {
+          "tick": 1100,
+          "kind": "met_inhabitant",
+          "about": {
+            "kind": "inhabitant",
+            "id": "inh-0002"
+          }
+        },
+        {
+          "tick": 1150,
+          "kind": "drank",
+          "about": {
+            "kind": "type",
+            "id": "spring_water"
+          }
+        }
+      ]
+    },
+    "knowledge": [
+      {
+        "subject": {
+          "kind": "type",
+          "id": "apple_tree"
+        },
+        "property": "edible",
+        "value": true,
+        "confidence": 0.6,
+        "source": "heard",
+        "told_by": "inh-0002",
+        "tick": 1120
+      },
+      {
+        "subject": {
+          "kind": "type",
+          "id": "spring_water"
+        },
+        "property": "drinkable",
+        "value": true,
+        "confidence": 1.0,
+        "source": "experienced",
+        "told_by": null,
+        "tick": 1150
+      }
+    ],
+    "relationships": [
+      {
+        "other": "inh-0002",
+        "affection": 0.4,
+        "trust": 0.6,
+        "respect": 0.5
+      }
+    ],
+    "habits": [
+      {
+        "action": "drink",
+        "time_of_day": "day",
+        "about": {
+          "kind": "type",
+          "id": "spring_water"
+        },
+        "strength": 0.3
+      }
     ]
   },
   "environment": {
@@ -73,6 +139,12 @@
             "confidence": 0.9
           }
         ]
+      }
+    ],
+    "inhabitants": [
+      {
+        "id": "inh-0002",
+        "distance_m": 15.0
       }
     ]
   },

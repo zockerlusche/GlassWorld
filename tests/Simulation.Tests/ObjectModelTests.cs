@@ -106,7 +106,7 @@ public sealed class ObjectModelTests
         var rules = CombinationRuleSet.Create(
             [new CombinationRules
             {
-                ContractVersion = "0.1",
+                ContractVersion = ContractInfo.Version,
                 Rules = [new CombinationRule { Id = "r", Action = "combine", Inputs = [Slot("sparks", "hard"), Slot("sparks", "hard")], Creates = [], Consumes = [] }],
             }],
             catalog,
@@ -133,14 +133,14 @@ public sealed class ObjectModelTests
 
     private static ObjectTypes Types(params (string Id, string[] Properties)[] types) => new()
     {
-        ContractVersion = "0.1",
+        ContractVersion = ContractInfo.Version,
         Types = [.. types.Select(t => new ObjectType { Id = t.Id, Description = t.Id, Properties = [.. t.Properties] })],
     };
 
     private static InputSlot Slot(params string[] properties) => new() { Properties = [.. properties] };
 
     private static CombinationRuleSet Rules(ObjectCatalog catalog, Vocabulary actions, CombinationRule rule) =>
-        CombinationRuleSet.Create([new CombinationRules { ContractVersion = "0.1", Rules = [rule] }], catalog, actions);
+        CombinationRuleSet.Create([new CombinationRules { ContractVersion = ContractInfo.Version, Rules = [rule] }], catalog, actions);
 
     private static string Hash(BeliefSet beliefs)
     {

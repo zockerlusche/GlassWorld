@@ -1,5 +1,5 @@
 {
-  "contract_version": "0.1",
+  "contract_version": "0.2",
   "status": "degraded",
   "detail": "Ollama is not reachable.",
   "service_version": "0.1.0",

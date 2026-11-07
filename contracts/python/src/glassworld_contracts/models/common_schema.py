@@ -6,7 +6,7 @@ from __future__ import annotations
 from enum import StrEnum
 from typing import Annotated, Any
 
-from pydantic import Field
+from pydantic import BaseModel, ConfigDict, Field
 
 type Common = Annotated[
     Any,
@@ -58,3 +58,213 @@ type EntityId = Annotated[
 class Locale(StrEnum):
     de = 'de'
     en = 'en'
+
+
+class LevelEntry(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    id: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    value: float = Field(..., ge=0.0, le=1.0)
+
+
+class KnownProperty(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    property: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    value: bool
+    confidence: float = Field(..., ge=0.0, le=1.0)
+
+
+class Source(StrEnum):
+    model = 'model'
+    mock = 'mock'
+    replay = 'replay'
+
+
+class ResponseMeta(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    source: Source = Field(
+        ...,
+        description='model = real LLM, mock = test double, replay = answer replayed from a log.',
+    )
+    model: str = Field(..., max_length=64)
+    latency_ms: int = Field(..., ge=0)
+    attempts: int = Field(
+        ...,
+        description='Model calls used (1 + at most 2 retries, per handbook).',
+        ge=1,
+        le=3,
+    )
+
+
+class KnowledgeSource(StrEnum):
+    experienced = 'experienced'
+    heard = 'heard'
+    guessed = 'guessed'
+    read = 'read'
+
+
+class Kind(StrEnum):
+    type = 'type'
+    object = 'object'
+    inhabitant = 'inhabitant'
+    event = 'event'
+
+
+class Subject(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    kind: Kind
+    id: str = Field(..., max_length=64, pattern='^[a-z][a-z0-9_.-]*$')
+
+
+class KnowledgeEntry(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    subject: Subject
+    property: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    value: bool
+    confidence: float = Field(..., ge=0.0, le=1.0)
+    source: KnowledgeSource
+    told_by: EntityId | None = Field(
+        ..., description='Teller for source heard (or writer for read); null otherwise.'
+    )
+    tick: int = Field(..., description='Simulation tick the message refers to.', ge=0)
+
+
+class MemoryEvent(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    tick: int = Field(..., description='Simulation tick the message refers to.', ge=0)
+    kind: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    about: Subject | None
+
+
+class Memory(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    summary: str = Field(
+        ...,
+        description='Internal English text for the AI (B4a R5); never shown to the player (player texts only via keys or GeneratedText).',
+        max_length=1200,
+    )
+    recent: list[MemoryEvent] = Field(..., max_length=12)
+
+
+class Relationship(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    other: str = Field(
+        ...,
+        description='Id of an object or inhabitant instance in the world, assigned by the core.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_-]*$',
+    )
+    affection: float = Field(..., ge=0.0, le=1.0)
+    trust: float = Field(..., ge=0.0, le=1.0)
+    respect: float = Field(..., ge=0.0, le=1.0)
+
+
+class Habit(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    action: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    time_of_day: VocabId | None
+    about: Subject | None
+    strength: float = Field(..., ge=0.0, le=1.0)
+
+
+class InhabitantState(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    id: str = Field(
+        ...,
+        description='Id of an object or inhabitant instance in the world, assigned by the core.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_-]*$',
+    )
+    needs: list[LevelEntry] = Field(
+        ...,
+        description='Need satisfaction: 0 = fully unsatisfied (urgent, e.g. hunger 0.1 = very hungry), 1 = fully satisfied. Sorted by id by the core.',
+    )
+    mood: list[LevelEntry] = Field(
+        ...,
+        description='Current emotions with intensity 0 = absent, 1 = very strong. Only emotions above zero are listed. Sorted by id by the core.',
+    )
+    traits: list[LevelEntry] = Field(
+        ...,
+        description='Long-term character traits, 0 = very low, 1 = very high. Sorted by id by the core.',
+    )
+    will_to_live: float = Field(
+        ...,
+        description='Main wellbeing value, normalised to 0..1 (shown to the player as 0-100).',
+        ge=0.0,
+        le=1.0,
+    )
+    memory: Memory
+    knowledge: list[KnowledgeEntry] = Field(
+        ...,
+        description='Relevant beliefs (about perceived things first), sorted by subject.',
+        max_length=32,
+    )
+    relationships: list[Relationship] = Field(
+        ..., description='Towards perceived inhabitants, sorted by id.', max_length=16
+    )
+    habits: list[Habit] = Field(..., max_length=8)
+
+
+class Thought(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    locale: Locale
+    text: str = Field(..., max_length=140, min_length=1)
+
+
+class GeneratedText(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    locale: Locale
+    text: str = Field(
+        ...,
+        description="Text in the player's language, generated by the AI and checked by the content guard.",
+        max_length=280,
+        min_length=1,
+    )

@@ -1,5 +1,5 @@
 {
-  "contract_version": "0.1",
+  "contract_version": "0.2",
   "futile_attempts_threshold": 3,
   "suggestion_expiry_hours": 24,
   "max_open_suggestions": 3,

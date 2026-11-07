@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/question-answer.schema.json",
+  "title": "QuestionAnswer",
+  "description": "AI service -> core: a GUESS coloured by character, never the truth (ADR-0005). The core stores it as knowledge with source guessed; trying it out shows the truth.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "request_id",
+    "tick",
+    "understood",
+    "guesses",
+    "idea",
+    "thought",
+    "rationale",
+    "meta"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "request_id": {
+      "$ref": "common.schema.json#/$defs/RequestId"
+    },
+    "tick": {
+      "description": "Echo of the request tick.",
+      "$ref": "common.schema.json#/$defs/Tick"
+    },
+    "understood": {
+      "description": "false = the inhabitant does not understand it (allowed, W1595); guesses may then be empty.",
+      "type": "boolean"
+    },
+    "guesses": {
+      "type": "array",
+      "maxItems": 8,
+      "items": {
+        "$ref": "#/$defs/Guess"
+      }
+    },
+    "idea": {
+      "description": "Optional idea what to do (action id from the vocabulary); a proposal, the core decides.",
+      "anyOf": [
+        {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "thought": {
+      "anyOf": [
+        {
+          "$ref": "common.schema.json#/$defs/Thought"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "rationale": {
+      "type": "string",
+      "maxLength": 280
+    },
+    "meta": {
+      "$ref": "common.schema.json#/$defs/ResponseMeta"
+    }
+  },
+  "$defs": {
+    "Guess": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "property",
+        "value",
+        "confidence"
+      ],
+      "properties": {
+        "property": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "value": {
+          "type": "boolean"
+        },
+        "confidence": {
+          "$ref": "common.schema.json#/$defs/UnitValue"
+        }
+      }
+    }
+  }
+}

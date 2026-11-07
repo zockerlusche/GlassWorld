@@ -1,5 +1,5 @@
 {
-  "contract_version": "0.1",
+  "contract_version": "0.2",
   "actions": [
     { "action": "eat", "destination": "here", "duration_minutes": 10, "reach_m": 1.5 },
     { "action": "drink", "destination": "here", "duration_minutes": 5, "reach_m": 1.5 },

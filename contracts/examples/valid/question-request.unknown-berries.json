@@ -1,0 +1,123 @@
+{
+  "contract_version": "0.2",
+  "request_id": "7d1e2f30-4a5b-4c6d-8e9f-0a1b2c3d4e5f",
+  "tick": 1210,
+  "seed": 77,
+  "display_locale": "de",
+  "kind": "can_i_eat",
+  "subject": {
+    "kind": "type",
+    "id": "red_berry_bush"
+  },
+  "inhabitant": {
+    "id": "inh-0001",
+    "needs": [
+      {
+        "id": "hunger",
+        "value": 0.18
+      },
+      {
+        "id": "sleep",
+        "value": 0.55
+      },
+      {
+        "id": "thirst",
+        "value": 0.7
+      }
+    ],
+    "mood": [
+      {
+        "id": "boredom",
+        "value": 0.3
+      },
+      {
+        "id": "sadness",
+        "value": 0.2
+      }
+    ],
+    "will_to_live": 0.8,
+    "traits": [
+      {
+        "id": "courage",
+        "value": 0.35
+      },
+      {
+        "id": "curiosity",
+        "value": 0.8
+      },
+      {
+        "id": "patience",
+        "value": 0.4
+      }
+    ],
+    "memory": {
+      "summary": "Woke up alone on a beach. Found a stream. Met another person yesterday who seems friendly.",
+      "recent": [
+        {
+          "tick": 1100,
+          "kind": "met_inhabitant",
+          "about": {
+            "kind": "inhabitant",
+            "id": "inh-0002"
+          }
+        },
+        {
+          "tick": 1150,
+          "kind": "drank",
+          "about": {
+            "kind": "type",
+            "id": "spring_water"
+          }
+        }
+      ]
+    },
+    "knowledge": [
+      {
+        "subject": {
+          "kind": "type",
+          "id": "apple_tree"
+        },
+        "property": "edible",
+        "value": true,
+        "confidence": 0.6,
+        "source": "heard",
+        "told_by": "inh-0002",
+        "tick": 1120
+      },
+      {
+        "subject": {
+          "kind": "type",
+          "id": "spring_water"
+        },
+        "property": "drinkable",
+        "value": true,
+        "confidence": 1.0,
+        "source": "experienced",
+        "told_by": null,
+        "tick": 1150
+      }
+    ],
+    "relationships": [
+      {
+        "other": "inh-0002",
+        "affection": 0.4,
+        "trust": 0.6,
+        "respect": 0.5
+      }
+    ],
+    "habits": [
+      {
+        "action": "drink",
+        "time_of_day": "day",
+        "about": {
+          "kind": "type",
+          "id": "spring_water"
+        },
+        "strength": 0.3
+      }
+    ]
+  },
+  "perception": [
+    "portable"
+  ]
+}

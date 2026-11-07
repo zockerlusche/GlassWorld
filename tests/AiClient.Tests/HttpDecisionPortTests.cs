@@ -53,7 +53,7 @@ public sealed class HttpDecisionPortTests
         HttpRequestMessage? seen = null;
         var answer = ContractSerializer.Serialize(new DecisionResponse
         {
-            ContractVersion = "0.1",
+            ContractVersion = ContractInfo.Version,
             RequestId = "3f2b8c1e-5d4a-4b6f-9e21-0c7d8a9b1f00",
             Tick = 1,
             OptionId = "o1",
