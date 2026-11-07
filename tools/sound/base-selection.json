@@ -28,7 +28,7 @@
     {
       "id": "moss",
       "name": "Generated with MOSS-SoundEffect v2.0 (rev e35df4d; bf16, offload, 50 steps), own work",
-      "url": "https://huggingface.co/OpenMOSS-Team/MOSS-SoundEffect",
+      "url": "https://huggingface.co/OpenMOSS-Team/MOSS-SoundEffect-v2.0",
       "license": "MIT",
       "archive": null,
       "archive_sha256": null
