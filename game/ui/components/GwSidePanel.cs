@@ -41,6 +41,7 @@ public partial class GwSidePanel : PanelContainer
         // A wrapping label measures itself at its current width (one letter per line before the first
         // layout), so wrap the title only when it really does not fit.
         _title.AutowrapMode = TextServer.AutowrapMode.Off;
+        _title.CustomMinimumSize = Vector2.Zero;
         var padding = 2 * (style.Tokens.Window.Padding + style.Frame(GlassWorld.Contracts.UiFrameId.Window).ContentPadding);
         if (_title.GetCombinedMinimumSize().X > width - padding)
         {

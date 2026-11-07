@@ -137,6 +137,12 @@ namespace GlassWorld.Contracts
         public int MinSeconds { get; set; } = default!;
 
         /// <summary>
+        /// From this many waiting hints on, hints of one group are bundled at normal speed too (no endless backlog with many inhabitants).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("bundle_after_waiting")]
+        public int BundleAfterWaiting { get; set; } = default!;
+
+        /// <summary>
         /// Players can stretch the display time up to this factor (XAG 116: 10).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("max_duration_factor")]

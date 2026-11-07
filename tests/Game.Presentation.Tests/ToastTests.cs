@@ -6,7 +6,7 @@ namespace GlassWorld.Presentation.Tests;
 /// <summary>Hints (D366 section 9, XAG 116), placeholders and table sorting.</summary>
 public sealed class ToastTests
 {
-    private static readonly UiToastTokens Tokens = new() { MaxVisible = 3, MinSeconds = 6, MaxDurationFactor = 10 };
+    private static readonly UiToastTokens Tokens = new() { MaxVisible = 3, MinSeconds = 6, BundleAfterWaiting = 3, MaxDurationFactor = 10 };
     private static readonly IReadOnlyDictionary<string, string> NoArgs = new Dictionary<string, string>();
 
     private static ToastMessage Msg(string key, string? group = null) => new(key, NoArgs, group);
@@ -91,6 +91,57 @@ public sealed class ToastTests
         queue.Push(Msg("msg.mail.kind.knock", "knock"), fastForward: false);
         Assert.Equal(2, queue.Visible.Count);
     }
+
+    [Fact]
+    public void BacklogBundlesAtNormalSpeedToo()
+    {
+        var board = new ToastBoard(Tokens, new ToastSettings(1, UntilDismissed: false));
+        for (var i = 0; i < 6; i++)
+        {
+            board.Push(Msg($"msg.t.n{i}"), fastForward: false);
+        }
+
+        for (var i = 0; i < 20; i++)
+        {
+            board.Push(Msg("msg.mail.kind.knock", "knock"), fastForward: false);
+        }
+
+        Assert.Equal(4, board.Waiting);
+        board.Advance(6, null);
+        board.Advance(6, null);
+        Assert.Contains(board.Visible, t => t.Message.Group == "knock" && t.Count == 20);
+    }
+
+    [Fact]
+    public void BundlingRestartsTheTime()
+    {
+        var board = new ToastBoard(Tokens, new ToastSettings(1, UntilDismissed: false));
+        board.Push(Msg("msg.mail.kind.knock", "knock"), fastForward: true);
+        board.Advance(5.9, null);
+        board.Push(Msg("msg.mail.kind.knock", "knock"), fastForward: true);
+        board.Advance(5.9, null);
+        var toast = Assert.Single(board.Visible);
+        Assert.Equal(2, toast.Count);
+    }
+
+    [Fact]
+    public void VersionChangesOnlyWhenTheShownHintsChange()
+    {
+        var board = new ToastBoard(Tokens, new ToastSettings(1, UntilDismissed: false));
+        var start = board.Version;
+        board.Push(Msg("msg.t.a"), fastForward: false);
+        var afterPush = board.Version;
+        board.Advance(1, null);
+        Assert.Equal(afterPush, board.Version);
+        Assert.NotEqual(start, afterPush);
+        board.DismissOldest();
+        Assert.Empty(board.Visible);
+        Assert.NotEqual(afterPush, board.Version);
+    }
+
+    [Fact]
+    public void SettingsMustNotBeNull() =>
+        Assert.Throws<ArgumentNullException>(() => new ToastBoard(Tokens, new ToastSettings(1, false)).Settings = null!);
 
     [Theory]
     [InlineData("Day {day} of {season}", "Day 3 of spring")]

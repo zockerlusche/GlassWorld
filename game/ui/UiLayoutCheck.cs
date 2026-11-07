@@ -127,6 +127,12 @@ public static class UiLayoutCheck
         bubble.Show(string.Join(' ', Enumerable.Repeat(host.Tr("vocab.property.building_material"), 16)), style, area);
 
         await host.ToSignal(host.GetTree(), SceneTree.SignalName.ProcessFrame);
+        // Dock first with the largest text size, then with the real one: a runtime change of the text
+        // size must not leave the panel wider than its place (GW1 review W1).
+        panel.Dock(area, style.With(style.Settings with { TextScale = style.Tokens.TextScale.Max }), 0);
+        await host.ToSignal(host.GetTree(), SceneTree.SignalName.ProcessFrame);
+        panel.Dock(area, style, 0);
+        await host.ToSignal(host.GetTree(), SceneTree.SignalName.ProcessFrame);
         panel.Dock(area, style, 0);
         var dockedSize = panel.Size;
         toasts.Size = new Vector2(Math.Min(style.Tokens.Window.SidePanelWidth, area.X - (2 * margin)), toasts.GetCombinedMinimumSize().Y);

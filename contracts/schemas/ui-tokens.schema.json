@@ -265,6 +265,7 @@
       "required": [
         "max_visible",
         "min_seconds",
+        "bundle_after_waiting",
         "max_duration_factor"
       ],
       "properties": {
@@ -277,6 +278,12 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 120
+        },
+        "bundle_after_waiting": {
+          "description": "From this many waiting hints on, hints of one group are bundled at normal speed too (no endless backlog with many inhabitants).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
         },
         "max_duration_factor": {
           "description": "Players can stretch the display time up to this factor (XAG 116: 10).",

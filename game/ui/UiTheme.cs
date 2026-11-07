@@ -26,6 +26,9 @@ public static class UiTheme
     /// <summary>Theme type variation for the window frame.</summary>
     public const string WindowPanel = "GwWindowPanel";
 
+    /// <summary>Panel type for hints and tooltips (Godot's built-in type name).</summary>
+    public const string TooltipPanel = "TooltipPanel";
+
     /// <summary>Theme type variation for speech and thought bubbles.</summary>
     public const string BubblePanel = "GwBubblePanel";
 
@@ -68,7 +71,7 @@ public static class UiTheme
         var window = Frame(style, UiFrameId.Window, UiColorId.Panel);
         theme.SetTypeVariation(WindowPanel, "PanelContainer");
         theme.SetStylebox("panel", WindowPanel, window);
-        theme.SetStylebox("panel", "TooltipPanel", Frame(style, UiFrameId.Tooltip, UiColorId.Panel_strong));
+        theme.SetStylebox("panel", TooltipPanel, Frame(style, UiFrameId.Tooltip, UiColorId.Panel_strong));
         theme.SetTypeVariation(BubblePanel, "PanelContainer");
         theme.SetStylebox("panel", BubblePanel, Frame(style, UiFrameId.Bubble, UiColorId.Bubble_inhabitant));
 

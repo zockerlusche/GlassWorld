@@ -5,13 +5,15 @@ namespace GlassWorld.Game.Ui.Components;
 
 /// <summary>
 /// The hint area (D366 section 9) at the bottom right: shows the <see cref="ToastBoard"/> – at most
-/// three calm hints, no sound, no blinking; the mouse on a hint stops its time, a click closes it.
+/// three calm hints, no sound, no blinking; the mouse on a hint stops its time; each hint has a
+/// focusable close button, and the Delete key (action <c>gw_dismiss_hint</c>) closes the oldest one.
 /// Time runs in real seconds, independent of game speed and pause.
 /// </summary>
 public partial class GwToasts : VBoxContainer
 {
-    private readonly Dictionary<long, PanelContainer> _shown = [];
+    private readonly Dictionary<long, (PanelContainer Panel, Label Label, int Count)> _shown = [];
     private long? _hovered;
+    private long _version = -1;
 
     /// <summary>The board this area shows.</summary>
     public ToastBoard? Board { get; set; }
@@ -31,8 +33,26 @@ public partial class GwToasts : VBoxContainer
         }
 
         Board.Advance(delta, _hovered);
-        Sync();
+        if (Board.Version != _version)
+        {
+            Sync();
+        }
     }
+
+    public override void _UnhandledInput(InputEvent @event)
+    {
+        // Keyboard players can close hints too (XAG 116), oldest first.
+        if (Board is not null && @event.IsActionPressed(DismissAction))
+        {
+            Board.DismissOldest();
+            GetViewport().SetInputAsHandled();
+        }
+    }
+
+    private const string CloseSymbol = "×";
+
+    /// <summary>Input action that closes the oldest hint (bound in the project's input map).</summary>
+    public const string DismissAction = "gw_dismiss_hint";
 
     /// <summary>Rebuilds the shown hints from the board (also used by the layout check).</summary>
     public void Sync()
@@ -42,10 +62,11 @@ public partial class GwToasts : VBoxContainer
             return;
         }
 
+        _version = Board.Version;
         var visible = Board.Visible;
         foreach (var gone in _shown.Keys.Except(visible.Select(t => t.Id)).ToList())
         {
-            _shown[gone].QueueFree();
+            _shown[gone].Panel.QueueFree();
             _shown.Remove(gone);
             if (_hovered == gone)
             {
@@ -55,15 +76,21 @@ public partial class GwToasts : VBoxContainer
 
         foreach (var toast in visible.Where(t => !_shown.ContainsKey(t.Id)))
         {
-            var panel = new PanelContainer { ThemeTypeVariation = "TooltipPanel", MouseFilter = MouseFilterEnum.Stop };
-            panel.AddChild(new Label
+            var panel = new PanelContainer { ThemeTypeVariation = UiTheme.TooltipPanel, MouseFilter = MouseFilterEnum.Stop };
+            var row = new HBoxContainer();
+            var label = new Label
             {
                 Text = Text(toast),
                 AutoTranslateMode = AutoTranslateModeEnum.Disabled,
                 AutowrapMode = TextServer.AutowrapMode.WordSmart,
-                CustomMinimumSize = new Vector2(0, 0),
-            });
+                SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            };
             var id = toast.Id;
+            var close = new Button { Text = CloseSymbol, TooltipText = "ui.common.close", FocusMode = FocusModeEnum.All };
+            close.Pressed += () => Board.Dismiss(id);
+            row.AddChild(label);
+            row.AddChild(close);
+            panel.AddChild(row);
             panel.MouseEntered += () => _hovered = id;
             panel.MouseExited += () => _hovered = _hovered == id ? null : _hovered;
             panel.GuiInput += e =>
@@ -74,14 +101,16 @@ public partial class GwToasts : VBoxContainer
                 }
             };
             AddChild(panel);
-            _shown[id] = panel;
+            _shown[id] = (panel, label, toast.Count);
         }
 
-        foreach (var (id, panel) in _shown)
+        foreach (var toast in visible)
         {
-            if (panel.GetChild(0) is Label label)
+            var shown = _shown[toast.Id];
+            if (shown.Count != toast.Count)
             {
-                label.Text = Text(visible.First(t => t.Id == id));
+                shown.Label.Text = Text(toast);
+                _shown[toast.Id] = shown with { Count = toast.Count };
             }
         }
     }

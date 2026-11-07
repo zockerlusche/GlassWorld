@@ -98,6 +98,12 @@ class UiToastTokens(BaseModel):
     )
     max_visible: int = Field(..., ge=1, le=10)
     min_seconds: int = Field(..., ge=1, le=120)
+    bundle_after_waiting: int = Field(
+        ...,
+        description='From this many waiting hints on, hints of one group are bundled at normal speed too (no endless backlog with many inhabitants).',
+        ge=1,
+        le=100,
+    )
     max_duration_factor: int = Field(
         ...,
         description='Players can stretch the display time up to this factor (XAG 116: 10).',

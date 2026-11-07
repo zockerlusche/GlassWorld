@@ -7,11 +7,11 @@ namespace GlassWorld.Game.Ui.Components;
 /// <param name="Numeric">Numbers are right-aligned and sorted numerically.</param>
 public sealed record GwColumn(string HeaderKey, bool Numeric);
 
-/// <summary>A table row: shown texts and sort values per column, plus the row's id.</summary>
+/// <summary>A table row: shown texts, numbers for numeric columns, plus the row's id.</summary>
 /// <param name="Id">Row id (e.g. inhabitant id), never shown.</param>
-/// <param name="Cells">Display texts (already translated where needed).</param>
-/// <param name="SortValues">Values used for sorting, one per column.</param>
-public sealed record GwRow(string Id, IReadOnlyList<string> Cells, IReadOnlyList<IComparable> SortValues);
+/// <param name="Cells">Display texts (already translated where needed); text columns sort by these.</param>
+/// <param name="Numbers">One value per column; numeric columns sort by it (others ignore it).</param>
+public sealed record GwRow(string Id, IReadOnlyList<string> Cells, IReadOnlyList<double> Numbers);
 
 /// <summary>
 /// Table building block (D366 section 7) on Godot's <see cref="Tree"/>, which only draws visible
@@ -96,7 +96,11 @@ public partial class GwTable : VBoxContainer
     {
         _tree.Clear();
         var root = _tree.CreateItem();
-        var sorted = Presentation.Ui.TableSort.By(_rows, r => r.SortValues[_sortColumn], _descending);
+        // Numbers compare as numbers; texts in the game's language, not the operating system's.
+        var column = _sortColumn;
+        var sorted = _columns[column].Numeric
+            ? Presentation.Ui.TableSort.By(_rows, r => r.Numbers[column], _descending)
+            : Presentation.Ui.TableSort.By(_rows, r => r.Cells[column], _descending, StringComparer.Create(new System.Globalization.CultureInfo(TranslationServer.GetLocale()), System.Globalization.CompareOptions.IgnoreCase));
         foreach (var row in sorted)
         {
             var item = _tree.CreateItem(root);
