@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/combination-rules.schema.json",
+  "title": "CombinationRules",
+  "description": "Data files content/rules/*.json: what happens when objects are used together. Inputs are matched by TRUE properties, never by fixed object types, so new objects and inventions take part automatically (frame, not outcome). Contents grow in B4b/B5.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "rules"],
+  "properties": {
+    "contract_version": { "$ref": "common.schema.json#/$defs/ContractVersion" },
+    "rules": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/CombinationRule" }
+    }
+  },
+  "$defs": {
+    "CombinationRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "action", "inputs", "creates", "consumes"],
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/VocabId" },
+        "action": { "description": "Action id from content/vocabulary/actions.json.", "allOf": [{ "$ref": "common.schema.json#/$defs/VocabId" }] },
+        "inputs": {
+          "description": "One slot per object; an object fits a slot if it has all listed true properties.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4,
+          "items": { "$ref": "#/$defs/InputSlot" }
+        },
+        "creates": {
+          "description": "Object type ids created (may be empty).",
+          "type": "array",
+          "maxItems": 4,
+          "items": { "$ref": "common.schema.json#/$defs/VocabId" }
+        },
+        "consumes": {
+          "description": "Indexes of input slots whose objects are used up.",
+          "type": "array",
+          "uniqueItems": true,
+          "maxItems": 4,
+          "items": { "type": "integer", "minimum": 0, "maximum": 3 }
+        }
+      }
+    },
+    "InputSlot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["properties"],
+      "properties": {
+        "properties": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "maxItems": 8,
+          "items": { "$ref": "common.schema.json#/$defs/VocabId" }
+        }
+      }
+    }
+  }
+}

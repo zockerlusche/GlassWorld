@@ -12,6 +12,7 @@
     { "id": "drink", "description": "Drink from an object or water source.", "target": "object" },
     { "id": "sleep", "description": "Lie down and sleep to restore energy.", "target": "none" },
     { "id": "approach", "description": "Walk towards another inhabitant.", "target": "inhabitant" },
-    { "id": "talk_to", "description": "Start a conversation with another inhabitant.", "target": "inhabitant" }
+    { "id": "talk_to", "description": "Start a conversation with another inhabitant.", "target": "inhabitant" },
+    { "id": "combine", "description": "Use two or more objects together (strike, rub, tie, mix).", "target": "object" }
   ]
 }
