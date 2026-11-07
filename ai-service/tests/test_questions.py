@@ -41,7 +41,7 @@ from glassworld_ai.queue import ModelQueue
 from glassworld_ai.validation import ContractValidator
 from glassworld_ai.vocabulary import Vocabulary
 from glassworld_ai.words import plain_id
-from glassworld_contracts import GenerationJob
+from glassworld_contracts import CONTRACT_VERSION, GenerationJob
 
 REPO = Path(__file__).resolve().parents[2]
 SNAPSHOTS = Path(__file__).resolve().parent / "snapshots"
@@ -105,7 +105,7 @@ def _handler(
 
 def _status_body(job: GenerationJob, outcome: JobOutcome) -> dict[str, object]:
     return {
-        "contract_version": "0.1",
+        "contract_version": CONTRACT_VERSION,
         "job_id": plain_id(job.request_id),
         "tick": job.tick,
         "kind": "question",
