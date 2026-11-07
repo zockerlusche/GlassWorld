@@ -15,6 +15,10 @@
       "text": "Inhabitant {number} has a question."
     },
     {
+      "key": "msg.load.failed",
+      "text": "This world could not be loaded. The file stays unchanged."
+    },
+    {
       "key": "msg.mail.kind.complaint",
       "text": "Complaint"
     },
@@ -111,6 +115,10 @@
       "text": "{season}, day {day}, year {year}"
     },
     {
+      "key": "ui.common.cancel",
+      "text": "Cancel"
+    },
+    {
       "key": "ui.common.close",
       "text": "Close"
     },
@@ -143,6 +151,34 @@
       "text": "Mailbox"
     },
     {
+      "key": "ui.menu.continue",
+      "text": "Continue"
+    },
+    {
+      "key": "ui.menu.new_world",
+      "text": "New world"
+    },
+    {
+      "key": "ui.menu.quit",
+      "text": "Quit"
+    },
+    {
+      "key": "ui.menu.settings",
+      "text": "Settings"
+    },
+    {
+      "key": "ui.menu.title",
+      "text": "GlassWorld"
+    },
+    {
+      "key": "ui.menu.worlds",
+      "text": "Worlds"
+    },
+    {
+      "key": "ui.new_world.climate",
+      "text": "Climate"
+    },
+    {
       "key": "ui.new_world.climate.temperate",
       "text": "Temperate"
     },
@@ -151,12 +187,80 @@
       "text": "Warm"
     },
     {
+      "key": "ui.new_world.create",
+      "text": "Create world"
+    },
+    {
+      "key": "ui.new_world.name",
+      "text": "Name"
+    },
+    {
+      "key": "ui.new_world.name_hint",
+      "text": "Name of the world"
+    },
+    {
+      "key": "ui.new_world.problem.name_blocked",
+      "text": "Please choose a different name."
+    },
+    {
+      "key": "ui.new_world.problem.name_characters",
+      "text": "The name contains characters that cannot be used."
+    },
+    {
+      "key": "ui.new_world.problem.name_empty",
+      "text": "Please give the world a name."
+    },
+    {
+      "key": "ui.new_world.problem.name_long",
+      "text": "The name is too long."
+    },
+    {
+      "key": "ui.new_world.problem.seed",
+      "text": "The seed must be a whole number from 0."
+    },
+    {
+      "key": "ui.new_world.seed",
+      "text": "Seed"
+    },
+    {
+      "key": "ui.new_world.seed_hint",
+      "text": "empty = random"
+    },
+    {
+      "key": "ui.new_world.size",
+      "text": "Size"
+    },
+    {
       "key": "ui.new_world.size.medium",
       "text": "Medium island"
     },
     {
       "key": "ui.new_world.size.small",
       "text": "Small island"
+    },
+    {
+      "key": "ui.new_world.start_favor",
+      "text": "Start favour"
+    },
+    {
+      "key": "ui.new_world.title",
+      "text": "New world"
+    },
+    {
+      "key": "ui.pause.main_menu",
+      "text": "Main menu"
+    },
+    {
+      "key": "ui.pause.resume",
+      "text": "Play on"
+    },
+    {
+      "key": "ui.pause.save",
+      "text": "Save"
+    },
+    {
+      "key": "ui.pause.title",
+      "text": "Pause"
     },
     {
       "key": "ui.questions.column.count",
@@ -171,8 +275,88 @@
       "text": "Open questions"
     },
     {
+      "key": "ui.settings.hide_ui",
+      "text": "Watch only (hide the interface)"
+    },
+    {
+      "key": "ui.settings.high_contrast",
+      "text": "High contrast"
+    },
+    {
+      "key": "ui.settings.hint_duration",
+      "text": "Display time (factor)"
+    },
+    {
+      "key": "ui.settings.hints_until_dismissed",
+      "text": "Hints stay until I close them"
+    },
+    {
+      "key": "ui.settings.language",
+      "text": "Game language"
+    },
+    {
+      "key": "ui.settings.language.de",
+      "text": "Deutsch"
+    },
+    {
+      "key": "ui.settings.language.en",
+      "text": "English"
+    },
+    {
+      "key": "ui.settings.reduce_motion",
+      "text": "Reduce motion"
+    },
+    {
+      "key": "ui.settings.section.audio",
+      "text": "Sound"
+    },
+    {
+      "key": "ui.settings.section.display",
+      "text": "Display"
+    },
+    {
+      "key": "ui.settings.section.hints",
+      "text": "Hints"
+    },
+    {
+      "key": "ui.settings.section.language",
+      "text": "Language"
+    },
+    {
+      "key": "ui.settings.text_scale",
+      "text": "Text size"
+    },
+    {
       "key": "ui.settings.title",
       "text": "Settings"
+    },
+    {
+      "key": "ui.settings.ui_scale",
+      "text": "Interface size"
+    },
+    {
+      "key": "ui.settings.volume.ambience",
+      "text": "Ambience"
+    },
+    {
+      "key": "ui.settings.volume.animals",
+      "text": "Animals"
+    },
+    {
+      "key": "ui.settings.volume.effects",
+      "text": "Effects"
+    },
+    {
+      "key": "ui.settings.volume.master",
+      "text": "Overall volume"
+    },
+    {
+      "key": "ui.settings.volume.music",
+      "text": "Music"
+    },
+    {
+      "key": "ui.settings.volume.voices",
+      "text": "Voices"
     },
     {
       "key": "ui.time.fast",
@@ -189,6 +373,30 @@
     {
       "key": "ui.toast.bundled",
       "text": "{text} ({count}×)"
+    },
+    {
+      "key": "ui.worlds.column.day",
+      "text": "Day"
+    },
+    {
+      "key": "ui.worlds.column.name",
+      "text": "Name"
+    },
+    {
+      "key": "ui.worlds.column.seed",
+      "text": "Seed"
+    },
+    {
+      "key": "ui.worlds.empty",
+      "text": "No world saved yet."
+    },
+    {
+      "key": "ui.worlds.load",
+      "text": "Load"
+    },
+    {
+      "key": "ui.worlds.title",
+      "text": "Worlds"
     },
     {
       "key": "vocab.action.approach",
