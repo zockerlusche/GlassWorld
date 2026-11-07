@@ -93,7 +93,8 @@ public partial class WorldPresenter : Node3D
         if (_service is not null)
         {
             // ADR-0006: shutdown endpoint unloads the model (frees VRAM), then the process is killed.
-            _service.StopAsync(TimeSpan.FromSeconds(10)).GetAwaiter().GetResult();
+            // At least 20 s: the service unloads the model first (GW2 #30).
+            _service.StopAsync(TimeSpan.FromSeconds(20)).GetAwaiter().GetResult();
             _service.Dispose();
             _service = null;
         }
@@ -109,7 +110,22 @@ public partial class WorldPresenter : Node3D
         var repository = System.IO.Path.GetFullPath(System.IO.Path.Combine(contentDirectory, ".."));
         try
         {
-            _service = AiServiceProcess.Start("uv", ["run", "python", "-m", "glassworld_ai"], repository, TimeSpan.FromSeconds(60));
+            var userData = System.IO.Path.Combine(OS.GetUserDataDir(), "ai-service");
+            _service = AiServiceProcess.Start(
+                "uv",
+                ["run", "python", "-m", "glassworld_ai"],
+                repository,
+                TimeSpan.FromSeconds(60),
+                new Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    ["GW_AI_LOCK_DIR"] = System.IO.Path.Combine(userData, "lock"),
+                    ["GW_AI_LOG_DIR"] = System.IO.Path.Combine(userData, "logs"),
+                });
+            if (_service.StaleKilled is { } stale)
+            {
+                GD.Print($"AI_SERVICE ended leftover service from an earlier session (pid {stale})");
+            }
+
             var settings = Contracts.Validation.ContractSerializer.Deserialize<Contracts.DeciderSettings>(
                 System.IO.File.ReadAllText(System.IO.Path.Combine(contentDirectory, "decider", "settings.json")));
             _livePort = HttpDecisionPort.ForService(_service, settings.DeadlineMs);

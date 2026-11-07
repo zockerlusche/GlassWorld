@@ -24,13 +24,17 @@ public sealed partial class AiServiceProcess : IDisposable
     private readonly Process _process;
     private readonly IntPtr _job;
 
-    private AiServiceProcess(Process process, IntPtr job, int port, string token)
+    private AiServiceProcess(Process process, IntPtr job, int port, string token, int? staleKilled)
     {
         _process = process;
         _job = job;
         Port = port;
         Token = token;
+        StaleKilled = staleKilled;
     }
+
+    /// <summary>PID of a leftover service from an earlier session that was ended at start (null if none).</summary>
+    public int? StaleKilled { get; }
 
     /// <summary>Port the service listens on (127.0.0.1).</summary>
     public int Port { get; }
@@ -49,7 +53,8 @@ public sealed partial class AiServiceProcess : IDisposable
     /// <param name="arguments">Arguments before the lifecycle flags, e.g. <c>run python -m glassworld_ai</c>.</param>
     /// <param name="workingDirectory">Working directory (repository root for <c>uv run</c>).</param>
     /// <param name="readyTimeout">How long to wait for the ready line (the model loads in the background later).</param>
-    public static AiServiceProcess Start(string fileName, IEnumerable<string> arguments, string workingDirectory, TimeSpan readyTimeout)
+    /// <param name="environment">Extra environment, e.g. GW_AI_LOCK_DIR and GW_AI_LOG_DIR in the user data folder.</param>
+    public static AiServiceProcess Start(string fileName, IEnumerable<string> arguments, string workingDirectory, TimeSpan readyTimeout, IReadOnlyDictionary<string, string>? environment = null)
     {
         ArgumentNullException.ThrowIfNull(arguments);
         var token = Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(32));
@@ -71,6 +76,10 @@ public sealed partial class AiServiceProcess : IDisposable
         info.ArgumentList.Add("--parent-pid");
         info.ArgumentList.Add(Environment.ProcessId.ToString(CultureInfo.InvariantCulture));
         info.Environment["GW_AI_TOKEN"] = token;
+        foreach (var (key, value) in environment ?? new Dictionary<string, string>())
+        {
+            info.Environment[key] = value;
+        }
 
         var process = Process.Start(info) ?? throw new InvalidOperationException($"Could not start '{fileName}'.");
         var job = OperatingSystem.IsWindows() ? JobObject.CreateKillOnClose(process) : IntPtr.Zero;
@@ -87,7 +96,8 @@ public sealed partial class AiServiceProcess : IDisposable
         };
         process.BeginErrorReadLine();
 
-        var (finished, port) = WaitForReadyLine(process, readyTimeout);
+        var reader = new OutputReader(process);
+        var (finished, port) = reader.WaitForReady(readyTimeout);
         if (port is null)
         {
             Kill(process);
@@ -102,7 +112,7 @@ public sealed partial class AiServiceProcess : IDisposable
             throw new TimeoutException($"AI service did not announce its port within {readyTimeout.TotalSeconds:F0} s. {tail}");
         }
 
-        return new AiServiceProcess(process, job, port.Value, token);
+        return new AiServiceProcess(process, job, port.Value, token, reader.StaleKilled);
     }
 
     /// <summary>Asks the service to shut down (unload the model), then kills it after the timeout.</summary>
@@ -148,23 +158,76 @@ public sealed partial class AiServiceProcess : IDisposable
         return match is { Success: true } ? int.Parse(match.Groups["port"].Value, CultureInfo.InvariantCulture) : null;
     }
 
-    /// <summary>Reads stdout until the ready line; Finished is true if stdout ended (process gone) first.</summary>
-    private static (bool Finished, int? Port) WaitForReadyLine(Process process, TimeSpan timeout)
+    /// <summary>Parses <c>AI_SERVICE_STALE pid=N port=M</c> (leftover of an earlier session, verified by the service).</summary>
+    public static int? ParseStaleLine(string? line)
     {
-        var read = Task.Run(() =>
+        var match = line is null ? null : StaleLine().Match(line);
+        return match is { Success: true } ? int.Parse(match.Groups["pid"].Value, CultureInfo.InvariantCulture) : null;
+    }
+
+    /// <summary>
+    /// Reads stdout for the whole life of the process: the stale and ready lines at start, and afterwards
+    /// everything else, so the pipe buffer never fills and the service never blocks on writing (GW2 #30).
+    /// </summary>
+    private sealed class OutputReader
+    {
+        private readonly TaskCompletionSource<int?> _ready = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public OutputReader(Process process) => _ = Task.Run(() => Drain(process));
+
+        public int? StaleKilled { get; private set; }
+
+        public (bool Finished, int? Port) WaitForReady(TimeSpan timeout)
         {
-            string? line;
-            while ((line = process.StandardOutput.ReadLine()) is not null)
+            if (!_ready.Task.Wait(timeout))
             {
-                if (ParseReadyLine(line) is { } port)
-                {
-                    return (int?)port;
-                }
+                return (false, null);
             }
 
-            return null;
-        });
-        return read.Wait(timeout) ? (read.Result is null, read.Result) : (false, null);
+            var port = _ready.Task.Result;
+            return (port is null, port);
+        }
+
+        private void Drain(Process process)
+        {
+            try
+            {
+                string? line;
+                while ((line = process.StandardOutput.ReadLine()) is not null)
+                {
+                    if (ParseStaleLine(line) is { } stale)
+                    {
+                        StaleKilled = EndLeftover(stale);
+                    }
+                    else if (ParseReadyLine(line) is { } port)
+                    {
+                        _ready.TrySetResult(port);
+                    }
+                }
+            }
+            catch (Exception ex) when (ex is IOException or ObjectDisposedException or InvalidOperationException)
+            {
+                // Process gone or disposed.
+            }
+
+            _ready.TrySetResult(null);
+        }
+
+        /// <summary>The service reports a leftover only if PID and start time match, so ending it is safe.</summary>
+        private static int? EndLeftover(int pid)
+        {
+            try
+            {
+                using var leftover = Process.GetProcessById(pid);
+                leftover.Kill(entireProcessTree: true);
+                leftover.WaitForExit(5000);
+                return pid;
+            }
+            catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or Win32Exception)
+            {
+                return null;
+            }
+        }
     }
 
     private static void Kill(Process process)
@@ -185,6 +248,9 @@ public sealed partial class AiServiceProcess : IDisposable
 
     [GeneratedRegex(@"^AI_SERVICE_READY port=(?<port>[0-9]{1,5})\s*$")]
     private static partial Regex ReadyLine();
+
+    [GeneratedRegex(@"^AI_SERVICE_STALE pid=(?<pid>[0-9]{1,10}) port=[0-9]{1,5}\s*$")]
+    private static partial Regex StaleLine();
 
     /// <summary>Windows Job Object with KILL_ON_JOB_CLOSE: when the game dies, the service dies with it.</summary>
     private static partial class JobObject
