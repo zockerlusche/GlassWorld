@@ -82,6 +82,45 @@ public partial class BuildPlanCheck : Node3D
             }
         }
 
+        // Every shape of the kit data is drawn once (a shape added to kit.json without a mesh fails here).
+        foreach (var shape in kit.Shapes)
+        {
+            var single = new BuildPlan();
+            single.Parts.Add(new BuildPart
+            {
+                Shape = shape,
+                SizeM = new SizeM2 { X = 0.4, Y = 0.2, Z = 0.3 },
+                PositionM = new PositionM { X = 0, Y = 0.1, Z = 0 },
+                Material = "check",
+                Color = kit.Colors.First().Id,
+                Step = 1,
+            });
+            single.Parts.Add(new BuildPart
+            {
+                Shape = shape,
+                SizeM = new SizeM2 { X = 0.2, Y = 0.4, Z = 0.2 },
+                PositionM = new PositionM { X = 0.5, Y = 0.2, Z = 0 },
+                Material = "check",
+                Color = kit.Colors.Last().Id,
+                Step = 2,
+            });
+            try
+            {
+                var node = BuildPlanNode.Create(single, kit);
+                AddChild(node);
+                if (node.PartCount != 2)
+                {
+                    failures.Add($"kit shape '{shape}': {node.PartCount} meshes for 2 parts");
+                }
+
+                seenShapes.Add(shape);
+            }
+            catch (InvalidDataException e)
+            {
+                failures.Add($"kit shape '{shape}': {e.Message}");
+            }
+        }
+
         shapes = seenShapes.Count;
         var missing = kit.Shapes.Where(s => !seenShapes.Contains(s)).ToList();
         if (missing.Count > 0)

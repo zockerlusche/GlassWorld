@@ -13,6 +13,9 @@ public partial class BuildPlanNode : Node3D
 {
     private static readonly Shader ComicShader = GD.Load<Shader>("res://shaders/warm_comic.gdshader");
 
+    // One material per kit colour, shared by all parts and plans (many inventions, B2-7).
+    private static readonly Dictionary<Color, ShaderMaterial> Materials = [];
+
     private readonly List<(int Step, MeshInstance3D Mesh)> _parts = [];
 
     /// <summary>Number of part meshes (equals the parts of the plan).</summary>
@@ -43,9 +46,13 @@ public partial class BuildPlanNode : Node3D
 
             var size = new Vector3((float)part.SizeM.X, (float)part.SizeM.Y, (float)part.SizeM.Z);
             var (mesh, turn) = MeshFor(part.Shape, size);
-            var material = new ShaderMaterial { Shader = ComicShader };
-            material.SetShaderParameter("albedo", color);
-            material.SetShaderParameter("use_vertex_color", false);
+            if (!Materials.TryGetValue(color, out var material))
+            {
+                material = new ShaderMaterial { Shader = ComicShader };
+                material.SetShaderParameter("albedo", color);
+                material.SetShaderParameter("use_vertex_color", false);
+                Materials[color] = material;
+            }
             var instance = new MeshInstance3D
             {
                 Name = $"Part{index:00}_{part.Shape}",
@@ -89,7 +96,9 @@ public partial class BuildPlanNode : Node3D
 
     /// <summary>
     /// Mesh for a kit shape scaled to the part size (x = width, y = height, z = depth), centred on the
-    /// part position; the extra rotation about x turns shapes that Godot builds upside down.
+    /// part position; the extra rotation about x turns shapes that Godot builds upside down. Round
+    /// shapes use the larger of x and z as diameter; a ring lies flat, its band is y thick (at most half
+    /// the radius, so a tall ring stays a ring).
     /// </summary>
     private static (Mesh Mesh, float TurnX) MeshFor(string shape, Vector3 size)
     {
@@ -101,7 +110,7 @@ public partial class BuildPlanNode : Node3D
             "cone" => (new CylinderMesh { TopRadius = 0f, BottomRadius = radius, Height = size.Y, RadialSegments = 16 }, 0f),
             "sphere" => (Scaled(new SphereMesh { Radius = 0.5f, Height = 1f, RadialSegments = 16, Rings = 8 }, size), 0f),
             "wedge" => (new PrismMesh { Size = size, LeftToRight = 0f }, 0f),
-            "ring" => (new TorusMesh { InnerRadius = Mathf.Max(0.001f, radius - size.Y), OuterRadius = radius, Rings = 24, RingSegments = 8 }, 0f),
+            "ring" => (new TorusMesh { InnerRadius = radius - Mathf.Min(size.Y, radius / 2f), OuterRadius = radius, Rings = 24, RingSegments = 8 }, 0f),
             "bowl" => (Scaled(new SphereMesh { Radius = 0.5f, Height = 1f, IsHemisphere = true, RadialSegments = 16, Rings = 6 }, size, doubleSided: true, shiftY: -0.5f), Mathf.Pi),
             _ => throw new InvalidDataException($"No mesh for kit shape '{shape}'."),
         };
