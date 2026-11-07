@@ -53,6 +53,14 @@
     {
       "pattern": "ui/frames.json",
       "schema": "ui-frames"
+    },
+    {
+      "pattern": "sound/sound_map.json",
+      "schema": "sound-map"
+    },
+    {
+      "pattern": "sound/synth_recipes.json",
+      "schema": "synth-recipes"
     }
   ]
 }

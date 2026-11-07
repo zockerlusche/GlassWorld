@@ -1,3 +1,4 @@
+using GlassWorld.Game.Audio;
 using GlassWorld.Game.Localization;
 using GlassWorld.Game.Ui;
 using GlassWorld.Presentation.Ui;
@@ -49,6 +50,7 @@ public partial class Main : Node3D
         var host = _world.Host!;
         GD.Print($"WORLD_OK seed={_seed} inhabitants={host.Inhabitants.All.Count()} objects={host.Objects.Count} hash={host.World.StateHash()[..12]}");
 
+        var audioLoaded = RetroAudio.Load();
         var style = UiSetup.Load();
         if (style is not null)
         {
@@ -58,9 +60,23 @@ public partial class Main : Node3D
         if (_smokeFrames > 0)
         {
             CheckTexts(textsLoaded);
+            CheckAudio(audioLoaded);
             _uiCheckDone = false;
             _ = CheckUiAsync(style);
         }
+    }
+
+    /// <summary>Smoke run only: every mapped sound renders to a stream of the right length (B8 R3).</summary>
+    private static void CheckAudio(bool loaded)
+    {
+        var problem = loaded ? RetroAudio.SelfCheck() : "audio data not loaded";
+        if (problem.Length > 0)
+        {
+            GD.PushError($"AUDIO_FAIL {problem}");
+            return;
+        }
+
+        GD.Print($"AUDIO_OK sounds={RetroAudio.Library!.UsedSoundIds().Count()}");
     }
 
     /// <summary>Smoke run only: the UI standard data is valid and a sample window fits every reference case.</summary>

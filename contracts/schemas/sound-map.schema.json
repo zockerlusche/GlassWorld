@@ -1,0 +1,186 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/sound-map.schema.json",
+  "title": "SoundMap",
+  "description": "Which sound plays for what (B8 R2): actions, surfaces under the feet, weather, biome ambience and animals by biome, season and time of day (B2481). Sound is presentation only and never changes the simulation.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "actions",
+    "surfaces",
+    "weather",
+    "ambience",
+    "animals"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "actions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/SoundForAction"
+      }
+    },
+    "surfaces": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/SoundForSurface"
+      }
+    },
+    "weather": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/SoundForWeather"
+      }
+    },
+    "ambience": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/SoundForBiome"
+      }
+    },
+    "animals": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/SoundForAnimal"
+      }
+    }
+  },
+  "$defs": {
+    "SoundForAction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action",
+        "sound"
+      ],
+      "properties": {
+        "action": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "sound": {
+          "description": "Language-neutral sound id, e.g. step.grass, animal.frog.call.",
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*){1,3}$",
+          "maxLength": 64
+        }
+      }
+    },
+    "SoundForSurface": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "surface",
+        "sound"
+      ],
+      "properties": {
+        "surface": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "sound": {
+          "description": "Language-neutral sound id, e.g. step.grass, animal.frog.call.",
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*){1,3}$",
+          "maxLength": 64
+        }
+      }
+    },
+    "SoundForWeather": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "weather",
+        "sound"
+      ],
+      "properties": {
+        "weather": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "sound": {
+          "description": "Language-neutral sound id, e.g. step.grass, animal.frog.call.",
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*){1,3}$",
+          "maxLength": 64
+        }
+      }
+    },
+    "SoundForBiome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "biome",
+        "sound"
+      ],
+      "properties": {
+        "biome": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "sound": {
+          "description": "Language-neutral sound id, e.g. step.grass, animal.frog.call.",
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*){1,3}$",
+          "maxLength": 64
+        }
+      }
+    },
+    "SoundForAnimal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "animal",
+        "sound",
+        "biomes",
+        "seasons",
+        "times_of_day",
+        "per_hour"
+      ],
+      "properties": {
+        "animal": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "sound": {
+          "description": "Language-neutral sound id, e.g. step.grass, animal.frog.call.",
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*){1,3}$",
+          "maxLength": 64
+        },
+        "biomes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          }
+        },
+        "seasons": {
+          "description": "Seasons in which it can be heard (ids from content/world/time.json).",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          }
+        },
+        "times_of_day": {
+          "description": "Phases from the time_of_day vocabulary.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          }
+        },
+        "per_hour": {
+          "description": "How often one animal near the camera calls per game hour (0 = loop while near).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 600
+        }
+      }
+    }
+  }
+}

@@ -18,5 +18,7 @@
     <EmbeddedResource Include="..\content\i18n\*.json" LogicalName="i18n.%(Filename)%(Extension)" Link="i18n\%(Filename)%(Extension)" />
     <!-- UI standard data (D366): tokens and frames, validated on load. -->
     <EmbeddedResource Include="..\content\ui\*.json" LogicalName="content.ui.%(Filename)%(Extension)" Link="ui\%(Filename)%(Extension)" />
+    <!-- Sound map and retro recipes (B8), validated on load. -->
+    <EmbeddedResource Include="..\content\sound\*.json" LogicalName="content.sound.%(Filename)%(Extension)" Link="sound\%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>
