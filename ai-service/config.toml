@@ -15,3 +15,20 @@ probe_timeout_s = 2.0
 
 # Hardware tiers and thresholds (data, not code). Relative paths are relative to this file.
 hardware_tiers_file = "../content/hardware/tiers.json"
+# --- Decider (B3) ---
+# ollama = real model, mock = deterministic stand-in (CI), replay = answers from the call log
+decider_backend = "ollama"
+decider_prompt = "decider/decide"
+decider_prompt_version = 1
+temperature = 0.7          # technical start value, decided by TL (AMW #18519)
+num_ctx = 8192
+prompt_char_budget = 6000
+max_retries = 2            # engineering handbook: at most two retries
+queue_size = 64
+keep_alive = "30m"
+
+# --- Folders (relative to this file) ---
+prompts_dir = "../prompts"
+content_dir = "../content"
+schemas_dir = "../contracts/schemas"
+log_dir = "../.local/ai-service/logs"
