@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -151,3 +152,19 @@ def test_v2_without_memory_and_people_says_so() -> None:
     assert "(you remember nothing special yet)" in text
     assert "- (nobody)" in text
     assert "- (no habits yet)" in text
+
+
+def test_v2_parts_count_against_the_budget() -> None:
+    data = json.loads(
+        (EXAMPLES / "decision-request.hungry-berries.json").read_text(encoding="utf-8")
+    )
+    extra: list[dict[str, Any]] = [
+        {"id": f"obj-{9000 + i}", "type": "pebble", "distance_m": 30.0 + i, "known_properties": []}
+        for i in range(8)
+    ]
+    data["perception"]["objects"] += extra
+    request = DecisionRequest.model_validate(data)
+    v1, v2 = _render(request, budget=1700, version=1), _render(request, budget=1700, version=2)
+    # Same budget: v2 has memory, knowledge, habits and people, so fewer far objects fit.
+    assert v2.count("pebble [") < v1.count("pebble [")
+    assert "red berry bush [obj-0042]" in v2  # option targets always stay

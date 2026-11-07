@@ -81,3 +81,14 @@ def knowledge_line(entry: Any, settings: dict[str, Any]) -> str:
         f"- {subject_name(entry.subject, settings)} {belief} {humanize(plain_id(entry.property))} "
         f"(sure {entry.confidence:.1f}; {how}{teller})"
     )
+
+
+def _squeeze(text: str) -> str:
+    """Lower case without separators, so 'Inh 0002', 'inh_0002' and 'inh-0002' compare equal."""
+    return "".join(ch for ch in text.lower() if ch.isalnum())
+
+
+def leaked_ids(text: str, hidden_ids: frozenset[str]) -> list[str]:
+    """Internal entity ids that show in a player-visible text, in any spelling (review GW1 D1)."""
+    squeezed = _squeeze(text)
+    return sorted(i for i in hidden_ids if _squeeze(i) and _squeeze(i) in squeezed)

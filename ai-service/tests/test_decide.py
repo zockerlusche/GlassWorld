@@ -326,3 +326,10 @@ def test_thought_with_an_internal_id_is_retried(settings: Settings) -> None:
     body = post(app, "/decide", REQUEST).json()
     assert body["meta"]["attempts"] == 2
     assert [r["outcome"] for r in log.read()] == ["invalid", "ok"]
+
+
+@pytest.mark.parametrize("spelling", ["obj-0042", "OBJ 0042", "obj_0042", "Obj0042"])
+def test_internal_ids_are_caught_in_any_spelling(settings: Settings, spelling: str) -> None:
+    answers = iter([_good(thought=f"Was ist {spelling} nur?"), _good()])
+    app, _ = _ollama_app(settings, lambda _: _ollama_answer(next(answers)))
+    assert post(app, "/decide", REQUEST).json()["meta"]["attempts"] == 2

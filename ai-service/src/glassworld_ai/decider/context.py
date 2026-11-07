@@ -81,6 +81,9 @@ def build_values(
         "thought_language": language,
     }
 
+    if template.version >= 2:
+        # v2 parts count against the budget too (review GW1 D2); objects get what is left.
+        values.update(_v2_values(request, settings, vocab))
     # Fit the objects into what is left of the character budget; option targets always stay.
     used = sum(len(v) for k, v in values.items() if k != "objects")
     lines: list[str] = []
@@ -94,8 +97,6 @@ def build_values(
     if hidden > 0:
         lines.append(f"- ... and {hidden} more things further away")
     values["objects"] = "\n".join(lines) or NOTHING
-    if template.version >= 2:
-        values.update(_v2_values(request, settings, vocab))
     return values
 
 

@@ -16,6 +16,8 @@ from typing import Any
 
 from jsonschema import Draft202012Validator
 
+from glassworld_ai.words import leaked_ids
+
 THOUGHT_MAX = 140
 RATIONALE_MAX = 280
 
@@ -74,7 +76,7 @@ def parse_choice(
     values: dict[str, Any] = dict(data)
     thought = values["thought"]
     if isinstance(thought, str):
-        leaked = sorted(i for i in hidden_ids if i in thought)
+        leaked = leaked_ids(thought, hidden_ids)
         if leaked:
             raise InvalidModelOutputError(f"thought shows internal ids {leaked}")
     return ModelChoice(
