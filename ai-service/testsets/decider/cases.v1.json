@@ -1,0 +1,2744 @@
+{
+  "id": "decider-testset",
+  "version": 1,
+  "purpose": "B3 S5 (A1330): 20 fixed situations x N runs with the real model; content-valid >= 95 % (acceptance), plausibility and latency are reported (B2487: no fixed time limit).",
+  "cases": [
+    {
+      "id": "hunger_unknown_berries_known_apple",
+      "description": "Very hungry; unknown berries close, a known apple tree further away.",
+      "request": {
+        "contract_version": "0.1",
+        "request_id": "00000000-000a-1330-0000-000000000001",
+        "tick": 1010,
+        "seed": 10001,
+        "deadline_ms": 60000,
+        "display_locale": "de",
+        "inhabitant": {
+          "id": "inh-000001",
+          "needs": [
+            {
+              "id": "company",
+              "value": 0.6
+            },
+            {
+              "id": "fun",
+              "value": 0.6
+            },
+            {
+              "id": "hunger",
+              "value": 0.12
+            },
+            {
+              "id": "purpose",
+              "value": 0.6
+            },
+            {
+              "id": "safety",
+              "value": 0.8
+            },
+            {
+              "id": "sleep",
+              "value": 0.7
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            },
+            {
+              "id": "warmth",
+              "value": 0.8
+            }
+          ],
+          "mood": [],
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.5
+            },
+            {
+              "id": "creativity",
+              "value": 0.5
+            },
+            {
+              "id": "curiosity",
+              "value": 0.5
+            },
+            {
+              "id": "diligence",
+              "value": 0.5
+            },
+            {
+              "id": "kindness",
+              "value": 0.5
+            },
+            {
+              "id": "orderliness",
+              "value": 0.5
+            },
+            {
+              "id": "patience",
+              "value": 0.5
+            },
+            {
+              "id": "sociability",
+              "value": 0.5
+            }
+          ],
+          "will_to_live": 0.7
+        },
+        "environment": {
+          "time_of_day": "day",
+          "temperature_c": 18.0,
+          "weather": [
+            "clear"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-01",
+              "type": "red_berry_bush",
+              "distance_m": 3.0,
+              "known_properties": []
+            },
+            {
+              "id": "obj-02",
+              "type": "apple_tree",
+              "distance_m": 20.0,
+              "known_properties": [
+                {
+                  "property": "edible",
+                  "value": true,
+                  "confidence": 1.0
+                }
+              ]
+            }
+          ]
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "inspect",
+            "target": "obj-01",
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "eat",
+            "target": "obj-01",
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "move_to",
+            "target": "obj-02",
+            "partners": []
+          },
+          {
+            "option_id": "o4",
+            "action": "idle",
+            "target": null,
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o1",
+        "o3"
+      ]
+    },
+    {
+      "id": "thirst_known_spring",
+      "description": "Very thirsty; a spring known to be drinkable is close.",
+      "request": {
+        "contract_version": "0.1",
+        "request_id": "00000000-000a-1330-0000-000000000002",
+        "tick": 1020,
+        "seed": 10002,
+        "deadline_ms": 60000,
+        "display_locale": "en",
+        "inhabitant": {
+          "id": "inh-000001",
+          "needs": [
+            {
+              "id": "company",
+              "value": 0.6
+            },
+            {
+              "id": "fun",
+              "value": 0.6
+            },
+            {
+              "id": "hunger",
+              "value": 0.7
+            },
+            {
+              "id": "purpose",
+              "value": 0.6
+            },
+            {
+              "id": "safety",
+              "value": 0.8
+            },
+            {
+              "id": "sleep",
+              "value": 0.7
+            },
+            {
+              "id": "thirst",
+              "value": 0.1
+            },
+            {
+              "id": "warmth",
+              "value": 0.8
+            }
+          ],
+          "mood": [],
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.5
+            },
+            {
+              "id": "creativity",
+              "value": 0.5
+            },
+            {
+              "id": "curiosity",
+              "value": 0.5
+            },
+            {
+              "id": "diligence",
+              "value": 0.5
+            },
+            {
+              "id": "kindness",
+              "value": 0.5
+            },
+            {
+              "id": "orderliness",
+              "value": 0.5
+            },
+            {
+              "id": "patience",
+              "value": 0.5
+            },
+            {
+              "id": "sociability",
+              "value": 0.5
+            }
+          ],
+          "will_to_live": 0.7
+        },
+        "environment": {
+          "time_of_day": "day",
+          "temperature_c": 18.0,
+          "weather": [
+            "clear"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-01",
+              "type": "spring_water",
+              "distance_m": 4.0,
+              "known_properties": [
+                {
+                  "property": "drinkable",
+                  "value": true,
+                  "confidence": 1.0
+                }
+              ]
+            }
+          ]
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "drink",
+            "target": "obj-01",
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "wander",
+            "target": null,
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "idle",
+            "target": null,
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o1"
+      ]
+    },
+    {
+      "id": "thirst_salt_water_only_close",
+      "description": "Very thirsty; sea water close is known to be salty, the spring is far.",
+      "request": {
+        "contract_version": "0.1",
+        "request_id": "00000000-000a-1330-0000-000000000003",
+        "tick": 1030,
+        "seed": 10003,
+        "deadline_ms": 60000,
+        "display_locale": "de",
+        "inhabitant": {
+          "id": "inh-000001",
+          "needs": [
+            {
+              "id": "company",
+              "value": 0.6
+            },
+            {
+              "id": "fun",
+              "value": 0.6
+            },
+            {
+              "id": "hunger",
+              "value": 0.7
+            },
+            {
+              "id": "purpose",
+              "value": 0.6
+            },
+            {
+              "id": "safety",
+              "value": 0.8
+            },
+            {
+              "id": "sleep",
+              "value": 0.7
+            },
+            {
+              "id": "thirst",
+              "value": 0.15
+            },
+            {
+              "id": "warmth",
+              "value": 0.8
+            }
+          ],
+          "mood": [],
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.5
+            },
+            {
+              "id": "creativity",
+              "value": 0.5
+            },
+            {
+              "id": "curiosity",
+              "value": 0.5
+            },
+            {
+              "id": "diligence",
+              "value": 0.5
+            },
+            {
+              "id": "kindness",
+              "value": 0.5
+            },
+            {
+              "id": "orderliness",
+              "value": 0.5
+            },
+            {
+              "id": "patience",
+              "value": 0.5
+            },
+            {
+              "id": "sociability",
+              "value": 0.5
+            }
+          ],
+          "will_to_live": 0.7
+        },
+        "environment": {
+          "time_of_day": "day",
+          "temperature_c": 18.0,
+          "weather": [
+            "clear"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-01",
+              "type": "sea_water",
+              "distance_m": 2.0,
+              "known_properties": [
+                {
+                  "property": "salty",
+                  "value": true,
+                  "confidence": 1.0
+                },
+                {
+                  "property": "drinkable",
+                  "value": false,
+                  "confidence": 0.9
+                }
+              ]
+            },
+            {
+              "id": "obj-02",
+              "type": "spring_water",
+              "distance_m": 40.0,
+              "known_properties": [
+                {
+                  "property": "drinkable",
+                  "value": true,
+                  "confidence": 1.0
+                }
+              ]
+            }
+          ]
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "drink",
+            "target": "obj-01",
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "move_to",
+            "target": "obj-02",
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "idle",
+            "target": null,
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o2"
+      ]
+    },
+    {
+      "id": "tired_at_night",
+      "description": "Exhausted at night.",
+      "request": {
+        "contract_version": "0.1",
+        "request_id": "00000000-000a-1330-0000-000000000004",
+        "tick": 1040,
+        "seed": 10004,
+        "deadline_ms": 60000,
+        "display_locale": "en",
+        "inhabitant": {
+          "id": "inh-000001",
+          "needs": [
+            {
+              "id": "company",
+              "value": 0.6
+            },
+            {
+              "id": "fun",
+              "value": 0.6
+            },
+            {
+              "id": "hunger",
+              "value": 0.7
+            },
+            {
+              "id": "purpose",
+              "value": 0.6
+            },
+            {
+              "id": "safety",
+              "value": 0.8
+            },
+            {
+              "id": "sleep",
+              "value": 0.08
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            },
+            {
+              "id": "warmth",
+              "value": 0.8
+            }
+          ],
+          "mood": [],
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.5
+            },
+            {
+              "id": "creativity",
+              "value": 0.5
+            },
+            {
+              "id": "curiosity",
+              "value": 0.5
+            },
+            {
+              "id": "diligence",
+              "value": 0.5
+            },
+            {
+              "id": "kindness",
+              "value": 0.5
+            },
+            {
+              "id": "orderliness",
+              "value": 0.5
+            },
+            {
+              "id": "patience",
+              "value": 0.5
+            },
+            {
+              "id": "sociability",
+              "value": 0.5
+            }
+          ],
+          "will_to_live": 0.7
+        },
+        "environment": {
+          "time_of_day": "night",
+          "temperature_c": 12.0,
+          "weather": [
+            "clear"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-01",
+              "type": "flint",
+              "distance_m": 3.0,
+              "known_properties": []
+            }
+          ]
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "sleep",
+            "target": null,
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "wander",
+            "target": null,
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "inspect",
+            "target": "obj-01",
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o1"
+      ]
+    },
+    {
+      "id": "cold_rainy_night",
+      "description": "Cold rainy night; a rock niche is close.",
+      "request": {
+        "contract_version": "0.1",
+        "request_id": "00000000-000a-1330-0000-000000000005",
+        "tick": 1050,
+        "seed": 10005,
+        "deadline_ms": 60000,
+        "display_locale": "de",
+        "inhabitant": {
+          "id": "inh-000001",
+          "needs": [
+            {
+              "id": "company",
+              "value": 0.6
+            },
+            {
+              "id": "fun",
+              "value": 0.6
+            },
+            {
+              "id": "hunger",
+              "value": 0.7
+            },
+            {
+              "id": "purpose",
+              "value": 0.6
+            },
+            {
+              "id": "safety",
+              "value": 0.8
+            },
+            {
+              "id": "sleep",
+              "value": 0.3
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            },
+            {
+              "id": "warmth",
+              "value": 0.2
+            }
+          ],
+          "mood": [],
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.5
+            },
+            {
+              "id": "creativity",
+              "value": 0.5
+            },
+            {
+              "id": "curiosity",
+              "value": 0.5
+            },
+            {
+              "id": "diligence",
+              "value": 0.5
+            },
+            {
+              "id": "kindness",
+              "value": 0.5
+            },
+            {
+              "id": "orderliness",
+              "value": 0.5
+            },
+            {
+              "id": "patience",
+              "value": 0.5
+            },
+            {
+              "id": "sociability",
+              "value": 0.5
+            }
+          ],
+          "will_to_live": 0.7
+        },
+        "environment": {
+          "time_of_day": "night",
+          "temperature_c": 4.5,
+          "weather": [
+            "rain"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-01",
+              "type": "rock_niche",
+              "distance_m": 8.0,
+              "known_properties": []
+            }
+          ]
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "move_to",
+            "target": "obj-01",
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "wander",
+            "target": null,
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "sleep",
+            "target": null,
+            "partners": []
+          },
+          {
+            "option_id": "o4",
+            "action": "idle",
+            "target": null,
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o1",
+        "o3"
+      ]
+    },
+    {
+      "id": "curious_unknown_stone",
+      "description": "Needs met, very curious, an unknown stone nearby.",
+      "request": {
+        "contract_version": "0.1",
+        "request_id": "00000000-000a-1330-0000-000000000006",
+        "tick": 1060,
+        "seed": 10006,
+        "deadline_ms": 60000,
+        "display_locale": "en",
+        "inhabitant": {
+          "id": "inh-000001",
+          "needs": [
+            {
+              "id": "company",
+              "value": 0.6
+            },
+            {
+              "id": "fun",
+              "value": 0.6
+            },
+            {
+              "id": "hunger",
+              "value": 0.7
+            },
+            {
+              "id": "purpose",
+              "value": 0.6
+            },
+            {
+              "id": "safety",
+              "value": 0.8
+            },
+            {
+              "id": "sleep",
+              "value": 0.7
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            },
+            {
+              "id": "warmth",
+              "value": 0.8
+            }
+          ],
+          "mood": [
+            {
+              "id": "boredom",
+              "value": 0.4
+            }
+          ],
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.5
+            },
+            {
+              "id": "creativity",
+              "value": 0.5
+            },
+            {
+              "id": "curiosity",
+              "value": 0.9
+            },
+            {
+              "id": "diligence",
+              "value": 0.5
+            },
+            {
+              "id": "kindness",
+              "value": 0.5
+            },
+            {
+              "id": "orderliness",
+              "value": 0.5
+            },
+            {
+              "id": "patience",
+              "value": 0.5
+            },
+            {
+              "id": "sociability",
+              "value": 0.5
+            }
+          ],
+          "will_to_live": 0.7
+        },
+        "environment": {
+          "time_of_day": "day",
+          "temperature_c": 18.0,
+          "weather": [
+            "clear"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-01",
+              "type": "flint",
+              "distance_m": 2.0,
+              "known_properties": []
+            }
+          ]
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "inspect",
+            "target": "obj-01",
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "pick_up",
+            "target": "obj-01",
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "idle",
+            "target": null,
+            "partners": []
+          },
+          {
+            "option_id": "o4",
+            "action": "sleep",
+            "target": null,
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o1",
+        "o2"
+      ]
+    },
+    {
+      "id": "fearful_unknown_object",
+      "description": "Needs met, very fearful; something unknown nearby.",
+      "request": {
+        "contract_version": "0.1",
+        "request_id": "00000000-000a-1330-0000-000000000007",
+        "tick": 1070,
+        "seed": 10007,
+        "deadline_ms": 60000,
+        "display_locale": "de",
+        "inhabitant": {
+          "id": "inh-000001",
+          "needs": [
+            {
+              "id": "company",
+              "value": 0.6
+            },
+            {
+              "id": "fun",
+              "value": 0.6
+            },
+            {
+              "id": "hunger",
+              "value": 0.7
+            },
+            {
+              "id": "purpose",
+              "value": 0.6
+            },
+            {
+              "id": "safety",
+              "value": 0.8
+            },
+            {
+              "id": "sleep",
+              "value": 0.7
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            },
+            {
+              "id": "warmth",
+              "value": 0.8
+            }
+          ],
+          "mood": [
+            {
+              "id": "fear",
+              "value": 0.5
+            }
+          ],
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.15
+            },
+            {
+              "id": "creativity",
+              "value": 0.5
+            },
+            {
+              "id": "curiosity",
+              "value": 0.5
+            },
+            {
+              "id": "diligence",
+              "value": 0.5
+            },
+            {
+              "id": "kindness",
+              "value": 0.5
+            },
+            {
+              "id": "orderliness",
+              "value": 0.5
+            },
+            {
+              "id": "patience",
+              "value": 0.5
+            },
+            {
+              "id": "sociability",
+              "value": 0.5
+            }
+          ],
+          "will_to_live": 0.7
+        },
+        "environment": {
+          "time_of_day": "day",
+          "temperature_c": 18.0,
+          "weather": [
+            "clear"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-01",
+              "type": "blue_mushroom",
+              "distance_m": 5.0,
+              "known_properties": []
+            }
+          ]
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "inspect",
+            "target": "obj-01",
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "eat",
+            "target": "obj-01",
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "idle",
+            "target": null,
+            "partners": []
+          },
+          {
+            "option_id": "o4",
+            "action": "wander",
+            "target": null,
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o1",
+        "o3",
+        "o4"
+      ]
+    },
+    {
+      "id": "hungry_known_poison",
+      "description": "Hungry; berries close are known to be poisonous, apples further away.",
+      "request": {
+        "contract_version": "0.1",
+        "request_id": "00000000-000a-1330-0000-000000000008",
+        "tick": 1080,
+        "seed": 10008,
+        "deadline_ms": 60000,
+        "display_locale": "en",
+        "inhabitant": {
+          "id": "inh-000001",
+          "needs": [
+            {
+              "id": "company",
+              "value": 0.6
+            },
+            {
+              "id": "fun",
+              "value": 0.6
+            },
+            {
+              "id": "hunger",
+              "value": 0.25
+            },
+            {
+              "id": "purpose",
+              "value": 0.6
+            },
+            {
+              "id": "safety",
+              "value": 0.8
+            },
+            {
+              "id": "sleep",
+              "value": 0.7
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            },
+            {
+              "id": "warmth",
+              "value": 0.8
+            }
+          ],
+          "mood": [],
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.5
+            },
+            {
+              "id": "creativity",
+              "value": 0.5
+            },
+            {
+              "id": "curiosity",
+              "value": 0.5
+            },
+            {
+              "id": "diligence",
+              "value": 0.5
+            },
+            {
+              "id": "kindness",
+              "value": 0.5
+            },
+            {
+              "id": "orderliness",
+              "value": 0.5
+            },
+            {
+              "id": "patience",
+              "value": 0.5
+            },
+            {
+              "id": "sociability",
+              "value": 0.5
+            }
+          ],
+          "will_to_live": 0.7
+        },
+        "environment": {
+          "time_of_day": "day",
+          "temperature_c": 18.0,
+          "weather": [
+            "clear"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-01",
+              "type": "red_berry_bush",
+              "distance_m": 2.0,
+              "known_properties": [
+                {
+                  "property": "poisonous",
+                  "value": true,
+                  "confidence": 1.0
+                }
+              ]
+            },
+            {
+              "id": "obj-02",
+              "type": "apple_tree",
+              "distance_m": 6.0,
+              "known_properties": [
+                {
+                  "property": "edible",
+                  "value": true,
+                  "confidence": 1.0
+                }
+              ]
+            }
+          ]
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "eat",
+            "target": "obj-01",
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "move_to",
+            "target": "obj-02",
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "eat",
+            "target": "obj-02",
+            "partners": []
+          },
+          {
+            "option_id": "o4",
+            "action": "idle",
+            "target": null,
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o2",
+        "o3"
+      ]
+    },
+    {
+      "id": "lonely_sociable_other_person",
+      "description": "Lonely and sociable; another person is near.",
+      "request": {
+        "contract_version": "0.1",
+        "request_id": "00000000-000a-1330-0000-000000000009",
+        "tick": 1090,
+        "seed": 10009,
+        "deadline_ms": 60000,
+        "display_locale": "de",
+        "inhabitant": {
+          "id": "inh-000001",
+          "needs": [
+            {
+              "id": "company",
+              "value": 0.15
+            },
+            {
+              "id": "fun",
+              "value": 0.6
+            },
+            {
+              "id": "hunger",
+              "value": 0.7
+            },
+            {
+              "id": "purpose",
+              "value": 0.6
+            },
+            {
+              "id": "safety",
+              "value": 0.8
+            },
+            {
+              "id": "sleep",
+              "value": 0.7
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            },
+            {
+              "id": "warmth",
+              "value": 0.8
+            }
+          ],
+          "mood": [
+            {
+              "id": "sadness",
+              "value": 0.3
+            }
+          ],
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.5
+            },
+            {
+              "id": "creativity",
+              "value": 0.5
+            },
+            {
+              "id": "curiosity",
+              "value": 0.5
+            },
+            {
+              "id": "diligence",
+              "value": 0.5
+            },
+            {
+              "id": "kindness",
+              "value": 0.5
+            },
+            {
+              "id": "orderliness",
+              "value": 0.5
+            },
+            {
+              "id": "patience",
+              "value": 0.5
+            },
+            {
+              "id": "sociability",
+              "value": 0.85
+            }
+          ],
+          "will_to_live": 0.7
+        },
+        "environment": {
+          "time_of_day": "day",
+          "temperature_c": 18.0,
+          "weather": [
+            "clear"
+          ]
+        },
+        "perception": {
+          "objects": []
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "approach",
+            "target": "inh-000002",
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "talk_to",
+            "target": "inh-000002",
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "wander",
+            "target": null,
+            "partners": []
+          },
+          {
+            "option_id": "o4",
+            "action": "idle",
+            "target": null,
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o1",
+        "o2"
+      ]
+    },
+    {
+      "id": "shy_first_sight_of_person",
+      "description": "Shy and cautious; sees another person for the first time.",
+      "request": {
+        "contract_version": "0.1",
+        "request_id": "00000000-000a-1330-0000-00000000000a",
+        "tick": 1100,
+        "seed": 10010,
+        "deadline_ms": 60000,
+        "display_locale": "en",
+        "inhabitant": {
+          "id": "inh-000001",
+          "needs": [
+            {
+              "id": "company",
+              "value": 0.6
+            },
+            {
+              "id": "fun",
+              "value": 0.6
+            },
+            {
+              "id": "hunger",
+              "value": 0.7
+            },
+            {
+              "id": "purpose",
+              "value": 0.6
+            },
+            {
+              "id": "safety",
+              "value": 0.8
+            },
+            {
+              "id": "sleep",
+              "value": 0.7
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            },
+            {
+              "id": "warmth",
+              "value": 0.8
+            }
+          ],
+          "mood": [
+            {
+              "id": "fear",
+              "value": 0.2
+            }
+          ],
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.3
+            },
+            {
+              "id": "creativity",
+              "value": 0.5
+            },
+            {
+              "id": "curiosity",
+              "value": 0.5
+            },
+            {
+              "id": "diligence",
+              "value": 0.5
+            },
+            {
+              "id": "kindness",
+              "value": 0.5
+            },
+            {
+              "id": "orderliness",
+              "value": 0.5
+            },
+            {
+              "id": "patience",
+              "value": 0.5
+            },
+            {
+              "id": "sociability",
+              "value": 0.2
+            }
+          ],
+          "will_to_live": 0.7
+        },
+        "environment": {
+          "time_of_day": "day",
+          "temperature_c": 18.0,
+          "weather": [
+            "clear"
+          ]
+        },
+        "perception": {
+          "objects": []
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "approach",
+            "target": "inh-000002",
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "talk_to",
+            "target": "inh-000002",
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "idle",
+            "target": null,
+            "partners": []
+          },
+          {
+            "option_id": "o4",
+            "action": "wander",
+            "target": null,
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o1",
+        "o3",
+        "o4"
+      ]
+    },
+    {
+      "id": "storm_fear",
+      "description": "Storm and fear; a rock niche close.",
+      "request": {
+        "contract_version": "0.1",
+        "request_id": "00000000-000a-1330-0000-00000000000b",
+        "tick": 1110,
+        "seed": 10011,
+        "deadline_ms": 60000,
+        "display_locale": "de",
+        "inhabitant": {
+          "id": "inh-000001",
+          "needs": [
+            {
+              "id": "company",
+              "value": 0.6
+            },
+            {
+              "id": "fun",
+              "value": 0.6
+            },
+            {
+              "id": "hunger",
+              "value": 0.7
+            },
+            {
+              "id": "purpose",
+              "value": 0.6
+            },
+            {
+              "id": "safety",
+              "value": 0.2
+            },
+            {
+              "id": "sleep",
+              "value": 0.7
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            },
+            {
+              "id": "warmth",
+              "value": 0.8
+            }
+          ],
+          "mood": [
+            {
+              "id": "fear",
+              "value": 0.6
+            }
+          ],
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.5
+            },
+            {
+              "id": "creativity",
+              "value": 0.5
+            },
+            {
+              "id": "curiosity",
+              "value": 0.5
+            },
+            {
+              "id": "diligence",
+              "value": 0.5
+            },
+            {
+              "id": "kindness",
+              "value": 0.5
+            },
+            {
+              "id": "orderliness",
+              "value": 0.5
+            },
+            {
+              "id": "patience",
+              "value": 0.5
+            },
+            {
+              "id": "sociability",
+              "value": 0.5
+            }
+          ],
+          "will_to_live": 0.7
+        },
+        "environment": {
+          "time_of_day": "day",
+          "temperature_c": 9.0,
+          "weather": [
+            "rain",
+            "storm"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-01",
+              "type": "rock_niche",
+              "distance_m": 6.0,
+              "known_properties": []
+            }
+          ]
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "move_to",
+            "target": "obj-01",
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "wander",
+            "target": null,
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "idle",
+            "target": null,
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o1",
+        "o3"
+      ]
+    },
+    {
+      "id": "bored_needs_met",
+      "description": "All needs met and bored.",
+      "request": {
+        "contract_version": "0.1",
+        "request_id": "00000000-000a-1330-0000-00000000000c",
+        "tick": 1120,
+        "seed": 10012,
+        "deadline_ms": 60000,
+        "display_locale": "en",
+        "inhabitant": {
+          "id": "inh-000001",
+          "needs": [
+            {
+              "id": "company",
+              "value": 0.6
+            },
+            {
+              "id": "fun",
+              "value": 0.2
+            },
+            {
+              "id": "hunger",
+              "value": 0.7
+            },
+            {
+              "id": "purpose",
+              "value": 0.6
+            },
+            {
+              "id": "safety",
+              "value": 0.8
+            },
+            {
+              "id": "sleep",
+              "value": 0.7
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            },
+            {
+              "id": "warmth",
+              "value": 0.8
+            }
+          ],
+          "mood": [
+            {
+              "id": "boredom",
+              "value": 0.7
+            }
+          ],
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.5
+            },
+            {
+              "id": "creativity",
+              "value": 0.5
+            },
+            {
+              "id": "curiosity",
+              "value": 0.5
+            },
+            {
+              "id": "diligence",
+              "value": 0.5
+            },
+            {
+              "id": "kindness",
+              "value": 0.5
+            },
+            {
+              "id": "orderliness",
+              "value": 0.5
+            },
+            {
+              "id": "patience",
+              "value": 0.5
+            },
+            {
+              "id": "sociability",
+              "value": 0.5
+            }
+          ],
+          "will_to_live": 0.7
+        },
+        "environment": {
+          "time_of_day": "day",
+          "temperature_c": 18.0,
+          "weather": [
+            "clear"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-01",
+              "type": "dry_wood",
+              "distance_m": 7.0,
+              "known_properties": []
+            }
+          ]
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "wander",
+            "target": null,
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "inspect",
+            "target": "obj-01",
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "sleep",
+            "target": null,
+            "partners": []
+          },
+          {
+            "option_id": "o4",
+            "action": "idle",
+            "target": null,
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o1",
+        "o2"
+      ]
+    },
+    {
+      "id": "hungry_known_edible_close",
+      "description": "Hungry; berries known to be edible are close.",
+      "request": {
+        "contract_version": "0.1",
+        "request_id": "00000000-000a-1330-0000-00000000000d",
+        "tick": 1130,
+        "seed": 10013,
+        "deadline_ms": 60000,
+        "display_locale": "de",
+        "inhabitant": {
+          "id": "inh-000001",
+          "needs": [
+            {
+              "id": "company",
+              "value": 0.6
+            },
+            {
+              "id": "fun",
+              "value": 0.6
+            },
+            {
+              "id": "hunger",
+              "value": 0.2
+            },
+            {
+              "id": "purpose",
+              "value": 0.6
+            },
+            {
+              "id": "safety",
+              "value": 0.8
+            },
+            {
+              "id": "sleep",
+              "value": 0.7
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            },
+            {
+              "id": "warmth",
+              "value": 0.8
+            }
+          ],
+          "mood": [],
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.5
+            },
+            {
+              "id": "creativity",
+              "value": 0.5
+            },
+            {
+              "id": "curiosity",
+              "value": 0.5
+            },
+            {
+              "id": "diligence",
+              "value": 0.5
+            },
+            {
+              "id": "kindness",
+              "value": 0.5
+            },
+            {
+              "id": "orderliness",
+              "value": 0.5
+            },
+            {
+              "id": "patience",
+              "value": 0.5
+            },
+            {
+              "id": "sociability",
+              "value": 0.5
+            }
+          ],
+          "will_to_live": 0.7
+        },
+        "environment": {
+          "time_of_day": "day",
+          "temperature_c": 18.0,
+          "weather": [
+            "clear"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-01",
+              "type": "blue_berry_bush",
+              "distance_m": 2.0,
+              "known_properties": [
+                {
+                  "property": "edible",
+                  "value": true,
+                  "confidence": 1.0
+                }
+              ]
+            }
+          ]
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "eat",
+            "target": "obj-01",
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "pick_up",
+            "target": "obj-01",
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "wander",
+            "target": null,
+            "partners": []
+          },
+          {
+            "option_id": "o4",
+            "action": "idle",
+            "target": null,
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o1",
+        "o2"
+      ]
+    },
+    {
+      "id": "cold_flint_and_pyrite",
+      "description": "Cold; holds flint and pyrite that are known to make sparks, dry grass nearby.",
+      "request": {
+        "contract_version": "0.1",
+        "request_id": "00000000-000a-1330-0000-00000000000e",
+        "tick": 1140,
+        "seed": 10014,
+        "deadline_ms": 60000,
+        "display_locale": "en",
+        "inhabitant": {
+          "id": "inh-000001",
+          "needs": [
+            {
+              "id": "company",
+              "value": 0.6
+            },
+            {
+              "id": "fun",
+              "value": 0.6
+            },
+            {
+              "id": "hunger",
+              "value": 0.7
+            },
+            {
+              "id": "purpose",
+              "value": 0.6
+            },
+            {
+              "id": "safety",
+              "value": 0.8
+            },
+            {
+              "id": "sleep",
+              "value": 0.7
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            },
+            {
+              "id": "warmth",
+              "value": 0.25
+            }
+          ],
+          "mood": [],
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.5
+            },
+            {
+              "id": "creativity",
+              "value": 0.7
+            },
+            {
+              "id": "curiosity",
+              "value": 0.5
+            },
+            {
+              "id": "diligence",
+              "value": 0.5
+            },
+            {
+              "id": "kindness",
+              "value": 0.5
+            },
+            {
+              "id": "orderliness",
+              "value": 0.5
+            },
+            {
+              "id": "patience",
+              "value": 0.5
+            },
+            {
+              "id": "sociability",
+              "value": 0.5
+            }
+          ],
+          "will_to_live": 0.7
+        },
+        "environment": {
+          "time_of_day": "dusk",
+          "temperature_c": 7.0,
+          "weather": [
+            "clear"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-01",
+              "type": "flint",
+              "distance_m": 0.0,
+              "known_properties": [
+                {
+                  "property": "sparks",
+                  "value": true,
+                  "confidence": 0.8
+                }
+              ]
+            },
+            {
+              "id": "obj-02",
+              "type": "pyrite",
+              "distance_m": 0.0,
+              "known_properties": [
+                {
+                  "property": "sparks",
+                  "value": true,
+                  "confidence": 0.8
+                }
+              ]
+            },
+            {
+              "id": "obj-03",
+              "type": "dry_grass",
+              "distance_m": 1.0,
+              "known_properties": [
+                {
+                  "property": "burnable",
+                  "value": true,
+                  "confidence": 0.7
+                }
+              ]
+            }
+          ]
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "combine",
+            "target": "obj-01",
+            "partners": [
+              "obj-02"
+            ]
+          },
+          {
+            "option_id": "o2",
+            "action": "inspect",
+            "target": "obj-03",
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "wander",
+            "target": null,
+            "partners": []
+          },
+          {
+            "option_id": "o4",
+            "action": "idle",
+            "target": null,
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o1",
+        "o2"
+      ]
+    },
+    {
+      "id": "pain_after_bad_berry",
+      "description": "Belly ache and sadness after eating bad berries.",
+      "request": {
+        "contract_version": "0.1",
+        "request_id": "00000000-000a-1330-0000-00000000000f",
+        "tick": 1150,
+        "seed": 10015,
+        "deadline_ms": 60000,
+        "display_locale": "de",
+        "inhabitant": {
+          "id": "inh-000001",
+          "needs": [
+            {
+              "id": "company",
+              "value": 0.6
+            },
+            {
+              "id": "fun",
+              "value": 0.6
+            },
+            {
+              "id": "hunger",
+              "value": 0.7
+            },
+            {
+              "id": "purpose",
+              "value": 0.6
+            },
+            {
+              "id": "safety",
+              "value": 0.8
+            },
+            {
+              "id": "sleep",
+              "value": 0.7
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            },
+            {
+              "id": "warmth",
+              "value": 0.8
+            }
+          ],
+          "mood": [
+            {
+              "id": "fear",
+              "value": 0.3
+            },
+            {
+              "id": "sadness",
+              "value": 0.5
+            }
+          ],
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.5
+            },
+            {
+              "id": "creativity",
+              "value": 0.5
+            },
+            {
+              "id": "curiosity",
+              "value": 0.5
+            },
+            {
+              "id": "diligence",
+              "value": 0.5
+            },
+            {
+              "id": "kindness",
+              "value": 0.5
+            },
+            {
+              "id": "orderliness",
+              "value": 0.5
+            },
+            {
+              "id": "patience",
+              "value": 0.5
+            },
+            {
+              "id": "sociability",
+              "value": 0.5
+            }
+          ],
+          "will_to_live": 0.4
+        },
+        "environment": {
+          "time_of_day": "day",
+          "temperature_c": 18.0,
+          "weather": [
+            "clear"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-01",
+              "type": "red_berry_bush",
+              "distance_m": 3.0,
+              "known_properties": [
+                {
+                  "property": "poisonous",
+                  "value": true,
+                  "confidence": 0.9
+                }
+              ]
+            }
+          ]
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "idle",
+            "target": null,
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "sleep",
+            "target": null,
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "eat",
+            "target": "obj-01",
+            "partners": []
+          },
+          {
+            "option_id": "o4",
+            "action": "wander",
+            "target": null,
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o1",
+        "o2"
+      ]
+    },
+    {
+      "id": "heat_thirst_midday",
+      "description": "Hot day, thirsty; spring and a shady tree nearby.",
+      "request": {
+        "contract_version": "0.1",
+        "request_id": "00000000-000a-1330-0000-000000000010",
+        "tick": 1160,
+        "seed": 10016,
+        "deadline_ms": 60000,
+        "display_locale": "en",
+        "inhabitant": {
+          "id": "inh-000001",
+          "needs": [
+            {
+              "id": "company",
+              "value": 0.6
+            },
+            {
+              "id": "fun",
+              "value": 0.6
+            },
+            {
+              "id": "hunger",
+              "value": 0.7
+            },
+            {
+              "id": "purpose",
+              "value": 0.6
+            },
+            {
+              "id": "safety",
+              "value": 0.8
+            },
+            {
+              "id": "sleep",
+              "value": 0.7
+            },
+            {
+              "id": "thirst",
+              "value": 0.2
+            },
+            {
+              "id": "warmth",
+              "value": 0.8
+            }
+          ],
+          "mood": [],
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.5
+            },
+            {
+              "id": "creativity",
+              "value": 0.5
+            },
+            {
+              "id": "curiosity",
+              "value": 0.5
+            },
+            {
+              "id": "diligence",
+              "value": 0.5
+            },
+            {
+              "id": "kindness",
+              "value": 0.5
+            },
+            {
+              "id": "orderliness",
+              "value": 0.5
+            },
+            {
+              "id": "patience",
+              "value": 0.5
+            },
+            {
+              "id": "sociability",
+              "value": 0.5
+            }
+          ],
+          "will_to_live": 0.7
+        },
+        "environment": {
+          "time_of_day": "day",
+          "temperature_c": 33.0,
+          "weather": [
+            "heat"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-01",
+              "type": "spring_water",
+              "distance_m": 10.0,
+              "known_properties": [
+                {
+                  "property": "drinkable",
+                  "value": true,
+                  "confidence": 1.0
+                }
+              ]
+            },
+            {
+              "id": "obj-02",
+              "type": "apple_tree",
+              "distance_m": 5.0,
+              "known_properties": []
+            }
+          ]
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "drink",
+            "target": "obj-01",
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "move_to",
+            "target": "obj-02",
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "wander",
+            "target": null,
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o1",
+        "o2"
+      ]
+    },
+    {
+      "id": "hungry_only_unknown_mushroom",
+      "description": "Very hungry; only an unknown mushroom nearby.",
+      "request": {
+        "contract_version": "0.1",
+        "request_id": "00000000-000a-1330-0000-000000000011",
+        "tick": 1170,
+        "seed": 10017,
+        "deadline_ms": 60000,
+        "display_locale": "de",
+        "inhabitant": {
+          "id": "inh-000001",
+          "needs": [
+            {
+              "id": "company",
+              "value": 0.6
+            },
+            {
+              "id": "fun",
+              "value": 0.6
+            },
+            {
+              "id": "hunger",
+              "value": 0.15
+            },
+            {
+              "id": "purpose",
+              "value": 0.6
+            },
+            {
+              "id": "safety",
+              "value": 0.8
+            },
+            {
+              "id": "sleep",
+              "value": 0.7
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            },
+            {
+              "id": "warmth",
+              "value": 0.8
+            }
+          ],
+          "mood": [],
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.4
+            },
+            {
+              "id": "creativity",
+              "value": 0.5
+            },
+            {
+              "id": "curiosity",
+              "value": 0.5
+            },
+            {
+              "id": "diligence",
+              "value": 0.5
+            },
+            {
+              "id": "kindness",
+              "value": 0.5
+            },
+            {
+              "id": "orderliness",
+              "value": 0.5
+            },
+            {
+              "id": "patience",
+              "value": 0.5
+            },
+            {
+              "id": "sociability",
+              "value": 0.5
+            }
+          ],
+          "will_to_live": 0.7
+        },
+        "environment": {
+          "time_of_day": "day",
+          "temperature_c": 18.0,
+          "weather": [
+            "clear"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-01",
+              "type": "brown_mushroom",
+              "distance_m": 3.0,
+              "known_properties": []
+            }
+          ]
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "eat",
+            "target": "obj-01",
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "inspect",
+            "target": "obj-01",
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "wander",
+            "target": null,
+            "partners": []
+          },
+          {
+            "option_id": "o4",
+            "action": "idle",
+            "target": null,
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o2",
+        "o3"
+      ]
+    },
+    {
+      "id": "rested_dawn",
+      "description": "Rested and fed at dawn.",
+      "request": {
+        "contract_version": "0.1",
+        "request_id": "00000000-000a-1330-0000-000000000012",
+        "tick": 1180,
+        "seed": 10018,
+        "deadline_ms": 60000,
+        "display_locale": "en",
+        "inhabitant": {
+          "id": "inh-000001",
+          "needs": [
+            {
+              "id": "company",
+              "value": 0.6
+            },
+            {
+              "id": "fun",
+              "value": 0.6
+            },
+            {
+              "id": "hunger",
+              "value": 0.7
+            },
+            {
+              "id": "purpose",
+              "value": 0.6
+            },
+            {
+              "id": "safety",
+              "value": 0.8
+            },
+            {
+              "id": "sleep",
+              "value": 0.9
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            },
+            {
+              "id": "warmth",
+              "value": 0.8
+            }
+          ],
+          "mood": [],
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.5
+            },
+            {
+              "id": "creativity",
+              "value": 0.5
+            },
+            {
+              "id": "curiosity",
+              "value": 0.5
+            },
+            {
+              "id": "diligence",
+              "value": 0.5
+            },
+            {
+              "id": "kindness",
+              "value": 0.5
+            },
+            {
+              "id": "orderliness",
+              "value": 0.5
+            },
+            {
+              "id": "patience",
+              "value": 0.5
+            },
+            {
+              "id": "sociability",
+              "value": 0.5
+            }
+          ],
+          "will_to_live": 0.7
+        },
+        "environment": {
+          "time_of_day": "dawn",
+          "temperature_c": 12.0,
+          "weather": [
+            "clear"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-01",
+              "type": "dry_grass",
+              "distance_m": 5.0,
+              "known_properties": []
+            }
+          ]
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "wander",
+            "target": null,
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "inspect",
+            "target": "obj-01",
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "sleep",
+            "target": null,
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o1",
+        "o2"
+      ]
+    },
+    {
+      "id": "tired_dusk",
+      "description": "Tired at dusk, warm and fed.",
+      "request": {
+        "contract_version": "0.1",
+        "request_id": "00000000-000a-1330-0000-000000000013",
+        "tick": 1190,
+        "seed": 10019,
+        "deadline_ms": 60000,
+        "display_locale": "de",
+        "inhabitant": {
+          "id": "inh-000001",
+          "needs": [
+            {
+              "id": "company",
+              "value": 0.6
+            },
+            {
+              "id": "fun",
+              "value": 0.6
+            },
+            {
+              "id": "hunger",
+              "value": 0.7
+            },
+            {
+              "id": "purpose",
+              "value": 0.6
+            },
+            {
+              "id": "safety",
+              "value": 0.8
+            },
+            {
+              "id": "sleep",
+              "value": 0.2
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            },
+            {
+              "id": "warmth",
+              "value": 0.8
+            }
+          ],
+          "mood": [],
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.5
+            },
+            {
+              "id": "creativity",
+              "value": 0.5
+            },
+            {
+              "id": "curiosity",
+              "value": 0.5
+            },
+            {
+              "id": "diligence",
+              "value": 0.5
+            },
+            {
+              "id": "kindness",
+              "value": 0.5
+            },
+            {
+              "id": "orderliness",
+              "value": 0.5
+            },
+            {
+              "id": "patience",
+              "value": 0.5
+            },
+            {
+              "id": "sociability",
+              "value": 0.5
+            }
+          ],
+          "will_to_live": 0.7
+        },
+        "environment": {
+          "time_of_day": "dusk",
+          "temperature_c": 16.0,
+          "weather": [
+            "clear"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-01",
+              "type": "dry_wood",
+              "distance_m": 4.0,
+              "known_properties": []
+            }
+          ]
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "sleep",
+            "target": null,
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "wander",
+            "target": null,
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "inspect",
+            "target": "obj-01",
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o1"
+      ]
+    },
+    {
+      "id": "thirst_unknown_water",
+      "description": "Thirsty; unknown water close, nothing known about it.",
+      "request": {
+        "contract_version": "0.1",
+        "request_id": "00000000-000a-1330-0000-000000000014",
+        "tick": 1200,
+        "seed": 10020,
+        "deadline_ms": 60000,
+        "display_locale": "en",
+        "inhabitant": {
+          "id": "inh-000001",
+          "needs": [
+            {
+              "id": "company",
+              "value": 0.6
+            },
+            {
+              "id": "fun",
+              "value": 0.6
+            },
+            {
+              "id": "hunger",
+              "value": 0.7
+            },
+            {
+              "id": "purpose",
+              "value": 0.6
+            },
+            {
+              "id": "safety",
+              "value": 0.8
+            },
+            {
+              "id": "sleep",
+              "value": 0.7
+            },
+            {
+              "id": "thirst",
+              "value": 0.25
+            },
+            {
+              "id": "warmth",
+              "value": 0.8
+            }
+          ],
+          "mood": [],
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.5
+            },
+            {
+              "id": "creativity",
+              "value": 0.5
+            },
+            {
+              "id": "curiosity",
+              "value": 0.5
+            },
+            {
+              "id": "diligence",
+              "value": 0.5
+            },
+            {
+              "id": "kindness",
+              "value": 0.5
+            },
+            {
+              "id": "orderliness",
+              "value": 0.5
+            },
+            {
+              "id": "patience",
+              "value": 0.5
+            },
+            {
+              "id": "sociability",
+              "value": 0.5
+            }
+          ],
+          "will_to_live": 0.7
+        },
+        "environment": {
+          "time_of_day": "day",
+          "temperature_c": 18.0,
+          "weather": [
+            "clear"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-01",
+              "type": "pond_water",
+              "distance_m": 3.0,
+              "known_properties": []
+            }
+          ]
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "drink",
+            "target": "obj-01",
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "inspect",
+            "target": "obj-01",
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "wander",
+            "target": null,
+            "partners": []
+          },
+          {
+            "option_id": "o4",
+            "action": "idle",
+            "target": null,
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o1",
+        "o2"
+      ]
+    }
+  ]
+}

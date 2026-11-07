@@ -32,6 +32,10 @@ extend-exclude = ["contracts/python/src/glassworld_contracts/models"]
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "N", "SIM", "RUF"]
 
+[tool.ruff.lint.per-file-ignores]
+# data-heavy generator for the AI test sets (long descriptive strings)
+"tools/testsets/*.py" = ["E501"]
+
 [tool.ruff.lint.isort]
 known-first-party = ["glassworld_ai", "glassworld_contracts", "conftest"]
 
