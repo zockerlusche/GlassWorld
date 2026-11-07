@@ -5,6 +5,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Inhabitant card stays beside the side bar and its open panel and is re-fitted when the UI size changes (found in the 3840x1600 screenshots at 175 %: the card kept its old place, covered the inhabitant list and ran off the screen). The smoke checks the card at the smallest and largest UI size.
+
 ### Added
 
 - Worlds, save and load in the game (A1337, B6-5 part 1): several worlds under `user://worlds/<id>/` (`world.sqlite` + display-only `meta.json`, `WorldLibrary`); `WorldPresenter.CreateWorld/Load/Save` with autosave every game day (B2487) and open questions resent after loading; closing the window saves first (B2469). Player settings `user://settings.json` (`PlayerSettings`, clamped, safe defaults). Smoke requires `SAVE_OK` (save, load into a second presenter, same state hash; SQLite inside Godot).

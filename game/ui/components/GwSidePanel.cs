@@ -86,6 +86,9 @@ public partial class GwSideBar : VBoxContainer
     /// <summary>All panels (for placing them in the UI layer).</summary>
     public IEnumerable<GwSidePanel> Panels => _entries.Values.Select(e => e.Panel);
 
+    /// <summary>Raised after a panel opened or closed (e.g. to move the card beside it).</summary>
+    public event Action? Toggled;
+
     /// <summary>Opens a panel and closes the other one; opening the open one closes it.</summary>
     public void Toggle(string key)
     {
@@ -95,5 +98,7 @@ public partial class GwSideBar : VBoxContainer
             entry.Panel.Visible = k == OpenKey;
             entry.Button.SetPressedNoSignal(k == OpenKey);
         }
+
+        Toggled?.Invoke();
     }
 }

@@ -46,6 +46,13 @@ public sealed class ScreenModelTests
     }
 
     [Theory]
+    [InlineData(1920, 1400, 500, 16, 1400)]
+    [InlineData(960, 500, 480, 16, 960)]
+    [InlineData(960, 512, 480, 16, 512)]
+    public void CardStaysLeftOfThePanelsOrBecomesForeground(double area, double free, double card, double margin, double expected)
+        => Assert.Equal(expected, ScreenModel.CardRoom(area, free, card, margin));
+
+    [Theory]
     [InlineData(0, "")]
     [InlineData(1, "?")]
     [InlineData(2, "??")]

@@ -182,6 +182,32 @@ public static class UiLayoutCheck
         bubble.Position = ((area - bubble.Size) / 2).Floor();
         await host.ToSignal(host.GetTree(), SceneTree.SignalName.ProcessFrame);
 
+        // Inhabitant card beside the open side panel (GW1 review #47 H1: in the reference sizes, not
+        // only in the headless window). About as many rows as the real card; content scrolls.
+        var card = new GwWindow();
+        card.Setup("ui.inhabitants.title", style);
+        for (var i = 0; i < 26; i++)
+        {
+            var row = new HBoxContainer();
+            row.AddChild(new Label { Text = "ui.card.will_to_live", SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
+            row.AddChild(new ProgressBar { MaxValue = 100, Value = 50, ShowPercentage = true, CustomMinimumSize = new Vector2(style.Tokens.Window.CardBarWidth, 0) });
+            card.Content.AddChild(row);
+        }
+
+        stage.AddChild(card);
+        await host.ToSignal(host.GetTree(), SceneTree.SignalName.ProcessFrame);
+        var free = panel.Position.X - style.Tokens.Window.Gap;
+        var room = ScreenModel.CardRoom(area.X, free, card.GetCombinedMinimumSize().X, margin);
+        card.FitInto(new Vector2((float)room, area.Y));
+        await host.ToSignal(host.GetTree(), SceneTree.SignalName.ProcessFrame);
+        var cardRect = new Rect2(card.Position, card.Size);
+        if (!card.IsInsideSafeArea(area) || (room < area.X && cardRect.Intersects(new Rect2(panel.Position, panel.Size))))
+        {
+            problems.Add($"card {card.Position}+{card.Size} leaves the safe area of {area} or covers the side panel at {panel.Position}");
+        }
+
+        card.Free();
+
         var safe = new Rect2(Vector2.One * margin, area - (Vector2.One * 2 * margin));
         if (!safe.Encloses(new Rect2(panel.Position, panel.Size)))
         {
