@@ -16,7 +16,8 @@ public sealed record FigureLook(
     Color HairColor,
     bool ShortSleeves,
     bool Shorts,
-    float Scale);
+    float Scale,
+    float ArmSpread = 0.45f);
 
 /// <summary>A built figure: its root, animation tree and the wave and look-at modifiers.</summary>
 public sealed record Figure(Node3D Root, AnimationTree Tree, WaveModifier Wave, LookAtModifier Look);
@@ -69,6 +70,8 @@ public static class FigureFactory
             mesh.MaterialOverride = material;
         }
 
+        // Order matters: arms rest first, then the wave overrides the right arm, then the look-at.
+        skeleton.AddChild(new ArmRestModifier { Spread = look.ArmSpread });
         var wave = new WaveModifier();
         skeleton.AddChild(wave);
         var lookAt = new LookAtModifier();

@@ -37,6 +37,7 @@ public partial class LookPrototype : Node3D
     private int _shotStep;
     private bool _showcase;
     private readonly List<Figure> _showRow = [];
+    private readonly Dictionary<Figure, float> _restYaw = [];
     private double _fpsSeconds;
     private string? _fpsOut;
     private readonly List<double> _frameTimes = [];
@@ -188,7 +189,14 @@ public partial class LookPrototype : Node3D
     private void BuildLand(Shader comic, Shader? outline)
     {
         var look = _look!;
-        var ground = new MeshInstance3D { Name = "Ground", Mesh = IslandPiece.Ground(look, new Rect2(-34, -24, 80, 48), 0.2f), MaterialOverride = Comic(comic, null) };
+        var groundMaterial = new ShaderMaterial { Shader = GD.Load<Shader>("res://shaders/island_ground.gdshader") };
+        groundMaterial.SetShaderParameter("grass", look.Srgb("grass"));
+        groundMaterial.SetShaderParameter("grass_edge", look.Srgb("grass_edge"));
+        groundMaterial.SetShaderParameter("sand", look.Srgb("sand"));
+        groundMaterial.SetShaderParameter("sand_wet", look.Srgb("sand_wet"));
+        groundMaterial.SetShaderParameter("foam", look.Srgb("sea_foam"));
+        groundMaterial.SetShaderParameter("shadow_tint", look.Srgb("shadow_tint"));
+        var ground = new MeshInstance3D { Name = "Ground", Mesh = IslandPiece.Ground(look, new Rect2(-34, -24, 80, 48), 0.2f), MaterialOverride = groundMaterial };
         AddChild(ground);
 
         var sea = new ShaderMaterial { Shader = GD.Load<Shader>("res://shaders/sea.gdshader") };
@@ -327,7 +335,7 @@ public partial class LookPrototype : Node3D
         if (_showcase)
         {
             // A1436 showcase: every hair style once, standing in a row on the sand.
-            var second = woman with { Hair = "bun", Top = Pick(a.ClothingColors, 6), Bottom = Pick(a.ClothingColors, 1), HairColor = Pick(a.HairColors, 3), Skin = Pick(a.SkinTones, 3) };
+            var second = woman with { Hair = "bun", Top = Pick(a.ClothingColors, 5), Bottom = Pick(a.ClothingColors, 0), HairColor = Pick(a.HairColors, 4), Skin = Pick(a.SkinTones, 3) };
             var row = new[] { woman, man, child, second };
             for (var i = 0; i < row.Length; i++)
             {
@@ -384,8 +392,15 @@ public partial class LookPrototype : Node3D
         };
         _walkerBlend = Mathf.MoveToward(_walkerBlend, targetBlend, delta * 1.5f);
         _walker.Wave.Weight = Mathf.MoveToward(_walker.Wave.Weight, t is > 10.5f and < 13.5f ? 1f : 0f, delta * 2.5f);
-        _walker.Look.Weight = Mathf.MoveToward(_walker.Look.Weight, t is > 10f and < 14f ? 1f : 0f, delta * 1.5f);
-        _walker.Look.Target = _camera?.GlobalPosition ?? Vector3.Zero;
+        var greeting = t is > 9.5f and < 14f;
+        if (greeting)
+        {
+            TurnTowards(_walker, _camera?.GlobalPosition ?? Vector3.Zero, 1f, delta);
+        }
+        else
+        {
+            _walker.Look.Weight = Mathf.MoveToward(_walker.Look.Weight, 0, delta * 1.5f);
+        }
         var speed = WalkSpeed * _walkerBlend;
         var previous = _walkerPosition;
         _walkerAngle += speed * delta / 5.4f;
@@ -405,6 +420,27 @@ public partial class LookPrototype : Node3D
         }
     }
 
+    /// <summary>
+    /// Turning to the player (B2528): the whole figure turns first (feet and hips with the root), then
+    /// the upper body and the head follow once the rest of the turn is small. Weight 0 turns back.
+    /// </summary>
+    private void TurnTowards(Figure figure, Vector3 target, float weight, float delta)
+    {
+        if (!_restYaw.TryGetValue(figure, out var rest))
+        {
+            _restYaw[figure] = rest = figure.Root.Rotation.Y;
+        }
+
+        var to = target - figure.Root.GlobalPosition;
+        var facing = Mathf.Atan2(to.X, to.Z);
+        var wanted = weight > 0.01f ? facing : rest;
+        var yaw = Mathf.LerpAngle(figure.Root.Rotation.Y, wanted, 1 - Mathf.Exp(-3.5f * delta));
+        figure.Root.Rotation = new Vector3(0, yaw, 0);
+        var remaining = Mathf.Abs(Mathf.AngleDifference(yaw, facing));
+        figure.Look.Weight = weight * Mathf.Clamp(1 - (remaining / Mathf.DegToRad(60)), 0, 1);
+        figure.Look.Target = target;
+    }
+
     private void AnimateWaver()
     {
         if (_waver is null)
@@ -414,9 +450,9 @@ public partial class LookPrototype : Node3D
 
         var t = (float)(_time % 9.0);
         var target = t is > 4f and < 7f ? 1f : 0f;
-        _waver.Wave.Weight = Mathf.MoveToward(_waver.Wave.Weight, target, (float)GetProcessDeltaTime() * 2.5f);
-        _waver.Look.Weight = Mathf.MoveToward(_waver.Look.Weight, target, (float)GetProcessDeltaTime() * 1.5f);
-        _waver.Look.Target = _camera?.GlobalPosition ?? Vector3.Zero;
+        var delta = (float)GetProcessDeltaTime();
+        _waver.Wave.Weight = Mathf.MoveToward(_waver.Wave.Weight, target, delta * 2.5f);
+        TurnTowards(_waver, _camera?.GlobalPosition ?? Vector3.Zero, target, delta);
     }
 
     private void BuildCamera()
@@ -549,8 +585,7 @@ public partial class LookPrototype : Node3D
             foreach (var f in _showRow)
             {
                 f.Wave.Weight = Mathf.MoveToward(f.Wave.Weight, 1, (float)GetProcessDeltaTime() * 2);
-                f.Look.Weight = Mathf.MoveToward(f.Look.Weight, 1, (float)GetProcessDeltaTime() * 1.5f);
-                f.Look.Target = _camera.GlobalPosition;
+                TurnTowards(f, _camera.GlobalPosition, 1f, (float)GetProcessDeltaTime());
             }
         }
 

@@ -3,9 +3,10 @@ using Godot;
 namespace GlassWorld.Game.Prototype.Look;
 
 /// <summary>
-/// Procedural wave (no CC0 clip in the standard libraries): lifts the right upper arm up and out and
-/// swings the forearm, blended in and out with <see cref="Weight"/> on top of whatever clip runs.
-/// Directions are computed in skeleton space, so they do not depend on the bones' local axes.
+/// Procedural wave (no CC0 clip in the standard libraries; TL #18976): the upper arm goes out to the
+/// side at about shoulder height, the elbow is bent so the forearm stands upright and the open hand is
+/// at head height, swinging from side to side – never a stretched arm. Blended in and out with
+/// <see cref="Weight"/> on top of whatever clip runs; directions are in skeleton space.
 /// </summary>
 public partial class WaveModifier : SkeletonModifier3D
 {
@@ -38,13 +39,13 @@ public partial class WaveModifier : SkeletonModifier3D
         var outward = Mathf.Sign(skeleton.GetBoneGlobalPose(upper).Origin.X);
         outward = outward == 0 ? -1 : outward;
 
-        // Upper arm: up and a little out to the side and forward.
-        var upperTarget = new Vector3(outward * 0.45f, 0.85f, 0.25f).Normalized();
+        // Upper arm: out to the side, slightly raised and a little forward (elbow about shoulder height).
+        var upperTarget = new Vector3(outward * 0.9f, 0.18f, 0.35f).Normalized();
         Aim(skeleton, upper, fore, upperTarget, Weight);
 
-        // Forearm: mostly up, swinging left and right.
-        var swing = Mathf.Sin((float)(_time * Frequency * Mathf.Tau)) * 0.45f;
-        var foreTarget = new Vector3(outward * (0.15f + swing), 0.95f, 0.15f).Normalized();
+        // Forearm: upright from the bent elbow, the hand swinging from side to side at head height.
+        var swing = Mathf.Sin((float)(_time * Frequency * Mathf.Tau)) * 0.32f;
+        var foreTarget = new Vector3(swing - (outward * 0.05f), 1f, 0.12f).Normalized();
         Aim(skeleton, fore, hand, foreTarget, Weight);
     }
 
@@ -90,7 +91,10 @@ public partial class LookAtModifier : SkeletonModifier3D
             return;
         }
 
+        // Upper body first, then neck and head (TL #18980); the feet turn with the figure's root.
         var target = skeleton.GlobalTransform.AffineInverse() * Target;
+        Turn(skeleton, "DEF-spine.002", target, Weight * 0.25f);
+        Turn(skeleton, "DEF-spine.003", target, Weight * 0.25f);
         Turn(skeleton, "DEF-neck", target, Weight * 0.35f);
         Turn(skeleton, "DEF-head", target, Weight);
     }
@@ -117,5 +121,48 @@ public partial class LookAtModifier : SkeletonModifier3D
         var share = angle > limit ? limit / angle : 1f;
         var turn = Quaternion.Identity.Slerp(new Quaternion(forward, wanted), Mathf.Clamp(weight, 0, 1) * share);
         skeleton.SetBoneGlobalPose(bone, new Transform3D(new Basis(turn) * pose.Basis, pose.Origin));
+    }
+}
+
+/// <summary>
+/// Arms rest loosely against the body (B2528): while an upper arm hangs down, its sideways spread is
+/// reduced towards the torso. Raised arms (waving, carrying) are left alone. The share comes from the
+/// body data; heavier bodies keep more spread so arms do not go into the torso.
+/// </summary>
+public partial class ArmRestModifier : SkeletonModifier3D
+{
+    /// <summary>Share of the sideways spread that remains (1 = clip as is, 0 = straight down).</summary>
+    public float Spread { get; set; } = 0.45f;
+
+    /// <inheritdoc/>
+    public override void _ProcessModificationWithDelta(double delta)
+    {
+        var skeleton = GetSkeleton();
+        if (skeleton is null)
+        {
+            return;
+        }
+
+        foreach (var side in new[] { "L", "R" })
+        {
+            var upper = skeleton.FindBone($"DEF-upper_arm.{side}");
+            var fore = skeleton.FindBone($"DEF-forearm.{side}");
+            if (upper < 0 || fore < 0)
+            {
+                continue;
+            }
+
+            var pose = skeleton.GetBoneGlobalPose(upper);
+            var direction = (skeleton.GetBoneGlobalPose(fore).Origin - pose.Origin).Normalized();
+            var hanging = Mathf.Clamp((-direction.Y - 0.3f) / 0.4f, 0, 1);
+            if (hanging <= 0)
+            {
+                continue;
+            }
+
+            var wanted = new Vector3(direction.X * Spread, direction.Y, direction.Z).Normalized();
+            var turn = Quaternion.Identity.Slerp(new Quaternion(direction, wanted), hanging);
+            skeleton.SetBoneGlobalPose(upper, new Transform3D(new Basis(turn) * pose.Basis, pose.Origin));
+        }
     }
 }
