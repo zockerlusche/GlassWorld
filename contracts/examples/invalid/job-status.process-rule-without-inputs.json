@@ -1,0 +1,41 @@
+{
+  "contract_version": "0.2",
+  "job_id": "3c4d5e6f-7a8b-8c9d-8e0f-1a2b3c4d5e71",
+  "tick": 1210,
+  "kind": "process",
+  "state": "done",
+  "result": {
+    "process": {
+      "feasible": true,
+      "rule": {
+        "id": "world_char_branch",
+        "process": "char",
+        "inputs": [],
+        "tool": null,
+        "heat_min": "embers",
+        "duration_ticks": 180,
+        "tech_level": "hut",
+        "result": {
+          "add_properties": [
+            "burnable"
+          ],
+          "remove_properties": [
+            "building_material"
+          ],
+          "produces": null,
+          "consumes": []
+        }
+      },
+      "rationale": "x"
+    }
+  },
+  "error": null,
+  "provenance": {
+    "source": "mock",
+    "model": "mock",
+    "prompt_version": "process/judge.v1",
+    "seed": 77,
+    "latency_ms": 1,
+    "attempts": 1
+  }
+}

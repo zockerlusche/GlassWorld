@@ -20,6 +20,10 @@ class Kind(StrEnum):
     weather = 'weather'
     biome = 'biome'
     epoch = 'epoch'
+    process = 'process'
+    heat_level = 'heat_level'
+    tech_level = 'tech_level'
+    shape = 'shape'
 
 
 class Target(StrEnum):

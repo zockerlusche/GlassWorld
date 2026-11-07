@@ -849,6 +849,134 @@
     {
       "key": "vocab.weather.storm",
       "text": "Storm"
+    },
+    {
+      "key": "vocab.process.heat",
+      "text": "Heat"
+    },
+    {
+      "key": "vocab.process.soak",
+      "text": "Soak"
+    },
+    {
+      "key": "vocab.process.dry",
+      "text": "Dry"
+    },
+    {
+      "key": "vocab.process.grind",
+      "text": "Grind"
+    },
+    {
+      "key": "vocab.process.mix",
+      "text": "Mix"
+    },
+    {
+      "key": "vocab.process.strike",
+      "text": "Strike"
+    },
+    {
+      "key": "vocab.process.cut",
+      "text": "Cut"
+    },
+    {
+      "key": "vocab.process.split",
+      "text": "Split"
+    },
+    {
+      "key": "vocab.process.bind",
+      "text": "Bind"
+    },
+    {
+      "key": "vocab.process.braid",
+      "text": "Braid"
+    },
+    {
+      "key": "vocab.process.shape",
+      "text": "Shape"
+    },
+    {
+      "key": "vocab.process.fire",
+      "text": "Fire"
+    },
+    {
+      "key": "vocab.process.char",
+      "text": "Char"
+    },
+    {
+      "key": "vocab.process.melt",
+      "text": "Melt"
+    },
+    {
+      "key": "vocab.heat_level.warm",
+      "text": "Warm"
+    },
+    {
+      "key": "vocab.heat_level.embers",
+      "text": "Embers"
+    },
+    {
+      "key": "vocab.heat_level.open_fire",
+      "text": "Open fire"
+    },
+    {
+      "key": "vocab.heat_level.kiln",
+      "text": "Kiln"
+    },
+    {
+      "key": "vocab.heat_level.furnace",
+      "text": "Furnace"
+    },
+    {
+      "key": "vocab.tech_level.tool",
+      "text": "Tool"
+    },
+    {
+      "key": "vocab.tech_level.hut",
+      "text": "Hut"
+    },
+    {
+      "key": "vocab.tech_level.workshop",
+      "text": "Workshop"
+    },
+    {
+      "key": "vocab.tech_level.metal",
+      "text": "Metal"
+    },
+    {
+      "key": "vocab.shape.box",
+      "text": "Box"
+    },
+    {
+      "key": "vocab.shape.cylinder",
+      "text": "Cylinder"
+    },
+    {
+      "key": "vocab.shape.sphere",
+      "text": "Sphere"
+    },
+    {
+      "key": "vocab.shape.cone",
+      "text": "Cone"
+    },
+    {
+      "key": "vocab.shape.wedge",
+      "text": "Wedge"
+    },
+    {
+      "key": "vocab.shape.plank",
+      "text": "Plank"
+    },
+    {
+      "key": "vocab.shape.ring",
+      "text": "Ring"
+    },
+    {
+      "key": "vocab.shape.bowl",
+      "text": "Bowl"
+    },
+    {
+      "key": "vocab.tech_level.wilderness",
+      "text": "Wilderness"
     }
   ]
 }

@@ -23,6 +23,18 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("question")]
         public QuestionResult? Question { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("invention")]
+        public InventionResult? Invention { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("build_plan")]
+        public BuildPlan? BuildPlan { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("process")]
+        public ProcessResult? Process { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -121,6 +133,159 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
+    /// One verdict of the AI rule guard (own instruction, ADR-0005). The core checks again and has the last word.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class GuardVerdict
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("round")]
+        public int Round { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("decision")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<GuardVerdictDecision>))]
+        public GuardVerdictDecision Decision { get; set; } = default!;
+
+        /// <summary>
+        /// Reason codes from data (content/guard).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("reasons")]
+        public System.Collections.Generic.ICollection<string> Reasons { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// Short English note for the log, never shown.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("note")]
+        public string Note { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// B2530: does the thing make a sound, and which (GW3 #19017). The core checks format and length only (D471 O3).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class SoundDecision
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("needed")]
+        public bool Needed { get; set; } = default!;
+
+        /// <summary>
+        /// Short English sound description for the sound model, e.g. 'wooden door creaks'.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("description")]
+        public string Description { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("kind")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SoundKind>))]
+        public SoundKind Kind { get; set; } = default!;
+
+        /// <summary>
+        /// Part that sounds (vocabulary), or null.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("part")]
+        public string? Part { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Result of the invention job: the (possibly downsized) invention after at most max_rounds guard rounds, or null when rejected.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class InventionResult
+    {
+
+        /// <summary>
+        /// Final AI verdict.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("decision")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<InventionResultDecision>))]
+        public InventionResultDecision Decision { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("invention")]
+        public Invention? Invention { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("rounds")]
+        public System.Collections.Generic.ICollection<GuardVerdict> Rounds { get; set; } = new System.Collections.ObjectModel.Collection<GuardVerdict>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("sound")]
+        public SoundDecision? Sound { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("thought")]
+        public Thought? Thought { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class BuildPart
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("shape")]
+        public string Shape { get; set; } = default!;
+
+        /// <summary>
+        /// Size of the part in metres.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("size_m")]
+        public SizeM2 SizeM { get; set; } = new SizeM2();
+
+        /// <summary>
+        /// Centre relative to the object origin, metres.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("position_m")]
+        public PositionM PositionM { get; set; } = new PositionM();
+
+        [System.Text.Json.Serialization.JsonPropertyName("rotation_y_deg")]
+        public double RotationYDeg { get; set; } = default!;
+
+        /// <summary>
+        /// One of Invention.materials (core checks).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("material")]
+        public string Material { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("color")]
+        public string Color { get; set; } = default!;
+
+        /// <summary>
+        /// Building step that adds the part (1-based).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("step")]
+        public int Step { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// The shape of an invention: construction-kit parts with size, place, material and colour (ADR-0004). The core checks it; Godot builds it part by part.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class BuildPlan
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("parts")]
+        public System.Collections.Generic.ICollection<BuildPart> Parts { get; set; } = new System.Collections.ObjectModel.Collection<BuildPart>();
+
+    }
+
+    /// <summary>
+    /// Judgement of an unknown try (B2537): feasible with exactly one rule, or not feasible (also stored, never asked again).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ProcessResult
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("feasible")]
+        public bool Feasible { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("rule")]
+        public ProcessRule? Rule { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("rationale")]
+        public string Rationale { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// AI service -&gt; core (GET /jobs/{id}): state of one job. The service guarantees: done -&gt; result and provenance set, error null; failed -&gt; error set, result and provenance null; open states -&gt; all three null.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -190,6 +355,76 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonStringEnumMemberName("local_model")]
         Local_model = 4,
 
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public enum GuardVerdictDecision
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("approve")]
+        Approve = 0,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("downsize")]
+        Downsize = 1,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("revise")]
+        Revise = 2,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("reject")]
+        Reject = 3,
+
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public enum InventionResultDecision
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("approve")]
+        Approve = 0,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("downsize")]
+        Downsize = 1,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("reject")]
+        Reject = 2,
+
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class SizeM2
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("x")]
+        public double X { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("y")]
+        public double Y { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("z")]
+        public double Z { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class PositionM
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("x")]
+        public double X { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("y")]
+        public double Y { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("z")]
+        public double Z { get; set; } = default!;
 
     }
 }

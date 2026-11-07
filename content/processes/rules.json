@@ -1,0 +1,301 @@
+{
+  "contract_version": "0.2",
+  "heat_levels": [
+    "warm",
+    "embers",
+    "open_fire",
+    "kiln",
+    "furnace"
+  ],
+  "rules": [
+    {
+      "id": "split_hard_stone_to_edge",
+      "process": "split",
+      "inputs": [
+        {
+          "properties_all": [
+            "hard",
+            "splittable"
+          ],
+          "properties_none": []
+        }
+      ],
+      "tool": {
+        "properties_all": [
+          "hard"
+        ],
+        "properties_none": []
+      },
+      "heat_min": null,
+      "duration_ticks": 30,
+      "tech_level": "tool",
+      "result": {
+        "add_properties": [
+          "sharp"
+        ],
+        "remove_properties": [],
+        "produces": null,
+        "consumes": []
+      }
+    },
+    {
+      "id": "split_wood_to_planks",
+      "process": "split",
+      "inputs": [
+        {
+          "properties_all": [
+            "burnable",
+            "splittable"
+          ],
+          "properties_none": []
+        }
+      ],
+      "tool": {
+        "properties_all": [
+          "hard",
+          "sharp"
+        ],
+        "properties_none": []
+      },
+      "heat_min": null,
+      "duration_ticks": 60,
+      "tech_level": "tool",
+      "result": {
+        "add_properties": [
+          "building_material"
+        ],
+        "remove_properties": [],
+        "produces": null,
+        "consumes": []
+      }
+    },
+    {
+      "id": "braid_fibres_to_cord",
+      "process": "braid",
+      "inputs": [
+        {
+          "properties_all": [
+            "fibrous",
+            "braidable"
+          ],
+          "properties_none": []
+        }
+      ],
+      "tool": null,
+      "heat_min": null,
+      "duration_ticks": 40,
+      "tech_level": "tool",
+      "result": {
+        "add_properties": [
+          "sticky"
+        ],
+        "remove_properties": [],
+        "produces": null,
+        "consumes": []
+      }
+    },
+    {
+      "id": "bind_edge_to_handle",
+      "process": "bind",
+      "inputs": [
+        {
+          "properties_all": [
+            "hard",
+            "sharp"
+          ],
+          "properties_none": []
+        },
+        {
+          "properties_all": [
+            "burnable"
+          ],
+          "properties_none": [
+            "sharp"
+          ]
+        },
+        {
+          "properties_all": [
+            "fibrous"
+          ],
+          "properties_none": []
+        }
+      ],
+      "tool": null,
+      "heat_min": null,
+      "duration_ticks": 60,
+      "tech_level": "tool",
+      "result": {
+        "add_properties": [
+          "portable"
+        ],
+        "remove_properties": [],
+        "produces": null,
+        "consumes": [
+          1,
+          2
+        ]
+      }
+    },
+    {
+      "id": "shape_clay",
+      "process": "shape",
+      "inputs": [
+        {
+          "properties_all": [
+            "malleable"
+          ],
+          "properties_none": []
+        }
+      ],
+      "tool": null,
+      "heat_min": null,
+      "duration_ticks": 40,
+      "tech_level": "tool",
+      "result": {
+        "add_properties": [
+          "container"
+        ],
+        "remove_properties": [],
+        "produces": null,
+        "consumes": []
+      }
+    },
+    {
+      "id": "fire_shaped_clay",
+      "process": "fire",
+      "inputs": [
+        {
+          "properties_all": [
+            "malleable",
+            "hardens_in_fire"
+          ],
+          "properties_none": []
+        }
+      ],
+      "tool": null,
+      "heat_min": "kiln",
+      "duration_ticks": 240,
+      "tech_level": "workshop",
+      "result": {
+        "add_properties": [
+          "hard"
+        ],
+        "remove_properties": [
+          "malleable"
+        ],
+        "produces": null,
+        "consumes": []
+      }
+    },
+    {
+      "id": "char_wood",
+      "process": "char",
+      "inputs": [
+        {
+          "properties_all": [
+            "burnable"
+          ],
+          "properties_none": [
+            "hot"
+          ]
+        }
+      ],
+      "tool": null,
+      "heat_min": "embers",
+      "duration_ticks": 180,
+      "tech_level": "hut",
+      "result": {
+        "add_properties": [
+          "burnable"
+        ],
+        "remove_properties": [
+          "building_material"
+        ],
+        "produces": null,
+        "consumes": []
+      }
+    },
+    {
+      "id": "dry_fibres",
+      "process": "dry",
+      "inputs": [
+        {
+          "properties_all": [
+            "fibrous"
+          ],
+          "properties_none": []
+        }
+      ],
+      "tool": null,
+      "heat_min": null,
+      "duration_ticks": 120,
+      "tech_level": "tool",
+      "result": {
+        "add_properties": [
+          "burnable"
+        ],
+        "remove_properties": [],
+        "produces": null,
+        "consumes": []
+      }
+    },
+    {
+      "id": "heat_water_container",
+      "process": "heat",
+      "inputs": [
+        {
+          "properties_all": [
+            "container"
+          ],
+          "properties_none": []
+        }
+      ],
+      "tool": null,
+      "heat_min": "open_fire",
+      "duration_ticks": 30,
+      "tech_level": "hut",
+      "result": {
+        "add_properties": [
+          "hot"
+        ],
+        "remove_properties": [],
+        "produces": null,
+        "consumes": []
+      }
+    },
+    {
+      "id": "melt_with_furnace",
+      "process": "melt",
+      "inputs": [
+        {
+          "properties_all": [
+            "hard",
+            "scratchable"
+          ],
+          "properties_none": []
+        },
+        {
+          "properties_all": [
+            "burnable"
+          ],
+          "properties_none": []
+        }
+      ],
+      "tool": null,
+      "heat_min": "furnace",
+      "duration_ticks": 300,
+      "tech_level": "metal",
+      "result": {
+        "add_properties": [
+          "malleable",
+          "hot"
+        ],
+        "remove_properties": [],
+        "produces": null,
+        "consumes": [
+          1
+        ]
+      }
+    }
+  ]
+}

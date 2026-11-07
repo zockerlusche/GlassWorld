@@ -1,0 +1,50 @@
+{
+  "contract_version": "0.2",
+  "job_id": "3c4d5e6f-7a8b-8c9d-8e0f-1a2b3c4d5e6f",
+  "tick": 1210,
+  "kind": "process",
+  "state": "done",
+  "result": {
+    "process": {
+      "feasible": true,
+      "rule": {
+        "id": "world_bbe1cc4202b602d1",
+        "process": "char",
+        "inputs": [
+          {
+            "properties_all": [
+              "burnable"
+            ],
+            "properties_none": [
+              "hot"
+            ]
+          }
+        ],
+        "tool": null,
+        "heat_min": "embers",
+        "duration_ticks": 180,
+        "tech_level": "hut",
+        "result": {
+          "add_properties": [
+            "burnable"
+          ],
+          "remove_properties": [
+            "building_material"
+          ],
+          "produces": null,
+          "consumes": []
+        }
+      },
+      "rationale": "Dry wood in embers with little air chars."
+    }
+  },
+  "error": null,
+  "provenance": {
+    "source": "mock",
+    "model": "mock",
+    "prompt_version": "process/judge.v1",
+    "seed": 77,
+    "latency_ms": 1,
+    "attempts": 1
+  }
+}

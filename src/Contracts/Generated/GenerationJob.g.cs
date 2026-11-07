@@ -23,6 +23,18 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("question")]
         public QuestionPayload? Question { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("invention")]
+        public InventionPayload? Invention { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("build_plan")]
+        public BuildPlanPayload? BuildPlan { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("process")]
+        public ProcessPayload? Process { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -50,6 +62,133 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("perception")]
         public System.Collections.Generic.ICollection<string> Perception { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+    }
+
+    /// <summary>
+    /// Limits from data (B4b; values from Marcel, placeholders until then).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class InventionLimits
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("max_size_m")]
+        public double MaxSizeM { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("max_parts")]
+        public int MaxParts { get; set; } = default!;
+
+        /// <summary>
+        /// Discussion rounds with the rule guard (B4b: 2).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max_rounds")]
+        public int MaxRounds { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Invent something (D471 stage 2): the inhabitant wants or found something it has no solution for.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class InventionPayload
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("trigger")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<InventionPayloadTrigger>))]
+        public InventionPayloadTrigger Trigger { get; set; } = default!;
+
+        /// <summary>
+        /// Need or action the inhabitant has no solution for (vocabulary need or action).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("want")]
+        public string Want { get; set; } = default!;
+
+        /// <summary>
+        /// Thing that was found, if the trigger is find.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("subject")]
+        public Subject? Subject { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("inhabitant")]
+        public InhabitantState Inhabitant { get; set; } = new InhabitantState();
+
+        /// <summary>
+        /// Things in reach as the inhabitant sees them.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("materials")]
+        public System.Collections.Generic.ICollection<ObservedThing> Materials { get; set; } = new System.Collections.ObjectModel.Collection<ObservedThing>();
+
+        /// <summary>
+        /// Highest tech level the world allows now.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("tech_level")]
+        public string TechLevel { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("limits")]
+        public InventionLimits Limits { get; set; } = new InventionLimits();
+
+    }
+
+    /// <summary>
+    /// Turn an approved invention into a building plan of construction-kit parts (D471 stage 4, ADR-0004).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class BuildPlanPayload
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("invention")]
+        public Invention Invention { get; set; } = new Invention();
+
+        /// <summary>
+        /// Part shapes of the construction kit (data).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("shapes")]
+        public System.Collections.Generic.ICollection<string> Shapes { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// Palette colours allowed (look data).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("colors")]
+        public System.Collections.Generic.ICollection<string> Colors { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("max_parts")]
+        public int MaxParts { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// An unknown try (B2537): no rule fits these inputs yet. Judged once; the result becomes a world rule.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ProcessPayload
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("process")]
+        public string Process { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("inputs")]
+        public System.Collections.Generic.ICollection<ObservedThing> Inputs { get; set; } = new System.Collections.ObjectModel.Collection<ObservedThing>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("tool")]
+        public ObservedThing? Tool { get; set; } = default!;
+
+        /// <summary>
+        /// Heat available, or null.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("heat_level")]
+        public string? HeatLevel { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("tech_level")]
+        public string TechLevel { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("inhabitant")]
+        public InhabitantState Inhabitant { get; set; } = new InhabitantState();
+
+        /// <summary>
+        /// Canonical signature of this try (true properties, set by the core); the service derives the world rule id from its hash.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("signature")]
+        public ProcessSignature Signature { get; set; } = new ProcessSignature();
 
     }
 
@@ -131,6 +270,24 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("why")]
         Why = 4,
+
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public enum InventionPayloadTrigger
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("need")]
+        Need = 0,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("found")]
+        Found = 1,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("idea")]
+        Idea = 2,
 
 
     }

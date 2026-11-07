@@ -1,0 +1,26 @@
+{
+  "contract_version": "0.2",
+  "kind": "tech_level",
+  "entries": [
+    {
+      "id": "wilderness",
+      "description": "Nothing made yet; only what nature offers."
+    },
+    {
+      "id": "tool",
+      "description": "Simple tools from what lies around."
+    },
+    {
+      "id": "hut",
+      "description": "Simple buildings and shelters."
+    },
+    {
+      "id": "workshop",
+      "description": "A fixed place with fire, tools and stores."
+    },
+    {
+      "id": "metal",
+      "description": "Working with molten metal."
+    }
+  ]
+}

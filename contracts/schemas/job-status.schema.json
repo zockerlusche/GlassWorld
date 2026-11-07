@@ -74,6 +74,15 @@
       "properties": {
         "question": {
           "$ref": "#/$defs/QuestionResult"
+        },
+        "invention": {
+          "$ref": "#/$defs/InventionResult"
+        },
+        "build_plan": {
+          "$ref": "#/$defs/BuildPlan"
+        },
+        "process": {
+          "$ref": "#/$defs/ProcessResult"
         }
       },
       "minProperties": 1,
@@ -224,6 +233,272 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 3
+        }
+      }
+    },
+    "GuardVerdict": {
+      "description": "One verdict of the AI rule guard (own instruction, ADR-0005). The core checks again and has the last word.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "round",
+        "decision",
+        "reasons",
+        "note"
+      ],
+      "properties": {
+        "round": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3
+        },
+        "decision": {
+          "type": "string",
+          "enum": [
+            "approve",
+            "downsize",
+            "revise",
+            "reject"
+          ]
+        },
+        "reasons": {
+          "description": "Reason codes from data (content/guard).",
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 6,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          }
+        },
+        "note": {
+          "description": "Short English note for the log, never shown.",
+          "type": "string",
+          "maxLength": 280
+        }
+      }
+    },
+    "SoundDecision": {
+      "description": "B2530: does the thing make a sound, and which (GW3 #19017). The core checks format and length only (D471 O3).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "needed",
+        "description",
+        "kind",
+        "part"
+      ],
+      "properties": {
+        "needed": {
+          "type": "boolean"
+        },
+        "description": {
+          "description": "Short English sound description for the sound model, e.g. 'wooden door creaks'.",
+          "type": "string",
+          "maxLength": 120
+        },
+        "kind": {
+          "$ref": "common.schema.json#/$defs/SoundKind"
+        },
+        "part": {
+          "description": "Part that sounds (vocabulary), or null.",
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/VocabId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "InventionResult": {
+      "description": "Result of the invention job: the (possibly downsized) invention after at most max_rounds guard rounds, or null when rejected.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decision",
+        "invention",
+        "rounds",
+        "sound",
+        "thought"
+      ],
+      "properties": {
+        "decision": {
+          "description": "Final AI verdict.",
+          "type": "string",
+          "enum": [
+            "approve",
+            "downsize",
+            "reject"
+          ]
+        },
+        "invention": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/Invention"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "rounds": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 3,
+          "items": {
+            "$ref": "#/$defs/GuardVerdict"
+          }
+        },
+        "sound": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SoundDecision"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "thought": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/Thought"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "BuildPart": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "shape",
+        "size_m",
+        "position_m",
+        "rotation_y_deg",
+        "material",
+        "color",
+        "step"
+      ],
+      "properties": {
+        "shape": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "size_m": {
+          "description": "Size of the part in metres.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "x",
+            "y",
+            "z"
+          ],
+          "properties": {
+            "x": {
+              "type": "number",
+              "minimum": 0.005
+            },
+            "y": {
+              "type": "number",
+              "minimum": 0.005
+            },
+            "z": {
+              "type": "number",
+              "minimum": 0.005
+            }
+          }
+        },
+        "position_m": {
+          "description": "Centre relative to the object origin, metres.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "x",
+            "y",
+            "z"
+          ],
+          "properties": {
+            "x": {
+              "type": "number"
+            },
+            "y": {
+              "type": "number"
+            },
+            "z": {
+              "type": "number"
+            }
+          }
+        },
+        "rotation_y_deg": {
+          "type": "number",
+          "minimum": -180,
+          "maximum": 180
+        },
+        "material": {
+          "description": "One of Invention.materials (core checks).",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "color": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "step": {
+          "description": "Building step that adds the part (1-based).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
+        }
+      }
+    },
+    "BuildPlan": {
+      "description": "The shape of an invention: construction-kit parts with size, place, material and colour (ADR-0004). The core checks it; Godot builds it part by part.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "parts"
+      ],
+      "properties": {
+        "parts": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 64,
+          "items": {
+            "$ref": "#/$defs/BuildPart"
+          }
+        }
+      }
+    },
+    "ProcessResult": {
+      "description": "Judgement of an unknown try (B2537): feasible with exactly one rule, or not feasible (also stored, never asked again).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "feasible",
+        "rule",
+        "rationale"
+      ],
+      "properties": {
+        "feasible": {
+          "type": "boolean"
+        },
+        "rule": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/ProcessRule"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "rationale": {
+          "type": "string",
+          "maxLength": 280
         }
       }
     }
