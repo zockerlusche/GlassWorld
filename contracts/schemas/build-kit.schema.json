@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/build-kit.schema.json",
+  "title": "BuildKit",
+  "description": "Data file content/build/kit.json: the construction kit for building plans (D471 D3/D5/D6, B4b R14). The core sends shapes, colours and limits with every build_plan job; the game draws each part from its shape and colour. Colours follow the warm comic palette (D355). Values are placeholders until Marcel decides.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "shapes",
+    "colors",
+    "max_parts",
+    "max_part_size_m"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "shapes": {
+      "description": "Shape ids the builder may use (from content/vocabulary/shapes.json).",
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "common.schema.json#/$defs/VocabId"
+      }
+    },
+    "colors": {
+      "description": "Colours the builder may use, by id.",
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "items": {
+        "$ref": "#/$defs/BuildKitColor"
+      }
+    },
+    "max_parts": {
+      "description": "Most parts in one building plan.",
+      "type": "integer",
+      "minimum": 2,
+      "maximum": 256
+    },
+    "max_part_size_m": {
+      "description": "Longest edge of one part in metres.",
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "maximum": 50
+    }
+  },
+  "$defs": {
+    "BuildKitColor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "color"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "color": {
+          "description": "Colour as lowercase #rrggbb.",
+          "type": "string",
+          "pattern": "^#[0-9a-f]{6}$"
+        }
+      }
+    }
+  }
+}
