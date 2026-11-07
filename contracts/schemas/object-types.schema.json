@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/object-types.schema.json",
+  "title": "ObjectTypes",
+  "description": "Data files content/objects/*.json: object types and their TRUE properties (the world knows the truth, inhabitants only believe). A property not listed is false. Values are data (placeholders until Marcel decides).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "types"],
+  "properties": {
+    "contract_version": { "$ref": "common.schema.json#/$defs/ContractVersion" },
+    "types": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/ObjectType" }
+    }
+  },
+  "$defs": {
+    "ObjectType": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "description", "properties"],
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/VocabId" },
+        "description": { "description": "Short English meaning for docs and prompts; never shown to the player.", "type": "string", "minLength": 1, "maxLength": 200 },
+        "properties": {
+          "description": "True properties (ids from content/vocabulary/properties.json).",
+          "type": "array",
+          "uniqueItems": true,
+          "maxItems": 32,
+          "items": { "$ref": "common.schema.json#/$defs/VocabId" }
+        }
+      }
+    }
+  }
+}
