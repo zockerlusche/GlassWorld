@@ -179,6 +179,12 @@ public static class SaveGameStore
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("island_hash", s.IslandHash ?? string.Empty));
         }
 
+        if (s.Player is not null)
+        {
+            // Player part (B6) as one JSON value; doubles round-trip exactly, so the hash survives.
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("player", JsonSerializer.Serialize(s.Player, Json)));
+        }
+
         foreach (var (name, state) in s.Streams)
         {
             Insert(c, tx, "INSERT INTO streams VALUES($a,$b,$c)", (name, Str(state.State), Str(state.Increment)));
@@ -252,7 +258,11 @@ public static class SaveGameStore
             Query(c, "SELECT kind, request_id, tick, json, note FROM decision_log ORDER BY seq",
                 r => new DecisionLogEntry(Enum.Parse<DecisionLogKind>(r.GetString(0)), r.GetString(1), r.GetInt64(2), r.GetString(3), r.IsDBNull(4) ? null : r.GetString(4))),
             meta.GetValueOrDefault("world_preset"),
-            meta.GetValueOrDefault("island_hash") is { Length: > 0 } islandHash ? islandHash : null);
+            meta.GetValueOrDefault("island_hash") is { Length: > 0 } islandHash ? islandHash : null)
+        {
+            // Save games from before the player system have no entry: the world keeps its defaults.
+            Player = meta.TryGetValue("player", out var player) ? JsonSerializer.Deserialize<Simulation.Player.PlayerState>(player, Json) : null,
+        };
     }
 
     private static string Str(ulong value) => value.ToString(CultureInfo.InvariantCulture);

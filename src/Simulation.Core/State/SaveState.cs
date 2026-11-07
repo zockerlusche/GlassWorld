@@ -45,7 +45,11 @@ public sealed record SaveState(
     IReadOnlyList<KeyValuePair<string, long>> LastAsked,
     IReadOnlyList<DecisionLogEntry> DecisionLog,
     string? WorldPreset = null,
-    string? IslandHash = null);
+    string? IslandHash = null)
+{
+    /// <summary>Favour, futile attempts and calls for help (B6); null in save games from before.</summary>
+    public Player.PlayerState? Player { get; init; }
+}
 
 /// <summary>Captures and restores the complete state of a <see cref="SimulationHost"/>.</summary>
 public static class StateCodec
@@ -79,7 +83,10 @@ public static class StateCodec
             lastAsked,
             [.. host.Decisions.Log.Entries],
             host.Map?.Island.PresetId,
-            host.Map?.IslandHash);
+            host.Map?.IslandHash)
+        {
+            Player = host.Player.Capture(),
+        };
     }
 
     /// <summary>Rebuilds a simulation from a saved state with the given content and decider port.</summary>
@@ -132,6 +139,7 @@ public static class StateCodec
             state.Questions.Select(q => new OpenQuestion(q.Id, q.InhabitantId, q.Kind, q.Subject, q.RequestId, q.AskedTick, [.. q.Options.Select(o => (o.OptionId, o.Action, o.TargetId))], q.RetryAtTick)),
             state.LastAsked,
             state.DecisionLog);
+        host.Player.Restore(state.Player);
         return host;
     }
 }

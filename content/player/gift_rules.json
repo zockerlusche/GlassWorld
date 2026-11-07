@@ -3,5 +3,7 @@
   "futile_attempts_threshold": 3,
   "suggestion_expiry_hours": 24,
   "max_open_suggestions": 3,
-  "min_distance_to_inhabitant_m": 1.5
+  "min_distance_to_inhabitant_m": 1.5,
+  "urgent_below": 0.3,
+  "missing_radius_m": 100
 }

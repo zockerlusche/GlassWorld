@@ -35,3 +35,15 @@ class GiftRules(BaseModel):
         ge=0.0,
         le=100.0,
     )
+    urgent_below: float = Field(
+        ...,
+        description="A need below this value counts as pressing: an action that ends while nothing in sight seems to help counts as a futile attempt (placeholder, Marcel's value).",
+        ge=0.0,
+        le=1.0,
+    )
+    missing_radius_m: float = Field(
+        ...,
+        description="The core's check 'really missing': if any object that truly helps lies within this distance, no help is offered; the inhabitant is to search (F5238; placeholder).",
+        ge=1.0,
+        le=1000.0,
+    )

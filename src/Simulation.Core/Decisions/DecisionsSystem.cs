@@ -20,9 +20,19 @@ namespace GlassWorld.Simulation.Decisions;
 public sealed record OpenQuestion(string Id, string InhabitantId, string Kind, string Subject, string RequestId, long AskedTick, IReadOnlyList<(string OptionId, string Action, string? TargetId)> Options, long? RetryAtTick = null);
 
 /// <summary>A command from the player, checked by the core at the next tick (ADR-0005).</summary>
-/// <param name="Kind">Command kind (in B1: <c>inhabitant_clicked</c>).</param>
+/// <param name="Kind">Command kind (<c>inhabitant_clicked</c>, <c>place_gift</c>, ...).</param>
 /// <param name="InhabitantId">Inhabitant concerned, or null for commands without one (weather, gifts in B6).</param>
-public sealed record PlayerCommand(string Kind, string? InhabitantId);
+public sealed record PlayerCommand(string Kind, string? InhabitantId)
+{
+    /// <summary>Object type of a gift (vocabulary id).</summary>
+    public string? TypeId { get; init; }
+
+    /// <summary>World position X of a gift (metres).</summary>
+    public double? X { get; init; }
+
+    /// <summary>World position Z of a gift (metres).</summary>
+    public double? Z { get; init; }
+}
 
 /// <summary>Result of a player command.</summary>
 /// <param name="Accepted">True if the core accepted it.</param>
@@ -56,6 +66,7 @@ public sealed class DecisionsSystem : IWorldSystem
     private readonly SortedDictionary<string, OpenQuestion> _open = new(StringComparer.Ordinal);
     private readonly SortedDictionary<string, long> _lastAsked = new(StringComparer.Ordinal);
     private readonly Queue<PlayerCommand> _commands = new();
+    private readonly Dictionary<string, (Func<PlayerCommand, CommandResult> Check, Action<World, PlayerCommand> Apply)> _handlers = new(StringComparer.Ordinal);
     private readonly DeciderSettings _settings;
     private readonly InhabitantsSystem _inhabitants;
     private readonly WorldObjects _objects;
@@ -146,10 +157,34 @@ public sealed class DecisionsSystem : IWorldSystem
         }
     }
 
+    /// <summary>
+    /// Registers a command kind handled by another world system (e.g. gifts by the player system): the
+    /// check runs at submit, the apply at the tick it takes effect. Every command goes through the same
+    /// log, so replays apply it at the same tick.
+    /// </summary>
+    public void RegisterCommand(string kind, Func<PlayerCommand, CommandResult> check, Action<World, PlayerCommand> apply)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(kind);
+        ArgumentNullException.ThrowIfNull(check);
+        ArgumentNullException.ThrowIfNull(apply);
+        _handlers[kind] = (check, apply);
+    }
+
     /// <summary>Queues a player command; it takes effect at the next tick.</summary>
     public CommandResult Submit(PlayerCommand command)
     {
         ArgumentNullException.ThrowIfNull(command);
+        if (_handlers.TryGetValue(command.Kind, out var handler))
+        {
+            var result = handler.Check(command);
+            if (result.Accepted)
+            {
+                _commands.Enqueue(command);
+            }
+
+            return result;
+        }
+
         if (command.Kind != InhabitantClicked)
         {
             return new CommandResult(false, ReasonUnknownCommand);
@@ -185,6 +220,12 @@ public sealed class DecisionsSystem : IWorldSystem
         while (_commands.TryDequeue(out var command))
         {
             Log.Add(new DecisionLogEntry(DecisionLogKind.Command, string.Empty, world.Tick, System.Text.Json.JsonSerializer.Serialize(command), null));
+            if (_handlers.TryGetValue(command.Kind, out var handler))
+            {
+                handler.Apply(world, command);
+                continue;
+            }
+
             if (command.InhabitantId is not null && Enabled(NoticedPlayer))
             {
                 Ask(world, _inhabitants.Get(command.InhabitantId), NoticedPlayer, "player", null);
