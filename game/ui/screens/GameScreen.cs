@@ -353,7 +353,8 @@ public partial class GameScreen : CanvasLayer
             var area = GetViewport().GetVisibleRect().Size;
             var cardRect = new Rect2(_card.Position, _card.Size);
             var foreground = CardArea(area).X >= area.X;
-            var overlap = !foreground && _sideBar.Panels.Any(p => p.Visible && new Rect2(p.Position, p.Size).Intersects(cardRect));
+            var overlap = (!foreground && _sideBar.Panels.Any(p => p.Visible && new Rect2(p.Position, p.Size).Intersects(cardRect)))
+                || (_topBar is not null && new Rect2(_topBar.Position, _topBar.Size).Intersects(cardRect));
             if (!_card.IsInsideSafeArea(area) || overlap)
             {
                 problem = $"card at UI {scale:0.##}: outside the safe area or over the side panel ({cardRect} in {area})";
@@ -388,10 +389,27 @@ public partial class GameScreen : CanvasLayer
         _toasts.Position = new Vector2(area.X - margin - width, area.Y - margin - _toasts.GetCombinedMinimumSize().Y);
 
         // The card stays beside the side bar and its open panel and is re-fitted when the UI size changes.
-        _card?.FitInto(CardArea(area));
+        FitCard(area);
     }
 
     /// <summary>Screen part the card is centred in (left of the side bar and its open panel, see <see cref="ScreenModel.CardRoom"/>).</summary>
+    /// <summary>
+    /// Fits the card beside the side bar and below the top bar (A1335 screenshots: at 175 % it covered
+    /// clock and time buttons); content that does not fit scrolls.
+    /// </summary>
+    private void FitCard(Vector2 area)
+    {
+        if (_card is null || _style is null || _topBar is null)
+        {
+            return;
+        }
+
+        var window = _style.Tokens.Window;
+        var top = Math.Max(0, _topBar.Position.Y + _topBar.Size.Y + window.Gap - window.SafeMargin);
+        _card.FitInto(new Vector2(CardArea(area).X, area.Y - top));
+        _card.Position += new Vector2(0, top);
+    }
+
     private Vector2 CardArea(Vector2 area)
     {
         if (_style is null || _card is null)
@@ -429,7 +447,7 @@ public partial class GameScreen : CanvasLayer
         _cardShape = string.Empty;
         _root.AddChild(_card);
         FillCard(inhabitantId);
-        _card.FitInto(CardArea(GetViewport().GetVisibleRect().Size));
+        FitCard(GetViewport().GetVisibleRect().Size);
     }
 
     private void FillCard(string inhabitantId)
