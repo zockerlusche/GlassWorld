@@ -3,8 +3,27 @@
   "status": "degraded",
   "service_version": "0.1.0",
   "dependencies": [
-    { "name": "comfyui", "status": "down", "version": null },
-    { "name": "ollama", "status": "down", "version": null }
+    {
+      "name": "comfyui",
+      "status": "down",
+      "version": null
+    },
+    {
+      "name": "ollama",
+      "status": "down",
+      "version": null
+    }
   ],
-  "decider_model": { "name": "qwen3.5:9b", "available": false, "loaded": false }
+  "decider_model": {
+    "name": "qwen3.5:9b",
+    "available": false,
+    "loaded": false
+  },
+  "hardware": {
+    "tier": null,
+    "gpus": [],
+    "cpu_name": null,
+    "logical_cpus": 4,
+    "ram_mib": 8192
+  }
 }

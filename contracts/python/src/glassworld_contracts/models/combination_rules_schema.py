@@ -3,15 +3,13 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, RootModel
+from pydantic import BaseModel, ConfigDict, Field
 
 from . import common_schema
 
-
-class Consume(RootModel[int]):
-    root: int = Field(..., ge=0, le=3)
+type Consume = Annotated[int, Field(..., ge=0, le=3)]
 
 
 class InputSlot(BaseModel):

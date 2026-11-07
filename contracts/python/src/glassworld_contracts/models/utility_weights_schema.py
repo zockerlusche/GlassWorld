@@ -3,19 +3,16 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, RootModel
+from pydantic import BaseModel, ConfigDict, Field
 
 from . import common_schema
 
-
-class CurveItemItem(RootModel[float]):
-    root: float = Field(..., ge=0.0, le=1.0)
+type CurveItemItem = Annotated[float, Field(..., ge=0.0, le=1.0)]
 
 
-class CurveItem(RootModel[list[CurveItemItem]]):
-    root: list[CurveItemItem] = Field(..., max_length=2, min_length=2)
+type CurveItem = Annotated[list[CurveItemItem], Field(..., max_length=2, min_length=2)]
 
 
 class Consideration(BaseModel):

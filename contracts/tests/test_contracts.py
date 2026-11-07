@@ -8,6 +8,7 @@ Example files are named <schema-name>.<case>.json, e.g. decision-request.hungry-
 
 from __future__ import annotations
 
+import fnmatch
 import json
 from pathlib import Path
 from typing import Any
@@ -149,3 +150,94 @@ def test_every_message_schema_has_valid_and_invalid_examples(schema_name: str) -
     invalid = [p for p in INVALID_EXAMPLES if _schema_name(p) == schema_name]
     assert valid, f"no valid example for {schema_name}"
     assert invalid, f"no invalid example for {schema_name}"
+
+
+# --- conservative schema subset (C# generation reads the schemas as draft-07) ---------------
+
+REF_SIBLINGS_ALLOWED = {"$ref", "description", "title", "$comment"}
+FORBIDDEN_KEYWORDS = {
+    "$dynamicRef",
+    "$dynamicAnchor",
+    "unevaluatedProperties",
+    "unevaluatedItems",
+    "if",
+    "then",
+    "else",
+    "dependentSchemas",
+    "prefixItems",
+}
+
+
+def _walk(node: Any, path: str = "#") -> list[tuple[str, dict[str, Any]]]:
+    found: list[tuple[str, dict[str, Any]]] = []
+    if isinstance(node, dict):
+        found.append((path, node))
+        for key, value in node.items():
+            found.extend(_walk(value, f"{path}/{key}"))
+    elif isinstance(node, list):
+        for index, value in enumerate(node):
+            found.extend(_walk(value, f"{path}/{index}"))
+    return found
+
+
+@pytest.mark.parametrize("path", SCHEMA_FILES, ids=lambda p: p.name)
+def test_schema_stays_in_the_conservative_subset(path: Path) -> None:
+    for where, node in _walk(_load(path)):
+        if "$ref" in node:
+            extra = set(node) - REF_SIBLINGS_ALLOWED
+            assert not extra, (
+                f"{path.name} {where}: keywords next to $ref are ignored in C#: {extra}"
+            )
+        # "properties" maps names to schemas, so its keys are not keywords.
+        if not where.endswith("/properties"):
+            used = FORBIDDEN_KEYWORDS & set(node)
+            assert not used, f"{path.name} {where}: outside the conservative subset: {used}"
+
+
+# --- every data file in content/ is validated (ADR-0007) ------------------------------------
+# contracts/content-map.json is shared with the C# tests. Patterns are relative to content/;
+# "*" matches within one folder only (no "**").
+
+CONTENT = ROOT.parent / "content"
+CONTENT_MAP = ROOT / "content-map.json"
+CONTENT_FILES = sorted(CONTENT.rglob("*.json"))
+
+
+def _content_entries() -> list[tuple[str, str]]:
+    data = _load(CONTENT_MAP)
+    assert data["contract_version"] == "0.1"
+    return [(entry["pattern"], entry["schema"]) for entry in data["entries"]]
+
+
+def _matches(relative: str, pattern: str) -> bool:
+    parts, pattern_parts = relative.split("/"), pattern.split("/")
+    return len(parts) == len(pattern_parts) and all(
+        fnmatch.fnmatchcase(part, pat) for part, pat in zip(parts, pattern_parts, strict=True)
+    )
+
+
+def _relative(path: Path) -> str:
+    return path.relative_to(CONTENT).as_posix()
+
+
+@pytest.mark.parametrize("path", CONTENT_FILES, ids=_relative)
+def test_content_file_matches_exactly_one_schema_and_is_valid(path: Path) -> None:
+    schemas = [
+        schema for pattern, schema in _content_entries() if _matches(_relative(path), pattern)
+    ]
+    assert len(schemas) == 1, f"content/{_relative(path)}: matched by {schemas or 'no'} entry"
+    _validator(schemas[0]).validate(_load(path))
+
+
+def test_content_map_entries_are_used_and_known() -> None:
+    names = {p.name.removesuffix(".schema.json") for p in SCHEMA_FILES}
+    for pattern, schema in _content_entries():
+        assert "**" not in pattern
+        assert schema in names, f"{pattern}: unknown schema {schema}"
+        assert any(_matches(_relative(p), pattern) for p in CONTENT_FILES), f"{pattern}: no file"
+
+
+def test_matching_stays_within_one_folder() -> None:
+    assert _matches("vocabulary/actions.json", "vocabulary/*.json")
+    assert not _matches("vocabulary/sub/actions.json", "vocabulary/*.json")
+    assert not _matches("hardware/tiers.json", "vocabulary/*.json")

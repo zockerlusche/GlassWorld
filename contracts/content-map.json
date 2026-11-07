@@ -37,6 +37,10 @@
     {
       "pattern": "decider/settings.json",
       "schema": "decider-settings"
+    },
+    {
+      "pattern": "hardware/tiers.json",
+      "schema": "hardware-tiers"
     }
   ]
 }

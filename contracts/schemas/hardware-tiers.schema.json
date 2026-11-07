@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/hardware-tiers.schema.json",
+  "title": "HardwareTiers",
+  "description": "Data file content/hardware/tiers.json: hardware tiers and their thresholds. Tiers are listed from lowest to highest; the highest tier whose requirements are all met applies. Below the first tier the PC is not supported.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "tiers"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "tiers": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/Tier"
+      }
+    }
+  },
+  "$defs": {
+    "Tier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "description",
+        "requires_any"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "description": {
+          "description": "Short English description of what runs on this tier.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "requires_any": {
+          "description": "The tier applies if at least one of these requirement sets is fully met.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/Requirement"
+          }
+        }
+      }
+    },
+    "Requirement": {
+      "description": "All given limits must be met. Omitted limits are not checked.",
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "min_largest_gpu_vram_mib": {
+          "description": "VRAM of the largest NVIDIA GPU in MiB as reported by nvidia-smi. Cards report slightly less than their nominal size, so thresholds carry a tolerance.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "min_second_largest_gpu_vram_mib": {
+          "description": "VRAM of the second-largest NVIDIA GPU in MiB (0 if there is only one). Use it for multi-GPU tiers so that a small second card does not count.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "min_ram_mib": {
+          "description": "Installed system RAM in MiB.",
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}

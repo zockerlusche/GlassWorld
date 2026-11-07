@@ -13,6 +13,7 @@ from fastapi import FastAPI
 
 from glassworld_ai.app import create_app
 from glassworld_ai.config import Settings, load_settings
+from glassworld_ai.hardware import Gpu, HardwareInfo
 from glassworld_ai.probes import DOWN, DependencyState, OllamaState
 
 TEST_HOST = "testserver"
@@ -42,6 +43,13 @@ class FakeProbes:
 
 OLLAMA_DOWN = OllamaState(service=DOWN, model_available=False, model_loaded=False)
 
+REFERENCE_PC = HardwareInfo(
+    gpus=(Gpu(name="NVIDIA GeForce RTX 3080", vram_mib=10240),),
+    cpu_name="AMD Ryzen 5 5600X 6-Core Processor",
+    logical_cpus=12,
+    ram_mib=32 * 1024,
+)
+
 
 @pytest.fixture
 def settings(monkeypatch: pytest.MonkeyPatch) -> Settings:
@@ -50,8 +58,17 @@ def settings(monkeypatch: pytest.MonkeyPatch) -> Settings:
     return load_settings()
 
 
-def make_app(settings: Settings, probes: FakeProbes | None = None) -> FastAPI:
-    return create_app(settings, allowed_hosts=frozenset({TEST_HOST}), probes=probes or FakeProbes())
+def make_app(
+    settings: Settings,
+    probes: FakeProbes | None = None,
+    hardware: HardwareInfo = REFERENCE_PC,
+) -> FastAPI:
+    return create_app(
+        settings,
+        allowed_hosts=frozenset({TEST_HOST}),
+        probes=probes or FakeProbes(),
+        hardware=hardware,
+    )
 
 
 def get(app: FastAPI, path: str, headers: Mapping[str, str] | None = None) -> httpx.Response:

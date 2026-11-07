@@ -5,13 +5,26 @@
   "description": "AI service -> game: answer of GET /health (ADR-0006). The game refuses a service whose contract_version differs from its own.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["contract_version", "status", "service_version", "dependencies", "decider_model"],
+  "required": [
+    "contract_version",
+    "status",
+    "service_version",
+    "dependencies",
+    "decider_model",
+    "hardware"
+  ],
   "properties": {
-    "contract_version": { "$ref": "common.schema.json#/$defs/ContractVersion" },
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
     "status": {
       "description": "starting = not yet probed; ready = decisions can be served; degraded = running, but a dependency or the decider model is missing.",
       "type": "string",
-      "enum": ["starting", "ready", "degraded"]
+      "enum": [
+        "starting",
+        "ready",
+        "degraded"
+      ]
     },
     "service_version": {
       "type": "string",
@@ -20,23 +33,51 @@
     "dependencies": {
       "description": "External programs the service uses but never starts (Ollama, ComfyUI).",
       "type": "array",
-      "items": { "$ref": "#/$defs/Dependency" }
+      "items": {
+        "$ref": "#/$defs/Dependency"
+      }
     },
-    "decider_model": { "$ref": "#/$defs/ModelState" }
+    "decider_model": {
+      "$ref": "#/$defs/ModelState"
+    },
+    "hardware": {
+      "$ref": "#/$defs/Hardware"
+    }
   },
   "$defs": {
     "Dependency": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "status", "version"],
+      "required": [
+        "name",
+        "status",
+        "version"
+      ],
       "properties": {
-        "name": { "type": "string", "enum": ["ollama", "comfyui"] },
-        "status": { "type": "string", "enum": ["up", "down"] },
+        "name": {
+          "type": "string",
+          "enum": [
+            "ollama",
+            "comfyui"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "up",
+            "down"
+          ]
+        },
         "version": {
           "description": "Version reported by the dependency; null if unknown or down.",
           "anyOf": [
-            { "type": "string", "maxLength": 64 },
-            { "type": "null" }
+            {
+              "type": "string",
+              "maxLength": 64
+            },
+            {
+              "type": "null"
+            }
           ]
         }
       }
@@ -44,9 +85,16 @@
     "ModelState": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "available", "loaded"],
+      "required": [
+        "name",
+        "available",
+        "loaded"
+      ],
       "properties": {
-        "name": { "type": "string", "maxLength": 128 },
+        "name": {
+          "type": "string",
+          "maxLength": 128
+        },
         "available": {
           "description": "The model with the configured digest is installed in Ollama.",
           "type": "boolean"
@@ -54,6 +102,90 @@
         "loaded": {
           "description": "The model is currently loaded in VRAM (warm).",
           "type": "boolean"
+        }
+      }
+    },
+    "Hardware": {
+      "description": "Hardware detected at service start and the resulting tier (content/hardware/tiers.json).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tier",
+        "gpus",
+        "cpu_name",
+        "logical_cpus",
+        "ram_mib"
+      ],
+      "properties": {
+        "tier": {
+          "description": "Id of the highest tier whose requirements are met; null if below the lowest tier.",
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/VocabId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "gpus": {
+          "description": "Detected NVIDIA GPUs; empty if none or nvidia-smi is missing.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Gpu"
+          }
+        },
+        "cpu_name": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "logical_cpus": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ram_mib": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "format": "int64"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "Gpu": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "vram_mib"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "vram_mib": {
+          "type": "integer",
+          "minimum": 0
         }
       }
     }
