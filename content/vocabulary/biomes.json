@@ -11,6 +11,10 @@
       "description": "Open grassland with flowers and bushes."
     },
     {
+      "id": "field",
+      "description": "Open land with wild grain and tall grasses."
+    },
+    {
       "id": "forest",
       "description": "Trees close together, shady and damp."
     },
