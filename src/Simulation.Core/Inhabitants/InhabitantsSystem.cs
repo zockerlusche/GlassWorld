@@ -14,6 +14,11 @@ namespace GlassWorld.Simulation.Inhabitants;
 /// <param name="TargetId">Target object id, if any.</param>
 public sealed record WorldEvent(string Kind, long Tick, string InhabitantId, string? Action, string? TargetId);
 
+/// <summary>An event with its running number (UI and sound read everything since their last number).</summary>
+/// <param name="Seq">Running number, starting at 1, never reused.</param>
+/// <param name="Event">The event.</param>
+public sealed record SequencedEvent(long Seq, WorldEvent Event);
+
 /// <summary>
 /// All inhabitants (a world system): needs decay, moods follow drivers, the will to live sinks only after
 /// long neglect (B2484), and the routine layer chooses and performs actions whose effects come from the
@@ -38,6 +43,8 @@ public sealed class InhabitantsSystem : IWorldSystem
     private readonly UtilityBrain _brain;
     private readonly WorldObjects _objects;
     private readonly int _ticksPerHour;
+    private long _eventsTick = -1;
+    private readonly LinkedList<SequencedEvent> _history = new();
 
     /// <summary>Creates the system.</summary>
     public InhabitantsSystem(InhabitantModel model, ActionRules actions, UtilityBrain brain, WorldObjects objects, int ticksPerHour)
@@ -57,8 +64,42 @@ public sealed class InhabitantsSystem : IWorldSystem
     /// <summary>All inhabitants in id order.</summary>
     public IEnumerable<Inhabitant> All => _inhabitants.Values;
 
-    /// <summary>Events of the last tick.</summary>
+    /// <summary>Events of the most recent tick that had events (UI, sound and tests read them each tick).</summary>
     public IReadOnlyList<WorldEvent> Events => _events;
+
+    /// <summary>
+    /// How many events are kept for <see cref="EventsSince"/>. Technical buffer, not a game value: at
+    /// x16 the game advances up to max_ticks_per_frame ticks per frame and reads once per frame.
+    /// </summary>
+    public const int EventHistoryCapacity = 4096;
+
+    /// <summary>Running number of the last event (0 = none yet).</summary>
+    public long LastEventSeq { get; private set; }
+
+    /// <summary>
+    /// All kept events with a running number greater than <paramref name="seq"/>, oldest first. A reader
+    /// that falls behind by more than <see cref="EventHistoryCapacity"/> events sees a gap in the numbers.
+    /// </summary>
+    public IReadOnlyList<SequencedEvent> EventsSince(long seq) => [.. _history.Where(e => e.Seq > seq)];
+
+    /// <summary>Adds an event; the per-tick list is cleared when the first event of a new tick arrives.</summary>
+    public void Report(WorldEvent worldEvent)
+    {
+        ArgumentNullException.ThrowIfNull(worldEvent);
+        if (worldEvent.Tick != _eventsTick)
+        {
+            _events.Clear();
+            _eventsTick = worldEvent.Tick;
+        }
+
+        _events.Add(worldEvent);
+        LastEventSeq++;
+        _history.AddLast(new SequencedEvent(LastEventSeq, worldEvent));
+        if (_history.Count > EventHistoryCapacity)
+        {
+            _history.RemoveFirst();
+        }
+    }
 
     /// <summary>
     /// Creates the start inhabitants from the world seed (B2503): traits and start needs are drawn from
@@ -103,7 +144,6 @@ public sealed class InhabitantsSystem : IWorldSystem
     public void Advance(World world)
     {
         ArgumentNullException.ThrowIfNull(world);
-        _events.Clear();
         foreach (var inhabitant in _inhabitants.Values)
         {
             DecayNeeds(inhabitant);
@@ -190,7 +230,7 @@ public sealed class InhabitantsSystem : IWorldSystem
         WorldObject? target = null;
         if (activity.TargetId is not null && !_objects.TryGet(activity.TargetId, out target))
         {
-            _events.Add(new WorldEvent(ActionCancelled, world.Tick, inhabitant.Id, activity.Action, activity.TargetId));
+            Report(new WorldEvent(ActionCancelled, world.Tick, inhabitant.Id, activity.Action, activity.TargetId));
             inhabitant.Activity = null;
             return;
         }
@@ -205,7 +245,7 @@ public sealed class InhabitantsSystem : IWorldSystem
             }
 
             inhabitant.Activity = activity with { RemainingTicks = timing.DurationTicks };
-            _events.Add(new WorldEvent(ActionStarted, world.Tick, inhabitant.Id, activity.Action, activity.TargetId));
+            Report(new WorldEvent(ActionStarted, world.Tick, inhabitant.Id, activity.Action, activity.TargetId));
             return;
         }
 
@@ -297,7 +337,7 @@ public sealed class InhabitantsSystem : IWorldSystem
             }
         }
 
-        _events.Add(new WorldEvent(ActionFinished, world.Tick, inhabitant.Id, activity.Action, activity.TargetId));
+        Report(new WorldEvent(ActionFinished, world.Tick, inhabitant.Id, activity.Action, activity.TargetId));
     }
 
     /// <summary>
