@@ -74,16 +74,24 @@
   },
   "$defs": {
     "JobPayload": {
-      "description": "Exactly one part, named like the job kind. The schema checks 'exactly one' (minProperties/maxProperties); that the part matches kind is checked by the service (no if/then in the conservative schema subset the C# generator reads).",
+      "description": "One field per job kind; exactly the field named like the kind is set, all others are null (checked by the service). Required-and-nullable instead of optional, so both generated type systems round-trip the same JSON (optional fields would be written as null).",
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "question": {
-          "$ref": "#/$defs/QuestionPayload"
+          "anyOf": [
+            {
+              "$ref": "#/$defs/QuestionPayload"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
-      "minProperties": 1,
-      "maxProperties": 1
+      "required": [
+        "question"
+      ]
     },
     "QuestionPayload": {
       "description": "An inhabitant does not understand something and asks (W1595). No deadline (B2487): answered at once on strong PCs, at the latest in the computing night.",

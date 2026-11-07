@@ -68,16 +68,24 @@
   },
   "$defs": {
     "JobResult": {
-      "description": "Exactly the part named like the job kind is set.",
+      "description": "One field per job kind; exactly the field named like the kind is set, all others are null.",
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "question": {
-          "$ref": "#/$defs/QuestionResult"
+          "anyOf": [
+            {
+              "$ref": "#/$defs/QuestionResult"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
-      "minProperties": 1,
-      "maxProperties": 1
+      "required": [
+        "question"
+      ]
     },
     "QuestionResult": {
       "description": "A GUESS coloured by character, never the truth (ADR-0005). The core stores it as knowledge with source guessed; trying it out shows the truth.",

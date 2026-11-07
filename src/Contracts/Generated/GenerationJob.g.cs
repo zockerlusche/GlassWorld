@@ -13,7 +13,7 @@ namespace GlassWorld.Contracts
     #pragma warning disable // Disable all warnings
 
     /// <summary>
-    /// Exactly one part, named like the job kind. The schema checks 'exactly one' (minProperties/maxProperties); that the part matches kind is checked by the service (no if/then in the conservative schema subset the C# generator reads).
+    /// One field per job kind; exactly the field named like the kind is set, all others are null (checked by the service). Required-and-nullable instead of optional, so both generated type systems round-trip the same JSON (optional fields would be written as null).
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class JobPayload

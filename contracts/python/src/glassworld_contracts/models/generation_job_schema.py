@@ -40,7 +40,7 @@ class JobPayload(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
-    question: QuestionPayload | None = None
+    question: QuestionPayload | None
 
 
 class GenerationJob(BaseModel):
