@@ -74,6 +74,14 @@ public static class ScreenModel
             .FirstOrDefault();
     }
 
+    /// <summary>
+    /// Width of the screen part the inhabitant card is centred in: everything left of the side bar and
+    /// its open panel (<paramref name="freeRightEdge"/>). If the card does not fit there with its safe
+    /// margins, it becomes a foreground window over the whole width (deliberately over the panel).
+    /// </summary>
+    public static double CardRoom(double areaWidth, double freeRightEdge, double cardMinWidth, double safeMargin)
+        => freeRightEdge - (2 * safeMargin) >= cardMinWidth ? freeRightEdge : areaWidth;
+
     /// <summary>Question marks over a head: one per open question, at most three (B2487: several at once).</summary>
     public static string QuestionMarks(int openQuestions) => new('?', Math.Clamp(openQuestions, 0, 3));
 }
