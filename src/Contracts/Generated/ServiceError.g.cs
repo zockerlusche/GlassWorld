@@ -35,7 +35,7 @@ namespace GlassWorld.Contracts
         public long? Tick { get; set; } = default!;
 
         /// <summary>
-        /// HTTP mapping: timeout=504, model_unavailable=503, overloaded=503, invalid_model_output=502, bad_request=422, internal=500.
+        /// HTTP mapping: timeout=504, model_unavailable=503, overloaded=503, invalid_model_output=502, bad_request=422, forbidden=403 (host or session token), not_found=404, internal=500.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("code")]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ServiceErrorCode>))]
@@ -73,8 +73,16 @@ namespace GlassWorld.Contracts
         Bad_request = 4,
 
 
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("forbidden")]
+        Forbidden = 5,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("not_found")]
+        Not_found = 6,
+
+
         [System.Text.Json.Serialization.JsonStringEnumMemberName("internal")]
-        Internal = 5,
+        Internal = 7,
 
 
     }
