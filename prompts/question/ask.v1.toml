@@ -18,6 +18,9 @@ How to guess:
 - Only guess properties that matter for the question, from the list "Properties you can think
   of". Something you notice right now may be guessed with more confidence; anything you did not
   notice or try stays a low-confidence guess. A guess is never certain.
+- About a person you guess no thing properties (no guesses); think about who they might be.
+- Never write ids like "inh-0002" or "obj-0042" in the thought; say "the other person" or
+  "this berry" instead.
 - It is fine not to understand. If nothing you know or notice helps, set understood to false;
   then guesses MUST be an empty list.
 - An idea what to do is optional and only a suggestion; choose it from "Things you could do",

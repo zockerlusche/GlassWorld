@@ -81,7 +81,9 @@ def output_schema(
     }
 
 
-def parse_answer(raw: str, schema: dict[str, Any]) -> ModelAnswer:
+def parse_answer(
+    raw: str, schema: dict[str, Any], hidden_ids: frozenset[str] = frozenset()
+) -> ModelAnswer:
     """Parse and validate the raw model text against `schema` plus the rules a schema can't say."""
     try:
         data: Any = json.loads(raw)
@@ -106,6 +108,10 @@ def parse_answer(raw: str, schema: dict[str, Any]) -> ModelAnswer:
         # (live probe L659: the model sometimes adds guesses to "I do not understand").
         guesses = ()
     thought = values["thought"]
+    if isinstance(thought, str):
+        leaked = sorted(i for i in hidden_ids if i in thought)
+        if leaked:  # the player sees the thought; internal ids must not show (live probe L663)
+            raise InvalidQuestionOutputError(f"thought shows internal ids {leaked}")
     return ModelAnswer(
         rationale=str(values["rationale"]),
         understood=bool(values["understood"]),

@@ -395,3 +395,24 @@ def test_cancelled_question_is_logged(settings: Settings) -> None:
 
     asyncio.run(scenario())
     assert [r["outcome"] for r in log.read()] == ["cancelled"]
+
+
+def test_thought_must_not_show_internal_ids(settings: Settings) -> None:
+    raw = _good(thought="Was hat inh-0002 nur gemeint?")
+    with pytest.raises(InvalidQuestionOutputError, match="internal ids"):
+        parse_answer(raw, _schema(settings), frozenset({"inh-0002"}))
+
+
+def test_no_thing_guesses_about_a_person(settings: Settings) -> None:
+    data = copy.deepcopy(JOB_DATA)
+    data["payload"]["question"]["question"] = "what_is"
+    data["payload"]["question"]["subject"] = {"kind": "inhabitant", "id": "inh-0002"}
+    sent: list[dict[str, Any]] = []
+
+    def fake(request: httpx.Request) -> httpx.Response:
+        sent.append(json.loads(request.content))
+        return _ollama(_good(guesses=[], thought="Wer ist das nur?"))
+
+    handler, _ = _handler(settings, fake)
+    asyncio.run(handler(GenerationJob.model_validate(data)))
+    assert sent[0]["format"]["properties"]["guesses"]["maxItems"] == 0

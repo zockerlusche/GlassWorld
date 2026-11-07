@@ -68,9 +68,23 @@ def _result(job_locale: str, answer: ModelAnswer) -> dict[str, object]:
     }
 
 
-def _schema(template: PromptTemplate, vocab: Vocabulary) -> dict[str, object]:
-    max_guesses = int(template.settings.get("max_guesses", 4))
+def _schema(template: PromptTemplate, vocab: Vocabulary, job: GenerationJob) -> dict[str, object]:
+    # A person has no thing properties: no guesses about inhabitants (live probe L663).
+    person = plain_id(question_payload(job).subject.kind) == "inhabitant"
+    max_guesses = 0 if person else int(template.settings.get("max_guesses", 4))
     return output_schema(vocab.ids("property"), vocab.ids("action"), max_guesses)
+
+
+def _hidden_ids(job: GenerationJob) -> frozenset[str]:
+    """Entity ids in the job that must never appear in the player-visible thought."""
+    payload = question_payload(job)
+    inhabitant = payload.inhabitant
+    ids = {plain_id(inhabitant.id)}
+    ids |= {plain_id(r.other) for r in inhabitant.relationships}
+    ids |= {plain_id(k.told_by) for k in inhabitant.knowledge if k.told_by is not None}
+    if plain_id(payload.subject.kind) in ("inhabitant", "object"):
+        ids.add(plain_id(payload.subject.id))
+    return frozenset(ids)
 
 
 @dataclass(frozen=True)
@@ -104,7 +118,8 @@ class OllamaQuestions:
     async def __call__(self, job: GenerationJob) -> JobOutcome:
         started = time.monotonic()
         rendered = self._template.render(build_values(job, self._template, self._vocab))
-        schema = _schema(self._template, self._vocab)
+        schema = _schema(self._template, self._vocab, job)
+        hidden = _hidden_ids(job)
         messages = [ChatMessage("system", rendered.system), ChatMessage("user", rendered.user)]
         attempts = 1 + self._settings.max_retries
         last_problem = ""
@@ -184,7 +199,7 @@ class OllamaQuestions:
                 continue
             usage = (result.prompt_tokens, result.output_tokens)
             try:
-                answer = parse_answer(result.content, schema)
+                answer = parse_answer(result.content, schema, hidden)
             except InvalidQuestionOutputError as error:
                 log("invalid", result.content, str(error), usage)
                 last_problem = str(error)
@@ -258,11 +273,11 @@ class ReplayQuestions:
 
     async def __call__(self, job: GenerationJob) -> JobOutcome:
         job_id = plain_id(job.request_id)
-        schema = _schema(self._template, self._vocab)
+        schema = _schema(self._template, self._vocab, job)
         row = self._index().get(job_id)
         if row is not None:
             try:
-                answer = parse_answer(str(row["raw_output"]), schema)
+                answer = parse_answer(str(row["raw_output"]), schema, _hidden_ids(job))
             except InvalidQuestionOutputError as error:
                 raise _fail(
                     "model_unavailable", f"recorded answer does not fit job {job_id}"
