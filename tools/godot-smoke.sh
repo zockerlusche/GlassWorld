@@ -31,8 +31,9 @@ LOG="$(mktemp)"
 trap 'rm -f "$LOG"' EXIT
 set +e
 # --quit-after is a watchdog: if the scene never reaches its marker (e.g. after an exception),
-# Godot still stops shortly after the frame budget instead of running into the timeout.
-timeout "$TIMEOUT_S" "$GODOT" --headless --path "$GAME" --quit-after "$((FRAMES + 120))" -- "--smoke-frames=$FRAMES" >"$LOG" 2>&1
+# Godot still stops after the frame budget instead of running into the timeout. The margin covers
+# the game's own checks (24 layout cases with menu windows, screen, save, menus: about 300 frames).
+timeout "$TIMEOUT_S" "$GODOT" --headless --path "$GAME" --quit-after "$((FRAMES + 2000))" -- "--smoke-frames=$FRAMES" >"$LOG" 2>&1
 CODE=$?
 set -e
 cat "$LOG"
@@ -81,8 +82,11 @@ if ! grep -q '^UI_OK$' "$LOG"; then
   echo "SMOKE_FAIL: UI standard check failed (marker 'UI_OK' missing)" >&2
   exit 1
 fi
-if ! grep -q "^SMOKE_OK frames=$FRAMES\$" "$LOG"; then
-  echo "SMOKE_FAIL: success marker 'SMOKE_OK frames=$FRAMES' missing" >&2
+# The game waits for its own checks (layout cases, screen, save, menus) before it quits, so it may
+# run a few frames longer than requested on a slow runner; at least $FRAMES frames must have run.
+DONE_FRAMES="$(grep -oE '^SMOKE_OK frames=[0-9]+$' "$LOG" | head -1 | cut -d= -f2)"
+if [ -z "$DONE_FRAMES" ] || [ "$DONE_FRAMES" -lt "$FRAMES" ]; then
+  echo "SMOKE_FAIL: success marker 'SMOKE_OK frames=N' with N >= $FRAMES missing" >&2
   exit 1
 fi
 # Look prototype (A1435): builds the island piece and figures and checks that the skeletons animate.
