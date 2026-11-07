@@ -20,6 +20,7 @@ public partial class GameScreen : CanvasLayer
 
     private readonly Control _root = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
     private readonly Control _overlay = new() { Name = "Overlay", MouseFilter = Control.MouseFilterEnum.Ignore };
+    private int _relayoutFrames;
     private readonly GwSideBar _sideBar = new();
     private readonly GwTable _inhabitants = new() { SizeFlagsVertical = Control.SizeFlags.ExpandFill };
     private readonly GwTable _questions = new() { SizeFlagsVertical = Control.SizeFlags.ExpandFill };
@@ -91,6 +92,10 @@ public partial class GameScreen : CanvasLayer
         _toasts.Board = _board;
         _root.AddChild(_toasts);
         GetViewport().SizeChanged += Layout;
+
+        // A new theme (text size, UI size) changes the top bar's height after it has wrapped again;
+        // lay out once more two frames later, so the card stays below the bar (CI found it).
+        _root.ThemeChanged += () => _relayoutFrames = 2;
         _sideBar.Toggled += Layout;
         Layout();
     }
@@ -127,6 +132,11 @@ public partial class GameScreen : CanvasLayer
 
     public override void _Process(double delta)
     {
+        if (_relayoutFrames > 0 && --_relayoutFrames == 0)
+        {
+            Layout();
+        }
+
         if (_feed is null || _board is null || _style is null || _presenter is null)
         {
             return;
