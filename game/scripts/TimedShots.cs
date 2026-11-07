@@ -25,7 +25,21 @@ public partial class TimedShots : Node
 
         var parts = value.Split(';', 2);
         var shots = new TimedShots { Name = "TimedShots", _directory = parts[0] };
-        foreach (var t in parts[1].Split(',', StringSplitOptions.RemoveEmptyEntries).Select(s => double.Parse(s, CultureInfo.InvariantCulture)).Order())
+        var times = new List<double>();
+        foreach (var text in parts[1].Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            // A wrong value must never stop the game from starting: it is reported and skipped.
+            if (double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var t) && t >= 0 && double.IsFinite(t))
+            {
+                times.Add(t);
+            }
+            else
+            {
+                GD.PushWarning($"TIMED_SHOT ignored invalid time '{text}' in GLASSWORLD_SHOTS");
+            }
+        }
+
+        foreach (var t in times.Order())
         {
             shots._times.Enqueue(t);
         }
