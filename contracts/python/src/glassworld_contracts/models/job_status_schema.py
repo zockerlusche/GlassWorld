@@ -84,7 +84,7 @@ class JobResult(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
-    question: QuestionResult | None
+    question: QuestionResult | None = None
 
 
 class JobStatus(BaseModel):

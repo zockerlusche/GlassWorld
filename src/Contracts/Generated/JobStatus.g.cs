@@ -13,12 +13,13 @@ namespace GlassWorld.Contracts
     #pragma warning disable // Disable all warnings
 
     /// <summary>
-    /// One field per job kind; exactly the field named like the kind is set, all others are null.
+    /// One optional field per job kind; exactly the field named like the kind is set (checked by the service and the core). Unset fields are left out by both type systems (pydantic exclude_unset, C# WhenWritingNull), so a new kind is not a breaking change (review GW1 M1).
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class JobResult
     {
 
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("question")]
         public QuestionResult? Question { get; set; } = default!;
 

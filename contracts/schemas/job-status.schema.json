@@ -68,24 +68,16 @@
   },
   "$defs": {
     "JobResult": {
-      "description": "One field per job kind; exactly the field named like the kind is set, all others are null.",
+      "description": "One optional field per job kind; exactly the field named like the kind is set (checked by the service and the core). Unset fields are left out by both type systems (pydantic exclude_unset, C# WhenWritingNull), so a new kind is not a breaking change (review GW1 M1).",
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "question": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/QuestionResult"
-            },
-            {
-              "type": "null"
-            }
-          ]
+          "$ref": "#/$defs/QuestionResult"
         }
       },
-      "required": [
-        "question"
-      ]
+      "minProperties": 1,
+      "maxProperties": 1
     },
     "QuestionResult": {
       "description": "A GUESS coloured by character, never the truth (ADR-0005). The core stores it as knowledge with source guessed; trying it out shows the truth.",

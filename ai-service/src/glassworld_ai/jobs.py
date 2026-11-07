@@ -18,11 +18,8 @@ from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
 
 from glassworld_contracts import CONTRACT_VERSION, GenerationJob, JobStatus
-from glassworld_contracts.models.job_status_schema import JobResult
 
 OPEN_STATES = frozenset({"queued", "running", "deferred"})
-# JobResult has one required, nullable field per kind; a handler fills only its own.
-_NO_RESULT: dict[str, object] = {name: None for name in JobResult.model_fields}
 
 
 class JobFailedError(Exception):
@@ -215,9 +212,7 @@ def _status(record: _Record) -> JobStatus:
         "tick": record.job.tick,
         "kind": record.kind,
         "state": record.state,
-        "result": {**_NO_RESULT, **outcome.result}
-        if outcome is not None and record.state == "done"
-        else None,
+        "result": outcome.result if outcome is not None and record.state == "done" else None,
         "error": None
         if error is None
         else {"code": error.code, "message": str(error)[:500], "retryable": error.retryable},

@@ -230,7 +230,7 @@ def create_app(
                 request_id=job_id if _UUID.fullmatch(job_id) else None,
                 retryable=True,
             )
-        return JSONResponse(status.model_dump(mode="json"))
+        return JSONResponse(status.model_dump(mode="json", exclude_unset=True))
 
     @app.delete("/jobs/{job_id}", status_code=204)
     async def cancel_job(job_id: str) -> Response:

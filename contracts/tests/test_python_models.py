@@ -54,6 +54,7 @@ MODELS: dict[str, type[BaseModel]] = {
 KNOWN_GENERATOR_GAPS = {
     "decision-request.duplicate-weather.json": "uniqueItems is not enforced by pydantic",
     "decision-request.partners-duplicate.json": "uniqueItems is not enforced by pydantic",
+    "generation-job.empty-payload.json": "minProperties is not enforced by pydantic",
 }
 
 
@@ -69,7 +70,7 @@ def _model(path: Path) -> type[BaseModel]:
 def test_valid_example_round_trips(path: Path) -> None:
     raw = _load(path)
     parsed = _model(path).model_validate(raw)
-    assert parsed.model_dump(mode="json") == raw
+    assert parsed.model_dump(mode="json", exclude_unset=True) == raw
 
 
 @pytest.mark.parametrize(

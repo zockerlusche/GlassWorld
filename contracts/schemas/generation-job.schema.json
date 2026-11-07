@@ -74,24 +74,16 @@
   },
   "$defs": {
     "JobPayload": {
-      "description": "One field per job kind; exactly the field named like the kind is set, all others are null (checked by the service). Required-and-nullable instead of optional, so both generated type systems round-trip the same JSON (optional fields would be written as null).",
+      "description": "One optional field per job kind; exactly the field named like the kind is set (checked by the service and the core). Unset fields are left out by both type systems (pydantic exclude_unset, C# WhenWritingNull), so a new kind is not a breaking change (review GW1 M1).",
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "question": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/QuestionPayload"
-            },
-            {
-              "type": "null"
-            }
-          ]
+          "$ref": "#/$defs/QuestionPayload"
         }
       },
-      "required": [
-        "question"
-      ]
+      "minProperties": 1,
+      "maxProperties": 1
     },
     "QuestionPayload": {
       "description": "An inhabitant does not understand something and asks (W1595). No deadline (B2487): answered at once on strong PCs, at the latest in the computing night.",
