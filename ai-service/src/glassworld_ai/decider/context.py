@@ -156,7 +156,13 @@ def _option_line(request: DecisionRequest, vocab: Vocabulary, option: Any) -> st
     action = _vocab_line(vocab, "action", _id(option.action))
     if option.target is None:
         return f"- {option_id}: {action}"
-    target_id = _id(option.target)
-    target = next((o for o in request.perception.objects if _id(o.id) == target_id), None)
-    what = f"{_humanize(_id(target.type))} [{target_id}]" if target else f"[{target_id}]"
-    return f"- {option_id}: {action} -> {what}"
+    what = _object_name(request, _id(option.target))
+    raw_partners: list[object] = list(getattr(option, "partners", None) or [])
+    partners = [_object_name(request, _id(p)) for p in raw_partners]
+    together = f" with {', '.join(partners)}" if partners else ""
+    return f"- {option_id}: {action} -> {what}{together}"
+
+
+def _object_name(request: DecisionRequest, object_id: str) -> str:
+    found = next((o for o in request.perception.objects if _id(o.id) == object_id), None)
+    return f"{_humanize(_id(found.type))} [{object_id}]" if found else f"[{object_id}]"

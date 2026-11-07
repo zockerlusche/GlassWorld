@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -13,6 +14,7 @@ from fastapi import FastAPI
 
 from glassworld_ai.app import create_app
 from glassworld_ai.config import Settings, load_settings
+from glassworld_ai.decider.backends import Decider, MockDecider
 from glassworld_ai.hardware import Gpu, HardwareInfo
 from glassworld_ai.probes import DOWN, DependencyState, OllamaState
 
@@ -52,9 +54,10 @@ REFERENCE_PC = HardwareInfo(
 
 
 @pytest.fixture
-def settings(monkeypatch: pytest.MonkeyPatch) -> Settings:
+def settings(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Settings:
     monkeypatch.chdir(SERVICE_DIR / "tests")  # no developer .env leaks into tests
     monkeypatch.setenv("GW_AI_TOKEN", TOKEN)
+    monkeypatch.setenv("GW_AI_LOG_DIR", str(tmp_path / "logs"))
     return load_settings()
 
 
@@ -62,12 +65,14 @@ def make_app(
     settings: Settings,
     probes: FakeProbes | None = None,
     hardware: HardwareInfo = REFERENCE_PC,
+    decider: Decider | None = None,
 ) -> FastAPI:
     return create_app(
         settings,
         allowed_hosts=frozenset({TEST_HOST}),
         probes=probes or FakeProbes(),
         hardware=hardware,
+        decider=decider or MockDecider(),
     )
 
 
@@ -78,6 +83,21 @@ def get(app: FastAPI, path: str, headers: Mapping[str, str] | None = None) -> ht
         transport = httpx.ASGITransport(app=app)
         async with httpx.AsyncClient(transport=transport, base_url=f"http://{TEST_HOST}") as c:
             return await c.get(path, headers=dict(headers or {}))
+
+    return asyncio.run(_call())
+
+
+def post(
+    app: FastAPI, path: str, body: bytes | object, headers: Mapping[str, str] | None = None
+) -> httpx.Response:
+    """In-process POST with the session token unless headers are given."""
+    sent = dict(headers) if headers is not None else {"x-gw-token": TOKEN}
+    content = body if isinstance(body, bytes) else json.dumps(body).encode("utf-8")
+
+    async def _call() -> httpx.Response:
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(transport=transport, base_url=f"http://{TEST_HOST}") as c:
+            return await c.post(path, content=content, headers=sent)
 
     return asyncio.run(_call())
 

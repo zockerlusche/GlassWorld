@@ -8,6 +8,7 @@ dependencies = [
     "fastapi>=0.120,<1",
     "glassworld-contracts",
     "httpx>=0.28,<1",
+    "jsonschema>=4.25,<5",
     "pydantic>=2.12,<3",
     "pydantic-settings>=2.11,<3",
     "uvicorn>=0.38,<1",

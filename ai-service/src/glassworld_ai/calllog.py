@@ -28,6 +28,8 @@ class CallRecord:
     raw_output: str | None
     request: dict[str, object] | None = None
     detail: str | None = None
+    prompt_tokens: int | None = None
+    output_tokens: int | None = None
 
 
 class CallLog:

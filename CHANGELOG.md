@@ -11,6 +11,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - ADR-0008: UI and presentation logic in the Godot-free C# library `src/Game.Presentation`; `game/` keeps thin node scripts; no GDScript.
 - Hardware detection in the AI service (GPU via nvidia-smi, CPU, RAM; standard library only) and tier selection from the data file `content/hardware/tiers.json` (schema `HardwareTiers`, thresholds with ~5 % tolerance, multi-GPU tier requires a second card of minimum size); `/health` reports the hardware and tier.
 - Generated Python contract types use type aliases instead of RootModel wrappers (plain `str`/`int` values).
+- AI service: `POST /decide` (B3) with per-request output schema (option ids as enum), schema check of the request before the model, up to two retries, ServiceError on failure (no substitute decision), mock and replay backends, JSONL call log; model queue, Ollama client, versioned prompts (decider prompt v1).
 - AI service skeleton (`ai-service/`): FastAPI on 127.0.0.1 with OS-assigned port and ready line, `GET /health` (HealthStatus) probing Ollama and ComfyUI, session token and Host check, ServiceError bodies, configuration from `config.toml` / `GW_AI_*`.
 - Contracts: `HealthStatus` schema; ServiceError codes `forbidden` and `not_found`.
 - Contracts v0: JSON Schemas for DecisionRequest, DecisionResponse, ServiceError and vocabulary files, examples, vocabulary placeholders in `content/vocabulary/`, generated pydantic models (`glassworld_contracts`) and contract tests.
