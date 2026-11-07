@@ -1,0 +1,38 @@
+{
+  "contract_version": "0.1",
+  "kind": "weather",
+  "entries": [
+    {
+      "id": "clear",
+      "description": "Clear sky, sunny or starry."
+    },
+    {
+      "id": "cloudy",
+      "description": "Grey clouds cover the sky."
+    },
+    {
+      "id": "rain",
+      "description": "It is raining."
+    },
+    {
+      "id": "storm",
+      "description": "Strong wind with heavy rain."
+    },
+    {
+      "id": "fog",
+      "description": "Thick fog, little can be seen."
+    },
+    {
+      "id": "frost",
+      "description": "Freezing cold, ground is frozen."
+    },
+    {
+      "id": "snow",
+      "description": "Snow is falling or lying on the ground."
+    },
+    {
+      "id": "heat",
+      "description": "Very hot and dry."
+    }
+  ]
+}

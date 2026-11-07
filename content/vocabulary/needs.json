@@ -1,0 +1,38 @@
+{
+  "contract_version": "0.1",
+  "kind": "need",
+  "entries": [
+    {
+      "id": "hunger",
+      "description": "Need for food."
+    },
+    {
+      "id": "thirst",
+      "description": "Need for water."
+    },
+    {
+      "id": "sleep",
+      "description": "Need for sleep and rest."
+    },
+    {
+      "id": "warmth",
+      "description": "Need to stay warm."
+    },
+    {
+      "id": "safety",
+      "description": "Need to feel safe."
+    },
+    {
+      "id": "company",
+      "description": "Need for company and conversation."
+    },
+    {
+      "id": "fun",
+      "description": "Need for joy and play."
+    },
+    {
+      "id": "purpose",
+      "description": "Need for meaning and something worth doing."
+    }
+  ]
+}

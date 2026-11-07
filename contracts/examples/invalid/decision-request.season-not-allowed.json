@@ -1,0 +1,103 @@
+{
+  "contract_version": "0.1",
+  "request_id": "3f2b8c1e-5d4a-4b6f-9e21-0c7d8a9b1f00",
+  "tick": 1200,
+  "seed": 424242,
+  "deadline_ms": 8000,
+  "display_locale": "de",
+  "inhabitant": {
+    "id": "inh-0001",
+    "needs": [
+      {
+        "id": "hunger",
+        "value": 0.18
+      },
+      {
+        "id": "sleep",
+        "value": 0.55
+      },
+      {
+        "id": "thirst",
+        "value": 0.7
+      }
+    ],
+    "mood": [
+      {
+        "id": "boredom",
+        "value": 0.3
+      },
+      {
+        "id": "sadness",
+        "value": 0.2
+      }
+    ],
+    "will_to_live": 0.8,
+    "traits": [
+      {
+        "id": "courage",
+        "value": 0.35
+      },
+      {
+        "id": "curiosity",
+        "value": 0.8
+      },
+      {
+        "id": "patience",
+        "value": 0.4
+      }
+    ]
+  },
+  "environment": {
+    "time_of_day": "day",
+    "temperature_c": -3.0,
+    "weather": [
+      "frost",
+      "snow"
+    ],
+    "season": "winter"
+  },
+  "perception": {
+    "objects": [
+      {
+        "id": "obj-0042",
+        "type": "red_berry_bush",
+        "distance_m": 4.5,
+        "known_properties": []
+      },
+      {
+        "id": "obj-0007",
+        "type": "apple_tree",
+        "distance_m": 22.0,
+        "known_properties": [
+          {
+            "property": "edible",
+            "value": true,
+            "confidence": 0.9
+          }
+        ]
+      }
+    ]
+  },
+  "options": [
+    {
+      "option_id": "o1",
+      "action": "inspect",
+      "target": "obj-0042"
+    },
+    {
+      "option_id": "o2",
+      "action": "eat",
+      "target": "obj-0042"
+    },
+    {
+      "option_id": "o3",
+      "action": "move_to",
+      "target": "obj-0007"
+    },
+    {
+      "option_id": "o4",
+      "action": "idle",
+      "target": null
+    }
+  ]
+}

@@ -1,0 +1,98 @@
+{
+  "contract_version": "0.1",
+  "kind": "property",
+  "entries": [
+    {
+      "id": "edible",
+      "description": "Can be eaten and satisfies hunger."
+    },
+    {
+      "id": "poisonous",
+      "description": "Makes ill whoever eats or drinks it."
+    },
+    {
+      "id": "drinkable",
+      "description": "Can be drunk and satisfies thirst."
+    },
+    {
+      "id": "salty",
+      "description": "Salty; drinking it makes thirstier instead of quenching thirst."
+    },
+    {
+      "id": "healing",
+      "description": "Eases illness or pain when used."
+    },
+    {
+      "id": "long_lasting",
+      "description": "Stays good to eat for a long time."
+    },
+    {
+      "id": "burnable",
+      "description": "Burns when lit."
+    },
+    {
+      "id": "sparks",
+      "description": "Throws sparks when struck against a suitable stone."
+    },
+    {
+      "id": "sticky",
+      "description": "Sticks things together."
+    },
+    {
+      "id": "fibrous",
+      "description": "Can be pulled into fibres."
+    },
+    {
+      "id": "braidable",
+      "description": "Can be braided or woven."
+    },
+    {
+      "id": "insulating",
+      "description": "Keeps warmth in or cold out."
+    },
+    {
+      "id": "hard",
+      "description": "Solid and hard to break."
+    },
+    {
+      "id": "sharp",
+      "description": "Has a sharp edge or point; cuts or pricks."
+    },
+    {
+      "id": "splittable",
+      "description": "Splits into flat pieces."
+    },
+    {
+      "id": "scratchable",
+      "description": "Marks can be scratched into it."
+    },
+    {
+      "id": "malleable",
+      "description": "Can be shaped by hand while moist."
+    },
+    {
+      "id": "hardens_in_fire",
+      "description": "Becomes hard when fired."
+    },
+    {
+      "id": "cooling",
+      "description": "Cools what touches it."
+    },
+    {
+      "id": "building_material",
+      "description": "Usable to build with."
+    },
+    {
+      "id": "container",
+      "description": "Can hold other things."
+    },
+    {
+      "id": "portable",
+      "description": "Small and light enough to be carried."
+    },
+    {
+      "id": "hot",
+      "description": "Is hot to the touch."
+    }
+  ]
+}

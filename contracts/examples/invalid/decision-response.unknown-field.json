@@ -1,0 +1,16 @@
+{
+  "contract_version": "0.1",
+  "request_id": "3f2b8c1e-5d4a-4b6f-9e21-0c7d8a9b1f00",
+  "tick": 1200,
+  "option_id": "o2",
+  "expression": null,
+  "rationale": "Eat.",
+  "thought": null,
+  "meta": {
+    "source": "model",
+    "model": "qwen3.5:9b",
+    "latency_ms": 2100,
+    "attempts": 1
+  },
+  "execute": "rm -rf /"
+}

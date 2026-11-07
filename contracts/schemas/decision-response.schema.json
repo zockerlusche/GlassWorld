@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/decision-response.schema.json",
+  "title": "DecisionResponse",
+  "description": "AI service -> core: the decider's proposal. Only a proposal; the core's rule guard has the final say.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "request_id",
+    "tick",
+    "option_id",
+    "expression",
+    "rationale",
+    "thought",
+    "meta"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "request_id": {
+      "$ref": "common.schema.json#/$defs/RequestId"
+    },
+    "tick": {
+      "description": "Echo of the request tick; the core discards stale responses.",
+      "$ref": "common.schema.json#/$defs/Tick"
+    },
+    "option_id": {
+      "description": "Chosen option; must be one of the option_ids of the request.",
+      "$ref": "common.schema.json#/$defs/OptionId"
+    },
+    "expression": {
+      "description": "Optional body expression id from the expression vocabulary. The core maps it to an animation via a data table in content/ (not via the AI); an unknown id is dropped and the decision stays valid. Null if none.",
+      "anyOf": [
+        {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "rationale": {
+      "description": "Short English reasoning for logs and the debug view. Never shown to the player.",
+      "type": "string",
+      "maxLength": 280
+    },
+    "thought": {
+      "description": "Optional thought bubble in the player's language; null if none.",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Thought"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "meta": {
+      "$ref": "#/$defs/ResponseMeta"
+    }
+  },
+  "$defs": {
+    "Thought": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "locale",
+        "text"
+      ],
+      "properties": {
+        "locale": {
+          "$ref": "common.schema.json#/$defs/Locale"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 140
+        }
+      }
+    },
+    "ResponseMeta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source",
+        "model",
+        "latency_ms",
+        "attempts"
+      ],
+      "properties": {
+        "source": {
+          "description": "model = real LLM, mock = test double, replay = answer replayed from a log.",
+          "type": "string",
+          "enum": [
+            "model",
+            "mock",
+            "replay"
+          ]
+        },
+        "model": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "latency_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "format": "int64"
+        },
+        "attempts": {
+          "description": "Model calls used (1 + at most 2 retries, per handbook).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3
+        }
+      }
+    }
+  }
+}

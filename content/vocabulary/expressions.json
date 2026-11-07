@@ -1,0 +1,54 @@
+{
+  "contract_version": "0.1",
+  "kind": "expression",
+  "entries": [
+    {
+      "id": "look_around",
+      "description": "Look around curiously."
+    },
+    {
+      "id": "stretch",
+      "description": "Stretch the body."
+    },
+    {
+      "id": "yawn",
+      "description": "Yawn."
+    },
+    {
+      "id": "hum",
+      "description": "Hum quietly."
+    },
+    {
+      "id": "ponder",
+      "description": "Stand still and think."
+    },
+    {
+      "id": "cheer",
+      "description": "Throw the arms up in joy."
+    },
+    {
+      "id": "spin_with_joy",
+      "description": "Run in a small circle with joy."
+    },
+    {
+      "id": "stomp",
+      "description": "Stamp the feet in anger."
+    },
+    {
+      "id": "sit_sadly",
+      "description": "Sit alone, sad."
+    },
+    {
+      "id": "back_away",
+      "description": "Step back in fear."
+    },
+    {
+      "id": "laugh",
+      "description": "Laugh."
+    },
+    {
+      "id": "wave",
+      "description": "Wave a hand."
+    }
+  ]
+}

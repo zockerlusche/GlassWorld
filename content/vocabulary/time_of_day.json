@@ -1,0 +1,22 @@
+{
+  "contract_version": "0.1",
+  "kind": "time_of_day",
+  "entries": [
+    {
+      "id": "dawn",
+      "description": "The sun is rising."
+    },
+    {
+      "id": "day",
+      "description": "The sun is up."
+    },
+    {
+      "id": "dusk",
+      "description": "The sun is setting."
+    },
+    {
+      "id": "night",
+      "description": "It is dark."
+    }
+  ]
+}

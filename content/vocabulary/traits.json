@@ -1,0 +1,38 @@
+{
+  "contract_version": "0.1",
+  "kind": "trait",
+  "entries": [
+    {
+      "id": "curiosity",
+      "description": "Wants to discover and understand new things."
+    },
+    {
+      "id": "patience",
+      "description": "Can wait and keep trying calmly."
+    },
+    {
+      "id": "sociability",
+      "description": "Seeks the company of others."
+    },
+    {
+      "id": "diligence",
+      "description": "Works hard and steadily."
+    },
+    {
+      "id": "courage",
+      "description": "Faces danger and the unknown."
+    },
+    {
+      "id": "creativity",
+      "description": "Comes up with new ideas and things."
+    },
+    {
+      "id": "orderliness",
+      "description": "Likes things tidy and planned."
+    },
+    {
+      "id": "kindness",
+      "description": "Is good-natured and helpful to others."
+    }
+  ]
+}

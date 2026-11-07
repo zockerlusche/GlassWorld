@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/vocabulary.schema.json",
+  "title": "Vocabulary",
+  "description": "A vocabulary data file (actions, properties, needs, moods, traits, expressions, times of day, weather). Display texts come from translation keys vocab.<kind>.<id>, never from this file.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "kind",
+    "entries"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "action",
+        "property",
+        "need",
+        "mood",
+        "trait",
+        "expression",
+        "time_of_day",
+        "weather"
+      ]
+    },
+    "entries": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/VocabularyEntry"
+      }
+    }
+  },
+  "$defs": {
+    "VocabularyEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "description"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "description": {
+          "description": "Short English meaning, used in prompts and docs.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "target": {
+          "description": "Actions only: what kind of target the action takes.",
+          "type": "string",
+          "enum": [
+            "none",
+            "object",
+            "inhabitant"
+          ]
+        }
+      }
+    }
+  }
+}
