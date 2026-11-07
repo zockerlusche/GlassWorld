@@ -10,9 +10,10 @@ namespace GlassWorld.Presentation.World;
 /// <param name="Seed">World seed.</param>
 /// <param name="Size">Size option id (content/player/world_options.json).</param>
 /// <param name="Climate">Climate option id.</param>
+/// <param name="StartFavor">Start favour chosen for the world (content/player/favor.json).</param>
 /// <param name="Day">Game day at the last save.</param>
 /// <param name="LastPlayedUtc">When it was last saved (wall clock; display only, never in the simulation).</param>
-public sealed record WorldMeta(string Id, string Name, ulong Seed, string Size, string Climate, long Day, DateTimeOffset LastPlayedUtc);
+public sealed record WorldMeta(string Id, string Name, ulong Seed, string Size, string Climate, int StartFavor, long Day, DateTimeOffset LastPlayedUtc);
 
 /// <summary>
 /// The player's worlds (B6 R3): one folder per world below a root (the game passes
@@ -36,9 +37,11 @@ public sealed class WorldLibrary(string root)
     public string Root { get; } = root ?? throw new ArgumentNullException(nameof(root));
 
     /// <summary>Creates a new world folder with a unique id and writes its meta data.</summary>
-    public WorldMeta Create(string name, ulong seed, string size, string climate, DateTimeOffset now)
+    public WorldMeta Create(NewWorldChoice choice, DateTimeOffset now)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentNullException.ThrowIfNull(choice);
+        ArgumentException.ThrowIfNullOrWhiteSpace(choice.Name);
+        var name = choice.Name;
         Directory.CreateDirectory(Root);
         var baseId = Slug(name);
         var id = baseId;
@@ -48,9 +51,27 @@ public sealed class WorldLibrary(string root)
         }
 
         Directory.CreateDirectory(Path.Combine(Root, id));
-        var meta = new WorldMeta(id, name.Trim(), seed, size, climate, 1, now);
+        var meta = new WorldMeta(id, name.Trim(), choice.Seed, choice.Size, choice.Climate, choice.StartFavor, 1, now);
         Write(meta);
         return meta;
+    }
+
+    /// <summary>
+    /// Removes a world folder that never got a save game (world creation failed right after
+    /// <see cref="Create"/>). A folder with a save game is never touched.
+    /// </summary>
+    /// <returns>True if the folder was removed.</returns>
+    public bool Discard(string id)
+    {
+        var folder = Path.Combine(Root, id);
+        if (!Directory.Exists(folder) || File.Exists(SavePath(id)) || Directory.EnumerateFileSystemEntries(folder).Any(e => Path.GetFileName(e) != MetaFile))
+        {
+            return false;
+        }
+
+        File.Delete(Path.Combine(folder, MetaFile));
+        Directory.Delete(folder);
+        return true;
     }
 
     /// <summary>Path of the save game of a world.</summary>

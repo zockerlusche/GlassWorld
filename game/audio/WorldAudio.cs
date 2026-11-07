@@ -189,6 +189,25 @@ public partial class WorldAudio : Node3D
         return camera is null ? new Position(0, 0) : new Position(camera.GlobalPosition.X, camera.GlobalPosition.Z);
     }
 
+    /// <summary>
+    /// Sets the bus volumes: the player's choice from the settings (B6 R4), otherwise the default of the
+    /// mix data. Buses that do not exist yet (no world audio) are skipped.
+    /// </summary>
+    public static void ApplyVolumes(SoundMix mix, IReadOnlyDictionary<string, double> playerDb)
+    {
+        ArgumentNullException.ThrowIfNull(mix);
+        ArgumentNullException.ThrowIfNull(playerDb);
+        foreach (var bus in mix.Buses)
+        {
+            var index = AudioServer.GetBusIndex(BusName(bus.Id));
+            if (index >= 0)
+            {
+                var db = playerDb.TryGetValue(Ui.Screens.SettingsWindow.BusKey(bus.Id), out var chosen) ? chosen : bus.VolumeDb;
+                AudioServer.SetBusVolumeDb(index, (float)db);
+            }
+        }
+    }
+
     private static string BusName(MixBusId id) => id == MixBusId.Master ? "Master" : id.ToString();
 
     private static string Read(string name)

@@ -38,6 +38,12 @@ namespace GlassWorld.Contracts
     {
 
         /// <summary>
+        /// Pause after the last change of a size slider (keyboard, controller) before it takes effect.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("settings_apply_ms")]
+        public int SettingsApplyMs { get; set; } = default!;
+
+        /// <summary>
         /// Smallest height of a table in a side panel.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("table_min_height")]

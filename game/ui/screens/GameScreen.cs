@@ -153,6 +153,14 @@ public partial class GameScreen : CanvasLayer
 
     public override void _UnhandledInput(InputEvent @event)
     {
+        if (@event.IsActionPressed("ui_cancel"))
+        {
+            // Open windows close themselves on Esc first (GwWindow); only then the pause menu opens.
+            PauseRequested?.Invoke();
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+
         if (@event is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } click && _style is not null)
         {
             var id = PickAt(click.Position);
@@ -169,6 +177,52 @@ public partial class GameScreen : CanvasLayer
     {
         _presenter?.Host?.Decisions.Submit(new PlayerCommand(DecisionsSystem.InhabitantClicked, inhabitantId));
         OpenCard(inhabitantId);
+    }
+
+    /// <summary>Time buttons on or off (off while the pause menu is open, GW1 review #50 K3).</summary>
+    public void SetTimeControlsEnabled(bool enabled)
+    {
+        foreach (var (button, _) in _timeButtons)
+        {
+            button.Disabled = !enabled;
+        }
+    }
+
+    /// <summary>Esc without an open window: the player wants the pause menu (B6 R5).</summary>
+    public event Action? PauseRequested;
+
+    /// <summary>Applies changed settings at once (R4): style, hint duration, hidden UI.</summary>
+    public void ApplySettings(PlayerSettings settings, UiStyle style)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+        _style = style ?? throw new ArgumentNullException(nameof(style));
+        if (_board is not null)
+        {
+            _board.Settings = settings.ToToastSettings();
+        }
+
+        // "Watch only" (XAG 117): bars, panels and hints disappear; Esc still opens the pause menu.
+        _root.Visible = !settings.HideUi;
+        Layout();
+    }
+
+    /// <summary>
+    /// Shows a window over the game (pause menu, settings) and fits it to the screen. A modal window
+    /// blocks clicks on everything behind it until it closes.
+    /// </summary>
+    public void ShowWindow(GwWindow window, bool modal = false)
+    {
+        ArgumentNullException.ThrowIfNull(window);
+        if (modal)
+        {
+            var blocker = new Control { MouseFilter = Control.MouseFilterEnum.Stop };
+            blocker.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+            AddChild(blocker);
+            window.Closed += blocker.QueueFree;
+        }
+
+        AddChild(window);
+        window.FitInto(GetViewport().GetVisibleRect().Size);
     }
 
     /// <summary>Shows a calm hint (e.g. saving failed).</summary>

@@ -19,7 +19,11 @@ public static class UiLayoutCheck
     private static readonly double[] TextScales = [1.0, 2.0];
 
     /// <summary>Runs all cases below <paramref name="host"/>; returns the problems (empty if fine).</summary>
-    public static async Task<IReadOnlyList<string>> RunAsync(Node host, UiStyle baseStyle, IReadOnlyList<TimeChoice> timeChoices)
+    /// <param name="host">Node the check stages are added to.</param>
+    /// <param name="baseStyle">Style whose UI and text size the cases vary.</param>
+    /// <param name="timeChoices">Time control of the top bar.</param>
+    /// <param name="windows">Real windows to fit in every case (menus, settings, pause), built for a style; optional.</param>
+    public static async Task<IReadOnlyList<string>> RunAsync(Node host, UiStyle baseStyle, IReadOnlyList<TimeChoice> timeChoices, Func<UiStyle, IReadOnlyList<(string Name, GwWindow Window)>>? windows = null)
     {
         ArgumentNullException.ThrowIfNull(host);
         ArgumentNullException.ThrowIfNull(baseStyle);
@@ -41,7 +45,7 @@ public static class UiLayoutCheck
                             var style = baseStyle.With(baseStyle.Settings with { UiScale = uiScale, TextScale = textScale });
                             var (w, h) = UiScaling.LogicalSize(width, height, style.Tokens, style.ContentScaleFactor);
                             var label = $"{locale} {width}x{height} ui {uiScale:P0} text {textScale:P0}";
-                            problems.AddRange((await CheckOne(host, style, new Vector2((float)w, (float)h), timeChoices)).Select(p => $"{label}: {p}"));
+                            problems.AddRange((await CheckOne(host, style, new Vector2((float)w, (float)h), timeChoices, windows)).Select(p => $"{label}: {p}"));
                         }
                     }
                 }
@@ -56,7 +60,7 @@ public static class UiLayoutCheck
         return problems;
     }
 
-    private static async Task<IReadOnlyList<string>> CheckOne(Node host, UiStyle style, Vector2 area, IReadOnlyList<TimeChoice> timeChoices)
+    private static async Task<IReadOnlyList<string>> CheckOne(Node host, UiStyle style, Vector2 area, IReadOnlyList<TimeChoice> timeChoices, Func<UiStyle, IReadOnlyList<(string Name, GwWindow Window)>>? windows)
     {
         var stage = new Control { Size = area, Theme = UiTheme.Build(style) };
         host.AddChild(stage);
@@ -91,9 +95,44 @@ public static class UiLayoutCheck
         }
 
         window.QueueFree();
+        if (windows is not null)
+        {
+            problems.AddRange(await CheckWindows(host, stage, area, windows(style)));
+        }
+
         problems.AddRange(await CheckComponents(host, stage, style, area));
         problems.AddRange(await CheckTopBar(host, stage, style, area, timeChoices));
         stage.QueueFree();
+        return problems;
+    }
+
+    /// <summary>
+    /// Real windows (main menu forms, settings, pause; GW1 review #50 K1) fit inside the safe area with a
+    /// readable header in this case; long content scrolls.
+    /// </summary>
+    private static async Task<IReadOnlyList<string>> CheckWindows(Node host, Control stage, Vector2 area, IReadOnlyList<(string Name, GwWindow Window)> windows)
+    {
+        var problems = new List<string>();
+        foreach (var (name, window) in windows)
+        {
+            stage.AddChild(window);
+            await host.ToSignal(host.GetTree(), SceneTree.SignalName.ProcessFrame);
+            window.FitInto(area);
+            await host.ToSignal(host.GetTree(), SceneTree.SignalName.ProcessFrame);
+            if (!window.IsInsideSafeArea(area))
+            {
+                problems.Add($"{name} window {window.Position}+{window.Size} leaves the safe area of {area}");
+            }
+
+            var header = window.HeaderProblem();
+            if (header.Length > 0)
+            {
+                problems.Add($"{name} header: {header}");
+            }
+
+            window.Free();
+        }
+
         return problems;
     }
 

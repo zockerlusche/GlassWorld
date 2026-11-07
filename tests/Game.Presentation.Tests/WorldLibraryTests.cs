@@ -30,8 +30,8 @@ public sealed class WorldLibraryTests : IDisposable
     public void SameNameGetsAUniqueFolder()
     {
         var library = new WorldLibrary(_root);
-        var a = library.Create("Insel", 1, "small", "temperate", DateTimeOffset.UnixEpoch);
-        var b = library.Create("Insel", 2, "small", "temperate", DateTimeOffset.UnixEpoch);
+        var a = library.Create(new NewWorldChoice("Insel", 1, "small", "temperate", 50), DateTimeOffset.UnixEpoch);
+        var b = library.Create(new NewWorldChoice("Insel", 2, "small", "temperate", 50), DateTimeOffset.UnixEpoch);
         Assert.Equal("insel", a.Id);
         Assert.Equal("insel-2", b.Id);
     }
@@ -40,9 +40,9 @@ public sealed class WorldLibraryTests : IDisposable
     public void ListShowsWorldsWithSaveMostRecentFirst()
     {
         var library = new WorldLibrary(_root);
-        var old = library.Create("Alt", 1, "small", "temperate", DateTimeOffset.UnixEpoch);
-        var recent = library.Create("Neu", 2, "medium", "warm", DateTimeOffset.UnixEpoch.AddDays(3));
-        var unsaved = library.Create("Ohne Spielstand", 3, "small", "temperate", DateTimeOffset.UnixEpoch.AddDays(9));
+        var old = library.Create(new NewWorldChoice("Alt", 1, "small", "temperate", 50), DateTimeOffset.UnixEpoch);
+        var recent = library.Create(new NewWorldChoice("Neu", 2, "medium", "warm", 50), DateTimeOffset.UnixEpoch.AddDays(3));
+        var unsaved = library.Create(new NewWorldChoice("Ohne Spielstand", 3, "small", "temperate", 50), DateTimeOffset.UnixEpoch.AddDays(9));
         File.WriteAllText(library.SavePath(old.Id), "x");
         File.WriteAllText(library.SavePath(recent.Id), "x");
 
@@ -54,7 +54,7 @@ public sealed class WorldLibraryTests : IDisposable
     public void BrokenMetaIsSkippedNotDeleted()
     {
         var library = new WorldLibrary(_root);
-        var world = library.Create("Kaputt", 1, "small", "temperate", DateTimeOffset.UnixEpoch);
+        var world = library.Create(new NewWorldChoice("Kaputt", 1, "small", "temperate", 50), DateTimeOffset.UnixEpoch);
         File.WriteAllText(library.SavePath(world.Id), "x");
         File.WriteAllText(Path.Combine(_root, world.Id, "meta.json"), "{ broken");
         Assert.Empty(library.List());
@@ -62,10 +62,24 @@ public sealed class WorldLibraryTests : IDisposable
     }
 
     [Fact]
+    public void DiscardRemovesOnlyFoldersWithoutSaveGame()
+    {
+        var library = new WorldLibrary(_root);
+        var failed = library.Create(new NewWorldChoice("Fehlstart", 1, "small", "temperate", 50), DateTimeOffset.UnixEpoch);
+        var saved = library.Create(new NewWorldChoice("Gespeichert", 2, "small", "temperate", 50), DateTimeOffset.UnixEpoch);
+        File.WriteAllText(library.SavePath(saved.Id), "x");
+
+        Assert.True(library.Discard(failed.Id));
+        Assert.False(Directory.Exists(Path.Combine(_root, failed.Id)));
+        Assert.False(library.Discard(saved.Id));
+        Assert.True(File.Exists(library.SavePath(saved.Id)));
+    }
+
+    [Fact]
     public void WriteUpdatesDayAndTime()
     {
         var library = new WorldLibrary(_root);
-        var world = library.Create("Insel", 1, "small", "temperate", DateTimeOffset.UnixEpoch);
+        var world = library.Create(new NewWorldChoice("Insel", 1, "small", "temperate", 50), DateTimeOffset.UnixEpoch);
         File.WriteAllText(library.SavePath(world.Id), "x");
         library.Write(world with { Day = 12, LastPlayedUtc = DateTimeOffset.UnixEpoch.AddDays(1) });
         Assert.Equal(12, library.List()[0].Day);
