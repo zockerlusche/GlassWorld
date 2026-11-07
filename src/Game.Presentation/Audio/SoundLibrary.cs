@@ -31,10 +31,17 @@ public sealed class SoundLibrary
     /// <summary>Sample rate of all rendered sounds.</summary>
     public int SampleRate => (int)Recipes.SampleRate;
 
+    /// <summary>
+    /// Loudness target of the base library (content/sound/library.json); when set, rendered sounds are
+    /// normalised to it like the library files, so synth and files play at the same level (GW1 review
+    /// #62 K1). Ambience sounds use the loop target, all others the single-sound target.
+    /// </summary>
+    public LibraryTarget? Loudness { get; init; }
+
     /// <summary>Parses and validates both files.</summary>
-    public static SoundLibrary FromJson(string soundMapJson, string recipesJson, int cacheLimit = 256)
+    public static SoundLibrary FromJson(string soundMapJson, string recipesJson, int cacheLimit = 256, LibraryTarget? loudness = null)
     {
-        var library = new SoundLibrary(ContractSerializer.Deserialize<SoundMap>(soundMapJson), ContractSerializer.Deserialize<SynthRecipes>(recipesJson), cacheLimit);
+        var library = new SoundLibrary(ContractSerializer.Deserialize<SoundMap>(soundMapJson), ContractSerializer.Deserialize<SynthRecipes>(recipesJson), cacheLimit) { Loudness = loudness };
         var problems = library.MissingRecipes();
         return problems.Count == 0 ? library : throw new InvalidDataException("sounds without recipe: " + string.Join(", ", problems));
     }
@@ -71,6 +78,11 @@ public sealed class SoundLibrary
 
         var seed = SplitMix64.SeedOf($"{worldSeed}/{soundId}/{variant}");
         var pcm = RetroSynth.Render(_recipes[soundId], SampleRate, Recipes.Peak, seed);
+        if (Loudness is { } target)
+        {
+            pcm = Normalise(pcm, target, _recipes[soundId].Bus == SynthRecipeBus.Ambience ? target.LoopDbfs : target.OneShotDbfs);
+        }
+
         _cache[(soundId, variant, worldSeed)] = pcm;
         _cacheOrder.Enqueue((soundId, variant, worldSeed));
         while (_cacheOrder.Count > _cacheLimit)
@@ -80,6 +92,25 @@ public sealed class SoundLibrary
 
         return pcm;
     }
+
+    /// <summary>Gated loudness of a rendered sound (dBFS).</summary>
+    public double LoudnessOf(short[] pcm) => Pcm.LoudnessDbfs(ToSound(pcm), Loudness?.GateDbfs ?? -50);
+
+    private short[] Normalise(short[] pcm, LibraryTarget target, double wanted)
+    {
+        var sound = ToSound(pcm);
+        var loudness = Pcm.LoudnessDbfs(sound, target.GateDbfs);
+        if (loudness <= -119)
+        {
+            return pcm;
+        }
+
+        var gain = Math.Min(wanted - loudness, target.PeakMaxDbfs - Pcm.PeakDbfs(sound));
+        var factor = Math.Pow(10, gain / 20);
+        return [.. pcm.Select(s => (short)Math.Clamp(Math.Round(s * factor), short.MinValue, short.MaxValue))];
+    }
+
+    private MonoSound ToSound(short[] pcm) => new([.. pcm.Select(s => s / 32768f)], SampleRate);
 
     /// <summary>Number of rendered sounds kept.</summary>
     public int CachedCount => _cache.Count;

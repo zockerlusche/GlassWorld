@@ -112,16 +112,22 @@ namespace GlassWorld.Contracts
         public string Origin { get; set; } = default!;
 
         /// <summary>
-        /// English words a short sound description from the rule guardian may contain to fall back to this sound (e.g. creak, crackle); the best match wins.
-        /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("keywords")]
-        public System.Collections.Generic.ICollection<string> Keywords { get; set; } = new System.Collections.ObjectModel.Collection<string>();
-
-        /// <summary>
         /// Variants (one is picked per play); 16-bit PCM WAV below game/assets/sound/base.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("files")]
         public System.Collections.Generic.ICollection<LibraryFile> Files { get; set; } = new System.Collections.ObjectModel.Collection<LibraryFile>();
+
+        /// <summary>
+        /// Words that name the sound itself (creak, crackle, splash): count 2 each in the fallback from a sound description.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("sound_words")]
+        public System.Collections.Generic.ICollection<string> SoundWords { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// Words that only name the setting or material (wood, water, door): count 1 each; alone they never reach the minimum score.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("context_words")]
+        public System.Collections.Generic.ICollection<string> ContextWords { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
     }
 
@@ -159,7 +165,7 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
-    /// Base sound library (B8-4, B2530): recorded or generated sound files for sound ids of the sound map, with origin and licence per file, loudness targets the files are normalised to, and keywords that map a short sound description from the rule guardian to a base sound when no generated sound exists (fallback). Sound ids without a file here use the retro synth recipes.
+    /// Base sound library (B8-4, B2530): recorded or generated sound files for sound ids of the sound map, with origin and licence per file, loudness targets the files are normalised to, and sound and context words that map a short sound description from the rule guardian to a base sound when no generated sound exists (fallback). Sound ids without a file here use the retro synth recipes.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class BaseSoundLibrary
@@ -176,6 +182,12 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("sounds")]
         public System.Collections.Generic.ICollection<LibrarySound> Sounds { get; set; } = new System.Collections.ObjectModel.Collection<LibrarySound>();
+
+        /// <summary>
+        /// Smallest score of the fallback from a sound description (sound word 2, context word 1). Below it the object stays silent rather than sounding wrong.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("fallback_min_score")]
+        public int FallbackMinScore { get; set; } = default!;
 
     }
 

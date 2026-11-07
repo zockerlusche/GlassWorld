@@ -67,7 +67,8 @@ foreach (var entry in selection["sounds"]!.AsArray())
         ["id"] = id,
         ["kind"] = kind,
         ["origin"] = origin["id"]!.GetValue<string>(),
-        ["keywords"] = entry["keywords"]!.DeepClone(),
+        ["sound_words"] = entry["sound_words"]!.DeepClone(),
+        ["context_words"] = entry["context_words"]!.DeepClone(),
         ["files"] = files,
     });
 }
@@ -75,6 +76,7 @@ foreach (var entry in selection["sounds"]!.AsArray())
 var library = new JsonObject
 {
     ["contract_version"] = "0.2",
+    ["fallback_min_score"] = selection["fallback_min_score"]!.DeepClone(),
     ["target"] = target.DeepClone(),
     ["origins"] = new JsonArray([.. origins.Values.Select(o => (JsonNode)new JsonObject
     {

@@ -16,7 +16,10 @@ namespace GlassWorld.Game.Audio;
 /// </summary>
 public partial class WorldAudio : Node3D
 {
+    private const string BaseFolder = "res://assets/sound/base/";
     private readonly Dictionary<MixBusId, List<AudioStreamPlayer3D>> _pools = [];
+    private readonly Dictionary<string, AudioStreamWav?> _fileStreams = new(StringComparer.Ordinal);
+    private BaseSounds? _baseSounds;
     private SoundMixer? _mixer;
     private SoundDirector? _director;
     private WorldFeed? _feed;
@@ -48,7 +51,8 @@ public partial class WorldAudio : Node3D
             return false;
         }
 
-        _director = new SoundDirector(RetroAudio.Library!, _mixer);
+        _baseSounds = LoadBaseSounds();
+        _director = new SoundDirector(RetroAudio.Library!, _mixer, _baseSounds?.Variants);
         _feed = new WorldFeed(host);
         _worldSeed = worldSeed;
         foreach (var bus in _mixer.Mix.Buses)
@@ -120,7 +124,7 @@ public partial class WorldAudio : Node3D
                 continue;
             }
 
-            player.Stream = RetroAudio.Stream(request.SoundId, request.Variant, _worldSeed);
+            player.Stream = Stream(request.SoundId, request.Variant);
             player.Position = new Vector3((float)request.Position.X, 0, (float)request.Position.Z);
             ApplyVolume(player, request.Bus, listener);
             player.Play();
@@ -205,6 +209,69 @@ public partial class WorldAudio : Node3D
                 var db = playerDb.TryGetValue(Ui.Screens.SettingsWindow.BusKey(bus.Id), out var chosen) ? chosen : bus.VolumeDb;
                 AudioServer.SetBusVolumeDb(index, (float)db);
             }
+        }
+    }
+
+    /// <summary>
+    /// The sound to play: a file of the base library if the id has one (recorded or generated, B8-4),
+    /// otherwise the retro synth. Event sounds play once; loops of the library repeat only where an
+    /// ambience player asks for it (A1350).
+    /// </summary>
+    private AudioStreamWav Stream(string soundId, int variant)
+    {
+        var file = _baseSounds?.File(soundId, variant);
+        if (file is not null)
+        {
+            if (!_fileStreams.TryGetValue(file, out var stream))
+            {
+                stream = GD.Load<AudioStreamWav>(BaseFolder + file);
+                _fileStreams[file] = stream;
+            }
+
+            if (stream is not null)
+            {
+                return stream;
+            }
+        }
+
+        return RetroAudio.Stream(soundId, variant, _worldSeed);
+    }
+
+    /// <summary>Smoke run only: every sound of the base library plays from its file, not from the synth.</summary>
+    /// <returns>Empty if fine, otherwise the problem.</returns>
+    public string BaseSelfCheck()
+    {
+        if (_baseSounds is null)
+        {
+            return "base library not loaded";
+        }
+
+        foreach (var sound in _baseSounds.Library.Sounds)
+        {
+            for (var variant = 0; variant < sound.Files.Count; variant++)
+            {
+                var stream = Stream(sound.Id, variant);
+                if (stream.ResourcePath != BaseFolder + _baseSounds.File(sound.Id, variant) || stream.GetLength() <= 0)
+                {
+                    return $"{sound.Id} variant {variant} does not play its file";
+                }
+            }
+        }
+
+        return string.Empty;
+    }
+
+    /// <summary>Reads the base library data; without it every sound comes from the retro synth.</summary>
+    private static BaseSounds? LoadBaseSounds()
+    {
+        try
+        {
+            return new BaseSounds(GlassWorld.Contracts.Validation.ContractSerializer.Deserialize<BaseSoundLibrary>(Read("content.sound.library.json")));
+        }
+        catch (Exception e) when (e is InvalidDataException or GlassWorld.Contracts.Validation.ContractViolationException)
+        {
+            GD.PushWarning($"audio: base library not loaded ({e.Message}); retro sounds only");
+            return null;
         }
     }
 
