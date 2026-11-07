@@ -102,6 +102,27 @@ public sealed class WorldFeedTests
         Assert.True(feed.Inhabitants().Single(r => r.Id == id).OpenQuestions >= 1);
     }
 
+    [Fact]
+    public void EveryDayPhaseHasATextKeyAndAVocabularyId()
+    {
+        var keys = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Path.Combine(TestPaths.Root, "content", "i18n", "en.json")))!["entries"]!.AsArray()
+            .Select(e => (string)e!["key"]!).ToHashSet(StringComparer.Ordinal);
+        var vocabulary = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Path.Combine(TestPaths.Root, "content", "vocabulary", "time_of_day.json")))!["entries"]!.AsArray()
+            .Select(e => (string)e!["id"]!).ToHashSet(StringComparer.Ordinal);
+        foreach (var phase in Enum.GetValues<GlassWorld.Simulation.Time.DayPhase>())
+        {
+            Assert.Contains($"time.phase.{WorldFeed.Phase(phase)}", keys);
+            Assert.Contains(WorldFeed.Phase(phase), vocabulary);
+        }
+    }
+
+    [Fact]
+    public void FeedIsBoundToItsHost()
+    {
+        var host = NewWorld();
+        Assert.Same(host, new WorldFeed(host).Host);
+    }
+
     [Theory]
     [InlineData("inh-000004", 4)]
     [InlineData("inh-000120", 120)]

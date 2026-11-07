@@ -40,7 +40,9 @@ public sealed record ClockView(string SeasonKey, string PhaseKey, long Year, int
 /// <summary>
 /// Read side of the UI (ADR-0008): turns the core's snapshots and event stream into what the
 /// windows show. Snapshots are taken only when the tick changed; events are fetched with a cursor so
-/// nothing is lost in fast-forward (several ticks per frame).
+/// nothing is lost in fast-forward (several ticks per frame). A feed belongs to exactly one
+/// <see cref="SimulationHost"/>: after loading a save game (new host) create a new feed, because the
+/// snapshot cache only watches the tick.
 /// </summary>
 public sealed class WorldFeed
 {
@@ -56,8 +58,14 @@ public sealed class WorldFeed
         _eventCursor = host.Inhabitants.LastEventSeq;
     }
 
-    /// <summary>True if events were lost because the core's buffer overflowed since the last fetch.</summary>
+    /// <summary>The simulation this feed reads.</summary>
+    public SimulationHost Host => _host;
+
+    /// <summary>True if events were lost because the core's buffer overflowed since the previous fetch.</summary>
     public bool MissedEvents { get; private set; }
+
+    /// <summary>How often events were lost since the feed was created (stays visible after the frame).</summary>
+    public int MissedEventBatches { get; private set; }
 
     /// <summary>Current snapshot (new only when the tick advanced).</summary>
     public WorldSnapshot Snapshot
@@ -79,6 +87,11 @@ public sealed class WorldFeed
     {
         var events = _host.Inhabitants.EventsSince(_eventCursor);
         MissedEvents = events.Count > 0 && events[0].Seq != _eventCursor + 1;
+        if (MissedEvents)
+        {
+            MissedEventBatches++;
+        }
+
         if (events.Count > 0)
         {
             _eventCursor = events[^1].Seq;
@@ -139,7 +152,8 @@ public sealed class WorldFeed
 
     private static int Percent(double unit) => (int)Math.Round(Math.Clamp(unit, 0, 1) * 100, MidpointRounding.AwayFromZero);
 
-    private static string Phase(Simulation.Time.DayPhase phase) =>
+    /// <summary>Vocabulary id of a day phase (time_of_day), e.g. <c>dawn</c>.</summary>
+    public static string Phase(Simulation.Time.DayPhase phase) =>
 #pragma warning disable CA1308 // Vocabulary ids are lower-case by definition (ADR-0007).
         phase.ToString().ToLowerInvariant();
 #pragma warning restore CA1308
