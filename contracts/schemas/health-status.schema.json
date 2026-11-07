@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/health-status.schema.json",
+  "title": "HealthStatus",
+  "description": "AI service -> game: answer of GET /health (ADR-0006). The game refuses a service whose contract_version differs from its own.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "status", "service_version", "dependencies", "decider_model"],
+  "properties": {
+    "contract_version": { "$ref": "common.schema.json#/$defs/ContractVersion" },
+    "status": {
+      "description": "starting = not yet probed; ready = decisions can be served; degraded = running, but a dependency or the decider model is missing.",
+      "type": "string",
+      "enum": ["starting", "ready", "degraded"]
+    },
+    "service_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "dependencies": {
+      "description": "External programs the service uses but never starts (Ollama, ComfyUI).",
+      "type": "array",
+      "items": { "$ref": "#/$defs/Dependency" }
+    },
+    "decider_model": { "$ref": "#/$defs/ModelState" }
+  },
+  "$defs": {
+    "Dependency": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "status", "version"],
+      "properties": {
+        "name": { "type": "string", "enum": ["ollama", "comfyui"] },
+        "status": { "type": "string", "enum": ["up", "down"] },
+        "version": {
+          "description": "Version reported by the dependency; null if unknown or down.",
+          "anyOf": [
+            { "type": "string", "maxLength": 64 },
+            { "type": "null" }
+          ]
+        }
+      }
+    },
+    "ModelState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "available", "loaded"],
+      "properties": {
+        "name": { "type": "string", "maxLength": 128 },
+        "available": {
+          "description": "The model with the configured digest is installed in Ollama.",
+          "type": "boolean"
+        },
+        "loaded": {
+          "description": "The model is currently loaded in VRAM (warm).",
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

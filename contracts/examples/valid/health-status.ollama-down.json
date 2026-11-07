@@ -1,0 +1,10 @@
+{
+  "contract_version": "0.1",
+  "status": "degraded",
+  "service_version": "0.1.0",
+  "dependencies": [
+    { "name": "comfyui", "status": "down", "version": null },
+    { "name": "ollama", "status": "down", "version": null }
+  ],
+  "decider_model": { "name": "qwen3.5:9b", "available": false, "loaded": false }
+}

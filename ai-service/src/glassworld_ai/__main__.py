@@ -1,0 +1,52 @@
+"""Start the AI service: python -m glassworld_ai --port 0.
+
+The service binds 127.0.0.1 only. With --port 0 the OS assigns a free port, which is announced
+on stdout as a single line `AI_SERVICE_READY port=<n>` once the server accepts requests
+(ADR-0006). The session token comes from the environment variable GW_AI_TOKEN.
+"""
+
+from __future__ import annotations
+
+import argparse
+import socket
+from pathlib import Path
+
+import uvicorn
+
+from glassworld_ai.app import READY_LINE, create_app
+from glassworld_ai.config import load_settings
+
+HOST = "127.0.0.1"
+
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(prog="glassworld-ai", description=__doc__)
+    parser.add_argument("--port", type=int, default=0, help="0 = let the OS choose (default)")
+    parser.add_argument(
+        "--config", type=Path, default=None, help="TOML file instead of config.toml"
+    )
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -> None:
+    args = parse_args(argv)
+    settings = load_settings(args.config)
+
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.bind((HOST, args.port))
+    port: int = sock.getsockname()[1]
+
+    def announce() -> None:
+        print(READY_LINE.format(port=port), flush=True)
+
+    app = create_app(
+        settings,
+        allowed_hosts=frozenset({f"{HOST}:{port}"}),
+        on_started=announce,
+    )
+    server = uvicorn.Server(uvicorn.Config(app, log_level="warning", access_log=False))
+    server.run(sockets=[sock])
+
+
+if __name__ == "__main__":
+    main()

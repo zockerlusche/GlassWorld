@@ -7,6 +7,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- AI service skeleton (`ai-service/`): FastAPI on 127.0.0.1 with OS-assigned port and ready line, `GET /health` (HealthStatus) probing Ollama and ComfyUI, session token and Host check, ServiceError bodies, configuration from `config.toml` / `GW_AI_*`.
+- Contracts: `HealthStatus` schema; ServiceError codes `forbidden` and `not_found`.
 - Contracts v0: JSON Schemas for DecisionRequest, DecisionResponse, ServiceError and vocabulary files, examples, vocabulary placeholders in `content/vocabulary/`, generated pydantic models (`glassworld_contracts`) and contract tests.
 - uv workspace at the repository root (Python 3.12, `uv.lock`).
 - Repository foundation: license, readme, contributing guide, folder layout, Git attributes and ignore rules.

@@ -25,4 +25,16 @@ Distributions must ship the license notices of all listed components.
 | pygments | 2.21.0 (via pytest) | Python dev tool | BSD-2-Clause | https://github.com/pygments/pygments | tests |
 | colorama | 0.4.6 (via pytest/click, Windows) | Python dev tool | BSD-3-Clause | https://github.com/tartley/colorama | tests |
 | nodeenv | 1.12.0 (via pyright) | Python dev tool | BSD-3-Clause | https://github.com/ekalinin/nodeenv | type check |
+| fastapi | >=0.120,<1 (locked 0.162.0) | Python runtime library | MIT | https://github.com/fastapi/fastapi | ai-service |
+| pydantic-settings | >=2.11,<3 (locked 2.16.2) | Python runtime library | MIT | https://github.com/pydantic/pydantic-settings | ai-service |
+| anyio | 4.16.0 (via starlette/httpx) | Python runtime library | MIT | https://github.com/agronholm/anyio | ai-service |
+| h11 | 0.16.0 (via uvicorn/httpcore) | Python runtime library | MIT | https://github.com/python-hyper/h11 | ai-service |
+| starlette | 1.10.0 (via fastapi) | Python runtime library | BSD-3-Clause | https://github.com/encode/starlette | ai-service |
+| uvicorn | >=0.38,<1 (locked 0.54.0) | Python runtime library | BSD-3-Clause | https://github.com/encode/uvicorn | ai-service |
+| httpx | >=0.28,<1 (locked 0.28.1) | Python runtime library | BSD-3-Clause | https://github.com/encode/httpx | ai-service |
+| httpcore | 1.0.9 (via httpx) | Python runtime library | BSD-3-Clause | https://github.com/encode/httpcore | ai-service |
+| idna | 3.20 (via httpx) | Python runtime library | BSD-3-Clause | https://github.com/kjd/idna | ai-service |
+| click | 8.5.1 (via uvicorn) | Python runtime library | BSD-3-Clause | https://github.com/pallets/click | ai-service |
+| python-dotenv | 1.2.4 (via pydantic-settings) | Python runtime library | BSD-3-Clause | https://github.com/theskumar/python-dotenv | ai-service |
+| certifi | 2026.10.23 (via httpx) | Python runtime library | MPL-2.0, unmodified | https://github.com/certifi/python-certifi | ai-service |
 | other transitive Python packages | see `uv.lock` | Python | MIT or Apache-2.0 | PyPI | dev tools |
