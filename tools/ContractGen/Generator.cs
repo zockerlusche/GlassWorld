@@ -16,12 +16,20 @@ public static partial class Generator
     /// <summary>Namespace of the generated contract types.</summary>
     public const string Namespace = "GlassWorld.Contracts";
 
-    /// <summary>Generates all files; key = file name, value = content (LF line endings).</summary>
+    /// <summary>
+    /// Generates all files; key = file name, value = content (LF line endings). Message schemas come first,
+    /// data file schemas (named in contracts/content-map.json) last, so shared types from common (e.g.
+    /// Locale) stay in the message files and do not move when a new data schema is added.
+    /// </summary>
     public static async Task<IReadOnlyList<KeyValuePair<string, string>>> GenerateAsync(string schemaDirectory)
     {
+        var dataSchemas = DataFileSchemas(schemaDirectory);
+        var ordered = SchemaBundle.LoadDirectory(schemaDirectory, forValidation: false)
+            .OrderBy(s => dataSchemas.Contains(s.Key))
+            .ThenBy(s => s.Key, StringComparer.Ordinal);
         var emitted = new HashSet<string>(StringComparer.Ordinal);
         var files = new List<KeyValuePair<string, string>>();
-        foreach (var (name, json) in SchemaBundle.LoadDirectory(schemaDirectory, forValidation: false))
+        foreach (var (name, json) in ordered)
         {
             var schema = await JsonSchema.FromJsonAsync(json).ConfigureAwait(false);
             var settings = new CSharpGeneratorSettings
@@ -46,6 +54,18 @@ public static partial class Generator
         }
 
         return files;
+    }
+
+    private static HashSet<string> DataFileSchemas(string schemaDirectory)
+    {
+        var mapPath = Path.Combine(schemaDirectory, "..", "content-map.json");
+        if (!File.Exists(mapPath))
+        {
+            return [];
+        }
+
+        var map = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(mapPath))!;
+        return map["entries"]!.AsArray().Select(e => (string)e!["schema"]!).ToHashSet(StringComparer.Ordinal);
     }
 
     /// <summary>

@@ -9,6 +9,14 @@
     {
       "pattern": "world/time.json",
       "schema": "world-time-settings"
+    },
+    {
+      "pattern": "objects/*.json",
+      "schema": "object-types"
+    },
+    {
+      "pattern": "rules/*.json",
+      "schema": "combination-rules"
     }
   ]
 }
