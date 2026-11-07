@@ -1,0 +1,38 @@
+{
+  "contract_version": "0.2",
+  "kind": "shape",
+  "entries": [
+    {
+      "id": "box",
+      "description": "A block with straight sides."
+    },
+    {
+      "id": "cylinder",
+      "description": "A round rod or log."
+    },
+    {
+      "id": "sphere",
+      "description": "A ball."
+    },
+    {
+      "id": "cone",
+      "description": "A round shape with a point."
+    },
+    {
+      "id": "wedge",
+      "description": "A shape thick at one end and thin at the other."
+    },
+    {
+      "id": "plank",
+      "description": "A flat, long board."
+    },
+    {
+      "id": "ring",
+      "description": "A round band with a hole."
+    },
+    {
+      "id": "bowl",
+      "description": "A hollow round shape open at the top."
+    }
+  ]
+}

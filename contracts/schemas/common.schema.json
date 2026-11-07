@@ -439,6 +439,9 @@
       "enum": [
         "question",
         "memory",
+        "invention",
+        "build_plan",
+        "process",
         "dream",
         "chronicle",
         "image",
@@ -470,6 +473,278 @@
         "not_found",
         "internal"
       ]
+    },
+    "Invention": {
+      "description": "An idea for a thing that does not exist yet in the world (B4b). A record, never code: what it is for, from which perceived materials, how big, in which steps, and which true properties the new thing brings (only vocabulary ids). Inventions are things or buildings, never living beings (B2531).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "purpose",
+        "category",
+        "materials",
+        "size_m",
+        "steps",
+        "introduces",
+        "tech_level"
+      ],
+      "properties": {
+        "name": {
+          "description": "Name in the player's language (generated, checked by the content guard); the chronicle uses it as a parameter (D471 O4).",
+          "$ref": "#/$defs/GeneratedText"
+        },
+        "purpose": {
+          "description": "Action the thing is made for (vocabulary action).",
+          "$ref": "#/$defs/VocabId"
+        },
+        "category": {
+          "description": "B2531: only objects and buildings.",
+          "type": "string",
+          "enum": [
+            "object",
+            "building"
+          ]
+        },
+        "materials": {
+          "description": "Object types the inhabitant perceives and wants to use (must be perceived; the core checks).",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 6,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/VocabId"
+          }
+        },
+        "size_m": {
+          "description": "Bounding box in metres.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "x",
+            "y",
+            "z"
+          ],
+          "properties": {
+            "x": {
+              "type": "number",
+              "minimum": 0.01
+            },
+            "y": {
+              "type": "number",
+              "minimum": 0.01
+            },
+            "z": {
+              "type": "number",
+              "minimum": 0.01
+            }
+          }
+        },
+        "steps": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/InventionStep"
+          }
+        },
+        "introduces": {
+          "description": "True properties of the new thing (property vocabulary only).",
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 6,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/VocabId"
+          }
+        },
+        "tech_level": {
+          "description": "Tech level the invention needs (vocabulary tech_level).",
+          "$ref": "#/$defs/VocabId"
+        }
+      }
+    },
+    "InventionStep": {
+      "description": "One building step: what is done with which materials.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "process",
+        "materials"
+      ],
+      "properties": {
+        "process": {
+          "description": "Basic process (vocabulary process), e.g. split, bind, shape.",
+          "$ref": "#/$defs/VocabId"
+        },
+        "materials": {
+          "description": "Materials of this step (subset of Invention.materials).",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 6,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/VocabId"
+          }
+        }
+      }
+    },
+    "PropertyCondition": {
+      "description": "Matches an object by its TRUE properties, never by type id (B1-2): all of properties_all and none of properties_none.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "properties_all",
+        "properties_none"
+      ],
+      "properties": {
+        "properties_all": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/VocabId"
+          }
+        },
+        "properties_none": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/VocabId"
+          }
+        }
+      }
+    },
+    "ProcessRule": {
+      "description": "A processing rule (B2537): a basic process applied to inputs matched by properties, with tool, heat and tech level, and what comes out. Same form in content/processes/rules.json and in AI-found world rules (job process), so both are applied the same way.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "process",
+        "inputs",
+        "tool",
+        "heat_min",
+        "duration_ticks",
+        "tech_level",
+        "result"
+      ],
+      "properties": {
+        "id": {
+          "description": "Stable rule id (data) or generated id for a world rule.",
+          "$ref": "#/$defs/VocabId"
+        },
+        "process": {
+          "$ref": "#/$defs/VocabId"
+        },
+        "inputs": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4,
+          "items": {
+            "$ref": "#/$defs/PropertyCondition"
+          }
+        },
+        "tool": {
+          "description": "What the tool must be like, or null.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PropertyCondition"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "heat_min": {
+          "description": "Lowest heat level needed (vocabulary heat_level), or null.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/VocabId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "duration_ticks": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "tech_level": {
+          "$ref": "#/$defs/VocabId"
+        },
+        "result": {
+          "$ref": "#/$defs/ProcessOutcome"
+        }
+      }
+    },
+    "ProcessOutcome": {
+      "description": "What the process does: change the properties of the (first) input, or produce an object type (catalog or invention).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "add_properties",
+        "remove_properties",
+        "produces"
+      ],
+      "properties": {
+        "add_properties": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/VocabId"
+          }
+        },
+        "remove_properties": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/VocabId"
+          }
+        },
+        "produces": {
+          "description": "Object type that comes out, or null when the input only changes.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/VocabId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "ObservedThing": {
+      "description": "A thing as the inhabitant sees it: type and observable properties only (no hidden truth).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "observed"
+      ],
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/VocabId"
+        },
+        "observed": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 12,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/VocabId"
+          }
+        }
+      }
     }
   }
 }

@@ -1,0 +1,60 @@
+{
+  "contract_version": "0.2",
+  "tick": 1210,
+  "seed": 77,
+  "display_locale": "de",
+  "request_id": "2b3c4d5e-6f7a-8b8c-9d0e-1f2a3b4c5d6e",
+  "kind": "build_plan",
+  "priority": 30,
+  "inhabitant": "inh-0001",
+  "object": null,
+  "payload": {
+    "build_plan": {
+      "invention": {
+        "name": {
+          "locale": "de",
+          "text": "Lehmschale"
+        },
+        "purpose": "drink",
+        "category": "object",
+        "materials": [
+          "clay_lump"
+        ],
+        "size_m": {
+          "x": 0.25,
+          "y": 0.12,
+          "z": 0.25
+        },
+        "steps": [
+          {
+            "process": "shape",
+            "materials": [
+              "clay_lump"
+            ]
+          },
+          {
+            "process": "fire",
+            "materials": [
+              "clay_lump"
+            ]
+          }
+        ],
+        "introduces": [
+          "container",
+          "hard"
+        ],
+        "tech_level": "hut"
+      },
+      "shapes": [
+        "bowl",
+        "cylinder",
+        "ring"
+      ],
+      "colors": [
+        "clay_brown",
+        "ash_grey"
+      ],
+      "max_parts": 12
+    }
+  }
+}

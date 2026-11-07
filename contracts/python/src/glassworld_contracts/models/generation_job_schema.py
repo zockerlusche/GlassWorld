@@ -36,11 +36,105 @@ class QuestionPayload(BaseModel):
     )
 
 
+class InventionLimits(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    max_size_m: float = Field(..., gt=0.0, le=100.0)
+    max_parts: int = Field(..., ge=2, le=64)
+    max_rounds: int = Field(
+        ..., description='Discussion rounds with the rule guard (B4b: 2).', ge=1, le=3
+    )
+
+
+class Trigger(StrEnum):
+    need = 'need'
+    found = 'found'
+    idea = 'idea'
+
+
+class InventionPayload(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    trigger: Trigger
+    want: str = Field(
+        ...,
+        description='Need or action the inhabitant has no solution for (vocabulary need or action).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    subject: common_schema.Subject | None = Field(
+        ..., description='Thing that was found, if the trigger is find.'
+    )
+    inhabitant: common_schema.InhabitantState
+    materials: list[common_schema.ObservedThing] = Field(
+        ...,
+        description='Things in reach as the inhabitant sees them.',
+        max_length=16,
+        min_length=1,
+    )
+    tech_level: str = Field(
+        ...,
+        description='Highest tech level the world allows now.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    limits: InventionLimits
+
+
+class ProcessPayload(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    process: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    inputs: list[common_schema.ObservedThing] = Field(..., max_length=4, min_length=1)
+    tool: common_schema.ObservedThing | None
+    heat_level: common_schema.VocabId | None = Field(
+        ..., description='Heat available, or null.'
+    )
+    tech_level: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    inhabitant: common_schema.InhabitantState
+
+
+class BuildPlanPayload(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    invention: common_schema.Invention
+    shapes: list[common_schema.VocabId] = Field(
+        ...,
+        description='Part shapes of the construction kit (data).',
+        max_length=32,
+        min_length=1,
+    )
+    colors: list[common_schema.VocabId] = Field(
+        ...,
+        description='Palette colours allowed (look data).',
+        max_length=64,
+        min_length=1,
+    )
+    max_parts: int = Field(..., ge=2, le=64)
+
+
 class JobPayload(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
     question: QuestionPayload | None = None
+    invention: InventionPayload | None = None
+    build_plan: BuildPlanPayload | None = None
+    process: ProcessPayload | None = None
 
 
 class GenerationJob(BaseModel):

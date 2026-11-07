@@ -1,0 +1,26 @@
+{
+  "contract_version": "0.2",
+  "kind": "heat_level",
+  "entries": [
+    {
+      "id": "warm",
+      "description": "Warm like sun or a small fire's edge."
+    },
+    {
+      "id": "embers",
+      "description": "Glowing embers of a fire."
+    },
+    {
+      "id": "open_fire",
+      "description": "An open fire with flames."
+    },
+    {
+      "id": "kiln",
+      "description": "A closed fire that holds strong heat for long."
+    },
+    {
+      "id": "furnace",
+      "description": "The strongest heat, enough to melt sand or metal."
+    }
+  ]
+}

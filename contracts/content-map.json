@@ -137,6 +137,10 @@
     {
       "pattern": "sound/library.json",
       "schema": "base-sound-library"
+    },
+    {
+      "pattern": "processes/*.json",
+      "schema": "process-rules"
     }
   ]
 }

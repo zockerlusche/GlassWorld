@@ -26,7 +26,11 @@
         "time_of_day",
         "weather",
         "biome",
-        "epoch"
+        "epoch",
+        "process",
+        "heat_level",
+        "tech_level",
+        "shape"
       ]
     },
     "entries": {

@@ -849,6 +849,130 @@
     {
       "key": "vocab.weather.storm",
       "text": "Sturm"
+    },
+    {
+      "key": "vocab.process.heat",
+      "text": "Erhitzen"
+    },
+    {
+      "key": "vocab.process.soak",
+      "text": "Einweichen"
+    },
+    {
+      "key": "vocab.process.dry",
+      "text": "Trocknen"
+    },
+    {
+      "key": "vocab.process.grind",
+      "text": "Zerreiben"
+    },
+    {
+      "key": "vocab.process.mix",
+      "text": "Mischen"
+    },
+    {
+      "key": "vocab.process.strike",
+      "text": "Schlagen"
+    },
+    {
+      "key": "vocab.process.cut",
+      "text": "Schneiden"
+    },
+    {
+      "key": "vocab.process.split",
+      "text": "Spalten"
+    },
+    {
+      "key": "vocab.process.bind",
+      "text": "Binden"
+    },
+    {
+      "key": "vocab.process.braid",
+      "text": "Flechten"
+    },
+    {
+      "key": "vocab.process.shape",
+      "text": "Formen"
+    },
+    {
+      "key": "vocab.process.fire",
+      "text": "Brennen"
+    },
+    {
+      "key": "vocab.process.char",
+      "text": "Verkohlen"
+    },
+    {
+      "key": "vocab.process.melt",
+      "text": "Schmelzen"
+    },
+    {
+      "key": "vocab.heat_level.warm",
+      "text": "Warm"
+    },
+    {
+      "key": "vocab.heat_level.embers",
+      "text": "Glut"
+    },
+    {
+      "key": "vocab.heat_level.open_fire",
+      "text": "Offenes Feuer"
+    },
+    {
+      "key": "vocab.heat_level.kiln",
+      "text": "Brennofen"
+    },
+    {
+      "key": "vocab.heat_level.furnace",
+      "text": "Schmelzofen"
+    },
+    {
+      "key": "vocab.tech_level.tool",
+      "text": "Werkzeug"
+    },
+    {
+      "key": "vocab.tech_level.hut",
+      "text": "Hütte"
+    },
+    {
+      "key": "vocab.tech_level.workshop",
+      "text": "Werkstatt"
+    },
+    {
+      "key": "vocab.tech_level.metal",
+      "text": "Metall"
+    },
+    {
+      "key": "vocab.shape.box",
+      "text": "Quader"
+    },
+    {
+      "key": "vocab.shape.cylinder",
+      "text": "Zylinder"
+    },
+    {
+      "key": "vocab.shape.sphere",
+      "text": "Kugel"
+    },
+    {
+      "key": "vocab.shape.cone",
+      "text": "Kegel"
+    },
+    {
+      "key": "vocab.shape.wedge",
+      "text": "Keil"
+    },
+    {
+      "key": "vocab.shape.plank",
+      "text": "Brett"
+    },
+    {
+      "key": "vocab.shape.ring",
+      "text": "Ring"
+    },
+    {
+      "key": "vocab.shape.bowl",
+      "text": "Schale"
     }
   ]
 }

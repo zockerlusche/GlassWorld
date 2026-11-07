@@ -116,5 +116,21 @@ namespace GlassWorld.Contracts
         Epoch = 9,
 
 
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("process")]
+        Process = 10,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("heat_level")]
+        Heat_level = 11,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("tech_level")]
+        Tech_level = 12,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("shape")]
+        Shape = 13,
+
+
     }
 }

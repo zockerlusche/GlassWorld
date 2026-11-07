@@ -55,6 +55,7 @@ KNOWN_GENERATOR_GAPS = {
     "decision-request.duplicate-weather.json": "uniqueItems is not enforced by pydantic",
     "decision-request.partners-duplicate.json": "uniqueItems is not enforced by pydantic",
     "generation-job.empty-payload.json": "minProperties is not enforced by pydantic",
+    "generation-job.two-payload-parts.json": "maxProperties is not enforced by pydantic",
 }
 
 

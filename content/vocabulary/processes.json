@@ -1,0 +1,62 @@
+{
+  "contract_version": "0.2",
+  "kind": "process",
+  "entries": [
+    {
+      "id": "heat",
+      "description": "Make something hot over a fire."
+    },
+    {
+      "id": "soak",
+      "description": "Leave something in water for a while."
+    },
+    {
+      "id": "dry",
+      "description": "Leave something in sun or wind until the water is gone."
+    },
+    {
+      "id": "grind",
+      "description": "Rub or crush something into small pieces or powder."
+    },
+    {
+      "id": "mix",
+      "description": "Put several things together into one mass."
+    },
+    {
+      "id": "strike",
+      "description": "Hit one hard thing against another."
+    },
+    {
+      "id": "cut",
+      "description": "Cut something with a sharp edge."
+    },
+    {
+      "id": "split",
+      "description": "Break something along its grain or layers into flat pieces."
+    },
+    {
+      "id": "bind",
+      "description": "Tie things firmly together with fibres or cord."
+    },
+    {
+      "id": "braid",
+      "description": "Weave or braid fibres into cord, mats or baskets."
+    },
+    {
+      "id": "shape",
+      "description": "Form a soft mass by hand."
+    },
+    {
+      "id": "fire",
+      "description": "Burn a shaped soft mass in strong heat until it is hard."
+    },
+    {
+      "id": "char",
+      "description": "Heat wood with little air until it turns to charcoal."
+    },
+    {
+      "id": "melt",
+      "description": "Heat something until it becomes liquid."
+    }
+  ]
+}

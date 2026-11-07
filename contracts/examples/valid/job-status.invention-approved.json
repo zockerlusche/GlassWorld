@@ -1,0 +1,82 @@
+{
+  "contract_version": "0.2",
+  "job_id": "1a2b3c4d-5e6f-8a7b-9c8d-0e1f2a3b4c5d",
+  "tick": 1210,
+  "kind": "invention",
+  "state": "done",
+  "result": {
+    "invention": {
+      "decision": "downsize",
+      "invention": {
+        "name": {
+          "locale": "de",
+          "text": "Lehmschale"
+        },
+        "purpose": "drink",
+        "category": "object",
+        "materials": [
+          "clay_lump"
+        ],
+        "size_m": {
+          "x": 0.25,
+          "y": 0.12,
+          "z": 0.25
+        },
+        "steps": [
+          {
+            "process": "shape",
+            "materials": [
+              "clay_lump"
+            ]
+          },
+          {
+            "process": "fire",
+            "materials": [
+              "clay_lump"
+            ]
+          }
+        ],
+        "introduces": [
+          "container",
+          "hard"
+        ],
+        "tech_level": "hut"
+      },
+      "rounds": [
+        {
+          "round": 1,
+          "decision": "downsize",
+          "reasons": [
+            "too_large"
+          ],
+          "note": "Smaller bowl fits the clay at hand."
+        },
+        {
+          "round": 2,
+          "decision": "approve",
+          "reasons": [],
+          "note": "Plausible at tech level hut."
+        }
+      ],
+      "sound": {
+        "needed": true,
+        "description": "clay bowl set down on stone, dull knock",
+        "kind": "one_shot",
+        "part": null
+      },
+      "thought": {
+        "locale": "de",
+        "text": "Eine Schale aus Lehm, damit trage ich Wasser!"
+      }
+    }
+  },
+  "error": null,
+  "provenance": {
+    "source": "mock",
+    "model": "mock",
+    "prompt_version": "invention/invent.v1",
+    "seed": 77,
+    "latency_ms": 1,
+    "attempts": 1
+  }
+}

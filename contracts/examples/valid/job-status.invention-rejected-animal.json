@@ -1,0 +1,34 @@
+{
+  "contract_version": "0.2",
+  "job_id": "1a2b3c4d-5e6f-8a7b-9c8d-0e1f2a3b4c60",
+  "tick": 1210,
+  "kind": "invention",
+  "state": "done",
+  "result": {
+    "invention": {
+      "decision": "reject",
+      "invention": null,
+      "rounds": [
+        {
+          "round": 1,
+          "decision": "reject",
+          "reasons": [
+            "living_being"
+          ],
+          "note": "B2531: no invented animals."
+        }
+      ],
+      "sound": null,
+      "thought": null
+    }
+  },
+  "error": null,
+  "provenance": {
+    "source": "mock",
+    "model": "mock",
+    "prompt_version": "invention/invent.v1",
+    "seed": 77,
+    "latency_ms": 1,
+    "attempts": 1
+  }
+}

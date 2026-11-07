@@ -276,6 +276,9 @@ class GeneratedText(BaseModel):
 class JobKind(StrEnum):
     question = 'question'
     memory = 'memory'
+    invention = 'invention'
+    build_plan = 'build_plan'
+    process = 'process'
     dream = 'dream'
     chronicle = 'chronicle'
     image = 'image'
@@ -300,3 +303,138 @@ class ServiceErrorCode(StrEnum):
     forbidden = 'forbidden'
     not_found = 'not_found'
     internal = 'internal'
+
+
+class Category(StrEnum):
+    object = 'object'
+    building = 'building'
+
+
+class SizeM(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    x: float = Field(..., ge=0.01)
+    y: float = Field(..., ge=0.01)
+    z: float = Field(..., ge=0.01)
+
+
+class InventionStep(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    process: str = Field(
+        ...,
+        description='Basic process (vocabulary process), e.g. split, bind, shape.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    materials: list[VocabId] = Field(
+        ...,
+        description='Materials of this step (subset of Invention.materials).',
+        max_length=6,
+        min_length=1,
+    )
+
+
+class PropertyCondition(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    properties_all: list[VocabId] = Field(..., max_length=8, min_length=1)
+    properties_none: list[VocabId] = Field(..., max_length=8, min_length=0)
+
+
+class ProcessOutcome(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    add_properties: list[VocabId] = Field(..., max_length=8, min_length=0)
+    remove_properties: list[VocabId] = Field(..., max_length=8, min_length=0)
+    produces: VocabId | None = Field(
+        ...,
+        description='Object type that comes out, or null when the input only changes.',
+    )
+
+
+class ObservedThing(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    type: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    observed: list[VocabId] = Field(..., max_length=12, min_length=0)
+
+
+class Invention(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    name: GeneratedText = Field(
+        ...,
+        description="Name in the player's language (generated, checked by the content guard); the chronicle uses it as a parameter (D471 O4).",
+    )
+    purpose: str = Field(
+        ...,
+        description='Action the thing is made for (vocabulary action).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    category: Category = Field(..., description='B2531: only objects and buildings.')
+    materials: list[VocabId] = Field(
+        ...,
+        description='Object types the inhabitant perceives and wants to use (must be perceived; the core checks).',
+        max_length=6,
+        min_length=1,
+    )
+    size_m: SizeM = Field(..., description='Bounding box in metres.')
+    steps: list[InventionStep] = Field(..., max_length=8, min_length=2)
+    introduces: list[VocabId] = Field(
+        ...,
+        description='True properties of the new thing (property vocabulary only).',
+        max_length=6,
+        min_length=0,
+    )
+    tech_level: str = Field(
+        ...,
+        description='Tech level the invention needs (vocabulary tech_level).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+
+
+class ProcessRule(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    id: str = Field(
+        ...,
+        description='Stable rule id (data) or generated id for a world rule.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    process: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    inputs: list[PropertyCondition] = Field(..., max_length=4, min_length=1)
+    tool: PropertyCondition | None = Field(
+        ..., description='What the tool must be like, or null.'
+    )
+    heat_min: VocabId | None = Field(
+        ..., description='Lowest heat level needed (vocabulary heat_level), or null.'
+    )
+    duration_ticks: int = Field(..., ge=1, le=100000)
+    tech_level: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    result: ProcessOutcome

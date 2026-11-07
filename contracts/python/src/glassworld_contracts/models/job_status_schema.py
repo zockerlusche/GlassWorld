@@ -63,6 +63,114 @@ class JobProvenance(BaseModel):
     attempts: int = Field(..., ge=1, le=3)
 
 
+class Decision(StrEnum):
+    approve = 'approve'
+    downsize = 'downsize'
+    revise = 'revise'
+    reject = 'reject'
+
+
+class GuardVerdict(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    round: int = Field(..., ge=1, le=3)
+    decision: Decision
+    reasons: list[common_schema.VocabId] = Field(
+        ...,
+        description='Reason codes from data (content/guard).',
+        max_length=6,
+        min_length=0,
+    )
+    note: str = Field(
+        ..., description='Short English note for the log, never shown.', max_length=280
+    )
+
+
+class Kind(StrEnum):
+    one_shot = 'one_shot'
+    loop = 'loop'
+
+
+class SoundDecision(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    needed: bool
+    description: str = Field(
+        ...,
+        description="Short English sound description for the sound model, e.g. 'wooden door creaks'.",
+        max_length=120,
+    )
+    kind: Kind
+    part: common_schema.VocabId | None = Field(
+        ..., description='Part that sounds (vocabulary), or null.'
+    )
+
+
+class Decision1(StrEnum):
+    approve = 'approve'
+    downsize = 'downsize'
+    reject = 'reject'
+
+
+class SizeM(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    x: float = Field(..., ge=0.005)
+    y: float = Field(..., ge=0.005)
+    z: float = Field(..., ge=0.005)
+
+
+class PositionM(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    x: float
+    y: float
+    z: float
+
+
+class BuildPart(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    shape: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    size_m: SizeM = Field(..., description='Size of the part in metres.')
+    position_m: PositionM = Field(
+        ..., description='Centre relative to the object origin, metres.'
+    )
+    rotation_y_deg: float = Field(..., ge=-180.0, le=180.0)
+    material: str = Field(
+        ...,
+        description='One of Invention.materials (core checks).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    color: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    step: int = Field(
+        ..., description='Building step that adds the part (1-based).', ge=1, le=8
+    )
+
+
+class BuildPlan(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    parts: list[BuildPart] = Field(..., max_length=64, min_length=2)
+
+
 class QuestionResult(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -80,11 +188,34 @@ class QuestionResult(BaseModel):
     rationale: str = Field(..., max_length=280)
 
 
+class InventionResult(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    decision: Decision1 = Field(..., description='Final AI verdict.')
+    invention: common_schema.Invention | None
+    rounds: list[GuardVerdict] = Field(..., max_length=3, min_length=1)
+    sound: SoundDecision | None
+    thought: common_schema.Thought | None
+
+
+class ProcessResult(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    feasible: bool
+    rule: common_schema.ProcessRule | None
+    rationale: str = Field(..., max_length=280)
+
+
 class JobResult(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
     question: QuestionResult | None = None
+    invention: InventionResult | None = None
+    build_plan: BuildPlan | None = None
+    process: ProcessResult | None = None
 
 
 class JobStatus(BaseModel):

@@ -344,24 +344,36 @@ namespace GlassWorld.Contracts
         Memory = 1,
 
 
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("invention")]
+        Invention = 2,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("build_plan")]
+        Build_plan = 3,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("process")]
+        Process = 4,
+
+
         [System.Text.Json.Serialization.JsonStringEnumMemberName("dream")]
-        Dream = 2,
+        Dream = 5,
 
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("chronicle")]
-        Chronicle = 3,
+        Chronicle = 6,
 
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("image")]
-        Image = 4,
+        Image = 7,
 
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("sound")]
-        Sound = 5,
+        Sound = 8,
 
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("model3d")]
-        Model3d = 6,
+        Model3d = 9,
 
 
     }
@@ -433,6 +445,175 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonStringEnumMemberName("internal")]
         Internal = 7,
 
+
+    }
+
+    /// <summary>
+    /// An idea for a thing that does not exist yet in the world (B4b). A record, never code: what it is for, from which perceived materials, how big, in which steps, and which true properties the new thing brings (only vocabulary ids). Inventions are things or buildings, never living beings (B2531).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class Invention
+    {
+
+        /// <summary>
+        /// Name in the player's language (generated, checked by the content guard); the chronicle uses it as a parameter (D471 O4).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        public GeneratedText Name { get; set; } = new GeneratedText();
+
+        /// <summary>
+        /// Action the thing is made for (vocabulary action).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("purpose")]
+        public string Purpose { get; set; } = default!;
+
+        /// <summary>
+        /// B2531: only objects and buildings.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("category")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<InventionCategory>))]
+        public InventionCategory Category { get; set; } = default!;
+
+        /// <summary>
+        /// Object types the inhabitant perceives and wants to use (must be perceived; the core checks).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("materials")]
+        public System.Collections.Generic.ICollection<string> Materials { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// Bounding box in metres.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("size_m")]
+        public SizeM SizeM { get; set; } = new SizeM();
+
+        [System.Text.Json.Serialization.JsonPropertyName("steps")]
+        public System.Collections.Generic.ICollection<InventionStep> Steps { get; set; } = new System.Collections.ObjectModel.Collection<InventionStep>();
+
+        /// <summary>
+        /// True properties of the new thing (property vocabulary only).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("introduces")]
+        public System.Collections.Generic.ICollection<string> Introduces { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// Tech level the invention needs (vocabulary tech_level).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("tech_level")]
+        public string TechLevel { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// One building step: what is done with which materials.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class InventionStep
+    {
+
+        /// <summary>
+        /// Basic process (vocabulary process), e.g. split, bind, shape.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("process")]
+        public string Process { get; set; } = default!;
+
+        /// <summary>
+        /// Materials of this step (subset of Invention.materials).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("materials")]
+        public System.Collections.Generic.ICollection<string> Materials { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+    }
+
+    /// <summary>
+    /// Matches an object by its TRUE properties, never by type id (B1-2): all of properties_all and none of properties_none.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class PropertyCondition
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("properties_all")]
+        public System.Collections.Generic.ICollection<string> PropertiesAll { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("properties_none")]
+        public System.Collections.Generic.ICollection<string> PropertiesNone { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+    }
+
+    /// <summary>
+    /// A processing rule (B2537): a basic process applied to inputs matched by properties, with tool, heat and tech level, and what comes out. Same form in content/processes/rules.json and in AI-found world rules (job process), so both are applied the same way.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ProcessRule
+    {
+
+        /// <summary>
+        /// Stable rule id (data) or generated id for a world rule.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public string Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("process")]
+        public string Process { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("inputs")]
+        public System.Collections.Generic.ICollection<PropertyCondition> Inputs { get; set; } = new System.Collections.ObjectModel.Collection<PropertyCondition>();
+
+        /// <summary>
+        /// What the tool must be like, or null.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("tool")]
+        public PropertyCondition? Tool { get; set; } = default!;
+
+        /// <summary>
+        /// Lowest heat level needed (vocabulary heat_level), or null.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("heat_min")]
+        public string? HeatMin { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("duration_ticks")]
+        public int DurationTicks { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("tech_level")]
+        public string TechLevel { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("result")]
+        public ProcessOutcome Result { get; set; } = new ProcessOutcome();
+
+    }
+
+    /// <summary>
+    /// What the process does: change the properties of the (first) input, or produce an object type (catalog or invention).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ProcessOutcome
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("add_properties")]
+        public System.Collections.Generic.ICollection<string> AddProperties { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("remove_properties")]
+        public System.Collections.Generic.ICollection<string> RemoveProperties { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// Object type that comes out, or null when the input only changes.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("produces")]
+        public string? Produces { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A thing as the inhabitant sees it: type and observable properties only (no hidden truth).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ObservedThing
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        public string Type { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("observed")]
+        public System.Collections.Generic.ICollection<string> Observed { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
     }
 
@@ -610,6 +791,35 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonStringEnumMemberName("event")]
         Event = 3,
 
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public enum InventionCategory
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("object")]
+        Object = 0,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("building")]
+        Building = 1,
+
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class SizeM
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("x")]
+        public double X { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("y")]
+        public double Y { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("z")]
+        public double Z { get; set; } = default!;
 
     }
 
