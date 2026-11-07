@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/model-footprints.schema.json",
+  "title": "ModelFootprints",
+  "description": "Data file content/hardware/models.json (B7 R2): VRAM and load time per AI model, measured through the GPU queue, plus the VRAM the game itself needs. The AI service keeps the loaded models within budget = VRAM of the GPU minus game_vram_mib.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "game_vram_mib",
+    "models"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "game_vram_mib": {
+      "description": "VRAM the running game needs (B2514 T6).",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 65536
+    },
+    "models": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "items": {
+        "$ref": "#/$defs/ModelFootprint"
+      }
+    }
+  },
+  "$defs": {
+    "ModelFootprint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "role",
+        "runtime",
+        "vram_mib",
+        "load_s",
+        "measured",
+        "source",
+        "never_with"
+      ],
+      "properties": {
+        "id": {
+          "description": "Model id as the runtime knows it (Ollama tag, ComfyUI workflow name, ...).",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 96,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$"
+        },
+        "role": {
+          "description": "What the model is used for.",
+          "type": "string",
+          "enum": [
+            "language",
+            "image",
+            "image_edit",
+            "sound",
+            "motion"
+          ]
+        },
+        "runtime": {
+          "description": "ollama = Ollama server; comfyui = ComfyUI server (/free unloads); hook = loaded by a handler inside the service (e.g. MOSS for sound, B8).",
+          "type": "string",
+          "enum": [
+            "ollama",
+            "comfyui",
+            "hook"
+          ]
+        },
+        "vram_mib": {
+          "description": "VRAM to reserve while loaded (peak/reserved, not average).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 131072
+        },
+        "load_s": {
+          "description": "Seconds to load.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 3600
+        },
+        "measured": {
+          "description": "true = measured on the reference PC; false = placeholder until B7 S3.",
+          "type": "boolean"
+        },
+        "source": {
+          "description": "Where the value comes from (AMW document, run), or null.",
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 200
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "never_with": {
+          "description": "Model ids that must not be loaded at the same time, whatever the budget says.",
+          "type": "array",
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 96
+          }
+        }
+      }
+    }
+  }
+}

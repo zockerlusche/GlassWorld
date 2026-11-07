@@ -1,0 +1,50 @@
+{
+  "contract_version": "0.2",
+  "game_vram_mib": 2560,
+  "models": [
+    {
+      "id": "qwen3.5:9b",
+      "role": "language",
+      "runtime": "ollama",
+      "vram_mib": 6758,
+      "load_s": 12.0,
+      "measured": false,
+      "source": "B7 R2 (about 6.6 GB) and live warm-up 12 s (B3); exact peak in B7 S3",
+      "never_with": []
+    },
+    {
+      "id": "z-image-turbo",
+      "role": "image",
+      "runtime": "comfyui",
+      "vram_mib": 7000,
+      "load_s": 30.0,
+      "measured": false,
+      "source": "placeholder until B7 S3",
+      "never_with": []
+    },
+    {
+      "id": "qwen-image-edit-2511",
+      "role": "image_edit",
+      "runtime": "comfyui",
+      "vram_mib": 9933,
+      "load_s": 60.0,
+      "measured": true,
+      "source": "D391 (9.7 GB peak; comfort tier and assets only)",
+      "never_with": [
+        "qwen3.5:9b"
+      ]
+    },
+    {
+      "id": "moss-sound",
+      "role": "sound",
+      "runtime": "hook",
+      "vram_mib": 5734,
+      "load_s": 50.0,
+      "measured": true,
+      "source": "D440 (GW3: 5.6 GB reserved with offload, load 48-50 s)",
+      "never_with": [
+        "qwen3.5:9b"
+      ]
+    }
+  ]
+}

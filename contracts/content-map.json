@@ -43,6 +43,10 @@
       "schema": "hardware-tiers"
     },
     {
+      "pattern": "hardware/models.json",
+      "schema": "model-footprints"
+    },
+    {
       "pattern": "world/placeholder-start.json",
       "schema": "placeholder-start"
     },

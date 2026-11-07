@@ -44,6 +44,14 @@ from glassworld_ai.questions.handlers import (
     ReplayQuestions,
 )
 from glassworld_ai.queue import ModelQueue
+from glassworld_ai.residency import (
+    ComfyUIDriver,
+    OllamaDriver,
+    Residency,
+    ResidencyError,
+    budget_mib,
+    load_footprints,
+)
 from glassworld_ai.security import make_access_guard
 from glassworld_ai.validation import ContractValidator
 from glassworld_ai.vocabulary import Vocabulary
@@ -79,6 +87,7 @@ def create_app(
     POST /shutdown calls it. The decider model is unloaded on every way out (lifespan end).
     """
     tiers = load_tiers(settings.hardware_tiers_file)  # fail fast on a broken data file
+    game_vram, footprints = load_footprints(settings.model_footprints_file)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
@@ -91,6 +100,11 @@ def create_app(
                 app.state.probes = HttpProbes(settings, client)
             if hardware is None:
                 _set_hardware(app, await asyncio.to_thread(detect_hardware))
+            residency: Residency = app.state.residency  # exists once the hardware is known
+            residency.register_driver(
+                "ollama", OllamaDriver(str(settings.ollama_url), client, settings.keep_alive)
+            )
+            residency.register_driver("comfyui", ComfyUIDriver(str(settings.comfyui_url), client))
             if decider is None:
                 app.state.decider = _build_decider(settings, ollama, app.state.queue)
             if job_handlers is None and settings.decider_backend == "ollama":
@@ -139,6 +153,8 @@ def create_app(
     def _set_hardware(target: FastAPI, info: HardwareInfo) -> None:
         target.state.hardware = info
         target.state.tier = select_tier(tiers, info)
+        # B7 S2: budget = largest GPU minus the game; drivers come with the HTTP client.
+        target.state.residency = Residency(footprints, budget_mib(info, game_vram), {})
 
     if probes is not None:
         app.state.probes = probes
@@ -363,6 +379,8 @@ async def _warm_up(app: FastAPI, ollama: OllamaClient, retry_s: float) -> None:
         try:
             await ollama.warm_up(timeout=300)
             app.state.warm_up = "done"
+            with contextlib.suppress(ResidencyError):  # a model without footprint is not tracked
+                app.state.residency.mark_loaded(ollama.model)
             return
         except (OllamaUnavailableError, OllamaResponseError, httpx.HTTPError):
             app.state.warm_up = "failed"
