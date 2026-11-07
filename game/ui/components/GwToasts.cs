@@ -54,6 +54,18 @@ public partial class GwToasts : VBoxContainer
     /// <summary>Input action that closes the oldest hint (bound in the project's input map).</summary>
     public const string DismissAction = "gw_dismiss_hint";
 
+    public override void _Notification(int what)
+    {
+        // Hint texts are translated once (AI-free, but filled); after a language switch set them again.
+        if (what == NotificationTranslationChanged && Board is not null)
+        {
+            foreach (var toast in Board.Visible.Where(t => _shown.ContainsKey(t.Id)))
+            {
+                _shown[toast.Id].Label.Text = Text(toast);
+            }
+        }
+    }
+
     /// <summary>Rebuilds the shown hints from the board (also used by the layout check).</summary>
     public void Sync()
     {

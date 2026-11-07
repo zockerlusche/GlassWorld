@@ -5,7 +5,7 @@ namespace GlassWorld.Presentation.Ui;
 /// <summary>A calm hint (D366 section 9): a text key with arguments and an optional group for bundling.</summary>
 /// <param name="TextKey">Translation key, e.g. <c>msg.mail.kind.knock</c>.</param>
 /// <param name="Args">Placeholder values (<c>{name}</c> in the text).</param>
-/// <param name="Group">Hints of the same group are bundled in fast-forward; null = never bundled.</param>
+/// <param name="Group">Hints of the same group are bundled; null = the text key is the group.</param>
 public sealed record ToastMessage(string TextKey, IReadOnlyDictionary<string, string> Args, string? Group);
 
 /// <summary>A hint on screen.</summary>
@@ -63,9 +63,9 @@ public sealed class ToastBoard
     {
         ArgumentNullException.ThrowIfNull(message);
         var bundle = fastForward || _waiting.Count >= _tokens.BundleAfterWaiting;
-        if (bundle && message.Group is not null)
+        if (bundle)
         {
-            var same = _visible.Concat(_waiting).FirstOrDefault(e => e.Message.Group == message.Group);
+            var same = _visible.Concat(_waiting).FirstOrDefault(e => GroupOf(e.Message) == GroupOf(message));
             if (same is not null)
             {
                 same.Count++;
@@ -118,6 +118,8 @@ public sealed class ToastBoard
             Dismiss(_visible[0].Id);
         }
     }
+
+    private static string GroupOf(ToastMessage message) => message.Group ?? message.TextKey;
 
     private void Fill()
     {

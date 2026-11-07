@@ -140,6 +140,19 @@ public sealed class ToastTests
     }
 
     [Fact]
+    public void HintsWithoutGroupBundleByTextKeyInABacklog()
+    {
+        var board = new ToastBoard(Tokens, new ToastSettings(1, UntilDismissed: false));
+        for (var i = 0; i < 50; i++)
+        {
+            board.Push(Msg("msg.t.same"), fastForward: false);
+        }
+
+        Assert.True(board.Waiting <= Tokens.BundleAfterWaiting);
+        Assert.Equal(50, board.Visible.Sum(t => t.Count) + board.Waiting);
+    }
+
+    [Fact]
     public void SettingsMustNotBeNull() =>
         Assert.Throws<ArgumentNullException>(() => new ToastBoard(Tokens, new ToastSettings(1, false)).Settings = null!);
 
