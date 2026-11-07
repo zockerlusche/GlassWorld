@@ -1,5 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- Developer tool: generates src/Contracts/Generated from contracts/schemas (ADR-0007). Not shipped. -->
+  <!-- Developer tool: generates src/Contracts/Generated from contracts/schemas (ADR-0007). Not shipped.
+       It links the schema adapter source instead of referencing src/Contracts, so it still builds
+       when the generated files are broken or missing. -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <RootNamespace>GlassWorld.Tools.ContractGen</RootNamespace>
@@ -8,5 +10,8 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="NJsonSchema.CodeGeneration.CSharp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\..\src\Contracts\Validation\SchemaBundle.cs" Link="SchemaBundle.cs" />
   </ItemGroup>
 </Project>

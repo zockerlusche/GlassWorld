@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using GlassWorld.Contracts.Validation;
 using NJsonSchema;
 using NJsonSchema.CodeGeneration;
 using NJsonSchema.CodeGeneration.CSharp;
@@ -20,7 +21,7 @@ public static partial class Generator
     {
         var emitted = new HashSet<string>(StringComparer.Ordinal);
         var files = new List<KeyValuePair<string, string>>();
-        foreach (var (name, json) in SchemaBundle.Load(schemaDirectory, forValidation: false))
+        foreach (var (name, json) in SchemaBundle.LoadDirectory(schemaDirectory, forValidation: false))
         {
             var schema = await JsonSchema.FromJsonAsync(json).ConfigureAwait(false);
             var settings = new CSharpGeneratorSettings

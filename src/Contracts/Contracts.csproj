@@ -1,11 +1,23 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- C# types for the messages between core and AI service. Generated from contracts/schemas;
-       do not edit Generated/*.g.cs by hand (run tools/ContractGen). No Godot, no NJsonSchema at runtime. -->
+  <!-- C# types for the messages between core and AI service, plus runtime validation.
+       Generated/*.g.cs come from contracts/schemas via tools/ContractGen; never edit them by hand.
+       The schemas themselves are embedded and checked before every deserialize (ContractSerializer). -->
   <PropertyGroup>
     <RootNamespace>GlassWorld.Contracts</RootNamespace>
     <AssemblyName>GlassWorld.Contracts</AssemblyName>
     <IsPackable>false</IsPackable>
-    <!-- Generated code carries its own XML docs where the schema has descriptions. -->
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="NJsonSchema" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\contracts\schemas\*.schema.json" LogicalName="GlassWorld.Contracts.Schemas.%(Filename)%(Extension)" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="GlassWorld.Contracts.Tests" />
+  </ItemGroup>
+  <!-- Generated code: schema descriptions become XML docs where present. -->
+  <PropertyGroup>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
 </Project>
