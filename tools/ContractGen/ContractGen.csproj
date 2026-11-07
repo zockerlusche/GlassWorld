@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Developer tool: generates src/Contracts/Generated from contracts/schemas (ADR-0007). Not shipped. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>GlassWorld.Tools.ContractGen</RootNamespace>
+    <AssemblyName>GlassWorld.Tools.ContractGen</AssemblyName>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="NJsonSchema.CodeGeneration.CSharp" />
+  </ItemGroup>
+</Project>
