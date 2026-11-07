@@ -1,0 +1,53 @@
+# --- OS / editors ---
+.DS_Store
+Thumbs.db
+desktop.ini
+.vs/
+.vscode/
+.idea/
+*.swp
+
+# --- Claude Code (machine-local settings) ---
+.claude/settings.local.json
+
+# --- Godot 4 ---
+.godot/
+.import/
+export_presets.cfg
+/game/export/
+/build/
+
+# --- .NET ---
+bin/
+obj/
+*.user
+*.suo
+*.userprefs
+*.DotSettings.user
+TestResults/
+*.trx
+*.coverage
+coverage*.xml
+.mono/
+mono_crash.*
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+htmlcov/
+.coverage
+*.egg-info/
+dist/
+.env
+.env.*
+!.env.example
+
+# --- Runtime data ---
+saves/
+logs/
+*.log
