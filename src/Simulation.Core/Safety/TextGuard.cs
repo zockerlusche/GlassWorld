@@ -46,7 +46,7 @@ public sealed class TextGuard
             .. rules.Categories.Select(c => (
                 Name(c.Id),
                 c.TermsDe.Concat(c.TermsEn).Select(Split).ToList(),
-                c.Patterns.Select(p => new Regex(p, RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1))).ToList())),
+                c.Patterns.Select(p => new Regex(p, RegexOptions.CultureInvariant | RegexOptions.NonBacktracking)).ToList())),
         ];
     }
 

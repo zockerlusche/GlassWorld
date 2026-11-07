@@ -53,7 +53,7 @@ class SafetyCategory(BaseModel):
     terms_en: list[TermsEnItem]
     patterns: list[Pattern] = Field(
         ...,
-        description='Regular expressions (.NET and Python compatible subset) on the normalised text, e.g. e-mail addresses.',
+        description='Regular expressions on the normalised text, e.g. e-mail addresses. Subset that works in Python re and .NET RegexOptions.NonBacktracking (no backreferences, no lookarounds); no wall-clock timeouts in the core.',
     )
 
 

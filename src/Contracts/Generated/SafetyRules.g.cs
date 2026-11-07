@@ -39,7 +39,7 @@ namespace GlassWorld.Contracts
         public System.Collections.Generic.ICollection<string> TermsEn { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
         /// <summary>
-        /// Regular expressions (.NET and Python compatible subset) on the normalised text, e.g. e-mail addresses.
+        /// Regular expressions on the normalised text, e.g. e-mail addresses. Subset that works in Python re and .NET RegexOptions.NonBacktracking (no backreferences, no lookarounds); no wall-clock timeouts in the core.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("patterns")]
         public System.Collections.Generic.ICollection<string> Patterns { get; set; } = new System.Collections.ObjectModel.Collection<string>();
