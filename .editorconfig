@@ -37,6 +37,14 @@ dotnet_style_qualification_for_method = false:warning
 dotnet_style_predefined_type_for_locals_parameters_members = true:warning
 dotnet_style_require_accessibility_modifiers = for_non_interface_members:warning
 
+# Naming: constants PascalCase (listed first, more specific than private fields)
+dotnet_naming_rule.constants.symbols = constants
+dotnet_naming_rule.constants.style = pascal
+dotnet_naming_rule.constants.severity = warning
+dotnet_naming_symbols.constants.applicable_kinds = field
+dotnet_naming_symbols.constants.required_modifiers = const
+dotnet_naming_style.pascal.capitalization = pascal_case
+
 # Naming: private fields _camelCase
 dotnet_naming_rule.private_fields.symbols = private_fields
 dotnet_naming_rule.private_fields.style = underscore_camel

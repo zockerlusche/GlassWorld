@@ -1,4 +1,9 @@
 <Solution>
+  <Folder Name="/game/">
+    <Project Path="game/GlassWorld.Game.csproj">
+      <BuildType Project="Debug" />
+    </Project>
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/Simulation.Core/Simulation.Core.csproj" />
   </Folder>
