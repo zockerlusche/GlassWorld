@@ -15,7 +15,7 @@
       "$ref": "common.schema.json#/$defs/ContractVersion"
     },
     "source_scale": {
-      "description": "Source pictures are drawn at 1/source_scale of their pixel size, so a 96 px source edge at 6 is a 16 px logical edge (D366: thin frames; A1362 test).",
+      "description": "Source pictures are drawn at 1/source_scale of their pixel size, so a 96 px source edge at 8 is a 12 px logical edge (D366: thin frames; A1362 test).",
       "type": "integer",
       "minimum": 1,
       "maximum": 8

@@ -185,7 +185,7 @@ public static class UiTheme
         theme.SetStylebox("selected_focus", "Tree", Flat(UiColorId.Accent));
         theme.SetColor("font_color", "Tree", ToGodot(style.Color(UiColorId.Text)));
         theme.SetColor("title_button_color", "Tree", ToGodot(style.Color(UiColorId.Text)));
-        theme.SetColor("font_selected_color", "Tree", ToGodot(style.Color(UiColorId.Text)));
+        theme.SetColor("font_selected_color", "Tree", ToGodot(style.Color(UiColorId.Panel)));
         theme.SetColor("guide_color", "Tree", ToGodot(style.Color(UiColorId.Border)));
     }
 

@@ -1,6 +1,6 @@
 {
   "contract_version": "0.2",
-  "source_scale": 6,
+  "source_scale": 8,
   "frames": [
     {
       "id": "window",
