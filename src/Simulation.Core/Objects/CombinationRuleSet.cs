@@ -62,8 +62,10 @@ public sealed class CombinationRuleSet
 
     /// <summary>
     /// Rules that fit an action and the given object types. Each input slot needs its own object that has
-    /// all slot properties; the order of <paramref name="typeIds"/> does not matter. Result is in rule-id
-    /// order with the assignment slot → index into <paramref name="typeIds"/>.
+    /// all slot properties; whether a rule matches does not depend on the order of <paramref name="typeIds"/>.
+    /// Result is in rule-id order with the assignment slot → index into <paramref name="typeIds"/>.
+    /// Callers pass the types of the objects in entity-id order, so the assignment (and with it which
+    /// object a <c>consumes</c> index uses up) is the same in every run and in replays.
     /// </summary>
     public IReadOnlyList<(CombinationRule Rule, int[] Assignment)> Match(string action, IReadOnlyList<string> typeIds)
     {
