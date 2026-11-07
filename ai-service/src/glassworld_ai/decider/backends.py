@@ -24,11 +24,18 @@ from glassworld_ai.llm.ollama import (
     ChatMessage,
     ChatResult,
     OllamaClient,
+    OllamaRequestError,
     OllamaResponseError,
     OllamaUnavailableError,
 )
 from glassworld_ai.prompts import PromptTemplate
-from glassworld_ai.queue import DeadlineExpiredError, ModelQueue, Priority, QueueFullError
+from glassworld_ai.queue import (
+    DeadlineExpiredError,
+    ModelQueue,
+    Priority,
+    QueueClosedError,
+    QueueFullError,
+)
 from glassworld_ai.vocabulary import Vocabulary
 from glassworld_contracts import CONTRACT_VERSION, DecisionRequest, DecisionResponse
 
@@ -177,6 +184,12 @@ class OllamaDecider:
 
             try:
                 result = await self._queue.run(Priority.DECISION, deadline, call)
+            except QueueClosedError as error:
+                log("unavailable", None, str(error))
+                raise DecisionError("model_unavailable", "service is stopping") from error
+            except OllamaRequestError as error:
+                log("error", None, str(error))
+                raise DecisionError("internal", str(error)) from error
             except QueueFullError as error:
                 log("overloaded", None, str(error))
                 raise DecisionError("overloaded", "model queue is full") from error

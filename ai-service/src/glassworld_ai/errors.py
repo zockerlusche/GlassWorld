@@ -24,7 +24,12 @@ _RETRYABLE = {"timeout", "model_unavailable", "overloaded", "invalid_model_outpu
 
 
 def error_response(
-    code: str, message: str, *, request_id: str | None = None, tick: int | None = None
+    code: str,
+    message: str,
+    *,
+    request_id: str | None = None,
+    tick: int | None = None,
+    retryable: bool | None = None,
 ) -> JSONResponse:
     body = ServiceError.model_validate(
         {
@@ -33,7 +38,7 @@ def error_response(
             "tick": tick,
             "code": code,
             "message": message[:500],
-            "retryable": code in _RETRYABLE,
+            "retryable": code in _RETRYABLE if retryable is None else retryable,
         }
     )
     return JSONResponse(status_code=STATUS_BY_CODE[code], content=body.model_dump(mode="json"))

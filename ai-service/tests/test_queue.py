@@ -178,3 +178,31 @@ def test_failing_work_releases_the_model() -> None:
         assert not queue.busy
 
     asyncio.run(scenario())
+
+
+def test_close_ends_waiting_calls_and_rejects_new_ones() -> None:
+    from glassworld_ai.queue import QueueClosedError
+
+    async def scenario() -> None:
+        queue = ModelQueue(max_waiting=5)
+        release = asyncio.Event()
+
+        async def hold() -> None:
+            await release.wait()
+
+        async def never() -> None:
+            raise AssertionError("must not start after close")
+
+        busy = asyncio.create_task(queue.run(Priority.DECISION, _deadline(5), hold))
+        await asyncio.sleep(0.01)
+        waiter = asyncio.create_task(queue.run(Priority.DECISION, _deadline(5), never))
+        await asyncio.sleep(0.01)
+        await queue.close()
+        with pytest.raises(QueueClosedError):
+            await waiter
+        with pytest.raises(QueueClosedError):
+            await queue.run(Priority.PLAYER, _deadline(5), never)
+        release.set()
+        await busy  # the running call finishes normally
+
+    asyncio.run(scenario())

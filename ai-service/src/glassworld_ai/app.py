@@ -5,9 +5,11 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import json
+import re
 import time
 from collections.abc import AsyncGenerator, Callable
 from contextlib import asynccontextmanager
+from typing import cast
 
 import httpx
 from fastapi import FastAPI, Request
@@ -89,8 +91,10 @@ def create_app(
                     warm_task.cancel()
                     with contextlib.suppress(asyncio.CancelledError):
                         await warm_task
-                # Every way out (POST /shutdown, parent gone, signal) frees the VRAM. Uvicorn
-                # has finished all running requests before the lifespan ends.
+                # Every way out (POST /shutdown, parent gone, signal) frees the VRAM: first close
+                # the queue (waiting calls end at once, nothing reloads the model), then unload.
+                app.state.stopping = True
+                await app.state.queue.close()
                 if settings.decider_backend == "ollama":
                     with contextlib.suppress(
                         OllamaUnavailableError, OllamaResponseError, httpx.HTTPError
@@ -136,6 +140,7 @@ def create_app(
     async def shutdown() -> dict[str, str]:
         """Stop the server (ADR-0006). The model is unloaded when the app ends (lifespan)."""
         app.state.stopping = True  # no new model calls: they would load the model again
+        await app.state.queue.close()  # waiting calls end now with model_unavailable
         if request_exit is not None:
             asyncio.get_running_loop().call_soon(request_exit)
         return {"status": "stopping"}
@@ -149,8 +154,12 @@ def create_app(
             return error_response("bad_request", "Request body is not valid JSON.")
         problems = validator.errors("decision-request", data)
         if problems:
+            rid, rtick = _ids_if_valid(data)
             return error_response(
-                "bad_request", "Invalid DecisionRequest: " + "; ".join(problems[:3])
+                "bad_request",
+                "Invalid DecisionRequest: " + "; ".join(problems[:3]),
+                request_id=rid,
+                tick=rtick,
             )
         decision_request = DecisionRequest.model_validate(data)
         request_id = str(getattr(decision_request.request_id, "root", decision_request.request_id))
@@ -162,12 +171,14 @@ def create_app(
                 request_id=request_id,
                 tick=decision_request.tick,
             )
-        if getattr(app.state, "tier", "unknown") is None:
+        if settings.decider_backend == "ollama" and getattr(app.state, "tier", "unknown") is None:
+            # R9: not retryable - the hardware does not change, the core stays in routine mode.
             return error_response(
                 "model_unavailable",
                 "Hardware is below the minimum tier; routine mode only.",
                 request_id=request_id,
                 tick=decision_request.tick,
+                retryable=False,
             )
         current: Decider = app.state.decider
         try:
@@ -176,9 +187,30 @@ def create_app(
             return error_response(
                 error.code, str(error), request_id=request_id, tick=decision_request.tick
             )
+        except Exception as error:
+            return error_response(
+                "internal", type(error).__name__, request_id=request_id, tick=decision_request.tick
+            )
         return JSONResponse(answer.model_dump(mode="json"))
 
     return app
+
+
+_UUID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
+
+
+def _ids_if_valid(data: object) -> tuple[str | None, int | None]:
+    """request_id and tick of an invalid request, if they themselves are valid (for the core)."""
+    if not isinstance(data, dict):
+        return None, None
+    fields = cast(dict[str, object], data)
+    rid = fields.get("request_id")
+    tick = fields.get("tick")
+    valid_rid = rid if isinstance(rid, str) and _UUID.fullmatch(rid) else None
+    valid_tick = (
+        tick if isinstance(tick, int) and not isinstance(tick, bool) and tick >= 0 else None
+    )
+    return valid_rid, valid_tick
 
 
 async def _warm_up(app: FastAPI, ollama: OllamaClient, retry_s: float) -> None:
