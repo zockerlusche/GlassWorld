@@ -9,6 +9,11 @@ public sealed class PlayerSettingsTests
         File.ReadAllText(Path.Combine(TestPaths.Root, "content", "ui", "tokens.json")),
         File.ReadAllText(Path.Combine(TestPaths.Root, "content", "ui", "frames.json"))).Tokens;
 
+    private static readonly GlassWorld.Contracts.MixPlayerRange Volume = GlassWorld.Contracts.Validation.ContractSerializer
+        .Deserialize<GlassWorld.Contracts.SoundMix>(File.ReadAllText(Path.Combine(TestPaths.Root, "content", "sound", "mix.json"))).PlayerVolumeDb;
+
+    private static readonly SettingsLimits Limits = new(Tokens, ["de", "en"], Volume);
+
     [Fact]
     public void RoundTripKeepsEverything()
     {
@@ -24,7 +29,7 @@ public sealed class PlayerSettingsTests
             HideUi = true,
             BusVolumesDb = new(StringComparer.Ordinal) { ["music"] = -12 },
         };
-        var back = PlayerSettings.Parse(settings.ToJson(), Tokens);
+        var back = PlayerSettings.Parse(settings.ToJson(), Limits);
         Assert.Equal(settings.ToJson(), back.ToJson());
     }
 
@@ -35,7 +40,7 @@ public sealed class PlayerSettingsTests
     [InlineData("""{ "version": 99, "ui_scale": 2 }""")]
     public void MissingBrokenOrNewerFilesGiveDefaults(string? json)
     {
-        var settings = PlayerSettings.Parse(json, Tokens);
+        var settings = PlayerSettings.Parse(json, Limits);
         Assert.Equal(1, settings.UiScale);
         Assert.Null(settings.Language);
     }
@@ -43,12 +48,19 @@ public sealed class PlayerSettingsTests
     [Fact]
     public void HandEditedValuesAreClamped()
     {
-        var settings = PlayerSettings.Parse("""{ "language": "fr", "ui_scale": 9, "text_scale": 0.1, "hint_duration_factor": 500, "bus_volumes_db": { "music": 40 } }""", Tokens);
+        var settings = PlayerSettings.Parse("""{ "language": "fr", "ui_scale": 9, "text_scale": 0.1, "hint_duration_factor": 500, "bus_volumes_db": { "music": 40 } }""", Limits);
         Assert.Null(settings.Language);
         Assert.Equal(2, settings.UiScale);
         Assert.Equal(0.75, settings.TextScale);
         Assert.Equal(Tokens.Toast.MaxDurationFactor, settings.HintDurationFactor);
-        Assert.Equal(6, settings.BusVolumesDb["music"]);
+        Assert.Equal(Volume.Max, settings.BusVolumesDb["music"]);
+    }
+
+    [Fact]
+    public void NullVolumesFromAHandEditedFileAreEmpty()
+    {
+        var settings = PlayerSettings.Parse("""{ "bus_volumes_db": null }""", Limits);
+        Assert.Empty(settings.BusVolumesDb);
     }
 
     [Fact]

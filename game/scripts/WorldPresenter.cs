@@ -45,6 +45,15 @@ public partial class WorldPresenter : Node3D
     /// <summary>Raised after every save (autosave at the day boundary or explicit), e.g. to update meta data.</summary>
     public event Action<string>? Saved;
 
+    /// <summary>
+    /// Raised when an autosave fails (disk full, file locked by a virus scanner or cloud sync). The world
+    /// runs on; the next game day tries again. The screen shows a calm hint (B6 R3).
+    /// </summary>
+    public event Action<Exception>? SaveFailed;
+
+    /// <summary>State hash right after restoring, before open questions are sent again (save/load check).</summary>
+    public string? HashAtLoad { get; private set; }
+
     /// <summary>Builds the placeholder start world for a seed and creates the visuals (no save game).</summary>
     public void Start(string contentDirectory, ulong seed) => CreateWorld(contentDirectory, seed, null);
 
@@ -66,13 +75,17 @@ public partial class WorldPresenter : Node3D
     /// Loads a world from its save game (ADR-0003: same state hash as when saved). Questions that were
     /// open at saving go out again with the current port (mock or live), because the old answers are lost.
     /// </summary>
-    public void Load(string contentDirectory, string savePath)
+    /// <param name="contentDirectory">Content folder.</param>
+    /// <param name="savePath">Save game to load.</param>
+    /// <param name="port">Decider port; null = the usual one (mock, or the live service with GLASSWORLD_AI=live).</param>
+    public void Load(string contentDirectory, string savePath, IDecisionPort? port = null)
     {
         ArgumentException.ThrowIfNullOrEmpty(savePath);
         var settings = Contracts.Validation.ContractSerializer.Deserialize<Contracts.DeciderSettings>(
             System.IO.File.ReadAllText(System.IO.Path.Combine(contentDirectory, "decider", "settings.json")));
-        var factory = new SimulationHostFactory(ContentSet.Load(contentDirectory), settings, CreatePort(contentDirectory), "de");
+        var factory = new SimulationHostFactory(ContentSet.Load(contentDirectory), settings, port ?? CreatePort(contentDirectory), "de");
         var host = StateCodec.Restore(factory, SaveGameStore.Load(savePath));
+        HashAtLoad = host.World.StateHash();
         host.Decisions.ResendPendingAfterLoad(host.World);
         Begin(host, savePath);
     }
@@ -100,12 +113,23 @@ public partial class WorldPresenter : Node3D
         SavePath = savePath;
         if (savePath is not null)
         {
-            _ = new AutoSaver(host, savePath);
+            // Autosave every game day (B2487). Like AutoSaver, but a failure must not escape into
+            // World.Step: it would cost the remaining ticks of the frame and the player would not know.
             host.World.BoundaryReached += (_, boundary) =>
             {
-                if (boundary == TimeBoundary.Day)
+                if (boundary != TimeBoundary.Day)
                 {
-                    Saved?.Invoke(savePath);
+                    return;
+                }
+
+                try
+                {
+                    Save();
+                }
+                catch (Exception e) when (e is not OutOfMemoryException)
+                {
+                    GD.PushWarning($"SAVE_FAILED autosave {e.GetType().Name}: {e.Message}");
+                    SaveFailed?.Invoke(e);
                 }
             };
         }

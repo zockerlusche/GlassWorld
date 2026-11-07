@@ -20,6 +20,9 @@ public sealed class WorldLibraryTests : IDisposable
     [InlineData("Größe & Übermut!", "groesse-uebermut")]
     [InlineData("   ", "world")]
     [InlineData("../../etc", "etc")]
+    [InlineData("Nul", "nul-world")]
+    [InlineData("COM1", "com1-world")]
+    [InlineData("con.txt", "con-txt")]
     [InlineData("A very long world name that keeps going and going", "a-very-long-world-name-that-keep")]
     public void SlugIsASafeFolderName(string name, string expected) => Assert.Equal(expected, WorldLibrary.Slug(name));
 

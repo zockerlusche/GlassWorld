@@ -4,6 +4,12 @@ using GlassWorld.Contracts;
 
 namespace GlassWorld.Presentation.Ui;
 
+/// <summary>What a setting may be: UI tokens, the game's languages and the volume range of the mix data.</summary>
+/// <param name="Tokens">UI tokens (UI and text size, hint duration).</param>
+/// <param name="Locales">Languages with a text catalog.</param>
+/// <param name="VolumeDb">Range of the volume sliders (content/sound/mix.json).</param>
+public sealed record SettingsLimits(UiTokens Tokens, IReadOnlyCollection<string> Locales, MixPlayerRange VolumeDb);
+
 /// <summary>
 /// The player's settings (B6 R4): stored in the user folder (<c>user://settings.json</c>), never in a
 /// world save and never sent to the AI. Unknown or broken files fall back to the defaults; values are
@@ -14,7 +20,7 @@ public sealed record PlayerSettings
     /// <summary>Format version of the file.</summary>
     public int Version { get; init; } = 1;
 
-    /// <summary>Game language: <c>de</c> or <c>en</c>; null = system language on first start.</summary>
+    /// <summary>Game language (one with a text catalog); null = system language on first start.</summary>
     public string? Language { get; init; }
 
     /// <summary>UI size 0.75..2 (B2513).</summary>
@@ -49,22 +55,22 @@ public sealed record PlayerSettings
     };
 
     /// <summary>Reads settings; a missing, unreadable or newer file gives the defaults.</summary>
-    public static PlayerSettings Parse(string? json, UiTokens tokens)
+    public static PlayerSettings Parse(string? json, SettingsLimits limits)
     {
-        ArgumentNullException.ThrowIfNull(tokens);
+        ArgumentNullException.ThrowIfNull(limits);
         if (string.IsNullOrWhiteSpace(json))
         {
-            return new PlayerSettings().Clamp(tokens);
+            return new PlayerSettings().Clamp(limits);
         }
 
         try
         {
             var settings = JsonSerializer.Deserialize<PlayerSettings>(json, Json);
-            return settings is null || settings.Version > 1 ? new PlayerSettings().Clamp(tokens) : settings.Clamp(tokens);
+            return settings is null || settings.Version > 1 ? new PlayerSettings().Clamp(limits) : settings.Clamp(limits);
         }
         catch (JsonException)
         {
-            return new PlayerSettings().Clamp(tokens);
+            return new PlayerSettings().Clamp(limits);
         }
     }
 
@@ -78,18 +84,21 @@ public sealed record PlayerSettings
     public ToastSettings ToToastSettings() => new(HintDurationFactor, HintsUntilDismissed);
 
     /// <summary>Values forced into the allowed ranges.</summary>
-    public PlayerSettings Clamp(UiTokens tokens)
+    public PlayerSettings Clamp(SettingsLimits limits)
     {
-        ArgumentNullException.ThrowIfNull(tokens);
+        ArgumentNullException.ThrowIfNull(limits);
+        var tokens = limits.Tokens;
         return this with
         {
-            Language = Language is "de" or "en" ? Language : null,
+            Language = Language is not null && limits.Locales.Contains(Language, StringComparer.Ordinal) ? Language : null,
             UiScale = UiScaling.Snap(UiScale, tokens.UiScale),
             TextScale = UiScaling.Snap(TextScale, tokens.TextScale),
             HintDurationFactor = Math.Clamp(HintDurationFactor, 1, tokens.Toast.MaxDurationFactor),
-            BusVolumesDb = BusVolumesDb
+
+            // A hand-edited "bus_volumes_db": null must not break the UI either.
+            BusVolumesDb = (BusVolumesDb ?? [])
                 .Where(v => !string.IsNullOrEmpty(v.Key))
-                .ToDictionary(v => v.Key, v => Math.Clamp(v.Value, -60, 6), StringComparer.Ordinal),
+                .ToDictionary(v => v.Key, v => Math.Clamp(v.Value, limits.VolumeDb.Min, limits.VolumeDb.Max), StringComparer.Ordinal),
         };
     }
 }

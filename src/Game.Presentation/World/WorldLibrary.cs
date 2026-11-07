@@ -26,6 +26,10 @@ public sealed class WorldLibrary(string root)
 
     private const string MetaFile = "meta.json";
 
+    private static readonly HashSet<string> ReservedNames = new(
+        ["con", "prn", "aux", "nul", .. Enumerable.Range(1, 9).SelectMany(n => new[] { $"com{n}", $"lpt{n}" })],
+        StringComparer.Ordinal);
+
     private static readonly JsonSerializerOptions Json = new() { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower, WriteIndented = true };
 
     /// <summary>Folder holding all worlds.</summary>
@@ -120,6 +124,9 @@ public sealed class WorldLibrary(string root)
         slug = slug.ToLowerInvariant();
 #pragma warning restore CA1308
         slug = slug.Length > 32 ? slug[..32].TrimEnd('-') : slug;
-        return slug.Length == 0 ? "world" : slug;
+        slug = slug.Length == 0 ? "world" : slug;
+
+        // Windows refuses device names as folder names ("nul", "con", "com1", ...).
+        return ReservedNames.Contains(slug) ? slug + "-world" : slug;
     }
 }

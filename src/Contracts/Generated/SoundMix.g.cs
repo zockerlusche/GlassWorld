@@ -75,6 +75,27 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
+    /// Range of the volume sliders per bus in the player settings (B6 R4).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class MixPlayerRange
+    {
+
+        /// <summary>
+        /// Quietest setting (dB).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("min")]
+        public double Min { get; set; } = default!;
+
+        /// <summary>
+        /// Loudest setting (dB).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max")]
+        public double Max { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// Mixing and spatial sound (B8 R7, B2512): buses with default volumes, how loud a sound is at a distance from the listener (camera), how far it can be heard, how zoom changes the hearing range, and how many sounds a bus plays at once. All distances are metres; core positions are converted to metres via cell_size_cm of the world preset (B2), so changing the cell size does not change these values.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -89,6 +110,9 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("zoom")]
         public MixZoom Zoom { get; set; } = new MixZoom();
+
+        [System.Text.Json.Serialization.JsonPropertyName("player_volume_db")]
+        public MixPlayerRange PlayerVolumeDb { get; set; } = new MixPlayerRange();
 
     }
 

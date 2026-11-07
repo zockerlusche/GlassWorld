@@ -19,6 +19,7 @@ public partial class Main : Node3D
     private const string SmokeArgument = "--smoke-frames=";
     private const string SeedArgument = "--seed=";
     private string? _shotsFolder;
+    private string _contentDirectory = string.Empty;
 
     private int _smokeFrames;
     private int _frame;
@@ -59,6 +60,7 @@ public partial class Main : Node3D
         _world = new WorldPresenter { Name = "World" };
         AddChild(_world);
         var content = System.IO.Path.GetFullPath(System.IO.Path.Combine(ProjectSettings.GlobalizePath("res://"), "..", "content"));
+        _contentDirectory = content;
         _world.Start(content, _seed);
         var host = _world.Host!;
         GD.Print($"WORLD_OK seed={_seed} inhabitants={host.Inhabitants.All.Count()} objects={host.Objects.Count} hash={host.World.StateHash()[..12]}");
@@ -75,6 +77,7 @@ public partial class Main : Node3D
             _screen = new GameScreen { Name = "GameScreen" };
             AddChild(_screen);
             _screen.Setup(_world, style);
+            _world.SaveFailed += _ => _screen.ShowHint(new Presentation.Ui.ToastMessage("msg.save.failed", new Dictionary<string, string>(), null));
             if (_shotsFolder is not null)
             {
                 _ = TakeShotsAsync(style);
@@ -86,7 +89,6 @@ public partial class Main : Node3D
             CheckTexts(textsLoaded);
             CheckAudio(audioLoaded);
             CheckSpatial(spatialReady);
-            CheckSave(content);
             _uiCheckDone = false;
             _ = CheckUiAsync(style);
         }
@@ -115,8 +117,10 @@ public partial class Main : Node3D
     }
 
     /// <summary>
-    /// Smoke run only: saving the running world and loading it into a second presenter gives the same
-    /// state hash (ADR-0003, acceptance B1) - also proves SQLite works inside the game.
+    /// Smoke run only, after the screen check (ticks have run, a click opened a question): saving the
+    /// running world and loading it into a second presenter gives the same state hash (ADR-0003,
+    /// acceptance B1) - compared before open questions are sent again. Also proves SQLite in Godot.
+    /// The check always uses the mock port, so no second AI service starts.
     /// </summary>
     private void CheckSave(string content)
     {
@@ -124,20 +128,21 @@ public partial class Main : Node3D
         System.IO.Directory.CreateDirectory(folder);
         var path = System.IO.Path.Combine(folder, "world.sqlite");
         var host = _world!.Host!;
-        Simulation.Data.SaveGameStore.Save(path, Simulation.State.StateCodec.Capture(host));
+        var state = Simulation.State.StateCodec.Capture(host);
+        Simulation.Data.SaveGameStore.Save(path, state);
         var loaded = new WorldPresenter { Name = "LoadCheck" };
         try
         {
-            loaded.Load(content, path);
+            loaded.Load(content, path, new Simulation.Decisions.MockDecisionPort());
             var expected = host.World.StateHash();
-            var actual = loaded.Host!.World.StateHash();
+            var actual = loaded.HashAtLoad ?? string.Empty;
             if (actual != expected)
             {
-                GD.PushError($"SAVE_FAIL hash after load {actual[..12]} != {expected[..12]}");
+                GD.PushError($"SAVE_FAIL hash after load {actual} != {expected}");
                 return;
             }
 
-            GD.Print($"SAVE_OK hash={actual[..12]}");
+            GD.Print($"SAVE_OK hash={actual[..12]} tick={state.Tick} questions={state.Questions.Count}");
         }
         catch (Exception e) when (e is not OutOfMemoryException)
         {
@@ -206,6 +211,8 @@ public partial class Main : Node3D
             {
                 GD.Print("SCREEN_OK");
             }
+
+            CheckSave(_contentDirectory);
             foreach (var problem in problems)
             {
                 GD.PushError($"UI_FAIL {problem}");

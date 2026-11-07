@@ -65,7 +65,7 @@ if ! grep -q '^AUDIO_SPATIAL_OK$' "$LOG"; then
   echo "SMOKE_FAIL: spatial sound check failed (marker 'AUDIO_SPATIAL_OK' missing)" >&2
   exit 1
 fi
-if ! grep -Eq '^SAVE_OK hash=[0-9a-f]{12}$' "$LOG"; then
+if ! grep -Eq '^SAVE_OK hash=[0-9a-f]{12} tick=[1-9][0-9]* questions=[1-9][0-9]*$' "$LOG"; then
   echo "SMOKE_FAIL: save and load in the game failed (marker 'SAVE_OK' missing)" >&2
   exit 1
 fi

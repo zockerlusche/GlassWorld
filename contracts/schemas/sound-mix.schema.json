@@ -8,7 +8,8 @@
   "required": [
     "contract_version",
     "buses",
-    "zoom"
+    "zoom",
+    "player_volume_db"
   ],
   "properties": {
     "contract_version": {
@@ -24,6 +25,9 @@
     },
     "zoom": {
       "$ref": "#/$defs/MixZoom"
+    },
+    "player_volume_db": {
+      "$ref": "#/$defs/MixPlayerRange"
     }
   },
   "$defs": {
@@ -104,6 +108,29 @@
             "linear",
             "smooth"
           ]
+        }
+      }
+    },
+    "MixPlayerRange": {
+      "description": "Range of the volume sliders per bus in the player settings (B6 R4).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "min",
+        "max"
+      ],
+      "properties": {
+        "min": {
+          "description": "Quietest setting (dB).",
+          "type": "number",
+          "minimum": -80,
+          "maximum": 0
+        },
+        "max": {
+          "description": "Loudest setting (dB).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 12
         }
       }
     }
