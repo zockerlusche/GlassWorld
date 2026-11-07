@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/job-list.schema.json",
+  "title": "JobList",
+  "description": "AI service -> core (GET /jobs?state=): short view of the jobs the service holds, by priority then arrival. Results via GET /jobs/{id}.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "jobs"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "jobs": {
+      "type": "array",
+      "maxItems": 1024,
+      "items": {
+        "$ref": "#/$defs/JobSummary"
+      }
+    }
+  },
+  "$defs": {
+    "JobSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "job_id",
+        "kind",
+        "state",
+        "priority",
+        "tick"
+      ],
+      "properties": {
+        "job_id": {
+          "$ref": "common.schema.json#/$defs/RequestId"
+        },
+        "kind": {
+          "$ref": "common.schema.json#/$defs/JobKind"
+        },
+        "state": {
+          "$ref": "common.schema.json#/$defs/JobState"
+        },
+        "priority": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "tick": {
+          "$ref": "common.schema.json#/$defs/Tick"
+        }
+      }
+    }
+  }
+}
