@@ -51,3 +51,4 @@ Distributions must ship the license notices of all listed components.
 | TimeZoneConverter | 7.0.0 | NuGet package (via Fluid) | MIT | https://github.com/mattjohnsonpint/TimeZoneConverter | tools/ContractGen |
 | Microsoft.Extensions.FileProviders.Abstractions / .Primitives | 9.0.0 | NuGet package (via Fluid) | MIT | https://github.com/dotnet/runtime | tools/ContractGen |
 | Microsoft.CodeAnalysis.CSharp / .Common | 5.6.0 | NuGet package (test only, CI text check) | MIT | https://github.com/dotnet/roslyn | tests/Localization.Tests |
+| Atkinson Hyperlegible (Regular, Bold) | google/fonts commit 95f4904 (2026-03-03); SHA-256 Regular 7fb917c8…97669, Bold 5a3b0c8c…ab92f | Font (game UI) | SIL OFL 1.1 (unmodified, approved F5242; license text in `game/ui/fonts/OFL.txt`) | https://github.com/google/fonts/tree/main/ofl/atkinsonhyperlegible (Braille Institute of America) | game/ui/fonts |

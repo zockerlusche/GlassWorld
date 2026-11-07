@@ -1,0 +1,389 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/ui-tokens.schema.json",
+  "title": "UiTokens",
+  "description": "Design tokens of the UI standard D366 (KR6): sizes in logical pixels at the base resolution and 100 %, colours per palette, timings. The game builds its theme from this file; no UI value lives in code.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "base_width",
+    "base_height",
+    "ui_scale",
+    "text_scale",
+    "min_font_px",
+    "font_sizes",
+    "spacing",
+    "window",
+    "button",
+    "table",
+    "toast",
+    "durations_ms",
+    "palettes"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "base_width": {
+      "description": "Logical width the layout is designed for.",
+      "type": "integer",
+      "minimum": 320,
+      "maximum": 7680
+    },
+    "base_height": {
+      "description": "Logical height the layout is designed for.",
+      "type": "integer",
+      "minimum": 240,
+      "maximum": 4320
+    },
+    "ui_scale": {
+      "description": "UI size setting (B2513: 75-200 %).",
+      "$ref": "#/$defs/UiScaleRange"
+    },
+    "text_scale": {
+      "description": "Separate text size setting (XAG 101: up to 200 %).",
+      "$ref": "#/$defs/UiScaleRange"
+    },
+    "min_font_px": {
+      "description": "Smallest font size at 100 % (XAG 101 for PC: 18).",
+      "type": "integer",
+      "minimum": 8,
+      "maximum": 64
+    },
+    "font_sizes": {
+      "description": "Font size steps.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/UiFontSize"
+      }
+    },
+    "spacing": {
+      "description": "Allowed spacing values on the 4 px grid.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/UiSpacing"
+      }
+    },
+    "window": {
+      "$ref": "#/$defs/UiWindowTokens"
+    },
+    "button": {
+      "$ref": "#/$defs/UiButtonTokens"
+    },
+    "table": {
+      "$ref": "#/$defs/UiTableTokens"
+    },
+    "toast": {
+      "$ref": "#/$defs/UiToastTokens"
+    },
+    "durations_ms": {
+      "description": "Animation timings; 'reduce motion' sets them all to 0.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/UiDuration"
+      }
+    },
+    "palettes": {
+      "description": "Colour sets; 'default' is required, 'high_contrast' must reach 7:1 for text (XAG 102).",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/UiPalette"
+      }
+    }
+  },
+  "$defs": {
+    "UiScaleRange": {
+      "description": "A player-adjustable factor (1 = 100 %).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "min",
+        "max",
+        "step",
+        "default"
+      ],
+      "properties": {
+        "min": {
+          "type": "number",
+          "minimum": 0.25,
+          "maximum": 4
+        },
+        "max": {
+          "type": "number",
+          "minimum": 0.25,
+          "maximum": 4
+        },
+        "step": {
+          "type": "number",
+          "minimum": 0.01,
+          "maximum": 1
+        },
+        "default": {
+          "type": "number",
+          "minimum": 0.25,
+          "maximum": 4
+        }
+      }
+    },
+    "UiWindowTokens": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "padding",
+        "gap",
+        "section_gap",
+        "corner_radius",
+        "border_width",
+        "safe_margin",
+        "max_screen_fraction"
+      ],
+      "properties": {
+        "padding": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 128
+        },
+        "gap": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 128
+        },
+        "section_gap": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 128
+        },
+        "corner_radius": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 64
+        },
+        "border_width": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16
+        },
+        "safe_margin": {
+          "description": "Distance to every screen edge.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 128
+        },
+        "max_screen_fraction": {
+          "description": "A window never covers more than this part of the screen.",
+          "type": "number",
+          "minimum": 0.3,
+          "maximum": 1
+        }
+      }
+    },
+    "UiButtonTokens": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "height",
+        "compact_height",
+        "min_hit",
+        "hover_tint",
+        "pressed_tint",
+        "disabled_tint"
+      ],
+      "properties": {
+        "height": {
+          "description": "Height of a framed button; must hold the vertical frame margins.",
+          "type": "integer",
+          "minimum": 16,
+          "maximum": 200
+        },
+        "compact_height": {
+          "description": "Flat buttons in tables and bars.",
+          "type": "integer",
+          "minimum": 16,
+          "maximum": 200
+        },
+        "min_hit": {
+          "type": "integer",
+          "minimum": 16,
+          "maximum": 200
+        },
+        "hover_tint": {
+          "description": "How strongly the accent colour tints a hovered frame (0 = not, 1 = fully).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "pressed_tint": {
+          "description": "Tint strength with the focus colour while pressed.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "disabled_tint": {
+          "description": "Tint strength with the muted text colour when disabled (plus a symbol, XAG 103).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "UiTableTokens": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "row_height"
+      ],
+      "properties": {
+        "row_height": {
+          "type": "integer",
+          "minimum": 16,
+          "maximum": 200
+        }
+      }
+    },
+    "UiToastTokens": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_visible",
+        "min_seconds",
+        "max_duration_factor"
+      ],
+      "properties": {
+        "max_visible": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10
+        },
+        "min_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 120
+        },
+        "max_duration_factor": {
+          "description": "Players can stretch the display time up to this factor (XAG 116: 10).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        }
+      }
+    },
+    "UiFontSize": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "px"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "enum": [
+            "display",
+            "header",
+            "subheader",
+            "body",
+            "small"
+          ]
+        },
+        "px": {
+          "type": "integer",
+          "minimum": 8,
+          "maximum": 128
+        }
+      }
+    },
+    "UiSpacing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "px"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "px": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 128
+        }
+      }
+    },
+    "UiDuration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "ms"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 5000
+        }
+      }
+    },
+    "UiPalette": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "colors"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "colors": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/UiColor"
+          }
+        }
+      }
+    },
+    "UiColor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "rgba"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "enum": [
+            "background",
+            "panel",
+            "panel_strong",
+            "border",
+            "text",
+            "text_muted",
+            "accent",
+            "focus",
+            "positive",
+            "attention",
+            "bubble_inhabitant",
+            "bubble_player"
+          ]
+        },
+        "rgba": {
+          "description": "Colour as #RRGGBB or #RRGGBBAA.",
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$"
+        }
+      }
+    }
+  }
+}

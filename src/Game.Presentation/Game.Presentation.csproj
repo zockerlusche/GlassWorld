@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Presentation logic of the game without any Godot reference (ADR-0008): view models,
+       UI tokens and scaling, formatting. game/ only binds Godot nodes to it. -->
+  <PropertyGroup>
+    <RootNamespace>GlassWorld.Presentation</RootNamespace>
+    <AssemblyName>GlassWorld.Game.Presentation</AssemblyName>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Contracts\Contracts.csproj" />
+  </ItemGroup>
+</Project>

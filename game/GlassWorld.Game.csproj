@@ -11,9 +11,12 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\src\Simulation.Core\Simulation.Core.csproj" />
+    <ProjectReference Include="..\src\Game.Presentation\Game.Presentation.csproj" />
   </ItemGroup>
   <ItemGroup>
     <!-- Player-facing texts (ADR-0007), embedded at build time and loaded into the TranslationServer. -->
     <EmbeddedResource Include="..\content\i18n\*.json" LogicalName="i18n.%(Filename)%(Extension)" Link="i18n\%(Filename)%(Extension)" />
+    <!-- UI standard data (D366): tokens and frames, validated on load. -->
+    <EmbeddedResource Include="..\content\ui\*.json" LogicalName="content.ui.%(Filename)%(Extension)" Link="ui\%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>

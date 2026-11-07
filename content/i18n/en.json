@@ -35,6 +35,14 @@
       "text": "Winter"
     },
     {
+      "key": "ui.common.close",
+      "text": "Close"
+    },
+    {
+      "key": "ui.settings.title",
+      "text": "Settings"
+    },
+    {
       "key": "vocab.action.approach",
       "text": "Approach"
     },
