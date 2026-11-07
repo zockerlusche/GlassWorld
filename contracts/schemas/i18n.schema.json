@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://glassworld.local/contracts/v0/i18n.schema.json",
-  "title": "I18nCatalog",
+  "title": "I18n",
   "description": "Player-facing texts of one language (ADR-0007). One file per language under content/i18n/. Keys are language-neutral; texts may contain named placeholders such as {name}.",
   "type": "object",
   "additionalProperties": false,

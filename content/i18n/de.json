@@ -3,8 +3,44 @@
   "locale": "de",
   "entries": [
     {
+      "key": "time.phase.dawn",
+      "text": "Morgendämmerung"
+    },
+    {
+      "key": "time.phase.day",
+      "text": "Tag"
+    },
+    {
+      "key": "time.phase.dusk",
+      "text": "Abenddämmerung"
+    },
+    {
+      "key": "time.phase.night",
+      "text": "Nacht"
+    },
+    {
+      "key": "time.season.autumn",
+      "text": "Herbst"
+    },
+    {
+      "key": "time.season.spring",
+      "text": "Frühling"
+    },
+    {
+      "key": "time.season.summer",
+      "text": "Sommer"
+    },
+    {
+      "key": "time.season.winter",
+      "text": "Winter"
+    },
+    {
       "key": "vocab.action.approach",
       "text": "Annähern"
+    },
+    {
+      "key": "vocab.action.combine",
+      "text": "Kombinieren"
     },
     {
       "key": "vocab.action.drink",

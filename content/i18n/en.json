@@ -3,8 +3,44 @@
   "locale": "en",
   "entries": [
     {
+      "key": "time.phase.dawn",
+      "text": "Dawn"
+    },
+    {
+      "key": "time.phase.day",
+      "text": "Day"
+    },
+    {
+      "key": "time.phase.dusk",
+      "text": "Dusk"
+    },
+    {
+      "key": "time.phase.night",
+      "text": "Night"
+    },
+    {
+      "key": "time.season.autumn",
+      "text": "Autumn"
+    },
+    {
+      "key": "time.season.spring",
+      "text": "Spring"
+    },
+    {
+      "key": "time.season.summer",
+      "text": "Summer"
+    },
+    {
+      "key": "time.season.winter",
+      "text": "Winter"
+    },
+    {
       "key": "vocab.action.approach",
       "text": "Approach"
+    },
+    {
+      "key": "vocab.action.combine",
+      "text": "Combine"
     },
     {
       "key": "vocab.action.drink",

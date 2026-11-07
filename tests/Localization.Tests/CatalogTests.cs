@@ -75,6 +75,22 @@ public sealed class CatalogTests
         Assert.True(stale.Count == 0, $"display texts for unknown vocabulary ids: {string.Join(", ", stale)}");
     }
 
+    [Fact]
+    public void EverySeasonAndDayPhaseHasADisplayText()
+    {
+        var keys = Catalogs.Value["en"].Keys.ToHashSet(StringComparer.Ordinal);
+        using var time = JsonDocument.Parse(File.ReadAllText(Path.Combine(RepoPaths.Root, "content", "world", "time.json")));
+        var expected = time.RootElement.GetProperty("seasons").EnumerateArray()
+            .Select(s => $"time.season.{s.GetProperty("id").GetString()}")
+            .Concat(VocabularyKeys()
+                .Where(k => k.StartsWith("vocab.time_of_day.", StringComparison.Ordinal))
+                .Select(k => "time.phase." + k["vocab.time_of_day.".Length..]))
+            .ToList();
+        Assert.NotEmpty(expected);
+        var missing = expected.Where(k => !keys.Contains(k)).ToList();
+        Assert.True(missing.Count == 0, $"world time names without display text: {string.Join(", ", missing)}");
+    }
+
     [Theory]
     [InlineData("Hello {name}, day {day}.", new[] { "day", "name" })]
     [InlineData("No placeholder.", new string[0])]

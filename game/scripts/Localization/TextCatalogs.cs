@@ -1,5 +1,6 @@
 using System.Reflection;
-using System.Text.Json;
+using GlassWorld.Contracts;
+using GlassWorld.Contracts.Validation;
 using Godot;
 
 namespace GlassWorld.Game.Localization;
@@ -105,39 +106,47 @@ public static class TextCatalogs
             return null;
         }
 
+        I18n catalog;
         try
         {
-            using var doc = JsonDocument.Parse(stream);
-            var root = doc.RootElement;
-            if (root.GetProperty("locale").GetString() != locale)
+            using var reader = new StreamReader(stream);
+            catalog = ContractSerializer.Deserialize<I18n>(reader.ReadToEnd());
+        }
+        catch (ContractViolationException e)
+        {
+            GD.PushError($"i18n: '{name}' violates schema '{e.Schema}': {string.Join("; ", e.Errors)}");
+            return null;
+        }
+
+        if (LocaleId(catalog.Locale) != locale)
+        {
+            GD.PushError($"i18n: '{name}' declares another locale");
+            return null;
+        }
+
+        // Beyond the schema: unique keys and no texts that are only whitespace.
+        var entries = new List<KeyValuePair<string, string>>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var entry in catalog.Entries)
+        {
+            if (string.IsNullOrWhiteSpace(entry.Text) || !seen.Add(entry.Key))
             {
-                GD.PushError($"i18n: '{name}' declares another locale");
+                GD.PushError($"i18n: '{name}' has a blank or duplicate entry ('{entry.Key}')");
                 return null;
             }
 
-            var entries = new List<KeyValuePair<string, string>>();
-            var seen = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var entry in root.GetProperty("entries").EnumerateArray())
-            {
-                var key = entry.GetProperty("key").GetString();
-                var text = entry.GetProperty("text").GetString();
-                if (string.IsNullOrEmpty(key) || string.IsNullOrWhiteSpace(text) || !seen.Add(key))
-                {
-                    GD.PushError($"i18n: '{name}' has an empty, blank or duplicate entry ('{key}')");
-                    return null;
-                }
-
-                entries.Add(new KeyValuePair<string, string>(key, text));
-            }
-
-            return entries;
+            entries.Add(new KeyValuePair<string, string>(entry.Key, entry.Text));
         }
-        catch (Exception e) when (e is JsonException or KeyNotFoundException or InvalidOperationException)
-        {
-            GD.PushError($"i18n: '{name}' is invalid: {e.Message}");
-            return null;
-        }
+
+        return entries;
     }
+
+    private static string LocaleId(Locale locale) => locale switch
+    {
+        Locale.De => "de",
+        Locale.En => "en",
+        _ => string.Empty,
+    };
 
     private static bool SameKeys()
     {

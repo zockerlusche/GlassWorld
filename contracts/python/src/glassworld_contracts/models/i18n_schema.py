@@ -28,7 +28,7 @@ class I18nEntry(BaseModel):
     )
 
 
-class I18nCatalog(BaseModel):
+class I18n(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )

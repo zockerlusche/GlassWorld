@@ -34,7 +34,7 @@ namespace GlassWorld.Contracts
     /// Player-facing texts of one language (ADR-0007). One file per language under content/i18n/. Keys are language-neutral; texts may contain named placeholders such as {name}.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
-    public partial class I18nCatalog
+    public partial class I18n
     {
 
         [System.Text.Json.Serialization.JsonPropertyName("contract_version")]
