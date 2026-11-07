@@ -1,0 +1,9 @@
+{
+  "description": "Which LICENSES.md row covers which asset files under game/ (B10 S1). entry = the start of the row name, or \"own\" for assets made for GlassWorld (MIT, like the code). Every font, model, sound and image under game/ must match one rule.",
+  "rules": [
+    { "glob": "game/assets/characters/quaternius-ual1/*", "entry": "Quaternius Universal Animation Library" },
+    { "glob": "game/ui/fonts/*", "entry": "Atkinson Hyperlegible" },
+    { "glob": "game/ui/frames/*", "entry": "own" },
+    { "glob": "game/icon.svg", "entry": "own" }
+  ]
+}
