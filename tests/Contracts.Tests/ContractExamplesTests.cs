@@ -60,13 +60,20 @@ public sealed class ContractExamplesTests
         Assert.True(JsonNode.DeepEquals(JsonNode.Parse(json), JsonNode.Parse(back)), $"{Path.GetFileName(file)} changed on round trip:\n{back}");
     }
 
+    /// <summary>
+    /// A message schema is one with examples; it needs both valid and invalid ones. Data file schemas
+    /// (vocabulary, hardware tiers, ...) are checked through their content files instead.
+    /// </summary>
     [Fact]
     public void EveryMessageSchemaHasValidAndInvalidExamples()
     {
-        foreach (var schema in Schemas.Value.Keys.Where(k => k != "vocabulary"))
+        var valid = Directory.GetFiles(Path.Combine(Examples, "valid")).Select(SchemaName).ToHashSet(StringComparer.Ordinal);
+        var invalid = Directory.GetFiles(Path.Combine(Examples, "invalid")).Select(SchemaName).ToHashSet(StringComparer.Ordinal);
+        foreach (var schema in valid.Union(invalid))
         {
-            Assert.Contains(Directory.GetFiles(Path.Combine(Examples, "valid")), f => SchemaName(f) == schema);
-            Assert.Contains(Directory.GetFiles(Path.Combine(Examples, "invalid")), f => SchemaName(f) == schema);
+            Assert.True(Schemas.Value.ContainsKey(schema), $"examples for unknown schema '{schema}'");
+            Assert.True(valid.Contains(schema), $"schema '{schema}' has no valid example");
+            Assert.True(invalid.Contains(schema), $"schema '{schema}' has no invalid example");
         }
     }
 
