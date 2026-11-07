@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/sound-mix.schema.json",
+  "title": "SoundMix",
+  "description": "Mixing and spatial sound (B8 R7, B2512): buses with default volumes, how loud a sound is at a distance from the listener (camera), how far it can be heard, how zoom changes the hearing range, and how many sounds a bus plays at once.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "buses",
+    "zoom"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "buses": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": {
+        "$ref": "#/$defs/MixBus"
+      }
+    },
+    "zoom": {
+      "$ref": "#/$defs/MixZoom"
+    }
+  },
+  "$defs": {
+    "MixZoom": {
+      "description": "Zoom changes the hearing range (B2512); interpolated linearly between near and far.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "near_factor",
+        "far_factor"
+      ],
+      "properties": {
+        "near_factor": {
+          "description": "Hearing range factor when fully zoomed in (camera close).",
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 10
+        },
+        "far_factor": {
+          "description": "Hearing range factor when fully zoomed out.",
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 10
+        }
+      }
+    },
+    "MixBus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "volume_db",
+        "max_voices",
+        "full_volume_m",
+        "silent_m",
+        "curve"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "enum": [
+            "master",
+            "music",
+            "ambience",
+            "animals",
+            "voices",
+            "effects"
+          ]
+        },
+        "volume_db": {
+          "description": "Default volume of the bus; the player changes it in the settings (B6).",
+          "type": "number",
+          "minimum": -60,
+          "maximum": 6
+        },
+        "max_voices": {
+          "description": "Sounds this bus plays at once; the nearest win (60 FPS budget with 100 inhabitants).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 128
+        },
+        "full_volume_m": {
+          "description": "Up to this distance the sound plays at full volume.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "silent_m": {
+          "description": "From this distance on the sound is silent (maximum distance). 0 = not spatial (music, master).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 5000
+        },
+        "curve": {
+          "description": "How the volume falls between full_volume_m and silent_m: linear in gain, or smooth (squared), gentle for ambience.",
+          "type": "string",
+          "enum": [
+            "linear",
+            "smooth"
+          ]
+        }
+      }
+    }
+  }
+}

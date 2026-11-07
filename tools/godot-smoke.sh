@@ -61,6 +61,10 @@ if ! grep -Eq '^AUDIO_OK sounds=[1-9][0-9]*$' "$LOG"; then
   echo "SMOKE_FAIL: retro audio check failed (marker 'AUDIO_OK' missing)" >&2
   exit 1
 fi
+if ! grep -q '^AUDIO_SPATIAL_OK$' "$LOG"; then
+  echo "SMOKE_FAIL: spatial sound check failed (marker 'AUDIO_SPATIAL_OK' missing)" >&2
+  exit 1
+fi
 if ! grep -q '^UI_OK$' "$LOG"; then
   echo "SMOKE_FAIL: UI standard check failed (marker 'UI_OK' missing)" >&2
   exit 1

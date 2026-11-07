@@ -125,6 +125,10 @@
     {
       "pattern": "look/quality.json",
       "schema": "look-quality"
+    },
+    {
+      "pattern": "sound/mix.json",
+      "schema": "sound-mix"
     }
   ]
 }
