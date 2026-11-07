@@ -100,6 +100,10 @@ class JobRunner:
         self._current: tuple[str, asyncio.Task[JobOutcome]] | None = None
         self._closed = False
 
+    def register(self, kind: str, handler: Handler) -> None:
+        """Add the handler of a kind that needs resources from the app start (model client)."""
+        self._handlers[kind] = handler
+
     def supports(self, kind: str) -> bool:
         return kind in self._handlers
 
