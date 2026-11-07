@@ -8,21 +8,25 @@ world's truth never does (ADR-0005).
 from __future__ import annotations
 
 from string import Template
-from typing import Any, cast
+from typing import Any
 
 from glassworld_ai.prompts import PromptTemplate
 from glassworld_ai.vocabulary import Vocabulary
-from glassworld_ai.words import ContextError, bands, humanize, plain_id, vocab_line, word
+from glassworld_ai.words import (
+    ContextError,
+    bands,
+    humanize,
+    knowledge_line,
+    plain_id,
+    quote,
+    subject_name,
+    table,
+    vocab_line,
+    word,
+)
 from glassworld_contracts import GenerationJob
 
 NOTHING = "- (nothing)"
-
-
-def _table(settings: dict[str, Any], key: str) -> dict[str, str]:
-    raw: object = settings.get(key)
-    if not isinstance(raw, dict):
-        raise ContextError(f"prompt setting {key} missing")
-    return {str(k): str(v) for k, v in cast(dict[object, object], raw).items()}
 
 
 def question_payload(job: GenerationJob) -> Any:
@@ -32,26 +36,19 @@ def question_payload(job: GenerationJob) -> Any:
     return payload
 
 
-def subject_name(subject: Any, settings: dict[str, Any]) -> str:
-    kinds = _table(settings, "subject_kinds")
-    kind = plain_id(subject.kind)
-    return f"{kinds.get(kind, kind)} '{humanize(plain_id(subject.id))}'"
-
-
 def build_values(job: GenerationJob, template: PromptTemplate, vocab: Vocabulary) -> dict[str, str]:
     """Values for every placeholder of the question prompt."""
     settings = template.settings
     payload = question_payload(job)
     inhabitant = payload.inhabitant
     locale = plain_id(job.display_locale)
-    language = _table(settings, "language_names").get(locale)
+    language = table(settings, "language_names").get(locale)
     if language is None:
         raise ContextError(f"no language name for locale {locale}")
     question_kind = plain_id(payload.question)
-    question_text = _table(settings, "questions").get(question_kind)
+    question_text = table(settings, "questions").get(question_kind)
     if question_text is None:
         raise ContextError(f"no wording for question kind {question_kind}")
-    sources = _table(settings, "source_words")
     need_words = bands(settings, "need_words")
     mood_words = bands(settings, "mood_words")
     trait_words = bands(settings, "trait_words")
@@ -100,7 +97,7 @@ def build_values(job: GenerationJob, template: PromptTemplate, vocab: Vocabulary
         )
         or NOTHING,
         "memory": quote(summary) if summary else "(you remember nothing special yet)",
-        "knowledge": "\n".join(_knowledge_line(k, settings, sources) for k in knowledge)
+        "knowledge": "\n".join(knowledge_line(k, settings) for k in knowledge)
         or "- (you know nothing about it yet)",
         "perception": "\n".join(
             f"- {vocab_line(vocab, 'property', plain_id(p))}"
@@ -114,23 +111,3 @@ def build_values(job: GenerationJob, template: PromptTemplate, vocab: Vocabulary
         "max_guesses": str(max_guesses),
         "thought_language": language,
     }
-
-
-def quote(text: str) -> str:
-    """Generated text (memory summary) as a quoted data block: every line starts with "> ", so
-    nothing in it can look like a heading or an instruction of the prompt."""
-    return "\n".join(
-        "> " + line.strip().lstrip("#").strip() for line in text.splitlines() if line.strip()
-    )
-
-
-def _knowledge_line(entry: Any, settings: dict[str, Any], sources: dict[str, str]) -> str:
-    about = subject_name(entry.subject, settings)
-    belief = "is" if entry.value else "is not"
-    source = plain_id(entry.source)
-    how = sources.get(source, source)
-    teller = f" ({plain_id(entry.told_by)})" if entry.told_by is not None else ""
-    return (
-        f"- {about} {belief} {humanize(plain_id(entry.property))} "
-        f"(sure {entry.confidence:.1f}; {how}{teller})"
-    )

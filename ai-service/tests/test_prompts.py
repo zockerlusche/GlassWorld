@@ -35,8 +35,8 @@ def _vocab() -> Vocabulary:
     return Vocabulary.load(REPO / "content" / "vocabulary")
 
 
-def _render(request: DecisionRequest, budget: int = BUDGET) -> str:
-    template = load_prompt(PROMPTS, "decider/decide", 1)
+def _render(request: DecisionRequest, budget: int = BUDGET, version: int = 1) -> str:
+    template = load_prompt(PROMPTS, "decider/decide", version)
     rendered = template.render(build_values(request, template, _vocab(), budget))
     return (
         f"[{rendered.version}]\n\n=== system ===\n{rendered.system}\n\n"
@@ -44,10 +44,11 @@ def _render(request: DecisionRequest, budget: int = BUDGET) -> str:
     )
 
 
+@pytest.mark.parametrize("version", [1, 2])
 @pytest.mark.parametrize("case", ["hungry-berries", "stormy-dusk"])
-def test_decider_prompt_snapshot(case: str) -> None:
-    text = _render(_request(case))
-    snapshot = SNAPSHOTS / f"decider-decide.v1.{case}.txt"
+def test_decider_prompt_snapshot(case: str, version: int) -> None:
+    text = _render(_request(case), version=version)
+    snapshot = SNAPSHOTS / f"decider-decide.v{version}.{case}.txt"
     if os.environ.get("GW_UPDATE_SNAPSHOTS") == "1":
         snapshot.parent.mkdir(exist_ok=True)
         snapshot.write_text(text, encoding="utf-8", newline="\n")
@@ -133,3 +134,20 @@ def test_vocabulary_loads_all_kinds_from_content() -> None:
         assert vocab.ids(kind), kind
     assert vocab.describe("need", "hunger") == "Need for food."
     assert vocab.describe("need", "does_not_exist") is None
+
+
+def test_v2_shows_beliefs_with_source_people_and_habits() -> None:
+    text = _render(_request("hungry-berries"), version=2)
+    assert "> Woke up alone on a beach." in text  # memory as quoted data
+    assert "- recently: drank (thing 'spring water')" in text
+    assert "thing 'apple tree' is edible (sure 0.6; someone told you (inh-0002))" in text
+    assert "person [inh-0002], 15.0 m away: you like them some, trust them some" in text
+    assert "- sometimes: drink" in text
+    assert "Write the thought in German, as one short sentence." in text
+
+
+def test_v2_without_memory_and_people_says_so() -> None:
+    text = _render(_request("stormy-dusk"), version=2)
+    assert "(you remember nothing special yet)" in text
+    assert "- (nobody)" in text
+    assert "- (no habits yet)" in text

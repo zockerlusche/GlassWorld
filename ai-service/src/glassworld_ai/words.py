@@ -45,3 +45,39 @@ def humanize(identifier: str) -> str:
 def vocab_line(vocab: Vocabulary, kind: str, entry_id: str) -> str:
     description = vocab.describe(kind, entry_id)
     return f"{humanize(entry_id)} ({description})" if description else humanize(entry_id)
+
+
+def table(settings: dict[str, Any], key: str) -> dict[str, str]:
+    """A prompt setting that maps ids to words, e.g. [settings.source_words]."""
+    raw: object = settings.get(key)
+    if not isinstance(raw, dict):
+        raise ContextError(f"prompt setting {key} missing")
+    return {str(k): str(v) for k, v in cast(dict[object, object], raw).items()}
+
+
+def quote(text: str) -> str:
+    """Generated text (memory summary) as a quoted data block: every line starts with "> ", so
+    nothing in it can look like a heading or an instruction of the prompt."""
+    return "\n".join(
+        "> " + line.strip().lstrip("#").strip() for line in text.splitlines() if line.strip()
+    )
+
+
+def subject_name(subject: Any, settings: dict[str, Any]) -> str:
+    """Readable name of a Subject: "thing 'red berry bush'", "person 'inh-0002'", ..."""
+    kinds = table(settings, "subject_kinds")
+    kind = plain_id(subject.kind)
+    return f"{kinds.get(kind, kind)} '{humanize(plain_id(subject.id))}'"
+
+
+def knowledge_line(entry: Any, settings: dict[str, Any]) -> str:
+    """One belief with its source: what, sure how much, from where (and from whom)."""
+    sources = table(settings, "source_words")
+    belief = "is" if entry.value else "is not"
+    source = plain_id(entry.source)
+    how = sources.get(source, source)
+    teller = f" ({plain_id(entry.told_by)})" if entry.told_by is not None else ""
+    return (
+        f"- {subject_name(entry.subject, settings)} {belief} {humanize(plain_id(entry.property))} "
+        f"(sure {entry.confidence:.1f}; {how}{teller})"
+    )

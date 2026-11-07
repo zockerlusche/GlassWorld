@@ -15,6 +15,7 @@ from glassworld_ai.vocabulary import Vocabulary
 from glassworld_ai.words import ContextError as ContextError
 from glassworld_ai.words import bands as _bands
 from glassworld_ai.words import humanize as _humanize
+from glassworld_ai.words import knowledge_line, quote, subject_name
 from glassworld_ai.words import plain_id as _id
 from glassworld_ai.words import vocab_line as _vocab_line
 from glassworld_ai.words import word as _word
@@ -93,7 +94,69 @@ def build_values(
     if hidden > 0:
         lines.append(f"- ... and {hidden} more things further away")
     values["objects"] = "\n".join(lines) or NOTHING
+    if template.version >= 2:
+        values.update(_v2_values(request, settings, vocab))
     return values
+
+
+def _v2_values(
+    request: DecisionRequest, settings: dict[str, Any], vocab: Vocabulary
+) -> dict[str, str]:
+    """Memory, knowledge, habits and people (prompt v2, B4a S3). Only beliefs, never truth."""
+    inhabitant = request.inhabitant
+    relation_words = _bands(settings, "relation_words")
+    habit_words = _bands(settings, "habit_words")
+    max_knowledge = int(settings.get("max_knowledge", 12))
+    max_recent = int(settings.get("max_recent", 6))
+    seen_types = {_id(o.type) for o in request.perception.objects}
+    seen_objects = {_id(o.id) for o in request.perception.objects}
+
+    def about_seen(entry: Any) -> bool:
+        kind, subject = _id(entry.subject.kind), _id(entry.subject.id)
+        return (kind == "type" and subject in seen_types) or (
+            kind == "object" and subject in seen_objects
+        )
+
+    # Beliefs about what is in sight first, then the newest; stable order for snapshots.
+    knowledge = sorted(
+        inhabitant.knowledge,
+        key=lambda k: (not about_seen(k), -k.tick, _id(k.subject.id), _id(k.property)),
+    )[:max_knowledge]
+    summary = inhabitant.memory.summary.strip()
+    recent = sorted(inhabitant.memory.recent, key=lambda e: -e.tick)[:max_recent]
+    memory_lines = [quote(summary)] if summary else []
+    memory_lines += [
+        f"- recently: {_humanize(_id(e.kind))}"
+        + (f" ({subject_name(e.about, settings)})" if e.about is not None else "")
+        for e in recent
+    ]
+    relations = {_id(r.other): r for r in inhabitant.relationships}
+    people_lines: list[str] = []
+    for other in sorted(request.perception.inhabitants, key=lambda p: (p.distance_m, _id(p.id))):
+        other_id = _id(other.id)
+        relation = relations.get(other_id)
+        if relation is None:
+            feeling = "a stranger to you"
+        else:
+            feeling = (
+                f"you like them {_word(relation_words, relation.affection)}, "
+                f"trust them {_word(relation_words, relation.trust)}, "
+                f"respect them {_word(relation_words, relation.respect)}"
+            )
+        people_lines.append(f"- person [{other_id}], {other.distance_m:.1f} m away: {feeling}")
+    habit_lines = [
+        f"- {_word(habit_words, h.strength)}: {_vocab_line(vocab, 'action', _id(h.action))}"
+        + (f" ({subject_name(h.about, settings)})" if h.about is not None else "")
+        + (f" at {_humanize(_id(h.time_of_day))}" if h.time_of_day is not None else "")
+        for h in sorted(inhabitant.habits, key=lambda h: (-h.strength, _id(h.action)))
+    ]
+    return {
+        "memory": "\n".join(memory_lines) or "(you remember nothing special yet)",
+        "knowledge": "\n".join(knowledge_line(k, settings) for k in knowledge)
+        or "- (nothing yet beyond what you see)",
+        "habits": "\n".join(habit_lines) or "- (no habits yet)",
+        "people": "\n".join(people_lines) or "- (nobody)",
+    }
 
 
 def _environment(request: DecisionRequest, vocab: Vocabulary) -> str:
