@@ -78,6 +78,7 @@ public partial class GameScreen : CanvasLayer
         _toasts.Board = _board;
         _root.AddChild(_toasts);
         GetViewport().SizeChanged += Layout;
+        _sideBar.Toggled += Layout;
         Layout();
     }
 
@@ -294,7 +295,8 @@ public partial class GameScreen : CanvasLayer
 
             var area = GetViewport().GetVisibleRect().Size;
             var cardRect = new Rect2(_card.Position, _card.Size);
-            var overlap = _sideBar.Panels.Any(p => p.Visible && new Rect2(p.Position, p.Size).Intersects(cardRect));
+            var foreground = CardArea(area).X >= area.X;
+            var overlap = !foreground && _sideBar.Panels.Any(p => p.Visible && new Rect2(p.Position, p.Size).Intersects(cardRect));
             if (!_card.IsInsideSafeArea(area) || overlap)
             {
                 problem = $"card at UI {scale:0.##}: outside the safe area or over the side panel ({cardRect} in {area})";
@@ -332,14 +334,23 @@ public partial class GameScreen : CanvasLayer
         _card?.FitInto(CardArea(area));
     }
 
-    /// <summary>Screen part left of the side bar and its open panel, where the card is placed.</summary>
+    /// <summary>Screen part the card is centred in (left of the side bar and its open panel, see <see cref="ScreenModel.CardRoom"/>).</summary>
     private Vector2 CardArea(Vector2 area)
     {
-        var gap = _style?.Tokens.Window.Gap ?? 0;
-        var reserved = _sideBar.GetCombinedMinimumSize().X + gap;
-        var open = _sideBar.Panels.Where(p => p.Visible).Select(p => p.Size.X).DefaultIfEmpty(0).Max();
-        reserved += open > 0 ? open + gap : 0;
-        return new Vector2(Math.Max(area.X - reserved, area.X / 2), area.Y);
+        if (_style is null || _card is null)
+        {
+            return area;
+        }
+
+        var gap = _style.Tokens.Window.Gap;
+        var free = _sideBar.Position.X - gap;
+        foreach (var panel in _sideBar.Panels.Where(p => p.Visible))
+        {
+            free = Math.Min(free, panel.Position.X - gap);
+        }
+
+        var width = ScreenModel.CardRoom(area.X, free, _card.GetCombinedMinimumSize().X, _style.Tokens.Window.SafeMargin);
+        return new Vector2((float)width, area.Y);
     }
 
     private void OpenCard(string inhabitantId)
