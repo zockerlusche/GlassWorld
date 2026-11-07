@@ -24,6 +24,7 @@ class Kind(StrEnum):
     heat_level = 'heat_level'
     tech_level = 'tech_level'
     shape = 'shape'
+    guard_reason = 'guard_reason'
 
 
 class Target(StrEnum):

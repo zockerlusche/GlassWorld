@@ -1005,6 +1005,30 @@
     {
       "key": "vocab.tech_level.wilderness",
       "text": "Wilderness"
+    },
+    {
+      "key": "vocab.guard_reason.living_being",
+      "text": "Living being"
+    },
+    {
+      "key": "vocab.guard_reason.harmful",
+      "text": "Harmful"
+    },
+    {
+      "key": "vocab.guard_reason.material",
+      "text": "Material"
+    },
+    {
+      "key": "vocab.guard_reason.tech_level",
+      "text": "Tech level"
+    },
+    {
+      "key": "vocab.guard_reason.too_large",
+      "text": "Too large"
+    },
+    {
+      "key": "vocab.guard_reason.implausible",
+      "text": "Implausible"
     }
   ]
 }

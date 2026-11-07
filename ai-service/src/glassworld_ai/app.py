@@ -33,6 +33,7 @@ from glassworld_ai.invention.flow import (
     MockInventions,
     OllamaInventions,
     ReplayInventions,
+    safety_categories,
     tech_levels,
 )
 from glassworld_ai.jobs import Handler, JobConflictError, JobRunner, JobsFullError
@@ -420,6 +421,7 @@ def _offline_handlers(settings: Settings) -> dict[str, Handler]:
                 *_invention_prompts(settings),
                 vocab,
                 tech_levels(settings.content_dir),
+                safety_categories(settings.content_dir),
             ),
         }
     return {}
@@ -449,6 +451,7 @@ def _ollama_inventions(settings: Settings, ollama: OllamaClient, app: FastAPI) -
         levels=tech_levels(settings.content_dir),
         settings=_call_settings(settings),
         log=_invention_log(settings),
+        safety=safety_categories(settings.content_dir),
     )
 
 

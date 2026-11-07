@@ -171,7 +171,7 @@ def inventor_schema(invention: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def guard_schema(invention: dict[str, Any]) -> dict[str, Any]:
+def guard_schema(invention: dict[str, Any], reasons: list[str]) -> dict[str, Any]:
     return {
         "type": "object",
         "additionalProperties": False,
@@ -183,7 +183,7 @@ def guard_schema(invention: dict[str, Any]) -> dict[str, Any]:
                 "type": "array",
                 "maxItems": 6,
                 "uniqueItems": True,
-                "items": {"type": "string", "pattern": "^[a-z][a-z0-9_.-]*$", "maxLength": 64},
+                "items": _strings(reasons),
             },
             "invention": {"anyOf": [invention, {"type": "null"}]},
             "sound": {
@@ -309,10 +309,25 @@ def inventor_values(
     }
 
 
-def guard_values(job: GenerationJob, invention: dict[str, Any], round_no: int) -> dict[str, str]:
+def safety_categories(content_dir: Path, examples: int = 6) -> str:
+    """Youth-protection categories of content/safety/rules.json (same file as the core, B4b R9)."""
+    data = json.loads((content_dir / "safety" / "rules.json").read_text("utf-8"))
+    lines: list[str] = []
+    for category in data["categories"]:
+        terms = ", ".join(category.get("terms_en", [])[:examples])
+        lines.append(f"- {category['id']}" + (f" (e.g. {terms})" if terms else ""))
+    return "\n".join(lines)
+
+
+def guard_values(
+    job: GenerationJob, invention: dict[str, Any], round_no: int, vocab: Vocabulary, safety: str
+) -> dict[str, str]:
     payload = _payload(job)
     data = json.dumps(invention, ensure_ascii=False, indent=1)
+    reasons = vocab.ids("guard_reason")
     return {
+        "reasons": "\n".join(f"- {r}: {vocab.describe('guard_reason', r)}" for r in reasons),
+        "safety": safety,
         "invention": "\n".join("> " + line for line in data.splitlines()),
         "materials": _materials_text(payload),
         "tech_level": humanize(plain_id(payload.tech_level)),
@@ -327,6 +342,9 @@ def guard_values(job: GenerationJob, invention: dict[str, Any], round_no: int) -
 
 @dataclass(frozen=True)
 class FlowResult:
+    """attempts = number of guard rounds (1..max_rounds); every single model call with its retries
+    is in the call log (review GW1 R4)."""
+
     result: dict[str, object]
     attempts: int
     prompt_version: str
@@ -339,6 +357,7 @@ async def run_flow(
     vocab: Vocabulary,
     levels: list[str],
     ask: Asker,
+    safety: str,
 ) -> FlowResult:
     payload = _payload(job)
     allowed = (
@@ -348,26 +367,23 @@ async def run_flow(
     )
     materials = [plain_id(m.type) for m in payload.materials]
     shape = invention_schema(vocab, materials, allowed, float(payload.limits.max_size_m))
-    i_schema, g_schema = inventor_schema(shape), guard_schema(shape)
+    i_schema, g_schema = inventor_schema(shape), guard_schema(shape, vocab.ids("guard_reason"))
     max_rounds = int(payload.limits.max_rounds)
     locale = plain_id(job.display_locale)
     rounds: list[dict[str, object]] = []
-    attempts = 0
     feedback = ""
     thought: str | None = None
     for round_no in range(1, max_rounds + 1):
         rendered = inventor.render(inventor_values(job, inventor, vocab, feedback))
-        proposal, used = await ask(
+        proposal, _ = await ask(
             INVENT_ROLE, rendered, i_schema, lambda raw: parse_inventor(raw, i_schema)
         )
-        attempts += used
         invention = proposal["invention"]
         thought = proposal["thought"] or thought
-        g_rendered = guard.render(guard_values(job, invention, round_no))
-        verdict, used = await ask(
+        g_rendered = guard.render(guard_values(job, invention, round_no, vocab, safety))
+        verdict, _ = await ask(
             GUARD_ROLE, g_rendered, g_schema, lambda raw: parse_guard(raw, g_schema)
         )
-        attempts += used
         decision = verdict["decision"]
         if decision == "revise" and round_no == max_rounds:
             decision = "reject"  # no round left (B4b: at most max_rounds)
@@ -391,14 +407,14 @@ async def run_flow(
                         "thought": {"locale": locale, "text": thought} if thought else None,
                     }
                 },
-                attempts,
+                len(rounds),
                 f"{inventor.version_id}+{guard.version_id}",
             )
         if decision == "reject":
             break
         reasons = ", ".join(verdict["reasons"]) or "none"
         feedback = (
-            f"## The rule guard says\n{verdict['note']} (reasons: {reasons}). "
+            f"## The rule guard says\n> {verdict['note']}\n(reasons: {reasons}). "
             "Change the idea accordingly.\n"
         )
     return FlowResult(
@@ -411,7 +427,7 @@ async def run_flow(
                 "thought": None,
             }
         },
-        attempts,
+        max(1, len(rounds)),
         f"{inventor.version_id}+{guard.version_id}",
     )
 
@@ -431,10 +447,12 @@ class OllamaInventions:
         levels: list[str],
         settings: ModelCallSettings,
         log: CallLog,
+        safety: str,
     ) -> None:
         self._client, self._queue, self._log = client, queue, log
         self._inventor, self._guard, self._vocab, self._levels = inventor, guard, vocab, levels
         self._settings = settings
+        self._safety = safety
 
     async def __call__(self, job: GenerationJob) -> JobOutcome:
         async def ask(
@@ -456,14 +474,16 @@ class OllamaInventions:
         import time
 
         started = time.monotonic()
-        flow = await run_flow(job, self._inventor, self._guard, self._vocab, self._levels, ask)
+        flow = await run_flow(
+            job, self._inventor, self._guard, self._vocab, self._levels, ask, self._safety
+        )
         return JobOutcome(
             flow.result,
             "ollama",
             self._client.model[:128],
             flow.prompt_version,
             int((time.monotonic() - started) * 1000),
-            min(3, max(1, flow.attempts)),
+            flow.attempts,
         )
 
 
@@ -477,7 +497,9 @@ class ReplayInventions:
         guard: PromptTemplate,
         vocab: Vocabulary,
         levels: list[str],
+        safety: str,
     ) -> None:
+        self._safety = safety
         self._log, self._inventor, self._guard, self._vocab, self._levels = (
             log,
             inventor,
@@ -510,14 +532,16 @@ class ReplayInventions:
                     "model_unavailable", f"recorded answer does not fit job {job_id}"
                 ) from error
 
-        flow = await run_flow(job, self._inventor, self._guard, self._vocab, self._levels, ask)
+        flow = await run_flow(
+            job, self._inventor, self._guard, self._vocab, self._levels, ask, self._safety
+        )
         return JobOutcome(
             flow.result,
             "replay",
             model[:128],
             flow.prompt_version,
             0,
-            min(3, max(1, flow.attempts)),
+            flow.attempts,
         )
 
 

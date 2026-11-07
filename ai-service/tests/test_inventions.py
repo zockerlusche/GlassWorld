@@ -23,6 +23,7 @@ from glassworld_ai.invention.flow import (
     invention_schema,
     inventor_schema,
     parse_inventor,
+    safety_categories,
     tech_levels,
 )
 from glassworld_ai.jobs import JobFailedError
@@ -107,6 +108,7 @@ def _handler(
         levels=tech_levels(settings.content_dir),
         settings=ModelCallSettings(temperature=0.7, num_ctx=8192, max_retries=1, call_timeout_s=30),
         log=log,
+        safety=safety_categories(settings.content_dir),
     )
     return handler, log, sent
 
@@ -225,6 +227,7 @@ def test_replay_reproduces_the_rounds(settings: Settings) -> None:
         load_prompt(settings.prompts_dir, "guard/invention", 1),
         _vocab(settings),
         tech_levels(settings.content_dir),
+        safety_categories(settings.content_dir),
     )
     assert asyncio.run(replay(JOB)).result == original.result
 
@@ -270,7 +273,9 @@ def test_prompt_snapshots(settings: Settings) -> None:
     inventor = load_prompt(settings.prompts_dir, "invention/invent", 1)
     guard = load_prompt(settings.prompts_dir, "guard/invention", 1)
     a = inventor.render(inventor_values(JOB, inventor, _vocab(settings), ""))
-    b = guard.render(guard_values(JOB, BOWL, 1))
+    b = guard.render(
+        guard_values(JOB, BOWL, 1, _vocab(settings), safety_categories(settings.content_dir))
+    )
     text = (
         f"=== INVENTOR SYSTEM ===\n{a.system}\n\n=== INVENTOR USER ===\n{a.user}\n\n"
         f"=== GUARD SYSTEM ===\n{b.system}\n\n=== GUARD USER ===\n{b.user}\n"
@@ -280,3 +285,16 @@ def test_prompt_snapshots(settings: Settings) -> None:
         snapshot.write_text(text, encoding="utf-8", newline="\n")
     assert snapshot.exists(), f"missing snapshot {snapshot.name}; run with GW_UPDATE_SNAPSHOTS=1"
     assert text == snapshot.read_text(encoding="utf-8")
+
+
+def test_reason_codes_come_from_the_data(settings: Settings) -> None:
+    handler, _, _ = _handler(
+        settings,
+        [
+            proposal(),
+            verdict("reject", reasons=["looks_odd"]),
+            verdict("reject", reasons=["harmful"]),
+        ],
+    )  # noqa: E501
+    result = _result(asyncio.run(handler(JOB)))  # the unknown code is invalid, the retry is used
+    assert result["rounds"][0]["reasons"] == ["harmful"]
