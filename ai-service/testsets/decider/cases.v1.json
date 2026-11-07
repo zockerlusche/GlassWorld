@@ -119,22 +119,26 @@
           {
             "option_id": "o1",
             "action": "inspect",
-            "target": "obj-01"
+            "target": "obj-01",
+            "partners": []
           },
           {
             "option_id": "o2",
             "action": "eat",
-            "target": "obj-01"
+            "target": "obj-01",
+            "partners": []
           },
           {
             "option_id": "o3",
             "action": "move_to",
-            "target": "obj-02"
+            "target": "obj-02",
+            "partners": []
           },
           {
             "option_id": "o4",
             "action": "idle",
-            "target": null
+            "target": null,
+            "partners": []
           }
         ]
       },
@@ -253,17 +257,20 @@
           {
             "option_id": "o1",
             "action": "drink",
-            "target": "obj-01"
+            "target": "obj-01",
+            "partners": []
           },
           {
             "option_id": "o2",
             "action": "wander",
-            "target": null
+            "target": null,
+            "partners": []
           },
           {
             "option_id": "o3",
             "action": "idle",
-            "target": null
+            "target": null,
+            "partners": []
           }
         ]
       },
@@ -398,17 +405,20 @@
           {
             "option_id": "o1",
             "action": "drink",
-            "target": "obj-01"
+            "target": "obj-01",
+            "partners": []
           },
           {
             "option_id": "o2",
             "action": "move_to",
-            "target": "obj-02"
+            "target": "obj-02",
+            "partners": []
           },
           {
             "option_id": "o3",
             "action": "idle",
-            "target": null
+            "target": null,
+            "partners": []
           }
         ]
       },
@@ -520,17 +530,20 @@
           {
             "option_id": "o1",
             "action": "sleep",
-            "target": null
+            "target": null,
+            "partners": []
           },
           {
             "option_id": "o2",
             "action": "wander",
-            "target": null
+            "target": null,
+            "partners": []
           },
           {
             "option_id": "o3",
             "action": "inspect",
-            "target": "obj-01"
+            "target": "obj-01",
+            "partners": []
           }
         ]
       },
@@ -642,22 +655,26 @@
           {
             "option_id": "o1",
             "action": "move_to",
-            "target": "obj-01"
+            "target": "obj-01",
+            "partners": []
           },
           {
             "option_id": "o2",
             "action": "wander",
-            "target": null
+            "target": null,
+            "partners": []
           },
           {
             "option_id": "o3",
             "action": "sleep",
-            "target": null
+            "target": null,
+            "partners": []
           },
           {
             "option_id": "o4",
             "action": "idle",
-            "target": null
+            "target": null,
+            "partners": []
           }
         ]
       },
@@ -775,22 +792,26 @@
           {
             "option_id": "o1",
             "action": "inspect",
-            "target": "obj-01"
+            "target": "obj-01",
+            "partners": []
           },
           {
             "option_id": "o2",
             "action": "pick_up",
-            "target": "obj-01"
+            "target": "obj-01",
+            "partners": []
           },
           {
             "option_id": "o3",
             "action": "idle",
-            "target": null
+            "target": null,
+            "partners": []
           },
           {
             "option_id": "o4",
             "action": "sleep",
-            "target": null
+            "target": null,
+            "partners": []
           }
         ]
       },
@@ -908,22 +929,26 @@
           {
             "option_id": "o1",
             "action": "inspect",
-            "target": "obj-01"
+            "target": "obj-01",
+            "partners": []
           },
           {
             "option_id": "o2",
             "action": "eat",
-            "target": "obj-01"
+            "target": "obj-01",
+            "partners": []
           },
           {
             "option_id": "o3",
             "action": "idle",
-            "target": null
+            "target": null,
+            "partners": []
           },
           {
             "option_id": "o4",
             "action": "wander",
-            "target": null
+            "target": null,
+            "partners": []
           }
         ]
       },
@@ -1055,22 +1080,26 @@
           {
             "option_id": "o1",
             "action": "eat",
-            "target": "obj-01"
+            "target": "obj-01",
+            "partners": []
           },
           {
             "option_id": "o2",
             "action": "move_to",
-            "target": "obj-02"
+            "target": "obj-02",
+            "partners": []
           },
           {
             "option_id": "o3",
             "action": "eat",
-            "target": "obj-02"
+            "target": "obj-02",
+            "partners": []
           },
           {
             "option_id": "o4",
             "action": "idle",
-            "target": null
+            "target": null,
+            "partners": []
           }
         ]
       },
@@ -1181,22 +1210,26 @@
           {
             "option_id": "o1",
             "action": "approach",
-            "target": "inh-000002"
+            "target": "inh-000002",
+            "partners": []
           },
           {
             "option_id": "o2",
             "action": "talk_to",
-            "target": "inh-000002"
+            "target": "inh-000002",
+            "partners": []
           },
           {
             "option_id": "o3",
             "action": "wander",
-            "target": null
+            "target": null,
+            "partners": []
           },
           {
             "option_id": "o4",
             "action": "idle",
-            "target": null
+            "target": null,
+            "partners": []
           }
         ]
       },
@@ -1307,22 +1340,26 @@
           {
             "option_id": "o1",
             "action": "approach",
-            "target": "inh-000002"
+            "target": "inh-000002",
+            "partners": []
           },
           {
             "option_id": "o2",
             "action": "talk_to",
-            "target": "inh-000002"
+            "target": "inh-000002",
+            "partners": []
           },
           {
             "option_id": "o3",
             "action": "idle",
-            "target": null
+            "target": null,
+            "partners": []
           },
           {
             "option_id": "o4",
             "action": "wander",
-            "target": null
+            "target": null,
+            "partners": []
           }
         ]
       },
@@ -1442,17 +1479,20 @@
           {
             "option_id": "o1",
             "action": "move_to",
-            "target": "obj-01"
+            "target": "obj-01",
+            "partners": []
           },
           {
             "option_id": "o2",
             "action": "wander",
-            "target": null
+            "target": null,
+            "partners": []
           },
           {
             "option_id": "o3",
             "action": "idle",
-            "target": null
+            "target": null,
+            "partners": []
           }
         ]
       },
@@ -1570,22 +1610,26 @@
           {
             "option_id": "o1",
             "action": "wander",
-            "target": null
+            "target": null,
+            "partners": []
           },
           {
             "option_id": "o2",
             "action": "inspect",
-            "target": "obj-01"
+            "target": "obj-01",
+            "partners": []
           },
           {
             "option_id": "o3",
             "action": "sleep",
-            "target": null
+            "target": null,
+            "partners": []
           },
           {
             "option_id": "o4",
             "action": "idle",
-            "target": null
+            "target": null,
+            "partners": []
           }
         ]
       },
@@ -1704,22 +1748,26 @@
           {
             "option_id": "o1",
             "action": "eat",
-            "target": "obj-01"
+            "target": "obj-01",
+            "partners": []
           },
           {
             "option_id": "o2",
             "action": "pick_up",
-            "target": "obj-01"
+            "target": "obj-01",
+            "partners": []
           },
           {
             "option_id": "o3",
             "action": "wander",
-            "target": null
+            "target": null,
+            "partners": []
           },
           {
             "option_id": "o4",
             "action": "idle",
-            "target": null
+            "target": null,
+            "partners": []
           }
         ]
       },
@@ -1862,22 +1910,28 @@
           {
             "option_id": "o1",
             "action": "combine",
-            "target": "obj-01"
+            "target": "obj-01",
+            "partners": [
+              "obj-02"
+            ]
           },
           {
             "option_id": "o2",
             "action": "inspect",
-            "target": "obj-03"
+            "target": "obj-03",
+            "partners": []
           },
           {
             "option_id": "o3",
             "action": "wander",
-            "target": null
+            "target": null,
+            "partners": []
           },
           {
             "option_id": "o4",
             "action": "idle",
-            "target": null
+            "target": null,
+            "partners": []
           }
         ]
       },
@@ -2005,22 +2059,26 @@
           {
             "option_id": "o1",
             "action": "idle",
-            "target": null
+            "target": null,
+            "partners": []
           },
           {
             "option_id": "o2",
             "action": "sleep",
-            "target": null
+            "target": null,
+            "partners": []
           },
           {
             "option_id": "o3",
             "action": "eat",
-            "target": "obj-01"
+            "target": "obj-01",
+            "partners": []
           },
           {
             "option_id": "o4",
             "action": "wander",
-            "target": null
+            "target": null,
+            "partners": []
           }
         ]
       },
@@ -2145,17 +2203,20 @@
           {
             "option_id": "o1",
             "action": "drink",
-            "target": "obj-01"
+            "target": "obj-01",
+            "partners": []
           },
           {
             "option_id": "o2",
             "action": "move_to",
-            "target": "obj-02"
+            "target": "obj-02",
+            "partners": []
           },
           {
             "option_id": "o3",
             "action": "wander",
-            "target": null
+            "target": null,
+            "partners": []
           }
         ]
       },
@@ -2268,22 +2329,26 @@
           {
             "option_id": "o1",
             "action": "eat",
-            "target": "obj-01"
+            "target": "obj-01",
+            "partners": []
           },
           {
             "option_id": "o2",
             "action": "inspect",
-            "target": "obj-01"
+            "target": "obj-01",
+            "partners": []
           },
           {
             "option_id": "o3",
             "action": "wander",
-            "target": null
+            "target": null,
+            "partners": []
           },
           {
             "option_id": "o4",
             "action": "idle",
-            "target": null
+            "target": null,
+            "partners": []
           }
         ]
       },
@@ -2396,17 +2461,20 @@
           {
             "option_id": "o1",
             "action": "wander",
-            "target": null
+            "target": null,
+            "partners": []
           },
           {
             "option_id": "o2",
             "action": "inspect",
-            "target": "obj-01"
+            "target": "obj-01",
+            "partners": []
           },
           {
             "option_id": "o3",
             "action": "sleep",
-            "target": null
+            "target": null,
+            "partners": []
           }
         ]
       },
@@ -2519,17 +2587,20 @@
           {
             "option_id": "o1",
             "action": "sleep",
-            "target": null
+            "target": null,
+            "partners": []
           },
           {
             "option_id": "o2",
             "action": "wander",
-            "target": null
+            "target": null,
+            "partners": []
           },
           {
             "option_id": "o3",
             "action": "inspect",
-            "target": "obj-01"
+            "target": "obj-01",
+            "partners": []
           }
         ]
       },
@@ -2641,22 +2712,26 @@
           {
             "option_id": "o1",
             "action": "drink",
-            "target": "obj-01"
+            "target": "obj-01",
+            "partners": []
           },
           {
             "option_id": "o2",
             "action": "inspect",
-            "target": "obj-01"
+            "target": "obj-01",
+            "partners": []
           },
           {
             "option_id": "o3",
             "action": "wander",
-            "target": null
+            "target": null,
+            "partners": []
           },
           {
             "option_id": "o4",
             "action": "idle",
-            "target": null
+            "target": null,
+            "partners": []
           }
         ]
       },
