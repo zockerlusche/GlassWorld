@@ -11,6 +11,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Contracts.Tests/Contracts.Tests.csproj" />
+    <Project Path="tests/Localization.Tests/Localization.Tests.csproj" />
     <Project Path="tests/Simulation.Tests/Simulation.Tests.csproj" />
   </Folder>
   <Folder Name="/tools/">

@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/i18n.schema.json",
+  "title": "I18nCatalog",
+  "description": "Player-facing texts of one language (ADR-0007). One file per language under content/i18n/. Keys are language-neutral; texts may contain named placeholders such as {name}.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "locale",
+    "entries"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "locale": {
+      "$ref": "common.schema.json#/$defs/Locale"
+    },
+    "entries": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/I18nEntry"
+      }
+    }
+  },
+  "$defs": {
+    "I18nEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "key",
+        "text"
+      ],
+      "properties": {
+        "key": {
+          "description": "Text key: vocab.<kind>.<id>, ui.<screen>.<element>, msg.<topic>.<id> or time.<kind>.<id>.",
+          "type": "string",
+          "pattern": "^(vocab|ui|msg|time)(\\.[a-z][a-z0-9_]*){2,4}$",
+          "maxLength": 120
+        },
+        "text": {
+          "description": "Text shown to the player. Named placeholders use {snake_case}.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        }
+      }
+    }
+  }
+}

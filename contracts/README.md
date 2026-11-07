@@ -8,12 +8,13 @@ from them, never written by hand.
 
 | Path | Content |
 |---|---|
-| `schemas/` | `common`, `decision-request`, `decision-response`, `service-error`, `health-status`, `vocabulary` |
+| `schemas/` | `common`, `decision-request`, `decision-response`, `service-error`, `health-status`, `vocabulary`, `i18n` |
 | `examples/valid/`, `examples/invalid/` | Example messages named `<schema>.<case>.json`; both languages test against them |
 | `python/` | Package `glassworld_contracts` with generated pydantic v2 models (checked in) |
 | `generate_python.py` | Regenerates the Python models; `--check` fails if they are stale |
 | `tests/` | Contract tests (pytest) |
 | `../content/vocabulary/` | Vocabulary data files (actions, properties, needs, moods, traits, expressions, time of day, weather), validated by `schemas/vocabulary.schema.json` |
+| `../content/i18n/` | Player-facing texts, one catalog per language (`de.json`, `en.json`), validated by `schemas/i18n.schema.json`; keys `vocab.*`, `ui.*`, `msg.*`, `time.*` (ADR-0007) |
 
 ## Rules
 

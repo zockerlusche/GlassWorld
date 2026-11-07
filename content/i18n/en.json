@@ -1,0 +1,342 @@
+{
+  "contract_version": "0.1",
+  "locale": "en",
+  "entries": [
+    {
+      "key": "vocab.action.approach",
+      "text": "Approach"
+    },
+    {
+      "key": "vocab.action.drink",
+      "text": "Drink"
+    },
+    {
+      "key": "vocab.action.drop",
+      "text": "Put down"
+    },
+    {
+      "key": "vocab.action.eat",
+      "text": "Eat"
+    },
+    {
+      "key": "vocab.action.idle",
+      "text": "Rest"
+    },
+    {
+      "key": "vocab.action.inspect",
+      "text": "Inspect"
+    },
+    {
+      "key": "vocab.action.move_to",
+      "text": "Walk to"
+    },
+    {
+      "key": "vocab.action.pick_up",
+      "text": "Pick up"
+    },
+    {
+      "key": "vocab.action.sleep",
+      "text": "Sleep"
+    },
+    {
+      "key": "vocab.action.talk_to",
+      "text": "Talk"
+    },
+    {
+      "key": "vocab.action.wander",
+      "text": "Wander"
+    },
+    {
+      "key": "vocab.expression.back_away",
+      "text": "Backs away"
+    },
+    {
+      "key": "vocab.expression.cheer",
+      "text": "Cheers"
+    },
+    {
+      "key": "vocab.expression.hum",
+      "text": "Hums"
+    },
+    {
+      "key": "vocab.expression.laugh",
+      "text": "Laughs"
+    },
+    {
+      "key": "vocab.expression.look_around",
+      "text": "Looks around"
+    },
+    {
+      "key": "vocab.expression.ponder",
+      "text": "Ponders"
+    },
+    {
+      "key": "vocab.expression.sit_sadly",
+      "text": "Sits sadly"
+    },
+    {
+      "key": "vocab.expression.spin_with_joy",
+      "text": "Spins with joy"
+    },
+    {
+      "key": "vocab.expression.stomp",
+      "text": "Stomps"
+    },
+    {
+      "key": "vocab.expression.stretch",
+      "text": "Stretches"
+    },
+    {
+      "key": "vocab.expression.wave",
+      "text": "Waves"
+    },
+    {
+      "key": "vocab.expression.yawn",
+      "text": "Yawns"
+    },
+    {
+      "key": "vocab.mood.anger",
+      "text": "Anger"
+    },
+    {
+      "key": "vocab.mood.boredom",
+      "text": "Boredom"
+    },
+    {
+      "key": "vocab.mood.fear",
+      "text": "Fear"
+    },
+    {
+      "key": "vocab.mood.frustration",
+      "text": "Frustration"
+    },
+    {
+      "key": "vocab.mood.jealousy",
+      "text": "Jealousy"
+    },
+    {
+      "key": "vocab.mood.joy",
+      "text": "Joy"
+    },
+    {
+      "key": "vocab.mood.love",
+      "text": "Love"
+    },
+    {
+      "key": "vocab.mood.pride",
+      "text": "Pride"
+    },
+    {
+      "key": "vocab.mood.sadness",
+      "text": "Sadness"
+    },
+    {
+      "key": "vocab.mood.shame",
+      "text": "Shame"
+    },
+    {
+      "key": "vocab.need.company",
+      "text": "Company"
+    },
+    {
+      "key": "vocab.need.fun",
+      "text": "Fun"
+    },
+    {
+      "key": "vocab.need.hunger",
+      "text": "Hunger"
+    },
+    {
+      "key": "vocab.need.purpose",
+      "text": "Purpose"
+    },
+    {
+      "key": "vocab.need.safety",
+      "text": "Safety"
+    },
+    {
+      "key": "vocab.need.sleep",
+      "text": "Sleep"
+    },
+    {
+      "key": "vocab.need.thirst",
+      "text": "Thirst"
+    },
+    {
+      "key": "vocab.need.warmth",
+      "text": "Warmth"
+    },
+    {
+      "key": "vocab.property.braidable",
+      "text": "Braidable"
+    },
+    {
+      "key": "vocab.property.building_material",
+      "text": "Building material"
+    },
+    {
+      "key": "vocab.property.burnable",
+      "text": "Burnable"
+    },
+    {
+      "key": "vocab.property.container",
+      "text": "Container"
+    },
+    {
+      "key": "vocab.property.cooling",
+      "text": "Cooling"
+    },
+    {
+      "key": "vocab.property.drinkable",
+      "text": "Drinkable"
+    },
+    {
+      "key": "vocab.property.edible",
+      "text": "Edible"
+    },
+    {
+      "key": "vocab.property.fibrous",
+      "text": "Fibrous"
+    },
+    {
+      "key": "vocab.property.hard",
+      "text": "Hard"
+    },
+    {
+      "key": "vocab.property.hardens_in_fire",
+      "text": "Hardens in fire"
+    },
+    {
+      "key": "vocab.property.healing",
+      "text": "Healing"
+    },
+    {
+      "key": "vocab.property.hot",
+      "text": "Hot"
+    },
+    {
+      "key": "vocab.property.insulating",
+      "text": "Insulating"
+    },
+    {
+      "key": "vocab.property.long_lasting",
+      "text": "Long-lasting"
+    },
+    {
+      "key": "vocab.property.malleable",
+      "text": "Malleable"
+    },
+    {
+      "key": "vocab.property.poisonous",
+      "text": "Poisonous"
+    },
+    {
+      "key": "vocab.property.portable",
+      "text": "Portable"
+    },
+    {
+      "key": "vocab.property.salty",
+      "text": "Salty"
+    },
+    {
+      "key": "vocab.property.scratchable",
+      "text": "Scratchable"
+    },
+    {
+      "key": "vocab.property.sharp",
+      "text": "Sharp"
+    },
+    {
+      "key": "vocab.property.sparks",
+      "text": "Makes sparks"
+    },
+    {
+      "key": "vocab.property.splittable",
+      "text": "Splittable"
+    },
+    {
+      "key": "vocab.property.sticky",
+      "text": "Sticky"
+    },
+    {
+      "key": "vocab.time_of_day.dawn",
+      "text": "Dawn"
+    },
+    {
+      "key": "vocab.time_of_day.day",
+      "text": "Day"
+    },
+    {
+      "key": "vocab.time_of_day.dusk",
+      "text": "Dusk"
+    },
+    {
+      "key": "vocab.time_of_day.night",
+      "text": "Night"
+    },
+    {
+      "key": "vocab.trait.courage",
+      "text": "Courage"
+    },
+    {
+      "key": "vocab.trait.creativity",
+      "text": "Creativity"
+    },
+    {
+      "key": "vocab.trait.curiosity",
+      "text": "Curiosity"
+    },
+    {
+      "key": "vocab.trait.diligence",
+      "text": "Diligence"
+    },
+    {
+      "key": "vocab.trait.kindness",
+      "text": "Kindness"
+    },
+    {
+      "key": "vocab.trait.orderliness",
+      "text": "Orderliness"
+    },
+    {
+      "key": "vocab.trait.patience",
+      "text": "Patience"
+    },
+    {
+      "key": "vocab.trait.sociability",
+      "text": "Sociability"
+    },
+    {
+      "key": "vocab.weather.clear",
+      "text": "Clear"
+    },
+    {
+      "key": "vocab.weather.cloudy",
+      "text": "Cloudy"
+    },
+    {
+      "key": "vocab.weather.fog",
+      "text": "Fog"
+    },
+    {
+      "key": "vocab.weather.frost",
+      "text": "Frost"
+    },
+    {
+      "key": "vocab.weather.heat",
+      "text": "Heat"
+    },
+    {
+      "key": "vocab.weather.rain",
+      "text": "Rain"
+    },
+    {
+      "key": "vocab.weather.snow",
+      "text": "Snow"
+    },
+    {
+      "key": "vocab.weather.storm",
+      "text": "Storm"
+    }
+  ]
+}

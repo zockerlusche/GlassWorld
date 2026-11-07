@@ -1,3 +1,4 @@
+using GlassWorld.Game.Localization;
 using GlassWorld.Simulation;
 using Godot;
 
@@ -17,6 +18,7 @@ public partial class Main : Node3D
     public override void _Ready()
     {
         GD.Print($"GlassWorld started, core: {CoreInfo.AssemblyName}");
+        var textsLoaded = TextCatalogs.Install();
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
             if (arg.StartsWith(SmokeArgument, StringComparison.Ordinal)
@@ -26,6 +28,24 @@ public partial class Main : Node3D
                 _smokeFrames = frames;
             }
         }
+
+        if (_smokeFrames > 0)
+        {
+            CheckTexts(textsLoaded);
+        }
+    }
+
+    /// <summary>Smoke run only: proves that every catalog is loaded and the language can be switched.</summary>
+    private static void CheckTexts(bool loaded)
+    {
+        var problem = loaded ? TextCatalogs.SelfCheck() : "catalogs not loaded";
+        if (problem.Length > 0)
+        {
+            GD.PushError($"I18N_FAIL {problem}");
+            return;
+        }
+
+        GD.Print($"I18N_OK locales={string.Join(',', TextCatalogs.SupportedLocales)} keys={TextCatalogs.KeyCount}");
     }
 
     public override void _Process(double delta)

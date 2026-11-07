@@ -17,6 +17,10 @@
     {
       "pattern": "rules/*.json",
       "schema": "combination-rules"
+    },
+    {
+      "pattern": "i18n/*.json",
+      "schema": "i18n"
     }
   ]
 }
