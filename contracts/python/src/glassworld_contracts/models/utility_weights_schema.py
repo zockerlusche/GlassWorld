@@ -26,6 +26,11 @@ class Consideration(BaseModel):
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
     target_property: common_schema.VocabId | None
+    avoid_properties: list[common_schema.VocabId] = Field(
+        ...,
+        description='Properties that make the option worse when the inhabitant believes the target has them (factor 1 - confidence each), e.g. salty for drinking.',
+        max_length=8,
+    )
     need: common_schema.VocabId | None = Field(
         ..., description='Need whose value is the curve input; null = constant input 1.'
     )

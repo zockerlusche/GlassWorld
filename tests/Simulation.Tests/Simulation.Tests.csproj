@@ -15,6 +15,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Simulation.Core\Simulation.Core.csproj" />
+    <ProjectReference Include="..\..\src\Simulation.Data\Simulation.Data.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Using Include="Xunit" />

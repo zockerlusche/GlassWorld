@@ -10,7 +10,7 @@ namespace GlassWorld.Simulation.Tests;
 public sealed class InhabitantTests
 {
     private static readonly ContentSet Content = ContentSet.Load(Path.Combine(TestData.Root, "content"));
-    private static readonly Position[] StartPositions = [new(0, 0), new(5, 0)];
+    private static readonly Position[] StartPositions = [new(0, 0), new(5, 0), new(2, 5), new(7, 5)];
 
     [Fact]
     public void StartInhabitantsComeFromTheSeed()
@@ -19,7 +19,9 @@ public sealed class InhabitantTests
         var b = NewWorld(42).Inhabitants;
         var c = NewWorld(43).Inhabitants;
 
-        Assert.Equal(2, a.All.Count());
+        Assert.Equal(4, a.All.Count());
+        Assert.Equal(["female", "male", "female", "male"], a.All.Select(i => i.Sex));
+        Assert.Equal([1, 1, 2, 2], a.All.Select(i => i.Group));
         Assert.Equal(a.All.Select(i => i.Traits["curiosity"]), b.All.Select(i => i.Traits["curiosity"]));
         Assert.NotEqual(a.All.Select(i => i.Traits["curiosity"]), c.All.Select(i => i.Traits["curiosity"]));
         Assert.All(a.All.SelectMany(i => i.Traits.Values), v => Assert.InRange(v, 0.2, 0.9));
@@ -148,7 +150,7 @@ public sealed class InhabitantTests
 
     private static void Feed(WorldObjects objects)
     {
-        for (var i = 0; i < 80; i++)
+        for (var i = 0; i < 200; i++)
         {
             objects.Spawn("apple", new Position(-10 + (i % 10), 10 + (i / 10)));
         }

@@ -106,6 +106,46 @@ public sealed class DecisionsSystem : IWorldSystem
             .ToLookup(e => e.Tick, e => System.Text.Json.JsonSerializer.Deserialize<PlayerCommand>(e.Json)!);
     }
 
+    /// <summary>Complete state for save games.</summary>
+    public (long Counter, IReadOnlyList<OpenQuestion> Questions, IReadOnlyList<KeyValuePair<string, long>> LastAsked) CaptureState() =>
+        (_counter, [.. _open.Values], [.. _lastAsked]);
+
+    /// <summary>Restores the state of a save game (the log continues where it ended).</summary>
+    public void RestoreState(long counter, IEnumerable<OpenQuestion> questions, IEnumerable<KeyValuePair<string, long>> lastAsked, IEnumerable<DecisionLogEntry> log)
+    {
+        ArgumentNullException.ThrowIfNull(questions);
+        ArgumentNullException.ThrowIfNull(lastAsked);
+        ArgumentNullException.ThrowIfNull(log);
+        _counter = counter;
+        foreach (var question in questions)
+        {
+            _open.Add(question.Id, question);
+        }
+
+        foreach (var (key, tick) in lastAsked)
+        {
+            _lastAsked.Add(key, tick);
+        }
+
+        foreach (var entry in log)
+        {
+            Log.Add(entry);
+        }
+    }
+
+    /// <summary>
+    /// After loading with a live decider: questions whose request went to the previous process will never
+    /// be answered, so they are sent again at the next tick (B2487). Not used for hash comparisons.
+    /// </summary>
+    public void ResendPendingAfterLoad(World world)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        foreach (var question in _open.Values.Where(q => q.RetryAtTick is null).ToList())
+        {
+            _open[question.Id] = question with { RetryAtTick = world.Tick };
+        }
+    }
+
     /// <summary>Queues a player command; it takes effect at the next tick.</summary>
     public CommandResult Submit(PlayerCommand command)
     {
@@ -160,7 +200,7 @@ public sealed class DecisionsSystem : IWorldSystem
         {
             foreach (var inhabitant in _inhabitants.All)
             {
-                var unknown = Perceived(inhabitant).FirstOrDefault(o => !inhabitant.Beliefs.About(o.TypeId).Any());
+                var unknown = NearestUnknown(inhabitant);
                 if (unknown is not null)
                 {
                     Ask(world, inhabitant, UnknownObject, "type:" + unknown.TypeId, unknown);
@@ -192,6 +232,42 @@ public sealed class DecisionsSystem : IWorldSystem
 
     private bool Enabled(string kind) =>
         _settings.Triggers.Any(t => t.Enabled && string.Equals(t.Kind.ToString(), kind, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>
+    /// The nearest perceived object whose type the inhabitant has no belief about (ties by id). A single
+    /// pass without sorting: this runs every tick for every inhabitant.
+    /// </summary>
+    private WorldObject? NearestUnknown(Inhabitant inhabitant)
+    {
+        var radiusSquared = _brain.Weights.PerceptionRadiusM * _brain.Weights.PerceptionRadiusM;
+        WorldObject? best = null;
+        var bestDistance = double.MaxValue;
+        var known = new Dictionary<string, bool>(StringComparer.Ordinal);
+        foreach (var obj in _objects.All)
+        {
+            var dx = obj.Position.X - inhabitant.Position.X;
+            var dz = obj.Position.Z - inhabitant.Position.Z;
+            var d = (dx * dx) + (dz * dz);
+            if (d > radiusSquared || d > bestDistance)
+            {
+                continue;
+            }
+
+            if (!known.TryGetValue(obj.TypeId, out var isKnown))
+            {
+                isKnown = inhabitant.Beliefs.About(obj.TypeId).Any();
+                known[obj.TypeId] = isKnown;
+            }
+
+            if (!isKnown && (d < bestDistance || string.CompareOrdinal(obj.Id, best!.Id) < 0))
+            {
+                best = obj;
+                bestDistance = d;
+            }
+        }
+
+        return best;
+    }
 
     private List<WorldObject> Perceived(Inhabitant inhabitant)
     {
@@ -357,7 +433,17 @@ public sealed class DecisionsSystem : IWorldSystem
         var inhabitant = _inhabitants.Get(question.InhabitantId);
         var (_, action, targetId) = chosen[0];
         var destination = targetId is not null && _objects.TryGet(targetId, out var target) ? target.Position : inhabitant.Position;
-        inhabitant.Activity = new Activity(action, targetId, destination, null);
+        var decided = new Activity(action, targetId, destination, null);
+        if (inhabitant.Activity?.RemainingTicks is not null)
+        {
+            // An action is in progress (e.g. sleeping): the answer waits, it never breaks it off.
+            inhabitant.Planned = decided;
+        }
+        else
+        {
+            inhabitant.Activity = decided;
+        }
+
         Close(world, question, "question_answered");
     }
 

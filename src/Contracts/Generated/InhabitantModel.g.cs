@@ -104,16 +104,32 @@ namespace GlassWorld.Contracts
     {
 
         /// <summary>
-        /// Number of start inhabitants.
+        /// Start inhabitants (B2517, F5249 = C: two pairs, a woman and a man each, at different beaches). Traits and needs are drawn from the world seed; sex and group come from here.
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("count")]
-        public int Count { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("inhabitants")]
+        public System.Collections.Generic.ICollection<StartInhabitant> Inhabitants { get; set; } = new System.Collections.ObjectModel.Collection<StartInhabitant>();
 
         [System.Text.Json.Serialization.JsonPropertyName("traits")]
         public System.Collections.Generic.ICollection<ValueRange> Traits { get; set; } = new System.Collections.ObjectModel.Collection<ValueRange>();
 
         [System.Text.Json.Serialization.JsonPropertyName("needs")]
         public System.Collections.Generic.ICollection<ValueRange> Needs { get; set; } = new System.Collections.ObjectModel.Collection<ValueRange>();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class StartInhabitant
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("sex")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<StartInhabitantSex>))]
+        public StartInhabitantSex Sex { get; set; } = default!;
+
+        /// <summary>
+        /// Start group; members of a group wake up near each other, groups apart.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("group")]
+        public int Group { get; set; } = default!;
 
     }
 
@@ -156,6 +172,20 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("start")]
         public StartModel Start { get; set; } = new StartModel();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public enum StartInhabitantSex
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("female")]
+        Female = 0,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("male")]
+        Male = 1,
+
 
     }
 }

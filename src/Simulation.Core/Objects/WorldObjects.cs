@@ -68,6 +68,9 @@ public sealed class WorldObjects : IWorldSystem
         NextNumber = Math.Max(NextNumber, nextNumber);
     }
 
+    /// <summary>Restores the id counter (save games; also when no object exists any more).</summary>
+    public void Restore(long nextNumber) => NextNumber = Math.Max(NextNumber, nextNumber);
+
     /// <inheritdoc/>
     public void Advance(World world)
     {

@@ -1,42 +1,90 @@
 using System.Diagnostics;
 using System.Globalization;
 using GlassWorld.Simulation;
-using GlassWorld.Simulation.Time;
+using GlassWorld.Simulation.Data;
+using GlassWorld.Simulation.Decisions;
+using GlassWorld.Simulation.State;
 
-// Usage: dotnet run --project src/Simulation.Headless -- [--seed N] [--days N] [--content DIR]
-// Prints one line per world day (day, season, hash) and a summary. Exit code 0 on success.
+// Usage: dotnet run --project src/Simulation.Headless -- [--seed N] [--days N] [--content DIR] [--save FILE] [--quiet]
+// Runs the placeholder start world (until B2 generates the island) with the mock decider and prints one
+// line per game day: lowest needs, will to live and neglect per inhabitant, and the state hash.
+// --save writes an autosave after every game day and checks at the end that loading gives the same hash.
 var options = Options.Parse(args);
-var calendar = WorldCalendar.FromJson(File.ReadAllText(Path.Combine(options.ContentDirectory, "world", "time.json")));
-var world = new World(options.Seed, calendar);
-
-var daysDone = 0L;
-world.BoundaryReached += (w, boundary) =>
+var host = SimulationHost.CreatePlaceholderWorld(options.ContentDirectory, options.Seed, new MockDecisionPort(), "de");
+var ticksPerDay = host.World.Calendar.TicksPerDay;
+var ticksPerHour = host.World.Calendar.Settings.TicksPerHour;
+if (options.SavePath is not null)
 {
-    if (boundary == TimeBoundary.Day)
-    {
-        daysDone++;
-        var now = w.Now;
-        Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"day {now.Day - 1,6} done  now year {now.Year,4} {now.SeasonId,-7} day {now.DayOfSeason}  hash {w.StateHash()[..16]}"));
-    }
-};
+    _ = new AutoSaver(host, options.SavePath);
+}
 
 var stopwatch = Stopwatch.StartNew();
-world.Run(options.Days * calendar.TicksPerDay);
+var longestNeglect = new Dictionary<string, long>(StringComparer.Ordinal);
+for (var day = 1; day <= options.Days; day++)
+{
+    for (var t = 0; t < ticksPerDay; t++)
+    {
+        host.World.Step();
+        if (options.Trace is not null && day <= options.TraceDays)
+        {
+            foreach (var e in host.Inhabitants.Events.Where(e => e.InhabitantId == options.Trace && e.Tick == host.World.Tick - 1))
+            {
+                var tr = host.Inhabitants.Get(options.Trace);
+                Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"   t{e.Tick,6} {e.Kind,-17} {e.Action,-8} {e.TargetId,-11} hunger {tr.Needs["hunger"]:F2} thirst {tr.Needs["thirst"]:F2} sleep {tr.Needs["sleep"]:F2}"));
+            }
+        }
+        foreach (var i in host.Inhabitants.All)
+        {
+            longestNeglect[i.Id] = Math.Max(longestNeglect.GetValueOrDefault(i.Id), i.NeglectTicks);
+        }
+    }
+
+    if (!options.Quiet)
+    {
+        Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"day {day,4}  hash {host.World.StateHash()[..12]}  objects {host.Objects.Count,4}"));
+        foreach (var i in host.Inhabitants.All)
+        {
+            var lowest = i.Needs.OrderBy(n => n.Value).ThenBy(n => n.Key, StringComparer.Ordinal).Take(2).Select(n => string.Create(CultureInfo.InvariantCulture, $"{n.Key}={n.Value:F2}"));
+            var food = host.Objects.All.Where(o => o.TypeId == "apple").Select(o => Math.Sqrt(((o.Position.X - i.Position.X) * (o.Position.X - i.Position.X)) + ((o.Position.Z - i.Position.Z) * (o.Position.Z - i.Position.Z)))).DefaultIfEmpty(-1).Min();
+            Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"      pos ({i.Position.X:F0},{i.Position.Z:F0}) apple {food:F0} m  edible-belief {(i.Beliefs.TryGet("apple", "edible", out var b) ? b.Value + "/" + b.Confidence.ToString("F2", CultureInfo.InvariantCulture) : "none")}"));
+            Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"      {i.Id} {i.Sex,-6} will {i.WillToLive:F2}  neglect {i.NeglectTicks / ticksPerHour,4} h  low: {string.Join(", ", lowest)}  doing {i.Activity?.Action ?? "-"}"));
+        }
+    }
+}
+
 stopwatch.Stop();
+var ticks = host.World.Tick;
+var limitHours = host.Content.InhabitantModel.WillToLive.NeglectHoursBeforeDecline;
+var worstHours = longestNeglect.Count == 0 ? 0 : longestNeglect.Values.Max() / ticksPerHour;
+var fading = host.Inhabitants.All.Count(host.Inhabitants.IsFading);
+Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"done  seed {options.Seed}  days {options.Days}  inhabitants {host.Inhabitants.All.Count()}  ticks {ticks}  hash {host.World.StateHash()}"));
+Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"neglect  longest {worstHours} h (limit {limitHours} h)  fading {fading}"));
+Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"time  {stopwatch.Elapsed.TotalSeconds:F2} s  ({stopwatch.Elapsed.TotalMicroseconds / Math.Max(1, ticks):F1} us/tick)"));
+var ok = worstHours <= limitHours && fading == 0;
+if (options.SavePath is not null)
+{
+    var loaded = StateCodec.Restore(
+        new SimulationHostFactory(host.Content, host.DeciderSettings, new MockDecisionPort(), "de"),
+        SaveGameStore.Load(options.SavePath));
+    var same = loaded.World.StateHash() == host.World.StateHash();
+    Console.WriteLine($"save  {options.SavePath}  hash after load {(same ? "identical" : "DIFFERENT")}");
+    ok &= same;
+}
 
-var ticks = world.Tick;
-var microsPerTick = ticks == 0 ? 0 : stopwatch.Elapsed.TotalMicroseconds / ticks;
-Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"done  seed {options.Seed}  days {daysDone}  ticks {ticks}  hash {world.StateHash()}"));
-Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"time  {stopwatch.Elapsed.TotalSeconds:F3} s  ({microsPerTick:F3} us/tick)"));
-return 0;
+Console.WriteLine(ok ? "ACCEPTANCE_OK" : "ACCEPTANCE_FAIL");
+return ok ? 0 : 1;
 
-internal sealed record Options(ulong Seed, long Days, string ContentDirectory)
+internal sealed record Options(ulong Seed, long Days, string ContentDirectory, string? SavePath, bool Quiet, string? Trace, long TraceDays)
 {
     public static Options Parse(string[] args)
     {
         ulong seed = 1;
         long days = 30;
         string? content = null;
+        string? save = null;
+        var quiet = false;
+        string? trace = null;
+        long traceDays = 1;
         for (var i = 0; i < args.Length; i++)
         {
             switch (args[i])
@@ -50,12 +98,24 @@ internal sealed record Options(ulong Seed, long Days, string ContentDirectory)
                 case "--content":
                     content = args[++i];
                     break;
+                case "--save":
+                    save = args[++i];
+                    break;
+                case "--quiet":
+                    quiet = true;
+                    break;
+                case "--trace":
+                    trace = args[++i];
+                    break;
+                case "--trace-days":
+                    traceDays = long.Parse(args[++i], CultureInfo.InvariantCulture);
+                    break;
                 default:
-                    throw new ArgumentException($"Unknown argument '{args[i]}'. Use --seed N --days N --content DIR.");
+                    throw new ArgumentException($"Unknown argument '{args[i]}'. Use --seed N --days N --content DIR --save FILE --quiet.");
             }
         }
 
-        return new Options(seed, days, content ?? FindContent());
+        return new Options(seed, days, content ?? FindContent(), save, quiet, trace, traceDays);
     }
 
     private static string FindContent()

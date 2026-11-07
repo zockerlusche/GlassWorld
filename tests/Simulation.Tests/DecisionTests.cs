@@ -46,9 +46,30 @@ public sealed class DecisionTests
         var response = ContractSerializer.Deserialize<DecisionResponse>(answered.Json);
         var request = ContractSerializer.Deserialize<DecisionRequest>(asked.Json);
         var option = request.Options.Single(o => o.OptionId == response.OptionId);
-        var activity = w.Inhabitants.Get("inh-000001").Activity;
-        Assert.NotNull(activity);
-        Assert.Equal(option.Action, activity.Action);
+        // An action in progress is never broken off: the decided one then waits as "planned".
+        var inhabitant = w.Inhabitants.Get("inh-000001");
+        var decided = inhabitant.Activity?.RemainingTicks is not null ? inhabitant.Planned : inhabitant.Activity;
+        Assert.NotNull(decided);
+        Assert.Equal(option.Action, decided.Action);
+    }
+
+    [Fact]
+    public void AnAnswerNeverBreaksOffAnActionInProgress()
+    {
+        var w = NewWorld(1, new SilentPort());
+        var sleeper = w.Inhabitants.Get("inh-000001");
+        sleeper.Activity = new Activity("sleep", null, sleeper.Position, null);
+        w.World.Step();
+        Assert.NotNull(sleeper.Activity!.RemainingTicks);
+
+        var port = new MockDecisionPort();
+        var answered = NewWorld(1, port);
+        var busy = answered.Inhabitants.Get("inh-000001");
+        busy.Activity = new Activity("sleep", null, busy.Position, null);
+        answered.Objects.Spawn("blue_berry", new Position(2, 0));
+        answered.World.Run(3);
+        Assert.Equal("sleep", busy.Activity!.Action);
+        Assert.NotNull(busy.Planned);
     }
 
     [Fact]
@@ -283,7 +304,7 @@ public sealed class DecisionTests
         };
         var decisions = new DecisionsSystem(settings, inhabitants, objects, Content.Actions, Content.Brain, Content.Vocabularies[VocabularyKind.Action], port, "de");
         world.Add(objects).Add(decisions).Add(inhabitants);
-        inhabitants.SpawnStartInhabitants(world, [new Position(0, 0), new Position(500, 500)]);
+        inhabitants.SpawnStartInhabitants(world, [new Position(0, 0), new Position(500, 500), new Position(1000, 0), new Position(0, 1000)]);
         return (world, objects, inhabitants, decisions);
     }
 

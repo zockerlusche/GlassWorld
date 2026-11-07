@@ -29,7 +29,9 @@ public sealed class UtilityBrain
         foreach (var (c, _) in _considerations)
         {
             _ = actions.Timing(c.Action);
-            if ((c.Need is not null && !needs.Contains(c.Need)) || (c.TargetProperty is not null && !properties.Contains(c.TargetProperty)))
+            if ((c.Need is not null && !needs.Contains(c.Need))
+                || (c.TargetProperty is not null && !properties.Contains(c.TargetProperty))
+                || c.AvoidProperties.Any(p => !properties.Contains(p)))
             {
                 throw new InvalidDataException($"Utility consideration for '{c.Action}' uses an unknown need or property.");
             }
@@ -56,7 +58,7 @@ public sealed class UtilityBrain
 
             foreach (var obj in perceived)
             {
-                var belief = BeliefFactor(inhabitant, obj.TypeId, c.TargetProperty);
+                var belief = BeliefFactor(inhabitant, obj.TypeId, c.TargetProperty) * AvoidFactor(inhabitant, obj.TypeId, c.AvoidProperties);
                 if (belief > 0)
                 {
                     options.Add(new ScoredOption(c.Action, obj.Id, urgency * belief * DistanceFactor(inhabitant.Position, obj.Position)));
@@ -84,6 +86,21 @@ public sealed class UtilityBrain
         return inhabitant.Beliefs.TryGet(typeId, property, out var belief)
             ? (belief.Value ? belief.Confidence : 0.0)
             : Weights.UnknownTargetBelief;
+    }
+
+    /// <summary>For each avoided property the inhabitant believes the type has: factor 1 - confidence.</summary>
+    private static double AvoidFactor(Inhabitant inhabitant, string typeId, IEnumerable<string> avoid)
+    {
+        var factor = 1.0;
+        foreach (var property in avoid)
+        {
+            if (inhabitant.Beliefs.TryGet(typeId, property, out var belief) && belief.Value)
+            {
+                factor *= 1.0 - belief.Confidence;
+            }
+        }
+
+        return factor;
     }
 
     private double DistanceFactor(Position from, Position to)

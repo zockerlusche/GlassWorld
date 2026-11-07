@@ -6,11 +6,11 @@
   "learning_step": 0.5,
   "unknown_target_belief": 0.3,
   "considerations": [
-    { "action": "eat", "target_property": "edible", "need": "hunger", "weight": 1.0, "curve": [[0.0, 1.0], [0.5, 0.4], [0.8, 0.0], [1.0, 0.0]] },
-    { "action": "drink", "target_property": "drinkable", "need": "thirst", "weight": 1.0, "curve": [[0.0, 1.0], [0.5, 0.4], [0.8, 0.0], [1.0, 0.0]] },
-    { "action": "sleep", "target_property": null, "need": "sleep", "weight": 1.0, "curve": [[0.0, 1.0], [0.3, 0.6], [0.5, 0.0], [1.0, 0.0]] },
-    { "action": "inspect", "target_property": null, "need": "fun", "weight": 0.3, "curve": [[0.0, 0.8], [0.6, 0.2], [1.0, 0.0]] },
-    { "action": "wander", "target_property": null, "need": "fun", "weight": 0.25, "curve": [[0.0, 0.8], [0.6, 0.2], [1.0, 0.0]] },
-    { "action": "idle", "target_property": null, "need": null, "weight": 0.1, "curve": [[0.0, 1.0], [1.0, 1.0]] }
+    { "action": "eat", "target_property": "edible", "avoid_properties": ["poisonous"], "need": "hunger", "weight": 1.0, "curve": [[0.0, 1.0], [0.5, 0.4], [0.8, 0.0], [1.0, 0.0]] },
+    { "action": "drink", "target_property": "drinkable", "avoid_properties": ["salty", "poisonous"], "need": "thirst", "weight": 1.0, "curve": [[0.0, 1.0], [0.5, 0.4], [0.8, 0.0], [1.0, 0.0]] },
+    { "action": "sleep", "target_property": null, "avoid_properties": [], "need": "sleep", "weight": 1.0, "curve": [[0.0, 1.0], [0.3, 0.6], [0.5, 0.0], [1.0, 0.0]] },
+    { "action": "inspect", "target_property": null, "avoid_properties": [], "need": "fun", "weight": 0.3, "curve": [[0.0, 0.8], [0.6, 0.2], [1.0, 0.0]] },
+    { "action": "wander", "target_property": null, "avoid_properties": [], "need": "fun", "weight": 0.25, "curve": [[0.0, 0.8], [0.6, 0.2], [1.0, 0.0]] },
+    { "action": "idle", "target_property": null, "avoid_properties": [], "need": null, "weight": 0.1, "curve": [[0.0, 1.0], [1.0, 1.0]] }
   ]
 }

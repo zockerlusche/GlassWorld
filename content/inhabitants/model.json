@@ -33,7 +33,12 @@
     "fading_below": 0.2
   },
   "start": {
-    "count": 2,
+    "inhabitants": [
+      { "sex": "female", "group": 1 },
+      { "sex": "male", "group": 1 },
+      { "sex": "female", "group": 2 },
+      { "sex": "male", "group": 2 }
+    ],
     "traits": [
       { "id": "curiosity", "min": 0.2, "max": 0.9 },
       { "id": "patience", "min": 0.2, "max": 0.9 },

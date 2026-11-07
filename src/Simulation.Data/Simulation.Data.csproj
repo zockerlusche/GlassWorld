@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Save games: one SQLite file per world (ADR-0003). The core has no IO; this project stores its SaveState. -->
+  <PropertyGroup>
+    <RootNamespace>GlassWorld.Simulation.Data</RootNamespace>
+    <AssemblyName>GlassWorld.Simulation.Data</AssemblyName>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Simulation.Core\Simulation.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite" />
+  </ItemGroup>
+</Project>

@@ -2,9 +2,9 @@
   "contract_version": "0.1",
   "rules": [
     {
-      "id": "spark_from_two_spark_stones",
+      "id": "spark_from_pyrite_and_flint",
       "action": "combine",
-      "inputs": [ { "properties": ["sparks", "hard"] }, { "properties": ["sparks", "hard"] } ],
+      "inputs": [ { "properties": ["sparks"] }, { "properties": ["hard", "sharp"] } ],
       "creates": ["spark"],
       "consumes": []
     }

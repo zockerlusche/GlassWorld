@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from enum import StrEnum
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -84,6 +85,24 @@ class WillToLiveModel(BaseModel):
     )
 
 
+class Sex(StrEnum):
+    female = 'female'
+    male = 'male'
+
+
+class StartInhabitant(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    sex: Sex
+    group: int = Field(
+        ...,
+        description='Start group; members of a group wake up near each other, groups apart.',
+        ge=1,
+        le=8,
+    )
+
+
 class ValueRange(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -102,7 +121,12 @@ class StartModel(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
-    count: int = Field(..., description='Number of start inhabitants.', ge=1, le=16)
+    inhabitants: list[StartInhabitant] = Field(
+        ...,
+        description='Start inhabitants (B2517, F5249 = C: two pairs, a woman and a man each, at different beaches). Traits and needs are drawn from the world seed; sex and group come from here.',
+        max_length=16,
+        min_length=1,
+    )
     traits: list[ValueRange] = Field(..., max_length=64)
     needs: list[ValueRange] = Field(..., max_length=64)
 

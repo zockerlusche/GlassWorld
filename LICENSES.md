@@ -12,6 +12,9 @@ Distributions must ship the license notices of all listed components.
 | xunit.v3 | 4.0.2 | NuGet package (test only) | Apache-2.0 | https://github.com/xunit/xunit | tests/ |
 | xunit.runner.visualstudio | 4.0.1 | NuGet package (test only) | Apache-2.0 | https://github.com/xunit/visualstudio.xunit | tests/ |
 | Microsoft.CodeAnalysis.BannedApiAnalyzers | 5.6.0 | NuGet analyzer (build time only) | MIT | https://github.com/dotnet/roslyn | src/Simulation.Core |
+| Microsoft.Data.Sqlite | 10.0.14 | NuGet package (runtime, save games) | MIT | https://github.com/dotnet/efcore | src/Simulation.Data |
+| SQLitePCLRaw.bundle_e_sqlite3 (+ core, provider) | via Microsoft.Data.Sqlite | NuGet package (runtime, native SQLite) | Apache-2.0 | https://github.com/ericsink/SQLitePCL.raw | src/Simulation.Data |
+| SQLite | via SQLitePCLRaw | native library | Public Domain | https://sqlite.org | src/Simulation.Data |
 | pydantic | >=2.12,<3 (locked 2.14.3) | Python runtime library | MIT | https://github.com/pydantic/pydantic | contracts/python, ai-service |
 | jsonschema | 4.25.1 | Python dev/test library | MIT | https://github.com/python-jsonschema/jsonschema | contract tests |
 | referencing | 0.37.0 (via jsonschema) | Python dev/test library | MIT | https://github.com/python-jsonschema/referencing | contract tests |
