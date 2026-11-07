@@ -10,6 +10,8 @@ import time
 from dataclasses import dataclass
 from typing import ClassVar, Protocol
 
+import httpx
+
 from glassworld_ai.calllog import CallLog, CallRecord
 from glassworld_ai.decider.context import build_values
 from glassworld_ai.decider.output import (
@@ -181,9 +183,19 @@ class OllamaDecider:
             except DeadlineExpiredError as error:
                 log("timeout", None, str(error))
                 raise DecisionError("timeout", str(error)) from error
+            except httpx.TimeoutException as error:
+                # The HTTP read timeout to Ollama is set from the deadline: report it as a
+                # retryable timeout with request id and tick (B2487: the core keeps the question).
+                log("timeout", None, type(error).__name__)
+                raise DecisionError("timeout", "model call exceeded the deadline") from error
             except OllamaUnavailableError as error:
                 log("unavailable", None, str(error))
                 raise DecisionError("model_unavailable", str(error)) from error
+            except httpx.HTTPError as error:
+                log("unavailable", None, type(error).__name__)
+                raise DecisionError(
+                    "model_unavailable", f"Ollama error: {type(error).__name__}"
+                ) from error
             except OllamaResponseError as error:
                 log("error", None, str(error))
                 last_problem = str(error)
@@ -247,7 +259,14 @@ class ReplayDecider:
                 and row.get("outcome") == "ok"
                 and isinstance(row.get("raw_output"), str)
             ):
-                choice = parse_choice(str(row["raw_output"]), schema)
+                try:
+                    choice = parse_choice(str(row["raw_output"]), schema)
+                except InvalidModelOutputError as error:
+                    # Recorded answer does not fit this request (e.g. other options): no
+                    # substitute decision, a retryable error instead.
+                    raise DecisionError(
+                        "model_unavailable", f"recorded answer does not fit request {request_id}"
+                    ) from error
                 model = str(row.get("model", "replay"))
                 attempts = row.get("attempt", 1)
                 return _response(

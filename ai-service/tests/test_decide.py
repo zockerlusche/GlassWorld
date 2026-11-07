@@ -228,3 +228,27 @@ def test_replay_without_record_is_model_unavailable(settings: Settings) -> None:
         settings, decider=ReplayDecider(log, Vocabulary.load(settings.content_dir / "vocabulary"))
     )
     assert post(app, "/decide", REQUEST).json()["code"] == "model_unavailable"
+
+
+def test_ollama_read_timeout_is_a_retryable_timeout_with_ids(settings: Settings) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise httpx.ReadTimeout("slow", request=request)
+
+    app, log = _ollama_app(settings, handler)
+    response = post(app, "/decide", REQUEST)
+    assert response.status_code == 504
+    body = response.json()
+    assert (body["code"], body["retryable"]) == ("timeout", True)
+    assert (body["request_id"], body["tick"]) == (REQUEST["request_id"], REQUEST["tick"])
+    assert [r["outcome"] for r in log.read()] == ["timeout"]
+
+
+def test_replay_with_unfitting_recorded_answer_is_retryable(settings: Settings) -> None:
+    app, log = _ollama_app(settings, lambda _: _ollama_answer(_good("o4")))
+    post(app, "/decide", REQUEST)
+    fewer = {**REQUEST, "options": REQUEST["options"][:2]}  # o4 no longer offered
+    vocab = Vocabulary.load(settings.content_dir / "vocabulary")
+    replay_app = make_app(settings, decider=ReplayDecider(log, vocab))
+    response = post(replay_app, "/decide", fewer)
+    assert response.status_code == 503
+    assert response.json()["retryable"] is True

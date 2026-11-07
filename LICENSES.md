@@ -16,8 +16,8 @@ Distributions must ship the license notices of all listed components.
 | SQLitePCLRaw.bundle_e_sqlite3 (+ core, provider) | via Microsoft.Data.Sqlite | NuGet package (runtime, native SQLite) | Apache-2.0 | https://github.com/ericsink/SQLitePCL.raw | src/Simulation.Data |
 | SQLite | via SQLitePCLRaw | native library | Public Domain | https://sqlite.org | src/Simulation.Data |
 | pydantic | >=2.12,<3 (locked 2.14.3) | Python runtime library | MIT | https://github.com/pydantic/pydantic | contracts/python, ai-service |
-| jsonschema | 4.25.1 | Python runtime library (ai-service request validation) and tests | MIT | https://github.com/python-jsonschema/jsonschema | contract tests |
-| referencing | 0.37.0 (via jsonschema) | Python dev/test library | MIT | https://github.com/python-jsonschema/referencing | contract tests |
+| jsonschema | 4.25.1 | Python runtime library (ai-service request validation) and tests | MIT | https://github.com/python-jsonschema/jsonschema | ai-service, contract tests |
+| referencing | 0.37.0 (via jsonschema) | Python runtime library (via jsonschema) | MIT | https://github.com/python-jsonschema/referencing | ai-service, contract tests |
 | datamodel-code-generator | 0.90.0 | Python dev tool | MIT | https://github.com/koxudaxi/datamodel-code-generator | contracts/generate_python.py |
 | pytest | 8.4.2 | Python dev tool | MIT | https://github.com/pytest-dev/pytest | tests |
 | ruff | 0.14.4 | Python dev tool | MIT | https://github.com/astral-sh/ruff | lint/format |
