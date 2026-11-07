@@ -179,7 +179,6 @@ def _schema(settings: Settings) -> dict[str, Any]:
             ),
             "twice",
         ),
-        (_good(understood=False), "understood is false"),
         (_good(thought="x" * 141), "thought"),
     ],
 )
@@ -193,6 +192,11 @@ def test_output_outside_the_vocabulary_is_rejected(
 def test_not_understood_is_allowed(settings: Settings) -> None:
     answer = parse_answer(_good(understood=False, guesses=[], idea=None), _schema(settings))
     assert (answer.understood, answer.guesses, answer.idea) == (False, (), None)
+
+
+def test_guesses_with_not_understood_are_dropped(settings: Settings) -> None:
+    answer = parse_answer(_good(understood=False), _schema(settings))  # _good has two guesses
+    assert (answer.understood, answer.guesses) == (False, ())
 
 
 # --- handlers -------------------------------------------------------------------------------

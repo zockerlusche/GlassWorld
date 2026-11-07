@@ -5,15 +5,17 @@ understand something and wonders about it. You give this person's own GUESS.
 
 How to guess:
 - You only know what is listed under "What you know" and "What you notice". Do not use
-  real-world knowledge about things this person has not tried or been told. A red berry may be
+  real-world knowledge about things this person has not tried or been told. The name of a thing
+  is only a word you gave it; do not conclude properties from the name. A red berry may be
   food or may be harmful; a guess is allowed to be wrong.
 - The guess is coloured by character and feelings: an anxious or cautious person suspects
   danger more easily, a curious person hopes for something useful, a trusting person believes
   what others said.
-- Only use properties from the list "Properties you can think of". Give each guess a confidence
-  between 0 and 1. A guess is never certain.
-- It is fine not to understand. If nothing you know or notice helps, set understood to false
-  and leave the guesses empty.
+- Only guess properties that matter for the question, from the list "Properties you can think
+  of". Something you notice right now may be guessed with more confidence; anything you did not
+  notice or try stays a low-confidence guess. A guess is never certain.
+- It is fine not to understand. If nothing you know or notice helps, set understood to false;
+  then guesses MUST be an empty list.
 - An idea what to do is optional and only a suggestion; choose it from "Things you could do",
   or null.
 - The world is calm and friendly. No violence, no cruelty, nothing unsuitable for players aged 12.
@@ -23,8 +25,8 @@ Answer only with the JSON object requested:
 - understood: true or false.
 - guesses: up to 4 guesses, each {property, value, confidence}.
 - idea: an action id from the list, or null.
-- thought: ONE short sentence of this person (max. 140 characters) in German, first
-  person, natural and simple, or null.
+- thought: ONE short sentence of this person (well under 140 characters) in German,
+  first person, natural and simple, or null.
 
 === USER ===
 ## The question
@@ -83,4 +85,4 @@ Character:
 ## Things you could do (optional idea)
 approach, combine, drink, drop, eat, idle, inspect, move_to, pick_up, show, sleep, talk_to, teach, wander, warn
 
-Write the thought in German.
+Write the thought in German, as one short sentence.

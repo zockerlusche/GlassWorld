@@ -5,7 +5,7 @@
 
 `property` is an enum of the property vocabulary and `idea` an enum of the action vocabulary, so
 Ollama's structured output can only name known things (B4a S2). Checked again afterwards:
-duplicate properties and guesses with understood=false are rejected.
+duplicate properties are rejected; with understood=false any guesses are dropped.
 """
 
 from __future__ import annotations
@@ -101,8 +101,10 @@ def parse_answer(raw: str, schema: dict[str, Any]) -> ModelAnswer:
     names = [g.property for g in guesses]
     if len(set(names)) != len(names):
         raise InvalidQuestionOutputError("guesses: a property is guessed twice")
-    if not values["understood"] and guesses:
-        raise InvalidQuestionOutputError("guesses must be empty when understood is false")
+    if not values["understood"]:
+        # Not understood wins: guesses given anyway are dropped, not turned into beliefs
+        # (live probe L659: the model sometimes adds guesses to "I do not understand").
+        guesses = ()
     thought = values["thought"]
     return ModelAnswer(
         rationale=str(values["rationale"]),
