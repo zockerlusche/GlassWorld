@@ -20,7 +20,8 @@ STATUS_BY_CODE: dict[str, int] = {
     "internal": 500,
 }
 
-_RETRYABLE = {"timeout", "model_unavailable", "overloaded", "invalid_model_output"}
+RETRYABLE_CODES = frozenset({"timeout", "model_unavailable", "overloaded", "invalid_model_output"})
+_RETRYABLE = RETRYABLE_CODES
 
 
 def error_response(

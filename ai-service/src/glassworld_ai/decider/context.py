@@ -12,44 +12,15 @@ from typing import Any, cast
 
 from glassworld_ai.prompts import PromptTemplate
 from glassworld_ai.vocabulary import Vocabulary
+from glassworld_ai.words import ContextError as ContextError
+from glassworld_ai.words import bands as _bands
+from glassworld_ai.words import humanize as _humanize
+from glassworld_ai.words import plain_id as _id
+from glassworld_ai.words import vocab_line as _vocab_line
+from glassworld_ai.words import word as _word
 from glassworld_contracts import DecisionRequest
 
 NOTHING = "- (nothing)"
-
-
-class ContextError(Exception):
-    """The prompt settings are incomplete."""
-
-
-def _id(value: object) -> str:
-    """Plain string of an id or enum (generated contract types may wrap ids in a RootModel)."""
-    value = getattr(value, "root", value)
-    value = getattr(value, "value", value)
-    return str(value)
-
-
-def _bands(settings: dict[str, Any], key: str) -> list[tuple[float, str]]:
-    table: object = settings.get(key)
-    bands: object = cast(dict[str, object], table).get("bands") if isinstance(table, dict) else None
-    if not isinstance(bands, list) or not bands:
-        raise ContextError(f"prompt setting {key}.bands missing")
-    return [(float(b[0]), str(b[1])) for b in bands]  # pyright: ignore[reportUnknownArgumentType,reportUnknownVariableType]
-
-
-def _word(bands: Sequence[tuple[float, str]], value: float) -> str:
-    for bound, word in bands:
-        if value < bound:
-            return word
-    return bands[-1][1]
-
-
-def _humanize(identifier: str) -> str:
-    return identifier.replace("_", " ").replace(".", " ")
-
-
-def _vocab_line(vocab: Vocabulary, kind: str, entry_id: str) -> str:
-    description = vocab.describe(kind, entry_id)
-    return f"{_humanize(entry_id)} ({description})" if description else _humanize(entry_id)
 
 
 def build_values(
