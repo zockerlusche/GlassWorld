@@ -1,6 +1,7 @@
 using GlassWorld.Contracts;
 using GlassWorld.Contracts.Validation;
 using GlassWorld.Simulation.Behaviour;
+using GlassWorld.Simulation.Map;
 using GlassWorld.Simulation.Objects;
 using GlassWorld.Simulation.Time;
 
@@ -21,7 +22,8 @@ public sealed class ContentSet
         IReadOnlyDictionary<VocabularyKind, Vocabulary> vocabularies,
         InhabitantModel inhabitantModel,
         ActionRules actions,
-        UtilityBrain brain)
+        UtilityBrain brain,
+        WorldGenContent worldGen)
     {
         Calendar = calendar;
         Objects = objects;
@@ -30,6 +32,7 @@ public sealed class ContentSet
         InhabitantModel = inhabitantModel;
         Actions = actions;
         Brain = brain;
+        WorldGen = worldGen;
     }
 
     /// <summary>World time.</summary>
@@ -52,6 +55,9 @@ public sealed class ContentSet
 
     /// <summary>Routine layer (content/behaviour/utility.json).</summary>
     public UtilityBrain Brain { get; }
+
+    /// <summary>World generator and weather data (content/world, content/climate; B2).</summary>
+    public WorldGenContent WorldGen { get; }
 
     /// <summary>Loads and checks the content folder.</summary>
     public static ContentSet Load(string contentDirectory)
@@ -83,7 +89,8 @@ public sealed class ContentSet
             actions,
             needs,
             objects.PropertyVocabulary);
-        return new ContentSet(calendar, objects, combinations, vocabularies, model, actions, brain);
+        var worldGen = WorldGenContent.Load(contentDirectory, vocabularies, objects, calendar);
+        return new ContentSet(calendar, objects, combinations, vocabularies, model, actions, brain, worldGen);
     }
 
     private static HashSet<string> Ids(Dictionary<VocabularyKind, Vocabulary> vocabularies, VocabularyKind kind) =>
