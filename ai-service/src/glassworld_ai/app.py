@@ -29,6 +29,12 @@ from glassworld_ai.decider.backends import (
 from glassworld_ai.errors import error_response, install_error_handlers
 from glassworld_ai.hardware import HardwareInfo, detect_hardware, load_tiers, select_tier
 from glassworld_ai.health import health_status
+from glassworld_ai.invention.flow import (
+    MockInventions,
+    OllamaInventions,
+    ReplayInventions,
+    tech_levels,
+)
 from glassworld_ai.jobs import Handler, JobConflictError, JobRunner, JobsFullError
 from glassworld_ai.llm.jobcall import ModelCallSettings
 from glassworld_ai.llm.ollama import (
@@ -38,7 +44,7 @@ from glassworld_ai.llm.ollama import (
 )
 from glassworld_ai.memory.condense import MockMemory, OllamaMemory, ReplayMemory
 from glassworld_ai.probes import HttpProbes, Probes
-from glassworld_ai.prompts import load_prompt
+from glassworld_ai.prompts import PromptTemplate, load_prompt
 from glassworld_ai.questions.handlers import MockQuestions, OllamaQuestions, ReplayQuestions
 from glassworld_ai.queue import ModelQueue
 from glassworld_ai.residency import (
@@ -107,6 +113,7 @@ def create_app(
             if job_handlers is None and settings.decider_backend == "ollama":
                 app.state.jobs.register("question", _ollama_questions(settings, ollama, app))
                 app.state.jobs.register("memory", _ollama_memory(settings, ollama, app))
+                app.state.jobs.register("invention", _ollama_inventions(settings, ollama, app))
             warm_task: asyncio.Task[None] | None = None
             if settings.warm_up and settings.decider_backend == "ollama":
                 app.state.warm_up = "starting"
@@ -396,7 +403,11 @@ def _offline_handlers(settings: Settings) -> dict[str, Handler]:
     """Handlers that need no model client: mock and replay."""
     vocab = Vocabulary.load(settings.content_dir / "vocabulary")
     if settings.decider_backend == "mock":
-        return {"question": MockQuestions(vocab), "memory": MockMemory()}
+        return {
+            "question": MockQuestions(vocab),
+            "memory": MockMemory(),
+            "invention": MockInventions(vocab),
+        }
     if settings.decider_backend == "replay":
         template = load_prompt(
             settings.prompts_dir, settings.question_prompt, settings.question_prompt_version
@@ -404,8 +415,41 @@ def _offline_handlers(settings: Settings) -> dict[str, Handler]:
         return {
             "question": ReplayQuestions(_question_log(settings), template, vocab),
             "memory": ReplayMemory(_memory_log(settings)),
+            "invention": ReplayInventions(
+                _invention_log(settings),
+                *_invention_prompts(settings),
+                vocab,
+                tech_levels(settings.content_dir),
+            ),
         }
     return {}
+
+
+def _invention_log(settings: Settings) -> CallLog:
+    return CallLog(settings.log_dir / "inventions.jsonl")
+
+
+def _invention_prompts(settings: Settings) -> tuple[PromptTemplate, PromptTemplate]:
+    return (
+        load_prompt(
+            settings.prompts_dir, settings.invention_prompt, settings.invention_prompt_version
+        ),
+        load_prompt(settings.prompts_dir, settings.guard_prompt, settings.guard_prompt_version),
+    )
+
+
+def _ollama_inventions(settings: Settings, ollama: OllamaClient, app: FastAPI) -> OllamaInventions:
+    inventor, guard = _invention_prompts(settings)
+    return OllamaInventions(
+        client=ollama,
+        queue=app.state.queue,
+        inventor=inventor,
+        guard=guard,
+        vocab=Vocabulary.load(settings.content_dir / "vocabulary"),
+        levels=tech_levels(settings.content_dir),
+        settings=_call_settings(settings),
+        log=_invention_log(settings),
+    )
 
 
 def _memory_log(settings: Settings) -> CallLog:
