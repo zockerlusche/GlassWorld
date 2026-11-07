@@ -123,6 +123,10 @@
       "text": "Schließen"
     },
     {
+      "key": "ui.common.copy",
+      "text": "Kopieren"
+    },
+    {
       "key": "ui.inhabitant.unnamed",
       "text": "Bewohner {number}"
     },
@@ -185,6 +189,14 @@
     {
       "key": "ui.new_world.climate.warm",
       "text": "Warm"
+    },
+    {
+      "key": "ui.new_world.code",
+      "text": "Welt-Code"
+    },
+    {
+      "key": "ui.new_world.code_hint",
+      "text": "Code einfügen, um eine Welt nachzubauen"
     },
     {
       "key": "ui.new_world.create",
@@ -303,6 +315,30 @@
       "text": "English"
     },
     {
+      "key": "ui.settings.player_name",
+      "text": "Dein Name"
+    },
+    {
+      "key": "ui.settings.player_name_hint",
+      "text": "Nur für die Chronik und Hinweise"
+    },
+    {
+      "key": "ui.settings.problem.name_blocked",
+      "text": "Bitte wähle einen anderen Namen."
+    },
+    {
+      "key": "ui.settings.problem.name_characters",
+      "text": "Der Name enthält Zeichen, die nicht gehen."
+    },
+    {
+      "key": "ui.settings.problem.name_empty",
+      "text": "Bitte gib einen Namen ein."
+    },
+    {
+      "key": "ui.settings.problem.name_long",
+      "text": "Der Name ist zu lang."
+    },
+    {
       "key": "ui.settings.reduce_motion",
       "text": "Bewegung reduzieren"
     },
@@ -321,6 +357,10 @@
     {
       "key": "ui.settings.section.language",
       "text": "Sprache"
+    },
+    {
+      "key": "ui.settings.section.player",
+      "text": "Spieler"
     },
     {
       "key": "ui.settings.text_scale",
@@ -387,6 +427,10 @@
       "text": "Seed"
     },
     {
+      "key": "ui.worlds.copy_code",
+      "text": "Welt-Code kopieren"
+    },
+    {
       "key": "ui.worlds.empty",
       "text": "Noch keine Welt gespeichert."
     },
@@ -405,18 +449,6 @@
     {
       "key": "vocab.action.combine",
       "text": "Kombinieren"
-    },
-    {
-      "key": "vocab.action.warn",
-      "text": "Warnen"
-    },
-    {
-      "key": "vocab.action.show",
-      "text": "Zeigen"
-    },
-    {
-      "key": "vocab.action.teach",
-      "text": "Beibringen"
     },
     {
       "key": "vocab.action.drink",
@@ -447,6 +479,10 @@
       "text": "Aufheben"
     },
     {
+      "key": "vocab.action.show",
+      "text": "Zeigen"
+    },
+    {
       "key": "vocab.action.sleep",
       "text": "Schlafen"
     },
@@ -455,8 +491,16 @@
       "text": "Ansprechen"
     },
     {
+      "key": "vocab.action.teach",
+      "text": "Beibringen"
+    },
+    {
       "key": "vocab.action.wander",
       "text": "Umherstreifen"
+    },
+    {
+      "key": "vocab.action.warn",
+      "text": "Warnen"
     },
     {
       "key": "vocab.biome.beach_sea",

@@ -45,6 +45,7 @@ public partial class Main : Node3D
     private GwWindow? _pause;
     private double _speedBeforePause = 1;
     private bool _settingsDirty;
+    private MenuData? _menuData;
 
     /// <inheritdoc/>
     public override void _Ready()
@@ -62,7 +63,8 @@ public partial class Main : Node3D
         _library = new WorldLibrary(ProjectSettings.GlobalizePath("user://worlds"));
         if (_baseStyle is not null)
         {
-            _limits = new SettingsLimits(_baseStyle.Tokens, TextCatalogs.SupportedLocales, _mix.PlayerVolumeDb);
+            _menuData = LoadMenuData(_library);
+            _limits = new SettingsLimits(_baseStyle.Tokens, TextCatalogs.SupportedLocales, _mix.PlayerVolumeDb, _menuData.Options.PlayerNameMaxLength);
 
             // Check runs use the defaults, so a player's settings file never changes a smoke result.
             _settingsPath = SettingsStore.DefaultPath;
@@ -289,7 +291,7 @@ public partial class Main : Node3D
         }
 
         var window = new SettingsWindow();
-        window.Build(_settings, _limits, _mix, _style);
+        window.Build(_settings, _limits, _mix, _style, (_menuData ?? LoadMenuData(_library!)).Guard);
         window.Changed += settings =>
         {
             // Applied at once (also audible for volumes); written when the window closes or the game quits.

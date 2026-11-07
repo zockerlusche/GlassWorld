@@ -167,7 +167,7 @@ public partial class Main
         return style =>
         {
             var settings = new SettingsWindow();
-            settings.Build(_settings, _limits, _mix, style);
+            settings.Build(_settings, _limits, _mix, style, data.Guard);
             return
             [
                 ("new world", MainMenu.NewWorldWindow(data, style, _ => { })),

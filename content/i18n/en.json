@@ -123,6 +123,10 @@
       "text": "Close"
     },
     {
+      "key": "ui.common.copy",
+      "text": "Copy"
+    },
+    {
       "key": "ui.inhabitant.unnamed",
       "text": "Inhabitant {number}"
     },
@@ -185,6 +189,14 @@
     {
       "key": "ui.new_world.climate.warm",
       "text": "Warm"
+    },
+    {
+      "key": "ui.new_world.code",
+      "text": "World code"
+    },
+    {
+      "key": "ui.new_world.code_hint",
+      "text": "Paste a code to recreate a world"
     },
     {
       "key": "ui.new_world.create",
@@ -303,6 +315,30 @@
       "text": "English"
     },
     {
+      "key": "ui.settings.player_name",
+      "text": "Your name"
+    },
+    {
+      "key": "ui.settings.player_name_hint",
+      "text": "Only for the chronicle and hints"
+    },
+    {
+      "key": "ui.settings.problem.name_blocked",
+      "text": "Please choose a different name."
+    },
+    {
+      "key": "ui.settings.problem.name_characters",
+      "text": "The name contains characters that cannot be used."
+    },
+    {
+      "key": "ui.settings.problem.name_empty",
+      "text": "Please enter a name."
+    },
+    {
+      "key": "ui.settings.problem.name_long",
+      "text": "The name is too long."
+    },
+    {
       "key": "ui.settings.reduce_motion",
       "text": "Reduce motion"
     },
@@ -321,6 +357,10 @@
     {
       "key": "ui.settings.section.language",
       "text": "Language"
+    },
+    {
+      "key": "ui.settings.section.player",
+      "text": "Player"
     },
     {
       "key": "ui.settings.text_scale",
@@ -387,6 +427,10 @@
       "text": "Seed"
     },
     {
+      "key": "ui.worlds.copy_code",
+      "text": "Copy world code"
+    },
+    {
       "key": "ui.worlds.empty",
       "text": "No world saved yet."
     },
@@ -405,18 +449,6 @@
     {
       "key": "vocab.action.combine",
       "text": "Combine"
-    },
-    {
-      "key": "vocab.action.warn",
-      "text": "Warn"
-    },
-    {
-      "key": "vocab.action.show",
-      "text": "Show"
-    },
-    {
-      "key": "vocab.action.teach",
-      "text": "Teach"
     },
     {
       "key": "vocab.action.drink",
@@ -447,6 +479,10 @@
       "text": "Pick up"
     },
     {
+      "key": "vocab.action.show",
+      "text": "Show"
+    },
+    {
       "key": "vocab.action.sleep",
       "text": "Sleep"
     },
@@ -455,8 +491,16 @@
       "text": "Talk"
     },
     {
+      "key": "vocab.action.teach",
+      "text": "Teach"
+    },
+    {
       "key": "vocab.action.wander",
       "text": "Wander"
+    },
+    {
+      "key": "vocab.action.warn",
+      "text": "Warn"
     },
     {
       "key": "vocab.biome.beach_sea",

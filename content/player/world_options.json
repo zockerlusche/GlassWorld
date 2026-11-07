@@ -20,5 +20,6 @@
   ],
   "default_size": "small",
   "default_climate": "temperate",
-  "name_max_length": 32
+  "name_max_length": 32,
+  "player_name_max_length": 24
 }

@@ -133,7 +133,10 @@ public partial class MainMenu : CanvasLayer
         var window = new GwWindow();
         window.Setup("ui.new_world.title", style);
         var name = new LineEdit { MaxLength = data.Options.NameMaxLength, PlaceholderText = "ui.new_world.name_hint" };
-        var seed = new LineEdit { PlaceholderText = "ui.new_world.seed_hint" };
+        // The seed is drawn at once and shown, so the world code exists before the world (B2534).
+        var seed = new LineEdit { PlaceholderText = "ui.new_world.seed_hint", Text = NewWorldModel.DrawSeed(DateTimeOffset.UtcNow).ToString(CultureInfo.InvariantCulture) };
+        var code = new LineEdit { PlaceholderText = "ui.new_world.code_hint" };
+        var copy = new Button { Text = "ui.common.copy" };
         var size = Options(data.Options.Sizes.Select(s => s.Id), "ui.new_world.size.", data.Options.DefaultSize);
         var climate = Options(data.Options.Climates.Select(c => c.Id), "ui.new_world.climate.", data.Options.DefaultClimate);
         var favor = new OptionButton();
@@ -146,7 +149,53 @@ public partial class MainMenu : CanvasLayer
         // Preselection: the middle option, until favor.json names a default.
         favor.Selected = data.Favor.StartOptions.Count / 2;
         var problem = new Label { Visible = false, AutowrapMode = TextServer.AutowrapMode.WordSmart };
+        var updating = false;
+        void ShowCode()
+        {
+            // Code of the current choice; an empty or broken seed leaves the field empty.
+            if (updating)
+            {
+                return;
+            }
+
+            var (ok, value) = NewWorldModel.ParseSeed(seed.Text);
+            updating = true;
+            code.Text = ok && value is { } s
+                ? WorldCode.Encode(new WorldStart(s, size.GetItemMetadata(size.Selected).AsString(), climate.GetItemMetadata(climate.Selected).AsString(), favor.GetItemMetadata(favor.Selected).AsInt32()), data.Options, data.Favor)
+                : string.Empty;
+            updating = false;
+        }
+
+        void TakeCode(string text)
+        {
+            // A pasted code sets seed, size, climate and start favour; the name stays the player's own.
+            if (updating || !WorldCode.TryDecode(text, data.Options, data.Favor, out var start) || start is null)
+            {
+                return;
+            }
+
+            updating = true;
+            seed.Text = start.Seed.ToString(CultureInfo.InvariantCulture);
+            Select(size, start.Size);
+            Select(climate, start.Climate);
+            Select(favor, start.StartFavor);
+            updating = false;
+            ShowCode();
+        }
+
+        seed.TextChanged += _ => ShowCode();
+        size.ItemSelected += _ => ShowCode();
+        climate.ItemSelected += _ => ShowCode();
+        favor.ItemSelected += _ => ShowCode();
+        code.TextChanged += TakeCode;
+        copy.Pressed += () => DisplayServer.ClipboardSet(code.Text);
+        ShowCode();
+        var codeRow = new HBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        code.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        codeRow.AddChild(code);
+        codeRow.AddChild(copy);
         Row(window, "ui.new_world.name", name);
+        Row(window, "ui.new_world.code", codeRow);
         Row(window, "ui.new_world.seed", seed);
         Row(window, "ui.new_world.size", size);
         Row(window, "ui.new_world.climate", climate);
@@ -199,6 +248,14 @@ public partial class MainMenu : CanvasLayer
         table.RowSelected += id => selected = id;
         window.Content.AddChild(table);
         window.AddAction("ui.common.cancel").Pressed += window.Close;
+        window.AddAction("ui.worlds.copy_code").Pressed += () =>
+        {
+            var world = worlds.FirstOrDefault(w => w.Id == selected);
+            if (world is not null && data.Favor.StartOptions.Contains(world.StartFavor))
+            {
+                DisplayServer.ClipboardSet(WorldCode.Encode(new WorldStart(world.Seed, world.Size, world.Climate, world.StartFavor), data.Options, data.Favor));
+            }
+        };
         window.AddAction("ui.worlds.load").Pressed += () =>
         {
             var world = worlds.FirstOrDefault(w => w.Id == selected);
@@ -233,6 +290,18 @@ public partial class MainMenu : CanvasLayer
         }
 
         return options;
+    }
+
+    private static void Select(OptionButton options, object id)
+    {
+        for (var i = 0; i < options.ItemCount; i++)
+        {
+            if (options.GetItemMetadata(i).ToString() == id.ToString())
+            {
+                options.Selected = i;
+                return;
+            }
+        }
     }
 
     private static void Row(GwWindow window, string key, Control control)

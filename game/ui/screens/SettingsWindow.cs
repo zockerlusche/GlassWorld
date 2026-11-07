@@ -21,8 +21,9 @@ public partial class SettingsWindow : GwWindow
     public event Action<PlayerSettings>? Changed;
 
     /// <summary>Builds the controls for the current settings.</summary>
-    public void Build(PlayerSettings settings, SettingsLimits limits, SoundMix mix, UiStyle style)
+    public void Build(PlayerSettings settings, SettingsLimits limits, SoundMix mix, UiStyle style, GlassWorld.Simulation.Safety.TextGuard guard)
     {
+        ArgumentNullException.ThrowIfNull(guard);
         ArgumentNullException.ThrowIfNull(settings);
         ArgumentNullException.ThrowIfNull(limits);
         ArgumentNullException.ThrowIfNull(mix);
@@ -30,6 +31,34 @@ public partial class SettingsWindow : GwWindow
         Setup("ui.settings.title", style);
         _labelWidth = style.Tokens.Window.CardBarWidth;
         _settings = settings;
+
+        Section("ui.settings.section.player");
+        var name = new LineEdit { Text = settings.PlayerName ?? string.Empty, MaxLength = limits.PlayerNameMaxLength, PlaceholderText = "ui.settings.player_name_hint" };
+        var nameProblem = new Label { Visible = false, AutowrapMode = TextServer.AutowrapMode.WordSmart };
+        void TakeName()
+        {
+            // Empty = no name; otherwise the same checks as every player input (length, content guard).
+            var text = name.Text.Trim();
+            var problem = text.Length == 0 ? null : Presentation.World.NewWorldModel.InputProblem(text, limits.PlayerNameMaxLength, guard);
+            nameProblem.Text = problem switch
+            {
+                "long" => "ui.settings.problem.name_long",
+                "characters" => "ui.settings.problem.name_characters",
+                "blocked" => "ui.settings.problem.name_blocked",
+                null => string.Empty,
+                _ => "ui.settings.problem.name_empty",
+            };
+            nameProblem.Visible = problem is not null;
+            if (problem is null && text != (_settings.PlayerName ?? string.Empty))
+            {
+                Apply(_settings with { PlayerName = text.Length == 0 ? null : text });
+            }
+        }
+
+        name.TextSubmitted += _ => TakeName();
+        name.FocusExited += TakeName;
+        Row("ui.settings.player_name", name);
+        Content.AddChild(nameProblem);
 
         Section("ui.settings.section.language");
         var language = new OptionButton();

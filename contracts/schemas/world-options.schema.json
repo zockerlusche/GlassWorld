@@ -11,7 +11,8 @@
     "climates",
     "default_size",
     "default_climate",
-    "name_max_length"
+    "name_max_length",
+    "player_name_max_length"
   ],
   "properties": {
     "contract_version": {
@@ -38,6 +39,12 @@
       "$ref": "common.schema.json#/$defs/VocabId"
     },
     "name_max_length": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 64
+    },
+    "player_name_max_length": {
+      "description": "Longest player name in the settings (B2535: used only outside the aquarium; inhabitants learn it only when the player tells them).",
       "type": "integer",
       "minimum": 1,
       "maximum": 64

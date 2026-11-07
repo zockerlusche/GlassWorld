@@ -8,7 +8,8 @@ namespace GlassWorld.Presentation.Ui;
 /// <param name="Tokens">UI tokens (UI and text size, hint duration).</param>
 /// <param name="Locales">Languages with a text catalog.</param>
 /// <param name="VolumeDb">Range of the volume sliders (content/sound/mix.json).</param>
-public sealed record SettingsLimits(UiTokens Tokens, IReadOnlyCollection<string> Locales, MixPlayerRange VolumeDb);
+/// <param name="PlayerNameMaxLength">Longest player name (content/player/world_options.json).</param>
+public sealed record SettingsLimits(UiTokens Tokens, IReadOnlyCollection<string> Locales, MixPlayerRange VolumeDb, int PlayerNameMaxLength);
 
 /// <summary>
 /// The player's settings (B6 R4): stored in the user folder (<c>user://settings.json</c>), never in a
@@ -22,6 +23,13 @@ public sealed record PlayerSettings
 
     /// <summary>Game language (one with a text catalog); null = system language on first start.</summary>
     public string? Language { get; init; }
+
+    /// <summary>
+    /// The player's name (B2535): used only outside the aquarium (chronicle, hints, how the game
+    /// addresses the player). Never sent to the AI; inhabitants learn it only when the player tells
+    /// them. Null = no name.
+    /// </summary>
+    public string? PlayerName { get; init; }
 
     /// <summary>UI size 0.75..2 (B2513).</summary>
     public double UiScale { get; init; } = 1;
@@ -83,6 +91,14 @@ public sealed record PlayerSettings
     /// <summary>The hint part for <see cref="ToastBoard"/>.</summary>
     public ToastSettings ToToastSettings() => new(HintDurationFactor, HintsUntilDismissed);
 
+    /// <summary>A hand-edited name: trimmed, no control characters, cut to the length limit; empty = null.</summary>
+    private static string? CleanName(string? name, int maxLength)
+    {
+        var clean = new string((name ?? string.Empty).Where(c => !char.IsControl(c)).ToArray()).Trim();
+        clean = clean.Length > maxLength ? clean[..maxLength].TrimEnd() : clean;
+        return clean.Length == 0 ? null : clean;
+    }
+
     /// <summary>Values forced into the allowed ranges.</summary>
     public PlayerSettings Clamp(SettingsLimits limits)
     {
@@ -91,6 +107,7 @@ public sealed record PlayerSettings
         return this with
         {
             Language = Language is not null && limits.Locales.Contains(Language, StringComparer.Ordinal) ? Language : null,
+            PlayerName = CleanName(PlayerName, limits.PlayerNameMaxLength),
             UiScale = UiScaling.Snap(UiScale, tokens.UiScale),
             TextScale = UiScaling.Snap(TextScale, tokens.TextScale),
             HintDurationFactor = Math.Clamp(HintDurationFactor, 1, tokens.Toast.MaxDurationFactor),
