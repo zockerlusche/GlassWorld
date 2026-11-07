@@ -3,13 +3,11 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, RootModel
+from pydantic import BaseModel, ConfigDict, Field
 
-
-class StartOption(RootModel[int]):
-    root: int = Field(..., ge=0, le=10000)
+type StartOption = Annotated[int, Field(..., ge=0, le=10000)]
 
 
 class Cost(BaseModel):

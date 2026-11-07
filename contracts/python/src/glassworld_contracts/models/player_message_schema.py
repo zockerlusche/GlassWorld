@@ -4,20 +4,21 @@
 from __future__ import annotations
 
 from enum import StrEnum
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, RootModel
+from pydantic import BaseModel, ConfigDict, Field
 
 from . import common_schema
 
-
-class TextKey(RootModel[str]):
-    root: str = Field(
+type TextKey = Annotated[
+    str,
+    Field(
         ...,
         description='Translation key for system messages; null for AI-generated text.',
         max_length=120,
         pattern='^msg(\\.[a-z][a-z0-9_]*){2,4}$',
-    )
+    ),
+]
 
 
 class Status(StrEnum):
