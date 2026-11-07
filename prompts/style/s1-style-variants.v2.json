@@ -1,0 +1,40 @@
+{
+  "id": "s1-style-variants",
+  "version": 2,
+  "purpose": "Visual check S1 (09.11.2026): one identical scene in 3-4 candidate looks so Marcel can choose the base style (concept: low-poly 3D, toon shader, outlines; style changes with the era; voxel as alternative).",
+  "workflow": "tools/comfyui/workflows/z-image-turbo-t2i.api.json",
+  "models": [
+    "z-image-turbo",
+    "z-image-vae",
+    "qwen3-4b"
+  ],
+  "seed": 20261109,
+  "images_per_variant": 2,
+  "width": 1344,
+  "height": 768,
+  "scene": "Isometric bird's-eye view of the whole small island, centred in the picture and surrounded by calm sea: a sandy beach, a green meadow, a small forest, a clear stream running from a spring into the sea, a few grey rocks, fruit trees and berry bushes. Two adult inhabitants, a grown man and a grown woman with adult body proportions in simple plain clothes, stand on the beach a few steps apart and look around curiously. Soft morning light, peaceful and friendly mood. No text, no letters, no watermark.",
+  "variants": [
+    {
+      "id": "toon_lowpoly",
+      "label_de": "Low-Poly mit Toon-Shader und Konturen (Grundlook laut Konzept)",
+      "style": "Low-poly 3D game art: every object built from large flat-shaded polygon facets, two-tone cel shading, thick black outlines around every object and character, bright friendly colours."
+    },
+    {
+      "id": "charcoal_stone_age",
+      "label_de": "Steinzeit-Epoche: grober Kohle-/Bleistift-Look",
+      "style": "Rough charcoal and graphite sketch on rough paper: visible hatching and cross-hatching strokes, smudged charcoal shading, dark sketchy outlines, almost monochrome earthy browns and greys with only a few muted colour accents."
+    },
+    {
+      "id": "warm_comic",
+      "label_de": "Dorf-Epoche: warmer Comic",
+      "style": "Hand-inked comic book illustration of a low-poly world: bold uneven ink lines, halftone dot shading, warm saturated sunset-like colours, painterly comic panel look."
+    },
+    {
+      "id": "voxel",
+      "label_de": "Alternative: Voxel-Look",
+      "style": "Voxel art 3D game style, everything built from small cubes, soft ambient occlusion, clean pastel colours."
+    }
+  ],
+  "prompt_template": "{scene} {style}",
+  "changes": "v1 review: toon and comic looked alike and lacked outlines; inhabitants looked like children; framing varied (close-up vs. whole island). v2 fixes the framing, makes the inhabitants adults and makes each style more distinct."
+}

@@ -37,4 +37,8 @@ Distributions must ship the license notices of all listed components.
 | click | 8.5.1 (via uvicorn) | Python runtime library | BSD-3-Clause | https://github.com/pallets/click | ai-service |
 | python-dotenv | 1.2.4 (via pydantic-settings) | Python runtime library | BSD-3-Clause | https://github.com/theskumar/python-dotenv | ai-service |
 | certifi | 2026.10.23 (via httpx) | Python runtime library | MPL-2.0, unmodified | https://github.com/certifi/python-certifi | ai-service |
+| Z-Image-Turbo (GGUF Q5_K_M) | z-image-turbo-Q5_K_M.gguf | AI model (dev, image generation via ComfyUI) | Apache-2.0 | official source per AMW D113 (Tongyi-MAI Z-Image) | S1 style images; later computing night (B7) |
+| Z-Image VAE | z_image_ae.safetensors | AI model (dev) | Apache-2.0 | official source per AMW D113 | with Z-Image-Turbo |
+| Qwen3-4B text encoder | qwen_3_4b_fp8_mixed.safetensors | AI model (dev) | Apache-2.0 | official source per AMW D113 | text encoder for Z-Image-Turbo |
+| ComfyUI-GGUF | custom node (on the dev PC, not shipped) | ComfyUI extension | Apache-2.0 | https://github.com/city96/ComfyUI-GGUF | loads GGUF models in ComfyUI |
 | other transitive Python packages | see `uv.lock` | Python | MIT or Apache-2.0 | PyPI | dev tools |
