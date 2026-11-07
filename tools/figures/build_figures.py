@@ -237,7 +237,73 @@ def torso_weights(rig):
     return weights
 
 
-def build_body(rig, spec):
+MOUTHS = {
+    # width, height, corner curve (all relative to the head radius); neutral is the base shape
+    "neutral": (0.22, 0.028, 0.02),
+    "smile": (0.27, 0.035, 0.1),
+    "sad": (0.2, 0.03, -0.08),
+    "surprised": (0.1, 0.12, 0.0),
+    "talk": (0.19, 0.085, 0.01),
+}
+
+BODY_SHAPES = {
+    # multipliers for the body radii; every shape keeps the topology, so they mix as blend shapes
+    "heavy": {
+        "chest": (1.25, 1.35),
+        "waist": (1.45, 1.6),
+        "hips": (1.25, 1.3),
+        "limbs": 1.28,
+        "neck": 1.2,
+    },
+    "thin": {
+        "chest": (0.86, 0.86),
+        "waist": (0.84, 0.84),
+        "hips": (0.88, 0.88),
+        "limbs": 0.8,
+        "neck": 0.9,
+    },
+    "strong": {
+        "chest": (1.12, 1.08),
+        "waist": (1.05, 1.0),
+        "hips": (1.0, 1.0),
+        "arms": 1.35,
+        "legs": 1.12,
+    },
+    "belly": {"chest": (1.0, 1.05), "waist": (1.1, 1.65), "hips": (1.05, 1.25)},
+}
+
+
+def shaped(spec, shape):
+    """The body spec with one shape applied at full weight."""
+    s = json.loads(json.dumps(spec))
+    m = BODY_SHAPES[shape]
+    for key in ("chest", "waist", "hips"):
+        if key in m:
+            s[key] = [s[key][0] * m[key][0], s[key][1] * m[key][1]]
+    for key in ("upper_arm", "forearm", "thigh", "shin"):
+        factor = m.get("limbs", 1.0) * m.get(
+            "arms" if key in ("upper_arm", "forearm") else "legs", 1.0
+        )
+        s[key] = [v * factor for v in s[key]]
+    s["neck_radius"] *= m.get("neck", 1.0)
+    return s
+
+
+def mouth(centre, r, shape):
+    """A drawn-looking mouth on the face: a flat dark ellipse bent by the expression."""
+    width, height, curve = MOUTHS[shape]
+    bm = bmesh.new()
+    bmesh.ops.create_uvsphere(bm, u_segments=14, v_segments=6, radius=1.0)
+    for vert in bm.verts:
+        x, y, z = vert.co
+        lx = x * width * r
+        lz = z * height * r + curve * r * (x * x - 0.35)
+        ly = y * 0.035 * r
+        vert.co = centre + LEFT * lx + FWD * ly + UP * lz
+    return bm
+
+
+def build_body(rig, spec, expression="neutral", blink=False):
     parts = []
     hips_z = rig.h("DEF-hips").z
     top_z = rig.h("DEF-neck").z
@@ -302,7 +368,8 @@ def build_body(rig, spec):
     # face: eyes, brows, nose, ears (eyes sit on the surface, slightly sunk in)
     for side in (-1, 1):
         eye = centre + FWD * (r * 0.9) + LEFT * (side * r * 0.34) + UP * (r * 0.02)
-        parts.append(Part(ellipsoid(eye, r * 0.085, r * 0.05, r * 0.115, 10, 8), EYES, "DEF-head"))
+        eye_height = r * (0.012 if blink else 0.115)
+        parts.append(Part(ellipsoid(eye, r * 0.085, r * 0.05, eye_height, 10, 8), EYES, "DEF-head"))
         brow = centre + FWD * (r * 0.87) + LEFT * (side * r * 0.34) + UP * (r * 0.27)
         parts.append(Part(ellipsoid(brow, r * 0.12, r * 0.035, r * 0.03, 8, 6), HAIR, "DEF-head"))
         ear = centre + LEFT * (side * r * 0.96) + UP * (r * 0.0)
@@ -317,7 +384,10 @@ def build_body(rig, spec):
         )
     )
 
-    # arms with shoulder balls, open mitten hands with a thumb
+    mouth_centre = centre + FWD * (r * 0.905) + UP * (-r * 0.4)
+    parts.append(Part(mouth(mouth_centre, r, expression), EYES, "DEF-head", inside=centre))
+
+    # arms with seamless sleeves, open mitten hands with a thumb
     for s in ("L", "R"):
         sho, ua, fa, hand = (
             f"DEF-shoulder.{s}",
@@ -580,6 +650,28 @@ def make_object(name, parts, armature):
     return obj
 
 
+def add_shape_keys(body, rig, spec):
+    """Blend shapes: body shapes (mixable, B2528), mouth expressions and blink (same topology)."""
+    body.shape_key_add(name="Basis", from_mix=False)
+    variants = [(f"body_{name}", shaped(spec, name), "neutral", False) for name in BODY_SHAPES]
+    variants += [(f"mouth_{name}", spec, name, False) for name in MOUTHS if name != "neutral"]
+    variants.append(("blink", spec, "neutral", True))
+    for name, variant_spec, expression, blink in variants:
+        parts, _, _ = build_body(rig, variant_spec, expression, blink)
+        coords = []
+        for part in parts:
+            part.bm.verts.ensure_lookup_table()
+            coords.extend(v.co.copy() for v in part.bm.verts)
+            part.bm.free()
+        if len(coords) != len(body.data.vertices):
+            raise RuntimeError(
+                f"shape '{name}' changed the topology ({len(coords)} vs {len(body.data.vertices)})"
+            )
+        key = body.shape_key_add(name=name, from_mix=False)
+        for i, co in enumerate(coords):
+            key.data[i].co = co
+
+
 def main():
     argv = sys.argv[sys.argv.index("--") + 1 :]
     source, config_path, out_dir = argv[0], argv[1], argv[2]
@@ -594,7 +686,9 @@ def main():
         reshape_rig(armature, spec)
         rig = Rig(armature)
         body_parts, centre, r = build_body(rig, spec)
-        objects = [make_object("Body", body_parts, armature)]
+        body = make_object("Body", body_parts, armature)
+        add_shape_keys(body, rig, spec)
+        objects = [body]
         for style in config["hair_styles"]:
             objects.append(make_object(f"Hair_{style}", hair_parts(style, centre, r), armature))
         bpy.ops.object.select_all(action="DESELECT")
@@ -611,8 +705,12 @@ def main():
             export_skins=True,
             export_vertex_color="ACTIVE",
             export_yup=True,
+            export_morph=True,
+            export_morph_normal=True,
         )
         counts = {o.name: len(o.data.vertices) for o in objects}
+        keys = [k.name for k in body.data.shape_keys.key_blocks][1:]
+        print(f"FIGURE_SHAPES {spec['id']} {','.join(keys)}")
         print(f"FIGURE_BUILT {spec['id']} actions={len(bpy.data.actions)} meshes={counts}")
 
 

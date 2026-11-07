@@ -54,6 +54,48 @@ namespace GlassWorld.Contracts
 
     }
 
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class AppearanceShapeRange
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public string Id { get; set; } = default!;
+
+        /// <summary>
+        /// Smallest weight.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("min")]
+        public double Min { get; set; } = default!;
+
+        /// <summary>
+        /// Largest weight.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max")]
+        public double Max { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Range (min &lt;= max).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class AppearanceNumberRange
+    {
+
+        /// <summary>
+        /// Smallest value.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("min")]
+        public double Min { get; set; } = default!;
+
+        /// <summary>
+        /// Largest value.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max")]
+        public double Max { get; set; } = default!;
+
+    }
+
     /// <summary>
     /// Data file content/look/appearance.json: value ranges of the appearance record. The core draws it from the seed (stream inhabitant/&lt;id&gt;/appearance, B2503); inheritance follows in B9. Everyone is always dressed (B2472). Values are placeholders.
     /// </summary>
@@ -105,6 +147,21 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("age_stages")]
         public System.Collections.Generic.ICollection<AppearanceAgeStage> AgeStages { get; set; } = new System.Collections.ObjectModel.Collection<AppearanceAgeStage>();
+
+        /// <summary>
+        /// Body shape blend weights drawn per inhabitant from the seed (B2528); several shapes combine. Ids match the blend shapes of the figure models (body_&lt;id&gt;).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("shapes")]
+        public System.Collections.Generic.ICollection<AppearanceShapeRange> Shapes { get; set; } = new System.Collections.ObjectModel.Collection<AppearanceShapeRange>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("head_scale")]
+        public AppearanceNumberRange HeadScale { get; set; } = new AppearanceNumberRange();
+
+        /// <summary>
+        /// Hair colours of elders (grey and white).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("elder_hair_colors")]
+        public System.Collections.Generic.ICollection<string> ElderHairColors { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
     }
 }

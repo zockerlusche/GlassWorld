@@ -36,6 +36,7 @@ public partial class LookPrototype : Node3D
     private bool _follow;
     private int _shotStep;
     private bool _showcase;
+    private bool _variety;
     private readonly List<Figure> _showRow = [];
     private readonly Dictionary<Figure, float> _restYaw = [];
     private double _fpsSeconds;
@@ -59,6 +60,11 @@ public partial class LookPrototype : Node3D
             {
                 _shotDirectory = arg["--figures=".Length..];
                 _showcase = true;
+            }
+            else if (arg.StartsWith("--variety=", StringComparison.Ordinal))
+            {
+                _shotDirectory = arg["--variety=".Length..];
+                _variety = true;
             }
             else if (arg == "--follow")
             {
@@ -118,6 +124,10 @@ public partial class LookPrototype : Node3D
         if (_fpsSeconds > 0)
         {
             MeasureFrames(delta);
+        }
+        else if (_variety)
+        {
+            TakeVariety();
         }
         else if (_showcase)
         {
@@ -332,6 +342,12 @@ public partial class LookPrototype : Node3D
         var man = new FigureLook("adult_male", "short", Pick(a.SkinTones, 2), Pick(a.ClothingColors, 1), Pick(a.ClothingColors, 4), shoes, Pick(a.HairColors, 1), ShortSleeves: true, Shorts: false, Scale: 1f);
         var child = new FigureLook("child", "tousled", Pick(a.SkinTones, 1), Pick(a.ClothingColors, 2), Pick(a.ClothingColors, 3), shoes, Pick(a.HairColors, 2), ShortSleeves: true, Shorts: true, Scale: 0.62f);
 
+        if (_variety)
+        {
+            BuildVariety(comic, outline);
+            return;
+        }
+
         if (_showcase)
         {
             // A1436 showcase: every hair style once, standing in a row on the sand.
@@ -393,6 +409,7 @@ public partial class LookPrototype : Node3D
         _walkerBlend = Mathf.MoveToward(_walkerBlend, targetBlend, delta * 1.5f);
         _walker.Wave.Weight = Mathf.MoveToward(_walker.Wave.Weight, t is > 10.5f and < 13.5f ? 1f : 0f, delta * 2.5f);
         var greeting = t is > 9.5f and < 14f;
+        _walker.Face.Expression = t is > 11f and < 13.5f ? "talk" : greeting ? "smile" : "neutral";
         if (greeting)
         {
             TurnTowards(_walker, _camera?.GlobalPosition ?? Vector3.Zero, 1f, delta);
@@ -452,6 +469,7 @@ public partial class LookPrototype : Node3D
         var target = t is > 4f and < 7f ? 1f : 0f;
         var delta = (float)GetProcessDeltaTime();
         _waver.Wave.Weight = Mathf.MoveToward(_waver.Wave.Weight, target, delta * 2.5f);
+        _waver.Face.Expression = target > 0 ? "smile" : "neutral";
         TurnTowards(_waver, _camera?.GlobalPosition ?? Vector3.Zero, target, delta);
     }
 
@@ -592,6 +610,103 @@ public partial class LookPrototype : Node3D
         if (_time > due && _frame > 150)
         {
             Save($"figure_{name}_{tag}.png");
+            _shotStep++;
+        }
+    }
+
+    /// <summary>
+    /// Variation sheet (B2528): 12 inhabitants drawn from a fixed seed with the ranges of
+    /// content/look/appearance.json (body type, shapes, height, head size, colours, hair), plus a row
+    /// of five faces with the mouth expressions. Presentation prototype; the core draws the appearance
+    /// record from the world seed in B2-4.
+    /// </summary>
+    private void BuildVariety(Shader comic, Shader? outline)
+    {
+        var a = _look!.Appearance;
+        var rng = new PrototypeRandom(20261107);
+        Color Pick(ICollection<string> colors) => new(colors.ElementAt(rng.Next(colors.Count)));
+        string[] hairs = ["short", "long", "bun", "tousled"];
+        for (var i = 0; i < 12; i++)
+        {
+            var kind = rng.Next(10) switch { < 4 => "adult_female", < 8 => "adult_male", 8 => "child", _ => "elder" };
+            var body = kind == "elder" ? (rng.Next(2) == 0 ? "adult_female" : "adult_male") : kind;
+            var shapes = new Dictionary<string, float>(StringComparer.Ordinal);
+            foreach (var range in a.Shapes)
+            {
+                // One or two shapes per inhabitant; heavy and thin never together.
+                var clash = (range.Id == "thin" && shapes.ContainsKey("heavy")) || (range.Id == "heavy" && shapes.ContainsKey("thin"));
+                if (rng.Next(100) < 40 && !clash)
+                {
+                    shapes[range.Id] = (float)(range.Min + (rng.NextUnit() * (range.Max - range.Min)));
+                }
+            }
+
+            var height = (float)(a.HeightCm.Min + (rng.NextUnit() * (a.HeightCm.Max - a.HeightCm.Min))) / 172f;
+            var skin = Pick(a.SkinTones);
+            var top = Pick(a.ClothingColors);
+            var look = new FigureLook(
+                body,
+                kind == "child" ? hairs[rng.Next(2) == 0 ? 0 : 3] : hairs[rng.Next(hairs.Length)],
+                skin,
+                top,
+                Pick(a.ClothingColors),
+                Pick(a.HairColors),
+                kind == "elder" ? Pick(a.ElderHairColors) : Pick(a.HairColors),
+                ShortSleeves: rng.Next(3) > 0,
+                Shorts: kind == "child" || rng.Next(4) == 0,
+                Scale: kind == "child" ? 0.6f + (float)(rng.NextUnit() * 0.08) : height,
+                ArmSpread: 0.45f + (shapes.GetValueOrDefault("heavy") * 0.35f),
+                Shapes: shapes,
+                HeadScale: (float)(a.HeadScale.Min + (rng.NextUnit() * (a.HeadScale.Max - a.HeadScale.Min))),
+                Elder: kind == "elder");
+            var at = new Vector3(-3.2f + ((i % 6) * 1.35f), 0, 1.4f + ((i / 6) * 2.6f));
+            Place(FigureFactory.Build(look, comic, outline), at, new Vector3(0, 0, 1), out var placed);
+            _showRow.Add(placed);
+        }
+
+        string[] expressions = ["neutral", "smile", "sad", "surprised", "talk"];
+        for (var i = 0; i < expressions.Length; i++)
+        {
+            var face = new FigureLook(
+                "adult_female", "bun", new Color(a.SkinTones.ElementAt(1)), new Color(a.ClothingColors.ElementAt(2)),
+                new Color(a.ClothingColors.ElementAt(0)), new Color(a.HairColors.ElementAt(4)), new Color(a.HairColors.ElementAt(0)),
+                ShortSleeves: true, Shorts: true, Scale: 1f);
+            Place(FigureFactory.Build(face, comic, outline), new Vector3(-2.4f + (i * 1.2f), 0, 10f), new Vector3(0, 0, 1), out var placed);
+            placed.Face.Expression = expressions[i];
+            placed.Face.Blinking = false;
+        }
+    }
+
+    /// <summary>Variety window run: sheet of 12 inhabitants (front and back), mouth expressions, then quit.</summary>
+    private void TakeVariety()
+    {
+        var size = GetViewport().GetVisibleRect().Size;
+        var tag = string.Create(CultureInfo.InvariantCulture, $"{_variant}_{(int)size.X}x{(int)size.Y}");
+        var shots = new (string Name, Vector3 From, Vector3 To)[]
+        {
+            ("variety_front", new Vector3(0.2f, 3.4f, 11.5f), new Vector3(0.2f, 0.9f, 2.7f)),
+            ("variety_back", new Vector3(0.2f, 3.4f, -6.2f), new Vector3(0.2f, 0.9f, 2.7f)),
+            ("mouths", new Vector3(0.0f, 1.75f, 12.6f), new Vector3(0.0f, 1.6f, 10f)),
+        };
+        if (_shotStep >= shots.Length)
+        {
+            if (_shotStep == shots.Length)
+            {
+                GD.Print($"LOOK_VARIETY_OK {tag}");
+                GetTree().Quit();
+                _shotStep++;
+            }
+
+            return;
+        }
+
+        var (name, from, to) = shots[_shotStep];
+        _camera!.GlobalPosition = from;
+        _camera.LookAt(to, Vector3.Up);
+        _camera.Fov = name == "mouths" ? 26 : 34;
+        if (_time > 3.0 + (_shotStep * 1.2) && _frame > 150)
+        {
+            Save($"{name}_{tag}.png");
             _shotStep++;
         }
     }

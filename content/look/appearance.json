@@ -70,5 +70,36 @@
       "from_age_days": 1120,
       "scale": 0.96
     }
+  ],
+  "shapes": [
+    {
+      "id": "heavy",
+      "min": 0.0,
+      "max": 0.9
+    },
+    {
+      "id": "thin",
+      "min": 0.0,
+      "max": 0.8
+    },
+    {
+      "id": "strong",
+      "min": 0.0,
+      "max": 0.8
+    },
+    {
+      "id": "belly",
+      "min": 0.0,
+      "max": 0.7
+    }
+  ],
+  "head_scale": {
+    "min": 0.94,
+    "max": 1.08
+  },
+  "elder_hair_colors": [
+    "#c9c6c0",
+    "#e6e3dd",
+    "#a8a39b"
   ]
 }

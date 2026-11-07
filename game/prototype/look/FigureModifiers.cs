@@ -166,3 +166,122 @@ public partial class ArmRestModifier : SkeletonModifier3D
         }
     }
 }
+
+/// <summary>Head size per inhabitant and a slight forward stoop for elders (on top of every clip).</summary>
+public partial class ProportionModifier : SkeletonModifier3D
+{
+    /// <summary>Head scale from the appearance data.</summary>
+    public float HeadScale { get; set; } = 1f;
+
+    /// <summary>Forward bend of the upper spine in degrees (elders).</summary>
+    public float Stoop { get; set; }
+
+    /// <inheritdoc/>
+    public override void _ProcessModificationWithDelta(double delta)
+    {
+        var skeleton = GetSkeleton();
+        if (skeleton is null)
+        {
+            return;
+        }
+
+        var head = skeleton.FindBone("DEF-head");
+        if (head >= 0 && !Mathf.IsEqualApprox(HeadScale, 1f))
+        {
+            skeleton.SetBonePoseScale(head, Vector3.One * HeadScale);
+        }
+
+        if (Stoop > 0)
+        {
+            foreach (var name in new[] { "DEF-spine.002", "DEF-spine.003" })
+            {
+                var bone = skeleton.FindBone(name);
+                if (bone < 0)
+                {
+                    continue;
+                }
+
+                var pose = skeleton.GetBoneGlobalPose(bone);
+                var bend = new Quaternion(Vector3.Right, Mathf.DegToRad(Stoop * 0.5f));
+                skeleton.SetBoneGlobalPose(bone, new Transform3D(new Basis(bend) * pose.Basis, pose.Origin));
+            }
+        }
+    }
+}
+
+/// <summary>
+/// The face (B2528): mouth expression as blend shapes (neutral, smile, sad, surprised, talk) with soft
+/// changes, talking opens and closes the mouth, and the eyes blink at irregular but deterministic
+/// intervals (from the figure seed, presentation only).
+/// </summary>
+public partial class FaceDriver : Node
+{
+    private static readonly string[] Mouths = ["smile", "sad", "surprised", "talk"];
+    private double _time;
+    private double _nextBlink = 2.0;
+    private uint _state;
+
+    /// <summary>The body mesh with the blend shapes.</summary>
+    public MeshInstance3D? Body { get; set; }
+
+    /// <summary>Seed for the blink rhythm.</summary>
+    public uint Seed { get; set; }
+
+    /// <summary>Current expression: neutral, smile, sad, surprised or talk.</summary>
+    public string Expression { get; set; } = "neutral";
+
+    /// <summary>Whether the eyes blink.</summary>
+    public bool Blinking { get; set; } = true;
+
+    /// <inheritdoc/>
+    public override void _Ready() => _state = Seed | 1;
+
+    /// <inheritdoc/>
+    public override void _Process(double delta)
+    {
+        if (Body is null)
+        {
+            return;
+        }
+
+        _time += delta;
+        var talkOpen = Expression == "talk" ? (Mathf.Sin((float)_time * 9f) > 0 ? 1f : 0.15f) : 0f;
+        foreach (var mouth in Mouths)
+        {
+            var index = Body.FindBlendShapeByName($"mouth_{mouth}");
+            if (index < 0)
+            {
+                continue;
+            }
+
+            var target = mouth == "talk" ? talkOpen : (Expression == mouth ? 1f : 0f);
+            var current = Body.GetBlendShapeValue(index);
+            Body.SetBlendShapeValue(index, Mathf.MoveToward(current, target, (float)delta * (mouth == "talk" ? 14f : 4f)));
+        }
+
+        var blink = Body.FindBlendShapeByName("blink");
+        if (blink >= 0)
+        {
+            var closed = 0f;
+            if (Blinking && _time >= _nextBlink)
+            {
+                var phase = (_time - _nextBlink) / 0.16;
+                closed = phase < 1 ? Mathf.Sin((float)(phase * Mathf.Pi)) : 0f;
+                if (phase >= 1)
+                {
+                    _nextBlink = _time + 2.5 + (Next() % 3000 / 1000.0);
+                }
+            }
+
+            Body.SetBlendShapeValue(blink, closed);
+        }
+    }
+
+    private uint Next()
+    {
+        _state ^= _state << 13;
+        _state ^= _state >> 17;
+        _state ^= _state << 5;
+        return _state;
+    }
+}

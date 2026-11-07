@@ -27,6 +27,12 @@ type ClothingColor = Annotated[
 ]
 
 
+type ElderHairColor = Annotated[
+    str,
+    Field(..., description='Colour as lowercase #rrggbb.', pattern='^#[0-9a-f]{6}$'),
+]
+
+
 class AppearanceIntRange(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -54,6 +60,28 @@ class AppearanceAgeStage(BaseModel):
     scale: float = Field(
         ..., description='Body scale relative to an adult.', ge=0.1, le=1.5
     )
+
+
+class AppearanceShapeRange(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    id: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    min: float = Field(..., description='Smallest weight.', ge=0.0, le=1.0)
+    max: float = Field(..., description='Largest weight.', ge=0.0, le=1.0)
+
+
+class AppearanceNumberRange(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    min: float = Field(..., description='Smallest value.', ge=0.1, le=3.0)
+    max: float = Field(..., description='Largest value.', ge=0.1, le=3.0)
 
 
 class LookAppearance(BaseModel):
@@ -87,6 +115,19 @@ class LookAppearance(BaseModel):
     age_stages: list[AppearanceAgeStage] = Field(
         ...,
         description='Age stages from baby to old age, ascending from_age_days.',
+        max_length=16,
+        min_length=1,
+    )
+    shapes: list[AppearanceShapeRange] = Field(
+        ...,
+        description='Body shape blend weights drawn per inhabitant from the seed (B2528); several shapes combine. Ids match the blend shapes of the figure models (body_<id>).',
+        max_length=16,
+        min_length=1,
+    )
+    head_scale: AppearanceNumberRange
+    elder_hair_colors: list[ElderHairColor] = Field(
+        ...,
+        description='Hair colours of elders (grey and white).',
         max_length=16,
         min_length=1,
     )

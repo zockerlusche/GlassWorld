@@ -17,10 +17,13 @@ public sealed record FigureLook(
     bool ShortSleeves,
     bool Shorts,
     float Scale,
-    float ArmSpread = 0.45f);
+    float ArmSpread = 0.45f,
+    IReadOnlyDictionary<string, float>? Shapes = null,
+    float HeadScale = 1f,
+    bool Elder = false);
 
-/// <summary>A built figure: its root, animation tree and the wave and look-at modifiers.</summary>
-public sealed record Figure(Node3D Root, AnimationTree Tree, WaveModifier Wave, LookAtModifier Look);
+/// <summary>A built figure: its root, animation tree, modifiers and the body mesh (blend shapes).</summary>
+public sealed record Figure(Node3D Root, AnimationTree Tree, WaveModifier Wave, LookAtModifier Look, MeshInstance3D Body, FaceDriver Face);
 
 /// <summary>
 /// Builds a figure from the GlassWorld bodies (A1436, F5257=A): round D355-style bodies modelled in
@@ -63,14 +66,32 @@ public static class FigureFactory
             material.NextPass = ink;
         }
 
+        MeshInstance3D? body = null;
         foreach (var mesh in root.FindChildren("*", "MeshInstance3D", true, false).OfType<MeshInstance3D>())
         {
             var name = mesh.Name.ToString();
             mesh.Visible = name == "Body" || name == $"Hair_{look.Hair}";
             mesh.MaterialOverride = material;
+            body = name == "Body" ? mesh : body;
         }
 
-        // Order matters: arms rest first, then the wave overrides the right arm, then the look-at.
+        if (body is null)
+        {
+            throw new InvalidOperationException($"figure model {look.Body} has no Body mesh");
+        }
+
+        // Body shapes mix as blend shapes (B2528); weights come from the appearance data and the seed.
+        foreach (var (shape, weight) in look.Shapes ?? new Dictionary<string, float>())
+        {
+            var index = body.FindBlendShapeByName($"body_{shape}");
+            if (index >= 0)
+            {
+                body.SetBlendShapeValue(index, Mathf.Clamp(weight, 0, 1));
+            }
+        }
+
+        // Order matters: proportions, arms rest, then the wave overrides the right arm, then the look-at.
+        skeleton.AddChild(new ProportionModifier { HeadScale = look.HeadScale, Stoop = look.Elder ? 14f : 0f });
         skeleton.AddChild(new ArmRestModifier { Spread = look.ArmSpread });
         var wave = new WaveModifier();
         skeleton.AddChild(wave);
@@ -97,7 +118,9 @@ public static class FigureFactory
         tree.AnimPlayer = tree.GetPathTo(player);
         tree.Set(BlendParameter, 0.0f);
         tree.Active = true;
-        return new Figure(root, tree, wave, lookAt);
+        var face = new FaceDriver { Body = body, Seed = (uint)look.GetHashCode() };
+        root.AddChild(face);
+        return new Figure(root, tree, wave, lookAt, body, face);
     }
 
     /// <summary>Sets the blend between idle (0), walk (1) and jog (2).</summary>
