@@ -13,6 +13,31 @@ public sealed class AiServiceProcessTests
     public void ReadyLineIsParsedStrictly(string? line, int? port) =>
         Assert.Equal(port, AiServiceProcess.ParseReadyLine(line));
 
+    [Theory]
+    [InlineData("AI_SERVICE_STALE pid=4242 port=51234", 4242)]
+    [InlineData("AI_SERVICE_STALE pid=4242", null)]
+    [InlineData("AI_SERVICE_READY port=1", null)]
+    public void StaleLineIsParsedStrictly(string line, int? pid) =>
+        Assert.Equal(pid, AiServiceProcess.ParseStaleLine(line));
+
+    [Fact]
+    public async Task OutputAfterTheReadyLineIsDrainedSoTheServiceNeverBlocks()
+    {
+        // Writes far more than a pipe buffer after the ready line, then exits by itself.
+        using var service = AiServiceProcess.Start(
+            Python,
+            ["-c", "import sys; print('AI_SERVICE_READY port=4444', flush=True); [print('x' * 200) for _ in range(20000)]; sys.stdout.flush()"],
+            Directory.GetCurrentDirectory(),
+            TimeSpan.FromSeconds(30));
+
+        for (var i = 0; i < 300 && service.IsRunning; i++)
+        {
+            await Task.Delay(100, TestContext.Current.CancellationToken);
+        }
+
+        Assert.False(service.IsRunning);
+    }
+
     [Fact]
     public async Task StartsWaitsForTheReadyLineAndStopsWithoutOrphans()
     {
@@ -41,6 +66,17 @@ public sealed class AiServiceProcessTests
             Directory.GetCurrentDirectory(),
             TimeSpan.FromSeconds(30));
         Assert.Equal(7, service.Port);
+    }
+
+    [Fact]
+    public void ServiceThatEndsBeforeItsReadyLineReportsItsError()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => AiServiceProcess.Start(
+            Python,
+            ["-c", "import sys; sys.stderr.write('error: unrecognized arguments: --parent-pid\\n'); sys.exit(2)"],
+            Directory.GetCurrentDirectory(),
+            TimeSpan.FromSeconds(30)));
+        Assert.Contains("exited before its ready line", ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]

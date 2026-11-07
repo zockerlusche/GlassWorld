@@ -12,6 +12,7 @@
   <ItemGroup>
     <ProjectReference Include="..\src\Simulation.Core\Simulation.Core.csproj" />
     <ProjectReference Include="..\src\Game.Presentation\Game.Presentation.csproj" />
+    <ProjectReference Include="..\src\AiClient\AiClient.csproj" />
   </ItemGroup>
   <ItemGroup>
     <!-- Player-facing texts (ADR-0007), embedded at build time and loaded into the TranslationServer. -->
