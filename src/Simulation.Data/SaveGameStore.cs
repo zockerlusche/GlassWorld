@@ -56,7 +56,12 @@ public static class SaveGameStore
         File.Move(temp, path, overwrite: true);
     }
 
-    /// <summary>Loads a state; migrates older files and refuses newer ones.</summary>
+    /// <summary>
+    /// Loads a state. The file itself is never changed by loading: it is first checked read-only (an
+    /// empty or foreign file, or a newer version, is refused with <see cref="InvalidDataException"/>);
+    /// an older version is migrated in a temporary copy, and the migrated form reaches the disk only
+    /// with the next save (review GW3 #50 K2).
+    /// </summary>
     public static SaveState Load(string path)
     {
         ArgumentException.ThrowIfNullOrEmpty(path);
@@ -65,9 +70,51 @@ public static class SaveGameStore
             throw new FileNotFoundException("Save game not found.", path);
         }
 
-        using var connection = Open(path);
-        Migrate(connection);
-        return Read(connection);
+        int version;
+        try
+        {
+            using var probe = Open(path, readOnly: true);
+            version = UserVersion(probe);
+            if (version >= 1 && !HasTable(probe, "meta"))
+            {
+                version = 0;
+            }
+        }
+        catch (SqliteException ex)
+        {
+            throw new InvalidDataException($"'{Path.GetFileName(path)}' is not a GlassWorld save game ({ex.SqliteErrorCode}).", ex);
+        }
+
+        if (version == 0)
+        {
+            throw new InvalidDataException($"'{Path.GetFileName(path)}' is not a GlassWorld save game (no schema version).");
+        }
+
+        if (version > SchemaVersion)
+        {
+            throw new InvalidDataException($"Save game has schema version {version}; this build supports up to {SchemaVersion}.");
+        }
+
+        if (version == SchemaVersion)
+        {
+            using var connection = Open(path, readOnly: true);
+            return Read(connection);
+        }
+
+        var copy = path + ".load.tmp";
+        File.Copy(path, copy, overwrite: true);
+        try
+        {
+            using (var connection = Open(copy))
+            {
+                Migrate(connection);
+                return Read(connection);
+            }
+        }
+        finally
+        {
+            File.Delete(copy);
+        }
     }
 
     /// <summary>Schema version of a file (0 = empty).</summary>
@@ -77,12 +124,26 @@ public static class SaveGameStore
         return UserVersion(connection);
     }
 
-    private static SqliteConnection Open(string path)
+    private static SqliteConnection Open(string path, bool readOnly = false)
     {
         // Pooling off: the pool would keep the file open and the swap could fail on Windows (spike D337).
-        var connection = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = path, Pooling = false }.ToString());
+        var builder = new SqliteConnectionStringBuilder
+        {
+            DataSource = path,
+            Pooling = false,
+            Mode = readOnly ? SqliteOpenMode.ReadOnly : SqliteOpenMode.ReadWriteCreate,
+        };
+        var connection = new SqliteConnection(builder.ToString());
         connection.Open();
         return connection;
+    }
+
+    private static bool HasTable(SqliteConnection connection, string table)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = $name;";
+        command.Parameters.AddWithValue("$name", table);
+        return Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture) > 0;
     }
 
     private static int UserVersion(SqliteConnection connection)
