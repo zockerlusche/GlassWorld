@@ -438,7 +438,7 @@
       "weight": 0.5,
       "factors": [
         {
-          "value": "energy",
+          "value": "sleep",
           "when": "low",
           "weight": 4.0
         }
@@ -450,7 +450,7 @@
       "weight": 1.0,
       "factors": [
         {
-          "value": "energy",
+          "value": "sleep",
           "when": "low",
           "weight": 2.0
         }

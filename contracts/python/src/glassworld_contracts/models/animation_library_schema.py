@@ -91,7 +91,7 @@ class AnimationIdleFactor(BaseModel):
     )
     value: str = Field(
         ...,
-        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        description='A need, mood or trait id (values 0..1; for needs 1 = fully satisfied).',
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )

@@ -99,6 +99,9 @@ namespace GlassWorld.Contracts
     public partial class AnimationIdleFactor
     {
 
+        /// <summary>
+        /// A need, mood or trait id (values 0..1; for needs 1 = fully satisfied).
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("value")]
         public string Value { get; set; } = default!;
 

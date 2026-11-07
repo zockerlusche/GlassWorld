@@ -179,6 +179,7 @@
       ],
       "properties": {
         "value": {
+          "description": "A need, mood or trait id (values 0..1; for needs 1 = fully satisfied).",
           "$ref": "common.schema.json#/$defs/VocabId"
         },
         "when": {
