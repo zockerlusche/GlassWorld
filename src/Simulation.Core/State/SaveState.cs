@@ -43,7 +43,9 @@ public sealed record SaveState(
     long QuestionCounter,
     IReadOnlyList<SavedQuestion> Questions,
     IReadOnlyList<KeyValuePair<string, long>> LastAsked,
-    IReadOnlyList<DecisionLogEntry> DecisionLog);
+    IReadOnlyList<DecisionLogEntry> DecisionLog,
+    string? WorldPreset = null,
+    string? IslandHash = null);
 
 /// <summary>Captures and restores the complete state of a <see cref="SimulationHost"/>.</summary>
 public static class StateCodec
@@ -75,7 +77,9 @@ public static class StateCodec
             counter,
             [.. questions.Select(q => new SavedQuestion(q.Id, q.InhabitantId, q.Kind, q.Subject, q.RequestId, q.AskedTick, [.. q.Options.Select(o => new SavedOption(o.OptionId, o.Action, o.TargetId))], q.RetryAtTick))],
             lastAsked,
-            [.. host.Decisions.Log.Entries]);
+            [.. host.Decisions.Log.Entries],
+            host.Map?.Island.PresetId,
+            host.Map?.IslandHash);
     }
 
     /// <summary>Rebuilds a simulation from a saved state with the given content and decider port.</summary>
@@ -84,7 +88,15 @@ public static class StateCodec
         ArgumentNullException.ThrowIfNull(factory);
         ArgumentNullException.ThrowIfNull(state);
         var world = World.Restore(state.Seed, factory.Content.Calendar, state.Tick, state.Streams);
-        var host = factory.Assemble(world);
+        var host = factory.Assemble(world, state.WorldPreset);
+
+        // The island is generated again from the current data; if data or generator changed since the
+        // save, the world would differ silently, so such a save is refused (review GW2 #56).
+        if (state.IslandHash is not null && host.Map?.IslandHash != state.IslandHash)
+        {
+            throw new InvalidDataException(
+                $"The island of this save game (preset '{state.WorldPreset}', hash {state.IslandHash[..12]}) differs from the island the current data generate ({host.Map?.IslandHash[..12] ?? "none"}): world data or generator changed since the save.");
+        }
         foreach (var obj in state.Objects)
         {
             host.Objects.Restore(obj, state.NextObjectNumber);
@@ -132,4 +144,7 @@ public sealed class SimulationHostFactory(Content.ContentSet content, Contracts.
 
     /// <summary>Assembles the systems around <paramref name="world"/>.</summary>
     public SimulationHost Assemble(World world) => SimulationHost.Assemble(Content, settings, world, port, displayLocale);
+
+    /// <summary>Assembles the systems around <paramref name="world"/>, on the island of the preset if one is given.</summary>
+    public SimulationHost Assemble(World world, string? worldPreset) => SimulationHost.Assemble(Content, settings, world, port, displayLocale, worldPreset);
 }

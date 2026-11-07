@@ -5,12 +5,20 @@ using GlassWorld.Simulation.Data;
 using GlassWorld.Simulation.Decisions;
 using GlassWorld.Simulation.State;
 
-// Usage: dotnet run --project src/Simulation.Headless -- [--seed N] [--days N] [--content DIR] [--save FILE] [--quiet]
-// Runs the placeholder start world (until B2 generates the island) with the mock decider and prints one
+// Usage: dotnet run --project src/Simulation.Headless -- [--seed N] [--days N] [--content DIR] [--save FILE] [--preset P] [--quiet]
+// Runs the placeholder start world, or with --preset the island generated from seed and preset (B2-2),
+// with the mock decider and prints one
 // line per game day: lowest needs, will to live and neglect per inhabitant, and the state hash.
 // --save writes an autosave after every game day and checks at the end that loading gives the same hash.
+if (args.Length > 0 && args[0] == "worldgen")
+{
+    Environment.Exit(GlassWorld.Simulation.Headless.WorldGenCommand.Run(args[1..]));
+}
+
 var options = Options.Parse(args);
-var host = SimulationHost.CreatePlaceholderWorld(options.ContentDirectory, options.Seed, new MockDecisionPort(), "de");
+var host = options.Preset is null
+    ? SimulationHost.CreatePlaceholderWorld(options.ContentDirectory, options.Seed, new MockDecisionPort(), "de")
+    : SimulationHost.CreateGeneratedWorld(options.ContentDirectory, options.Seed, new MockDecisionPort(), "de", options.Preset);
 var ticksPerDay = host.World.Calendar.TicksPerDay;
 var ticksPerHour = host.World.Calendar.Settings.TicksPerHour;
 if (options.SavePath is not null)
@@ -74,7 +82,7 @@ if (options.SavePath is not null)
 Console.WriteLine(ok ? "ACCEPTANCE_OK" : "ACCEPTANCE_FAIL");
 return ok ? 0 : 1;
 
-internal sealed record Options(ulong Seed, long Days, string ContentDirectory, string? SavePath, bool Quiet, string? Trace, long TraceDays)
+internal sealed record Options(ulong Seed, long Days, string ContentDirectory, string? SavePath, bool Quiet, string? Trace, long TraceDays, string? Preset)
 {
     public static Options Parse(string[] args)
     {
@@ -85,6 +93,7 @@ internal sealed record Options(ulong Seed, long Days, string ContentDirectory, s
         var quiet = false;
         string? trace = null;
         long traceDays = 1;
+        string? preset = null;
         for (var i = 0; i < args.Length; i++)
         {
             switch (args[i])
@@ -107,15 +116,18 @@ internal sealed record Options(ulong Seed, long Days, string ContentDirectory, s
                 case "--trace":
                     trace = args[++i];
                     break;
+                case "--preset":
+                    preset = args[++i];
+                    break;
                 case "--trace-days":
                     traceDays = long.Parse(args[++i], CultureInfo.InvariantCulture);
                     break;
                 default:
-                    throw new ArgumentException($"Unknown argument '{args[i]}'. Use --seed N --days N --content DIR --save FILE --quiet.");
+                    throw new ArgumentException($"Unknown argument '{args[i]}'. Use --seed N --days N --content DIR --save FILE --preset P --quiet.");
             }
         }
 
-        return new Options(seed, days, content ?? FindContent(), save, quiet, trace, traceDays);
+        return new Options(seed, days, content ?? FindContent(), save, quiet, trace, traceDays, preset);
     }
 
     private static string FindContent()

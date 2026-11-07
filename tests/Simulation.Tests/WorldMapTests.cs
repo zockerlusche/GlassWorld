@@ -85,7 +85,7 @@ public sealed class WorldMapTests
         var world = content.WorldGen;
         Assert.Contains("start_island", world.Presets.Keys);
         Assert.Contains("temperate", world.Climates.Keys);
-        Assert.Equal(["beach_sea", "meadow", "forest", "freshwater", "rocks_hills", "swamp"], world.BiomeIds);
+        Assert.Equal(["beach_sea", "meadow", "field", "forest", "freshwater", "rocks_hills", "swamp"], world.BiomeIds);
     }
 
     public static TheoryData<string, string, string, string> BrokenReferences => new()

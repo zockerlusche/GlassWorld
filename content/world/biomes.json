@@ -13,6 +13,11 @@
       "map_color": "#9cc96b"
     },
     {
+      "id": "field",
+      "walk_cost_permille": 1100,
+      "map_color": "#d7c46a"
+    },
+    {
       "id": "forest",
       "walk_cost_permille": 1400,
       "map_color": "#4f8a4b"
@@ -48,10 +53,10 @@
     {
       "biome": "swamp",
       "water": "fresh",
-      "max_water_depth": 2,
+      "max_water_depth": 1,
       "min_height": 0,
       "max_height": 60,
-      "min_moisture_permille": 750,
+      "min_moisture_permille": 700,
       "max_moisture_permille": 1000,
       "min_temperature_tenth_c": -500,
       "max_temperature_tenth_c": 600
@@ -72,7 +77,7 @@
       "water": "none",
       "max_water_depth": 0,
       "min_height": -100000,
-      "max_height": 4,
+      "max_height": 2,
       "min_moisture_permille": 0,
       "max_moisture_permille": 1000,
       "min_temperature_tenth_c": -500,
@@ -82,7 +87,7 @@
       "biome": "rocks_hills",
       "water": "none",
       "max_water_depth": 0,
-      "min_height": 90,
+      "min_height": 85,
       "max_height": 100000,
       "min_moisture_permille": 0,
       "max_moisture_permille": 1000,
@@ -94,10 +99,21 @@
       "water": "none",
       "max_water_depth": 0,
       "min_height": 10,
-      "max_height": 89,
-      "min_moisture_permille": 550,
+      "max_height": 84,
+      "min_moisture_permille": 470,
       "max_moisture_permille": 1000,
       "min_temperature_tenth_c": 0,
+      "max_temperature_tenth_c": 600
+    },
+    {
+      "biome": "field",
+      "water": "none",
+      "max_water_depth": 0,
+      "min_height": 5,
+      "max_height": 50,
+      "min_moisture_permille": 340,
+      "max_moisture_permille": 390,
+      "min_temperature_tenth_c": 80,
       "max_temperature_tenth_c": 600
     },
     {
@@ -105,7 +121,7 @@
       "water": "none",
       "max_water_depth": 0,
       "min_height": 5,
-      "max_height": 89,
+      "max_height": 84,
       "min_moisture_permille": 0,
       "max_moisture_permille": 1000,
       "min_temperature_tenth_c": -500,
