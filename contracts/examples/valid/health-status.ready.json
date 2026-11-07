@@ -1,6 +1,7 @@
 {
   "contract_version": "0.1",
   "status": "ready",
+  "detail": null,
   "service_version": "0.1.0",
   "dependencies": [
     {

@@ -12,7 +12,7 @@ import httpx
 import pytest
 from fastapi import FastAPI
 
-from conftest import TOKEN, make_app, post
+from conftest import TOKEN, get, make_app, post
 from glassworld_ai.calllog import CallLog
 from glassworld_ai.config import Settings
 from glassworld_ai.decider.backends import (
@@ -51,7 +51,7 @@ def _ollama_answer(content: str) -> httpx.Response:
 
 
 def _ollama_app(
-    settings: Settings, handler: Handler, *, retries: int = 2
+    settings: Settings, handler: Handler, *, retries: int = 2, queue_size: int = 8
 ) -> tuple[FastAPI, CallLog]:
     log = CallLog(settings.log_dir / "decider.jsonl")
     client = OllamaClient(
@@ -62,7 +62,7 @@ def _ollama_app(
     )
     decider = OllamaDecider(
         client=client,
-        queue=ModelQueue(8),
+        queue=ModelQueue(queue_size),
         template=load_prompt(settings.prompts_dir, "decider/decide", 1),
         vocab=Vocabulary.load(settings.content_dir / "vocabulary"),
         settings=ModelSettings(
@@ -252,3 +252,57 @@ def test_replay_with_unfitting_recorded_answer_is_retryable(settings: Settings) 
     response = post(replay_app, "/decide", fewer)
     assert response.status_code == 503
     assert response.json()["retryable"] is True
+
+
+def test_below_minimum_tier_gives_model_unavailable(settings: Settings) -> None:
+    from glassworld_ai.hardware import HardwareInfo
+
+    weak = HardwareInfo(gpus=(), cpu_name=None, logical_cpus=4, ram_mib=8192)
+    app = make_app(settings, hardware=weak)
+    response = post(app, "/decide", REQUEST)
+    assert response.status_code == 503
+    assert response.json()["code"] == "model_unavailable"
+    health = get(app, "/health").json()
+    assert health["status"] == "degraded" and "minimum tier" in health["detail"]
+
+
+def test_tier_gate_only_for_the_real_model(settings: Settings) -> None:
+    from glassworld_ai.hardware import HardwareInfo
+
+    weak = HardwareInfo(gpus=(), cpu_name=None, logical_cpus=4, ram_mib=8192)
+    mock_settings = settings.model_copy(update={"decider_backend": "mock"})
+    assert post(make_app(mock_settings, hardware=weak), "/decide", REQUEST).status_code == 200
+    assert get(make_app(mock_settings, hardware=weak), "/health").json()["status"] == "ready"
+    gated = post(make_app(settings, hardware=weak), "/decide", REQUEST).json()
+    assert gated["retryable"] is False  # hardware does not change: no endless resending
+
+
+def test_bad_request_keeps_valid_ids(settings: Settings) -> None:
+    body: dict[str, object] = {**REQUEST, "options": []}
+    error = post(make_app(settings), "/decide", body).json()
+    assert (error["code"], error["request_id"], error["tick"]) == (
+        "bad_request",
+        REQUEST["request_id"],
+        REQUEST["tick"],
+    )
+
+
+def test_full_queue_and_expired_deadline_at_the_endpoint(settings: Settings) -> None:
+    async def slow(_: httpx.Request) -> httpx.Response:
+        await asyncio.sleep(0.5)
+        return _ollama_answer(_good())
+
+    app, _ = _ollama_app(settings, slow, queue_size=1)  # one waiting call at most
+
+    async def scenario() -> list[int]:
+        transport = httpx.ASGITransport(app=app)
+        headers = {"x-gw-token": TOKEN}
+        async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as c:
+            calls = [c.post("/decide", json=REQUEST, headers=headers) for _ in range(3)]
+            results = await asyncio.gather(*calls)
+        return sorted(r.status_code for r in results)
+
+    codes = asyncio.run(scenario())
+    assert 503 in codes  # overloaded
+    expired = post(app, "/decide", {**REQUEST, "deadline_ms": 100})
+    assert expired.status_code in (200, 504)

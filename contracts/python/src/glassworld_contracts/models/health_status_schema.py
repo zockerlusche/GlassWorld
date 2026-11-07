@@ -17,6 +17,16 @@ class Status(StrEnum):
     degraded = 'degraded'
 
 
+type Detail = Annotated[
+    str,
+    Field(
+        ...,
+        description="Short English reason for starting/degraded (e.g. 'decider model not installed'); null when ready.",
+        max_length=200,
+    ),
+]
+
+
 class Name(StrEnum):
     ollama = 'ollama'
     comfyui = 'comfyui'
@@ -104,7 +114,11 @@ class HealthStatus(BaseModel):
     )
     status: Status = Field(
         ...,
-        description='starting = not yet probed; ready = decisions can be served; degraded = running, but a dependency or the decider model is missing.',
+        description='starting = model warm-up still running; ready = decisions can be served; degraded = running, but a dependency or the decider model is missing (see detail).',
+    )
+    detail: Detail | None = Field(
+        ...,
+        description="Short English reason for starting/degraded (e.g. 'decider model not installed'); null when ready.",
     )
     service_version: str = Field(..., pattern='^[0-9]+\\.[0-9]+\\.[0-9]+$')
     dependencies: list[Dependency] = Field(

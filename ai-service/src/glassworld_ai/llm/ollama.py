@@ -16,6 +16,10 @@ class OllamaUnavailableError(Exception):
     """Ollama is not reachable or the model is missing (ServiceError 'model_unavailable')."""
 
 
+class OllamaRequestError(Exception):
+    """Ollama rejected our request (4xx): a bug on our side, retrying does not help."""
+
+
 class OllamaResponseError(Exception):
     """Ollama answered, but not with a usable result."""
 
@@ -59,7 +63,7 @@ class OllamaClient:
         if response.status_code >= 500:
             raise OllamaUnavailableError(f"Ollama error {response.status_code}")
         if response.status_code >= 400:
-            raise OllamaResponseError(f"Ollama rejected the request ({response.status_code})")
+            raise OllamaRequestError(f"Ollama rejected the request ({response.status_code})")
         try:
             data = response.json()
         except ValueError as error:
