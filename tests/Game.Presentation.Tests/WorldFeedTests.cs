@@ -1,0 +1,131 @@
+using GlassWorld.Presentation.World;
+using GlassWorld.Simulation;
+using GlassWorld.Simulation.Decisions;
+using GlassWorld.Simulation.Inhabitants;
+
+namespace GlassWorld.Presentation.Tests;
+
+/// <summary>
+/// View models against the real core (placeholder start world, mock decider): what the inhabitant
+/// list, card, clock and open-questions window show (B6 R5, R6, R12; ADR-0008).
+/// </summary>
+public sealed class WorldFeedTests
+{
+    private static SimulationHost NewWorld(ulong seed = 1) =>
+        SimulationHost.CreatePlaceholderWorld(Path.Combine(TestPaths.Root, "content"), seed, new MockDecisionPort(), "de");
+
+    [Fact]
+    public void ListShowsEveryInhabitantWithNeutralNumber()
+    {
+        var host = NewWorld();
+        var rows = new WorldFeed(host).Inhabitants();
+        Assert.Equal(host.Inhabitants.All.Count(), rows.Count);
+        Assert.All(rows, r =>
+        {
+            Assert.InRange(r.WillToLivePercent, 0, 100);
+            Assert.True(r.Number > 0);
+        });
+        Assert.Equal(rows.Select(r => r.Number).Distinct().Count(), rows.Count);
+    }
+
+    [Fact]
+    public void CardGroupsValuesAsTextKeys()
+    {
+        var host = NewWorld();
+        var feed = new WorldFeed(host);
+        var card = feed.Card(feed.Inhabitants()[0].Id);
+        Assert.NotNull(card);
+        Assert.NotEmpty(card.Needs);
+        Assert.All(card.Needs, v => Assert.StartsWith("vocab.need.", v.Key, StringComparison.Ordinal));
+        Assert.All(card.Traits, v => Assert.StartsWith("vocab.trait.", v.Key, StringComparison.Ordinal));
+        Assert.All(card.Feelings, v => Assert.True(v.Percent > 0));
+        Assert.Equal(card.Needs.Select(v => v.Key).Order(StringComparer.Ordinal), card.Needs.Select(v => v.Key));
+    }
+
+    [Fact]
+    public void CardOfUnknownInhabitantIsNull() => Assert.Null(new WorldFeed(NewWorld()).Card("inh-999999"));
+
+    [Fact]
+    public void ClockUsesTimeKeys()
+    {
+        var clock = new WorldFeed(NewWorld()).Clock();
+        Assert.StartsWith("time.season.", clock.SeasonKey, StringComparison.Ordinal);
+        Assert.StartsWith("time.phase.", clock.PhaseKey, StringComparison.Ordinal);
+        Assert.Matches("^[0-2][0-9]:[0-5][0-9]$", clock.Time);
+        Assert.True(clock.Year >= 1 && clock.Day >= 1);
+    }
+
+    [Fact]
+    public void SnapshotIsReusedWithinOneTick()
+    {
+        var host = NewWorld();
+        var feed = new WorldFeed(host);
+        var first = feed.Snapshot;
+        Assert.Same(first, feed.Snapshot);
+        host.World.Step();
+        Assert.NotSame(first, feed.Snapshot);
+    }
+
+    [Fact]
+    public void NoEventIsLostWhenSeveralTicksPassPerFrame()
+    {
+        var host = NewWorld(3);
+        var feed = new WorldFeed(host);
+        var seen = new List<WorldEvent>();
+        for (var frame = 0; frame < 20; frame++)
+        {
+            for (var tick = 0; tick < 64; tick++)
+            {
+                host.World.Step();
+            }
+
+            seen.AddRange(feed.NewEvents());
+            Assert.False(feed.MissedEvents);
+        }
+
+        Assert.NotEmpty(seen);
+        Assert.Equal(host.Inhabitants.EventsSince(0).Count, seen.Count);
+    }
+
+    [Fact]
+    public void ClickingAnInhabitantShowsAnOpenQuestionInTheWindow()
+    {
+        var host = NewWorld();
+        var feed = new WorldFeed(host);
+        var id = feed.Inhabitants()[0].Id;
+        Assert.True(host.Decisions.Submit(new PlayerCommand(DecisionsSystem.InhabitantClicked, id)).Accepted);
+        host.World.Step();
+
+        var window = feed.OpenQuestions();
+        Assert.Contains(window, q => q.InhabitantId == id && q.Count >= 1);
+        Assert.Contains(feed.NewEvents(), e => e.Kind == "question_opened" && e.InhabitantId == id);
+        Assert.True(feed.Inhabitants().Single(r => r.Id == id).OpenQuestions >= 1);
+    }
+
+    [Fact]
+    public void EveryDayPhaseHasATextKeyAndAVocabularyId()
+    {
+        var keys = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Path.Combine(TestPaths.Root, "content", "i18n", "en.json")))!["entries"]!.AsArray()
+            .Select(e => (string)e!["key"]!).ToHashSet(StringComparer.Ordinal);
+        var vocabulary = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Path.Combine(TestPaths.Root, "content", "vocabulary", "time_of_day.json")))!["entries"]!.AsArray()
+            .Select(e => (string)e!["id"]!).ToHashSet(StringComparer.Ordinal);
+        foreach (var phase in Enum.GetValues<GlassWorld.Simulation.Time.DayPhase>())
+        {
+            Assert.Contains($"time.phase.{WorldFeed.Phase(phase)}", keys);
+            Assert.Contains(WorldFeed.Phase(phase), vocabulary);
+        }
+    }
+
+    [Fact]
+    public void FeedIsBoundToItsHost()
+    {
+        var host = NewWorld();
+        Assert.Same(host, new WorldFeed(host).Host);
+    }
+
+    [Theory]
+    [InlineData("inh-000004", 4)]
+    [InlineData("inh-000120", 120)]
+    [InlineData("x", 0)]
+    public void NumberComesFromTheId(string id, int expected) => Assert.Equal(expected, WorldFeed.NumberOf(id));
+}
