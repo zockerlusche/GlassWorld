@@ -53,5 +53,9 @@
   "zoom": {
     "near_factor": 0.6,
     "far_factor": 1.6
+  },
+  "player_volume_db": {
+    "min": -60,
+    "max": 6
   }
 }

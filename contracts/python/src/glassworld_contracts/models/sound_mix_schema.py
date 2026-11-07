@@ -73,6 +73,14 @@ class MixBus(BaseModel):
     )
 
 
+class MixPlayerRange(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    min: float = Field(..., description='Quietest setting (dB).', ge=-80.0, le=0.0)
+    max: float = Field(..., description='Loudest setting (dB).', ge=0.0, le=12.0)
+
+
 class SoundMix(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -83,3 +91,4 @@ class SoundMix(BaseModel):
     )
     buses: list[MixBus] = Field(..., max_length=6, min_length=6)
     zoom: MixZoom
+    player_volume_db: MixPlayerRange

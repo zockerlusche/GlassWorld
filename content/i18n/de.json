@@ -39,6 +39,10 @@
       "text": "Gedanke"
     },
     {
+      "key": "msg.save.failed",
+      "text": "Speichern hat nicht geklappt. Die Welt bleibt offen, damit nichts verloren geht."
+    },
+    {
       "key": "time.phase.dawn",
       "text": "Morgendämmerung"
     },
