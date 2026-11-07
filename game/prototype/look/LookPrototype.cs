@@ -55,7 +55,7 @@ public partial class LookPrototype : Node3D
             }
         }
 
-        var content = System.IO.Path.GetFullPath(System.IO.Path.Combine(ProjectSettings.GlobalizePath("res://"), "..", "content"));
+        var content = ContentLocator.ContentDirectory();
         _look = LookData.Load(content);
         var comic = GD.Load<Shader>("res://shaders/warm_comic.gdshader");
         var outline = _variant == "ink" ? GD.Load<Shader>("res://shaders/outline_hull.gdshader") : null;
