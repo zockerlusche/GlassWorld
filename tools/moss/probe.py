@@ -64,7 +64,7 @@ def main() -> int:
     parser.add_argument(
         "--offload",
         action="store_true",
-        help="official diffsynth VRAM management: only the model of the current phase stays on the GPU",
+        help="official diffsynth VRAM management: only the current phase's model stays on the GPU",
     )
     parser.add_argument(
         "--compile",
