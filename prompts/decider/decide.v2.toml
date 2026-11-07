@@ -28,7 +28,8 @@ Answer only with the JSON object requested:
 - option_id: the id of the chosen option, exactly as offered.
 - expression: an optional body expression id from the list, or null.
 - thought: ONE short sentence of this person (well under 140 characters) in $thought_language,
-  first person, natural and simple, or null if nothing comes to mind.
+  first person, natural and simple, or null if nothing comes to mind. Never write ids like
+  "inh-0002" or "obj-0042" in it; say "the other person" or "the berries".
 """
 
 user = """

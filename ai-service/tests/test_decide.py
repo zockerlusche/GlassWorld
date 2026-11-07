@@ -318,3 +318,11 @@ def test_worn_parts_one_per_slot(settings: Settings) -> None:
     response = post(make_app(settings), "/decide", request)
     assert (response.status_code, response.json()["code"]) == (422, "bad_request")
     assert "slot body" in response.json()["message"]
+
+
+def test_thought_with_an_internal_id_is_retried(settings: Settings) -> None:
+    answers = iter([_good(thought="Was ist obj-0042 nur?"), _good()])
+    app, log = _ollama_app(settings, lambda _: _ollama_answer(next(answers)))
+    body = post(app, "/decide", REQUEST).json()
+    assert body["meta"]["attempts"] == 2
+    assert [r["outcome"] for r in log.read()] == ["invalid", "ok"]

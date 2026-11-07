@@ -42,6 +42,16 @@ from glassworld_contracts import CONTRACT_VERSION, DecisionRequest, DecisionResp
 ROLE = "decider"
 
 
+def hidden_ids(request: DecisionRequest) -> frozenset[str]:
+    """Entity ids in the request; they must never show in the player-visible thought."""
+    ids = {_plain(request.inhabitant.id)}
+    ids |= {_plain(o.id) for o in request.perception.objects}
+    ids |= {_plain(p.id) for p in request.perception.inhabitants}
+    ids |= {_plain(r.other) for r in request.inhabitant.relationships}
+    ids |= {_plain(k.told_by) for k in request.inhabitant.knowledge if k.told_by is not None}
+    return frozenset(ids)
+
+
 class DecisionError(Exception):
     def __init__(self, code: str, message: str) -> None:
         super().__init__(message)
@@ -215,7 +225,7 @@ class OllamaDecider:
                 continue
             usage = (result.prompt_tokens, result.output_tokens)
             try:
-                choice = parse_choice(result.content, schema)
+                choice = parse_choice(result.content, schema, hidden_ids(request))
             except InvalidModelOutputError as error:
                 log("invalid", result.content, str(error), usage)
                 last_problem = str(error)
@@ -273,7 +283,7 @@ class ReplayDecider:
                 and isinstance(row.get("raw_output"), str)
             ):
                 try:
-                    choice = parse_choice(str(row["raw_output"]), schema)
+                    choice = parse_choice(str(row["raw_output"]), schema, hidden_ids(request))
                 except InvalidModelOutputError as error:
                     # Recorded answer does not fit this request (e.g. other options): no
                     # substitute decision, a retryable error instead.
