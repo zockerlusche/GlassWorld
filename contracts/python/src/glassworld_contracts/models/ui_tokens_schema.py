@@ -23,6 +23,36 @@ class UiWindowTokens(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
+    table_min_height: int = Field(
+        ..., description='Smallest height of a table in a side panel.', ge=80, le=2000
+    )
+    card_bar_width: int = Field(
+        ...,
+        description='Width of the value bars on the inhabitant card.',
+        ge=40,
+        le=1000,
+    )
+    mark_height_m: float = Field(
+        ...,
+        description="Height of the question mark above an inhabitant's feet (metres, world space).",
+        ge=0.5,
+        le=10.0,
+    )
+    mark_font_px: int = Field(
+        ..., description='Font size of the question mark in world space.', ge=16, le=400
+    )
+    list_refresh_ms: int = Field(
+        ...,
+        description='Lists (inhabitants, open questions) are rebuilt at most this often, also in fast-forward.',
+        ge=50,
+        le=5000,
+    )
+    pick_radius_px: int = Field(
+        ...,
+        description='Clicking within this distance (logical px) of a figure selects it.',
+        ge=8,
+        le=200,
+    )
     side_panel_width: int = Field(
         ...,
         description='Width of a docked side panel (mailbox, inhabitants, chronicle, open questions).',

@@ -1,7 +1,9 @@
 using GlassWorld.Game.Audio;
 using GlassWorld.Game.Localization;
 using GlassWorld.Game.Ui;
+using GlassWorld.Game.Ui.Screens;
 using GlassWorld.Presentation.Ui;
+using GlassWorld.Presentation.World;
 using GlassWorld.Simulation;
 using Godot;
 
@@ -16,12 +18,14 @@ public partial class Main : Node3D
 {
     private const string SmokeArgument = "--smoke-frames=";
     private const string SeedArgument = "--seed=";
+    private string? _shotsFolder;
 
     private int _smokeFrames;
     private int _frame;
     private ulong _seed = 1;
     private WorldPresenter? _world;
     private WorldAudio? _audio;
+    private GameScreen? _screen;
     private bool _uiCheckDone = true;
 
     public override void _Ready()
@@ -35,6 +39,11 @@ public partial class Main : Node3D
                 && frames > 0)
             {
                 _smokeFrames = frames;
+            }
+
+            if (arg.StartsWith(UiShots.Argument, StringComparison.Ordinal))
+            {
+                _shotsFolder = arg[UiShots.Argument.Length..];
             }
 
             if (arg.StartsWith(SeedArgument, StringComparison.Ordinal)
@@ -60,6 +69,13 @@ public partial class Main : Node3D
         if (style is not null)
         {
             UiSetup.Apply(GetTree().Root, style);
+            _screen = new GameScreen { Name = "GameScreen" };
+            AddChild(_screen);
+            _screen.Setup(_world, style);
+            if (_shotsFolder is not null)
+            {
+                _ = TakeShotsAsync(style);
+            }
         }
 
         if (_smokeFrames > 0)
@@ -97,6 +113,15 @@ public partial class Main : Node3D
         GD.Print($"AUDIO_OK sounds={RetroAudio.Library!.UsedSoundIds().Count()}");
     }
 
+    /// <summary>Screenshot run (self-acceptance, KR5): saves the shots, then quits.</summary>
+    private async Task TakeShotsAsync(UiStyle style)
+    {
+        _world!.Speed = 0;
+        var files = await UiShots.RunAsync(this, _screen!, style, _shotsFolder!);
+        GD.Print($"UI_SHOTS_OK {files.Count}");
+        GetTree().Quit(0);
+    }
+
     /// <summary>Smoke run only: the UI standard data is valid and a sample window fits every reference case.</summary>
     private async Task CheckUiAsync(UiStyle? style)
     {
@@ -110,7 +135,16 @@ public partial class Main : Node3D
 
             var layer = new CanvasLayer();
             AddChild(layer);
-            var problems = await UiLayoutCheck.RunAsync(layer, style);
+            var problems = await UiLayoutCheck.RunAsync(layer, style, ScreenModel.TimeChoices(_world!.Host!.World.Calendar.Settings));
+            var screen = _screen is null ? "game screen missing" : await _screen.SelfCheckAsync();
+            if (screen.Length > 0)
+            {
+                problems = [.. problems, "game screen: " + screen];
+            }
+            else
+            {
+                GD.Print("SCREEN_OK");
+            }
             foreach (var problem in problems)
             {
                 GD.PushError($"UI_FAIL {problem}");

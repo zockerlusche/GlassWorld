@@ -53,6 +53,26 @@ public partial class GwWindow : PanelContainer
         _style = style;
     }
 
+    /// <summary>
+    /// Sets a title that is already translated and filled (e.g. "Inhabitant 3"); it is not treated as
+    /// a key any more.
+    /// </summary>
+    public void SetTitleText(string text)
+    {
+        _title.AutoTranslateMode = AutoTranslateModeEnum.Disabled;
+        _title.Text = text;
+    }
+
+    /// <summary>Removes all content (for views that rebuild themselves).</summary>
+    public void ClearContent()
+    {
+        foreach (var child in Content.GetChildren())
+        {
+            Content.RemoveChild(child);
+            child.QueueFree();
+        }
+    }
+
     /// <summary>Adds an action button to the footer; the main action goes last (right).</summary>
     public Button AddAction(string textKey)
     {

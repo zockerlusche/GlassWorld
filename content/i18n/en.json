@@ -11,6 +11,10 @@
       "text": "That is not possible right now."
     },
     {
+      "key": "msg.hint.question",
+      "text": "Inhabitant {number} has a question."
+    },
+    {
       "key": "msg.mail.kind.complaint",
       "text": "Complaint"
     },
@@ -67,8 +71,40 @@
       "text": "Winter"
     },
     {
+      "key": "ui.card.character",
+      "text": "Character"
+    },
+    {
+      "key": "ui.card.doing",
+      "text": "Doing now"
+    },
+    {
+      "key": "ui.card.feelings",
+      "text": "Feelings"
+    },
+    {
+      "key": "ui.card.idle",
+      "text": "Nothing at the moment"
+    },
+    {
+      "key": "ui.card.questions",
+      "text": "Open questions: {count}"
+    },
+    {
+      "key": "ui.card.wellbeing",
+      "text": "Wellbeing"
+    },
+    {
+      "key": "ui.card.will_to_live",
+      "text": "Will to live"
+    },
+    {
       "key": "ui.chronicle.title",
       "text": "Chronicle"
+    },
+    {
+      "key": "ui.clock.date",
+      "text": "{season}, day {day}, year {year}"
     },
     {
       "key": "ui.common.close",
@@ -119,12 +155,32 @@
       "text": "Small island"
     },
     {
+      "key": "ui.questions.column.count",
+      "text": "Questions"
+    },
+    {
+      "key": "ui.questions.empty",
+      "text": "Nobody has an open question."
+    },
+    {
       "key": "ui.questions.title",
       "text": "Open questions"
     },
     {
       "key": "ui.settings.title",
       "text": "Settings"
+    },
+    {
+      "key": "ui.time.fast",
+      "text": "Fast ×{factor}"
+    },
+    {
+      "key": "ui.time.normal",
+      "text": "Normal"
+    },
+    {
+      "key": "ui.time.pause",
+      "text": "Pause"
     },
     {
       "key": "ui.toast.bundled",

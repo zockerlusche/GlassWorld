@@ -24,6 +24,9 @@ public partial class GwTable : VBoxContainer
     private readonly Label _empty = new() { ThemeTypeVariation = UiTheme.SmallLabel, AutowrapMode = TextServer.AutowrapMode.WordSmart };
     private IReadOnlyList<GwColumn> _columns = [];
     private IReadOnlyList<GwRow> _rows = [];
+    private readonly Dictionary<string, TreeItem> _items = new(StringComparer.Ordinal);
+    private List<string> _order = [];
+    private bool _rebuilding;
     private int _sortColumn;
     private bool _descending;
 
@@ -39,7 +42,7 @@ public partial class GwTable : VBoxContainer
         _tree.ColumnTitleClicked += (column, _) => SortBy((int)column);
         _tree.ItemSelected += () =>
         {
-            if (_tree.GetSelected()?.GetMetadata(0).AsString() is { Length: > 0 } id)
+            if (!_rebuilding && _tree.GetSelected()?.GetMetadata(0).AsString() is { Length: > 0 } id)
             {
                 EmitSignal(SignalName.RowSelected, id);
             }
@@ -55,10 +58,32 @@ public partial class GwTable : VBoxContainer
         UpdateTitles();
     }
 
-    /// <summary>Replaces the rows (keeps the current sort).</summary>
+    /// <summary>
+    /// Sets the rows. If the sorted order of ids is unchanged, only changed cells are rewritten, so
+    /// selection and scroll position stay (calm, keyboard-friendly); otherwise the table is rebuilt
+    /// and the selected row stays selected.
+    /// </summary>
     public void SetRows(IReadOnlyList<GwRow> rows)
     {
         _rows = rows ?? throw new ArgumentNullException(nameof(rows));
+        var sorted = Sorted();
+        if (sorted.Select(r => r.Id).SequenceEqual(_order, StringComparer.Ordinal))
+        {
+            foreach (var row in sorted)
+            {
+                var item = _items[row.Id];
+                for (var i = 0; i < _columns.Count; i++)
+                {
+                    if (item.GetText(i) != row.Cells[i])
+                    {
+                        item.SetText(i, row.Cells[i]);
+                    }
+                }
+            }
+
+            return;
+        }
+
         Rebuild();
     }
 
@@ -92,15 +117,27 @@ public partial class GwTable : VBoxContainer
         }
     }
 
-    private void Rebuild()
+    private IReadOnlyList<GwRow> Sorted()
     {
-        _tree.Clear();
-        var root = _tree.CreateItem();
         // Numbers compare as numbers; texts in the game's language, not the operating system's.
         var column = _sortColumn;
-        var sorted = _columns[column].Numeric
+        if (_columns.Count == 0)
+        {
+            return _rows;
+        }
+
+        return _columns[column].Numeric
             ? Presentation.Ui.TableSort.By(_rows, r => r.Numbers[column], _descending)
             : Presentation.Ui.TableSort.By(_rows, r => r.Cells[column], _descending, StringComparer.Create(new System.Globalization.CultureInfo(TranslationServer.GetLocale()), System.Globalization.CompareOptions.IgnoreCase));
+    }
+
+    private void Rebuild()
+    {
+        var selected = _tree.GetSelected()?.GetMetadata(0).AsString();
+        _tree.Clear();
+        _items.Clear();
+        var root = _tree.CreateItem();
+        var sorted = Sorted();
         foreach (var row in sorted)
         {
             var item = _tree.CreateItem(root);
@@ -110,6 +147,18 @@ public partial class GwTable : VBoxContainer
                 item.SetText(i, row.Cells[i]);
                 item.SetTextAlignment(i, _columns[i].Numeric ? HorizontalAlignment.Right : HorizontalAlignment.Left);
             }
+
+            _items[row.Id] = item;
+        }
+
+        _order = [.. sorted.Select(r => r.Id)];
+        if (selected is not null && _items.TryGetValue(selected, out var again))
+        {
+            // Keep the player's selection without raising RowSelected again.
+            _rebuilding = true;
+            again.Select(0);
+            _tree.ScrollToItem(again);
+            _rebuilding = false;
         }
 
         _empty.Visible = _rows.Count == 0;

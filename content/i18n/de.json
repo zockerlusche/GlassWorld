@@ -11,6 +11,10 @@
       "text": "Das geht gerade nicht."
     },
     {
+      "key": "msg.hint.question",
+      "text": "Bewohner {number} hat eine Frage."
+    },
+    {
       "key": "msg.mail.kind.complaint",
       "text": "Beschwerde"
     },
@@ -67,8 +71,40 @@
       "text": "Winter"
     },
     {
+      "key": "ui.card.character",
+      "text": "Charakter"
+    },
+    {
+      "key": "ui.card.doing",
+      "text": "Tut gerade"
+    },
+    {
+      "key": "ui.card.feelings",
+      "text": "Gefühle"
+    },
+    {
+      "key": "ui.card.idle",
+      "text": "Gerade nichts"
+    },
+    {
+      "key": "ui.card.questions",
+      "text": "Offene Fragen: {count}"
+    },
+    {
+      "key": "ui.card.wellbeing",
+      "text": "Befinden"
+    },
+    {
+      "key": "ui.card.will_to_live",
+      "text": "Lebenswille"
+    },
+    {
       "key": "ui.chronicle.title",
       "text": "Chronik"
+    },
+    {
+      "key": "ui.clock.date",
+      "text": "{season}, Tag {day}, Jahr {year}"
     },
     {
       "key": "ui.common.close",
@@ -119,12 +155,32 @@
       "text": "Kleine Insel"
     },
     {
+      "key": "ui.questions.column.count",
+      "text": "Fragen"
+    },
+    {
+      "key": "ui.questions.empty",
+      "text": "Niemand hat gerade eine offene Frage."
+    },
+    {
       "key": "ui.questions.title",
       "text": "Offene Fragen"
     },
     {
       "key": "ui.settings.title",
       "text": "Einstellungen"
+    },
+    {
+      "key": "ui.time.fast",
+      "text": "Schnell ×{factor}"
+    },
+    {
+      "key": "ui.time.normal",
+      "text": "Normal"
+    },
+    {
+      "key": "ui.time.pause",
+      "text": "Pause"
     },
     {
       "key": "ui.toast.bundled",
