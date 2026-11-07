@@ -251,6 +251,10 @@ public partial class Main
     private void CheckSpatial(bool ready)
     {
         var problem = ready && _audio is not null ? _audio.SpatialSelfCheck() : "world audio not set up";
+        if (problem.Length == 0 && _audio is not null)
+        {
+            problem = _audio.BaseSelfCheck();
+        }
         if (problem.Length > 0)
         {
             GD.PushError($"AUDIO_SPATIAL_FAIL {problem}");

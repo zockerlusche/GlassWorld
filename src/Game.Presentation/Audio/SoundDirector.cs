@@ -17,7 +17,7 @@ public sealed record PlayRequest(string SoundId, int Variant, MixBusId Bus, Posi
 /// at the inhabitant; inaudible sounds are skipped; each bus plays at most its voice budget, nearest
 /// first. Sound is presentation only and never feeds back into the simulation.
 /// </summary>
-public sealed class SoundDirector(SoundLibrary library, SoundMixer mixer)
+public sealed class SoundDirector(SoundLibrary library, SoundMixer mixer, IReadOnlyDictionary<string, int>? fileVariants = null)
 {
     /// <summary>Plans the sounds for the events of one frame.</summary>
     /// <param name="events">New events since the previous frame (from the feed's cursor).</param>
@@ -53,7 +53,9 @@ public sealed class SoundDirector(SoundLibrary library, SoundMixer mixer)
             var gain = mixer.Gain(bus, Distance(at, listener), zoom);
             if (gain > 0)
             {
-                candidates.Add(new PlayRequest(sound, VariantOf(e, library.Recipe(sound).Variants), bus, at, gain));
+                // Sounds with files in the base library use all their file variants (B8-4).
+                var variants = fileVariants is not null && fileVariants.TryGetValue(sound, out var files) ? files : library.Recipe(sound).Variants;
+                candidates.Add(new PlayRequest(sound, VariantOf(e, variants), bus, at, gain));
             }
         }
 

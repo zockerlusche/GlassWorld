@@ -53,3 +53,32 @@ public sealed class BaseSoundLibraryTests
         Assert.InRange(Pcm.LoudnessDbfs(back, -50), -9.1, -8.9);
     }
 }
+
+/// <summary>Runtime view of the library: variants and the description fallback (D471 D7).</summary>
+public sealed class BaseSoundsTests
+{
+    private static readonly BaseSounds Sounds = new(Contracts.Validation.ContractSerializer.Deserialize<Contracts.BaseSoundLibrary>(
+        File.ReadAllText(Path.Combine(TestPaths.Root, "content", "sound", "library.json"))));
+
+    [Theory]
+    [InlineData("wooden door creaks", "object.creak")]
+    [InlineData("crackles like a small fire", "object.fire")]
+    [InlineData("water trickles over stones", "ambience.stream")]
+    [InlineData("stone clacks when struck", "object.knock_stone")]
+    [InlineData("Chop! The axe splits wood.", "object.chop_wood")]
+    [InlineData("hums quietly", null)]
+    [InlineData("", null)]
+    [InlineData(null, null)]
+    public void DescriptionFallsBackToTheBestBaseSound(string? description, string? expected) => Assert.Equal(expected, Sounds.Fallback(description));
+
+    [Fact]
+    public void VariantsWrapAroundAndUnknownIdsHaveNoFile()
+    {
+        var count = Sounds.Variants["step.grass"];
+        Assert.Equal(Sounds.File("step.grass", 0), Sounds.File("step.grass", count));
+        Assert.Equal(Sounds.File("step.grass", count - 1), Sounds.File("step.grass", -1));
+        Assert.Null(Sounds.File("weather.fog", 0));
+        Assert.True(Sounds.IsLoop("ambience.waves"));
+        Assert.False(Sounds.IsLoop("step.grass"));
+    }
+}
