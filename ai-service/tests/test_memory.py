@@ -92,7 +92,7 @@ def _status(outcome_result: dict[str, object], source: str) -> dict[str, object]
         "tick": JOB.tick,
         "kind": "memory",
         "state": "done",
-        "result": {"question": None, **outcome_result},
+        "result": outcome_result,
         "error": None,
         "provenance": {
             "source": source,
@@ -211,7 +211,7 @@ def test_memory_jobs_run_over_jobs_with_the_mock_backend(settings: Settings) -> 
 
     status = asyncio.run(scenario())
     assert ContractValidator(settings.schemas_dir).errors("job-status", status) == []
-    assert status["result"]["question"] is None
+    assert "question" not in status["result"]
     assert status["result"]["memory"]["kept"] == FORMATIVE
 
 
