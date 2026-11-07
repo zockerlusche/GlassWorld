@@ -1,0 +1,152 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/spawn-table.schema.json",
+  "title": "SpawnTable",
+  "description": "Data file content/world/spawns.json: where the generator places object instances (biome x object type, R8) and what the start island must offer (R7, B2504). Mandatory categories are defined by properties from the object catalogue, never by type ids in code. Upper limits keep 'nothing in abundance'.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "spawns",
+    "mandatory"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "spawns": {
+      "description": "Placement rules; object types come from the object catalogue.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/SpawnRule"
+      },
+      "maxItems": 1024
+    },
+    "mandatory": {
+      "description": "What must be present and reachable from every start position without deep water.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/MandatoryResource"
+      },
+      "maxItems": 64
+    }
+  },
+  "$defs": {
+    "SpawnRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "biome",
+        "object_type",
+        "per_1000_cells",
+        "cluster",
+        "max_total"
+      ],
+      "properties": {
+        "biome": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "object_type": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "per_1000_cells": {
+          "description": "Average instances per 1000 cells of the biome (permille density).",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "cluster": {
+          "$ref": "#/$defs/SpawnCountRange"
+        },
+        "max_total": {
+          "description": "Upper limit of instances of this rule on the island.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        }
+      }
+    },
+    "SpawnCountRange": {
+      "description": "Instances placed together in one cluster (min <= max).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "min",
+        "max"
+      ],
+      "properties": {
+        "min": {
+          "description": "Smallest count.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "max": {
+          "description": "Largest count.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        }
+      }
+    },
+    "MandatoryResource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "source",
+        "properties_all",
+        "properties_none",
+        "min",
+        "max"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "source": {
+          "description": "object: object instances with the properties below; fresh_water: a fresh water cell.",
+          "type": "string",
+          "enum": [
+            "object",
+            "fresh_water"
+          ]
+        },
+        "properties_all": {
+          "description": "Properties an object must have (empty for fresh_water).",
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          },
+          "maxItems": 16,
+          "uniqueItems": true
+        },
+        "properties_none": {
+          "description": "Properties an object must not have.",
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          },
+          "maxItems": 16,
+          "uniqueItems": true
+        },
+        "min": {
+          "description": "Fewest instances (or water cells) reachable from every start position.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "max": {
+          "description": "Upper limit on the island ('nothing in abundance').",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        }
+      }
+    }
+  }
+}

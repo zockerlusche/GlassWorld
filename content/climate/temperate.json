@@ -1,0 +1,440 @@
+{
+  "contract_version": "0.1",
+  "id": "temperate",
+  "weather": {
+    "change_every_hours": 6,
+    "transition_minutes": 60,
+    "snow_below_tenth_c": 10,
+    "drought_after_dry_days": 10,
+    "states": [
+      {
+        "weather": "clear",
+        "wind_permille": 150,
+        "precipitation_permille": 0,
+        "cloud_permille": 100
+      },
+      {
+        "weather": "cloudy",
+        "wind_permille": 250,
+        "precipitation_permille": 0,
+        "cloud_permille": 700
+      },
+      {
+        "weather": "rain",
+        "wind_permille": 300,
+        "precipitation_permille": 500,
+        "cloud_permille": 900
+      },
+      {
+        "weather": "storm",
+        "wind_permille": 850,
+        "precipitation_permille": 850,
+        "cloud_permille": 1000
+      },
+      {
+        "weather": "fog",
+        "wind_permille": 50,
+        "precipitation_permille": 0,
+        "cloud_permille": 600
+      },
+      {
+        "weather": "frost",
+        "wind_permille": 100,
+        "precipitation_permille": 0,
+        "cloud_permille": 200
+      },
+      {
+        "weather": "snow",
+        "wind_permille": 250,
+        "precipitation_permille": 450,
+        "cloud_permille": 900
+      },
+      {
+        "weather": "heat",
+        "wind_permille": 50,
+        "precipitation_permille": 0,
+        "cloud_permille": 0
+      },
+      {
+        "weather": "drought",
+        "wind_permille": 100,
+        "precipitation_permille": 0,
+        "cloud_permille": 50
+      }
+    ],
+    "seasons": [
+      {
+        "season": "spring",
+        "transitions": [
+          {
+            "from_weather": "clear",
+            "to": [
+              {
+                "weather": "clear",
+                "weight": 5
+              },
+              {
+                "weather": "cloudy",
+                "weight": 3
+              },
+              {
+                "weather": "rain",
+                "weight": 2
+              },
+              {
+                "weather": "fog",
+                "weight": 1
+              }
+            ]
+          },
+          {
+            "from_weather": "cloudy",
+            "to": [
+              {
+                "weather": "clear",
+                "weight": 3
+              },
+              {
+                "weather": "cloudy",
+                "weight": 3
+              },
+              {
+                "weather": "rain",
+                "weight": 3
+              },
+              {
+                "weather": "storm",
+                "weight": 1
+              }
+            ]
+          },
+          {
+            "from_weather": "rain",
+            "to": [
+              {
+                "weather": "cloudy",
+                "weight": 4
+              },
+              {
+                "weather": "rain",
+                "weight": 3
+              },
+              {
+                "weather": "clear",
+                "weight": 2
+              },
+              {
+                "weather": "storm",
+                "weight": 1
+              }
+            ]
+          },
+          {
+            "from_weather": "storm",
+            "to": [
+              {
+                "weather": "rain",
+                "weight": 3
+              },
+              {
+                "weather": "cloudy",
+                "weight": 2
+              }
+            ]
+          },
+          {
+            "from_weather": "fog",
+            "to": [
+              {
+                "weather": "clear",
+                "weight": 3
+              },
+              {
+                "weather": "cloudy",
+                "weight": 2
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "season": "summer",
+        "transitions": [
+          {
+            "from_weather": "clear",
+            "to": [
+              {
+                "weather": "clear",
+                "weight": 6
+              },
+              {
+                "weather": "heat",
+                "weight": 2
+              },
+              {
+                "weather": "cloudy",
+                "weight": 2
+              },
+              {
+                "weather": "storm",
+                "weight": 1
+              }
+            ]
+          },
+          {
+            "from_weather": "heat",
+            "to": [
+              {
+                "weather": "heat",
+                "weight": 3
+              },
+              {
+                "weather": "clear",
+                "weight": 3
+              },
+              {
+                "weather": "storm",
+                "weight": 1
+              }
+            ]
+          },
+          {
+            "from_weather": "cloudy",
+            "to": [
+              {
+                "weather": "clear",
+                "weight": 4
+              },
+              {
+                "weather": "rain",
+                "weight": 2
+              },
+              {
+                "weather": "cloudy",
+                "weight": 2
+              }
+            ]
+          },
+          {
+            "from_weather": "rain",
+            "to": [
+              {
+                "weather": "clear",
+                "weight": 3
+              },
+              {
+                "weather": "cloudy",
+                "weight": 3
+              },
+              {
+                "weather": "rain",
+                "weight": 1
+              }
+            ]
+          },
+          {
+            "from_weather": "storm",
+            "to": [
+              {
+                "weather": "rain",
+                "weight": 2
+              },
+              {
+                "weather": "cloudy",
+                "weight": 2
+              },
+              {
+                "weather": "clear",
+                "weight": 1
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "season": "autumn",
+        "transitions": [
+          {
+            "from_weather": "clear",
+            "to": [
+              {
+                "weather": "clear",
+                "weight": 3
+              },
+              {
+                "weather": "cloudy",
+                "weight": 3
+              },
+              {
+                "weather": "fog",
+                "weight": 2
+              },
+              {
+                "weather": "rain",
+                "weight": 2
+              }
+            ]
+          },
+          {
+            "from_weather": "cloudy",
+            "to": [
+              {
+                "weather": "cloudy",
+                "weight": 3
+              },
+              {
+                "weather": "rain",
+                "weight": 3
+              },
+              {
+                "weather": "storm",
+                "weight": 1
+              },
+              {
+                "weather": "clear",
+                "weight": 2
+              }
+            ]
+          },
+          {
+            "from_weather": "rain",
+            "to": [
+              {
+                "weather": "rain",
+                "weight": 3
+              },
+              {
+                "weather": "cloudy",
+                "weight": 3
+              },
+              {
+                "weather": "storm",
+                "weight": 2
+              }
+            ]
+          },
+          {
+            "from_weather": "storm",
+            "to": [
+              {
+                "weather": "rain",
+                "weight": 3
+              },
+              {
+                "weather": "cloudy",
+                "weight": 2
+              }
+            ]
+          },
+          {
+            "from_weather": "fog",
+            "to": [
+              {
+                "weather": "fog",
+                "weight": 2
+              },
+              {
+                "weather": "cloudy",
+                "weight": 2
+              },
+              {
+                "weather": "clear",
+                "weight": 2
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "season": "winter",
+        "transitions": [
+          {
+            "from_weather": "clear",
+            "to": [
+              {
+                "weather": "clear",
+                "weight": 3
+              },
+              {
+                "weather": "frost",
+                "weight": 3
+              },
+              {
+                "weather": "cloudy",
+                "weight": 2
+              }
+            ]
+          },
+          {
+            "from_weather": "frost",
+            "to": [
+              {
+                "weather": "frost",
+                "weight": 3
+              },
+              {
+                "weather": "clear",
+                "weight": 2
+              },
+              {
+                "weather": "snow",
+                "weight": 2
+              }
+            ]
+          },
+          {
+            "from_weather": "cloudy",
+            "to": [
+              {
+                "weather": "snow",
+                "weight": 3
+              },
+              {
+                "weather": "cloudy",
+                "weight": 2
+              },
+              {
+                "weather": "frost",
+                "weight": 2
+              },
+              {
+                "weather": "rain",
+                "weight": 1
+              }
+            ]
+          },
+          {
+            "from_weather": "snow",
+            "to": [
+              {
+                "weather": "snow",
+                "weight": 3
+              },
+              {
+                "weather": "cloudy",
+                "weight": 2
+              },
+              {
+                "weather": "frost",
+                "weight": 2
+              }
+            ]
+          },
+          {
+            "from_weather": "rain",
+            "to": [
+              {
+                "weather": "cloudy",
+                "weight": 3
+              },
+              {
+                "weather": "snow",
+                "weight": 2
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/look-palette.schema.json",
+  "title": "LookPalette",
+  "description": "Data file content/look/palette.json: the one style 'warm comic' (B2501, D355): soft light steps from a ramp, outlines, warm palette, and the season palettes as shader parameters (R19, R24). Presentation only, not part of the hash. Values are placeholders.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "colors",
+    "ramp",
+    "outline_width_px",
+    "outline_color",
+    "season_blend_real_seconds",
+    "seasons"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "colors": {
+      "description": "Base palette; ids are used by the shaders and the season and epoch overrides.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/LookColor"
+      },
+      "maxItems": 128
+    },
+    "ramp": {
+      "description": "Light steps of the comic shader, thresholds ascending.",
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "$ref": "#/$defs/LookRampStep"
+      },
+      "maxItems": 8
+    },
+    "outline_width_px": {
+      "description": "Outline width at 1080 lines (scaled with the resolution).",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 16
+    },
+    "outline_color": {
+      "description": "Colour as lowercase #rrggbb.",
+      "type": "string",
+      "pattern": "^#[0-9a-f]{6}$"
+    },
+    "season_blend_real_seconds": {
+      "description": "How long a season change blends.",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 600
+    },
+    "seasons": {
+      "description": "Season palettes (ids from content/world/time.json).",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/LookSeasonPalette"
+      },
+      "maxItems": 8
+    }
+  },
+  "$defs": {
+    "LookColor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "color"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "color": {
+          "description": "Colour as lowercase #rrggbb.",
+          "type": "string",
+          "pattern": "^#[0-9a-f]{6}$"
+        }
+      }
+    },
+    "LookRampStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "threshold",
+        "brightness"
+      ],
+      "properties": {
+        "threshold": {
+          "description": "Light level (0..1) from which this step applies.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "brightness": {
+          "description": "Brightness of the step (0..1).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "LookSeasonPalette": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "season",
+        "colors",
+        "snow_cover",
+        "leaf_fall"
+      ],
+      "properties": {
+        "season": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "colors": {
+          "description": "Overrides of base colours in this season.",
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/LookColor"
+          },
+          "maxItems": 64
+        },
+        "snow_cover": {
+          "description": "Share of the ground covered by snow (0..1).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "leaf_fall": {
+          "description": "Strength of falling leaves (0..1).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    }
+  }
+}

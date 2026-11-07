@@ -18,6 +18,8 @@ class Kind(StrEnum):
     expression = 'expression'
     time_of_day = 'time_of_day'
     weather = 'weather'
+    biome = 'biome'
+    epoch = 'epoch'
 
 
 class Target(StrEnum):

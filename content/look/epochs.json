@@ -1,0 +1,74 @@
+{
+  "contract_version": "0.1",
+  "blend_real_seconds": 30.0,
+  "epochs": [
+    {
+      "id": "wilderness",
+      "tech_level": 0,
+      "colors": [],
+      "details": []
+    },
+    {
+      "id": "tools",
+      "tech_level": 1,
+      "colors": [
+        {
+          "id": "ground",
+          "color": "#c79f69"
+        }
+      ],
+      "details": [
+        "trodden_paths"
+      ]
+    },
+    {
+      "id": "hut",
+      "tech_level": 2,
+      "colors": [
+        {
+          "id": "ground",
+          "color": "#c49a62"
+        }
+      ],
+      "details": [
+        "trodden_paths",
+        "smoke"
+      ]
+    },
+    {
+      "id": "workshop",
+      "tech_level": 3,
+      "colors": [
+        {
+          "id": "ground",
+          "color": "#bf945c"
+        },
+        {
+          "id": "bark",
+          "color": "#7d573a"
+        }
+      ],
+      "details": [
+        "trodden_paths",
+        "smoke",
+        "work_marks"
+      ]
+    },
+    {
+      "id": "metal",
+      "tech_level": 4,
+      "colors": [
+        {
+          "id": "rock",
+          "color": "#9a938a"
+        }
+      ],
+      "details": [
+        "trodden_paths",
+        "smoke",
+        "work_marks",
+        "glow"
+      ]
+    }
+  ]
+}

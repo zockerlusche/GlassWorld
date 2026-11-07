@@ -33,6 +33,10 @@
     {
       "id": "heat",
       "description": "Very hot and dry."
+    },
+    {
+      "id": "drought",
+      "description": "No rain for many days; the ground is dry."
     }
   ]
 }

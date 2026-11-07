@@ -1,0 +1,496 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/world-preset.schema.json",
+  "title": "WorldPreset",
+  "description": "Data file content/world/presets/<id>.json: everything the world generator reads besides the seed (B2 R1-R4, R6, R7, R9, R10, R14, R15). Core values are integers (heights in height units, distances in cells, shares in permille) so generation is exact on every platform (ADR-0002). All values are placeholders until Marcel decides; the budgets follow B2514 T6.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "id",
+    "description",
+    "generator_version",
+    "generation_budget_ms",
+    "grid",
+    "terrain",
+    "water",
+    "climate",
+    "caves",
+    "start",
+    "neighbours",
+    "tides",
+    "exploration",
+    "pathfinding"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "id": {
+      "$ref": "common.schema.json#/$defs/VocabId"
+    },
+    "description": {
+      "description": "Short English description of the preset.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "generator_version": {
+      "description": "Generator version this preset was tuned for; part of the save game and the world hash (R11).",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1000
+    },
+    "generation_budget_ms": {
+      "description": "Upper bound for p95 of the generation time (B2514 T6: 10 s).",
+      "type": "integer",
+      "minimum": 100,
+      "maximum": 600000
+    },
+    "grid": {
+      "$ref": "#/$defs/WorldPresetGrid"
+    },
+    "terrain": {
+      "$ref": "#/$defs/WorldPresetTerrain"
+    },
+    "water": {
+      "$ref": "#/$defs/WorldPresetWater"
+    },
+    "climate": {
+      "$ref": "#/$defs/WorldPresetClimate"
+    },
+    "caves": {
+      "$ref": "#/$defs/WorldPresetCountRange"
+    },
+    "start": {
+      "$ref": "#/$defs/WorldPresetStart"
+    },
+    "neighbours": {
+      "$ref": "#/$defs/WorldPresetNeighbours"
+    },
+    "tides": {
+      "$ref": "#/$defs/WorldPresetTides"
+    },
+    "exploration": {
+      "$ref": "#/$defs/WorldPresetExploration"
+    },
+    "pathfinding": {
+      "$ref": "#/$defs/WorldPresetPathfinding"
+    }
+  },
+  "$defs": {
+    "WorldPresetCountRange": {
+      "description": "A count range (min <= max).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "min",
+        "max"
+      ],
+      "properties": {
+        "min": {
+          "description": "Smallest count.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "max": {
+          "description": "Largest count.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        }
+      }
+    },
+    "WorldPresetGrid": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cell_size_cm",
+        "chunk_cells",
+        "width_cells",
+        "depth_cells",
+        "height_unit_mm"
+      ],
+      "properties": {
+        "cell_size_cm": {
+          "description": "Edge length of one cell in centimetres.",
+          "type": "integer",
+          "minimum": 10,
+          "maximum": 1000
+        },
+        "chunk_cells": {
+          "description": "Edge length of one chunk in cells; chunks are generated independently from (seed, coordinate).",
+          "type": "integer",
+          "minimum": 8,
+          "maximum": 256
+        },
+        "width_cells": {
+          "description": "Width of the start island area in cells (multiple of chunk_cells).",
+          "type": "integer",
+          "minimum": 16,
+          "maximum": 4096
+        },
+        "depth_cells": {
+          "description": "Depth of the start island area in cells (multiple of chunk_cells).",
+          "type": "integer",
+          "minimum": 16,
+          "maximum": 4096
+        },
+        "height_unit_mm": {
+          "description": "Millimetres per height unit.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        }
+      }
+    },
+    "WorldPresetTerrain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sea_level",
+        "max_height",
+        "coast_falloff_permille",
+        "walkable_slope",
+        "cliff_min_drop",
+        "noise",
+        "rocks"
+      ],
+      "properties": {
+        "sea_level": {
+          "description": "Height of the calm sea surface in height units.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "max_height": {
+          "description": "Highest terrain height in height units; heights stay moderate (R3).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "coast_falloff_permille": {
+          "description": "Share of the half width over which land falls off to the sea at the edge.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "walkable_slope": {
+          "description": "Largest height difference between neighbouring cells that can be walked; more is an obstacle (R3).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "cliff_min_drop": {
+          "description": "Height difference between neighbours from which a cliff is marked.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "noise": {
+          "description": "Value-noise octaves, summed (integer noise only).",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/WorldPresetNoiseOctave"
+          },
+          "maxItems": 8
+        },
+        "rocks": {
+          "$ref": "#/$defs/WorldPresetCountRange"
+        }
+      }
+    },
+    "WorldPresetNoiseOctave": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "wavelength_cells",
+        "amplitude"
+      ],
+      "properties": {
+        "wavelength_cells": {
+          "description": "Distance between lattice points in cells.",
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 4096
+        },
+        "amplitude": {
+          "description": "Largest contribution in height units.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        }
+      }
+    },
+    "WorldPresetWater": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "shallow_max_depth",
+        "springs",
+        "spring_min_height",
+        "lake_min_cells",
+        "swamp_max_slope",
+        "swamp_min_moisture_permille"
+      ],
+      "properties": {
+        "shallow_max_depth": {
+          "description": "Water up to this depth (height units) is shallow and walkable slowly; deeper only by swimming (R4, R10).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "springs": {
+          "$ref": "#/$defs/WorldPresetCountRange"
+        },
+        "spring_min_height": {
+          "description": "Springs lie on slopes at least this far above sea level.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "lake_min_cells": {
+          "description": "Smallest hollow that fills into a lake.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "swamp_max_slope": {
+          "description": "Largest slope of a flat wet hollow that becomes swamp.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "swamp_min_moisture_permille": {
+          "description": "Smallest moisture of a cell that becomes swamp.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        }
+      }
+    },
+    "WorldPresetClimate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "base_temperature_tenth_c",
+        "temperature_drop_per_100_height",
+        "moisture_base_permille",
+        "moisture_water_radius_cells",
+        "valley_moisture_bonus_permille"
+      ],
+      "properties": {
+        "base_temperature_tenth_c": {
+          "description": "Base temperature at sea level in tenths of a degree Celsius.",
+          "type": "integer",
+          "minimum": -500,
+          "maximum": 600
+        },
+        "temperature_drop_per_100_height": {
+          "description": "Cooling in tenths of a degree per 100 height units (higher is colder, R5).",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "moisture_base_permille": {
+          "description": "Moisture far from water.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "moisture_water_radius_cells": {
+          "description": "Distance over which water raises the moisture.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "valley_moisture_bonus_permille": {
+          "description": "Extra moisture in hollows and valleys.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        }
+      }
+    },
+    "WorldPresetStart": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pairs",
+        "min_pair_distance_cells",
+        "max_pair_distance_cells",
+        "max_attempts"
+      ],
+      "properties": {
+        "pairs": {
+          "description": "Number of start pairs (B2517: two pairs, each a woman and a man).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
+        },
+        "min_pair_distance_cells": {
+          "description": "Smallest distance between two pairs; larger than the view range so they do not see each other at start (R9).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "max_pair_distance_cells": {
+          "description": "Largest walking distance between two pairs, so they can find each other (B2520).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "max_attempts": {
+          "description": "Most generation attempts with derived sub-seeds before the mandatory check is reported as failed (R7).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        }
+      }
+    },
+    "WorldPresetNeighbours": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "islands",
+        "group_size",
+        "min_distance_cells"
+      ],
+      "properties": {
+        "islands": {
+          "$ref": "#/$defs/WorldPresetCountRange"
+        },
+        "group_size": {
+          "$ref": "#/$defs/WorldPresetCountRange"
+        },
+        "min_distance_cells": {
+          "description": "Smallest distance of a neighbour island from the start island (behind the cloud cover, B2520).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        }
+      }
+    },
+    "WorldPresetTides": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "amplitude",
+        "period_ticks",
+        "curve"
+      ],
+      "properties": {
+        "amplitude": {
+          "description": "Half the tidal range in height units; 0 turns the tides off (R15).",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "period_ticks": {
+          "description": "Length of one tidal cycle in ticks.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000000
+        },
+        "curve": {
+          "description": "Water level over one cycle, interpolated linearly; phases ascending, first 0.",
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "$ref": "#/$defs/WorldPresetTidePoint"
+          },
+          "maxItems": 64
+        }
+      }
+    },
+    "WorldPresetTidePoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "phase_permille",
+        "level_permille"
+      ],
+      "properties": {
+        "phase_permille": {
+          "description": "Position in the cycle.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "level_permille": {
+          "description": "Level from -1000 (low) to 1000 (high), times the amplitude.",
+          "type": "integer",
+          "minimum": -1000,
+          "maximum": 1000
+        }
+      }
+    },
+    "WorldPresetExploration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "view_range_cells",
+        "height_bonus_per_100_height",
+        "reveal_real_seconds"
+      ],
+      "properties": {
+        "view_range_cells": {
+          "description": "How far an inhabitant sees on flat ground (R14).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "height_bonus_per_100_height": {
+          "description": "Extra cells of view per 100 height units above the surroundings (a view helps).",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "reveal_real_seconds": {
+          "description": "Presentation only: how long newly seen land takes to clear (R25).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 60
+        }
+      }
+    },
+    "WorldPresetPathfinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "node_budget",
+        "cost_flat",
+        "cost_shallow_water",
+        "cost_per_slope_unit"
+      ],
+      "properties": {
+        "node_budget": {
+          "description": "Most nodes one A* search may expand (R10).",
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 10000000
+        },
+        "cost_flat": {
+          "description": "Cost of one step on flat dry ground.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "cost_shallow_water": {
+          "description": "Extra cost of one step through shallow water.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "cost_per_slope_unit": {
+          "description": "Extra cost per height unit climbed.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        }
+      }
+    }
+  }
+}

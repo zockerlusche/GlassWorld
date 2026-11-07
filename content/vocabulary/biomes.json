@@ -1,0 +1,30 @@
+{
+  "contract_version": "0.1",
+  "kind": "biome",
+  "entries": [
+    {
+      "id": "beach_sea",
+      "description": "Sandy beach and the salty sea around the island."
+    },
+    {
+      "id": "meadow",
+      "description": "Open grassland with flowers and bushes."
+    },
+    {
+      "id": "forest",
+      "description": "Trees close together, shady and damp."
+    },
+    {
+      "id": "freshwater",
+      "description": "Springs, streams and lakes with fresh water."
+    },
+    {
+      "id": "rocks_hills",
+      "description": "Higher, stony ground with rocks and cliffs."
+    },
+    {
+      "id": "swamp",
+      "description": "Flat, wet hollows with murky water."
+    }
+  ]
+}

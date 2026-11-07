@@ -1,0 +1,158 @@
+{
+  "contract_version": "0.1",
+  "spawns": [
+    {
+      "biome": "forest",
+      "object_type": "apple",
+      "per_1000_cells": 6,
+      "cluster": {
+        "min": 1,
+        "max": 3
+      },
+      "max_total": 24
+    },
+    {
+      "biome": "meadow",
+      "object_type": "red_berry",
+      "per_1000_cells": 5,
+      "cluster": {
+        "min": 2,
+        "max": 5
+      },
+      "max_total": 30
+    },
+    {
+      "biome": "forest",
+      "object_type": "blue_berry",
+      "per_1000_cells": 5,
+      "cluster": {
+        "min": 2,
+        "max": 5
+      },
+      "max_total": 30
+    },
+    {
+      "biome": "forest",
+      "object_type": "dry_wood",
+      "per_1000_cells": 8,
+      "cluster": {
+        "min": 1,
+        "max": 4
+      },
+      "max_total": 40
+    },
+    {
+      "biome": "meadow",
+      "object_type": "dry_grass",
+      "per_1000_cells": 10,
+      "cluster": {
+        "min": 2,
+        "max": 6
+      },
+      "max_total": 50
+    },
+    {
+      "biome": "rocks_hills",
+      "object_type": "flint",
+      "per_1000_cells": 6,
+      "cluster": {
+        "min": 1,
+        "max": 3
+      },
+      "max_total": 16
+    },
+    {
+      "biome": "rocks_hills",
+      "object_type": "pyrite",
+      "per_1000_cells": 3,
+      "cluster": {
+        "min": 1,
+        "max": 2
+      },
+      "max_total": 8
+    },
+    {
+      "biome": "beach_sea",
+      "object_type": "flint",
+      "per_1000_cells": 1,
+      "cluster": {
+        "min": 1,
+        "max": 1
+      },
+      "max_total": 4
+    }
+  ],
+  "mandatory": [
+    {
+      "id": "food",
+      "source": "object",
+      "properties_all": [
+        "edible"
+      ],
+      "properties_none": [
+        "poisonous"
+      ],
+      "min": 6,
+      "max": 120
+    },
+    {
+      "id": "fresh_water",
+      "source": "fresh_water",
+      "properties_all": [],
+      "properties_none": [],
+      "min": 1,
+      "max": 100000
+    },
+    {
+      "id": "fuel",
+      "source": "object",
+      "properties_all": [
+        "burnable"
+      ],
+      "properties_none": [],
+      "min": 4,
+      "max": 100
+    },
+    {
+      "id": "spark_maker",
+      "source": "object",
+      "properties_all": [
+        "sparks"
+      ],
+      "properties_none": [],
+      "min": 1,
+      "max": 8
+    },
+    {
+      "id": "spark_striker",
+      "source": "object",
+      "properties_all": [
+        "hard",
+        "sharp"
+      ],
+      "properties_none": [],
+      "min": 1,
+      "max": 20
+    },
+    {
+      "id": "fibre",
+      "source": "object",
+      "properties_all": [
+        "fibrous"
+      ],
+      "properties_none": [],
+      "min": 2,
+      "max": 60
+    },
+    {
+      "id": "shelter",
+      "source": "object",
+      "properties_all": [
+        "sheltering"
+      ],
+      "properties_none": [],
+      "min": 1,
+      "max": 3
+    }
+  ]
+}

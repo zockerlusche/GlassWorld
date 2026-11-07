@@ -81,6 +81,50 @@
     {
       "pattern": "player/world_options.json",
       "schema": "world-options"
+    },
+    {
+      "pattern": "world/presets/*.json",
+      "schema": "world-preset"
+    },
+    {
+      "pattern": "world/biomes.json",
+      "schema": "biome-table"
+    },
+    {
+      "pattern": "world/spawns.json",
+      "schema": "spawn-table"
+    },
+    {
+      "pattern": "climate/*.json",
+      "schema": "climate-settings"
+    },
+    {
+      "pattern": "look/palette.json",
+      "schema": "look-palette"
+    },
+    {
+      "pattern": "look/epochs.json",
+      "schema": "look-epochs"
+    },
+    {
+      "pattern": "look/daylight.json",
+      "schema": "look-daylight"
+    },
+    {
+      "pattern": "look/appearance.json",
+      "schema": "look-appearance"
+    },
+    {
+      "pattern": "animation/library.json",
+      "schema": "animation-library"
+    },
+    {
+      "pattern": "look/camera.json",
+      "schema": "look-camera"
+    },
+    {
+      "pattern": "look/quality.json",
+      "schema": "look-quality"
     }
   ]
 }

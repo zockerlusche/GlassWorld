@@ -1,0 +1,115 @@
+{
+  "contract_version": "0.1",
+  "colors": [
+    {
+      "id": "grass",
+      "color": "#9cc96b"
+    },
+    {
+      "id": "foliage",
+      "color": "#5f9d4f"
+    },
+    {
+      "id": "bark",
+      "color": "#7a5537"
+    },
+    {
+      "id": "ground",
+      "color": "#c9a46e"
+    },
+    {
+      "id": "sand",
+      "color": "#ecd9a5"
+    },
+    {
+      "id": "rock",
+      "color": "#a39a8c"
+    },
+    {
+      "id": "sea_shallow",
+      "color": "#7fd0d6"
+    },
+    {
+      "id": "sea_deep",
+      "color": "#2f7fa6"
+    },
+    {
+      "id": "fresh_water",
+      "color": "#6fb6d9"
+    },
+    {
+      "id": "swamp_water",
+      "color": "#6f7f4a"
+    },
+    {
+      "id": "cloud_cover",
+      "color": "#f4efe6"
+    }
+  ],
+  "ramp": [
+    {
+      "threshold": 0.0,
+      "brightness": 0.45
+    },
+    {
+      "threshold": 0.35,
+      "brightness": 0.75
+    },
+    {
+      "threshold": 0.7,
+      "brightness": 1.0
+    }
+  ],
+  "outline_width_px": 2.0,
+  "outline_color": "#3b2a20",
+  "season_blend_real_seconds": 20.0,
+  "seasons": [
+    {
+      "season": "spring",
+      "colors": [
+        {
+          "id": "grass",
+          "color": "#a6d671"
+        }
+      ],
+      "snow_cover": 0.0,
+      "leaf_fall": 0.0
+    },
+    {
+      "season": "summer",
+      "colors": [],
+      "snow_cover": 0.0,
+      "leaf_fall": 0.0
+    },
+    {
+      "season": "autumn",
+      "colors": [
+        {
+          "id": "foliage",
+          "color": "#d98a3a"
+        },
+        {
+          "id": "grass",
+          "color": "#b8b56a"
+        }
+      ],
+      "snow_cover": 0.0,
+      "leaf_fall": 0.6
+    },
+    {
+      "season": "winter",
+      "colors": [
+        {
+          "id": "foliage",
+          "color": "#6d7f69"
+        },
+        {
+          "id": "grass",
+          "color": "#a7ad95"
+        }
+      ],
+      "snow_cover": 0.7,
+      "leaf_fall": 0.0
+    }
+  ]
+}

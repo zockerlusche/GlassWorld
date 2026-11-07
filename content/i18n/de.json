@@ -139,6 +139,50 @@
       "text": "Umherstreifen"
     },
     {
+      "key": "vocab.biome.beach_sea",
+      "text": "Strand und Meer"
+    },
+    {
+      "key": "vocab.biome.forest",
+      "text": "Wald"
+    },
+    {
+      "key": "vocab.biome.freshwater",
+      "text": "Süßwasser"
+    },
+    {
+      "key": "vocab.biome.meadow",
+      "text": "Wiese"
+    },
+    {
+      "key": "vocab.biome.rocks_hills",
+      "text": "Felsen und Hügel"
+    },
+    {
+      "key": "vocab.biome.swamp",
+      "text": "Sumpf"
+    },
+    {
+      "key": "vocab.epoch.hut",
+      "text": "Hütte"
+    },
+    {
+      "key": "vocab.epoch.metal",
+      "text": "Metall"
+    },
+    {
+      "key": "vocab.epoch.tools",
+      "text": "Werkzeuge"
+    },
+    {
+      "key": "vocab.epoch.wilderness",
+      "text": "Wildnis"
+    },
+    {
+      "key": "vocab.epoch.workshop",
+      "text": "Werkstatt"
+    },
+    {
       "key": "vocab.expression.back_away",
       "text": "Weicht zurück"
     },
@@ -339,6 +383,10 @@
       "text": "Scharf"
     },
     {
+      "key": "vocab.property.sheltering",
+      "text": "Schützend"
+    },
+    {
       "key": "vocab.property.sparks",
       "text": "Schlägt Funken"
     },
@@ -405,6 +453,10 @@
     {
       "key": "vocab.weather.cloudy",
       "text": "Bewölkt"
+    },
+    {
+      "key": "vocab.weather.drought",
+      "text": "Dürre"
     },
     {
       "key": "vocab.weather.fog",
