@@ -1,0 +1,363 @@
+{
+  "contract_version": "0.1",
+  "actions": [
+    {
+      "action": "idle",
+      "sound": "action.idle"
+    },
+    {
+      "action": "wander",
+      "sound": "action.rustle"
+    },
+    {
+      "action": "move_to",
+      "sound": "action.rustle"
+    },
+    {
+      "action": "inspect",
+      "sound": "action.inspect"
+    },
+    {
+      "action": "pick_up",
+      "sound": "action.pick_up"
+    },
+    {
+      "action": "drop",
+      "sound": "action.drop"
+    },
+    {
+      "action": "eat",
+      "sound": "action.eat"
+    },
+    {
+      "action": "drink",
+      "sound": "action.drink"
+    },
+    {
+      "action": "sleep",
+      "sound": "action.sleep"
+    },
+    {
+      "action": "approach",
+      "sound": "action.rustle"
+    },
+    {
+      "action": "talk_to",
+      "sound": "action.talk_to"
+    },
+    {
+      "action": "combine",
+      "sound": "action.combine"
+    }
+  ],
+  "surfaces": [
+    {
+      "surface": "grass",
+      "sound": "step.grass"
+    },
+    {
+      "surface": "sand",
+      "sound": "step.sand"
+    },
+    {
+      "surface": "rock",
+      "sound": "step.rock"
+    },
+    {
+      "surface": "wood",
+      "sound": "step.wood"
+    },
+    {
+      "surface": "water",
+      "sound": "step.water"
+    },
+    {
+      "surface": "snow",
+      "sound": "step.snow"
+    }
+  ],
+  "weather": [
+    {
+      "weather": "clear",
+      "sound": "weather.clear"
+    },
+    {
+      "weather": "cloudy",
+      "sound": "weather.cloudy"
+    },
+    {
+      "weather": "rain",
+      "sound": "weather.rain"
+    },
+    {
+      "weather": "storm",
+      "sound": "weather.storm"
+    },
+    {
+      "weather": "fog",
+      "sound": "weather.fog"
+    },
+    {
+      "weather": "frost",
+      "sound": "weather.frost"
+    },
+    {
+      "weather": "snow",
+      "sound": "weather.snow"
+    },
+    {
+      "weather": "heat",
+      "sound": "weather.heat"
+    }
+  ],
+  "ambience": [
+    {
+      "biome": "beach",
+      "sound": "ambience.waves"
+    },
+    {
+      "biome": "meadow",
+      "sound": "ambience.meadow"
+    },
+    {
+      "biome": "forest",
+      "sound": "ambience.forest"
+    },
+    {
+      "biome": "stream",
+      "sound": "ambience.stream"
+    },
+    {
+      "biome": "rocks",
+      "sound": "ambience.rocks"
+    },
+    {
+      "biome": "swamp",
+      "sound": "ambience.swamp"
+    }
+  ],
+  "animals": [
+    {
+      "animal": "gull",
+      "sound": "animal.gull.call",
+      "biomes": [
+        "beach"
+      ],
+      "seasons": [
+        "spring",
+        "summer",
+        "autumn",
+        "winter"
+      ],
+      "times_of_day": [
+        "dawn",
+        "day",
+        "dusk"
+      ],
+      "per_hour": 6
+    },
+    {
+      "animal": "crab",
+      "sound": "animal.crab.click",
+      "biomes": [
+        "beach"
+      ],
+      "seasons": [
+        "spring",
+        "summer",
+        "autumn"
+      ],
+      "times_of_day": [
+        "day",
+        "dusk",
+        "night"
+      ],
+      "per_hour": 10
+    },
+    {
+      "animal": "butterfly",
+      "sound": "animal.butterfly.wings",
+      "biomes": [
+        "meadow"
+      ],
+      "seasons": [
+        "spring",
+        "summer"
+      ],
+      "times_of_day": [
+        "day"
+      ],
+      "per_hour": 0
+    },
+    {
+      "animal": "bee",
+      "sound": "animal.bee.buzz",
+      "biomes": [
+        "meadow"
+      ],
+      "seasons": [
+        "spring",
+        "summer"
+      ],
+      "times_of_day": [
+        "day"
+      ],
+      "per_hour": 0
+    },
+    {
+      "animal": "songbird",
+      "sound": "animal.songbird.song",
+      "biomes": [
+        "forest",
+        "meadow"
+      ],
+      "seasons": [
+        "spring",
+        "summer",
+        "autumn"
+      ],
+      "times_of_day": [
+        "dawn",
+        "day"
+      ],
+      "per_hour": 12
+    },
+    {
+      "animal": "squirrel",
+      "sound": "animal.squirrel.chatter",
+      "biomes": [
+        "forest"
+      ],
+      "seasons": [
+        "spring",
+        "summer",
+        "autumn",
+        "winter"
+      ],
+      "times_of_day": [
+        "day"
+      ],
+      "per_hour": 4
+    },
+    {
+      "animal": "dragonfly",
+      "sound": "animal.dragonfly.wings",
+      "biomes": [
+        "stream",
+        "swamp"
+      ],
+      "seasons": [
+        "spring",
+        "summer"
+      ],
+      "times_of_day": [
+        "day"
+      ],
+      "per_hour": 0
+    },
+    {
+      "animal": "frog",
+      "sound": "animal.frog.croak",
+      "biomes": [
+        "stream",
+        "swamp"
+      ],
+      "seasons": [
+        "spring",
+        "summer"
+      ],
+      "times_of_day": [
+        "dusk",
+        "night"
+      ],
+      "per_hour": 20
+    },
+    {
+      "animal": "firefly",
+      "sound": "animal.firefly.shimmer",
+      "biomes": [
+        "meadow",
+        "forest"
+      ],
+      "seasons": [
+        "summer"
+      ],
+      "times_of_day": [
+        "night"
+      ],
+      "per_hour": 0
+    },
+    {
+      "animal": "owl",
+      "sound": "animal.owl.hoot",
+      "biomes": [
+        "forest"
+      ],
+      "seasons": [
+        "spring",
+        "summer",
+        "autumn",
+        "winter"
+      ],
+      "times_of_day": [
+        "night"
+      ],
+      "per_hour": 3
+    },
+    {
+      "animal": "fish",
+      "sound": "animal.fish.splash",
+      "biomes": [
+        "stream"
+      ],
+      "seasons": [
+        "spring",
+        "summer",
+        "autumn"
+      ],
+      "times_of_day": [
+        "dawn",
+        "day",
+        "dusk"
+      ],
+      "per_hour": 2
+    },
+    {
+      "animal": "wild_chicken",
+      "sound": "animal.wild_chicken.cluck",
+      "biomes": [
+        "meadow",
+        "forest"
+      ],
+      "seasons": [
+        "spring",
+        "summer",
+        "autumn",
+        "winter"
+      ],
+      "times_of_day": [
+        "dawn",
+        "day"
+      ],
+      "per_hour": 8
+    },
+    {
+      "animal": "goat",
+      "sound": "animal.goat.bleat",
+      "biomes": [
+        "rocks",
+        "meadow"
+      ],
+      "seasons": [
+        "spring",
+        "summer",
+        "autumn",
+        "winter"
+      ],
+      "times_of_day": [
+        "day"
+      ],
+      "per_hour": 3
+    }
+  ]
+}

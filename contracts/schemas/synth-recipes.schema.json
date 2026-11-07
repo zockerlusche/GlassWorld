@@ -1,0 +1,197 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/synth-recipes.schema.json",
+  "title": "SynthRecipes",
+  "description": "Retro fallback synthesis (B8 R3): every sound id has a recipe, so every action and animal sounds even without sound files or audio AI. Rendering is deterministic for the same recipe and seed.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "sample_rate",
+    "peak",
+    "recipes"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "sample_rate": {
+      "type": "integer",
+      "enum": [
+        22050,
+        44100,
+        48000
+      ]
+    },
+    "peak": {
+      "description": "Rendered sounds are normalised to this peak (limiter, B8 R7).",
+      "type": "number",
+      "minimum": 0.1,
+      "maximum": 1
+    },
+    "recipes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/SynthRecipe"
+      }
+    }
+  },
+  "$defs": {
+    "SynthRecipe": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "bus",
+        "duration_s",
+        "loop",
+        "layers",
+        "pitch_variation",
+        "gain_variation"
+      ],
+      "properties": {
+        "id": {
+          "description": "Language-neutral sound id, e.g. step.grass, animal.frog.call.",
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*){1,3}$",
+          "maxLength": 64
+        },
+        "bus": {
+          "type": "string",
+          "enum": [
+            "effects",
+            "ambience",
+            "animals",
+            "voices",
+            "music"
+          ]
+        },
+        "duration_s": {
+          "type": "number",
+          "minimum": 0.02,
+          "maximum": 30
+        },
+        "loop": {
+          "type": "boolean"
+        },
+        "layers": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 6,
+          "items": {
+            "$ref": "#/$defs/SynthLayer"
+          }
+        },
+        "pitch_variation": {
+          "description": "Random pitch change per variant, as a fraction (0.05 = +-5 %).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.5
+        },
+        "gain_variation": {
+          "description": "Random gain change per variant, as a fraction.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.5
+        }
+      }
+    },
+    "SynthLayer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "wave",
+        "start_hz",
+        "end_hz",
+        "gain",
+        "attack_s",
+        "decay_s",
+        "sustain",
+        "release_s",
+        "lowpass_hz",
+        "offset_s",
+        "tremolo_hz"
+      ],
+      "properties": {
+        "wave": {
+          "type": "string",
+          "enum": [
+            "sine",
+            "triangle",
+            "square",
+            "saw",
+            "noise"
+          ]
+        },
+        "start_hz": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 20000
+        },
+        "end_hz": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 20000
+        },
+        "gain": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "attack_s": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 30
+        },
+        "decay_s": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 30
+        },
+        "sustain": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "release_s": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 30
+        },
+        "lowpass_hz": {
+          "description": "One-pole low-pass cut-off; null = off.",
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 20,
+              "maximum": 20000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "offset_s": {
+          "description": "Start of the layer within the sound.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 30
+        },
+        "tremolo_hz": {
+          "description": "Amplitude wobble (e.g. wings, croak); null = off.",
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0.1,
+              "maximum": 100
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

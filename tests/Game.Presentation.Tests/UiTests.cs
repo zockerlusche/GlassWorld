@@ -8,7 +8,7 @@ namespace GlassWorld.Presentation.Tests;
 /// <summary>UI standard D366: scaling arithmetic, contrast rules and the shipped token/frame files.</summary>
 public sealed class UiTests
 {
-    private static readonly string Root = FindRoot();
+    private static readonly string Root = TestPaths.Root;
     private static readonly string TokensJson = File.ReadAllText(Path.Combine(Root, "content", "ui", "tokens.json"));
     private static readonly string FramesJson = File.ReadAllText(Path.Combine(Root, "content", "ui", "frames.json"));
 
@@ -141,18 +141,5 @@ public sealed class UiTests
                     ((int)margins["left"]!, (int)margins["top"]!, (int)margins["right"]!, (int)margins["bottom"]!));
             }
         }
-    }
-
-    private static string FindRoot()
-    {
-        for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir is not null; dir = dir.Parent)
-        {
-            if (File.Exists(Path.Combine(dir.FullName, "GlassWorld.slnx")))
-            {
-                return dir.FullName;
-            }
-        }
-
-        throw new DirectoryNotFoundException("GlassWorld.slnx not found");
     }
 }

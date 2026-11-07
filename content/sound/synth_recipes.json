@@ -1,0 +1,1191 @@
+{
+  "contract_version": "0.1",
+  "sample_rate": 44100,
+  "peak": 0.8,
+  "recipes": [
+    {
+      "id": "action.idle",
+      "bus": "effects",
+      "duration_s": 0.6,
+      "loop": false,
+      "layers": [
+        {
+          "wave": "noise",
+          "start_hz": 200,
+          "end_hz": 200,
+          "gain": 0.15,
+          "attack_s": 0.2,
+          "decay_s": 0.2,
+          "sustain": 0.3,
+          "release_s": 0.2,
+          "lowpass_hz": 600,
+          "offset_s": 0.0,
+          "tremolo_hz": null
+        }
+      ],
+      "pitch_variation": 0.05,
+      "gain_variation": 0.1
+    },
+    {
+      "id": "action.rustle",
+      "bus": "effects",
+      "duration_s": 0.5,
+      "loop": false,
+      "layers": [
+        {
+          "wave": "noise",
+          "start_hz": 300,
+          "end_hz": 300,
+          "gain": 0.4,
+          "attack_s": 0.02,
+          "decay_s": 0.2,
+          "sustain": 0.3,
+          "release_s": 0.2,
+          "lowpass_hz": 2500,
+          "offset_s": 0.0,
+          "tremolo_hz": null
+        }
+      ],
+      "pitch_variation": 0.05,
+      "gain_variation": 0.1
+    },
+    {
+      "id": "action.pick_up",
+      "bus": "effects",
+      "duration_s": 0.25,
+      "loop": false,
+      "layers": [
+        {
+          "wave": "noise",
+          "start_hz": 1,
+          "end_hz": 1,
+          "gain": 0.5,
+          "attack_s": 0.005,
+          "decay_s": 0.08,
+          "sustain": 0.2,
+          "release_s": 0.1,
+          "lowpass_hz": 3000,
+          "offset_s": 0.0,
+          "tremolo_hz": null
+        },
+        {
+          "wave": "sine",
+          "start_hz": 520,
+          "end_hz": 700,
+          "gain": 0.2,
+          "attack_s": 0.005,
+          "decay_s": 0.1,
+          "sustain": 0.0,
+          "release_s": 0.05,
+          "lowpass_hz": null,
+          "offset_s": 0.0,
+          "tremolo_hz": null
+        }
+      ],
+      "pitch_variation": 0.05,
+      "gain_variation": 0.1
+    },
+    {
+      "id": "action.drop",
+      "bus": "effects",
+      "duration_s": 0.3,
+      "loop": false,
+      "layers": [
+        {
+          "wave": "noise",
+          "start_hz": 1,
+          "end_hz": 1,
+          "gain": 0.6,
+          "attack_s": 0.002,
+          "decay_s": 0.1,
+          "sustain": 0.1,
+          "release_s": 0.15,
+          "lowpass_hz": 1200,
+          "offset_s": 0.0,
+          "tremolo_hz": null
+        },
+        {
+          "wave": "sine",
+          "start_hz": 180,
+          "end_hz": 90,
+          "gain": 0.4,
+          "attack_s": 0.002,
+          "decay_s": 0.15,
+          "sustain": 0.0,
+          "release_s": 0.1,
+          "lowpass_hz": null,
+          "offset_s": 0.0,
+          "tremolo_hz": null
+        }
+      ],
+      "pitch_variation": 0.05,
+      "gain_variation": 0.1
+    },
+    {
+      "id": "action.inspect",
+      "bus": "effects",
+      "duration_s": 0.4,
+      "loop": false,
+      "layers": [
+        {
+          "wave": "sine",
+          "start_hz": 660,
+          "end_hz": 880,
+          "gain": 0.25,
+          "attack_s": 0.05,
+          "decay_s": 0.2,
+          "sustain": 0.2,
+          "release_s": 0.1,
+          "lowpass_hz": null,
+          "offset_s": 0.0,
+          "tremolo_hz": null
+        }
+      ],
+      "pitch_variation": 0.05,
+      "gain_variation": 0.1
+    },
+    {
+      "id": "action.eat",
+      "bus": "effects",
+      "duration_s": 0.5,
+      "loop": false,
+      "layers": [
+        {
+          "wave": "noise",
+          "start_hz": 1,
+          "end_hz": 1,
+          "gain": 0.45,
+          "attack_s": 0.01,
+          "decay_s": 0.06,
+          "sustain": 0.4,
+          "release_s": 0.1,
+          "lowpass_hz": 1800,
+          "offset_s": 0.0,
+          "tremolo_hz": 9
+        }
+      ],
+      "pitch_variation": 0.05,
+      "gain_variation": 0.1
+    },
+    {
+      "id": "action.drink",
+      "bus": "effects",
+      "duration_s": 0.6,
+      "loop": false,
+      "layers": [
+        {
+          "wave": "sine",
+          "start_hz": 300,
+          "end_hz": 900,
+          "gain": 0.35,
+          "attack_s": 0.02,
+          "decay_s": 0.1,
+          "sustain": 0.3,
+          "release_s": 0.1,
+          "lowpass_hz": null,
+          "offset_s": 0.0,
+          "tremolo_hz": 6
+        },
+        {
+          "wave": "noise",
+          "start_hz": 1,
+          "end_hz": 1,
+          "gain": 0.15,
+          "attack_s": 0.02,
+          "decay_s": 0.2,
+          "sustain": 0.2,
+          "release_s": 0.2,
+          "lowpass_hz": 900,
+          "offset_s": 0.0,
+          "tremolo_hz": null
+        }
+      ],
+      "pitch_variation": 0.05,
+      "gain_variation": 0.1
+    },
+    {
+      "id": "action.sleep",
+      "bus": "effects",
+      "duration_s": 1.6,
+      "loop": false,
+      "layers": [
+        {
+          "wave": "noise",
+          "start_hz": 1,
+          "end_hz": 1,
+          "gain": 0.2,
+          "attack_s": 0.6,
+          "decay_s": 0.3,
+          "sustain": 0.4,
+          "release_s": 0.6,
+          "lowpass_hz": 500,
+          "offset_s": 0.0,
+          "tremolo_hz": null
+        }
+      ],
+      "pitch_variation": 0.02,
+      "gain_variation": 0.1
+    },
+    {
+      "id": "action.talk_to",
+      "bus": "effects",
+      "duration_s": 0.4,
+      "loop": false,
+      "layers": [
+        {
+          "wave": "triangle",
+          "start_hz": 330,
+          "end_hz": 392,
+          "gain": 0.25,
+          "attack_s": 0.03,
+          "decay_s": 0.1,
+          "sustain": 0.4,
+          "release_s": 0.15,
+          "lowpass_hz": null,
+          "offset_s": 0.0,
+          "tremolo_hz": null
+        }
+      ],
+      "pitch_variation": 0.05,
+      "gain_variation": 0.1
+    },
+    {
+      "id": "action.combine",
+      "bus": "effects",
+      "duration_s": 0.35,
+      "loop": false,
+      "layers": [
+        {
+          "wave": "noise",
+          "start_hz": 1,
+          "end_hz": 1,
+          "gain": 0.5,
+          "attack_s": 0.002,
+          "decay_s": 0.05,
+          "sustain": 0.1,
+          "release_s": 0.1,
+          "lowpass_hz": 4000,
+          "offset_s": 0.0,
+          "tremolo_hz": null
+        },
+        {
+          "wave": "square",
+          "start_hz": 880,
+          "end_hz": 660,
+          "gain": 0.12,
+          "attack_s": 0.002,
+          "decay_s": 0.08,
+          "sustain": 0.0,
+          "release_s": 0.05,
+          "lowpass_hz": null,
+          "offset_s": 0.0,
+          "tremolo_hz": null
+        }
+      ],
+      "pitch_variation": 0.05,
+      "gain_variation": 0.1
+    },
+    {
+      "id": "step.grass",
+      "bus": "effects",
+      "duration_s": 0.18,
+      "loop": false,
+      "layers": [
+        {
+          "wave": "noise",
+          "start_hz": 1,
+          "end_hz": 1,
+          "gain": 0.35,
+          "attack_s": 0.005,
+          "decay_s": 0.06,
+          "sustain": 0.2,
+          "release_s": 0.08,
+          "lowpass_hz": 1800,
+          "offset_s": 0.0,
+          "tremolo_hz": null
+        }
+      ],
+      "pitch_variation": 0.1,
+      "gain_variation": 0.1
+    },
+    {
+      "id": "step.sand",
+      "bus": "effects",
+      "duration_s": 0.2,
+      "loop": false,
+      "layers": [
+        {
+          "wave": "noise",
+          "start_hz": 1,
+          "end_hz": 1,
+          "gain": 0.35,
+          "attack_s": 0.01,
+          "decay_s": 0.08,
+          "sustain": 0.2,
+          "release_s": 0.08,
+          "lowpass_hz": 3500,
+          "offset_s": 0.0,
+          "tremolo_hz": null
+        }
+      ],
+      "pitch_variation": 0.1,
+      "gain_variation": 0.1
+    },
+    {
+      "id": "step.rock",
+      "bus": "effects",
+      "duration_s": 0.12,
+      "loop": false,
+      "layers": [
+        {
+          "wave": "noise",
+          "start_hz": 1,
+          "end_hz": 1,
+          "gain": 0.45,
+          "attack_s": 0.001,
+          "decay_s": 0.04,
+          "sustain": 0.1,
+          "release_s": 0.05,
+          "lowpass_hz": 2500,
+          "offset_s": 0.0,
+          "tremolo_hz": null
+        },
+        {
+          "wave": "sine",
+          "start_hz": 240,
+          "end_hz": 200,
+          "gain": 0.2,
+          "attack_s": 0.001,
+          "decay_s": 0.05,
+          "sustain": 0.0,
+          "release_s": 0.03,
+          "lowpass_hz": null,
+          "offset_s": 0.0,
+          "tremolo_hz": null
+        }
+      ],
+      "pitch_variation": 0.1,
+      "gain_variation": 0.1
+    },
+    {
+      "id": "step.wood",
+      "bus": "effects",
+      "duration_s": 0.14,
+      "loop": false,
+      "layers": [
+        {
+          "wave": "triangle",
+          "start_hz": 210,
+          "end_hz": 170,
+          "gain": 0.4,
+          "attack_s": 0.001,
+          "decay_s": 0.07,
+          "sustain": 0.0,
+          "release_s": 0.05,
+          "lowpass_hz": null,
+          "offset_s": 0.0,
+          "tremolo_hz": null
+        },
+        {
+          "wave": "noise",
+          "start_hz": 1,
+          "end_hz": 1,
+          "gain": 0.15,
+          "attack_s": 0.001,
+          "decay_s": 0.04,
+          "sustain": 0.0,
+          "release_s": 0.03,
+          "lowpass_hz": 2000,
+          "offset_s": 0.0,
+          "tremolo_hz": null
+        }
+      ],
+      "pitch_variation": 0.1,
+      "gain_variation": 0.1
+    },
+    {
+      "id": "step.water",
+      "bus": "effects",
+      "duration_s": 0.3,
+      "loop": false,
+      "layers": [
+        {
+          "wave": "noise",
+          "start_hz": 1,
+          "end_hz": 1,
+          "gain": 0.35,
+          "attack_s": 0.01,
+          "decay_s": 0.1,
+          "sustain": 0.3,
+          "release_s": 0.12,
+          "lowpass_hz": 1400,
+          "offset_s": 0.0,
+          "tremolo_hz": null
+        },
+        {
+          "wave": "sine",
+          "start_hz": 500,
+          "end_hz": 1200,
+          "gain": 0.15,
+          "attack_s": 0.01,
+          "decay_s": 0.1,
+          "sustain": 0.0,
+          "release_s": 0.1,
+          "lowpass_hz": null,
+          "offset_s": 0.0,
+          "tremolo_hz": null
+        }
+      ],
+      "pitch_variation": 0.1,
+      "gain_variation": 0.1
+    },
+    {
+      "id": "step.snow",
+      "bus": "effects",
+      "duration_s": 0.22,
+      "loop": false,
+      "layers": [
+        {
+          "wave": "noise",
+          "start_hz": 1,
+          "end_hz": 1,
+          "gain": 0.3,
+          "attack_s": 0.02,
+          "decay_s": 0.08,
+          "sustain": 0.3,
+          "release_s": 0.08,
+          "lowpass_hz": 1000,
+          "offset_s": 0.0,
+          "tremolo_hz": null
+        }
+      ],
+      "pitch_variation": 0.1,
+      "gain_variation": 0.1
+    },
+    {
+      "id": "weather.clear",
+      "bus": "ambience",
+      "duration_s": 4.0,
+      "loop": true,
+      "layers": [
+        {
+          "wave": "noise",
+          "start_hz": 1,
+          "end_hz": 1,
+          "gain": 0.08,
+          "attack_s": 1.0,
+          "decay_s": 0.0,
+          "sustain": 1.0,
+          "release_s": 1.0,
+          "lowpass_hz": 400,
+          "offset_s": 0.0,
+          "tremolo_hz": null
+        }
+      ],
+      "pitch_variation": 0,
+      "gain_variation": 0
+    },
+    {
+      "id": "weather.cloudy",
+      "bus": "ambience",
+      "duration_s": 4.0,
+      "loop": true,
+      "layers": [
+        {
+          "wave": "noise",
+          "start_hz": 1,
+          "end_hz": 1,
+          "gain": 0.12,
+          "attack_s": 1.0,
+          "decay_s": 0.0,
+          "sustain": 1.0,
+          "release_s": 1.0,
+          "lowpass_hz": 500,
+          "offset_s": 0.0,
+          "tremolo_hz": 0.3
+        }
+      ],
+      "pitch_variation": 0,
+      "gain_variation": 0
+    },
+    {
+      "id": "weather.rain",
+      "bus": "ambience",
+      "duration_s": 4.0,
+      "loop": true,
+      "layers": [
+        {
+          "wave": "noise",
+          "start_hz": 1,
+          "end_hz": 1,
+          "gain": 0.35,
+          "attack_s": 1.0,
+          "decay_s": 0.0,
+          "sustain": 1.0,
+          "release_s": 1.0,
+          "lowpass_hz": 5000,
+          "offset_s": 0.0,
+          "tremolo_hz": null
+        }
+      ],
+      "pitch_variation": 0,
+      "gain_variation": 0
+    },
+    {
+      "id": "weather.storm",
+      "bus": "ambience",
+      "duration_s": 4.0,
+      "loop": true,
+      "layers": [
+        {
+          "wave": "noise",
+          "start_hz": 1,
+          "end_hz": 1,
+          "gain": 0.5,
+          "attack_s": 1.0,
+          "decay_s": 0.0,
+          "sustain": 1.0,
+          "release_s": 1.0,
+          "lowpass_hz": 1200,
+          "offset_s": 0.0,
+          "tremolo_hz": 0.25
+        },
+        {
+          "wave": "noise",
+          "start_hz": 1,
+          "end_hz": 1,
+          "gain": 0.25,
+          "attack_s": 1.0,
+          "decay_s": 0.0,
+          "sustain": 1.0,
+          "release_s": 1.0,
+          "lowpass_hz": 6000,
+          "offset_s": 0.0,
+          "tremolo_hz": null
+        }
+      ],
+      "pitch_variation": 0,
+      "gain_variation": 0
+    },
+    {
+      "id": "weather.fog",
+      "bus": "ambience",
+      "duration_s": 4.0,
+      "loop": true,
+      "layers": [
+        {
+          "wave": "noise",
+          "start_hz": 1,
+          "end_hz": 1,
+          "gain": 0.06,
+          "attack_s": 1.0,
+          "decay_s": 0.0,
+          "sustain": 1.0,
+          "release_s": 1.0,
+          "lowpass_hz": 250,
+          "offset_s": 0.0,
+          "tremolo_hz": null
+        }
+      ],
+      "pitch_variation": 0,
+      "gain_variation": 0
+    },
+    {
+      "id": "weather.frost",
+      "bus": "ambience",
+      "duration_s": 4.0,
+      "loop": true,
+      "layers": [
+        {
+          "wave": "noise",
+          "start_hz": 1,
+          "end_hz": 1,
+          "gain": 0.07,
+          "attack_s": 1.0,
+          "decay_s": 0.0,
+          "sustain": 1.0,
+          "release_s": 1.0,
+          "lowpass_hz": 3000,
+          "offset_s": 0.0,
+          "tremolo_hz": 0.2
+        }
+      ],
+      "pitch_variation": 0,
+      "gain_variation": 0
+    },
+    {
+      "id": "weather.snow",
+      "bus": "ambience",
+      "duration_s": 4.0,
+      "loop": true,
+      "layers": [
+        {
+          "wave": "noise",
+          "start_hz": 1,
+          "end_hz": 1,
+          "gain": 0.05,
+          "attack_s": 1.0,
+          "decay_s": 0.0,
+          "sustain": 1.0,
+          "release_s": 1.0,
+          "lowpass_hz": 600,
+          "offset_s": 0.0,
+          "tremolo_hz": null
+        }
+      ],
+      "pitch_variation": 0,
+      "gain_variation": 0
+    },
+    {
+      "id": "weather.heat",
+      "bus": "ambience",
+      "duration_s": 4.0,
+      "loop": true,
+      "layers": [
+        {
+          "wave": "sine",
+          "start_hz": 3200,
+          "end_hz": 3400,
+          "gain": 0.03,
+          "attack_s": 1.0,
+          "decay_s": 0.0,
+          "sustain": 1.0,
+          "release_s": 1.0,
+          "lowpass_hz": null,
+          "offset_s": 0.0,
+          "tremolo_hz": 12
+        }
+      ],
+      "pitch_variation": 0,
+      "gain_variation": 0
+    },
+    {
+      "id": "ambience.waves",
+      "bus": "ambience",
+      "duration_s": 6.0,
+      "loop": true,
+      "layers": [
+        {
+          "wave": "noise",
+          "start_hz": 1,
+          "end_hz": 1,
+          "gain": 0.35,
+          "attack_s": 2.0,
+          "decay_s": 0.5,
+          "sustain": 0.6,
+          "release_s": 2.5,
+          "lowpass_hz": 900,
+          "offset_s": 0.0,
+          "tremolo_hz": 0.15
+        }
+      ],
+      "pitch_variation": 0,
+      "gain_variation": 0
+    },
+    {
+      "id": "ambience.meadow",
+      "bus": "ambience",
+      "duration_s": 4.0,
+      "loop": true,
+      "layers": [
+        {
+          "wave": "noise",
+          "start_hz": 1,
+          "end_hz": 1,
+          "gain": 0.08,
+          "attack_s": 1.0,
+          "decay_s": 0.0,
+          "sustain": 1.0,
+          "release_s": 1.0,
+          "lowpass_hz": 1500,
+          "offset_s": 0.0,
+          "tremolo_hz": 0.4
+        }
+      ],
+      "pitch_variation": 0,
+      "gain_variation": 0
+    },
+    {
+      "id": "ambience.forest",
+      "bus": "ambience",
+      "duration_s": 4.0,
+      "loop": true,
+      "layers": [
+        {
+          "wave": "noise",
+          "start_hz": 1,
+          "end_hz": 1,
+          "gain": 0.12,
+          "attack_s": 1.0,
+          "decay_s": 0.0,
+          "sustain": 1.0,
+          "release_s": 1.0,
+          "lowpass_hz": 2200,
+          "offset_s": 0.0,
+          "tremolo_hz": 0.35
+        }
+      ],
+      "pitch_variation": 0,
+      "gain_variation": 0
+    },
+    {
+      "id": "ambience.stream",
+      "bus": "ambience",
+      "duration_s": 4.0,
+      "loop": true,
+      "layers": [
+        {
+          "wave": "noise",
+          "start_hz": 1,
+          "end_hz": 1,
+          "gain": 0.25,
+          "attack_s": 1.0,
+          "decay_s": 0.0,
+          "sustain": 1.0,
+          "release_s": 1.0,
+          "lowpass_hz": 3000,
+          "offset_s": 0.0,
+          "tremolo_hz": 3
+        }
+      ],
+      "pitch_variation": 0,
+      "gain_variation": 0
+    },
+    {
+      "id": "ambience.rocks",
+      "bus": "ambience",
+      "duration_s": 4.0,
+      "loop": true,
+      "layers": [
+        {
+          "wave": "noise",
+          "start_hz": 1,
+          "end_hz": 1,
+          "gain": 0.1,
+          "attack_s": 1.0,
+          "decay_s": 0.0,
+          "sustain": 1.0,
+          "release_s": 1.0,
+          "lowpass_hz": 700,
+          "offset_s": 0.0,
+          "tremolo_hz": 0.2
+        }
+      ],
+      "pitch_variation": 0,
+      "gain_variation": 0
+    },
+    {
+      "id": "ambience.swamp",
+      "bus": "ambience",
+      "duration_s": 4.0,
+      "loop": true,
+      "layers": [
+        {
+          "wave": "noise",
+          "start_hz": 1,
+          "end_hz": 1,
+          "gain": 0.12,
+          "attack_s": 1.0,
+          "decay_s": 0.0,
+          "sustain": 1.0,
+          "release_s": 1.0,
+          "lowpass_hz": 800,
+          "offset_s": 0.0,
+          "tremolo_hz": 0.5
+        }
+      ],
+      "pitch_variation": 0,
+      "gain_variation": 0
+    },
+    {
+      "id": "animal.gull.call",
+      "bus": "animals",
+      "duration_s": 0.9,
+      "loop": false,
+      "layers": [
+        {
+          "wave": "saw",
+          "start_hz": 1400,
+          "end_hz": 900,
+          "gain": 0.25,
+          "attack_s": 0.02,
+          "decay_s": 0.2,
+          "sustain": 0.5,
+          "release_s": 0.3,
+          "lowpass_hz": 3500,
+          "offset_s": 0.0,
+          "tremolo_hz": null
+        },
+        {
+          "wave": "saw",
+          "start_hz": 1500,
+          "end_hz": 1000,
+          "gain": 0.15,
+          "attack_s": 0.4,
+          "decay_s": 0.2,
+          "sustain": 0.4,
+          "release_s": 0.2,
+          "lowpass_hz": 3500,
+          "offset_s": 0.35,
+          "tremolo_hz": null
+        }
+      ],
+      "pitch_variation": 0.08,
+      "gain_variation": 0.1
+    },
+    {
+      "id": "animal.crab.click",
+      "bus": "animals",
+      "duration_s": 0.25,
+      "loop": false,
+      "layers": [
+        {
+          "wave": "noise",
+          "start_hz": 1,
+          "end_hz": 1,
+          "gain": 0.4,
+          "attack_s": 0.001,
+          "decay_s": 0.02,
+          "sustain": 0.0,
+          "release_s": 0.02,
+          "lowpass_hz": 6000,
+          "offset_s": 0.0,
+          "tremolo_hz": null
+        },
+        {
+          "wave": "noise",
+          "start_hz": 1,
+          "end_hz": 1,
+          "gain": 0.3,
+          "attack_s": 0.001,
+          "decay_s": 0.02,
+          "sustain": 0.0,
+          "release_s": 0.02,
+          "lowpass_hz": 6000,
+          "offset_s": 0.12,
+          "tremolo_hz": null
+        }
+      ],
+      "pitch_variation": 0.1,
+      "gain_variation": 0.1
+    },
+    {
+      "id": "animal.butterfly.wings",
+      "bus": "animals",
+      "duration_s": 0.6,
+      "loop": false,
+      "layers": [
+        {
+          "wave": "noise",
+          "start_hz": 1,
+          "end_hz": 1,
+          "gain": 0.08,
+          "attack_s": 0.05,
+          "decay_s": 0.2,
+          "sustain": 0.4,
+          "release_s": 0.2,
+          "lowpass_hz": 900,
+          "offset_s": 0.0,
+          "tremolo_hz": 11
+        }
+      ],
+      "pitch_variation": 0.1,
+      "gain_variation": 0.1
+    },
+    {
+      "id": "animal.bee.buzz",
+      "bus": "animals",
+      "duration_s": 1.5,
+      "loop": false,
+      "layers": [
+        {
+          "wave": "saw",
+          "start_hz": 220,
+          "end_hz": 235,
+          "gain": 0.15,
+          "attack_s": 0.2,
+          "decay_s": 0.2,
+          "sustain": 0.7,
+          "release_s": 0.4,
+          "lowpass_hz": 1500,
+          "offset_s": 0.0,
+          "tremolo_hz": 7
+        }
+      ],
+      "pitch_variation": 0.06,
+      "gain_variation": 0.1
+    },
+    {
+      "id": "animal.songbird.song",
+      "bus": "animals",
+      "duration_s": 1.4,
+      "loop": false,
+      "layers": [
+        {
+          "wave": "sine",
+          "start_hz": 2800,
+          "end_hz": 3600,
+          "gain": 0.2,
+          "attack_s": 0.01,
+          "decay_s": 0.1,
+          "sustain": 0.5,
+          "release_s": 0.1,
+          "lowpass_hz": null,
+          "offset_s": 0.0,
+          "tremolo_hz": 18
+        },
+        {
+          "wave": "sine",
+          "start_hz": 3400,
+          "end_hz": 2600,
+          "gain": 0.2,
+          "attack_s": 0.01,
+          "decay_s": 0.1,
+          "sustain": 0.5,
+          "release_s": 0.1,
+          "lowpass_hz": null,
+          "offset_s": 0.45,
+          "tremolo_hz": 22
+        },
+        {
+          "wave": "sine",
+          "start_hz": 3000,
+          "end_hz": 3800,
+          "gain": 0.18,
+          "attack_s": 0.01,
+          "decay_s": 0.1,
+          "sustain": 0.5,
+          "release_s": 0.15,
+          "lowpass_hz": null,
+          "offset_s": 0.9,
+          "tremolo_hz": null
+        }
+      ],
+      "pitch_variation": 0.12,
+      "gain_variation": 0.1
+    },
+    {
+      "id": "animal.squirrel.chatter",
+      "bus": "animals",
+      "duration_s": 0.7,
+      "loop": false,
+      "layers": [
+        {
+          "wave": "square",
+          "start_hz": 1800,
+          "end_hz": 1700,
+          "gain": 0.08,
+          "attack_s": 0.005,
+          "decay_s": 0.05,
+          "sustain": 0.3,
+          "release_s": 0.1,
+          "lowpass_hz": 4000,
+          "offset_s": 0.0,
+          "tremolo_hz": 14
+        }
+      ],
+      "pitch_variation": 0.1,
+      "gain_variation": 0.1
+    },
+    {
+      "id": "animal.dragonfly.wings",
+      "bus": "animals",
+      "duration_s": 0.8,
+      "loop": false,
+      "layers": [
+        {
+          "wave": "noise",
+          "start_hz": 1,
+          "end_hz": 1,
+          "gain": 0.07,
+          "attack_s": 0.1,
+          "decay_s": 0.2,
+          "sustain": 0.5,
+          "release_s": 0.2,
+          "lowpass_hz": 1800,
+          "offset_s": 0.0,
+          "tremolo_hz": 30
+        }
+      ],
+      "pitch_variation": 0.08,
+      "gain_variation": 0.1
+    },
+    {
+      "id": "animal.frog.croak",
+      "bus": "animals",
+      "duration_s": 0.5,
+      "loop": false,
+      "layers": [
+        {
+          "wave": "square",
+          "start_hz": 130,
+          "end_hz": 110,
+          "gain": 0.22,
+          "attack_s": 0.01,
+          "decay_s": 0.1,
+          "sustain": 0.6,
+          "release_s": 0.1,
+          "lowpass_hz": 900,
+          "offset_s": 0.0,
+          "tremolo_hz": 24
+        }
+      ],
+      "pitch_variation": 0.08,
+      "gain_variation": 0.1
+    },
+    {
+      "id": "animal.firefly.shimmer",
+      "bus": "animals",
+      "duration_s": 1.2,
+      "loop": false,
+      "layers": [
+        {
+          "wave": "sine",
+          "start_hz": 4200,
+          "end_hz": 4300,
+          "gain": 0.03,
+          "attack_s": 0.4,
+          "decay_s": 0.2,
+          "sustain": 0.5,
+          "release_s": 0.5,
+          "lowpass_hz": null,
+          "offset_s": 0.0,
+          "tremolo_hz": 2
+        }
+      ],
+      "pitch_variation": 0.05,
+      "gain_variation": 0.1
+    },
+    {
+      "id": "animal.owl.hoot",
+      "bus": "animals",
+      "duration_s": 1.3,
+      "loop": false,
+      "layers": [
+        {
+          "wave": "sine",
+          "start_hz": 380,
+          "end_hz": 360,
+          "gain": 0.3,
+          "attack_s": 0.05,
+          "decay_s": 0.15,
+          "sustain": 0.6,
+          "release_s": 0.2,
+          "lowpass_hz": null,
+          "offset_s": 0.0,
+          "tremolo_hz": null
+        },
+        {
+          "wave": "sine",
+          "start_hz": 360,
+          "end_hz": 340,
+          "gain": 0.3,
+          "attack_s": 0.05,
+          "decay_s": 0.2,
+          "sustain": 0.6,
+          "release_s": 0.3,
+          "lowpass_hz": null,
+          "offset_s": 0.6,
+          "tremolo_hz": null
+        }
+      ],
+      "pitch_variation": 0.04,
+      "gain_variation": 0.1
+    },
+    {
+      "id": "animal.fish.splash",
+      "bus": "animals",
+      "duration_s": 0.5,
+      "loop": false,
+      "layers": [
+        {
+          "wave": "noise",
+          "start_hz": 1,
+          "end_hz": 1,
+          "gain": 0.4,
+          "attack_s": 0.002,
+          "decay_s": 0.1,
+          "sustain": 0.2,
+          "release_s": 0.2,
+          "lowpass_hz": 2500,
+          "offset_s": 0.0,
+          "tremolo_hz": null
+        },
+        {
+          "wave": "sine",
+          "start_hz": 900,
+          "end_hz": 300,
+          "gain": 0.15,
+          "attack_s": 0.002,
+          "decay_s": 0.15,
+          "sustain": 0.0,
+          "release_s": 0.1,
+          "lowpass_hz": null,
+          "offset_s": 0.0,
+          "tremolo_hz": null
+        }
+      ],
+      "pitch_variation": 0.1,
+      "gain_variation": 0.1
+    },
+    {
+      "id": "animal.wild_chicken.cluck",
+      "bus": "animals",
+      "duration_s": 0.5,
+      "loop": false,
+      "layers": [
+        {
+          "wave": "square",
+          "start_hz": 520,
+          "end_hz": 480,
+          "gain": 0.15,
+          "attack_s": 0.005,
+          "decay_s": 0.06,
+          "sustain": 0.3,
+          "release_s": 0.08,
+          "lowpass_hz": 2500,
+          "offset_s": 0.0,
+          "tremolo_hz": null
+        },
+        {
+          "wave": "square",
+          "start_hz": 560,
+          "end_hz": 500,
+          "gain": 0.15,
+          "attack_s": 0.005,
+          "decay_s": 0.06,
+          "sustain": 0.3,
+          "release_s": 0.08,
+          "lowpass_hz": 2500,
+          "offset_s": 0.22,
+          "tremolo_hz": null
+        }
+      ],
+      "pitch_variation": 0.08,
+      "gain_variation": 0.1
+    },
+    {
+      "id": "animal.goat.bleat",
+      "bus": "animals",
+      "duration_s": 0.9,
+      "loop": false,
+      "layers": [
+        {
+          "wave": "saw",
+          "start_hz": 420,
+          "end_hz": 380,
+          "gain": 0.2,
+          "attack_s": 0.05,
+          "decay_s": 0.1,
+          "sustain": 0.6,
+          "release_s": 0.2,
+          "lowpass_hz": 2000,
+          "offset_s": 0.0,
+          "tremolo_hz": 9
+        }
+      ],
+      "pitch_variation": 0.08,
+      "gain_variation": 0.1
+    }
+  ]
+}
