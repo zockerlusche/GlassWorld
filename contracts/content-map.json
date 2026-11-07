@@ -129,6 +129,10 @@
     {
       "pattern": "sound/mix.json",
       "schema": "sound-mix"
+    },
+    {
+      "pattern": "sound/library.json",
+      "schema": "base-sound-library"
     }
   ]
 }

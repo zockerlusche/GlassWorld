@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Developer tool (B8-4): builds the base sound library from CC0 packs and generated sounds.
+       Decodes Ogg Vorbis with NVorbis (MIT), normalises loudness, writes 16-bit WAV and
+       content/sound/library.json. Not shipped. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>GlassWorld.Tools.SoundBase</RootNamespace>
+    <AssemblyName>GlassWorld.Tools.SoundBase</AssemblyName>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="NVorbis" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Game.Presentation\Game.Presentation.csproj" />
+  </ItemGroup>
+</Project>
