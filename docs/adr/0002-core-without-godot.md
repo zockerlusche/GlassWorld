@@ -1,6 +1,6 @@
 # ADR-0002: Simulation core without Godot dependency
 
-- Status: proposed
+- Status: accepted (effective with the merge of the PR that adds it)
 - Date: 2026-11-07
 - Deciders: TL, GW1
 

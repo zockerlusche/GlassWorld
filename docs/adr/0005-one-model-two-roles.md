@@ -1,6 +1,6 @@
 # ADR-0005: One language model for decider and rule guard; core has the final say
 
-- Status: proposed (two-stage check confirmed by TL, AMW #18263)
+- Status: accepted (effective with the merge of the PR that adds it)
 - Date: 2026-11-07
 - Deciders: TL, GW1, GW2
 

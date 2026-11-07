@@ -1,6 +1,6 @@
 # ADR-0006: AI service over HTTP on localhost, started and stopped by the game
 
-- Status: proposed (confirmed by GW2, AMW #18238)
+- Status: accepted (effective with the merge of the PR that adds it)
 - Date: 2026-11-07
 - Deciders: TL, GW1, GW2
 

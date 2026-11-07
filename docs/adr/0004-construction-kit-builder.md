@@ -1,6 +1,6 @@
 # ADR-0004: Construction-kit builder as the standard builder
 
-- Status: proposed
+- Status: accepted (effective with the merge of the PR that adds it)
 - Date: 2026-11-07
 - Deciders: TL, GW1, GW2
 

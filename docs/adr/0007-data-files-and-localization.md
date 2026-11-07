@@ -1,6 +1,6 @@
 # ADR-0007: Data file format, schema validation and DE/EN text keys
 
-- Status: proposed
+- Status: accepted (effective with the merge of the PR that adds it)
 - Date: 2026-11-07
 - Deciders: TL, GW1, GW2
 
