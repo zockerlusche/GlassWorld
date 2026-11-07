@@ -93,6 +93,9 @@ public static class FigureFactory
         // Order matters: proportions, arms rest, then the wave overrides the right arm, then the look-at.
         skeleton.AddChild(new ProportionModifier { HeadScale = look.HeadScale, Stoop = look.Elder ? 14f : 0f });
         skeleton.AddChild(new ArmRestModifier { Spread = look.ArmSpread });
+        // Arm thickness grows with the heavy and strong shapes (blend shapes widen the limbs too).
+        var limbs = 1f + (0.3f * (look.Shapes?.GetValueOrDefault("heavy") ?? 0)) + (0.3f * (look.Shapes?.GetValueOrDefault("strong") ?? 0));
+        skeleton.AddChild(new ArmClearanceModifier { Profile = TorsoProfile.Of(body, skeleton), ArmRadius = (0.06f * limbs) + 0.02f });
         var wave = new WaveModifier();
         skeleton.AddChild(wave);
         var lookAt = new LookAtModifier();

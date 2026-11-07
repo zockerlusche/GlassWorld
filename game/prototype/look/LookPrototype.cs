@@ -38,6 +38,7 @@ public partial class LookPrototype : Node3D
     private bool _showcase;
     private bool _variety;
     private readonly List<Figure> _showRow = [];
+    private readonly List<Figure> _faces = [];
     private readonly Dictionary<Figure, float> _restYaw = [];
     private double _fpsSeconds;
     private string? _fpsOut;
@@ -674,6 +675,7 @@ public partial class LookPrototype : Node3D
             Place(FigureFactory.Build(face, comic, outline), new Vector3(-2.4f + (i * 1.2f), 0, 10f), new Vector3(0, 0, 1), out var placed);
             placed.Face.Expression = expressions[i];
             placed.Face.Blinking = false;
+            _faces.Add(placed);
         }
     }
 
@@ -686,7 +688,11 @@ public partial class LookPrototype : Node3D
         {
             ("variety_front", new Vector3(0.2f, 3.4f, 11.5f), new Vector3(0.2f, 0.9f, 2.7f)),
             ("variety_back", new Vector3(0.2f, 3.4f, -6.2f), new Vector3(0.2f, 0.9f, 2.7f)),
-            ("mouths", new Vector3(0.0f, 1.75f, 12.6f), new Vector3(0.0f, 1.6f, 10f)),
+            ("mouth_neutral", new Vector3(-2.4f, 1.62f, 11.15f), new Vector3(-2.4f, 1.6f, 10f)),
+            ("mouth_smile", new Vector3(-1.2f, 1.62f, 11.15f), new Vector3(-1.2f, 1.6f, 10f)),
+            ("mouth_sad", new Vector3(0f, 1.62f, 11.15f), new Vector3(0f, 1.6f, 10f)),
+            ("mouth_surprised", new Vector3(1.2f, 1.62f, 11.15f), new Vector3(1.2f, 1.6f, 10f)),
+            ("mouth_talk", new Vector3(2.4f, 1.62f, 11.15f), new Vector3(2.4f, 1.6f, 10f)),
         };
         if (_shotStep >= shots.Length)
         {
@@ -701,9 +707,19 @@ public partial class LookPrototype : Node3D
         }
 
         var (name, from, to) = shots[_shotStep];
+        var faceIndex = _shotStep - 2;
+        if (faceIndex >= 0 && faceIndex < _faces.Count)
+        {
+            // Aim at the head bone of that face (ground height and proportions vary).
+            var skeleton = _faces[faceIndex].Root.FindChildren("*", "Skeleton3D", true, false).OfType<Skeleton3D>().Single();
+            var head = skeleton.GlobalTransform * skeleton.GetBoneGlobalPose(skeleton.FindBone("DEF-head")).Origin;
+            to = head + new Vector3(0, 0.14f, 0);
+            from = to + new Vector3(0, 0.02f, 0.95f);
+        }
+
         _camera!.GlobalPosition = from;
         _camera.LookAt(to, Vector3.Up);
-        _camera.Fov = name == "mouths" ? 26 : 34;
+        _camera.Fov = name.StartsWith("mouth_", StringComparison.Ordinal) ? 30 : 34;
         if (_time > 3.0 + (_shotStep * 1.2) && _frame > 150)
         {
             Save($"{name}_{tag}.png");
