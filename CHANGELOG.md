@@ -5,6 +5,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Observer camera in the placeholder world (follows the group with the latest thought, else switches every 30 s; B0 island placeholder hidden) and timed window screenshots via `GLASSWORLD_SHOTS=dir;seconds,...` for acceptance documents (M1, groundwork for B2 R32).
+- Inhabitant card stays beside the side bar and its open panel and is re-fitted when the UI size changes (found in the 3840x1600 screenshots at 175 %: the card kept its old place, covered the inhabitant list and ran off the screen). The smoke checks the card at the smallest and largest UI size.
+
+### Fixed
+
+- Smoke test accepts `SMOKE_OK frames=N` with N at least the requested frames: the game waits for its own checks before quitting, which can take a few frames longer on a slow CI runner (seen: 614 of 600).
+
 ### Added
 
 - Sound jobs in the AI service (D471 D7, B2530): handler `sound` with the MOSS worker (`tools/moss/worker.py` in the MOSS environment: bf16 and official VRAM management after D440; starting it loads the model, ending it frees the VRAM) or a deterministic mock without the model. Steps are raised to `min_steps`; every result is checked (length, level, silence, clipping) and retried with the next seed up to `seed_retries`; nothing usable = the job fails and the core falls back to the base library. Files by name pattern in `sound_output_dir`. Settings `sound_backend` (mock/moss) and the local MOSS paths (`GW_AI_*`).

@@ -50,6 +50,11 @@ public partial class Main : Node3D
     /// <inheritdoc/>
     public override void _Ready()
     {
+        if (TimedShots.FromEnvironment() is { } shots)
+        {
+            AddChild(shots);
+        }
+
         GD.Print($"GlassWorld started, core: {CoreInfo.AssemblyName}");
 
         // Closing the window always saves first (B2469); the quit happens in _Notification.
