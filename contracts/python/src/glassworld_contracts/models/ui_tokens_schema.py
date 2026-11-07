@@ -23,6 +23,18 @@ class UiWindowTokens(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
+    side_panel_width: int = Field(
+        ...,
+        description='Width of a docked side panel (mailbox, inhabitants, chronicle, open questions).',
+        ge=200,
+        le=1200,
+    )
+    bubble_max_chars: int = Field(
+        ...,
+        description='Line length of speech bubbles in characters (D366 section 3: about 60).',
+        ge=20,
+        le=120,
+    )
     padding: int = Field(..., ge=0, le=128)
     gap: int = Field(..., ge=0, le=128)
     section_gap: int = Field(..., ge=0, le=128)

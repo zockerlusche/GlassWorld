@@ -26,6 +26,9 @@ public static class UiTheme
     /// <summary>Theme type variation for the window frame.</summary>
     public const string WindowPanel = "GwWindowPanel";
 
+    /// <summary>Theme type variation for speech and thought bubbles.</summary>
+    public const string BubblePanel = "GwBubblePanel";
+
     private const string FontFolder = "res://ui/fonts/";
     private const string FrameFolder = "res://ui/frames/";
 
@@ -66,6 +69,8 @@ public static class UiTheme
         theme.SetTypeVariation(WindowPanel, "PanelContainer");
         theme.SetStylebox("panel", WindowPanel, window);
         theme.SetStylebox("panel", "TooltipPanel", Frame(style, UiFrameId.Tooltip, UiColorId.Panel_strong));
+        theme.SetTypeVariation(BubblePanel, "PanelContainer");
+        theme.SetStylebox("panel", BubblePanel, Frame(style, UiFrameId.Bubble, UiColorId.Bubble_inhabitant));
 
         theme.SetStylebox("normal", "Button", Frame(style, UiFrameId.Button, UiColorId.Panel_strong));
         var button = style.Tokens.Button;

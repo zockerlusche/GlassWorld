@@ -140,9 +140,23 @@
         "corner_radius",
         "border_width",
         "safe_margin",
-        "max_screen_fraction"
+        "max_screen_fraction",
+        "side_panel_width",
+        "bubble_max_chars"
       ],
       "properties": {
+        "side_panel_width": {
+          "description": "Width of a docked side panel (mailbox, inhabitants, chronicle, open questions).",
+          "type": "integer",
+          "minimum": 200,
+          "maximum": 1200
+        },
+        "bubble_max_chars": {
+          "description": "Line length of speech bubbles in characters (D366 section 3: about 60).",
+          "type": "integer",
+          "minimum": 20,
+          "maximum": 120
+        },
         "padding": {
           "type": "integer",
           "minimum": 0,

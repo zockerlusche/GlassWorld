@@ -37,6 +37,18 @@ namespace GlassWorld.Contracts
     public partial class UiWindowTokens
     {
 
+        /// <summary>
+        /// Width of a docked side panel (mailbox, inhabitants, chronicle, open questions).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("side_panel_width")]
+        public int SidePanelWidth { get; set; } = default!;
+
+        /// <summary>
+        /// Line length of speech bubbles in characters (D366 section 3: about 60).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("bubble_max_chars")]
+        public int BubbleMaxChars { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("padding")]
         public int Padding { get; set; } = default!;
 
