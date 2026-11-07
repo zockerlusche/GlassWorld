@@ -33,6 +33,10 @@
     {
       "pattern": "behaviour/utility.json",
       "schema": "utility-weights"
+    },
+    {
+      "pattern": "decider/settings.json",
+      "schema": "decider-settings"
     }
   ]
 }

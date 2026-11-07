@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/decider-settings.schema.json",
+  "title": "DeciderSettings",
+  "description": "Data file content/decider/settings.json: when inhabitants ask the decider (W1595: whatever an inhabitant does not understand becomes a question to the AI; B2487: questions wait without a fixed time limit), and the environment values used until weather (B2) and temperature (B5) exist. Placeholders until Marcel decides.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "deadline_ms", "max_open_questions", "ask_cooldown_hours", "triggers", "fallback_environment"],
+  "properties": {
+    "contract_version": { "$ref": "common.schema.json#/$defs/ContractVersion" },
+    "deadline_ms": { "description": "Service time budget per request (ADR-0006); the core itself never waits for the clock.", "type": "integer", "minimum": 100, "maximum": 60000 },
+    "max_open_questions": { "description": "Open questions per inhabitant at the same time.", "type": "integer", "minimum": 1, "maximum": 16 },
+    "ask_cooldown_hours": { "description": "Game hours before the same inhabitant asks about the same subject again.", "type": "integer", "minimum": 0, "maximum": 1000 },
+    "triggers": {
+      "type": "array",
+      "maxItems": 32,
+      "items": { "$ref": "#/$defs/Trigger" }
+    },
+    "fallback_environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["temperature_c", "weather"],
+      "properties": {
+        "temperature_c": { "type": "number", "minimum": -60, "maximum": 60 },
+        "weather": { "type": "array", "minItems": 1, "maxItems": 4, "uniqueItems": true, "items": { "$ref": "common.schema.json#/$defs/VocabId" } }
+      }
+    }
+  },
+  "$defs": {
+    "Trigger": {
+      "description": "A kind of not-understanding that becomes a question.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "enabled"],
+      "properties": {
+        "kind": { "type": "string", "enum": ["unknown_object", "noticed_player"] },
+        "enabled": { "type": "boolean" }
+      }
+    }
+  }
+}

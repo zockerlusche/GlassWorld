@@ -1,0 +1,11 @@
+{
+  "contract_version": "0.1",
+  "deadline_ms": 8000,
+  "max_open_questions": 2,
+  "ask_cooldown_hours": 6,
+  "triggers": [
+    { "kind": "unknown_object", "enabled": true },
+    { "kind": "noticed_player", "enabled": true }
+  ],
+  "fallback_environment": { "temperature_c": 18.0, "weather": ["clear"] }
+}

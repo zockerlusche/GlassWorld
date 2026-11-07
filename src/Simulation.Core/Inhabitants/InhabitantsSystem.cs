@@ -38,6 +38,7 @@ public sealed class InhabitantsSystem : IWorldSystem
     private readonly UtilityBrain _brain;
     private readonly WorldObjects _objects;
     private readonly int _ticksPerHour;
+    private long _eventsTick = -1;
 
     /// <summary>Creates the system.</summary>
     public InhabitantsSystem(InhabitantModel model, ActionRules actions, UtilityBrain brain, WorldObjects objects, int ticksPerHour)
@@ -57,8 +58,21 @@ public sealed class InhabitantsSystem : IWorldSystem
     /// <summary>All inhabitants in id order.</summary>
     public IEnumerable<Inhabitant> All => _inhabitants.Values;
 
-    /// <summary>Events of the last tick.</summary>
+    /// <summary>Events of the most recent tick that had events (UI, sound and tests read them each tick).</summary>
     public IReadOnlyList<WorldEvent> Events => _events;
+
+    /// <summary>Adds an event; the list is cleared when the first event of a new tick arrives.</summary>
+    public void Report(WorldEvent worldEvent)
+    {
+        ArgumentNullException.ThrowIfNull(worldEvent);
+        if (worldEvent.Tick != _eventsTick)
+        {
+            _events.Clear();
+            _eventsTick = worldEvent.Tick;
+        }
+
+        _events.Add(worldEvent);
+    }
 
     /// <summary>
     /// Creates the start inhabitants from the world seed (B2503): traits and start needs are drawn from
@@ -103,7 +117,6 @@ public sealed class InhabitantsSystem : IWorldSystem
     public void Advance(World world)
     {
         ArgumentNullException.ThrowIfNull(world);
-        _events.Clear();
         foreach (var inhabitant in _inhabitants.Values)
         {
             DecayNeeds(inhabitant);
@@ -190,7 +203,7 @@ public sealed class InhabitantsSystem : IWorldSystem
         WorldObject? target = null;
         if (activity.TargetId is not null && !_objects.TryGet(activity.TargetId, out target))
         {
-            _events.Add(new WorldEvent(ActionCancelled, world.Tick, inhabitant.Id, activity.Action, activity.TargetId));
+            Report(new WorldEvent(ActionCancelled, world.Tick, inhabitant.Id, activity.Action, activity.TargetId));
             inhabitant.Activity = null;
             return;
         }
@@ -205,7 +218,7 @@ public sealed class InhabitantsSystem : IWorldSystem
             }
 
             inhabitant.Activity = activity with { RemainingTicks = timing.DurationTicks };
-            _events.Add(new WorldEvent(ActionStarted, world.Tick, inhabitant.Id, activity.Action, activity.TargetId));
+            Report(new WorldEvent(ActionStarted, world.Tick, inhabitant.Id, activity.Action, activity.TargetId));
             return;
         }
 
@@ -297,7 +310,7 @@ public sealed class InhabitantsSystem : IWorldSystem
             }
         }
 
-        _events.Add(new WorldEvent(ActionFinished, world.Tick, inhabitant.Id, activity.Action, activity.TargetId));
+        Report(new WorldEvent(ActionFinished, world.Tick, inhabitant.Id, activity.Action, activity.TargetId));
     }
 
     /// <summary>
