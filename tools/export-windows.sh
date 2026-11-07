@@ -43,6 +43,18 @@ CFG
 fi
 
 mkdir -p "$OUT"
+# Never delete the repository's own data: the output must not be the repository or contain content/.
+OUT_REAL="$(cd "$OUT" && (pwd -W 2>/dev/null || pwd))"
+case "$OUT_REAL/" in
+  "$ROOT/"|"$ROOT/content/"*)
+    echo "EXPORT_FAIL: output folder '$OUT' is the repository or inside content/" >&2
+    exit 1
+    ;;
+esac
+if [ -e "$OUT/content" ] && [ ! -f "$OUT/GlassWorld.exe" ]; then
+  echo "EXPORT_FAIL: '$OUT/content' exists but is not from an earlier export (no GlassWorld.exe next to it)" >&2
+  exit 1
+fi
 "$GODOT" --headless --path "$GAME" --import >/dev/null 2>&1 || true
 EXPORT_LOG="$(mktemp)"
 if ! "$GODOT" --headless --path "$GAME" --export-release "Windows Desktop" "$OUT/GlassWorld.exe" >"$EXPORT_LOG" 2>&1; then
