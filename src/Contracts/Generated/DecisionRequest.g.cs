@@ -144,7 +144,7 @@ namespace GlassWorld.Contracts
     /// What the inhabitant can sense right now. Deliberately no season name: inhabitants must learn that seasons exist and return (concept). A season concept reaches the model only through the inhabitant's own knowledge.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
-    public partial class Environment
+    public partial class EnvironmentState
     {
 
         /// <summary>
@@ -203,7 +203,7 @@ namespace GlassWorld.Contracts
         public InhabitantState Inhabitant { get; set; } = new InhabitantState();
 
         [System.Text.Json.Serialization.JsonPropertyName("environment")]
-        public Environment Environment { get; set; } = new Environment();
+        public EnvironmentState Environment { get; set; } = new EnvironmentState();
 
         [System.Text.Json.Serialization.JsonPropertyName("perception")]
         public Perception Perception { get; set; } = new Perception();
