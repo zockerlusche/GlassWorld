@@ -132,6 +132,28 @@ public sealed class PlayerTests : IDisposable
     }
 
     [Fact]
+    public void EffortThenCallThenGiftThenSomeoneUsesIt()
+    {
+        // A1340 criterion 1: futile effort -> call for help -> the player places a gift -> an inhabitant
+        // perceives and uses it. A second, curious inhabitant may take it first (F5238).
+        var host = WorldWithThirsty(out var thirsty);
+        var needs = host.Content.InhabitantModel.Needs.ToDictionary(n => n.Id, _ => 1.0, StringComparer.Ordinal);
+        host.Inhabitants.Add(new Inhabitant("inh-000002", "male", 1, new Position(3, 0), needs, new Dictionary<string, double>(StringComparer.Ordinal), new Dictionary<string, double>(StringComparer.Ordinal), 0.8));
+        var call = RunUntil(host, PlayerSystem.HelpNeeded, days: 2, detail: "thirst");
+        Assert.NotNull(call);
+
+        var at = thirsty.Position;
+        var result = host.Decisions.Submit(new PlayerCommand(PlayerSystem.PlaceGift, null) { TypeId = "spring_water", X = at.X, Z = at.Z + 4 });
+        Assert.True(result.Accepted, $"{result.ReasonKey} at {at}, other at {host.Inhabitants.Get("inh-000002").Position}, favour {host.Player.Favor}");
+        var placed = RunUntil(host, PlayerSystem.GiftPlaced, days: 0.01);
+        Assert.NotNull(placed);
+
+        var used = RunUntil(host, InhabitantsSystem.ActionStarted, days: 1, target: placed.TargetId);
+        Assert.NotNull(used);
+        Assert.True(used.InhabitantId is "inh-000001" or "inh-000002");
+    }
+
+    [Fact]
     public void StartFavourIsPartOfTheStartState()
     {
         // GW1 review #67 S1: the same world code with another favour is another start state.
@@ -177,13 +199,13 @@ public sealed class PlayerTests : IDisposable
         return host;
     }
 
-    private static WorldEvent? RunUntil(SimulationHost host, string kind, double days, string? detail = null)
+    private static WorldEvent? RunUntil(SimulationHost host, string kind, double days, string? detail = null, string? target = null)
     {
         var seq = host.Inhabitants.LastEventSeq;
         for (long t = 0; t < (long)(host.World.Calendar.TicksPerDay * days); t++)
         {
             host.World.Step();
-            var found = host.Inhabitants.EventsSince(seq).Select(e => e.Event).FirstOrDefault(e => e.Kind == kind && (detail is null || e.Detail == detail));
+            var found = host.Inhabitants.EventsSince(seq).Select(e => e.Event).FirstOrDefault(e => e.Kind == kind && (detail is null || e.Detail == detail) && (target is null || e.TargetId == target));
             if (found is not null)
             {
                 return found;
