@@ -23,24 +23,41 @@ public static class NewWorldModel
     public static string? NameProblem(string? name, WorldOptions options, TextGuard guard)
     {
         ArgumentNullException.ThrowIfNull(options);
+        return InputProblem(name, options.NameMaxLength, guard) switch
+        {
+            "empty" => "ui.new_world.problem.name_empty",
+            "long" => "ui.new_world.problem.name_long",
+            "characters" => "ui.new_world.problem.name_characters",
+            "blocked" => "ui.new_world.problem.name_blocked",
+            _ => null,
+        };
+    }
+
+    /// <summary>
+    /// Problem of a short player input (names): <c>empty</c>, <c>long</c>, <c>characters</c>,
+    /// <c>blocked</c> (content guard, R13), or null if it is fine. Callers map it to their own full
+    /// text keys (whole literals, so the text check sees them).
+    /// </summary>
+    public static string? InputProblem(string? text, int maxLength, TextGuard guard)
+    {
         ArgumentNullException.ThrowIfNull(guard);
-        var trimmed = name?.Trim() ?? string.Empty;
+        var trimmed = text?.Trim() ?? string.Empty;
         if (trimmed.Length == 0)
         {
-            return "ui.new_world.problem.name_empty";
+            return "empty";
         }
 
-        if (trimmed.Length > options.NameMaxLength)
+        if (trimmed.Length > maxLength)
         {
-            return "ui.new_world.problem.name_long";
+            return "long";
         }
 
         if (trimmed.Any(char.IsControl))
         {
-            return "ui.new_world.problem.name_characters";
+            return "characters";
         }
 
-        return guard.Check(trimmed).Allowed ? null : "ui.new_world.problem.name_blocked";
+        return guard.Check(trimmed).Allowed ? null : "blocked";
     }
 
     /// <summary>Reads the seed field: empty = draw one (<c>Ok</c> with null), a whole number, or not ok.</summary>

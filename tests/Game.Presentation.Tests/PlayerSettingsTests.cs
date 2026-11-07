@@ -12,7 +12,10 @@ public sealed class PlayerSettingsTests
     private static readonly GlassWorld.Contracts.MixPlayerRange Volume = GlassWorld.Contracts.Validation.ContractSerializer
         .Deserialize<GlassWorld.Contracts.SoundMix>(File.ReadAllText(Path.Combine(TestPaths.Root, "content", "sound", "mix.json"))).PlayerVolumeDb;
 
-    private static readonly SettingsLimits Limits = new(Tokens, ["de", "en"], Volume);
+    private static readonly GlassWorld.Simulation.Safety.TextGuard Guard =
+        GlassWorld.Simulation.Safety.TextGuard.FromJson(File.ReadAllText(Path.Combine(TestPaths.Root, "content", "safety", "rules.json")));
+
+    private static readonly SettingsLimits Limits = new(Tokens, ["de", "en"], Volume, 24, Guard);
 
     [Fact]
     public void RoundTripKeepsEverything()
@@ -54,6 +57,29 @@ public sealed class PlayerSettingsTests
         Assert.Equal(0.75, settings.TextScale);
         Assert.Equal(Tokens.Toast.MaxDurationFactor, settings.HintDurationFactor);
         Assert.Equal(Volume.Max, settings.BusVolumesDb["music"]);
+    }
+
+    [Theory]
+    [InlineData(null, null)]
+    [InlineData("   ", null)]
+    [InlineData("  Mara  ", "Mara")]
+    [InlineData("Ma\u0007ra", "Mara")]
+    [InlineData("Abcdefghijklmnopqrstuvwxyz", "Abcdefghijklmnopqrstuvwx")]
+    public void PlayerNameFromAHandEditedFileIsCleaned(string? name, string? expected)
+        => Assert.Equal(expected, (new PlayerSettings { PlayerName = name }).Clamp(Limits).PlayerName);
+
+    [Fact]
+    public void BlockedPlayerNameFromAHandEditedFileIsDropped()
+    {
+        // Every short blocked pre-filter case of the shared guard test set.
+        using var doc = System.Text.Json.JsonDocument.Parse(File.ReadAllText(Path.Combine(TestPaths.Root, "tests", "safety", "cases.json")));
+        var blocked = doc.RootElement.GetProperty("cases").EnumerateArray()
+            .Where(c => c.GetProperty("expect").GetString() == "block" && c.GetProperty("stage").GetString() == "prefilter")
+            .Select(c => c.GetProperty("text").GetString()!.Trim())
+            .Where(t => t.Length <= 24)
+            .ToList();
+        Assert.NotEmpty(blocked);
+        Assert.All(blocked, t => Assert.Null(new PlayerSettings { PlayerName = t }.Clamp(Limits).PlayerName));
     }
 
     [Fact]

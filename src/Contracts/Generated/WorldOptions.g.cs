@@ -58,5 +58,11 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("name_max_length")]
         public int NameMaxLength { get; set; } = default!;
 
+        /// <summary>
+        /// Longest player name in the settings (B2535: used only outside the aquarium; inhabitants learn it only when the player tells them).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("player_name_max_length")]
+        public int PlayerNameMaxLength { get; set; } = default!;
+
     }
 }
