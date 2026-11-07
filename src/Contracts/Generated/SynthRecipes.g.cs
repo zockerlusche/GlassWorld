@@ -17,6 +17,12 @@ namespace GlassWorld.Contracts
     {
 
         /// <summary>
+        /// How many variants of the sound exist (seeded); events pick one so repeats do not sound identical.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("variants")]
+        public int Variants { get; set; } = default!;
+
+        /// <summary>
         /// Language-neutral sound id, e.g. step.grass, animal.frog.call.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]

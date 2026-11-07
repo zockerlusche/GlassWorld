@@ -21,6 +21,7 @@ public partial class Main : Node3D
     private int _frame;
     private ulong _seed = 1;
     private WorldPresenter? _world;
+    private WorldAudio? _audio;
     private bool _uiCheckDone = true;
 
     public override void _Ready()
@@ -50,6 +51,10 @@ public partial class Main : Node3D
         var host = _world.Host!;
         GD.Print($"WORLD_OK seed={_seed} inhabitants={host.Inhabitants.All.Count()} objects={host.Objects.Count} hash={host.World.StateHash()[..12]}");
 
+        _audio = new WorldAudio { Name = "WorldAudio" };
+        AddChild(_audio);
+        var spatialReady = _audio.Setup(host, _seed);
+
         var audioLoaded = RetroAudio.Load();
         var style = UiSetup.Load();
         if (style is not null)
@@ -61,12 +66,25 @@ public partial class Main : Node3D
         {
             CheckTexts(textsLoaded);
             CheckAudio(audioLoaded);
+            CheckSpatial(spatialReady);
             _uiCheckDone = false;
             _ = CheckUiAsync(style);
         }
     }
 
     /// <summary>Smoke run only: every mapped sound renders to a stream of the right length (B8 R3).</summary>
+    private void CheckSpatial(bool ready)
+    {
+        var problem = ready && _audio is not null ? _audio.SpatialSelfCheck() : "world audio not set up";
+        if (problem.Length > 0)
+        {
+            GD.PushError($"AUDIO_SPATIAL_FAIL {problem}");
+            return;
+        }
+
+        GD.Print("AUDIO_SPATIAL_OK");
+    }
+
     private static void CheckAudio(bool loaded)
     {
         var problem = loaded ? RetroAudio.SelfCheck() : "audio data not loaded";

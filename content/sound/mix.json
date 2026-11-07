@@ -1,0 +1,57 @@
+{
+  "contract_version": "0.1",
+  "buses": [
+    {
+      "id": "master",
+      "volume_db": 0,
+      "max_voices": 64,
+      "full_volume_m": 0,
+      "silent_m": 0,
+      "curve": "linear"
+    },
+    {
+      "id": "music",
+      "volume_db": -8,
+      "max_voices": 2,
+      "full_volume_m": 0,
+      "silent_m": 0,
+      "curve": "linear"
+    },
+    {
+      "id": "ambience",
+      "volume_db": -6,
+      "max_voices": 6,
+      "full_volume_m": 20,
+      "silent_m": 120,
+      "curve": "linear"
+    },
+    {
+      "id": "animals",
+      "volume_db": -6,
+      "max_voices": 12,
+      "full_volume_m": 4,
+      "silent_m": 45,
+      "curve": "smooth"
+    },
+    {
+      "id": "voices",
+      "volume_db": -3,
+      "max_voices": 8,
+      "full_volume_m": 3,
+      "silent_m": 30,
+      "curve": "smooth"
+    },
+    {
+      "id": "effects",
+      "volume_db": -4,
+      "max_voices": 24,
+      "full_volume_m": 3,
+      "silent_m": 40,
+      "curve": "smooth"
+    }
+  ],
+  "zoom": {
+    "near_factor": 0.6,
+    "far_factor": 1.6
+  }
+}
