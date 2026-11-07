@@ -3,6 +3,7 @@ using GlassWorld.Contracts.Validation;
 using GlassWorld.Simulation.Content;
 using GlassWorld.Simulation.Decisions;
 using GlassWorld.Simulation.Inhabitants;
+using GlassWorld.Simulation.Map;
 using GlassWorld.Simulation.Objects;
 using GlassWorld.Simulation.View;
 
@@ -15,8 +16,9 @@ namespace GlassWorld.Simulation;
 /// </summary>
 public sealed class SimulationHost
 {
-    private SimulationHost(ContentSet content, World world, WorldObjects objects, DecisionsSystem decisions, InhabitantsSystem inhabitants, DeciderSettings deciderSettings)
+    private SimulationHost(ContentSet content, World world, WorldMapSystem? map, WorldObjects objects, DecisionsSystem decisions, InhabitantsSystem inhabitants, DeciderSettings deciderSettings)
     {
+        Map = map;
         Content = content;
         World = world;
         Objects = objects;
@@ -30,6 +32,9 @@ public sealed class SimulationHost
 
     /// <summary>The world (tick, time, random streams, hash).</summary>
     public World World { get; }
+
+    /// <summary>The generated island, or null on the placeholder world (B0/B1).</summary>
+    public WorldMapSystem? Map { get; }
 
     /// <summary>Objects.</summary>
     public WorldObjects Objects { get; }
@@ -52,15 +57,40 @@ public sealed class SimulationHost
     }
 
     /// <summary>Assembles the systems around a given world (new or restored) in the fixed order.</summary>
-    public static SimulationHost Assemble(ContentSet content, DeciderSettings settings, World world, IDecisionPort port, string displayLocale)
+    public static SimulationHost Assemble(ContentSet content, DeciderSettings settings, World world, IDecisionPort port, string displayLocale) =>
+        Assemble(content, settings, world, port, displayLocale, null);
+
+    /// <summary>
+    /// Assembles the systems around a given world in the fixed order (worldmap → objects → decisions →
+    /// inhabitants); with a preset the island is generated from the world seed (also when loading).
+    /// </summary>
+    public static SimulationHost Assemble(ContentSet content, DeciderSettings settings, World world, IDecisionPort port, string displayLocale, string? worldPreset)
     {
         ArgumentNullException.ThrowIfNull(content);
         ArgumentNullException.ThrowIfNull(world);
+        WorldMapSystem? map = null;
+        if (worldPreset is not null)
+        {
+            if (!content.WorldGen.Presets.TryGetValue(worldPreset, out var preset))
+            {
+                throw new InvalidDataException($"Unknown world preset '{worldPreset}'.");
+            }
+
+            var island = WorldGenerator.Generate(content.WorldGen, content.Objects, worldPreset, world.Seed);
+            if (!island.Passed)
+            {
+                throw new InvalidDataException($"World preset '{worldPreset}' with seed {world.Seed} gives no island that passes the check after {island.Attempts} attempts.");
+            }
+
+            map = new WorldMapSystem(island, preset.Grid.CellSizeCm);
+            world.Add(map);
+        }
+
         var objects = new WorldObjects(content.Objects);
         var inhabitants = new InhabitantsSystem(content.InhabitantModel, content.Actions, content.Brain, objects, world.Calendar.Settings.TicksPerHour);
         var decisions = new DecisionsSystem(settings, inhabitants, objects, content.Actions, content.Brain, content.Vocabularies[VocabularyKind.Action], port, displayLocale);
         world.Add(objects).Add(decisions).Add(inhabitants);
-        return new SimulationHost(content, world, objects, decisions, inhabitants, settings);
+        return new SimulationHost(content, world, map, objects, decisions, inhabitants, settings);
     }
 
     /// <summary>
@@ -94,6 +124,39 @@ public sealed class SimulationHost
                     host.Objects.Spawn(placement.Type, Scatter(rng, centres[group.Group], placement.RadiusM));
                 }
             }
+        }
+
+        return host;
+    }
+
+    /// <summary>
+    /// Creates a new world on the island generated from the seed and preset (B2-2): start inhabitants
+    /// at the start positions of their pair (group n = pair n − 1, members in start order), objects
+    /// at the centres of their cells.
+    /// </summary>
+    public static SimulationHost CreateGeneratedWorld(string contentDirectory, ulong seed, IDecisionPort port, string displayLocale, string worldPreset)
+    {
+        var content = ContentSet.Load(contentDirectory);
+        var settings = ContractSerializer.Deserialize<DeciderSettings>(File.ReadAllText(Path.Combine(contentDirectory, "decider", "settings.json")));
+        var host = Assemble(content, settings, new World(seed, content.Calendar), port, displayLocale, worldPreset);
+        var map = host.Map!;
+        var free = map.Island.Starts.GroupBy(s => s.Pair).ToDictionary(g => g.Key + 1, g => new Queue<StartPosition>(g));
+        var positions = new List<Position>();
+        foreach (var starter in content.InhabitantModel.Start.Inhabitants)
+        {
+            if (!free.TryGetValue(starter.Group, out var queue) || queue.Count == 0)
+            {
+                throw new InvalidDataException($"The island has no free start position for group {starter.Group}.");
+            }
+
+            var start = queue.Dequeue();
+            positions.Add(map.CentreOf(start.X, start.Z));
+        }
+
+        host.Inhabitants.SpawnStartInhabitants(host.World, positions);
+        foreach (var obj in map.Island.Objects)
+        {
+            host.Objects.Spawn(obj.TypeId, map.CentreOf(obj.X, obj.Z));
         }
 
         return host;

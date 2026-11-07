@@ -92,4 +92,18 @@ public sealed class WorldGeneratorTests
             Assert.NotEqual(MapCell.Blocked, island.Map.Cell(o.X, o.Z).WalkCost);
         }
     }
+
+    /// <summary>
+    /// Golden world hashes (B2 acceptance 1): the generator works in integers only, so these hashes must
+    /// be equal on Windows and Linux (CI). A deliberate change of generator or data updates them here.
+    /// </summary>
+    [Theory]
+    [InlineData(1UL, "45bd06729d107f82ac959d8fa62cfbf78e0dc21722aaaa2b9041cb117411454f")]
+    [InlineData(7UL, "3a99b9d3435999fef1d56c12bb9bee308269bec3fb015548136f9303da9b5f9d")]
+    [InlineData(2026UL, "f9cba78ae877ddef1c7adf661dad5e511bedae8d4a092ef834dc2964161f6e5d")]
+    public void GoldenWorldHashesAreStableAcrossMachines(ulong seed, string expected)
+    {
+        var actual = Generate(seed).Hash();
+        Assert.True(actual == expected, $"golden world hash for seed {seed} changed: {actual}");
+    }
 }

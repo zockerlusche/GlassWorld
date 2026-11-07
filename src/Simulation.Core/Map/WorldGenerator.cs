@@ -347,6 +347,31 @@ public static class WorldGenerator
             }
 
             flow[i] = (sbyte)best;
+
+            // Streams are two cells wide: the lower side neighbour carries water too (no flow of its own).
+            int side = -1, sideHeight = int.MaxValue;
+            foreach (var (dx, dz) in Neighbours4)
+            {
+                int sx = x + dx, sz = z + dz;
+                if (sx < 0 || sz < 0 || sx >= w || sz >= d || (dx == Neighbours8[best].Dx && dz == Neighbours8[best].Dz))
+                {
+                    continue;
+                }
+
+                var s = (sz * w) + sx;
+                if (water[s] == WaterKind.None && heights[s] <= heights[i] + 1 && heights[s] < sideHeight)
+                {
+                    side = s;
+                    sideHeight = heights[s];
+                }
+            }
+
+            if (side >= 0)
+            {
+                water[side] = WaterKind.Fresh;
+                depth[side] = 2;
+            }
+
             x += Neighbours8[best].Dx;
             z += Neighbours8[best].Dz;
             if (heights[(z * w) + x] < sea)
@@ -496,7 +521,7 @@ public static class WorldGenerator
         }
 
         // Too few flat wet hollows: the lowest flat cell next to fresh water grows into a small swamp.
-        if (marked.Count < 40)
+        if (marked.Count < 80)
         {
             var best = -1;
             for (var z = 2; z < d - 2; z++)
@@ -505,7 +530,7 @@ public static class WorldGenerator
                 {
                     var i = (z * w) + x;
                     if (water[i] == WaterKind.None && heights[i] > sea + 2 && heights[i] <= sea + 40
-                        && Slope(heights, w, d, x, z) <= 4 && NearFresh(water, w, d, x, z, 8)
+                        && Slope(heights, w, d, x, z) <= 4 && NearFresh(water, w, d, x, z, 8) && !NearFresh(water, w, d, x, z, 3)
                         && (best < 0 || heights[i] < heights[best]))
                     {
                         best = i;
@@ -516,9 +541,10 @@ public static class WorldGenerator
             if (best >= 0)
             {
                 int bx = best % w, bz = best / w;
-                for (var dz = -6; dz <= 6; dz++)
+                // A flat hollow: cells around the point up to a little higher are levelled to its height.
+                for (var dz = -8; dz <= 8; dz++)
                 {
-                    for (var dx = -6; dx <= 6; dx++)
+                    for (var dx = -8; dx <= 8; dx++)
                     {
                         int px = bx + dx, pz = bz + dz;
                         if (px < 0 || pz < 0 || px >= w || pz >= d)
@@ -527,8 +553,9 @@ public static class WorldGenerator
                         }
 
                         var i = (pz * w) + px;
-                        if ((dx * dx) + (dz * dz) <= 36 && water[i] == WaterKind.None && heights[i] <= heights[best] + 3)
+                        if ((dx * dx) + (dz * dz) <= 64 && water[i] == WaterKind.None && heights[i] <= heights[best] + 10)
                         {
+                            heights[i] = heights[best];
                             marked.Add(i);
                         }
                     }

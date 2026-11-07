@@ -39,10 +39,10 @@
   "water": {
     "shallow_max_depth": 8,
     "springs": {
-      "min": 1,
-      "max": 3
+      "min": 2,
+      "max": 4
     },
-    "spring_min_height": 40,
+    "spring_min_height": 30,
     "lake_min_cells": 6,
     "swamp_max_slope": 2,
     "swamp_min_moisture_permille": 750
