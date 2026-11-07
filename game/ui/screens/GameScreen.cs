@@ -20,8 +20,13 @@ public partial class GameScreen : CanvasLayer
 
     private readonly Control _root = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
     private readonly GwSideBar _sideBar = new();
-    private readonly GwTable _inhabitants = new() { SizeFlagsVertical = Control.SizeFlags.ExpandFill, CustomMinimumSize = new Vector2(0, 300) };
-    private readonly GwTable _questions = new() { SizeFlagsVertical = Control.SizeFlags.ExpandFill, CustomMinimumSize = new Vector2(0, 200) };
+    private readonly GwTable _inhabitants = new() { SizeFlagsVertical = Control.SizeFlags.ExpandFill };
+    private readonly GwTable _questions = new() { SizeFlagsVertical = Control.SizeFlags.ExpandFill };
+    private readonly List<(Button Button, TimeChoice Choice)> _timeButtons = [];
+    private readonly Dictionary<string, ProgressBar> _cardBars = new(StringComparer.Ordinal);
+    private Label? _cardAction;
+    private Label? _cardQuestions;
+    private string _cardShape = string.Empty;
     private readonly GwToasts _toasts = new();
     private PanelContainer? _topBar;
     private Label? _date;
@@ -48,8 +53,14 @@ public partial class GameScreen : CanvasLayer
         AddChild(_root);
         _root.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         (_topBar, _date, _time) = CreateTopBar(style, ScreenModel.TimeChoices(presenter.Host.World.Calendar.Settings), speed => presenter.Speed = speed);
+        foreach (var (button, choice) in _topBar.GetChild(0).GetChildren().OfType<Button>().Zip(ScreenModel.TimeChoices(presenter.Host.World.Calendar.Settings)))
+        {
+            _timeButtons.Add((button, choice));
+        }
         _root.AddChild(_topBar);
 
+        _inhabitants.CustomMinimumSize = new Vector2(0, style.Tokens.Window.TableMinHeight);
+        _questions.CustomMinimumSize = new Vector2(0, style.Tokens.Window.TableMinHeight);
         _inhabitants.Setup(
             [new GwColumn("ui.inhabitants.column.name", false), new GwColumn("ui.inhabitants.column.will_to_live", true), new GwColumn("ui.inhabitants.column.questions", true)],
             "ui.inhabitants.empty");
@@ -124,6 +135,21 @@ public partial class GameScreen : CanvasLayer
         }
     }
 
+    public override void _Notification(int what)
+    {
+        // Tooltips of the symbol buttons are filled once; refresh them after a language switch.
+        if (what == NotificationTranslationChanged)
+        {
+            foreach (var (button, choice) in _timeButtons)
+            {
+                button.TooltipText = TextFill.Fill(Tr(choice.TooltipKey), choice.Args);
+            }
+
+            _cardShape = string.Empty;
+            _sinceRefreshMs = double.MaxValue;
+        }
+    }
+
     public override void _UnhandledInput(InputEvent @event)
     {
         if (@event is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } click && _style is not null)
@@ -179,7 +205,7 @@ public partial class GameScreen : CanvasLayer
         {
             ["season"] = Tr(clock.SeasonKey),
             ["day"] = Number(clock.Day),
-            ["year"] = clock.Year.ToString(CultureInfo.CurrentCulture),
+            ["year"] = Number(clock.Year),
         });
         _time.Text = clock.Time;
 
@@ -196,10 +222,10 @@ public partial class GameScreen : CanvasLayer
 
     /// <summary>
     /// Smoke run only: lists show every inhabitant, the clock is translated, a click opens the card and
-    /// becomes a question the screen shows.
+    /// becomes a question the screen shows. Waits for the presenter's own ticks (never steps the world).
     /// </summary>
     /// <returns>Empty if fine, otherwise the problem.</returns>
-    public string SelfCheck()
+    public async Task<string> SelfCheckAsync()
     {
         if (_feed is null || _date is null || _presenter?.Host is null)
         {
@@ -215,7 +241,15 @@ public partial class GameScreen : CanvasLayer
 
         var id = rows[0].Id;
         Encounter(id);
-        _presenter.Host.World.Step();
+        var speed = _presenter.Speed;
+        _presenter.Speed = 1;
+        var startTick = _presenter.Host.World.Tick;
+        for (var frame = 0; frame < 600 && _presenter.Host.World.Tick <= startTick; frame++)
+        {
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        }
+
+        _presenter.Speed = speed;
         Refresh();
         if (_cardId != id || _card is null || !_card.IsInsideTree())
         {
@@ -266,6 +300,7 @@ public partial class GameScreen : CanvasLayer
             _cardId = null;
         };
         _cardId = inhabitantId;
+        _cardShape = string.Empty;
         _root.AddChild(_card);
         FillCard(inhabitantId);
         _card.FitInto(GetViewport().GetVisibleRect().Size);
@@ -274,49 +309,80 @@ public partial class GameScreen : CanvasLayer
     private void FillCard(string inhabitantId)
     {
         var card = _feed?.Card(inhabitantId);
-        if (_card is null || card is null)
+        if (_card is null || card is null || _style is null)
         {
             _card?.Close();
             return;
         }
 
         _card.SetTitleText(DisplayName(card.Row));
-        _card.ClearContent();
-        Section("ui.card.wellbeing");
-        Bar("ui.card.will_to_live", card.Row.WillToLivePercent);
-        foreach (var need in card.Needs)
+        var values = new List<(string Key, int Percent)> { ("ui.card.will_to_live", card.Row.WillToLivePercent) };
+        values.AddRange(card.Needs.Select(v => (v.Key, v.Percent)));
+        values.AddRange(card.Feelings.Select(v => (v.Key, v.Percent)));
+        values.AddRange(card.Traits.Select(v => (v.Key, v.Percent)));
+        var shape = $"{inhabitantId}|{string.Join(',', card.Needs.Select(v => v.Key))}|{string.Join(',', card.Feelings.Select(v => v.Key))}|{string.Join(',', card.Traits.Select(v => v.Key))}";
+        if (shape != _cardShape)
         {
-            Bar(need.Key, need.Percent);
+            // Build only when the set of values changes (other inhabitant, a feeling appears/fades).
+            _cardShape = shape;
+            _cardBars.Clear();
+            _card.ClearContent();
+            Section("ui.card.wellbeing");
+            Bar("ui.card.will_to_live");
+            foreach (var need in card.Needs)
+            {
+                Bar(need.Key);
+            }
+
+            Section("ui.card.feelings");
+            foreach (var feeling in card.Feelings)
+            {
+                Bar(feeling.Key);
+            }
+
+            Section("ui.card.character");
+            foreach (var trait in card.Traits)
+            {
+                Bar(trait.Key);
+            }
+
+            Section("ui.card.doing");
+            _cardAction = new Label();
+            _cardQuestions = new Label { AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled };
+            _card.Content.AddChild(_cardAction);
+            _card.Content.AddChild(_cardQuestions);
         }
 
-        Section("ui.card.feelings");
-        foreach (var feeling in card.Feelings)
+        foreach (var (key, percent) in values)
         {
-            Bar(feeling.Key, feeling.Percent);
+            if (_cardBars.TryGetValue(key, out var bar) && (int)bar.Value != percent)
+            {
+                bar.Value = percent;
+            }
         }
 
-        Section("ui.card.character");
-        foreach (var trait in card.Traits)
+        var action = card.Row.ActionKey ?? "ui.card.idle";
+        if (_cardAction is not null && _cardAction.Text != action)
         {
-            Bar(trait.Key, trait.Percent);
+            _cardAction.Text = action;
         }
 
-        Section("ui.card.doing");
-        _card.Content.AddChild(new Label { Text = card.Row.ActionKey ?? "ui.card.idle" });
-        _card.Content.AddChild(new Label
+        var questions = TextFill.Fill(Tr("ui.card.questions"), new Dictionary<string, string> { ["count"] = Number(card.Row.OpenQuestions) });
+        if (_cardQuestions is not null && _cardQuestions.Text != questions)
         {
-            AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled,
-            Text = TextFill.Fill(Tr("ui.card.questions"), new Dictionary<string, string> { ["count"] = Number(card.Row.OpenQuestions) }),
-        });
+            _cardQuestions.Text = questions;
+        }
 
         void Section(string key) => _card!.Content.AddChild(new Label { Text = key, ThemeTypeVariation = UiTheme.SubheaderLabel });
 
-        void Bar(string key, int percent)
+        void Bar(string key)
         {
             var row = new HBoxContainer();
             row.AddChild(new Label { Text = key, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
-            row.AddChild(new ProgressBar { MinValue = 0, MaxValue = 100, Value = percent, ShowPercentage = true, CustomMinimumSize = new Vector2(_style!.Tokens.Window.SidePanelWidth / 3f, 0) });
+            var bar = new ProgressBar { MinValue = 0, MaxValue = 100, ShowPercentage = true, CustomMinimumSize = new Vector2(_style!.Tokens.Window.CardBarWidth, 0) };
+            row.AddChild(bar);
             _card!.Content.AddChild(row);
+            _cardBars[key] = bar;
         }
     }
 
@@ -334,9 +400,9 @@ public partial class GameScreen : CanvasLayer
             mark = new Label3D
             {
                 Name = MarkNode,
-                Position = new Vector3(0, 2.3f, 0),
+                Position = new Vector3(0, (float)_style.Tokens.Window.MarkHeightM, 0),
                 Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
-                FontSize = _style.FontPx(UiFontSizeId.Display) * 2,
+                FontSize = _style.Tokens.Window.MarkFontPx,
                 Modulate = UiTheme.ToGodot(_style.Color(UiColorId.Attention)),
                 OutlineModulate = UiTheme.ToGodot(_style.Color(UiColorId.Panel)),
                 AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled,
@@ -357,7 +423,7 @@ public partial class GameScreen : CanvasLayer
             return null;
         }
 
-        var figures = _presenter.Host.Inhabitants.All
+        var figures = (_feed?.Inhabitants() ?? [])
             .Select(i => (i.Id, Node: _presenter.GetNodeOrNull<Node3D>(i.Id)))
             .Where(f => f.Node is not null && !camera.IsPositionBehind(f.Node!.GlobalPosition))
             .Select(f =>
@@ -370,5 +436,6 @@ public partial class GameScreen : CanvasLayer
 
     private string DisplayName(InhabitantRow row) => TextFill.Fill(Tr("ui.inhabitant.unnamed"), ScreenModel.NameArgs(row));
 
-    private static string Number(long value) => value.ToString(CultureInfo.CurrentCulture);
+    /// <summary>Whole numbers as shown (no digit grouping; identical in DE and EN, independent of the OS).</summary>
+    private static string Number(long value) => value.ToString(CultureInfo.InvariantCulture);
 }

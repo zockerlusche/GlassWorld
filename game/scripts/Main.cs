@@ -136,7 +136,7 @@ public partial class Main : Node3D
             var layer = new CanvasLayer();
             AddChild(layer);
             var problems = await UiLayoutCheck.RunAsync(layer, style, ScreenModel.TimeChoices(_world!.Host!.World.Calendar.Settings));
-            var screen = _screen?.SelfCheck() ?? "game screen missing";
+            var screen = _screen is null ? "game screen missing" : await _screen.SelfCheckAsync();
             if (screen.Length > 0)
             {
                 problems = [.. problems, "game screen: " + screen];

@@ -144,9 +144,37 @@
         "side_panel_width",
         "bubble_max_chars",
         "list_refresh_ms",
-        "pick_radius_px"
+        "pick_radius_px",
+        "table_min_height",
+        "card_bar_width",
+        "mark_height_m",
+        "mark_font_px"
       ],
       "properties": {
+        "table_min_height": {
+          "description": "Smallest height of a table in a side panel.",
+          "type": "integer",
+          "minimum": 80,
+          "maximum": 2000
+        },
+        "card_bar_width": {
+          "description": "Width of the value bars on the inhabitant card.",
+          "type": "integer",
+          "minimum": 40,
+          "maximum": 1000
+        },
+        "mark_height_m": {
+          "description": "Height of the question mark above an inhabitant's feet (metres, world space).",
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 10
+        },
+        "mark_font_px": {
+          "description": "Font size of the question mark in world space.",
+          "type": "integer",
+          "minimum": 16,
+          "maximum": 400
+        },
         "list_refresh_ms": {
           "description": "Lists (inhabitants, open questions) are rebuilt at most this often, also in fast-forward.",
           "type": "integer",

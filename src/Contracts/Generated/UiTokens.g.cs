@@ -38,6 +38,30 @@ namespace GlassWorld.Contracts
     {
 
         /// <summary>
+        /// Smallest height of a table in a side panel.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("table_min_height")]
+        public int TableMinHeight { get; set; } = default!;
+
+        /// <summary>
+        /// Width of the value bars on the inhabitant card.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("card_bar_width")]
+        public int CardBarWidth { get; set; } = default!;
+
+        /// <summary>
+        /// Height of the question mark above an inhabitant's feet (metres, world space).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("mark_height_m")]
+        public double MarkHeightM { get; set; } = default!;
+
+        /// <summary>
+        /// Font size of the question mark in world space.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("mark_font_px")]
+        public int MarkFontPx { get; set; } = default!;
+
+        /// <summary>
         /// Lists (inhabitants, open questions) are rebuilt at most this often, also in fast-forward.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("list_refresh_ms")]
