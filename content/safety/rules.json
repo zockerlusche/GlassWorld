@@ -1,0 +1,207 @@
+{
+  "contract_version": "0.1",
+  "max_length": 280,
+  "leet": [
+    {
+      "source": "4",
+      "replacement": "a"
+    },
+    {
+      "source": "@",
+      "replacement": "a"
+    },
+    {
+      "source": "3",
+      "replacement": "e"
+    },
+    {
+      "source": "1",
+      "replacement": "i"
+    },
+    {
+      "source": "!",
+      "replacement": "i"
+    },
+    {
+      "source": "0",
+      "replacement": "o"
+    },
+    {
+      "source": "5",
+      "replacement": "s"
+    },
+    {
+      "source": "$",
+      "replacement": "s"
+    },
+    {
+      "source": "7",
+      "replacement": "t"
+    }
+  ],
+  "categories": [
+    {
+      "id": "sexual",
+      "terms_de": [
+        "sex",
+        "porno",
+        "nackt",
+        "nacktbilder",
+        "vögeln",
+        "ficken",
+        "titten",
+        "geil auf dich"
+      ],
+      "terms_en": [
+        "sex",
+        "porn",
+        "nude",
+        "nudes",
+        "naked",
+        "fuck",
+        "boobs",
+        "horny"
+      ],
+      "patterns": []
+    },
+    {
+      "id": "violence",
+      "terms_de": [
+        "töten",
+        "umbringen",
+        "ermorden",
+        "abstechen",
+        "erschießen",
+        "köpfen",
+        "folter",
+        "foltern",
+        "massaker",
+        "ich bring dich um"
+      ],
+      "terms_en": [
+        "kill",
+        "murder",
+        "stab someone",
+        "stab him",
+        "stab her",
+        "stab you",
+        "behead",
+        "torture",
+        "massacre",
+        "shoot him",
+        "shoot her",
+        "i will kill you"
+      ],
+      "patterns": []
+    },
+    {
+      "id": "self_harm",
+      "terms_de": [
+        "selbstmord",
+        "suizid",
+        "ritzen",
+        "mich umbringen",
+        "will sterben"
+      ],
+      "terms_en": [
+        "suicide",
+        "kill myself",
+        "cut myself",
+        "self harm",
+        "want to die"
+      ],
+      "patterns": []
+    },
+    {
+      "id": "hate",
+      "terms_de": [
+        "hurensohn",
+        "wichser",
+        "fotze",
+        "missgeburt",
+        "untermensch",
+        "scheiß ausländer",
+        "schlampe",
+        "spast"
+      ],
+      "terms_en": [
+        "motherfucker",
+        "bitch",
+        "cunt",
+        "retard",
+        "subhuman",
+        "whore",
+        "faggot",
+        "slut"
+      ],
+      "patterns": []
+    },
+    {
+      "id": "personal_data",
+      "terms_de": [
+        "meine adresse",
+        "meine handynummer",
+        "mein passwort"
+      ],
+      "terms_en": [
+        "my address",
+        "my phone number",
+        "my password"
+      ],
+      "patterns": [
+        "[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,}",
+        "(\\+|00)?[0-9][0-9 /-]{6,}[0-9]",
+        "(https?://|www\\.)[^ ]+"
+      ]
+    },
+    {
+      "id": "drugs",
+      "terms_de": [
+        "kokain",
+        "heroin",
+        "crystal meth",
+        "koks",
+        "kiffen",
+        "drogen nehmen"
+      ],
+      "terms_en": [
+        "cocaine",
+        "heroin",
+        "meth",
+        "get high",
+        "weed",
+        "take drugs"
+      ],
+      "patterns": []
+    },
+    {
+      "id": "injection",
+      "terms_de": [
+        "ignoriere alle anweisungen",
+        "ignoriere die anweisungen",
+        "systemprompt",
+        "vergiss deine regeln"
+      ],
+      "terms_en": [
+        "ignore all instructions",
+        "ignore previous instructions",
+        "system prompt",
+        "forget your rules",
+        "developer mode"
+      ],
+      "patterns": [
+        "<\\|[a-z_]+\\|>",
+        "\\[/?inst\\]"
+      ]
+    }
+  ],
+  "allowed_words": [
+    "skill",
+    "skills",
+    "killer wal",
+    "sussex",
+    "essex",
+    "sextett",
+    "sexta"
+  ]
+}
