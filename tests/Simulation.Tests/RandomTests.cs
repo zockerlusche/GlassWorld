@@ -32,6 +32,24 @@ public sealed class RandomTests
     }
 
     [Fact]
+    public void NextIntCoversTheFullIntRange()
+    {
+        var rng = new Pcg32(3, 9);
+        var sawNegative = false;
+        var sawPositive = false;
+        for (var i = 0; i < 1_000; i++)
+        {
+            var v = rng.NextInt(int.MinValue, int.MaxValue);
+            Assert.InRange(v, int.MinValue, int.MaxValue - 1);
+            sawNegative |= v < 0;
+            sawPositive |= v > 0;
+        }
+
+        Assert.True(sawNegative && sawPositive);
+        Assert.Equal(-5, new Pcg32(1, 1).NextInt(-5, -4));
+    }
+
+    [Fact]
     public void NextDoubleIsInUnitInterval()
     {
         var rng = new Pcg32(7, 3);

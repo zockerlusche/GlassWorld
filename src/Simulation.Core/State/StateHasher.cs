@@ -40,8 +40,15 @@ public sealed class StateHasher : IDisposable
     /// <summary>Writes a boolean.</summary>
     public StateHasher Write(bool value) => Write(value ? 1L : 0L);
 
-    /// <summary>Writes a double by its exact IEEE 754 bits (no formatting, no culture).</summary>
-    public StateHasher Write(double value) => Write(BitConverter.DoubleToInt64Bits(value));
+    /// <summary>
+    /// Writes a double by its exact IEEE 754 bits (no formatting, no culture). -0.0 is written as 0.0 and
+    /// every NaN as the canonical NaN, so equal values always hash equal.
+    /// </summary>
+    public StateHasher Write(double value)
+    {
+        var canonical = double.IsNaN(value) ? double.NaN : (value == 0.0 ? 0.0 : value);
+        return Write(BitConverter.DoubleToInt64Bits(canonical));
+    }
 
     /// <summary>Writes a string as length-prefixed UTF-8.</summary>
     public StateHasher Write(string value)

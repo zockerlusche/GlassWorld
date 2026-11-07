@@ -25,6 +25,20 @@ public sealed class WorldTests
     public void DifferentSeedDifferentHash() => Assert.NotEqual(NewWorld(1).StateHash(), NewWorld(2).StateHash());
 
     [Fact]
+    public void NegativeZeroAndNaNHashLikeTheirCanonicalValue()
+    {
+        static string Hash(double v)
+        {
+            using var hasher = new StateHasher();
+            return hasher.Write(v).Finish();
+        }
+
+        Assert.Equal(Hash(0.0), Hash(-0.0));
+        Assert.Equal(Hash(double.NaN), Hash(BitConverter.Int64BitsToDouble(unchecked((long)0xFFF8000000000001UL))));
+        Assert.NotEqual(Hash(0.0), Hash(double.Epsilon));
+    }
+
+    [Fact]
     public void HashChangesWithEveryTick()
     {
         var world = NewWorld(1);
