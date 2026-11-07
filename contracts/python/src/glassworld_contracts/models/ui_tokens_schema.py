@@ -136,7 +136,7 @@ class UiDuration(BaseModel):
     ms: int = Field(..., ge=0, le=5000)
 
 
-class Id2(StrEnum):
+class Id3(StrEnum):
     background = 'background'
     panel = 'panel'
     panel_strong = 'panel_strong'
@@ -155,7 +155,7 @@ class UiColor(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
-    id: Id2
+    id: Id3
     rgba: str = Field(
         ...,
         description='Colour as #RRGGBB or #RRGGBBAA.',
