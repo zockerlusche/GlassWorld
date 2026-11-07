@@ -380,6 +380,26 @@
         "max": 1
       },
       "max_total": 2
+    },
+    {
+      "biome": "freshwater",
+      "object_type": "spring_water",
+      "per_1000_cells": 10,
+      "cluster": {
+        "min": 1,
+        "max": 1
+      },
+      "max_total": 12
+    },
+    {
+      "biome": "beach_sea",
+      "object_type": "sea_water",
+      "per_1000_cells": 2,
+      "cluster": {
+        "min": 1,
+        "max": 1
+      },
+      "max_total": 12
     }
   ],
   "mandatory": [
