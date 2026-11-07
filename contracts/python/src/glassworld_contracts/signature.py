@@ -18,11 +18,12 @@ def canonical_signature(
     tool: Sequence[str] | None,
     heat_level: str | None,
 ) -> str:
-    """Canonical JSON: sorted property lists, inputs sorted by their joined lists, sorted keys."""
+    """Canonical JSON: deduplicated, ordinally sorted property lists; inputs sorted by their
+    lists joined with ','; no tool (None or empty) = null; sorted keys; no spaces."""
     normalized = {
         "process": process,
-        "inputs": sorted((sorted(i) for i in inputs), key=lambda props: ",".join(props)),
-        "tool": sorted(tool) if tool is not None else None,
+        "inputs": sorted((sorted(set(i)) for i in inputs), key=lambda props: ",".join(props)),
+        "tool": sorted(set(tool)) if tool else None,  # no tool = null, also for an empty list
         "heat_level": heat_level,
     }
     return json.dumps(normalized, sort_keys=True, separators=(",", ":"), ensure_ascii=False)

@@ -456,10 +456,10 @@ namespace GlassWorld.Contracts
     {
 
         /// <summary>
-        /// Name in the player's language (generated, checked by the content guard); the chronicle uses it as a parameter (D471 O4).
+        /// Name in German and English (generated, checked by the content guard); the chronicle uses it as a parameter.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("name")]
-        public GeneratedText Name { get; set; } = new GeneratedText();
+        public LocalizedName Name { get; set; } = new LocalizedName();
 
         /// <summary>
         /// Action the thing is made for (vocabulary action).
@@ -655,7 +655,7 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
-    /// What makes two tries 'the same' (B2537): process, the TRUE property sets of the inputs and the tool, and the heat level. Hash = sha256 of the canonical JSON of this object with every property list sorted, inputs sorted by their joined property list, keys sorted, no spaces, UTF-8. Test vectors: contracts/testvectors/process-signature.json.
+    /// What makes two tries 'the same' (B2537): process, the TRUE property sets of the inputs and the tool, and the heat level. Canonical JSON: every property list deduplicated and sorted ordinally by code point; inputs sorted by their property list joined with ',' (ordinal comparison); 'no tool' is null, never an empty list; keys sorted; no spaces; UTF-8. Hash = sha256 of it, world rule id = 'world_' + first 16 hex digits. Test vectors: contracts/testvectors/process-signature.json. Note: the signature carries TRUE properties; the judge (world role) may see the truth, but it never goes into inhabitant texts (thought).
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class ProcessSignature
@@ -720,6 +720,21 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("actions")]
         public System.Collections.Generic.ICollection<string> Actions { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+    }
+
+    /// <summary>
+    /// A generated name in both game languages (B4b R24, TL P9=A): the player can switch the language at any time.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class LocalizedName
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("de")]
+        public string De { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("en")]
+        public string En { get; set; } = default!;
 
     }
 

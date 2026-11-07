@@ -490,8 +490,8 @@
       ],
       "properties": {
         "name": {
-          "description": "Name in the player's language (generated, checked by the content guard); the chronicle uses it as a parameter (D471 O4).",
-          "$ref": "#/$defs/GeneratedText"
+          "description": "Name in German and English (generated, checked by the content guard); the chronicle uses it as a parameter.",
+          "$ref": "#/$defs/LocalizedName"
         },
         "purpose": {
           "description": "Action the thing is made for (vocabulary action).",
@@ -783,7 +783,7 @@
       ]
     },
     "ProcessSignature": {
-      "description": "What makes two tries 'the same' (B2537): process, the TRUE property sets of the inputs and the tool, and the heat level. Hash = sha256 of the canonical JSON of this object with every property list sorted, inputs sorted by their joined property list, keys sorted, no spaces, UTF-8. Test vectors: contracts/testvectors/process-signature.json.",
+      "description": "What makes two tries 'the same' (B2537): process, the TRUE property sets of the inputs and the tool, and the heat level. Canonical JSON: every property list deduplicated and sorted ordinally by code point; inputs sorted by their property list joined with ',' (ordinal comparison); 'no tool' is null, never an empty list; keys sorted; no spaces; UTF-8. Hash = sha256 of it, world rule id = 'world_' + first 16 hex digits. Test vectors: contracts/testvectors/process-signature.json. Note: the signature carries TRUE properties; the judge (world role) may see the truth, but it never goes into inhabitant texts (thought).",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -802,7 +802,9 @@
           "maxItems": 4,
           "items": {
             "type": "array",
+            "minItems": 1,
             "maxItems": 12,
+            "uniqueItems": true,
             "items": {
               "$ref": "#/$defs/VocabId"
             }
@@ -812,7 +814,9 @@
           "anyOf": [
             {
               "type": "array",
+              "minItems": 1,
               "maxItems": 12,
+              "uniqueItems": true,
               "items": {
                 "$ref": "#/$defs/VocabId"
               }
@@ -909,6 +913,27 @@
           "items": {
             "$ref": "#/$defs/VocabId"
           }
+        }
+      }
+    },
+    "LocalizedName": {
+      "description": "A generated name in both game languages (B4b R24, TL P9=A): the player can switch the language at any time.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "de",
+        "en"
+      ],
+      "properties": {
+        "de": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "en": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
         }
       }
     }

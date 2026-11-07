@@ -12,8 +12,8 @@
     "build_plan": {
       "invention": {
         "name": {
-          "locale": "de",
-          "text": "Lehmschale"
+          "de": "Lehmschale",
+          "en": "Clay bowl"
         },
         "purpose": "drink",
         "category": "animal",

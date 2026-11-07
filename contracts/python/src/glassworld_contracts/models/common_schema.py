@@ -383,10 +383,10 @@ class SoundKind(StrEnum):
     loop = 'loop'
 
 
-type Input = Annotated[list[VocabId], Field(..., max_length=12)]
+type Input = Annotated[list[VocabId], Field(..., max_length=12, min_length=1)]
 
 
-type Tool = Annotated[list[VocabId], Field(..., max_length=12)]
+type Tool = Annotated[list[VocabId], Field(..., max_length=12, min_length=1)]
 
 
 class ProcessSignature(BaseModel):
@@ -436,13 +436,21 @@ class NewAbility(BaseModel):
     actions: list[VocabId] = Field(..., max_length=6)
 
 
+class LocalizedName(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    de: str = Field(..., max_length=40, min_length=1)
+    en: str = Field(..., max_length=40, min_length=1)
+
+
 class Invention(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
-    name: GeneratedText = Field(
+    name: LocalizedName = Field(
         ...,
-        description="Name in the player's language (generated, checked by the content guard); the chronicle uses it as a parameter (D471 O4).",
+        description='Name in German and English (generated, checked by the content guard); the chronicle uses it as a parameter.',
     )
     purpose: str = Field(
         ...,

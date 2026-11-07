@@ -30,3 +30,15 @@ def test_order_of_inputs_and_properties_does_not_matter() -> None:
     b = world_rule_id("bind", [["fibrous"], ["hard", "sharp"]], None, None)
     assert a == b
     assert a != world_rule_id("bind", [["fibrous"], ["hard", "sharp"]], None, "embers")
+
+
+def test_consumes_points_to_existing_inputs() -> None:
+    """S4 (review GW1): ProcessOutcome.consumes indices must be below the number of inputs."""
+    rules = json.loads(
+        (Path(__file__).resolve().parents[2] / "content" / "processes" / "rules.json").read_text(
+            encoding="utf-8"
+        )
+    )["rules"]
+    for rule in rules:
+        bad = [i for i in rule["result"]["consumes"] if i >= len(rule["inputs"])]
+        assert bad == [], f"{rule['id']}: consumes {bad} but has {len(rule['inputs'])} inputs"

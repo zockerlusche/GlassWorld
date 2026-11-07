@@ -1,5 +1,5 @@
 {
-  "description": "Test vectors for ProcessSignature (common.schema.json): canonical JSON and world rule id. Both the AI service (Python) and the core (C#) must produce exactly these.",
+  "description": "Test vectors for ProcessSignature (common.schema.json): canonical JSON and world rule id. Both the AI service (Python) and the core (C#) must produce exactly these. Vectors 6 and 7 show the normalisation: duplicate properties and an empty tool list give the same id as the normal form.",
   "vectors": [
     {
       "signature": {
@@ -89,6 +89,37 @@
       },
       "canonical": "{\"heat_level\":null,\"inputs\":[[\"hard\",\"splittable\"]],\"process\":\"split\",\"tool\":[\"hard\"]}",
       "rule_id": "world_0a3ce34c8bd4bc0e"
+    },
+    {
+      "signature": {
+        "process": "soak",
+        "inputs": [
+          [
+            "fibrous",
+            "fibrous",
+            "dry_now"
+          ]
+        ],
+        "tool": [],
+        "heat_level": null
+      },
+      "canonical": "{\"heat_level\":null,\"inputs\":[[\"dry_now\",\"fibrous\"]],\"process\":\"soak\",\"tool\":null}",
+      "rule_id": "world_019435fe802d9e39"
+    },
+    {
+      "signature": {
+        "process": "soak",
+        "inputs": [
+          [
+            "dry_now",
+            "fibrous"
+          ]
+        ],
+        "tool": null,
+        "heat_level": null
+      },
+      "canonical": "{\"heat_level\":null,\"inputs\":[[\"dry_now\",\"fibrous\"]],\"process\":\"soak\",\"tool\":null}",
+      "rule_id": "world_019435fe802d9e39"
     }
   ]
 }
