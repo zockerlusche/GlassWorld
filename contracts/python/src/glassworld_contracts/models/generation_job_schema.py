@@ -105,6 +105,10 @@ class ProcessPayload(BaseModel):
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
     inhabitant: common_schema.InhabitantState
+    signature: common_schema.ProcessSignature = Field(
+        ...,
+        description='Canonical signature of this try (true properties, set by the core); the service derives the world rule id from its hash.',
+    )
 
 
 class BuildPlanPayload(BaseModel):

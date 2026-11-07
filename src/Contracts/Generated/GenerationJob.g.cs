@@ -184,6 +184,12 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("inhabitant")]
         public InhabitantState Inhabitant { get; set; } = new InhabitantState();
 
+        /// <summary>
+        /// Canonical signature of this try (true properties, set by the core); the service derives the world rule id from its hash.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("signature")]
+        public ProcessSignature Signature { get; set; } = new ProcessSignature();
+
     }
 
     /// <summary>

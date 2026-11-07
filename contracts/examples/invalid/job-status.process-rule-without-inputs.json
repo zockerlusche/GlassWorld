@@ -22,7 +22,8 @@
           "remove_properties": [
             "building_material"
           ],
-          "produces": null
+          "produces": null,
+          "consumes": []
         }
       },
       "rationale": "x"

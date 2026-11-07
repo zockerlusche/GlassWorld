@@ -87,11 +87,6 @@ class GuardVerdict(BaseModel):
     )
 
 
-class Kind(StrEnum):
-    one_shot = 'one_shot'
-    loop = 'loop'
-
-
 class SoundDecision(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -102,7 +97,7 @@ class SoundDecision(BaseModel):
         description="Short English sound description for the sound model, e.g. 'wooden door creaks'.",
         max_length=120,
     )
-    kind: Kind
+    kind: common_schema.SoundKind
     part: common_schema.VocabId | None = Field(
         ..., description='Part that sounds (vocabulary), or null.'
     )

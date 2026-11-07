@@ -3,6 +3,10 @@
   "kind": "tech_level",
   "entries": [
     {
+      "id": "wilderness",
+      "description": "Nothing made yet; only what nature offers."
+    },
+    {
       "id": "tool",
       "description": "Simple tools from what lies around."
     },

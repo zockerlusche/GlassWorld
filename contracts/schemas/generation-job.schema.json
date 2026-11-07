@@ -269,7 +269,8 @@
         "tool",
         "heat_level",
         "tech_level",
-        "inhabitant"
+        "inhabitant",
+        "signature"
       ],
       "properties": {
         "process": {
@@ -309,6 +310,10 @@
         },
         "inhabitant": {
           "$ref": "common.schema.json#/$defs/InhabitantState"
+        },
+        "signature": {
+          "description": "Canonical signature of this try (true properties, set by the core); the service derives the world rule id from its hash.",
+          "$ref": "common.schema.json#/$defs/ProcessSignature"
         }
       }
     }

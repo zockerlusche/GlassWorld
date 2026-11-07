@@ -501,6 +501,20 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("tech_level")]
         public string TechLevel { get; set; } = default!;
 
+        /// <summary>
+        /// Optional (B4b R11).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("introduces_needs")]
+        public System.Collections.Generic.ICollection<NewNeed>? IntroducesNeeds { get; set; } = default!;
+
+        /// <summary>
+        /// Optional (B4b R11).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("introduces_abilities")]
+        public System.Collections.Generic.ICollection<NewAbility>? IntroducesAbilities { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -547,7 +561,7 @@ namespace GlassWorld.Contracts
     {
 
         /// <summary>
-        /// Stable rule id (data) or generated id for a world rule.
+        /// Stable rule id. Data rules: chosen in the data. World rules found by the AI: 'world_' + the first 16 hex digits of the process signature hash (see ProcessSignature), set by the service from the payload and checked by the core, never taken from the model.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         public string Id { get; set; } = default!;
@@ -600,6 +614,12 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("produces")]
         public string? Produces { get; set; } = default!;
 
+        /// <summary>
+        /// Indices (0-based) of the inputs that are used up; the first input changes (add/remove) unless it is consumed and produces is set.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("consumes")]
+        public System.Collections.Generic.ICollection<int> Consumes { get; set; } = new System.Collections.ObjectModel.Collection<int>();
+
     }
 
     /// <summary>
@@ -614,6 +634,92 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("observed")]
         public System.Collections.Generic.ICollection<string> Observed { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+    }
+
+    /// <summary>
+    /// one_shot = a single short sound, loop = repeats while the thing runs (B2530). Shared by the rule guard's SoundDecision and the base sound library (GW3).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public enum SoundKind
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("one_shot")]
+        One_shot = 0,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("loop")]
+        Loop = 1,
+
+
+    }
+
+    /// <summary>
+    /// What makes two tries 'the same' (B2537): process, the TRUE property sets of the inputs and the tool, and the heat level. Hash = sha256 of the canonical JSON of this object with every property list sorted, inputs sorted by their joined property list, keys sorted, no spaces, UTF-8. Test vectors: contracts/testvectors/process-signature.json.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ProcessSignature
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("process")]
+        public string Process { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("inputs")]
+        public System.Collections.Generic.ICollection<System.Collections.Generic.ICollection<string>> Inputs { get; set; } = new System.Collections.ObjectModel.Collection<System.Collections.Generic.ICollection<string>>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("tool")]
+        public System.Collections.Generic.ICollection<string>? Tool { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("heat_level")]
+        public string? HeatLevel { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A need the invention brings (B4b R11, D333 format). Display names DE/EN come with the record because the vocabulary grows at runtime.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class NewNeed
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public string Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("name_de")]
+        public string NameDe { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("name_en")]
+        public string NameEn { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("decay_per_day")]
+        public double DecayPerDay { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("actions")]
+        public System.Collections.Generic.ICollection<string> Actions { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+    }
+
+    /// <summary>
+    /// An ability the invention brings (B4b R11, D333 format).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class NewAbility
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public string Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("name_de")]
+        public string NameDe { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("name_en")]
+        public string NameEn { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("start_level")]
+        public double StartLevel { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("actions")]
+        public System.Collections.Generic.ICollection<string> Actions { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
     }
 

@@ -8,7 +8,7 @@
     "process": {
       "feasible": true,
       "rule": {
-        "id": "world_char_branch",
+        "id": "world_bbe1cc4202b602d1",
         "process": "char",
         "inputs": [
           {
@@ -31,7 +31,8 @@
           "remove_properties": [
             "building_material"
           ],
-          "produces": null
+          "produces": null,
+          "consumes": []
         }
       },
       "rationale": "Dry wood in embers with little air chars."

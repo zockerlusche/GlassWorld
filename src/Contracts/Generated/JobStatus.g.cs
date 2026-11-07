@@ -177,8 +177,8 @@ namespace GlassWorld.Contracts
         public string Description { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("kind")]
-        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SoundDecisionKind>))]
-        public SoundDecisionKind Kind { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SoundKind>))]
+        public SoundKind Kind { get; set; } = default!;
 
         /// <summary>
         /// Part that sounds (vocabulary), or null.
@@ -376,20 +376,6 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("reject")]
         Reject = 3,
-
-
-    }
-
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
-    public enum SoundDecisionKind
-    {
-
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("one_shot")]
-        One_shot = 0,
-
-
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("loop")]
-        Loop = 1,
 
 
     }

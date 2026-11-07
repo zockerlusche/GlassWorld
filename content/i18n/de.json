@@ -973,6 +973,10 @@
     {
       "key": "vocab.shape.bowl",
       "text": "Schale"
+    },
+    {
+      "key": "vocab.tech_level.wilderness",
+      "text": "Wildnis"
     }
   ]
 }

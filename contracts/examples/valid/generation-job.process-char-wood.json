@@ -129,6 +129,16 @@
             "strength": 0.3
           }
         ]
+      },
+      "signature": {
+        "process": "char",
+        "inputs": [
+          [
+            "burnable"
+          ]
+        ],
+        "tool": null,
+        "heat_level": "embers"
       }
     }
   }

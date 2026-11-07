@@ -298,11 +298,7 @@
           "maxLength": 120
         },
         "kind": {
-          "type": "string",
-          "enum": [
-            "one_shot",
-            "loop"
-          ]
+          "$ref": "common.schema.json#/$defs/SoundKind"
         },
         "part": {
           "description": "Part that sounds (vocabulary), or null.",

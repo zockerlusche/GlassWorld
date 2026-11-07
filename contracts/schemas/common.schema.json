@@ -560,6 +560,22 @@
         "tech_level": {
           "description": "Tech level the invention needs (vocabulary tech_level).",
           "$ref": "#/$defs/VocabId"
+        },
+        "introduces_needs": {
+          "description": "Optional (B4b R11).",
+          "type": "array",
+          "maxItems": 2,
+          "items": {
+            "$ref": "#/$defs/NewNeed"
+          }
+        },
+        "introduces_abilities": {
+          "description": "Optional (B4b R11).",
+          "type": "array",
+          "maxItems": 2,
+          "items": {
+            "$ref": "#/$defs/NewAbility"
+          }
         }
       }
     },
@@ -633,7 +649,7 @@
       ],
       "properties": {
         "id": {
-          "description": "Stable rule id (data) or generated id for a world rule.",
+          "description": "Stable rule id. Data rules: chosen in the data. World rules found by the AI: 'world_' + the first 16 hex digits of the process signature hash (see ProcessSignature), set by the service from the payload and checked by the core, never taken from the model.",
           "$ref": "#/$defs/VocabId"
         },
         "process": {
@@ -689,7 +705,8 @@
       "required": [
         "add_properties",
         "remove_properties",
-        "produces"
+        "produces",
+        "consumes"
       ],
       "properties": {
         "add_properties": {
@@ -720,6 +737,17 @@
               "type": "null"
             }
           ]
+        },
+        "consumes": {
+          "description": "Indices (0-based) of the inputs that are used up; the first input changes (add/remove) unless it is consumed and produces is set.",
+          "type": "array",
+          "maxItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3
+          }
         }
       }
     },
@@ -739,6 +767,144 @@
           "type": "array",
           "minItems": 0,
           "maxItems": 12,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/VocabId"
+          }
+        }
+      }
+    },
+    "SoundKind": {
+      "description": "one_shot = a single short sound, loop = repeats while the thing runs (B2530). Shared by the rule guard's SoundDecision and the base sound library (GW3).",
+      "type": "string",
+      "enum": [
+        "one_shot",
+        "loop"
+      ]
+    },
+    "ProcessSignature": {
+      "description": "What makes two tries 'the same' (B2537): process, the TRUE property sets of the inputs and the tool, and the heat level. Hash = sha256 of the canonical JSON of this object with every property list sorted, inputs sorted by their joined property list, keys sorted, no spaces, UTF-8. Test vectors: contracts/testvectors/process-signature.json.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "process",
+        "inputs",
+        "tool",
+        "heat_level"
+      ],
+      "properties": {
+        "process": {
+          "$ref": "#/$defs/VocabId"
+        },
+        "inputs": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4,
+          "items": {
+            "type": "array",
+            "maxItems": 12,
+            "items": {
+              "$ref": "#/$defs/VocabId"
+            }
+          }
+        },
+        "tool": {
+          "anyOf": [
+            {
+              "type": "array",
+              "maxItems": 12,
+              "items": {
+                "$ref": "#/$defs/VocabId"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "heat_level": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/VocabId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "NewNeed": {
+      "description": "A need the invention brings (B4b R11, D333 format). Display names DE/EN come with the record because the vocabulary grows at runtime.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name_de",
+        "name_en",
+        "decay_per_day",
+        "actions"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/VocabId"
+        },
+        "name_de": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "name_en": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "decay_per_day": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "actions": {
+          "type": "array",
+          "maxItems": 6,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/VocabId"
+          }
+        }
+      }
+    },
+    "NewAbility": {
+      "description": "An ability the invention brings (B4b R11, D333 format).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name_de",
+        "name_en",
+        "start_level",
+        "actions"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/VocabId"
+        },
+        "name_de": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "name_en": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "start_level": {
+          "$ref": "#/$defs/UnitValue"
+        },
+        "actions": {
+          "type": "array",
+          "maxItems": 6,
           "uniqueItems": true,
           "items": {
             "$ref": "#/$defs/VocabId"

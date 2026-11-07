@@ -34,7 +34,8 @@
           "sharp"
         ],
         "remove_properties": [],
-        "produces": null
+        "produces": null,
+        "consumes": []
       }
     },
     {
@@ -64,7 +65,8 @@
           "building_material"
         ],
         "remove_properties": [],
-        "produces": null
+        "produces": null,
+        "consumes": []
       }
     },
     {
@@ -88,7 +90,8 @@
           "sticky"
         ],
         "remove_properties": [],
-        "produces": null
+        "produces": null,
+        "consumes": []
       }
     },
     {
@@ -126,7 +129,11 @@
           "portable"
         ],
         "remove_properties": [],
-        "produces": null
+        "produces": null,
+        "consumes": [
+          1,
+          2
+        ]
       }
     },
     {
@@ -149,7 +156,8 @@
           "container"
         ],
         "remove_properties": [],
-        "produces": null
+        "produces": null,
+        "consumes": []
       }
     },
     {
@@ -175,7 +183,8 @@
         "remove_properties": [
           "malleable"
         ],
-        "produces": null
+        "produces": null,
+        "consumes": []
       }
     },
     {
@@ -202,7 +211,8 @@
         "remove_properties": [
           "building_material"
         ],
-        "produces": null
+        "produces": null,
+        "consumes": []
       }
     },
     {
@@ -225,7 +235,8 @@
           "burnable"
         ],
         "remove_properties": [],
-        "produces": null
+        "produces": null,
+        "consumes": []
       }
     },
     {
@@ -248,7 +259,8 @@
           "hot"
         ],
         "remove_properties": [],
-        "produces": null
+        "produces": null,
+        "consumes": []
       }
     },
     {
@@ -279,7 +291,10 @@
           "hot"
         ],
         "remove_properties": [],
-        "produces": null
+        "produces": null,
+        "consumes": [
+          1
+        ]
       }
     }
   ]

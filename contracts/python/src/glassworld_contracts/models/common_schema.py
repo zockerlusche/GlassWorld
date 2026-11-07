@@ -345,6 +345,9 @@ class PropertyCondition(BaseModel):
     properties_none: list[VocabId] = Field(..., max_length=8, min_length=0)
 
 
+type Consume = Annotated[int, Field(..., ge=0, le=3)]
+
+
 class ProcessOutcome(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -354,6 +357,11 @@ class ProcessOutcome(BaseModel):
     produces: VocabId | None = Field(
         ...,
         description='Object type that comes out, or null when the input only changes.',
+    )
+    consumes: list[Consume] = Field(
+        ...,
+        description='Indices (0-based) of the inputs that are used up; the first input changes (add/remove) unless it is consumed and produces is set.',
+        max_length=4,
     )
 
 
@@ -368,6 +376,64 @@ class ObservedThing(BaseModel):
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
     observed: list[VocabId] = Field(..., max_length=12, min_length=0)
+
+
+class SoundKind(StrEnum):
+    one_shot = 'one_shot'
+    loop = 'loop'
+
+
+type Input = Annotated[list[VocabId], Field(..., max_length=12)]
+
+
+type Tool = Annotated[list[VocabId], Field(..., max_length=12)]
+
+
+class ProcessSignature(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    process: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    inputs: list[Input] = Field(..., max_length=4, min_length=1)
+    tool: Tool | None
+    heat_level: VocabId | None
+
+
+class NewNeed(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    id: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    name_de: str = Field(..., max_length=40, min_length=1)
+    name_en: str = Field(..., max_length=40, min_length=1)
+    decay_per_day: float = Field(..., ge=0.0, le=1.0)
+    actions: list[VocabId] = Field(..., max_length=6)
+
+
+class NewAbility(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    id: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    name_de: str = Field(..., max_length=40, min_length=1)
+    name_en: str = Field(..., max_length=40, min_length=1)
+    start_level: float = Field(..., ge=0.0, le=1.0)
+    actions: list[VocabId] = Field(..., max_length=6)
 
 
 class Invention(BaseModel):
@@ -405,6 +471,12 @@ class Invention(BaseModel):
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
+    introduces_needs: list[NewNeed] | None = Field(
+        None, description='Optional (B4b R11).', max_length=2
+    )
+    introduces_abilities: list[NewAbility] | None = Field(
+        None, description='Optional (B4b R11).', max_length=2
+    )
 
 
 class ProcessRule(BaseModel):
@@ -413,7 +485,7 @@ class ProcessRule(BaseModel):
     )
     id: str = Field(
         ...,
-        description='Stable rule id (data) or generated id for a world rule.',
+        description="Stable rule id. Data rules: chosen in the data. World rules found by the AI: 'world_' + the first 16 hex digits of the process signature hash (see ProcessSignature), set by the service from the payload and checked by the core, never taken from the model.",
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
