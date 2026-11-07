@@ -1,0 +1,15 @@
+{
+  "contract_version": "0.1",
+  "request_id": "7c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f",
+  "tick": 90000,
+  "outcome": "obey",
+  "reply": null,
+  "expression": null,
+  "rationale": "",
+  "meta": {
+    "source": "mock",
+    "model": "mock",
+    "latency_ms": 4,
+    "attempts": 1
+  }
+}

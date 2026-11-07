@@ -1,0 +1,13 @@
+{
+  "contract_version": "0.1",
+  "message_id": "m-000013",
+  "inhabitant_id": null,
+  "kind": "hint",
+  "created_tick": 87840,
+  "text": null,
+  "text_key": "msg.mail.autosave_failed",
+  "urgency": 0,
+  "repeats": 0,
+  "status": "acknowledged",
+  "acknowledged_tick": 87900
+}

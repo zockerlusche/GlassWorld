@@ -1,0 +1,46 @@
+{
+  "contract_version": "0.1",
+  "request_id": "7c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f",
+  "tick": 90000,
+  "seed": 1,
+  "deadline_ms": 8000,
+  "display_locale": "de",
+  "speaker": {
+    "id": "inh-000001",
+    "needs": [
+      {
+        "id": "hunger",
+        "value": 0.6
+      },
+      {
+        "id": "thirst",
+        "value": 0.8
+      }
+    ],
+    "mood": [
+      {
+        "id": "joy",
+        "value": 0.4
+      }
+    ],
+    "traits": [
+      {
+        "id": "curiosity",
+        "value": 0.7
+      },
+      {
+        "id": "patience",
+        "value": 0.5
+      }
+    ],
+    "will_to_live": 0.72,
+    "understanding": 0.35,
+    "relation_to_player": {
+      "trust": 0.3,
+      "awe": 0.6,
+      "fear": 0.2
+    }
+  },
+  "player_text": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "recent_lines": []
+}

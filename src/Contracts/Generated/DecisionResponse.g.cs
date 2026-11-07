@@ -25,31 +25,6 @@ namespace GlassWorld.Contracts
 
     }
 
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
-    public partial class ResponseMeta
-    {
-
-        /// <summary>
-        /// model = real LLM, mock = test double, replay = answer replayed from a log.
-        /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("source")]
-        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ResponseMetaSource>))]
-        public ResponseMetaSource Source { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("model")]
-        public string Model { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("latency_ms")]
-        public long LatencyMs { get; set; } = default!;
-
-        /// <summary>
-        /// Model calls used (1 + at most 2 retries, per handbook).
-        /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("attempts")]
-        public int Attempts { get; set; } = default!;
-
-    }
-
     /// <summary>
     /// AI service -&gt; core: the decider's proposal. Only a proposal; the core's rule guard has the final say.
     /// </summary>
@@ -95,24 +70,6 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("meta")]
         public ResponseMeta Meta { get; set; } = new ResponseMeta();
-
-    }
-
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
-    public enum ResponseMetaSource
-    {
-
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("model")]
-        Model = 0,
-
-
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("mock")]
-        Mock = 1,
-
-
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("replay")]
-        Replay = 2,
-
 
     }
 }

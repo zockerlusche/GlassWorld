@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/gift-rules.schema.json",
+  "title": "GiftRules",
+  "description": "When gifts may be proposed and where they may land (B6 R8, F5238). All numbers are placeholders until Marcel decides (PR4, F5231).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "futile_attempts_threshold",
+    "suggestion_expiry_hours",
+    "max_open_suggestions",
+    "min_distance_to_inhabitant_m"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "futile_attempts_threshold": {
+      "description": "Failed attempts at the same need before a gift may be suggested.",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100
+    },
+    "suggestion_expiry_hours": {
+      "description": "Game hours until an untaken suggestion lapses.",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10000
+    },
+    "max_open_suggestions": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10
+    },
+    "min_distance_to_inhabitant_m": {
+      "description": "A gift never lands on or right next to an inhabitant.",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    }
+  }
+}

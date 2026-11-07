@@ -1,0 +1,16 @@
+{
+  "contract_version": "0.1",
+  "message_id": "m-000015",
+  "inhabitant_id": "inh-000002",
+  "kind": "request",
+  "created_tick": 10,
+  "text": {
+    "locale": "en",
+    "text": "Please help."
+  },
+  "text_key": null,
+  "urgency": 9,
+  "repeats": 0,
+  "status": "open",
+  "acknowledged_tick": null
+}

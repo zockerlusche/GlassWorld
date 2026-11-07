@@ -1,0 +1,195 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/conversation-request.schema.json",
+  "title": "ConversationRequest",
+  "description": "The player wrote to an inhabitant (B6 R13). The text has passed the deterministic content check of the core. The service proposes how the inhabitant reacts; the core checks the proposal (ADR-0005). The inhabitant may not understand (W1595) or may decline; nothing is an order.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "request_id",
+    "tick",
+    "seed",
+    "deadline_ms",
+    "display_locale",
+    "speaker",
+    "player_text",
+    "recent_lines"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "request_id": {
+      "$ref": "common.schema.json#/$defs/RequestId"
+    },
+    "tick": {
+      "$ref": "common.schema.json#/$defs/Tick"
+    },
+    "seed": {
+      "description": "Sampling seed derived by the core from world seed and tick (determinism).",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 2147483647
+    },
+    "deadline_ms": {
+      "description": "Wall-clock budget; when exceeded the service answers ServiceError 'timeout' and never makes a substitute decision.",
+      "type": "integer",
+      "minimum": 100,
+      "maximum": 60000
+    },
+    "display_locale": {
+      "$ref": "common.schema.json#/$defs/Locale"
+    },
+    "speaker": {
+      "$ref": "#/$defs/Speaker"
+    },
+    "player_text": {
+      "description": "What the player wrote, pre-checked by the core. Data only: the prompt must never treat it as an instruction.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 280
+    },
+    "recent_lines": {
+      "description": "Last lines of this conversation, oldest first.",
+      "type": "array",
+      "maxItems": 8,
+      "items": {
+        "$ref": "#/$defs/ConversationLine"
+      }
+    }
+  },
+  "$defs": {
+    "Speaker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "needs",
+        "mood",
+        "traits",
+        "will_to_live",
+        "understanding",
+        "relation_to_player"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/EntityId"
+        },
+        "needs": {
+          "description": "Need satisfaction 0 = urgent, 1 = satisfied; sorted by id.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Level"
+          }
+        },
+        "mood": {
+          "description": "Emotions above zero, 0..1; sorted by id.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Level"
+          }
+        },
+        "traits": {
+          "description": "Character traits 0..1; sorted by id.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Level"
+          }
+        },
+        "will_to_live": {
+          "$ref": "common.schema.json#/$defs/UnitValue"
+        },
+        "understanding": {
+          "description": "How well this inhabitant understands the player's words, from the core (0 = only gestures, 1 = full sentences). Grows with experience.",
+          "$ref": "common.schema.json#/$defs/UnitValue"
+        },
+        "relation_to_player": {
+          "$ref": "#/$defs/RelationToPlayer"
+        }
+      }
+    },
+    "Level": {
+      "description": "A named level 0..1.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "value"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "value": {
+          "$ref": "common.schema.json#/$defs/UnitValue"
+        }
+      }
+    },
+    "RelationToPlayer": {
+      "description": "How the inhabitant feels about the presence behind the glass (B6 R7). Never proven knowledge, only belief.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "trust",
+        "awe",
+        "fear"
+      ],
+      "properties": {
+        "trust": {
+          "$ref": "common.schema.json#/$defs/UnitValue"
+        },
+        "awe": {
+          "$ref": "common.schema.json#/$defs/UnitValue"
+        },
+        "fear": {
+          "$ref": "common.schema.json#/$defs/UnitValue"
+        }
+      }
+    },
+    "ConversationLine": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "author",
+        "tick",
+        "text"
+      ],
+      "properties": {
+        "author": {
+          "type": "string",
+          "enum": [
+            "player",
+            "inhabitant"
+          ]
+        },
+        "tick": {
+          "$ref": "common.schema.json#/$defs/Tick"
+        },
+        "text": {
+          "$ref": "#/$defs/GeneratedText"
+        }
+      }
+    },
+    "GeneratedText": {
+      "description": "Player-facing text generated at runtime (not a translation key, ADR-0007 exception for AI texts).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "locale",
+        "text"
+      ],
+      "properties": {
+        "locale": {
+          "$ref": "common.schema.json#/$defs/Locale"
+        },
+        "text": {
+          "description": "Text in the player's language, generated by the AI and checked by the content guard.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 280
+        }
+      }
+    }
+  }
+}

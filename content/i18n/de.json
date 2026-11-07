@@ -3,6 +3,38 @@
   "locale": "de",
   "entries": [
     {
+      "key": "msg.command.no_inhabitant",
+      "text": "Diesen Bewohner gibt es hier nicht mehr."
+    },
+    {
+      "key": "msg.command.unknown",
+      "text": "Das geht gerade nicht."
+    },
+    {
+      "key": "msg.mail.kind.complaint",
+      "text": "Beschwerde"
+    },
+    {
+      "key": "msg.mail.kind.hint",
+      "text": "Hinweis"
+    },
+    {
+      "key": "msg.mail.kind.knock",
+      "text": "Klopfen an die Scheibe"
+    },
+    {
+      "key": "msg.mail.kind.request",
+      "text": "Bitte"
+    },
+    {
+      "key": "msg.mail.kind.thanks",
+      "text": "Dank"
+    },
+    {
+      "key": "msg.mail.kind.thought",
+      "text": "Gedanke"
+    },
+    {
       "key": "time.phase.dawn",
       "text": "Morgendämmerung"
     },
@@ -37,6 +69,22 @@
     {
       "key": "ui.common.close",
       "text": "Schließen"
+    },
+    {
+      "key": "ui.new_world.climate.temperate",
+      "text": "Gemäßigt"
+    },
+    {
+      "key": "ui.new_world.climate.warm",
+      "text": "Warm"
+    },
+    {
+      "key": "ui.new_world.size.medium",
+      "text": "Mittlere Insel"
+    },
+    {
+      "key": "ui.new_world.size.small",
+      "text": "Kleine Insel"
     },
     {
       "key": "ui.settings.title",

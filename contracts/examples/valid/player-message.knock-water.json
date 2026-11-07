@@ -1,0 +1,16 @@
+{
+  "contract_version": "0.1",
+  "message_id": "m-000012",
+  "inhabitant_id": "inh-000001",
+  "kind": "knock",
+  "created_tick": 86400,
+  "text": {
+    "locale": "de",
+    "text": "Der Bach ist ausgetrocknet. Ich finde kein Wasser mehr."
+  },
+  "text_key": null,
+  "urgency": 1,
+  "repeats": 1,
+  "status": "open",
+  "acknowledged_tick": null
+}

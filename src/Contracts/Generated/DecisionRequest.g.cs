@@ -12,23 +12,6 @@ namespace GlassWorld.Contracts
 {
     #pragma warning disable // Disable all warnings
 
-    /// <summary>
-    /// Player-facing language (B2470).
-    /// </summary>
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
-    public enum Locale
-    {
-
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("de")]
-        De = 0,
-
-
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("en")]
-        En = 1,
-
-
-    }
-
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class InhabitantState
     {

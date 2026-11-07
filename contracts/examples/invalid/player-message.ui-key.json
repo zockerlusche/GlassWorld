@@ -1,0 +1,13 @@
+{
+  "contract_version": "0.1",
+  "message_id": "m-000014",
+  "inhabitant_id": null,
+  "kind": "hint",
+  "created_tick": 10,
+  "text": null,
+  "text_key": "ui.main.title",
+  "urgency": 0,
+  "repeats": 0,
+  "status": "open",
+  "acknowledged_tick": null
+}

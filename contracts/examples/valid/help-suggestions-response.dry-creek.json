@@ -1,0 +1,33 @@
+{
+  "contract_version": "0.1",
+  "request_id": "7c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f",
+  "tick": 91000,
+  "suggestions": [
+    {
+      "kind": "gift",
+      "gift": {
+        "type_id": "water_bowl",
+        "amount": 1
+      },
+      "reason": {
+        "locale": "de",
+        "text": "Eine Schale Wasser, bis wieder Regen kommt."
+      }
+    },
+    {
+      "kind": "answer",
+      "gift": null,
+      "reason": {
+        "locale": "de",
+        "text": "Hinter dem Hügel gibt es vielleicht eine Quelle."
+      }
+    }
+  ],
+  "rationale": "Creek dry for days; one bowl bridges the gap, hint keeps own effort alive.",
+  "meta": {
+    "source": "mock",
+    "model": "mock",
+    "latency_ms": 4,
+    "attempts": 1
+  }
+}

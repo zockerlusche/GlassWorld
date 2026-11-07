@@ -1,0 +1,41 @@
+{
+  "contract_version": "0.1",
+  "kinds": [
+    {
+      "id": "request",
+      "description": "Asks the player for something.",
+      "repeat_after_hours": 12,
+      "max_urgency": 3
+    },
+    {
+      "id": "hint",
+      "description": "Points the player to something worth seeing.",
+      "repeat_after_hours": 0,
+      "max_urgency": 0
+    },
+    {
+      "id": "thought",
+      "description": "Shares a thought with the player.",
+      "repeat_after_hours": 0,
+      "max_urgency": 0
+    },
+    {
+      "id": "thanks",
+      "description": "Thanks the player.",
+      "repeat_after_hours": 0,
+      "max_urgency": 0
+    },
+    {
+      "id": "complaint",
+      "description": "Complains to the player.",
+      "repeat_after_hours": 24,
+      "max_urgency": 2
+    },
+    {
+      "id": "knock",
+      "description": "Knocked at the glass because it needs help.",
+      "repeat_after_hours": 6,
+      "max_urgency": 3
+    }
+  ]
+}
