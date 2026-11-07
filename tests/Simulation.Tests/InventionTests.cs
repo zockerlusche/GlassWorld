@@ -161,6 +161,32 @@ public sealed class InventionTests : IDisposable
     }
 
     [Fact]
+    public void ASaveGameOfVersionOneIsMigratedOnLoadWithoutChangingTheFile()
+    {
+        var host = SimulationHost.CreatePlaceholderWorld(ContentDirectory, 9, new MockDecisionPort(), "de");
+        host.World.Run(120);
+        var path = Path.Combine(_directory, "v1.db");
+        SaveGameStore.Save(path, StateCodec.Capture(host));
+
+        // Turn the file back into schema 1 (as written by the B1 build).
+        using (var connection = new Microsoft.Data.Sqlite.SqliteConnection(new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder { DataSource = path, Pooling = false }.ToString()))
+        {
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = """
+                DROP TABLE inventions; DROP TABLE wants; DROP TABLE invention_timers; DROP TABLE job_log; DROP TABLE chronicle;
+                DELETE FROM meta WHERE key = 'invention_counter';
+                PRAGMA user_version = 1;
+                """;
+            command.ExecuteNonQuery();
+        }
+
+        var loaded = StateCodec.Restore(Factory(new ReplayJobPort(new DecisionLog()), new MockDecisionPort()), SaveGameStore.Load(path));
+        Assert.Equal(host.World.StateHash(), loaded.World.StateHash());
+        Assert.Equal(1, SaveGameStore.VersionOf(path));
+    }
+
+    [Fact]
     public void AReplayFromSeedAndLogsGivesTheSameHash()
     {
         var port = new ScriptedJobPort();
