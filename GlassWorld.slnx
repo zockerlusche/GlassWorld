@@ -5,9 +5,14 @@
     </Project>
   </Folder>
   <Folder Name="/src/">
+    <Project Path="src/Contracts/Contracts.csproj" />
     <Project Path="src/Simulation.Core/Simulation.Core.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Contracts.Tests/Contracts.Tests.csproj" />
     <Project Path="tests/Simulation.Tests/Simulation.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/ContractGen/ContractGen.csproj" />
   </Folder>
 </Solution>

@@ -38,3 +38,11 @@ Distributions must ship the license notices of all listed components.
 | python-dotenv | 1.2.4 (via pydantic-settings) | Python runtime library | BSD-3-Clause | https://github.com/theskumar/python-dotenv | ai-service |
 | certifi | 2026.10.23 (via httpx) | Python runtime library | MPL-2.0, unmodified | https://github.com/certifi/python-certifi | ai-service |
 | other transitive Python packages | see `uv.lock` | Python | MIT or Apache-2.0 | PyPI | dev tools |
+| NJsonSchema | 11.6.1 | NuGet package (runtime contract validation, generator) | MIT | https://github.com/RicoSuter/NJsonSchema | src/Contracts, tests/, tools/ |
+| NJsonSchema.CodeGeneration / .CSharp | 11.6.1 | NuGet package (dev tool) | MIT | https://github.com/RicoSuter/NJsonSchema | tools/ContractGen |
+| Newtonsoft.Json | 13.0.3 | NuGet package (via NJsonSchema, runtime) | MIT | https://github.com/JamesNK/Newtonsoft.Json | src/Contracts, tests/, tools/ |
+| Namotion.Reflection | 3.5.0 | NuGet package (via NJsonSchema, runtime) | MIT | https://github.com/RicoSuter/Namotion.Reflection | src/Contracts, tests/, tools/ |
+| Fluid.Core | 2.30.0 | NuGet package (via generator) | MIT | https://github.com/sebastienros/fluid | tools/ContractGen |
+| Parlot | 1.4.0 | NuGet package (via Fluid) | BSD-3-Clause (B2482) | https://github.com/sebastienros/parlot | tools/ContractGen |
+| TimeZoneConverter | 7.0.0 | NuGet package (via Fluid) | MIT | https://github.com/mattjohnsonpint/TimeZoneConverter | tools/ContractGen |
+| Microsoft.Extensions.FileProviders.Abstractions / .Primitives | 9.0.0 | NuGet package (via Fluid) | MIT | https://github.com/dotnet/runtime | tools/ContractGen |
