@@ -34,7 +34,21 @@ public partial class ClipCheck : Node3D
     /// <inheritdoc/>
     public override void _Process(double delta)
     {
-        var count = _subjects.Min(s => s.Clips.Length);
+        // Every body must carry exactly the clips of the source library (compared by name, not index).
+        var expected = _subjects[0].Clips;
+        if (_clip == 0 && _frame == 0)
+        {
+            foreach (var (body, _, _, clips) in _subjects)
+            {
+                var missing = expected.Except(clips, StringComparer.Ordinal).Concat(clips.Except(expected, StringComparer.Ordinal)).ToList();
+                if (missing.Count > 0)
+                {
+                    _failures.Add($"{body} clip set differs: {string.Join(',', missing)}");
+                }
+            }
+        }
+
+        var count = expected.Length;
         if (_clip >= count)
         {
             var bodies = string.Join(',', _subjects.Select(s => s.Body));
@@ -51,9 +65,14 @@ public partial class ClipCheck : Node3D
 
         if (_frame == 0)
         {
-            foreach (var (_, player, _, clips) in _subjects)
+            foreach (var (_, player, _, _) in _subjects)
             {
-                player.Play(clips[_clip]);
+                if (!player.HasAnimation(expected[_clip]))
+                {
+                    continue;
+                }
+
+                player.Play(expected[_clip]);
                 player.Seek(player.CurrentAnimationLength * 0.37, true);
             }
         }
@@ -63,8 +82,13 @@ public partial class ClipCheck : Node3D
             return;
         }
 
-        foreach (var (body, _, skeleton, clips) in _subjects)
+        foreach (var (body, player, skeleton, _) in _subjects)
         {
+            if (!player.HasAnimation(expected[_clip]))
+            {
+                continue;
+            }
+
             var moved = 0;
             for (var b = 0; b < skeleton.GetBoneCount(); b++)
             {
@@ -79,7 +103,7 @@ public partial class ClipCheck : Node3D
             _checked++;
             if (moved < 5)
             {
-                _failures.Add($"{body}/{clips[_clip]} moved {moved} bones");
+                _failures.Add($"{body}/{expected[_clip]} moved {moved} bones");
             }
         }
 

@@ -1,18 +1,22 @@
 """Builds the GlassWorld figure bodies (A1436, Marcel F5257=A) in Blender, headless.
 
-Usage (Blender 4.5 LTS):
-    blender -b --factory-startup --python tools/figures/build_figures.py -- \
-        game/assets/characters/quaternius-ual1/ual1_standard.glb tools/figures/bodies.json game/assets/characters/glassworld
+Usage (Blender 4.5 LTS), from the repository root:
+    blender -b --factory-startup --python tools/figures/build_figures.py -- SOURCE CONFIG OUT
+with SOURCE = game/assets/characters/quaternius-ual1/ual1_standard.glb,
+CONFIG = tools/figures/bodies.json and OUT = game/assets/characters/glassworld.
 
-The Quaternius Universal Animation Library (CC0) supplies the rig and all clips; its mannequin mesh is
-dropped. Each body is modelled from simple round shapes after D355 (big round head with eyes, brows,
-nose and ears, rounded torso, soft limbs, open mitten hands with a thumb, round shoes) and skinned to
+The Quaternius Universal Animation Library (CC0) supplies the rig and all clips; its mannequin mesh
+is dropped. Each body is modelled from simple round shapes after D355 (big round head with eyes,
+brows, nose and ears, rounded torso, soft limbs, open mitten hands with a thumb, round shoes) and
+skinned to
 the Quaternius bones with smooth weights at the joints. Hair styles are separate skinned meshes the
 game switches by appearance data. Body regions are written into the vertex colour red channel
 (index / 10) for the warm comic shader: 1 skin, 2 top, 3 bottom, 4 shoes, 5 hair, 6 shin, 7 forearm,
 8 thigh, 9 eyes. The mesh is our own work (MIT, like the repository); the clips stay CC0.
 """
 
+import contextlib
+import itertools
 import json
 import math
 import sys
@@ -36,7 +40,8 @@ def orient_outward(bm, inside=None):
     """Makes every face point away from the inside point (default: the centroid of the part).
 
     The axis mappings into the rig frame include a mirror (+X left, -Y forward), which reverses the
-    winding of generated primitives; Godot culls by winding, so inverted parts would show their inside.
+    winding of generated primitives; Godot culls by winding, so inverted parts would show their
+    inside.
     """
     bm.normal_update()
     if inside is None:
@@ -96,14 +101,18 @@ def capsule(a, b, ra, rb, segments=14, steps=8, cap_steps=4):
     rings = []
     for k in range(cap_steps, 0, -1):  # start cap
         ang = (math.pi / 2) * k / (cap_steps + 1)
-        rings.append((a - d * (ra * math.sin(ang)), right, ra * math.cos(ang), other, ra * math.cos(ang)))
+        rings.append(
+            (a - d * (ra * math.sin(ang)), right, ra * math.cos(ang), other, ra * math.cos(ang))
+        )
     for k in range(steps + 1):
         t = k / steps
         r = ra + (rb - ra) * t
         rings.append((a + d * (length * t), right, r, other, r))
     for k in range(1, cap_steps + 1):  # end cap
         ang = (math.pi / 2) * k / (cap_steps + 1)
-        rings.append((b + d * (rb * math.sin(ang)), right, rb * math.cos(ang), other, rb * math.cos(ang)))
+        rings.append(
+            (b + d * (rb * math.sin(ang)), right, rb * math.cos(ang), other, rb * math.cos(ang))
+        )
     return loft(rings, segments)
 
 
@@ -118,7 +127,7 @@ def ellipsoid(centre, rx, ry, rz, u=20, v=14, right=LEFT, fwd=FWD, up=UP):
 
 
 def along(bone, a, b, parent=None, child=None, child_share=0.5, parent_share=0.5):
-    """Weights for a part spanning bone from a to b: blends into parent and child bones near the joints."""
+    """Weights for a part along a bone, blending into parent and child near the joints."""
     seg = b - a
 
     def weights(p):
@@ -136,6 +145,51 @@ def along(bone, a, b, parent=None, child=None, child_share=0.5, parent_share=0.5
     return weights
 
 
+def reshape_rig(armature, spec):
+    """Shorter legs and torso, narrower hips, arms closer to the body (D355 silhouette, TL #18955).
+
+    Only bone heads and tails move (no new rolls), so every clip still applies; the ankles keep
+    height, so the feet stay on the ground (clip locations are relative to the rest pose).
+    """
+    leg, torso = spec.get("leg_scale", 1.0), spec.get("torso_scale", 1.0)
+    hip, arm_in = spec.get("hip_scale", 1.0), spec.get("arm_in", 0.0)
+    bpy.context.view_layer.objects.active = armature
+    armature.select_set(True)
+    bpy.ops.object.mode_set(mode="EDIT")
+    bones = armature.data.edit_bones
+    hips_z = bones["DEF-hips"].head.z
+    ankle_z = bones["DEF-shin.L"].tail.z
+    new_hips_z = ankle_z + (hips_z - ankle_z) * leg
+
+    def is_leg(n):
+        return any(k in n for k in ("thigh", "shin", "foot", "toe"))
+
+    def is_arm(n):
+        return any(k in n for k in ("upper_arm", "forearm", "hand", "f_", "thumb", "shoulder"))
+
+    def move(name, p):
+        p = p.copy()
+        if is_leg(name):
+            if p.z > ankle_z:
+                p.z = ankle_z + (p.z - ankle_z) * leg
+            p.x *= hip
+        else:
+            p.z = new_hips_z + (p.z - hips_z) * torso
+            if is_arm(name) and abs(p.x) > 0.05:
+                p.x -= math.copysign(arm_in, p.x)
+        return p
+
+    old = {b.name: (b.head.copy(), b.tail.copy()) for b in bones if b.name != "root"}
+    for b in bones:
+        if b.name == "root":
+            continue
+        b.use_connect = False
+    for name, (h, tl) in old.items():
+        bones[name].head = move(name, h)
+        bones[name].tail = move(name, tl)
+    bpy.ops.object.mode_set(mode="OBJECT")
+
+
 class Rig:
     def __init__(self, armature):
         self.arm = armature
@@ -151,9 +205,13 @@ class Rig:
 
 
 def torso_weights(rig):
-    chain = [("DEF-hips", rig.h("DEF-hips").z), ("DEF-spine.001", rig.h("DEF-spine.001").z),
-             ("DEF-spine.002", rig.h("DEF-spine.002").z), ("DEF-spine.003", rig.h("DEF-spine.003").z),
-             ("DEF-neck", rig.h("DEF-neck").z)]
+    chain = [
+        ("DEF-hips", rig.h("DEF-hips").z),
+        ("DEF-spine.001", rig.h("DEF-spine.001").z),
+        ("DEF-spine.002", rig.h("DEF-spine.002").z),
+        ("DEF-spine.003", rig.h("DEF-spine.003").z),
+        ("DEF-neck", rig.h("DEF-neck").z),
+    ]
 
     def weights(p):
         w = {}
@@ -163,7 +221,7 @@ def torso_weights(rig):
             w[chain[-2][0]] = 0.6
             w[chain[-1][0]] = 0.4
         else:
-            for (b0, z0), (b1, z1) in zip(chain, chain[1:]):
+            for (b0, z0), (b1, z1) in itertools.pairwise(chain):
                 if z0 <= p.z <= z1:
                     t = (p.z - z0) / (z1 - z0)
                     w[b0] = 1 - t * 0.5
@@ -187,8 +245,15 @@ def build_body(rig, spec):
     # torso: rings from below the hips to the shoulders, wider at the chest
     rings = []
     profile = [
-        (hips_z - 0.07, 0.6), (hips_z - 0.03, 0.92), (hips_z + 0.02, 1.0), (hips_z + 0.12, 0.0),
-        (hips_z + 0.24, 0.5), (hips_z + 0.36, 1.0), (top_z - 0.06, 1.0), (top_z - 0.01, 0.75), (top_z + 0.015, 0.38),
+        (hips_z - 0.07, 0.6),
+        (hips_z - 0.03, 0.92),
+        (hips_z + 0.02, 1.0),
+        (hips_z + 0.12, 0.0),
+        (hips_z + 0.24, 0.5),
+        (hips_z + 0.36, 1.0),
+        (top_z - 0.06, 1.0),
+        (top_z - 0.01, 0.75),
+        (top_z + 0.015, 0.38),
     ]
     for i, (z, k) in enumerate(profile):
         if i < 3:
@@ -196,18 +261,44 @@ def build_body(rig, spec):
         elif i == 3:
             rx, ry = sh["waist"]
         else:
-            rx = sh["waist"][0] + (sh["chest"][0] - sh["waist"][0]) * k if i < 7 else sh["chest"][0] * k
-            ry = sh["waist"][1] + (sh["chest"][1] - sh["waist"][1]) * k if i < 7 else sh["chest"][1] * k
+            rx = (
+                sh["waist"][0] + (sh["chest"][0] - sh["waist"][0]) * k
+                if i < 7
+                else sh["chest"][0] * k
+            )
+            ry = (
+                sh["waist"][1] + (sh["chest"][1] - sh["waist"][1]) * k
+                if i < 7
+                else sh["chest"][1] * k
+            )
         rings.append((Vector((0, 0.012, z)), LEFT, rx, FWD, ry))
-    parts.append(Part(loft(rings, 20), lambda p, hz=hips_z: BOTTOM if p.z < hz + 0.07 else TOP, torso_weights(rig)))
+    parts.append(
+        Part(
+            loft(rings, 20),
+            lambda p, hz=hips_z: BOTTOM if p.z < hz + 0.07 else TOP,
+            torso_weights(rig),
+        )
+    )
 
     # neck and head
     neck_a, neck_b = rig.h("DEF-neck"), rig.h("DEF-head")
-    parts.append(Part(capsule(neck_a + Vector((0, 0, -0.02)), neck_b + Vector((0, 0, 0.03)), sh["neck_radius"], sh["neck_radius"] * 0.95), SKIN,
-                      along("DEF-neck", neck_a, neck_b, parent="DEF-spine.003", child="DEF-head")))
+    parts.append(
+        Part(
+            capsule(
+                neck_a + Vector((0, 0, -0.02)),
+                neck_b + Vector((0, 0, 0.03)),
+                sh["neck_radius"],
+                sh["neck_radius"] * 0.95,
+            ),
+            SKIN,
+            along("DEF-neck", neck_a, neck_b, parent="DEF-spine.003", child="DEF-head"),
+        )
+    )
     r = sh["head_radius"]
     centre = rig.h("DEF-head") + Vector((0, -0.012, r * 0.78))
-    parts.append(Part(ellipsoid(centre, r * 0.97, r, r * sh["head_squash"], 24, 16), SKIN, "DEF-head"))
+    parts.append(
+        Part(ellipsoid(centre, r * 0.97, r, r * sh["head_squash"], 24, 16), SKIN, "DEF-head")
+    )
     # face: eyes, brows, nose, ears (eyes sit on the surface, slightly sunk in)
     for side in (-1, 1):
         eye = centre + FWD * (r * 0.9) + LEFT * (side * r * 0.34) + UP * (r * 0.02)
@@ -216,17 +307,61 @@ def build_body(rig, spec):
         parts.append(Part(ellipsoid(brow, r * 0.12, r * 0.035, r * 0.03, 8, 6), HAIR, "DEF-head"))
         ear = centre + LEFT * (side * r * 0.96) + UP * (r * 0.0)
         parts.append(Part(ellipsoid(ear, r * 0.07, r * 0.11, r * 0.15, 8, 6), SKIN, "DEF-head"))
-    parts.append(Part(ellipsoid(centre + FWD * (r * 0.98) + UP * (-r * 0.15), r * 0.075, r * 0.07, r * 0.065, 8, 6), SKIN, "DEF-head"))
+    parts.append(
+        Part(
+            ellipsoid(
+                centre + FWD * (r * 0.98) + UP * (-r * 0.15), r * 0.075, r * 0.07, r * 0.065, 8, 6
+            ),
+            SKIN,
+            "DEF-head",
+        )
+    )
 
     # arms with shoulder balls, open mitten hands with a thumb
     for s in ("L", "R"):
-        sx = 1 if s == "L" else -1
-        sho, ua, fa, hand = f"DEF-shoulder.{s}", f"DEF-upper_arm.{s}", f"DEF-forearm.{s}", f"DEF-hand.{s}"
+        sho, ua, fa, hand = (
+            f"DEF-shoulder.{s}",
+            f"DEF-upper_arm.{s}",
+            f"DEF-forearm.{s}",
+            f"DEF-hand.{s}",
+        )
         a, b, c = rig.h(ua), rig.h(fa), rig.h(hand)
-        parts.append(Part(ellipsoid(a + Vector((-sx * 0.01, 0, 0)), sh["upper_arm"][0] * 1.08, sh["upper_arm"][0] * 1.05, sh["upper_arm"][0] * 1.02, 12, 8), TOP,
-                          lambda p, sho=sho, ua=ua: {sho: 0.5, ua: 0.5}))
-        parts.append(Part(capsule(a, b, sh["upper_arm"][0], sh["upper_arm"][1]), TOP, along(ua, a, b, parent=sho, child=fa)))
-        parts.append(Part(capsule(b, c, sh["forearm"][0], sh["forearm"][1]), FOREARM, along(fa, b, c, parent=ua, child=hand)))
+        d_ua = (b - a).normalized()
+        inner = a - d_ua * (sh["upper_arm"][0] * 1.2)
+        sleeve = sh.get("sleeve", 0.5)
+        parts.append(
+            Part(
+                capsule(inner, b, sh["upper_arm"][0] * 1.05, sh["upper_arm"][1]),
+                lambda p, a=a, b=b, s=sleeve: TOP
+                if (p - a).dot(b - a) / (b - a).length_squared < s
+                else FOREARM,
+                along(ua, inner, b, parent=sho, child=fa, parent_share=0.6),
+            )
+        )
+        if sleeve > 0:
+            hem = a + (b - a) * sleeve
+            parts.append(
+                Part(
+                    capsule(
+                        hem - d_ua * 0.012,
+                        hem + d_ua * 0.012,
+                        sh["upper_arm"][0] * 1.16,
+                        sh["upper_arm"][0] * 1.12,
+                        14,
+                        1,
+                        2,
+                    ),
+                    TOP,
+                    along(ua, inner, b, parent=sho, child=fa, parent_share=0.6),
+                )
+            )
+        parts.append(
+            Part(
+                capsule(b, c, sh["forearm"][0], sh["forearm"][1]),
+                FOREARM,
+                along(fa, b, c, parent=ua, child=hand),
+            )
+        )
         hw, ht, hl = sh["hand"]
         d = (c - b).normalized()
         palm = c + d * (hl * 0.75)
@@ -239,14 +374,82 @@ def build_body(rig, spec):
     for s in ("L", "R"):
         th, sn, ft = f"DEF-thigh.{s}", f"DEF-shin.{s}", f"DEF-foot.{s}"
         a, b, c = rig.h(th), rig.h(sn), rig.h(ft)
-        parts.append(Part(capsule(a + Vector((0, 0, 0.04)), b, sh["thigh"][0], sh["thigh"][1]), THIGH, along(th, a, b, parent="DEF-hips", child=sn, parent_share=0.4)))
-        parts.append(Part(capsule(b, c, sh["shin"][0], sh["shin"][1]), SHIN, along(sn, b, c, parent=th, child=ft)))
+        shorts = sh.get("shorts", 0.0)
+        thigh_region = (
+            (
+                lambda p, a=a, b=b, s=shorts: BOTTOM
+                if (p - a).dot(b - a) / (b - a).length_squared < s
+                else SHIN
+            )
+            if shorts > 0
+            else BOTTOM
+        )
+        parts.append(
+            Part(
+                capsule(a + Vector((0, 0, 0.04)), b, sh["thigh"][0], sh["thigh"][1]),
+                thigh_region,
+                along(th, a, b, parent="DEF-hips", child=sn, parent_share=0.4),
+            )
+        )
+        if shorts > 0:
+            hem = a + (b - a) * shorts
+            dl = (b - a).normalized()
+            parts.append(
+                Part(
+                    capsule(
+                        hem - dl * 0.015,
+                        hem + dl * 0.015,
+                        sh["thigh"][0] * 1.14,
+                        sh["thigh"][0] * 1.12,
+                        14,
+                        1,
+                        2,
+                    ),
+                    BOTTOM,
+                    along(th, a, b, parent="DEF-hips", child=sn, parent_share=0.4),
+                )
+            )
+        parts.append(
+            Part(
+                capsule(b, c, sh["shin"][0], sh["shin"][1]),
+                SHIN,
+                along(sn, b, c, parent=th, child=ft),
+            )
+        )
         fw, fl, fh = sh["foot"]
         toe = rig.h(f"DEF-toe.{s}")
         foot_centre = Vector((c.x, (c.y + toe.y) * 0.5 - 0.01, fh * 0.9))
-        parts.append(Part(ellipsoid(foot_centre, fw, fl, fh, 14, 8), SHOES,
-                          lambda p, ft=ft, tl=f"DEF-toe.{s}", ty=toe.y: {ft: 1.0 - smooth(ty + 0.03, ty - 0.03, p.y) * 0.5, tl: smooth(ty + 0.03, ty - 0.03, p.y) * 0.5}))
+        shoe = ellipsoid(foot_centre, fw, fl, fh, 14, 8)
+        for v in shoe.verts:
+            v.co.z = max(v.co.z, 0.004)  # flat sole on the ground
+        parts.append(
+            Part(
+                shoe,
+                SHOES,
+                lambda p, ft=ft, tl=f"DEF-toe.{s}", ty=toe.y: {
+                    ft: 1.0 - smooth(ty + 0.03, ty - 0.03, p.y) * 0.5,
+                    tl: smooth(ty + 0.03, ty - 0.03, p.y) * 0.5,
+                },
+            )
+        )
 
+    # waistband: the trousers or skirt start with a visible edge
+    band_z = hips_z + 0.07
+    parts.append(
+        Part(
+            capsule(
+                Vector((0, 0.012, band_z - 0.018)),
+                Vector((0, 0.012, band_z + 0.018)),
+                sh["waist"][0] * 1.08,
+                sh["waist"][0] * 1.08,
+                20,
+                1,
+                2,
+            ),
+            BOTTOM,
+            torso_weights(rig),
+        )
+    )
     if sh.get("skirt"):
         top = hips_z + 0.06
         bottom = rig.h("DEF-shin.L").z + 0.1
@@ -270,7 +473,9 @@ def build_body(rig, spec):
 
 def hair_parts(style, centre, r):
     """Hair as a shell over the top and back of the head, open at the face; plus style volumes."""
-    shell = ellipsoid(centre + UP * (r * 0.05) - FWD * (r * 0.04), r * 1.06, r * 1.08, r * 1.04, 24, 16)
+    shell = ellipsoid(
+        centre + UP * (r * 0.05) - FWD * (r * 0.04), r * 1.06, r * 1.08, r * 1.04, 24, 16
+    )
     remove = []
     for v in shell.verts:
         rel = v.co - centre
@@ -278,7 +483,12 @@ def hair_parts(style, centre, r):
         up = rel.dot(UP) / r
         side = abs(rel.dot(LEFT)) / r
         fringe = 0.42 if style != "tousled" else 0.3
-        keep = up > fringe or (fwd < 0.05 and up > -0.55) or (side > 0.72 and up > 0.0 and fwd < 0.55)
+        keep = (
+            up > fringe
+            or (fwd < 0.05 and up > -0.55)
+            or (fwd < -0.3 and up > -0.85)
+            or (side > 0.72 and up > 0.0 and fwd < 0.55)
+        )
         if style == "long":
             keep = keep or (fwd < 0.15 and up > -0.75)
         if not keep:
@@ -297,11 +507,30 @@ def hair_parts(style, centre, r):
             width = r * (0.92 - 0.2 * t) * max(0.18, round_off)
             depth = r * (0.45 - 0.12 * t) * max(0.25, round_off)
             back.append((Vector((c.x, c.y, z)), LEFT, width, FWD, depth))
-        parts.append(Part(loft(back, 18), HAIR, lambda p, z0=centre.z - r: {"DEF-head": 1.0 - smooth(z0, z0 - 0.3, p.z) * 0.6, "DEF-neck": smooth(z0, z0 - 0.3, p.z) * 0.6}))
+        parts.append(
+            Part(
+                loft(back, 18),
+                HAIR,
+                lambda p, z0=centre.z - r: {
+                    "DEF-head": 1.0 - smooth(z0, z0 - 0.3, p.z) * 0.6,
+                    "DEF-neck": smooth(z0, z0 - 0.3, p.z) * 0.6,
+                },
+            )
+        )
     elif style == "bun":
-        parts.append(Part(ellipsoid(centre - FWD * (r * 0.95) + UP * (r * 0.45), r * 0.4, r * 0.36, r * 0.38, 14, 10), HAIR, "DEF-head"))
+        parts.append(
+            Part(
+                ellipsoid(
+                    centre - FWD * (r * 0.95) + UP * (r * 0.45), r * 0.4, r * 0.36, r * 0.38, 14, 10
+                ),
+                HAIR,
+                "DEF-head",
+            )
+        )
     elif style == "tousled":
-        for k, (dx, dz) in enumerate(((-0.45, 0.85), (0.0, 0.98), (0.45, 0.85), (-0.25, 0.7), (0.3, 0.72))):
+        for k, (dx, dz) in enumerate(
+            ((-0.45, 0.85), (0.0, 0.98), (0.45, 0.85), (-0.25, 0.7), (0.3, 0.72))
+        ):
             tuft = centre + LEFT * (dx * r) + UP * (dz * r) + FWD * (0.15 * r * (k % 2))
             parts.append(Part(ellipsoid(tuft, r * 0.3, r * 0.3, r * 0.22, 10, 6), HAIR, "DEF-head"))
     return parts
@@ -320,10 +549,8 @@ def make_object(name, parts, armature):
             regions.append(part.region(v.co))
             weights.append(part.weights(v.co))
         for f in part.bm.faces:
-            try:
+            with contextlib.suppress(ValueError):  # duplicate faces where parts touch
                 bm.faces.new([mapping[v] for v in f.verts])
-            except ValueError:
-                pass
         part.bm.free()
         del offset
     bm.normal_update()
@@ -354,22 +581,24 @@ def make_object(name, parts, armature):
 
 
 def main():
-    argv = sys.argv[sys.argv.index("--") + 1:]
+    argv = sys.argv[sys.argv.index("--") + 1 :]
     source, config_path, out_dir = argv[0], argv[1], argv[2]
-    config = json.loads(open(config_path, encoding="utf-8").read())
+    with open(config_path, encoding="utf-8") as file:
+        config = json.load(file)
     for spec in config["bodies"]:
         bpy.ops.wm.read_factory_settings(use_empty=True)
         bpy.ops.import_scene.gltf(filepath=source)
         armature = next(o for o in bpy.data.objects if o.type == "ARMATURE")
         for obj in [o for o in bpy.data.objects if o.type == "MESH"]:
             bpy.data.objects.remove(obj, do_unlink=True)
+        reshape_rig(armature, spec)
         rig = Rig(armature)
         body_parts, centre, r = build_body(rig, spec)
         objects = [make_object("Body", body_parts, armature)]
         for style in config["hair_styles"]:
             objects.append(make_object(f"Hair_{style}", hair_parts(style, centre, r), armature))
         bpy.ops.object.select_all(action="DESELECT")
-        for obj in objects + [armature]:
+        for obj in [*objects, armature]:
             obj.select_set(True)
         bpy.context.view_layer.objects.active = armature
         path = f"{out_dir}/{spec['id']}.glb"
