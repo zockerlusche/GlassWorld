@@ -7,50 +7,28 @@ JobFailedError with a ServiceError code. A handler never invents an answer when 
 
 from __future__ import annotations
 
-import asyncio
-import time
-from dataclasses import dataclass
 from typing import ClassVar
 
-import httpx
-
-from glassworld_ai.calllog import CallLog, CallRecord
-from glassworld_ai.errors import RETRYABLE_CODES
-from glassworld_ai.jobs import JobFailedError, JobOutcome
-from glassworld_ai.llm.ollama import (
-    ChatMessage,
-    ChatResult,
-    OllamaClient,
-    OllamaRequestError,
-    OllamaResponseError,
-    OllamaUnavailableError,
+from glassworld_ai.calllog import CallLog
+from glassworld_ai.jobs import JobOutcome
+from glassworld_ai.llm.jobcall import (
+    InvalidOutputError,
+    ModelCallSettings,
+    ask_model,
+    fail,
+    recorded_answers,
 )
+from glassworld_ai.llm.ollama import OllamaClient
 from glassworld_ai.prompts import PromptTemplate
 from glassworld_ai.questions.context import build_values, question_payload
-from glassworld_ai.questions.output import (
-    InvalidQuestionOutputError,
-    ModelAnswer,
-    ModelGuess,
-    output_schema,
-    parse_answer,
-)
-from glassworld_ai.queue import (
-    DeadlineExpiredError,
-    ModelQueue,
-    Priority,
-    QueueClosedError,
-    QueueFullError,
-)
+from glassworld_ai.questions.output import ModelAnswer, ModelGuess, output_schema, parse_answer
+from glassworld_ai.queue import ModelQueue
 from glassworld_ai.vocabulary import Vocabulary
 from glassworld_ai.words import plain_id
 from glassworld_contracts import GenerationJob
 
 ROLE = "question"
-NO_WAIT_LIMIT_S = 7 * 24 * 3600.0  # queue wait for questions: practically unlimited (B2487)
-
-
-def _fail(code: str, message: str) -> JobFailedError:
-    return JobFailedError(code, message, retryable=code in RETRYABLE_CODES)
+QuestionSettings = ModelCallSettings  # name kept for callers
 
 
 def _result(job_locale: str, answer: ModelAnswer) -> dict[str, object]:
@@ -87,14 +65,6 @@ def _hidden_ids(job: GenerationJob) -> frozenset[str]:
     return frozenset(ids)
 
 
-@dataclass(frozen=True)
-class QuestionSettings:
-    temperature: float
-    num_ctx: int
-    max_retries: int
-    call_timeout_s: float  # per model call; waiting in the queue has no limit (B2487)
-
-
 class OllamaQuestions:
     """Asks the language model. Runs with background priority behind player and decisions."""
 
@@ -105,7 +75,7 @@ class OllamaQuestions:
         queue: ModelQueue,
         template: PromptTemplate,
         vocab: Vocabulary,
-        settings: QuestionSettings,
+        settings: ModelCallSettings,
         log: CallLog,
     ) -> None:
         self._client = client
@@ -116,105 +86,27 @@ class OllamaQuestions:
         self._log = log
 
     async def __call__(self, job: GenerationJob) -> JobOutcome:
-        started = time.monotonic()
         rendered = self._template.render(build_values(job, self._template, self._vocab))
         schema = _schema(self._template, self._vocab, job)
         hidden = _hidden_ids(job)
-        messages = [ChatMessage("system", rendered.system), ChatMessage("user", rendered.user)]
-        attempts = 1 + self._settings.max_retries
-        last_problem = ""
-        for attempt in range(1, attempts + 1):
-            seed = (job.seed + attempt - 1) % 2_147_483_648
-            call_started = time.monotonic()
-
-            def log(
-                outcome: str,
-                raw: str | None,
-                detail: str | None = None,
-                tokens: tuple[int | None, int | None] = (None, None),
-                *,
-                seed: int = seed,
-                attempt: int = attempt,
-                at: float = call_started,
-            ) -> None:
-                self._log.write(
-                    CallRecord(
-                        role=ROLE,
-                        request_id=plain_id(job.request_id),
-                        tick=job.tick,
-                        prompt_version=rendered.version,
-                        model=self._client.model,
-                        seed=seed,
-                        temperature=self._settings.temperature,
-                        attempt=attempt,
-                        latency_ms=int((time.monotonic() - at) * 1000),
-                        outcome=outcome,
-                        raw_output=raw,
-                        request=job.model_dump(mode="json") if attempt == 1 else None,
-                        detail=detail,
-                        prompt_tokens=tokens[0],
-                        output_tokens=tokens[1],
-                    )
-                )
-
-            async def call(seed: int = seed) -> ChatResult:
-                return await self._client.chat(
-                    messages,
-                    schema=schema,
-                    seed=seed,
-                    temperature=self._settings.temperature,
-                    num_ctx=self._settings.num_ctx,
-                    timeout=self._settings.call_timeout_s,
-                )
-
-            # The queue deadline covers waiting AND the call; the call itself is limited by the
-            # HTTP timeout (call_timeout_s), so the wait is practically unlimited.
-            deadline = time.monotonic() + NO_WAIT_LIMIT_S
-            try:
-                result = await self._queue.run(Priority.BACKGROUND, deadline, call)
-            except asyncio.CancelledError:
-                log("cancelled", None, "job cancelled (DELETE or shutdown)")
-                raise
-            except QueueClosedError as error:
-                log("unavailable", None, str(error))
-                raise _fail("model_unavailable", "service is stopping") from error
-            except OllamaRequestError as error:
-                log("error", None, str(error))
-                raise _fail("internal", str(error)) from error
-            except QueueFullError as error:
-                log("overloaded", None, str(error))
-                raise _fail("overloaded", "model queue is full") from error
-            except (DeadlineExpiredError, httpx.TimeoutException) as error:
-                log("timeout", None, type(error).__name__)
-                raise _fail("timeout", "model call took too long") from error
-            except OllamaUnavailableError as error:
-                log("unavailable", None, str(error))
-                raise _fail("model_unavailable", str(error)) from error
-            except httpx.HTTPError as error:
-                log("unavailable", None, type(error).__name__)
-                raise _fail("model_unavailable", f"Ollama error: {type(error).__name__}") from error
-            except OllamaResponseError as error:
-                log("error", None, str(error))
-                last_problem = str(error)
-                continue
-            usage = (result.prompt_tokens, result.output_tokens)
-            try:
-                answer = parse_answer(result.content, schema, hidden)
-            except InvalidQuestionOutputError as error:
-                log("invalid", result.content, str(error), usage)
-                last_problem = str(error)
-                continue
-            log("ok", result.content, None, usage)
-            return JobOutcome(
-                result=_result(plain_id(job.display_locale), answer),
-                source="ollama",
-                model=self._client.model[:128],
-                prompt_version=rendered.version,
-                latency_ms=int((time.monotonic() - started) * 1000),
-                attempts=attempt,
-            )
-        raise _fail(
-            "invalid_model_output", f"no valid answer after {attempts} attempts: {last_problem}"
+        answer = await ask_model(
+            role=ROLE,
+            job=job,
+            rendered=rendered,
+            schema=schema,
+            parse=lambda raw: parse_answer(raw, schema, hidden),
+            client=self._client,
+            queue=self._queue,
+            settings=self._settings,
+            log=self._log,
+        )
+        return JobOutcome(
+            result=_result(plain_id(job.display_locale), answer.value),
+            source="ollama",
+            model=self._client.model[:128],
+            prompt_version=rendered.version,
+            latency_ms=answer.latency_ms,
+            attempts=answer.attempts,
         )
 
 
@@ -256,39 +148,25 @@ class ReplayQuestions:
         self._vocab = vocab
         self._answers: dict[str, dict[str, object]] | None = None
 
-    def _index(self) -> dict[str, dict[str, object]]:
-        """First valid answer per job id; the log is read once (replays use a finished log)."""
-        if self._answers is None:
-            self._answers = {}
-            for row in self._log.read():
-                job_id = row.get("request_id")
-                if (
-                    row.get("role") == ROLE
-                    and isinstance(job_id, str)
-                    and row.get("outcome") == "ok"
-                    and isinstance(row.get("raw_output"), str)
-                ):
-                    self._answers.setdefault(job_id, row)
-        return self._answers
-
     async def __call__(self, job: GenerationJob) -> JobOutcome:
         job_id = plain_id(job.request_id)
-        schema = _schema(self._template, self._vocab, job)
-        row = self._index().get(job_id)
-        if row is not None:
-            try:
-                answer = parse_answer(str(row["raw_output"]), schema, _hidden_ids(job))
-            except InvalidQuestionOutputError as error:
-                raise _fail(
-                    "model_unavailable", f"recorded answer does not fit job {job_id}"
-                ) from error
-            attempts = row.get("attempt", 1)
-            return JobOutcome(
-                result=_result(plain_id(job.display_locale), answer),
-                source="replay",
-                model=str(row.get("model", "replay"))[:128],
-                prompt_version=str(row.get("prompt_version", "")) or None,
-                latency_ms=0,
-                attempts=attempts if isinstance(attempts, int) else 1,
+        if self._answers is None:  # read once; replays use a finished log
+            self._answers = recorded_answers(self._log, ROLE)
+        row = self._answers.get(job_id)
+        if row is None:
+            raise fail("model_unavailable", f"no recorded answer for job {job_id}")
+        try:
+            answer = parse_answer(
+                str(row["raw_output"]), _schema(self._template, self._vocab, job), _hidden_ids(job)
             )
-        raise _fail("model_unavailable", f"no recorded answer for job {job_id}")
+        except InvalidOutputError as error:
+            raise fail("model_unavailable", f"recorded answer does not fit job {job_id}") from error
+        attempts = row.get("attempt", 1)
+        return JobOutcome(
+            result=_result(plain_id(job.display_locale), answer),
+            source="replay",
+            model=str(row.get("model", "replay"))[:128],
+            prompt_version=str(row.get("prompt_version", "")) or None,
+            latency_ms=0,
+            attempts=attempts if isinstance(attempts, int) else 1,
+        )

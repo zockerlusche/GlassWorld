@@ -1,0 +1,26 @@
+{
+  "contract_version": "0.2",
+  "job_id": "5c4d3e2f-1a0b-8c9d-8e7f-6a5b4c3d2e1f",
+  "tick": 1210,
+  "kind": "memory",
+  "state": "done",
+  "result": {
+    "memory": {
+      "summary": "Woke up alone on a beach; found fresh water in a stream. Met another person (inh-0002), friendly. Red berries gave a bad stomach ache.",
+      "kept": [
+        1100,
+        1180
+      ]
+    },
+    "question": null
+  },
+  "error": null,
+  "provenance": {
+    "source": "mock",
+    "model": "mock",
+    "prompt_version": "memory/condense.v1",
+    "seed": 77,
+    "latency_ms": 1,
+    "attempts": 1
+  }
+}

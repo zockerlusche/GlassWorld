@@ -110,7 +110,7 @@ def _status_body(job: GenerationJob, outcome: JobOutcome) -> dict[str, object]:
         "tick": job.tick,
         "kind": "question",
         "state": "done",
-        "result": outcome.result,
+        "result": {"memory": None, **outcome.result},
         "error": None,
         "provenance": {
             "source": outcome.source,

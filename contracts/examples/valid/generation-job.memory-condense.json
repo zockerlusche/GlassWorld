@@ -1,0 +1,47 @@
+{
+  "contract_version": "0.2",
+  "request_id": "5c4d3e2f-1a0b-8c9d-8e7f-6a5b4c3d2e1f",
+  "tick": 1210,
+  "seed": 77,
+  "display_locale": "de",
+  "kind": "memory",
+  "priority": 10,
+  "inhabitant": "inh-0001",
+  "object": null,
+  "payload": {
+    "memory": {
+      "summary": "Woke up alone on a beach. Found a stream with fresh water.",
+      "events": [
+        {
+          "tick": 1100,
+          "kind": "met_inhabitant",
+          "about": {
+            "kind": "inhabitant",
+            "id": "inh-0002"
+          },
+          "formative": true
+        },
+        {
+          "tick": 1150,
+          "kind": "drank",
+          "about": {
+            "kind": "type",
+            "id": "spring_water"
+          },
+          "formative": false
+        },
+        {
+          "tick": 1180,
+          "kind": "felt_pain",
+          "about": {
+            "kind": "type",
+            "id": "red_berry_bush"
+          },
+          "formative": true
+        }
+      ],
+      "max_chars": 600
+    },
+    "question": null
+  }
+}

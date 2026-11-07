@@ -28,6 +28,8 @@ max_retries = 2            # engineering handbook: at most two retries
 queue_size = 64
 question_prompt = "question/ask"   # B4a S2; backend follows decider_backend (ollama/mock/replay)
 question_prompt_version = 1
+memory_prompt = "memory/condense"  # B4a S4: memory condensation (job kind memory)
+memory_prompt_version = 1
 question_call_timeout_s = 60.0     # one model call (blocks the model like a decision, so <= the
                                    # core's decision deadline); WAITING in the queue has no limit (B2487)
 job_capacity = 256         # generation jobs held in memory (B7); the core resubmits after a restart
