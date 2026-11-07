@@ -88,7 +88,95 @@ public static class UiLayoutCheck
             problems.Add("window larger than the allowed share of the screen");
         }
 
+        window.QueueFree();
+        problems.AddRange(await CheckComponents(host, stage, style, area));
         stage.QueueFree();
+        return problems;
+    }
+
+    /// <summary>Side panel with table, hint stack and a long speech bubble in the same case.</summary>
+    private static async Task<IReadOnlyList<string>> CheckComponents(Node host, Control stage, UiStyle style, Vector2 area)
+    {
+        var problems = new List<string>();
+        var margin = style.Tokens.Window.SafeMargin;
+
+        var panel = new GwSidePanel();
+        panel.Setup("ui.inhabitants.title");
+        var table = new GwTable();
+        table.Setup(
+            [new GwColumn("ui.inhabitants.column.name", false), new GwColumn("ui.inhabitants.column.will_to_live", true), new GwColumn("ui.inhabitants.column.questions", true)],
+            "ui.inhabitants.empty");
+        table.SetRows([.. Enumerable.Range(1, 100).Select(i => new GwRow($"inh-{i}", [TextFill.Fill(host.Tr("ui.inhabitant.unnamed"), new Dictionary<string, string> { ["number"] = $"{i}" }), $"{i % 100}", $"{i % 3}"], [i, i % 100, i % 3]))]);
+        panel.Content.AddChild(table);
+        stage.AddChild(panel);
+
+        var board = new ToastBoard(style.Tokens.Toast, new ToastSettings(1, UntilDismissed: true));
+        board.Push(new ToastMessage("ui.inhabitants.empty", new Dictionary<string, string>(), null), fastForward: false);
+        board.Push(new ToastMessage("msg.mail.kind.knock", new Dictionary<string, string>(), "knock"), fastForward: false);
+        for (var i = 0; i < 12; i++)
+        {
+            board.Push(new ToastMessage("msg.mail.kind.knock", new Dictionary<string, string>(), "knock"), fastForward: true);
+        }
+
+        var toasts = new GwToasts { Board = board, CustomMinimumSize = new Vector2(style.Tokens.Window.SidePanelWidth, 0) };
+        stage.AddChild(toasts);
+        toasts.Sync();
+
+        var bubble = new GwBubble();
+        stage.AddChild(bubble);
+        bubble.Show(string.Join(' ', Enumerable.Repeat(host.Tr("vocab.property.building_material"), 16)), style, area);
+
+        await host.ToSignal(host.GetTree(), SceneTree.SignalName.ProcessFrame);
+        // Dock first with the largest text size, then with the real one: a runtime change of the text
+        // size must not leave the panel wider than its place (GW1 review W1).
+        panel.Dock(area, style.With(style.Settings with { TextScale = style.Tokens.TextScale.Max }), 0);
+        await host.ToSignal(host.GetTree(), SceneTree.SignalName.ProcessFrame);
+        panel.Dock(area, style, 0);
+        await host.ToSignal(host.GetTree(), SceneTree.SignalName.ProcessFrame);
+        panel.Dock(area, style, 0);
+        var dockedSize = panel.Size;
+        toasts.Size = new Vector2(Math.Min(style.Tokens.Window.SidePanelWidth, area.X - (2 * margin)), toasts.GetCombinedMinimumSize().Y);
+        toasts.Position = area - toasts.Size - (Vector2.One * margin);
+        await host.ToSignal(host.GetTree(), SceneTree.SignalName.ProcessFrame);
+        bubble.ResetSize();
+        bubble.Position = ((area - bubble.Size) / 2).Floor();
+        await host.ToSignal(host.GetTree(), SceneTree.SignalName.ProcessFrame);
+
+        var safe = new Rect2(Vector2.One * margin, area - (Vector2.One * 2 * margin));
+        if (!safe.Encloses(new Rect2(panel.Position, panel.Size)))
+        {
+            problems.Add($"side panel {panel.Position}+{panel.Size} leaves the safe area of {area} (docked {dockedSize}; {panel.Diagnose()})");
+        }
+
+        var title = panel.TitleProblem();
+        if (title.Length > 0)
+        {
+            problems.Add("side panel " + title);
+        }
+
+        var inner = panel.Size.X - (2 * (style.Tokens.Window.Padding + style.Frame(GlassWorld.Contracts.UiFrameId.Window).ContentPadding));
+        if (table.HeaderMinimumWidth() > inner + 0.5f)
+        {
+            problems.Add($"table header needs {table.HeaderMinimumWidth():0} px, panel offers {inner:0} px");
+        }
+
+        if (board.Visible.Count != style.Tokens.Toast.MaxVisible - 1 || board.Visible[1].Count != 13)
+        {
+            problems.Add("hint bundling does not match the board");
+        }
+
+        if (!safe.Encloses(new Rect2(toasts.Position, toasts.Size)) || toasts.Size.Y > area.Y / 2)
+        {
+            problems.Add($"hints {toasts.Position}+{toasts.Size} leave the safe area or cover more than half the height");
+        }
+
+        // A long sentence at the largest UI and text size may fill much of the screen; it must still fit
+        // (nothing cut off, D366 section 2) and stay readable as one bubble.
+        if (bubble.Size.X > safe.Size.X + 0.5f || bubble.Size.Y > safe.Size.Y + 0.5f || bubble.LineCount() > 10)
+        {
+            problems.Add($"speech bubble {bubble.Size} with {bubble.LineCount()} lines is too large");
+        }
+
         return problems;
     }
 }

@@ -140,9 +140,23 @@
         "corner_radius",
         "border_width",
         "safe_margin",
-        "max_screen_fraction"
+        "max_screen_fraction",
+        "side_panel_width",
+        "bubble_max_chars"
       ],
       "properties": {
+        "side_panel_width": {
+          "description": "Width of a docked side panel (mailbox, inhabitants, chronicle, open questions).",
+          "type": "integer",
+          "minimum": 200,
+          "maximum": 1200
+        },
+        "bubble_max_chars": {
+          "description": "Line length of speech bubbles in characters (D366 section 3: about 60).",
+          "type": "integer",
+          "minimum": 20,
+          "maximum": 120
+        },
         "padding": {
           "type": "integer",
           "minimum": 0,
@@ -251,6 +265,7 @@
       "required": [
         "max_visible",
         "min_seconds",
+        "bundle_after_waiting",
         "max_duration_factor"
       ],
       "properties": {
@@ -263,6 +278,12 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 120
+        },
+        "bundle_after_waiting": {
+          "description": "From this many waiting hints on, hints of one group are bundled at normal speed too (no endless backlog with many inhabitants).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
         },
         "max_duration_factor": {
           "description": "Players can stretch the display time up to this factor (XAG 116: 10).",

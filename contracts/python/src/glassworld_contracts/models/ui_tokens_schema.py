@@ -23,6 +23,18 @@ class UiWindowTokens(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
+    side_panel_width: int = Field(
+        ...,
+        description='Width of a docked side panel (mailbox, inhabitants, chronicle, open questions).',
+        ge=200,
+        le=1200,
+    )
+    bubble_max_chars: int = Field(
+        ...,
+        description='Line length of speech bubbles in characters (D366 section 3: about 60).',
+        ge=20,
+        le=120,
+    )
     padding: int = Field(..., ge=0, le=128)
     gap: int = Field(..., ge=0, le=128)
     section_gap: int = Field(..., ge=0, le=128)
@@ -86,6 +98,12 @@ class UiToastTokens(BaseModel):
     )
     max_visible: int = Field(..., ge=1, le=10)
     min_seconds: int = Field(..., ge=1, le=120)
+    bundle_after_waiting: int = Field(
+        ...,
+        description='From this many waiting hints on, hints of one group are bundled at normal speed too (no endless backlog with many inhabitants).',
+        ge=1,
+        le=100,
+    )
     max_duration_factor: int = Field(
         ...,
         description='Players can stretch the display time up to this factor (XAG 116: 10).',

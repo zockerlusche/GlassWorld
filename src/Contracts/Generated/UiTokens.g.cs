@@ -37,6 +37,18 @@ namespace GlassWorld.Contracts
     public partial class UiWindowTokens
     {
 
+        /// <summary>
+        /// Width of a docked side panel (mailbox, inhabitants, chronicle, open questions).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("side_panel_width")]
+        public int SidePanelWidth { get; set; } = default!;
+
+        /// <summary>
+        /// Line length of speech bubbles in characters (D366 section 3: about 60).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("bubble_max_chars")]
+        public int BubbleMaxChars { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("padding")]
         public int Padding { get; set; } = default!;
 
@@ -123,6 +135,12 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("min_seconds")]
         public int MinSeconds { get; set; } = default!;
+
+        /// <summary>
+        /// From this many waiting hints on, hints of one group are bundled at normal speed too (no endless backlog with many inhabitants).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("bundle_after_waiting")]
+        public int BundleAfterWaiting { get; set; } = default!;
 
         /// <summary>
         /// Players can stretch the display time up to this factor (XAG 116: 10).

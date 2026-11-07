@@ -67,8 +67,40 @@
       "text": "Winter"
     },
     {
+      "key": "ui.chronicle.title",
+      "text": "Chronik"
+    },
+    {
       "key": "ui.common.close",
       "text": "Schließen"
+    },
+    {
+      "key": "ui.inhabitant.unnamed",
+      "text": "Bewohner {number}"
+    },
+    {
+      "key": "ui.inhabitants.column.name",
+      "text": "Name"
+    },
+    {
+      "key": "ui.inhabitants.column.questions",
+      "text": "Fragen"
+    },
+    {
+      "key": "ui.inhabitants.column.will_to_live",
+      "text": "Lebenswille"
+    },
+    {
+      "key": "ui.inhabitants.empty",
+      "text": "Hier lebt noch niemand."
+    },
+    {
+      "key": "ui.inhabitants.title",
+      "text": "Bewohner"
+    },
+    {
+      "key": "ui.mailbox.title",
+      "text": "Postfach"
     },
     {
       "key": "ui.new_world.climate.temperate",
@@ -87,8 +119,16 @@
       "text": "Kleine Insel"
     },
     {
+      "key": "ui.questions.title",
+      "text": "Offene Fragen"
+    },
+    {
       "key": "ui.settings.title",
       "text": "Einstellungen"
+    },
+    {
+      "key": "ui.toast.bundled",
+      "text": "{text} ({count}×)"
     },
     {
       "key": "vocab.action.approach",
