@@ -73,18 +73,24 @@ def detect_gpus(runner: CommandRunner = run_command) -> tuple[Gpu, ...]:
         return ()
 
 
-def _windows_cpu_name() -> str | None:
-    try:
-        import winreg
+if sys.platform == "win32":
+    import winreg
 
-        key = winreg.OpenKey(
-            winreg.HKEY_LOCAL_MACHINE,
-            r"HARDWARE\DESCRIPTION\System\CentralProcessor\0",
-        )
-        with key:
-            value, _ = winreg.QueryValueEx(key, "ProcessorNameString")
-        return str(value).strip() or None
-    except OSError:
+    def _windows_cpu_name() -> str | None:
+        try:
+            key = winreg.OpenKey(
+                winreg.HKEY_LOCAL_MACHINE,
+                r"HARDWARE\DESCRIPTION\System\CentralProcessor\0",
+            )
+            with key:
+                value, _ = winreg.QueryValueEx(key, "ProcessorNameString")
+            return str(value).strip() or None
+        except OSError:
+            return None
+
+else:
+
+    def _windows_cpu_name() -> str | None:
         return None
 
 
