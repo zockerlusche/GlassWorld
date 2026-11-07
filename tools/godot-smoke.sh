@@ -53,6 +53,10 @@ if ! grep -Eq '^I18N_OK locales=[a-z,]+ keys=[1-9][0-9]*$' "$LOG"; then
   echo "SMOKE_FAIL: text catalogs not loaded or language switch failed (marker 'I18N_OK' missing)" >&2
   exit 1
 fi
+if ! grep -Eq '^WORLD_OK seed=[0-9]+ inhabitants=[1-9][0-9]* objects=[0-9]+ hash=[0-9a-f]{12}$' "$LOG"; then
+  echo "SMOKE_FAIL: core world not loaded (marker 'WORLD_OK' missing)" >&2
+  exit 1
+fi
 if ! grep -q "^SMOKE_OK frames=$FRAMES\$" "$LOG"; then
   echo "SMOKE_FAIL: success marker 'SMOKE_OK frames=$FRAMES' missing" >&2
   exit 1
