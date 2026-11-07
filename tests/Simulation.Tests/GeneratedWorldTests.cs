@@ -57,6 +57,7 @@ public sealed class GeneratedWorldTests : IDisposable
 
         var state = SaveGameStore.Load(path);
         Assert.Equal(Preset, state.WorldPreset);
+        Assert.Equal(original.Map!.IslandHash, state.IslandHash);
         var loaded = Restore(state, new ReplayDecisionPort(original.Decisions.Log));
         Assert.Equal(original.Map!.IslandHash, loaded.Map!.IslandHash);
         Assert.Equal(original.World.StateHash(), loaded.World.StateHash());
@@ -65,6 +66,15 @@ public sealed class GeneratedWorldTests : IDisposable
         var replay = Restore(SaveGameStore.Load(path), new ReplayDecisionPort(original.Decisions.Log));
         replay.World.Run(original.World.Calendar.TicksPerDay);
         Assert.Equal(original.World.StateHash(), replay.World.StateHash());
+    }
+
+    [Fact]
+    public void ASaveWhoseIslandDiffersFromTheCurrentDataIsRefused()
+    {
+        var host = SimulationHost.CreateGeneratedWorld(ContentDirectory, 42, new MockDecisionPort(), "de", Preset);
+        var state = StateCodec.Capture(host) with { IslandHash = new string('0', 64) };
+        var e = Assert.Throws<InvalidDataException>(() => Restore(state, new MockDecisionPort()));
+        Assert.Contains("changed since the save", e.Message, StringComparison.Ordinal);
     }
 
     [Fact]

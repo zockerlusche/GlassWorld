@@ -176,6 +176,7 @@ public static class SaveGameStore
         if (s.WorldPreset is not null)
         {
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("world_preset", s.WorldPreset));
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("island_hash", s.IslandHash ?? string.Empty));
         }
 
         foreach (var (name, state) in s.Streams)
@@ -250,7 +251,8 @@ public static class SaveGameStore
             Query(c, "SELECT key, tick FROM last_asked ORDER BY key", r => new KeyValuePair<string, long>(r.GetString(0), r.GetInt64(1))),
             Query(c, "SELECT kind, request_id, tick, json, note FROM decision_log ORDER BY seq",
                 r => new DecisionLogEntry(Enum.Parse<DecisionLogKind>(r.GetString(0)), r.GetString(1), r.GetInt64(2), r.GetString(3), r.IsDBNull(4) ? null : r.GetString(4))),
-            meta.GetValueOrDefault("world_preset"));
+            meta.GetValueOrDefault("world_preset"),
+            meta.GetValueOrDefault("island_hash") is { Length: > 0 } islandHash ? islandHash : null);
     }
 
     private static string Str(ulong value) => value.ToString(CultureInfo.InvariantCulture);
