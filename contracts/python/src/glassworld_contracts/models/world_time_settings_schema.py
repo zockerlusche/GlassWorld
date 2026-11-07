@@ -3,13 +3,11 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, RootModel
+from pydantic import BaseModel, ConfigDict, Field
 
-
-class FastForwardFactor(RootModel[int]):
-    root: int = Field(..., ge=2, le=1000)
+type FastForwardFactor = Annotated[int, Field(..., ge=2, le=1000)]
 
 
 class SeasonSettings(BaseModel):
