@@ -49,9 +49,16 @@ def main(argv: list[str] | None = None) -> None:
     server: uvicorn.Server | None = None
     background: list[asyncio.Task[None]] = []
 
-    def request_exit() -> None:
+    async def stop() -> None:
+        # Close the model queue BEFORE the server stops: waiting calls end at once with
+        # model_unavailable instead of loading the model again (parent gone or /shutdown).
+        app.state.stopping = True
+        await app.state.queue.close()
         if server is not None:
             server.should_exit = True
+
+    def request_exit() -> None:
+        background.append(asyncio.get_running_loop().create_task(stop()))
 
     def announce() -> None:
         lock.write(port)

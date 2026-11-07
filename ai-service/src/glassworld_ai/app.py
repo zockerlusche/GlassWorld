@@ -134,7 +134,14 @@ def create_app(
         current: Probes = app.state.probes
         info: HardwareInfo = app.state.hardware
         tier: str | None = app.state.tier
-        return await health_status(current, settings.decider_model, info, tier, app.state.warm_up)
+        return await health_status(
+            current,
+            settings.decider_model,
+            info,
+            tier,
+            app.state.warm_up,
+            tier_gate=settings.decider_backend == "ollama",  # mock/replay need no GPU
+        )
 
     @app.post("/shutdown", status_code=202)
     async def shutdown() -> dict[str, str]:

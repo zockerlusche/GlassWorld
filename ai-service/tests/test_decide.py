@@ -272,6 +272,7 @@ def test_tier_gate_only_for_the_real_model(settings: Settings) -> None:
     weak = HardwareInfo(gpus=(), cpu_name=None, logical_cpus=4, ram_mib=8192)
     mock_settings = settings.model_copy(update={"decider_backend": "mock"})
     assert post(make_app(mock_settings, hardware=weak), "/decide", REQUEST).status_code == 200
+    assert get(make_app(mock_settings, hardware=weak), "/health").json()["status"] == "ready"
     gated = post(make_app(settings, hardware=weak), "/decide", REQUEST).json()
     assert gated["retryable"] is False  # hardware does not change: no endless resending
 

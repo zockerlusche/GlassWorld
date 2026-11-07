@@ -30,11 +30,12 @@ async def health_status(
     hardware: HardwareInfo,
     tier: str | None,
     warm_up: str = "done",
+    tier_gate: bool = True,
 ) -> HealthStatus:
     """`warm_up` is "starting", "done" or "failed" (model loading at service start)."""
     ollama, comfyui = await asyncio.gather(probes.ollama(), probes.comfyui())
     status, detail = "ready", None
-    if tier is None:
+    if tier is None and tier_gate:
         status, detail = "degraded", "Hardware is below the minimum tier; routine mode only."
     elif not ollama.service.up:
         status, detail = "degraded", "Ollama is not reachable."
