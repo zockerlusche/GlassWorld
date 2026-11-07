@@ -1,5 +1,5 @@
 {
-  "contract_version": "0.1",
+  "contract_version": "0.2",
   "deadline_ms": 60000,
   "max_open_questions": 2,
   "ask_cooldown_hours": 6,

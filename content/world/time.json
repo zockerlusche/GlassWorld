@@ -1,5 +1,5 @@
 {
-  "contract_version": "0.1",
+  "contract_version": "0.2",
   "ticks_per_hour": 60,
   "hours_per_day": 24,
   "days_per_season": 7,

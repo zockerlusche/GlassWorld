@@ -1,5 +1,5 @@
 {
-  "contract_version": "0.1",
+  "contract_version": "0.2",
   "request_id": "8a1c0e52-77d3-4f0a-b6c9-2e4d5f6a7b81",
   "tick": 5400,
   "seed": 424242,
@@ -45,7 +45,14 @@
         "id": "patience",
         "value": 0.4
       }
-    ]
+    ],
+    "memory": {
+      "summary": "",
+      "recent": []
+    },
+    "knowledge": [],
+    "relationships": [],
+    "habits": []
   },
   "environment": {
     "time_of_day": "dusk",
@@ -75,7 +82,8 @@
           }
         ]
       }
-    ]
+    ],
+    "inhabitants": []
   },
   "options": [
     {

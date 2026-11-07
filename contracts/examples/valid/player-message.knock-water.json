@@ -1,5 +1,5 @@
 {
-  "contract_version": "0.1",
+  "contract_version": "0.2",
   "message_id": "m-000012",
   "inhabitant_id": "inh-000001",
   "kind": "knock",

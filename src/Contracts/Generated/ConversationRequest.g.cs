@@ -29,6 +29,306 @@ namespace GlassWorld.Contracts
 
     }
 
+    /// <summary>
+    /// A named level 0..1 (need satisfaction, emotion intensity or trait strength).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class LevelEntry
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public string Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("value")]
+        public double Value { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// What the inhabitant believes about an object property (belief, not world truth).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class KnownProperty
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("property")]
+        public string Property { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("value")]
+        public bool Value { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("confidence")]
+        public double Confidence { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ResponseMeta
+    {
+
+        /// <summary>
+        /// model = real LLM, mock = test double, replay = answer replayed from a log.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("source")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ResponseMetaSource>))]
+        public ResponseMetaSource Source { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("model")]
+        public string Model { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("latency_ms")]
+        public long LatencyMs { get; set; } = default!;
+
+        /// <summary>
+        /// Model calls used (1 + at most 2 retries, per handbook).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("attempts")]
+        public int Attempts { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// How the inhabitant came to know it (concept): experienced = sure; heard = as sure as the trust in the teller; guessed = AI guess; read = as sure as the source seems.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public enum KnowledgeSource
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("experienced")]
+        Experienced = 0,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("heard")]
+        Heard = 1,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("guessed")]
+        Guessed = 2,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("read")]
+        Read = 3,
+
+
+    }
+
+    /// <summary>
+    /// What a knowledge entry or question is about: a type of thing, one object, a person or an event kind.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class Subject
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("kind")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SubjectKind>))]
+        public SubjectKind Kind { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public string Id { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// One belief of an inhabitant with its origin (B4a R3). The world keeps the truth; this is what the inhabitant believes.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class KnowledgeEntry
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("subject")]
+        public Subject Subject { get; set; } = new Subject();
+
+        [System.Text.Json.Serialization.JsonPropertyName("property")]
+        public string Property { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("value")]
+        public bool Value { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("confidence")]
+        public double Confidence { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("source")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<KnowledgeSource>))]
+        public KnowledgeSource Source { get; set; } = default!;
+
+        /// <summary>
+        /// Teller for source heard (or writer for read); null otherwise.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("told_by")]
+        public string? ToldBy { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("tick")]
+        public long Tick { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// One remembered event, language-neutral (kind + ids); the core picks the important ones.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class MemoryEvent
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("tick")]
+        public long Tick { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("kind")]
+        public string Kind { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("about")]
+        public Subject? About { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Short life summary (English, condensed by the AI service, B4a R5) plus the latest important events.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class Memory
+    {
+
+        /// <summary>
+        /// Internal English text for the AI (B4a R5); never shown to the player (player texts only via keys or GeneratedText).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("summary")]
+        public string Summary { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("recent")]
+        public System.Collections.Generic.ICollection<MemoryEvent> Recent { get; set; } = new System.Collections.ObjectModel.Collection<MemoryEvent>();
+
+    }
+
+    /// <summary>
+    /// How this inhabitant feels about another one (B4a R7, values 0..1).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class Relationship
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("other")]
+        public string Other { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("affection")]
+        public double Affection { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("trust")]
+        public double Trust { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("respect")]
+        public double Respect { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A routine or preference that grew from repetition (B4a R6).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class Habit
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("action")]
+        public string Action { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("time_of_day")]
+        public string? TimeOfDay { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("about")]
+        public Subject? About { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("strength")]
+        public double Strength { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Everything the AI may know about the inhabitant it speaks for (shared by decider and questions).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class InhabitantState
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public string Id { get; set; } = default!;
+
+        /// <summary>
+        /// Need satisfaction: 0 = fully unsatisfied (urgent, e.g. hunger 0.1 = very hungry), 1 = fully satisfied. Sorted by id by the core.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("needs")]
+        public System.Collections.Generic.ICollection<LevelEntry> Needs { get; set; } = new System.Collections.ObjectModel.Collection<LevelEntry>();
+
+        /// <summary>
+        /// Current emotions with intensity 0 = absent, 1 = very strong. Only emotions above zero are listed. Sorted by id by the core.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("mood")]
+        public System.Collections.Generic.ICollection<LevelEntry> Mood { get; set; } = new System.Collections.ObjectModel.Collection<LevelEntry>();
+
+        /// <summary>
+        /// Long-term character traits, 0 = very low, 1 = very high. Sorted by id by the core.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("traits")]
+        public System.Collections.Generic.ICollection<LevelEntry> Traits { get; set; } = new System.Collections.ObjectModel.Collection<LevelEntry>();
+
+        /// <summary>
+        /// Main wellbeing value, normalised to 0..1 (shown to the player as 0-100).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("will_to_live")]
+        public double WillToLive { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("memory")]
+        public Memory Memory { get; set; } = new Memory();
+
+        /// <summary>
+        /// Relevant beliefs (about perceived things first), sorted by subject.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("knowledge")]
+        public System.Collections.Generic.ICollection<KnowledgeEntry> Knowledge { get; set; } = new System.Collections.ObjectModel.Collection<KnowledgeEntry>();
+
+        /// <summary>
+        /// Towards perceived inhabitants, sorted by id.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("relationships")]
+        public System.Collections.Generic.ICollection<Relationship> Relationships { get; set; } = new System.Collections.ObjectModel.Collection<Relationship>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("habits")]
+        public System.Collections.Generic.ICollection<Habit> Habits { get; set; } = new System.Collections.ObjectModel.Collection<Habit>();
+
+    }
+
+    /// <summary>
+    /// AI-generated thought bubble in the player's language (one short sentence).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class Thought
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("locale")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<Locale>))]
+        public Locale Locale { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("text")]
+        public string Text { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Player-facing text generated at runtime (not a translation key, ADR-0007 exception for AI texts).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class GeneratedText
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("locale")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<Locale>))]
+        public Locale Locale { get; set; } = default!;
+
+        /// <summary>
+        /// Text in the player's language, generated by the AI and checked by the content guard.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("text")]
+        public string Text { get; set; } = default!;
+
+    }
+
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class Speaker
     {
@@ -118,25 +418,6 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
-    /// Player-facing text generated at runtime (not a translation key, ADR-0007 exception for AI texts).
-    /// </summary>
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
-    public partial class GeneratedText
-    {
-
-        [System.Text.Json.Serialization.JsonPropertyName("locale")]
-        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<Locale>))]
-        public Locale Locale { get; set; } = default!;
-
-        /// <summary>
-        /// Text in the player's language, generated by the AI and checked by the content guard.
-        /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("text")]
-        public string Text { get; set; } = default!;
-
-    }
-
-    /// <summary>
     /// The player wrote to an inhabitant (B6 R13). The text has passed the deterministic content check of the core. The service proposes how the inhabitant reacts; the core checks the proposal (ADR-0005). The inhabitant may not understand (W1595) or may decline; nothing is an order.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -182,6 +463,46 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("recent_lines")]
         public System.Collections.Generic.ICollection<ConversationLine> RecentLines { get; set; } = new System.Collections.ObjectModel.Collection<ConversationLine>();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public enum ResponseMetaSource
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("model")]
+        Model = 0,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("mock")]
+        Mock = 1,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("replay")]
+        Replay = 2,
+
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public enum SubjectKind
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("type")]
+        Type = 0,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("object")]
+        Object = 1,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("inhabitant")]
+        Inhabitant = 2,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("event")]
+        Event = 3,
+
 
     }
 

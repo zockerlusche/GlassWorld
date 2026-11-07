@@ -1,5 +1,5 @@
 {
-  "contract_version": "0.1",
+  "contract_version": "0.2",
   "request_id": "3f2b8c1e-5d4a-4b6f-9e21-0c7d8a9b1f00",
   "tick": 1200,
   "seed": 1,
@@ -10,7 +10,14 @@
     "needs": [],
     "mood": [],
     "will_to_live": 0.5,
-    "traits": []
+    "traits": [],
+    "memory": {
+      "summary": "",
+      "recent": []
+    },
+    "knowledge": [],
+    "relationships": [],
+    "habits": []
   },
   "environment": {
     "time_of_day": "night",
@@ -20,7 +27,8 @@
     ]
   },
   "perception": {
-    "objects": []
+    "objects": [],
+    "inhabitants": []
   },
   "options": []
 }

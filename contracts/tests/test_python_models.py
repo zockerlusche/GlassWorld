@@ -21,6 +21,8 @@ from glassworld_contracts import (
     HelpSuggestionsRequest,
     HelpSuggestionsResponse,
     PlayerMessage,
+    QuestionAnswer,
+    QuestionRequest,
     ServiceError,
     Vocabulary,
 )
@@ -39,6 +41,8 @@ MODELS: dict[str, type[BaseModel]] = {
     "conversation-response": ConversationResponse,
     "help-suggestions-request": HelpSuggestionsRequest,
     "help-suggestions-response": HelpSuggestionsResponse,
+    "question-request": QuestionRequest,
+    "question-answer": QuestionAnswer,
 }
 
 # Schema rules the generated pydantic models do not enforce. JSON Schema validation

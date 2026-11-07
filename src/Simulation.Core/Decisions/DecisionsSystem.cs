@@ -352,7 +352,7 @@ public sealed class DecisionsSystem : IWorldSystem
         var seed = world.Random.Get("decisions/seed").NextInt(0, int.MaxValue);
         return new DecisionRequest
         {
-            ContractVersion = "0.1",
+            ContractVersion = ContractInfo.Version,
             RequestId = requestId,
             Tick = world.Tick,
             Seed = seed,
@@ -365,6 +365,12 @@ public sealed class DecisionsSystem : IWorldSystem
                 Mood = [.. inhabitant.Moods.Where(m => m.Value > 0).Select(m => new LevelEntry { Id = m.Key, Value = m.Value })],
                 Traits = [.. inhabitant.Traits.Select(t => new LevelEntry { Id = t.Key, Value = t.Value })],
                 WillToLive = inhabitant.WillToLive,
+
+                // Contract 0.2 (B4a): filled with real memory, knowledge, relationships and habits in B4a-S5.
+                Memory = new Memory { Summary = string.Empty, Recent = [] },
+                Knowledge = [],
+                Relationships = [],
+                Habits = [],
             },
             Environment = new EnvironmentState
             {
@@ -381,6 +387,9 @@ public sealed class DecisionsSystem : IWorldSystem
                     DistanceM = Distance(inhabitant.Position, o.Position),
                     KnownProperties = [.. inhabitant.Beliefs.About(o.TypeId).Select(b => new KnownProperty { Property = b.PropertyId, Value = b.Belief.Value, Confidence = b.Belief.Confidence })],
                 })],
+
+                // Contract 0.2: other inhabitants in sight follow with B4a-S5 (first encounter).
+                Inhabitants = [],
             },
             Options = [.. options.Select(o => new Option { OptionId = o.OptionId, Action = o.Action, Target = o.TargetId })],
         };

@@ -1,5 +1,5 @@
 {
-  "contract_version": "0.1",
+  "contract_version": "0.2",
   "needs": [
     { "id": "hunger", "decay_per_hour": 0.03, "neglect_below": 0.15 },
     { "id": "thirst", "decay_per_hour": 0.05, "neglect_below": 0.15 },

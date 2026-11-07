@@ -1,5 +1,5 @@
 {
-  "contract_version": "0.1",
+  "contract_version": "0.2",
   "actions": [
     {
       "action": "idle",
@@ -48,6 +48,18 @@
     {
       "action": "combine",
       "sound": "action.combine"
+    },
+    {
+      "action": "warn",
+      "sound": "action.talk_to"
+    },
+    {
+      "action": "show",
+      "sound": "action.talk_to"
+    },
+    {
+      "action": "teach",
+      "sound": "action.talk_to"
     }
   ],
   "surfaces": [

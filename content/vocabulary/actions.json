@@ -1,5 +1,5 @@
 {
-  "contract_version": "0.1",
+  "contract_version": "0.2",
   "kind": "action",
   "entries": [
     { "id": "idle", "description": "Stay where you are and rest briefly.", "target": "none" },
@@ -13,6 +13,9 @@
     { "id": "sleep", "description": "Lie down and sleep to restore energy.", "target": "none" },
     { "id": "approach", "description": "Walk towards another inhabitant.", "target": "inhabitant" },
     { "id": "talk_to", "description": "Start a conversation with another inhabitant.", "target": "inhabitant" },
-    { "id": "combine", "description": "Use two or more objects together (strike, rub, tie, mix).", "target": "object" }
+    { "id": "combine", "description": "Use two or more objects together (strike, rub, tie, mix).", "target": "object" },
+    { "id": "warn", "description": "Warn another inhabitant about something believed dangerous (passes on knowledge, B4a).", "target": "inhabitant" },
+    { "id": "show", "description": "Show another inhabitant an object or how something works (passes on knowledge, B4a).", "target": "inhabitant" },
+    { "id": "teach", "description": "Teach another inhabitant what one knows about something (passes on knowledge, B4a).", "target": "inhabitant" }
   ]
 }

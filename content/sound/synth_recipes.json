@@ -1,5 +1,5 @@
 {
-  "contract_version": "0.1",
+  "contract_version": "0.2",
   "sample_rate": 44100,
   "peak": 0.8,
   "recipes": [

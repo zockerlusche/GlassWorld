@@ -1,5 +1,5 @@
 {
-  "contract_version": "0.1",
+  "contract_version": "0.2",
   "types": [
     { "id": "apple", "description": "A sweet fruit from a tree.", "properties": ["edible", "portable"] },
     { "id": "red_berry", "description": "Small shiny red berries on a bush.", "properties": ["poisonous", "portable"] },

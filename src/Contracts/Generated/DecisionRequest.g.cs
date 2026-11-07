@@ -13,57 +13,6 @@ namespace GlassWorld.Contracts
     #pragma warning disable // Disable all warnings
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
-    public partial class InhabitantState
-    {
-
-        [System.Text.Json.Serialization.JsonPropertyName("id")]
-        public string Id { get; set; } = default!;
-
-        /// <summary>
-        /// Need satisfaction: 0 = fully unsatisfied (urgent, e.g. hunger 0.1 = very hungry), 1 = fully satisfied. Sorted by id by the core.
-        /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("needs")]
-        public System.Collections.Generic.ICollection<LevelEntry> Needs { get; set; } = new System.Collections.ObjectModel.Collection<LevelEntry>();
-
-        /// <summary>
-        /// Current emotions with intensity 0 = absent, 1 = very strong. Only emotions above zero are listed. Sorted by id by the core.
-        /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("mood")]
-        public System.Collections.Generic.ICollection<LevelEntry> Mood { get; set; } = new System.Collections.ObjectModel.Collection<LevelEntry>();
-
-        /// <summary>
-        /// Long-term character traits, 0 = very low, 1 = very high. Sorted by id by the core.
-        /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("traits")]
-        public System.Collections.Generic.ICollection<LevelEntry> Traits { get; set; } = new System.Collections.ObjectModel.Collection<LevelEntry>();
-
-        /// <summary>
-        /// Main wellbeing value, normalised to 0..1 (shown to the player as 0-100).
-        /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("will_to_live")]
-        public double WillToLive { get; set; } = default!;
-
-    }
-
-    /// <summary>
-    /// What the inhabitant believes about an object property (belief, not world truth).
-    /// </summary>
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
-    public partial class KnownProperty
-    {
-
-        [System.Text.Json.Serialization.JsonPropertyName("property")]
-        public string Property { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("value")]
-        public bool Value { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("confidence")]
-        public double Confidence { get; set; } = default!;
-
-    }
-
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class PerceivedObject
     {
 
@@ -87,6 +36,12 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("objects")]
         public System.Collections.Generic.ICollection<PerceivedObject> Objects { get; set; } = new System.Collections.ObjectModel.Collection<PerceivedObject>();
+
+        /// <summary>
+        /// Other inhabitants in sight, nearest first.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("inhabitants")]
+        public System.Collections.Generic.ICollection<PerceivedInhabitant> Inhabitants { get; set; } = new System.Collections.ObjectModel.Collection<PerceivedInhabitant>();
 
     }
 
@@ -115,21 +70,6 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
-    /// A named level 0..1 (need satisfaction, emotion intensity or trait strength).
-    /// </summary>
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
-    public partial class LevelEntry
-    {
-
-        [System.Text.Json.Serialization.JsonPropertyName("id")]
-        public string Id { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("value")]
-        public double Value { get; set; } = default!;
-
-    }
-
-    /// <summary>
     /// What the inhabitant can sense right now. Deliberately no season name: inhabitants must learn that seasons exist and return (concept). A season concept reaches the model only through the inhabitant's own knowledge.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -153,6 +93,18 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("weather")]
         public System.Collections.Generic.ICollection<string> Weather { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class PerceivedInhabitant
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public string Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("distance_m")]
+        public double DistanceM { get; set; } = default!;
 
     }
 

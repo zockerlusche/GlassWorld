@@ -43,7 +43,7 @@
       "$ref": "common.schema.json#/$defs/Locale"
     },
     "inhabitant": {
-      "$ref": "#/$defs/InhabitantState"
+      "$ref": "common.schema.json#/$defs/InhabitantState"
     },
     "environment": {
       "$ref": "#/$defs/EnvironmentState"
@@ -62,68 +62,6 @@
     }
   },
   "$defs": {
-    "InhabitantState": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "id",
-        "needs",
-        "mood",
-        "traits",
-        "will_to_live"
-      ],
-      "properties": {
-        "id": {
-          "$ref": "common.schema.json#/$defs/EntityId"
-        },
-        "needs": {
-          "description": "Need satisfaction: 0 = fully unsatisfied (urgent, e.g. hunger 0.1 = very hungry), 1 = fully satisfied. Sorted by id by the core.",
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/LevelEntry"
-          }
-        },
-        "mood": {
-          "description": "Current emotions with intensity 0 = absent, 1 = very strong. Only emotions above zero are listed. Sorted by id by the core.",
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/LevelEntry"
-          }
-        },
-        "traits": {
-          "description": "Long-term character traits, 0 = very low, 1 = very high. Sorted by id by the core.",
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/LevelEntry"
-          }
-        },
-        "will_to_live": {
-          "description": "Main wellbeing value, normalised to 0..1 (shown to the player as 0-100).",
-          "$ref": "common.schema.json#/$defs/UnitValue"
-        }
-      }
-    },
-    "KnownProperty": {
-      "description": "What the inhabitant believes about an object property (belief, not world truth).",
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "property",
-        "value",
-        "confidence"
-      ],
-      "properties": {
-        "property": {
-          "$ref": "common.schema.json#/$defs/VocabId"
-        },
-        "value": {
-          "type": "boolean"
-        },
-        "confidence": {
-          "$ref": "common.schema.json#/$defs/UnitValue"
-        }
-      }
-    },
     "PerceivedObject": {
       "type": "object",
       "additionalProperties": false,
@@ -147,7 +85,7 @@
         "known_properties": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/KnownProperty"
+            "$ref": "common.schema.json#/$defs/KnownProperty"
           }
         }
       }
@@ -156,7 +94,8 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "objects"
+        "objects",
+        "inhabitants"
       ],
       "properties": {
         "objects": {
@@ -164,6 +103,14 @@
           "maxItems": 64,
           "items": {
             "$ref": "#/$defs/PerceivedObject"
+          }
+        },
+        "inhabitants": {
+          "description": "Other inhabitants in sight, nearest first.",
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "$ref": "#/$defs/PerceivedInhabitant"
           }
         }
       }
@@ -206,23 +153,6 @@
         }
       }
     },
-    "LevelEntry": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "id",
-        "value"
-      ],
-      "properties": {
-        "id": {
-          "$ref": "common.schema.json#/$defs/VocabId"
-        },
-        "value": {
-          "$ref": "common.schema.json#/$defs/UnitValue"
-        }
-      },
-      "description": "A named level 0..1 (need satisfaction, emotion intensity or trait strength)."
-    },
     "EnvironmentState": {
       "description": "What the inhabitant can sense right now. Deliberately no season name: inhabitants must learn that seasons exist and return (concept). A season concept reaches the model only through the inhabitant's own knowledge.",
       "type": "object",
@@ -252,6 +182,23 @@
           "items": {
             "$ref": "common.schema.json#/$defs/VocabId"
           }
+        }
+      }
+    },
+    "PerceivedInhabitant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "distance_m"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/EntityId"
+        },
+        "distance_m": {
+          "type": "number",
+          "minimum": 0
         }
       }
     }

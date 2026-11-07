@@ -1,5 +1,5 @@
 {
-  "contract_version": "0.1",
+  "contract_version": "0.2",
   "projection": "perspective",
   "fov_deg": 25.0,
   "pitch_deg": 50.0,
