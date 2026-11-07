@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pytest
 
@@ -38,13 +38,17 @@ LOCALES = sorted(p.stem for p in (CONTENT / "i18n").glob("*.json"))
 
 def _values(node: Any, path: str) -> list[Any]:
     """Values at a simple path: ``a.b[].c`` (``[]`` = every list element)."""
-    current = [node]
+    current: list[Any] = [node]
     for part in path.split("."):
         each = part.endswith("[]")
         key = part.removesuffix("[]")
-        current = [item[key] for item in current if isinstance(item, dict) and key in item]
+        found: list[Any] = []
+        for item in current:
+            if isinstance(item, dict) and key in item:
+                found.append(cast(dict[str, Any], item)[key])
         if each:
-            current = [element for item in current for element in item]
+            found = [element for item in found for element in cast(list[Any], item)]
+        current = found
     return current
 
 
