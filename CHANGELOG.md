@@ -5,6 +5,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Inhabitant card stays beside the side bar and its open panel and is re-fitted when the UI size changes (found in the 3840x1600 screenshots at 175 %: the card kept its old place, covered the inhabitant list and ran off the screen). The smoke checks the card at the smallest and largest UI size.
+
 ### Added
 
 - Look prototype after D355 (A1435): island piece and three animated figures (Quaternius CC0) in the warm comic shader with ink and paper-grain variants; screenshot mode for window runs; smoke checks that the figures animate.

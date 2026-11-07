@@ -258,7 +258,52 @@ public partial class GameScreen : CanvasLayer
 
         var mark = _presenter.GetNodeOrNull<Node3D>(id)?.GetNodeOrNull<Label3D>(MarkNode);
         var open = _feed.Inhabitants().First(r => r.Id == id).OpenQuestions;
-        return open > 0 && (mark is null || !mark.Visible) ? "question mark missing" : string.Empty;
+        if (open > 0 && (mark is null || !mark.Visible))
+        {
+            return "question mark missing";
+        }
+
+        return await CheckCardPlacementAsync();
+    }
+
+    /// <summary>
+    /// The card stays inside the safe area and beside the open side panel at the smallest and largest UI
+    /// size (found in the 3840x1600 screenshots: the card kept its old place after a size change).
+    /// </summary>
+    private async Task<string> CheckCardPlacementAsync()
+    {
+        if (_style is null || _card is null)
+        {
+            return "card missing";
+        }
+
+        if (_sideBar.OpenKey != "inhabitants")
+        {
+            _sideBar.Toggle("inhabitants");
+        }
+
+        var original = _style;
+        var problem = string.Empty;
+        foreach (var scale in new[] { original.Tokens.UiScale.Max, original.Tokens.UiScale.Min })
+        {
+            UiSetup.Apply(GetTree().Root, original.With(original.Settings with { UiScale = scale }));
+            for (var i = 0; i < 5; i++)
+            {
+                await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            }
+
+            var area = GetViewport().GetVisibleRect().Size;
+            var cardRect = new Rect2(_card.Position, _card.Size);
+            var overlap = _sideBar.Panels.Any(p => p.Visible && new Rect2(p.Position, p.Size).Intersects(cardRect));
+            if (!_card.IsInsideSafeArea(area) || overlap)
+            {
+                problem = $"card at UI {scale:0.##}: outside the safe area or over the side panel ({cardRect} in {area})";
+                break;
+            }
+        }
+
+        UiSetup.Apply(GetTree().Root, original);
+        return problem;
     }
 
     private void Layout()
@@ -282,6 +327,19 @@ public partial class GameScreen : CanvasLayer
         var width = Math.Min(_style.Tokens.Window.SidePanelWidth, area.X - (2 * margin));
         _toasts.Size = new Vector2(width, 0);
         _toasts.Position = new Vector2(area.X - margin - width, area.Y - margin - _toasts.GetCombinedMinimumSize().Y);
+
+        // The card stays beside the side bar and its open panel and is re-fitted when the UI size changes.
+        _card?.FitInto(CardArea(area));
+    }
+
+    /// <summary>Screen part left of the side bar and its open panel, where the card is placed.</summary>
+    private Vector2 CardArea(Vector2 area)
+    {
+        var gap = _style?.Tokens.Window.Gap ?? 0;
+        var reserved = _sideBar.GetCombinedMinimumSize().X + gap;
+        var open = _sideBar.Panels.Where(p => p.Visible).Select(p => p.Size.X).DefaultIfEmpty(0).Max();
+        reserved += open > 0 ? open + gap : 0;
+        return new Vector2(Math.Max(area.X - reserved, area.X / 2), area.Y);
     }
 
     private void OpenCard(string inhabitantId)
@@ -303,7 +361,7 @@ public partial class GameScreen : CanvasLayer
         _cardShape = string.Empty;
         _root.AddChild(_card);
         FillCard(inhabitantId);
-        _card.FitInto(GetViewport().GetVisibleRect().Size);
+        _card.FitInto(CardArea(GetViewport().GetVisibleRect().Size));
     }
 
     private void FillCard(string inhabitantId)
