@@ -2,6 +2,13 @@
   "contract_version": "0.1",
   "description": "Which schema validates which data file under content/. pattern is relative to content/; '*' matches within one folder only. Every .json file under content/ must match exactly one entry.",
   "entries": [
-    { "pattern": "vocabulary/*.json", "schema": "vocabulary" }
+    {
+      "pattern": "vocabulary/*.json",
+      "schema": "vocabulary"
+    },
+    {
+      "pattern": "world/time.json",
+      "schema": "world-time-settings"
+    }
   ]
 }

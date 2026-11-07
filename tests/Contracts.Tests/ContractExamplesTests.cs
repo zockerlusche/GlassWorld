@@ -13,10 +13,13 @@ namespace GlassWorld.Contracts.Tests;
 /// </summary>
 public sealed class ContractExamplesTests
 {
-    /// <summary>Schemas for data files; they are checked through content/ instead of examples.</summary>
-    private static readonly HashSet<string> DataFileSchemas = new(StringComparer.Ordinal) { "common", "vocabulary", "hardware-tiers" };
-
     private static readonly string Root = RepoRoot.Find();
+
+    /// <summary>
+    /// Schemas for data files: common plus every schema named in contracts/content-map.json. They are
+    /// checked through their content files instead of examples (ContentFilesTests).
+    /// </summary>
+    private static readonly HashSet<string> DataFileSchemas = LoadDataFileSchemas();
     private static readonly string Examples = Path.Combine(Root, "contracts", "examples");
 
     public static TheoryData<string> ValidExamples => Files(Path.Combine(Examples, "valid"));
@@ -108,6 +111,14 @@ public sealed class ContractExamplesTests
                 File.ReadAllText(path).Replace("\r\n", "\n", StringComparison.Ordinal) == content,
                 $"{name} is outdated; run: dotnet run --project tools/ContractGen");
         }
+    }
+
+    private static HashSet<string> LoadDataFileSchemas()
+    {
+        var map = JsonNode.Parse(File.ReadAllText(Path.Combine(Root, "contracts", "content-map.json")))!;
+        var names = map["entries"]!.AsArray().Select(e => (string)e!["schema"]!).ToHashSet(StringComparer.Ordinal);
+        names.Add("common");
+        return names;
     }
 
     private static TheoryData<string> Files(string directory) =>
