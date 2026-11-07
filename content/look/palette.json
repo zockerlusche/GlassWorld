@@ -3,15 +3,23 @@
   "colors": [
     {
       "id": "grass",
-      "color": "#9cc96b"
+      "color": "#acc866"
+    },
+    {
+      "id": "grass_edge",
+      "color": "#8fb35a"
     },
     {
       "id": "foliage",
-      "color": "#5f9d4f"
+      "color": "#5f9a52"
+    },
+    {
+      "id": "foliage_dark",
+      "color": "#4a7d43"
     },
     {
       "id": "bark",
-      "color": "#7a5537"
+      "color": "#966245"
     },
     {
       "id": "ground",
@@ -19,23 +27,35 @@
     },
     {
       "id": "sand",
-      "color": "#ecd9a5"
+      "color": "#f3dba8"
+    },
+    {
+      "id": "sand_wet",
+      "color": "#e9cf98"
     },
     {
       "id": "rock",
-      "color": "#a39a8c"
+      "color": "#ada8a8"
+    },
+    {
+      "id": "rock_dark",
+      "color": "#8f8a8b"
+    },
+    {
+      "id": "sea_foam",
+      "color": "#d6ece6"
     },
     {
       "id": "sea_shallow",
-      "color": "#7fd0d6"
+      "color": "#abd0cb"
     },
     {
       "id": "sea_deep",
-      "color": "#2f7fa6"
+      "color": "#82bfc6"
     },
     {
       "id": "fresh_water",
-      "color": "#6fb6d9"
+      "color": "#85ccd3"
     },
     {
       "id": "swamp_water",
@@ -44,19 +64,35 @@
     {
       "id": "cloud_cover",
       "color": "#f4efe6"
+    },
+    {
+      "id": "flower",
+      "color": "#f7f4ea"
+    },
+    {
+      "id": "berry",
+      "color": "#a3002f"
+    },
+    {
+      "id": "bush",
+      "color": "#42764a"
+    },
+    {
+      "id": "shadow_tint",
+      "color": "#d9c7d9"
     }
   ],
   "ramp": [
     {
       "threshold": 0.0,
-      "brightness": 0.45
+      "brightness": 0.82
     },
     {
-      "threshold": 0.35,
-      "brightness": 0.75
+      "threshold": 0.18,
+      "brightness": 0.92
     },
     {
-      "threshold": 0.7,
+      "threshold": 0.5,
       "brightness": 1.0
     }
   ],

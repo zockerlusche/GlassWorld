@@ -73,4 +73,17 @@ if ! grep -q "^SMOKE_OK frames=$FRAMES\$" "$LOG"; then
   echo "SMOKE_FAIL: success marker 'SMOKE_OK frames=$FRAMES' missing" >&2
   exit 1
 fi
+# Look prototype (A1435): builds the island piece and figures and checks that the skeletons animate.
+LOOK_LOG="$(mktemp)"
+timeout "$TIMEOUT_S" "$GODOT" --headless --path "$GAME" --quit-after 400 res://prototype/look/look_d355.tscn >"$LOOK_LOG" 2>&1
+if grep -Eq '^(ERROR|SCRIPT ERROR|USER ERROR)|Unhandled exception' "$LOOK_LOG"; then
+  cat "$LOOK_LOG" >&2
+  echo "SMOKE_FAIL: look prototype reported errors" >&2
+  exit 1
+fi
+if ! grep -Eq '^LOOK_OK frames=[0-9]+ variant=flat animated=True$' "$LOOK_LOG"; then
+  cat "$LOOK_LOG" >&2
+  echo "SMOKE_FAIL: look prototype not built or figures not animated (marker 'LOOK_OK ... animated=True' missing)" >&2
+  exit 1
+fi
 echo "SMOKE_PASS: $FRAMES frames without errors"
