@@ -48,6 +48,38 @@ public sealed class SaveGameTests : IDisposable
         Assert.Equal(SaveGameStore.SchemaVersion, SaveGameStore.VersionOf(path));
     }
 
+    [Theory]
+    [InlineData("empty")]
+    [InlineData("foreign")]
+    [InlineData("text")]
+    public void ForeignOrEmptyFileIsRefusedAndLeftUnchanged(string kind)
+    {
+        var path = Path.Combine(_directory, kind + ".db");
+        switch (kind)
+        {
+            case "empty":
+                File.WriteAllBytes(path, []);
+                break;
+            case "text":
+                File.WriteAllText(path, "not a database");
+                break;
+            default:
+                using (var c = new SqliteConnection($"Data Source={path};Pooling=False"))
+                {
+                    c.Open();
+                    using var cmd = c.CreateCommand();
+                    cmd.CommandText = "CREATE TABLE notes(text TEXT);";
+                    cmd.ExecuteNonQuery();
+                }
+
+                break;
+        }
+
+        var before = File.ReadAllBytes(path);
+        Assert.Throws<InvalidDataException>(() => SaveGameStore.Load(path));
+        Assert.Equal(before, File.ReadAllBytes(path));
+    }
+
     [Fact]
     public void NewerSchemaIsRefused()
     {
