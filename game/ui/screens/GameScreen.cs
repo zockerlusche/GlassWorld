@@ -19,6 +19,8 @@ public partial class GameScreen : CanvasLayer
     private const string MarkNode = "QuestionMark";
 
     private readonly Control _root = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
+    private readonly Control _overlay = new() { Name = "Overlay", MouseFilter = Control.MouseFilterEnum.Ignore };
+    private int _relayoutFrames;
     private readonly GwSideBar _sideBar = new();
     private readonly GwTable _inhabitants = new() { SizeFlagsVertical = Control.SizeFlags.ExpandFill };
     private readonly GwTable _questions = new() { SizeFlagsVertical = Control.SizeFlags.ExpandFill };
@@ -57,6 +59,12 @@ public partial class GameScreen : CanvasLayer
 
         AddChild(_root);
         _root.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+
+        // Windows over the game (pause, settings) stay visible when the UI is hidden ("watch only").
+        AddChild(_overlay);
+        _overlay.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        UiSetup.Bind(_root);
+        UiSetup.Bind(_overlay);
         (_topBar, _date, _time) = CreateTopBar(style, ScreenModel.TimeChoices(presenter.Host.World.Calendar.Settings), speed => presenter.Speed = speed);
         foreach (var (button, choice) in _topBar.GetChild(0).GetChildren().OfType<Button>().Zip(ScreenModel.TimeChoices(presenter.Host.World.Calendar.Settings)))
         {
@@ -84,6 +92,10 @@ public partial class GameScreen : CanvasLayer
         _toasts.Board = _board;
         _root.AddChild(_toasts);
         GetViewport().SizeChanged += Layout;
+
+        // A new theme (text size, UI size) changes the top bar's height after it has wrapped again;
+        // lay out once more two frames later, so the card stays below the bar (CI found it).
+        _root.ThemeChanged += () => _relayoutFrames = 2;
         _sideBar.Toggled += Layout;
         Layout();
     }
@@ -120,6 +132,11 @@ public partial class GameScreen : CanvasLayer
 
     public override void _Process(double delta)
     {
+        if (_relayoutFrames > 0 && --_relayoutFrames == 0)
+        {
+            Layout();
+        }
+
         if (_feed is null || _board is null || _style is null || _presenter is null)
         {
             return;
@@ -226,11 +243,11 @@ public partial class GameScreen : CanvasLayer
         {
             var blocker = new Control { MouseFilter = Control.MouseFilterEnum.Stop };
             blocker.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-            AddChild(blocker);
+            _overlay.AddChild(blocker);
             window.Closed += blocker.QueueFree;
         }
 
-        AddChild(window);
+        _overlay.AddChild(window);
         window.FitInto(GetViewport().GetVisibleRect().Size);
     }
 
@@ -453,7 +470,29 @@ public partial class GameScreen : CanvasLayer
         }
 
         var chronicle = CheckChronicle();
-        return chronicle.Length > 0 ? chronicle : await CheckCardPlacementAsync();
+        if (chronicle.Length > 0)
+        {
+            return chronicle;
+        }
+
+        // The theme must reach the screen below its CanvasLayer (frames, fonts, text size), not only the
+        // root window (Godot does not pass themes through a CanvasLayer).
+        if (UiSetup.CurrentTheme is { } theme && _card.GetThemeStylebox("panel", UiTheme.WindowPanel) != theme.GetStylebox("panel", UiTheme.WindowPanel))
+        {
+            return "the UI theme does not reach the game screen";
+        }
+
+        // Text size too, not only the frames (GW1 review #65 T3).
+        var label = new Label();
+        _card.Content.AddChild(label);
+        var size = label.GetThemeFontSize("font_size");
+        label.Free();
+        if (_style is not null && size != _style.FontPx(UiFontSizeId.Body))
+        {
+            return $"label text size {size} px, theme says {_style.FontPx(UiFontSizeId.Body)} px";
+        }
+
+        return await CheckCardPlacementAsync();
     }
 
     /// <summary>

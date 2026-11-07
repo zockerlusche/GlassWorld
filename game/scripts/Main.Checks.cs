@@ -120,6 +120,7 @@ public partial class Main
             foreach (var (name, open) in screens)
             {
                 open();
+                problems.AddRange(UiSetup.UnthemedCanvasRoots(GetTree().Root).Select(path => $"{locale} {name}: no UI theme below a CanvasLayer at {path}"));
                 for (var i = 0; i < 3; i++)
                 {
                     await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);

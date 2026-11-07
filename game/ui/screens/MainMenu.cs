@@ -51,6 +51,7 @@ public partial class MainMenu : CanvasLayer
         _root.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         _root.MouseFilter = Control.MouseFilterEnum.Ignore;
         AddChild(_root);
+        UiSetup.Bind(_root);
 
         var panel = new PanelContainer { ThemeTypeVariation = UiTheme.WindowPanel };
         panel.SetAnchorsPreset(Control.LayoutPreset.Center);
