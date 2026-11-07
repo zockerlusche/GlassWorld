@@ -12,3 +12,6 @@ decider_model_digest = "56671c2ab938"
 
 # Seconds a single health probe may take.
 probe_timeout_s = 2.0
+
+# Hardware tiers and thresholds (data, not code). Relative paths are relative to this file.
+hardware_tiers_file = "../content/hardware/tiers.json"

@@ -3,5 +3,21 @@
   "status": "ok",
   "service_version": "0.1.0",
   "dependencies": [],
-  "decider_model": { "name": "qwen3.5:9b", "available": true, "loaded": true }
+  "decider_model": {
+    "name": "qwen3.5:9b",
+    "available": true,
+    "loaded": true
+  },
+  "hardware": {
+    "tier": "standard",
+    "gpus": [
+      {
+        "name": "NVIDIA GeForce RTX 3080",
+        "vram_mib": 10240
+      }
+    ],
+    "cpu_name": "AMD Ryzen 5 5600X 6-Core Processor",
+    "logical_cpus": 12,
+    "ram_mib": 32679
+  }
 }

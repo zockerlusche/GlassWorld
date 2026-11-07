@@ -9,6 +9,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - Text system DE/EN (KR4, ADR-0007): catalogs `content/i18n/{de,en}.json` with schema `i18n` and display texts for the whole vocabulary; the game embeds them at build time and loads them into Godot's TranslationServer (language switch at runtime, self-check in the headless smoke run). CI text check (`tests/Localization.Tests`): same keys and placeholders in both languages, every vocabulary id has a text, scenes and UI code show only keys (Roslyn scan), every used key exists.
 - ADR-0008: UI and presentation logic in the Godot-free C# library `src/Game.Presentation`; `game/` keeps thin node scripts; no GDScript.
+- Hardware detection in the AI service (GPU via nvidia-smi, CPU, RAM; standard library only) and tier selection from the data file `content/hardware/tiers.json` (schema `HardwareTiers`); `/health` reports the hardware and tier.
+- Generated Python contract types use type aliases instead of RootModel wrappers (plain `str`/`int` values).
 - AI service skeleton (`ai-service/`): FastAPI on 127.0.0.1 with OS-assigned port and ready line, `GET /health` (HealthStatus) probing Ollama and ComfyUI, session token and Host check, ServiceError bodies, configuration from `config.toml` / `GW_AI_*`.
 - Contracts: `HealthStatus` schema; ServiceError codes `forbidden` and `not_found`.
 - Contracts v0: JSON Schemas for DecisionRequest, DecisionResponse, ServiceError and vocabulary files, examples, vocabulary placeholders in `content/vocabulary/`, generated pydantic models (`glassworld_contracts`) and contract tests.

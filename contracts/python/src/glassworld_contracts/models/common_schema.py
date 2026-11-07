@@ -4,47 +4,55 @@
 from __future__ import annotations
 
 from enum import StrEnum
-from typing import Any
+from typing import Annotated, Any
 
-from pydantic import Field, RootModel
+from pydantic import Field
 
-
-class Common(RootModel[Any]):
-    root: Any = Field(
+type Common = Annotated[
+    Any,
+    Field(
         ...,
         description='Shared definitions for all GlassWorld contracts (v0).',
         title='Common',
-    )
+    ),
+]
 
 
-class RequestId(RootModel[str]):
-    root: str = Field(
+type RequestId = Annotated[
+    str,
+    Field(
         ...,
         description='Unique id of a request, set by the core. Lowercase UUID.',
         pattern='^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
-    )
+    ),
+]
 
 
-class Tick(RootModel[int]):
-    root: int = Field(..., description='Simulation tick the message refers to.', ge=0)
+type Tick = Annotated[
+    int, Field(..., description='Simulation tick the message refers to.', ge=0)
+]
 
 
-class VocabId(RootModel[str]):
-    root: str = Field(
+type VocabId = Annotated[
+    str,
+    Field(
         ...,
         description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
-    )
+    ),
+]
 
 
-class EntityId(RootModel[str]):
-    root: str = Field(
+type EntityId = Annotated[
+    str,
+    Field(
         ...,
         description='Id of an object or inhabitant instance in the world, assigned by the core.',
         max_length=64,
         pattern='^[a-z][a-z0-9_-]*$',
-    )
+    ),
+]
 
 
 class Locale(StrEnum):

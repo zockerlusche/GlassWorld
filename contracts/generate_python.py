@@ -28,6 +28,7 @@ OPTIONS = [
     "--use-union-operator",
     "--field-constraints",
     "--collapse-root-models",
+    "--use-type-alias",
     "--extra-fields", "forbid",
     "--disable-timestamp",
     "--formatters", "builtin",

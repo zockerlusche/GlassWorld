@@ -32,6 +32,9 @@ class Settings(BaseSettings):
     decider_model: str = Field(min_length=1)
     decider_model_digest: str = Field(pattern=r"^[0-9a-f]{12,64}$")
     probe_timeout_s: float = Field(gt=0, le=30)
+    hardware_tiers_file: Path = Field(
+        description="Tier thresholds (content/hardware/tiers.json); relative to the config file.",
+    )
     token: SecretStr | None = Field(
         default=None,
         description="Per-session token set by the game via GW_AI_TOKEN; never stored in files.",
@@ -64,4 +67,8 @@ def load_settings(config_file: Path | None = None) -> Settings:
     class _Configured(Settings):
         model_config = SettingsConfigDict(toml_file=path)
 
-    return _Configured()  # pyright: ignore[reportCallIssue]
+    settings = _Configured()  # pyright: ignore[reportCallIssue]
+    if not settings.hardware_tiers_file.is_absolute():
+        resolved = (path.parent / settings.hardware_tiers_file).resolve()
+        settings = settings.model_copy(update={"hardware_tiers_file": resolved})
+    return settings

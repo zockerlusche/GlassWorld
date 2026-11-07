@@ -32,6 +32,14 @@ probe timeout). Override with environment variables `GW_AI_<NAME>` or a local `.
 configured digest is installed, otherwise `degraded`. `starting` is reserved for model warm-up
 (B3). The answer also lists Ollama/ComfyUI versions and whether the model is loaded in VRAM.
 
+## Hardware tier
+
+At start the service detects GPUs (`nvidia-smi`, optional), CPU name, logical CPUs and RAM using the
+standard library only. The tier comes from `content/hardware/tiers.json` (thresholds are data:
+`minimum` 8 GiB VRAM, `standard` 10 GiB, `comfort` 24 GiB or two GPUs, per the concept). The
+highest tier whose requirements are met is reported in `/health` under `hardware.tier`; below
+`minimum` it is `null`. Without `nvidia-smi` (e.g. AMD GPU or CI) the GPU list is empty.
+
 ## Tests
 
 ```sh

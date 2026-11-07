@@ -4,9 +4,11 @@
 from __future__ import annotations
 
 from enum import StrEnum
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, RootModel
+from pydantic import BaseModel, ConfigDict, Field
+
+from . import common_schema
 
 
 class Status(StrEnum):
@@ -25,12 +27,14 @@ class Status1(StrEnum):
     down = 'down'
 
 
-class Version(RootModel[str]):
-    root: str = Field(
+type Version = Annotated[
+    str,
+    Field(
         ...,
         description='Version reported by the dependency; null if unknown or down.',
         max_length=64,
-    )
+    ),
+]
 
 
 class Dependency(BaseModel):
@@ -57,6 +61,39 @@ class ModelState(BaseModel):
     )
 
 
+type CpuName = Annotated[str, Field(..., max_length=128)]
+
+
+type LogicalCpus = Annotated[int, Field(..., ge=1)]
+
+
+type RamMib = Annotated[int, Field(..., ge=0)]
+
+
+class Gpu(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    name: str = Field(..., max_length=128)
+    vram_mib: int = Field(..., ge=0)
+
+
+class Hardware(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    tier: common_schema.VocabId | None = Field(
+        ...,
+        description='Id of the highest tier whose requirements are met; null if below the lowest tier.',
+    )
+    gpus: list[Gpu] = Field(
+        ..., description='Detected NVIDIA GPUs; empty if none or nvidia-smi is missing.'
+    )
+    cpu_name: CpuName | None
+    logical_cpus: LogicalCpus | None
+    ram_mib: RamMib | None
+
+
 class HealthStatus(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -75,3 +112,4 @@ class HealthStatus(BaseModel):
         description='External programs the service uses but never starts (Ollama, ComfyUI).',
     )
     decider_model: ModelState
+    hardware: Hardware
