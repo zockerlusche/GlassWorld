@@ -144,6 +144,24 @@ public partial class GameScreen : CanvasLayer
         OpenCard(inhabitantId);
     }
 
+    /// <summary>For screenshots: opens the inhabitants panel and the card of the first inhabitant.</summary>
+    public void ShowForShots()
+    {
+        Refresh();
+        if (_sideBar.OpenKey != "inhabitants")
+        {
+            _sideBar.Toggle("inhabitants");
+        }
+
+        var rows = _feed?.Inhabitants() ?? [];
+        if (rows.Count > 0)
+        {
+            OpenCard(rows[0].Id);
+        }
+
+        Layout();
+    }
+
     /// <summary>Rebuilds lists, clock, card and question marks from the current snapshot.</summary>
     public void Refresh()
     {

@@ -18,6 +18,7 @@ public partial class Main : Node3D
 {
     private const string SmokeArgument = "--smoke-frames=";
     private const string SeedArgument = "--seed=";
+    private string? _shotsFolder;
 
     private int _smokeFrames;
     private int _frame;
@@ -38,6 +39,11 @@ public partial class Main : Node3D
                 && frames > 0)
             {
                 _smokeFrames = frames;
+            }
+
+            if (arg.StartsWith(UiShots.Argument, StringComparison.Ordinal))
+            {
+                _shotsFolder = arg[UiShots.Argument.Length..];
             }
 
             if (arg.StartsWith(SeedArgument, StringComparison.Ordinal)
@@ -66,6 +72,10 @@ public partial class Main : Node3D
             _screen = new GameScreen { Name = "GameScreen" };
             AddChild(_screen);
             _screen.Setup(_world, style);
+            if (_shotsFolder is not null)
+            {
+                _ = TakeShotsAsync(style);
+            }
         }
 
         if (_smokeFrames > 0)
@@ -101,6 +111,15 @@ public partial class Main : Node3D
         }
 
         GD.Print($"AUDIO_OK sounds={RetroAudio.Library!.UsedSoundIds().Count()}");
+    }
+
+    /// <summary>Screenshot run (self-acceptance, KR5): saves the shots, then quits.</summary>
+    private async Task TakeShotsAsync(UiStyle style)
+    {
+        _world!.Speed = 0;
+        var files = await UiShots.RunAsync(this, _screen!, style, _shotsFolder!);
+        GD.Print($"UI_SHOTS_OK {files.Count}");
+        GetTree().Quit(0);
     }
 
     /// <summary>Smoke run only: the UI standard data is valid and a sample window fits every reference case.</summary>
