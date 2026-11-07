@@ -31,6 +31,9 @@ public partial class Main : Node3D
     public override void _Ready()
     {
         GD.Print($"GlassWorld started, core: {CoreInfo.AssemblyName}");
+
+        // Closing the window always saves first (B2469); the quit happens in _Notification.
+        GetTree().AutoAcceptQuit = false;
         var textsLoaded = TextCatalogs.Install();
         foreach (var arg in OS.GetCmdlineUserArgs())
         {
@@ -83,8 +86,55 @@ public partial class Main : Node3D
             CheckTexts(textsLoaded);
             CheckAudio(audioLoaded);
             CheckSpatial(spatialReady);
+            CheckSave(content);
             _uiCheckDone = false;
             _ = CheckUiAsync(style);
+        }
+    }
+
+    /// <inheritdoc/>
+    public override void _Notification(int what)
+    {
+        if (what == NotificationWMCloseRequest)
+        {
+            // Save, then quit; the presenter stops the AI service in _ExitTree (ADR-0006).
+            _world?.Save();
+            GetTree().Quit(0);
+        }
+    }
+
+    /// <summary>
+    /// Smoke run only: saving the running world and loading it into a second presenter gives the same
+    /// state hash (ADR-0003, acceptance B1) - also proves SQLite works inside the game.
+    /// </summary>
+    private void CheckSave(string content)
+    {
+        var folder = ProjectSettings.GlobalizePath("user://smoke");
+        System.IO.Directory.CreateDirectory(folder);
+        var path = System.IO.Path.Combine(folder, "world.sqlite");
+        var host = _world!.Host!;
+        Simulation.Data.SaveGameStore.Save(path, Simulation.State.StateCodec.Capture(host));
+        var loaded = new WorldPresenter { Name = "LoadCheck" };
+        try
+        {
+            loaded.Load(content, path);
+            var expected = host.World.StateHash();
+            var actual = loaded.Host!.World.StateHash();
+            if (actual != expected)
+            {
+                GD.PushError($"SAVE_FAIL hash after load {actual[..12]} != {expected[..12]}");
+                return;
+            }
+
+            GD.Print($"SAVE_OK hash={actual[..12]}");
+        }
+        catch (Exception e) when (e is not OutOfMemoryException)
+        {
+            GD.PushError($"SAVE_FAIL {e.GetType().Name}: {e.Message}");
+        }
+        finally
+        {
+            loaded.Free();
         }
     }
 

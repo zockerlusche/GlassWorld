@@ -1,6 +1,9 @@
 using GlassWorld.AiClient;
 using GlassWorld.Simulation;
+using GlassWorld.Simulation.Content;
+using GlassWorld.Simulation.Data;
 using GlassWorld.Simulation.Decisions;
+using GlassWorld.Simulation.State;
 using Godot;
 
 namespace GlassWorld.Game;
@@ -36,10 +39,77 @@ public partial class WorldPresenter : Node3D
     /// <summary>Speed factor: 0 = pause, 1 = normal, 4/16 = fast forward (B6 adds the controls).</summary>
     public double Speed { get; set; } = 1.0;
 
-    /// <summary>Builds the placeholder start world for a seed and creates the visuals.</summary>
-    public void Start(string contentDirectory, ulong seed)
+    /// <summary>Save game of the running world (null = not saved, e.g. smoke runs).</summary>
+    public string? SavePath { get; private set; }
+
+    /// <summary>Raised after every save (autosave at the day boundary or explicit), e.g. to update meta data.</summary>
+    public event Action<string>? Saved;
+
+    /// <summary>Builds the placeholder start world for a seed and creates the visuals (no save game).</summary>
+    public void Start(string contentDirectory, ulong seed) => CreateWorld(contentDirectory, seed, null);
+
+    /// <summary>
+    /// Starts a new world. Until B2-2 generates the island, size and climate are only stored by the
+    /// caller; the world is the placeholder start for the seed. With a save path the world is saved at
+    /// once and then after every game day (B2487, Leitbild: at most one game day lost).
+    /// </summary>
+    public void CreateWorld(string contentDirectory, ulong seed, string? savePath)
     {
-        _host = SimulationHost.CreatePlaceholderWorld(contentDirectory, seed, CreatePort(contentDirectory), "de");
+        Begin(SimulationHost.CreatePlaceholderWorld(contentDirectory, seed, CreatePort(contentDirectory), "de"), savePath);
+        if (savePath is not null)
+        {
+            Save();
+        }
+    }
+
+    /// <summary>
+    /// Loads a world from its save game (ADR-0003: same state hash as when saved). Questions that were
+    /// open at saving go out again with the current port (mock or live), because the old answers are lost.
+    /// </summary>
+    public void Load(string contentDirectory, string savePath)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(savePath);
+        var settings = Contracts.Validation.ContractSerializer.Deserialize<Contracts.DeciderSettings>(
+            System.IO.File.ReadAllText(System.IO.Path.Combine(contentDirectory, "decider", "settings.json")));
+        var factory = new SimulationHostFactory(ContentSet.Load(contentDirectory), settings, CreatePort(contentDirectory), "de");
+        var host = StateCodec.Restore(factory, SaveGameStore.Load(savePath));
+        host.Decisions.ResendPendingAfterLoad(host.World);
+        Begin(host, savePath);
+    }
+
+    /// <summary>Saves the running world into its save game (crash-safe: copy, then swap).</summary>
+    public void Save()
+    {
+        if (_host is null || SavePath is null)
+        {
+            return;
+        }
+
+        SaveGameStore.Save(SavePath, StateCodec.Capture(_host));
+        Saved?.Invoke(SavePath);
+    }
+
+    private void Begin(SimulationHost host, string? savePath)
+    {
+        if (_host is not null)
+        {
+            throw new InvalidOperationException("The presenter already shows a world; create a new presenter for another world.");
+        }
+
+        _host = host;
+        SavePath = savePath;
+        if (savePath is not null)
+        {
+            _ = new AutoSaver(host, savePath);
+            host.World.BoundaryReached += (_, boundary) =>
+            {
+                if (boundary == TimeBoundary.Day)
+                {
+                    Saved?.Invoke(savePath);
+                }
+            };
+        }
+
         foreach (var inhabitant in _host.Inhabitants.All)
         {
             var figure = new MeshInstance3D
