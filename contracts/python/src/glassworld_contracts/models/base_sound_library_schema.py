@@ -62,7 +62,10 @@ class Kind(StrEnum):
     loop = 'loop'
 
 
-type Keyword = Annotated[str, Field(..., max_length=24, pattern='^[a-z]+$')]
+type SoundWord = Annotated[str, Field(..., max_length=24, pattern='^[a-z]+$')]
+
+
+type ContextWord = Annotated[str, Field(..., max_length=24, pattern='^[a-z]+$')]
 
 
 type Prompt = Annotated[
@@ -145,16 +148,21 @@ class LibrarySound(BaseModel):
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
-    keywords: list[Keyword] = Field(
-        ...,
-        description='English words a short sound description from the rule guardian may contain to fall back to this sound (e.g. creak, crackle); the best match wins.',
-        max_length=12,
-    )
     files: list[LibraryFile] = Field(
         ...,
         description='Variants (one is picked per play); 16-bit PCM WAV below game/assets/sound/base.',
         max_length=8,
         min_length=1,
+    )
+    sound_words: list[SoundWord] = Field(
+        ...,
+        description='Words that name the sound itself (creak, crackle, splash): count 2 each in the fallback from a sound description.',
+        max_length=12,
+    )
+    context_words: list[ContextWord] = Field(
+        ...,
+        description='Words that only name the setting or material (wood, water, door): count 1 each; alone they never reach the minimum score.',
+        max_length=12,
     )
 
 
@@ -169,3 +177,9 @@ class BaseSoundLibrary(BaseModel):
     target: LibraryTarget
     origins: list[LibraryOrigin] = Field(..., min_length=1)
     sounds: list[LibrarySound] = Field(..., min_length=1)
+    fallback_min_score: int = Field(
+        ...,
+        description='Smallest score of the fallback from a sound description (sound word 2, context word 1). Below it the object stays silent rather than sounding wrong.',
+        ge=1,
+        le=10,
+    )

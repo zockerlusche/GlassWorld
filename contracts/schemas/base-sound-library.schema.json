@@ -2,14 +2,15 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://glassworld.local/contracts/v0/base-sound-library.schema.json",
   "title": "BaseSoundLibrary",
-  "description": "Base sound library (B8-4, B2530): recorded or generated sound files for sound ids of the sound map, with origin and licence per file, loudness targets the files are normalised to, and keywords that map a short sound description from the rule guardian to a base sound when no generated sound exists (fallback). Sound ids without a file here use the retro synth recipes.",
+  "description": "Base sound library (B8-4, B2530): recorded or generated sound files for sound ids of the sound map, with origin and licence per file, loudness targets the files are normalised to, and sound and context words that map a short sound description from the rule guardian to a base sound when no generated sound exists (fallback). Sound ids without a file here use the retro synth recipes.",
   "type": "object",
   "additionalProperties": false,
   "required": [
     "contract_version",
     "target",
     "origins",
-    "sounds"
+    "sounds",
+    "fallback_min_score"
   ],
   "properties": {
     "contract_version": {
@@ -31,6 +32,12 @@
       "items": {
         "$ref": "#/$defs/LibrarySound"
       }
+    },
+    "fallback_min_score": {
+      "description": "Smallest score of the fallback from a sound description (sound word 2, context word 1). Below it the object stays silent rather than sounding wrong.",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10
     }
   },
   "$defs": {
@@ -146,8 +153,9 @@
         "id",
         "kind",
         "origin",
-        "keywords",
-        "files"
+        "sound_words",
+        "files",
+        "context_words"
       ],
       "properties": {
         "id": {
@@ -167,16 +175,6 @@
         "origin": {
           "$ref": "common.schema.json#/$defs/VocabId"
         },
-        "keywords": {
-          "description": "English words a short sound description from the rule guardian may contain to fall back to this sound (e.g. creak, crackle); the best match wins.",
-          "type": "array",
-          "maxItems": 12,
-          "items": {
-            "type": "string",
-            "pattern": "^[a-z]+$",
-            "maxLength": 24
-          }
-        },
         "files": {
           "description": "Variants (one is picked per play); 16-bit PCM WAV below game/assets/sound/base.",
           "type": "array",
@@ -185,6 +183,26 @@
           "items": {
             "$ref": "#/$defs/LibraryFile"
           }
+        },
+        "sound_words": {
+          "type": "array",
+          "maxItems": 12,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z]+$",
+            "maxLength": 24
+          },
+          "description": "Words that name the sound itself (creak, crackle, splash): count 2 each in the fallback from a sound description."
+        },
+        "context_words": {
+          "type": "array",
+          "maxItems": 12,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z]+$",
+            "maxLength": 24
+          },
+          "description": "Words that only name the setting or material (wood, water, door): count 1 each; alone they never reach the minimum score."
         }
       }
     },

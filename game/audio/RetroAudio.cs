@@ -21,7 +21,8 @@ public static class RetroAudio
     {
         try
         {
-            Library = SoundLibrary.FromJson(Read("content.sound.sound_map.json"), Read("content.sound.synth_recipes.json"));
+            var target = GlassWorld.Contracts.Validation.ContractSerializer.Deserialize<GlassWorld.Contracts.BaseSoundLibrary>(Read("content.sound.library.json")).Target;
+            Library = SoundLibrary.FromJson(Read("content.sound.sound_map.json"), Read("content.sound.synth_recipes.json"), loudness: target);
             return true;
         }
         catch (Exception e) when (e is InvalidDataException or GlassWorld.Contracts.Validation.ContractViolationException)
@@ -83,6 +84,20 @@ public static class RetroAudio
             if (Math.Abs(stream.GetLength() - expected) > 0.01)
             {
                 return $"'{id}' is {stream.GetLength():0.000} s, expected {expected:0.000} s";
+            }
+
+            // Same level as the library files (GW1 review #62 K1): on target, or quieter only when the
+            // peak limit caps it.
+            if (Library.Loudness is { } target)
+            {
+                var pcm = Library.Render(id, 0, 1);
+                var wanted = Library.Recipe(id).Bus == GlassWorld.Contracts.SynthRecipeBus.Ambience ? target.LoopDbfs : target.OneShotDbfs;
+                var loudness = Library.LoudnessOf(pcm);
+                var peak = 20 * Math.Log10(Math.Max(1, pcm.Max(s => Math.Abs((int)s))) / 32768.0);
+                if (loudness > wanted + target.ToleranceDb || (loudness < wanted - target.ToleranceDb && Math.Abs(peak - target.PeakMaxDbfs) > 0.2))
+                {
+                    return $"'{id}' loudness {loudness:0.0} dBFS, target {wanted:0.0}";
+                }
             }
         }
 

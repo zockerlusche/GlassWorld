@@ -42,9 +42,10 @@ public sealed class BaseSounds
     public bool IsLoop(string soundId) => _sounds.TryGetValue(soundId, out var sound) && sound.Kind == LibrarySoundKind.Loop;
 
     /// <summary>
-    /// Base sound for a short English description (e.g. "wooden door creaks"): the sound whose keywords
-    /// match most words wins, ties by id; a plural or verb "s" counts as the same word. Null if no word
-    /// matches, then the object stays silent rather than sounding wrong.
+    /// Base sound for a short English description (e.g. "wooden door creaks"): sound words count 2,
+    /// context words (material, setting) 1; the best score wins, ties by id; a plural or verb "s"
+    /// counts as the same word. Below the minimum score of the data the object stays silent rather than
+    /// sounding wrong ("a wooden bowl" names only a material; GW1 review #62 K2).
     /// </summary>
     public string? Fallback(string? description)
     {
@@ -58,8 +59,8 @@ public sealed class BaseSounds
             .Select(Stem)
             .ToHashSet(StringComparer.Ordinal);
         return _sounds.Values
-            .Select(s => (s.Id, Score: s.Keywords.Count(k => words.Contains(Stem(k.ToUpperInvariant())))))
-            .Where(s => s.Score > 0)
+            .Select(s => (s.Id, Score: (2 * s.SoundWords.Count(k => words.Contains(Stem(k.ToUpperInvariant())))) + s.ContextWords.Count(k => words.Contains(Stem(k.ToUpperInvariant())))))
+            .Where(s => s.Score >= Library.FallbackMinScore)
             .OrderByDescending(s => s.Score)
             .ThenBy(s => s.Id, StringComparer.Ordinal)
             .Select(s => s.Id)

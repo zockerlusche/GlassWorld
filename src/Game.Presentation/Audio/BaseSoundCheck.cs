@@ -34,7 +34,7 @@ public static class BaseSoundCheck
                 problems.Add($"{sound.Id}: unknown origin {sound.Origin}");
             }
 
-            if (!mapped.Contains(sound.Id) && sound.Keywords.Count == 0)
+            if (!mapped.Contains(sound.Id) && sound.SoundWords.Count == 0)
             {
                 problems.Add($"{sound.Id}: neither used by the sound map nor reachable by keywords");
             }

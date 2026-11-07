@@ -39,307 +39,376 @@
       "id": "step.grass",
       "kind": "one_shot",
       "origin": "kenney_impact",
-      "keywords": [
-        "grass",
-        "footstep",
-        "step"
-      ],
       "inputs": [
         "Audio/footstep_grass_000.ogg",
         "Audio/footstep_grass_001.ogg",
         "Audio/footstep_grass_002.ogg",
         "Audio/footstep_grass_003.ogg",
         "Audio/footstep_grass_004.ogg"
+      ],
+      "sound_words": [
+        "footstep",
+        "step",
+        "steps",
+        "footsteps"
+      ],
+      "context_words": [
+        "grass"
       ]
     },
     {
       "id": "step.wood",
       "kind": "one_shot",
       "origin": "kenney_impact",
-      "keywords": [
-        "boards",
-        "plank",
-        "floor"
-      ],
       "inputs": [
         "Audio/footstep_wood_000.ogg",
         "Audio/footstep_wood_001.ogg",
         "Audio/footstep_wood_002.ogg",
         "Audio/footstep_wood_003.ogg",
         "Audio/footstep_wood_004.ogg"
+      ],
+      "sound_words": [
+        "footstep",
+        "step"
+      ],
+      "context_words": [
+        "boards",
+        "plank",
+        "floor"
       ]
     },
     {
       "id": "step.rock",
       "kind": "one_shot",
       "origin": "kenney_impact",
-      "keywords": [
-        "stone",
-        "rock"
-      ],
       "inputs": [
         "Audio/footstep_concrete_000.ogg",
         "Audio/footstep_concrete_001.ogg",
         "Audio/footstep_concrete_002.ogg",
         "Audio/footstep_concrete_003.ogg",
         "Audio/footstep_concrete_004.ogg"
+      ],
+      "sound_words": [
+        "footstep",
+        "step"
+      ],
+      "context_words": [
+        "stone",
+        "rock"
       ]
     },
     {
       "id": "step.snow",
       "kind": "one_shot",
       "origin": "kenney_impact",
-      "keywords": [
-        "snow",
-        "crunch"
-      ],
       "inputs": [
         "Audio/footstep_snow_000.ogg",
         "Audio/footstep_snow_001.ogg",
         "Audio/footstep_snow_002.ogg",
         "Audio/footstep_snow_003.ogg",
         "Audio/footstep_snow_004.ogg"
+      ],
+      "sound_words": [
+        "crunch",
+        "footstep",
+        "step"
+      ],
+      "context_words": [
+        "snow"
       ]
     },
     {
       "id": "object.knock_stone",
       "kind": "one_shot",
       "origin": "kenney_impact",
-      "keywords": [
-        "knock",
-        "hammer",
-        "strike",
-        "clack",
-        "tap"
-      ],
       "inputs": [
         "Audio/impactMining_000.ogg",
         "Audio/impactMining_001.ogg",
         "Audio/impactMining_002.ogg",
         "Audio/impactMining_003.ogg",
         "Audio/impactMining_004.ogg"
+      ],
+      "sound_words": [
+        "knock",
+        "clack",
+        "tap",
+        "hammer"
+      ],
+      "context_words": [
+        "stone",
+        "rock"
       ]
     },
     {
       "id": "object.knock_wood",
       "kind": "one_shot",
       "origin": "kenney_impact",
-      "keywords": [
-        "thud",
-        "wooden",
-        "bump"
-      ],
       "inputs": [
         "Audio/impactWood_light_000.ogg",
         "Audio/impactWood_light_001.ogg",
         "Audio/impactWood_light_002.ogg",
         "Audio/impactWood_light_003.ogg",
         "Audio/impactWood_light_004.ogg"
+      ],
+      "sound_words": [
+        "thud",
+        "bump",
+        "knock"
+      ],
+      "context_words": [
+        "wood",
+        "wooden"
       ]
     },
     {
       "id": "object.chop_wood",
       "kind": "one_shot",
       "origin": "kenney_rpg",
-      "keywords": [
-        "chop",
-        "axe",
-        "cut",
-        "split"
-      ],
       "inputs": [
         "Audio/chop.ogg"
+      ],
+      "sound_words": [
+        "chop",
+        "split",
+        "hack"
+      ],
+      "context_words": [
+        "axe",
+        "wood",
+        "log"
       ]
     },
     {
       "id": "object.creak",
       "kind": "one_shot",
       "origin": "kenney_rpg",
-      "keywords": [
-        "creak",
-        "creaks",
-        "squeak",
-        "door",
-        "hinge"
-      ],
       "inputs": [
         "Audio/creak1.ogg",
         "Audio/creak2.ogg",
         "Audio/creak3.ogg"
+      ],
+      "sound_words": [
+        "creak",
+        "squeak",
+        "groan"
+      ],
+      "context_words": [
+        "door",
+        "hinge",
+        "wooden"
       ]
     },
     {
       "id": "ambience.waves",
       "kind": "loop",
       "origin": "moss",
-      "keywords": [
-        "waves",
-        "sea",
-        "surf",
-        "ocean"
-      ],
       "inputs": [
         "ambience.waves.wav"
       ],
       "prompt": "Gentle ocean waves rolling onto a sandy beach, calm, steady, no wind, no voices, no music.",
-      "seed": 8
+      "seed": 8,
+      "sound_words": [
+        "waves",
+        "surf",
+        "lap"
+      ],
+      "context_words": [
+        "sea",
+        "ocean",
+        "beach"
+      ]
     },
     {
       "id": "ambience.stream",
       "kind": "loop",
       "origin": "moss",
-      "keywords": [
-        "water",
-        "stream",
-        "creek",
-        "babble",
-        "trickle",
-        "flow"
-      ],
       "inputs": [
         "ambience.stream.wav"
       ],
       "prompt": "A small clear creek babbling over pebbles, close, calm, steady, no voices, no music.",
-      "seed": 8
+      "seed": 8,
+      "sound_words": [
+        "babble",
+        "trickle",
+        "gurgle",
+        "burble",
+        "flow"
+      ],
+      "context_words": [
+        "water",
+        "stream",
+        "creek"
+      ]
     },
     {
       "id": "ambience.wind",
       "kind": "loop",
       "origin": "moss",
-      "keywords": [
-        "wind",
-        "breeze",
-        "whoosh",
-        "blow"
-      ],
       "inputs": [
         "ambience.wind.wav"
       ],
       "prompt": "Soft wind blowing over an open grassy meadow, gentle gusts, calm, no voices, no music.",
-      "seed": 8
+      "seed": 8,
+      "sound_words": [
+        "whoosh",
+        "howl",
+        "blow",
+        "gust"
+      ],
+      "context_words": [
+        "wind",
+        "breeze"
+      ]
     },
     {
       "id": "ambience.leaves",
       "kind": "loop",
       "origin": "moss",
-      "keywords": [
-        "leaves",
-        "foliage"
-      ],
       "inputs": [
         "ambience.leaves.wav"
       ],
       "prompt": "Leaves rustling in the treetops in a light breeze, forest, calm, no birds, no voices, no music.",
-      "seed": 8
+      "seed": 8,
+      "sound_words": [
+        "rustle"
+      ],
+      "context_words": [
+        "leaves",
+        "foliage",
+        "tree"
+      ]
     },
     {
       "id": "object.fire",
       "kind": "loop",
       "origin": "moss",
-      "keywords": [
-        "fire",
-        "crackle",
-        "crackles",
-        "burn",
-        "flame"
-      ],
       "inputs": [
         "object.fire.wav"
       ],
       "prompt": "A small campfire crackling softly, close, calm, no voices, no music.",
-      "seed": 8
+      "seed": 8,
+      "sound_words": [
+        "crackle",
+        "hiss",
+        "pop"
+      ],
+      "context_words": [
+        "fire",
+        "flame",
+        "burn"
+      ]
     },
     {
       "id": "animal.songbird.song",
       "kind": "one_shot",
       "origin": "moss",
-      "keywords": [
-        "bird",
-        "song",
-        "sing",
-        "chirp",
-        "tweet"
-      ],
       "inputs": [
         "animal.songbird.song.wav"
       ],
       "prompt": "A small songbird singing one short melodic phrase, outdoors, calm, no other sounds.",
-      "seed": 8
+      "seed": 8,
+      "sound_words": [
+        "sing",
+        "chirp",
+        "tweet",
+        "song"
+      ],
+      "context_words": [
+        "bird"
+      ]
     },
     {
       "id": "animal.gull.call",
       "kind": "one_shot",
       "origin": "moss",
-      "keywords": [
-        "gull",
-        "seagull",
-        "cry"
-      ],
       "inputs": [
         "animal.gull.call.wav"
       ],
       "prompt": "A single seagull call at a quiet beach, no other sounds.",
-      "seed": 8
+      "seed": 8,
+      "sound_words": [
+        "cry",
+        "call",
+        "squawk"
+      ],
+      "context_words": [
+        "gull",
+        "seagull"
+      ]
     },
     {
       "id": "step.sand",
       "kind": "one_shot",
       "origin": "moss",
-      "keywords": [
-        "sand"
-      ],
       "inputs": [
         "step.sand.wav"
       ],
       "prompt": "Two soft barefoot footsteps on dry sand, close, quiet, no other sounds.",
-      "seed": 10
+      "seed": 10,
+      "sound_words": [
+        "footstep",
+        "step"
+      ],
+      "context_words": [
+        "sand"
+      ]
     },
     {
       "id": "step.water",
       "kind": "one_shot",
       "origin": "moss",
-      "keywords": [
-        "splash",
-        "wade",
-        "puddle"
-      ],
       "inputs": [
         "step.water.wav"
       ],
       "prompt": "Two footsteps splashing in shallow water, close, calm, no other sounds.",
-      "seed": 8
+      "seed": 8,
+      "sound_words": [
+        "splash",
+        "wade"
+      ],
+      "context_words": [
+        "puddle",
+        "water"
+      ]
     },
     {
       "id": "object.strike_spark",
       "kind": "one_shot",
       "origin": "moss",
-      "keywords": [
-        "spark",
-        "flint",
-        "click",
-        "clink"
-      ],
       "inputs": [
         "object.strike_spark.wav"
       ],
       "prompt": "Striking flint against a pyrite stone once, a sharp stony click with sparks, close, no other sounds.",
-      "seed": 9
+      "seed": 9,
+      "sound_words": [
+        "click",
+        "strike",
+        "spark"
+      ],
+      "context_words": [
+        "flint",
+        "pyrite"
+      ]
     },
     {
       "id": "action.rustle",
       "kind": "one_shot",
       "origin": "moss",
-      "keywords": [
-        "rustle",
-        "rustles",
-        "brush",
-        "grass"
-      ],
       "inputs": [
         "action.rustle.wav"
       ],
       "prompt": "A person brushing through dry grass, short rustle, close, calm, no other sounds.",
-      "seed": 10
+      "seed": 10,
+      "sound_words": [
+        "rustle",
+        "swish",
+        "brush"
+      ],
+      "context_words": [
+        "grass",
+        "straw"
+      ]
     }
-  ]
+  ],
+  "fallback_min_score": 2
 }
