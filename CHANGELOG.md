@@ -14,6 +14,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - Smoke test accepts `SMOKE_OK frames=N` with N at least the requested frames: the game waits for its own checks before quitting, which can take a few frames longer on a slow CI runner (seen: 614 of 600).
 
+### Fixed
+
+- Inhabitant card stays below the top bar (A1335 screenshots at 175 %: it covered clock and time buttons). DE: need "fun" is "Spaß" (was "Freude" like the feeling "joy"); a catalog test keeps needs, moods and traits distinct.
+
 ### Added
 
 - Shareable world code (B2534): seed, size, climate and start favour give a short code `GW-XXXX-…` (Crockford base 32, forgiving input, checksum); the new-world form shows it live with a copy button and takes a pasted code; the world list copies the code of a saved world. Same code = same start world (test). Player name in the settings (B2535): used only outside the aquarium, never sent to the AI; length from `world_options.json` (`player_name_max_length`), content guard.

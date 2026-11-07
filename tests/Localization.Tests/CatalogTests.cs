@@ -31,6 +31,21 @@ public sealed class CatalogTests
         Assert.True(duplicates.Count == 0, $"{locale}.json: duplicate keys {string.Join(", ", duplicates)}");
     }
 
+    /// <summary>
+    /// Values shown side by side on the inhabitant card (needs, moods, traits) need different texts;
+    /// "Freude" for both fun and joy was found in the A1335 screenshots.
+    /// </summary>
+    [Theory]
+    [InlineData("de")]
+    [InlineData("en")]
+    public void CardValuesHaveDistinctTexts(string locale)
+    {
+        var shown = Catalogs.Value[locale].Entries
+            .Where(e => e.Key.StartsWith("vocab.need.", StringComparison.Ordinal) || e.Key.StartsWith("vocab.mood.", StringComparison.Ordinal) || e.Key.StartsWith("vocab.trait.", StringComparison.Ordinal));
+        var clashes = shown.GroupBy(e => e.Value, StringComparer.OrdinalIgnoreCase).Where(g => g.Count() > 1).Select(g => $"'{g.Key}': {string.Join(", ", g.Select(e => e.Key))}").ToList();
+        Assert.True(clashes.Count == 0, $"{locale}.json: same text for different card values: {string.Join("; ", clashes)}");
+    }
+
     [Theory]
     [InlineData("de")]
     [InlineData("en")]
