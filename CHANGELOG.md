@@ -5,19 +5,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-### Fixed
-
-- Loading a save game never changes the file: empty or foreign files are refused read-only, older versions are migrated in a temporary copy (review GW3 #50 K2).
-- Inhabitant card stays beside the side bar and its open panel and is re-fitted when the UI size changes (found in the 3840x1600 screenshots at 175 %: the card kept its old place, covered the inhabitant list and ran off the screen). The smoke checks the card at the smallest and largest UI size.
-
-### Fixed
-
-- Smoke test accepts `SMOKE_OK frames=N` with N at least the requested frames: the game waits for its own checks before quitting, which can take a few frames longer on a slow CI runner (seen: 614 of 600).
-
-### Fixed
-
-- Inhabitant card stays below the top bar (A1335 screenshots at 175 %: it covered clock and time buttons). DE: need "fun" is "Spaß" (was "Freude" like the feeling "joy"); a catalog test keeps needs, moods and traits distinct.
-
 ### Added
 
 - Shareable world code (B2534): seed, size, climate and start favour give a short code `GW-XXXX-…` (Crockford base 32, forgiving input, checksum); the new-world form shows it live with a copy button and takes a pasted code; the world list copies the code of a saved world. Same code = same start world (test). Player name in the settings (B2535): used only outside the aquarium, never sent to the AI; length from `world_options.json` (`player_name_max_length`), content guard.
@@ -62,3 +49,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Simulation core B1-5: save games in SQLite (`Simulation.Data`, schema version, migrations, crash-safe swap) with autosave after every game day; placeholder start world with two pairs (F5249); spark rule pyrite + flint; the game shows the core world and the smoke test checks it (`WORLD_OK`); headless acceptance runner (`src/Simulation.Headless`).
 - `src/AiClient`: HTTP decider port to the local AI service (`POST /decide`, session token); an unreachable service becomes a retryable `model_unavailable`, so questions wait and inhabitants live on in routine mode (B3 S6, acceptance A3/A6).
 - The game starts the local AI service itself with `GLASSWORLD_AI=live` (ready line, session token, Job Object, `/shutdown` on exit) and shows thought bubbles from answers; without the service it runs on in routine mode (B3 S7).
+
+### Fixed
+
+- Loading a save game never changes the file: empty or foreign files are refused read-only, older versions are migrated in a temporary copy (review GW3 #50 K2).
+- Inhabitant card stays beside the side bar and its open panel and is re-fitted when the UI size changes (found in the 3840x1600 screenshots at 175 %: the card kept its old place, covered the inhabitant list and ran off the screen). The smoke checks the card at the smallest and largest UI size.
+- Smoke test accepts `SMOKE_OK frames=N` with N at least the requested frames: the game waits for its own checks before quitting, which can take a few frames longer on a slow CI runner (seen: 614 of 600).
+- Inhabitant card stays below the top bar (A1335 screenshots at 175 %: it covered clock and time buttons). DE: need "fun" is "Spaß" (was "Freude" like the feeling "joy"); a catalog test keeps needs, moods and traits distinct.
