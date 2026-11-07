@@ -47,12 +47,15 @@ class Settings(BaseSettings):
     max_retries: int = Field(ge=0, le=2, description="Handbook: at most two retries.")
     queue_size: int = Field(ge=1, le=10000)
     keep_alive: str = Field(min_length=1, max_length=16)
+    warm_up: bool = Field(description="Load the decider model right after start.")
+    warm_up_retry_s: float = Field(gt=0, le=3600, description="Retry a failed warm-up after.")
 
     # Folders; relative paths are relative to the config file.
     prompts_dir: Path
     content_dir: Path
     schemas_dir: Path
     log_dir: Path
+    lock_dir: Path
     token: SecretStr | None = Field(
         default=None,
         description="Per-session token set by the game via GW_AI_TOKEN; never stored in files.",
@@ -87,7 +90,14 @@ def load_settings(config_file: Path | None = None) -> Settings:
 
     settings = _Configured()  # pyright: ignore[reportCallIssue]
     resolved: dict[str, Path] = {}
-    for name in ("prompts_dir", "content_dir", "schemas_dir", "log_dir", "hardware_tiers_file"):
+    for name in (
+        "prompts_dir",
+        "content_dir",
+        "schemas_dir",
+        "log_dir",
+        "lock_dir",
+        "hardware_tiers_file",
+    ):
         value: Path = getattr(settings, name)
         if not value.is_absolute():
             resolved[name] = (path.parent / value).resolve()

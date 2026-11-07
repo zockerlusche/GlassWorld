@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import time
 from collections.abc import AsyncGenerator, Callable
@@ -26,7 +27,11 @@ from glassworld_ai.decider.backends import (
 from glassworld_ai.errors import error_response, install_error_handlers
 from glassworld_ai.hardware import HardwareInfo, detect_hardware, load_tiers, select_tier
 from glassworld_ai.health import health_status
-from glassworld_ai.llm.ollama import OllamaClient
+from glassworld_ai.llm.ollama import (
+    OllamaClient,
+    OllamaResponseError,
+    OllamaUnavailableError,
+)
 from glassworld_ai.probes import HttpProbes, Probes
 from glassworld_ai.prompts import load_prompt
 from glassworld_ai.queue import ModelQueue
@@ -47,26 +52,50 @@ def create_app(
     decider: Decider | None = None,
     queue: ModelQueue | None = None,
     on_started: Callable[[], None] | None = None,
+    request_exit: Callable[[], None] | None = None,
+    transport: httpx.AsyncBaseTransport | None = None,
 ) -> FastAPI:
     """Build the app.
 
     Tests pass fake probes and fake hardware; the real service probes Ollama/ComfyUI over HTTP
-    and detects the hardware once at start.
+    and detects the hardware once at start. `request_exit` stops the server (set by __main__);
+    POST /shutdown calls it. The decider model is unloaded on every way out (lifespan end).
     """
     tiers = load_tiers(settings.hardware_tiers_file)  # fail fast on a broken data file
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(transport=transport) as client:
+            ollama = OllamaClient(
+                str(settings.ollama_url), settings.decider_model, client, settings.keep_alive
+            )
+            app.state.ollama = ollama
             if probes is None:
                 app.state.probes = HttpProbes(settings, client)
             if hardware is None:
                 _set_hardware(app, await asyncio.to_thread(detect_hardware))
             if decider is None:
-                app.state.decider = _build_decider(settings, client, app.state.queue)
+                app.state.decider = _build_decider(settings, ollama, app.state.queue)
+            warm_task: asyncio.Task[None] | None = None
+            if settings.warm_up and settings.decider_backend == "ollama":
+                app.state.warm_up = "starting"
+                warm_task = asyncio.create_task(_warm_up(app, ollama, settings.warm_up_retry_s))
             if on_started is not None:
                 on_started()
-            yield
+            try:
+                yield
+            finally:
+                if warm_task is not None:
+                    warm_task.cancel()
+                    with contextlib.suppress(asyncio.CancelledError):
+                        await warm_task
+                # Every way out (POST /shutdown, parent gone, signal) frees the VRAM. Uvicorn
+                # has finished all running requests before the lifespan ends.
+                if settings.decider_backend == "ollama":
+                    with contextlib.suppress(
+                        OllamaUnavailableError, OllamaResponseError, httpx.HTTPError
+                    ):
+                        await ollama.unload(timeout=10)
 
     app = FastAPI(
         title="GlassWorld AI service",
@@ -89,6 +118,9 @@ def create_app(
         _set_hardware(app, hardware)
     if decider is not None:
         app.state.decider = decider
+    app.state.warm_up = "done"
+    app.state.ollama = None
+    app.state.stopping = False
     install_error_handlers(app)
     token = settings.token.get_secret_value() if settings.token else None
     app.middleware("http")(make_access_guard(allowed_hosts, token))
@@ -98,7 +130,15 @@ def create_app(
         current: Probes = app.state.probes
         info: HardwareInfo = app.state.hardware
         tier: str | None = app.state.tier
-        return await health_status(current, settings.decider_model, info, tier)
+        return await health_status(current, settings.decider_model, info, tier, app.state.warm_up)
+
+    @app.post("/shutdown", status_code=202)
+    async def shutdown() -> dict[str, str]:
+        """Stop the server (ADR-0006). The model is unloaded when the app ends (lifespan)."""
+        app.state.stopping = True  # no new model calls: they would load the model again
+        if request_exit is not None:
+            asyncio.get_running_loop().call_soon(request_exit)
+        return {"status": "stopping"}
 
     @app.post("/decide")
     async def decide(request: Request) -> Response:
@@ -115,6 +155,20 @@ def create_app(
         decision_request = DecisionRequest.model_validate(data)
         request_id = str(getattr(decision_request.request_id, "root", decision_request.request_id))
         deadline = received + decision_request.deadline_ms / 1000
+        if app.state.stopping:
+            return error_response(
+                "model_unavailable",
+                "Service is stopping.",
+                request_id=request_id,
+                tick=decision_request.tick,
+            )
+        if getattr(app.state, "tier", "unknown") is None:
+            return error_response(
+                "model_unavailable",
+                "Hardware is below the minimum tier; routine mode only.",
+                request_id=request_id,
+                tick=decision_request.tick,
+            )
         current: Decider = app.state.decider
         try:
             answer = await current.decide(decision_request, deadline)
@@ -127,7 +181,19 @@ def create_app(
     return app
 
 
-def _build_decider(settings: Settings, client: httpx.AsyncClient, queue: ModelQueue) -> Decider:
+async def _warm_up(app: FastAPI, ollama: OllamaClient, retry_s: float) -> None:
+    """Load the model; on failure stay "failed" (degraded) and try again after `retry_s`."""
+    while True:
+        try:
+            await ollama.warm_up(timeout=300)
+            app.state.warm_up = "done"
+            return
+        except (OllamaUnavailableError, OllamaResponseError, httpx.HTTPError):
+            app.state.warm_up = "failed"
+        await asyncio.sleep(retry_s)
+
+
+def _build_decider(settings: Settings, ollama: OllamaClient, queue: ModelQueue) -> Decider:
     vocab = Vocabulary.load(settings.content_dir / "vocabulary")
     log = CallLog(settings.log_dir / "decider.jsonl")
     if settings.decider_backend == "mock":
@@ -135,9 +201,7 @@ def _build_decider(settings: Settings, client: httpx.AsyncClient, queue: ModelQu
     if settings.decider_backend == "replay":
         return ReplayDecider(log, vocab)
     return OllamaDecider(
-        client=OllamaClient(
-            str(settings.ollama_url), settings.decider_model, client, settings.keep_alive
-        ),
+        client=ollama,
         queue=queue,
         template=load_prompt(
             settings.prompts_dir, settings.decider_prompt, settings.decider_prompt_version

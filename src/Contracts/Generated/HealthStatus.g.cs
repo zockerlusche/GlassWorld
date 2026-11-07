@@ -106,11 +106,17 @@ namespace GlassWorld.Contracts
         public string ContractVersion { get; set; } = default!;
 
         /// <summary>
-        /// starting = not yet probed; ready = decisions can be served; degraded = running, but a dependency or the decider model is missing.
+        /// starting = model warm-up still running; ready = decisions can be served; degraded = running, but a dependency or the decider model is missing (see detail).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("status")]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<HealthStatusStatus>))]
         public HealthStatusStatus Status { get; set; } = default!;
+
+        /// <summary>
+        /// Short English reason for starting/degraded (e.g. 'decider model not installed'); null when ready.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("detail")]
+        public string? Detail { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("service_version")]
         public string ServiceVersion { get; set; } = default!;

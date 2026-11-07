@@ -12,7 +12,7 @@ import httpx
 import pytest
 from fastapi import FastAPI
 
-from conftest import TOKEN, make_app, post
+from conftest import TOKEN, get, make_app, post
 from glassworld_ai.calllog import CallLog
 from glassworld_ai.config import Settings
 from glassworld_ai.decider.backends import (
@@ -252,3 +252,15 @@ def test_replay_with_unfitting_recorded_answer_is_retryable(settings: Settings) 
     response = post(replay_app, "/decide", fewer)
     assert response.status_code == 503
     assert response.json()["retryable"] is True
+
+
+def test_below_minimum_tier_gives_model_unavailable(settings: Settings) -> None:
+    from glassworld_ai.hardware import HardwareInfo
+
+    weak = HardwareInfo(gpus=(), cpu_name=None, logical_cpus=4, ram_mib=8192)
+    app = make_app(settings, hardware=weak)
+    response = post(app, "/decide", REQUEST)
+    assert response.status_code == 503
+    assert response.json()["code"] == "model_unavailable"
+    health = get(app, "/health").json()
+    assert health["status"] == "degraded" and "minimum tier" in health["detail"]

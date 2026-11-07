@@ -25,14 +25,31 @@ def _hardware(info: HardwareInfo, tier: str | None) -> dict[str, object]:
 
 
 async def health_status(
-    probes: Probes, decider_model: str, hardware: HardwareInfo, tier: str | None
+    probes: Probes,
+    decider_model: str,
+    hardware: HardwareInfo,
+    tier: str | None,
+    warm_up: str = "done",
 ) -> HealthStatus:
+    """`warm_up` is "starting", "done" or "failed" (model loading at service start)."""
     ollama, comfyui = await asyncio.gather(probes.ollama(), probes.comfyui())
-    ready = ollama.service.up and ollama.model_available
+    status, detail = "ready", None
+    if tier is None:
+        status, detail = "degraded", "Hardware is below the minimum tier; routine mode only."
+    elif not ollama.service.up:
+        status, detail = "degraded", "Ollama is not reachable."
+    elif not ollama.model_available:
+        status = "degraded"
+        detail = f"Decider model {decider_model} with the configured digest is not installed."
+    elif warm_up == "starting":
+        status, detail = "starting", "Decider model is loading."
+    elif warm_up == "failed":
+        status, detail = "degraded", "Decider model could not be loaded; retrying."
     return HealthStatus.model_validate(
         {
             "contract_version": CONTRACT_VERSION,
-            "status": "ready" if ready else "degraded",
+            "status": status,
+            "detail": detail,
             "service_version": SERVICE_VERSION,
             # Sorted by name for a stable answer.
             "dependencies": [
