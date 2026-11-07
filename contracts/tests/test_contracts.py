@@ -125,3 +125,22 @@ def test_response_example_answers_its_request(path: Path) -> None:
         assert response["expression"] in _vocab_ids("expression")
     if response["thought"] is not None:
         assert response["thought"]["locale"] == request["display_locale"]
+
+
+# Schemas for data files are covered by the files in content/, not by message examples.
+DATA_FILE_SCHEMAS = {"common", "vocabulary", "hardware-tiers"}
+
+
+@pytest.mark.parametrize(
+    "schema_name",
+    sorted(
+        p.name.removesuffix(".schema.json")
+        for p in SCHEMA_FILES
+        if p.name.removesuffix(".schema.json") not in DATA_FILE_SCHEMAS
+    ),
+)
+def test_every_message_schema_has_valid_and_invalid_examples(schema_name: str) -> None:
+    valid = [p for p in VALID_EXAMPLES if _schema_name(p) == schema_name]
+    invalid = [p for p in INVALID_EXAMPLES if _schema_name(p) == schema_name]
+    assert valid, f"no valid example for {schema_name}"
+    assert invalid, f"no invalid example for {schema_name}"

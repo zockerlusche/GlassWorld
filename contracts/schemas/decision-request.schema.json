@@ -46,7 +46,7 @@
       "$ref": "#/$defs/InhabitantState"
     },
     "environment": {
-      "$ref": "#/$defs/Environment"
+      "$ref": "#/$defs/EnvironmentState"
     },
     "perception": {
       "$ref": "#/$defs/Perception"
@@ -213,7 +213,7 @@
       },
       "description": "A named level 0..1 (need satisfaction, emotion intensity or trait strength)."
     },
-    "Environment": {
+    "EnvironmentState": {
       "description": "What the inhabitant can sense right now. Deliberately no season name: inhabitants must learn that seasons exist and return (concept). A season concept reaches the model only through the inhabitant's own knowledge.",
       "type": "object",
       "additionalProperties": false,
