@@ -44,6 +44,17 @@ public sealed class AiServiceProcessTests
     }
 
     [Fact]
+    public void ServiceThatEndsBeforeItsReadyLineReportsItsError()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => AiServiceProcess.Start(
+            Python,
+            ["-c", "import sys; sys.stderr.write('error: unrecognized arguments: --parent-pid\\n'); sys.exit(2)"],
+            Directory.GetCurrentDirectory(),
+            TimeSpan.FromSeconds(30)));
+        Assert.Contains("exited before its ready line", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void MissingReadyLineIsATimeoutAndTheProcessIsGone()
     {
         var ex = Assert.Throws<TimeoutException>(() => AiServiceProcess.Start(

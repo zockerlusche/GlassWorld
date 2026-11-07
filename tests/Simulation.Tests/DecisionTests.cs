@@ -279,6 +279,27 @@ public sealed class DecisionTests
     }
 
     [Fact]
+    public void ThoughtOfAnAnswerBecomesAnEventWithItsText()
+    {
+        var port = new ScriptedPort(request => ContractSerializer.Serialize(new DecisionResponse
+        {
+            ContractVersion = "0.1",
+            RequestId = request.RequestId,
+            Tick = request.Tick,
+            OptionId = request.Options.First().OptionId,
+            Rationale = "x",
+            Thought = new Thought { Locale = Locale.De, Text = "Was ist das?" },
+            Meta = new ResponseMeta { Source = ResponseMetaSource.Mock, Model = "mock", LatencyMs = 0, Attempts = 1 },
+        }));
+        var w = NewWorld(1, port);
+        w.Objects.Spawn("blue_berry", new Position(2, 0));
+        w.World.Run(3);
+
+        var thought = Assert.Single(w.Inhabitants.EventsSince(0), e => e.Event.Kind == "thought").Event;
+        Assert.Equal(("inh-000001", "Was ist das?"), (thought.InhabitantId, thought.Text));
+    }
+
+    [Fact]
     public void RequestIdsAreDeterministicUuidV8()
     {
         var a = DecisionIds.RequestId(1, 100, "inh-000001", 1);

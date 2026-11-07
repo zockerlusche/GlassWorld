@@ -445,6 +445,11 @@ public sealed class DecisionsSystem : IWorldSystem
         }
 
         Close(world, question, "question_answered");
+        if (response.Thought is { } thought)
+        {
+            // Thought bubble (B3): the only player-visible text of a decision, in the display language.
+            _inhabitants.Report(new WorldEvent("thought", world.Tick, inhabitant.Id, action, targetId) { Text = thought.Text });
+        }
     }
 
     private static bool IsRetryable(string json)

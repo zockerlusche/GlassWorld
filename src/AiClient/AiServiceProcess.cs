@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
@@ -73,15 +74,32 @@ public sealed partial class AiServiceProcess : IDisposable
 
         var process = Process.Start(info) ?? throw new InvalidOperationException($"Could not start '{fileName}'.");
         var job = OperatingSystem.IsWindows() ? JobObject.CreateKillOnClose(process) : IntPtr.Zero;
-        process.ErrorDataReceived += (_, _) => { };
+        var errors = new ConcurrentQueue<string>();
+        process.ErrorDataReceived += (_, e) =>
+        {
+            if (e.Data is { } line)
+            {
+                errors.Enqueue(line);
+                while (errors.Count > 20 && errors.TryDequeue(out string? _))
+                {
+                }
+            }
+        };
         process.BeginErrorReadLine();
 
-        var port = WaitForReadyLine(process, readyTimeout);
+        var (finished, port) = WaitForReadyLine(process, readyTimeout);
         if (port is null)
         {
             Kill(process);
             JobObject.Close(job);
-            throw new TimeoutException($"AI service did not announce its port within {readyTimeout.TotalSeconds:F0} s.");
+            var tail = string.Join(" | ", errors.TakeLast(3));
+            if (finished)
+            {
+                // The service ended before announcing its port (bad arguments, missing dependency, ...).
+                throw new InvalidOperationException($"AI service exited before its ready line: {tail}");
+            }
+
+            throw new TimeoutException($"AI service did not announce its port within {readyTimeout.TotalSeconds:F0} s. {tail}");
         }
 
         return new AiServiceProcess(process, job, port.Value, token);
@@ -130,7 +148,8 @@ public sealed partial class AiServiceProcess : IDisposable
         return match is { Success: true } ? int.Parse(match.Groups["port"].Value, CultureInfo.InvariantCulture) : null;
     }
 
-    private static int? WaitForReadyLine(Process process, TimeSpan timeout)
+    /// <summary>Reads stdout until the ready line; Finished is true if stdout ended (process gone) first.</summary>
+    private static (bool Finished, int? Port) WaitForReadyLine(Process process, TimeSpan timeout)
     {
         var read = Task.Run(() =>
         {
@@ -145,7 +164,7 @@ public sealed partial class AiServiceProcess : IDisposable
 
             return null;
         });
-        return read.Wait(timeout) ? read.Result : null;
+        return read.Wait(timeout) ? (read.Result is null, read.Result) : (false, null);
     }
 
     private static void Kill(Process process)

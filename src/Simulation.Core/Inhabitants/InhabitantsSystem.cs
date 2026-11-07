@@ -12,7 +12,11 @@ namespace GlassWorld.Simulation.Inhabitants;
 /// <param name="InhabitantId">Inhabitant involved.</param>
 /// <param name="Action">Action id, if any.</param>
 /// <param name="TargetId">Target object id, if any.</param>
-public sealed record WorldEvent(string Kind, long Tick, string InhabitantId, string? Action, string? TargetId);
+public sealed record WorldEvent(string Kind, long Tick, string InhabitantId, string? Action, string? TargetId)
+{
+    /// <summary>Text for the player (thought bubble), already in the player's language; null for most events.</summary>
+    public string? Text { get; init; }
+}
 
 /// <summary>An event with its running number (UI and sound read everything since their last number).</summary>
 /// <param name="Seq">Running number, starting at 1, never reused.</param>
