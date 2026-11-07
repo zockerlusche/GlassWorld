@@ -35,6 +35,11 @@ public partial class LookPrototype : Node3D
     private string? _shotDirectory;
     private bool _follow;
     private int _shotStep;
+    private bool _showcase;
+    private readonly List<Figure> _showRow = [];
+    private double _fpsSeconds;
+    private string? _fpsOut;
+    private readonly List<double> _frameTimes = [];
 
     /// <inheritdoc/>
     public override void _Ready()
@@ -49,9 +54,23 @@ public partial class LookPrototype : Node3D
             {
                 _shotDirectory = arg["--shots=".Length..];
             }
+            else if (arg.StartsWith("--figures=", StringComparison.Ordinal))
+            {
+                _shotDirectory = arg["--figures=".Length..];
+                _showcase = true;
+            }
             else if (arg == "--follow")
             {
                 _follow = true;
+            }
+            else if (arg.StartsWith("--fps-seconds=", StringComparison.Ordinal))
+            {
+                _fpsSeconds = double.Parse(arg["--fps-seconds=".Length..], CultureInfo.InvariantCulture);
+                _follow = true;
+            }
+            else if (arg.StartsWith("--fps-out=", StringComparison.Ordinal))
+            {
+                _fpsOut = arg["--fps-out=".Length..];
             }
         }
 
@@ -95,7 +114,15 @@ public partial class LookPrototype : Node3D
             _camera.LookAt(target, Vector3.Up);
         }
 
-        if (_shotDirectory is not null)
+        if (_fpsSeconds > 0)
+        {
+            MeasureFrames(delta);
+        }
+        else if (_showcase)
+        {
+            TakeShowcase();
+        }
+        else if (_shotDirectory is not null)
         {
             TakeShots();
         }
@@ -293,9 +320,23 @@ public partial class LookPrototype : Node3D
         var a = _look!.Appearance;
         Color Pick(ICollection<string> colors, int index) => new(colors.ElementAt(index % colors.Count));
         var shoes = Pick(a.HairColors, 4);
-        var woman = new FigureLook(Pick(a.SkinTones, 1), Pick(a.ClothingColors, 2), Pick(a.ClothingColors, 0), shoes, Pick(a.HairColors, 0), LongHair: true, ShortSleeves: true, Shorts: true, Dress: false, Scale: 0.95f, HeadScale: 1.6f);
-        var man = new FigureLook(Pick(a.SkinTones, 2), Pick(a.ClothingColors, 1), Pick(a.ClothingColors, 4), shoes, Pick(a.HairColors, 1), LongHair: false, ShortSleeves: true, Shorts: false, Dress: false, Scale: 1f, HeadScale: 1.55f);
-        var child = new FigureLook(Pick(a.SkinTones, 1), Pick(a.ClothingColors, 2), Pick(a.ClothingColors, 3), shoes, Pick(a.HairColors, 2), LongHair: false, ShortSleeves: true, Shorts: true, Dress: false, Scale: 0.62f, HeadScale: 1.85f);
+        var woman = new FigureLook("adult_female", "long", Pick(a.SkinTones, 1), Pick(a.ClothingColors, 2), Pick(a.ClothingColors, 0), shoes, Pick(a.HairColors, 0), ShortSleeves: true, Shorts: true, Scale: 0.97f);
+        var man = new FigureLook("adult_male", "short", Pick(a.SkinTones, 2), Pick(a.ClothingColors, 1), Pick(a.ClothingColors, 4), shoes, Pick(a.HairColors, 1), ShortSleeves: true, Shorts: false, Scale: 1f);
+        var child = new FigureLook("child", "tousled", Pick(a.SkinTones, 1), Pick(a.ClothingColors, 2), Pick(a.ClothingColors, 3), shoes, Pick(a.HairColors, 2), ShortSleeves: true, Shorts: true, Scale: 0.62f);
+
+        if (_showcase)
+        {
+            // A1436 showcase: every hair style once, standing in a row on the sand.
+            var second = woman with { Hair = "bun", Top = Pick(a.ClothingColors, 6), Bottom = Pick(a.ClothingColors, 1), HairColor = Pick(a.HairColors, 3), Skin = Pick(a.SkinTones, 3) };
+            var row = new[] { woman, man, child, second };
+            for (var i = 0; i < row.Length; i++)
+            {
+                Place(FigureFactory.Build(row[i], comic, outline), new Vector3(0.6f + (i * 1.25f), 0, 3.0f), new Vector3(0, 0, 1), out var placed);
+                _showRow.Add(placed);
+            }
+
+            return;
+        }
 
         var facing = new Vector3(0.75f, 0, -0.65f).Normalized();
         Place(FigureFactory.Build(woman, comic, outline), new Vector3(1.4f, 0, 3.0f), facing, out var w);
@@ -343,6 +384,8 @@ public partial class LookPrototype : Node3D
         };
         _walkerBlend = Mathf.MoveToward(_walkerBlend, targetBlend, delta * 1.5f);
         _walker.Wave.Weight = Mathf.MoveToward(_walker.Wave.Weight, t is > 10.5f and < 13.5f ? 1f : 0f, delta * 2.5f);
+        _walker.Look.Weight = Mathf.MoveToward(_walker.Look.Weight, t is > 10f and < 14f ? 1f : 0f, delta * 1.5f);
+        _walker.Look.Target = _camera?.GlobalPosition ?? Vector3.Zero;
         var speed = WalkSpeed * _walkerBlend;
         var previous = _walkerPosition;
         _walkerAngle += speed * delta / 5.4f;
@@ -372,6 +415,8 @@ public partial class LookPrototype : Node3D
         var t = (float)(_time % 9.0);
         var target = t is > 4f and < 7f ? 1f : 0f;
         _waver.Wave.Weight = Mathf.MoveToward(_waver.Wave.Weight, target, (float)GetProcessDeltaTime() * 2.5f);
+        _waver.Look.Weight = Mathf.MoveToward(_waver.Look.Weight, target, (float)GetProcessDeltaTime() * 1.5f);
+        _waver.Look.Target = _camera?.GlobalPosition ?? Vector3.Zero;
     }
 
     private void BuildCamera()
@@ -421,6 +466,98 @@ public partial class LookPrototype : Node3D
                 GetTree().Quit();
                 _shotStep = 3;
                 break;
+        }
+    }
+
+    /// <summary>
+    /// FPS measurement (B3 A4 / B2 acceptance 5 procedure): VSync off, 5 s warm-up, then frame times for
+    /// the given seconds; writes a CSV and prints mean FPS, p95 and maximum frame time.
+    /// </summary>
+    private void MeasureFrames(double delta)
+    {
+        if (_frame == 1)
+        {
+            DisplayServer.WindowSetVsyncMode(DisplayServer.VSyncMode.Disabled);
+        }
+
+        if (_time < 5.0)
+        {
+            return;
+        }
+
+        _frameTimes.Add(delta * 1000.0);
+        if (_time < 5.0 + _fpsSeconds)
+        {
+            return;
+        }
+
+        var sorted = _frameTimes.Order().ToList();
+        var mean = _frameTimes.Count / (_frameTimes.Sum() / 1000.0);
+        var p95 = sorted[(int)Math.Min(sorted.Count - 1, Math.Ceiling(sorted.Count * 0.95) - 1)];
+        var size = GetViewport().GetTexture().GetSize();
+        var line = string.Create(CultureInfo.InvariantCulture, $"FPS_RESULT size={size.X}x{size.Y} frames={_frameTimes.Count} mean_fps={mean:F1} p95_ms={p95:F2} max_ms={sorted[^1]:F2} variant={_variant}");
+        GD.Print(line);
+        if (_fpsOut is not null)
+        {
+            System.IO.File.WriteAllLines(_fpsOut, ["frame_ms", .. _frameTimes.Select(f => f.ToString("F3", CultureInfo.InvariantCulture))]);
+            System.IO.File.AppendAllText(_fpsOut + ".summary.txt", line + System.Environment.NewLine);
+        }
+
+        _fpsSeconds = 0;
+        GetTree().Quit();
+    }
+
+    /// <summary>
+    /// A1436 showcase: the four figures (every hair style) from the front, back and side, head close-ups
+    /// front and back, then a wave with the head turning to the camera. Window runs only.
+    /// </summary>
+    private void TakeShowcase()
+    {
+        var size = GetViewport().GetVisibleRect().Size;
+        var tag = string.Create(CultureInfo.InvariantCulture, $"{_variant}_{(int)size.X}x{(int)size.Y}");
+        var centre = new Vector3(2.5f, 0.85f, 3.0f);
+        var shots = new (string Name, Vector3 From, Vector3 To)[]
+        {
+            ("front", centre + new Vector3(0, 0.9f, 6.2f), centre),
+            ("back", centre + new Vector3(0, 0.9f, -6.2f), centre),
+            ("side", centre + new Vector3(6.5f, 0.8f, 0.4f), centre),
+            ("head_front", new Vector3(0.6f, 1.75f, 4.6f), new Vector3(0.6f, 1.62f, 3.0f)),
+            ("head_back", new Vector3(0.6f, 1.8f, 1.4f), new Vector3(0.6f, 1.62f, 3.0f)),
+            ("head_front_child", new Vector3(3.1f, 1.2f, 4.3f), new Vector3(3.1f, 1.08f, 3.0f)),
+            ("wave_look", centre + new Vector3(-1.2f, 1.4f, 6.0f), centre),
+        };
+        if (_shotStep >= shots.Length)
+        {
+            if (_shotStep == shots.Length)
+            {
+                GD.Print($"LOOK_FIGURES_OK {tag}");
+                GetTree().Quit();
+                _shotStep++;
+            }
+
+            return;
+        }
+
+        // Each view gets 1.2 s to settle; the last one waves and looks at the camera.
+        var due = 3.0 + (_shotStep * 1.2) + (_shotStep == shots.Length - 1 ? 2.5 : 0);
+        var (name, from, to) = shots[_shotStep];
+        _camera!.GlobalPosition = from;
+        _camera.LookAt(to, Vector3.Up);
+        _camera.Fov = 32;
+        if (_shotStep == shots.Length - 1)
+        {
+            foreach (var f in _showRow)
+            {
+                f.Wave.Weight = Mathf.MoveToward(f.Wave.Weight, 1, (float)GetProcessDeltaTime() * 2);
+                f.Look.Weight = Mathf.MoveToward(f.Look.Weight, 1, (float)GetProcessDeltaTime() * 1.5f);
+                f.Look.Target = _camera.GlobalPosition;
+            }
+        }
+
+        if (_time > due && _frame > 150)
+        {
+            Save($"figure_{name}_{tag}.png");
+            _shotStep++;
         }
     }
 

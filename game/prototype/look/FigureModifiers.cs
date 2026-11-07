@@ -3,59 +3,6 @@ using Godot;
 namespace GlassWorld.Game.Prototype.Look;
 
 /// <summary>
-/// Cute proportions (D355): scales the head bone after the animation has posed the skeleton, so
-/// every clip keeps the larger head without editing the clips.
-/// </summary>
-public partial class CuteProportions : SkeletonModifier3D
-{
-    /// <summary>Head scale relative to the model.</summary>
-    public float HeadScale { get; set; } = 1.35f;
-
-    /// <summary>Thickness of arms and legs relative to the model (bone length stays, so feet stay on the ground).</summary>
-    public float LimbThickness { get; set; } = 0.8f;
-
-    /// <summary>Width of the upper body relative to the model.</summary>
-    public float TorsoWidth { get; set; } = 0.88f;
-
-    private static readonly string[] Limbs = ["DEF-upper_arm.L", "DEF-upper_arm.R", "DEF-thigh.L", "DEF-thigh.R"];
-    private static readonly string[] Torso = ["DEF-spine.002", "DEF-spine.003"];
-
-    /// <inheritdoc/>
-    public override void _ProcessModificationWithDelta(double delta)
-    {
-        var skeleton = GetSkeleton();
-        if (skeleton is null)
-        {
-            return;
-        }
-
-        // Children inherit the scale: thinning the upper limb thins the whole arm or leg, and the
-        // head is scaled back against the torso width so it keeps its own size.
-        foreach (var name in Limbs)
-        {
-            SetScale(skeleton, name, new Vector3(LimbThickness, 1, LimbThickness));
-        }
-
-        foreach (var name in Torso)
-        {
-            SetScale(skeleton, name, new Vector3(TorsoWidth, 1, 1));
-        }
-
-        var inherited = TorsoWidth * TorsoWidth;
-        SetScale(skeleton, "DEF-head", new Vector3(HeadScale / inherited, HeadScale, HeadScale));
-    }
-
-    private static void SetScale(Skeleton3D skeleton, string bone, Vector3 scale)
-    {
-        var index = skeleton.FindBone(bone);
-        if (index >= 0)
-        {
-            skeleton.SetBonePoseScale(index, scale);
-        }
-    }
-}
-
-/// <summary>
 /// Procedural wave (no CC0 clip in the standard libraries): lifts the right upper arm up and out and
 /// swings the forearm, blended in and out with <see cref="Weight"/> on top of whatever clip runs.
 /// Directions are computed in skeleton space, so they do not depend on the bones' local axes.
@@ -115,5 +62,60 @@ public partial class WaveModifier : SkeletonModifier3D
         var turn = Quaternion.Identity.Slerp(full, Mathf.Clamp(weight, 0, 1));
         var rotated = new Transform3D(new Basis(turn) * pose.Basis, pose.Origin);
         skeleton.SetBoneGlobalPose(bone, rotated);
+    }
+}
+
+/// <summary>
+/// Turns head and neck smoothly towards a target (the camera) on top of the running clip, limited to a
+/// natural angle. Used while waving or being spoken to (A1436). Directions are computed in skeleton space;
+/// the figure faces +Z in its rest pose.
+/// </summary>
+public partial class LookAtModifier : SkeletonModifier3D
+{
+    /// <summary>0 = off, 1 = full turn; the prototype eases it.</summary>
+    public float Weight { get; set; }
+
+    /// <summary>Target in world space.</summary>
+    public Vector3 Target { get; set; }
+
+    /// <summary>Largest turn of the head in degrees.</summary>
+    public float MaxAngleDegrees { get; set; } = 65f;
+
+    /// <inheritdoc/>
+    public override void _ProcessModificationWithDelta(double delta)
+    {
+        var skeleton = GetSkeleton();
+        if (skeleton is null || Weight <= 0.001f)
+        {
+            return;
+        }
+
+        var target = skeleton.GlobalTransform.AffineInverse() * Target;
+        Turn(skeleton, "DEF-neck", target, Weight * 0.35f);
+        Turn(skeleton, "DEF-head", target, Weight);
+    }
+
+    private void Turn(Skeleton3D skeleton, string name, Vector3 target, float weight)
+    {
+        var bone = skeleton.FindBone(name);
+        if (bone < 0)
+        {
+            return;
+        }
+
+        var pose = skeleton.GetBoneGlobalPose(bone);
+        var rest = skeleton.GetBoneGlobalRest(bone);
+        var forward = (pose.Basis * rest.Basis.Inverse() * Vector3.Back).Normalized();
+        var wanted = (target - pose.Origin).Normalized();
+        if (wanted.LengthSquared() < 1e-6f)
+        {
+            return;
+        }
+
+        var angle = forward.AngleTo(wanted);
+        var limit = Mathf.DegToRad(MaxAngleDegrees);
+        var share = angle > limit ? limit / angle : 1f;
+        var turn = Quaternion.Identity.Slerp(new Quaternion(forward, wanted), Mathf.Clamp(weight, 0, 1) * share);
+        skeleton.SetBoneGlobalPose(bone, new Transform3D(new Basis(turn) * pose.Basis, pose.Origin));
     }
 }

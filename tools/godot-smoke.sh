@@ -106,4 +106,12 @@ if ! grep -Eq '^LOOK_OK frames=[0-9]+ variant=flat animated=True$' "$LOOK_LOG"; 
   echo "SMOKE_FAIL: look prototype not built or figures not animated (marker 'LOOK_OK ... animated=True' missing)" >&2
   exit 1
 fi
+# Figure bodies (A1436): every Quaternius clip moves the skeleton of every GlassWorld body.
+CLIP_LOG="$(mktemp)"
+timeout "$TIMEOUT_S" "$GODOT" --headless --path "$GAME" --quit-after 2000 res://prototype/look/clip_check.tscn >"$CLIP_LOG" 2>&1
+if ! grep -Eq '^CLIPS_OK bodies=[a-z_,]+ clips=[1-9][0-9]* checked=[1-9][0-9]* failures=0$' "$CLIP_LOG"; then
+  cat "$CLIP_LOG" >&2
+  echo "SMOKE_FAIL: a clip does not move a figure body (marker 'CLIPS_OK ... failures=0' missing)" >&2
+  exit 1
+fi
 echo "SMOKE_PASS: $FRAMES frames without errors"
