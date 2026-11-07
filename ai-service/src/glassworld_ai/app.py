@@ -37,6 +37,12 @@ from glassworld_ai.llm.ollama import (
 )
 from glassworld_ai.probes import HttpProbes, Probes
 from glassworld_ai.prompts import load_prompt
+from glassworld_ai.questions.handlers import (
+    MockQuestions,
+    OllamaQuestions,
+    QuestionSettings,
+    ReplayQuestions,
+)
 from glassworld_ai.queue import ModelQueue
 from glassworld_ai.security import make_access_guard
 from glassworld_ai.validation import ContractValidator
@@ -87,6 +93,8 @@ def create_app(
                 _set_hardware(app, await asyncio.to_thread(detect_hardware))
             if decider is None:
                 app.state.decider = _build_decider(settings, ollama, app.state.queue)
+            if job_handlers is None and settings.decider_backend == "ollama":
+                app.state.jobs.register("question", _ollama_questions(settings, ollama, app))
             warm_task: asyncio.Task[None] | None = None
             if settings.warm_up and settings.decider_backend == "ollama":
                 app.state.warm_up = "starting"
@@ -122,7 +130,11 @@ def create_app(
     validator = ContractValidator(settings.schemas_dir)
     app.state.queue = queue or ModelQueue(settings.queue_size)
     # Job kinds get their handlers in their own steps (question: B4a S2, image: B7 S5, ...).
-    app.state.jobs = JobRunner(job_handlers or {}, settings.job_capacity)
+    # The Ollama question handler needs the HTTP client and is registered in the lifespan.
+    app.state.jobs = JobRunner(
+        job_handlers if job_handlers is not None else _offline_handlers(settings),
+        settings.job_capacity,
+    )
 
     def _set_hardware(target: FastAPI, info: HardwareInfo) -> None:
         target.state.hardware = info
@@ -198,6 +210,15 @@ def create_app(
         if app.state.stopping:
             return error_response(
                 "model_unavailable", "Service is stopping.", request_id=rid, tick=rtick
+            )
+        if settings.decider_backend == "ollama" and getattr(app.state, "tier", "unknown") is None:
+            # R9 like /decide: below the minimum tier no AI jobs; the hardware does not change.
+            return error_response(
+                "model_unavailable",
+                "Hardware is below the minimum tier; routine mode only.",
+                request_id=rid,
+                tick=rtick,
+                retryable=False,
             )
         if not runner.supports(kind):
             return error_response(
@@ -346,6 +367,41 @@ async def _warm_up(app: FastAPI, ollama: OllamaClient, retry_s: float) -> None:
         except (OllamaUnavailableError, OllamaResponseError, httpx.HTTPError):
             app.state.warm_up = "failed"
         await asyncio.sleep(retry_s)
+
+
+def _offline_handlers(settings: Settings) -> dict[str, Handler]:
+    """Handlers that need no model client: mock and replay."""
+    vocab = Vocabulary.load(settings.content_dir / "vocabulary")
+    if settings.decider_backend == "mock":
+        return {"question": MockQuestions(vocab)}
+    if settings.decider_backend == "replay":
+        template = load_prompt(
+            settings.prompts_dir, settings.question_prompt, settings.question_prompt_version
+        )
+        return {"question": ReplayQuestions(_question_log(settings), template, vocab)}
+    return {}
+
+
+def _question_log(settings: Settings) -> CallLog:
+    return CallLog(settings.log_dir / "questions.jsonl")
+
+
+def _ollama_questions(settings: Settings, ollama: OllamaClient, app: FastAPI) -> OllamaQuestions:
+    return OllamaQuestions(
+        client=ollama,
+        queue=app.state.queue,
+        template=load_prompt(
+            settings.prompts_dir, settings.question_prompt, settings.question_prompt_version
+        ),
+        vocab=Vocabulary.load(settings.content_dir / "vocabulary"),
+        settings=QuestionSettings(
+            temperature=settings.temperature,
+            num_ctx=settings.num_ctx,
+            max_retries=settings.max_retries,
+            call_timeout_s=settings.question_call_timeout_s,
+        ),
+        log=_question_log(settings),
+    )
 
 
 def _build_decider(settings: Settings, ollama: OllamaClient, queue: ModelQueue) -> Decider:

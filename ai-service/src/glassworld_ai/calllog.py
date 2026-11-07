@@ -24,7 +24,7 @@ class CallRecord:
     temperature: float
     attempt: int
     latency_ms: int
-    outcome: str  # "ok" | "invalid" | "timeout" | "unavailable" | "error"
+    outcome: str  # "ok" | "invalid" | "timeout" | "unavailable" | "error" | "cancelled"
     raw_output: str | None
     request: dict[str, object] | None = None
     detail: str | None = None

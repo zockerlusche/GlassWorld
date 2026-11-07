@@ -46,6 +46,11 @@ class Settings(BaseSettings):
     prompt_char_budget: int = Field(ge=500, le=100000)
     max_retries: int = Field(ge=0, le=2, description="Handbook: at most two retries.")
     queue_size: int = Field(ge=1, le=10000)
+    question_prompt: str = Field(pattern=r"^[a-z][a-z0-9_]*/[a-z][a-z0-9_-]*$")
+    question_prompt_version: int = Field(ge=1)
+    question_call_timeout_s: float = Field(
+        gt=0, le=3600, description="Per model call; questions themselves have no deadline."
+    )
     job_capacity: int = Field(
         ge=1, le=1024, description="Jobs held in memory (B7 S1); finished ones make room first."
     )
