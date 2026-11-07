@@ -380,14 +380,16 @@ async def _warm_up(app: FastAPI, ollama: OllamaClient, retry_s: float) -> None:
     while True:
         try:
             residency: Residency = app.state.residency
-            try:
-                # Through the residency: it unloads never-together models (e.g. sound) first.
+            if residency.knows(ollama.model):
+                # Through the residency: it unloads never-together models (e.g. sound) first and
+                # refuses a model above the budget. A refusal is a failed warm-up, never a
+                # load past the budget (review GW1 N1).
                 await residency.ensure(ollama.model)
-            except ResidencyError:
+            else:
                 await ollama.warm_up(timeout=300)  # model without footprint: not tracked
             app.state.warm_up = "done"
             return
-        except (OllamaUnavailableError, OllamaResponseError, httpx.HTTPError):
+        except (OllamaUnavailableError, OllamaResponseError, httpx.HTTPError, ResidencyError):
             app.state.warm_up = "failed"
         await asyncio.sleep(retry_s)
 

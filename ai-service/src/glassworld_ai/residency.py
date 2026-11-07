@@ -92,6 +92,10 @@ class Residency:
     def budget_mib(self) -> int:
         return self._budget
 
+    def knows(self, model_id: str) -> bool:
+        """Whether models.json has a footprint for the model."""
+        return model_id in self._footprints
+
     def loaded(self) -> list[str]:
         return sorted(self._loaded)
 
@@ -147,9 +151,18 @@ class Residency:
                 await self._unload(model_id)
 
     async def release_all(self) -> None:
+        """Unload every resident model; tries all of them and reports the failures at the end."""
         async with self._lock:
+            failed: list[str] = []
             for model_id in sorted(self._loaded):
-                await self._unload(model_id)
+                if model_id not in self._loaded:  # gone with a ComfyUI /free before
+                    continue
+                try:
+                    await self._unload(model_id)
+                except ResidencyError as error:
+                    failed.append(f"{model_id}: {error}")
+            if failed:
+                raise ResidencyError("could not unload " + "; ".join(failed))
 
     def _footprint(self, model_id: str) -> Footprint:
         found = self._footprints.get(model_id)

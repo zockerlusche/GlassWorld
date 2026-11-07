@@ -243,3 +243,47 @@ def test_comfyui_free_unloads_every_comfyui_model() -> None:
     asyncio.run(scenario())
     assert residency.loaded() == ["llm"]
     assert log == ["load img-a", "load img-b", "unload img-a", "load llm"]
+
+
+def test_release_all_tries_every_model_and_reports_failures() -> None:
+    log: list[str] = []
+
+    class Broken(FakeDriver):
+        async def unload(self, model_id: str) -> None:
+            raise ResidencyError("ComfyUI down")
+
+    img = Footprint("img", "image", "comfyui", 2000, 1.0, frozenset())
+    llm = Footprint("llm", "language", "fake", 3000, 1.0, frozenset())
+    residency = Residency(
+        {"img": img, "llm": llm}, 9000, {"comfyui": Broken(log), "fake": FakeDriver(log)}
+    )
+    asyncio.run(residency.ensure("img"))
+    asyncio.run(residency.ensure("llm"))
+    with pytest.raises(ResidencyError, match="img: ComfyUI down"):
+        asyncio.run(residency.release_all())
+    assert "unload llm" in log  # the language model was still unloaded (review GW1 N2)
+
+
+def test_warm_up_never_loads_past_the_budget(settings: Settings) -> None:
+    from glassworld_ai.app import _warm_up  # pyright: ignore[reportPrivateUsage]
+
+    small = HardwareInfo(
+        gpus=(Gpu("8 GB card", 8192),), cpu_name=None, logical_cpus=8, ram_mib=None
+    )
+    app = make_app(settings, hardware=small)
+    calls: list[str] = []
+
+    class FakeOllama:
+        model = "qwen3.5:9b"
+
+        async def warm_up(self, timeout: float) -> None:
+            calls.append("warm_up")
+
+    async def scenario() -> None:
+        task = asyncio.ensure_future(_warm_up(app, FakeOllama(), 0.01))  # type: ignore[arg-type]
+        await asyncio.sleep(0.05)
+        task.cancel()
+
+    asyncio.run(scenario())
+    assert app.state.warm_up == "failed"  # budget 5632 < 6615: refused, not loaded anyway
+    assert calls == []
