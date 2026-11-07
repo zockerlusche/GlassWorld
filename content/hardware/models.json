@@ -6,20 +6,20 @@
       "id": "qwen3.5:9b",
       "role": "language",
       "runtime": "ollama",
-      "vram_mib": 6758,
-      "load_s": 12.0,
-      "measured": false,
-      "source": "B7 R2 (about 6.6 GB) and live warm-up 12 s (B3); exact peak in B7 S3",
+      "vram_mib": 6615,
+      "load_s": 8.2,
+      "measured": true,
+      "source": "L673 B7-S3 (num_ctx 8192, peak over idle desktop; Ollama reports 5479 MiB size_vram)",
       "never_with": []
     },
     {
       "id": "z-image-turbo",
       "role": "image",
       "runtime": "comfyui",
-      "vram_mib": 7000,
-      "load_s": 30.0,
-      "measured": false,
-      "source": "placeholder until B7 S3",
+      "vram_mib": 7412,
+      "load_s": 11.2,
+      "measured": true,
+      "source": "L673 B7-S3 (1024x1024, 8 steps, cold peak; warm image 13.7 s)",
       "never_with": []
     },
     {
