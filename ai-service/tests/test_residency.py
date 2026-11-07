@@ -180,7 +180,7 @@ def test_ollama_and_comfyui_drivers_call_the_right_endpoints() -> None:
 
     asyncio.run(scenario())
     assert seen == [
-        ("/api/generate", {"model": "qwen3.5:9b", "keep_alive": "30m"}),
+        ("/api/generate", {"model": "qwen3.5:9b", "prompt": "", "keep_alive": "30m"}),
         ("/api/generate", {"model": "qwen3.5:9b", "keep_alive": 0}),
         ("/free", {"unload_models": True, "free_memory": True}),
     ]
@@ -204,3 +204,42 @@ def test_the_app_builds_the_residency_from_the_hardware(settings: Settings) -> N
     largest = max(g.vram_mib for g in REFERENCE_PC.gpus)
     assert residency.budget_mib == largest - 2560
     assert residency.loaded() == []
+
+
+def test_mark_loaded_respects_budget_and_never_together() -> None:
+    residency, _, _ = make(10000, fp("llm", 6758), fp("sound", 5734, ("llm",)), fp("small", 1000))
+    asyncio.run(residency.ensure("sound"))
+    with pytest.raises(ResidencyError, match="cannot be marked"):
+        residency.mark_loaded("llm")  # never together with sound (review GW1 R1)
+    residency.mark_loaded("small")
+    assert residency.loaded() == ["small", "sound"]
+
+
+def test_never_with_must_name_known_models(tmp_path: Path) -> None:
+    data = json.loads(MODELS_FILE.read_text(encoding="utf-8"))
+    data["models"][0]["never_with"] = ["no-such-model"]
+    broken = tmp_path / "models.json"
+    broken.write_text(json.dumps(data), encoding="utf-8")
+    with pytest.raises(ValueError, match="never_with unknown"):
+        load_footprints(broken)
+
+
+def test_comfyui_free_unloads_every_comfyui_model() -> None:
+    log: list[str] = []
+    a = Footprint("img-a", "image", "comfyui", 2000, 1.0, frozenset())
+    b = Footprint("img-b", "image", "comfyui", 2000, 1.0, frozenset())
+    llm = Footprint("llm", "language", "fake", 7000, 1.0, frozenset())
+    residency = Residency(
+        {"img-a": a, "img-b": b, "llm": llm},
+        9000,
+        {"comfyui": FakeDriver(log), "fake": FakeDriver(log)},
+    )
+
+    async def scenario() -> None:
+        await residency.ensure("img-a")
+        await residency.ensure("img-b")
+        await residency.ensure("llm")  # needs room: unloading img-a frees img-b as well
+
+    asyncio.run(scenario())
+    assert residency.loaded() == ["llm"]
+    assert log == ["load img-a", "load img-b", "unload img-a", "load llm"]

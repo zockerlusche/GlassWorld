@@ -56,6 +56,12 @@ def load_footprints(path: Path) -> tuple[int, dict[str, Footprint]]:
         if m.id in models:
             raise ValueError(f"{path.name}: model {m.id} listed twice")
         models[m.id] = Footprint(m.id, role, runtime, m.vram_mib, m.load_s, frozenset(m.never_with))
+    for footprint in models.values():
+        unknown = sorted(footprint.never_with - set(models))
+        if unknown:
+            raise ValueError(
+                f"{path.name}: {footprint.model_id} never_with unknown models {unknown}"
+            )
     return data.game_vram_mib, models
 
 
@@ -97,8 +103,21 @@ class Residency:
         self._drivers[runtime] = driver
 
     def mark_loaded(self, model_id: str) -> None:
-        """Note a model that is already in VRAM (e.g. the decider after the warm-up)."""
-        self._footprint(model_id)
+        """Note a model that is already in VRAM. Refused when it breaks the budget or a
+        never-together rule; then load it with `ensure` instead (which makes room first)."""
+        wanted = self._footprint(model_id)
+        if model_id in self._loaded:
+            self._loaded[model_id] = self._clock()
+            return
+        conflicts = [
+            other
+            for other in self._loaded
+            if other in wanted.never_with or model_id in self._footprint(other).never_with
+        ]
+        if conflicts or self.used_mib() + wanted.vram_mib > self._budget:
+            raise ResidencyError(
+                f"{model_id} cannot be marked loaded next to {sorted(self._loaded)}"
+            )
         self._loaded[model_id] = self._clock()
 
     async def ensure(self, model_id: str) -> None:
@@ -149,8 +168,12 @@ class Residency:
         return driver
 
     async def _unload(self, model_id: str) -> None:
-        await self._driver(self._footprint(model_id)).unload(model_id)
+        footprint = self._footprint(model_id)
+        await self._driver(footprint).unload(model_id)
         del self._loaded[model_id]
+        if footprint.runtime == "comfyui":  # POST /free unloads every ComfyUI model
+            for other in [m for m in self._loaded if self._footprint(m).runtime == "comfyui"]:
+                del self._loaded[other]
 
 
 # --- drivers ------------------------------------------------------------------------------
@@ -165,7 +188,9 @@ class OllamaDriver:
         self._keep_alive = keep_alive
 
     async def load(self, model_id: str) -> None:
-        await self._post({"model": model_id, "keep_alive": self._keep_alive}, timeout=300)
+        await self._post(
+            {"model": model_id, "prompt": "", "keep_alive": self._keep_alive}, timeout=300
+        )
 
     async def unload(self, model_id: str) -> None:
         await self._post({"model": model_id, "keep_alive": 0}, timeout=30)

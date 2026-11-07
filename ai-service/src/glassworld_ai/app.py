@@ -127,6 +127,8 @@ def create_app(
                 app.state.stopping = True
                 await app.state.queue.close()
                 await app.state.jobs.close()
+                with contextlib.suppress(ResidencyError):
+                    await app.state.residency.release_all()  # also image/sound models (R3)
                 if settings.decider_backend == "ollama":
                     with contextlib.suppress(
                         OllamaUnavailableError, OllamaResponseError, httpx.HTTPError
@@ -377,10 +379,13 @@ async def _warm_up(app: FastAPI, ollama: OllamaClient, retry_s: float) -> None:
     """Load the model; on failure stay "failed" (degraded) and try again after `retry_s`."""
     while True:
         try:
-            await ollama.warm_up(timeout=300)
+            residency: Residency = app.state.residency
+            try:
+                # Through the residency: it unloads never-together models (e.g. sound) first.
+                await residency.ensure(ollama.model)
+            except ResidencyError:
+                await ollama.warm_up(timeout=300)  # model without footprint: not tracked
             app.state.warm_up = "done"
-            with contextlib.suppress(ResidencyError):  # a model without footprint is not tracked
-                app.state.residency.mark_loaded(ollama.model)
             return
         except (OllamaUnavailableError, OllamaResponseError, httpx.HTTPError):
             app.state.warm_up = "failed"
