@@ -56,3 +56,9 @@ class WorldOptions(BaseModel):
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
     name_max_length: int = Field(..., ge=1, le=64)
+    player_name_max_length: int = Field(
+        ...,
+        description='Longest player name in the settings (B2535: used only outside the aquarium; inhabitants learn it only when the player tells them).',
+        ge=1,
+        le=64,
+    )
