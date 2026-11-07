@@ -9,6 +9,11 @@ using GlassWorld.Simulation.State;
 // Runs the placeholder start world (until B2 generates the island) with the mock decider and prints one
 // line per game day: lowest needs, will to live and neglect per inhabitant, and the state hash.
 // --save writes an autosave after every game day and checks at the end that loading gives the same hash.
+if (args.Length > 0 && args[0] == "worldgen")
+{
+    Environment.Exit(GlassWorld.Simulation.Headless.WorldGenCommand.Run(args[1..]));
+}
+
 var options = Options.Parse(args);
 var host = SimulationHost.CreatePlaceholderWorld(options.ContentDirectory, options.Seed, new MockDecisionPort(), "de");
 var ticksPerDay = host.World.Calendar.TicksPerDay;

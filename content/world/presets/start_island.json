@@ -14,7 +14,7 @@
   "terrain": {
     "sea_level": 20,
     "max_height": 180,
-    "coast_falloff_permille": 300,
+    "coast_falloff_permille": 180,
     "walkable_slope": 6,
     "cliff_min_drop": 12,
     "noise": [
