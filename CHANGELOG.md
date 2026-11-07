@@ -5,22 +5,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-### Fixed
-
-- Loading a save game never changes the file: empty or foreign files are refused read-only, older versions are migrated in a temporary copy (review GW3 #50 K2).
-- Inhabitant card stays beside the side bar and its open panel and is re-fitted when the UI size changes (found in the 3840x1600 screenshots at 175 %: the card kept its old place, covered the inhabitant list and ran off the screen). The smoke checks the card at the smallest and largest UI size.
-
-### Fixed
-
-- Smoke test accepts `SMOKE_OK frames=N` with N at least the requested frames: the game waits for its own checks before quitting, which can take a few frames longer on a slow CI runner (seen: 614 of 600).
-
-### Fixed
-
-- Inhabitant card stays below the top bar (A1335 screenshots at 175 %: it covered clock and time buttons). DE: need "fun" is "Spaß" (was "Freude" like the feeling "joy"); a catalog test keeps needs, moods and traits distinct.
-
 ### Added
 
 - Shareable world code (B2534): seed, size, climate and start favour give a short code `GW-XXXX-…` (Crockford base 32, forgiving input, checksum); the new-world form shows it live with a copy button and takes a pasted code; the world list copies the code of a saved world. Same code = same start world (test). Player name in the settings (B2535): used only outside the aquarium, never sent to the AI; length from `world_options.json` (`player_name_max_length`), content guard.
+- Base sound library (A1349, B2530): 19 sounds in 45 files for footsteps on grass, wood, stone, snow, sand and water, chopping wood, knocking stone and wood, creaking, fire, waves, stream, wind, leaves, songbird, gull, spark and rustle. Sources: Kenney CC0 packs (official download) and MOSS-SoundEffect, generated locally with an automatic check (length, peak, gated loudness, clipping) and seed retries. `content/sound/library.json` (schema `base-sound-library`) records origin, licence, SHA-256, prompt and seed per file, and keywords for the fallback from a sound description. `tools/SoundBase` normalises the loudness to the targets of the data. Tests and the smoke run (`SOUNDLIB_OK`) check licence, SHA-256, loudness, peak and length.
 - **Contract version 0.2** (B4a S1): `InhabitantState` with memory, knowledge (source and teller), relationships and habits; `perception.inhabitants`; shared defs in common (`LevelEntry`, `KnownProperty`, `Thought` 140 chars, `GeneratedText` 280 chars, `ResponseMeta`); actions `warn`/`show`/`teach`; lint against Python keywords as field names; all messages and data files carry `contract_version` 0.2; C# `ContractInfo.Version` replaces version literals (test against the schema constant).
 - Main menu, new world, world list, settings and pause menu (A1337, B6-5 part 2): continue the last world, new world with name (length from the data, content guard R13), seed (empty = drawn and shown), size, climate and start favour from `content/player`; list of saved worlds; settings for language, UI and text size (separate), contrast, reduced motion, watch-only, hint duration and volume per bus (range `player_volume_db` in `content/sound/mix.json`), applied at once and stored in `user://settings.json`; Esc in the game opens the pause menu (world time stops; play on, save, settings, main menu, quit). Every way out saves first. Check runs (`--smoke-frames`, `--ui-shots`, `--seed`) still start the world directly. Smoke requires `MENU_OK`: all menu screens in DE and EN without a raw key and inside the safe area, settings survive the file round trip.
 - Worlds, save and load in the game (A1337, B6-5 part 1): several worlds under `user://worlds/<id>/` (`world.sqlite` + display-only `meta.json`, `WorldLibrary`); `WorldPresenter.CreateWorld/Load/Save` with autosave every game day (B2487) and open questions resent after loading; closing the window saves first (B2469). Player settings `user://settings.json` (`PlayerSettings`, clamped, safe defaults). Smoke requires `SAVE_OK` (save, load into a second presenter, same state hash; SQLite inside Godot).
@@ -62,3 +50,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Simulation core B1-5: save games in SQLite (`Simulation.Data`, schema version, migrations, crash-safe swap) with autosave after every game day; placeholder start world with two pairs (F5249); spark rule pyrite + flint; the game shows the core world and the smoke test checks it (`WORLD_OK`); headless acceptance runner (`src/Simulation.Headless`).
 - `src/AiClient`: HTTP decider port to the local AI service (`POST /decide`, session token); an unreachable service becomes a retryable `model_unavailable`, so questions wait and inhabitants live on in routine mode (B3 S6, acceptance A3/A6).
 - The game starts the local AI service itself with `GLASSWORLD_AI=live` (ready line, session token, Job Object, `/shutdown` on exit) and shows thought bubbles from answers; without the service it runs on in routine mode (B3 S7).
+
+### Fixed
+
+- Loading a save game never changes the file: empty or foreign files are refused read-only, older versions are migrated in a temporary copy (review GW3 #50 K2).
+- Inhabitant card stays beside the side bar and its open panel and is re-fitted when the UI size changes (found in the 3840x1600 screenshots at 175 %: the card kept its old place, covered the inhabitant list and ran off the screen). The smoke checks the card at the smallest and largest UI size.
+- Smoke test accepts `SMOKE_OK frames=N` with N at least the requested frames: the game waits for its own checks before quitting, which can take a few frames longer on a slow CI runner (seen: 614 of 600).
+- Inhabitant card stays below the top bar (A1335 screenshots at 175 %: it covered clock and time buttons). DE: need "fun" is "Spaß" (was "Freude" like the feeling "joy"); a catalog test keeps needs, moods and traits distinct.

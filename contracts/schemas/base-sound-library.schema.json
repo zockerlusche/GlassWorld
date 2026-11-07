@@ -1,0 +1,245 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/base-sound-library.schema.json",
+  "title": "BaseSoundLibrary",
+  "description": "Base sound library (B8-4, B2530): recorded or generated sound files for sound ids of the sound map, with origin and licence per file, loudness targets the files are normalised to, and keywords that map a short sound description from the rule guardian to a base sound when no generated sound exists (fallback). Sound ids without a file here use the retro synth recipes.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "target",
+    "origins",
+    "sounds"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "target": {
+      "$ref": "#/$defs/LibraryTarget"
+    },
+    "origins": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/LibraryOrigin"
+      }
+    },
+    "sounds": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/LibrarySound"
+      }
+    }
+  },
+  "$defs": {
+    "LibraryTarget": {
+      "description": "Loudness and length rules every library file meets (checked by a test).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "one_shot_dbfs",
+        "loop_dbfs",
+        "tolerance_db",
+        "peak_max_dbfs",
+        "gate_dbfs",
+        "one_shot_max_s",
+        "loop_max_s"
+      ],
+      "properties": {
+        "one_shot_dbfs": {
+          "description": "Gated RMS loudness of single sounds (dBFS).",
+          "type": "number",
+          "minimum": -60,
+          "maximum": 0
+        },
+        "loop_dbfs": {
+          "description": "Gated RMS loudness of loops (dBFS); quieter, they run for long.",
+          "type": "number",
+          "minimum": -60,
+          "maximum": 0
+        },
+        "tolerance_db": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 12
+        },
+        "peak_max_dbfs": {
+          "description": "Highest sample peak after normalising (dBFS).",
+          "type": "number",
+          "minimum": -24,
+          "maximum": 0
+        },
+        "gate_dbfs": {
+          "description": "Frames (50 ms) below this level do not count for the loudness.",
+          "type": "number",
+          "minimum": -90,
+          "maximum": -20
+        },
+        "one_shot_max_s": {
+          "description": "Longest single sound (B2530: a few seconds).",
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 30
+        },
+        "loop_max_s": {
+          "description": "Longest loop.",
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 120
+        }
+      }
+    },
+    "LibraryOrigin": {
+      "description": "Where files come from: an official CC0 pack, a local model, or own work. The licence must be on the approved list (B2482).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "url",
+        "license",
+        "archive_sha256"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "url": {
+          "type": "string",
+          "pattern": "^https://",
+          "maxLength": 200
+        },
+        "license": {
+          "description": "Licence of the files (SPDX id).",
+          "type": "string",
+          "enum": [
+            "CC0-1.0",
+            "MIT",
+            "Apache-2.0"
+          ]
+        },
+        "archive_sha256": {
+          "description": "SHA-256 of the downloaded archive; null for files generated here (model revision in the name).",
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "LibrarySound": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "origin",
+        "keywords",
+        "files"
+      ],
+      "properties": {
+        "id": {
+          "description": "Sound id as used in the sound map (e.g. step.grass, object.fire).",
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*(\\.[a-z0-9_]+)+$",
+          "maxLength": 64
+        },
+        "kind": {
+          "description": "one_shot = a single sound; loop = repeats seamlessly while it plays.",
+          "type": "string",
+          "enum": [
+            "one_shot",
+            "loop"
+          ]
+        },
+        "origin": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "keywords": {
+          "description": "English words a short sound description from the rule guardian may contain to fall back to this sound (e.g. creak, crackle); the best match wins.",
+          "type": "array",
+          "maxItems": 12,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z]+$",
+            "maxLength": 24
+          }
+        },
+        "files": {
+          "description": "Variants (one is picked per play); 16-bit PCM WAV below game/assets/sound/base.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/LibraryFile"
+          }
+        }
+      }
+    },
+    "LibraryFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "file",
+        "source",
+        "sha256",
+        "prompt",
+        "seed"
+      ],
+      "properties": {
+        "file": {
+          "type": "string",
+          "pattern": "^[a-z0-9_.]+\\.wav$",
+          "maxLength": 80
+        },
+        "source": {
+          "description": "File in the origin's archive, or the generator's output name.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "sha256": {
+          "description": "SHA-256 of the WAV in the repository (after normalising).",
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "prompt": {
+          "description": "Prompt for generated files (null for recorded ones), so they can be made again.",
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 300
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "seed": {
+          "description": "Seed for generated files; null for recorded ones.",
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

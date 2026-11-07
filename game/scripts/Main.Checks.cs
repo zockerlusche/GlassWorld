@@ -3,6 +3,7 @@ using GlassWorld.Game.Localization;
 using GlassWorld.Game.Ui;
 using GlassWorld.Game.Ui.Components;
 using GlassWorld.Game.Ui.Screens;
+using GlassWorld.Presentation.Audio;
 using GlassWorld.Presentation.Ui;
 using GlassWorld.Presentation.World;
 using Godot;
@@ -37,6 +38,7 @@ public partial class Main
         CheckTexts(textsLoaded);
         CheckAudio(audioLoaded);
         CheckSpatial(spatialReady);
+        CheckSoundLibrary();
         _uiCheckDone = false;
         _ = CheckUiAsync(_style);
     }
@@ -204,6 +206,45 @@ public partial class Main
         }
 
         return texts.Where(t => TextKeys.LooksLikeKey(t) && root.Tr(t) == t).Distinct(StringComparer.Ordinal);
+    }
+
+    /// <summary>
+    /// Smoke run only (B8-4): the base sound library is complete, licensed and every file meets the
+    /// loudness and length targets with the recorded SHA-256 (CI has the LFS files only here).
+    /// </summary>
+    private void CheckSoundLibrary()
+    {
+        try
+        {
+            var library = Contracts.Validation.ContractSerializer.Deserialize<Contracts.BaseSoundLibrary>(
+                System.IO.File.ReadAllText(System.IO.Path.Combine(_contentDirectory, "sound", "library.json")));
+            using var map = System.Text.Json.JsonDocument.Parse(System.IO.File.ReadAllText(System.IO.Path.Combine(_contentDirectory, "sound", "sound_map.json")));
+            var mapped = map.RootElement.EnumerateObject()
+                .Where(p => p.Value.ValueKind == System.Text.Json.JsonValueKind.Array)
+                .SelectMany(p => p.Value.EnumerateArray().Select(e => e.GetProperty("sound").GetString()!))
+                .ToList();
+            var folder = ProjectSettings.GlobalizePath("res://assets/sound/base");
+            var problems = BaseSoundCheck.DataProblems(library, mapped)
+                .Concat(BaseSoundCheck.FileProblems(library, name =>
+                {
+                    var path = System.IO.Path.Combine(folder, name);
+                    return System.IO.File.Exists(path) ? System.IO.File.ReadAllBytes(path) : null;
+                }))
+                .ToList();
+            foreach (var problem in problems)
+            {
+                GD.PushError($"SOUNDLIB_FAIL {problem}");
+            }
+
+            if (problems.Count == 0)
+            {
+                GD.Print($"SOUNDLIB_OK sounds={library.Sounds.Count} files={library.Sounds.Sum(s => s.Files.Count)}");
+            }
+        }
+        catch (Exception e) when (e is not OutOfMemoryException)
+        {
+            GD.PushError($"SOUNDLIB_FAIL {e.GetType().Name}: {e.Message}");
+        }
     }
 
     /// <summary>Smoke run only: every mapped sound renders to a stream of the right length (B8 R3).</summary>

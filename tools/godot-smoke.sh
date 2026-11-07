@@ -62,6 +62,10 @@ if ! grep -Eq '^AUDIO_OK sounds=[1-9][0-9]*$' "$LOG"; then
   echo "SMOKE_FAIL: retro audio check failed (marker 'AUDIO_OK' missing)" >&2
   exit 1
 fi
+if ! grep -Eq '^SOUNDLIB_OK sounds=[1-9][0-9]* files=[1-9][0-9]*$' "$LOG"; then
+  echo "SMOKE_FAIL: base sound library incomplete or off target (marker 'SOUNDLIB_OK' missing)" >&2
+  exit 1
+fi
 if ! grep -q '^AUDIO_SPATIAL_OK$' "$LOG"; then
   echo "SMOKE_FAIL: spatial sound check failed (marker 'AUDIO_SPATIAL_OK' missing)" >&2
   exit 1
