@@ -16,12 +16,14 @@ from typing import Any
 
 from jsonschema import Draft202012Validator
 
+from glassworld_ai.llm.jobcall import InvalidOutputError
+
 THOUGHT_MAX = 140
 RATIONALE_MAX = 280
 GUESSES_MAX = 8  # contract maximum (QuestionResult.guesses)
 
 
-class InvalidQuestionOutputError(Exception):
+class InvalidQuestionOutputError(InvalidOutputError):
     """The model answer does not satisfy the output schema."""
 
 

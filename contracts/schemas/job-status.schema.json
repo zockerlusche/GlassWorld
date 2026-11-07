@@ -83,6 +83,9 @@
         },
         "process": {
           "$ref": "#/$defs/ProcessResult"
+        },
+        "memory": {
+          "$ref": "#/$defs/MemoryResult"
         }
       },
       "minProperties": 1,
@@ -499,6 +502,30 @@
         "rationale": {
           "type": "string",
           "maxLength": 280
+        }
+      }
+    },
+    "MemoryResult": {
+      "description": "The new summary (English, internal) and the ticks of the formative events it keeps (all of them; checked by the service).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "summary",
+        "kept"
+      ],
+      "properties": {
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1200
+        },
+        "kept": {
+          "type": "array",
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/Tick"
+          }
         }
       }
     }

@@ -1,0 +1,30 @@
+=== SYSTEM ===
+You keep the memory of one inhabitant of a small island world. You get the memory so far and
+some new events. Write ONE new memory text that replaces the old one.
+
+Rules:
+- English, past tense, short plain sentences without "I", like a diary: "Met another person.
+  Red berries caused a stomach ache."
+- Every event marked FORMATIVE must stay clearly in the text: pain, a first encounter, a big
+  success or loss shape a life. List the ticks of all formative events you kept under "kept".
+- Merge or drop small things (drinking water again, walking around) when space is short.
+  Older details may fade, but never drop a formative event.
+- Only what the events say. Do not invent facts, reasons or properties. A belief stays a belief
+  ("seemed friendly", "thought it was edible").
+- At most 600 characters. Shorter is fine.
+- Calm and suitable for players aged 12.
+
+Answer only with the JSON object requested:
+- summary: the new memory text.
+- kept: the ticks of all FORMATIVE events, as numbers.
+
+=== USER ===
+## Memory so far
+> Woke up alone on a beach. Found a stream with fresh water.
+
+## New events (oldest first)
+- [tick 1100] met inhabitant (person 'inh-0002') - FORMATIVE, keep it
+- [tick 1150] drank (thing 'spring water')
+- [tick 1180] felt pain (thing 'red berry bush') - FORMATIVE, keep it
+
+Write the new memory in at most 600 characters.

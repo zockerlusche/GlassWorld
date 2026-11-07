@@ -111,6 +111,21 @@ class ProcessPayload(BaseModel):
     )
 
 
+class MemoryFact(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    tick: int = Field(..., description='Simulation tick the message refers to.', ge=0)
+    kind: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    about: common_schema.Subject | None
+    formative: bool
+
+
 class BuildPlanPayload(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -131,6 +146,27 @@ class BuildPlanPayload(BaseModel):
     max_parts: int = Field(..., ge=2, le=64)
 
 
+class MemoryPayload(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    summary: str = Field(
+        ..., description='Current summary (may be empty).', max_length=1200
+    )
+    events: list[MemoryFact] = Field(
+        ...,
+        description='Events to fold in, oldest first; at least one.',
+        max_length=32,
+        min_length=1,
+    )
+    max_chars: int = Field(
+        ...,
+        description='Hard limit for the new summary (text budget, data in the core).',
+        ge=100,
+        le=1200,
+    )
+
+
 class JobPayload(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -139,6 +175,7 @@ class JobPayload(BaseModel):
     invention: InventionPayload | None = None
     build_plan: BuildPlanPayload | None = None
     process: ProcessPayload | None = None
+    memory: MemoryPayload | None = None
 
 
 class GenerationJob(BaseModel):

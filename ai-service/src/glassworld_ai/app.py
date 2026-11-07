@@ -30,19 +30,16 @@ from glassworld_ai.errors import error_response, install_error_handlers
 from glassworld_ai.hardware import HardwareInfo, detect_hardware, load_tiers, select_tier
 from glassworld_ai.health import health_status
 from glassworld_ai.jobs import Handler, JobConflictError, JobRunner, JobsFullError
+from glassworld_ai.llm.jobcall import ModelCallSettings
 from glassworld_ai.llm.ollama import (
     OllamaClient,
     OllamaResponseError,
     OllamaUnavailableError,
 )
+from glassworld_ai.memory.condense import MockMemory, OllamaMemory, ReplayMemory
 from glassworld_ai.probes import HttpProbes, Probes
 from glassworld_ai.prompts import load_prompt
-from glassworld_ai.questions.handlers import (
-    MockQuestions,
-    OllamaQuestions,
-    QuestionSettings,
-    ReplayQuestions,
-)
+from glassworld_ai.questions.handlers import MockQuestions, OllamaQuestions, ReplayQuestions
 from glassworld_ai.queue import ModelQueue
 from glassworld_ai.residency import (
     ComfyUIDriver,
@@ -109,6 +106,7 @@ def create_app(
                 app.state.decider = _build_decider(settings, ollama, app.state.queue)
             if job_handlers is None and settings.decider_backend == "ollama":
                 app.state.jobs.register("question", _ollama_questions(settings, ollama, app))
+                app.state.jobs.register("memory", _ollama_memory(settings, ollama, app))
             warm_task: asyncio.Task[None] | None = None
             if settings.warm_up and settings.decider_backend == "ollama":
                 app.state.warm_up = "starting"
@@ -398,13 +396,41 @@ def _offline_handlers(settings: Settings) -> dict[str, Handler]:
     """Handlers that need no model client: mock and replay."""
     vocab = Vocabulary.load(settings.content_dir / "vocabulary")
     if settings.decider_backend == "mock":
-        return {"question": MockQuestions(vocab)}
+        return {"question": MockQuestions(vocab), "memory": MockMemory()}
     if settings.decider_backend == "replay":
         template = load_prompt(
             settings.prompts_dir, settings.question_prompt, settings.question_prompt_version
         )
-        return {"question": ReplayQuestions(_question_log(settings), template, vocab)}
+        return {
+            "question": ReplayQuestions(_question_log(settings), template, vocab),
+            "memory": ReplayMemory(_memory_log(settings)),
+        }
     return {}
+
+
+def _memory_log(settings: Settings) -> CallLog:
+    return CallLog(settings.log_dir / "memory.jsonl")
+
+
+def _call_settings(settings: Settings) -> ModelCallSettings:
+    return ModelCallSettings(
+        temperature=settings.temperature,
+        num_ctx=settings.num_ctx,
+        max_retries=settings.max_retries,
+        call_timeout_s=settings.question_call_timeout_s,
+    )
+
+
+def _ollama_memory(settings: Settings, ollama: OllamaClient, app: FastAPI) -> OllamaMemory:
+    return OllamaMemory(
+        client=ollama,
+        queue=app.state.queue,
+        template=load_prompt(
+            settings.prompts_dir, settings.memory_prompt, settings.memory_prompt_version
+        ),
+        settings=_call_settings(settings),
+        log=_memory_log(settings),
+    )
 
 
 def _question_log(settings: Settings) -> CallLog:
@@ -419,12 +445,7 @@ def _ollama_questions(settings: Settings, ollama: OllamaClient, app: FastAPI) ->
             settings.prompts_dir, settings.question_prompt, settings.question_prompt_version
         ),
         vocab=Vocabulary.load(settings.content_dir / "vocabulary"),
-        settings=QuestionSettings(
-            temperature=settings.temperature,
-            num_ctx=settings.num_ctx,
-            max_retries=settings.max_retries,
-            call_timeout_s=settings.question_call_timeout_s,
-        ),
+        settings=_call_settings(settings),
         log=_question_log(settings),
     )
 

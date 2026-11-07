@@ -35,6 +35,10 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("process")]
         public ProcessResult? Process { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("memory")]
+        public MemoryResult? Memory { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -282,6 +286,21 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("rationale")]
         public string Rationale { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// The new summary (English, internal) and the ticks of the formative events it keeps (all of them; checked by the service).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class MemoryResult
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("summary")]
+        public string Summary { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("kept")]
+        public System.Collections.Generic.ICollection<long> Kept { get; set; } = new System.Collections.ObjectModel.Collection<long>();
 
     }
 

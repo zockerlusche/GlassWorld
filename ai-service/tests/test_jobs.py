@@ -99,7 +99,7 @@ def test_job_runs_and_status_matches_the_contract(settings: Settings) -> None:
         assert (body["job_id"], body["state"]) == (JOB["request_id"], "queued")
         status = await wait_state(client, JOB["request_id"], "done")
         assert validator.errors("job-status", status) == []
-        assert status["result"] == RESULT
+        assert {k: v for k, v in status["result"].items() if v is not None} == RESULT
         assert status["provenance"]["seed"] == JOB["seed"]
         assert status["error"] is None
         listing = (await client.get("/jobs")).json()

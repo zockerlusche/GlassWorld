@@ -89,6 +89,9 @@
         },
         "process": {
           "$ref": "#/$defs/ProcessPayload"
+        },
+        "memory": {
+          "$ref": "#/$defs/MemoryPayload"
         }
       },
       "minProperties": 1,
@@ -314,6 +317,70 @@
         "signature": {
           "description": "Canonical signature of this try (true properties, set by the core); the service derives the world rule id from its hash.",
           "$ref": "common.schema.json#/$defs/ProcessSignature"
+        }
+      }
+    },
+    "MemoryPayload": {
+      "description": "Memory condensation (B4a R5): the current summary and older events become a new summary within max_chars. English, internal (never shown as is). Formative events must stay in it.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "summary",
+        "events",
+        "max_chars"
+      ],
+      "properties": {
+        "summary": {
+          "description": "Current summary (may be empty).",
+          "type": "string",
+          "maxLength": 1200
+        },
+        "events": {
+          "description": "Events to fold in, oldest first; at least one.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "items": {
+            "$ref": "#/$defs/MemoryFact"
+          }
+        },
+        "max_chars": {
+          "description": "Hard limit for the new summary (text budget, data in the core).",
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 1200
+        }
+      }
+    },
+    "MemoryFact": {
+      "description": "One event to remember. formative = the core marks it as shaping (pain, first encounter, success; data in the core): it must stay in the summary.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tick",
+        "kind",
+        "about",
+        "formative"
+      ],
+      "properties": {
+        "tick": {
+          "$ref": "common.schema.json#/$defs/Tick"
+        },
+        "kind": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "about": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/Subject"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "formative": {
+          "type": "boolean"
         }
       }
     }

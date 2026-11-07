@@ -35,6 +35,10 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("process")]
         public ProcessPayload? Process { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("memory")]
+        public MemoryPayload? Memory { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -189,6 +193,54 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("signature")]
         public ProcessSignature Signature { get; set; } = new ProcessSignature();
+
+    }
+
+    /// <summary>
+    /// Memory condensation (B4a R5): the current summary and older events become a new summary within max_chars. English, internal (never shown as is). Formative events must stay in it.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class MemoryPayload
+    {
+
+        /// <summary>
+        /// Current summary (may be empty).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("summary")]
+        public string Summary { get; set; } = default!;
+
+        /// <summary>
+        /// Events to fold in, oldest first; at least one.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("events")]
+        public System.Collections.Generic.ICollection<MemoryFact> Events { get; set; } = new System.Collections.ObjectModel.Collection<MemoryFact>();
+
+        /// <summary>
+        /// Hard limit for the new summary (text budget, data in the core).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max_chars")]
+        public int MaxChars { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// One event to remember. formative = the core marks it as shaping (pain, first encounter, success; data in the core): it must stay in the summary.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class MemoryFact
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("tick")]
+        public long Tick { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("kind")]
+        public string Kind { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("about")]
+        public Subject? About { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("formative")]
+        public bool Formative { get; set; } = default!;
 
     }
 

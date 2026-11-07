@@ -166,6 +166,14 @@ class BuildPlan(BaseModel):
     parts: list[BuildPart] = Field(..., max_length=64, min_length=2)
 
 
+class MemoryResult(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    summary: str = Field(..., max_length=1200, min_length=1)
+    kept: list[common_schema.Tick] = Field(..., max_length=32)
+
+
 class QuestionResult(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -211,6 +219,7 @@ class JobResult(BaseModel):
     invention: InventionResult | None = None
     build_plan: BuildPlan | None = None
     process: ProcessResult | None = None
+    memory: MemoryResult | None = None
 
 
 class JobStatus(BaseModel):

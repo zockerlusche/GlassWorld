@@ -51,6 +51,8 @@ class Settings(BaseSettings):
     queue_size: int = Field(ge=1, le=10000)
     question_prompt: str = Field(pattern=r"^[a-z][a-z0-9_]*/[a-z][a-z0-9_-]*$")
     question_prompt_version: int = Field(ge=1)
+    memory_prompt: str = Field(pattern=r"^[a-z][a-z0-9_]*/[a-z][a-z0-9_-]*$")
+    memory_prompt_version: int = Field(ge=1)
     question_call_timeout_s: float = Field(
         gt=0, le=3600, description="Per model call; questions themselves have no deadline."
     )
