@@ -142,9 +142,23 @@
         "safe_margin",
         "max_screen_fraction",
         "side_panel_width",
-        "bubble_max_chars"
+        "bubble_max_chars",
+        "list_refresh_ms",
+        "pick_radius_px"
       ],
       "properties": {
+        "list_refresh_ms": {
+          "description": "Lists (inhabitants, open questions) are rebuilt at most this often, also in fast-forward.",
+          "type": "integer",
+          "minimum": 50,
+          "maximum": 5000
+        },
+        "pick_radius_px": {
+          "description": "Clicking within this distance (logical px) of a figure selects it.",
+          "type": "integer",
+          "minimum": 8,
+          "maximum": 200
+        },
         "side_panel_width": {
           "description": "Width of a docked side panel (mailbox, inhabitants, chronicle, open questions).",
           "type": "integer",

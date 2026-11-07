@@ -23,6 +23,18 @@ class UiWindowTokens(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
+    list_refresh_ms: int = Field(
+        ...,
+        description='Lists (inhabitants, open questions) are rebuilt at most this often, also in fast-forward.',
+        ge=50,
+        le=5000,
+    )
+    pick_radius_px: int = Field(
+        ...,
+        description='Clicking within this distance (logical px) of a figure selects it.',
+        ge=8,
+        le=200,
+    )
     side_panel_width: int = Field(
         ...,
         description='Width of a docked side panel (mailbox, inhabitants, chronicle, open questions).',

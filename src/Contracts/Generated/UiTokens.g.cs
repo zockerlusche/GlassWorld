@@ -38,6 +38,18 @@ namespace GlassWorld.Contracts
     {
 
         /// <summary>
+        /// Lists (inhabitants, open questions) are rebuilt at most this often, also in fast-forward.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("list_refresh_ms")]
+        public int ListRefreshMs { get; set; } = default!;
+
+        /// <summary>
+        /// Clicking within this distance (logical px) of a figure selects it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("pick_radius_px")]
+        public int PickRadiusPx { get; set; } = default!;
+
+        /// <summary>
         /// Width of a docked side panel (mailbox, inhabitants, chronicle, open questions).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("side_panel_width")]

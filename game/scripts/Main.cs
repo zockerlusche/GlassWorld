@@ -1,7 +1,9 @@
 using GlassWorld.Game.Audio;
 using GlassWorld.Game.Localization;
 using GlassWorld.Game.Ui;
+using GlassWorld.Game.Ui.Screens;
 using GlassWorld.Presentation.Ui;
+using GlassWorld.Presentation.World;
 using GlassWorld.Simulation;
 using Godot;
 
@@ -22,6 +24,7 @@ public partial class Main : Node3D
     private ulong _seed = 1;
     private WorldPresenter? _world;
     private WorldAudio? _audio;
+    private GameScreen? _screen;
     private bool _uiCheckDone = true;
 
     public override void _Ready()
@@ -60,6 +63,9 @@ public partial class Main : Node3D
         if (style is not null)
         {
             UiSetup.Apply(GetTree().Root, style);
+            _screen = new GameScreen { Name = "GameScreen" };
+            AddChild(_screen);
+            _screen.Setup(_world, style);
         }
 
         if (_smokeFrames > 0)
@@ -110,7 +116,16 @@ public partial class Main : Node3D
 
             var layer = new CanvasLayer();
             AddChild(layer);
-            var problems = await UiLayoutCheck.RunAsync(layer, style);
+            var problems = await UiLayoutCheck.RunAsync(layer, style, ScreenModel.TimeChoices(_world!.Host!.World.Calendar.Settings));
+            var screen = _screen?.SelfCheck() ?? "game screen missing";
+            if (screen.Length > 0)
+            {
+                problems = [.. problems, "game screen: " + screen];
+            }
+            else
+            {
+                GD.Print("SCREEN_OK");
+            }
             foreach (var problem in problems)
             {
                 GD.PushError($"UI_FAIL {problem}");

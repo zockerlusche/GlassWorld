@@ -29,7 +29,7 @@ public sealed record ScanResult(IReadOnlyList<TextViolation> Violations, IReadOn
 /// <summary>
 /// Finds player-facing text in Godot scenes and C# code that bypasses the translation keys (KR4,
 /// ADR-0007). Exceptions by design: ids, log output and prompts never reach a UI text property, so
-/// they are not inspected. Text that is built at runtime (for example from a key plus a vocabulary
+/// they are not inspected; strings without letters (symbols, digits) are language-neutral. Text that is built at runtime (for example from a key plus a vocabulary
 /// id) cannot be checked statically and is the reviewer's job.
 /// </summary>
 public static partial class GameTextScanner
@@ -63,8 +63,9 @@ public static partial class GameTextScanner
 
             var value = UnescapeScene(m.Groups["value"].Value);
             var line = content.AsSpan(0, m.Index).Count('\n') + 1;
-            if (value.Length == 0)
+            if (!value.Any(char.IsLetter))
             {
+                // Symbols and digits only (e.g. "?" over a head, "×" on a close button) are language-neutral.
                 continue;
             }
 
@@ -119,7 +120,7 @@ public static partial class GameTextScanner
             {
                 switch (literal)
                 {
-                    case LiteralExpressionSyntax { RawKind: (int)SyntaxKind.StringLiteralExpression } s when s.Token.ValueText.Length > 0 && !IsKey(s.Token.ValueText):
+                    case LiteralExpressionSyntax { RawKind: (int)SyntaxKind.StringLiteralExpression } s when s.Token.ValueText.Any(char.IsLetter) && !IsKey(s.Token.ValueText):
                         violations.Add(new TextViolation(file, Line(s), s.Token.ValueText));
                         break;
                     case InterpolatedStringExpressionSyntax i:

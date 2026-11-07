@@ -48,6 +48,7 @@ public sealed class GameTextTests
     [Theory]
     [InlineData("""text = "ui.main.title" """)]
     [InlineData("""text = "" """)]
+    [InlineData("""text = "?" """)]
     [InlineData("""name = "Hello" """)]
     [InlineData("""script = "res://scripts/Main.cs" """)]
     public void SceneKeyOrNonTextPropertyPasses(string line)
@@ -85,6 +86,9 @@ public sealed class GameTextTests
     [InlineData("""label.Text = $"{day}";""")]
     [InlineData("""label.Text = name;""")]
     [InlineData("""label.Text = "";""")]
+    [InlineData("""mark.Text = "?";""")]
+    [InlineData("""close.Text = "×";""")]
+    [InlineData("""label.Text = "42";""")]
     [InlineData("""GD.Print("GlassWorld started");""")]
     [InlineData("""var id = "move_to";""")]
     public void CodeKeyOrNonUiTextPasses(string statement)
