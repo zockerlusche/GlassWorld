@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/common.schema.json",
+  "title": "Common",
+  "description": "Shared definitions for all GlassWorld contracts (v0).",
+  "$defs": {
+    "ContractVersion": {
+      "description": "Contract version. Incompatible changes require a new major version and an ADR.",
+      "type": "string",
+      "const": "0.1"
+    },
+    "RequestId": {
+      "description": "Unique id of a request, set by the core. Lowercase UUID.",
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "Tick": {
+      "description": "Simulation tick the message refers to.",
+      "type": "integer",
+      "minimum": 0,
+      "format": "int64"
+    },
+    "VocabId": {
+      "description": "Language-neutral vocabulary id (English snake_case, dot-separated namespaces).",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$",
+      "maxLength": 64
+    },
+    "EntityId": {
+      "description": "Id of an object or inhabitant instance in the world, assigned by the core.",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]*$",
+      "maxLength": 64
+    },
+    "OptionId": {
+      "description": "Id of an offered option, unique within one request.",
+      "type": "string",
+      "pattern": "^o[0-9]{1,2}$"
+    },
+    "Locale": {
+      "description": "Player-facing language (B2470).",
+      "type": "string",
+      "enum": [
+        "de",
+        "en"
+      ]
+    },
+    "UnitValue": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    }
+  }
+}

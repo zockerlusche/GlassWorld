@@ -1,0 +1,37 @@
+{
+  "contract_version": "0.1",
+  "request_id": "3f2b8c1e-5d4a-4b6f-9e21-0c7d8a9b1f00",
+  "tick": 1200,
+  "seed": 1,
+  "deadline_ms": 8000,
+  "display_locale": "de",
+  "inhabitant": {
+    "id": "inh-0001",
+    "needs": [
+      {
+        "id": "Hunger",
+        "value": 0.2
+      }
+    ],
+    "mood": [],
+    "will_to_live": 0.8,
+    "traits": []
+  },
+  "environment": {
+    "time_of_day": "day",
+    "temperature_c": 20.0,
+    "weather": [
+      "clear"
+    ]
+  },
+  "perception": {
+    "objects": []
+  },
+  "options": [
+    {
+      "option_id": "o1",
+      "action": "essen",
+      "target": null
+    }
+  ]
+}

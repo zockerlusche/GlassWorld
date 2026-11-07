@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/service-error.schema.json",
+  "title": "ServiceError",
+  "description": "AI service -> core: body of every non-2xx response. On any error the core falls back to its utility AI.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "request_id", "tick", "code", "message", "retryable"],
+  "properties": {
+    "contract_version": { "$ref": "common.schema.json#/$defs/ContractVersion" },
+    "request_id": {
+      "description": "Null only if the request could not be parsed.",
+      "anyOf": [
+        { "$ref": "common.schema.json#/$defs/RequestId" },
+        { "type": "null" }
+      ]
+    },
+    "tick": {
+      "description": "Null only if the request could not be parsed.",
+      "anyOf": [
+        { "$ref": "common.schema.json#/$defs/Tick" },
+        { "type": "null" }
+      ]
+    },
+    "code": {
+      "description": "HTTP mapping: timeout=504, model_unavailable=503, overloaded=503, invalid_model_output=502, bad_request=422, internal=500.",
+      "type": "string",
+      "enum": ["timeout", "model_unavailable", "overloaded", "invalid_model_output", "bad_request", "internal"]
+    },
+    "message": { "type": "string", "maxLength": 500 },
+    "retryable": { "type": "boolean" }
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "contract_version": "0.1",
+  "kind": "mood",
+  "entries": [
+    {
+      "id": "joy",
+      "description": "Feeling happy."
+    },
+    {
+      "id": "anger",
+      "description": "Feeling angry."
+    },
+    {
+      "id": "sadness",
+      "description": "Feeling sad."
+    },
+    {
+      "id": "fear",
+      "description": "Feeling afraid."
+    },
+    {
+      "id": "love",
+      "description": "Feeling love or deep affection."
+    },
+    {
+      "id": "pride",
+      "description": "Feeling proud of oneself."
+    },
+    {
+      "id": "shame",
+      "description": "Feeling ashamed."
+    },
+    {
+      "id": "jealousy",
+      "description": "Feeling jealous."
+    },
+    {
+      "id": "frustration",
+      "description": "Feeling frustrated after failing."
+    },
+    {
+      "id": "boredom",
+      "description": "Feeling bored."
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+[project]
+name = "glassworld-contracts"
+version = "0.1.0"
+description = "Pydantic models generated from the GlassWorld JSON Schemas (contracts/schemas). Do not edit by hand."
+requires-python = ">=3.12,<3.13"
+license = "MIT"
+dependencies = ["pydantic>=2.12,<3"]
+
+[build-system]
+requires = ["hatchling==1.27.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/glassworld_contracts"]

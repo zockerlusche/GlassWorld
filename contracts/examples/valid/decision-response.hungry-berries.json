@@ -1,0 +1,18 @@
+{
+  "contract_version": "0.1",
+  "request_id": "3f2b8c1e-5d4a-4b6f-9e21-0c7d8a9b1f00",
+  "tick": 1200,
+  "option_id": "o1",
+  "expression": "ponder",
+  "rationale": "Very hungry, unknown berries are close; checking them first is safer than eating blindly.",
+  "thought": {
+    "locale": "de",
+    "text": "Diese roten Beeren kenne ich nicht. Erst mal genauer ansehen."
+  },
+  "meta": {
+    "source": "mock",
+    "model": "mock",
+    "latency_ms": 3,
+    "attempts": 1
+  }
+}

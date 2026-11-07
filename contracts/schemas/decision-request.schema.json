@@ -1,0 +1,249 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/decision-request.schema.json",
+  "title": "DecisionRequest",
+  "description": "Core -> AI service: one inhabitant asks the decider which of the offered options to take.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "request_id",
+    "tick",
+    "seed",
+    "deadline_ms",
+    "display_locale",
+    "inhabitant",
+    "environment",
+    "perception",
+    "options"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "request_id": {
+      "$ref": "common.schema.json#/$defs/RequestId"
+    },
+    "tick": {
+      "$ref": "common.schema.json#/$defs/Tick"
+    },
+    "seed": {
+      "description": "Sampling seed derived by the core from world seed and tick (determinism).",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 2147483647
+    },
+    "deadline_ms": {
+      "description": "Wall-clock budget for the AI service. When exceeded the service returns ServiceError 'timeout' and never makes a substitute decision; the core decides at a fixed tick and logs the outcome for replay.",
+      "type": "integer",
+      "minimum": 100,
+      "maximum": 60000
+    },
+    "display_locale": {
+      "$ref": "common.schema.json#/$defs/Locale"
+    },
+    "inhabitant": {
+      "$ref": "#/$defs/InhabitantState"
+    },
+    "environment": {
+      "$ref": "#/$defs/Environment"
+    },
+    "perception": {
+      "$ref": "#/$defs/Perception"
+    },
+    "options": {
+      "description": "Actions the core currently allows. The decider must pick exactly one of them.",
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "items": {
+        "$ref": "#/$defs/Option"
+      }
+    }
+  },
+  "$defs": {
+    "InhabitantState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "needs",
+        "mood",
+        "traits",
+        "will_to_live"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/EntityId"
+        },
+        "needs": {
+          "description": "Need satisfaction: 0 = fully unsatisfied (urgent, e.g. hunger 0.1 = very hungry), 1 = fully satisfied. Sorted by id by the core.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LevelEntry"
+          }
+        },
+        "mood": {
+          "description": "Current emotions with intensity 0 = absent, 1 = very strong. Only emotions above zero are listed. Sorted by id by the core.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LevelEntry"
+          }
+        },
+        "traits": {
+          "description": "Long-term character traits, 0 = very low, 1 = very high. Sorted by id by the core.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LevelEntry"
+          }
+        },
+        "will_to_live": {
+          "description": "Main wellbeing value, normalised to 0..1 (shown to the player as 0-100).",
+          "$ref": "common.schema.json#/$defs/UnitValue"
+        }
+      }
+    },
+    "KnownProperty": {
+      "description": "What the inhabitant believes about an object property (belief, not world truth).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "property",
+        "value",
+        "confidence"
+      ],
+      "properties": {
+        "property": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "value": {
+          "type": "boolean"
+        },
+        "confidence": {
+          "$ref": "common.schema.json#/$defs/UnitValue"
+        }
+      }
+    },
+    "PerceivedObject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "distance_m",
+        "known_properties"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/EntityId"
+        },
+        "type": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "distance_m": {
+          "type": "number",
+          "minimum": 0
+        },
+        "known_properties": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/KnownProperty"
+          }
+        }
+      }
+    },
+    "Perception": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "objects"
+      ],
+      "properties": {
+        "objects": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "$ref": "#/$defs/PerceivedObject"
+          }
+        }
+      }
+    },
+    "Option": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "option_id",
+        "action",
+        "target"
+      ],
+      "properties": {
+        "option_id": {
+          "$ref": "common.schema.json#/$defs/OptionId"
+        },
+        "action": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "target": {
+          "description": "Target instance, or null for actions without target.",
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/EntityId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "LevelEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "value"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "value": {
+          "$ref": "common.schema.json#/$defs/UnitValue"
+        }
+      },
+      "description": "A named level 0..1 (need satisfaction, emotion intensity or trait strength)."
+    },
+    "Environment": {
+      "description": "What the inhabitant can sense right now. Deliberately no season name: inhabitants must learn that seasons exist and return (concept). A season concept reaches the model only through the inhabitant's own knowledge.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "time_of_day",
+        "temperature_c",
+        "weather"
+      ],
+      "properties": {
+        "time_of_day": {
+          "description": "Vocabulary kind time_of_day (dawn, day, dusk, night).",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "temperature_c": {
+          "description": "Felt temperature of the inhabitant in degrees Celsius: air temperature plus wind, wetness, sun or shade, reduced by protection (clothing, hut, cave, fire, body warmth of others). The need warmth is derived from it by the core. Rounded to 1 decimal.",
+          "type": "number",
+          "minimum": -60,
+          "maximum": 60
+        },
+        "weather": {
+          "description": "All current weather conditions (vocabulary kind weather), e.g. rain and storm together. Sorted by id by the core.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          }
+        }
+      }
+    }
+  }
+}

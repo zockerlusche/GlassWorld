@@ -1,0 +1,17 @@
+{
+  "contract_version": "0.1",
+  "kind": "action",
+  "entries": [
+    { "id": "idle", "description": "Stay where you are and rest briefly.", "target": "none" },
+    { "id": "wander", "description": "Walk around without a fixed goal and look at the surroundings.", "target": "none" },
+    { "id": "move_to", "description": "Walk to a specific object.", "target": "object" },
+    { "id": "inspect", "description": "Look closely at an object to learn about its properties.", "target": "object" },
+    { "id": "pick_up", "description": "Pick up a small object and carry it.", "target": "object" },
+    { "id": "drop", "description": "Put down a carried object.", "target": "object" },
+    { "id": "eat", "description": "Eat an object.", "target": "object" },
+    { "id": "drink", "description": "Drink from an object or water source.", "target": "object" },
+    { "id": "sleep", "description": "Lie down and sleep to restore energy.", "target": "none" },
+    { "id": "approach", "description": "Walk towards another inhabitant.", "target": "inhabitant" },
+    { "id": "talk_to", "description": "Start a conversation with another inhabitant.", "target": "inhabitant" }
+  ]
+}

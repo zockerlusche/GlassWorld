@@ -1,0 +1,8 @@
+{
+  "contract_version": "0.1",
+  "request_id": null,
+  "tick": null,
+  "code": "bad_request",
+  "message": "Request body is not valid JSON.",
+  "retryable": false
+}
