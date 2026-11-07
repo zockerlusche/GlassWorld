@@ -148,9 +148,16 @@
         "table_min_height",
         "card_bar_width",
         "mark_height_m",
-        "mark_font_px"
+        "mark_font_px",
+        "settings_apply_ms"
       ],
       "properties": {
+        "settings_apply_ms": {
+          "description": "Pause after the last change of a size slider (keyboard, controller) before it takes effect.",
+          "type": "integer",
+          "minimum": 50,
+          "maximum": 3000
+        },
         "table_min_height": {
           "description": "Smallest height of a table in a side panel.",
           "type": "integer",

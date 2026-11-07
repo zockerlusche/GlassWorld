@@ -44,6 +44,7 @@ public partial class Main : Node3D
     private WorldMeta? _meta;
     private GwWindow? _pause;
     private double _speedBeforePause = 1;
+    private bool _settingsDirty;
 
     /// <inheritdoc/>
     public override void _Ready()
@@ -154,11 +155,15 @@ public partial class Main : Node3D
         _menu.NewWorldRequested += choice =>
         {
             var meta = _library.Create(choice, DateTimeOffset.UtcNow);
-            Enter(presenter => presenter.CreateWorld(_contentDirectory, choice.Seed, _library.SavePath(meta.Id)), meta);
+            Enter(presenter => presenter.CreateWorld(_contentDirectory, choice.Seed, _library.SavePath(meta.Id)), meta, created: true);
         };
         _menu.LoadRequested += meta => Enter(presenter => presenter.Load(_contentDirectory, _library.SavePath(meta.Id)), meta);
         _menu.SettingsRequested += () => OpenSettings(_menu.ShowWindow);
-        _menu.QuitRequested += () => GetTree().Quit(0);
+        _menu.QuitRequested += () =>
+        {
+            SaveSettings();
+            GetTree().Quit(0);
+        };
     }
 
     private MenuData LoadMenuData(WorldLibrary library)
@@ -172,7 +177,7 @@ public partial class Main : Node3D
     }
 
     /// <summary>Leaves the menu for a world; if the world cannot be built, the menu stays with a message.</summary>
-    private void Enter(Action<WorldPresenter> begin, WorldMeta meta)
+    private void Enter(Action<WorldPresenter> begin, WorldMeta meta, bool created = false)
     {
         try
         {
@@ -184,6 +189,12 @@ public partial class Main : Node3D
         {
             GD.PushWarning($"LOAD_FAILED {meta.Id} {e.GetType().Name}: {e.Message}");
             CloseWorld();
+            if (created)
+            {
+                // A new world that failed before its first save leaves no empty entry behind.
+                _library?.Discard(meta.Id);
+            }
+
             if (_menu is not null && _style is not null)
             {
                 var message = new GwWindow();
@@ -244,17 +255,19 @@ public partial class Main : Node3D
 
         _speedBeforePause = _world.Speed;
         _world.Speed = 0;
+        _screen.SetTimeControlsEnabled(false);
         _pause = PauseMenu.Create(_style, new PauseActions(
             Resume: () =>
             {
                 _pause = null;
+                _screen?.SetTimeControlsEnabled(true);
                 if (_world is not null)
                 {
                     _world.Speed = _speedBeforePause;
                 }
             },
             Save: () => TrySave(),
-            Settings: () => OpenSettings(_screen.ShowWindow),
+            Settings: () => OpenSettings(window => _screen?.ShowWindow(window)),
             MainMenu: () =>
             {
                 _pause = null;
@@ -265,7 +278,7 @@ public partial class Main : Node3D
                 _pause = null;
                 SaveAndQuit();
             }));
-        _screen.ShowWindow(_pause);
+        _screen.ShowWindow(_pause, modal: true);
     }
 
     private void OpenSettings(Action<GwWindow> show)
@@ -279,8 +292,9 @@ public partial class Main : Node3D
         window.Build(_settings, _limits, _mix, _style);
         window.Changed += settings =>
         {
+            // Applied at once (also audible for volumes); written when the window closes or the game quits.
             _settings = settings.Clamp(_limits);
-            SettingsStore.Save(_settingsPath, _settings);
+            _settingsDirty = true;
             ApplySettings(_settings);
 
             // UI and text size change the logical screen; fit the window again after the change.
@@ -292,7 +306,16 @@ public partial class Main : Node3D
                 }
             }).CallDeferred();
         };
+        window.Closed += SaveSettings;
         show(window);
+    }
+
+    private void SaveSettings()
+    {
+        if (_settingsDirty && _settingsPath.Length > 0)
+        {
+            _settingsDirty = !SettingsStore.Save(_settingsPath, _settings);
+        }
     }
 
     /// <summary>Saves the running world; on failure a calm hint, and false (B6 R3).</summary>
@@ -314,6 +337,7 @@ public partial class Main : Node3D
     /// <summary>Quitting saves on every path (menu, window close, Alt+F4); a failed save keeps the game open.</summary>
     private void SaveAndQuit()
     {
+        SaveSettings();
         if (TrySave())
         {
             GetTree().Quit(0);

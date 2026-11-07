@@ -62,6 +62,20 @@ public sealed class WorldLibraryTests : IDisposable
     }
 
     [Fact]
+    public void DiscardRemovesOnlyFoldersWithoutSaveGame()
+    {
+        var library = new WorldLibrary(_root);
+        var failed = library.Create(new NewWorldChoice("Fehlstart", 1, "small", "temperate", 50), DateTimeOffset.UnixEpoch);
+        var saved = library.Create(new NewWorldChoice("Gespeichert", 2, "small", "temperate", 50), DateTimeOffset.UnixEpoch);
+        File.WriteAllText(library.SavePath(saved.Id), "x");
+
+        Assert.True(library.Discard(failed.Id));
+        Assert.False(Directory.Exists(Path.Combine(_root, failed.Id)));
+        Assert.False(library.Discard(saved.Id));
+        Assert.True(File.Exists(library.SavePath(saved.Id)));
+    }
+
+    [Fact]
     public void WriteUpdatesDayAndTime()
     {
         var library = new WorldLibrary(_root);

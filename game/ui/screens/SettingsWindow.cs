@@ -15,6 +15,7 @@ namespace GlassWorld.Game.Ui.Screens;
 public partial class SettingsWindow : GwWindow
 {
     private PlayerSettings _settings = new();
+    private float _labelWidth;
 
     /// <summary>Raised after every change with the new, already clamped settings.</summary>
     public event Action<PlayerSettings>? Changed;
@@ -27,6 +28,7 @@ public partial class SettingsWindow : GwWindow
         ArgumentNullException.ThrowIfNull(mix);
         ArgumentNullException.ThrowIfNull(style);
         Setup("ui.settings.title", style);
+        _labelWidth = style.Tokens.Window.CardBarWidth;
         _settings = settings;
 
         Section("ui.settings.section.language");
@@ -45,8 +47,8 @@ public partial class SettingsWindow : GwWindow
         Row("ui.settings.language", language);
 
         Section("ui.settings.section.display");
-        Row("ui.settings.ui_scale", SizeSlider(limits.Tokens.UiScale, settings.UiScale, v => _settings with { UiScale = v }, style.Tokens.Window.CardBarWidth));
-        Row("ui.settings.text_scale", SizeSlider(limits.Tokens.TextScale, settings.TextScale, v => _settings with { TextScale = v }, style.Tokens.Window.CardBarWidth));
+        Row("ui.settings.ui_scale", SizeSlider(limits.Tokens.UiScale, settings.UiScale, v => _settings with { UiScale = v }, style.Tokens.Window.CardBarWidth, style.Tokens.Window.SettingsApplyMs));
+        Row("ui.settings.text_scale", SizeSlider(limits.Tokens.TextScale, settings.TextScale, v => _settings with { TextScale = v }, style.Tokens.Window.CardBarWidth, style.Tokens.Window.SettingsApplyMs));
         Row("ui.settings.high_contrast", Toggle(settings.HighContrast, v => _settings with { HighContrast = v }));
         Row("ui.settings.reduce_motion", Toggle(settings.ReduceMotion, v => _settings with { ReduceMotion = v }));
         Row("ui.settings.hide_ui", Toggle(settings.HideUi, v => _settings with { HideUi = v }));
@@ -91,23 +93,38 @@ public partial class SettingsWindow : GwWindow
         Changed?.Invoke(settings);
     }
 
-    private HBoxContainer SizeSlider(UiScaleRange range, double value, Func<double, PlayerSettings> change, float minWidth)
+    private HBoxContainer SizeSlider(UiScaleRange range, double value, Func<double, PlayerSettings> change, float minWidth, int applyMs)
     {
-        // The value label is a number, not a key; the slider applies on release so the window does not
-        // jump under the mouse while the size changes.
+        // The value label is a number, not a key. With the mouse the size applies on release, so the
+        // window does not jump under the pointer; with keyboard or controller (no drag) it applies after
+        // a short pause (token settings_apply_ms; GW1 review #50 W1: before, it never applied).
         var box = new HBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
         var slider = new HSlider { MinValue = range.Min, MaxValue = range.Max, Step = range.Step, Value = value, SizeFlagsHorizontal = SizeFlags.ExpandFill, CustomMinimumSize = new Vector2(minWidth, 0) };
         var label = new Label { AutoTranslateMode = AutoTranslateModeEnum.Disabled, Text = Percent(value) };
-        slider.ValueChanged += v => label.Text = Percent(v);
+        var pause = new Godot.Timer { OneShot = true, WaitTime = applyMs / 1000.0 };
+        var dragging = false;
+        slider.DragStarted += () => dragging = true;
+        slider.ValueChanged += v =>
+        {
+            label.Text = Percent(v);
+            if (!dragging)
+            {
+                pause.Start();
+            }
+        };
         slider.DragEnded += changed =>
         {
+            dragging = false;
             if (changed)
             {
+                pause.Stop();
                 Apply(change(slider.Value));
             }
         };
+        pause.Timeout += () => Apply(change(slider.Value));
         box.AddChild(slider);
         box.AddChild(label);
+        box.AddChild(pause);
         return box;
     }
 
@@ -122,8 +139,16 @@ public partial class SettingsWindow : GwWindow
 
     private void Row(string key, Control control)
     {
+        // Long labels wrap (large text in 1920x1080 at UI 200 %); the minimum width keeps them from
+        // collapsing to one character per line.
         var row = new HBoxContainer();
-        row.AddChild(new Label { Text = key, SizeFlagsHorizontal = SizeFlags.ExpandFill });
+        row.AddChild(new Label
+        {
+            Text = key,
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            CustomMinimumSize = new Vector2(_labelWidth, 0),
+        });
         control.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         row.AddChild(control);
         Content.AddChild(row);

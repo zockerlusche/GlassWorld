@@ -23,6 +23,12 @@ class UiWindowTokens(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
+    settings_apply_ms: int = Field(
+        ...,
+        description='Pause after the last change of a size slider (keyboard, controller) before it takes effect.',
+        ge=50,
+        le=3000,
+    )
     table_min_height: int = Field(
         ..., description='Smallest height of a table in a side panel.', ge=80, le=2000
     )

@@ -179,6 +179,15 @@ public partial class GameScreen : CanvasLayer
         OpenCard(inhabitantId);
     }
 
+    /// <summary>Time buttons on or off (off while the pause menu is open, GW1 review #50 K3).</summary>
+    public void SetTimeControlsEnabled(bool enabled)
+    {
+        foreach (var (button, _) in _timeButtons)
+        {
+            button.Disabled = !enabled;
+        }
+    }
+
     /// <summary>Esc without an open window: the player wants the pause menu (B6 R5).</summary>
     public event Action? PauseRequested;
 
@@ -197,10 +206,21 @@ public partial class GameScreen : CanvasLayer
         Layout();
     }
 
-    /// <summary>Shows a window over the game (pause menu, settings) and fits it to the screen.</summary>
-    public void ShowWindow(GwWindow window)
+    /// <summary>
+    /// Shows a window over the game (pause menu, settings) and fits it to the screen. A modal window
+    /// blocks clicks on everything behind it until it closes.
+    /// </summary>
+    public void ShowWindow(GwWindow window, bool modal = false)
     {
         ArgumentNullException.ThrowIfNull(window);
+        if (modal)
+        {
+            var blocker = new Control { MouseFilter = Control.MouseFilterEnum.Stop };
+            blocker.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+            AddChild(blocker);
+            window.Closed += blocker.QueueFree;
+        }
+
         AddChild(window);
         window.FitInto(GetViewport().GetVisibleRect().Size);
     }

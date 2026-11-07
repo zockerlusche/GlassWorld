@@ -64,6 +64,29 @@ public sealed class SaveGameTests : IDisposable
     }
 
     [Fact]
+    public void FilesThatAreNoSaveGameStayUntouched()
+    {
+        // GW1 review #50 K2: loading must not migrate an empty or foreign file.
+        var empty = Path.Combine(_directory, "empty.sqlite");
+        File.WriteAllBytes(empty, []);
+        Assert.Throws<InvalidDataException>(() => SaveGameStore.Load(empty));
+        Assert.Equal(0, new FileInfo(empty).Length);
+
+        var foreign = Path.Combine(_directory, "foreign.sqlite");
+        using (var c = new SqliteConnection($"Data Source={foreign};Pooling=False"))
+        {
+            c.Open();
+            using var cmd = c.CreateCommand();
+            cmd.CommandText = "CREATE TABLE notes(text TEXT);";
+            cmd.ExecuteNonQuery();
+        }
+
+        var before = File.ReadAllBytes(foreign);
+        Assert.Throws<InvalidDataException>(() => SaveGameStore.Load(foreign));
+        Assert.Equal(before, File.ReadAllBytes(foreign));
+    }
+
+    [Fact]
     public void AutosaveAfterEveryGameDay()
     {
         var host = SimulationHost.CreatePlaceholderWorld(ContentDirectory, 5, new MockDecisionPort(), "de");

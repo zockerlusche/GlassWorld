@@ -17,7 +17,7 @@ public static class SettingsStore
         {
             return PlayerSettings.Parse(File.Exists(path) ? File.ReadAllText(path, Encoding.UTF8) : null, limits);
         }
-        catch (IOException e)
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
             GD.PushWarning($"settings not read ({e.Message}); defaults used");
             return PlayerSettings.Parse(null, limits);

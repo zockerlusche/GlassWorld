@@ -110,26 +110,41 @@ public partial class MainMenu : CanvasLayer
     /// <summary>Opens the new-world form.</summary>
     public void OpenNewWorld()
     {
-        if (_data is null || _style is null)
+        if (_data is not null && _style is not null)
         {
-            return;
+            ShowWindow(NewWorldWindow(_data, _style, choice => NewWorldRequested?.Invoke(choice)));
         }
+    }
 
+    /// <summary>Opens the list of saved worlds.</summary>
+    public void OpenWorlds()
+    {
+        if (_data is not null && _style is not null)
+        {
+            ShowWindow(WorldsWindow(_data, _style, world => LoadRequested?.Invoke(world)));
+        }
+    }
+
+    /// <summary>Builds the new-world form (also for the layout check in all reference sizes).</summary>
+    public static GwWindow NewWorldWindow(MenuData data, UiStyle style, Action<NewWorldChoice> create)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+        ArgumentNullException.ThrowIfNull(style);
         var window = new GwWindow();
-        window.Setup("ui.new_world.title", _style);
-        var name = new LineEdit { MaxLength = _data.Options.NameMaxLength, PlaceholderText = "ui.new_world.name_hint" };
+        window.Setup("ui.new_world.title", style);
+        var name = new LineEdit { MaxLength = data.Options.NameMaxLength, PlaceholderText = "ui.new_world.name_hint" };
         var seed = new LineEdit { PlaceholderText = "ui.new_world.seed_hint" };
-        var size = Options(_data.Options.Sizes.Select(s => s.Id), "ui.new_world.size.", _data.Options.DefaultSize);
-        var climate = Options(_data.Options.Climates.Select(c => c.Id), "ui.new_world.climate.", _data.Options.DefaultClimate);
+        var size = Options(data.Options.Sizes.Select(s => s.Id), "ui.new_world.size.", data.Options.DefaultSize);
+        var climate = Options(data.Options.Climates.Select(c => c.Id), "ui.new_world.climate.", data.Options.DefaultClimate);
         var favor = new OptionButton();
-        foreach (var option in _data.Favor.StartOptions)
+        foreach (var option in data.Favor.StartOptions)
         {
             favor.AddItem(option.ToString(CultureInfo.InvariantCulture));
             favor.SetItemMetadata(favor.ItemCount - 1, option);
         }
 
         // Preselection: the middle option, until favor.json names a default.
-        favor.Selected = _data.Favor.StartOptions.Count / 2;
+        favor.Selected = data.Favor.StartOptions.Count / 2;
         var problem = new Label { Visible = false, AutowrapMode = TextServer.AutowrapMode.WordSmart };
         Row(window, "ui.new_world.name", name);
         Row(window, "ui.new_world.seed", seed);
@@ -140,14 +155,14 @@ public partial class MainMenu : CanvasLayer
         window.AddAction("ui.common.cancel").Pressed += window.Close;
         window.AddAction("ui.new_world.create").Pressed += () =>
         {
-            var nameProblem = NewWorldModel.NameProblem(name.Text, _data.Options, _data.Guard);
+            var nameProblem = NewWorldModel.NameProblem(name.Text, data.Options, data.Guard);
             var (seedOk, seedValue) = NewWorldModel.ParseSeed(seed.Text);
             var key = nameProblem ?? (seedOk ? null : "ui.new_world.problem.seed");
             if (key is not null)
             {
                 problem.Text = key;
                 problem.Visible = true;
-                window.FitInto(GetViewport().GetVisibleRect().Size);
+                window.FitInto(window.GetViewport().GetVisibleRect().Size);
                 return;
             }
 
@@ -158,24 +173,21 @@ public partial class MainMenu : CanvasLayer
                 climate.GetItemMetadata(climate.Selected).AsString(),
                 favor.GetItemMetadata(favor.Selected).AsInt32());
             window.Close();
-            NewWorldRequested?.Invoke(choice);
+            create(choice);
         };
-        ShowWindow(window);
         name.CallDeferred(Control.MethodName.GrabFocus);
+        return window;
     }
 
-    /// <summary>Opens the list of saved worlds.</summary>
-    public void OpenWorlds()
+    /// <summary>Builds the list of saved worlds (also for the layout check).</summary>
+    public static GwWindow WorldsWindow(MenuData data, UiStyle style, Action<WorldMeta> load)
     {
-        if (_data is null || _style is null)
-        {
-            return;
-        }
-
-        var worlds = _data.Worlds.List();
+        ArgumentNullException.ThrowIfNull(data);
+        ArgumentNullException.ThrowIfNull(style);
+        var worlds = data.Worlds.List();
         var window = new GwWindow();
-        window.Setup("ui.worlds.title", _style);
-        var table = new GwTable { SizeFlagsVertical = Control.SizeFlags.ExpandFill, CustomMinimumSize = new Vector2(0, _style.Tokens.Window.TableMinHeight) };
+        window.Setup("ui.worlds.title", style);
+        var table = new GwTable { SizeFlagsVertical = Control.SizeFlags.ExpandFill, CustomMinimumSize = new Vector2(0, style.Tokens.Window.TableMinHeight) };
         table.Setup(
             [new GwColumn("ui.worlds.column.name", false), new GwColumn("ui.worlds.column.day", true), new GwColumn("ui.worlds.column.seed", true)],
             "ui.worlds.empty");
@@ -193,10 +205,10 @@ public partial class MainMenu : CanvasLayer
             if (world is not null)
             {
                 window.Close();
-                LoadRequested?.Invoke(world);
+                load(world);
             }
         };
-        ShowWindow(window);
+        return window;
     }
 
     private Button Add(string key, Action pressed)

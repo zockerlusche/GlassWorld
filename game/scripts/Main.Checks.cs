@@ -1,6 +1,7 @@
 using GlassWorld.Game.Audio;
 using GlassWorld.Game.Localization;
 using GlassWorld.Game.Ui;
+using GlassWorld.Game.Ui.Components;
 using GlassWorld.Game.Ui.Screens;
 using GlassWorld.Presentation.Ui;
 using GlassWorld.Presentation.World;
@@ -154,6 +155,29 @@ public partial class Main
         return problems;
     }
 
+    /// <summary>The menu, settings and pause windows for one style (layout check in all reference sizes).</summary>
+    private Func<UiStyle, IReadOnlyList<(string Name, GwWindow Window)>>? MenuWindows()
+    {
+        if (_limits is null || _mix is null)
+        {
+            return null;
+        }
+
+        var data = LoadMenuData(new WorldLibrary(System.IO.Path.Combine(ProjectSettings.GlobalizePath("user://smoke"), "worlds")));
+        return style =>
+        {
+            var settings = new SettingsWindow();
+            settings.Build(_settings, _limits, _mix, style);
+            return
+            [
+                ("new world", MainMenu.NewWorldWindow(data, style, _ => { })),
+                ("worlds", MainMenu.WorldsWindow(data, style, _ => { })),
+                ("settings", settings),
+                ("pause", PauseMenu.Create(style, new PauseActions(() => { }, () => { }, () => { }, () => { }, () => { }))),
+            ];
+        };
+    }
+
     /// <summary>Visible texts below <paramref name="root"/> that are keys without a translation.</summary>
     private static IEnumerable<string> RawKeys(Node root)
     {
@@ -229,7 +253,7 @@ public partial class Main
 
             var layer = new CanvasLayer();
             AddChild(layer);
-            var problems = await UiLayoutCheck.RunAsync(layer, style, ScreenModel.TimeChoices(_world!.Host!.World.Calendar.Settings));
+            var problems = await UiLayoutCheck.RunAsync(layer, style, ScreenModel.TimeChoices(_world!.Host!.World.Calendar.Settings), MenuWindows());
             var screen = _screen is null ? "game screen missing" : await _screen.SelfCheckAsync();
             if (screen.Length > 0)
             {

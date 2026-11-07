@@ -56,6 +56,24 @@ public sealed class WorldLibrary(string root)
         return meta;
     }
 
+    /// <summary>
+    /// Removes a world folder that never got a save game (world creation failed right after
+    /// <see cref="Create"/>). A folder with a save game is never touched.
+    /// </summary>
+    /// <returns>True if the folder was removed.</returns>
+    public bool Discard(string id)
+    {
+        var folder = Path.Combine(Root, id);
+        if (!Directory.Exists(folder) || File.Exists(SavePath(id)) || Directory.EnumerateFileSystemEntries(folder).Any(e => Path.GetFileName(e) != MetaFile))
+        {
+            return false;
+        }
+
+        File.Delete(Path.Combine(folder, MetaFile));
+        Directory.Delete(folder);
+        return true;
+    }
+
     /// <summary>Path of the save game of a world.</summary>
     public string SavePath(string id) => Path.Combine(Root, id, SaveFile);
 

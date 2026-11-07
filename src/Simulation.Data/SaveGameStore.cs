@@ -65,22 +65,60 @@ public static class SaveGameStore
             throw new FileNotFoundException("Save game not found.", path);
         }
 
-        using var connection = Open(path);
-        Migrate(connection);
-        return Read(connection);
+        // Look first, read-only: a file that is no save game (empty, foreign SQLite, version 0) must stay
+        // untouched (GW1 review #50 K2); migrations of older files run on a copy.
+        int version;
+        using (var probe = Open(path, readOnly: true))
+        {
+            version = UserVersion(probe);
+        }
+
+        if (version == 0)
+        {
+            throw new InvalidDataException("The file is not a GlassWorld save game (schema version 0).");
+        }
+
+        if (version > SchemaVersion)
+        {
+            throw new InvalidDataException($"Save game has schema version {version}; this build supports up to {SchemaVersion}.");
+        }
+
+        if (version == SchemaVersion)
+        {
+            using var connection = Open(path, readOnly: true);
+            return Read(connection);
+        }
+
+        var copy = path + ".load.tmp";
+        File.Copy(path, copy, overwrite: true);
+        try
+        {
+            using var connection = Open(copy);
+            Migrate(connection);
+            return Read(connection);
+        }
+        finally
+        {
+            File.Delete(copy);
+        }
     }
 
     /// <summary>Schema version of a file (0 = empty).</summary>
     public static int VersionOf(string path)
     {
-        using var connection = Open(path);
+        using var connection = Open(path, readOnly: true);
         return UserVersion(connection);
     }
 
-    private static SqliteConnection Open(string path)
+    private static SqliteConnection Open(string path, bool readOnly = false)
     {
         // Pooling off: the pool would keep the file open and the swap could fail on Windows (spike D337).
-        var connection = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = path, Pooling = false }.ToString());
+        var connection = new SqliteConnection(new SqliteConnectionStringBuilder
+        {
+            DataSource = path,
+            Pooling = false,
+            Mode = readOnly ? SqliteOpenMode.ReadOnly : SqliteOpenMode.ReadWriteCreate,
+        }.ToString());
         connection.Open();
         return connection;
     }
