@@ -98,7 +98,18 @@ public partial class Main : Node3D
         if (what == NotificationWMCloseRequest)
         {
             // Save, then quit; the presenter stops the AI service in _ExitTree (ADR-0006).
-            _world?.Save();
+            // If saving fails the game stays open with a calm hint (B6 R3), never closes silently.
+            try
+            {
+                _world?.Save();
+            }
+            catch (Exception e) when (e is not OutOfMemoryException)
+            {
+                GD.PushWarning($"SAVE_FAILED {e.GetType().Name}: {e.Message}");
+                _screen?.ShowHint(new Presentation.Ui.ToastMessage("msg.save.failed", new Dictionary<string, string>(), null));
+                return;
+            }
+
             GetTree().Quit(0);
         }
     }

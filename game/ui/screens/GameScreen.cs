@@ -170,6 +170,9 @@ public partial class GameScreen : CanvasLayer
         OpenCard(inhabitantId);
     }
 
+    /// <summary>Shows a calm hint (e.g. saving failed).</summary>
+    public void ShowHint(ToastMessage message) => _board?.Push(message, fastForward: false);
+
     /// <summary>For screenshots: opens the inhabitants panel and the card of the first inhabitant.</summary>
     public void ShowForShots()
     {

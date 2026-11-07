@@ -39,6 +39,10 @@
       "text": "Thought"
     },
     {
+      "key": "msg.save.failed",
+      "text": "Saving did not work. The world stays open so nothing is lost."
+    },
+    {
       "key": "time.phase.dawn",
       "text": "Dawn"
     },
