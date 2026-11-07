@@ -3,40 +3,40 @@
   "max_length": 280,
   "leet": [
     {
-      "from": "4",
-      "to": "a"
+      "source": "4",
+      "replacement": "a"
     },
     {
-      "from": "@",
-      "to": "a"
+      "source": "@",
+      "replacement": "a"
     },
     {
-      "from": "3",
-      "to": "e"
+      "source": "3",
+      "replacement": "e"
     },
     {
-      "from": "1",
-      "to": "i"
+      "source": "1",
+      "replacement": "i"
     },
     {
-      "from": "!",
-      "to": "i"
+      "source": "!",
+      "replacement": "i"
     },
     {
-      "from": "0",
-      "to": "o"
+      "source": "0",
+      "replacement": "o"
     },
     {
-      "from": "5",
-      "to": "s"
+      "source": "5",
+      "replacement": "s"
     },
     {
-      "from": "$",
-      "to": "s"
+      "source": "$",
+      "replacement": "s"
     },
     {
-      "from": "7",
-      "to": "t"
+      "source": "7",
+      "replacement": "t"
     }
   ],
   "categories": [

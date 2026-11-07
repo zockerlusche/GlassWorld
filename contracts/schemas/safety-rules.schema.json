@@ -52,16 +52,16 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "from",
-        "to"
+        "source",
+        "replacement"
       ],
       "properties": {
-        "from": {
+        "source": {
           "type": "string",
           "minLength": 1,
           "maxLength": 1
         },
-        "to": {
+        "replacement": {
           "type": "string",
           "minLength": 1,
           "maxLength": 1,

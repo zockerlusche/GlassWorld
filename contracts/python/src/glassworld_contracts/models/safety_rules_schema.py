@@ -17,8 +17,8 @@ class LeetMapping(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
-    from_: str = Field(..., alias='from', max_length=1, min_length=1)
-    to: str = Field(..., max_length=1, min_length=1, pattern='^[a-z]$')
+    source: str = Field(..., max_length=1, min_length=1)
+    replacement: str = Field(..., max_length=1, min_length=1, pattern='^[a-z]$')
 
 
 class Id(StrEnum):

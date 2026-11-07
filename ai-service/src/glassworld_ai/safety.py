@@ -99,7 +99,7 @@ class TextGuard:
 
     def __init__(self, rules: SafetyRules) -> None:
         self._max_length = rules.max_length
-        self._leet = {m.from_: m.to for m in rules.leet}
+        self._leet = {m.source: m.replacement for m in rules.leet}
         self._allowed = [phrase.split() for phrase in rules.allowed_words]
         self._categories = [
             (

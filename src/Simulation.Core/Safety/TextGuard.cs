@@ -39,7 +39,7 @@ public sealed class TextGuard
     private TextGuard(SafetyRules rules)
     {
         _maxLength = rules.MaxLength;
-        _leet = rules.Leet.ToDictionary(m => m.From[0], m => m.To[0]);
+        _leet = rules.Leet.ToDictionary(m => m.Source[0], m => m.Replacement[0]);
         _allowed = [.. rules.AllowedWords.Select(Split)];
         _categories =
         [
