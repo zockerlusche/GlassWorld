@@ -137,11 +137,11 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "from",
+        "from_weather",
         "to"
       ],
       "properties": {
-        "from": {
+        "from_weather": {
           "$ref": "common.schema.json#/$defs/VocabId"
         },
         "to": {

@@ -42,9 +42,8 @@ class ClimateTransition(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
-    from_: str = Field(
+    from_weather: str = Field(
         ...,
-        alias='from',
         description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',

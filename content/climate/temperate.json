@@ -67,7 +67,7 @@
         "season": "spring",
         "transitions": [
           {
-            "from": "clear",
+            "from_weather": "clear",
             "to": [
               {
                 "weather": "clear",
@@ -88,7 +88,7 @@
             ]
           },
           {
-            "from": "cloudy",
+            "from_weather": "cloudy",
             "to": [
               {
                 "weather": "clear",
@@ -109,7 +109,7 @@
             ]
           },
           {
-            "from": "rain",
+            "from_weather": "rain",
             "to": [
               {
                 "weather": "cloudy",
@@ -130,7 +130,7 @@
             ]
           },
           {
-            "from": "storm",
+            "from_weather": "storm",
             "to": [
               {
                 "weather": "rain",
@@ -143,7 +143,7 @@
             ]
           },
           {
-            "from": "fog",
+            "from_weather": "fog",
             "to": [
               {
                 "weather": "clear",
@@ -161,7 +161,7 @@
         "season": "summer",
         "transitions": [
           {
-            "from": "clear",
+            "from_weather": "clear",
             "to": [
               {
                 "weather": "clear",
@@ -182,7 +182,7 @@
             ]
           },
           {
-            "from": "heat",
+            "from_weather": "heat",
             "to": [
               {
                 "weather": "heat",
@@ -199,7 +199,7 @@
             ]
           },
           {
-            "from": "cloudy",
+            "from_weather": "cloudy",
             "to": [
               {
                 "weather": "clear",
@@ -216,7 +216,7 @@
             ]
           },
           {
-            "from": "rain",
+            "from_weather": "rain",
             "to": [
               {
                 "weather": "clear",
@@ -233,7 +233,7 @@
             ]
           },
           {
-            "from": "storm",
+            "from_weather": "storm",
             "to": [
               {
                 "weather": "rain",
@@ -255,7 +255,7 @@
         "season": "autumn",
         "transitions": [
           {
-            "from": "clear",
+            "from_weather": "clear",
             "to": [
               {
                 "weather": "clear",
@@ -276,7 +276,7 @@
             ]
           },
           {
-            "from": "cloudy",
+            "from_weather": "cloudy",
             "to": [
               {
                 "weather": "cloudy",
@@ -297,7 +297,7 @@
             ]
           },
           {
-            "from": "rain",
+            "from_weather": "rain",
             "to": [
               {
                 "weather": "rain",
@@ -314,7 +314,7 @@
             ]
           },
           {
-            "from": "storm",
+            "from_weather": "storm",
             "to": [
               {
                 "weather": "rain",
@@ -327,7 +327,7 @@
             ]
           },
           {
-            "from": "fog",
+            "from_weather": "fog",
             "to": [
               {
                 "weather": "fog",
@@ -349,7 +349,7 @@
         "season": "winter",
         "transitions": [
           {
-            "from": "clear",
+            "from_weather": "clear",
             "to": [
               {
                 "weather": "clear",
@@ -366,7 +366,7 @@
             ]
           },
           {
-            "from": "frost",
+            "from_weather": "frost",
             "to": [
               {
                 "weather": "frost",
@@ -383,7 +383,7 @@
             ]
           },
           {
-            "from": "cloudy",
+            "from_weather": "cloudy",
             "to": [
               {
                 "weather": "snow",
@@ -404,7 +404,7 @@
             ]
           },
           {
-            "from": "snow",
+            "from_weather": "snow",
             "to": [
               {
                 "weather": "snow",
@@ -421,7 +421,7 @@
             ]
           },
           {
-            "from": "rain",
+            "from_weather": "rain",
             "to": [
               {
                 "weather": "cloudy",

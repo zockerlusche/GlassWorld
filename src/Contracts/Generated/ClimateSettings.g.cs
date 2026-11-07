@@ -100,8 +100,8 @@ namespace GlassWorld.Contracts
     public partial class ClimateTransition
     {
 
-        [System.Text.Json.Serialization.JsonPropertyName("from")]
-        public string From { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("from_weather")]
+        public string FromWeather { get; set; } = default!;
 
         /// <summary>
         /// Next weather with relative weights.
