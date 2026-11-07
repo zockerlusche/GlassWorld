@@ -1,0 +1,18 @@
+{
+  "contract_version": "0.1",
+  "projection": "perspective",
+  "fov_deg": 25.0,
+  "pitch_deg": 45.0,
+  "start_yaw_deg": 45.0,
+  "distance_m": {
+    "min": 12.0,
+    "max": 260.0,
+    "start": 90.0
+  },
+  "zoom_step": 0.12,
+  "rotate_deg_per_px": 0.3,
+  "pan_speed_m_s": 40.0,
+  "smoothing": 0.18,
+  "follow_distance_m": 28.0,
+  "bounds_margin_m": 40.0
+}

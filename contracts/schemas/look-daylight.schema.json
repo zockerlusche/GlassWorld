@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/look-daylight.schema.json",
+  "title": "LookDaylight",
+  "description": "Data file content/look/daylight.json: sun, moon, light and sky per time of day (B2 R22). The presentation blends between the phases (WorldTime/DayPhase, day length per season from time.json). Night stays recognisable: brightness never drops below the minimum.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "night_min_brightness",
+    "phases"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "night_min_brightness": {
+      "description": "Lowest overall brightness at night (0..1).",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "phases": {
+      "description": "One entry per time of day (vocabulary kind time_of_day).",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/LookDaylightPhase"
+      },
+      "maxItems": 8
+    }
+  },
+  "$defs": {
+    "LookDaylightPhase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "phase",
+        "sun_elevation_deg",
+        "light_color",
+        "light_energy",
+        "sky_top",
+        "sky_horizon",
+        "ambient_color",
+        "ambient_energy",
+        "stars"
+      ],
+      "properties": {
+        "phase": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "sun_elevation_deg": {
+          "description": "Elevation of the sun (negative below the horizon; the moon lights the night).",
+          "type": "number",
+          "minimum": -90,
+          "maximum": 90
+        },
+        "light_color": {
+          "description": "Colour as lowercase #rrggbb.",
+          "type": "string",
+          "pattern": "^#[0-9a-f]{6}$"
+        },
+        "light_energy": {
+          "description": "Strength of the main light.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 4
+        },
+        "sky_top": {
+          "description": "Colour as lowercase #rrggbb.",
+          "type": "string",
+          "pattern": "^#[0-9a-f]{6}$"
+        },
+        "sky_horizon": {
+          "description": "Colour as lowercase #rrggbb.",
+          "type": "string",
+          "pattern": "^#[0-9a-f]{6}$"
+        },
+        "ambient_color": {
+          "description": "Colour as lowercase #rrggbb.",
+          "type": "string",
+          "pattern": "^#[0-9a-f]{6}$"
+        },
+        "ambient_energy": {
+          "description": "Strength of the ambient light.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 4
+        },
+        "stars": {
+          "description": "Visibility of the starry sky (0..1).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    }
+  }
+}

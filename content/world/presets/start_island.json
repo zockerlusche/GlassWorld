@@ -1,0 +1,115 @@
+{
+  "contract_version": "0.1",
+  "id": "start_island",
+  "description": "Placeholder start island: beach, meadow, small forest, stream with spring, rocks and a swamp.",
+  "generator_version": 1,
+  "generation_budget_ms": 10000,
+  "grid": {
+    "cell_size_cm": 100,
+    "chunk_cells": 32,
+    "width_cells": 192,
+    "depth_cells": 192,
+    "height_unit_mm": 100
+  },
+  "terrain": {
+    "sea_level": 20,
+    "max_height": 180,
+    "coast_falloff_permille": 300,
+    "walkable_slope": 6,
+    "cliff_min_drop": 12,
+    "noise": [
+      {
+        "wavelength_cells": 64,
+        "amplitude": 90
+      },
+      {
+        "wavelength_cells": 24,
+        "amplitude": 35
+      },
+      {
+        "wavelength_cells": 8,
+        "amplitude": 8
+      }
+    ],
+    "rocks": {
+      "min": 6,
+      "max": 14
+    }
+  },
+  "water": {
+    "shallow_max_depth": 8,
+    "springs": {
+      "min": 1,
+      "max": 3
+    },
+    "spring_min_height": 40,
+    "lake_min_cells": 6,
+    "swamp_max_slope": 2,
+    "swamp_min_moisture_permille": 750
+  },
+  "climate": {
+    "base_temperature_tenth_c": 160,
+    "temperature_drop_per_100_height": 40,
+    "moisture_base_permille": 350,
+    "moisture_water_radius_cells": 12,
+    "valley_moisture_bonus_permille": 200
+  },
+  "caves": {
+    "min": 1,
+    "max": 3
+  },
+  "start": {
+    "pairs": 2,
+    "min_pair_distance_cells": 40,
+    "max_pair_distance_cells": 160,
+    "max_attempts": 8
+  },
+  "neighbours": {
+    "islands": {
+      "min": 1,
+      "max": 2
+    },
+    "group_size": {
+      "min": 2,
+      "max": 4
+    },
+    "min_distance_cells": 260
+  },
+  "tides": {
+    "amplitude": 3,
+    "period_ticks": 745,
+    "curve": [
+      {
+        "phase_permille": 0,
+        "level_permille": 1000
+      },
+      {
+        "phase_permille": 250,
+        "level_permille": 0
+      },
+      {
+        "phase_permille": 500,
+        "level_permille": -1000
+      },
+      {
+        "phase_permille": 750,
+        "level_permille": 0
+      },
+      {
+        "phase_permille": 1000,
+        "level_permille": 1000
+      }
+    ]
+  },
+  "exploration": {
+    "view_range_cells": 24,
+    "height_bonus_per_100_height": 10,
+    "reveal_real_seconds": 3.0
+  },
+  "pathfinding": {
+    "node_budget": 20000,
+    "cost_flat": 10,
+    "cost_shallow_water": 20,
+    "cost_per_slope_unit": 3
+  }
+}

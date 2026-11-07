@@ -10,6 +10,7 @@
     { "id": "pyrite", "description": "A heavy golden stone.", "properties": ["hard", "sparks", "portable"] },
     { "id": "dry_wood", "description": "Dry fallen branches.", "properties": ["burnable", "building_material", "portable"] },
     { "id": "dry_grass", "description": "A bundle of dry grass.", "properties": ["burnable", "fibrous", "portable"] },
-    { "id": "spark", "description": "A short-lived glowing spark.", "properties": ["hot"] }
+    { "id": "spark", "description": "A short-lived glowing spark.", "properties": ["hot"] },
+    { "id": "rock_niche", "description": "A niche or cave mouth in the rock; no room inside (B2514 T3).", "properties": ["hard", "sheltering"] }
   ]
 }

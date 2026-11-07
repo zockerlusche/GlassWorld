@@ -35,7 +35,7 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
-    /// A vocabulary data file (actions, properties, needs, moods, traits, expressions, times of day, weather). Display texts come from translation keys vocab.&lt;kind&gt;.&lt;id&gt;, never from this file.
+    /// A vocabulary data file (actions, properties, needs, moods, traits, expressions, times of day, weather, biomes, look epochs). Display texts come from translation keys vocab.&lt;kind&gt;.&lt;id&gt;, never from this file.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class Vocabulary
@@ -105,6 +105,14 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("weather")]
         Weather = 7,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("biome")]
+        Biome = 8,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("epoch")]
+        Epoch = 9,
 
 
     }

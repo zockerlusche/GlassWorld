@@ -1,0 +1,73 @@
+{
+  "contract_version": "0.1",
+  "height_cm": {
+    "min": 155,
+    "max": 190
+  },
+  "build_permille": {
+    "min": 300,
+    "max": 700
+  },
+  "skin_tones": [
+    "#f3d7c2",
+    "#e8bf9c",
+    "#c99a74",
+    "#a3714e",
+    "#7a4f35",
+    "#5a3a28"
+  ],
+  "hair_styles": [
+    "short",
+    "long",
+    "curly",
+    "braided",
+    "tied"
+  ],
+  "hair_colors": [
+    "#2b1d14",
+    "#5a3b22",
+    "#8a5a2b",
+    "#c79a5b",
+    "#e3c48a",
+    "#7a2f1d"
+  ],
+  "clothing_styles": [
+    "tunic",
+    "wrap",
+    "shirt_trousers"
+  ],
+  "clothing_colors": [
+    "#b8875a",
+    "#8f6a4a",
+    "#6f8a5a",
+    "#9a5a4a",
+    "#c9b38a"
+  ],
+  "age_stages": [
+    {
+      "id": "baby",
+      "from_age_days": 0,
+      "scale": 0.35
+    },
+    {
+      "id": "child",
+      "from_age_days": 28,
+      "scale": 0.6
+    },
+    {
+      "id": "youth",
+      "from_age_days": 140,
+      "scale": 0.85
+    },
+    {
+      "id": "adult",
+      "from_age_days": 224,
+      "scale": 1.0
+    },
+    {
+      "id": "elder",
+      "from_age_days": 1120,
+      "scale": 0.96
+    }
+  ]
+}

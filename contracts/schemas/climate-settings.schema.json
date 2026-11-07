@@ -1,0 +1,178 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/climate-settings.schema.json",
+  "title": "ClimateSettings",
+  "description": "Data file content/climate/<id>.json, weather part (B2 R13): weather states and their change per season. The weather changes at a fixed hour boundary by the transition table of the current season (stream weather/...). Snow replaces rain below the snow limit; drought follows from days without rain. The temperature part follows with B5 R1. All values are placeholders.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "id",
+    "weather"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "id": {
+      "$ref": "common.schema.json#/$defs/VocabId"
+    },
+    "weather": {
+      "$ref": "#/$defs/ClimateWeather"
+    }
+  },
+  "$defs": {
+    "ClimateWeather": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "change_every_hours",
+        "transition_minutes",
+        "snow_below_tenth_c",
+        "drought_after_dry_days",
+        "states",
+        "seasons"
+      ],
+      "properties": {
+        "change_every_hours": {
+          "description": "Game hours between two weather decisions.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 240
+        },
+        "transition_minutes": {
+          "description": "Game minutes the visual change takes (presentation and derived values).",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1440
+        },
+        "snow_below_tenth_c": {
+          "description": "Below this temperature precipitation falls as snow (used once B5 adds temperatures).",
+          "type": "integer",
+          "minimum": -500,
+          "maximum": 200
+        },
+        "drought_after_dry_days": {
+          "description": "Days without rain after which drought is reported.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 365
+        },
+        "states": {
+          "description": "Values of every weather id (vocabulary kind weather).",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/ClimateWeatherState"
+          },
+          "maxItems": 32
+        },
+        "seasons": {
+          "description": "Transition table per season (ids from content/world/time.json).",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/ClimateSeasonWeather"
+          },
+          "maxItems": 8
+        }
+      }
+    },
+    "ClimateWeatherState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "weather",
+        "wind_permille",
+        "precipitation_permille",
+        "cloud_permille"
+      ],
+      "properties": {
+        "weather": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "wind_permille": {
+          "description": "Wind strength.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "precipitation_permille": {
+          "description": "Rain or snow strength.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "cloud_permille": {
+          "description": "Cloud cover.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        }
+      }
+    },
+    "ClimateSeasonWeather": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "season",
+        "transitions"
+      ],
+      "properties": {
+        "season": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "transitions": {
+          "description": "One entry per weather the season can be in.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/ClimateTransition"
+          },
+          "maxItems": 32
+        }
+      }
+    },
+    "ClimateTransition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "from",
+        "to"
+      ],
+      "properties": {
+        "from": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "to": {
+          "description": "Next weather with relative weights.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/ClimateTransitionTarget"
+          },
+          "maxItems": 32
+        }
+      }
+    },
+    "ClimateTransitionTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "weather",
+        "weight"
+      ],
+      "properties": {
+        "weather": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "weight": {
+          "description": "Relative weight.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        }
+      }
+    }
+  }
+}

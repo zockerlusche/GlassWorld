@@ -108,6 +108,10 @@
     {
       "weather": "heat",
       "sound": "weather.heat"
+    },
+    {
+      "weather": "drought",
+      "sound": "weather.heat"
     }
   ],
   "ambience": [

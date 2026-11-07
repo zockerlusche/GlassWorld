@@ -1,0 +1,50 @@
+{
+  "contract_version": "0.1",
+  "night_min_brightness": 0.22,
+  "phases": [
+    {
+      "phase": "dawn",
+      "sun_elevation_deg": 8,
+      "light_color": "#ffc89a",
+      "light_energy": 0.7,
+      "sky_top": "#8fa6d1",
+      "sky_horizon": "#f6b98c",
+      "ambient_color": "#c9b4b0",
+      "ambient_energy": 0.5,
+      "stars": 0.1
+    },
+    {
+      "phase": "day",
+      "sun_elevation_deg": 55,
+      "light_color": "#fff3dc",
+      "light_energy": 1.2,
+      "sky_top": "#7ab8e8",
+      "sky_horizon": "#cfe6f2",
+      "ambient_color": "#d8e2e6",
+      "ambient_energy": 0.6,
+      "stars": 0.0
+    },
+    {
+      "phase": "dusk",
+      "sun_elevation_deg": 6,
+      "light_color": "#ffb37a",
+      "light_energy": 0.6,
+      "sky_top": "#6e74b0",
+      "sky_horizon": "#f29a6b",
+      "ambient_color": "#b9a2a8",
+      "ambient_energy": 0.45,
+      "stars": 0.2
+    },
+    {
+      "phase": "night",
+      "sun_elevation_deg": -30,
+      "light_color": "#a9b9e6",
+      "light_energy": 0.35,
+      "sky_top": "#1d2547",
+      "sky_horizon": "#36406b",
+      "ambient_color": "#5d6a94",
+      "ambient_energy": 0.35,
+      "stars": 1.0
+    }
+  ]
+}

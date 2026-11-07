@@ -93,6 +93,10 @@
     {
       "id": "hot",
       "description": "Is hot to the touch."
+    },
+    {
+      "id": "sheltering",
+      "description": "Gives shelter from wind and rain."
     }
   ]
 }

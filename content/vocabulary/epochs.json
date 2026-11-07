@@ -1,0 +1,26 @@
+{
+  "contract_version": "0.1",
+  "kind": "epoch",
+  "entries": [
+    {
+      "id": "wilderness",
+      "description": "Untouched nature, nothing made by hand yet."
+    },
+    {
+      "id": "tools",
+      "description": "First tools, trodden paths."
+    },
+    {
+      "id": "hut",
+      "description": "Simple huts and fireplaces."
+    },
+    {
+      "id": "workshop",
+      "description": "Workplaces where things are made."
+    },
+    {
+      "id": "metal",
+      "description": "Metal is worked."
+    }
+  ]
+}

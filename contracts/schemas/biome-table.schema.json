@@ -1,0 +1,139 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/biome-table.schema.json",
+  "title": "BiomeTable",
+  "description": "Data file content/world/biomes.json: biome of a cell from height x moisture x temperature (B2 R5). Rules are checked in order, the first match wins; a cell no rule matches gets the fallback biome. New biomes need no code change. Display texts come from vocab.biome.<id>.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "fallback_biome",
+    "biomes",
+    "rules"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "fallback_biome": {
+      "$ref": "common.schema.json#/$defs/VocabId"
+    },
+    "biomes": {
+      "description": "Every biome the table can produce (vocabulary kind biome).",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/BiomeSettings"
+      },
+      "maxItems": 64
+    },
+    "rules": {
+      "description": "Ordered rules; the first match decides.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/BiomeRule"
+      },
+      "maxItems": 256
+    }
+  },
+  "$defs": {
+    "BiomeSettings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "walk_cost_permille",
+        "map_color"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "walk_cost_permille": {
+          "description": "Walking cost relative to flat meadow (1000).",
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 100000
+        },
+        "map_color": {
+          "description": "Colour as lowercase #rrggbb.",
+          "type": "string",
+          "pattern": "^#[0-9a-f]{6}$"
+        }
+      }
+    },
+    "BiomeRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "biome",
+        "water",
+        "max_water_depth",
+        "min_height",
+        "max_height",
+        "min_moisture_permille",
+        "max_moisture_permille",
+        "min_temperature_tenth_c",
+        "max_temperature_tenth_c"
+      ],
+      "properties": {
+        "biome": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "water": {
+          "description": "Water in the cell: none, fresh, salt or any.",
+          "type": "string",
+          "enum": [
+            "none",
+            "fresh",
+            "salt",
+            "any"
+          ]
+        },
+        "max_water_depth": {
+          "description": "Deepest water the rule accepts (height units); irrelevant for water none.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "min_height": {
+          "description": "Lowest height above sea level (height units, negative below).",
+          "type": "integer",
+          "minimum": -100000,
+          "maximum": 100000
+        },
+        "max_height": {
+          "description": "Highest height above sea level (height units).",
+          "type": "integer",
+          "minimum": -100000,
+          "maximum": 100000
+        },
+        "min_moisture_permille": {
+          "description": "Lowest moisture.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "max_moisture_permille": {
+          "description": "Highest moisture.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "min_temperature_tenth_c": {
+          "description": "Lowest base temperature.",
+          "type": "integer",
+          "minimum": -500,
+          "maximum": 600
+        },
+        "max_temperature_tenth_c": {
+          "description": "Highest base temperature.",
+          "type": "integer",
+          "minimum": -500,
+          "maximum": 600
+        }
+      }
+    }
+  }
+}

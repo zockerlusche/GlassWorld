@@ -1,0 +1,490 @@
+{
+  "contract_version": "0.1",
+  "fallback_clip": "fallback",
+  "clips": [
+    {
+      "id": "back_away",
+      "source": "blend",
+      "loop": false
+    },
+    {
+      "id": "carry",
+      "source": "placeholder",
+      "loop": true
+    },
+    {
+      "id": "cheer",
+      "source": "placeholder",
+      "loop": false
+    },
+    {
+      "id": "chop",
+      "source": "placeholder",
+      "loop": false
+    },
+    {
+      "id": "drink",
+      "source": "placeholder",
+      "loop": true
+    },
+    {
+      "id": "eat",
+      "source": "placeholder",
+      "loop": true
+    },
+    {
+      "id": "fallback",
+      "source": "placeholder",
+      "loop": true
+    },
+    {
+      "id": "hammer",
+      "source": "placeholder",
+      "loop": false
+    },
+    {
+      "id": "handle",
+      "source": "placeholder",
+      "loop": true
+    },
+    {
+      "id": "hop",
+      "source": "placeholder",
+      "loop": true
+    },
+    {
+      "id": "hug",
+      "source": "placeholder",
+      "loop": false
+    },
+    {
+      "id": "hum",
+      "source": "blend",
+      "loop": true
+    },
+    {
+      "id": "hurry",
+      "source": "blend",
+      "loop": true
+    },
+    {
+      "id": "knock_glass",
+      "source": "placeholder",
+      "loop": false
+    },
+    {
+      "id": "laugh",
+      "source": "placeholder",
+      "loop": false
+    },
+    {
+      "id": "lie_down",
+      "source": "placeholder",
+      "loop": false
+    },
+    {
+      "id": "limp",
+      "source": "blend",
+      "loop": true
+    },
+    {
+      "id": "look_around",
+      "source": "procedural",
+      "loop": false
+    },
+    {
+      "id": "look_at_camera",
+      "source": "procedural",
+      "loop": false
+    },
+    {
+      "id": "pick_up",
+      "source": "placeholder",
+      "loop": false
+    },
+    {
+      "id": "pick_up_inspect",
+      "source": "placeholder",
+      "loop": false
+    },
+    {
+      "id": "ponder",
+      "source": "procedural",
+      "loop": false
+    },
+    {
+      "id": "put_down",
+      "source": "placeholder",
+      "loop": false
+    },
+    {
+      "id": "run",
+      "source": "placeholder",
+      "loop": true
+    },
+    {
+      "id": "sit",
+      "source": "placeholder",
+      "loop": true
+    },
+    {
+      "id": "sit_down",
+      "source": "placeholder",
+      "loop": false
+    },
+    {
+      "id": "sit_sad",
+      "source": "blend",
+      "loop": true
+    },
+    {
+      "id": "sleep",
+      "source": "placeholder",
+      "loop": true
+    },
+    {
+      "id": "spin",
+      "source": "blend",
+      "loop": false
+    },
+    {
+      "id": "stand",
+      "source": "placeholder",
+      "loop": true
+    },
+    {
+      "id": "stomp",
+      "source": "placeholder",
+      "loop": false
+    },
+    {
+      "id": "stretch",
+      "source": "placeholder",
+      "loop": false
+    },
+    {
+      "id": "stroll",
+      "source": "placeholder",
+      "loop": true
+    },
+    {
+      "id": "swim",
+      "source": "placeholder",
+      "loop": true
+    },
+    {
+      "id": "talk",
+      "source": "placeholder",
+      "loop": true
+    },
+    {
+      "id": "wake_up",
+      "source": "placeholder",
+      "loop": false
+    },
+    {
+      "id": "walk",
+      "source": "placeholder",
+      "loop": true
+    },
+    {
+      "id": "wave",
+      "source": "placeholder",
+      "loop": false
+    },
+    {
+      "id": "yawn",
+      "source": "placeholder",
+      "loop": false
+    }
+  ],
+  "mappings": [
+    {
+      "kind": "action",
+      "id": "idle",
+      "clip": "stand"
+    },
+    {
+      "kind": "action",
+      "id": "wander",
+      "clip": "walk"
+    },
+    {
+      "kind": "action",
+      "id": "move_to",
+      "clip": "walk"
+    },
+    {
+      "kind": "action",
+      "id": "inspect",
+      "clip": "handle"
+    },
+    {
+      "kind": "action",
+      "id": "pick_up",
+      "clip": "pick_up"
+    },
+    {
+      "kind": "action",
+      "id": "drop",
+      "clip": "put_down"
+    },
+    {
+      "kind": "action",
+      "id": "eat",
+      "clip": "eat"
+    },
+    {
+      "kind": "action",
+      "id": "drink",
+      "clip": "drink"
+    },
+    {
+      "kind": "action",
+      "id": "sleep",
+      "clip": "sleep"
+    },
+    {
+      "kind": "action",
+      "id": "approach",
+      "clip": "walk"
+    },
+    {
+      "kind": "action",
+      "id": "talk_to",
+      "clip": "talk"
+    },
+    {
+      "kind": "action",
+      "id": "combine",
+      "clip": "handle"
+    },
+    {
+      "kind": "expression",
+      "id": "look_around",
+      "clip": "look_around"
+    },
+    {
+      "kind": "expression",
+      "id": "stretch",
+      "clip": "stretch"
+    },
+    {
+      "kind": "expression",
+      "id": "yawn",
+      "clip": "yawn"
+    },
+    {
+      "kind": "expression",
+      "id": "hum",
+      "clip": "hum"
+    },
+    {
+      "kind": "expression",
+      "id": "ponder",
+      "clip": "ponder"
+    },
+    {
+      "kind": "expression",
+      "id": "cheer",
+      "clip": "cheer"
+    },
+    {
+      "kind": "expression",
+      "id": "spin_with_joy",
+      "clip": "spin"
+    },
+    {
+      "kind": "expression",
+      "id": "stomp",
+      "clip": "stomp"
+    },
+    {
+      "kind": "expression",
+      "id": "sit_sadly",
+      "clip": "sit_sad"
+    },
+    {
+      "kind": "expression",
+      "id": "back_away",
+      "clip": "back_away"
+    },
+    {
+      "kind": "expression",
+      "id": "laugh",
+      "clip": "laugh"
+    },
+    {
+      "kind": "expression",
+      "id": "wave",
+      "clip": "wave"
+    },
+    {
+      "kind": "work",
+      "id": "carry",
+      "clip": "carry"
+    },
+    {
+      "kind": "work",
+      "id": "hammer",
+      "clip": "hammer"
+    },
+    {
+      "kind": "work",
+      "id": "chop",
+      "clip": "chop"
+    },
+    {
+      "kind": "work",
+      "id": "sit",
+      "clip": "sit"
+    },
+    {
+      "kind": "work",
+      "id": "lie_down",
+      "clip": "lie_down"
+    },
+    {
+      "kind": "work",
+      "id": "wake_up",
+      "clip": "wake_up"
+    },
+    {
+      "kind": "work",
+      "id": "hug",
+      "clip": "hug"
+    },
+    {
+      "kind": "work",
+      "id": "handle",
+      "clip": "handle"
+    },
+    {
+      "kind": "special",
+      "id": "swim",
+      "clip": "swim"
+    },
+    {
+      "kind": "special",
+      "id": "limp",
+      "clip": "limp"
+    },
+    {
+      "kind": "special",
+      "id": "look_at_camera",
+      "clip": "look_at_camera"
+    },
+    {
+      "kind": "special",
+      "id": "knock_glass",
+      "clip": "knock_glass"
+    }
+  ],
+  "gaits": [
+    {
+      "id": "stroll",
+      "clip": "stroll",
+      "min_speed_cm_s": 0
+    },
+    {
+      "id": "walk",
+      "clip": "walk",
+      "min_speed_cm_s": 60
+    },
+    {
+      "id": "hurry",
+      "clip": "hurry",
+      "min_speed_cm_s": 130
+    },
+    {
+      "id": "run",
+      "clip": "run",
+      "min_speed_cm_s": 250
+    },
+    {
+      "id": "hop",
+      "clip": "hop",
+      "min_speed_cm_s": 400
+    }
+  ],
+  "idle": [
+    {
+      "id": "stand",
+      "clip": "stand",
+      "weight": 3.0,
+      "factors": []
+    },
+    {
+      "id": "look_around",
+      "clip": "look_around",
+      "weight": 2.0,
+      "factors": [
+        {
+          "value": "curiosity",
+          "when": "high",
+          "weight": 2.0
+        }
+      ]
+    },
+    {
+      "id": "stretch",
+      "clip": "stretch",
+      "weight": 1.0,
+      "factors": []
+    },
+    {
+      "id": "yawn",
+      "clip": "yawn",
+      "weight": 0.5,
+      "factors": [
+        {
+          "value": "energy",
+          "when": "low",
+          "weight": 4.0
+        }
+      ]
+    },
+    {
+      "id": "sit_down",
+      "clip": "sit_down",
+      "weight": 1.0,
+      "factors": [
+        {
+          "value": "energy",
+          "when": "low",
+          "weight": 2.0
+        }
+      ]
+    },
+    {
+      "id": "hum",
+      "clip": "hum",
+      "weight": 0.5,
+      "factors": [
+        {
+          "value": "joy",
+          "when": "high",
+          "weight": 3.0
+        }
+      ]
+    },
+    {
+      "id": "pick_up_inspect",
+      "clip": "pick_up_inspect",
+      "weight": 1.0,
+      "factors": [
+        {
+          "value": "curiosity",
+          "when": "high",
+          "weight": 1.5
+        }
+      ]
+    },
+    {
+      "id": "ponder",
+      "clip": "ponder",
+      "weight": 1.0,
+      "factors": []
+    }
+  ]
+}

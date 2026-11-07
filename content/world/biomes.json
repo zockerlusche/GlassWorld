@@ -1,0 +1,115 @@
+{
+  "contract_version": "0.1",
+  "fallback_biome": "meadow",
+  "biomes": [
+    {
+      "id": "beach_sea",
+      "walk_cost_permille": 1200,
+      "map_color": "#e8d49a"
+    },
+    {
+      "id": "meadow",
+      "walk_cost_permille": 1000,
+      "map_color": "#9cc96b"
+    },
+    {
+      "id": "forest",
+      "walk_cost_permille": 1400,
+      "map_color": "#4f8a4b"
+    },
+    {
+      "id": "freshwater",
+      "walk_cost_permille": 2500,
+      "map_color": "#6fb6d9"
+    },
+    {
+      "id": "rocks_hills",
+      "walk_cost_permille": 1800,
+      "map_color": "#a39a8c"
+    },
+    {
+      "id": "swamp",
+      "walk_cost_permille": 2200,
+      "map_color": "#6f7f4a"
+    }
+  ],
+  "rules": [
+    {
+      "biome": "beach_sea",
+      "water": "salt",
+      "max_water_depth": 100000,
+      "min_height": -100000,
+      "max_height": 100000,
+      "min_moisture_permille": 0,
+      "max_moisture_permille": 1000,
+      "min_temperature_tenth_c": -500,
+      "max_temperature_tenth_c": 600
+    },
+    {
+      "biome": "swamp",
+      "water": "fresh",
+      "max_water_depth": 2,
+      "min_height": 0,
+      "max_height": 60,
+      "min_moisture_permille": 750,
+      "max_moisture_permille": 1000,
+      "min_temperature_tenth_c": -500,
+      "max_temperature_tenth_c": 600
+    },
+    {
+      "biome": "freshwater",
+      "water": "fresh",
+      "max_water_depth": 100000,
+      "min_height": -100000,
+      "max_height": 100000,
+      "min_moisture_permille": 0,
+      "max_moisture_permille": 1000,
+      "min_temperature_tenth_c": -500,
+      "max_temperature_tenth_c": 600
+    },
+    {
+      "biome": "beach_sea",
+      "water": "none",
+      "max_water_depth": 0,
+      "min_height": -100000,
+      "max_height": 4,
+      "min_moisture_permille": 0,
+      "max_moisture_permille": 1000,
+      "min_temperature_tenth_c": -500,
+      "max_temperature_tenth_c": 600
+    },
+    {
+      "biome": "rocks_hills",
+      "water": "none",
+      "max_water_depth": 0,
+      "min_height": 90,
+      "max_height": 100000,
+      "min_moisture_permille": 0,
+      "max_moisture_permille": 1000,
+      "min_temperature_tenth_c": -500,
+      "max_temperature_tenth_c": 600
+    },
+    {
+      "biome": "forest",
+      "water": "none",
+      "max_water_depth": 0,
+      "min_height": 10,
+      "max_height": 89,
+      "min_moisture_permille": 550,
+      "max_moisture_permille": 1000,
+      "min_temperature_tenth_c": 0,
+      "max_temperature_tenth_c": 600
+    },
+    {
+      "biome": "meadow",
+      "water": "none",
+      "max_water_depth": 0,
+      "min_height": 5,
+      "max_height": 89,
+      "min_moisture_permille": 0,
+      "max_moisture_permille": 1000,
+      "min_temperature_tenth_c": -500,
+      "max_temperature_tenth_c": 600
+    }
+  ]
+}

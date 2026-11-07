@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://glassworld.local/contracts/v0/vocabulary.schema.json",
   "title": "Vocabulary",
-  "description": "A vocabulary data file (actions, properties, needs, moods, traits, expressions, times of day, weather). Display texts come from translation keys vocab.<kind>.<id>, never from this file.",
+  "description": "A vocabulary data file (actions, properties, needs, moods, traits, expressions, times of day, weather, biomes, look epochs). Display texts come from translation keys vocab.<kind>.<id>, never from this file.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -24,7 +24,9 @@
         "trait",
         "expression",
         "time_of_day",
-        "weather"
+        "weather",
+        "biome",
+        "epoch"
       ]
     },
     "entries": {

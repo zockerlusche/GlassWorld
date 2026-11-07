@@ -139,6 +139,50 @@
       "text": "Wander"
     },
     {
+      "key": "vocab.biome.beach_sea",
+      "text": "Beach and sea"
+    },
+    {
+      "key": "vocab.biome.forest",
+      "text": "Forest"
+    },
+    {
+      "key": "vocab.biome.freshwater",
+      "text": "Fresh water"
+    },
+    {
+      "key": "vocab.biome.meadow",
+      "text": "Meadow"
+    },
+    {
+      "key": "vocab.biome.rocks_hills",
+      "text": "Rocks and hills"
+    },
+    {
+      "key": "vocab.biome.swamp",
+      "text": "Swamp"
+    },
+    {
+      "key": "vocab.epoch.hut",
+      "text": "Hut"
+    },
+    {
+      "key": "vocab.epoch.metal",
+      "text": "Metal"
+    },
+    {
+      "key": "vocab.epoch.tools",
+      "text": "Tools"
+    },
+    {
+      "key": "vocab.epoch.wilderness",
+      "text": "Wilderness"
+    },
+    {
+      "key": "vocab.epoch.workshop",
+      "text": "Workshop"
+    },
+    {
       "key": "vocab.expression.back_away",
       "text": "Backs away"
     },
@@ -339,6 +383,10 @@
       "text": "Sharp"
     },
     {
+      "key": "vocab.property.sheltering",
+      "text": "Sheltering"
+    },
+    {
       "key": "vocab.property.sparks",
       "text": "Makes sparks"
     },
@@ -405,6 +453,10 @@
     {
       "key": "vocab.weather.cloudy",
       "text": "Cloudy"
+    },
+    {
+      "key": "vocab.weather.drought",
+      "text": "Drought"
     },
     {
       "key": "vocab.weather.fog",
