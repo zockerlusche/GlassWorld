@@ -43,18 +43,21 @@ namespace GlassWorld.Contracts
         /// <summary>
         /// VRAM of the largest NVIDIA GPU in MiB as reported by nvidia-smi. Cards report slightly less than their nominal size, so thresholds carry a tolerance.
         /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("min_largest_gpu_vram_mib")]
         public int? MinLargestGpuVramMib { get; set; } = default!;
 
         /// <summary>
         /// VRAM of the second-largest NVIDIA GPU in MiB (0 if there is only one). Use it for multi-GPU tiers so that a small second card does not count.
         /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("min_second_largest_gpu_vram_mib")]
         public int? MinSecondLargestGpuVramMib { get; set; } = default!;
 
         /// <summary>
         /// Installed system RAM in MiB.
         /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("min_ram_mib")]
         public int? MinRamMib { get; set; } = default!;
 

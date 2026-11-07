@@ -28,6 +28,7 @@ namespace GlassWorld.Contracts
         /// <summary>
         /// Actions only: what kind of target the action takes.
         /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("target")]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<VocabularyEntryTarget>))]
         public VocabularyEntryTarget? Target { get; set; } = default!;
