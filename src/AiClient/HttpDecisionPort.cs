@@ -34,6 +34,12 @@ public sealed class HttpDecisionPort : IDecisionPort, IDisposable
     {
         ArgumentNullException.ThrowIfNull(baseAddress);
         ArgumentException.ThrowIfNullOrEmpty(token);
+        if (baseAddress.Host != "127.0.0.1")
+        {
+            // The service checks the Host header (ADR-0006); 'localhost' would always get 403.
+            throw new ArgumentException("The AI service address must be http://127.0.0.1:<port>/.", nameof(baseAddress));
+        }
+
         _http = handler is null ? new HttpClient() : new HttpClient(handler, disposeHandler: false);
         _ownsClient = true;
         _http.BaseAddress = baseAddress;
@@ -41,6 +47,19 @@ public sealed class HttpDecisionPort : IDecisionPort, IDisposable
         _http.DefaultRequestHeaders.Add(TokenHeader, token);
         _http.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
     }
+
+    /// <summary>
+    /// Port for a started service. The client timeout is the request deadline plus a safety margin, so the
+    /// client never gives up while the service is still working on an answer.
+    /// </summary>
+    public static HttpDecisionPort ForService(AiServiceProcess service, int deadlineMs)
+    {
+        ArgumentNullException.ThrowIfNull(service);
+        return new HttpDecisionPort(service.BaseAddress, service.Token, TimeSpan.FromMilliseconds(deadlineMs) + SafetyMargin);
+    }
+
+    /// <summary>Added to the request deadline for the HTTP client timeout.</summary>
+    public static readonly TimeSpan SafetyMargin = TimeSpan.FromSeconds(30);
 
     /// <summary>Requests that are still running.</summary>
     public int InFlight => Volatile.Read(ref _inFlight);
@@ -90,7 +109,18 @@ public sealed class HttpDecisionPort : IDecisionPort, IDisposable
             using var content = new StringContent(requestJson, Encoding.UTF8, "application/json");
             using var response = await _http.PostAsync(new Uri("decide", UriKind.Relative), content).ConfigureAwait(false);
             var body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            _ready.Enqueue(new PortMessage(requestId, body, IsError: !response.IsSuccessStatusCode));
+            if (response.IsSuccessStatusCode)
+            {
+                _ready.Enqueue(new PortMessage(requestId, body, IsError: false));
+            }
+            else
+            {
+                _ready.Enqueue(new PortMessage(requestId, AsServiceError(requestJson, body, (int)response.StatusCode), IsError: true));
+            }
+        }
+        catch (ObjectDisposedException)
+        {
+            // The game is shutting down; nobody reads the answer any more.
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or OperationCanceledException)
         {
@@ -104,7 +134,26 @@ public sealed class HttpDecisionPort : IDecisionPort, IDisposable
     }
 
     /// <summary>A valid, retryable ServiceError for a request the service did not answer.</summary>
-    private static string Unreachable(string requestJson, ServiceErrorCode code, string reason)
+    private static string Unreachable(string requestJson, ServiceErrorCode code, string reason) =>
+        Synthesize(requestJson, code, "AI service not reachable (" + reason + ").", retryable: true);
+
+    /// <summary>
+    /// The error body as sent if it is a valid ServiceError; otherwise (e.g. a proxy or crash page) a
+    /// synthesized one: 5xx is retryable (internal), 4xx is not (bad_request).
+    /// </summary>
+    private static string AsServiceError(string requestJson, string body, int status)
+    {
+        if (ContractValidator.Validate("service-error", body).Count == 0)
+        {
+            return body;
+        }
+
+        return status >= 500
+            ? Synthesize(requestJson, ServiceErrorCode.Internal, "AI service answered HTTP " + status + " without a valid error body.", retryable: true)
+            : Synthesize(requestJson, ServiceErrorCode.Bad_request, "AI service answered HTTP " + status + " without a valid error body.", retryable: false);
+    }
+
+    private static string Synthesize(string requestJson, ServiceErrorCode code, string message, bool retryable)
     {
         var request = ContractSerializer.Deserialize<DecisionRequest>(requestJson);
         return ContractSerializer.Serialize(new ServiceError
@@ -113,8 +162,8 @@ public sealed class HttpDecisionPort : IDecisionPort, IDisposable
             RequestId = request.RequestId,
             Tick = request.Tick,
             Code = code,
-            Message = "AI service not reachable (" + reason + ").",
-            Retryable = true,
+            Message = message,
+            Retryable = retryable,
         });
     }
 }

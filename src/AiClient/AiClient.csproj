@@ -5,6 +5,8 @@
     <RootNamespace>GlassWorld.AiClient</RootNamespace>
     <AssemblyName>GlassWorld.AiClient</AssemblyName>
     <IsPackable>false</IsPackable>
+    <!-- LibraryImport (Job Object) generates marshalling code. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Simulation.Core\Simulation.Core.csproj" />

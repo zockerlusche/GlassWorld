@@ -24,6 +24,29 @@ public sealed class HttpDecisionPortTests
         Assert.Equal((ServiceErrorCode.Model_unavailable, true), (error.Code, error.Retryable));
     }
 
+    [Theory]
+    [InlineData(500, ServiceErrorCode.Internal, true)]
+    [InlineData(502, ServiceErrorCode.Internal, true)]
+    [InlineData(404, ServiceErrorCode.Bad_request, false)]
+    public async Task ErrorBodyWithoutValidJsonBecomesAContractServiceError(int status, ServiceErrorCode code, bool retryable)
+    {
+        using var port = NewPort(new FakeService(_ => new HttpResponseMessage((HttpStatusCode)status) { Content = new StringContent("<html>oops</html>") }));
+        port.Send("r1", SampleRequest());
+        await port.WhenIdleAsync(TimeSpan.FromSeconds(5));
+
+        var message = Assert.Single(port.Receive(0));
+        Assert.True(message.IsError);
+        var error = ContractSerializer.Deserialize<ServiceError>(message.Json);
+        Assert.Equal((code, retryable), (error.Code, error.Retryable));
+    }
+
+    [Theory]
+    [InlineData("http://localhost:5000/")]
+    [InlineData("http://0.0.0.0:5000/")]
+    [InlineData("http://192.168.1.2:5000/")]
+    public void OnlyTheLoopbackAddressIsAccepted(string address) =>
+        Assert.Throws<ArgumentException>(() => new HttpDecisionPort(new Uri(address), "t", TimeSpan.FromSeconds(1)));
+
     [Fact]
     public async Task ServiceErrorsAndAnswersArePassedThroughWithTokenAndPath()
     {
