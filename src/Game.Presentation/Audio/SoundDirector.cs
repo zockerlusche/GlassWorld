@@ -53,7 +53,7 @@ public sealed class SoundDirector(SoundLibrary library, SoundMixer mixer)
             var gain = mixer.Gain(bus, Distance(at, listener), zoom);
             if (gain > 0)
             {
-                candidates.Add(new PlayRequest(sound, VariantOf(e), bus, at, gain));
+                candidates.Add(new PlayRequest(sound, VariantOf(e, library.Recipe(sound).Variants), bus, at, gain));
             }
         }
 
@@ -82,5 +82,7 @@ public sealed class SoundDirector(SoundLibrary library, SoundMixer mixer)
         return Math.Sqrt((dx * dx) + (dz * dz));
     }
 
-    private static int VariantOf(WorldEvent e) => (int)(SplitMix64.SeedOf($"{e.Tick}/{e.InhabitantId}/{e.Action}") % 4);
+    /// <summary>Variant from a stable hash of the event; the number of variants comes from the recipe.</summary>
+    private static int VariantOf(WorldEvent e, int variants) =>
+        (int)(SplitMix64.SeedOf($"{e.Tick}/{e.InhabitantId}/{e.Action}") % (ulong)Math.Max(1, variants));
 }

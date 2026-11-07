@@ -75,7 +75,7 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
-    /// Mixing and spatial sound (B8 R7, B2512): buses with default volumes, how loud a sound is at a distance from the listener (camera), how far it can be heard, how zoom changes the hearing range, and how many sounds a bus plays at once.
+    /// Mixing and spatial sound (B8 R7, B2512): buses with default volumes, how loud a sound is at a distance from the listener (camera), how far it can be heard, how zoom changes the hearing range, and how many sounds a bus plays at once. All distances are metres; core positions are converted to metres via cell_size_cm of the world preset (B2), so changing the cell size does not change these values.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class SoundMix

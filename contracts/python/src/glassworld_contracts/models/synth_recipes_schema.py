@@ -77,6 +77,12 @@ class SynthRecipe(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
+    variants: int = Field(
+        ...,
+        description='How many variants of the sound exist (seeded); events pick one so repeats do not sound identical.',
+        ge=1,
+        le=16,
+    )
     id: str = Field(
         ...,
         description='Language-neutral sound id, e.g. step.grass, animal.frog.call.',

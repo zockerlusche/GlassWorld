@@ -94,6 +94,19 @@ public sealed class MixTests
     }
 
     [Fact]
+    public void VariantStaysWithinTheRecipeVariants()
+    {
+        var director = new SoundDirector(Library, Mixer);
+        var positions = new Dictionary<string, Position>(StringComparer.Ordinal) { ["inh-1"] = new(1, 0) };
+        var variants = Library.Recipe("action.drink").Variants;
+        var seen = Enumerable.Range(0, 200)
+            .Select(t => director.Plan([new WorldEvent(InhabitantsSystem.ActionStarted, t, "inh-1", "drink", null)], positions, new Position(0, 0), 0.5, new Dictionary<MixBusId, int>())[0].Variant)
+            .ToHashSet();
+        Assert.All(seen, v => Assert.InRange(v, 0, variants - 1));
+        Assert.Equal(variants, seen.Count);
+    }
+
+    [Fact]
     public void SameEventGivesTheSameVariant()
     {
         var director = new SoundDirector(Library, Mixer);

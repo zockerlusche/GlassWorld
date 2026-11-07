@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://glassworld.local/contracts/v0/sound-mix.schema.json",
   "title": "SoundMix",
-  "description": "Mixing and spatial sound (B8 R7, B2512): buses with default volumes, how loud a sound is at a distance from the listener (camera), how far it can be heard, how zoom changes the hearing range, and how many sounds a bus plays at once.",
+  "description": "Mixing and spatial sound (B8 R7, B2512): buses with default volumes, how loud a sound is at a distance from the listener (camera), how far it can be heard, how zoom changes the hearing range, and how many sounds a bus plays at once. All distances are metres; core positions are converted to metres via cell_size_cm of the world preset (B2), so changing the cell size does not change these values.",
   "type": "object",
   "additionalProperties": false,
   "required": [

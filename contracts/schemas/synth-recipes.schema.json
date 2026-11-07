@@ -47,10 +47,17 @@
         "duration_s",
         "loop",
         "layers",
+        "variants",
         "pitch_variation",
         "gain_variation"
       ],
       "properties": {
+        "variants": {
+          "description": "How many variants of the sound exist (seeded); events pick one so repeats do not sound identical.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16
+        },
         "id": {
           "description": "Language-neutral sound id, e.g. step.grass, animal.frog.call.",
           "type": "string",

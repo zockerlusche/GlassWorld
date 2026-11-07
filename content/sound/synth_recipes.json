@@ -23,6 +23,7 @@
           "tremolo_hz": null
         }
       ],
+      "variants": 4,
       "pitch_variation": 0.05,
       "gain_variation": 0.1
     },
@@ -46,6 +47,7 @@
           "tremolo_hz": null
         }
       ],
+      "variants": 4,
       "pitch_variation": 0.05,
       "gain_variation": 0.1
     },
@@ -82,6 +84,7 @@
           "tremolo_hz": null
         }
       ],
+      "variants": 4,
       "pitch_variation": 0.05,
       "gain_variation": 0.1
     },
@@ -118,6 +121,7 @@
           "tremolo_hz": null
         }
       ],
+      "variants": 4,
       "pitch_variation": 0.05,
       "gain_variation": 0.1
     },
@@ -141,6 +145,7 @@
           "tremolo_hz": null
         }
       ],
+      "variants": 4,
       "pitch_variation": 0.05,
       "gain_variation": 0.1
     },
@@ -164,6 +169,7 @@
           "tremolo_hz": 9
         }
       ],
+      "variants": 4,
       "pitch_variation": 0.05,
       "gain_variation": 0.1
     },
@@ -200,6 +206,7 @@
           "tremolo_hz": null
         }
       ],
+      "variants": 4,
       "pitch_variation": 0.05,
       "gain_variation": 0.1
     },
@@ -223,6 +230,7 @@
           "tremolo_hz": null
         }
       ],
+      "variants": 4,
       "pitch_variation": 0.02,
       "gain_variation": 0.1
     },
@@ -246,6 +254,7 @@
           "tremolo_hz": null
         }
       ],
+      "variants": 4,
       "pitch_variation": 0.05,
       "gain_variation": 0.1
     },
@@ -282,6 +291,7 @@
           "tremolo_hz": null
         }
       ],
+      "variants": 4,
       "pitch_variation": 0.05,
       "gain_variation": 0.1
     },
@@ -305,6 +315,7 @@
           "tremolo_hz": null
         }
       ],
+      "variants": 4,
       "pitch_variation": 0.1,
       "gain_variation": 0.1
     },
@@ -328,6 +339,7 @@
           "tremolo_hz": null
         }
       ],
+      "variants": 4,
       "pitch_variation": 0.1,
       "gain_variation": 0.1
     },
@@ -364,6 +376,7 @@
           "tremolo_hz": null
         }
       ],
+      "variants": 4,
       "pitch_variation": 0.1,
       "gain_variation": 0.1
     },
@@ -400,6 +413,7 @@
           "tremolo_hz": null
         }
       ],
+      "variants": 4,
       "pitch_variation": 0.1,
       "gain_variation": 0.1
     },
@@ -436,6 +450,7 @@
           "tremolo_hz": null
         }
       ],
+      "variants": 4,
       "pitch_variation": 0.1,
       "gain_variation": 0.1
     },
@@ -459,6 +474,7 @@
           "tremolo_hz": null
         }
       ],
+      "variants": 4,
       "pitch_variation": 0.1,
       "gain_variation": 0.1
     },
@@ -482,6 +498,7 @@
           "tremolo_hz": null
         }
       ],
+      "variants": 1,
       "pitch_variation": 0,
       "gain_variation": 0
     },
@@ -505,6 +522,7 @@
           "tremolo_hz": 0.3
         }
       ],
+      "variants": 1,
       "pitch_variation": 0,
       "gain_variation": 0
     },
@@ -528,6 +546,7 @@
           "tremolo_hz": null
         }
       ],
+      "variants": 1,
       "pitch_variation": 0,
       "gain_variation": 0
     },
@@ -564,6 +583,7 @@
           "tremolo_hz": null
         }
       ],
+      "variants": 1,
       "pitch_variation": 0,
       "gain_variation": 0
     },
@@ -587,6 +607,7 @@
           "tremolo_hz": null
         }
       ],
+      "variants": 1,
       "pitch_variation": 0,
       "gain_variation": 0
     },
@@ -610,6 +631,7 @@
           "tremolo_hz": 0.2
         }
       ],
+      "variants": 1,
       "pitch_variation": 0,
       "gain_variation": 0
     },
@@ -633,6 +655,7 @@
           "tremolo_hz": null
         }
       ],
+      "variants": 1,
       "pitch_variation": 0,
       "gain_variation": 0
     },
@@ -656,6 +679,7 @@
           "tremolo_hz": 12
         }
       ],
+      "variants": 1,
       "pitch_variation": 0,
       "gain_variation": 0
     },
@@ -679,6 +703,7 @@
           "tremolo_hz": 0.15
         }
       ],
+      "variants": 1,
       "pitch_variation": 0,
       "gain_variation": 0
     },
@@ -702,6 +727,7 @@
           "tremolo_hz": 0.4
         }
       ],
+      "variants": 1,
       "pitch_variation": 0,
       "gain_variation": 0
     },
@@ -725,6 +751,7 @@
           "tremolo_hz": 0.35
         }
       ],
+      "variants": 1,
       "pitch_variation": 0,
       "gain_variation": 0
     },
@@ -748,6 +775,7 @@
           "tremolo_hz": 3
         }
       ],
+      "variants": 1,
       "pitch_variation": 0,
       "gain_variation": 0
     },
@@ -771,6 +799,7 @@
           "tremolo_hz": 0.2
         }
       ],
+      "variants": 1,
       "pitch_variation": 0,
       "gain_variation": 0
     },
@@ -794,6 +823,7 @@
           "tremolo_hz": 0.5
         }
       ],
+      "variants": 1,
       "pitch_variation": 0,
       "gain_variation": 0
     },
@@ -830,6 +860,7 @@
           "tremolo_hz": null
         }
       ],
+      "variants": 4,
       "pitch_variation": 0.08,
       "gain_variation": 0.1
     },
@@ -866,6 +897,7 @@
           "tremolo_hz": null
         }
       ],
+      "variants": 4,
       "pitch_variation": 0.1,
       "gain_variation": 0.1
     },
@@ -889,6 +921,7 @@
           "tremolo_hz": 11
         }
       ],
+      "variants": 4,
       "pitch_variation": 0.1,
       "gain_variation": 0.1
     },
@@ -912,6 +945,7 @@
           "tremolo_hz": 7
         }
       ],
+      "variants": 4,
       "pitch_variation": 0.06,
       "gain_variation": 0.1
     },
@@ -961,6 +995,7 @@
           "tremolo_hz": null
         }
       ],
+      "variants": 4,
       "pitch_variation": 0.12,
       "gain_variation": 0.1
     },
@@ -984,6 +1019,7 @@
           "tremolo_hz": 14
         }
       ],
+      "variants": 4,
       "pitch_variation": 0.1,
       "gain_variation": 0.1
     },
@@ -1007,6 +1043,7 @@
           "tremolo_hz": 30
         }
       ],
+      "variants": 4,
       "pitch_variation": 0.08,
       "gain_variation": 0.1
     },
@@ -1030,6 +1067,7 @@
           "tremolo_hz": 24
         }
       ],
+      "variants": 4,
       "pitch_variation": 0.08,
       "gain_variation": 0.1
     },
@@ -1053,6 +1091,7 @@
           "tremolo_hz": 2
         }
       ],
+      "variants": 4,
       "pitch_variation": 0.05,
       "gain_variation": 0.1
     },
@@ -1089,6 +1128,7 @@
           "tremolo_hz": null
         }
       ],
+      "variants": 4,
       "pitch_variation": 0.04,
       "gain_variation": 0.1
     },
@@ -1125,6 +1165,7 @@
           "tremolo_hz": null
         }
       ],
+      "variants": 4,
       "pitch_variation": 0.1,
       "gain_variation": 0.1
     },
@@ -1161,6 +1202,7 @@
           "tremolo_hz": null
         }
       ],
+      "variants": 4,
       "pitch_variation": 0.08,
       "gain_variation": 0.1
     },
@@ -1184,6 +1226,7 @@
           "tremolo_hz": 9
         }
       ],
+      "variants": 4,
       "pitch_variation": 0.08,
       "gain_variation": 0.1
     }
