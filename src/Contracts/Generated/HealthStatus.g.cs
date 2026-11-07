@@ -54,6 +54,48 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
+    /// Hardware detected at service start and the resulting tier (content/hardware/tiers.json).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class Hardware
+    {
+
+        /// <summary>
+        /// Id of the highest tier whose requirements are met; null if below the lowest tier.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("tier")]
+        public string? Tier { get; set; } = default!;
+
+        /// <summary>
+        /// Detected NVIDIA GPUs; empty if none or nvidia-smi is missing.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("gpus")]
+        public System.Collections.Generic.ICollection<Gpu> Gpus { get; set; } = new System.Collections.ObjectModel.Collection<Gpu>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("cpu_name")]
+        public string? CpuName { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("logical_cpus")]
+        public int? LogicalCpus { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("ram_mib")]
+        public long? RamMib { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class Gpu
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        public string Name { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("vram_mib")]
+        public int VramMib { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// AI service -&gt; game: answer of GET /health (ADR-0006). The game refuses a service whose contract_version differs from its own.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -81,6 +123,9 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("decider_model")]
         public ModelState DeciderModel { get; set; } = new ModelState();
+
+        [System.Text.Json.Serialization.JsonPropertyName("hardware")]
+        public Hardware Hardware { get; set; } = new Hardware();
 
     }
 
