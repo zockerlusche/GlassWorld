@@ -1,11 +1,11 @@
 {
   "target": {
-    "once_dbfs": -20,
+    "one_shot_dbfs": -20,
     "loop_dbfs": -26,
     "tolerance_db": 1.5,
     "peak_max_dbfs": -1,
     "gate_dbfs": -50,
-    "once_max_s": 4,
+    "one_shot_max_s": 4,
     "loop_max_s": 12
   },
   "origins": [
@@ -37,7 +37,7 @@
   "sounds": [
     {
       "id": "step.grass",
-      "kind": "once",
+      "kind": "one_shot",
       "origin": "kenney_impact",
       "keywords": [
         "grass",
@@ -54,7 +54,7 @@
     },
     {
       "id": "step.wood",
-      "kind": "once",
+      "kind": "one_shot",
       "origin": "kenney_impact",
       "keywords": [
         "boards",
@@ -71,7 +71,7 @@
     },
     {
       "id": "step.rock",
-      "kind": "once",
+      "kind": "one_shot",
       "origin": "kenney_impact",
       "keywords": [
         "stone",
@@ -87,7 +87,7 @@
     },
     {
       "id": "step.snow",
-      "kind": "once",
+      "kind": "one_shot",
       "origin": "kenney_impact",
       "keywords": [
         "snow",
@@ -103,7 +103,7 @@
     },
     {
       "id": "object.knock_stone",
-      "kind": "once",
+      "kind": "one_shot",
       "origin": "kenney_impact",
       "keywords": [
         "knock",
@@ -122,7 +122,7 @@
     },
     {
       "id": "object.knock_wood",
-      "kind": "once",
+      "kind": "one_shot",
       "origin": "kenney_impact",
       "keywords": [
         "thud",
@@ -139,7 +139,7 @@
     },
     {
       "id": "object.chop_wood",
-      "kind": "once",
+      "kind": "one_shot",
       "origin": "kenney_rpg",
       "keywords": [
         "chop",
@@ -153,7 +153,7 @@
     },
     {
       "id": "object.creak",
-      "kind": "once",
+      "kind": "one_shot",
       "origin": "kenney_rpg",
       "keywords": [
         "creak",
@@ -251,7 +251,7 @@
     },
     {
       "id": "animal.songbird.song",
-      "kind": "once",
+      "kind": "one_shot",
       "origin": "moss",
       "keywords": [
         "bird",
@@ -268,7 +268,7 @@
     },
     {
       "id": "animal.gull.call",
-      "kind": "once",
+      "kind": "one_shot",
       "origin": "moss",
       "keywords": [
         "gull",
@@ -283,7 +283,7 @@
     },
     {
       "id": "step.sand",
-      "kind": "once",
+      "kind": "one_shot",
       "origin": "moss",
       "keywords": [
         "sand"
@@ -296,7 +296,7 @@
     },
     {
       "id": "step.water",
-      "kind": "once",
+      "kind": "one_shot",
       "origin": "moss",
       "keywords": [
         "splash",
@@ -311,7 +311,7 @@
     },
     {
       "id": "object.strike_spark",
-      "kind": "once",
+      "kind": "one_shot",
       "origin": "moss",
       "keywords": [
         "spark",
@@ -327,7 +327,7 @@
     },
     {
       "id": "action.rustle",
-      "kind": "once",
+      "kind": "one_shot",
       "origin": "moss",
       "keywords": [
         "rustle",

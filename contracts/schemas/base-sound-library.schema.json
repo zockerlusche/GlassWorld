@@ -39,16 +39,16 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "once_dbfs",
+        "one_shot_dbfs",
         "loop_dbfs",
         "tolerance_db",
         "peak_max_dbfs",
         "gate_dbfs",
-        "once_max_s",
+        "one_shot_max_s",
         "loop_max_s"
       ],
       "properties": {
-        "once_dbfs": {
+        "one_shot_dbfs": {
           "description": "Gated RMS loudness of single sounds (dBFS).",
           "type": "number",
           "minimum": -60,
@@ -77,7 +77,7 @@
           "minimum": -90,
           "maximum": -20
         },
-        "once_max_s": {
+        "one_shot_max_s": {
           "description": "Longest single sound (B2530: a few seconds).",
           "type": "number",
           "minimum": 0.1,
@@ -157,10 +157,10 @@
           "maxLength": 64
         },
         "kind": {
-          "description": "once = a single sound; loop = repeats seamlessly while it plays.",
+          "description": "one_shot = a single sound; loop = repeats seamlessly while it plays.",
           "type": "string",
           "enum": [
-            "once",
+            "one_shot",
             "loop"
           ]
         },

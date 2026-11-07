@@ -32,13 +32,13 @@ foreach (var entry in selection["sounds"]!.AsArray())
     var kind = entry["kind"]!.GetValue<string>();
     var origin = origins[entry["origin"]!.GetValue<string>()];
     var archive = origin["archive"]?.GetValue<string>();
-    var wanted = target[kind == "loop" ? "loop_dbfs" : "once_dbfs"]!.GetValue<double>();
+    var wanted = target[kind == "loop" ? "loop_dbfs" : "one_shot_dbfs"]!.GetValue<double>();
     var files = new JsonArray();
     var inputs = entry["inputs"]!.AsArray().Select(i => i!.GetValue<string>()).ToList();
     for (var n = 0; n < inputs.Count; n++)
     {
         var sound = Load(sourceDir, archive, inputs[n]);
-        if (kind == "once")
+        if (kind == "one_shot")
         {
             sound = Trim(sound, gate);
         }

@@ -22,8 +22,8 @@ namespace GlassWorld.Contracts
         /// <summary>
         /// Gated RMS loudness of single sounds (dBFS).
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("once_dbfs")]
-        public double OnceDbfs { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("one_shot_dbfs")]
+        public double OneShotDbfs { get; set; } = default!;
 
         /// <summary>
         /// Gated RMS loudness of loops (dBFS); quieter, they run for long.
@@ -49,8 +49,8 @@ namespace GlassWorld.Contracts
         /// <summary>
         /// Longest single sound (B2530: a few seconds).
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("once_max_s")]
-        public double OnceMaxS { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("one_shot_max_s")]
+        public double OneShotMaxS { get; set; } = default!;
 
         /// <summary>
         /// Longest loop.
@@ -102,7 +102,7 @@ namespace GlassWorld.Contracts
         public string Id { get; set; } = default!;
 
         /// <summary>
-        /// once = a single sound; loop = repeats seamlessly while it plays.
+        /// one_shot = a single sound; loop = repeats seamlessly while it plays.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("kind")]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<LibrarySoundKind>))]
@@ -201,8 +201,8 @@ namespace GlassWorld.Contracts
     public enum LibrarySoundKind
     {
 
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("once")]
-        Once = 0,
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("one_shot")]
+        One_shot = 0,
 
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("loop")]

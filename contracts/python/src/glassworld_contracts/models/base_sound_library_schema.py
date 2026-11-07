@@ -13,7 +13,7 @@ class LibraryTarget(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
-    once_dbfs: float = Field(
+    one_shot_dbfs: float = Field(
         ..., description='Gated RMS loudness of single sounds (dBFS).', ge=-60.0, le=0.0
     )
     loop_dbfs: float = Field(
@@ -35,7 +35,7 @@ class LibraryTarget(BaseModel):
         ge=-90.0,
         le=-20.0,
     )
-    once_max_s: float = Field(
+    one_shot_max_s: float = Field(
         ..., description='Longest single sound (B2530: a few seconds).', ge=0.1, le=30.0
     )
     loop_max_s: float = Field(..., description='Longest loop.', ge=0.5, le=120.0)
@@ -58,7 +58,7 @@ type ArchiveSha256 = Annotated[
 
 
 class Kind(StrEnum):
-    once = 'once'
+    one_shot = 'one_shot'
     loop = 'loop'
 
 
@@ -137,7 +137,7 @@ class LibrarySound(BaseModel):
     )
     kind: Kind = Field(
         ...,
-        description='once = a single sound; loop = repeats seamlessly while it plays.',
+        description='one_shot = a single sound; loop = repeats seamlessly while it plays.',
     )
     origin: str = Field(
         ...,
