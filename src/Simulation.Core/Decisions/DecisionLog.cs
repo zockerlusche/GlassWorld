@@ -17,6 +17,18 @@ public enum DecisionLogKind
 
     /// <summary>A player command took effect (part of the replay, it changes the world).</summary>
     Command,
+
+    /// <summary>A generation job the core submitted (job log).</summary>
+    JobRequest,
+
+    /// <summary>A final job state that took effect (job log).</summary>
+    JobResult,
+
+    /// <summary>A service error or failed job that took effect (job log).</summary>
+    JobError,
+
+    /// <summary>A job outcome the core did not use (unknown job, contract violation).</summary>
+    JobDiscarded,
 }
 
 /// <summary>One entry of the authoritative replay log (ADR-0006: the core keeps it).</summary>
@@ -56,7 +68,7 @@ public sealed class ReplayDecisionPort : IDecisionPort
     {
         ArgumentNullException.ThrowIfNull(log);
         _byTick = log.Entries
-            .Where(e => e.Kind is not DecisionLogKind.Request and not DecisionLogKind.Command)
+            .Where(e => e.Kind is DecisionLogKind.Response or DecisionLogKind.Error or DecisionLogKind.Discarded)
             .ToLookup(e => e.Tick, e => new PortMessage(e.RequestId, e.Json, e.Kind == DecisionLogKind.Error && e.Note == ReplayNotes.ServiceError));
     }
 
