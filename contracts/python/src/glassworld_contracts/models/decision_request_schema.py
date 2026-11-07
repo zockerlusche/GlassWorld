@@ -84,7 +84,7 @@ class LevelEntry(BaseModel):
     value: float = Field(..., ge=0.0, le=1.0)
 
 
-class Environment(BaseModel):
+class EnvironmentState(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
@@ -166,7 +166,7 @@ class DecisionRequest(BaseModel):
     )
     display_locale: common_schema.Locale
     inhabitant: InhabitantState
-    environment: Environment
+    environment: EnvironmentState
     perception: Perception
     options: list[Option] = Field(
         ...,
