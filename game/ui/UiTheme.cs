@@ -83,6 +83,7 @@ public static class UiTheme
         theme.SetConstant("h_separation", "Button", style.Tokens.Window.Gap);
         theme.SetStylebox("focus", "Button", FocusRing(style));
         TreeStyle(theme, style);
+        BarStyle(theme, style);
         theme.SetConstant("separation", "VBoxContainer", style.Tokens.Window.Gap);
         theme.SetConstant("separation", "HBoxContainer", style.Tokens.Window.Gap);
         return theme;
@@ -187,6 +188,28 @@ public static class UiTheme
         theme.SetColor("title_button_color", "Tree", ToGodot(style.Color(UiColorId.Text)));
         theme.SetColor("font_selected_color", "Tree", ToGodot(style.Color(UiColorId.Panel)));
         theme.SetColor("guide_color", "Tree", ToGodot(style.Color(UiColorId.Border)));
+    }
+
+    /// <summary>
+    /// Value bars of the inhabitant card: dark text on light token colours with a thin border, so the
+    /// percentage stays readable (M1 photos: the engine default drew light text on light grey). Follows the
+    /// palette and high contrast.
+    /// </summary>
+    private static void BarStyle(Theme theme, UiStyle style)
+    {
+        StyleBoxFlat Box(UiColorId fill)
+        {
+            var box = new StyleBoxFlat { BgColor = ToGodot(style.Color(fill)), BorderColor = ToGodot(style.Color(UiColorId.Border)) };
+            box.SetBorderWidthAll(1);
+            box.SetCornerRadiusAll(3);
+            return box;
+        }
+
+        theme.SetStylebox("background", "ProgressBar", Box(UiColorId.Panel));
+        theme.SetStylebox("fill", "ProgressBar", Box(UiColorId.Panel_strong));
+        theme.SetColor("font_color", "ProgressBar", ToGodot(style.Color(UiColorId.Text)));
+        theme.SetColor("font_outline_color", "ProgressBar", ToGodot(style.Color(UiColorId.Panel)));
+        theme.SetConstant("outline_size", "ProgressBar", 0);
     }
 
     private static StyleBoxFlat FocusRing(UiStyle style)
