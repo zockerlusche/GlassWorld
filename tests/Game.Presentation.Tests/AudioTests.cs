@@ -12,10 +12,35 @@ public sealed class AudioTests
     private static readonly string[] AnimalList =
         ["gull", "crab", "butterfly", "bee", "songbird", "squirrel", "dragonfly", "frog", "firefly", "owl", "fish", "wild_chicken", "goat"];
 
+    /// <summary>Animals the spec keeps silent near the camera (B8 R4: firefly "still"; Marcel W1645 rejected its tone).</summary>
+    private static readonly string[] SilentBySpec = ["firefly"];
+
     private static readonly string Root = TestPaths.Root;
     private static readonly string MapJson = File.ReadAllText(Path.Combine(Root, "content", "sound", "sound_map.json"));
     private static readonly string RecipesJson = File.ReadAllText(Path.Combine(Root, "content", "sound", "synth_recipes.json"));
     private static readonly Lazy<SoundLibrary> Library = new(() => SoundLibrary.FromJson(MapJson, RecipesJson));
+
+    [Fact]
+    public void EverySoundHasTheSameLoudnessTarget()
+    {
+        // Marcel W1645: one integrated target for all sounds (data), peak only as the limit.
+        double Read(params string[] path)
+        {
+            var node = JsonNode.Parse(File.ReadAllText(Path.Combine([Root, "content", .. path[..^1]])))!;
+            foreach (var key in path[^1].Split('.'))
+            {
+                node = node![key]!;
+            }
+
+            return (double)node!;
+        }
+
+        var target = Read("sound", "library.json", "target.one_shot_dbfs");
+        Assert.Equal(target, Read("sound", "library.json", "target.loop_dbfs"));
+        Assert.Equal(target, Read("voice", "murmur.json", "loudness_dbfs"));
+        Assert.Equal(target, Read("music", "music.json", "loudness_dbfs"));
+        Assert.Equal(target, Read("sound", "animals.json", "birdsong.loudness_dbfs"));
+    }
 
     [Fact]
     public void EveryActionOfTheVocabularyHasASound()
@@ -102,7 +127,7 @@ public sealed class AudioTests
     {
         // A1350 criterion 1: every animal of B2481 has a time and place in the world and a sound that is not silent.
         var seasons = JsonNode.Parse(File.ReadAllText(Path.Combine(Root, "content", "world", "time.json")))!["seasons"]!.AsArray().Select(s => (string)s!["id"]!).ToList();
-        foreach (var animal in AnimalList)
+        foreach (var animal in AnimalList.Where(a => !SilentBySpec.Contains(a)))
         {
             var heard = WorldBiomes().Any(b => seasons.Any(s => VocabularyIds("time_of_day.json").Any(t => Library.Value.AudibleAnimals(b, s, t).Any(a => a.Animal == animal))));
             Assert.True(heard, animal + " is never audible");

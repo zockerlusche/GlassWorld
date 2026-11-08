@@ -22,7 +22,8 @@ foreach (var old in Directory.GetFiles(output, "*.wav").Where(f => System.Text.R
 
 var library = ContractSerializer.Deserialize<BaseSoundLibrary>(File.ReadAllText(Path.Combine(soundData, "library.json")));
 var origins = library.Origins.ToDictionary(o => o.Id, o => $"{o.Name}, {o.License}", StringComparer.Ordinal);
-var map = SoundLibrary.FromJson(File.ReadAllText(Path.Combine(soundData, "sound_map.json")), File.ReadAllText(Path.Combine(soundData, "synth_recipes.json")));
+// With the library's loudness target, exactly as the game renders them (RetroAudio): the first folder missed it.
+var map = SoundLibrary.FromJson(File.ReadAllText(Path.Combine(soundData, "sound_map.json")), File.ReadAllText(Path.Combine(soundData, "synth_recipes.json")), loudness: library.Target);
 var used = map.UsedSoundIds().ToHashSet(StringComparer.Ordinal);
 var rows = new List<string>();
 var number = 0;
@@ -78,6 +79,29 @@ foreach (var mood in music.Moods)
     Row(file, "Musik: " + mood.Id switch { "dawn" => "Morgendämmerung", "day" => "Tag", "dusk" => "Abenddämmerung", "night" => "Nacht", _ => mood.Id }, "prozedural aus content/music/music.json, eigene Arbeit");
 }
 
+// 4b. Variant B of the music for listening test 2 (TL W1646): another composition per mood, written to
+// a separate folder given as --music-b=<dir> (slower, the other wave, longer chords, more rests, other seed).
+var musicB = args.FirstOrDefault(a => a.StartsWith("--music-b=", StringComparison.Ordinal))?["--music-b=".Length..];
+if (musicB is not null)
+{
+    Directory.CreateDirectory(musicB);
+    foreach (var mood in music.Moods)
+    {
+        var alt = new MusicMood
+        {
+            Id = mood.Id,
+            RootHz = mood.RootHz,
+            Scale = mood.Scale,
+            TempoBpm = Math.Max(40, mood.TempoBpm * 0.8),
+            NoteBeats = mood.NoteBeats,
+            RestChance = Math.Min(0.9, mood.RestChance + 0.15),
+            Melody = new MusicVoice { Wave = mood.Melody.Wave == MusicVoiceWave.Sine ? MusicVoiceWave.Triangle : MusicVoiceWave.Sine, Octave = mood.Melody.Octave, Gain = mood.Melody.Gain, AttackS = mood.Melody.AttackS, ReleaseS = mood.Melody.ReleaseS },
+            Pad = new MusicPad { Wave = mood.Pad.Wave, Gain = mood.Pad.Gain, Chord = mood.Pad.Chord, Bars = Math.Min(16, mood.Pad.Bars * 2), AttackS = mood.Pad.AttackS, ReleaseS = mood.Pad.ReleaseS },
+        };
+        Write(Path.Combine(Path.GetRelativePath(output, musicB), $"musik_{mood.Id}.wav"), MusicComposer.Render(music, alt, 2, 30), (int)music.SampleRate);
+    }
+}
+
 // 5. Murmur (heard with the speech bubbles, A1342; not in the test build yet).
 rows.Add("| | **Gemurmel (Stimme ohne Wörter; im Testbuild noch nicht zu hören)** | | | |");
 var murmur = new Murmur(ContractSerializer.Deserialize<MurmurSettings>(File.ReadAllText(Path.Combine(content, "voice", "murmur.json"))));
@@ -92,10 +116,11 @@ foreach (var (who, sex, label) in new[] { ("inh-000001", "female", "Bewohnerin 1
 }
 
 // 6. Extra MOSS samples (made live for inventions, D471 D7).
-if (args.Length > 1)
+var extras = args.Skip(1).Where(a => !a.StartsWith("--", StringComparison.Ordinal)).ToArray();
+if (extras.Length > 0)
 {
     rows.Add("| | **MOSS-Proben (für Erfindungen erzeugt)** | | | |");
-    foreach (var extra in args[1..])
+    foreach (var extra in extras)
     {
         var stem = Path.GetFileNameWithoutExtension(extra).Replace("snd-", string.Empty, StringComparison.Ordinal);
         var file = Next("moss_" + stem[..Math.Min(8, stem.Length)]);

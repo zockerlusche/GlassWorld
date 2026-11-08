@@ -147,3 +147,9 @@ class MusicSettings(BaseModel):
         max_length=64,
         min_length=1,
     )
+    loudness_dbfs: float = Field(
+        ...,
+        description='Gated RMS loudness the sound is normalised to: the same target as every other sound (Marcel W1645); peak stays the upper limit.',
+        ge=-40.0,
+        le=-6.0,
+    )

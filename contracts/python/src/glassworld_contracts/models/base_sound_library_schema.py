@@ -81,6 +81,25 @@ type Seed = Annotated[
 ]
 
 
+class LibraryOrigin(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    id: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    name: str = Field(..., max_length=120, min_length=1)
+    url: str = Field(..., max_length=200, pattern='^https://')
+    license: License = Field(..., description='Licence of the files (SPDX id).')
+    archive_sha256: ArchiveSha256 | None = Field(
+        ...,
+        description='SHA-256 of the downloaded archive; null for files generated here (model revision in the name).',
+    )
+
+
 class LibraryFile(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -104,24 +123,11 @@ class LibraryFile(BaseModel):
     seed: Seed | None = Field(
         ..., description='Seed for generated files; null for recorded ones.'
     )
-
-
-class LibraryOrigin(BaseModel):
-    model_config = ConfigDict(
-        extra='forbid',
-    )
-    id: str = Field(
-        ...,
-        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+    origin: str | None = Field(
+        None,
+        description="Origin of this file when it differs from the sound's origin (A and B chosen as variants). Must be the id of an entry in this file's `origins` list (checked by BaseSoundCheck).",
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
-    )
-    name: str = Field(..., max_length=120, min_length=1)
-    url: str = Field(..., max_length=200, pattern='^https://')
-    license: License = Field(..., description='Licence of the files (SPDX id).')
-    archive_sha256: ArchiveSha256 | None = Field(
-        ...,
-        description='SHA-256 of the downloaded archive; null for files generated here (model revision in the name).',
     )
 
 

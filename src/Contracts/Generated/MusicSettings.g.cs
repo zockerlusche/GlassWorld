@@ -186,6 +186,12 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("rules")]
         public System.Collections.Generic.ICollection<MusicRule> Rules { get; set; } = new System.Collections.ObjectModel.Collection<MusicRule>();
 
+        /// <summary>
+        /// Gated RMS loudness the sound is normalised to: the same target as every other sound (Marcel W1645); peak stays the upper limit.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("loudness_dbfs")]
+        public double LoudnessDbfs { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]

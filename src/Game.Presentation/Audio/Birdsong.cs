@@ -73,15 +73,7 @@ public static class Birdsong
             position += length + (int)Math.Round(settings.GapS * sampleRate);
         }
 
-        var loudest = mix.Max(Math.Abs);
-        var scale = loudest > 0 ? settings.Peak / loudest : 0;
-        var pcm = new short[mix.Length];
-        for (var i = 0; i < mix.Length; i++)
-        {
-            pcm[i] = (short)Math.Round(Math.Clamp(mix[i] * scale, -1, 1) * short.MaxValue);
-        }
-
-        return pcm;
+        return MusicComposer.ToLoudness(mix, sampleRate, settings.LoudnessDbfs, settings.Peak);
     }
 
     private static double Between(double min, double max, SplitMix64 random) =>

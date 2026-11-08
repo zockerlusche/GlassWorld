@@ -18,6 +18,7 @@
     "glide_semitones": 3,
     "trill_chance": 0.25,
     "trill_notes": 4,
-    "peak": 0.35
+    "peak": 0.35,
+    "loudness_dbfs": -20
   }
 }

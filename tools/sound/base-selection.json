@@ -1,7 +1,7 @@
 {
   "target": {
     "one_shot_dbfs": -20,
-    "loop_dbfs": -26,
+    "loop_dbfs": -20,
     "tolerance_db": 1.5,
     "peak_max_dbfs": -1,
     "gate_dbfs": -50,
@@ -32,132 +32,410 @@
       "license": "MIT",
       "archive": null,
       "archive_sha256": null
+    },
+    {
+      "id": "bigsoundbank",
+      "name": "BigSoundBank (Joseph Sardin), single recordings",
+      "url": "https://bigsoundbank.com",
+      "license": "CC0-1.0",
+      "archive": null,
+      "archive_sha256": null
+    },
+    {
+      "id": "opengameart",
+      "name": "OpenGameArt.org, single CC0 recordings",
+      "url": "https://opengameart.org",
+      "license": "CC0-1.0",
+      "archive": null,
+      "archive_sha256": null
+    },
+    {
+      "id": "own_synth",
+      "name": "GlassWorld retro synthesis (content/sound/synth_recipes.json), own work",
+      "url": "https://github.com/zockerlusche/GlassWorld",
+      "license": "MIT",
+      "archive": null,
+      "archive_sha256": null
     }
   ],
   "sounds": [
     {
-      "id": "step.grass",
+      "id": "action.drink",
       "kind": "one_shot",
-      "origin": "kenney_impact",
+      "origin": "opengameart",
       "inputs": [
-        "Audio/footstep_grass_000.ogg",
-        "Audio/footstep_grass_001.ogg",
-        "Audio/footstep_grass_002.ogg",
-        "Audio/footstep_grass_003.ogg",
-        "Audio/footstep_grass_004.ogg"
+        {
+          "file": "r2/action.drink__B.wav",
+          "origin": "opengameart",
+          "source": "https://opengameart.org/content/liquid-bottle-drink-set"
+        }
       ],
       "sound_words": [
-        "footstep",
-        "step",
-        "steps",
-        "footsteps"
+        "gulp",
+        "sip",
+        "swallow"
       ],
       "context_words": [
-        "grass"
+        "drink",
+        "water"
       ]
     },
     {
-      "id": "step.wood",
+      "id": "action.eat",
       "kind": "one_shot",
-      "origin": "kenney_impact",
+      "origin": "bigsoundbank",
       "inputs": [
-        "Audio/footstep_wood_000.ogg",
-        "Audio/footstep_wood_001.ogg",
-        "Audio/footstep_wood_002.ogg",
-        "Audio/footstep_wood_003.ogg",
-        "Audio/footstep_wood_004.ogg"
+        {
+          "file": "r2/action.eat__B.wav",
+          "origin": "bigsoundbank",
+          "source": "https://bigsoundbank.com/apple-crunched-2-s1114.html"
+        }
       ],
       "sound_words": [
-        "footstep",
-        "step"
+        "bite",
+        "chew",
+        "crunch"
       ],
       "context_words": [
-        "boards",
-        "plank",
-        "floor"
+        "eat",
+        "food",
+        "apple"
       ]
     },
     {
-      "id": "step.rock",
+      "id": "action.inspect",
       "kind": "one_shot",
-      "origin": "kenney_impact",
+      "origin": "moss",
       "inputs": [
-        "Audio/footstep_concrete_000.ogg",
-        "Audio/footstep_concrete_001.ogg",
-        "Audio/footstep_concrete_002.ogg",
-        "Audio/footstep_concrete_003.ogg",
-        "Audio/footstep_concrete_004.ogg"
+        {
+          "file": "r2/action.inspect__B.wav",
+          "origin": "moss",
+          "prompt": "Hands gently turning a small leaf, faint soft rustle, very quiet, close, no other sounds.",
+          "seed": 125
+        }
       ],
       "sound_words": [
-        "footstep",
-        "step"
+        "rustle",
+        "turn"
       ],
       "context_words": [
-        "stone",
-        "rock"
+        "inspect",
+        "look",
+        "leaf"
       ]
     },
     {
-      "id": "step.snow",
+      "id": "action.rustle",
       "kind": "one_shot",
-      "origin": "kenney_impact",
+      "origin": "moss",
       "inputs": [
-        "Audio/footstep_snow_000.ogg",
-        "Audio/footstep_snow_001.ogg",
-        "Audio/footstep_snow_002.ogg",
-        "Audio/footstep_snow_003.ogg",
-        "Audio/footstep_snow_004.ogg"
+        {
+          "file": "action.rustle.wav",
+          "origin": "moss",
+          "prompt": "A person brushing through dry grass, short rustle, close, calm, no other sounds.",
+          "seed": 10
+        }
       ],
       "sound_words": [
-        "crunch",
-        "footstep",
-        "step"
+        "rustle",
+        "swish",
+        "brush"
       ],
       "context_words": [
-        "snow"
+        "grass",
+        "straw"
       ]
     },
     {
-      "id": "object.knock_stone",
-      "kind": "one_shot",
-      "origin": "kenney_impact",
+      "id": "ambience.leaves",
+      "kind": "loop",
+      "origin": "moss",
       "inputs": [
-        "Audio/impactMining_000.ogg",
-        "Audio/impactMining_001.ogg",
-        "Audio/impactMining_002.ogg",
-        "Audio/impactMining_003.ogg",
-        "Audio/impactMining_004.ogg"
+        {
+          "file": "ambience.leaves.wav",
+          "origin": "moss",
+          "prompt": "Leaves rustling in the treetops in a light breeze, forest, calm, no birds, no voices, no music.",
+          "seed": 8
+        }
       ],
       "sound_words": [
-        "knock",
-        "clack",
-        "tap",
-        "hammer"
+        "rustle"
       ],
       "context_words": [
-        "stone",
-        "rock"
+        "leaves",
+        "foliage",
+        "tree"
       ]
     },
     {
-      "id": "object.knock_wood",
-      "kind": "one_shot",
-      "origin": "kenney_impact",
+      "id": "ambience.stream",
+      "kind": "loop",
+      "origin": "moss",
       "inputs": [
-        "Audio/impactWood_light_000.ogg",
-        "Audio/impactWood_light_001.ogg",
-        "Audio/impactWood_light_002.ogg",
-        "Audio/impactWood_light_003.ogg",
-        "Audio/impactWood_light_004.ogg"
+        {
+          "file": "ambience.stream.wav",
+          "origin": "moss",
+          "prompt": "A small clear creek babbling over pebbles, close, calm, steady, no voices, no music.",
+          "seed": 8
+        }
       ],
       "sound_words": [
-        "thud",
-        "bump",
-        "knock"
+        "babble",
+        "trickle",
+        "gurgle",
+        "burble",
+        "flow"
       ],
       "context_words": [
-        "wood",
-        "wooden"
+        "water",
+        "stream",
+        "creek"
+      ]
+    },
+    {
+      "id": "ambience.swamp",
+      "kind": "loop",
+      "origin": "moss",
+      "inputs": [
+        {
+          "file": "r2/ambience.swamp__B.wav",
+          "origin": "moss",
+          "prompt": "Calm swamp at dusk, soft water, faint distant frogs, quiet, continuous.",
+          "seed": 131
+        }
+      ],
+      "sound_words": [
+        "croak",
+        "squelch"
+      ],
+      "context_words": [
+        "swamp",
+        "marsh"
+      ]
+    },
+    {
+      "id": "ambience.waves",
+      "kind": "loop",
+      "origin": "moss",
+      "inputs": [
+        {
+          "file": "ambience.waves.wav",
+          "origin": "moss",
+          "prompt": "Gentle ocean waves rolling onto a sandy beach, calm, steady, no wind, no voices, no music.",
+          "seed": 8
+        },
+        {
+          "file": "r2/ambience.waves__B.wav",
+          "origin": "moss",
+          "prompt": "Calm sea, small waves softly washing onto a sandy beach, continuous, no other sounds.",
+          "seed": 105
+        }
+      ],
+      "sound_words": [
+        "waves",
+        "surf",
+        "lap"
+      ],
+      "context_words": [
+        "sea",
+        "ocean",
+        "beach"
+      ]
+    },
+    {
+      "id": "ambience.wind",
+      "kind": "loop",
+      "origin": "moss",
+      "inputs": [
+        {
+          "file": "r2/ambience.wind__A.wav",
+          "origin": "moss",
+          "prompt": "Soft wind blowing over an open grassy meadow, gentle gusts, calm, no voices, no music.",
+          "seed": 8
+        }
+      ],
+      "sound_words": [
+        "whoosh",
+        "howl",
+        "blow",
+        "gust"
+      ],
+      "context_words": [
+        "wind",
+        "breeze"
+      ]
+    },
+    {
+      "id": "animal.bee.buzz",
+      "kind": "one_shot",
+      "origin": "bigsoundbank",
+      "inputs": [
+        {
+          "file": "r2/animal.bee.buzz__B.wav",
+          "origin": "bigsoundbank",
+          "source": "https://bigsoundbank.com/solitary-bees-or-flies-s0101.html"
+        }
+      ],
+      "sound_words": [
+        "buzz",
+        "bzz"
+      ],
+      "context_words": [
+        "bee",
+        "insect"
+      ]
+    },
+    {
+      "id": "animal.fish.splash",
+      "kind": "one_shot",
+      "origin": "bigsoundbank",
+      "inputs": [
+        {
+          "file": "r2/animal.fish.splash__B.wav",
+          "origin": "bigsoundbank",
+          "source": "https://bigsoundbank.com/splash-small-6-s1534.html"
+        }
+      ],
+      "sound_words": [
+        "splash",
+        "plop"
+      ],
+      "context_words": [
+        "fish",
+        "lake"
+      ]
+    },
+    {
+      "id": "animal.frog.croak",
+      "kind": "one_shot",
+      "origin": "bigsoundbank",
+      "inputs": [
+        {
+          "file": "r2/animal.frog.croak__B.wav",
+          "origin": "bigsoundbank",
+          "source": "https://bigsoundbank.com/one-frog-s0819.html"
+        }
+      ],
+      "sound_words": [
+        "croak",
+        "ribbit"
+      ],
+      "context_words": [
+        "frog",
+        "pond"
+      ]
+    },
+    {
+      "id": "animal.goat.bleat",
+      "kind": "one_shot",
+      "origin": "bigsoundbank",
+      "inputs": [
+        {
+          "file": "r2/animal.goat.bleat__B.wav",
+          "origin": "bigsoundbank",
+          "source": "https://bigsoundbank.com/bleating-goat-1-s0279.html"
+        }
+      ],
+      "sound_words": [
+        "bleat",
+        "baa"
+      ],
+      "context_words": [
+        "goat"
+      ]
+    },
+    {
+      "id": "animal.gull.call",
+      "kind": "one_shot",
+      "origin": "moss",
+      "inputs": [
+        {
+          "file": "animal.gull.call.wav",
+          "origin": "moss",
+          "prompt": "A single seagull call at a quiet beach, no other sounds.",
+          "seed": 8
+        },
+        {
+          "file": "r2/animal.gull.call__B.wav",
+          "origin": "moss",
+          "prompt": "A single seagull calling at the seaside, natural recording, no other sounds.",
+          "seed": 107
+        }
+      ],
+      "sound_words": [
+        "cry",
+        "call",
+        "squawk"
+      ],
+      "context_words": [
+        "gull",
+        "seagull"
+      ]
+    },
+    {
+      "id": "animal.owl.hoot",
+      "kind": "one_shot",
+      "origin": "bigsoundbank",
+      "inputs": [
+        {
+          "file": "r2/animal.owl.hoot__B.wav",
+          "origin": "bigsoundbank",
+          "source": "https://bigsoundbank.com/tawny-owl-3-s3459.html"
+        }
+      ],
+      "sound_words": [
+        "hoot"
+      ],
+      "context_words": [
+        "owl",
+        "night"
+      ]
+    },
+    {
+      "id": "animal.songbird.song",
+      "kind": "one_shot",
+      "origin": "moss",
+      "inputs": [
+        {
+          "file": "animal.songbird.song.wav",
+          "origin": "moss",
+          "prompt": "A small songbird singing one short melodic phrase, outdoors, calm, no other sounds.",
+          "seed": 8
+        },
+        {
+          "file": "r2/animal.songbird.song__B.wav",
+          "origin": "moss",
+          "prompt": "A small songbird singing a short cheerful melody in a quiet garden, natural recording.",
+          "seed": 108
+        }
+      ],
+      "sound_words": [
+        "sing",
+        "chirp",
+        "tweet",
+        "song"
+      ],
+      "context_words": [
+        "bird"
+      ]
+    },
+    {
+      "id": "animal.wild_chicken.cluck",
+      "kind": "one_shot",
+      "origin": "bigsoundbank",
+      "inputs": [
+        {
+          "file": "r2/animal.wild_chicken.cluck__B.wav",
+          "origin": "bigsoundbank",
+          "source": "https://bigsoundbank.com/annoyed-hen-s0453.html"
+        }
+      ],
+      "sound_words": [
+        "cluck"
+      ],
+      "context_words": [
+        "chicken",
+        "hen"
       ]
     },
     {
@@ -165,7 +443,10 @@
       "kind": "one_shot",
       "origin": "kenney_rpg",
       "inputs": [
-        "Audio/chop.ogg"
+        {
+          "file": "Audio/chop.ogg",
+          "origin": "kenney_rpg"
+        }
       ],
       "sound_words": [
         "chop",
@@ -183,9 +464,24 @@
       "kind": "one_shot",
       "origin": "kenney_rpg",
       "inputs": [
-        "Audio/creak1.ogg",
-        "Audio/creak2.ogg",
-        "Audio/creak3.ogg"
+        {
+          "file": "Audio/creak1.ogg",
+          "origin": "kenney_rpg"
+        },
+        {
+          "file": "Audio/creak2.ogg",
+          "origin": "kenney_rpg"
+        },
+        {
+          "file": "Audio/creak3.ogg",
+          "origin": "kenney_rpg"
+        },
+        {
+          "file": "r2/object.creak__B.wav",
+          "origin": "moss",
+          "prompt": "A wooden door creaking open slowly, close, natural, no other sounds.",
+          "seed": 110
+        }
       ],
       "sound_words": [
         "creak",
@@ -199,94 +495,17 @@
       ]
     },
     {
-      "id": "ambience.waves",
-      "kind": "loop",
-      "origin": "moss",
-      "inputs": [
-        "ambience.waves.wav"
-      ],
-      "prompt": "Gentle ocean waves rolling onto a sandy beach, calm, steady, no wind, no voices, no music.",
-      "seed": 8,
-      "sound_words": [
-        "waves",
-        "surf",
-        "lap"
-      ],
-      "context_words": [
-        "sea",
-        "ocean",
-        "beach"
-      ]
-    },
-    {
-      "id": "ambience.stream",
-      "kind": "loop",
-      "origin": "moss",
-      "inputs": [
-        "ambience.stream.wav"
-      ],
-      "prompt": "A small clear creek babbling over pebbles, close, calm, steady, no voices, no music.",
-      "seed": 8,
-      "sound_words": [
-        "babble",
-        "trickle",
-        "gurgle",
-        "burble",
-        "flow"
-      ],
-      "context_words": [
-        "water",
-        "stream",
-        "creek"
-      ]
-    },
-    {
-      "id": "ambience.wind",
-      "kind": "loop",
-      "origin": "moss",
-      "inputs": [
-        "ambience.wind.wav"
-      ],
-      "prompt": "Soft wind blowing over an open grassy meadow, gentle gusts, calm, no voices, no music.",
-      "seed": 8,
-      "sound_words": [
-        "whoosh",
-        "howl",
-        "blow",
-        "gust"
-      ],
-      "context_words": [
-        "wind",
-        "breeze"
-      ]
-    },
-    {
-      "id": "ambience.leaves",
-      "kind": "loop",
-      "origin": "moss",
-      "inputs": [
-        "ambience.leaves.wav"
-      ],
-      "prompt": "Leaves rustling in the treetops in a light breeze, forest, calm, no birds, no voices, no music.",
-      "seed": 8,
-      "sound_words": [
-        "rustle"
-      ],
-      "context_words": [
-        "leaves",
-        "foliage",
-        "tree"
-      ]
-    },
-    {
       "id": "object.fire",
       "kind": "loop",
       "origin": "moss",
       "inputs": [
-        "object.fire.wav"
+        {
+          "file": "object.fire.wav",
+          "origin": "moss",
+          "prompt": "A small campfire crackling softly, close, calm, no voices, no music.",
+          "seed": 8
+        }
       ],
-      "prompt": "A small campfire crackling softly, close, calm, no voices, no music.",
-      "seed": 8,
       "sound_words": [
         "crackle",
         "hiss",
@@ -299,76 +518,76 @@
       ]
     },
     {
-      "id": "animal.songbird.song",
+      "id": "object.knock_stone",
       "kind": "one_shot",
-      "origin": "moss",
+      "origin": "kenney_impact",
       "inputs": [
-        "animal.songbird.song.wav"
+        {
+          "file": "Audio/impactMining_000.ogg",
+          "origin": "kenney_impact"
+        },
+        {
+          "file": "Audio/impactMining_001.ogg",
+          "origin": "kenney_impact"
+        },
+        {
+          "file": "Audio/impactMining_002.ogg",
+          "origin": "kenney_impact"
+        },
+        {
+          "file": "Audio/impactMining_003.ogg",
+          "origin": "kenney_impact"
+        },
+        {
+          "file": "Audio/impactMining_004.ogg",
+          "origin": "kenney_impact"
+        }
       ],
-      "prompt": "A small songbird singing one short melodic phrase, outdoors, calm, no other sounds.",
-      "seed": 8,
       "sound_words": [
-        "sing",
-        "chirp",
-        "tweet",
-        "song"
+        "knock",
+        "clack",
+        "tap",
+        "hammer"
       ],
       "context_words": [
-        "bird"
+        "stone",
+        "rock"
       ]
     },
     {
-      "id": "animal.gull.call",
+      "id": "object.knock_wood",
       "kind": "one_shot",
-      "origin": "moss",
+      "origin": "kenney_impact",
       "inputs": [
-        "animal.gull.call.wav"
+        {
+          "file": "Audio/impactWood_light_000.ogg",
+          "origin": "kenney_impact"
+        },
+        {
+          "file": "Audio/impactWood_light_001.ogg",
+          "origin": "kenney_impact"
+        },
+        {
+          "file": "Audio/impactWood_light_002.ogg",
+          "origin": "kenney_impact"
+        },
+        {
+          "file": "Audio/impactWood_light_003.ogg",
+          "origin": "kenney_impact"
+        },
+        {
+          "file": "Audio/impactWood_light_004.ogg",
+          "origin": "kenney_impact"
+        }
       ],
-      "prompt": "A single seagull call at a quiet beach, no other sounds.",
-      "seed": 8,
       "sound_words": [
-        "cry",
-        "call",
-        "squawk"
+        "thud",
+        "bump",
+        "knock"
       ],
       "context_words": [
-        "gull",
-        "seagull"
-      ]
-    },
-    {
-      "id": "step.sand",
-      "kind": "one_shot",
-      "origin": "moss",
-      "inputs": [
-        "step.sand.wav"
-      ],
-      "prompt": "Two soft barefoot footsteps on dry sand, close, quiet, no other sounds.",
-      "seed": 10,
-      "sound_words": [
-        "footstep",
-        "step"
-      ],
-      "context_words": [
-        "sand"
-      ]
-    },
-    {
-      "id": "step.water",
-      "kind": "one_shot",
-      "origin": "moss",
-      "inputs": [
-        "step.water.wav"
-      ],
-      "prompt": "Two footsteps splashing in shallow water, close, calm, no other sounds.",
-      "seed": 8,
-      "sound_words": [
-        "splash",
-        "wade"
-      ],
-      "context_words": [
-        "puddle",
-        "water"
+        "wood",
+        "wooden"
       ]
     },
     {
@@ -376,10 +595,13 @@
       "kind": "one_shot",
       "origin": "moss",
       "inputs": [
-        "object.strike_spark.wav"
+        {
+          "file": "object.strike_spark.wav",
+          "origin": "moss",
+          "prompt": "Striking flint against a pyrite stone once, a sharp stony click with sparks, close, no other sounds.",
+          "seed": 9
+        }
       ],
-      "prompt": "Striking flint against a pyrite stone once, a sharp stony click with sparks, close, no other sounds.",
-      "seed": 9,
       "sound_words": [
         "click",
         "strike",
@@ -391,22 +613,293 @@
       ]
     },
     {
-      "id": "action.rustle",
+      "id": "step.grass",
+      "kind": "one_shot",
+      "origin": "kenney_impact",
+      "inputs": [
+        {
+          "file": "Audio/footstep_grass_000.ogg",
+          "origin": "kenney_impact"
+        },
+        {
+          "file": "Audio/footstep_grass_001.ogg",
+          "origin": "kenney_impact"
+        },
+        {
+          "file": "Audio/footstep_grass_002.ogg",
+          "origin": "kenney_impact"
+        },
+        {
+          "file": "Audio/footstep_grass_003.ogg",
+          "origin": "kenney_impact"
+        },
+        {
+          "file": "Audio/footstep_grass_004.ogg",
+          "origin": "kenney_impact"
+        }
+      ],
+      "sound_words": [
+        "footstep",
+        "step",
+        "steps",
+        "footsteps"
+      ],
+      "context_words": [
+        "grass"
+      ]
+    },
+    {
+      "id": "step.rock",
       "kind": "one_shot",
       "origin": "moss",
       "inputs": [
-        "action.rustle.wav"
+        {
+          "file": "r2/step.rock_v0.wav",
+          "origin": "moss",
+          "prompt": "One footstep on a rock, light, close, natural, no other sounds.",
+          "seed": 116
+        },
+        {
+          "file": "r2/step.rock_v1.wav",
+          "origin": "moss",
+          "prompt": "One footstep on a rock, light, close, natural, no other sounds.",
+          "seed": 116
+        },
+        {
+          "file": "r2/step.rock_v2.wav",
+          "origin": "moss",
+          "prompt": "One footstep on a rock, light, close, natural, no other sounds.",
+          "seed": 116
+        },
+        {
+          "file": "r2/step.rock_v3.wav",
+          "origin": "moss",
+          "prompt": "One footstep on a rock, light, close, natural, no other sounds.",
+          "seed": 116
+        },
+        {
+          "file": "r2/step.rock_v4.wav",
+          "origin": "moss",
+          "prompt": "One footstep on a rock, light, close, natural, no other sounds.",
+          "seed": 116
+        }
       ],
-      "prompt": "A person brushing through dry grass, short rustle, close, calm, no other sounds.",
-      "seed": 10,
       "sound_words": [
-        "rustle",
-        "swish",
-        "brush"
+        "footstep",
+        "step"
       ],
       "context_words": [
-        "grass",
-        "straw"
+        "stone",
+        "rock"
+      ]
+    },
+    {
+      "id": "step.sand",
+      "kind": "one_shot",
+      "origin": "moss",
+      "inputs": [
+        {
+          "file": "r2/step.sand_v0.wav",
+          "origin": "moss",
+          "seed": 10,
+          "prompt": "Two soft barefoot footsteps on dry sand, close, quiet, no other sounds."
+        },
+        {
+          "file": "r2/step.sand_v1.wav",
+          "origin": "moss",
+          "seed": 10,
+          "prompt": "Two soft barefoot footsteps on dry sand, close, quiet, no other sounds."
+        },
+        {
+          "file": "r2/step.sand_v2.wav",
+          "origin": "moss",
+          "seed": 10,
+          "prompt": "Two soft barefoot footsteps on dry sand, close, quiet, no other sounds."
+        },
+        {
+          "file": "r2/step.sand_v3.wav",
+          "origin": "moss",
+          "seed": 10,
+          "prompt": "Two soft barefoot footsteps on dry sand, close, quiet, no other sounds."
+        },
+        {
+          "file": "r2/step.sand_v4.wav",
+          "origin": "moss",
+          "seed": 10,
+          "prompt": "Two soft barefoot footsteps on dry sand, close, quiet, no other sounds."
+        }
+      ],
+      "sound_words": [
+        "footstep",
+        "step"
+      ],
+      "context_words": [
+        "sand"
+      ]
+    },
+    {
+      "id": "step.snow",
+      "kind": "one_shot",
+      "origin": "kenney_impact",
+      "inputs": [
+        {
+          "file": "Audio/footstep_snow_000.ogg",
+          "origin": "kenney_impact"
+        },
+        {
+          "file": "Audio/footstep_snow_001.ogg",
+          "origin": "kenney_impact"
+        },
+        {
+          "file": "Audio/footstep_snow_002.ogg",
+          "origin": "kenney_impact"
+        },
+        {
+          "file": "Audio/footstep_snow_003.ogg",
+          "origin": "kenney_impact"
+        },
+        {
+          "file": "Audio/footstep_snow_004.ogg",
+          "origin": "kenney_impact"
+        }
+      ],
+      "sound_words": [
+        "crunch",
+        "footstep",
+        "step"
+      ],
+      "context_words": [
+        "snow"
+      ]
+    },
+    {
+      "id": "step.water",
+      "kind": "one_shot",
+      "origin": "moss",
+      "inputs": [
+        {
+          "file": "step.water.wav",
+          "origin": "moss",
+          "prompt": "Two footsteps splashing in shallow water, close, calm, no other sounds.",
+          "seed": 8
+        },
+        {
+          "file": "r2/step.water__B.wav",
+          "origin": "bigsoundbank",
+          "source": "https://bigsoundbank.com/steps-in-the-mud-s0495.html"
+        }
+      ],
+      "sound_words": [
+        "splash",
+        "wade"
+      ],
+      "context_words": [
+        "puddle",
+        "water"
+      ]
+    },
+    {
+      "id": "step.wood",
+      "kind": "one_shot",
+      "origin": "kenney_impact",
+      "inputs": [
+        {
+          "file": "Audio/footstep_wood_000.ogg",
+          "origin": "kenney_impact"
+        },
+        {
+          "file": "Audio/footstep_wood_001.ogg",
+          "origin": "kenney_impact"
+        },
+        {
+          "file": "Audio/footstep_wood_002.ogg",
+          "origin": "kenney_impact"
+        },
+        {
+          "file": "Audio/footstep_wood_003.ogg",
+          "origin": "kenney_impact"
+        },
+        {
+          "file": "Audio/footstep_wood_004.ogg",
+          "origin": "kenney_impact"
+        }
+      ],
+      "sound_words": [
+        "footstep",
+        "step"
+      ],
+      "context_words": [
+        "boards",
+        "plank",
+        "floor"
+      ]
+    },
+    {
+      "id": "weather.heat",
+      "kind": "loop",
+      "origin": "bigsoundbank",
+      "inputs": [
+        {
+          "file": "r2/weather.heat__B.wav",
+          "origin": "bigsoundbank",
+          "source": "https://bigsoundbank.com/singing-insect-1-s3089.html"
+        }
+      ],
+      "sound_words": [
+        "chirp",
+        "cicada"
+      ],
+      "context_words": [
+        "heat",
+        "summer",
+        "hot"
+      ]
+    },
+    {
+      "id": "weather.rain",
+      "kind": "loop",
+      "origin": "own_synth",
+      "inputs": [
+        {
+          "file": "r2/weather.rain__A.wav",
+          "origin": "own_synth",
+          "source": "synth_recipes.json#weather.rain"
+        },
+        {
+          "file": "r2/weather.rain__B.wav",
+          "origin": "moss",
+          "prompt": "Gentle steady rain on leaves, calm, continuous, no thunder.",
+          "seed": 148
+        }
+      ],
+      "sound_words": [
+        "patter",
+        "drip"
+      ],
+      "context_words": [
+        "rain"
+      ]
+    },
+    {
+      "id": "weather.storm",
+      "kind": "loop",
+      "origin": "moss",
+      "inputs": [
+        {
+          "file": "r2/weather.storm__B.wav",
+          "origin": "moss",
+          "prompt": "Strong wind and heavy rain, distant soft thunder, continuous, not too loud.",
+          "seed": 150
+        }
+      ],
+      "sound_words": [
+        "roar",
+        "thunder",
+        "gust"
+      ],
+      "context_words": [
+        "storm",
+        "wind"
       ]
     }
   ],
