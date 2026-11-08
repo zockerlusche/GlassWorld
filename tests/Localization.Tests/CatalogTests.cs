@@ -31,6 +31,21 @@ public sealed class CatalogTests
         Assert.True(duplicates.Count == 0, $"{locale}.json: duplicate keys {string.Join(", ", duplicates)}");
     }
 
+    /// <summary>Every object type of the catalogs has a name for the player (gifts, A1340).</summary>
+    [Theory]
+    [InlineData("de")]
+    [InlineData("en")]
+    public void EveryObjectTypeHasAName(string locale)
+    {
+        var keys = Catalogs.Value[locale].Keys.ToHashSet(StringComparer.Ordinal);
+        var missing = Directory.GetFiles(Path.Combine(RepoPaths.Root, "content", "objects"), "*.json")
+            .SelectMany(f => JsonDocument.Parse(File.ReadAllText(f)).RootElement.GetProperty("types").EnumerateArray())
+            .Select(t => "vocab.object." + t.GetProperty("id").GetString())
+            .Where(k => !keys.Contains(k))
+            .ToList();
+        Assert.True(missing.Count == 0, $"{locale}.json: no name for {string.Join(", ", missing)}");
+    }
+
     /// <summary>
     /// Values shown side by side on the inhabitant card (needs, moods, traits) need different texts;
     /// "Freude" for both fun and joy was found in the A1335 screenshots.
@@ -141,6 +156,16 @@ public sealed class CatalogTests
             foreach (var entry in doc.RootElement.GetProperty("entries").EnumerateArray())
             {
                 yield return $"vocab.{kind}.{entry.GetProperty("id").GetString()}";
+            }
+        }
+
+        // Object types are catalog ids like the vocabulary (names for gifts, A1340).
+        foreach (var path in Directory.GetFiles(Path.Combine(RepoPaths.Root, "content", "objects"), "*.json").Order(StringComparer.Ordinal))
+        {
+            using var doc = JsonDocument.Parse(File.ReadAllText(path));
+            foreach (var type in doc.RootElement.GetProperty("types").EnumerateArray())
+            {
+                yield return $"vocab.object.{type.GetProperty("id").GetString()}";
             }
         }
     }
