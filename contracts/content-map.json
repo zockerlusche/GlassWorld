@@ -149,6 +149,10 @@
     {
       "pattern": "sound/generation.json",
       "schema": "sound-generation"
+    },
+    {
+      "pattern": "hardware/night.json",
+      "schema": "night-plan"
     }
   ]
 }

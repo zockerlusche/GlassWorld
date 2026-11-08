@@ -7,7 +7,7 @@ import contextlib
 import json
 import re
 import time
-from collections.abc import AsyncGenerator, Callable, Mapping
+from collections.abc import AsyncGenerator, Awaitable, Callable, Mapping
 from contextlib import asynccontextmanager
 from typing import cast
 
@@ -44,6 +44,7 @@ from glassworld_ai.llm.ollama import (
     OllamaUnavailableError,
 )
 from glassworld_ai.memory.condense import MockMemory, OllamaMemory, ReplayMemory
+from glassworld_ai.planner import Planner, load_night_plan
 from glassworld_ai.probes import HttpProbes, Probes
 from glassworld_ai.prompts import PromptTemplate, load_prompt
 from glassworld_ai.questions.handlers import MockQuestions, OllamaQuestions, ReplayQuestions
@@ -66,6 +67,8 @@ from glassworld_contracts import (
     HealthStatus,
     JobAccepted,
     JobList,
+    PhaseChange,
+    PhaseStatus,
 )
 
 READY_LINE = "AI_SERVICE_READY port={port}"
@@ -92,6 +95,7 @@ def create_app(
     """
     tiers = load_tiers(settings.hardware_tiers_file)  # fail fast on a broken data file
     game_vram, footprints = load_footprints(settings.model_footprints_file)
+    night_budget, night_kinds = load_night_plan(settings.night_plan_file)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
@@ -153,9 +157,17 @@ def create_app(
     app.state.queue = queue or ModelQueue(settings.queue_size)
     # Job kinds get their handlers in their own steps (question: B4a S2, image: B7 S5, ...).
     # The Ollama question handler needs the HTTP client and is registered in the lifespan.
+    planner = Planner(
+        night_budget,
+        night_kinds,
+        residency=lambda: getattr(app.state, "residency", None),
+        tier=lambda: getattr(app.state, "tier", None),
+    )
+    app.state.planner = planner
     app.state.jobs = JobRunner(
         job_handlers if job_handlers is not None else _offline_handlers(settings),
         settings.job_capacity,
+        gate=planner,
     )
 
     def _set_hardware(target: FastAPI, info: HardwareInfo) -> None:
@@ -263,6 +275,54 @@ def create_app(
         )
         return JSONResponse(status_code=202, content=accepted.model_dump(mode="json"))
 
+    def _phase_status() -> PhaseStatus:
+        runner: JobRunner = app.state.jobs
+        counts = runner.counts()
+        return PhaseStatus.model_validate(
+            {
+                "contract_version": CONTRACT_VERSION,
+                "phase": planner.phase,
+                "budget_left_s": planner.budget_left_s(),
+                "queued": counts["queued"],
+                "running": counts["running"],
+                "deferred": counts["deferred"],
+                "done_tonight": planner.done_tonight,
+            }
+        )
+
+    @app.post("/phase")
+    async def change_phase(request: Request) -> Response:
+        """Day/night from the core (B7 R3): night kinds may run in the night budget."""
+        body = await _read_body(request)
+        if body is None:
+            return error_response("bad_request", f"Request body above {MAX_BODY_BYTES} bytes.")
+        try:
+            data: object = json.loads(body)
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            return error_response("bad_request", "Request body is not valid JSON.")
+        problems = validator.errors("phase-change", data)
+        if problems:
+            return error_response("bad_request", "Invalid PhaseChange: " + "; ".join(problems[:3]))
+        change = PhaseChange.model_validate(data)
+        phase = str(getattr(change.phase, "value", change.phase))
+        if phase == "night":
+            planner.start_night()
+        else:
+            planner.start_day()
+            model = planner.model_of("question")
+            residency = getattr(app.state, "residency", None)
+            if model and residency is not None and residency.knows(model):
+                # Morning: the language model comes back for the day (runs in the background).
+                app.state.morning = asyncio.get_running_loop().create_task(
+                    _quietly(residency.ensure(model))
+                )
+        app.state.jobs.reschedule()
+        return JSONResponse(_phase_status().model_dump(mode="json"))
+
+    @app.get("/phase")
+    async def phase_status() -> Response:
+        return JSONResponse(_phase_status().model_dump(mode="json"))
+
     @app.get("/jobs/{job_id}")
     async def job_status(job_id: str) -> Response:
         runner: JobRunner = app.state.jobs
@@ -349,6 +409,12 @@ def create_app(
 
 
 MAX_BODY_BYTES = 256 * 1024  # largest request; real ones are a few KiB
+
+
+async def _quietly(work: Awaitable[None]) -> None:
+    """Background model load: a failure only means the next job loads it (logged by the driver)."""
+    with contextlib.suppress(Exception):
+        await work
 
 
 async def _read_body(request: Request) -> bytes | None:

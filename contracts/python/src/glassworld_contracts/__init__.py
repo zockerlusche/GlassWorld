@@ -16,6 +16,8 @@ from glassworld_contracts.models.help_suggestions_response_schema import HelpSug
 from glassworld_contracts.models.job_accepted_schema import JobAccepted
 from glassworld_contracts.models.job_list_schema import JobList
 from glassworld_contracts.models.job_status_schema import JobStatus
+from glassworld_contracts.models.phase_change_schema import PhaseChange
+from glassworld_contracts.models.phase_status_schema import PhaseStatus
 from glassworld_contracts.models.player_message_schema import PlayerMessage
 from glassworld_contracts.models.service_error_schema import ServiceError
 from glassworld_contracts.models.vocabulary_schema import Vocabulary
@@ -36,6 +38,8 @@ __all__ = [
     "JobAccepted",
     "JobList",
     "JobStatus",
+    "PhaseChange",
+    "PhaseStatus",
     "PlayerMessage",
     "ServiceError",
     "Vocabulary",
