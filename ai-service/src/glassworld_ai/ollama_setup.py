@@ -17,11 +17,13 @@ import asyncio
 import contextlib
 import hashlib
 import json
+import logging
 import os
 import re
 import shutil
 import subprocess
 import sys
+import time
 import zipfile
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -45,6 +47,7 @@ State = Literal[
     "failed",
 ]
 MARKER = ".glassworld-ollama.json"
+_log = logging.getLogger(__name__)
 CHUNK = 1 << 20
 LOCAL_HOSTS = frozenset({"127.0.0.1", "localhost", "::1"})
 _VERSION = re.compile(r"(\d+)\.(\d+)\.(\d+)")
@@ -124,6 +127,18 @@ def safe_extract(archive: Path, target: Path) -> None:
             dest.parent.mkdir(parents=True, exist_ok=True)
             with zf.open(info) as src, dest.open("wb") as out:
                 shutil.copyfileobj(src, out, CHUNK)
+
+
+def _with_retries(step: Callable[[], object], attempts: int = 10, wait_s: float = 1.0) -> None:
+    """File steps that a virus scanner may briefly block on Windows (PermissionError)."""
+    for attempt in range(attempts):
+        try:
+            step()
+            return
+        except PermissionError:
+            if attempt == attempts - 1:
+                raise
+            time.sleep(wait_s)
 
 
 def sha256_of(path: Path) -> str:
@@ -336,7 +351,8 @@ class OllamaSetup:
             self._phase, self._error = "failed", error.code
         except httpx.HTTPError:
             self._phase, self._error = "failed", "network"
-        except OSError:
+        except OSError as error:
+            _log.warning("Ollama setup: file error: %s", error)
             self._phase, self._error = "failed", "disk"
 
     async def _download(self, asset: Asset) -> None:
@@ -370,19 +386,22 @@ class OllamaSetup:
                         raise SetupError("checksum_mismatch", "the download is too large")
 
     def _unpack(self, asset: Asset) -> None:
-        staging = self._dir / f"{self._runtime.version}.partial"
-        if staging.exists():
-            shutil.rmtree(staging)  # our own unfinished unpack
-        staging.mkdir(parents=True)
-        safe_extract(self._part, staging)
-        if not (staging / asset.executable).is_file():
+        """Unpack straight into the version folder; the marker, written last, makes it complete.
+
+        No folder rename: right after unpacking, virus scanners hold the new programs open and
+        Windows refuses to rename their folder (seen in the acceptance run of A1423).
+        """
+        target = self._version_dir
+        for leftover in (target, self._dir / f"{self._runtime.version}.partial"):
+            if leftover.exists():  # an unmarked, unfinished unpack of ours
+                _with_retries(lambda path=leftover: shutil.rmtree(path))
+        target.mkdir(parents=True)
+        safe_extract(self._part, target)
+        if not (target / asset.executable).is_file():
             raise SetupError("bad_archive", f"{asset.executable} missing in the archive")
         marker = {"version": self._runtime.version, "sha256": asset.sha256, "url": asset.url}
-        (staging / MARKER).write_text(json.dumps(marker), encoding="utf-8")
-        if self._version_dir.exists():
-            shutil.rmtree(self._version_dir)  # an unmarked leftover of ours
-        staging.rename(self._version_dir)
-        self._part.unlink(missing_ok=True)  # 1.5 GB the player does not need any more
+        (target / MARKER).write_text(json.dumps(marker), encoding="utf-8")
+        _with_retries(lambda: self._part.unlink(missing_ok=True))  # 1.5 GB not needed any more
         self._done_bytes = 0
 
     # --- start / stop -------------------------------------------------------------------

@@ -343,3 +343,20 @@ def test_get_setup_answers_with_the_contract(settings: Settings, tmp_path: Path)
     validator = ContractValidator(REPO / "contracts/schemas")
     assert validator.errors("ollama-setup-status", response.json()) == []
     assert response.json()["required_version"] == "0.40.14"
+
+
+def test_an_unfinished_unpack_is_replaced_and_only_the_marker_completes_it(tmp_path: Path) -> None:
+    leftover = tmp_path / "ollama/0.40.14"
+    leftover.mkdir(parents=True)
+    (leftover / "ollama.exe").write_bytes(b"half")  # no marker: an interrupted unpack
+    world = World()
+
+    async def body(client: httpx.AsyncBaseTransport) -> Any:
+        setup = _setup(tmp_path, world, client)
+        before = setup.managed_executable()
+        await _finish(setup)
+        return before
+
+    assert _run(world, body) is None
+    assert (leftover / "ollama.exe").read_bytes() == b"MZ fake program"
+    assert (leftover / MARKER).is_file()
