@@ -48,6 +48,32 @@ public sealed class LookContentTests
         Assert.Equal(speeds.Order(), speeds);
     }
 
+    /// <summary>
+    /// Coverage of the figure clips (B2 R27): every clip taken from the figure asset exists in the GLB
+    /// (the importer drops "_Loop"), no clip that shows violence is used (B2466), and the clips still to be
+    /// made are listed by the test output.
+    /// </summary>
+    [Fact]
+    public void AssetClipsExistInTheFigureGlbAndShowNoViolence()
+    {
+        var library = Read<AnimationLibrary>("animation", "library.json");
+        var glb = File.ReadAllBytes(Path.Combine(TestData.Root, "game", "assets", "characters", "quaternius-ual1", "ual1_standard.glb"));
+        var jsonLength = BitConverter.ToInt32(glb, 12);
+        using var document = System.Text.Json.JsonDocument.Parse(glb.AsMemory(20, jsonLength));
+        var available = document.RootElement.GetProperty("animations").EnumerateArray()
+            .Select(a => a.GetProperty("name").GetString()!.Replace("_Loop", string.Empty, StringComparison.Ordinal))
+            .ToHashSet(StringComparer.Ordinal);
+
+        var assets = library.Clips.Where(c => c.Source == AnimationClipSource.Asset).ToList();
+        Assert.NotEmpty(assets);
+        Assert.All(assets, c => Assert.True(c.Asset is not null && available.Contains(c.Asset), $"clip '{c.Id}' names '{c.Asset}', not in the GLB"));
+        string[] violent = ["Death", "Pistol", "Sword", "Punch", "Hit_"];
+        Assert.All(assets, c => Assert.DoesNotContain(violent, v => c.Asset!.StartsWith(v, StringComparison.Ordinal)));
+        Assert.All(library.Clips.Where(c => c.Source != AnimationClipSource.Asset), c => Assert.Null(c.Asset));
+        var fallback = Assert.Single(library.Clips, c => c.Id == library.FallbackClip);
+        Assert.Equal(AnimationClipSource.Asset, fallback.Source);
+    }
+
     [Fact]
     public void EpochsMatchTheVocabularyInOrderOfTechLevel()
     {

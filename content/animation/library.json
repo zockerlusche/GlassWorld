@@ -24,33 +24,41 @@
     },
     {
       "id": "drink",
-      "source": "placeholder",
-      "loop": true
+      "source": "asset",
+      "loop": true,
+      "asset": "Interact",
+      "speed": 0.8
     },
     {
       "id": "eat",
-      "source": "placeholder",
-      "loop": true
+      "source": "asset",
+      "loop": true,
+      "asset": "Interact",
+      "speed": 0.8
     },
     {
       "id": "fallback",
-      "source": "placeholder",
-      "loop": true
+      "source": "asset",
+      "loop": true,
+      "asset": "Idle"
     },
     {
       "id": "hammer",
-      "source": "placeholder",
-      "loop": false
+      "source": "asset",
+      "loop": false,
+      "asset": "Fixing_Kneeling"
     },
     {
       "id": "handle",
-      "source": "placeholder",
-      "loop": true
+      "source": "asset",
+      "loop": true,
+      "asset": "Interact"
     },
     {
       "id": "hop",
-      "source": "placeholder",
-      "loop": true
+      "source": "asset",
+      "loop": true,
+      "asset": "Jump"
     },
     {
       "id": "hug",
@@ -64,8 +72,9 @@
     },
     {
       "id": "hurry",
-      "source": "blend",
-      "loop": true
+      "source": "asset",
+      "loop": true,
+      "asset": "Jog_Fwd"
     },
     {
       "id": "knock_glass",
@@ -99,13 +108,16 @@
     },
     {
       "id": "pick_up",
-      "source": "placeholder",
-      "loop": false
+      "source": "asset",
+      "loop": false,
+      "asset": "PickUp_Table"
     },
     {
       "id": "pick_up_inspect",
-      "source": "placeholder",
-      "loop": false
+      "source": "asset",
+      "loop": false,
+      "asset": "PickUp_Table",
+      "speed": 0.7
     },
     {
       "id": "ponder",
@@ -114,23 +126,27 @@
     },
     {
       "id": "put_down",
-      "source": "placeholder",
-      "loop": false
+      "source": "asset",
+      "loop": false,
+      "asset": "PickUp_Table"
     },
     {
       "id": "run",
-      "source": "placeholder",
-      "loop": true
+      "source": "asset",
+      "loop": true,
+      "asset": "Sprint"
     },
     {
       "id": "sit",
-      "source": "placeholder",
-      "loop": true
+      "source": "asset",
+      "loop": true,
+      "asset": "Sitting_Idle"
     },
     {
       "id": "sit_down",
-      "source": "placeholder",
-      "loop": false
+      "source": "asset",
+      "loop": false,
+      "asset": "Sitting_Enter"
     },
     {
       "id": "sit_sad",
@@ -149,8 +165,9 @@
     },
     {
       "id": "stand",
-      "source": "placeholder",
-      "loop": true
+      "source": "asset",
+      "loop": true,
+      "asset": "Idle"
     },
     {
       "id": "stomp",
@@ -164,28 +181,34 @@
     },
     {
       "id": "stroll",
-      "source": "placeholder",
-      "loop": true
+      "source": "asset",
+      "loop": true,
+      "asset": "Walk_Formal",
+      "speed": 0.8
     },
     {
       "id": "swim",
-      "source": "placeholder",
-      "loop": true
+      "source": "asset",
+      "loop": true,
+      "asset": "Swim_Fwd"
     },
     {
       "id": "talk",
-      "source": "placeholder",
-      "loop": true
+      "source": "asset",
+      "loop": true,
+      "asset": "Idle_Talking"
     },
     {
       "id": "wake_up",
-      "source": "placeholder",
-      "loop": false
+      "source": "asset",
+      "loop": false,
+      "asset": "Sitting_Exit"
     },
     {
       "id": "walk",
-      "source": "placeholder",
-      "loop": true
+      "source": "asset",
+      "loop": true,
+      "asset": "Walk"
     },
     {
       "id": "wave",

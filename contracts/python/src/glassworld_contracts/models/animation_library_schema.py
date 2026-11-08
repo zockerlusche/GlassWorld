@@ -43,6 +43,14 @@ class AnimationClip(BaseModel):
         description='asset: a clip from a CC0 GLB; blend: mix of other clips; procedural: LookAt/IK in code; placeholder: not yet made.',
     )
     loop: bool = Field(..., description='Whether the clip loops.')
+    asset: str | None = Field(
+        None,
+        description='Name of the clip in the figure GLB (source asset; the importer drops the _Loop suffix). Clips that show violence are never used (B2466).',
+        pattern='^[A-Za-z][A-Za-z0-9_]{0,63}$',
+    )
+    speed: float | None = Field(
+        None, description='Playback speed factor (1 = as authored).', gt=0.0, le=4.0
+    )
 
 
 class AnimationMapping(BaseModel):

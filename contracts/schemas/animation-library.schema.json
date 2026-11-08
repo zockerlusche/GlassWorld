@@ -83,6 +83,17 @@
         "loop": {
           "description": "Whether the clip loops.",
           "type": "boolean"
+        },
+        "asset": {
+          "description": "Name of the clip in the figure GLB (source asset; the importer drops the _Loop suffix). Clips that show violence are never used (B2466).",
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9_]{0,63}$"
+        },
+        "speed": {
+          "description": "Playback speed factor (1 = as authored).",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 4
         }
       }
     },

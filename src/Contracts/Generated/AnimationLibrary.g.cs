@@ -32,6 +32,20 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("loop")]
         public bool Loop { get; set; } = default!;
 
+        /// <summary>
+        /// Name of the clip in the figure GLB (source asset; the importer drops the _Loop suffix). Clips that show violence are never used (B2466).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("asset")]
+        public string? Asset { get; set; } = default!;
+
+        /// <summary>
+        /// Playback speed factor (1 = as authored).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("speed")]
+        public double? Speed { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
