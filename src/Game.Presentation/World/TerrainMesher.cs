@@ -38,6 +38,7 @@ public readonly record struct Rgb(float R, float G, float B)
 /// <param name="CellM">Edge length of a cell in metres.</param>
 /// <param name="UnitM">One height unit in metres.</param>
 /// <param name="CliffDrop">Height difference (units) from which neighbours form a cliff instead of a slope.</param>
+/// <param name="ShoreLiftM">How far a stream's edge lies above the dry bank (metres), so it never sinks into it.</param>
 public sealed record TerrainLook(
     IReadOnlyList<Rgb> BiomeColors,
     Rgb Cliff,
@@ -51,7 +52,8 @@ public sealed record TerrainLook(
     float SlopeShade,
     float CellM,
     float UnitM,
-    int CliffDrop)
+    int CliffDrop,
+    float ShoreLiftM)
 {
     /// <summary>Resolves the look data against the palette, the map's biome order and the preset.</summary>
     public static TerrainLook From(LookTerrain terrain, LookPalette palette, WorldMap map, WorldPreset preset)
@@ -79,7 +81,8 @@ public sealed record TerrainLook(
             terrain.SlopeShadePermille / 1000f,
             preset.Grid.CellSizeCm / 100f,
             preset.Grid.HeightUnitMm / 1000f,
-            preset.Terrain.CliffMinDrop);
+            preset.Terrain.CliffMinDrop,
+            terrain.Water.StreamShoreLiftMm / 1000f);
     }
 }
 
@@ -164,9 +167,7 @@ public static class TerrainMesher
             var col = CornerColors(map, x, z, look);
 
             // Two triangles, split along the flatter diagonal so ridges stay sharp; seen from above (+y).
-            var steepA = Math.Abs(h[0] - h[2]);
-            var steepB = Math.Abs(h[1] - h[3]);
-            if (steepA <= steepB)
+            if (SplitsAlong02(h))
             {
                 Top(mesh, (p[0], col[0]), (p[2], col[2]), (p[1], col[1]), look);
                 Top(mesh, (p[0], col[0]), (p[3], col[3]), (p[2], col[2]), look);
@@ -187,7 +188,11 @@ public static class TerrainMesher
         return mesh;
     }
 
-    /// <summary>The water surfaces of one chunk (sea, lakes, streams, swamp), optionally of one kind only.</summary>
+    /// <summary>
+    /// The water surfaces of one chunk (sea, lakes, streams, swamp), optionally of one kind only. The sea
+    /// is flat per cell. Fresh water is drawn corner by corner (see <see cref="FreshCorner"/>), so lakes,
+    /// streams, swamp and their banks share one surface at every grid corner and close against dry ground.
+    /// </summary>
     public static MeshData Water(WorldMap map, int chunkX, int chunkZ, TerrainLook look, WaterKind? only = null)
     {
         ArgumentNullException.ThrowIfNull(map);
@@ -198,12 +203,12 @@ public static class TerrainMesher
             var cell = map.Cell(x, z);
             if (cell.Water == WaterKind.None)
             {
-                // Banks: a dry cell next to fresh water carries that water's surface too. Where the bank
-                // rises above it the ground hides it, so the visible shore follows the slope (smooth, like
-                // the coast) instead of the cell edges.
-                if (only is null or WaterKind.Fresh && BankWater(map, x, z) is { } bank)
+                // Banks: a dry cell next to still fresh water carries that water's surface too, where the
+                // shore line crosses it. The ground above the surface hides it, so the visible shore
+                // follows the slope (smooth, like the coast) instead of the cell edges.
+                if (only is null or WaterKind.Fresh && Carry(map, x, z, look.CliffDrop) is { Kind: Carrier.Bank } bank)
                 {
-                    AddQuad(mesh, x, z, bank.Surface * look.UnitM, bank.Color(look), default, look);
+                    Fresh(map, mesh, x, z, bank.Depth <= look.SwampMaxUnits ? look.Swamp : look.Fresh, default, look);
                 }
 
                 continue;
@@ -214,30 +219,146 @@ public static class TerrainMesher
                 continue;
             }
 
-            var y = (cell.Height + cell.WaterDepth) * look.UnitM;
-            var color = cell.Water == WaterKind.Salt
-                ? (cell.WaterDepth >= look.DeepFromUnits ? look.SeaDeep : look.SeaShallow)
-                : (cell.WaterDepth <= look.SwampMaxUnits ? look.Swamp : look.Fresh);
-            var flow = cell.Flow >= 0 && cell.Flow < FlowDirections.All.Count
-                ? Normalised(FlowDirections.All[cell.Flow])
-                : default;
-            if (cell.Water == WaterKind.Fresh && cell.Flow >= 0)
+            if (cell.Water == WaterKind.Salt)
             {
-                // Running water follows the slope: the ground's corner heights plus the depth, so a stream
-                // is a ribbon down the hill instead of a stair of flat plates.
-                var h = CornerHeights(map, x, z, look.CliffDrop);
-                (float, float, float) Corner(int k) =>
-                    ((x + Corners[k].Dx) * look.CellM, (h[k] + cell.WaterDepth) * look.UnitM, (z + Corners[k].Dz) * look.CellM);
-                mesh.Triangle(Corner(0), Corner(2), Corner(1), color, flow);
-                mesh.Triangle(Corner(0), Corner(3), Corner(2), color, flow);
+                AddQuad(mesh, x, z, (cell.Height + cell.WaterDepth) * look.UnitM, cell.WaterDepth >= look.DeepFromUnits ? look.SeaDeep : look.SeaShallow, default, look);
                 continue;
             }
 
-            AddQuad(mesh, x, z, y, color, flow, look);
+            var flow = cell.Flow >= 0 && cell.Flow < FlowDirections.All.Count
+                ? Normalised(FlowDirections.All[cell.Flow])
+                : default;
+            Fresh(map, mesh, x, z, cell.WaterDepth <= look.SwampMaxUnits ? look.Swamp : look.Fresh, flow, look);
         }
 
         return mesh;
     }
+
+    /// <summary>
+    /// Shore test of a dry cell next to still water at <paramref name="surface"/>: the shore line crosses
+    /// the cell only where the surface lies between its lowest and highest ground corner. A bank wholly
+    /// above the water stays dry, and one wholly below would look flooded, so neither carries a plate.
+    /// </summary>
+    public static bool IsShore(int[] ground, int surface)
+    {
+        ArgumentNullException.ThrowIfNull(ground);
+        return ground.Min() < surface && ground.Max() > surface;
+    }
+
+    /// <summary>
+    /// Height in metres of the ground mesh at (x, z) in metres: the cell's top triangles interpolated
+    /// exactly as <see cref="Ground"/> splits them (same corner heights, same diagonal). Positions outside
+    /// the map are clamped to its edge. For placing figures and objects and for the camera target.
+    /// </summary>
+    public static float GroundHeight(WorldMap map, TerrainLook look, double x, double z)
+    {
+        ArgumentNullException.ThrowIfNull(map);
+        ArgumentNullException.ThrowIfNull(look);
+        var fx = Math.Clamp(x / look.CellM, 0, map.WidthCells);
+        var fz = Math.Clamp(z / look.CellM, 0, map.DepthCells);
+        var cx = Math.Min((int)Math.Floor(fx), map.WidthCells - 1);
+        var cz = Math.Min((int)Math.Floor(fz), map.DepthCells - 1);
+        double u = fx - cx, v = fz - cz;
+        var h = CornerHeights(map, cx, cz, look.CliffDrop);
+        double height;
+        if (SplitsAlong02(h))
+        {
+            // Triangles (0, 2, 1) where u >= v and (0, 3, 2) where v >= u.
+            height = u >= v
+                ? h[0] + (u * (h[1] - h[0])) + (v * (h[2] - h[1]))
+                : h[0] + (v * (h[3] - h[0])) + (u * (h[2] - h[3]));
+        }
+        else
+        {
+            // Triangles (0, 3, 1) where u + v <= 1 and (1, 3, 2) where u + v >= 1.
+            height = u + v <= 1
+                ? h[0] + (u * (h[1] - h[0])) + (v * (h[3] - h[0]))
+                : h[2] + ((1 - u) * (h[3] - h[2])) + ((1 - v) * (h[1] - h[2]));
+        }
+
+        return (float)(height * look.UnitM);
+    }
+
+    /// <summary>One fresh water cell (lake, stream, swamp or bank), its corners from <see cref="FreshCorner"/>, split like the ground below.</summary>
+    private static void Fresh(WorldMap map, MeshData mesh, int x, int z, Rgb color, (float X, float Z) flow, TerrainLook look)
+    {
+        var h = CornerHeights(map, x, z, look.CliffDrop);
+        var p = new (float X, float Y, float Z)[4];
+        for (var k = 0; k < 4; k++)
+        {
+            p[k] = ((x + Corners[k].Dx) * look.CellM, FreshCorner(map, x + Corners[k].Dx, z + Corners[k].Dz, h[k], look), (z + Corners[k].Dz) * look.CellM);
+        }
+
+        if (SplitsAlong02(h))
+        {
+            mesh.Triangle(p[0], p[2], p[1], color, flow);
+            mesh.Triangle(p[0], p[3], p[2], color, flow);
+        }
+        else
+        {
+            mesh.Triangle(p[0], p[3], p[1], color, flow);
+            mesh.Triangle(p[1], p[3], p[2], color, flow);
+        }
+    }
+
+    /// <summary>
+    /// Height in metres of fresh water at the grid corner (cx, cz) over the ground corner height
+    /// <paramref name="ground"/> (units), the same for every water cell around the corner, so surfaces
+    /// meet without steps. Still water (lake, swamp, sea, the plate of a bank) gives its surface; running
+    /// water follows the slope at ground plus depth, so a stream is a ribbon down the hill instead of a
+    /// stair of flat plates; the higher of the two wins. Where the corner touches bare dry ground the
+    /// water comes down to that ground plus the shore lift, so its edge closes against the bank.
+    /// </summary>
+    private static float FreshCorner(WorldMap map, int cx, int cz, int ground, TerrainLook look)
+    {
+        var surface = int.MinValue;
+        var bare = false;
+        for (var oz = -1; oz <= 0; oz++)
+        {
+            for (var ox = -1; ox <= 0; ox++)
+            {
+                int nx = cx + ox, nz = cz + oz;
+                if (!map.Contains(nx, nz))
+                {
+                    continue;
+                }
+
+                var carry = Carry(map, nx, nz, look.CliffDrop);
+                switch (carry.Kind)
+                {
+                    case Carrier.Bare:
+                        bare = true;
+                        break;
+                    case Carrier.Running:
+                        surface = Math.Max(surface, ground + carry.Depth);
+                        break;
+                    default:
+                        surface = Math.Max(surface, carry.Surface);
+                        break;
+                }
+            }
+        }
+
+        var y = surface * look.UnitM;
+        return bare ? MathF.Min(y, (ground * look.UnitM) + look.ShoreLiftM) : y;
+    }
+
+    /// <summary>What a cell carries for the fresh water surface: nothing, a bank plate, still or running water.</summary>
+    private static (Carrier Kind, int Surface, int Depth) Carry(WorldMap map, int x, int z, int cliffDrop)
+    {
+        var cell = map.Cell(x, z);
+        if (cell.Water != WaterKind.None)
+        {
+            return (cell.Water == WaterKind.Fresh && cell.Flow >= 0 ? Carrier.Running : Carrier.Still, cell.Height + cell.WaterDepth, cell.WaterDepth);
+        }
+
+        return BankWater(map, x, z) is { } bank && IsShore(CornerHeights(map, x, z, cliffDrop), bank.Surface)
+            ? (Carrier.Bank, bank.Surface, bank.Depth)
+            : (Carrier.Bare, 0, 0);
+    }
+
+    /// <summary>Whether a cell's top is split along the diagonal from corner 0 to corner 2 (the flatter one, so ridges stay sharp).</summary>
+    private static bool SplitsAlong02(int[] h) => Math.Abs(h[0] - h[2]) <= Math.Abs(h[1] - h[3]);
 
     private static void AddQuad(MeshData mesh, int x, int z, float y, Rgb color, (float X, float Z) flow, TerrainLook look)
     {
@@ -246,8 +367,8 @@ public static class TerrainMesher
         mesh.Triangle((x0, y, z0), (x0, y, z1), (x1, y, z1), color, flow);
     }
 
-    /// <summary>The highest still fresh water surface among the eight neighbours of a dry cell, if any.</summary>
-    private static (int Surface, bool Swamp, Func<TerrainLook, Rgb> Color)? BankWater(WorldMap map, int x, int z)
+    /// <summary>The highest still fresh water surface (and its depth) among the eight neighbours of a dry cell, if any.</summary>
+    private static (int Surface, int Depth)? BankWater(WorldMap map, int x, int z)
     {
         (int Surface, int Depth)? best = null;
         foreach (var (dx, dz) in FlowDirections.All)
@@ -258,8 +379,8 @@ public static class TerrainMesher
                 continue;
             }
 
-            // Only still water (lakes, swamp) reaches into its banks; a stream runs down a slope, so its
-            // surface would float above the lower bank.
+            // Only still water (lakes, swamp) reaches into its banks; a stream runs down a slope and
+            // closes against its banks by itself.
             var n = map.Cell(nx, nz);
             if (n.Water == WaterKind.Fresh && n.Flow < 0 && (best is null || n.Height + n.WaterDepth > best.Value.Surface))
             {
@@ -267,12 +388,7 @@ public static class TerrainMesher
             }
         }
 
-        if (best is not { } water)
-        {
-            return null;
-        }
-
-        return (water.Surface, false, look => water.Depth <= look.SwampMaxUnits ? look.Swamp : look.Fresh);
+        return best;
     }
 
     /// <summary>
@@ -411,5 +527,13 @@ public static class TerrainMesher
     {
         var length = MathF.Sqrt((d.Dx * d.Dx) + (d.Dz * d.Dz));
         return (d.Dx / length, d.Dz / length);
+    }
+
+    private enum Carrier
+    {
+        Bare,
+        Bank,
+        Still,
+        Running,
     }
 }

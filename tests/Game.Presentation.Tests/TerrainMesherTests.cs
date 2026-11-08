@@ -22,7 +22,8 @@ public sealed class TerrainMesherTests
         SlopeShade: 0.5f,
         CellM: 1f,
         UnitM: 0.1f,
-        CliffDrop: 12);
+        CliffDrop: 12,
+        ShoreLiftM: 0.03f);
 
     [Fact]
     public void FlatGroundIsTwoUpwardTrianglesPerCellWithoutWalls()
@@ -112,30 +113,214 @@ public sealed class TerrainMesherTests
         var map = builder.Build();
         var water = TerrainMesher.Water(map, 0, 0, Look);
 
-        // Two banks (dry cells next to the fresh water) carry the water surface too: 10 water cells + 2 banks.
-        Assert.Equal((4 + 4 + 1 + 1 + 2) * 2, water.TriangleCount);
-        var faces = Enumerable.Range(0, water.TriangleCount).Select(f =>
+        // Ten water cells. The dry cells next to the swamp lie no higher than its surface, so they carry
+        // no bank plate (they would look flooded); the swamp comes down to them instead.
+        Assert.Equal((4 + 4 + 1 + 1) * 2, water.TriangleCount);
+        var faces = Faces(water);
+        (float Y, Rgb Color, (float, float) Flow) Cell(int x, int z) =>
+            faces.Where(f => (int)f.X == x && (int)f.Z == z).Select(f => (f.Y, f.Color, f.Flow)).First();
+
+        Assert.Equal((2f, Look.SeaDeep), (Cell(0, 2).Y, Cell(0, 2).Color));
+        Assert.Equal((2f, Look.SeaShallow), (Cell(1, 2).Y, Cell(1, 2).Color));
+        Assert.Equal((3f, Look.Fresh, (0f, 1f)), (Cell(2, 0).Y, Cell(2, 0).Color, Cell(2, 0).Flow));
+        Assert.Equal(Look.Swamp, Cell(3, 0).Color);
+        Assert.Equal((0f, 0f), Cell(3, 0).Flow);
+        Assert.DoesNotContain(faces, f => (int)f.Z >= 1 && (int)f.X >= 2);
+        Assert.Equal(8 * 2, TerrainMesher.Water(map, 0, 0, Look, WaterKind.Salt).TriangleCount);
+        Assert.Equal(2 * 2, TerrainMesher.Water(map, 0, 0, Look, WaterKind.Fresh).TriangleCount);
+    }
+
+    [Fact]
+    public void ABankCarriesAPlateOnlyWhereTheShoreLineCrossesIt()
+    {
+        // A lake along x = 0 (surface 30); the bank cells at x = 1 rise from below to above the surface.
+        var shore = TerrainMesher.Water(LakeBeside(31, 40), 0, 0, Look);
+        Assert.Equal((4 + 4) * 2, shore.TriangleCount);
+        Assert.Contains(Faces(shore), f => (int)f.X == 1);
+        Assert.DoesNotContain(Faces(shore), f => (int)f.X >= 2);
+
+        // A bank wholly above the water stays dry.
+        var high = TerrainMesher.Water(LakeBeside(36, 36), 0, 0, Look);
+        Assert.Equal(4 * 2, high.TriangleCount);
+        Assert.All(Faces(high), f => Assert.Equal(0, (int)f.X));
+    }
+
+    [Fact]
+    public void WaterBesideABankBelowItsSurfaceComesDownToTheGround()
+    {
+        // The bank (height 29) lies wholly below the lake surface (30): no plate (it would look flooded),
+        // and the lake's edge comes down to the bank's ground plus the shore lift instead of floating.
+        var map = LakeBeside(29, 29);
+        var lake = TerrainMesher.Water(map, 0, 0, Look);
+        Assert.Equal(4 * 2, lake.TriangleCount);
+        for (var i = 0; i < lake.VertexCount; i++)
+        {
+            float x = lake.Positions[i * 3], y = lake.Positions[(i * 3) + 1], z = lake.Positions[(i * 3) + 2];
+            if (x > 0.5f)
+            {
+                var ground = TerrainMesher.GroundHeight(map, Look, x, z);
+                Assert.Equal(ground + Look.ShoreLiftM, y, 4);
+            }
+        }
+    }
+
+    [Fact]
+    public void ATwoCellStreamOfTheGeneratorIsOneSlopedRibbon()
+    {
+        // The generator's layout: a main cell (x = 1) and its side cell (x = 2) both run down the slope
+        // (flow 6 = +z) between dry banks. Both are sloped ribbons, no flat plate of still water.
+        var builder = new WorldMapBuilder(4, 1, 1, Biomes);
+        for (var z = 0; z < 4; z++)
+        {
+            for (var x = 0; x < 4; x++)
+            {
+                builder.Set(x, z, x is 1 or 2
+                    ? new MapCell(40 - (z * 3), WaterKind.Fresh, 2, 6, 1000, 150, 0, 3000)
+                    : new MapCell(40 - (z * 3), WaterKind.None, 0, -1, 400, 150, 1, 1000));
+            }
+        }
+
+        var map = builder.Build();
+        var stream = TerrainMesher.Water(map, 0, 0, Look);
+        Assert.Equal(8 * 2, stream.TriangleCount);
+        Assert.All(Normals(stream), n => Assert.True(n.Y < 0.999f, "every stream face follows the slope"));
+        Assert.All(Faces(stream), f => Assert.Equal((0f, 1f), f.Flow));
+
+        // Where both cells meet (x = 2) the water lies at ground plus depth; at the dry banks (x = 1 and 3)
+        // it comes down to the ground plus the shore lift, so no edge floats above the bank.
+        for (var i = 0; i < stream.VertexCount; i++)
+        {
+            float x = stream.Positions[i * 3], y = stream.Positions[(i * 3) + 1], z = stream.Positions[(i * 3) + 2];
+            var ground = TerrainMesher.GroundHeight(map, Look, x, z);
+            var inner = MathF.Abs(x - 2f) < 0.01f;
+            Assert.Equal(inner ? ground + (2 * Look.UnitM) : ground + Look.ShoreLiftM, y, 4);
+        }
+    }
+
+    [Theory]
+    [InlineData(1UL)]
+    [InlineData(7UL)]
+    [InlineData(2026UL)]
+    public void NoBankPlateOfTheRealIslandLiesAboveItsWholeCell(ulong seed)
+    {
+        var (map, look) = RealIsland(seed);
+        var cells = new Dictionary<(int X, int Z), List<(float X, float Y, float Z)>>();
+        for (var cz = 0; cz < map.ChunksZ; cz++)
+        {
+            for (var cx = 0; cx < map.ChunksX; cx++)
+            {
+                var water = TerrainMesher.Water(map, cx, cz, look, WaterKind.Fresh);
+                foreach (var f in Faces(water))
+                {
+                    var key = ((int)MathF.Floor(f.X / look.CellM), (int)MathF.Floor(f.Z / look.CellM));
+                    if (map.Cell(key.Item1, key.Item2).Water == WaterKind.None)
+                    {
+                        (cells.TryGetValue(key, out var list) ? list : cells[key] = []).AddRange(f.Vertices);
+                    }
+                }
+            }
+        }
+
+        Assert.NotEmpty(cells);
+        foreach (var ((x, z), vertices) in cells)
+        {
+            // At least one corner of the plate lies at or below the ground (within the shore lift), so
+            // the ground hides part of it and the dry cell does not look flooded.
+            var ground = TerrainMesher.CornerHeights(map, x, z, look.CliffDrop);
+            float Ground((float X, float Y, float Z) v) =>
+                ground[((int)MathF.Round((v.X / look.CellM) - x), (int)MathF.Round((v.Z / look.CellM) - z)) switch
+                {
+                    (0, 0) => 0,
+                    (1, 0) => 1,
+                    (1, 1) => 2,
+                    _ => 3,
+                }] * look.UnitM;
+            var lowest = vertices.Min(v => v.Y - Ground(v));
+            Assert.True(lowest <= look.ShoreLiftM + 1e-4f, $"seed {seed}: bank plate at ({x},{z}) lies {lowest:0.00} m above its whole cell");
+        }
+    }
+
+    [Fact]
+    public void GroundHeightIsTheMeshSurface()
+    {
+        var map = Map((x, z) => 30 + ((x * 7) % 11) + ((z * 5) % 9) + (x == 2 && z == 1 ? 15 : 0));
+        var mesh = TerrainMesher.Ground(map, 0, 0, Look);
+        var faces = 0;
+        for (var t = 0; t < mesh.TriangleCount; t++)
+        {
+            var v = Enumerable.Range(0, 3).Select(k => (X: mesh.Positions[((t * 3) + k) * 3], Y: mesh.Positions[(((t * 3) + k) * 3) + 1], Z: mesh.Positions[(((t * 3) + k) * 3) + 2])).ToArray();
+            if (MathF.Abs(mesh.Normals[(t * 9) + 1]) < 0.01f)
+            {
+                continue; // cliff wall
+            }
+
+            faces++;
+
+            // Pull the vertices a hair towards the centre so each sample lies in this cell.
+            var cx = (v[0].X + v[1].X + v[2].X) / 3;
+            var cz = (v[0].Z + v[1].Z + v[2].Z) / 3;
+            foreach (var p in v)
+            {
+                Assert.Equal(p.Y, TerrainMesher.GroundHeight(map, Look, p.X + ((cx - p.X) * 1e-4), p.Z + ((cz - p.Z) * 1e-4)), 3);
+            }
+
+            // Inside: barycentric points lie on the triangle's plane.
+            foreach (var (a, b) in new[] { (0.2f, 0.3f), (0.6f, 0.1f), (0.33f, 0.33f) })
+            {
+                var c = 1 - a - b;
+                Assert.Equal(
+                    (a * v[0].Y) + (b * v[1].Y) + (c * v[2].Y),
+                    TerrainMesher.GroundHeight(map, Look, (a * v[0].X) + (b * v[1].X) + (c * v[2].X), (a * v[0].Z) + (b * v[1].Z) + (c * v[2].Z)),
+                    4);
+            }
+        }
+
+        Assert.Equal(4 * 4 * 2, faces);
+    }
+
+    private static WorldMap LakeBeside(int bank, int beyond)
+    {
+        var builder = new WorldMapBuilder(4, 1, 1, Biomes);
+        for (var z = 0; z < 4; z++)
+        {
+            for (var x = 0; x < 4; x++)
+            {
+                builder.Set(x, z, x switch
+                {
+                    0 => new MapCell(26, WaterKind.Fresh, 4, -1, 1000, 150, 0, 3000),
+                    1 => new MapCell(bank, WaterKind.None, 0, -1, 400, 150, 1, 1000),
+                    _ => new MapCell(beyond, WaterKind.None, 0, -1, 400, 150, 1, 1000),
+                });
+            }
+        }
+
+        return builder.Build();
+    }
+
+    private static List<(float X, float Z, float Y, Rgb Color, (float, float) Flow, (float X, float Y, float Z)[] Vertices)> Faces(MeshData mesh) =>
+        Enumerable.Range(0, mesh.TriangleCount).Select(f =>
         {
             var v = f * 3;
+            var vertices = Enumerable.Range(v, 3).Select(i => (mesh.Positions[i * 3], mesh.Positions[(i * 3) + 1], mesh.Positions[(i * 3) + 2])).ToArray();
             return (
-                X: (water.Positions[v * 3] + water.Positions[(v + 1) * 3] + water.Positions[(v + 2) * 3]) / 3,
-                Z: (water.Positions[(v * 3) + 2] + water.Positions[((v + 1) * 3) + 2] + water.Positions[((v + 2) * 3) + 2]) / 3,
-                Y: water.Positions[(v * 3) + 1],
-                Color: new Rgb(water.Colors[v * 3], water.Colors[(v * 3) + 1], water.Colors[(v * 3) + 2]),
-                Flow: (water.Flow[v * 2], water.Flow[(v * 2) + 1]));
+                X: vertices.Average(p => p.Item1),
+                Z: vertices.Average(p => p.Item3),
+                Y: mesh.Positions[(v * 3) + 1],
+                Color: new Rgb(mesh.Colors[v * 3], mesh.Colors[(v * 3) + 1], mesh.Colors[(v * 3) + 2]),
+                Flow: (mesh.Flow[v * 2], mesh.Flow[(v * 2) + 1]),
+                Vertices: vertices);
         }).ToList();
-        (float, float, float, Rgb, (float, float)) Cell(int x, int z) =>
-            faces.Where(f => (int)f.X == x && (int)f.Z == z).Select(f => (f.X, f.Z, f.Y, f.Color, f.Flow)).First();
 
-        Assert.Equal((2f, Look.SeaDeep), (Cell(0, 2).Item3, Cell(0, 2).Item4));
-        Assert.Equal((2f, Look.SeaShallow), (Cell(1, 2).Item3, Cell(1, 2).Item4));
-        Assert.Equal((3f, Look.Fresh, (0f, 1f)), (Cell(2, 0).Item3, Cell(2, 0).Item4, Cell(2, 0).Item5));
-        Assert.Equal((3f, Look.Swamp), (Cell(3, 0).Item3, Cell(3, 0).Item4));
-        Assert.Equal(3f, Cell(2, 1).Item3, 3);
-        Assert.Equal((0f, 0f), Cell(2, 1).Item5);
-        Assert.DoesNotContain(faces, f => (int)f.Z >= 2 && (int)f.X >= 2);
-        Assert.Equal(8 * 2, TerrainMesher.Water(map, 0, 0, Look, WaterKind.Salt).TriangleCount);
-        Assert.Equal((2 + 2) * 2, TerrainMesher.Water(map, 0, 0, Look, WaterKind.Fresh).TriangleCount);
+    private static (WorldMap Map, TerrainLook Look) RealIsland(ulong seed)
+    {
+        var content = ContentSet.Load(Path.Combine(TestPaths.Root, "content"));
+        var island = WorldGenerator.Generate(content.WorldGen, content.Objects, "start_island", seed);
+        var look = TerrainLook.From(
+            ContractSerializer.Deserialize<Contracts.LookTerrain>(File.ReadAllText(Path.Combine(TestPaths.Root, "content", "look", "terrain.json"))),
+            ContractSerializer.Deserialize<Contracts.LookPalette>(File.ReadAllText(Path.Combine(TestPaths.Root, "content", "look", "palette.json"))),
+            island.Map,
+            content.WorldGen.Presets["start_island"]);
+        return (island.Map, look);
     }
 
     [Fact]
@@ -164,18 +349,12 @@ public sealed class TerrainMesherTests
     [Fact]
     public void TheRealIslandMeshesDeterministicallyWithoutBrokenValues()
     {
-        var content = ContentSet.Load(Path.Combine(TestPaths.Root, "content"));
-        var island = WorldGenerator.Generate(content.WorldGen, content.Objects, "start_island", 7);
-        var look = TerrainLook.From(
-            ContractSerializer.Deserialize<Contracts.LookTerrain>(File.ReadAllText(Path.Combine(TestPaths.Root, "content", "look", "terrain.json"))),
-            ContractSerializer.Deserialize<Contracts.LookPalette>(File.ReadAllText(Path.Combine(TestPaths.Root, "content", "look", "palette.json"))),
-            island.Map,
-            content.WorldGen.Presets["start_island"]);
-        var first = TerrainMesher.Ground(island.Map, 2, 3, look);
-        var again = TerrainMesher.Ground(island.Map, 2, 3, look);
+        var (map, look) = RealIsland(7);
+        var first = TerrainMesher.Ground(map, 2, 3, look);
+        var again = TerrainMesher.Ground(map, 2, 3, look);
         Assert.Equal(first.Positions, again.Positions);
         Assert.All(first.Positions.Concat(first.Normals).Concat(first.Colors), v => Assert.True(float.IsFinite(v)));
-        Assert.True(first.TriangleCount >= island.Map.ChunkCells * island.Map.ChunkCells * 2);
+        Assert.True(first.TriangleCount >= map.ChunkCells * map.ChunkCells * 2);
     }
 
     private static WorldMap Map(Func<int, int, int> height, int chunksX = 1, int chunksZ = 1)

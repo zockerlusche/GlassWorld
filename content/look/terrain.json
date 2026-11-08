@@ -38,7 +38,8 @@
     "fresh": "fresh_water",
     "swamp": "swamp_water",
     "deep_from_units": 8,
-    "swamp_max_units": 1
+    "swamp_max_units": 1,
+    "stream_shore_lift_mm": 30
   },
   "slope_shade_permille": 350
 }

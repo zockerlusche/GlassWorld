@@ -61,6 +61,12 @@ class TerrainWater(BaseModel):
         ge=0,
         le=100,
     )
+    stream_shore_lift_mm: int = Field(
+        ...,
+        description='Where a stream borders dry ground its edge comes down to the ground and lies this far above it (millimetres), so the edge closes against the bank without flickering into it.',
+        ge=0,
+        le=200,
+    )
 
 
 class LookTerrain(BaseModel):

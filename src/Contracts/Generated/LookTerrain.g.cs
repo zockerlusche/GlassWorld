@@ -52,6 +52,12 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("swamp_max_units")]
         public int SwampMaxUnits { get; set; } = default!;
 
+        /// <summary>
+        /// Where a stream borders dry ground its edge comes down to the ground and lies this far above it (millimetres), so the edge closes against the bank without flickering into it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("stream_shore_lift_mm")]
+        public int StreamShoreLiftMm { get; set; } = default!;
+
     }
 
     /// <summary>

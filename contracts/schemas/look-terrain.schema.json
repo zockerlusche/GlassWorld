@@ -71,7 +71,8 @@
         "fresh",
         "swamp",
         "deep_from_units",
-        "swamp_max_units"
+        "swamp_max_units",
+        "stream_shore_lift_mm"
       ],
       "properties": {
         "sea_shallow": {
@@ -96,6 +97,12 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 100
+        },
+        "stream_shore_lift_mm": {
+          "description": "Where a stream borders dry ground its edge comes down to the ground and lies this far above it (millimetres), so the edge closes against the bank without flickering into it.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 200
         }
       }
     }
