@@ -27,6 +27,7 @@ from glassworld_ai.sound import (
     measure_wav,
 )
 from glassworld_ai.validation import ContractValidator
+from glassworld_contracts import CONTRACT_VERSION
 from glassworld_contracts.models.generation_job_schema import GenerationJob
 
 REPO = Path(__file__).resolve().parents[2]
@@ -129,6 +130,11 @@ def test_sound_jobs_run_over_jobs_with_the_mock(settings: Settings, tmp_path: Pa
             transport=transport, base_url=f"http://{TEST_HOST}", headers={"x-gw-token": TOKEN}
         ) as client:
             assert (await client.post("/jobs", json=JOB_DATA)).status_code == 202
+            # Sound is a night kind (B7 R4, content/hardware/night.json): by day it waits.
+            first = (await client.get(f"/jobs/{JOB_DATA['request_id']}")).json()
+            assert first["state"] == "deferred"
+            night = {"contract_version": CONTRACT_VERSION, "phase": "night", "tick": 10}
+            assert (await client.post("/phase", json=night)).status_code == 200
             # Upper bound for a slow CI runner; a passing run takes well under a second.
             loop = asyncio.get_running_loop()
             until = loop.time() + 30
