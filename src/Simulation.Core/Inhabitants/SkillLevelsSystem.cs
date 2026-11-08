@@ -9,15 +9,16 @@ namespace GlassWorld.Simulation.Inhabitants;
 /// <param name="InhabitantId">The inhabitant.</param>
 /// <param name="SkillId">The skill (register id).</param>
 /// <param name="Gain">Level added by practice on top of the start level.</param>
-public sealed record SkillGain(string InhabitantId, string SkillId, double Gain);
+/// <param name="PractisedTick">Tick of the last practice (forgetting starts a game day after it).</param>
+public sealed record SkillGain(string InhabitantId, string SkillId, double Gain, long PractisedTick = 0);
 
 /// <summary>
 /// Skill levels per inhabitant (B5 part, TL #19589; B4b R11, B5 R18, B8 R14). Every inhabitant has, per
 /// skill of the register, a start level (from the register's range) and a talent (skills/levels.json):
 /// both are drawn once from the world seed, inhabitant and skill (no random stream is created, so worlds
 /// keep their hash until someone practises). When an action finishes, every practice rule of that action
-/// (skills/practice.json) adds gain x talent, up to the data's maximum; unpractised gains fade by
-/// forget_per_day, never below the start level. Only the practised gains are state (saved, hashed when
+/// (skills/practice.json) adds gain x talent, up to the data's maximum; gains not practised for a whole
+/// game day fade by forget_per_day, never below the start level. Only the practised gains are state (saved, hashed when
 /// there are any). The code knows no skill by name.
 /// </summary>
 public sealed class SkillLevelsSystem : IWorldSystem, IOptionalWorldState, ISkillLevels
@@ -26,7 +27,7 @@ public sealed class SkillLevelsSystem : IWorldSystem, IOptionalWorldState, ISkil
     private readonly SkillRegister _register;
     private readonly ulong _seed;
     private readonly long _ticksPerDay;
-    private readonly SortedDictionary<(string Inhabitant, string Skill), double> _gains = new(KeyOrder.Instance);
+    private readonly SortedDictionary<(string Inhabitant, string Skill), (double Gain, long PractisedTick)> _gains = new(KeyOrder.Instance);
 
     /// <summary>Creates the system for a world with <paramref name="worldSeed"/>.</summary>
     public SkillLevelsSystem(SkillLevelSettings settings, SkillRegister register, ulong worldSeed, long ticksPerDay)
@@ -54,12 +55,14 @@ public sealed class SkillLevelsSystem : IWorldSystem, IOptionalWorldState, ISkil
     public double Level(string inhabitantId, string skillId)
     {
         var (start, _) = Drawn(inhabitantId, skillId);
-        return Math.Min(_settings.MaxLevel, start + _gains.GetValueOrDefault((inhabitantId, skillId)));
+        return Math.Min(_settings.MaxLevel, start + _gains.GetValueOrDefault((inhabitantId, skillId)).Gain);
     }
 
     /// <summary>
     /// Practice: called for every reported event; a finished action adds gain x talent for each of its
-    /// practice rules (wired in the host like the chronicle).
+    /// practice rules (wired in the host like the chronicle). It changes state inside the event handler:
+    /// that is safe because it reads nothing another subscriber writes, and the core reports events in a
+    /// fixed order within the tick, so the result does not depend on the order of subscribers.
     /// </summary>
     public void Observe(WorldEvent worldEvent)
     {
@@ -74,10 +77,10 @@ public sealed class SkillLevelsSystem : IWorldSystem, IOptionalWorldState, ISkil
             var key = (worldEvent.InhabitantId, rule.Skill);
             var (start, talent) = Drawn(key.InhabitantId, key.Skill);
             var room = Math.Max(0, _settings.MaxLevel - start);
-            var gain = Math.Min(room, _gains.GetValueOrDefault(key) + (rule.Gain * talent));
+            var gain = Math.Min(room, _gains.GetValueOrDefault(key).Gain + (rule.Gain * talent));
             if (gain > 0)
             {
-                _gains[key] = gain;
+                _gains[key] = (gain, worldEvent.Tick);
             }
         }
     }
@@ -91,17 +94,24 @@ public sealed class SkillLevelsSystem : IWorldSystem, IOptionalWorldState, ISkil
             return;
         }
 
-        // Once a game day: what is not practised fades a little (never below the start level).
+        // Once a game day: what was not practised for a whole day fades a little (never below the start
+        // level); a skill practised within the last day keeps its level (review GW1 #123).
         foreach (var key in _gains.Keys.ToList())
         {
-            var gain = _gains[key] - _settings.ForgetPerDay;
+            var (gain, practised) = _gains[key];
+            if (world.Tick - practised < _ticksPerDay)
+            {
+                continue;
+            }
+
+            gain -= _settings.ForgetPerDay;
             if (gain <= 0)
             {
                 _gains.Remove(key);
             }
             else
             {
-                _gains[key] = gain;
+                _gains[key] = (gain, practised);
             }
         }
     }
@@ -111,14 +121,14 @@ public sealed class SkillLevelsSystem : IWorldSystem, IOptionalWorldState, ISkil
     {
         ArgumentNullException.ThrowIfNull(hasher);
         hasher.Write(_gains.Count);
-        foreach (var ((inhabitant, skill), gain) in _gains)
+        foreach (var ((inhabitant, skill), (gain, practised)) in _gains)
         {
-            hasher.Write(inhabitant).Write(skill).Write(gain);
+            hasher.Write(inhabitant).Write(skill).Write(gain).Write(practised);
         }
     }
 
     /// <summary>The state to save (practised gains only).</summary>
-    public IReadOnlyList<SkillGain> Capture() => [.. _gains.Select(g => new SkillGain(g.Key.Inhabitant, g.Key.Skill, g.Value))];
+    public IReadOnlyList<SkillGain> Capture() => [.. _gains.Select(g => new SkillGain(g.Key.Inhabitant, g.Key.Skill, g.Value.Gain, g.Value.PractisedTick))];
 
     /// <summary>Restores saved gains (null = a save game from before: none).</summary>
     public void Restore(IEnumerable<SkillGain>? gains)
@@ -132,7 +142,7 @@ public sealed class SkillLevelsSystem : IWorldSystem, IOptionalWorldState, ISkil
                 throw new InvalidDataException($"Save game skill levels: gain {gain.Gain} for unknown skill or out of range ('{gain.SkillId}').");
             }
 
-            _gains[(gain.InhabitantId, gain.SkillId)] = gain.Gain;
+            _gains[(gain.InhabitantId, gain.SkillId)] = (gain.Gain, gain.PractisedTick);
         }
     }
 

@@ -13,7 +13,7 @@ namespace GlassWorld.Contracts
     #pragma warning disable // Disable all warnings
 
     /// <summary>
-    /// Skill levels per inhabitant (B5 part, TL #19589): every inhabitant has, per skill of the register, a start level (from the register's range) and a talent, both drawn once from the world seed; practice (skills/practice.json) adds gain x talent when an action finishes, up to max_level; unpractised gains fade by forget_per_day. Values are placeholders until Marcel's word.
+    /// Skill levels per inhabitant (B5 part, TL #19589): every inhabitant has, per skill of the register, a start level (from the register's range) and a talent, both drawn once from the world seed; practice (skills/practice.json) adds gain x talent when an action finishes, up to max_level; gains not practised for a whole game day fade by forget_per_day. Values are placeholders until Marcel's word.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class SkillLevelSettings

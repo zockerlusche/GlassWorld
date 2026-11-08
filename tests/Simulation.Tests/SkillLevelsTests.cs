@@ -90,8 +90,9 @@ public sealed class SkillLevelsTests : IDisposable
     [Fact]
     public void WhatIsNotPractisedFadesButNeverBelowTheStart()
     {
+        // An id that does not act in the world, so nobody practises it meanwhile (levels come from the id).
         var host = Host(1);
-        var teacher = host.Inhabitants.All.First().Id;
+        var teacher = "inh-999999";
         var skill = host.Skills.PractisedBy("teach").Single().Skill;
         var start = host.SkillLevels.Level(teacher, skill);
         host.SkillLevels.Observe(new WorldEvent(InhabitantsSystem.ActionFinished, 1, teacher, "teach", null));
@@ -103,6 +104,11 @@ public sealed class SkillLevelsTests : IDisposable
             host.World.Step();
         }
 
+        // Practised within the last day: the first day boundary keeps the level (review GW1 #123) ...
+        Assert.Equal(practised, host.SkillLevels.Level(teacher, skill), 12);
+        host.World.Run(perDay + 1); // systems see the tick before it advances: one more step reaches the next day boundary
+
+        // ... a whole day without practice lets it fade a little.
         Assert.True(host.SkillLevels.Level(teacher, skill) < practised);
         for (var day = 0; day < 40; day++)
         {
@@ -110,6 +116,24 @@ public sealed class SkillLevelsTests : IDisposable
         }
 
         Assert.True(host.SkillLevels.Level(teacher, skill) >= start - 1e-12);
+    }
+
+    [Fact]
+    public void ASkillPractisedEveryDayDoesNotFade()
+    {
+        var host = Host(1);
+        var teacher = host.Inhabitants.All.First().Id;
+        var skill = host.Skills.PractisedBy("teach").Single().Skill;
+        var perDay = host.World.Calendar.TicksPerDay;
+        double last = 0;
+        for (var day = 0; day < 5; day++)
+        {
+            host.SkillLevels.Observe(new WorldEvent(InhabitantsSystem.ActionFinished, host.World.Tick, teacher, "teach", null));
+            var now = host.SkillLevels.Level(teacher, skill);
+            Assert.True(now > last, $"day {day}: {now} not above {last}");
+            last = now;
+            host.World.Run(perDay - 1);
+        }
     }
 
     [Fact]
