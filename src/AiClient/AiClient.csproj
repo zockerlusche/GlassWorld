@@ -11,4 +11,8 @@
   <ItemGroup>
     <ProjectReference Include="..\Simulation.Core\Simulation.Core.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- Tests replace the poll delay to check the backoff without the wall clock. -->
+    <InternalsVisibleTo Include="GlassWorld.AiClient.Tests" />
+  </ItemGroup>
 </Project>

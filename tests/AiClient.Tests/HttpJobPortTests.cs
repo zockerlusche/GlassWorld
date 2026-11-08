@@ -116,7 +116,8 @@ public sealed class HttpJobPortTests
     public async Task ADeferredJobIsPolledLessAndLessOften()
     {
         var job = Job();
-        var times = new List<DateTime>();
+        var polls = 0;
+        var waits = new List<TimeSpan>();
         using var port = new HttpJobPort(new Uri("http://127.0.0.1:5000/"), "token", TimeSpan.FromSeconds(5), TimeSpan.FromMilliseconds(10), new FakeService(request =>
         {
             if (request.Method == HttpMethod.Post)
@@ -124,16 +125,27 @@ public sealed class HttpJobPortTests
                 return Json(HttpStatusCode.Accepted, ContractSerializer.Serialize(new JobAccepted { ContractVersion = ContractInfo.Version, JobId = job.RequestId, State = JobState.Queued }));
             }
 
-            times.Add(DateTime.UtcNow);
-            return Json(HttpStatusCode.OK, Status(job, times.Count < 6 ? JobState.Deferred : JobState.Done));
-        }), maxPollInterval: TimeSpan.FromMilliseconds(160));
+            polls++;
+            return Json(HttpStatusCode.OK, Status(job, polls < 7 ? JobState.Deferred : JobState.Done));
+        }), maxPollInterval: TimeSpan.FromMilliseconds(160))
+        {
+            // Record the waits instead of sleeping: the test does not depend on the machine's speed.
+            Delay = (wait, _) =>
+            {
+                lock (waits)
+                {
+                    waits.Add(wait);
+                }
+
+                return Task.CompletedTask;
+            },
+        };
 
         port.Submit(job.RequestId, ContractSerializer.Serialize(job));
         await port.WhenIdleAsync(TimeSpan.FromSeconds(10));
 
         Assert.False(Assert.Single(port.Receive(0)).IsError);
-        var gaps = times.Zip(times.Skip(1), (a, b) => (b - a).TotalMilliseconds).ToList();
-        Assert.True(gaps[^1] > gaps[0], $"polls did not slow down: {string.Join(", ", gaps)}");
+        Assert.Equal([20, 40, 80, 160, 160, 160], waits.Select(w => (int)w.TotalMilliseconds));
     }
 
     [Fact]

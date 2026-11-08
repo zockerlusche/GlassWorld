@@ -21,6 +21,9 @@ public sealed class HttpJobPort : IJobPort, IDisposable
     private readonly HttpClient _http;
     private readonly TimeSpan _pollInterval;
     private readonly TimeSpan _maxPollInterval;
+
+    /// <summary>How the port waits between polls; tests replace it to record the waits (no wall clock).</summary>
+    internal Func<TimeSpan, CancellationToken, Task> Delay { get; init; } = (wait, stop) => Task.Delay(wait, stop);
     private readonly ConcurrentQueue<PortMessage> _ready = new();
     private readonly CancellationTokenSource _stop = new();
     private readonly Lock _phaseLock = new();
@@ -85,12 +88,18 @@ public sealed class HttpJobPort : IJobPort, IDisposable
         return messages;
     }
 
-    /// <summary>Waits until every submitted job is final (tests and shutdown).</summary>
+    /// <summary>Waits until every submitted job is final; throws <see cref="TimeoutException"/> if that takes longer than <paramref name="timeout"/>.</summary>
     public async Task WhenIdleAsync(TimeSpan timeout)
     {
         var until = DateTime.UtcNow + timeout;
-        while (InFlight > 0 && DateTime.UtcNow < until)
+        while (InFlight > 0)
         {
+            if (DateTime.UtcNow >= until)
+            {
+                // Never return quietly: a caller must not read results that are not there yet.
+                throw new TimeoutException(string.Create(CultureInfo.InvariantCulture, $"{InFlight} job call(s) still running after {timeout.TotalSeconds:F1} s."));
+            }
+
             await Task.Delay(10).ConfigureAwait(false);
         }
     }
@@ -158,7 +167,7 @@ public sealed class HttpJobPort : IJobPort, IDisposable
                         break;
                 }
 
-                await Task.Delay(wait, stop).ConfigureAwait(false);
+                await Delay(wait, stop).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException) when (stop.IsCancellationRequested)
