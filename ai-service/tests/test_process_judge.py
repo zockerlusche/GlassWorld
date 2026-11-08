@@ -352,3 +352,13 @@ def test_a_process_takes_away_only_what_it_may() -> None:
     """Drying never removes fibres (live run 5: grass lost 'fibrous'); may_remove is data."""
     with pytest.raises(InvalidOutputError, match="remove_properties"):
         parse_judgement(_raw(remove_properties=["fibrous"]), DRY, CTX)
+
+
+def test_a_process_that_can_change_nothing_is_not_feasible() -> None:
+    data = json.loads(json.dumps(DRY_DATA))
+    data["payload"]["process"]["process"] = "grind"
+    data["payload"]["process"]["signature"].update(
+        process="grind", inputs=[["edible", "long_lasting"]]
+    )
+    result = parse_judgement(_raw(), GenerationJob.model_validate(data), CTX)
+    assert result["feasible"] is False and "cannot change anything" in result["rationale"]

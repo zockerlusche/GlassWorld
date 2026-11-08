@@ -84,6 +84,7 @@ shape = ["container"]
 fire = ["hard", "long_lasting"]
 char = ["burnable"]
 melt = ["malleable", "hot"]
+grind = []  # fine_grained comes with P1 (#100)
 
 [settings.guard.may_remove]
 heat = []
@@ -99,3 +100,4 @@ shape = []
 fire = ["malleable", "hardens_in_fire", "burnable", "fibrous", "braidable", "building_material"]
 char = ["building_material", "fibrous", "braidable", "splittable"]
 melt = ["hard"]
+grind = []

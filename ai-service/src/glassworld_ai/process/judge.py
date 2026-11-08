@@ -129,6 +129,10 @@ def impossible(
     )
     if never:
         return f"{process} does not work on {never}"
+    may_add = cast(dict[str, list[str]], guard.get("may_add", {}))
+    may_remove = cast(dict[str, list[str]], guard.get("may_remove", {}))
+    if may_add.get(process) == [] and may_remove.get(process) == []:
+        return f"{process} cannot change anything (yet)"
     return None
 
 
