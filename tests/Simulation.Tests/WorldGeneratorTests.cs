@@ -98,12 +98,35 @@ public sealed class WorldGeneratorTests
     /// be equal on Windows and Linux (CI). A deliberate change of generator or data updates them here.
     /// </summary>
     [Theory]
-    [InlineData(1UL, "b774b339b1cc4a022135d313bdbab1f19c7326b76533a721c8d39c1f608a3607")]
-    [InlineData(7UL, "cd69c678d78bfa868b7fccc2f1e5f3d506e9d54ff2831da51a8565a9e99db744")]
-    [InlineData(2026UL, "c73a3a8c6862f97b159751cd52201f54cb1b0436997670d2fee246872bac5d7a")]
+    [InlineData(1UL, "f15ab6481aa2511dee84ed0e1ad41aef65e4b416a78b2995b427f3a9a8d25694")]
+    [InlineData(7UL, "8cee3b7b1fb213955bca4604d622cd8a7c2221f950f25e8050bf187b764463c1")]
+    [InlineData(2026UL, "d803f15e557acbccb3c22fb158b6f209875a1b0f1358c36be3864a3ca3b11cd3")]
     public void GoldenWorldHashesAreStableAcrossMachines(ulong seed, string expected)
     {
         var actual = Generate(seed).Hash();
         Assert.True(actual == expected, $"golden world hash for seed {seed} changed: {actual}");
+    }
+
+    /// <summary>Start favour (TL #19280): every start finds the listed resources within the radius.</summary>
+    [Theory]
+    [InlineData(1UL)]
+    [InlineData(6UL)]
+    [InlineData(42UL)]
+    public void EveryStartFindsTheFavouredResourcesWithinTheRadius(ulong seed)
+    {
+        var island = Generate(seed);
+        var favor = Content.Value.WorldGen.Presets["start_island"].Start.Favor;
+        var catalog = Content.Value.Objects;
+        foreach (var start in island.Starts)
+        {
+            foreach (var resource in favor.Resources)
+            {
+                var near = island.Objects.Count(o =>
+                    ((o.X - start.X) * (o.X - start.X)) + ((o.Z - start.Z) * (o.Z - start.Z)) <= favor.RadiusCells * favor.RadiusCells
+                    && resource.PropertiesAll.All(p => catalog.HasProperty(o.TypeId, p))
+                    && !resource.PropertiesNone.Any(p => catalog.HasProperty(o.TypeId, p)));
+                Assert.True(near >= resource.Min, $"seed {seed}: start ({start.X}, {start.Z}) has {near} '{resource.Id}', wants {resource.Min}");
+            }
+        }
     }
 }

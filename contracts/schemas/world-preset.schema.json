@@ -341,7 +341,8 @@
         "min_pair_distance_cells",
         "max_pair_distance_cells",
         "max_attempts",
-        "biome"
+        "biome",
+        "favor"
       ],
       "properties": {
         "pairs": {
@@ -371,6 +372,9 @@
         "biome": {
           "description": "Biome of the start cells (by the sea).",
           "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "favor": {
+          "$ref": "#/$defs/StartFavor"
         }
       }
     },
@@ -546,6 +550,69 @@
         "cliff_biome": {
           "description": "Biome of the cliff above the cave.",
           "$ref": "common.schema.json#/$defs/VocabId"
+        }
+      }
+    },
+    "StartFavor": {
+      "description": "Start favour: what every start position finds within sight, so a new world does not fail on water or food out of reach (TL #19280). Missing items are placed near the start from the island's own spawn types.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "radius_cells",
+        "resources"
+      ],
+      "properties": {
+        "radius_cells": {
+          "description": "Radius around each start position in cells (within the inhabitants' perception).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "resources": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "$ref": "#/$defs/StartFavorResource"
+          }
+        }
+      }
+    },
+    "StartFavorResource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "properties_all",
+        "properties_none",
+        "min"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "properties_all": {
+          "description": "True properties an object must have.",
+          "type": "array",
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          }
+        },
+        "properties_none": {
+          "description": "True properties it must not have.",
+          "type": "array",
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          }
+        },
+        "min": {
+          "description": "Fewest such objects within the radius of every start position.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
         }
       }
     }

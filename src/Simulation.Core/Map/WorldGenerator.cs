@@ -153,6 +153,7 @@ public static class WorldGenerator
         Caves(preset, map, objects, Stream(attemptSeed, "worldgen/caves"));
         Spawn(content.Spawns, map, objects, Stream(attemptSeed, "worldgen/spawns"));
         var starts = Starts(preset, map, Stream(attemptSeed, "worldgen/start"));
+        StartFavor(preset.Start.Favor, content.Spawns, catalog, map, objects, starts, Stream(attemptSeed, "worldgen/favor"));
         var neighbours = Neighbour(preset, w, d, Stream(attemptSeed, "worldgen/neighbours"));
         var check = Check(content.Spawns, catalog, map, objects, starts);
         var present = new bool[biomeIds.Count];
@@ -621,6 +622,55 @@ public static class WorldGenerator
     }
 
     // ---------------------------------------------------------------- objects and starts
+
+    /// <summary>
+    /// Start favour (TL #19280): every start position finds the listed resources within the radius;
+    /// missing ones are placed there from the island's own spawn types that have the wanted true
+    /// properties (never by type id), on free walkable dry cells chosen by the generator stream.
+    /// </summary>
+    private static void StartFavor(StartFavor favor, SpawnTable spawns, ObjectCatalog catalog, WorldMap map, List<IslandObject> objects, List<StartPosition> starts, Pcg32 rng)
+    {
+        var islandTypes = spawns.Spawns.Select(s => s.ObjectType).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToList();
+        var r2 = favor.RadiusCells * favor.RadiusCells;
+        foreach (var start in starts)
+        {
+            foreach (var resource in favor.Resources)
+            {
+                bool Matches(string type) =>
+                    resource.PropertiesAll.All(p => catalog.HasProperty(type, p)) && !resource.PropertiesNone.Any(p => catalog.HasProperty(type, p));
+                bool Near(int x, int z) => ((x - start.X) * (x - start.X)) + ((z - start.Z) * (z - start.Z)) <= r2;
+
+                var have = objects.Count(o => Near(o.X, o.Z) && Matches(o.TypeId));
+                var candidates = islandTypes.Where(Matches).ToList();
+                if (have >= resource.Min || candidates.Count == 0)
+                {
+                    continue;
+                }
+
+                var taken = objects.Select(o => (o.X, o.Z)).ToHashSet();
+                var cells = new List<(int X, int Z)>();
+                for (var z = Math.Max(0, start.Z - favor.RadiusCells); z <= Math.Min(map.DepthCells - 1, start.Z + favor.RadiusCells); z++)
+                {
+                    for (var x = Math.Max(0, start.X - favor.RadiusCells); x <= Math.Min(map.WidthCells - 1, start.X + favor.RadiusCells); x++)
+                    {
+                        var c = map.Cell(x, z);
+                        if (Near(x, z) && c.Water == WaterKind.None && c.WalkCost != MapCell.Blocked && !taken.Contains((x, z)) && (x, z) != (start.X, start.Z))
+                        {
+                            cells.Add((x, z));
+                        }
+                    }
+                }
+
+                for (var k = have; k < resource.Min && cells.Count > 0; k++)
+                {
+                    var pick = rng.NextInt(0, cells.Count);
+                    var type = candidates[rng.NextInt(0, candidates.Count)];
+                    objects.Add(new IslandObject(type, cells[pick].X, cells[pick].Z));
+                    cells.RemoveAt(pick);
+                }
+            }
+        }
+    }
 
     /// <summary>Caves: rock niches at the foot of cliffs in rocky hills (R6, B2514 T3).</summary>
     private static void Caves(WorldPreset preset, WorldMap map, List<IslandObject> objects, Pcg32 rng)

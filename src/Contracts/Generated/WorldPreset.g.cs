@@ -259,6 +259,9 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("biome")]
         public string Biome { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("favor")]
+        public StartFavor Favor { get; set; } = new StartFavor();
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -405,6 +408,51 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("cliff_biome")]
         public string CliffBiome { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Start favour: what every start position finds within sight, so a new world does not fail on water or food out of reach (TL #19280). Missing items are placed near the start from the island's own spawn types.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class StartFavor
+    {
+
+        /// <summary>
+        /// Radius around each start position in cells (within the inhabitants' perception).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("radius_cells")]
+        public int RadiusCells { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("resources")]
+        public System.Collections.Generic.ICollection<StartFavorResource> Resources { get; set; } = new System.Collections.ObjectModel.Collection<StartFavorResource>();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class StartFavorResource
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public string Id { get; set; } = default!;
+
+        /// <summary>
+        /// True properties an object must have.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("properties_all")]
+        public System.Collections.Generic.ICollection<string> PropertiesAll { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// True properties it must not have.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("properties_none")]
+        public System.Collections.Generic.ICollection<string> PropertiesNone { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// Fewest such objects within the radius of every start position.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("min")]
+        public int Min { get; set; } = default!;
 
     }
 

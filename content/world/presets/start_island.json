@@ -68,7 +68,32 @@
     "min_pair_distance_cells": 40,
     "max_pair_distance_cells": 160,
     "max_attempts": 8,
-    "biome": "beach_sea"
+    "biome": "beach_sea",
+    "favor": {
+      "radius_cells": 30,
+      "resources": [
+        {
+          "id": "food",
+          "properties_all": [
+            "edible"
+          ],
+          "properties_none": [
+            "poisonous"
+          ],
+          "min": 4
+        },
+        {
+          "id": "drink",
+          "properties_all": [
+            "drinkable"
+          ],
+          "properties_none": [
+            "salty"
+          ],
+          "min": 1
+        }
+      ]
+    }
   },
   "neighbours": {
     "islands": {
