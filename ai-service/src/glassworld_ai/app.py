@@ -51,6 +51,13 @@ from glassworld_ai.memory.condense import MockMemory, OllamaMemory, ReplayMemory
 from glassworld_ai.model3d import Model3dJobs, load_model3d_settings
 from glassworld_ai.planner import Planner, load_night_plan
 from glassworld_ai.probes import HttpProbes, Probes
+from glassworld_ai.process.judge import (
+    JudgeContext,
+    MockProcesses,
+    OllamaProcesses,
+    ReplayProcesses,
+    guard_settings,
+)
 from glassworld_ai.prompts import PromptTemplate, load_prompt
 from glassworld_ai.questions.handlers import MockQuestions, OllamaQuestions, ReplayQuestions
 from glassworld_ai.queue import ModelQueue
@@ -132,6 +139,7 @@ def create_app(
                 app.state.jobs.register("question", _ollama_questions(settings, ollama, app))
                 app.state.jobs.register("memory", _ollama_memory(settings, ollama, app))
                 app.state.jobs.register("dream", _ollama_dreams(settings, ollama, app))
+                app.state.jobs.register("process", _ollama_processes(settings, ollama, app))
                 app.state.jobs.register("invention", _ollama_inventions(settings, ollama, app))
             warm_task: asyncio.Task[None] | None = None
             if settings.warm_up and settings.decider_backend == "ollama":
@@ -800,6 +808,7 @@ def _offline_handlers(settings: Settings) -> dict[str, Handler]:
             "question": MockQuestions(vocab),
             "memory": MockMemory(),
             "dream": MockDreams(),
+            "process": MockProcesses(),
             "invention": MockInventions(vocab),
         }
     if settings.decider_backend == "replay":
@@ -810,6 +819,7 @@ def _offline_handlers(settings: Settings) -> dict[str, Handler]:
             "question": ReplayQuestions(_question_log(settings), template, vocab),
             "memory": ReplayMemory(_memory_log(settings)),
             "dream": ReplayDreams(_dream_log(settings), _text_guard(settings)),
+            "process": ReplayProcesses(_process_log(settings), _judge_context(settings)),
             "invention": ReplayInventions(
                 _invention_log(settings),
                 *_invention_prompts(settings),
@@ -846,6 +856,34 @@ def _ollama_inventions(settings: Settings, ollama: OllamaClient, app: FastAPI) -
         settings=_call_settings(settings),
         log=_invention_log(settings),
         safety=safety_categories(settings.content_dir),
+    )
+
+
+def _process_log(settings: Settings) -> CallLog:
+    return CallLog(settings.log_dir / "processes.jsonl")
+
+
+def _judge_context(settings: Settings) -> JudgeContext:
+    template = load_prompt(
+        settings.prompts_dir, settings.process_prompt, settings.process_prompt_version
+    )
+    return JudgeContext(
+        settings.content_dir,
+        Vocabulary.load(settings.content_dir / "vocabulary"),
+        guard_settings(template),
+    )
+
+
+def _ollama_processes(settings: Settings, ollama: OllamaClient, app: FastAPI) -> OllamaProcesses:
+    return OllamaProcesses(
+        client=ollama,
+        queue=app.state.queue,
+        template=load_prompt(
+            settings.prompts_dir, settings.process_prompt, settings.process_prompt_version
+        ),
+        context=_judge_context(settings),
+        settings=_call_settings(settings),
+        log=_process_log(settings),
     )
 
 

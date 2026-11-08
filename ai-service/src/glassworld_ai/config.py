@@ -83,6 +83,8 @@ class Settings(BaseSettings):
     invention_prompt_version: int = Field(ge=1)
     guard_prompt: str = Field(pattern=r"^[a-z][a-z0-9_]*/[a-z][a-z0-9_-]*$")
     guard_prompt_version: int = Field(ge=1)
+    process_prompt: str = Field(pattern=r"^[a-z][a-z0-9_]*/[a-z][a-z0-9_-]*$")
+    process_prompt_version: int = Field(ge=1)
     dream_prompt: str = Field(pattern=r"^[a-z][a-z0-9_]*/[a-z][a-z0-9_-]*$")
     dream_prompt_version: int = Field(ge=1)
     help_prompt: str = Field(pattern=r"^[a-z][a-z0-9_]*/[a-z][a-z0-9_-]*$")
