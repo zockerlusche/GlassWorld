@@ -95,16 +95,7 @@ public static class ObjectShapes
                 parts.Add(new SphereMesh { Radius = 0.15f, Height = 0.15f, IsHemisphere = true, RadialSegments = 8, Rings = 3 }, At(0, 0.15f, 0), color(0));
                 break;
             case ObjectLookShape.Pool:
-                // A small level pool (y = 0 is its water surface): water disc, a stone basin reaching down
-                // so a slope never buries it, and a ring of stones on the rim. Never tilted to the slope.
-                parts.Add(new CylinderMesh { TopRadius = 0.55f, BottomRadius = 0.55f, Height = 0.02f, RadialSegments = 12 }, At(0, -0.01f, 0), color(0));
-                parts.Add(new CylinderMesh { TopRadius = 0.62f, BottomRadius = 0.66f, Height = 0.7f, RadialSegments = 12 }, At(0, -0.375f, 0), color(1));
-                for (var i = 0; i < 8; i++)
-                {
-                    var a = i * Mathf.Tau / 8;
-                    parts.Add(IslandPiece.Rock(20 + i, new Vector3(0.22f, 0.14f, 0.18f), Colors.White), At(Mathf.Cos(a) * 0.64f, -0.03f, Mathf.Sin(a) * 0.64f), color(1));
-                }
-
+                Pool(parts, color(0), color(1), color(2));
                 break;
             case ObjectLookShape.Log:
                 var lying = new Basis(Vector3.Forward, Mathf.Pi / 2);
@@ -143,6 +134,45 @@ public static class ObjectShapes
 
         tool.Index();
         return tool.Commit();
+    }
+
+    /// <summary>Irregular outline of a spring pool: radius factor per corner.</summary>
+    private static readonly float[] PoolOutline = [1.0f, 0.86f, 0.95f, 0.8f, 0.92f, 1.0f, 0.84f, 0.9f, 0.97f];
+
+    /// <summary>
+    /// A small natural spring pool (D576), drawn on the ground plane y = 0 that the placement tilts to the
+    /// slope: an irregular low-poly water patch lying a little below a low muddy rim, and a few uneven
+    /// stones half sunk at the uphill side (local +x). Nothing reaches below the ground, no ring, no basin.
+    /// </summary>
+    private static void Pool(Parts parts, Color water, Color stone, Color bank)
+    {
+        const float Water = 0.022f, Lip = 0.034f, Rim = 0.012f, Inner = 0.5f, Outer = 0.72f;
+        var n = PoolOutline.Length;
+        static Vector3 Edge(int i, float radius, float y)
+        {
+            var n = PoolOutline.Length;
+            var a = i % n * Mathf.Tau / n;
+            return new Vector3(Mathf.Cos(a) * radius * PoolOutline[i % n] * 0.85f, y, Mathf.Sin(a) * radius * PoolOutline[i % n] * 1.1f);
+        }
+
+        for (var i = 0; i < n; i++)
+        {
+            // Water fan, its edge tucked under the lip; the rim slopes from the lip down to the ground.
+            parts.Triangle(new Vector3(0, Water, 0), Edge(i, Inner * 1.02f, Water), Edge(i + 1, Inner * 1.02f, Water), water);
+            parts.Triangle(Edge(i, Inner, Lip), Edge(i, Outer, Rim), Edge(i + 1, Outer, Rim), bank);
+            parts.Triangle(Edge(i, Inner, Lip), Edge(i + 1, Outer, Rim), Edge(i + 1, Inner, Lip), bank);
+            parts.Triangle(Edge(i, Inner, Water), Edge(i, Inner, Lip), Edge(i + 1, Inner, Lip), bank);
+            parts.Triangle(Edge(i, Inner, Water), Edge(i + 1, Inner, Lip), Edge(i + 1, Inner, Water), bank);
+        }
+
+        // A few uneven stones at the uphill side, half sunk into the ground.
+        (float Angle, float Radius, Vector3 Size)[] stones = [(-0.55f, 0.6f, new Vector3(0.2f, 0.12f, 0.16f)), (0.05f, 0.66f, new Vector3(0.26f, 0.16f, 0.2f)), (0.6f, 0.58f, new Vector3(0.15f, 0.1f, 0.13f))];
+        for (var i = 0; i < stones.Length; i++)
+        {
+            var (angle, radius, size) = stones[i];
+            var place = new Vector3(Mathf.Cos(angle) * radius, -size.Y * 0.35f, Mathf.Sin(angle) * radius);
+            parts.Add(IslandPiece.Rock(31 + i, size, Colors.White), new Transform3D(new Basis(Vector3.Up, angle * 1.7f), place), stone);
+        }
     }
 
     private static SphereMesh Ball(float radius, int segments = 8, int rings = 4) =>

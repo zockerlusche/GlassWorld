@@ -613,6 +613,10 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 100
+        },
+        "mandatory": {
+          "description": "If true, a start that misses this resource within the radius fails the generation attempt, which is then repeated with the next derived sub-seed (deterministic); the check line is start_supply/<id>. If false or absent, the line only reports (report/start_supply/<id>).",
+          "type": "boolean"
         }
       }
     }
