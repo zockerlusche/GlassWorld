@@ -50,7 +50,10 @@
         "bars": 4,
         "attack_s": 2.0,
         "release_s": 2.5
-      }
+      },
+      "alternates": [
+        "dawn_b"
+      ]
     },
     {
       "id": "day",
@@ -88,7 +91,10 @@
         "bars": 2,
         "attack_s": 1.0,
         "release_s": 1.5
-      }
+      },
+      "alternates": [
+        "day_b"
+      ]
     },
     {
       "id": "dusk",
@@ -126,7 +132,10 @@
         "bars": 4,
         "attack_s": 2.5,
         "release_s": 3.0
-      }
+      },
+      "alternates": [
+        "dusk_b"
+      ]
     },
     {
       "id": "night",
@@ -161,6 +170,160 @@
           12
         ],
         "bars": 8,
+        "attack_s": 4.0,
+        "release_s": 4.0
+      },
+      "alternates": [
+        "night_b"
+      ]
+    },
+    {
+      "id": "dawn_b",
+      "root_hz": 220,
+      "scale": [
+        0,
+        2,
+        4,
+        7,
+        9,
+        12
+      ],
+      "tempo_bpm": 48.0,
+      "note_beats": [
+        1,
+        2,
+        3
+      ],
+      "rest_chance": 0.45,
+      "melody": {
+        "wave": "sine",
+        "octave": 1,
+        "gain": 0.5,
+        "attack_s": 0.15,
+        "release_s": 0.8
+      },
+      "pad": {
+        "wave": "sine",
+        "gain": 0.35,
+        "chord": [
+          0,
+          7,
+          4
+        ],
+        "bars": 8,
+        "attack_s": 2.0,
+        "release_s": 2.5
+      }
+    },
+    {
+      "id": "day_b",
+      "root_hz": 196,
+      "scale": [
+        0,
+        2,
+        4,
+        7,
+        9,
+        12
+      ],
+      "tempo_bpm": 57.6,
+      "note_beats": [
+        1,
+        1,
+        2
+      ],
+      "rest_chance": 0.4,
+      "melody": {
+        "wave": "sine",
+        "octave": 1,
+        "gain": 0.55,
+        "attack_s": 0.08,
+        "release_s": 0.6
+      },
+      "pad": {
+        "wave": "sine",
+        "gain": 0.3,
+        "chord": [
+          0,
+          4,
+          7
+        ],
+        "bars": 4,
+        "attack_s": 1.0,
+        "release_s": 1.5
+      }
+    },
+    {
+      "id": "dusk_b",
+      "root_hz": 174.6,
+      "scale": [
+        0,
+        3,
+        5,
+        7,
+        10,
+        12
+      ],
+      "tempo_bpm": 44.8,
+      "note_beats": [
+        2,
+        3,
+        4
+      ],
+      "rest_chance": 0.5,
+      "melody": {
+        "wave": "triangle",
+        "octave": 1,
+        "gain": 0.5,
+        "attack_s": 0.2,
+        "release_s": 1.2
+      },
+      "pad": {
+        "wave": "sine",
+        "gain": 0.35,
+        "chord": [
+          0,
+          7,
+          3
+        ],
+        "bars": 8,
+        "attack_s": 2.5,
+        "release_s": 3.0
+      }
+    },
+    {
+      "id": "night_b",
+      "root_hz": 130.8,
+      "scale": [
+        0,
+        2,
+        3,
+        7,
+        10,
+        12
+      ],
+      "tempo_bpm": 40,
+      "note_beats": [
+        2,
+        4
+      ],
+      "rest_chance": 0.65,
+      "melody": {
+        "wave": "triangle",
+        "octave": 1,
+        "gain": 0.4,
+        "attack_s": 0.4,
+        "release_s": 2.0
+      },
+      "pad": {
+        "wave": "sine",
+        "gain": 0.4,
+        "chord": [
+          0,
+          7,
+          12
+        ],
+        "bars": 16,
         "attack_s": 4.0,
         "release_s": 4.0
       }

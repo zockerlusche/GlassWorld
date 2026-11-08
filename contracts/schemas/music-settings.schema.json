@@ -157,6 +157,14 @@
         },
         "pad": {
           "$ref": "#/$defs/MusicPad"
+        },
+        "alternates": {
+          "description": "Other moods that may play instead of this one, one piece at a time, chosen from the piece seed (listening test 2: both as variants, W1651).",
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          }
         }
       }
     },

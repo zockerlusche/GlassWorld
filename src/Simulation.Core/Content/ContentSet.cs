@@ -141,7 +141,8 @@ public sealed class ContentSet
             ContractSerializer.Deserialize<UtilityWeights>(File.ReadAllText(Path.Combine(contentDirectory, "behaviour", "utility.json"))),
             actions,
             needs,
-            objects.PropertyVocabulary);
+            objects.PropertyVocabulary,
+            Required(vocabularies, VocabularyKind.Action).Entries.Where(e => (e.Target ?? VocabularyEntryTarget.None) == VocabularyEntryTarget.None).Select(e => e.Id).ToFrozenSet(StringComparer.Ordinal));
         var worldGen = WorldGenContent.Load(contentDirectory, vocabularies, objects, calendar);
         var inventionSettings = ContractSerializer.Deserialize<InventionSettings>(File.ReadAllText(Path.Combine(contentDirectory, "invention", "settings.json")));
         var inventions = new InventionRules(

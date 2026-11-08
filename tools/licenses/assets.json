@@ -1,0 +1,39 @@
+{
+  "description": "Which LICENSES.md row covers which asset files under game/ (B10 S1). entry = the start of the row name, or \"own\" for assets made for GlassWorld (MIT, like the code). Every font, model, sound and image under game/ must match one rule. 'libraries' map data files that record the source per file (origin) to rows.",
+  "rules": [
+    {
+      "glob": "game/assets/characters/quaternius-ual1/*",
+      "entry": "Quaternius Universal Animation Library"
+    },
+    {
+      "glob": "game/ui/fonts/*",
+      "entry": "Atkinson Hyperlegible"
+    },
+    {
+      "glob": "game/ui/frames/*",
+      "entry": "own"
+    },
+    {
+      "glob": "game/icon.svg",
+      "entry": "own"
+    },
+    {
+      "glob": "game/assets/characters/glassworld/*",
+      "entry": "GlassWorld figure bodies"
+    }
+  ],
+  "libraries": [
+    {
+      "file": "content/sound/library.json",
+      "folder": "game/assets/sound/base",
+      "origins": {
+        "kenney_impact": "Kenney Impact Sounds",
+        "kenney_rpg": "Kenney RPG Audio",
+        "moss": "Base sounds generated with MOSS",
+        "bigsoundbank": "BigSoundBank",
+        "opengameart": "OpenGameArt.org",
+        "own_synth": "own"
+      }
+    }
+  ]
+}

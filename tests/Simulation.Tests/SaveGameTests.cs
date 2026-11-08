@@ -35,6 +35,22 @@ public sealed class SaveGameTests : IDisposable
     }
 
     [Fact]
+    public void ASearchUnderWayIsHashedAndSurvivesSaveAndLoad()
+    {
+        // Review GW3 #118: the give-up clock of looking further away is state like any other.
+        var host = SimulationHost.CreatePlaceholderWorld(ContentDirectory, 3, new MockDecisionPort(), "de");
+        var before = host.World.StateHash();
+        host.Inhabitants.Get("inh-000001").SearchSince["thirst"] = 7;
+        Assert.NotEqual(before, host.World.StateHash());
+
+        var path = Path.Combine(_directory, "search.db");
+        SaveGameStore.Save(path, StateCodec.Capture(host));
+        var loaded = Restore(SaveGameStore.Load(path), new MockDecisionPort());
+        Assert.Equal(host.World.StateHash(), loaded.World.StateHash());
+        Assert.Equal(7, loaded.Inhabitants.Get("inh-000001").SearchSince["thirst"]);
+    }
+
+    [Fact]
     public void SavingTwiceReplacesTheFileAndLeavesNoTemporaryCopy()
     {
         var host = SimulationHost.CreatePlaceholderWorld(ContentDirectory, 3, new MockDecisionPort(), "de");

@@ -27,7 +27,8 @@ public sealed record SavedInhabitant(
     Activity? Planned,
     IReadOnlyList<SavedBelief> Beliefs,
     Appearance? Appearance = null,
-    IReadOnlyList<SavedRelation>? Relations = null);
+    IReadOnlyList<SavedRelation>? Relations = null,
+    IReadOnlyDictionary<string, long>? SearchSince = null);
 
 /// <summary>An open question as saved.</summary>
 public sealed record SavedQuestion(string Id, string InhabitantId, string Kind, string Subject, string RequestId, long AskedTick, IReadOnlyList<SavedOption> Options, long? RetryAtTick);
@@ -109,7 +110,8 @@ public static class StateCodec
                 i.Planned,
                 [.. i.Beliefs.All.Select(b => new SavedBelief(b.TypeId, b.PropertyId, b.Belief.Value, b.Belief.Confidence, b.Belief.Source, b.Belief.ToldBy, b.Belief.Tick))],
                 i.Appearance,
-                [.. i.Relationships.All.Select(r => new SavedRelation(r.Other, r.Relation.Affection, r.Relation.Trust, r.Relation.Respect))]))],
+                [.. i.Relationships.All.Select(r => new SavedRelation(r.Other, r.Relation.Affection, r.Relation.Trust, r.Relation.Respect))],
+                i.SearchSince.Count > 0 ? new Dictionary<string, long>(i.SearchSince, StringComparer.Ordinal) : null))],
             counter,
             [.. questions.Select(q => new SavedQuestion(q.Id, q.InhabitantId, q.Kind, q.Subject, q.RequestId, q.AskedTick, [.. q.Options.Select(o => new SavedOption(o.OptionId, o.Action, o.TargetId))], q.RetryAtTick))],
             lastAsked,
@@ -193,6 +195,11 @@ public static class StateCodec
             foreach (var relation in saved.Relations ?? [])
             {
                 inhabitant.Relationships.Set(relation.Other, new Relation(relation.Affection, relation.Trust, relation.Respect));
+            }
+
+            foreach (var (key, tick) in saved.SearchSince ?? new Dictionary<string, long>())
+            {
+                inhabitant.SearchSince[key] = tick;
             }
 
             host.Inhabitants.Add(inhabitant);

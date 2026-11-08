@@ -21,7 +21,7 @@ development PC on 2026-11-07 (AMW #18208, #18209, #18238, #18267).
 | NuGet sources | repo-local `nuget.config` (`<clear/>` + nuget.org) | independent of machine-wide NuGet settings |
 | Python | 3.12 (`.python-version`; dev PC 3.12.4) | AI service |
 | uv | 0.11.10 | `uv.lock` with hashes is the pin source for Python dependencies |
-| Ollama | 0.40.14 | external program, detected by the AI service |
+| Ollama | 0.40.14 | not shipped: the player's own is used, otherwise downloaded at first start after consent (F5266 = A, `content/ai/ollama-runtime.json`) |
 | Language model | `qwen3.5:9b`, pinned by digest `56671c2ab938` | decider and rule guard (ADR-0005); tags can move |
 | ComfyUI | 0.44.0 (own Python 3.13, PyTorch 2.14.1+cu130) | external program, used from B7 |
 | Git | 2.53 | |

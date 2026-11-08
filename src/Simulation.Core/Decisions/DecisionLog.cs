@@ -96,4 +96,7 @@ public static class ReplayNotes
 
     /// <summary>The chosen option was not offered.</summary>
     public const string UnknownOption = "unknown_option";
+
+    /// <summary>A passing option (warn, show, teach) no longer had anything to pass on when the answer came.</summary>
+    public const string NothingToPass = "nothing_to_pass";
 }

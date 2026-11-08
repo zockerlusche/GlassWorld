@@ -11,7 +11,14 @@
     "notes_max": 10,
     "base_hz_min": 2200,
     "base_hz_max": 3400,
-    "steps": [0, 2, 4, 7, 9, 12],
+    "steps": [
+      0,
+      2,
+      4,
+      7,
+      9,
+      12
+    ],
     "note_s_min": 0.06,
     "note_s_max": 0.18,
     "gap_s": 0.04,
@@ -19,6 +26,7 @@
     "trill_chance": 0.25,
     "trill_notes": 4,
     "peak": 0.35,
-    "loudness_dbfs": -20
+    "loudness_dbfs": -20,
+    "recorded_share": 0.5
   }
 }

@@ -14,7 +14,11 @@ public sealed record MusicNote(double StartS, double DurationS, double Hz, bool 
 /// <param name="Seed">Seed of the piece (same seed, same piece).</param>
 /// <param name="Seconds">Length of the piece.</param>
 /// <param name="FadeInS">How long it fades in (cross-fade when the mood changes).</param>
-public sealed record MusicCue(string Mood, ulong Seed, double Seconds, double FadeInS);
+public sealed record MusicCue(string Mood, ulong Seed, double Seconds, double FadeInS)
+{
+    /// <summary>The mood whose data renders this piece: the mood itself or one of its alternates.</summary>
+    public string Variant { get; init; } = Mood;
+}
 
 /// <summary>What the music player does now.</summary>
 /// <param name="Start">A piece to start, or null.</param>
@@ -142,6 +146,7 @@ public sealed class MusicDirector
         _worldSeed = worldSeed;
         var moods = settings.Moods.Select(m => m.Id).ToHashSet(StringComparer.Ordinal);
         var problems = settings.Rules.Where(r => !moods.Contains(r.Mood)).Select(r => $"rule names unknown mood '{r.Mood}'").ToList();
+        problems.AddRange(settings.Moods.SelectMany(m => (m.Alternates ?? []).Where(a => !moods.Contains(a) || a == m.Id).Select(a => $"mood '{m.Id}' names alternate '{a}' that is unknown or itself")));
         if (settings.MinMoodS < settings.FadeS)
         {
             problems.Add($"min_mood_s {settings.MinMoodS} is shorter than fade_s {settings.FadeS}");
@@ -213,7 +218,10 @@ public sealed class MusicDirector
         _pieceEnds = now + seconds;
         _pauseEnds = null;
         var seed = SplitMix64.SeedOf(string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{_worldSeed}|music|{mood}|{_counter++}"));
-        return new MusicCue(mood, seed, seconds, _settings.FadeS);
+
+        // A mood may have alternates (listening test 2: both variants, W1651): each piece plays one of them.
+        string[] candidates = [mood, .. Mood(mood).Alternates ?? []];
+        return new MusicCue(mood, seed, seconds, _settings.FadeS) { Variant = candidates[(int)(seed % (ulong)candidates.Length)] };
     }
 
     private double Between(MusicRange range, string what)

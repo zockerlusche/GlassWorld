@@ -25,6 +25,7 @@ from glassworld_contracts import (
     JobAccepted,
     JobList,
     JobStatus,
+    OllamaSetupStatus,
     PhaseChange,
     PhaseStatus,
     PlayerMessage,
@@ -53,6 +54,7 @@ MODELS: dict[str, type[BaseModel]] = {
     "phase-change": PhaseChange,
     "phase-status": PhaseStatus,
     "benchmark-status": BenchmarkStatus,
+    "ollama-setup-status": OllamaSetupStatus,
 }
 
 # Schema rules the generated pydantic models do not enforce. JSON Schema validation

@@ -237,6 +237,10 @@
     {
       "pattern": "look/objects.json",
       "schema": "look-objects"
+    },
+    {
+      "pattern": "ai/ollama-runtime.json",
+      "schema": "ollama-runtime"
     }
   ]
 }

@@ -111,7 +111,7 @@ public partial class WorldMusic : Node
         if (step.Start is { } next)
         {
             var settings = _settings;
-            var mood = _director.Mood(next.Mood);
+            var mood = _director.Mood(next.Variant);
             _rendering = Task.Run(() => (Stream(MusicComposer.Render(settings, mood, next.Seed, next.Seconds), (int)settings.SampleRate), next));
         }
     }

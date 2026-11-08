@@ -1,0 +1,20 @@
+{
+  "contract_version": "0.2",
+  "version": "0.40.14",
+  "accept_from": "0.40.14",
+  "licence": "MIT",
+  "source_page": "https://github.com/ollama/ollama/releases/tag/v0.40.14",
+  "assets": [
+    {
+      "platform": "windows-x86_64",
+      "url": "https://github.com/ollama/ollama/releases/download/v0.40.14/ollama-windows-amd64.zip",
+      "sha256": "65d68cade6cf6375f398b518224f8c8a15e062387f38cf477abfc848de7e7e29",
+      "size_bytes": 1601954968,
+      "executable": "ollama.exe"
+    }
+  ],
+  "includes": [
+    "NVIDIA CUDA runtime (NVIDIA CUDA EULA)",
+    "Microsoft Visual C++ runtime (Microsoft licence)"
+  ]
+}

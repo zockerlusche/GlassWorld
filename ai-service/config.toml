@@ -2,8 +2,11 @@
 # Every value can be overridden by an environment variable GW_AI_<NAME> (e.g. GW_AI_OLLAMA_URL)
 # or by a local .env file (see .env.example). The session token is never stored here.
 
-# External programs: detected by the service, never started by it (ADR-0006).
+# External programs (ADR-0006). Ollama: the player's own is used; otherwise the game offers the
+# download (B10 R3) and the service starts the loaded one on this localhost address.
 ollama_url = "http://127.0.0.1:11434"
+ollama_runtime_file = "../content/ai/ollama-runtime.json"
+ollama_install_dir = "../.local/ai-service/ollama"   # the game sets GW_AI_OLLAMA_INSTALL_DIR
 comfyui_url = "http://127.0.0.1:8188"
 
 # Decider and rule guard model (ADR-0001, ADR-0005). Pinned by digest prefix because tags can move.

@@ -122,6 +122,40 @@ public static class Pcm
         return count == 0 ? -120 : 10 * Math.Log10(sum / count);
     }
 
+    /// <summary>
+    /// Noise floor in dBFS (TL #19652): the 10th percentile of the RMS of 50 ms frames, ignoring digital
+    /// silence (below -90 dBFS). For a one-shot that is the hiss before and after the sound; for a loop the
+    /// quietest moments. -120 for silence.
+    /// </summary>
+    public static double NoiseFloorDbfs(MonoSound sound)
+    {
+        ArgumentNullException.ThrowIfNull(sound);
+        var frame = Math.Max(1, sound.SampleRate / 20);
+        var levels = new List<double>();
+        for (var start = 0; start + frame <= sound.Samples.Length; start += frame)
+        {
+            double sum = 0;
+            for (var i = start; i < start + frame; i++)
+            {
+                sum += sound.Samples[i] * (double)sound.Samples[i];
+            }
+
+            var db = 10 * Math.Log10((sum / frame) + 1e-24);
+            if (db > -90)
+            {
+                levels.Add(db);
+            }
+        }
+
+        if (levels.Count == 0)
+        {
+            return -120;
+        }
+
+        levels.Sort();
+        return levels[(int)(levels.Count * 0.1)];
+    }
+
     /// <summary>Highest absolute sample in dBFS (-120 for silence).</summary>
     public static double PeakDbfs(MonoSound sound)
     {

@@ -13,7 +13,7 @@ namespace GlassWorld.Contracts
     #pragma warning disable // Disable all warnings
 
     /// <summary>
-    /// Data file content/processes/rules.json (B2537): heat levels in order and the basic processing rules. AI-found rules are added per world at runtime (job process) in the same form.
+    /// Data file content/processes/rules.json (B2537): heat levels in order and the basic processing rules. AI-found rules are added per world at runtime (job process) in the same form. When several rules match one try, the most specific wins: more inputs, then more required properties (properties_all over all inputs), then a tool condition, then a heat condition; ties by rule id (ordinal). The core (P3) applies exactly this order.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class ProcessRules

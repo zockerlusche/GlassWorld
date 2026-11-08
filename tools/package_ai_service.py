@@ -15,6 +15,7 @@ folders that must be writable (user data). Usage:
 from __future__ import annotations
 
 import argparse
+import json
 import shutil
 import subprocess
 import sys
@@ -37,6 +38,15 @@ REMOVE = [  # relative to the Python folder; not used by the service, licences o
     "DLLs/_lzma.pyd",
     "DLLs/_sqlite3.pyd",
     "DLLs/sqlite3.dll",
+    "DLLs/_ctypes_test.pyd",
+    "DLLs/_testbuffer.pyd",
+    "DLLs/_testcapi.pyd",
+    "DLLs/_testclinic.pyd",
+    "DLLs/_testconsole.pyd",
+    "DLLs/_testimportmultiple.pyd",
+    "DLLs/_testinternalcapi.pyd",
+    "DLLs/_testmultiphase.pyd",
+    "DLLs/_testsinglephase.pyd",
     "include",
     "libs",
 ]
@@ -56,6 +66,8 @@ model3d_output_dir = "data/models"
 hardware_tiers_file = "../content/hardware/tiers.json"
 model_footprints_file = "../content/hardware/models.json"
 night_plan_file = "../content/hardware/night.json"
+ollama_runtime_file = "../content/ai/ollama-runtime.json"
+ollama_install_dir = "data/ollama"
 moss_worker_script = "data/moss-worker-not-shipped.py"
 """
 
@@ -113,6 +125,30 @@ def prepare_target(out_dir: Path) -> Path:
     return target
 
 
+def check_inventory(python_dir: Path) -> None:
+    """Every DLL and extension module must map to a LICENSES.md row (review GW1 #51): a new
+    library in a newer Python build fails the packaging instead of slipping through."""
+    import fnmatch
+
+    inventory = json.loads(
+        (ROOT / "tools/licenses/embedded-python.json").read_text(encoding="utf-8")
+    )["files"]
+    rows = (ROOT / "LICENSES.md").read_text(encoding="utf-8").lower()
+    found = sorted(
+        p.name for p in [*python_dir.glob("*.dll"), *(python_dir / "DLLs").glob("*")]
+        if p.suffix.lower() in {".dll", ".pyd"}
+    )  # fmt: skip
+    problems: list[str] = []
+    for name in found:
+        row = next((r for pat, r in inventory.items() if fnmatch.fnmatchcase(name, pat)), None)
+        if row is None:
+            problems.append(f"{name}: not in tools/licenses/embedded-python.json")
+        elif f"| {row.lower()}" not in rows:
+            problems.append(f"{name}: row '{row}' missing in LICENSES.md")
+    if problems:
+        raise SystemExit("embedded Python inventory:\n  " + "\n  ".join(problems))
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("python_dir", type=Path, help="unpacked python-build-standalone 3.12")
@@ -127,6 +163,7 @@ def main() -> None:
             shutil.rmtree(path)
         elif path.exists():
             path.unlink()
+    check_inventory(python_dir)
     for marker in python_dir.rglob("EXTERNALLY-MANAGED"):
         marker.unlink()
     python = python_dir / "python.exe"

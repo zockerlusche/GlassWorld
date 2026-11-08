@@ -18,6 +18,12 @@ public static class MurmurAudio
     private static readonly Dictionary<(string Inhabitant, string Sex, string Text), AudioStreamWav> Streams = [];
     private static readonly Queue<(string Inhabitant, string Sex, string Text)> Order = new();
 
+    /// <summary>
+    /// Recorded voices of the base library (listening test 3): sound id and variant to a stream, or null
+    /// when the library has no file. Set by the world audio; null = formant murmur only.
+    /// </summary>
+    public static Func<string, int, AudioStreamWav?>? Samples { get; set; }
+
     /// <summary>The loaded murmur; null if the data was invalid.</summary>
     public static Murmur? Voice { get; private set; }
 
@@ -49,7 +55,13 @@ public static class MurmurAudio
             return stream;
         }
 
-        var pcm = voice.Render(voice.Plan(inhabitantId, voice.VoiceOf(sex, voice.PlaceholderBody(inhabitantId)), text));
+        var body = voice.PlaceholderBody(inhabitantId);
+        if (Samples is { } recorded && voice.SampleFor(inhabitantId, sex, body, text) is { } sample && recorded(sample.SoundId, sample.Variant) is { } sampleStream)
+        {
+            return sampleStream;
+        }
+
+        var pcm = voice.Render(voice.Plan(inhabitantId, voice.VoiceOf(sex, body), text));
         var bytes = new byte[pcm.Length * 2];
         Buffer.BlockCopy(pcm, 0, bytes, 0, bytes.Length);
         if (!BitConverter.IsLittleEndian)
