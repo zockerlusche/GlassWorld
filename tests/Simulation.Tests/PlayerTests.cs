@@ -181,6 +181,23 @@ public sealed class PlayerTests : IDisposable
     }
 
     [Fact]
+    public void StartFavourIsInTheLogOfASaveMadeBeforeTheFirstTick()
+    {
+        // GW1 #73 F1: the world is saved right after creation; its log must already hold the favour.
+        var original = WorldWithThirsty(out _);
+        var low = original.Content.Favor.StartOptions.Min();
+        Assert.True(original.Decisions.ApplySetup(original.World, new PlayerCommand(PlayerSystem.StartFavorCommand, null) { Amount = low }).Accepted);
+        Assert.Equal(low, original.Player.Favor);
+        Assert.Single(original.Decisions.Log.Entries, e => e.Kind == DecisionLogKind.Command && e.Tick == 0);
+        original.World.Run(100);
+
+        var replay = WorldWithThirsty(out _);
+        replay.Decisions.LoadReplay(original.Decisions.Log);
+        replay.World.Run(100);
+        Assert.Equal(original.World.StateHash(), replay.World.StateHash());
+    }
+
+    [Fact]
     public void AReplayedGiftGivesTheSameWorld()
     {
         // GW1 review #67 T1: the command comes back from the log at the same tick.

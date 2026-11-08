@@ -73,10 +73,9 @@ public partial class WorldPresenter : Node3D
         {
             // Part of the start (GW1 review #67 S1/N1): as a command in the log, applied at the first
             // tick, so a replay from seed and log starts with the same favour.
-            // Also set at once: the world is saved right after creation, before the first tick, and the
-            // command queue is not part of the save game (the command sets the same value).
-            host.Player.SetStartFavor(favor);
-            host.Decisions.Submit(new Simulation.Decisions.PlayerCommand(Simulation.Player.PlayerSystem.StartFavorCommand, null) { Amount = favor });
+            // Applied and logged at once: the world is saved right after creation, before the first tick
+            // (GW1 #73 F1); a replay applies the logged command again at the first tick.
+            host.Decisions.ApplySetup(host.World, new Simulation.Decisions.PlayerCommand(Simulation.Player.PlayerSystem.StartFavorCommand, null) { Amount = favor });
         }
 
         Begin(host, savePath);
