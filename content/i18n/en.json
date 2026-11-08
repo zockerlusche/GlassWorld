@@ -1252,7 +1252,7 @@
     },
     {
       "key": "ui.mailbox.read",
-      "text": "Read"
+      "text": "Mark as read"
     },
     {
       "key": "ui.mailbox.history",

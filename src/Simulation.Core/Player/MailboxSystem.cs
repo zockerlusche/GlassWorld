@@ -18,6 +18,9 @@ namespace GlassWorld.Simulation.Player;
 /// <param name="LastShownTick">When it was last shown (arrival or repeat).</param>
 public sealed record MailMessage(string Id, string? InhabitantId, string Kind, long CreatedTick, string TextKey, string? Detail, int Urgency, int Repeats, long? AcknowledgedTick, long LastShownTick)
 {
+    /// <summary>True once the reason is over (a knock whose call ended): it stays calm and never repeats again.</summary>
+    public bool Settled { get; init; }
+
     /// <summary>True while the player has not acknowledged it.</summary>
     public bool IsOpen => AcknowledgedTick is null;
 }
@@ -34,7 +37,7 @@ public sealed record MailboxState(long Counter, IReadOnlyList<MailMessage> Messa
 /// warm tint, never by blinking or sound, B2466); acknowledged ones move to the history. All values
 /// come from content/player/message_kinds.json.
 /// </summary>
-public sealed class MailboxSystem : IWorldSystem
+public sealed class MailboxSystem : IWorldSystem, IOptionalWorldState
 {
     /// <summary>Event: a message arrived (InhabitantId = sender, TargetId = message id, Detail = kind).</summary>
     public const string MailArrived = "mail_arrived";
@@ -53,21 +56,28 @@ public sealed class MailboxSystem : IWorldSystem
 
     private readonly Dictionary<string, MessageKind> _kinds;
     private readonly InhabitantsSystem _inhabitants;
+    private readonly PlayerSystem _player;
+    private readonly int _historyMax;
     private readonly int _ticksPerHour;
     private readonly List<MailMessage> _messages = [];
     private long _counter;
 
     /// <summary>Creates the mailbox.</summary>
-    public MailboxSystem(MessageKinds kinds, InhabitantsSystem inhabitants, int ticksPerHour)
+    public MailboxSystem(MessageKinds kinds, InhabitantsSystem inhabitants, PlayerSystem player, int ticksPerHour)
     {
         ArgumentNullException.ThrowIfNull(kinds);
         _kinds = kinds.Kinds.ToDictionary(k => k.Id, StringComparer.Ordinal);
+        _historyMax = kinds.HistoryMax;
         _inhabitants = inhabitants ?? throw new ArgumentNullException(nameof(inhabitants));
+        _player = player ?? throw new ArgumentNullException(nameof(player));
         _ticksPerHour = ticksPerHour;
     }
 
     /// <inheritdoc/>
     public string Name => "mailbox";
+
+    /// <inheritdoc/>
+    public bool HasState => _counter > 0;
 
     /// <summary>Open messages, most urgent first, then newest.</summary>
     public IReadOnlyList<MailMessage> Open => [.. _messages.Where(m => m.IsOpen).OrderByDescending(m => m.Urgency).ThenByDescending(m => m.CreatedTick).ThenBy(m => m.Id, StringComparer.Ordinal)];
@@ -91,6 +101,13 @@ public sealed class MailboxSystem : IWorldSystem
         if (index >= 0)
         {
             _messages[index] = _messages[index] with { AcknowledgedTick = world.Tick };
+
+            // A bounded history (data): the oldest read messages go.
+            var read = _messages.Where(m => !m.IsOpen).OrderBy(m => m.AcknowledgedTick).ThenBy(m => m.Id, StringComparer.Ordinal).ToList();
+            foreach (var old in read.Take(Math.Max(0, read.Count - _historyMax)))
+            {
+                _messages.Remove(old);
+            }
         }
     }
 
@@ -117,6 +134,20 @@ public sealed class MailboxSystem : IWorldSystem
                 continue;
             }
 
+            // A knock whose call for help is over (need met, or the sender is gone) calms down and stops
+            // repeating; it stays in the mailbox until read (review #86, B2466).
+            if (message.Settled)
+            {
+                continue;
+            }
+
+            if (message.Kind == KnockKind && !CallStillOpen(message))
+            {
+                // A later call for the same need brings its own knock.
+                _messages[i] = message with { Urgency = 0, Settled = true };
+                continue;
+            }
+
             if (world.Tick - message.LastShownTick >= (long)(kind.RepeatAfterHours * _ticksPerHour))
             {
                 _messages[i] = message with
@@ -138,25 +169,44 @@ public sealed class MailboxSystem : IWorldSystem
         foreach (var m in _messages)
         {
             hasher.Write(m.Id).Write(m.InhabitantId ?? string.Empty).Write(m.Kind).Write(m.CreatedTick).Write(m.TextKey).Write(m.Detail ?? string.Empty)
-                .Write(m.Urgency).Write(m.Repeats).Write(m.AcknowledgedTick ?? -1).Write(m.LastShownTick);
+                .Write(m.Urgency).Write(m.Repeats).Write(m.AcknowledgedTick ?? -1).Write(m.LastShownTick).Write(m.Settled);
         }
     }
 
     /// <summary>The state to save.</summary>
     public MailboxState Capture() => new(_counter, [.. _messages]);
 
-    /// <summary>Restores a saved state (null = a save game from before the mailbox: empty).</summary>
+    /// <summary>
+    /// Restores a saved state (null = a save game from before the mailbox: empty). Unknown kinds, ids
+    /// twice or above the counter make the load fail cleanly (review #86).
+    /// </summary>
     public void Restore(MailboxState? state)
     {
+        _counter = 0;
+        _messages.Clear();
         if (state is null)
         {
             return;
         }
 
+        var problems = new List<string>();
+        problems.AddRange(state.Messages.Where(m => !_kinds.ContainsKey(m.Kind)).Select(m => $"unknown kind '{m.Kind}'"));
+        problems.AddRange(state.Messages.GroupBy(m => m.Id, StringComparer.Ordinal).Where(g => g.Count() > 1).Select(g => $"id '{g.Key}' twice"));
+        problems.AddRange(state.Messages.Where(m => !long.TryParse(m.Id.AsSpan(2), System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var n) || n > state.Counter || n <= 0)
+            .Select(m => $"id '{m.Id}' does not fit the counter {state.Counter}"));
+        if (problems.Count > 0)
+        {
+            throw new InvalidDataException("Save game mailbox: " + string.Join("; ", problems) + ".");
+        }
+
         _counter = state.Counter;
-        _messages.Clear();
         _messages.AddRange(state.Messages);
     }
+
+    private bool CallStillOpen(MailMessage message) =>
+        message.InhabitantId is { } who
+        && _inhabitants.All.Any(i => i.Id == who)
+        && _player.Open.Any(c => c.InhabitantId == who && c.Need == message.Detail);
 
     private void Add(World world, string? inhabitantId, string kind, string textKey, string? detail)
     {

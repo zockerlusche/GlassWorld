@@ -129,9 +129,10 @@ public sealed class SimulationHost
         var inventions = new InventionSystem(content.Inventions, inhabitants, objects, types, content.Brain.Weights.PerceptionRadiusM, jobPort, displayLocale);
         var chronicle = new ChronicleSystem(content.Chronicle);
         inhabitants.Reported += chronicle.Observe;
-        var mailbox = new Simulation.Player.MailboxSystem(content.MessageKinds, inhabitants, world.Calendar.Settings.TicksPerHour);
+        var mailbox = new Simulation.Player.MailboxSystem(content.MessageKinds, inhabitants, player, world.Calendar.Settings.TicksPerHour);
         decisions.RegisterCommand(Simulation.Player.MailboxSystem.Acknowledge, mailbox.Check, mailbox.Apply);
-        world.Add(objects).Add(decisions).Add(inhabitants).Add(player).Add(mailbox).Add(inventions).Add(chronicle);
+        // The mailbox after the chronicle (agreed order): help_needed is reported by the player system earlier in the tick.
+        world.Add(objects).Add(decisions).Add(inhabitants).Add(player).Add(inventions).Add(chronicle).Add(mailbox);
         return new SimulationHost(content, world, map, types, objects, decisions, inhabitants, player, inventions, chronicle, settings, mailbox);
     }
 

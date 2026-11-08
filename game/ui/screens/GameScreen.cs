@@ -169,7 +169,14 @@ public partial class GameScreen : CanvasLayer
             else
             {
                 // Calm fallback: the window keeps the suggestions from the data (B3 A3).
-                GD.Print($"HELP_FALLBACK {answer.Problem}");
+                if (answer.Problem?.StartsWith("error: ", StringComparison.Ordinal) == true)
+                {
+                    GD.PushError($"help suggestions: {answer.Problem}");
+                }
+                else
+                {
+                    GD.Print($"HELP_FALLBACK {answer.Problem}");
+                }
             }
         }
 
@@ -660,10 +667,19 @@ public partial class GameScreen : CanvasLayer
         var request = HelpSuggestions.Request(host, call, locale);
         var allowed = HelpSuggestions.AllowedTypes(host, call);
         var max = HelpSuggestions.MaxSuggestions(host);
+        var guard = host.Content.Inventions.Guard;
         _ = Task.Run(async () =>
         {
-            var answer = await port.SuggestAsync(request).ConfigureAwait(false);
-            _helpAnswers.Enqueue(answer.Response is null ? (key, null, answer.Problem) : (key, HelpSuggestions.Cards(answer.Response, allowed, max), null));
+            try
+            {
+                var answer = await port.SuggestAsync(request).ConfigureAwait(false);
+                _helpAnswers.Enqueue(answer.Response is null ? (key, null, answer.Problem) : (key, HelpSuggestions.Cards(answer.Response, allowed, max, t => guard.Check(t).Allowed), null));
+            }
+            catch (Exception e) when (e is not OutOfMemoryException)
+            {
+                // Never lost silently (review #86): reported on the main thread, the window keeps the data suggestions.
+                _helpAnswers.Enqueue((key, null, "error: " + e.Message));
+            }
         });
     }
 
@@ -685,7 +701,7 @@ public partial class GameScreen : CanvasLayer
             return false;
         }
 
-        var tremor = new GlassTremor { Name = "GlassTremor", Center = camera.UnprojectPosition(figure.GlobalPosition), Seconds = ms / 1000.0, Color = UiTheme.ToGodot(_style.Color(UiColorId.Accent)) };
+        var tremor = new GlassTremor { Name = "GlassTremor", Center = camera.UnprojectPosition(figure.GlobalPosition), Seconds = ms / 1000.0, Color = UiTheme.ToGodot(_style.Color(UiColorId.Accent)), Shape = _style.Tokens.Knock };
         _overlay.AddChild(tremor);
         return true;
     }
@@ -731,7 +747,7 @@ public partial class GameScreen : CanvasLayer
             };
 
             // Urgency as a calm warm tint (B2466: never blinking, never a sound).
-            text.AddThemeColorOverride("font_color", UiTheme.ToGodot(_style.Color(UiColorId.Text)).Lerp(warm, message.Urgency / 3f * 0.6f));
+            text.AddThemeColorOverride("font_color", UiTheme.ToGodot(_style.Color(UiColorId.Text)).Lerp(warm, message.Urgency / 3f * (float)_style.Tokens.Knock.UrgencyTint));
             row.AddChild(text);
             var read = new Button { Text = "ui.mailbox.read" };
             var id = message.Id;

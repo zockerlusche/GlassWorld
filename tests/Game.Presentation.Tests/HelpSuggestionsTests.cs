@@ -77,6 +77,17 @@ public sealed class HelpSuggestionsTests
         Assert.All(fallback, c => Assert.Null(c.Text));
     }
 
+    [Fact]
+    public void ATextTheCoreGuardRefusesIsDropped()
+    {
+        // Review #86: the service guards its texts, the core checks again (defence in depth).
+        var response = ContractSerializer.Deserialize<HelpSuggestionsResponse>(File.ReadAllText(Path.Combine(Examples, "help-suggestions-response.mock.json")));
+        var cards = HelpSuggestions.Cards(response, ["water_bowl"], 3, text => !text.Contains("Schau", StringComparison.Ordinal));
+        Assert.Equal([HelpCard.Gift], cards.Select(c => c.Kind));
+        Assert.Equal(["water_bowl"], HelpSuggestions.Cards(response, ["water_bowl"], 3, _ => false).Select(c => c.GiftType));
+        Assert.All(HelpSuggestions.Cards(response, ["water_bowl"], 3, _ => false), c => Assert.Null(c.Text));
+    }
+
     [Theory]
     [InlineData(HttpStatusCode.ServiceUnavailable, """{"code":"model_unavailable"}""")]
     [InlineData(HttpStatusCode.OK, "<html>oops</html>")]

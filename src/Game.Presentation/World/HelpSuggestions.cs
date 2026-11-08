@@ -83,14 +83,20 @@ public static class HelpSuggestions
 
     /// <summary>
     /// Cards for a call: the AI's suggestions when there is a usable answer (gifts only of an allowed
-    /// type), otherwise gift cards from the data.
+    /// type, texts only when the core's content guard lets them pass: defence in depth, B2462/B2466),
+    /// otherwise gift cards from the data.
     /// </summary>
-    public static IReadOnlyList<HelpCard> Cards(HelpSuggestionsResponse? response, IReadOnlyList<string> allowed, int max)
+    public static IReadOnlyList<HelpCard> Cards(HelpSuggestionsResponse? response, IReadOnlyList<string> allowed, int max, Func<string, bool>? textAllowed = null)
     {
         ArgumentNullException.ThrowIfNull(allowed);
         var cards = new List<HelpCard>();
         foreach (var suggestion in response?.Suggestions ?? [])
         {
+            if (textAllowed is not null && !textAllowed(suggestion.Reason.Text))
+            {
+                continue;
+            }
+
             if (suggestion.Kind == HelpSuggestionKind.Answer && suggestion.Gift is null)
             {
                 cards.Add(new HelpCard(HelpCard.Answer, null, suggestion.Reason.Text));

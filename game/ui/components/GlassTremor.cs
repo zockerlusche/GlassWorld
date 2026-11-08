@@ -16,6 +16,9 @@ public partial class GlassTremor : Control
     /// <summary>How long it lasts (token glass_tremor).</summary>
     public double Seconds { get; set; } = 0.4;
 
+    /// <summary>Ring sizes and shake from the UI tokens (knock).</summary>
+    public GlassWorld.Contracts.UiKnock? Shape { get; set; }
+
     /// <summary>Ring colour.</summary>
     public Color Color { get; set; } = Colors.White;
 
@@ -44,9 +47,14 @@ public partial class GlassTremor : Control
     {
         var t = (float)(_age / Seconds);
         var fade = 1f - t;
-        var shake = Mathf.Sin(t * Mathf.Pi * 6f) * 2f * fade;
+        if (Shape is not { } k)
+        {
+            return;
+        }
+
+        var shake = Mathf.Sin(t * Mathf.Pi * (float)k.Shakes) * (float)k.ShakePx * fade;
         var color = new Color(Color, 0.8f * fade);
-        DrawArc(Center + new Vector2(shake, 0), 18f + (14f * t), 0, Mathf.Tau, 48, color, 2f, true);
-        DrawArc(Center - new Vector2(shake, 0), 10f + (8f * t), 0, Mathf.Tau, 32, color, 1.5f, true);
+        DrawArc(Center + new Vector2(shake, 0), (float)(k.OuterPx + (k.OuterGrowPx * t)), 0, Mathf.Tau, 48, color, 2f, true);
+        DrawArc(Center - new Vector2(shake, 0), (float)(k.InnerPx + (k.InnerGrowPx * t)), 0, Mathf.Tau, 32, color, 1.5f, true);
     }
 }

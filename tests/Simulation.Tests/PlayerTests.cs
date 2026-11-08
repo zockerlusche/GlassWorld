@@ -238,10 +238,12 @@ public sealed class PlayerTests : IDisposable
 
         var kind = host.Content.MessageKinds.Kinds.Single(k => k.Id == MailboxSystem.KnockKind);
         var repeat = (long)kind.RepeatAfterHours * host.World.Calendar.Settings.TicksPerHour;
-        host.World.Run(repeat * (kind.MaxUrgency + 2));
+        Assert.Contains(host.Player.Open, c => c.InhabitantId == thirsty.Id && c.Need == "thirst");
+        // Within the call's lifetime (suggestion_expiry_hours) the urgency climbs to the kind's limit.
+        StayThirsty(host, thirsty, (repeat * kind.MaxUrgency) + 1);
         var later = host.Mailbox.Open.Single(m => m.Id == knock.Id);
         Assert.Equal(kind.MaxUrgency, later.Urgency);
-        Assert.True(later.Repeats >= kind.MaxUrgency + 1);
+        Assert.True(later.Repeats >= kind.MaxUrgency);
 
         Assert.True(host.Decisions.Submit(new PlayerCommand(MailboxSystem.Acknowledge, null) { MessageId = knock.Id }).Accepted);
         host.World.Step();
@@ -251,6 +253,48 @@ public sealed class PlayerTests : IDisposable
         host.World.Run(repeat * 2);
         Assert.Equal(repeats, host.Mailbox.History[0].Repeats);
         Assert.Equal(MailboxSystem.ReasonNoMessage, host.Decisions.Submit(new PlayerCommand(MailboxSystem.Acknowledge, null) { MessageId = knock.Id }).ReasonKey);
+    }
+
+    [Fact]
+    public void AKnockWhoseCallIsOverCalmsDownAndStopsRepeating()
+    {
+        // Review #86 (B2466): no rising pressure once the need is met.
+        var host = WorldWithThirsty(out var thirsty);
+        Assert.NotNull(RunUntil(host, MailboxSystem.MailArrived, days: 2));
+        var knock = host.Mailbox.Open.First(m => m.Detail == "thirst");
+        var kind = host.Content.MessageKinds.Kinds.Single(k => k.Id == MailboxSystem.KnockKind);
+        var repeat = (long)kind.RepeatAfterHours * host.World.Calendar.Settings.TicksPerHour;
+        StayThirsty(host, thirsty, repeat + 1);
+        Assert.True(host.Mailbox.Open.Single(m => m.Id == knock.Id).Urgency > 0);
+
+        thirsty.Needs["thirst"] = 1.0;
+        host.World.Run(repeat * 3);
+        var calm = host.Mailbox.Open.Single(m => m.Id == knock.Id);
+        Assert.Equal(0, calm.Urgency);
+        Assert.True(calm.Settled);
+
+        // Thirsty again later: a new call brings a new knock, the old one stays calm.
+        var repeats = calm.Repeats;
+        StayThirsty(host, thirsty, repeat * 3);
+        var old = host.Mailbox.Open.Single(m => m.Id == knock.Id);
+        Assert.Equal((repeats, 0), (old.Repeats, old.Urgency));
+    }
+
+    [Fact]
+    public void AnEmptyMailboxStaysOutOfTheHashAndBrokenSavesAreRefused()
+    {
+        // Review #86: the agreed rule "hash only with content"; Restore checks kinds and ids.
+        var host = WorldWithThirsty(out _);
+        Assert.False(host.Mailbox.HasState);
+        Assert.NotNull(RunUntil(host, MailboxSystem.MailArrived, days: 2));
+        Assert.True(host.Mailbox.HasState);
+        var state = host.Mailbox.Capture();
+        var message = state.Messages[0];
+        Assert.Throws<InvalidDataException>(() => host.Mailbox.Restore(state with { Messages = [message with { Kind = "letter" }] }));
+        Assert.Throws<InvalidDataException>(() => host.Mailbox.Restore(state with { Messages = [message, message] }));
+        Assert.Throws<InvalidDataException>(() => host.Mailbox.Restore(state with { Counter = 0 }));
+        host.Mailbox.Restore(state);
+        Assert.Equal(state.Messages.Count, host.Mailbox.Open.Count + host.Mailbox.History.Count);
     }
 
     [Fact]
@@ -264,6 +308,16 @@ public sealed class PlayerTests : IDisposable
         var loaded = StateCodec.Restore(new SimulationHostFactory(ContentSet.Load(ContentDirectory), settings, new ReplayDecisionPort(host.Decisions.Log), "de"), SaveGameStore.Load(path));
         Assert.Equal(host.World.StateHash(), loaded.World.StateHash());
         Assert.Equal(host.Mailbox.Open, loaded.Mailbox.Open);
+    }
+
+    /// <summary>Runs while keeping the inhabitant thirsty, so the call for help stays open.</summary>
+    private static void StayThirsty(SimulationHost host, Inhabitant inhabitant, long ticks)
+    {
+        for (long t = 0; t < ticks; t++)
+        {
+            inhabitant.Needs["thirst"] = 0.05;
+            host.World.Step();
+        }
     }
 
     private static SimulationHost WorldWithThirsty(out Inhabitant inhabitant)

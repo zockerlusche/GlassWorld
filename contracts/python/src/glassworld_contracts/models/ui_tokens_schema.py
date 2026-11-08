@@ -217,6 +217,32 @@ class UiColor(BaseModel):
     )
 
 
+class UiKnock(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    outer_px: float = Field(
+        ..., description='Outer ring radius at the start.', ge=4.0, le=64.0
+    )
+    outer_grow_px: float = Field(
+        ..., description='How much the outer ring grows.', ge=0.0, le=64.0
+    )
+    inner_px: float = Field(
+        ..., description='Inner ring radius at the start.', ge=2.0, le=64.0
+    )
+    inner_grow_px: float = Field(
+        ..., description='How much the inner ring grows.', ge=0.0, le=64.0
+    )
+    shakes: float = Field(..., description='Shakes during the tremor.', ge=0.0, le=12.0)
+    shake_px: float = Field(..., description='Shake width.', ge=0.0, le=6.0)
+    urgency_tint: float = Field(
+        ...,
+        description='Share of the attention colour at the highest urgency (0 = no tint).',
+        ge=0.0,
+        le=1.0,
+    )
+
+
 class UiPalette(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -276,3 +302,4 @@ class UiTokens(BaseModel):
         description="Colour sets; 'default' is required, 'high_contrast' must reach 7:1 for text (XAG 102).",
         min_length=1,
     )
+    knock: UiKnock
