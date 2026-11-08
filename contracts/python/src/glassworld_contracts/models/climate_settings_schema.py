@@ -38,6 +38,45 @@ class ClimateTransitionTarget(BaseModel):
     weight: int = Field(..., description='Relative weight.', ge=1, le=10000)
 
 
+class TemperatureSeasonOffset(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    season: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    offset_tenth_c: int = Field(..., ge=-1000, le=1000)
+
+
+class TemperatureWeatherOffset(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    weather: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    offset_tenth_c: int = Field(..., ge=-1000, le=1000)
+
+
+class TemperatureTimeOffset(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    time_of_day: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    offset_tenth_c: int = Field(..., ge=-1000, le=1000)
+
+
 class ClimateTransition(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -51,6 +90,25 @@ class ClimateTransition(BaseModel):
     to: list[ClimateTransitionTarget] = Field(
         ...,
         description='Next weather with relative weights.',
+        max_length=32,
+        min_length=1,
+    )
+
+
+class ClimateTemperature(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    base_tenth_c: int = Field(..., ge=-600, le=600)
+    seasons: list[TemperatureSeasonOffset] = Field(
+        ..., description='Offset per season.', max_length=32, min_length=1
+    )
+    weathers: list[TemperatureWeatherOffset] = Field(
+        ..., description='Offset per weather state.', max_length=32, min_length=1
+    )
+    times_of_day: list[TemperatureTimeOffset] = Field(
+        ...,
+        description='Offset per time of day (dawn, day, dusk, night).',
         max_length=32,
         min_length=1,
     )
@@ -111,6 +169,19 @@ class ClimateWeather(BaseModel):
         max_length=8,
         min_length=1,
     )
+    snow_weather: str = Field(
+        ...,
+        description='Weather id that precipitation becomes below snow_below_tenth_c.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    drought_weather: str = Field(
+        ...,
+        description='Weather id added to the conditions after drought_after_dry_days without precipitation (a signal for B5).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    temperature: ClimateTemperature
 
 
 class ClimateSettings(BaseModel):

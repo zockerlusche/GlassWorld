@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/skill-practice.schema.json",
+  "title": "SkillPractice",
+  "description": "Effect skill_practice (B5 R18): which action practises which skill, with the practice gain per use. Talent, levels and decay per inhabitant come in B5. New skills of inventions add their entries at run time. Values are placeholders until Marcel's word.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "practice"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "practice": {
+      "type": "array",
+      "maxItems": 256,
+      "items": {
+        "$ref": "#/$defs/SkillPracticeEntry"
+      }
+    }
+  },
+  "$defs": {
+    "SkillPracticeEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action",
+        "skill",
+        "gain"
+      ],
+      "properties": {
+        "action": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "skill": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "gain": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    }
+  }
+}

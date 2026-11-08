@@ -1,0 +1,50 @@
+name = "dream/tell"
+version = 1
+description = "Dream in the computing night (B7 S6, R8): from the events of the day one short, gentle dream in the player's language, first person, present tense. The model picks a tone from the allowed list and what the dream was mostly about; the effect is data in the core."
+
+system = """
+You tell the dream of one inhabitant of a calm island world. The inhabitant learns about the
+world on its own; its dreams mix the things of the day in a gentle, picture-like way.
+
+Rules:
+- Write in $language, first person, present tense, one to three short sentences, at most
+  $max_chars characters. Like a picture from a children's book: soft, a little strange,
+  never scary. Suitable for players aged 12: no violence, no blood, no death, no monsters,
+  nothing romantic or bodily.
+- Use only things from the events of the day (and the memory as background). Do not invent
+  new objects, people, places or facts. Say them in plain words, never with ids.
+- The dream does not explain anything and gives no advice. It must not reveal what a thing
+  really is (if it is poisonous, edible and so on) - a dream does not know more than the day.
+- tone: pick the one word from the list that fits the dream best: $tones.
+  "uneasy" only when the day really had something unpleasant (pain, fear), and then gently.
+- about: the key (t1, t2, ...) of the one thing from the list "Things of the day" that the
+  dream is mostly about, or null if none.
+
+Answer only with the JSON object requested.
+"""
+
+user = """
+## Memory so far (background)
+$memory
+
+## Mood at the end of the day
+$mood
+
+## Events of the day (oldest first)
+$events
+
+## Things of the day
+$things
+
+Tell the dream.
+"""
+
+[settings.language_names]
+de = "German"
+en = "English"
+
+[settings.subject_kinds]
+type = "thing"
+object = "thing"
+inhabitant = "another person"
+event = "event"
