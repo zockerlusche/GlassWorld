@@ -41,6 +41,8 @@ public partial class GameScreen : CanvasLayer
     private readonly VBoxContainer _helpList = new() { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
     private string _helpShape = "-";
     private string? _placing;
+    private readonly VBoxContainer _mailList = new() { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+    private string _mailShape = "-";
     private Label? _time;
     private WorldPresenter? _presenter;
     private WorldFeed? _feed;
@@ -88,6 +90,7 @@ public partial class GameScreen : CanvasLayer
         _sideBar.Add("questions", "ui.questions.title").Content.AddChild(_questions);
         _sideBar.Add("chronicle", "ui.chronicle.title").Content.AddChild(_chronicleList);
         _sideBar.Add("help", "ui.help.title").Content.AddChild(_helpList);
+        _sideBar.Add("mailbox", "ui.mailbox.title").Content.AddChild(_mailList);
 
         // Favour in the top bar (B6 R9): a number, the tooltip says what it is for.
         _favor = new Label { AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled, TooltipText = "ui.favor.tooltip", MouseFilter = Control.MouseFilterEnum.Stop };
@@ -160,6 +163,10 @@ public partial class GameScreen : CanvasLayer
             }
 
             _chronicle?.Add(events);
+            foreach (var knock in events.Where(e => e.Kind == Simulation.Player.MailboxSystem.MailArrived && e.Detail == Simulation.Player.MailboxSystem.KnockKind))
+            {
+                KnockAt(knock.InhabitantId);
+            }
         }
 
         _sinceRefreshMs += delta * 1000;
@@ -183,6 +190,7 @@ public partial class GameScreen : CanvasLayer
             _cardShape = string.Empty;
             _chronicleShown = -1;
             _helpShape = "-";
+            _mailShape = "-";
             _sinceRefreshMs = double.MaxValue;
         }
     }
@@ -354,6 +362,64 @@ public partial class GameScreen : CanvasLayer
         return host.Objects.All.Any(o => o.TypeId == type && Math.Abs(o.Position.X - x) < 1e-6 && Math.Abs(o.Position.Z - z) < 1e-6)
             ? string.Empty
             : "the gift is not in the world";
+    }
+
+    /// <summary>
+    /// Smoke (A1341): a knock trembles at the glass only when motion is allowed. With "reduce motion"
+    /// (glass_tremor time 0) nothing is drawn; the mailbox shows open messages and "read" moves one to
+    /// the history.
+    /// </summary>
+    public async Task<string> CheckKnockAsync()
+    {
+        if (_presenter?.Host is not { } host || _style is null)
+        {
+            return "knock check not set up";
+        }
+
+        var style = _style;
+        var who = host.Inhabitants.All.First().Id;
+        try
+        {
+            _style = style.With(style.Settings with { ReduceMotion = true });
+            if (KnockAt(who) || _overlay.GetChildren().OfType<GlassTremor>().Any())
+            {
+                return "tremor shown although motion is reduced";
+            }
+
+            _style = style.With(style.Settings with { ReduceMotion = false });
+            var shown = KnockAt(who);
+            var visible = GetViewport().GetCamera3D() is { } camera && _presenter.GetNodeOrNull<Node3D>(who) is { } figure && !camera.IsPositionBehind(figure.GlobalPosition);
+            if (visible && !shown)
+            {
+                return "no tremor with motion allowed";
+            }
+        }
+        finally
+        {
+            _style = style;
+        }
+
+        // Let the tremor run out and free itself.
+        for (var frame = 0; frame < 120 && _overlay.GetChildren().OfType<GlassTremor>().Any(); frame++)
+        {
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        }
+
+        if (_overlay.GetChildren().OfType<GlassTremor>().Any())
+        {
+            return "the tremor did not end";
+        }
+
+        RefreshMail();
+        if (host.Mailbox.Open is [var open, ..])
+        {
+            if (!host.Decisions.Submit(new Simulation.Decisions.PlayerCommand(Simulation.Player.MailboxSystem.Acknowledge, null) { MessageId = open.Id }).Accepted)
+            {
+                return "the core refused to mark a message read";
+            }
+        }
+
+        return string.Empty;
     }
 
     /// <summary>Smoke: every chronicle kind gives a full line (no placeholder or key left) in DE and EN.</summary>
@@ -531,6 +597,97 @@ public partial class GameScreen : CanvasLayer
         }
     }
 
+    /// <summary>
+    /// A knock at the glass (A1341, B6 R10): a short ring trembles at the inhabitant's place on the
+    /// screen for the token's glass_tremor time. With "reduce motion" that time is 0 and nothing moves;
+    /// the mailbox entry still arrives. Returns whether a tremor was shown.
+    /// </summary>
+    public bool KnockAt(string inhabitantId)
+    {
+        if (_style is null || _presenter?.GetNodeOrNull<Node3D>(inhabitantId) is not { } figure || GetViewport().GetCamera3D() is not { } camera)
+        {
+            return false;
+        }
+
+        var ms = _style.DurationMs("glass_tremor");
+        if (ms <= 0 || camera.IsPositionBehind(figure.GlobalPosition))
+        {
+            return false;
+        }
+
+        var tremor = new GlassTremor { Name = "GlassTremor", Center = camera.UnprojectPosition(figure.GlobalPosition), Seconds = ms / 1000.0, Color = UiTheme.ToGodot(_style.Color(UiColorId.Accent)) };
+        _overlay.AddChild(tremor);
+        return true;
+    }
+
+    /// <summary>The mailbox window (B6 R11): open messages, warmer the longer unread; read ones as history.</summary>
+    private void RefreshMail()
+    {
+        if (_feed is null || _style is null)
+        {
+            return;
+        }
+
+        var (open, history) = _feed.Mail(10);
+        var shape = string.Join(";", open.Select(m => m.Id + ":" + m.Urgency)) + "|" + string.Join(";", history.Select(m => m.Id));
+        if (shape == _mailShape)
+        {
+            return;
+        }
+
+        _mailShape = shape;
+        foreach (var child in _mailList.GetChildren())
+        {
+            _mailList.RemoveChild(child);
+            child.QueueFree();
+        }
+
+        if (open.Count == 0)
+        {
+            _mailList.AddChild(new Label { Text = "ui.mailbox.empty", AutowrapMode = TextServer.AutowrapMode.WordSmart });
+        }
+
+        var warm = UiTheme.ToGodot(_style.Color(UiColorId.Attention));
+        foreach (var message in open)
+        {
+            var row = new HBoxContainer();
+            var text = new Label
+            {
+                Text = MailText(message),
+                AutoTranslateMode = AutoTranslateModeEnum.Disabled,
+                AutowrapMode = TextServer.AutowrapMode.WordSmart,
+                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+                CustomMinimumSize = new Vector2(_style.Tokens.Window.CardBarWidth, 0),
+            };
+
+            // Urgency as a calm warm tint (B2466: never blinking, never a sound).
+            text.AddThemeColorOverride("font_color", UiTheme.ToGodot(_style.Color(UiColorId.Text)).Lerp(warm, message.Urgency / 3f * 0.6f));
+            row.AddChild(text);
+            var read = new Button { Text = "ui.mailbox.read" };
+            var id = message.Id;
+            read.Pressed += () => _presenter?.Host?.Decisions.Submit(new Simulation.Decisions.PlayerCommand(Simulation.Player.MailboxSystem.Acknowledge, null) { MessageId = id });
+            row.AddChild(read);
+            _mailList.AddChild(row);
+        }
+
+        if (history.Count > 0)
+        {
+            _mailList.AddChild(new Label { Text = "ui.mailbox.history", ThemeTypeVariation = UiTheme.SubheaderLabel });
+            foreach (var message in history)
+            {
+                var old = new Label { Text = MailText(message), AutoTranslateMode = AutoTranslateModeEnum.Disabled, AutowrapMode = TextServer.AutowrapMode.WordSmart };
+                old.AddThemeColorOverride("font_color", UiTheme.ToGodot(_style.Color(UiColorId.Text_muted)));
+                _mailList.AddChild(old);
+            }
+        }
+    }
+
+    private string MailText(MailRow message) => TextFill.Fill(Tr(message.TextKey), new Dictionary<string, string>
+    {
+        ["number"] = Number(message.Number),
+        ["need"] = message.Detail is null ? string.Empty : Tr(VocabKeys.Need(message.Detail)),
+    });
+
     /// <summary>Shows a calm hint (e.g. saving failed).</summary>
     public void ShowHint(ToastMessage message) => _board?.Push(message, fastForward: false);
 
@@ -562,6 +719,7 @@ public partial class GameScreen : CanvasLayer
 
         RefreshChronicle();
         RefreshHelp();
+        RefreshMail();
 
         var rows = _feed.Inhabitants();
         _inhabitants.SetRows([.. rows.Select(r => new GwRow(r.Id, [DisplayName(r), Number(r.WillToLivePercent), Number(r.OpenQuestions)], [r.Number, r.WillToLivePercent, r.OpenQuestions]))]);

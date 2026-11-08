@@ -19,6 +19,15 @@ public sealed class UiTests
         Assert.Empty(UiStandardRules.Check(style.Tokens, style.Frames));
     }
 
+    [Fact]
+    public void ReduceMotionStopsTheGlassTremor()
+    {
+        // A1341 criterion 2 (XAG 117): the knock is still in the mailbox, but nothing trembles.
+        var style = UiStyle.FromJson(TokensJson, FramesJson);
+        Assert.True(style.DurationMs("glass_tremor") > 0);
+        Assert.Equal(0, style.With(style.Settings with { ReduceMotion = true }).DurationMs("glass_tremor"));
+    }
+
     [Theory]
     [InlineData(0.5, 0.75)]
     [InlineData(0.77, 0.75)]

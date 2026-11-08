@@ -1233,6 +1233,18 @@
     {
       "key": "msg.command.no_message",
       "text": "This message has already been read."
+    },
+    {
+      "key": "ui.mailbox.empty",
+      "text": "No new messages."
+    },
+    {
+      "key": "ui.mailbox.read",
+      "text": "Read"
+    },
+    {
+      "key": "ui.mailbox.history",
+      "text": "Read earlier"
     }
   ]
 }

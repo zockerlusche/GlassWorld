@@ -322,6 +322,16 @@ public partial class Main
             {
                 GD.Print("GIFT_OK");
             }
+
+            var knock = _screen is null ? "game screen missing" : await _screen.CheckKnockAsync();
+            if (knock.Length > 0)
+            {
+                problems = [.. problems, "knock: " + knock];
+            }
+            else
+            {
+                GD.Print("KNOCK_OK");
+            }
             problems = [.. problems, .. await CheckMenusAsync()];
             foreach (var problem in problems)
             {
