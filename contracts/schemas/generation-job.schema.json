@@ -101,6 +101,9 @@
         },
         "dream": {
           "$ref": "#/$defs/DreamPayload"
+        },
+        "model3d": {
+          "$ref": "#/$defs/Model3dPayload"
         }
       },
       "minProperties": 1,
@@ -546,6 +549,41 @@
           "type": "integer",
           "minimum": 40,
           "maximum": 280
+        }
+      }
+    },
+    "Model3dPayload": {
+      "description": "Image to 3D model (B7 R9, ADR-0004, A1412): only on the comfort tier (TRELLIS.2, 16-24 GB, Linux). Interface and stand-in only; on other tiers the job fails as not retryable and the construction-kit builder is used.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "image_file",
+        "object_type",
+        "max_triangles"
+      ],
+      "properties": {
+        "image_file": {
+          "description": "Picture of the thing from an image job (file name in the service's image folder, no path).",
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9_.-]*\\.png$",
+          "maxLength": 120
+        },
+        "object_type": {
+          "description": "The (runtime) object type the model belongs to, if any.",
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/VocabId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "max_triangles": {
+          "description": "Upper bound for the mesh (data, low-poly style).",
+          "type": "integer",
+          "minimum": 12,
+          "maximum": 50000
         }
       }
     }

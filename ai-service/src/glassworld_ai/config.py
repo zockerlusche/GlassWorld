@@ -100,6 +100,12 @@ class Settings(BaseSettings):
     log_dir: Path
     lock_dir: Path
     sound_output_dir: Path = Field(description="Made sounds; the game copies them into the world.")
+    model3d_image_dir: Path = Field(description="Pictures of image jobs (input of 3D jobs).")
+    model3d_output_dir: Path = Field(description="Made 3D models; the game copies them.")
+    model3d_backend: Literal["mock", "trellis2"] = Field(
+        default="mock",
+        description="mock = stand-in box; trellis2 = the real model (not wired yet).",
+    )
     moss_worker_script: Path = Field(description="tools/moss/worker.py")
     token: SecretStr | None = Field(
         default=None,
@@ -143,6 +149,8 @@ def load_settings(config_file: Path | None = None) -> Settings:
         "lock_dir",
         "sound_output_dir",
         "moss_worker_script",
+        "model3d_image_dir",
+        "model3d_output_dir",
         "hardware_tiers_file",
         "model_footprints_file",
         "night_plan_file",

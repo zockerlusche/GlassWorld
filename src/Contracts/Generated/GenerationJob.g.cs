@@ -51,6 +51,10 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("dream")]
         public DreamPayload? Dream { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("model3d")]
+        public Model3dPayload? Model3d { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -372,6 +376,33 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("max_chars")]
         public int MaxChars { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Image to 3D model (B7 R9, ADR-0004, A1412): only on the comfort tier (TRELLIS.2, 16-24 GB, Linux). Interface and stand-in only; on other tiers the job fails as not retryable and the construction-kit builder is used.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class Model3dPayload
+    {
+
+        /// <summary>
+        /// Picture of the thing from an image job (file name in the service's image folder, no path).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("image_file")]
+        public string ImageFile { get; set; } = default!;
+
+        /// <summary>
+        /// The (runtime) object type the model belongs to, if any.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("object_type")]
+        public string? ObjectType { get; set; } = default!;
+
+        /// <summary>
+        /// Upper bound for the mesh (data, low-poly style).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max_triangles")]
+        public int MaxTriangles { get; set; } = default!;
 
     }
 

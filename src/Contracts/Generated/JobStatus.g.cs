@@ -51,6 +51,10 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("dream")]
         public DreamResult? Dream { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("model3d")]
+        public Model3dResult? Model3d { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -406,6 +410,27 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("about")]
         public Subject? About { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A made 3D model (B7 R9): a binary glTF (.glb) in the service's output folder under a name by pattern; the game copies it into the world folder.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class Model3dResult
+    {
+
+        /// <summary>
+        /// File name in the service's output folder (no path).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("file")]
+        public string File { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("triangles")]
+        public int Triangles { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("seed_used")]
+        public int SeedUsed { get; set; } = default!;
 
     }
 
