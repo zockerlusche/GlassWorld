@@ -95,7 +95,11 @@ public sealed partial class WritingSystem
         return _texts.ContainsKey(target.Id) ? CarrierTaken : WriterProblem(writer, medium, skills, held);
     }
 
-    /// <summary>Why <paramref name="writer"/> cannot make marks on the ground at <paramref name="spot"/>, or null.</summary>
+    /// <summary>
+    /// Why <paramref name="writer"/> cannot make marks on the ground at <paramref name="spot"/>, or null.
+    /// A text always lives on an object: the coming write action stores marks on the ground as a mark
+    /// object on that spot, so wear, finding and saving work for them like for any carrier (review GW1 #119).
+    /// </summary>
     public string? CanWriteOnGround(Inhabitant writer, Position spot, string mediumId, WorldMapSystem? map, ISkillLevels skills, IHeldItems held)
     {
         if (!_media.TryGetValue(mediumId, out var medium))

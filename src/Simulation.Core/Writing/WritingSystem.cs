@@ -147,7 +147,9 @@ public sealed partial class WritingSystem : IWorldSystem, IOptionalWorldState
     /// <summary>
     /// Inhabitants near a readable text of another author see it; the first sight of a text at least
     /// <c>found.after_days</c> old is a find (event <see cref="WritingFound"/>, detail = author). Seeing
-    /// needs no skill: reading what it says is a separate step (<see cref="CanRead"/>).
+    /// needs no skill: reading what it says is a separate step (<see cref="CanRead"/>). Cost per tick:
+    /// readable texts x inhabitants (distance only); with many texts (libraries) a spatial lookup or an
+    /// hourly check comes with the write action (review GW1 #119). Carving into standing trees is intended.
     /// </summary>
     private void Notice(long tick)
     {
