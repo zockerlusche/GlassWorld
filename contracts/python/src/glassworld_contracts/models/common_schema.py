@@ -435,6 +435,27 @@ class WornItem(BaseModel):
     )
 
 
+class FeltCondition(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    condition: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    severity: float = Field(
+        ..., description='0 = barely, 1 = as strong as it gets.', ge=0.0, le=1.0
+    )
+    since_tick: int = Field(
+        ..., description='Simulation tick the message refers to.', ge=0
+    )
+    body_part: VocabId | None = Field(
+        ..., description='Where it is felt (vocabulary body_part), or null.'
+    )
+
+
 class InhabitantState(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -484,6 +505,11 @@ class InhabitantState(BaseModel):
     felt_temperature_c: FeltTemperatureC | None = Field(
         None,
         description='Temperature as the inhabitant feels it (weather, height, clothing; computed by the core, B2540), or null without weather. Optional until the core sends it.',
+    )
+    conditions: list[FeltCondition] | None = Field(
+        None,
+        description='What the inhabitant feels (B2543), at most one entry per condition and body part (the core guarantees it). Optional until the core sends it (absent = nothing known).',
+        max_length=8,
     )
 
 

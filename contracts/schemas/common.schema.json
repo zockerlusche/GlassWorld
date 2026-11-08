@@ -411,6 +411,14 @@
               "type": "null"
             }
           ]
+        },
+        "conditions": {
+          "description": "What the inhabitant feels (B2543), at most one entry per condition and body part (the core guarantees it). Optional until the core sends it (absent = nothing known).",
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/FeltCondition"
+          }
         }
       },
       "description": "Everything the AI may know about the inhabitant it speaks for (shared by decider and questions)."
@@ -983,6 +991,42 @@
           "items": {
             "$ref": "#/$defs/VocabId"
           }
+        }
+      }
+    },
+    "FeltCondition": {
+      "description": "How the inhabitant feels (B2542/B2543): a felt state or symptom (vocabulary condition, e.g. feverish, weak, pain, nauseous), never the cause (the world knows the truth, the AI guesses). The core maps its internal cause to felt conditions through data.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "condition",
+        "severity",
+        "since_tick",
+        "body_part"
+      ],
+      "properties": {
+        "condition": {
+          "$ref": "#/$defs/VocabId"
+        },
+        "severity": {
+          "description": "0 = barely, 1 = as strong as it gets.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "since_tick": {
+          "$ref": "#/$defs/Tick"
+        },
+        "body_part": {
+          "description": "Where it is felt (vocabulary body_part), or null.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/VocabId"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
     }

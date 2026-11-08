@@ -90,6 +90,11 @@ class PerceivedInhabitant(BaseModel):
         pattern='^[a-z][a-z0-9_-]*$',
     )
     distance_m: float = Field(..., ge=0.0)
+    visible_conditions: list[common_schema.VocabId] | None = Field(
+        None,
+        description='Signs others can SEE (vocabulary sign: limping, lying down, pale; which felt condition shows which sign is core data), never the cause (B2543). Optional until the core sends it.',
+        max_length=8,
+    )
 
 
 class Perception(BaseModel):
