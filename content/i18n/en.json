@@ -1049,6 +1049,182 @@
     {
       "key": "msg.command.already_started",
       "text": "That is only possible when a world is created."
+    },
+    {
+      "key": "vocab.object.apple",
+      "text": "Apple"
+    },
+    {
+      "key": "vocab.object.red_berry",
+      "text": "Red berry"
+    },
+    {
+      "key": "vocab.object.blue_berry",
+      "text": "Blueberry"
+    },
+    {
+      "key": "vocab.object.spring_water",
+      "text": "Spring water"
+    },
+    {
+      "key": "vocab.object.sea_water",
+      "text": "Sea water"
+    },
+    {
+      "key": "vocab.object.flint",
+      "text": "Flint"
+    },
+    {
+      "key": "vocab.object.pyrite",
+      "text": "Pyrite"
+    },
+    {
+      "key": "vocab.object.dry_wood",
+      "text": "Dry wood"
+    },
+    {
+      "key": "vocab.object.dry_grass",
+      "text": "Dry grass"
+    },
+    {
+      "key": "vocab.object.spark",
+      "text": "Spark"
+    },
+    {
+      "key": "vocab.object.rock_niche",
+      "text": "Rock niche"
+    },
+    {
+      "key": "vocab.object.deciduous_tree",
+      "text": "Deciduous tree"
+    },
+    {
+      "key": "vocab.object.conifer_tree",
+      "text": "Conifer"
+    },
+    {
+      "key": "vocab.object.fruit_tree",
+      "text": "Fruit tree"
+    },
+    {
+      "key": "vocab.object.palm_tree",
+      "text": "Palm tree"
+    },
+    {
+      "key": "vocab.object.resin",
+      "text": "Resin"
+    },
+    {
+      "key": "vocab.object.bark",
+      "text": "Bark"
+    },
+    {
+      "key": "vocab.object.berry_bush",
+      "text": "Berry bush"
+    },
+    {
+      "key": "vocab.object.thorn_bush",
+      "text": "Thorn bush"
+    },
+    {
+      "key": "vocab.object.hazel_bush",
+      "text": "Hazel bush"
+    },
+    {
+      "key": "vocab.object.hazelnut",
+      "text": "Hazelnut"
+    },
+    {
+      "key": "vocab.object.reed",
+      "text": "Reed"
+    },
+    {
+      "key": "vocab.object.flax",
+      "text": "Flax"
+    },
+    {
+      "key": "vocab.object.nettle",
+      "text": "Nettle"
+    },
+    {
+      "key": "vocab.object.healing_herb",
+      "text": "Healing herb"
+    },
+    {
+      "key": "vocab.object.brown_mushroom",
+      "text": "Brown mushroom"
+    },
+    {
+      "key": "vocab.object.red_mushroom",
+      "text": "Red mushroom"
+    },
+    {
+      "key": "vocab.object.fieldstone",
+      "text": "Fieldstone"
+    },
+    {
+      "key": "vocab.object.slate",
+      "text": "Slate"
+    },
+    {
+      "key": "vocab.object.sandstone",
+      "text": "Sandstone"
+    },
+    {
+      "key": "vocab.object.clay",
+      "text": "Clay"
+    },
+    {
+      "key": "vocab.object.peat",
+      "text": "Peat"
+    },
+    {
+      "key": "vocab.object.driftwood",
+      "text": "Driftwood"
+    },
+    {
+      "key": "vocab.object.shell",
+      "text": "Shell"
+    },
+    {
+      "key": "vocab.object.wild_grain",
+      "text": "Wild grain"
+    },
+    {
+      "key": "msg.hint.help_needed",
+      "text": "Inhabitant {number} finds nothing for {need}."
+    },
+    {
+      "key": "msg.hint.place_gift",
+      "text": "Click in the world where the gift should lie (Esc cancels)."
+    },
+    {
+      "key": "msg.hint.gift_placed",
+      "text": "The gift now lies in the world. It belongs to nobody."
+    },
+    {
+      "key": "ui.help.title",
+      "text": "Help"
+    },
+    {
+      "key": "ui.help.empty",
+      "text": "Nobody needs help right now."
+    },
+    {
+      "key": "ui.help.call",
+      "text": "Inhabitant {number}: {need}"
+    },
+    {
+      "key": "ui.help.give",
+      "text": "Place {thing} ({cost} favour)"
+    },
+    {
+      "key": "ui.favor.value",
+      "text": "Favour {value}/{max}"
+    },
+    {
+      "key": "ui.favor.tooltip",
+      "text": "Favour grows back slowly. Gifts cost favour."
     }
   ]
 }

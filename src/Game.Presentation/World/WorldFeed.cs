@@ -37,6 +37,12 @@ public sealed record InhabitantCard(InhabitantRow Row, IReadOnlyList<CardValue> 
 /// <param name="Time">hh:mm.</param>
 public sealed record ClockView(string SeasonKey, string PhaseKey, long Year, int Day, string Time);
 
+/// <summary>An open call for help as the screen shows it.</summary>
+/// <param name="InhabitantId">Who.</param>
+/// <param name="Number">Neutral number of the inhabitant.</param>
+/// <param name="Need">Need id (vocabulary).</param>
+public sealed record HelpRow(string InhabitantId, int Number, string Need);
+
 /// <summary>
 /// Read side of the UI (ADR-0008): turns the core's snapshots and event stream into what the
 /// windows show. Snapshots are taken only when the tick changed; events are fetched with a cursor so
@@ -123,6 +129,13 @@ public sealed class WorldFeed
         [.. Snapshot.Inhabitants.Where(i => i.OpenQuestionIds.Count > 0)
             .OrderByDescending(i => i.OpenQuestionIds.Count).ThenBy(i => i.Id, StringComparer.Ordinal)
             .Select(i => (i.Id, i.OpenQuestionIds.Count))];
+
+    /// <summary>Current favour and its maximum (B6 R9).</summary>
+    public (double Value, double Maximum) Favor() => (_host.Player.Favor, _host.Content.Favor.Maximum);
+
+    /// <summary>Open calls for help (A1340): who and which need, oldest first.</summary>
+    public IReadOnlyList<HelpRow> HelpCalls() =>
+        [.. _host.Player.Open.Select(c => new HelpRow(c.InhabitantId, NumberOf(c.InhabitantId), c.Need))];
 
     /// <summary>The world clock.</summary>
     public ClockView Clock()

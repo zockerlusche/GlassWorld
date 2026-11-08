@@ -311,6 +311,17 @@ public partial class Main
             }
 
             CheckSave(_contentDirectory);
+
+            // After the save check: placing a gift runs more ticks (A1340).
+            var gift = _screen is null ? "game screen missing" : await _screen.CheckGiftAsync();
+            if (gift.Length > 0)
+            {
+                problems = [.. problems, "gift: " + gift];
+            }
+            else
+            {
+                GD.Print("GIFT_OK");
+            }
             problems = [.. problems, .. await CheckMenusAsync()];
             foreach (var problem in problems)
             {

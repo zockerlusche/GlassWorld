@@ -37,6 +37,10 @@ public partial class GameScreen : CanvasLayer
     private readonly GwToasts _toasts = new();
     private PanelContainer? _topBar;
     private Label? _date;
+    private Label? _favor;
+    private readonly VBoxContainer _helpList = new() { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+    private string _helpShape = "-";
+    private string? _placing;
     private Label? _time;
     private WorldPresenter? _presenter;
     private WorldFeed? _feed;
@@ -83,6 +87,11 @@ public partial class GameScreen : CanvasLayer
         _sideBar.Add("inhabitants", "ui.inhabitants.title").Content.AddChild(_inhabitants);
         _sideBar.Add("questions", "ui.questions.title").Content.AddChild(_questions);
         _sideBar.Add("chronicle", "ui.chronicle.title").Content.AddChild(_chronicleList);
+        _sideBar.Add("help", "ui.help.title").Content.AddChild(_helpList);
+
+        // Favour in the top bar (B6 R9): a number, the tooltip says what it is for.
+        _favor = new Label { AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled, TooltipText = "ui.favor.tooltip", MouseFilter = Control.MouseFilterEnum.Stop };
+        _topBar.GetChild(0).AddChild(_favor);
         _root.AddChild(_sideBar);
         foreach (var panel in _sideBar.Panels)
         {
@@ -173,12 +182,32 @@ public partial class GameScreen : CanvasLayer
 
             _cardShape = string.Empty;
             _chronicleShown = -1;
+            _helpShape = "-";
             _sinceRefreshMs = double.MaxValue;
         }
     }
 
     public override void _UnhandledInput(InputEvent @event)
     {
+        if (@event.IsActionPressed("ui_cancel") && _placing is not null)
+        {
+            // Esc first ends placing a gift.
+            _placing = null;
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+
+        if (@event is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } place && _placing is not null)
+        {
+            if (WorldPoint(place.Position) is { } point)
+            {
+                PlaceGift(_placing, point.X, point.Z);
+            }
+
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+
         if (@event.IsActionPressed("ui_cancel"))
         {
             // Open windows close themselves on Esc first (GwWindow); only then the pause menu opens.
@@ -287,6 +316,46 @@ public partial class GameScreen : CanvasLayer
         return date + "\n" + TextFill.Fill(Tr(key), args);
     }
 
+    /// <summary>
+    /// Smoke (A1340): a gift placed through the screen is accepted by the core and lies at the spot after
+    /// the next tick; the favour shows as text, not as a key.
+    /// </summary>
+    public async Task<string> CheckGiftAsync()
+    {
+        if (_presenter?.Host is not { } host || _favor is null)
+        {
+            return "gift check not set up";
+        }
+
+        RefreshHelp();
+        if (_favor.Text.Length == 0 || _favor.Text.Contains("ui.favor", StringComparison.Ordinal))
+        {
+            return "favour not shown";
+        }
+
+        // A free spot well away from every inhabitant.
+        var x = host.Inhabitants.All.Max(i => i.Position.X) + 10;
+        var z = host.Inhabitants.All.Max(i => i.Position.Z) + 10;
+        var type = host.Content.Objects.TypeIds.First();
+        if (!PlaceGift(type, x, z))
+        {
+            return "the core refused a gift on a free spot";
+        }
+
+        var speed = _presenter.Speed;
+        _presenter.Speed = 1;
+        var start = host.World.Tick;
+        for (var frame = 0; frame < 600 && host.World.Tick <= start; frame++)
+        {
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        }
+
+        _presenter.Speed = speed;
+        return host.Objects.All.Any(o => o.TypeId == type && Math.Abs(o.Position.X - x) < 1e-6 && Math.Abs(o.Position.Z - z) < 1e-6)
+            ? string.Empty
+            : "the gift is not in the world";
+    }
+
     /// <summary>Smoke: every chronicle kind gives a full line (no placeholder or key left) in DE and EN.</summary>
     private string CheckChronicle()
     {
@@ -371,6 +440,97 @@ public partial class GameScreen : CanvasLayer
         _chronicleCount = _chronicle.Entries.Count;
     }
 
+    /// <summary>
+    /// Places a gift (A1340): the core checks type, distance and favour; a refusal is a calm hint with
+    /// the core's reason. Returns whether the core accepted it.
+    /// </summary>
+    public bool PlaceGift(string typeId, double x, double z)
+    {
+        _placing = null;
+        if (_presenter?.Host is not { } host)
+        {
+            return false;
+        }
+
+        var result = host.Decisions.Submit(new Simulation.Decisions.PlayerCommand(Simulation.Player.PlayerSystem.PlaceGift, null) { TypeId = typeId, X = x, Z = z });
+        ShowHint(new ToastMessage(result.Accepted ? "msg.hint.gift_placed" : result.ReasonKey ?? "msg.command.unknown", new Dictionary<string, string>(), null));
+        return result.Accepted;
+    }
+
+    /// <summary>Point on the ground (y = 0) under a screen position, or null if the camera looks away.</summary>
+    private Vector3? WorldPoint(Vector2 screen)
+    {
+        if (GetViewport().GetCamera3D() is not { } camera)
+        {
+            return null;
+        }
+
+        var from = camera.ProjectRayOrigin(screen);
+        var direction = camera.ProjectRayNormal(screen);
+        return Math.Abs(direction.Y) < 1e-6f ? null : from + (direction * (-from.Y / direction.Y));
+    }
+
+    /// <summary>
+    /// The help window (A1340, F5238): one entry per call for help, with up to the data's number of
+    /// gift suggestions. Without the AI the suggestions come from the data (GiftFallback); nothing
+    /// happens on its own, the player chooses and places.
+    /// </summary>
+    private void RefreshHelp()
+    {
+        if (_feed is null || _presenter?.Host is not { } host || _favor is null)
+        {
+            return;
+        }
+
+        var (value, max) = _feed.Favor();
+        _favor.Text = TextFill.Fill(Tr("ui.favor.value"), new Dictionary<string, string> { ["value"] = Number((long)Math.Floor(value)), ["max"] = Number((long)max) });
+
+        var calls = _feed.HelpCalls();
+        var shape = string.Join(";", calls.Select(c => c.InhabitantId + "|" + c.Need));
+        if (shape == _helpShape)
+        {
+            return;
+        }
+
+        _helpShape = shape;
+        foreach (var child in _helpList.GetChildren())
+        {
+            _helpList.RemoveChild(child);
+            child.QueueFree();
+        }
+
+        if (calls.Count == 0)
+        {
+            _helpList.AddChild(new Label { Text = "ui.help.empty", AutowrapMode = TextServer.AutowrapMode.WordSmart });
+            return;
+        }
+
+        var cost = Number((long)host.Player.CostOf("gift"));
+        foreach (var call in calls)
+        {
+            _helpList.AddChild(new Label
+            {
+                Text = TextFill.Fill(Tr("ui.help.call"), new Dictionary<string, string> { ["number"] = Number(call.Number), ["need"] = Tr("vocab.need." + call.Need) }),
+                AutoTranslateMode = AutoTranslateModeEnum.Disabled,
+                AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            });
+            foreach (var type in GiftFallback.For(call.Need, host.Content.Brain.Weights, host.Content.Objects, host.Content.GiftRules.MaxOpenSuggestions))
+            {
+                var button = new Button
+                {
+                    Text = TextFill.Fill(Tr("ui.help.give"), new Dictionary<string, string> { ["thing"] = Tr("vocab.object." + type), ["cost"] = cost }),
+                    AutoTranslateMode = AutoTranslateModeEnum.Disabled,
+                };
+                button.Pressed += () =>
+                {
+                    _placing = type;
+                    ShowHint(new ToastMessage("msg.hint.place_gift", new Dictionary<string, string>(), null));
+                };
+                _helpList.AddChild(button);
+            }
+        }
+    }
+
     /// <summary>Shows a calm hint (e.g. saving failed).</summary>
     public void ShowHint(ToastMessage message) => _board?.Push(message, fastForward: false);
 
@@ -401,6 +561,7 @@ public partial class GameScreen : CanvasLayer
         }
 
         RefreshChronicle();
+        RefreshHelp();
 
         var rows = _feed.Inhabitants();
         _inhabitants.SetRows([.. rows.Select(r => new GwRow(r.Id, [DisplayName(r), Number(r.WillToLivePercent), Number(r.OpenQuestions)], [r.Number, r.WillToLivePercent, r.OpenQuestions]))]);
