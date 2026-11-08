@@ -168,11 +168,10 @@ public static class WorldGenerator
             present[b] = true;
         }
 
-        var passed = starts.Count == preset.Start.Pairs * 2 && check.All(c => c.Passed || c.ReportOnly) && Connected(map, starts) && present.All(p => p);
-
-        // The start supply is reported with the check but does not decide it: an island without fresh
-        // water near one start is still a valid island (and failing it would reject most seeds).
+        // The start supply joins the check: a mandatory resource (drink) that a start misses fails the
+        // attempt, so the next derived sub-seed is tried; the others only report (TL #19553, GW3 #120).
         check.AddRange(SupplyCheck(preset.Start.Supply, catalog, map, objects, starts));
+        var passed = starts.Count == preset.Start.Pairs * 2 && check.All(c => c.Passed || c.ReportOnly) && Connected(map, starts) && present.All(p => p);
         objects.Sort((a, b) => (a.Z, a.X, string.CompareOrdinal(a.TypeId, b.TypeId)).CompareTo((b.Z, b.X, 0)));
         return new GeneratedIsland(preset.Id, preset.GeneratorVersion, seed, attempt, passed, map, objects, starts, neighbours, check, cliffs);
     }
@@ -1093,10 +1092,10 @@ public static class WorldGenerator
     }
 
     /// <summary>
-    /// The start supply as report-only check lines (<c>report/start_supply/&lt;id&gt;</c>): reachable is what the
-    /// poorest start finds within the radius and its walkable area, so a start the supply could not
-    /// serve shows as a failed line instead of passing silently. These lines do not decide whether the
-    /// island passes.
+    /// The start supply as check lines: reachable is what the poorest start finds within the radius and
+    /// its walkable area, so a start the supply could not serve shows as a failed line instead of passing
+    /// silently. A mandatory resource's line (<c>start_supply/&lt;id&gt;</c>) decides whether the attempt
+    /// passes; the others only report (<c>report/start_supply/&lt;id&gt;</c>).
     /// </summary>
     private static IEnumerable<MandatoryResult> SupplyCheck(StartSupply supply, ObjectCatalog catalog, WorldMap map, List<IslandObject> objects, List<StartPosition> starts)
     {
@@ -1114,7 +1113,8 @@ public static class WorldGenerator
                     && resource.PropertiesAll.All(p => catalog.HasProperty(o.TypeId, p))
                     && !resource.PropertiesNone.Any(p => catalog.HasProperty(o.TypeId, p)));
             });
-            yield return new MandatoryResult($"{MandatoryResult.ReportPrefix}start_supply/{resource.Id}", fewest, fewest, resource.Min, int.MaxValue);
+            var prefix = resource.Mandatory == true ? string.Empty : MandatoryResult.ReportPrefix;
+            yield return new MandatoryResult($"{prefix}start_supply/{resource.Id}", fewest, fewest, resource.Min, int.MaxValue);
         }
     }
 
