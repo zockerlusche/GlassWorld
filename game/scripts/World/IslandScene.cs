@@ -150,7 +150,7 @@ public partial class IslandScene : Node3D
             ?? throw new InvalidDataException($"Unknown day phase '{phase}' in shots.json.");
         _sun.LightColor = Color.FromHtml(data.LightColor);
         _sun.LightEnergy = (float)data.LightEnergy;
-        _sun.RotationDegrees = new Vector3(-(float)data.SunElevationDeg, 35, 0);
+        _sun.RotationDegrees = new Vector3(-(float)data.SunElevationDeg, (float)_daylight.SunAzimuthDeg, 0);
         var sky = new ProceduralSkyMaterial
         {
             SkyTopColor = Color.FromHtml(data.SkyTop),

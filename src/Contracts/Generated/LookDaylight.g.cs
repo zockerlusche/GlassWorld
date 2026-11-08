@@ -86,6 +86,12 @@ namespace GlassWorld.Contracts
         public double NightMinBrightness { get; set; } = default!;
 
         /// <summary>
+        /// Compass direction the sunlight comes from (degrees around the vertical; the elevation comes from the phase).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("sun_azimuth_deg")]
+        public double SunAzimuthDeg { get; set; } = default!;
+
+        /// <summary>
         /// One entry per time of day (vocabulary kind time_of_day).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("phases")]

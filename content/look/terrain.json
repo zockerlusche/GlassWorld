@@ -41,5 +41,14 @@
     "swamp_max_units": 1,
     "stream_shore_lift_mm": 30
   },
-  "slope_shade_permille": 350
+  "slope_shade_permille": 350,
+  "slope_shade_gain": 3.0,
+  "open_sea_size_factor": 8.0,
+  "water_shader": {
+    "stripe_scale": 1.6,
+    "stripe_speed": 0.6,
+    "stripe_strength": 0.12,
+    "shimmer_speed": 0.7,
+    "shimmer_strength": 0.04
+  }
 }

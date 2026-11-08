@@ -14,5 +14,8 @@
   "pan_speed_m_s": 40.0,
   "smoothing": 0.18,
   "follow_distance_m": 28.0,
-  "bounds_margin_m": 40.0
+  "bounds_margin_m": 40.0,
+  "pick_radius_m": 1.5,
+  "near_m": 0.3,
+  "far_m": 4000.0
 }

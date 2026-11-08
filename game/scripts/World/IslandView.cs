@@ -39,7 +39,8 @@ public partial class IslandView : Node3D
         T Read<T>(string file)
             where T : class => ContractSerializer.Deserialize<T>(File.ReadAllText(Path.Combine(contentDirectory, "look", file)));
         var palette = Read<LookPalette>("palette.json");
-        var look = TerrainLook.From(Read<LookTerrain>("terrain.json"), palette, island.Map, preset);
+        var data = Read<LookTerrain>("terrain.json");
+        var look = TerrainLook.From(data, palette, island.Map, preset);
         var view = new IslandView { Name = "Island", Look = look };
 
         var ground = new ShaderMaterial { Shader = Comic };
@@ -47,6 +48,12 @@ public partial class IslandView : Node3D
         ground.SetShaderParameter("use_regions", false);
         var sea = SeaMaterial(look);
         var fresh = new ShaderMaterial { Shader = Fresh };
+        var shader = data.WaterShader;
+        fresh.SetShaderParameter("stripe_scale", shader.StripeScale);
+        fresh.SetShaderParameter("stripe_speed", shader.StripeSpeed);
+        fresh.SetShaderParameter("stripe_strength", shader.StripeStrength);
+        fresh.SetShaderParameter("shimmer_speed", shader.ShimmerSpeed);
+        fresh.SetShaderParameter("shimmer_strength", shader.ShimmerStrength);
         var map = island.Map;
         for (var cz = 0; cz < map.ChunksZ; cz++)
         {
@@ -83,7 +90,7 @@ public partial class IslandView : Node3D
         view.AddChild(new MeshInstance3D
         {
             Name = "OpenSea",
-            Mesh = new PlaneMesh { Size = new Vector2(width * 8, depth * 8) },
+            Mesh = new PlaneMesh { Size = new Vector2(width * (float)data.OpenSeaSizeFactor, depth * (float)data.OpenSeaSizeFactor) },
             Position = new Vector3(width / 2, seaLevel, depth / 2),
             MaterialOverride = sea,
             CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,

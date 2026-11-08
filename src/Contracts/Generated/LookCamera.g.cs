@@ -110,6 +110,24 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("bounds_margin_m")]
         public double BoundsMarginM { get; set; } = default!;
 
+        /// <summary>
+        /// How close (metres, on the ground) a click must land to a figure to pick it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("pick_radius_m")]
+        public double PickRadiusM { get; set; } = default!;
+
+        /// <summary>
+        /// Near clipping distance of the camera.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("near_m")]
+        public double NearM { get; set; } = default!;
+
+        /// <summary>
+        /// Far clipping distance of the camera.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("far_m")]
+        public double FarM { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]

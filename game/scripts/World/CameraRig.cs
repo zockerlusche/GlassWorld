@@ -30,9 +30,8 @@ public partial class CameraRig : Node3D
     /// <summary>Select (click).</summary>
     public const string SelectAction = "gw_select";
 
-    private const float PickRadiusM = 1.5f;
-
     private Camera3D _camera = null!;
+    private float _pickRadiusM;
     private Func<IEnumerable<(string Id, Vector3 Position)>> _figures = () => [];
     private bool _rotating;
 
@@ -49,8 +48,8 @@ public partial class CameraRig : Node3D
         ArgumentNullException.ThrowIfNull(figures);
         EnsureDefaultInput();
         Func<double, double, double>? ground = groundHeight is null ? null : (x, z) => groundHeight(x, z);
-        var rig = new CameraRig { Name = "CameraRig", Model = new CameraModel(data, 0, 0, width, depth, ground), _figures = figures };
-        rig._camera = new Camera3D { Name = "Camera", Current = true, Near = 0.3f, Far = 4000f };
+        var rig = new CameraRig { Name = "CameraRig", Model = new CameraModel(data, 0, 0, width, depth, ground), _figures = figures, _pickRadiusM = (float)data.PickRadiusM };
+        rig._camera = new Camera3D { Name = "Camera", Current = true, Near = (float)data.NearM, Far = (float)data.FarM };
         rig.AddChild(rig._camera);
         rig.Apply();
         return rig;
@@ -124,7 +123,7 @@ public partial class CameraRig : Node3D
         var origin = _camera.ProjectRayOrigin(screen);
         var direction = _camera.ProjectRayNormal(screen);
         string? best = null;
-        var bestDistance = PickRadiusM;
+        var bestDistance = _pickRadiusM;
         foreach (var (id, position) in _figures())
         {
             if (Mathf.IsZeroApprox(direction.Y))

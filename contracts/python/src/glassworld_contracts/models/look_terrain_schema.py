@@ -69,6 +69,30 @@ class TerrainWater(BaseModel):
     )
 
 
+class TerrainWaterShader(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    stripe_scale: float = Field(
+        ..., description='Stripes per metre along the flow.', ge=0.0, le=100.0
+    )
+    stripe_speed: float = Field(
+        ...,
+        description='How fast the stripes travel (stripes per second).',
+        ge=0.0,
+        le=100.0,
+    )
+    stripe_strength: float = Field(
+        ..., description='Brightness the stripes add (0..1).', ge=0.0, le=1.0
+    )
+    shimmer_speed: float = Field(
+        ..., description='Speed of the shimmer on still water.', ge=0.0, le=100.0
+    )
+    shimmer_strength: float = Field(
+        ..., description='Brightness the shimmer adds (0..1).', ge=0.0, le=1.0
+    )
+
+
 class LookTerrain(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -102,3 +126,16 @@ class LookTerrain(BaseModel):
         ge=0,
         le=1000,
     )
+    slope_shade_gain: float = Field(
+        ...,
+        description='How fast slope shading rises with steepness: (1 - normal.y) times this, capped at 1, then scaled by slope_shade_permille.',
+        ge=0.0,
+        le=100.0,
+    )
+    open_sea_size_factor: float = Field(
+        ...,
+        description="Size of the open sea plane around the map, as a multiple of the map's width and depth.",
+        ge=1.0,
+        le=100.0,
+    )
+    water_shader: TerrainWaterShader

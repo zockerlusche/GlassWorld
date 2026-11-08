@@ -61,6 +61,45 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
+    /// Parameters of the fresh water shader (game/shaders/island_water.gdshader): light stripes that travel along the flow of streams, a slow shimmer on still water.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class TerrainWaterShader
+    {
+
+        /// <summary>
+        /// Stripes per metre along the flow.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("stripe_scale")]
+        public double StripeScale { get; set; } = default!;
+
+        /// <summary>
+        /// How fast the stripes travel (stripes per second).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("stripe_speed")]
+        public double StripeSpeed { get; set; } = default!;
+
+        /// <summary>
+        /// Brightness the stripes add (0..1).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("stripe_strength")]
+        public double StripeStrength { get; set; } = default!;
+
+        /// <summary>
+        /// Speed of the shimmer on still water.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("shimmer_speed")]
+        public double ShimmerSpeed { get; set; } = default!;
+
+        /// <summary>
+        /// Brightness the shimmer adds (0..1).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("shimmer_strength")]
+        public double ShimmerStrength { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// Data file content/look/terrain.json: how the island grid is drawn (B2 R18-R20): palette colours per biome, for cliffs and the ground under water, and the water surfaces. Ids refer to content/look/palette.json. Presentation only, not part of the hash. Values are placeholders.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -96,6 +135,21 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("slope_shade_permille")]
         public int SlopeShadePermille { get; set; } = default!;
+
+        /// <summary>
+        /// How fast slope shading rises with steepness: (1 - normal.y) times this, capped at 1, then scaled by slope_shade_permille.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("slope_shade_gain")]
+        public double SlopeShadeGain { get; set; } = default!;
+
+        /// <summary>
+        /// Size of the open sea plane around the map, as a multiple of the map's width and depth.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("open_sea_size_factor")]
+        public double OpenSeaSizeFactor { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("water_shader")]
+        public TerrainWaterShader WaterShader { get; set; } = new TerrainWaterShader();
 
     }
 }

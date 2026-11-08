@@ -1,6 +1,8 @@
 // Fresh water of the island (B2 R20) in the D355 look: lakes lie calm with a slow shimmer, streams
 // show light stripes that move in the direction the core gave them (UV = flow x, z), swamp water is the
-// murky colour from the data and barely moves. The colour comes from the vertex (terrain look data).
+// murky colour from the data and barely moves. The colour comes from the vertex (terrain look data);
+// the stripe and shimmer values are set from content/look/terrain.json (water_shader), the defaults here
+// only show the shader in the editor.
 // Presentation only.
 shader_type spatial;
 render_mode unshaded, cull_disabled;
@@ -8,6 +10,7 @@ render_mode unshaded, cull_disabled;
 uniform float stripe_scale = 1.6;
 uniform float stripe_speed = 0.6;
 uniform float stripe_strength = 0.12;
+uniform float shimmer_speed = 0.7;
 uniform float shimmer_strength = 0.04;
 
 float hash(vec2 p) {
@@ -28,7 +31,7 @@ void fragment() {
 	float along = dot(world_pos.xz, normalize(flow + vec2(1e-4))) * stripe_scale - TIME * stripe_speed;
 	float stripes = smoothstep(0.55, 0.95, 0.5 + 0.5 * sin(along * 6.2831 + hash(floor(world_pos.xz)) * 0.8));
 	// Still water: a slow, soft shimmer.
-	float shimmer = 0.5 + 0.5 * sin(TIME * 0.7 + world_pos.x * 0.9 + world_pos.z * 0.6);
+	float shimmer = 0.5 + 0.5 * sin(TIME * shimmer_speed + world_pos.x * 0.9 + world_pos.z * 0.6);
 	color += vec3(1.0) * (stripes * stripe_strength * moving + shimmer * shimmer_strength * (1.0 - moving));
 	ALBEDO = color;
 }

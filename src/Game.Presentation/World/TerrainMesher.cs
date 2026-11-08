@@ -35,6 +35,7 @@ public readonly record struct Rgb(float R, float G, float B)
 /// <param name="DeepFromUnits">Depth from which water counts as deep (height units).</param>
 /// <param name="SwampMaxUnits">Fresh water this shallow is swamp (height units).</param>
 /// <param name="SlopeShade">How much steep ground darkens towards the cliff colour (0..1).</param>
+/// <param name="SlopeShadeGain">How fast the darkening rises with steepness ((1 - normal.y) times this, capped at 1).</param>
 /// <param name="CellM">Edge length of a cell in metres.</param>
 /// <param name="UnitM">One height unit in metres.</param>
 /// <param name="CliffDrop">Height difference (units) from which neighbours form a cliff instead of a slope.</param>
@@ -50,6 +51,7 @@ public sealed record TerrainLook(
     int DeepFromUnits,
     int SwampMaxUnits,
     float SlopeShade,
+    float SlopeShadeGain,
     float CellM,
     float UnitM,
     int CliffDrop,
@@ -79,6 +81,7 @@ public sealed record TerrainLook(
             terrain.Water.DeepFromUnits,
             terrain.Water.SwampMaxUnits,
             terrain.SlopeShadePermille / 1000f,
+            (float)terrain.SlopeShadeGain,
             preset.Grid.CellSizeCm / 100f,
             preset.Grid.HeightUnitMm / 1000f,
             preset.Terrain.CliffMinDrop,
@@ -486,7 +489,7 @@ public static class TerrainMesher
         float ux = b.X - a.X, uy = b.Y - a.Y, uz = b.Z - a.Z, vx = c.X - a.X, vy = c.Y - a.Y, vz = c.Z - a.Z;
         float nx = (uy * vz) - (uz * vy), ny = (uz * vx) - (ux * vz), nz = (ux * vy) - (uy * vx);
         var up = ny / MathF.Max(1e-6f, MathF.Sqrt((nx * nx) + (ny * ny) + (nz * nz)));
-        var steep = Math.Clamp((1f - up) * 3f, 0f, 1f) * look.SlopeShade;
+        var steep = Math.Clamp((1f - up) * look.SlopeShadeGain, 0f, 1f) * look.SlopeShade;
         mesh.Triangle(a, b, c, va.C.Lerp(look.Cliff, steep), vb.C.Lerp(look.Cliff, steep), vc.C.Lerp(look.Cliff, steep));
     }
 

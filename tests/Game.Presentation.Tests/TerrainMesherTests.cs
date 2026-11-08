@@ -20,6 +20,7 @@ public sealed class TerrainMesherTests
         DeepFromUnits: 8,
         SwampMaxUnits: 1,
         SlopeShade: 0.5f,
+        SlopeShadeGain: 3f,
         CellM: 1f,
         UnitM: 0.1f,
         CliffDrop: 12,

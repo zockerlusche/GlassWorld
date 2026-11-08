@@ -11,7 +11,10 @@
     "cliff_color",
     "bed_color",
     "water",
-    "slope_shade_permille"
+    "slope_shade_permille",
+    "slope_shade_gain",
+    "open_sea_size_factor",
+    "water_shader"
   ],
   "properties": {
     "contract_version": {
@@ -42,6 +45,21 @@
       "type": "integer",
       "minimum": 0,
       "maximum": 1000
+    },
+    "slope_shade_gain": {
+      "description": "How fast slope shading rises with steepness: (1 - normal.y) times this, capped at 1, then scaled by slope_shade_permille.",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "open_sea_size_factor": {
+      "description": "Size of the open sea plane around the map, as a multiple of the map's width and depth.",
+      "type": "number",
+      "minimum": 1,
+      "maximum": 100
+    },
+    "water_shader": {
+      "$ref": "#/$defs/TerrainWaterShader"
     }
   },
   "$defs": {
@@ -103,6 +121,50 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 200
+        }
+      }
+    },
+    "TerrainWaterShader": {
+      "description": "Parameters of the fresh water shader (game/shaders/island_water.gdshader): light stripes that travel along the flow of streams, a slow shimmer on still water.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stripe_scale",
+        "stripe_speed",
+        "stripe_strength",
+        "shimmer_speed",
+        "shimmer_strength"
+      ],
+      "properties": {
+        "stripe_scale": {
+          "description": "Stripes per metre along the flow.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "stripe_speed": {
+          "description": "How fast the stripes travel (stripes per second).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "stripe_strength": {
+          "description": "Brightness the stripes add (0..1).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "shimmer_speed": {
+          "description": "Speed of the shimmer on still water.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "shimmer_strength": {
+          "description": "Brightness the shimmer adds (0..1).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
         }
       }
     }
