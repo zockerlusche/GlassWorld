@@ -86,6 +86,9 @@
         },
         "memory": {
           "$ref": "#/$defs/MemoryResult"
+        },
+        "sound": {
+          "$ref": "#/$defs/SoundResult"
         }
       },
       "minProperties": 1,
@@ -526,6 +529,55 @@
           "items": {
             "$ref": "common.schema.json#/$defs/Tick"
           }
+        }
+      }
+    },
+    "SoundResult": {
+      "description": "A made sound (D471 D7): a WAV the service wrote into its output folder under a name by pattern; the game copies it into the world folder. Checked by the service (length, level, silence) before it reports done.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "file",
+        "seconds",
+        "seed_used",
+        "attempts",
+        "peak_dbfs",
+        "loudness_dbfs"
+      ],
+      "properties": {
+        "file": {
+          "description": "File name in the service's output folder (no path).",
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9_.-]*\\.wav$",
+          "maxLength": 120
+        },
+        "seconds": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 60
+        },
+        "seed_used": {
+          "description": "Seed of the accepted try ((job seed + retries) mod 2^31), so the sound can be made again.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "attempts": {
+          "description": "Tries until one passed the check (1 + seed retries).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10
+        },
+        "peak_dbfs": {
+          "type": "number",
+          "minimum": -120,
+          "maximum": 0
+        },
+        "loudness_dbfs": {
+          "description": "Gated RMS loudness as measured by the service.",
+          "type": "number",
+          "minimum": -120,
+          "maximum": 0
         }
       }
     }

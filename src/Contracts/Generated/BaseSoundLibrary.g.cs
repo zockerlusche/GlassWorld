@@ -101,12 +101,9 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("id")]
         public string Id { get; set; } = default!;
 
-        /// <summary>
-        /// one_shot = a single sound; loop = repeats seamlessly while it plays.
-        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("kind")]
-        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<LibrarySoundKind>))]
-        public LibrarySoundKind Kind { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SoundKind>))]
+        public SoundKind Kind { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("origin")]
         public string Origin { get; set; } = default!;
@@ -205,20 +202,6 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("Apache-2.0")]
         Apache2_0 = 2,
-
-
-    }
-
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
-    public enum LibrarySoundKind
-    {
-
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("one_shot")]
-        One_shot = 0,
-
-
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("loop")]
-        Loop = 1,
 
 
     }

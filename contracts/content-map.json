@@ -145,6 +145,10 @@
     {
       "pattern": "chronicle/kinds.json",
       "schema": "chronicle-kinds"
+    },
+    {
+      "pattern": "sound/generation.json",
+      "schema": "sound-generation"
     }
   ]
 }

@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/sound-generation.schema.json",
+  "title": "SoundGeneration",
+  "description": "How the local sound model makes sounds in the computing night (B2530, measurement report D440): steps, lengths per kind, the automatic check of a result (level, silence) and how often it tries again with the next seed. Values are placeholders until Marcel decides.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "min_steps",
+    "default_steps",
+    "seconds",
+    "audible_peak_min",
+    "audible_rms_min",
+    "seed_retries",
+    "priority"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "min_steps": {
+      "description": "Below this the model gives silence (D440: 10 steps silent). The handler raises a smaller requested step count to this.",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 200
+    },
+    "default_steps": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 200
+    },
+    "seconds": {
+      "description": "Length to make per kind.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "one_shot",
+        "loop"
+      ],
+      "properties": {
+        "one_shot": {
+          "type": "number",
+          "minimum": 0.2,
+          "maximum": 10
+        },
+        "loop": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 30
+        }
+      }
+    },
+    "audible_peak_min": {
+      "description": "A result is silent below this peak (0..1).",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "audible_rms_min": {
+      "description": "... or below this RMS (0..1).",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "seed_retries": {
+      "description": "Tries with seed + 1, + 2 ... after a silent or unusable result, then the base library.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9
+    },
+    "priority": {
+      "description": "Job priority of sound jobs among other jobs (B7 O2). When sound jobs run at all (the computing night) is set in content/hardware/night.json.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    }
+  }
+}

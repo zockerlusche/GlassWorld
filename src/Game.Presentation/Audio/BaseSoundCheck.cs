@@ -57,7 +57,7 @@ public static class BaseSoundCheck
         var target = library.Target;
         foreach (var sound in library.Sounds)
         {
-            var loop = sound.Kind == LibrarySoundKind.Loop;
+            var loop = sound.Kind == SoundKind.Loop;
             var wanted = loop ? target.LoopDbfs : target.OneShotDbfs;
             var maxSeconds = loop ? target.LoopMaxS : target.OneShotMaxS;
             foreach (var file in sound.Files)

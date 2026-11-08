@@ -92,6 +92,9 @@
         },
         "memory": {
           "$ref": "#/$defs/MemoryPayload"
+        },
+        "sound": {
+          "$ref": "#/$defs/SoundPayload"
         }
       },
       "minProperties": 1,
@@ -381,6 +384,52 @@
         },
         "formative": {
           "type": "boolean"
+        }
+      }
+    },
+    "SoundPayload": {
+      "description": "A sound for a thing that needs one (B2530, D471 D7): made in the computing night by the local sound model from the rule guard's description; if that fails, the core falls back to the base library.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "description",
+        "kind",
+        "seconds",
+        "steps",
+        "object_type"
+      ],
+      "properties": {
+        "description": {
+          "description": "Short English description of the sound (from the rule guard's SoundDecision), e.g. 'wooden door creaks'.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "kind": {
+          "$ref": "common.schema.json#/$defs/SoundKind"
+        },
+        "seconds": {
+          "description": "Length to make (from content/sound/generation.json by kind).",
+          "type": "number",
+          "minimum": 0.2,
+          "maximum": 30
+        },
+        "steps": {
+          "description": "Sampling steps of the sound model (data, D440: at least 25).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200
+        },
+        "object_type": {
+          "description": "The (runtime) object type the sound belongs to, if any.",
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/VocabId"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
     }

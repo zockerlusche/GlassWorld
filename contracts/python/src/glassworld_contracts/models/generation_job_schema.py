@@ -126,6 +126,34 @@ class MemoryFact(BaseModel):
     formative: bool
 
 
+class SoundPayload(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    description: str = Field(
+        ...,
+        description="Short English description of the sound (from the rule guard's SoundDecision), e.g. 'wooden door creaks'.",
+        max_length=120,
+        min_length=1,
+    )
+    kind: common_schema.SoundKind
+    seconds: float = Field(
+        ...,
+        description='Length to make (from content/sound/generation.json by kind).',
+        ge=0.2,
+        le=30.0,
+    )
+    steps: int = Field(
+        ...,
+        description='Sampling steps of the sound model (data, D440: at least 25).',
+        ge=1,
+        le=200,
+    )
+    object_type: common_schema.VocabId | None = Field(
+        ..., description='The (runtime) object type the sound belongs to, if any.'
+    )
+
+
 class BuildPlanPayload(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -176,6 +204,7 @@ class JobPayload(BaseModel):
     build_plan: BuildPlanPayload | None = None
     process: ProcessPayload | None = None
     memory: MemoryPayload | None = None
+    sound: SoundPayload | None = None
 
 
 class GenerationJob(BaseModel):

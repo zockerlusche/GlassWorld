@@ -1,0 +1,26 @@
+{
+  "contract_version": "0.2",
+  "job_id": "7a1b2c3d-4e5f-8a6b-9c7d-0e1f2a3b4c5d",
+  "tick": 1210,
+  "kind": "sound",
+  "state": "done",
+  "result": {
+    "sound": {
+      "file": "snd-7a1b2c3d.wav",
+      "seconds": 2.0,
+      "seed_used": 78,
+      "attempts": 2,
+      "peak_dbfs": -3.1,
+      "loudness_dbfs": -21.4
+    }
+  },
+  "error": null,
+  "provenance": {
+    "source": "mock",
+    "model": "mock",
+    "prompt_version": "sound/moss.v1",
+    "seed": 77,
+    "latency_ms": 1,
+    "attempts": 2
+  }
+}

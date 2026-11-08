@@ -8,6 +8,8 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from . import common_schema
+
 
 class LibraryTarget(BaseModel):
     model_config = ConfigDict(
@@ -55,11 +57,6 @@ type ArchiveSha256 = Annotated[
         pattern='^[0-9a-f]{64}$',
     ),
 ]
-
-
-class Kind(StrEnum):
-    one_shot = 'one_shot'
-    loop = 'loop'
 
 
 type SoundWord = Annotated[str, Field(..., max_length=24, pattern='^[a-z]+$')]
@@ -138,10 +135,7 @@ class LibrarySound(BaseModel):
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z0-9_]+)+$',
     )
-    kind: Kind = Field(
-        ...,
-        description='one_shot = a single sound; loop = repeats seamlessly while it plays.',
-    )
+    kind: common_schema.SoundKind
     origin: str = Field(
         ...,
         description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
