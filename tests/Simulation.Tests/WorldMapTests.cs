@@ -96,6 +96,10 @@ public sealed class WorldMapTests
         { "climate/temperate.json", "\"season\": \"winter\"", "\"season\": \"monsoon\"", "unknown season 'monsoon'" },
         { "climate/temperate.json", "\"weather\": \"heat\",\n        \"wind_permille\"", "\"weather\": \"heatwave\",\n        \"wind_permille\"", "'heatwave' not in vocabulary 'weather'" },
         { "world/presets/start_island.json", "\"min_pair_distance_cells\": 40", "\"min_pair_distance_cells\": 20", "must exceed view_range_cells" },
+        { "world/presets/start_island.json", "\"object_type\": \"rock_niche\"", "\"object_type\": \"dragon_lair\"", "cave object type 'dragon_lair'" },
+        { "world/presets/start_island.json", "\"cliff_biome\": \"rocks_hills\"", "\"cliff_biome\": \"glacier\"", "cave cliff biome 'glacier'" },
+        { "world/presets/start_island.json", "\"biome\": \"beach_sea\"", "\"biome\": \"lagoon\"", "start biome 'lagoon'" },
+        { "world/spawns.json", "\"max_total\": 24,\n      \"regrow_hours\": 96", "\"max_total\": 24,\n      \"regrow_hours\": 97", "disagree on regrow_hours" },
     };
 
     [Theory]

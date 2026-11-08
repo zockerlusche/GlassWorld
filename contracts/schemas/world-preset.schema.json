@@ -60,7 +60,7 @@
       "$ref": "#/$defs/WorldPresetClimate"
     },
     "caves": {
-      "$ref": "#/$defs/WorldPresetCountRange"
+      "$ref": "#/$defs/WorldPresetCaves"
     },
     "start": {
       "$ref": "#/$defs/WorldPresetStart"
@@ -321,7 +321,8 @@
         "pairs",
         "min_pair_distance_cells",
         "max_pair_distance_cells",
-        "max_attempts"
+        "max_attempts",
+        "biome"
       ],
       "properties": {
         "pairs": {
@@ -347,6 +348,10 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 1000
+        },
+        "biome": {
+          "description": "Biome of the start cells (by the sea).",
+          "$ref": "common.schema.json#/$defs/VocabId"
         }
       }
     },
@@ -489,6 +494,39 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 100000
+        }
+      }
+    },
+    "WorldPresetCaves": {
+      "description": "Caves (R6): objects of a catalogue type at the foot of cliffs that rise into the given biome.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "min",
+        "max",
+        "object_type",
+        "cliff_biome"
+      ],
+      "properties": {
+        "min": {
+          "description": "Fewest caves.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "max": {
+          "description": "Most caves.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "object_type": {
+          "description": "Catalogue type placed as a cave.",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "cliff_biome": {
+          "description": "Biome of the cliff above the cave.",
+          "$ref": "common.schema.json#/$defs/VocabId"
         }
       }
     }

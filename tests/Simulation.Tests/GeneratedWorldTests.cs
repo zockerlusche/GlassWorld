@@ -78,6 +78,56 @@ public sealed class GeneratedWorldTests : IDisposable
     }
 
     [Fact]
+    public void AUsedUpObjectGrowsBackAtItsPlaceAfterTheRegrowTimeFromTheData()
+    {
+        var host = SimulationHost.CreateGeneratedWorld(ContentDirectory, 7, new MockDecisionPort(), "de", Preset);
+        var map = host.Map!;
+        Assert.NotEmpty(map.Occurrences);
+        var place = map.Occurrences[0];
+        var hours = host.Content.WorldGen.Spawns.Spawns.First(r => r.ObjectType == place.TypeId).RegrowHours!.Value;
+        var regrowTicks = (long)hours * host.World.Calendar.Settings.TicksPerHour;
+        Assert.True(host.Objects.Remove(place.ObjectId));
+
+        host.World.Step();
+        var gone = map.Occurrences[0];
+        Assert.NotNull(gone.GoneSinceTick);
+        var countGone = host.Objects.All.Count(o => o.TypeId == place.TypeId);
+
+        while (host.World.Tick - gone.GoneSinceTick!.Value < regrowTicks)
+        {
+            Assert.Null(map.Occurrences[0].GoneSinceTick is null ? "grew back too early" : null);
+            host.World.Step();
+        }
+
+        host.World.Step();
+        var grown = map.Occurrences[0];
+        Assert.Null(grown.GoneSinceTick);
+        Assert.NotEqual(place.ObjectId, grown.ObjectId);
+        Assert.True(host.Objects.TryGet(grown.ObjectId, out var obj));
+        Assert.Equal(place.TypeId, obj.TypeId);
+        Assert.Equal(map.CentreOf(place.X, place.Z), obj.Position);
+        Assert.True(host.Objects.All.Count(o => o.TypeId == place.TypeId) >= countGone);
+    }
+
+    [Fact]
+    public void SaveAndLoadWhileSomethingRegrowsGiveTheSameHash()
+    {
+        var host = SimulationHost.CreateGeneratedWorld(ContentDirectory, 7, new MockDecisionPort(), "de", Preset);
+        host.Objects.Remove(host.Map!.Occurrences[0].ObjectId);
+        host.World.Run(host.World.Calendar.Settings.TicksPerHour * 3);
+        var path = Path.Combine(_directory, "regrow.db");
+        SaveGameStore.Save(path, StateCodec.Capture(host));
+        var loaded = Restore(SaveGameStore.Load(path), new ReplayDecisionPort(host.Decisions.Log));
+        Assert.Equal(host.Map.Occurrences, loaded.Map!.Occurrences);
+        Assert.Equal(host.World.StateHash(), loaded.World.StateHash());
+        // Run on past the regrowth; the replay of the later answers comes from the original's log.
+        host.World.Run(host.World.Calendar.TicksPerDay * 4);
+        var replay = Restore(SaveGameStore.Load(path), new ReplayDecisionPort(host.Decisions.Log));
+        replay.World.Run(host.World.Calendar.TicksPerDay * 4);
+        Assert.Equal(host.World.StateHash(), replay.World.StateHash());
+    }
+
+    [Fact]
     public void PlaceholderSaveGamesLoadWithoutAnIsland()
     {
         var host = SimulationHost.CreatePlaceholderWorld(ContentDirectory, 3, new MockDecisionPort(), "de");

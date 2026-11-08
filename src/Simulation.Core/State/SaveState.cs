@@ -45,7 +45,8 @@ public sealed record SaveState(
     IReadOnlyList<KeyValuePair<string, long>> LastAsked,
     IReadOnlyList<DecisionLogEntry> DecisionLog,
     string? WorldPreset = null,
-    string? IslandHash = null)
+    string? IslandHash = null,
+    IReadOnlyList<Map.Occurrence>? Occurrences = null)
 {
     /// <summary>Favour, futile attempts and calls for help (B6); null in save games from before.</summary>
     public Player.PlayerState? Player { get; init; }
@@ -83,7 +84,8 @@ public static class StateCodec
             lastAsked,
             [.. host.Decisions.Log.Entries],
             host.Map?.Island.PresetId,
-            host.Map?.IslandHash)
+            host.Map?.IslandHash,
+            host.Map is null ? null : [.. host.Map.Occurrences])
         {
             Player = host.Player.Capture(),
         };
@@ -110,6 +112,7 @@ public static class StateCodec
         }
 
         host.Objects.Restore(state.NextObjectNumber);
+        host.Map?.Restore(state.Occurrences ?? []);
         foreach (var saved in state.Inhabitants)
         {
             var inhabitant = new Inhabitant(

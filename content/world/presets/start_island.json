@@ -56,13 +56,16 @@
   },
   "caves": {
     "min": 1,
-    "max": 3
+    "max": 3,
+    "object_type": "rock_niche",
+    "cliff_biome": "rocks_hills"
   },
   "start": {
     "pairs": 2,
     "min_pair_distance_cells": 40,
     "max_pair_distance_cells": 160,
-    "max_attempts": 8
+    "max_attempts": 8,
+    "biome": "beach_sea"
   },
   "neighbours": {
     "islands": {
