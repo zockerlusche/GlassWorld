@@ -51,23 +51,57 @@ public sealed class WritingTests : IDisposable
     [Fact]
     public void WithoutWeatherTextsWearOnlyByThemselvesAndTheSameSeedGivesTheSameWorld()
     {
-        var (first, a, _, _) = WorldWithTexts(null);
-        var (second, b, _, _) = WorldWithTexts(null);
-        Step(first, a, 500);
-        Step(second, b, 500);
-        Assert.Equal(a.Texts, b.Texts);
+        // Through the host's own (registered, hashed) writing system: the hash includes the texts (review #93).
+        var first = HostWithText();
+        var second = HostWithText();
+        var start = first.Writing.Texts.Single().Legibility;
+        first.World.Run(500);
+        second.World.Run(500);
+        Assert.Equal(first.Writing.Texts, second.Writing.Texts);
         Assert.Equal(first.World.StateHash(), second.World.StateHash());
+        Assert.True(first.Writing.Texts.Single().Legibility < start);
+
+        var other = HostWithText();
+        other.World.Run(499);
+        Assert.NotEqual(first.World.StateHash(), other.World.StateHash());
     }
 
     [Fact]
-    public void ATextGoesWithItsObjectAndALostObjectKeepsIt()
+    public void ASaveGameWithTextsTheDataCannotCarryFailsCleanly()
+    {
+        // Review #93: checked on load, not later inside a tick.
+        var host = HostWithText();
+        var good = host.Writing.Texts.Single();
+        Assert.Throws<InvalidDataException>(() => host.Writing.Restore([good with { MediumId = "papyrus" }]));
+        Assert.Throws<InvalidDataException>(() => host.Writing.Restore([good with { ObjectId = "obj-999999" }]));
+        Assert.Throws<InvalidDataException>(() => host.Writing.Restore([good with { KnowledgeRef = "Freier Text" }]));
+        Assert.Throws<InvalidDataException>(() => host.Writing.Restore([good with { Legibility = 2 }]));
+        Assert.Throws<InvalidDataException>(() => host.Writing.Restore([good, good]));
+        Assert.Empty(host.Writing.Texts);
+        host.Writing.Restore([good]);
+        Assert.Equal(good, host.Writing.Texts.Single());
+    }
+
+    [Fact]
+    public void OnlyIdsAreWrittenAndNothingIsOverwritten()
+    {
+        // Review #93: no free (AI) text into the core past the text guard, and no silent overwrite.
+        var host = HostWithText();
+        var text = host.Writing.Texts.Single();
+        Assert.Throws<InvalidOperationException>(() => host.Writing.Place(text with { KnowledgeRef = "Das Wasser ist gut" }));
+        Assert.Throws<InvalidOperationException>(() => host.Writing.Place(text));
+    }
+
+    [Fact]
+    public void ATextGoesWithItsObjectAndStaysOnAnObjectNobodyTouches()
     {
         var (host, writing, sand, stone) = WorldWithTexts(null);
         host.Objects.Remove(sand);
         Step(host, writing, 1);
         Assert.Null(writing.On(sand));
 
-        // Lost somewhere, found generations later: the text is still on the stone (B8 R15).
+        // There is no "lost" state in the core: an object nobody takes keeps its text where it lies, so it
+        // can be found and read much later (B8 R15). Carved stone is still readable after 10 days.
         Step(host, writing, 10 * host.World.Calendar.TicksPerDay);
         Assert.True(writing.Readable(writing.On(stone)!));
     }
@@ -75,11 +109,12 @@ public sealed class WritingTests : IDisposable
     [Fact]
     public void ATextNeedsAnObjectAndAKnownCarrierAndIsCappedByTheCarrier()
     {
-        var (host, writing, sand, _) = WorldWithTexts(null);
-        Assert.Throws<InvalidOperationException>(() => writing.Place(new WrittenText("obj-999999", "sand_marks", "k", "inh-000001", 0, 0.5)));
-        Assert.Throws<InvalidOperationException>(() => writing.Place(new WrittenText(sand, "papyrus", "k", "inh-000001", 0, 0.5)));
-        writing.Place(new WrittenText(sand, "sand_marks", "k", "inh-000001", 0, 1.0));
-        Assert.Equal(host.Content.Writing.Media.Single(m => m.Id == "sand_marks").Legibility, writing.On(sand)!.Legibility);
+        var (host, writing, _, _) = WorldWithTexts(null);
+        var fresh = host.Objects.Spawn(host.Content.Objects.TypeIds.First(), new Position(3, 1)).Id;
+        Assert.Throws<InvalidOperationException>(() => writing.Place(new WrittenText("obj-999999", "sand_marks", "belief:k", "inh-000001", 0, 0.5)));
+        Assert.Throws<InvalidOperationException>(() => writing.Place(new WrittenText(fresh, "papyrus", "belief:k", "inh-000001", 0, 0.5)));
+        writing.Place(new WrittenText(fresh, "sand_marks", "belief:k", "inh-000001", 0, 1.0));
+        Assert.Equal(host.Content.Writing.Media.Single(m => m.Id == "sand_marks").Legibility, writing.On(fresh)!.Legibility);
     }
 
     [Fact]
@@ -94,7 +129,7 @@ public sealed class WritingTests : IDisposable
 
         var withText = SimulationHost.CreatePlaceholderWorld(ContentDirectory, 1, new MockDecisionPort(), "de");
         var before = withText.World.StateHash();
-        withText.Writing.Place(new WrittenText(withText.Objects.All.First().Id, "carving_stone", "k", "inh-000001", 0, 0.5));
+        withText.Writing.Place(new WrittenText(withText.Objects.All.First().Id, "carving_stone", "belief:k", "inh-000001", 0, 0.5));
         Assert.NotEqual(before, withText.World.StateHash());
     }
 
@@ -112,6 +147,17 @@ public sealed class WritingTests : IDisposable
         Assert.Equal(host.World.StateHash(), loaded.World.StateHash());
     }
 
+    private static SimulationHost HostWithText()
+    {
+        var host = SimulationHost.CreatePlaceholderWorld(ContentDirectory, 1, new MockDecisionPort(), "de");
+        host.Writing.Place(new WrittenText(host.Objects.All.OrderBy(o => o.Id, StringComparer.Ordinal).First().Id, "sand_marks", "belief:water|drinkable|true", "inh-000001", 0, 0.6));
+        return host;
+    }
+
+    /// <summary>
+    /// A second writing system next to the host's, driven by hand: the only way to feed it a weather until
+    /// GW1's weather core wires Host.Weather (#95). Not part of the host's hash.
+    /// </summary>
     private static (SimulationHost Host, WritingSystem Writing, string Sand, string Stone) WorldWithTexts(IWeather? weather)
     {
         var host = SimulationHost.CreateEmpty(ContentDirectory, 1, new MockDecisionPort(), "de");

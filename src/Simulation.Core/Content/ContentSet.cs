@@ -162,6 +162,7 @@ public sealed class ContentSet
         problems.AddRange(defined.Where(id => !media.Contains(id)).Select(id => $"unknown carrier '{id}'"));
         problems.AddRange(media.Where(id => !defined.Contains(id, StringComparer.Ordinal)).Select(id => $"carrier '{id}' has no entry"));
         problems.AddRange(writing.Media.SelectMany(m => m.WeatherLoss).Where(w => !weather.Contains(w.Weather)).Select(w => $"unknown weather '{w.Weather}'"));
+        problems.AddRange(writing.Media.SelectMany(m => m.WeatherLoss.GroupBy(w => w.Weather, StringComparer.Ordinal).Where(g => g.Count() > 1).Select(g => $"carrier '{m.Id}' names weather '{g.Key}' twice")));
         problems.AddRange(writing.Media.SelectMany(m => m.ToolProperties).Where(p => !properties.Contains(p)).Select(p => $"unknown tool property '{p}'"));
         if (!traits.Contains(writing.Read.CuriosityTrait))
         {

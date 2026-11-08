@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using GlassWorld.Contracts;
 using GlassWorld.Simulation.Objects;
 using GlassWorld.Simulation.State;
@@ -25,7 +26,7 @@ public sealed record WrittenText(string ObjectId, string MediumId, string Knowle
 /// (A1372) and the knowledge store (A1400). The start content has no writing, so the system stays out of
 /// the world hash until the first text (golden hashes).
 /// </summary>
-public sealed class WritingSystem : IWorldSystem, IOptionalWorldState
+public sealed partial class WritingSystem : IWorldSystem, IOptionalWorldState
 {
     private readonly Dictionary<string, WritingMedium> _media;
     private readonly WritingMedia _rules;
@@ -68,19 +69,26 @@ public sealed class WritingSystem : IWorldSystem, IOptionalWorldState
     }
 
     /// <summary>
-    /// Puts a text on an object (the write action of A1372/B4b uses this after its checks). The object
-    /// must exist, the carrier must be known, and legibility is capped by the carrier.
+    /// Puts a text on an object (the write action of A1372/B4b uses this after its checks, inside a tick,
+    /// never the presentation: texts come back from the save game, not from the decision log). The object
+    /// must exist and carry no text yet, the carrier must be known, the knowledge ref must be an id (never
+    /// free text: AI text goes through the text guard first, B2462/B2466), and legibility is capped by the
+    /// carrier.
     /// </summary>
     public void Place(WrittenText text)
     {
         ArgumentNullException.ThrowIfNull(text);
-        if (!_objects.TryGet(text.ObjectId, out _))
+        if (Problem(text, checkObject: true) is { } problem)
         {
-            throw new InvalidOperationException($"no object '{text.ObjectId}' to write on");
+            throw new InvalidOperationException(problem);
         }
 
-        var medium = _media.GetValueOrDefault(text.MediumId) ?? throw new InvalidOperationException($"unknown writing medium '{text.MediumId}'");
-        _texts[text.ObjectId] = text with { Legibility = Math.Clamp(text.Legibility, 0, medium.Legibility) };
+        if (_texts.ContainsKey(text.ObjectId))
+        {
+            throw new InvalidOperationException($"object '{text.ObjectId}' already carries a text");
+        }
+
+        _texts[text.ObjectId] = text with { Legibility = Math.Clamp(text.Legibility, 0, _media[text.MediumId].Legibility) };
     }
 
     /// <inheritdoc/>
@@ -134,13 +142,44 @@ public sealed class WritingSystem : IWorldSystem, IOptionalWorldState
     /// <summary>The state to save.</summary>
     public IReadOnlyList<WrittenText> Capture() => Texts;
 
-    /// <summary>Restores saved texts (null = a save game from before writing: none).</summary>
+    /// <summary>
+    /// Restores saved texts (null = a save game from before writing: none). A text the current data or
+    /// objects cannot carry makes the load fail cleanly with <see cref="InvalidDataException"/> instead of
+    /// failing later inside a tick (review #93).
+    /// </summary>
     public void Restore(IEnumerable<WrittenText>? texts)
     {
         _texts.Clear();
         foreach (var text in texts ?? [])
         {
+            var problem = Problem(text, checkObject: true)
+                ?? (_texts.ContainsKey(text.ObjectId) ? $"object '{text.ObjectId}' carries two texts" : null)
+                ?? (text.Legibility <= 0 || text.Legibility > _media[text.MediumId].Legibility ? $"legibility {text.Legibility} outside 0..{_media[text.MediumId].Legibility}" : null);
+            if (problem is not null)
+            {
+                _texts.Clear();
+                throw new InvalidDataException("Save game writing: " + problem + ".");
+            }
+
             _texts[text.ObjectId] = text;
         }
+    }
+
+    [GeneratedRegex("^[a-z_]+:[a-z0-9_|.-]+$")]
+    private static partial Regex KnowledgeRefPattern();
+
+    private string? Problem(WrittenText text, bool checkObject)
+    {
+        if (checkObject && !_objects.TryGet(text.ObjectId, out _))
+        {
+            return $"no object '{text.ObjectId}' to write on";
+        }
+
+        if (!_media.ContainsKey(text.MediumId))
+        {
+            return $"unknown writing medium '{text.MediumId}'";
+        }
+
+        return KnowledgeRefPattern().IsMatch(text.KnowledgeRef) ? null : $"knowledge ref '{text.KnowledgeRef}' is not an id";
     }
 }
