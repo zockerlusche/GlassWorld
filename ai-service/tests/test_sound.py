@@ -140,3 +140,14 @@ def test_sound_jobs_run_over_jobs_with_the_mock(settings: Settings, tmp_path: Pa
     assert status["state"] == "done"
     assert ContractValidator(settings.schemas_dir).errors("job-status", status) == []
     assert (tmp_path / status["result"]["sound"]["file"]).is_file()
+
+
+def test_the_worker_never_loads_by_itself(tmp_path: Path) -> None:
+    """Only the residency loads models (GW2 review #79): render on an unloaded worker fails."""
+    from glassworld_ai.sound import MossWorker
+    from glassworld_ai.sound.worker import WorkerError
+
+    worker = MossWorker(tmp_path / "python", tmp_path / "worker.py", tmp_path, tmp_path, 1)
+    with pytest.raises(WorkerError):
+        asyncio.run(worker.render({}, 1))
+    assert not worker.running

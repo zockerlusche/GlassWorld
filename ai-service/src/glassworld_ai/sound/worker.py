@@ -75,7 +75,10 @@ class MossWorker:
         """Sends one render request and returns the worker's answer."""
         async with self._lock:
             if not self.running:
-                await self.load()
+                # Only the residency loads models (VRAM budget, never with the language model).
+                raise WorkerError(
+                    "sound model not loaded (the residency loads it before sound jobs)"
+                )
             process = self._process
             assert process is not None and process.stdin is not None
             process.stdin.write((json.dumps(request) + "\n").encode("utf-8"))
