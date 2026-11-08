@@ -348,11 +348,6 @@ public partial class WorldAudio : Node3D
         }
     }
 
-    /// <summary>
-    /// The sound to play: a file of the base library if the id has one (recorded or generated, B8-4),
-    /// otherwise the retro synth. Event sounds play once; loops of the library repeat only where an
-    /// ambience player asks for it (A1350).
-    /// </summary>
     /// <summary>A made invention sound from disk (D471 D7), cached; null (and a warning) if it cannot be read.</summary>
     private AudioStreamWav? MadeStream(string path)
     {
@@ -384,6 +379,11 @@ public partial class WorldAudio : Node3D
         return stream;
     }
 
+    /// <summary>
+    /// The sound to play: a file of the base library if the id has one (recorded or generated, B8-4),
+    /// otherwise the retro synth. Event sounds play once; loops of the library repeat only where an
+    /// ambience player asks for it (A1350).
+    /// </summary>
     private AudioStreamWav Stream(string soundId, int variant)
     {
         var file = _baseSounds?.File(soundId, variant);

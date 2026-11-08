@@ -59,6 +59,7 @@ public sealed class InventionSoundTests
         var content = Path.Combine(TestPaths.Root, "content");
         Assert.Equal(Path.GetFullPath(Path.Combine(TestPaths.Root, ".local", "ai-service", "sounds")), InventionSounds.DefaultFolder(content, null));
         Assert.Equal(Path.GetFullPath("D:/sounds"), InventionSounds.DefaultFolder(content, "D:/sounds"));
+        Assert.Equal(Path.GetFullPath("E:/repo/.local/ai-service/sounds"), InventionSounds.DefaultFolder(content, null, "E:/repo"));
     }
 
     private static (WorldObjects Objects, string Made, string Plain) World()

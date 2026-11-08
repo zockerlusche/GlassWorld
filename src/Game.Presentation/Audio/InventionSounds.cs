@@ -24,15 +24,20 @@ public sealed class InventionSounds(IRuntimeCatalog catalog, WorldObjects object
     private readonly Func<string, bool> _exists = fileExists ?? File.Exists;
 
     /// <summary>
-    /// Folder of made sounds: <c>GW_AI_SOUND_OUTPUT_DIR</c> if set, else the service default
-    /// <c>&lt;repository&gt;/.local/ai-service/sounds</c> (ai-service/config.toml, sound_output_dir).
+    /// Folder of made sounds: <c>GW_AI_SOUND_OUTPUT_DIR</c> if set; else the service default
+    /// <c>&lt;repository&gt;/.local/ai-service/sounds</c> (ai-service/config.toml, sound_output_dir), where
+    /// the repository is <c>GLASSWORLD_AI_ROOT</c> (exported builds, #102) or the folder above content.
     /// </summary>
-    public static string DefaultFolder(string contentDirectory, string? environmentOverride)
+    public static string DefaultFolder(string contentDirectory, string? environmentOverride, string? aiRoot = null)
     {
         ArgumentException.ThrowIfNullOrEmpty(contentDirectory);
-        return string.IsNullOrWhiteSpace(environmentOverride)
-            ? Path.GetFullPath(Path.Combine(contentDirectory, "..", ".local", "ai-service", "sounds"))
-            : Path.GetFullPath(environmentOverride);
+        if (!string.IsNullOrWhiteSpace(environmentOverride))
+        {
+            return Path.GetFullPath(environmentOverride);
+        }
+
+        var repository = string.IsNullOrWhiteSpace(aiRoot) ? Path.Combine(contentDirectory, "..") : aiRoot;
+        return Path.GetFullPath(Path.Combine(repository, ".local", "ai-service", "sounds"));
     }
 
     /// <summary>The sound for an action on a target object, or null when the target is no invention or has no sound.</summary>
