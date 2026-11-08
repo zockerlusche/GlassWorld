@@ -1,0 +1,217 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/emotion-symbols.schema.json",
+  "title": "EmotionSymbols",
+  "description": "Feeling symbols above the head in comic style (B2541 part 4, B2543): which symbol shows for what and how it moves. Short feelings rise and fade, lasting ones circle while they last. Triggers are core events, mood values (crossing a threshold or staying above it) and conditions. The symbols only show what the core already knows; they never change the simulation. Can be switched off in the settings. Values are placeholders until Marcel's word.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "head_offset_m",
+    "max_per_inhabitant",
+    "rise",
+    "orbit",
+    "symbols",
+    "triggers"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "head_offset_m": {
+      "description": "Height above the figure's head anchor.",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 2
+    },
+    "max_per_inhabitant": {
+      "description": "Symbols at once above one inhabitant (lasting ones first).",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4
+    },
+    "rise": {
+      "$ref": "#/$defs/RiseMotion"
+    },
+    "orbit": {
+      "$ref": "#/$defs/OrbitMotion"
+    },
+    "symbols": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "items": {
+        "$ref": "#/$defs/EmotionSymbol"
+      }
+    },
+    "triggers": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "$ref": "#/$defs/EmotionTrigger"
+      }
+    }
+  },
+  "$defs": {
+    "RiseMotion": {
+      "description": "A short feeling: the symbol rises and fades.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "duration_s",
+        "rise_m"
+      ],
+      "properties": {
+        "duration_s": {
+          "type": "number",
+          "minimum": 0.3,
+          "maximum": 10
+        },
+        "rise_m": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2
+        }
+      }
+    },
+    "OrbitMotion": {
+      "description": "A lasting feeling or state: copies of the symbol circle slowly above the head.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "radius_m",
+        "period_s",
+        "copies"
+      ],
+      "properties": {
+        "radius_m": {
+          "type": "number",
+          "minimum": 0.05,
+          "maximum": 1
+        },
+        "period_s": {
+          "description": "Time for one round (calm: no fast spinning).",
+          "type": "number",
+          "minimum": 1,
+          "maximum": 30
+        },
+        "copies": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        }
+      }
+    },
+    "EmotionSymbol": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "shape",
+        "fill",
+        "size_m"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "shape": {
+          "description": "Drawn shape (procedural comic icon, outline and flat colour after D355).",
+          "type": "string",
+          "enum": [
+            "heart",
+            "note",
+            "bulb",
+            "tear",
+            "star",
+            "storm_cloud",
+            "plaster",
+            "sick_face"
+          ]
+        },
+        "fill": {
+          "description": "Fill colour (#rrggbb); the outline comes from the style.",
+          "type": "string",
+          "pattern": "^#[0-9a-f]{6}$"
+        },
+        "size_m": {
+          "type": "number",
+          "minimum": 0.05,
+          "maximum": 1
+        }
+      }
+    },
+    "EmotionTrigger": {
+      "description": "When a symbol shows. Exactly one of event, mood or condition is set. event and a mood with mode 'rises' give a short rising symbol (with cooldown); a mood with mode 'holds' and a condition give a circling symbol while they last.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "symbol",
+        "event",
+        "mood",
+        "condition",
+        "mode",
+        "threshold",
+        "cooldown_s"
+      ],
+      "properties": {
+        "symbol": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "event": {
+          "description": "Core event kind (WorldEvent.Kind), or null.",
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/VocabId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "mood": {
+          "description": "Mood vocabulary id, or null.",
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/VocabId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "condition": {
+          "description": "Condition id (B2543, core from GW1), or null.",
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/VocabId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "once",
+            "rises",
+            "holds"
+          ]
+        },
+        "threshold": {
+          "description": "Mood value (0..1) that counts; unused for events and conditions.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "cooldown_s": {
+          "description": "Real seconds before the same symbol shows again above the same inhabitant (short feelings).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 600
+        }
+      }
+    }
+  }
+}

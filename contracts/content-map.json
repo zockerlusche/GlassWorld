@@ -59,6 +59,10 @@
       "schema": "ui-frames"
     },
     {
+      "pattern": "ui/emotion_symbols.json",
+      "schema": "emotion-symbols"
+    },
+    {
       "pattern": "sound/sound_map.json",
       "schema": "sound-map"
     },
