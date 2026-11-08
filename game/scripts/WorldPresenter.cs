@@ -28,6 +28,7 @@ public partial class WorldPresenter : Node3D
     private readonly Dictionary<string, (Label3D Label, double Until)> _thoughts = new(StringComparer.Ordinal);
     private AiServiceProcess? _service;
     private HttpDecisionPort? _livePort;
+    private HttpConversationPort? _conversationPort;
     private HttpJobPort? _jobPort;
     private HttpHelpPort? _helpPort;
     private long _seenEvents;
@@ -170,6 +171,10 @@ public partial class WorldPresenter : Node3D
 
         _host = host;
         SavePath = savePath;
+
+        // Talking (B6 R13): the live service when it runs, otherwise the deterministic mock; with a
+        // service that failed to start nothing answers and the core gives a calm "no answer" (R16).
+        host.Conversation.Port = _conversationPort is not null ? _conversationPort : _service is null && !_aiFailed ? new Simulation.Player.MockConversationPort() : null;
         if (savePath is not null)
         {
             // Autosave every game day (B2487). Like AutoSaver, but a failure must not escape into
@@ -264,6 +269,7 @@ public partial class WorldPresenter : Node3D
     {
         RestoreScene();
         _livePort?.Dispose();
+        _conversationPort?.Dispose();
         _jobPort?.Dispose();
         _helpPort?.Dispose();
         if (_service is not null)
@@ -313,6 +319,7 @@ public partial class WorldPresenter : Node3D
             // Generation jobs (inventions, D471): only with the live service; with the mock the system is dormant.
             _jobPort = HttpJobPort.ForService(_service);
             _helpPort = HttpHelpPort.ForService(_service, settings.DeadlineMs);
+            _conversationPort = HttpConversationPort.ForService(_service, settings.DeadlineMs);
             GD.Print($"AI_SERVICE live on port {_service.Port}");
             return _livePort;
         }
@@ -320,10 +327,12 @@ public partial class WorldPresenter : Node3D
         {
             // B3 A3: without the service the world runs on in routine mode; questions simply stay open.
             GD.PushWarning($"AI service not started ({ex.Message}); inhabitants live in routine mode.");
+            _aiFailed = true;
             return new SilentPort();
         }
     }
 
+    private bool _aiFailed;
     private int _focusGroup = 1;
     private double _focusUntil;
     private bool _groundReady;
@@ -393,6 +402,15 @@ public partial class WorldPresenter : Node3D
         {
             _seenEvents = sequenced.Seq;
             var e = sequenced.Event;
+            if (Talk(e) is { } talk && _thoughts.TryGetValue(e.InhabitantId, out var said))
+            {
+                // Talking (B6 R13): "..." while it thinks, then the answer or a question mark.
+                said.Label.Text = talk.Text;
+                said.Label.Visible = true;
+                _thoughts[e.InhabitantId] = (said.Label, _clock + talk.Seconds);
+                continue;
+            }
+
             if (e.Kind == "thought" && e.Text is { Length: > 0 } text && _thoughts.TryGetValue(e.InhabitantId, out var bubble))
             {
                 bubble.Label.Text = text;
@@ -412,6 +430,17 @@ public partial class WorldPresenter : Node3D
             }
         }
     }
+
+    /// <summary>The bubble of a conversation event: text and how long it stays (null for other events).</summary>
+    private static (string Text, double Seconds)? Talk(Simulation.Inhabitants.WorldEvent e) => e.Kind switch
+    {
+        "conversation_started" => ("…", 120.0),
+        "said" or "declined" when e.Text is { Length: > 0 } text => (text, ThoughtSeconds + 2),
+        "gestured" or "declined" => ("…", 2.0),
+        "not_understood" => ("?", ThoughtSeconds),
+        "no_answer" => (string.Empty, 0.0),
+        _ => null,
+    };
 
     /// <summary>Decider that never answers (service could not be started): questions stay open (B2487).</summary>
     private sealed class SilentPort : IDecisionPort

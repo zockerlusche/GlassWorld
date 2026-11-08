@@ -1144,6 +1144,32 @@ public partial class GameScreen : CanvasLayer
             _cardQuestions = new Label { AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled };
             _card.Content.AddChild(_cardAction);
             _card.Content.AddChild(_cardQuestions);
+
+            // Talking (B6 R13): a sentence to this inhabitant; the core checks it and answers later.
+            Section("ui.card.talk");
+            var talkRow = new HBoxContainer();
+            var input = new LineEdit
+            {
+                PlaceholderText = "ui.card.talk_hint",
+                MaxLength = 280,
+                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+                AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled,
+            };
+            input.PlaceholderText = Tr("ui.card.talk_hint");
+            var send = new Button { Text = "ui.card.talk_send" };
+            void Submit()
+            {
+                if (Say(inhabitantId, input.Text))
+                {
+                    input.Clear();
+                }
+            }
+
+            input.TextSubmitted += _ => Submit();
+            send.Pressed += Submit;
+            talkRow.AddChild(input);
+            talkRow.AddChild(send);
+            _card.Content.AddChild(talkRow);
         }
 
         foreach (var (key, percent) in values)
@@ -1177,6 +1203,26 @@ public partial class GameScreen : CanvasLayer
             _card!.Content.AddChild(row);
             _cardBars[key] = bar;
         }
+    }
+
+    /// <summary>
+    /// The player says something to an inhabitant (send_text): the core checks it at once; a refusal or
+    /// "no favour" shows its calm reason. Returns true when the sentence was taken.
+    /// </summary>
+    public bool Say(string inhabitantId, string text)
+    {
+        if (_presenter?.Host is not { } host)
+        {
+            return false;
+        }
+
+        var result = host.Decisions.Submit(new PlayerCommand(Simulation.Player.ConversationSystem.SendText, inhabitantId) { Text = text });
+        if (!result.Accepted)
+        {
+            ShowHint(new ToastMessage(result.ReasonKey ?? "msg.command.unknown", new Dictionary<string, string>(), null));
+        }
+
+        return result.Accepted;
     }
 
     /// <summary>The question mark of an inhabitant (on the head anchor on the island), or null.</summary>
