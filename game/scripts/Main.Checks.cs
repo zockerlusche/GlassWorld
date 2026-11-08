@@ -315,6 +315,15 @@ public partial class Main
 
         GD.Print("AUDIO_SPATIAL_OK");
 
+        var limiter = WorldAudio.LimiterSelfCheck();
+        if (limiter.Length > 0)
+        {
+            GD.PushError($"AUDIO_LIMITER_FAIL {limiter}");
+            return;
+        }
+
+        GD.Print("AUDIO_LIMITER_OK");
+
         var music = _audio?.MusicSelfCheck() ?? "world audio not set up";
         if (music.Length > 0)
         {

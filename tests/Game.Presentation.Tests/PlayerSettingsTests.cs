@@ -31,6 +31,7 @@ public sealed class PlayerSettingsTests
             HintsUntilDismissed = true,
             HideUi = true,
             BusVolumesDb = new(StringComparer.Ordinal) { ["music"] = -12 },
+            MixDefaultsVersion = Limits.MixDefaultsVersion,
         };
         var back = PlayerSettings.Parse(settings.ToJson(), Limits);
         Assert.Equal(settings.ToJson(), back.ToJson());
@@ -51,7 +52,7 @@ public sealed class PlayerSettingsTests
     [Fact]
     public void HandEditedValuesAreClamped()
     {
-        var settings = PlayerSettings.Parse("""{ "language": "fr", "ui_scale": 9, "text_scale": 0.1, "hint_duration_factor": 500, "bus_volumes_db": { "music": 40 } }""", Limits);
+        var settings = PlayerSettings.Parse("""{ "language": "fr", "ui_scale": 9, "text_scale": 0.1, "hint_duration_factor": 500, "bus_volumes_db": { "music": 40 }, "mix_defaults_version": 1 }""", Limits);
         Assert.Null(settings.Language);
         Assert.Equal(2, settings.UiScale);
         Assert.Equal(0.75, settings.TextScale);
@@ -95,5 +96,20 @@ public sealed class PlayerSettingsTests
         var settings = new PlayerSettings { UiScale = 1.5, ReduceMotion = true, HintDurationFactor = 3, HintsUntilDismissed = true };
         Assert.Equal(new UiSettings(1.5, 1, false, true), settings.ToUiSettings());
         Assert.Equal(new ToastSettings(3, true), settings.ToToastSettings());
+    }
+
+    [Fact]
+    public void NewMixDefaultsResetSavedVolumesOnce()
+    {
+        // Review #106: Marcel's saved sliders from the first test must not override the new calm defaults.
+        var saved = new PlayerSettings { BusVolumesDb = new Dictionary<string, double>(StringComparer.Ordinal) { ["ambience"] = -6 }, MixDefaultsVersion = 1 };
+        var v2 = Limits with { MixDefaultsVersion = 2 };
+        var after = PlayerSettings.Parse(saved.ToJson(), v2);
+        Assert.Empty(after.BusVolumesDb);
+        Assert.Equal(2, after.MixDefaultsVersion);
+
+        // Chosen again under the new defaults: kept.
+        var chosen = after with { BusVolumesDb = new Dictionary<string, double>(StringComparer.Ordinal) { ["ambience"] = -20 } };
+        Assert.Equal(-20, PlayerSettings.Parse(chosen.ToJson(), v2).BusVolumesDb["ambience"]);
     }
 }

@@ -66,10 +66,17 @@
           "$ref": "common.schema.json#/$defs/VocabId"
         },
         "sound": {
-          "description": "Language-neutral sound id, e.g. step.grass, animal.frog.call.",
-          "type": "string",
-          "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*){1,3}$",
-          "maxLength": 64
+          "description": "Language-neutral sound id, e.g. step.grass; null = silent on purpose (waiting and sleeping make no sound, Marcel W1643).",
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*){1,3}$",
+              "maxLength": 64
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
     },

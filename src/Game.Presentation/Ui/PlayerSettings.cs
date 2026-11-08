@@ -10,7 +10,8 @@ namespace GlassWorld.Presentation.Ui;
 /// <param name="VolumeDb">Range of the volume sliders (content/sound/mix.json).</param>
 /// <param name="PlayerNameMaxLength">Longest player name (content/player/world_options.json).</param>
 /// <param name="Guard">Content guard (R13); a blocked name from a hand-edited file is dropped.</param>
-public sealed record SettingsLimits(UiTokens Tokens, IReadOnlyCollection<string> Locales, MixPlayerRange VolumeDb, int PlayerNameMaxLength, GlassWorld.Simulation.Safety.TextGuard Guard);
+/// <param name="MixDefaultsVersion">Version of the default bus volumes (mix.json); saved volumes of another version are reset.</param>
+public sealed record SettingsLimits(UiTokens Tokens, IReadOnlyCollection<string> Locales, MixPlayerRange VolumeDb, int PlayerNameMaxLength, GlassWorld.Simulation.Safety.TextGuard Guard, int MixDefaultsVersion = 1);
 
 /// <summary>
 /// The player's settings (B6 R4): stored in the user folder (<c>user://settings.json</c>), never in a
@@ -58,6 +59,9 @@ public sealed record PlayerSettings
 
     /// <summary>Volume per bus in dB (missing = default of the mix data).</summary>
     public Dictionary<string, double> BusVolumesDb { get; init; } = new(StringComparer.Ordinal);
+
+    /// <summary>Mix defaults version the saved volumes belong to (review #106: new defaults reset old volumes once).</summary>
+    public int MixDefaultsVersion { get; init; }
 
     private static readonly JsonSerializerOptions Json = new()
     {
@@ -120,7 +124,8 @@ public sealed record PlayerSettings
             HintDurationFactor = Math.Clamp(HintDurationFactor, 1, tokens.Toast.MaxDurationFactor),
 
             // A hand-edited "bus_volumes_db": null must not break the UI either.
-            BusVolumesDb = (BusVolumesDb ?? [])
+            MixDefaultsVersion = limits.MixDefaultsVersion,
+            BusVolumesDb = (MixDefaultsVersion == limits.MixDefaultsVersion ? BusVolumesDb ?? [] : [])
                 .Where(v => !string.IsNullOrEmpty(v.Key))
                 .ToDictionary(v => v.Key, v => Math.Clamp(v.Value, limits.VolumeDb.Min, limits.VolumeDb.Max), StringComparer.Ordinal),
         };

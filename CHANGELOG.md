@@ -19,6 +19,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- Calm default sound mix (Marcel W1643: "die Geräusche waren grauenhaft"). Ambience, animals, voices and world effects now start at the slider minimum (-60 dB, switch on in the settings); music at -14 dB. At most 3 action sounds, 2 animal calls and 1 music piece at once; an animal call at most every 4 s. Waiting and sleeping are silent (`sound: null` in the sound map): idle was 65 % of all sound events. A hard limiter (-1 dB ceiling) sits on the master bus (B8 R7, was missing), smoke `AUDIO_LIMITER_OK`.
 - Observer camera in the placeholder world (follows the group with the latest thought, else switches every 30 s; B0 island placeholder hidden) and timed window screenshots via `GLASSWORLD_SHOTS=dir;seconds,...` for acceptance documents (M1, groundwork for B2 R32).
 - Inhabitant card stays beside the side bar and its open panel and is re-fitted when the UI size changes (found in the 3840x1600 screenshots at 175 %: the card kept its old place, covered the inhabitant list and ran off the screen). The smoke checks the card at the smallest and largest UI size.
 

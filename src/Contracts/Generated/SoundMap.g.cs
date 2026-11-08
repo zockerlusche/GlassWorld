@@ -20,10 +20,10 @@ namespace GlassWorld.Contracts
         public string Action { get; set; } = default!;
 
         /// <summary>
-        /// Language-neutral sound id, e.g. step.grass, animal.frog.call.
+        /// Language-neutral sound id, e.g. step.grass; null = silent on purpose (waiting and sleeping make no sound, Marcel W1643).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("sound")]
-        public string Sound { get; set; } = default!;
+        public string? Sound { get; set; } = default!;
 
     }
 

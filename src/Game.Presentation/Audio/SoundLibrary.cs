@@ -55,7 +55,7 @@ public sealed class SoundLibrary
 
     /// <summary>Every sound id the map uses.</summary>
     public IEnumerable<string> UsedSoundIds() =>
-        Map.Actions.Select(a => a.Sound)
+        Map.Actions.Select(a => a.Sound).OfType<string>()
             .Concat(Map.Surfaces.Select(s => s.Sound))
             .Concat(Map.Weather.Select(w => w.Sound))
             .Concat(Map.Ambience.Select(a => a.Sound))

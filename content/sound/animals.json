@@ -4,7 +4,7 @@
     "min": 6,
     "max": 30
   },
-  "max_calls_per_second": 1.5,
+  "max_calls_per_second": 0.25,
   "birdsong": {
     "sound": "animal.songbird.song",
     "notes_min": 4,
