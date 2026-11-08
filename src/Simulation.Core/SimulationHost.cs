@@ -95,6 +95,7 @@ public sealed class SimulationHost
         var decisions = new DecisionsSystem(settings, inhabitants, objects, content.Actions, content.Brain, content.Vocabularies[VocabularyKind.Action], port, displayLocale);
         var player = new Simulation.Player.PlayerSystem(content.GiftRules, content.Favor, content.Brain.Weights, content.Brain, inhabitants, objects, world.Calendar.Settings.TicksPerHour);
         decisions.RegisterCommand(Simulation.Player.PlayerSystem.PlaceGift, player.Check, player.Apply);
+        decisions.RegisterCommand(Simulation.Player.PlayerSystem.StartFavorCommand, player.CheckStartFavor, player.ApplyStartFavor);
         world.Add(objects).Add(decisions).Add(inhabitants).Add(player);
         return new SimulationHost(content, world, map, objects, decisions, inhabitants, settings, player);
     }

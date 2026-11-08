@@ -71,8 +71,11 @@ public partial class WorldPresenter : Node3D
         var host = SimulationHost.CreatePlaceholderWorld(contentDirectory, seed, CreatePort(contentDirectory), "de");
         if (startFavor is { } favor)
         {
-            // Part of the start state (GW1 review #67 S1): same world code = same favour.
-            host.Player.SetStartFavor(favor);
+            // Part of the start (GW1 review #67 S1/N1): as a command in the log, applied at the first
+            // tick, so a replay from seed and log starts with the same favour.
+            // Applied and logged at once: the world is saved right after creation, before the first tick
+            // (GW1 #73 F1); a replay applies the logged command again at the first tick.
+            host.Decisions.ApplySetup(host.World, new Simulation.Decisions.PlayerCommand(Simulation.Player.PlayerSystem.StartFavorCommand, null) { Amount = favor });
         }
 
         Begin(host, savePath);

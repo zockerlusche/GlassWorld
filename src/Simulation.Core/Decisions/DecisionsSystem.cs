@@ -32,6 +32,9 @@ public sealed record PlayerCommand(string Kind, string? InhabitantId)
 
     /// <summary>World position Z of a gift (metres).</summary>
     public double? Z { get; init; }
+
+    /// <summary>A whole number for commands that need one (e.g. the start favour).</summary>
+    public int? Amount { get; init; }
 }
 
 /// <summary>Result of a player command.</summary>
@@ -168,6 +171,30 @@ public sealed class DecisionsSystem : IWorldSystem
         ArgumentNullException.ThrowIfNull(check);
         ArgumentNullException.ThrowIfNull(apply);
         _handlers[kind] = (check, apply);
+    }
+
+    /// <summary>
+    /// World setup only (before the first tick): applies a registered command at once and logs it at the
+    /// current tick, so a save game made right after creation already holds it in the log (GW1 #73 F1).
+    /// A replay applies it again at the first tick.
+    /// </summary>
+    public CommandResult ApplySetup(World world, PlayerCommand command)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(command);
+        if (!_handlers.TryGetValue(command.Kind, out var handler))
+        {
+            return new CommandResult(false, ReasonUnknownCommand);
+        }
+
+        var result = handler.Check(command);
+        if (result.Accepted)
+        {
+            Log.Add(new DecisionLogEntry(DecisionLogKind.Command, string.Empty, world.Tick, System.Text.Json.JsonSerializer.Serialize(command), null));
+            handler.Apply(world, command);
+        }
+
+        return result;
     }
 
     /// <summary>Queues a player command; it takes effect at the next tick.</summary>
