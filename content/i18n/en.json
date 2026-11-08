@@ -811,6 +811,34 @@
       "text": "Sticky"
     },
     {
+      "key": "vocab.property.fine_grained",
+      "text": "Fine-grained"
+    },
+    {
+      "key": "vocab.property.alkaline",
+      "text": "Alkaline"
+    },
+    {
+      "key": "vocab.property.smoulders",
+      "text": "Smoulders"
+    },
+    {
+      "key": "vocab.property.transparent",
+      "text": "Transparent"
+    },
+    {
+      "key": "vocab.property.cooked",
+      "text": "Cooked"
+    },
+    {
+      "key": "vocab.property.milky",
+      "text": "Milky"
+    },
+    {
+      "key": "vocab.property.fatty",
+      "text": "Fatty"
+    },
+    {
       "key": "vocab.time_of_day.dawn",
       "text": "Dawn"
     },
