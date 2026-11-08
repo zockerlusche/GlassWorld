@@ -53,7 +53,8 @@ Judge the try.
 # Physics checks done by the service (the guard in code, data): a judgement that breaks them is
 # asked again. heat_processes need heat_min; needs_any: some input must have one of these;
 # never_if: no input may have this; no_new: added only if an input already has it;
-# may_add: the only properties a process can give; never_remove: no process takes these away.
+# may_add / may_remove: the only properties a process can give / take away (a process not listed:
+# no limit); never_remove: no process takes these away.
 # All ids are checked against the vocabulary when the service starts (fail fast).
 [settings.guard]
 heat_processes = ["heat", "fire", "char", "melt"]
@@ -83,3 +84,18 @@ shape = ["container"]
 fire = ["hard", "long_lasting"]
 char = ["burnable"]
 melt = ["malleable", "hot"]
+
+[settings.guard.may_remove]
+heat = []
+dry = ["malleable"]
+strike = []
+split = []
+cut = []
+soak = ["hard"]
+mix = []
+bind = []
+braid = []
+shape = []
+fire = ["malleable", "hardens_in_fire", "burnable", "fibrous", "braidable", "building_material"]
+char = ["building_material", "fibrous", "braidable", "splittable"]
+melt = ["hard"]

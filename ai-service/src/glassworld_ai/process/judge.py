@@ -40,7 +40,7 @@ from glassworld_contracts.signature import world_rule_id
 ROLE = "process"
 MIN_TICKS, MAX_TICKS = 5, 2000  # technical bounds for the model; the core scales by data
 GUARD_LISTS = ("heat_processes", "no_new", "never_remove")
-GUARD_MAPS = ("needs_any", "never_if", "may_add")
+GUARD_MAPS = ("needs_any", "never_if", "may_add", "may_remove")
 
 
 class GuardError(ValueError):
@@ -149,7 +149,10 @@ def output_schema(job: GenerationJob, ctx: JudgeContext) -> dict[str, Any]:
     may_add = cast(dict[str, list[str]], ctx.guard.get("may_add", {})).get(process)
     addable = [p for p in ctx.properties if may_add is None or p in may_add]
     protected = set(ctx.guard.get("never_remove", []))
-    removable = sorted({p for props in inputs for p in props} - protected)
+    may_remove = cast(dict[str, list[str]], ctx.guard.get("may_remove", {})).get(process)
+    removable = sorted(
+        {p for props in inputs for p in props if may_remove is None or p in may_remove} - protected
+    )
     add_items: dict[str, Any] = (
         {"type": "string", "enum": addable} if addable else {"type": "string", "enum": [""]}
     )

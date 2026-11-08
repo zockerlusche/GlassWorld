@@ -346,3 +346,9 @@ def test_replay_without_a_recording_is_not_retryable(settings: Settings) -> None
     with pytest.raises(JobFailedError) as error:
         asyncio.run(ReplayProcesses(CallLog(settings.log_dir / "empty.jsonl"), CTX)(DRY))
     assert error.value.retryable is False
+
+
+def test_a_process_takes_away_only_what_it_may() -> None:
+    """Drying never removes fibres (live run 5: grass lost 'fibrous'); may_remove is data."""
+    with pytest.raises(InvalidOutputError, match="remove_properties"):
+        parse_judgement(_raw(remove_properties=["fibrous"]), DRY, CTX)
