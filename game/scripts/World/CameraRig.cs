@@ -58,9 +58,9 @@ public partial class CameraRig : Node3D
     /// <summary>Godot camera of the rig.</summary>
     public Camera3D Camera => _camera;
 
-    /// <summary>Follows the figure with this id (its position is read every frame).</summary>
-    public void FollowFigure(string id) =>
-        Model.Follow(() => _figures().Where(f => f.Id == id).Select(f => ((double)f.Position.X, (double)f.Position.Z)).DefaultIfEmpty(Model.Target).First());
+    /// <summary>Follows the figure with this id (its position is read every frame), at the follow distance or <paramref name="distanceM"/>.</summary>
+    public void FollowFigure(string id, double? distanceM = null) =>
+        Model.Follow(() => _figures().Where(f => f.Id == id).Select(f => ((double)f.Position.X, (double)f.Position.Z)).DefaultIfEmpty(Model.Target).First(), distanceM);
 
     /// <inheritdoc/>
     public override void _Notification(int what)
