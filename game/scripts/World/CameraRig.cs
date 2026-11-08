@@ -104,7 +104,7 @@ public partial class CameraRig : Node3D
         {
             Select(click.Position);
         }
-        else if (_rotating && @event is InputEventMouseMotion motion)
+        else if (_rotating && @event is InputEventMouseMotion motion && Input.IsActionPressed(RotateAction))
         {
             Model.Drag(motion.Relative.X);
         }
@@ -113,6 +113,13 @@ public partial class CameraRig : Node3D
     /// <inheritdoc/>
     public override void _Process(double delta)
     {
+        // A GUI control can swallow the rotate button's release, so the rig never sees it; the Input
+        // state still knows the button is up, so rotating stops on the next frame.
+        if (_rotating && !Input.IsActionPressed(RotateAction))
+        {
+            _rotating = false;
+        }
+
         var right = Input.GetAxis(PanActions[0], PanActions[1]);
         var forward = Input.GetAxis(PanActions[3], PanActions[2]);
         Model.Pan(right, forward, delta);
