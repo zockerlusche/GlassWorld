@@ -73,7 +73,10 @@ public partial class IslandScene : Node3D
 
         var ground = island.Map;
         var terrain = view.Look;
-        _rig = CameraRig.Create(Look<LookCamera>("camera.json"), _width, _depth, () => [], (x, z) => IslandView.GroundHeight(ground, terrain, x, z));
+
+        // The camera target follows the ground, but never sinks below the sea surface.
+        var seaLevel = host.Content.WorldGen.Presets[preset].Terrain.SeaLevel * terrain.UnitM;
+        _rig = CameraRig.Create(Look<LookCamera>("camera.json"), _width, _depth, () => [], (x, z) => Math.Max(seaLevel, IslandView.GroundHeight(ground, terrain, x, z)));
         AddChild(_rig);
 
         if (_check)

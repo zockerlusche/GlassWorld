@@ -102,6 +102,36 @@ public sealed class CameraModelTests
         Assert.Equal(60, camera.Distance);
     }
 
+    [Fact]
+    public void TheTargetHeightEasesOverAStepInTheGround()
+    {
+        // A cliff of 5 m at x = 100: following a figure across it glides up instead of jumping.
+        var data = Data();
+        var camera = new CameraModel(data, 0, 0, 192, 192, (x, _) => x < 100 ? 0 : 5);
+        Assert.Equal(0, camera.TargetHeight);
+        camera.Follow(() => (150, 96));
+        var heights = new List<double>();
+        for (var i = 0; i < 2000; i++)
+        {
+            camera.Update(1 / 60d);
+            heights.Add(camera.TargetHeight);
+        }
+
+        Assert.Equal(5, camera.TargetHeight, 3);
+        Assert.Equal(camera.TargetHeight + (camera.Distance * Math.Sin(data.PitchDeg * Math.PI / 180)), camera.Eye.Y, 6);
+        var largestStep = heights.Zip(heights.Skip(1), (a, b) => Math.Abs(b - a)).Prepend(heights[0]).Max();
+        Assert.True(largestStep < 1, $"the height must ease, not jump (largest step {largestStep:0.00} m per frame)");
+        Assert.All(heights.Zip(heights.Skip(1)), p => Assert.True(p.Second >= p.First - 1e-9, "the height rises steadily"));
+    }
+
+    [Fact]
+    public void AFixedViewTakesTheGroundHeightAtOnce()
+    {
+        var camera = new CameraModel(Data(), 0, 0, 192, 192, (x, z) => (x + z) / 100);
+        camera.Set(40, 60, 0, 30);
+        Assert.Equal(1, camera.TargetHeight, 9);
+    }
+
     private static void Settle(CameraModel camera)
     {
         for (var i = 0; i < 2000; i++)

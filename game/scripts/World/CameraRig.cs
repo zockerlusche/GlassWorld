@@ -34,7 +34,6 @@ public partial class CameraRig : Node3D
 
     private Camera3D _camera = null!;
     private Func<IEnumerable<(string Id, Vector3 Position)>> _figures = () => [];
-    private Func<double, double, float> _ground = (_, _) => 0f;
     private bool _rotating;
 
     /// <summary>Raised when a figure is clicked (its inhabitant id).</summary>
@@ -49,7 +48,8 @@ public partial class CameraRig : Node3D
         ArgumentNullException.ThrowIfNull(data);
         ArgumentNullException.ThrowIfNull(figures);
         EnsureDefaultInput();
-        var rig = new CameraRig { Name = "CameraRig", Model = new CameraModel(data, 0, 0, width, depth), _figures = figures, _ground = groundHeight ?? ((_, _) => 0f) };
+        Func<double, double, double>? ground = groundHeight is null ? null : (x, z) => groundHeight(x, z);
+        var rig = new CameraRig { Name = "CameraRig", Model = new CameraModel(data, 0, 0, width, depth, ground), _figures = figures };
         rig._camera = new Camera3D { Name = "Camera", Current = true, Near = 0.3f, Far = 4000f };
         rig.AddChild(rig._camera);
         rig.Apply();
@@ -114,9 +114,8 @@ public partial class CameraRig : Node3D
         _camera.Projection = Model.Orthographic ? Camera3D.ProjectionType.Orthogonal : Camera3D.ProjectionType.Perspective;
         _camera.Fov = (float)Model.FovDeg;
         _camera.Size = (float)Model.OrthoSize;
-        // The model orbits a point on the ground plane; the ground height lifts eye and target alike.
-        var h = _ground(tx, tz);
-        _camera.LookAtFromPosition(new Vector3((float)eye.X, (float)eye.Y + h, (float)eye.Z), new Vector3((float)tx, h, (float)tz), Vector3.Up);
+        // The model orbits a point on the ground; its eased height lifts eye and target alike.
+        _camera.LookAtFromPosition(new Vector3((float)eye.X, (float)eye.Y, (float)eye.Z), new Vector3((float)tx, (float)Model.TargetHeight, (float)tz), Vector3.Up);
     }
 
     private void Select(Vector2 screen)

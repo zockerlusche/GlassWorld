@@ -91,16 +91,11 @@ public partial class IslandView : Node3D
         return view;
     }
 
-    /// <summary>Ground height in metres at a world position (for placing figures and objects).</summary>
-    public static float GroundHeight(WorldMap map, TerrainLook look, double x, double z)
-    {
-        ArgumentNullException.ThrowIfNull(map);
-        ArgumentNullException.ThrowIfNull(look);
-        var cx = Math.Clamp((int)Math.Floor(x / look.CellM), 0, map.WidthCells - 1);
-        var cz = Math.Clamp((int)Math.Floor(z / look.CellM), 0, map.DepthCells - 1);
-        var cell = map.Cell(cx, cz);
-        return (cell.Height + cell.WaterDepth) * look.UnitM;
-    }
+    /// <summary>
+    /// Ground height in metres at a world position: the drawn ground mesh, interpolated over its triangles
+    /// (for placing figures and objects and for the camera target).
+    /// </summary>
+    public static float GroundHeight(WorldMap map, TerrainLook look, double x, double z) => TerrainMesher.GroundHeight(map, look, x, z);
 
     private static ShaderMaterial SeaMaterial(TerrainLook look)
     {

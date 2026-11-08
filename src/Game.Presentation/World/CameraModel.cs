@@ -8,8 +8,9 @@ public readonly record struct Point3(double X, double Y, double Z);
 /// <summary>
 /// The island camera without Godot (B2 R26): an iso view that orbits a ground target, rotates by dragging,
 /// zooms in steps, pans in its own frame and can follow a figure. All limits, speeds and the smoothing
-/// come from <c>content/look/camera.json</c>; every move eases towards its goal. Presentation only: the
-/// camera never changes the world.
+/// come from <c>content/look/camera.json</c>; every move eases towards its goal, also the height of the
+/// ground under the target, so the view glides over slopes and cliffs instead of jumping. Presentation
+/// only: the camera never changes the world.
 /// </summary>
 public sealed class CameraModel
 {
@@ -17,19 +18,26 @@ public sealed class CameraModel
     private readonly (double MinX, double MinZ, double MaxX, double MaxZ) _bounds;
     private double _yaw, _distance, _targetX, _targetZ;
     private double _wantYaw, _wantDistance, _wantX, _wantZ;
+    private readonly Func<double, double, double> _ground;
+    private double _height;
     private Func<(double X, double Z)>? _follow;
 
-    /// <summary>Creates the camera over a ground area (metres); the target starts at its centre.</summary>
-    public CameraModel(LookCamera data, double minX, double minZ, double maxX, double maxZ)
+    /// <summary>
+    /// Creates the camera over a ground area (metres); the target starts at its centre.
+    /// <paramref name="groundHeight"/> gives the ground height in metres at (x, z) (none = flat at 0).
+    /// </summary>
+    public CameraModel(LookCamera data, double minX, double minZ, double maxX, double maxZ, Func<double, double, double>? groundHeight = null)
     {
         ArgumentNullException.ThrowIfNull(data);
         _data = data;
+        _ground = groundHeight ?? ((_, _) => 0);
         var margin = data.BoundsMarginM;
         _bounds = (minX - margin, minZ - margin, maxX + margin, maxZ + margin);
         _yaw = _wantYaw = data.StartYawDeg;
         _distance = _wantDistance = data.DistanceM.Start;
         _targetX = _wantX = (minX + maxX) / 2;
         _targetZ = _wantZ = (minZ + maxZ) / 2;
+        _height = _ground(_targetX, _targetZ);
     }
 
     /// <summary>Orthographic or perspective (data value, picture question T1; the screenshot tool may override it).</summary>
@@ -53,6 +61,9 @@ public sealed class CameraModel
     /// <summary>Current ground target.</summary>
     public (double X, double Z) Target => (_targetX, _targetZ);
 
+    /// <summary>Current (eased) height of the target in metres; it follows the ground under the target.</summary>
+    public double TargetHeight => _height;
+
     /// <summary>Whether the camera follows a figure.</summary>
     public bool Following => _follow is not null;
 
@@ -64,7 +75,7 @@ public sealed class CameraModel
             var pitch = _data.PitchDeg * Math.PI / 180;
             var yaw = _yaw * Math.PI / 180;
             var flat = _distance * Math.Cos(pitch);
-            return new Point3(_targetX + (flat * Math.Sin(yaw)), _distance * Math.Sin(pitch), _targetZ + (flat * Math.Cos(yaw)));
+            return new Point3(_targetX + (flat * Math.Sin(yaw)), _height + (_distance * Math.Sin(pitch)), _targetZ + (flat * Math.Cos(yaw)));
         }
     }
 
@@ -115,6 +126,7 @@ public sealed class CameraModel
         _distance = _wantDistance = Math.Clamp(distance, _data.DistanceM.Min, _data.DistanceM.Max);
         Clamp();
         (_targetX, _targetZ) = (_wantX, _wantZ);
+        _height = _ground(_targetX, _targetZ);
     }
 
     /// <summary>Eases towards the goals; <paramref name="seconds"/> is the real frame time.</summary>
@@ -132,6 +144,10 @@ public sealed class CameraModel
         _distance += (_wantDistance - _distance) * t;
         _targetX += (_wantX - _targetX) * t;
         _targetZ += (_wantZ - _targetZ) * t;
+
+        // The height eases towards the ground under the target, so a step in the ground (a cell edge, a
+        // cliff) becomes a glide.
+        _height += (_ground(_targetX, _targetZ) - _height) * t;
     }
 
     private void Clamp()
