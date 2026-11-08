@@ -98,9 +98,9 @@ public sealed class WorldGeneratorTests
     /// be equal on Windows and Linux (CI). A deliberate change of generator or data updates them here.
     /// </summary>
     [Theory]
-    [InlineData(1UL, "89966c600a85353371b85d3008f8f90745cd72416754af6aa49a763ea3c862da")]
-    [InlineData(7UL, "9871d8266482249c91c104cebd2e39ff0d99d2c0afe747a77735d1ebf85b0de9")]
-    [InlineData(2026UL, "53731e1d8dbf64bb0e96ab8337601c5cf88b88ea19ec513da3199e8713c9aedd")]
+    [InlineData(1UL, "f172c2be8f7feed1f13d8b8db64289de3ad693035590270b78cf62fbd25ae5e4")]
+    [InlineData(7UL, "69a39fe42892cc7bf22231f0ef698fde4a508560845d7a1b84b343946997f11b")]
+    [InlineData(2026UL, "1df5e9f74e635e959c7de1352beda8a58532f18c748cf8e513f1f89ef9badc14")]
     public void GoldenWorldHashesAreStableAcrossMachines(ulong seed, string expected)
     {
         var actual = Generate(seed).Hash();
@@ -108,13 +108,17 @@ public sealed class WorldGeneratorTests
     }
 
     /// <summary>
-    /// Start supply (TL #19280): where the island allows it, every start finds the listed resources within
-    /// the radius and within its walkable area (seeds where it is possible for every start).
+    /// Start supply (TL #19280, F5263): starts are chosen where the supply is possible, so every start of
+    /// the acceptance seeds finds the listed resources within the radius and within its walkable area.
     /// </summary>
     [Theory]
-    [InlineData(8UL)]
-    [InlineData(12UL)]
-    [InlineData(20UL)]
+    [InlineData(1UL)]
+    [InlineData(6UL)]
+    [InlineData(7UL)]
+    [InlineData(42UL)]
+    [InlineData(99UL)]
+    [InlineData(123UL)]
+    [InlineData(2026UL)]
     public void EveryStartFindsItsSupplyWithinTheRadius(ulong seed)
     {
         var island = Generate(seed);

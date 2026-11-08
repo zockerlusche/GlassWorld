@@ -152,7 +152,7 @@ public static class WorldGenerator
         var objects = new List<IslandObject>();
         Caves(preset, map, objects, Stream(attemptSeed, "worldgen/caves"));
         Spawn(content.Spawns, map, objects, Stream(attemptSeed, "worldgen/spawns"));
-        var starts = Starts(preset, map, Stream(attemptSeed, "worldgen/start"));
+        var starts = Starts(preset, map, SupplyFeasible(preset.Start.Supply, content.Spawns, catalog, map, objects), Stream(attemptSeed, "worldgen/start"));
         StartSupply(preset.Start.Supply, content.Spawns, catalog, map, objects, starts, Stream(attemptSeed, "worldgen/supply"));
         var neighbours = Neighbour(preset, w, d, Stream(attemptSeed, "worldgen/neighbours"));
         var check = Check(content.Spawns, catalog, map, objects, starts);
@@ -892,7 +892,7 @@ public static class WorldGenerator
     }
 
     /// <summary>Pairs (woman and man) on different beaches, far enough apart not to see each other (R9, B2517).</summary>
-    private static List<StartPosition> Starts(WorldPreset preset, WorldMap map, Pcg32 rng)
+    private static List<StartPosition> Starts(WorldPreset preset, WorldMap map, Func<(int X, int Z), bool> feasible, Pcg32 rng)
     {
         var beach = new List<(int X, int Z)>();
         for (var z = 1; z < map.DepthCells - 1; z++)
@@ -917,8 +917,10 @@ public static class WorldGenerator
                 break;
             }
 
+            // Beaches where the start supply is possible come first (TL F5263 A); others only without one.
+            options = Feasible(options);
             var anchor = options[rng.NextInt(0, options.Count)];
-            var partner = beach.Where(b => b != anchor && Math.Abs(b.X - anchor.X) <= 2 && Math.Abs(b.Z - anchor.Z) <= 2).ToList();
+            var partner = Feasible(beach.Where(b => b != anchor && Math.Abs(b.X - anchor.X) <= 2 && Math.Abs(b.Z - anchor.Z) <= 2).ToList());
             if (partner.Count == 0)
             {
                 continue;
@@ -931,6 +933,83 @@ public static class WorldGenerator
         }
 
         return starts;
+
+        List<(int X, int Z)> Feasible(List<(int X, int Z)> cells) => cells.Where(feasible).ToList() is { Count: > 0 } good ? good : cells;
+    }
+
+    /// <summary>
+    /// Whether the start supply is possible at a cell (TL F5263 A): for every resource, the matching
+    /// objects already there plus the free cells where a matching spawn rule with room left may place
+    /// one (its biome cells, within its max_total) reach the minimum, all within the radius and in the
+    /// cell's walkable area - the same rules <see cref="StartSupply"/> places by. Answers are cached.
+    /// </summary>
+    private static Func<(int X, int Z), bool> SupplyFeasible(StartSupply supply, SpawnTable spawns, ObjectCatalog catalog, WorldMap map, List<IslandObject> objects)
+    {
+        int w = map.WidthCells, d = map.DepthCells;
+        var areas = PathFinder.WalkableAreas(map);
+        var cellsOf = SpawnCells(map);
+        var taken = objects.Select(o => (o.X, o.Z)).ToHashSet();
+        var rules = spawns.Spawns.ToList();
+
+        // Per resource: how much each cell offers (matching objects on it, or 1 if a rule may place there).
+        var offers = supply.Resources.Select(resource =>
+        {
+            bool Matches(string type) =>
+                resource.PropertiesAll.All(p => catalog.HasProperty(type, p)) && !resource.PropertiesNone.Any(p => catalog.HasProperty(type, p));
+            var offer = new int[w * d];
+            foreach (var o in objects.Where(o => Matches(o.TypeId)))
+            {
+                offer[(o.Z * w) + o.X]++;
+            }
+
+            foreach (var rule in rules.Where(r => Matches(r.ObjectType) && cellsOf.ContainsKey(r.Biome)))
+            {
+                var cells = cellsOf[rule.Biome];
+                var on = cells.ToHashSet();
+                if (rule.MaxTotal - objects.Count(o => o.TypeId == rule.ObjectType && on.Contains((o.X, o.Z))) <= 0)
+                {
+                    continue;
+                }
+
+                foreach (var (x, z) in cells.Where(c => !taken.Contains(c)))
+                {
+                    offer[(z * w) + x] = Math.Max(offer[(z * w) + x], 1);
+                }
+            }
+
+            return (resource.Min, Offer: offer);
+        }).ToList();
+
+        var radius = supply.RadiusCells;
+        var cache = new Dictionary<(int X, int Z), bool>();
+        return cell =>
+        {
+            if (cache.TryGetValue(cell, out var known))
+            {
+                return known;
+            }
+
+            var area = areas[(cell.Z * w) + cell.X];
+            var ok = area != 0 && offers.All(r =>
+            {
+                var sum = 0;
+                for (var z = Math.Max(0, cell.Z - radius); z <= Math.Min(d - 1, cell.Z + radius) && sum < r.Min; z++)
+                {
+                    for (var x = Math.Max(0, cell.X - radius); x <= Math.Min(w - 1, cell.X + radius) && sum < r.Min; x++)
+                    {
+                        var i = (z * w) + x;
+                        if (r.Offer[i] > 0 && areas[i] == area && ((x - cell.X) * (x - cell.X)) + ((z - cell.Z) * (z - cell.Z)) <= radius * radius && (x, z) != cell)
+                        {
+                            sum += r.Offer[i];
+                        }
+                    }
+                }
+
+                return sum >= r.Min;
+            });
+            cache[cell] = ok;
+            return ok;
+        };
     }
 
     private static List<NeighbourIsland> Neighbour(WorldPreset preset, int w, int d, Pcg32 rng)
