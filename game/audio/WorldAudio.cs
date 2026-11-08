@@ -33,6 +33,10 @@ public partial class WorldAudio : Node3D
     private long _animalTick = -1;
     private CallBudget? _callBudget;
     private double _clock;
+    private AmbienceDirector? _ambience;
+    private readonly AudioStreamPlayer[] _ambiencePlayers = new AudioStreamPlayer[2];
+    private readonly (double From, double To, double Start, double Length)[] _ambienceFades = new (double, double, double, double)[2];
+    private int _ambienceActive;
 
     /// <summary>Zoom 0 (fully in) .. 1 (fully out); set by the camera control.</summary>
     public double Zoom { get; set; } = 0.5;
@@ -128,6 +132,13 @@ public partial class WorldAudio : Node3D
             _pools[bus.Id] = pool;
         }
 
+        _ambience = new AmbienceDirector(RetroAudio.Library!, _mixer.Mix.Ambience);
+        for (var i = 0; i < 2; i++)
+        {
+            _ambiencePlayers[i] = new AudioStreamPlayer { Bus = BusName(MixBusId.Ambience), VolumeDb = -80 };
+            AddChild(_ambiencePlayers[i]);
+        }
+
         return true;
     }
 
@@ -149,6 +160,7 @@ public partial class WorldAudio : Node3D
         }
 
         PlayAnimals(listener);
+        PlayAmbience(listener);
         var events = _feed.NewEvents();
         if (events.Count == 0)
         {
@@ -187,6 +199,90 @@ public partial class WorldAudio : Node3D
 
     /// <summary>Smoke run only: the background music (B8 R6).</summary>
     public string MusicSelfCheck() => _music?.SelfCheck() ?? "music not set up";
+
+    /// <summary>
+    /// Biome ambience (B8 R7): the loop of the biome under the listener on the ambience bus; a change of
+    /// biome cross-fades over the mix data's fade time (two players, like the music).
+    /// </summary>
+    private void PlayAmbience(Position listener)
+    {
+        if (_ambience is null || _ambiencePlayers[0] is null)
+        {
+            return;
+        }
+
+        for (var i = 0; i < 2; i++)
+        {
+            var gain = CurrentGain(i);
+            var to = _ambienceFades[i].To;
+            _ambiencePlayers[i].VolumeDb = gain <= 0.0001 ? -80 : (float)(20 * Math.Log10(gain));
+            if (gain <= 0.0001 && _ambiencePlayers[i].Playing && to <= 0)
+            {
+                _ambiencePlayers[i].Stop();
+            }
+        }
+
+        var step = _ambience.Update(_clock, BiomeAt(listener));
+        if (step.FadeS <= 0)
+        {
+            return;
+        }
+
+        var old = _ambienceActive;
+        _ambienceFades[old] = (CurrentGain(old), 0, _clock, step.FadeS);
+        if (step.Start is { } sound)
+        {
+            _ambienceActive = 1 - old;
+            var player = _ambiencePlayers[_ambienceActive];
+            player.Stream = LoopStream(sound);
+            player.Play();
+            _ambienceFades[_ambienceActive] = (0, 1, _clock, step.FadeS);
+        }
+    }
+
+    private double CurrentGain(int i)
+    {
+        var (from, to, start, length) = _ambienceFades[i];
+        return length <= 0 ? to : from + ((to - from) * Math.Clamp((_clock - start) / length, 0, 1));
+    }
+
+    /// <summary>A sound as an endless loop (library file or retro recipe).</summary>
+    private AudioStreamWav LoopStream(string soundId)
+    {
+        var stream = Stream(soundId, 0);
+        if (stream.LoopMode == AudioStreamWav.LoopModeEnum.Disabled)
+        {
+            stream.LoopMode = AudioStreamWav.LoopModeEnum.Forward;
+            stream.LoopBegin = 0;
+            stream.LoopEnd = (int)(stream.GetLength() * stream.MixRate);
+        }
+
+        return stream;
+    }
+
+    /// <summary>Smoke run only: beach and forest get their loops, and they loop.</summary>
+    public string AmbienceSelfCheck()
+    {
+        if (_ambience is null)
+        {
+            return "ambience not set up";
+        }
+
+        foreach (var biome in new[] { "beach_sea", "forest" })
+        {
+            if (_ambience.SoundFor(biome) is not { } sound)
+            {
+                return $"no ambience for {biome}";
+            }
+
+            if (LoopStream(sound).LoopMode == AudioStreamWav.LoopModeEnum.Disabled)
+            {
+                return $"ambience {sound} does not loop";
+            }
+        }
+
+        return string.Empty;
+    }
 
     /// <summary>The biome under a ground position, or null without a map or outside it.</summary>
     public string? BiomeAt(Position position)
