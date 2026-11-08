@@ -43,6 +43,12 @@
     "stream_width_m": 1.9,
     "stream_smoothing": 3
   },
+  "cliffs": {
+    "biomes": [
+      "rocks_hills"
+    ],
+    "min_drop_mm": 1200
+  },
   "slope_shade_permille": 350,
   "slope_shade_gain": 3.0,
   "open_sea_size_factor": 8.0,

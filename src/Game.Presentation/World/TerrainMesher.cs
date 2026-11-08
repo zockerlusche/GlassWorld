@@ -38,10 +38,11 @@ public readonly record struct Rgb(float R, float G, float B)
 /// <param name="SlopeShadeGain">How fast the darkening rises with steepness ((1 - normal.y) times this, capped at 1).</param>
 /// <param name="CellM">Edge length of a cell in metres.</param>
 /// <param name="UnitM">One height unit in metres.</param>
-/// <param name="CliffDrop">Height difference (units) from which neighbours form a cliff instead of a slope.</param>
+/// <param name="CliffDrop">Height difference (units) from which neighbours form a rock wall instead of a slope (if the higher one may, see <paramref name="CliffBiomes"/>).</param>
 /// <param name="ShoreLiftM">How far a stream's edge lies above the dry bank (metres), so it never sinks into it.</param>
 /// <param name="StreamWidthM">Width of a stream band in metres (A1456).</param>
 /// <param name="StreamSmoothing">Rounds of corner cutting along a stream's centre line (0 = cell-centre polyline).</param>
+/// <param name="CliffBiomes">Per biome index of the map: whether its cells form rock walls where they stand at least <paramref name="CliffDrop"/> above a neighbour (null = every biome).</param>
 public sealed record TerrainLook(
     IReadOnlyList<Rgb> BiomeColors,
     Rgb Cliff,
@@ -59,7 +60,8 @@ public sealed record TerrainLook(
     int CliffDrop,
     float ShoreLiftM,
     float StreamWidthM = 1.9f,
-    int StreamSmoothing = 3)
+    int StreamSmoothing = 3,
+    IReadOnlyList<bool>? CliffBiomes = null)
 {
     /// <summary>Resolves the look data against the palette, the map's biome order and the preset.</summary>
     public static TerrainLook From(LookTerrain terrain, LookPalette palette, WorldMap map, WorldPreset preset)
@@ -74,6 +76,12 @@ public sealed record TerrainLook(
         var biomeColors = map.BiomeIds
             .Select(id => byBiome.TryGetValue(id, out var c) ? c : throw new InvalidDataException($"Terrain look has no colour for biome '{id}'."))
             .ToList();
+        foreach (var biome in terrain.Cliffs.Biomes.Where(b => !map.BiomeIds.Contains(b, StringComparer.Ordinal)))
+        {
+            throw new InvalidDataException($"Terrain look names unknown cliff biome '{biome}'.");
+        }
+
+        var unitMm = preset.Grid.HeightUnitMm;
         return new TerrainLook(
             biomeColors,
             Color(terrain.CliffColor),
@@ -88,10 +96,11 @@ public sealed record TerrainLook(
             (float)terrain.SlopeShadeGain,
             preset.Grid.CellSizeCm / 100f,
             preset.Grid.HeightUnitMm / 1000f,
-            preset.Terrain.CliffMinDrop,
+            (terrain.Cliffs.MinDropMm + unitMm - 1) / unitMm,
             terrain.Water.StreamShoreLiftMm / 1000f,
             (float)terrain.Water.StreamWidthM,
-            terrain.Water.StreamSmoothing);
+            terrain.Water.StreamSmoothing,
+            [.. map.BiomeIds.Select(id => terrain.Cliffs.Biomes.Contains(id, StringComparer.Ordinal))]);
     }
 }
 
@@ -145,9 +154,10 @@ public sealed class MeshData
 }
 
 /// <summary>
-/// Builds low-poly meshes of the island grid per chunk (B2 R18, R20), without Godot. Slopes between
-/// neighbours closer than the cliff drop are smooth (shared corner heights); larger steps become vertical
-/// cliff walls. Water surfaces are flat quads at bed height plus depth, coloured by kind and depth, with
+/// Builds low-poly meshes of the island grid per chunk (B2 R18, R20), without Godot. Neighbours meet in
+/// smooth slopes (shared corner heights, colours blended across the drop); only real rock cliffs - a
+/// step of at least the cliff drop below a cell of a cliff biome (D576) - become vertical walls, whose
+/// top edge is the terrace edge itself. Water surfaces are flat quads at bed height plus depth, coloured by kind and depth, with
 /// the flow direction the core gave the stream. Deterministic: same map, same meshes. The base grid never
 /// changes at run time, so a chunk's meshes are built once per detail level (<see cref="TerrainLevel"/>).
 /// </summary>
@@ -264,7 +274,7 @@ public static partial class TerrainMesher
     /// <summary>The top faces and owned cliff walls of one base grid cell.</summary>
     private static void Cell(WorldMap map, TerrainLook look, MeshData mesh, int x, int z)
     {
-        var h = CornerHeights(map, x, z, look.CliffDrop);
+        var h = CornerHeights(map, x, z, look);
         var p = new (float X, float Y, float Z)[4];
         for (var k = 0; k < 4; k++)
         {
@@ -436,32 +446,16 @@ public static partial class TerrainMesher
     }
 
     /// <summary>
-    /// Height and colour of the grid corner (gx, gz) if no two cells around it are a cliff apart: then every
-    /// cell around it gives the corner the same height (<see cref="CornerHeights"/>) and colour (<see cref="CornerColors"/>).
+    /// Height and colour of the grid corner (gx, gz) if all cells around it form one group (no rock wall
+    /// meets there): then every cell around it gives the corner the same height (<see cref="CornerHeights"/>)
+    /// and colour (<see cref="CornerColors"/>).
     /// </summary>
     private static bool PlainCorner(WorldMap map, TerrainLook look, int gx, int gz, out int height, out Rgb color)
     {
-        int min = int.MaxValue, max = int.MinValue, sum = 0, count = 0;
-        float r = 0, g = 0, b = 0;
-        for (var oz = -1; oz <= 0; oz++)
-        {
-            for (var ox = -1; ox <= 0; ox++)
-            {
-                if (!map.Contains(gx + ox, gz + oz))
-                {
-                    continue;
-                }
-
-                var cell = map.Cell(gx + ox, gz + oz);
-                (min, max, sum, count) = (Math.Min(min, cell.Height), Math.Max(max, cell.Height), sum + cell.Height, count + 1);
-                var col = GroundColor(cell, look);
-                (r, g, b) = (r + col.R, g + col.G, b + col.B);
-            }
-        }
-
-        height = (int)Math.Round((double)sum / count, MidpointRounding.AwayFromZero);
-        color = new Rgb(r / count, g / count, b / count);
-        return max - min < look.CliffDrop;
+        var (members, all) = CornerGroup(map, look, gx, gz, -1);
+        height = GroupHeight(map, gx, gz, members);
+        color = GroupColor(map, look, gx, gz, members);
+        return members == all;
     }
 
     /// <summary>The fan's centre: the grid corner in the middle of the block (even steps) or the mean of its four corners.</summary>
@@ -596,7 +590,7 @@ public static partial class TerrainMesher
                 // Banks: a dry cell next to still fresh water carries that water's surface too, where the
                 // shore line crosses it. The ground above the surface hides it, so the visible shore
                 // follows the slope (smooth, like the coast) instead of the cell edges.
-                if (only is null or WaterKind.Fresh && Carry(map, x, z, look.CliffDrop) is { Kind: Carrier.Bank } bank)
+                if (only is null or WaterKind.Fresh && Carry(map, x, z, look) is { Kind: Carrier.Bank } bank)
                 {
                     Fresh(map, mesh, x, z, bank.Depth <= look.SwampMaxUnits ? look.Swamp : look.Fresh, default, look);
                 }
@@ -652,7 +646,7 @@ public static partial class TerrainMesher
         var cx = Math.Min((int)Math.Floor(fx), map.WidthCells - 1);
         var cz = Math.Min((int)Math.Floor(fz), map.DepthCells - 1);
         double u = fx - cx, v = fz - cz;
-        var h = CornerHeights(map, cx, cz, look.CliffDrop);
+        var h = CornerHeights(map, cx, cz, look);
         double height;
         if (SplitsAlong02(h))
         {
@@ -675,7 +669,7 @@ public static partial class TerrainMesher
     /// <summary>One fresh water cell (lake, stream, swamp or bank), its corners from <see cref="FreshCorner"/>, split like the ground below.</summary>
     private static void Fresh(WorldMap map, MeshData mesh, int x, int z, Rgb color, (float X, float Z) flow, TerrainLook look)
     {
-        var h = CornerHeights(map, x, z, look.CliffDrop);
+        var h = CornerHeights(map, x, z, look);
         var p = new (float X, float Y, float Z)[4];
         for (var k = 0; k < 4; k++)
         {
@@ -716,7 +710,7 @@ public static partial class TerrainMesher
                     continue;
                 }
 
-                var carry = Carry(map, nx, nz, look.CliffDrop);
+                var carry = Carry(map, nx, nz, look);
                 switch (carry.Kind)
                 {
                     case Carrier.Bare:
@@ -737,7 +731,7 @@ public static partial class TerrainMesher
     }
 
     /// <summary>What a cell carries for the fresh water surface: nothing, a bank plate, still or running water.</summary>
-    private static (Carrier Kind, int Surface, int Depth) Carry(WorldMap map, int x, int z, int cliffDrop)
+    private static (Carrier Kind, int Surface, int Depth) Carry(WorldMap map, int x, int z, TerrainLook look)
     {
         var cell = map.Cell(x, z);
         if (cell.Water != WaterKind.None)
@@ -745,7 +739,7 @@ public static partial class TerrainMesher
             return (cell.Water == WaterKind.Fresh && cell.Flow >= 0 ? Carrier.Running : Carrier.Still, cell.Height + cell.WaterDepth, cell.WaterDepth);
         }
 
-        return BankWater(map, x, z) is { } bank && IsShore(CornerHeights(map, x, z, cliffDrop), bank.Surface)
+        return BankWater(map, x, z) is { } bank && IsShore(CornerHeights(map, x, z, look), bank.Surface)
             ? (Carrier.Bank, bank.Surface, bank.Depth)
             : (Carrier.Bare, 0, 0);
     }
@@ -785,41 +779,129 @@ public static partial class TerrainMesher
     }
 
     /// <summary>
-    /// Corner heights of a cell in units: each corner is the mean of the cells around it that lie within
-    /// the cliff drop of this cell (the same plateau), so slopes are shared and cliffs stay open.
+    /// Corner heights of a cell in units: each corner is the mean of the cells around it that form one
+    /// group with this cell (<see cref="CornerGroup"/>). Cells of one group share the corner exactly, so
+    /// slopes are continuous; only a rock wall separates groups and stays open as a cliff.
     /// </summary>
-    public static int[] CornerHeights(WorldMap map, int x, int z, int cliffDrop)
+    public static int[] CornerHeights(WorldMap map, int x, int z, TerrainLook look)
     {
         ArgumentNullException.ThrowIfNull(map);
-        var own = map.Cell(x, z).Height;
+        ArgumentNullException.ThrowIfNull(look);
         var result = new int[4];
         for (var k = 0; k < 4; k++)
         {
-            int sum = 0, count = 0;
-            for (var oz = -1; oz <= 0; oz++)
-            {
-                for (var ox = -1; ox <= 0; ox++)
-                {
-                    int nx = x + Corners[k].Dx + ox, nz = z + Corners[k].Dz + oz;
-                    if (!map.Contains(nx, nz))
-                    {
-                        continue;
-                    }
-
-                    var h = map.Cell(nx, nz).Height;
-                    if (Math.Abs(h - own) < cliffDrop)
-                    {
-                        sum += h;
-                        count++;
-                    }
-                }
-            }
-
-            // Rounded mean in integers (exact on every platform).
-            result[k] = count == 0 ? own : (int)Math.Round((double)sum / count, MidpointRounding.AwayFromZero);
+            int gx = x + Corners[k].Dx, gz = z + Corners[k].Dz;
+            result[k] = GroupHeight(map, gx, gz, CornerGroup(map, look, gx, gz, Slot(gx, gz, x, z)).Members);
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Whether two neighbouring cells meet in a slope (true) or are a rock wall apart (false): a wall needs
+    /// a height difference of at least the cliff drop and a higher cell of a cliff biome (D576).
+    /// </summary>
+    public static bool Joined(MapCell a, MapCell b, TerrainLook look)
+    {
+        ArgumentNullException.ThrowIfNull(look);
+        if (Math.Abs(a.Height - b.Height) < look.CliffDrop)
+        {
+            return true;
+        }
+
+        var higher = a.Height >= b.Height ? a : b;
+        return look.CliffBiomes is { } rock && !rock[higher.Biome];
+    }
+
+    /// <summary>Slot (bit index) of the cell (x, z) among the four cells around the grid corner (gx, gz).</summary>
+    private static int Slot(int gx, int gz, int x, int z) => ((z - gz + 1) * 2) + (x - gx + 1);
+
+    /// <summary>
+    /// The cells around the grid corner (gx, gz) (bits by <see cref="Slot"/>) that form one group with the
+    /// cell in <paramref name="slot"/> (or with the first present cell for -1): cells joined directly or over
+    /// other cells of the corner, diagonals included (<see cref="Joined"/>). The group is the same for each
+    /// of its cells, so they share the corner height exactly. Also returns every present cell.
+    /// </summary>
+    private static (int Members, int All) CornerGroup(WorldMap map, TerrainLook look, int gx, int gz, int slot)
+    {
+        Span<int> parent = [0, 1, 2, 3];
+        Span<MapCell> cells = stackalloc MapCell[4];
+        var all = 0;
+        for (var s = 0; s < 4; s++)
+        {
+            int x = gx - 1 + (s & 1), z = gz - 1 + (s >> 1);
+            if (map.Contains(x, z))
+            {
+                cells[s] = map.Cell(x, z);
+                all |= 1 << s;
+            }
+        }
+
+        for (var a = 0; a < 4; a++)
+        {
+            for (var b = a + 1; b < 4; b++)
+            {
+                if ((all & (1 << a)) != 0 && (all & (1 << b)) != 0 && Joined(cells[a], cells[b], look))
+                {
+                    parent[Root(parent, b)] = Root(parent, a);
+                }
+            }
+        }
+
+        var root = Root(parent, slot < 0 ? System.Numerics.BitOperations.TrailingZeroCount(all) : slot);
+        var members = 0;
+        for (var s = 0; s < 4; s++)
+        {
+            if ((all & (1 << s)) != 0 && Root(parent, s) == root)
+            {
+                members |= 1 << s;
+            }
+        }
+
+        return (members, all);
+
+        static int Root(Span<int> parent, int i)
+        {
+            while (parent[i] != i)
+            {
+                i = parent[i];
+            }
+
+            return i;
+        }
+    }
+
+    /// <summary>Rounded mean height (units, exact integers on every platform) of the group's cells around the grid corner.</summary>
+    private static int GroupHeight(WorldMap map, int gx, int gz, int members)
+    {
+        int sum = 0, count = 0;
+        for (var s = 0; s < 4; s++)
+        {
+            if ((members & (1 << s)) != 0)
+            {
+                sum += map.Cell(gx - 1 + (s & 1), gz - 1 + (s >> 1)).Height;
+                count++;
+            }
+        }
+
+        return (int)Math.Round((double)sum / count, MidpointRounding.AwayFromZero);
+    }
+
+    /// <summary>Mean ground colour of the group's cells around the grid corner, so biome borders blend across slopes.</summary>
+    private static Rgb GroupColor(WorldMap map, TerrainLook look, int gx, int gz, int members)
+    {
+        float r = 0, g = 0, b = 0;
+        var count = 0;
+        for (var s = 0; s < 4; s++)
+        {
+            if ((members & (1 << s)) != 0)
+            {
+                var c = GroundColor(map.Cell(gx - 1 + (s & 1), gz - 1 + (s >> 1)), look);
+                (r, g, b, count) = (r + c.R, g + c.G, b + c.B, count + 1);
+            }
+        }
+
+        return new Rgb(r / count, g / count, b / count);
     }
 
     /// <summary>The water surfaces of one chunk at a detail level: always those of the base grid, so they fit the ground of every level.</summary>
@@ -849,31 +931,11 @@ public static partial class TerrainMesher
 
     private static Rgb[] CornerColors(WorldMap map, int x, int z, TerrainLook look)
     {
-        var own = map.Cell(x, z);
         var result = new Rgb[4];
         for (var k = 0; k < 4; k++)
         {
-            float r = 0, g = 0, b = 0;
-            var count = 0;
-            for (var oz = -1; oz <= 0; oz++)
-            {
-                for (var ox = -1; ox <= 0; ox++)
-                {
-                    int nx = x + Corners[k].Dx + ox, nz = z + Corners[k].Dz + oz;
-                    if (!map.Contains(nx, nz) || Math.Abs(map.Cell(nx, nz).Height - own.Height) >= look.CliffDrop)
-                    {
-                        continue;
-                    }
-
-                    var c = GroundColor(map.Cell(nx, nz), look);
-                    r += c.R;
-                    g += c.G;
-                    b += c.B;
-                    count++;
-                }
-            }
-
-            result[k] = count == 0 ? GroundColor(own, look) : new Rgb(r / count, g / count, b / count);
+            int gx = x + Corners[k].Dx, gz = z + Corners[k].Dz;
+            result[k] = GroupColor(map, look, gx, gz, CornerGroup(map, look, gx, gz, Slot(gx, gz, x, z)).Members);
         }
 
         return result;
@@ -898,7 +960,7 @@ public static partial class TerrainMesher
             return;
         }
 
-        var other = CornerHeights(map, nx, nz, look.CliffDrop);
+        var other = CornerHeights(map, nx, nz, look);
 
         // Shared edge corners: (index in this cell, index in the neighbour) for both ends.
         var (a, b, oa, ob) = (dx, dz) switch
@@ -919,8 +981,16 @@ public static partial class TerrainMesher
         (float, float, float) lowA = (ax, Math.Min(h[a], other[oa]) * look.UnitM, az), lowB = (bx, Math.Min(h[b], other[ob]) * look.UnitM, bz);
 
         // Facing the neighbour (outwards); the edges a→b run around the cell in one sense for all four sides.
-        mesh.Triangle(topA, lowB, lowA, look.Cliff);
-        mesh.Triangle(topA, topB, lowB, look.Cliff);
+        // Where the wall runs out at one end (a slope meets it there) it is one triangle, never a sliver.
+        if (h[a] > other[oa])
+        {
+            mesh.Triangle(topA, lowB, lowA, look.Cliff);
+        }
+
+        if (h[b] > other[ob])
+        {
+            mesh.Triangle(topA, topB, lowB, look.Cliff);
+        }
     }
 
     /// <summary>How a block of a coarser level may be drawn.</summary>
