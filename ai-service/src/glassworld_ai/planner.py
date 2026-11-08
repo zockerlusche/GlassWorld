@@ -136,6 +136,13 @@ class Planner:
             return False
         return not residency.fits_now(model)
 
+    def release(self, kind: str) -> None:
+        """The kind's handler uses no real model (mock backend): no residency changes for it, so a
+        mock picture never unloads the language model. When it runs stays as in the plan."""
+        plan = self._kinds.get(kind)
+        if plan is not None:
+            self._kinds[kind] = KindPlan(plan.when, None)
+
     def finished(self) -> None:
         if self.phase == "night":
             self.done_tonight += 1

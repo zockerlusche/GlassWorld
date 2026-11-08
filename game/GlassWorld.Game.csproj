@@ -22,5 +22,6 @@
     <EmbeddedResource Include="..\content\ui\*.json" LogicalName="content.ui.%(Filename)%(Extension)" Link="ui\%(Filename)%(Extension)" />
     <!-- Sound map and retro recipes (B8), validated on load. -->
     <EmbeddedResource Include="..\content\sound\*.json" LogicalName="content.sound.%(Filename)%(Extension)" Link="sound\%(Filename)%(Extension)" />
+    <EmbeddedResource Include="..\content\voice\*.json" LogicalName="content.voice.%(Filename)%(Extension)" Link="voice\%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>

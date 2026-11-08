@@ -1,0 +1,16 @@
+name = "image/object"
+version = 1
+description = "Picture of an invented thing for the image model (B7 R7, TL #18681: z-image-turbo, style in the prompt, tier standard). 'user' is the positive prompt; 'system' stays empty (the workflow zeroes the negative prompt at CFG 1)."
+
+system = ""
+
+user = """
+$subject. $framing $style Calm and friendly, suitable for children. No people, no animals, no text, no letters, no watermark.
+"""
+
+[settings.framing]
+icon = "A single object, centred, seen slightly from above, whole object visible, on a plain soft light background, soft even light."
+texture = "A flat, seamless, tileable close-up texture of its main material seen straight from above, evenly lit, no object outline, no shadows."
+
+[settings.styles]
+warm_comic = "Hand-inked comic book illustration: bold uneven ink lines, halftone dot shading, warm saturated colours, painterly comic look, simple shapes, plain surfaces without pictures or patterns."

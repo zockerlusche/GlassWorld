@@ -29,14 +29,22 @@ public sealed record InhabitantSnapshot(
     bool Fading,
     string? Action,
     string? TargetId,
-    IReadOnlyList<string> OpenQuestionIds);
+    IReadOnlyList<string> OpenQuestionIds)
+{
+    /// <summary>How the inhabitant looks (B2 R27): the game draws the figure from it, B8 voices read the body values.</summary>
+    public Appearance? Appearance { get; init; }
+}
 
 /// <summary>Read-only picture of the world at one tick.</summary>
 /// <param name="Time">World time.</param>
 /// <param name="Inhabitants">Inhabitants in id order.</param>
 /// <param name="Objects">Objects in id order.</param>
 /// <param name="Events">Events of the most recent tick with events.</param>
-public sealed record WorldSnapshot(WorldTime Time, IReadOnlyList<InhabitantSnapshot> Inhabitants, IReadOnlyList<WorldObject> Objects, IReadOnlyList<WorldEvent> Events);
+public sealed record WorldSnapshot(WorldTime Time, IReadOnlyList<InhabitantSnapshot> Inhabitants, IReadOnlyList<WorldObject> Objects, IReadOnlyList<WorldEvent> Events)
+{
+    /// <summary>The weather now (B2 R13), or null without a weather system.</summary>
+    public Weather.WeatherReading? Weather { get; init; }
+}
 
 /// <summary>
 /// The UI's read port (R15a): copies of the core state that the presentation can keep and compare without
@@ -65,7 +73,10 @@ public static class WorldView
                 inhabitants.IsFading(i),
                 i.Activity?.Action,
                 i.Activity?.TargetId,
-                decisions.OpenQuestionIds(i.Id)))],
+                decisions.OpenQuestionIds(i.Id))
+            {
+                Appearance = i.Appearance,
+            })],
             [.. objects.All],
             [.. inhabitants.Events]);
     }

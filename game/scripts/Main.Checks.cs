@@ -284,6 +284,15 @@ public partial class Main
         }
 
         GD.Print($"AUDIO_OK sounds={RetroAudio.Library!.UsedSoundIds().Count()}");
+
+        var murmur = MurmurAudio.SelfCheck();
+        if (murmur.Length > 0)
+        {
+            GD.PushError($"MURMUR_FAIL {murmur}");
+            return;
+        }
+
+        GD.Print("MURMUR_OK");
     }
 
     /// <summary>Screenshot run (self-acceptance, KR5): saves the shots, then quits.</summary>

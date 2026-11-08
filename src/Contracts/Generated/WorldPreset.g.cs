@@ -176,6 +176,12 @@ namespace GlassWorld.Contracts
     {
 
         /// <summary>
+        /// Climate of this world (file id in content/climate): weather states and their change per season (B2 R13).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("climate_id")]
+        public string ClimateId { get; set; } = default!;
+
+        /// <summary>
         /// Base temperature at sea level in tenths of a degree Celsius.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("base_temperature_tenth_c")]

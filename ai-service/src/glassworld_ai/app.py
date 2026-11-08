@@ -26,10 +26,12 @@ from glassworld_ai.decider.backends import (
     OllamaDecider,
     ReplayDecider,
 )
+from glassworld_ai.dream import MockDreams, OllamaDreams, ReplayDreams
 from glassworld_ai.errors import error_response, install_error_handlers
 from glassworld_ai.hardware import HardwareInfo, detect_hardware, load_tiers, select_tier
 from glassworld_ai.health import health_status
 from glassworld_ai.help import HelpSuggester, MockHelp, OllamaHelp, ReplayHelp
+from glassworld_ai.image import ComfyImages, MockImages, load_image_settings
 from glassworld_ai.invention.flow import (
     MockInventions,
     OllamaInventions,
@@ -45,6 +47,7 @@ from glassworld_ai.llm.ollama import (
     OllamaUnavailableError,
 )
 from glassworld_ai.memory.condense import MockMemory, OllamaMemory, ReplayMemory
+from glassworld_ai.model3d import Model3dJobs, load_model3d_settings
 from glassworld_ai.planner import Planner, load_night_plan
 from glassworld_ai.probes import HttpProbes, Probes
 from glassworld_ai.prompts import PromptTemplate, load_prompt
@@ -122,9 +125,12 @@ def create_app(
                 app.state.decider = _build_decider(settings, ollama, app.state.queue)
             if helper is None:
                 app.state.helper = _build_helper(settings, ollama, app.state.queue)
+            if job_handlers is None and settings.image_backend == "comfyui":
+                app.state.jobs.register("image", _comfy_images(settings, client, app))
             if job_handlers is None and settings.decider_backend == "ollama":
                 app.state.jobs.register("question", _ollama_questions(settings, ollama, app))
                 app.state.jobs.register("memory", _ollama_memory(settings, ollama, app))
+                app.state.jobs.register("dream", _ollama_dreams(settings, ollama, app))
                 app.state.jobs.register("invention", _ollama_inventions(settings, ollama, app))
             warm_task: asyncio.Task[None] | None = None
             if settings.warm_up and settings.decider_backend == "ollama":
@@ -178,6 +184,28 @@ def create_app(
     )
     if job_handlers is None:
         app.state.jobs.register("sound", _sound_handler(settings))
+        app.state.jobs.register(
+            "model3d",
+            Model3dJobs(
+                load_model3d_settings(settings.content_dir),
+                settings.model3d_image_dir,
+                settings.model3d_output_dir,
+                lambda: getattr(app.state, "tier", None),
+                settings.model3d_backend,
+            ),
+        )
+    if job_handlers is None and settings.image_backend == "mock":
+        planner.release("image")
+        app.state.jobs.register(
+            "image",
+            MockImages(
+                load_image_settings(settings.content_dir),
+                settings.prompts_dir,
+                settings.image_output_dir,
+                _image_tier(app),
+                _text_guard(settings),
+            ),
+        )
 
     def _set_hardware(target: FastAPI, info: HardwareInfo) -> None:
         target.state.hardware = info
@@ -559,6 +587,36 @@ def _sound_handler(settings: Settings) -> Handler:
     return MockSound(settings.sound_output_dir, generation)
 
 
+def _text_guard(settings: Settings) -> TextGuard:
+    return TextGuard.from_file(settings.content_dir / "safety" / "rules.json")
+
+
+def _image_tier(app: FastAPI) -> Callable[[], str | None]:
+    return lambda: getattr(app.state, "tier", None)
+
+
+def _comfy_images(settings: Settings, client: httpx.AsyncClient, app: FastAPI) -> ComfyImages:
+    async def ensure(model_id: str) -> None:
+        residency: Residency | None = getattr(app.state, "residency", None)
+        if residency is not None and residency.knows(model_id):
+            await residency.ensure(model_id)
+
+    return ComfyImages(
+        base_url=str(settings.comfyui_url),
+        client=client,
+        settings=load_image_settings(settings.content_dir),
+        workflows_dir=settings.image_workflows_dir,
+        prompts_dir=settings.prompts_dir,
+        content_dir=settings.content_dir,
+        output_dir=settings.image_output_dir,
+        tier=_image_tier(app),
+        ensure_model=ensure,
+        poll_s=settings.image_poll_s,
+        timeout_s=settings.image_timeout_s,
+        guard=_text_guard(settings),
+    )
+
+
 def _offline_handlers(settings: Settings) -> dict[str, Handler]:
     """Handlers that need no model client: mock and replay."""
     vocab = Vocabulary.load(settings.content_dir / "vocabulary")
@@ -566,6 +624,7 @@ def _offline_handlers(settings: Settings) -> dict[str, Handler]:
         return {
             "question": MockQuestions(vocab),
             "memory": MockMemory(),
+            "dream": MockDreams(),
             "invention": MockInventions(vocab),
         }
     if settings.decider_backend == "replay":
@@ -575,6 +634,7 @@ def _offline_handlers(settings: Settings) -> dict[str, Handler]:
         return {
             "question": ReplayQuestions(_question_log(settings), template, vocab),
             "memory": ReplayMemory(_memory_log(settings)),
+            "dream": ReplayDreams(_dream_log(settings), _text_guard(settings)),
             "invention": ReplayInventions(
                 _invention_log(settings),
                 *_invention_prompts(settings),
@@ -611,6 +671,23 @@ def _ollama_inventions(settings: Settings, ollama: OllamaClient, app: FastAPI) -
         settings=_call_settings(settings),
         log=_invention_log(settings),
         safety=safety_categories(settings.content_dir),
+    )
+
+
+def _dream_log(settings: Settings) -> CallLog:
+    return CallLog(settings.log_dir / "dreams.jsonl")
+
+
+def _ollama_dreams(settings: Settings, ollama: OllamaClient, app: FastAPI) -> OllamaDreams:
+    return OllamaDreams(
+        client=ollama,
+        queue=app.state.queue,
+        template=load_prompt(
+            settings.prompts_dir, settings.dream_prompt, settings.dream_prompt_version
+        ),
+        settings=_call_settings(settings),
+        log=_dream_log(settings),
+        guard=_text_guard(settings),
     )
 
 

@@ -6,6 +6,8 @@
     "transition_minutes": 60,
     "snow_below_tenth_c": 10,
     "drought_after_dry_days": 10,
+    "snow_weather": "snow",
+    "drought_weather": "drought",
     "states": [
       {
         "weather": "clear",
@@ -435,6 +437,83 @@
           }
         ]
       }
-    ]
+    ],
+    "temperature": {
+      "base_tenth_c": 120,
+      "seasons": [
+        {
+          "season": "spring",
+          "offset_tenth_c": 0
+        },
+        {
+          "season": "summer",
+          "offset_tenth_c": 80
+        },
+        {
+          "season": "autumn",
+          "offset_tenth_c": -10
+        },
+        {
+          "season": "winter",
+          "offset_tenth_c": -110
+        }
+      ],
+      "weathers": [
+        {
+          "weather": "clear",
+          "offset_tenth_c": 0
+        },
+        {
+          "weather": "cloudy",
+          "offset_tenth_c": -15
+        },
+        {
+          "weather": "rain",
+          "offset_tenth_c": -30
+        },
+        {
+          "weather": "storm",
+          "offset_tenth_c": -40
+        },
+        {
+          "weather": "fog",
+          "offset_tenth_c": -20
+        },
+        {
+          "weather": "frost",
+          "offset_tenth_c": -150
+        },
+        {
+          "weather": "snow",
+          "offset_tenth_c": -60
+        },
+        {
+          "weather": "heat",
+          "offset_tenth_c": 150
+        },
+        {
+          "weather": "drought",
+          "offset_tenth_c": 60
+        }
+      ],
+      "times_of_day": [
+        {
+          "time_of_day": "dawn",
+          "offset_tenth_c": -30
+        },
+        {
+          "time_of_day": "day",
+          "offset_tenth_c": 20
+        },
+        {
+          "time_of_day": "dusk",
+          "offset_tenth_c": -10
+        },
+        {
+          "time_of_day": "night",
+          "offset_tenth_c": -50
+        }
+      ]
+    }
   }
 }

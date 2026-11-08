@@ -1061,6 +1061,74 @@
     {
       "key": "msg.command.already_started",
       "text": "Das geht nur beim Anlegen einer Welt."
+    },
+    {
+      "key": "vocab.skill.building",
+      "text": "Bauen"
+    },
+    {
+      "key": "vocab.skill.gathering",
+      "text": "Sammeln"
+    },
+    {
+      "key": "vocab.skill.cooking",
+      "text": "Kochen"
+    },
+    {
+      "key": "vocab.skill.healing",
+      "text": "Heilen"
+    },
+    {
+      "key": "vocab.skill.music",
+      "text": "Musik"
+    },
+    {
+      "key": "vocab.skill.teaching",
+      "text": "Lehren"
+    },
+    {
+      "key": "vocab.skill.inventing",
+      "text": "Erfinden"
+    },
+    {
+      "key": "vocab.skill.swimming",
+      "text": "Schwimmen"
+    },
+    {
+      "key": "vocab.skill.reading",
+      "text": "Lesen"
+    },
+    {
+      "key": "vocab.skill.writing",
+      "text": "Schreiben"
+    },
+    {
+      "key": "vocab.writing_medium.sand_marks",
+      "text": "Zeichen im Sand"
+    },
+    {
+      "key": "vocab.writing_medium.rock_painting",
+      "text": "Felsbild"
+    },
+    {
+      "key": "vocab.writing_medium.carving_wood",
+      "text": "Ritzung in Holz"
+    },
+    {
+      "key": "vocab.writing_medium.carving_stone",
+      "text": "Ritzung in Stein"
+    },
+    {
+      "key": "vocab.writing_medium.tablet",
+      "text": "Tafel"
+    },
+    {
+      "key": "vocab.writing_medium.book",
+      "text": "Buch"
+    },
+    {
+      "key": "vocab.writing_medium.library",
+      "text": "Bibliothek"
     }
   ]
 }

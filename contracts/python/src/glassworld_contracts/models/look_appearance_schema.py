@@ -131,3 +131,15 @@ class LookAppearance(BaseModel):
         max_length=16,
         min_length=1,
     )
+    start_age_days: int = Field(
+        ...,
+        description='Age in days of the start inhabitants; the age stage follows from age_stages (ageing comes with B9).',
+        ge=0,
+        le=100000,
+    )
+    shape_chance_permille: int = Field(
+        ...,
+        description="Chance that an inhabitant gets one body shape from shapes (in the shape's range).",
+        ge=0,
+        le=1000,
+    )

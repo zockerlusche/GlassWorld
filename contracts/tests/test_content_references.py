@@ -68,6 +68,13 @@ REFERENCES = [
     ("sound/sound_map.json", "ambience[].biome", "biome"),
     ("sound/sound_map.json", "animals[].biomes[]", "biome"),
     ("sound/sound_map.json", "animals[].times_of_day[]", "time_of_day"),
+    ("writing/media.json", "media[].id", "writing_medium"),
+    ("writing/media.json", "media[].weather_loss[].weather", "weather"),
+    ("writing/media.json", "media[].tool_properties[]", "property"),
+    ("writing/media.json", "read.curiosity_trait", "trait"),
+    ("inhabitants/model.json", "skills[].id", "skill"),
+    ("skills/practice.json", "practice[].skill", "skill"),
+    ("skills/practice.json", "practice[].action", "action"),
 ]
 
 # Tables that define one entry per vocabulary id of their kind.
@@ -76,6 +83,8 @@ DEFINITIONS = [
     ("look/epochs.json", "epochs[].id", "epoch"),
     ("climate/temperate.json", "weather.states[].weather", "weather"),
     ("look/daylight.json", "phases[].phase", "time_of_day"),
+    ("writing/media.json", "media[].id", "writing_medium"),
+    ("inhabitants/model.json", "skills[].id", "skill"),
 ]
 
 
