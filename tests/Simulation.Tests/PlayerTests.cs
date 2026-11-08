@@ -273,11 +273,20 @@ public sealed class PlayerTests : IDisposable
         Assert.Equal(0, calm.Urgency);
         Assert.True(calm.Settled);
 
-        // Thirsty again later: a new call brings a new knock, the old one stays calm.
-        var repeats = calm.Repeats;
+        // Thirsty again later: a new call brings a new knock that replaces the calm, unread one.
         StayThirsty(host, thirsty, repeat * 3);
-        var old = host.Mailbox.Open.Single(m => m.Id == knock.Id);
-        Assert.Equal((repeats, 0), (old.Repeats, old.Urgency));
+        var current = Assert.Single(host.Mailbox.Open, m => m.InhabitantId == thirsty.Id && m.Detail == "thirst");
+        Assert.NotEqual(knock.Id, current.Id);
+        Assert.False(current.Settled);
+    }
+
+    [Fact]
+    public void AnUnmetNeedDoesNotPileUpKnocks()
+    {
+        // Review #86: calls expire and open again; each new knock replaces the unread one before it.
+        var host = WorldWithThirsty(out var thirsty);
+        StayThirsty(host, thirsty, host.World.Calendar.TicksPerDay * 4);
+        Assert.True(host.Mailbox.Open.Count(m => m.InhabitantId == thirsty.Id && m.Detail == "thirst") <= 1);
     }
 
     [Fact]

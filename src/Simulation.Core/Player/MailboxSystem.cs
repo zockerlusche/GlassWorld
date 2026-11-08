@@ -210,6 +210,9 @@ public sealed class MailboxSystem : IWorldSystem, IOptionalWorldState
 
     private void Add(World world, string? inhabitantId, string kind, string textKey, string? detail)
     {
+        // A new knock replaces an unread earlier one for the same inhabitant and need, so an unmet need
+        // does not pile up knocks (review #86).
+        _messages.RemoveAll(m => m.IsOpen && m.Kind == kind && kind == KnockKind && m.InhabitantId == inhabitantId && m.Detail == detail);
         _counter++;
         var id = "m-" + _counter.ToString("D6", System.Globalization.CultureInfo.InvariantCulture);
         _messages.Add(new MailMessage(id, inhabitantId, kind, world.Tick, textKey, detail, 0, 0, null, world.Tick));
