@@ -17,8 +17,10 @@ public interface IJobPort
     /// <summary>
     /// Tells the AI service that the compute night begins or ends (<see cref="JobPhase"/>). Only a signal for
     /// the service's planner: nothing in the world depends on it, so replay and test ports ignore it.
+    /// <paramref name="force"/> asks to send the phase even if it did not change (first signal of a new
+    /// or loaded world).
     /// </summary>
-    void SetPhase(string phase, long tick)
+    void SetPhase(string phase, long tick, bool force = false)
     {
     }
 }

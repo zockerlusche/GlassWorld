@@ -203,7 +203,9 @@ public sealed class BuildingTests : IDisposable
         var night = Content.Value.Inventions.Build.NightPhases;
         Assert.True(port.Phases.Count >= 4, $"only {port.Phases.Count} phase signals in two days");
         Assert.All(port.Phases.Zip(port.Phases.Skip(1)), p => Assert.NotEqual(p.First.Phase, p.Second.Phase));
-        foreach (var (phase, tick) in port.Phases)
+        Assert.True(port.Phases[0].Force);
+        Assert.All(port.Phases.Skip(1), p => Assert.False(p.Force));
+        foreach (var (phase, tick, _) in port.Phases)
         {
             var isNight = night.Contains(host.World.Calendar.At(tick).Phase.ToString().ToLowerInvariant());
             Assert.Equal(isNight ? JobPhase.Night : JobPhase.Day, phase);
@@ -257,14 +259,71 @@ public sealed class BuildingTests : IDisposable
         RunUntil(host, () => host.Inventions.Builds.Single().BuiltObjectId is not null, 3000);
         host.World.Step();
         var job = Assert.Single(port.Submitted, j => j.Kind == JobKind.Sound);
-        var error = new ServiceError { ContractVersion = ContractInfo.Version, RequestId = job.RequestId, Tick = job.Tick, Code = ServiceErrorCode.Model_unavailable, Message = "no sound model", Retryable = true };
+        var error = new ServiceError { ContractVersion = ContractInfo.Version, RequestId = job.RequestId, Tick = job.Tick, Code = ServiceErrorCode.Bad_request, Message = "not a sound", Retryable = false };
         port.AnswerError(job.RequestId, ContractSerializer.Serialize(error));
-        host.World.Run(host.World.Calendar.TicksPerDay);
+        host.World.Run(host.World.Calendar.TicksPerDay * 2);
 
         var info = host.Inventions.Invention(typeId)!;
         Assert.Null(info.SoundFile);
         Assert.NotNull(info.SoundDescription);
         Assert.Single(port.Submitted, j => j.Kind == JobKind.Sound);
+    }
+
+    [Fact]
+    public void ARetryableSoundFailureIsTriedAgainEachComputeNightUpToTheLimit()
+    {
+        var (host, port, typeId) = Invented(32);
+        AnswerPlan(port, Plan());
+        RunUntil(host, () => host.Inventions.Builds.Single().BuiltObjectId is not null, 3000);
+        host.World.Step();
+        var limit = Content.Value.Inventions.Build.Settings.SoundMaxAttempts;
+        var night = Content.Value.Inventions.Build.NightPhases;
+        for (var attempt = 1; attempt <= limit; attempt++)
+        {
+            var job = port.Submitted.Last(j => j.Kind == JobKind.Sound);
+            Assert.Equal(attempt, port.Submitted.Count(j => j.Kind == JobKind.Sound));
+            var error = new ServiceError { ContractVersion = ContractInfo.Version, RequestId = job.RequestId, Tick = job.Tick, Code = ServiceErrorCode.Model_unavailable, Message = "sound model busy", Retryable = true };
+            port.AnswerError(job.RequestId, ContractSerializer.Serialize(error));
+            host.World.Step();
+            if (attempt == limit)
+            {
+                break;
+            }
+
+            // Waits for the start of the next compute night, then goes out with a new request id.
+            Assert.True(host.Inventions.Sounds.Single().RetryAtNight);
+            RunUntil(host, () => port.Submitted.Count(j => j.Kind == JobKind.Sound) == attempt + 1, (int)host.World.Calendar.TicksPerDay * 2);
+            var retry = port.Submitted.Last(j => j.Kind == JobKind.Sound);
+            var phase = host.World.Calendar.At(retry.Tick).Phase.ToString().ToLowerInvariant();
+            Assert.Contains(night, n => n == phase);
+            Assert.NotEqual(job.RequestId, retry.RequestId);
+        }
+
+        var final = host.Inventions.Sounds.Single();
+        Assert.True(final.Failed);
+        Assert.Equal(limit, final.Attempts);
+        host.World.Run(host.World.Calendar.TicksPerDay * 2);
+        Assert.Equal(limit, port.Submitted.Count(j => j.Kind == JobKind.Sound));
+        Assert.Null(host.Inventions.Invention(typeId)!.SoundFile);
+    }
+
+    [Fact]
+    public void ALoadedWorldSignalsItsCurrentPhaseEvenIfThePortSawItBefore()
+    {
+        var port = new ScriptedJobPort();
+        var host = World(port, 33);
+        host.World.Run(200);
+        var path = Path.Combine(_directory, "phase.db");
+        SaveGameStore.Save(path, StateCodec.Capture(host));
+
+        var loadedPort = new ScriptedJobPort();
+        var settings = ContractSerializer.Deserialize<DeciderSettings>(File.ReadAllText(Path.Combine(EagerContent.Value, "decider", "settings.json")));
+        var loaded = StateCodec.Restore(new SimulationHostFactory(ContentSet.Load(EagerContent.Value), settings, new ReplayDecisionPort(host.Decisions.Log), "de", loadedPort), SaveGameStore.Load(path));
+        loaded.World.Step();
+
+        var (phase, tick, force) = Assert.Single(loadedPort.Phases);
+        var isNight = Content.Value.Inventions.Build.NightPhases.Contains(loaded.World.Calendar.At(tick).Phase.ToString().ToLowerInvariant());
+        Assert.Equal((isNight ? JobPhase.Night : JobPhase.Day, true), (phase, force));
     }
 
     [Fact]
@@ -424,7 +483,7 @@ public sealed class BuildingTests : IDisposable
 
         public List<GenerationJob> Submitted { get; } = [];
 
-        public List<(string Phase, long Tick)> Phases { get; } = [];
+        public List<(string Phase, long Tick, bool Force)> Phases { get; } = [];
 
         public void Submit(string requestId, string jobJson) => Submitted.Add(ContractSerializer.Deserialize<GenerationJob>(jobJson));
 
@@ -439,6 +498,6 @@ public sealed class BuildingTests : IDisposable
             return ready;
         }
 
-        public void SetPhase(string phase, long tick) => Phases.Add((phase, tick));
+        public void SetPhase(string phase, long tick, bool force) => Phases.Add((phase, tick, force));
     }
 }

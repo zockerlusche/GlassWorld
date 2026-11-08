@@ -22,8 +22,10 @@ public sealed record BuildRules(BuildSettings Settings, BuildKit Kit, FrozenSet<
 /// <param name="TypeId">Runtime type the sound belongs to.</param>
 /// <param name="RequestId">The sound job.</param>
 /// <param name="ResultJson">SoundResult once the sound exists, else null.</param>
-/// <param name="Failed">True when the job failed: the invention keeps no sound of its own (base library by description).</param>
-public sealed record SoundTask(string TypeId, string RequestId, string? ResultJson, bool Failed);
+/// <param name="Failed">True when the invention finally keeps no sound of its own (base library by description).</param>
+/// <param name="Attempts">Sound jobs sent so far.</param>
+/// <param name="RetryAtNight">True while a retryable failure waits for the next compute night.</param>
+public sealed record SoundTask(string TypeId, string RequestId, string? ResultJson, bool Failed, int Attempts = 1, bool RetryAtNight = false);
 
 /// <summary>
 /// Building one approved invention: the plan job, the checked plan, the building site and the progress.
@@ -86,6 +88,9 @@ public sealed partial class InventionSystem
 
     /// <summary>Building tasks by runtime type.</summary>
     public IEnumerable<BuildTask> Builds => _builds.Values;
+
+    /// <summary>Sound jobs of built inventions (D471 D7).</summary>
+    public IEnumerable<SoundTask> Sounds => _sounds.Values;
 
     /// <summary>Runtime types that have been used at least once.</summary>
     public IEnumerable<string> FirstUsed => _firstUsed;
@@ -349,7 +354,7 @@ public sealed partial class InventionSystem
         record.SoundJson is null ? null : JsonSerializer.Deserialize<SoundDecision>(record.SoundJson, RecordJson);
 
     /// <summary>Asks the sound model for the invention's own sound (it runs in the compute night, B7 S4).</summary>
-    private void SubmitSound(World world, BuildTask task, SoundDecision decision)
+    private void SubmitSound(World world, BuildTask task, SoundDecision decision, int attempt = 1)
     {
         _counter++;
         var tick = world.Tick;
@@ -381,19 +386,33 @@ public sealed partial class InventionSystem
         var json = ContractSerializer.Serialize(job);
         Log.Add(new DecisionLogEntry(DecisionLogKind.JobRequest, requestId, tick, json, null));
         _port!.Submit(requestId, json);
-        _sounds[task.TypeId] = new SoundTask(task.TypeId, requestId, null, false);
+        _sounds[task.TypeId] = new SoundTask(task.TypeId, requestId, null, false, attempt);
+    }
+
+    /// <summary>At the start of a compute night, waiting sound jobs go out again with a new request id.</summary>
+    private void RetrySoundsAtNight(World world)
+    {
+        foreach (var waiting in _sounds.Values.Where(s => s.RetryAtNight).ToList())
+        {
+            var task = _builds[waiting.TypeId];
+            if (SoundOf(_inventions[waiting.TypeId]) is { Needed: true } decision)
+            {
+                SubmitSound(world, task, decision, waiting.Attempts + 1);
+            }
+        }
     }
 
     /// <summary>Routes a job outcome to a sound job; false if it belongs to none.</summary>
     private bool ApplySound(World world, PortMessage message)
     {
-        var sound = _sounds.Values.FirstOrDefault(s => s.RequestId == message.RequestId && s.ResultJson is null && !s.Failed);
+        var sound = _sounds.Values.FirstOrDefault(s => s.RequestId == message.RequestId && s.ResultJson is null && !s.Failed && !s.RetryAtNight);
         if (sound is null)
         {
             return false;
         }
 
         JobStatus? status = null;
+        var retryable = message.IsError && IsRetryable(message.Json);
         if (!message.IsError)
         {
             try
@@ -413,9 +432,18 @@ public sealed partial class InventionSystem
             return true;
         }
 
-        // Any failure: the invention keeps no sound of its own; the game takes the base library (D7).
+        if (status is { State: JobState.Failed, Error: { } error })
+        {
+            retryable = error.Retryable;
+        }
+
         Log.Add(new DecisionLogEntry(message.IsError ? DecisionLogKind.JobError : DecisionLogKind.JobDiscarded, message.RequestId, world.Tick, message.Json, message.IsError ? ReplayNotes.ServiceError : "sound_failed"));
-        _sounds[sound.TypeId] = sound with { Failed = true };
+
+        // A retryable failure is tried again in the next compute night (up to the data limit); anything else
+        // is final: the invention keeps no sound of its own and the game takes the base library (D7).
+        _sounds[sound.TypeId] = retryable && sound.Attempts < Build.Settings.SoundMaxAttempts
+            ? sound with { RetryAtNight = true }
+            : sound with { Failed = true };
         return true;
     }
 
@@ -429,8 +457,14 @@ public sealed partial class InventionSystem
             return;
         }
 
+        // The first signal of a new or loaded world is always sent, even if the port saw this phase before.
+        var first = _night is null;
         _night = night;
-        _port!.SetPhase(night ? JobPhase.Night : JobPhase.Day, world.Tick);
+        _port!.SetPhase(night ? JobPhase.Night : JobPhase.Day, world.Tick, force: first);
+        if (night && !first)
+        {
+            RetrySoundsAtNight(world);
+        }
     }
 
     private void WriteBuildState(StateHasher hasher)
@@ -457,7 +491,7 @@ public sealed partial class InventionSystem
         hasher.Write(_sounds.Count);
         foreach (var s in _sounds.Values)
         {
-            hasher.Write(s.TypeId).Write(s.RequestId).Write(s.ResultJson ?? string.Empty).Write(s.Failed);
+            hasher.Write(s.TypeId).Write(s.RequestId).Write(s.ResultJson ?? string.Empty).Write(s.Failed).Write(s.Attempts).Write(s.RetryAtNight);
         }
     }
 

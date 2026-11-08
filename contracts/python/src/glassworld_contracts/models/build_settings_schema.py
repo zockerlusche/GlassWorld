@@ -55,3 +55,9 @@ class BuildSettings(BaseModel):
         ge=0.0,
         le=1.0,
     )
+    sound_max_attempts: int = Field(
+        ...,
+        description='Most sound jobs for one built invention; a retryable failure is tried again in the next compute night, after the last attempt the invention keeps no sound of its own (base library by description).',
+        ge=1,
+        le=20,
+    )

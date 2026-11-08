@@ -13,7 +13,8 @@
     "bounds_tolerance",
     "step_action",
     "use_action",
-    "min_need_to_build"
+    "min_need_to_build",
+    "sound_max_attempts"
   ],
   "properties": {
     "contract_version": {
@@ -56,6 +57,12 @@
       "type": "number",
       "minimum": 0,
       "maximum": 1
+    },
+    "sound_max_attempts": {
+      "description": "Most sound jobs for one built invention; a retryable failure is tried again in the next compute night, after the last attempt the invention keeps no sound of its own (base library by description).",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 20
     }
   }
 }

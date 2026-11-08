@@ -64,5 +64,11 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("min_need_to_build")]
         public double MinNeedToBuild { get; set; } = default!;
 
+        /// <summary>
+        /// Most sound jobs for one built invention; a retryable failure is tried again in the next compute night, after the last attempt the invention keeps no sound of its own (base library by description).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("sound_max_attempts")]
+        public int SoundMaxAttempts { get; set; } = default!;
+
     }
 }

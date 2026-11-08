@@ -163,6 +163,37 @@ public sealed class HttpJobPortTests
     }
 
     [Fact]
+    public async Task PhaseSignalsArriveInCallOrderAndForceSendsTheSamePhaseAgain()
+    {
+        var phases = new List<PhaseChangePhase>();
+        var first = true;
+        using var port = NewPort(request =>
+        {
+            if (first)
+            {
+                // The first post is slow: the later ones must still arrive after it.
+                first = false;
+                Thread.Sleep(200);
+            }
+
+            lock (phases)
+            {
+                phases.Add(ContractSerializer.Deserialize<PhaseChange>(request.Content!.ReadAsStringAsync().Result).Phase);
+            }
+
+            return Json(HttpStatusCode.OK, "{}");
+        });
+
+        port.SetPhase(JobPhase.Night, 10);
+        port.SetPhase(JobPhase.Day, 20);
+        port.SetPhase(JobPhase.Night, 30);
+        port.SetPhase(JobPhase.Night, 31, force: true);
+        await port.WhenIdleAsync(TimeSpan.FromSeconds(5));
+
+        Assert.Equal([PhaseChangePhase.Night, PhaseChangePhase.Day, PhaseChangePhase.Night, PhaseChangePhase.Night], phases);
+    }
+
+    [Fact]
     public async Task AnUnreachableServiceDoesNotBreakThePhaseSignal()
     {
         using var port = NewPort(_ => throw new HttpRequestException("connection refused"));
