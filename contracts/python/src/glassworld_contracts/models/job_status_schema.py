@@ -206,6 +206,66 @@ class SoundResult(BaseModel):
     )
 
 
+class ImageResult(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    file: str = Field(
+        ...,
+        description="File name in the service's output folder (no path).",
+        max_length=120,
+        pattern='^[a-z0-9][a-z0-9_.-]*\\.png$',
+    )
+    width: int = Field(..., ge=1, le=4096)
+    height: int = Field(..., ge=1, le=4096)
+    seed_used: int = Field(
+        ...,
+        description='Seed the picture was made with, so it can be made again.',
+        ge=0,
+        le=2147483647,
+    )
+    workflow: str = Field(
+        ...,
+        description='ComfyUI workflow template used (tools/comfyui/workflows), e.g. z-image-turbo-t2i.',
+        max_length=64,
+        pattern='^[a-z0-9][a-z0-9_-]*$',
+    )
+    style: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+
+
+class DreamResult(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    text: common_schema.GeneratedText
+    tone: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    about: common_schema.Subject | None
+
+
+class Model3dResult(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    file: str = Field(
+        ...,
+        description="File name in the service's output folder (no path).",
+        max_length=120,
+        pattern='^[a-z0-9][a-z0-9_.-]*\\.glb$',
+    )
+    triangles: int = Field(..., ge=1, le=50000)
+    seed_used: int = Field(..., ge=0, le=2147483647)
+
+
 class QuestionResult(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -253,6 +313,9 @@ class JobResult(BaseModel):
     process: ProcessResult | None = None
     memory: MemoryResult | None = None
     sound: SoundResult | None = None
+    image: ImageResult | None = None
+    dream: DreamResult | None = None
+    model3d: Model3dResult | None = None
 
 
 class JobStatus(BaseModel):

@@ -1,0 +1,21 @@
+{
+  "contract_version": "0.2",
+  "tick": 1210,
+  "seed": 4242,
+  "display_locale": "de",
+  "request_id": "8b2c3d4e-5f60-4a7b-8c9d-0e1f2a3b4c5d",
+  "kind": "image",
+  "priority": 10,
+  "inhabitant": null,
+  "object": null,
+  "payload": {
+    "image": {
+      "subject": "a round clay water vessel with a short handle",
+      "purpose": "icon",
+      "style": "warm_comic",
+      "width": 8192,
+      "height": 512,
+      "object_type": "rt_vessel_clay"
+    }
+  }
+}

@@ -43,6 +43,18 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("sound")]
         public SoundPayload? Sound { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("image")]
+        public ImagePayload? Image { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("dream")]
+        public DreamPayload? Dream { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("model3d")]
+        public Model3dPayload? Model3d { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -286,6 +298,115 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
+    /// A picture for a thing (B7 R7, A1408): an icon for the UI or a texture, made in the computing night by the local image model in the game's style. If it fails, the thing keeps the colours and materials of the construction kit.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ImagePayload
+    {
+
+        /// <summary>
+        /// Short English description of what to show, e.g. 'a clay water vessel with a handle' (from the invention). No people, no text.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("subject")]
+        public string Subject { get; set; } = default!;
+
+        /// <summary>
+        /// icon = the thing alone on a plain background (UI); texture = a seamless surface of its main material.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("purpose")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ImagePayloadPurpose>))]
+        public ImagePayloadPurpose Purpose { get; set; } = default!;
+
+        /// <summary>
+        /// Style id from the image prompt (e.g. warm_comic, B2501/D355).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("style")]
+        public string Style { get; set; } = default!;
+
+        /// <summary>
+        /// Pixels (from content/image/generation.json by purpose).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("width")]
+        public int Width { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("height")]
+        public int Height { get; set; } = default!;
+
+        /// <summary>
+        /// The (runtime) object type the picture belongs to, if any.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("object_type")]
+        public string? ObjectType { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A dream in the computing night (B7 R8, A1409): a short text in the player's language from the events of the day. The AI only tells the dream and picks a tone from the allowed list; what the dream does (mood, ideas) the core sets through data (content/dreams/settings.json). Shown in the chronicle (B8).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class DreamPayload
+    {
+
+        /// <summary>
+        /// Events of the day, oldest first (same form as for the memory).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("events")]
+        public System.Collections.Generic.ICollection<MemoryFact> Events { get; set; } = new System.Collections.ObjectModel.Collection<MemoryFact>();
+
+        /// <summary>
+        /// The inhabitant's memory summary for background (English, internal; may be empty).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("memory")]
+        public string Memory { get; set; } = default!;
+
+        /// <summary>
+        /// Strongest mood at the end of the day (vocabulary moods), or null.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("mood")]
+        public string? Mood { get; set; } = default!;
+
+        /// <summary>
+        /// Tones the dream may have (from content/dreams/settings.json); the answer names one of them.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("tones")]
+        public System.Collections.Generic.ICollection<string> Tones { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// Length limit of the dream text (data).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max_chars")]
+        public int MaxChars { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Image to 3D model (B7 R9, ADR-0004, A1412): only on the comfort tier (TRELLIS.2, 16-24 GB, Linux). Interface and stand-in only; on other tiers the job fails as not retryable and the construction-kit builder is used.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class Model3dPayload
+    {
+
+        /// <summary>
+        /// Picture of the thing from an image job (file name in the service's image folder, no path).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("image_file")]
+        public string ImageFile { get; set; } = default!;
+
+        /// <summary>
+        /// The (runtime) object type the model belongs to, if any.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("object_type")]
+        public string? ObjectType { get; set; } = default!;
+
+        /// <summary>
+        /// Upper bound for the mesh (data, low-poly style).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max_triangles")]
+        public int MaxTriangles { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// Core -&gt; AI service (POST /jobs): one generation job (B7 R1). The service keeps jobs only in memory; the core owns open jobs. request_id is the job id. Sending the SAME job again (same id, same content) is harmless and returns the existing job, e.g. after a lost answer. A NEW attempt (after a failed job, or after the service restarted and answers not_found) always gets a NEW request_id, like Resend for decisions. Same id with different content is rejected (bad_request, not retryable).
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -381,6 +502,20 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("idea")]
         Idea = 2,
+
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public enum ImagePayloadPurpose
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("icon")]
+        Icon = 0,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("texture")]
+        Texture = 1,
 
 
     }

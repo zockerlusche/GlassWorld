@@ -31,7 +31,9 @@
         "heat_level",
         "tech_level",
         "shape",
-        "guard_reason"
+        "guard_reason",
+        "writing_medium",
+        "skill"
       ]
     },
     "entries": {

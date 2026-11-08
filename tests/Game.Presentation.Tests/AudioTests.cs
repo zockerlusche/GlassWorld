@@ -67,11 +67,48 @@ public sealed class AudioTests
     [Fact]
     public void NoSummerInsectsInWinterAndOwlsAtNight()
     {
-        var winterMeadow = Library.Value.AudibleAnimals("meadow", "winter", "day").Select(a => a.Animal).ToList();
-        Assert.DoesNotContain("bee", winterMeadow);
-        Assert.DoesNotContain("butterfly", winterMeadow);
+        // A1350 criterion 2: in no biome and at no time of day of the winter (data test).
+        foreach (var biome in WorldBiomes())
+        {
+            foreach (var phase in VocabularyIds("time_of_day.json"))
+            {
+                var winter = Library.Value.AudibleAnimals(biome, "winter", phase).Select(a => a.Animal).ToList();
+                Assert.DoesNotContain("bee", winter);
+                Assert.DoesNotContain("butterfly", winter);
+                Assert.DoesNotContain("dragonfly", winter);
+            }
+        }
+
         Assert.Contains("owl", Library.Value.AudibleAnimals("forest", "winter", "night").Select(a => a.Animal));
     }
+
+    [Fact]
+    public void SoundBiomesAreTheWorldsBiomesAndEachHasAnAmbience()
+    {
+        // The sound map once used ids the world does not have (beach, stream, rocks): nothing ever matched.
+        var world = WorldBiomes().ToHashSet(StringComparer.Ordinal);
+        var used = Library.Value.Map.Animals.SelectMany(a => a.Biomes).Concat(Library.Value.Map.Ambience.Select(a => a.Biome)).ToHashSet(StringComparer.Ordinal);
+        Assert.Empty(used.Except(world));
+        Assert.Empty(world.Except(Library.Value.Map.Ambience.Select(a => a.Biome)));
+    }
+
+    [Fact]
+    public void EveryAnimalCanBeHeardSomewhere()
+    {
+        // A1350 criterion 1: every animal of B2481 has a time and place in the world and a sound that is not silent.
+        var seasons = JsonNode.Parse(File.ReadAllText(Path.Combine(Root, "content", "world", "time.json")))!["seasons"]!.AsArray().Select(s => (string)s!["id"]!).ToList();
+        foreach (var animal in AnimalList)
+        {
+            var heard = WorldBiomes().Any(b => seasons.Any(s => VocabularyIds("time_of_day.json").Any(t => Library.Value.AudibleAnimals(b, s, t).Any(a => a.Animal == animal))));
+            Assert.True(heard, animal + " is never audible");
+            var sound = Library.Value.Map.Animals.First(a => a.Animal == animal).Sound;
+            var pcm = Library.Value.Render(sound, 0, 1);
+            Assert.True(pcm.Max(x => Math.Abs((int)x)) > 1000, sound + " is silent");
+        }
+    }
+
+    private static IEnumerable<string> WorldBiomes() =>
+        JsonNode.Parse(File.ReadAllText(Path.Combine(Root, "content", "world", "biomes.json")))!["biomes"]!.AsArray().Select(b => (string)b!["id"]!);
 
     [Fact]
     public void SameSeedGivesTheSameSamples()

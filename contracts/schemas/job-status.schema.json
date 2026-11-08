@@ -89,6 +89,15 @@
         },
         "sound": {
           "$ref": "#/$defs/SoundResult"
+        },
+        "image": {
+          "$ref": "#/$defs/ImageResult"
+        },
+        "dream": {
+          "$ref": "#/$defs/DreamResult"
+        },
+        "model3d": {
+          "$ref": "#/$defs/Model3dResult"
         }
       },
       "minProperties": 1,
@@ -578,6 +587,108 @@
           "type": "number",
           "minimum": -120,
           "maximum": 0
+        }
+      }
+    },
+    "ImageResult": {
+      "description": "A made picture (B7 R7): a PNG the service wrote into its output folder under a name by pattern; the game copies it into the world folder. Checked by the service (PNG, size) before it reports done.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "file",
+        "width",
+        "height",
+        "seed_used",
+        "workflow",
+        "style"
+      ],
+      "properties": {
+        "file": {
+          "description": "File name in the service's output folder (no path).",
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9_.-]*\\.png$",
+          "maxLength": 120
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4096
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4096
+        },
+        "seed_used": {
+          "description": "Seed the picture was made with, so it can be made again.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "workflow": {
+          "description": "ComfyUI workflow template used (tools/comfyui/workflows), e.g. z-image-turbo-t2i.",
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9_-]*$",
+          "maxLength": 64
+        },
+        "style": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        }
+      }
+    },
+    "DreamResult": {
+      "description": "The dream: text in the player's language (checked by the content guard), its tone (one of the allowed tones) and what it was mostly about (one of the day's subjects, or null). The core applies the tone's effect from data and checks both.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "text",
+        "tone",
+        "about"
+      ],
+      "properties": {
+        "text": {
+          "$ref": "common.schema.json#/$defs/GeneratedText"
+        },
+        "tone": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "about": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/Subject"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "Model3dResult": {
+      "description": "A made 3D model (B7 R9): a binary glTF (.glb) in the service's output folder under a name by pattern; the game copies it into the world folder.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "file",
+        "triangles",
+        "seed_used"
+      ],
+      "properties": {
+        "file": {
+          "description": "File name in the service's output folder (no path).",
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9_.-]*\\.glb$",
+          "maxLength": 120
+        },
+        "triangles": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50000
+        },
+        "seed_used": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
         }
       }
     }

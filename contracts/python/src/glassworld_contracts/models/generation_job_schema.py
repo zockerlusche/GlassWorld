@@ -19,23 +19,6 @@ class Question(StrEnum):
     why = 'why'
 
 
-class QuestionPayload(BaseModel):
-    model_config = ConfigDict(
-        extra='forbid',
-    )
-    question: Question = Field(
-        ...,
-        description='what_is = what is this; can_i_eat; is_dangerous; what_can_i_do = what can I do with it; why = why did this happen.',
-    )
-    subject: common_schema.Subject
-    inhabitant: common_schema.InhabitantState
-    perception: list[common_schema.VocabId] = Field(
-        ...,
-        description='What the inhabitant notices about the subject right now (observable properties only, no truth).',
-        max_length=16,
-    )
-
-
 class InventionLimits(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -51,64 +34,6 @@ class Trigger(StrEnum):
     need = 'need'
     found = 'found'
     idea = 'idea'
-
-
-class InventionPayload(BaseModel):
-    model_config = ConfigDict(
-        extra='forbid',
-    )
-    trigger: Trigger
-    want: str = Field(
-        ...,
-        description='Need or action the inhabitant has no solution for (vocabulary need or action).',
-        max_length=64,
-        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
-    )
-    subject: common_schema.Subject | None = Field(
-        ..., description='Thing that was found, if the trigger is find.'
-    )
-    inhabitant: common_schema.InhabitantState
-    materials: list[common_schema.ObservedThing] = Field(
-        ...,
-        description='Things in reach as the inhabitant sees them.',
-        max_length=16,
-        min_length=1,
-    )
-    tech_level: str = Field(
-        ...,
-        description='Highest tech level the world allows now.',
-        max_length=64,
-        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
-    )
-    limits: InventionLimits
-
-
-class ProcessPayload(BaseModel):
-    model_config = ConfigDict(
-        extra='forbid',
-    )
-    process: str = Field(
-        ...,
-        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
-        max_length=64,
-        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
-    )
-    inputs: list[common_schema.ObservedThing] = Field(..., max_length=4, min_length=1)
-    tool: common_schema.ObservedThing | None
-    heat_level: common_schema.VocabId | None = Field(
-        ..., description='Heat available, or null.'
-    )
-    tech_level: str = Field(
-        ...,
-        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
-        max_length=64,
-        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
-    )
-    inhabitant: common_schema.InhabitantState
-    signature: common_schema.ProcessSignature = Field(
-        ...,
-        description='Canonical signature of this try (true properties, set by the core); the service derives the world rule id from its hash.',
-    )
 
 
 class MemoryFact(BaseModel):
@@ -154,6 +79,141 @@ class SoundPayload(BaseModel):
     )
 
 
+class Purpose(StrEnum):
+    icon = 'icon'
+    texture = 'texture'
+
+
+class ImagePayload(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    subject: str = Field(
+        ...,
+        description="Short English description of what to show, e.g. 'a clay water vessel with a handle' (from the invention). No people, no text.",
+        max_length=300,
+        min_length=1,
+    )
+    purpose: Purpose = Field(
+        ...,
+        description='icon = the thing alone on a plain background (UI); texture = a seamless surface of its main material.',
+    )
+    style: str = Field(
+        ...,
+        description='Style id from the image prompt (e.g. warm_comic, B2501/D355).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    width: int = Field(
+        ...,
+        description='Pixels (from content/image/generation.json by purpose).',
+        ge=256,
+        le=2048,
+    )
+    height: int = Field(..., ge=256, le=2048)
+    object_type: common_schema.VocabId | None = Field(
+        ..., description='The (runtime) object type the picture belongs to, if any.'
+    )
+
+
+class DreamPayload(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    events: list[MemoryFact] = Field(
+        ...,
+        description='Events of the day, oldest first (same form as for the memory).',
+        max_length=16,
+        min_length=1,
+    )
+    memory: str = Field(
+        ...,
+        description="The inhabitant's memory summary for background (English, internal; may be empty).",
+        max_length=1200,
+    )
+    mood: common_schema.VocabId | None = Field(
+        ...,
+        description='Strongest mood at the end of the day (vocabulary moods), or null.',
+    )
+    tones: list[common_schema.VocabId] = Field(
+        ...,
+        description='Tones the dream may have (from content/dreams/settings.json); the answer names one of them.',
+        max_length=8,
+        min_length=1,
+    )
+    max_chars: int = Field(
+        ..., description='Length limit of the dream text (data).', ge=40, le=280
+    )
+
+
+class Model3dPayload(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    image_file: str = Field(
+        ...,
+        description="Picture of the thing from an image job (file name in the service's image folder, no path).",
+        max_length=120,
+        pattern='^[a-z0-9][a-z0-9_.-]*\\.png$',
+    )
+    object_type: common_schema.VocabId | None = Field(
+        ..., description='The (runtime) object type the model belongs to, if any.'
+    )
+    max_triangles: int = Field(
+        ...,
+        description='Upper bound for the mesh (data, low-poly style).',
+        ge=12,
+        le=50000,
+    )
+
+
+class QuestionPayload(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    question: Question = Field(
+        ...,
+        description='what_is = what is this; can_i_eat; is_dangerous; what_can_i_do = what can I do with it; why = why did this happen.',
+    )
+    subject: common_schema.Subject
+    inhabitant: common_schema.InhabitantState
+    perception: list[common_schema.VocabId] = Field(
+        ...,
+        description='What the inhabitant notices about the subject right now (observable properties only, no truth).',
+        max_length=16,
+    )
+
+
+class InventionPayload(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    trigger: Trigger
+    want: str = Field(
+        ...,
+        description='Need or action the inhabitant has no solution for (vocabulary need or action).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    subject: common_schema.Subject | None = Field(
+        ..., description='Thing that was found, if the trigger is find.'
+    )
+    inhabitant: common_schema.InhabitantState
+    materials: list[common_schema.ObservedThing] = Field(
+        ...,
+        description='Things in reach as the inhabitant sees them.',
+        max_length=16,
+        min_length=1,
+    )
+    tech_level: str = Field(
+        ...,
+        description='Highest tech level the world allows now.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    limits: InventionLimits
+
+
 class BuildPlanPayload(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -172,6 +232,34 @@ class BuildPlanPayload(BaseModel):
         min_length=1,
     )
     max_parts: int = Field(..., ge=2, le=64)
+
+
+class ProcessPayload(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    process: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    inputs: list[common_schema.ObservedThing] = Field(..., max_length=4, min_length=1)
+    tool: common_schema.ObservedThing | None
+    heat_level: common_schema.VocabId | None = Field(
+        ..., description='Heat available, or null.'
+    )
+    tech_level: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    inhabitant: common_schema.InhabitantState
+    signature: common_schema.ProcessSignature = Field(
+        ...,
+        description='Canonical signature of this try (true properties, set by the core); the service derives the world rule id from its hash.',
+    )
 
 
 class MemoryPayload(BaseModel):
@@ -205,6 +293,9 @@ class JobPayload(BaseModel):
     process: ProcessPayload | None = None
     memory: MemoryPayload | None = None
     sound: SoundPayload | None = None
+    image: ImagePayload | None = None
+    dream: DreamPayload | None = None
+    model3d: Model3dPayload | None = None
 
 
 class GenerationJob(BaseModel):

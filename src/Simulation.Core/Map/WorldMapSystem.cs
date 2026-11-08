@@ -19,7 +19,7 @@ public sealed record Occurrence(string ObjectId, string TypeId, int X, int Z, lo
 /// so the system does nothing per tick and writes the island data into the state hash. It is rebuilt
 /// from seed and preset when a save game is loaded (the generator is deterministic).
 /// </summary>
-public sealed class WorldMapSystem : IWorldSystem
+public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
 {
     private readonly List<Occurrence> _occurrences = [];
     private readonly IReadOnlyDictionary<string, long> _regrowTicks;
@@ -82,6 +82,117 @@ public sealed class WorldMapSystem : IWorldSystem
 
     /// <summary>Edge length of a cell in centimetres (from the preset).</summary>
     public int CellSizeCm { get; }
+
+    /// <summary>Most nodes one path search may expand (preset pathfinding, B2 R10).</summary>
+    public int NodeBudget { get; init; } = 20000;
+
+    private int? _minWalkCost;
+    private PathFinder.Scratch? _scratch;
+
+    /// <summary>The cell that contains a world position, or null outside the map.</summary>
+    public (int X, int Z)? CellOf(Position position)
+    {
+        var x = (int)Math.Floor(position.X * 100 / CellSizeCm);
+        var z = (int)Math.Floor(position.Z * 100 / CellSizeCm);
+        return Map.Contains(x, z) ? (x, z) : null;
+    }
+
+    /// <inheritdoc/>
+    public Route Find(Position start, Position destination)
+    {
+        if (CellOf(start) is not { } from || CellOf(destination) is not { } goal)
+        {
+            return new Route(PathStatus.Unreachable, []);
+        }
+
+        _minWalkCost ??= Enumerable.Range(0, Map.WidthCells * Map.DepthCells)
+            .Select(i => Map.Cell(i % Map.WidthCells, i / Map.WidthCells).WalkCost)
+            .Where(c => c != MapCell.Blocked)
+            .DefaultIfEmpty(1000)
+            .Min();
+        _scratch ??= new PathFinder.Scratch(Map.WidthCells * Map.DepthCells);
+        var path = PathFinder.Find(Map, from, goal, NodeBudget, _minWalkCost.Value, _scratch);
+        if (path.Status != PathStatus.Found)
+        {
+            return new Route(path.Status, []);
+        }
+
+        var points = path.Cells.Take(Math.Max(0, path.Cells.Count - 1)).Select(c => CentreOf(c.X, c.Z)).ToList();
+        points.Add(destination);
+        return new Route(PathStatus.Found, points);
+    }
+
+    private int[]? _areas;
+
+    /// <inheritdoc/>
+    public bool Connected(Position a, Position b)
+    {
+        if (CellOf(a) is not { } from || CellOf(b) is not { } to)
+        {
+            return false;
+        }
+
+        _areas ??= Areas(Map);
+        var w = Map.WidthCells;
+        var area = _areas[(from.Z * w) + from.X];
+        return area != 0 && area == _areas[(to.Z * w) + to.X];
+    }
+
+    /// <summary>Walkable areas: flood fill with the path finder's step rule (0 = blocked).</summary>
+    private static int[] Areas(WorldMap map)
+    {
+        int w = map.WidthCells, d = map.DepthCells;
+        var areas = new int[w * d];
+        var next = 0;
+        var queue = new Queue<int>();
+        for (var i = 0; i < w * d; i++)
+        {
+            if (areas[i] != 0 || map.Cell(i % w, i / w).WalkCost == MapCell.Blocked)
+            {
+                continue;
+            }
+
+            areas[i] = ++next;
+            queue.Enqueue(i);
+            while (queue.TryDequeue(out var c))
+            {
+                int cx = c % w, cz = c / w;
+                for (var dz = -1; dz <= 1; dz++)
+                {
+                    for (var dx = -1; dx <= 1; dx++)
+                    {
+                        int nx = cx + dx, nz = cz + dz;
+                        if ((dx == 0 && dz == 0) || !map.Contains(nx, nz) || areas[(nz * w) + nx] != 0 || map.Cell(nx, nz).WalkCost == MapCell.Blocked)
+                        {
+                            continue;
+                        }
+
+                        if (dx != 0 && dz != 0 && (map.Cell(cx + dx, cz).WalkCost == MapCell.Blocked || map.Cell(cx, cz + dz).WalkCost == MapCell.Blocked))
+                        {
+                            continue;
+                        }
+
+                        areas[(nz * w) + nx] = next;
+                        queue.Enqueue((nz * w) + nx);
+                    }
+                }
+            }
+        }
+
+        return areas;
+    }
+
+    /// <inheritdoc/>
+    public double SpeedFactor(Position at)
+    {
+        if (CellOf(at) is not { } cell)
+        {
+            return 1.0;
+        }
+
+        var cost = Map.Cell(cell.X, cell.Z).WalkCost;
+        return cost == MapCell.Blocked ? 0.25 : Math.Min(1.0, 1000.0 / Math.Max(1, cost));
+    }
 
     /// <summary>World position (metres, origin at the map corner) of the centre of cell (x, z).</summary>
     public Position CentreOf(int x, int z) => new((x + 0.5) * CellSizeCm / 100.0, (z + 0.5) * CellSizeCm / 100.0);
