@@ -4,9 +4,9 @@ GlassWorld is an experimental, open AI life simulation built with Godot (.NET).
 Two inhabitants start without prior knowledge and learn on their own, using
 local open-source AI only, until they grow a family and a culture.
 
-> **Status: early development.** Two inhabitants live on a start island, decide with a local
-> language model, learn, remember, invent and build. There is no release yet; the first public
-> build is planned for the end of November 2026.
+> **Status: early development.** A small group of inhabitants (two pairs) lives on a start
+> island, decides with a local language model, learns, remembers, invents and builds. There is no
+> release yet; the first public build is planned for the end of November 2026.
 
 ## Principles
 
@@ -40,6 +40,9 @@ after unpacking. Higher tiers need more space for their image and sound models.
 
 ## Installation (Windows)
 
+> These steps describe the **first release**. The AI service side of the first-start downloads is
+> in place; the game's first-start dialog and the release package are still being built.
+
 1. Download the release archive from the GitHub releases page and unpack it into a folder of
    your choice. Nothing is installed system-wide.
 2. Start `GlassWorld.exe`.
@@ -51,8 +54,8 @@ after unpacking. Higher tiers need more space for their image and sound models.
 
    Downloads come only from the official sources and are checked against a pinned checksum or
    digest. You can cancel at any time; the next start continues where it stopped.
-4. **Image and sound AI (tiers standard and comfort)** use [ComfyUI](https://github.com/Comfy-Org/ComfyUI),
-   which you install yourself; it is not part of the game. Without it the game runs with the
+4. **Image and sound AI (tiers standard and comfort)** use [ComfyUI](https://github.com/Comfy-Org/ComfyUI)
+   (GPL-3.0), which you install yourself; it is not part of the game. Without it the game runs with the
    language model only.
 
 ## Privacy
@@ -66,7 +69,9 @@ after unpacking. Higher tiers need more space for their image and sound models.
 - The AI service listens only on `127.0.0.1` (your own computer) and accepts requests only with
   a per-session token from the game.
 - Worlds, logs and downloaded files stay in your user data folder
-  (`%APPDATA%\Godot\app_userdata\GlassWorld`). Delete that folder to remove everything.
+  (`%APPDATA%\Godot\app_userdata\GlassWorld`). Delete that folder to remove everything the game
+  downloaded or wrote. If you let the game use your own Ollama, the language model is stored in
+  that Ollama's model folder instead; remove it there with `ollama rm qwen3.5:9b`.
 - Sharing worlds (planned): an exported world will contain only the world itself, no paths
   and no tokens.
 
@@ -109,8 +114,9 @@ uv run pytest
 uv run python tools/licenses/check_licenses.py
 ```
 
-Running the game from the editor or with `GlassWorld.exe -- --seed=1` starts the AI service
-when a world is created or loaded. See [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow.
+Running the game from the editor or with `GlassWorld.exe -- --seed=1` uses a deterministic
+stand-in decider. With the environment variable `GLASSWORLD_AI=live` the game starts the local AI
+service itself when a world is created or loaded (Ollama and the language model must be present). See [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow.
 
 ## License
 
