@@ -67,12 +67,22 @@ class Settings(BaseSettings):
     warm_up: bool = Field(description="Load the decider model right after start.")
     warm_up_retry_s: float = Field(gt=0, le=3600, description="Retry a failed warm-up after.")
 
+    # Sound jobs (B2530, D471 D7): mock without the model; moss = worker in the MOSS environment.
+    sound_backend: Literal["mock", "moss"] = Field(default="mock")
+    sound_render_timeout_s: float = Field(default=600, gt=0, le=7200, description="Per sound.")
+    moss_start_timeout_s: float = Field(default=300, gt=0, le=3600, description="Model load.")
+    moss_python: Path | None = Field(default=None, description="Python of the MOSS environment.")
+    moss_model_dir: Path | None = Field(default=None, description="MOSS weights (local).")
+    moss_code_dir: Path | None = Field(default=None, description="MOSS code at a pinned commit.")
+
     # Folders; relative paths are relative to the config file.
     prompts_dir: Path
     content_dir: Path
     schemas_dir: Path
     log_dir: Path
     lock_dir: Path
+    sound_output_dir: Path = Field(description="Made sounds; the game copies them into the world.")
+    moss_worker_script: Path = Field(description="tools/moss/worker.py")
     token: SecretStr | None = Field(
         default=None,
         description="Per-session token set by the game via GW_AI_TOKEN; never stored in files.",
@@ -113,6 +123,8 @@ def load_settings(config_file: Path | None = None) -> Settings:
         "schemas_dir",
         "log_dir",
         "lock_dir",
+        "sound_output_dir",
+        "moss_worker_script",
         "hardware_tiers_file",
         "model_footprints_file",
     ):
