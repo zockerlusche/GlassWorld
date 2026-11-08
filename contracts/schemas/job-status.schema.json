@@ -557,9 +557,10 @@
           "maximum": 60
         },
         "seed_used": {
-          "description": "Seed of the accepted try (job seed + retries), so the sound can be made again.",
+          "description": "Seed of the accepted try ((job seed + retries) mod 2^31), so the sound can be made again.",
           "type": "integer",
-          "minimum": 0
+          "minimum": 0,
+          "maximum": 2147483647
         },
         "attempts": {
           "description": "Tries until one passed the check (1 + seed retries).",

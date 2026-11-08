@@ -23,7 +23,7 @@ namespace GlassWorld.Contracts
         public string ContractVersion { get; set; } = default!;
 
         /// <summary>
-        /// Below this the model gives silence (D440: 10 steps silent).
+        /// Below this the model gives silence (D440: 10 steps silent). The handler raises a smaller requested step count to this.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("min_steps")]
         public int MinSteps { get; set; } = default!;
@@ -56,7 +56,7 @@ namespace GlassWorld.Contracts
         public int SeedRetries { get; set; } = default!;
 
         /// <summary>
-        /// Job priority of sound jobs (B7 O2).
+        /// Job priority of sound jobs among other jobs (B7 O2). When sound jobs run at all (the computing night) is set in content/hardware/night.json.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("priority")]
         public int Priority { get; set; } = default!;

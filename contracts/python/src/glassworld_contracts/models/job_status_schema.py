@@ -187,8 +187,9 @@ class SoundResult(BaseModel):
     seconds: float = Field(..., ge=0.0, le=60.0)
     seed_used: int = Field(
         ...,
-        description='Seed of the accepted try (job seed + retries), so the sound can be made again.',
+        description='Seed of the accepted try ((job seed + retries) mod 2^31), so the sound can be made again.',
         ge=0,
+        le=2147483647,
     )
     attempts: int = Field(
         ...,

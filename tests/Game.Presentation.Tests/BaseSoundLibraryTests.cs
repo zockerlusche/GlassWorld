@@ -136,3 +136,16 @@ public sealed class SynthLoudnessTests
         Assert.True(offBefore > 0, "without normalising, some synth sounds are off target (the reason for K1)");
     }
 }
+
+/// <summary>Sound generation settings are consistent (GW2 review #77).</summary>
+public sealed class SoundGenerationDataTests
+{
+    [Fact]
+    public void DefaultStepsAreNotBelowTheMinimum()
+    {
+        var data = Contracts.Validation.ContractSerializer.Deserialize<Contracts.SoundGeneration>(
+            File.ReadAllText(Path.Combine(TestPaths.Root, "content", "sound", "generation.json")));
+        Assert.True(data.DefaultSteps >= data.MinSteps, $"default_steps {data.DefaultSteps} below min_steps {data.MinSteps} (D440: silence)");
+        Assert.True(1 + data.SeedRetries <= 10, "attempts of a sound result are at most 10");
+    }
+}

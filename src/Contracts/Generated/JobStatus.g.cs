@@ -325,7 +325,7 @@ namespace GlassWorld.Contracts
         public double Seconds { get; set; } = default!;
 
         /// <summary>
-        /// Seed of the accepted try (job seed + retries), so the sound can be made again.
+        /// Seed of the accepted try ((job seed + retries) mod 2^31), so the sound can be made again.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("seed_used")]
         public int SeedUsed { get; set; } = default!;

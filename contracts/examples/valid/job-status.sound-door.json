@@ -21,6 +21,6 @@
     "prompt_version": "sound/moss.v1",
     "seed": 77,
     "latency_ms": 1,
-    "attempts": 1
+    "attempts": 2
   }
 }

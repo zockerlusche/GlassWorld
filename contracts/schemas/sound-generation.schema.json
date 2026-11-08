@@ -20,7 +20,7 @@
       "$ref": "common.schema.json#/$defs/ContractVersion"
     },
     "min_steps": {
-      "description": "Below this the model gives silence (D440: 10 steps silent).",
+      "description": "Below this the model gives silence (D440: 10 steps silent). The handler raises a smaller requested step count to this.",
       "type": "integer",
       "minimum": 1,
       "maximum": 200
@@ -70,7 +70,7 @@
       "maximum": 9
     },
     "priority": {
-      "description": "Job priority of sound jobs (B7 O2).",
+      "description": "Job priority of sound jobs among other jobs (B7 O2). When sound jobs run at all (the computing night) is set in content/hardware/night.json.",
       "type": "integer",
       "minimum": 0,
       "maximum": 100

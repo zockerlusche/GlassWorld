@@ -26,7 +26,7 @@ class SoundGeneration(BaseModel):
     )
     min_steps: int = Field(
         ...,
-        description='Below this the model gives silence (D440: 10 steps silent).',
+        description='Below this the model gives silence (D440: 10 steps silent). The handler raises a smaller requested step count to this.',
         ge=1,
         le=200,
     )
@@ -45,5 +45,8 @@ class SoundGeneration(BaseModel):
         le=9,
     )
     priority: int = Field(
-        ..., description='Job priority of sound jobs (B7 O2).', ge=0, le=100
+        ...,
+        description='Job priority of sound jobs among other jobs (B7 O2). When sound jobs run at all (the computing night) is set in content/hardware/night.json.',
+        ge=0,
+        le=100,
     )
