@@ -23,6 +23,7 @@ from glassworld_ai.jobs import JobFailedError, JobOutcome
 from glassworld_ai.llm.jobcall import InvalidOutputError, ModelCallSettings
 from glassworld_ai.llm.ollama import OllamaClient
 from glassworld_ai.process.judge import (
+    GuardError,
     JudgeContext,
     MockProcesses,
     OllamaProcesses,
@@ -62,6 +63,7 @@ GOOD: dict[str, Any] = {
     "feasible": True,
     "rationale": "Wood heated without much air turns into charcoal.",
     "rule": {
+        "changes": 1,
         "add_properties": ["burnable"],
         "remove_properties": [],
         "consumes": [],
@@ -137,9 +139,9 @@ def test_not_feasible_is_a_result() -> None:
     [
         ({"heat_min": "warm"}, "heat_min"),  # no heat available
         ({"tech_level": "metal"}, "tech_level"),  # above the inhabitant's tech level
-        ({"remove_properties": ["sharp"]}, "remove_properties"),  # input 1 has no 'sharp'
-        ({"consumes": [1]}, "consumes"),  # input 1 changes, it is never used up
-        ({"add_properties": ["long_lasting"]}, "already has"),  # no real change
+        ({"remove_properties": ["sharp"]}, "remove_properties"),  # no input has 'sharp'
+        ({"consumes": [1]}, "consumes"),  # only one input: nothing else can be used up
+        ({"add_properties": ["long_lasting"]}, "change something"),  # no real change
         ({"add_properties": [], "remove_properties": []}, "change something"),
     ],
 )
@@ -249,3 +251,98 @@ def test_invented_food_is_dropped_and_doubles_removed() -> None:
     )
     result = parse_judgement(_raw(add_properties=["burnable", "edible"]), DRY, ctx)
     assert result["rule"]["result"]["add_properties"] == ["burnable"]  # food never from nothing
+
+
+def _two_inputs() -> GenerationJob:
+    """Soak a stone in water: canonical order puts the water first (drinkable < hard)."""
+    data = json.loads(json.dumps(DRY_DATA))
+    data["payload"]["process"].update(process="soak")
+    data["payload"]["process"]["signature"] = {
+        "process": "soak",
+        "inputs": [["hard", "malleable"], ["cooling", "drinkable"]],
+        "tool": None,
+        "heat_level": None,
+    }
+    return GenerationJob.model_validate(data)
+
+
+def test_the_changing_input_comes_first_in_the_rule() -> None:
+    raw = json.dumps(
+        {
+            **GOOD,
+            "rule": {
+                **GOOD["rule"],
+                "changes": 2,
+                "add_properties": ["malleable"],
+                "remove_properties": ["hard"],
+                "consumes": [1],
+            },
+        }
+    )
+    rule = parse_judgement(raw, _two_inputs(), CTX)["rule"]
+    assert rule["inputs"][0]["properties_all"] == ["hard", "malleable"]  # the stone changes
+    assert rule["result"]["remove_properties"] == ["hard"]
+    assert rule["result"]["consumes"] == [1]  # the water (canonical 1) is now rule input 2
+
+
+def test_protected_properties_are_never_removed() -> None:
+    raw = json.dumps(
+        {
+            **GOOD,
+            "rule": {
+                **GOOD["rule"],
+                "changes": 1,
+                "remove_properties": ["drinkable"],
+                "add_properties": [],
+            },
+        }
+    )
+    with pytest.raises(InvalidOutputError, match="remove_properties"):
+        parse_judgement(raw, _two_inputs(), CTX)
+
+
+def test_impossible_tries_never_call_the_model(settings: Settings) -> None:
+    calls: list[int] = []
+
+    def fake(request: httpx.Request) -> httpx.Response:
+        calls.append(1)
+        return httpx.Response(500)
+
+    data = json.loads(json.dumps(JOB_DATA))
+    data["payload"]["process"]["signature"]["heat_level"] = None  # char without heat
+    job = GenerationJob.model_validate(data)
+    handler = OllamaProcesses(
+        client=OllamaClient(
+            "http://ollama.test",
+            "qwen3.5:9b",
+            httpx.AsyncClient(transport=httpx.MockTransport(fake)),
+            keep_alive="5m",
+        ),
+        queue=ModelQueue(8),
+        template=load_prompt(settings.prompts_dir, "process/judge", 1),
+        context=CTX,
+        settings=ModelCallSettings(temperature=0.7, num_ctx=8192, max_retries=2, call_timeout_s=30),
+        log=CallLog(settings.log_dir / "processes.jsonl"),
+    )
+    outcome = asyncio.run(handler(job))
+    assert calls == [] and outcome.result["process"]["feasible"] is False  # type: ignore[index]
+    assert outcome.source == "local_model" and outcome.model == "physics-guard"
+
+
+@pytest.mark.parametrize(
+    "guard",
+    [
+        {"never_iff": {"melt": ["burnable"]}},
+        {"may_add": {"dry": ["unicorn_dust"]}},
+        {"heat_processes": ["levitate"]},
+    ],
+)
+def test_a_broken_guard_fails_at_load(guard: dict[str, Any]) -> None:
+    with pytest.raises(GuardError):
+        JudgeContext(REPO / "content", Vocabulary.load(REPO / "content/vocabulary"), guard)
+
+
+def test_replay_without_a_recording_is_not_retryable(settings: Settings) -> None:
+    with pytest.raises(JobFailedError) as error:
+        asyncio.run(ReplayProcesses(CallLog(settings.log_dir / "empty.jsonl"), CTX)(DRY))
+    assert error.value.retryable is False

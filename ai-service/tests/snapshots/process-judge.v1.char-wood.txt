@@ -17,9 +17,9 @@ Rules:
   fibres can); soaking a stone changes nothing.
 - Only properties that really follow from the process. Never invent food or drink: drying,
   striking or heating does not make something edible or drinkable unless it already was.
-- If feasible, input 1 is the thing that changes: properties it gains (add_properties) and loses
-  (remove_properties, only properties it has). Other inputs may be used up (consumes: their
-  numbers, never 1).
+- If feasible: changes = the number of the input that is worked on and changes. It gains
+  properties (add_properties) and loses some (remove_properties, only properties it has). Other
+  inputs may be used up (consumes: their numbers, never the changing one).
 - Things never become alive, and nothing becomes a weapon against living beings.
 - duration_ticks: how long it takes (a few minutes = 10-30, an hour = 60, half a day = 600).
 - rationale: one short English sentence (for developers, never shown to players).
@@ -30,7 +30,7 @@ Answer only with the JSON object requested.
 ## Process
 char
 
-## Inputs (true properties; input 1 is the thing that changes)
+## Inputs (true properties, numbered)
 1. burnable
 
 ## Tool
@@ -39,7 +39,7 @@ char
 ## Heat available
 embers
 
-## What the inhabitant sees (types only, for context)
+## What the inhabitant sees (types only, any order, for context)
 dry branch
 
 Judge the try.

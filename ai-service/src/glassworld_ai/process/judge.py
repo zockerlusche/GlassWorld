@@ -5,11 +5,11 @@
 
 An inhabitant applies a basic process to things that no rule covers. The model (world role: it
 sees the true properties from the signature, never shown to players) decides feasible or not and,
-if feasible, what changes. The service builds the ProcessRule itself: id from the signature hash,
-process, input conditions and tool from the true property sets, and checks everything the model
-chose (the guard in code): vocabulary, no living properties (B2531), removed properties belong to
-input 1, heat and tech level not above what is available, consumed inputs exist. Otherwise it asks
-again (seed + n). Not feasible is a result too; the core stores it and never asks again.
+if feasible, which input changes and how. The service builds the ProcessRule itself: id from the
+signature hash, process, input conditions (the changing input first) and tool from the true
+property sets, and checks everything the model chose (the guard in code, physics as data in the
+prompt settings, validated at load). Tries that physics rules out are answered 'not feasible'
+without a model call. Not feasible is a result too; the core stores it and never asks again.
 """
 
 from __future__ import annotations
@@ -27,7 +27,6 @@ from glassworld_ai.llm.jobcall import (
     InvalidOutputError,
     ModelCallSettings,
     ask_model,
-    fail,
     recorded_answers,
 )
 from glassworld_ai.llm.ollama import OllamaClient
@@ -40,6 +39,33 @@ from glassworld_contracts.signature import world_rule_id
 
 ROLE = "process"
 MIN_TICKS, MAX_TICKS = 5, 2000  # technical bounds for the model; the core scales by data
+GUARD_LISTS = ("heat_processes", "no_new", "never_remove")
+GUARD_MAPS = ("needs_any", "never_if", "may_add")
+
+
+class GuardError(ValueError):
+    """The physics guard data is broken (fail fast at load, review GW1 #109)."""
+
+
+def validate_guard(guard: dict[str, Any], vocab: Vocabulary) -> dict[str, Any]:
+    """Keys, process ids and property ids of the guard must exist; returns it unchanged."""
+    unknown = sorted(set(guard) - set(GUARD_LISTS) - set(GUARD_MAPS))
+    if unknown:
+        raise GuardError(f"unknown guard keys {unknown}")
+    processes, properties = set(vocab.ids("process")), set(vocab.ids("property"))
+    for key in GUARD_LISTS:
+        ids = guard.get(key, [])
+        allowed = processes if key == "heat_processes" else properties
+        bad = sorted(set(ids) - allowed)
+        if bad:
+            raise GuardError(f"guard.{key}: unknown ids {bad}")
+    for key in GUARD_MAPS:
+        table = cast(dict[str, list[str]], guard.get(key, {}))
+        bad_processes = sorted(set(table) - processes)
+        bad_properties = sorted({p for ids in table.values() for p in ids} - properties)
+        if bad_processes or bad_properties:
+            raise GuardError(f"guard.{key}: unknown ids {bad_processes + bad_properties}")
+    return guard
 
 
 class JudgeContext:
@@ -50,13 +76,18 @@ class JudgeContext:
     def __init__(
         self, content_dir: Path, vocab: Vocabulary, guard: dict[str, Any] | None = None
     ) -> None:
-        self.guard = guard or {}
+        self.guard = validate_guard(guard or {}, vocab)
         settings = json.loads((content_dir / "invention/settings.json").read_text(encoding="utf-8"))
         self.living = set(cast(list[str], settings.get("living_properties", [])))
         self.properties = [p for p in vocab.ids("property") if p not in self.living]
         rules = json.loads((content_dir / "processes/rules.json").read_text(encoding="utf-8"))
         self.heat_levels = [str(h) for h in rules["heat_levels"]]  # lowest first (order matters)
         self.tech_levels = tech_levels(content_dir)
+
+
+def guard_settings(template: PromptTemplate) -> dict[str, Any]:
+    raw: object = template.settings.get("guard")
+    return cast(dict[str, Any], raw) if isinstance(raw, dict) else {}
 
 
 def _payload(job: GenerationJob) -> Any:
@@ -67,6 +98,7 @@ def _payload(job: GenerationJob) -> Any:
 
 
 def _signature(payload: Any) -> tuple[str, list[list[str]], list[str] | None, str | None]:
+    """Process, inputs in canonical order (as in the signature hash), tool, heat."""
     sig = payload.signature
     inputs = sorted(
         (sorted({plain_id(p) for p in props}) for props in sig.inputs), key=lambda ps: ",".join(ps)
@@ -82,18 +114,53 @@ def _upto(levels: list[str], level: str | None) -> list[str]:
     return levels[: levels.index(level) + 1]
 
 
+def impossible(
+    guard: dict[str, Any], process: str, inputs: list[list[str]], heat: str | None
+) -> str | None:
+    """Physics as data: why this try cannot work at all, or None (checked before any call)."""
+    present = {p for props in inputs for p in props}
+    if process in guard.get("heat_processes", []) and heat is None:
+        return f"{process} works by heat and there is none"
+    needs = cast(dict[str, list[str]], guard.get("needs_any", {})).get(process)
+    if needs and not (set(needs) & present):
+        return f"{process} needs an input with one of {needs}"
+    never = sorted(
+        set(cast(dict[str, list[str]], guard.get("never_if", {})).get(process, [])) & present
+    )
+    if never:
+        return f"{process} does not work on {never}"
+    return None
+
+
+def precheck(job: GenerationJob, ctx: JudgeContext) -> dict[str, Any] | None:
+    """The 'not feasible' result when physics rules the try out, else None (then ask the model)."""
+    process, inputs, _, heat = _signature(_payload(job))
+    reason = impossible(ctx.guard, process, inputs, heat)
+    if reason is None:
+        return None
+    return {"feasible": False, "rule": None, "rationale": f"Physics: {reason}."[:280]}
+
+
 def output_schema(job: GenerationJob, ctx: JudgeContext) -> dict[str, Any]:
     payload = _payload(job)
     process, inputs, _, heat = _signature(payload)
     by_heat = process in ctx.guard.get("heat_processes", [])
     heat_choices: list[Any] = _upto(ctx.heat_levels, heat) + ([] if by_heat else [None])
     may_add = cast(dict[str, list[str]], ctx.guard.get("may_add", {})).get(process)
-    addable = [p for p in ctx.properties if may_add is None or p in may_add] or ctx.properties[:1]
-    first = inputs[0]
+    addable = [p for p in ctx.properties if may_add is None or p in may_add]
+    protected = set(ctx.guard.get("never_remove", []))
+    removable = sorted({p for props in inputs for p in props} - protected)
+    add_items: dict[str, Any] = (
+        {"type": "string", "enum": addable} if addable else {"type": "string", "enum": [""]}
+    )
+    remove_items: dict[str, Any] = (
+        {"type": "string", "enum": removable} if removable else {"type": "string", "enum": [""]}
+    )
     rule = {
         "type": "object",
         "additionalProperties": False,
         "required": [
+            "changes",
             "add_properties",
             "remove_properties",
             "consumes",
@@ -102,25 +169,26 @@ def output_schema(job: GenerationJob, ctx: JudgeContext) -> dict[str, Any]:
             "duration_ticks",
         ],
         "properties": {
+            "changes": {"type": "integer", "minimum": 1, "maximum": len(inputs)},
             "add_properties": {
                 "type": "array",
-                "maxItems": 4,
+                "maxItems": 4 if addable else 0,
                 "uniqueItems": True,
-                "items": {"type": "string", "enum": addable},
+                "items": add_items,
             },
             "remove_properties": {
                 "type": "array",
-                "maxItems": 4,
+                "maxItems": 4 if removable else 0,
                 "uniqueItems": True,
-                "items": {"type": "string", "enum": first},
+                "items": remove_items,
             },
             "consumes": {
                 "type": "array",
-                "maxItems": 3,
+                "maxItems": max(0, len(inputs) - 1),
                 "uniqueItems": True,
-                "items": {"type": "integer", "minimum": 2, "maximum": max(2, len(inputs))},
+                "items": {"type": "integer", "minimum": 1, "maximum": len(inputs)},
             },
-            "heat_min": {"enum": heat_choices},
+            "heat_min": {"enum": heat_choices or [None]},
             "tech_level": {
                 "type": "string",
                 "enum": _upto(ctx.tech_levels, plain_id(payload.tech_level)) or ctx.tech_levels[:1],
@@ -159,10 +227,9 @@ def build_values(job: GenerationJob, ctx: JudgeContext) -> dict[str, str]:
 
 def parse_judgement(raw: str, job: GenerationJob, ctx: JudgeContext) -> dict[str, Any]:
     """The guard in code: schema, then the checks the schema cannot express; returns the result."""
-    process, inputs, tool, heat = _signature(_payload(job))
-    reason = impossible(ctx.guard, process, inputs, heat)
-    if reason is not None:  # physics says no, whatever the model thinks (not a model error)
-        return {"feasible": False, "rule": None, "rationale": f"Physics: {reason}."[:280]}
+    early = precheck(job, ctx)
+    if early is not None:
+        return early
     schema = output_schema(job, ctx)
     try:
         data: Any = json.loads(raw)
@@ -176,73 +243,51 @@ def parse_judgement(raw: str, job: GenerationJob, ctx: JudgeContext) -> dict[str
     errors = sorted(Draft202012Validator(schema).iter_errors(data), key=lambda e: list(e.path))
     if errors:
         first = errors[0]
-        raise InvalidOutputError(
-            f"{'/'.join(str(p) for p in first.path) or '(root)'}: {first.message}"
-        )
+        where = "/".join(str(p) for p in first.path) or "(root)"
+        raise InvalidOutputError(f"{where}: {first.message}")
     values = cast(dict[str, Any], data)
     rationale = " ".join(str(values["rationale"]).split())[:280]
     if not values["feasible"]:
         return {"feasible": False, "rule": None, "rationale": rationale}
-    chosen = values["rule"]
+    process, inputs, tool, heat = _signature(_payload(job))
+    chosen = cast(dict[str, Any], values["rule"])
+    target = int(chosen["changes"]) - 1
+    if process in ctx.guard.get("heat_processes", []) and chosen["heat_min"] is None:
+        raise InvalidOutputError(f"{process} works by heat: heat_min is needed")
+    if target + 1 in chosen["consumes"]:
+        raise InvalidOutputError("the changing input is never used up")
+    removed = [p for p in chosen["remove_properties"] if p]
+    if set(removed) - set(inputs[target]):
+        raise InvalidOutputError("removed properties must belong to the changing input")
     present = {p for props in inputs for p in props}
-    # Food or drink never comes from nothing (guard no_new): drop it instead of asking again.
-    chosen["add_properties"] = [
-        p for p in chosen["add_properties"] if p not in set(ctx.guard.get("no_new", [])) - present
-    ]
-    if not chosen["add_properties"] and not chosen["remove_properties"]:
-        raise InvalidOutputError("a feasible try must change something")
-    if set(chosen["add_properties"]) & ctx.living:
+    no_new = set(ctx.guard.get("no_new", [])) - present
+    added = [p for p in chosen["add_properties"] if p and p not in no_new]  # never from nothing
+    if set(added) & ctx.living:
         raise InvalidOutputError("things never become alive (B2531)")
-    _physics(ctx.guard, process, inputs, chosen)
-    if set(chosen["add_properties"]) <= set(inputs[0]) and not chosen["remove_properties"]:
-        raise InvalidOutputError("input 1 already has every added property")
+    added = sorted(set(added) - set(inputs[target]))
+    if not added and not removed:
+        raise InvalidOutputError("a feasible try must change something")
+    # Rule order: the changing input first (rule semantics), the others in canonical order.
+    order = [target] + [i for i in range(len(inputs)) if i != target]
     rule = {
         "id": world_rule_id(process, inputs, tool, heat),
         "process": process,
-        "inputs": [{"properties_all": p, "properties_none": []} for p in inputs],
+        "inputs": [{"properties_all": inputs[i], "properties_none": []} for i in order],
         "tool": {"properties_all": tool, "properties_none": []} if tool else None,
         "heat_min": chosen["heat_min"],
         "duration_ticks": int(chosen["duration_ticks"]),
         "tech_level": chosen["tech_level"],
         "result": {
-            "add_properties": sorted(set(chosen["add_properties"]) - set(inputs[0])),
-            "remove_properties": sorted(chosen["remove_properties"]),
+            "add_properties": added,
+            "remove_properties": sorted(removed),
             "produces": None,
-            "consumes": sorted(n - 1 for n in chosen["consumes"] if n - 1 < len(inputs)),
+            "consumes": sorted(order.index(n - 1) for n in chosen["consumes"]),
         },
     }
     return {"feasible": True, "rule": rule, "rationale": rationale}
 
 
-def guard_settings(template: PromptTemplate) -> dict[str, Any]:
-    raw: object = template.settings.get("guard")
-    return cast(dict[str, Any], raw) if isinstance(raw, dict) else {}
-
-
-def impossible(
-    guard: dict[str, Any], process: str, inputs: list[list[str]], heat: str | None
-) -> str | None:
-    """Physics as data (prompt settings.guard): why this try cannot work at all, or None."""
-    present = {p for props in inputs for p in props}
-    needs = cast(dict[str, list[str]], guard.get("needs_any", {})).get(process)
-    if needs and not (set(needs) & present):
-        return f"{process} needs an input with one of {needs}"
-    if process in guard.get("heat_processes", []) and heat is None:
-        return f"{process} works by heat and there is none"
-    never = sorted(
-        set(cast(dict[str, list[str]], guard.get("never_if", {})).get(process, [])) & present
-    )
-    if never:
-        return f"{process} does not work on {never}"
-    return None
-
-
-def _physics(
-    guard: dict[str, Any], process: str, inputs: list[list[str]], chosen: dict[str, Any]
-) -> None:
-    """Model mistakes (asked again): heat processes need heat."""
-    if process in guard.get("heat_processes", []) and chosen["heat_min"] is None:
-        raise InvalidOutputError(f"{process} works by heat: heat_min is needed")
+GUARD_SOURCE = ("local_model", "physics-guard")  # no model call: a data rule answered
 
 
 class OllamaProcesses:
@@ -260,6 +305,9 @@ class OllamaProcesses:
         self._ctx, self._settings, self._log = context, settings, log
 
     async def __call__(self, job: GenerationJob) -> JobOutcome:
+        early = precheck(job, self._ctx)
+        if early is not None:  # physics rules it out: no GPU call (review GW1 #109)
+            return JobOutcome({"process": early}, *GUARD_SOURCE, None, 0, 1)
         rendered = self._template.render(build_values(job, self._ctx))
         answer = await ask_model(
             role=ROLE,
@@ -297,16 +345,23 @@ class ReplayProcesses:
         self._answers: dict[str, dict[str, object]] | None = None
 
     async def __call__(self, job: GenerationJob) -> JobOutcome:
+        early = precheck(job, self._ctx)
+        if early is not None:
+            return JobOutcome({"process": early}, *GUARD_SOURCE, None, 0, 1)
         job_id = plain_id(job.request_id)
         if self._answers is None:
             self._answers = recorded_answers(self._log, ROLE)
         row = self._answers.get(job_id)
-        if row is None:
-            raise fail("model_unavailable", f"no recorded answer for job {job_id}")
+        if row is None:  # a replay never gets the answer later: not retryable (review GW1 #109)
+            raise JobFailedError(
+                "model_unavailable", f"no recorded answer for job {job_id}", retryable=False
+            )
         try:
             result = parse_judgement(str(row["raw_output"]), job, self._ctx)
         except InvalidOutputError as error:
-            raise fail("model_unavailable", f"recorded answer does not fit job {job_id}") from error
+            raise JobFailedError(
+                "model_unavailable", f"recorded answer does not fit job {job_id}", retryable=False
+            ) from error
         attempts = row.get("attempt", 1)
         return JobOutcome(
             {"process": result},

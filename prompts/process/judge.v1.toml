@@ -21,9 +21,9 @@ Rules:
   fibres can); soaking a stone changes nothing.
 - Only properties that really follow from the process. Never invent food or drink: drying,
   striking or heating does not make something edible or drinkable unless it already was.
-- If feasible, input 1 is the thing that changes: properties it gains (add_properties) and loses
-  (remove_properties, only properties it has). Other inputs may be used up (consumes: their
-  numbers, never 1).
+- If feasible: changes = the number of the input that is worked on and changes. It gains
+  properties (add_properties) and loses some (remove_properties, only properties it has). Other
+  inputs may be used up (consumes: their numbers, never the changing one).
 - Things never become alive, and nothing becomes a weapon against living beings.
 - duration_ticks: how long it takes (a few minutes = 10-30, an hour = 60, half a day = 600).
 - rationale: one short English sentence (for developers, never shown to players).
@@ -35,7 +35,7 @@ user = """
 ## Process
 $process
 
-## Inputs (true properties; input 1 is the thing that changes)
+## Inputs (true properties, numbered)
 $inputs
 
 ## Tool
@@ -44,7 +44,7 @@ $tool
 ## Heat available
 $heat
 
-## What the inhabitant sees (types only, for context)
+## What the inhabitant sees (types only, any order, for context)
 $seen
 
 Judge the try.
@@ -53,32 +53,33 @@ Judge the try.
 # Physics checks done by the service (the guard in code, data): a judgement that breaks them is
 # asked again. heat_processes need heat_min; needs_any: some input must have one of these;
 # never_if: no input may have this; no_new: added only if an input already has it;
-# may_add: the only properties a process can give (values not in the vocabulary are ignored).
+# may_add: the only properties a process can give; never_remove: no process takes these away.
+# All ids are checked against the vocabulary when the service starts (fail fast).
 [settings.guard]
 heat_processes = ["heat", "fire", "char", "melt"]
 no_new = ["edible", "drinkable"]
+never_remove = ["edible", "poisonous", "drinkable", "healing"]
 
 [settings.guard.needs_any]
 braid = ["braidable"]
-melt = ["scratchable", "fine_grained", "malleable", "hardens_in_fire"]
+melt = ["scratchable", "malleable", "hardens_in_fire"]
 char = ["burnable"]
 grind = ["hard", "edible", "long_lasting"]
 
 [settings.guard.never_if]
 melt = ["burnable"]
 
-[settings.guard.may_add]
-heat = ["hot", "cooked"]
+[settings.guard.may_add]  # cooked, fine_grained, milky, alkaline, smoulders, transparent come with P1 (#100)
+heat = ["hot"]
 dry = ["burnable", "long_lasting", "hard"]
 strike = ["sharp", "sparks"]
 split = ["sharp", "building_material"]
 cut = ["sharp", "portable"]
-grind = ["fine_grained"]
 soak = ["malleable"]
-mix = ["malleable", "milky", "sticky"]
+mix = ["malleable", "sticky"]
 bind = ["portable"]
 braid = ["long_lasting", "portable"]
 shape = ["container"]
-fire = ["hard", "long_lasting", "fine_grained", "alkaline"]
-char = ["smoulders", "burnable"]
-melt = ["malleable", "hot", "transparent"]
+fire = ["hard", "long_lasting"]
+char = ["burnable"]
+melt = ["malleable", "hot"]
