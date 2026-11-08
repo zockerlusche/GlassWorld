@@ -109,7 +109,7 @@ class SoundForAnimal(BaseModel):
     )
     per_hour: float = Field(
         ...,
-        description='How often one animal near the camera calls per game hour (0 = silent near the camera; heard only at the animal itself once animals are objects, B5).',
+        description='How often one animal near the camera calls per game hour; a fraction is the chance of one more call in that hour (0 = silent near the camera; heard only at the animal itself once animals are objects, B5).',
         ge=0.0,
         le=600.0,
     )

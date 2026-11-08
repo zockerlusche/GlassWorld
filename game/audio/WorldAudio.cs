@@ -28,6 +28,8 @@ public partial class WorldAudio : Node3D
     private AnimalCalls? _animals;
     private BirdsongSettings? _birdsong;
     private long _animalTick = -1;
+    private CallBudget? _callBudget;
+    private double _clock;
 
     /// <summary>Zoom 0 (fully in) .. 1 (fully out); set by the camera control.</summary>
     public double Zoom { get; set; } = 0.5;
@@ -64,6 +66,7 @@ public partial class WorldAudio : Node3D
         {
             var animals = GlassWorld.Contracts.Validation.ContractSerializer.Deserialize<AnimalSoundSettings>(Read("content.sound.animals.json"));
             _animals = new AnimalCalls(RetroAudio.Library!, animals);
+            _callBudget = new CallBudget(animals.MaxCallsPerSecond);
             _birdsong = animals.Birdsong;
         }
         catch (Exception e) when (e is InvalidDataException or GlassWorld.Contracts.Validation.ContractViolationException)
@@ -115,6 +118,7 @@ public partial class WorldAudio : Node3D
             return;
         }
 
+        _clock += delta;
         var listener = Listener();
         foreach (var (bus, pool) in _pools)
         {
@@ -188,6 +192,11 @@ public partial class WorldAudio : Node3D
             if (player is null)
             {
                 return;
+            }
+
+            if (_callBudget is not null && !_callBudget.TryTake(_clock))
+            {
+                continue;
             }
 
             player.Stream = call.Sung && _birdsong is not null ? Song(call.Seed) : Stream(call.SoundId, call.Variant);

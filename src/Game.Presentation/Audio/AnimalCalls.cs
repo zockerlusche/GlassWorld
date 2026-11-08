@@ -65,7 +65,10 @@ public sealed class AnimalCalls(SoundLibrary library, AnimalSoundSettings settin
             var time = timeAt(hour * ticksPerHour);
             foreach (var animal in _library.AudibleAnimals(biome, time.Season, time.TimeOfDay))
             {
-                var count = (int)Math.Floor(animal.PerHour);
+                // A fraction of per_hour is the chance of one more call in this hour (review #91).
+                var whole = (int)Math.Floor(animal.PerHour);
+                var extra = new SplitMix64(SplitMix64.SeedOf(string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{worldSeed}|{animal.Animal}|{hour}|extra")));
+                var count = whole + ((extra.NextSigned() + 1) / 2 < animal.PerHour - whole ? 1 : 0);
                 for (var k = 0; k < count; k++)
                 {
                     var random = new SplitMix64(SplitMix64.SeedOf(string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{worldSeed}|{animal.Animal}|{hour}|{k}")));
@@ -93,5 +96,29 @@ public sealed class AnimalCalls(SoundLibrary library, AnimalSoundSettings settin
 
         // Stable: calls of one tick keep the order they were made in (hour, animal, number).
         return [.. calls.OrderBy(c => c.Tick).ThenBy(c => c.Animal, StringComparer.Ordinal)];
+    }
+}
+
+/// <summary>
+/// At most a number of calls per real second (review #91): at fast forward or after a jump the planner
+/// yields many calls at once; two calls are at least 1/perSecond real seconds apart, the rest are skipped,
+/// so the world stays calm.
+/// </summary>
+/// <param name="perSecond">Allowed calls per real second (data).</param>
+public sealed class CallBudget(double perSecond)
+{
+    private readonly double _gap = 1 / Math.Max(1e-6, perSecond);
+    private double? _last;
+
+    /// <summary>True if a call may start at <paramref name="now"/> (real seconds); then it is counted.</summary>
+    public bool TryTake(double now)
+    {
+        if (_last is { } last && now - last < _gap)
+        {
+            return false;
+        }
+
+        _last = now;
+        return true;
     }
 }

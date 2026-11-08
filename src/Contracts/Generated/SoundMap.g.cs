@@ -101,7 +101,7 @@ namespace GlassWorld.Contracts
         public System.Collections.Generic.ICollection<string> TimesOfDay { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
         /// <summary>
-        /// How often one animal near the camera calls per game hour (0 = silent near the camera; heard only at the animal itself once animals are objects, B5).
+        /// How often one animal near the camera calls per game hour; a fraction is the chance of one more call in that hour (0 = silent near the camera; heard only at the animal itself once animals are objects, B5).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("per_hour")]
         public double PerHour { get; set; } = default!;

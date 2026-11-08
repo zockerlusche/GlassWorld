@@ -8,6 +8,7 @@
   "required": [
     "contract_version",
     "call_radius_m",
+    "max_calls_per_second",
     "birdsong"
   ],
   "properties": {
@@ -16,6 +17,12 @@
     },
     "call_radius_m": {
       "$ref": "#/$defs/CallRadius"
+    },
+    "max_calls_per_second": {
+      "description": "At most this many calls start per real second (fast forward and jumps stay calm, review #91); calls beyond it are skipped.",
+      "type": "number",
+      "minimum": 0.1,
+      "maximum": 10
     },
     "birdsong": {
       "$ref": "#/$defs/BirdsongSettings"
@@ -44,7 +51,7 @@
       }
     },
     "BirdsongSettings": {
-      "description": "A small melody per call: notes from a scale (semitone steps above a base pitch), with glides and short trills. Every call gets its own seed, so songs vary.",
+      "description": "A small melody per call: notes from a scale (semitone steps above a base pitch), with glides and short trills. Every call gets its own seed, so songs vary. Limits keep the highest tone below about 10 kHz (base 4 kHz, one octave, glide 3 semitones).",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -80,12 +87,12 @@
         "base_hz_min": {
           "type": "number",
           "minimum": 500,
-          "maximum": 8000
+          "maximum": 4000
         },
         "base_hz_max": {
           "type": "number",
           "minimum": 500,
-          "maximum": 8000
+          "maximum": 4000
         },
         "steps": {
           "description": "Semitone steps above the base pitch a note may take.",
@@ -95,7 +102,7 @@
           "items": {
             "type": "integer",
             "minimum": 0,
-            "maximum": 24
+            "maximum": 12
           }
         },
         "note_s_min": {
@@ -117,7 +124,7 @@
           "description": "Largest pitch glide within a note (up or down).",
           "type": "number",
           "minimum": 0,
-          "maximum": 12
+          "maximum": 3
         },
         "trill_chance": {
           "type": "number",

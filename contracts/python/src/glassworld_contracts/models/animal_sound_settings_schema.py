@@ -16,7 +16,7 @@ class CallRadius(BaseModel):
     max: float = Field(..., ge=0.0, le=200.0)
 
 
-type Step = Annotated[int, Field(..., ge=0, le=24)]
+type Step = Annotated[int, Field(..., ge=0, le=12)]
 
 
 class BirdsongSettings(BaseModel):
@@ -31,8 +31,8 @@ class BirdsongSettings(BaseModel):
     )
     notes_min: int = Field(..., ge=1, le=32)
     notes_max: int = Field(..., ge=1, le=32)
-    base_hz_min: float = Field(..., ge=500.0, le=8000.0)
-    base_hz_max: float = Field(..., ge=500.0, le=8000.0)
+    base_hz_min: float = Field(..., ge=500.0, le=4000.0)
+    base_hz_max: float = Field(..., ge=500.0, le=4000.0)
     steps: list[Step] = Field(
         ...,
         description='Semitone steps above the base pitch a note may take.',
@@ -46,7 +46,7 @@ class BirdsongSettings(BaseModel):
         ...,
         description='Largest pitch glide within a note (up or down).',
         ge=0.0,
-        le=12.0,
+        le=3.0,
     )
     trill_chance: float = Field(..., ge=0.0, le=1.0)
     trill_notes: int = Field(..., ge=2, le=12)
@@ -62,4 +62,10 @@ class AnimalSoundSettings(BaseModel):
         description='Contract version. Incompatible changes require a new major version and an ADR.',
     )
     call_radius_m: CallRadius
+    max_calls_per_second: float = Field(
+        ...,
+        description='At most this many calls start per real second (fast forward and jumps stay calm, review #91); calls beyond it are skipped.',
+        ge=0.1,
+        le=10.0,
+    )
     birdsong: BirdsongSettings

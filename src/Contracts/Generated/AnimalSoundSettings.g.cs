@@ -28,7 +28,7 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
-    /// A small melody per call: notes from a scale (semitone steps above a base pitch), with glides and short trills. Every call gets its own seed, so songs vary.
+    /// A small melody per call: notes from a scale (semitone steps above a base pitch), with glides and short trills. Every call gets its own seed, so songs vary. Limits keep the highest tone below about 10 kHz (base 4 kHz, one octave, glide 3 semitones).
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class BirdsongSettings
@@ -96,6 +96,12 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("call_radius_m")]
         public CallRadius CallRadiusM { get; set; } = new CallRadius();
+
+        /// <summary>
+        /// At most this many calls start per real second (fast forward and jumps stay calm, review #91); calls beyond it are skipped.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max_calls_per_second")]
+        public double MaxCallsPerSecond { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("birdsong")]
         public BirdsongSettings Birdsong { get; set; } = new BirdsongSettings();

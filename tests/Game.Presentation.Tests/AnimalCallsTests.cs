@@ -90,6 +90,42 @@ public sealed class AnimalCallsTests
         Assert.True(a.Max(x => Math.Abs((int)x)) / (double)short.MaxValue <= Settings.Birdsong.Peak + 0.01);
     }
 
+    [Fact]
+    public void AtFastForwardAtMostTheDataNumberOfCallsStartPerRealSecond()
+    {
+        // Review #91: x16 gave about 10 calls per second on the meadow; the budget keeps them apart.
+        var budget = new CallBudget(Settings.MaxCallsPerSecond);
+        var factor = Calendar.Settings.FastForwardFactors.Max();
+        var secondsPerTick = Calendar.RealSecondsPerTickAtNormalSpeed / factor;
+        var played = Calls.Between(0, Calendar.TicksPerDay, TicksPerHour, Time, "meadow", new Position(0, 0), 42)
+            .Select(c => c.Tick * secondsPerTick)
+            .Where(budget.TryTake)
+            .ToList();
+        Assert.NotEmpty(played);
+        Assert.All(played.Zip(played.Skip(1)), p => Assert.True(p.Second - p.First >= (1 / Settings.MaxCallsPerSecond) - 1e-9));
+        var seconds = Calendar.TicksPerDay * secondsPerTick;
+        Assert.True(played.Count <= (seconds * Settings.MaxCallsPerSecond) + 1, $"{played.Count} calls in {seconds:0} s");
+    }
+
+    [Fact]
+    public void AFractionOfCallsPerHourIsAChanceNotSilence()
+    {
+        // Review #91: 0.5 per hour gives a call in about half of the hours, never more than one.
+        var map = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Path.Combine(Sound, "sound_map.json")))!;
+        foreach (var animal in map["animals"]!.AsArray())
+        {
+            animal!["per_hour"] = (string)animal["animal"]! == "owl" ? 0.5 : 0;
+        }
+
+        var library = SoundLibrary.FromJson(map.ToJsonString(), File.ReadAllText(Path.Combine(Sound, "synth_recipes.json")));
+        var calls = new AnimalCalls(library, Settings);
+        var perHour = Enumerable.Range(0, 400)
+            .Select(h => calls.Between((long)h * TicksPerHour, (long)(h + 1) * TicksPerHour, TicksPerHour, _ => new HourTime("spring", "night"), "forest", new Position(0, 0), 42).Count)
+            .ToList();
+        Assert.All(perHour, n => Assert.InRange(n, 0, 1));
+        Assert.InRange(perHour.Average(), 0.4, 0.6);
+    }
+
     private static HourTime Time(long tick) => HourTime.Of(Calendar.At(tick));
 
     private static IReadOnlyList<AnimalCall> Day(string biome, long from, long to) =>
