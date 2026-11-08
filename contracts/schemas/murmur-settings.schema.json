@@ -1,0 +1,376 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/murmur-settings.schema.json",
+  "title": "MurmurSettings",
+  "description": "Murmur (B8 R5, F5243=B): inhabitants speak audibly only a murmur without words, made from small sound blocks (vowel-like formants, soft consonant noise), no TTS. Voice per inhabitant from body values; length and melody follow the bubble text; the same sentence and inhabitant always give the same sound. All values are placeholders until Marcel's word.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "sample_rate",
+    "peak",
+    "syllable",
+    "length",
+    "vowels",
+    "formant_bandwidth_hz",
+    "consonant",
+    "melodies",
+    "question_marks",
+    "exclamation_marks",
+    "voice",
+    "placeholder_body"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "sample_rate": {
+      "type": "integer",
+      "enum": [
+        22050,
+        44100,
+        48000
+      ]
+    },
+    "peak": {
+      "description": "A murmur is normalised to this peak (limiter, B8 R7).",
+      "type": "number",
+      "minimum": 0.1,
+      "maximum": 1
+    },
+    "syllable": {
+      "$ref": "#/$defs/MurmurSyllable"
+    },
+    "length": {
+      "$ref": "#/$defs/MurmurLength"
+    },
+    "vowels": {
+      "description": "Vowel-like blocks as two formants; picked by the seed, never from the letters of the text.",
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 16,
+      "items": {
+        "$ref": "#/$defs/MurmurVowel"
+      }
+    },
+    "formant_bandwidth_hz": {
+      "type": "number",
+      "minimum": 20,
+      "maximum": 600
+    },
+    "consonant": {
+      "$ref": "#/$defs/MurmurConsonant"
+    },
+    "melodies": {
+      "description": "Pitch contour per sentence kind (factors of the voice's base pitch): question rises, exclamation stresses the start, calm stays flat.",
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "$ref": "#/$defs/MurmurMelody"
+      }
+    },
+    "question_marks": {
+      "description": "Characters that make a text a question when it ends with one (language-neutral, DE and EN).",
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 8,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1
+      }
+    },
+    "exclamation_marks": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 8,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1
+      }
+    },
+    "voice": {
+      "$ref": "#/$defs/MurmurVoice"
+    },
+    "placeholder_body": {
+      "$ref": "#/$defs/MurmurPlaceholderBody"
+    }
+  },
+  "$defs": {
+    "MurmurSyllable": {
+      "description": "One sound block: duration at tempo 1, random variation, pause after it, soft edges.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "duration_s",
+        "variation",
+        "pause_s",
+        "attack_s",
+        "release_s"
+      ],
+      "properties": {
+        "duration_s": {
+          "type": "number",
+          "minimum": 0.05,
+          "maximum": 1
+        },
+        "variation": {
+          "description": "Relative random change of each duration (0 = all equal).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.5
+        },
+        "pause_s": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.5
+        },
+        "attack_s": {
+          "type": "number",
+          "minimum": 0.001,
+          "maximum": 0.2
+        },
+        "release_s": {
+          "type": "number",
+          "minimum": 0.001,
+          "maximum": 0.3
+        }
+      }
+    },
+    "MurmurLength": {
+      "description": "Number of blocks from the length of the bubble text (characters, not letters or words).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "chars_per_syllable",
+        "min_syllables",
+        "max_syllables"
+      ],
+      "properties": {
+        "chars_per_syllable": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 20
+        },
+        "min_syllables": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20
+        },
+        "max_syllables": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 80
+        }
+      }
+    },
+    "MurmurConsonant": {
+      "description": "Soft noise before some blocks (no consonant inventory, no syllables with meaning).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "chance",
+        "duration_s",
+        "gain",
+        "lowpass_hz"
+      ],
+      "properties": {
+        "chance": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "duration_s": {
+          "type": "number",
+          "minimum": 0.005,
+          "maximum": 0.2
+        },
+        "gain": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "lowpass_hz": {
+          "type": "number",
+          "minimum": 200,
+          "maximum": 10000
+        }
+      }
+    },
+    "MurmurVoice": {
+      "description": "Body values -> voice. Size and age are 0..1; pitch factor = 1 + size_pitch * (0.5 - size) + age_pitch * (0.5 - age), tempo likewise; formants shift with size (smaller body, brighter sound).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "base_hz",
+        "default_hz",
+        "size_pitch",
+        "age_pitch",
+        "size_tempo",
+        "age_tempo",
+        "size_formant"
+      ],
+      "properties": {
+        "base_hz": {
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/MurmurBasePitch"
+          }
+        },
+        "default_hz": {
+          "type": "number",
+          "minimum": 50,
+          "maximum": 600
+        },
+        "size_pitch": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "age_pitch": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "size_tempo": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "age_tempo": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "size_formant": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "MurmurPlaceholderBody": {
+      "description": "Until the core has body values (B9, GW1 #18477): size and age per inhabitant are drawn from its id within these ranges. Remove when the core delivers them.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "size_min",
+        "size_max",
+        "age_min",
+        "age_max"
+      ],
+      "properties": {
+        "size_min": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "size_max": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "age_min": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "age_max": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "MurmurVowel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "f1_hz",
+        "f2_hz"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "f1_hz": {
+          "type": "number",
+          "minimum": 150,
+          "maximum": 1200
+        },
+        "f2_hz": {
+          "type": "number",
+          "minimum": 500,
+          "maximum": 3500
+        }
+      }
+    },
+    "MurmurMelody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "start",
+        "end",
+        "accent",
+        "accent_gain"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "calm",
+            "question",
+            "exclamation"
+          ]
+        },
+        "start": {
+          "description": "Pitch factor at the first block.",
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 2
+        },
+        "end": {
+          "description": "Pitch factor at the last block.",
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 2
+        },
+        "accent": {
+          "description": "Extra pitch factor on the first block (stress).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "accent_gain": {
+          "description": "Extra loudness factor on the first block.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "MurmurBasePitch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sex",
+        "hz"
+      ],
+      "properties": {
+        "sex": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "hz": {
+          "type": "number",
+          "minimum": 50,
+          "maximum": 600
+        }
+      }
+    }
+  }
+}

@@ -57,7 +57,7 @@ public partial class Main : Node3D
         var textsLoaded = TextCatalogs.Install();
         ReadArguments();
         _contentDirectory = ContentLocator.ContentDirectory();
-        var audioLoaded = RetroAudio.Load();
+        var audioLoaded = RetroAudio.Load() & MurmurAudio.Load();
         _baseStyle = UiSetup.Load();
         _mix = ContractSerializer.Deserialize<SoundMix>(System.IO.File.ReadAllText(System.IO.Path.Combine(_contentDirectory, "sound", "mix.json")));
         _library = new WorldLibrary(ProjectSettings.GlobalizePath("user://worlds"));
