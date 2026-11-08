@@ -1,0 +1,22 @@
+{
+  "contract_version": "0.2",
+  "job_priority": 30,
+  "trigger": {
+    "need_below": 0.15,
+    "hours_below": 24,
+    "cooldown_hours": 72,
+    "max_open": 1
+  },
+  "retry_after_minutes": 60,
+  "tech_level": "tool",
+  "limits": {
+    "max_size_m": 3,
+    "max_parts": 12,
+    "max_rounds": 2
+  },
+  "max_materials": 12,
+  "living_properties": [],
+  "implied_properties": [
+    "crafted"
+  ]
+}

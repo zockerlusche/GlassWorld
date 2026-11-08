@@ -51,6 +51,15 @@ public static class ScreenModel
     {
         ArgumentNullException.ThrowIfNull(events);
         ArgumentNullException.ThrowIfNull(rows);
+        foreach (var e in events.Where(e => e.Kind == Simulation.Player.PlayerSystem.HelpNeeded))
+        {
+            var row = rows.FirstOrDefault(r => r.Id == e.InhabitantId);
+            if (row is not null && e.Detail is not null)
+            {
+                yield return new ToastMessage("msg.hint.help_needed", new Dictionary<string, string>(NameArgs(row)) { ["need"] = VocabKeys.Need(e.Detail) }, "help");
+            }
+        }
+
         foreach (var e in events.Where(e => e.Kind == "question_opened"))
         {
             var row = rows.FirstOrDefault(r => r.Id == e.InhabitantId);

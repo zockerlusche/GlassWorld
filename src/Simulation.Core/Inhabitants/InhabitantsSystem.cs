@@ -2,6 +2,7 @@ using System.Globalization;
 using GlassWorld.Contracts;
 using GlassWorld.Simulation.Behaviour;
 using GlassWorld.Simulation.Objects;
+using GlassWorld.Simulation.Random;
 using GlassWorld.Simulation.State;
 
 namespace GlassWorld.Simulation.Inhabitants;
@@ -89,6 +90,9 @@ public sealed class InhabitantsSystem : IWorldSystem
     /// </summary>
     public IReadOnlyList<SequencedEvent> EventsSince(long seq) => [.. _history.Where(e => e.Seq > seq)];
 
+    /// <summary>Raised for every reported event, right away and in report order (chronicle, D471 D8).</summary>
+    public event Action<WorldEvent>? Reported;
+
     /// <summary>Adds an event; the per-tick list is cleared when the first event of a new tick arrives.</summary>
     public void Report(WorldEvent worldEvent)
     {
@@ -106,6 +110,8 @@ public sealed class InhabitantsSystem : IWorldSystem
         {
             _history.RemoveFirst();
         }
+
+        Reported?.Invoke(worldEvent);
     }
 
     /// <summary>
@@ -135,7 +141,14 @@ public sealed class InhabitantsSystem : IWorldSystem
 
             var moods = _model.Moods.ToDictionary(m => m.Id, m => m.Baseline, StringComparer.Ordinal);
             var sex = starters[i].Sex == StartInhabitantSex.Female ? "female" : "male";
-            Add(new Inhabitant(id, sex, starters[i].Group, positions[i], needs, moods, traits, _model.WillToLive.Start));
+            var inhabitant = new Inhabitant(id, sex, starters[i].Group, positions[i], needs, moods, traits, _model.WillToLive.Start);
+            if (Looks is { } looks)
+            {
+                // Own stream, not kept among the world's streams: the record is drawn once and saved.
+                inhabitant.Appearance = Appearance.Draw(looks, RandomStreams.Create(world.Seed, $"inhabitant/{id}/appearance"), looks.StartAgeDays);
+            }
+
+            Add(inhabitant);
         }
     }
 
@@ -145,6 +158,18 @@ public sealed class InhabitantsSystem : IWorldSystem
         ArgumentNullException.ThrowIfNull(inhabitant);
         _inhabitants.Add(inhabitant.Id, inhabitant);
     }
+
+    /// <summary>Routes on the island map (B2 R10); null on worlds without a map, where walking is straight.</summary>
+    public Map.IRouteFinder? Routes { get; init; }
+
+    /// <summary>Detail of a cancelled action whose destination cannot be reached on foot.</summary>
+    public const string Unreachable = "unreachable";
+
+    /// <summary>Detail of a cancelled action whose route search ran out of its budget.</summary>
+    public const string NoRouteInBudget = "no_route_in_budget";
+
+    /// <summary>Value ranges for the appearance of new inhabitants (null = no appearance, tests).</summary>
+    public LookAppearance? Looks { get; init; }
 
     /// <summary>Looks up an inhabitant.</summary>
     public Inhabitant Get(string id) => _inhabitants[id];
@@ -254,12 +279,12 @@ public sealed class InhabitantsSystem : IWorldSystem
         {
             var timing = _actions.Timing(activity.Action);
             var destination = target?.Position ?? activity.Destination;
-            if (!MoveTowards(inhabitant, destination, timing.ReachM))
+            if (!MoveTowards(world, inhabitant, destination, timing.ReachM))
             {
                 return;
             }
 
-            inhabitant.Activity = activity with { RemainingTicks = timing.DurationTicks };
+            inhabitant.Activity = activity with { RemainingTicks = timing.DurationTicks, Route = null };
             Report(new WorldEvent(ActionStarted, world.Tick, inhabitant.Id, activity.Action, activity.TargetId));
             return;
         }
@@ -278,7 +303,10 @@ public sealed class InhabitantsSystem : IWorldSystem
     private Activity? Choose(World world, Inhabitant inhabitant)
     {
         var radius = _brain.Weights.PerceptionRadiusM;
-        var perceived = _objects.All.Where(o => DistanceSquared(inhabitant.Position, o.Position) <= radius * radius).ToList();
+        // On a map only what can be walked to counts (B2 R10): things beyond deep water or cliffs are no goals.
+        var perceived = _objects.All
+            .Where(o => DistanceSquared(inhabitant.Position, o.Position) <= radius * radius && (Routes is null || Routes.Connected(inhabitant.Position, o.Position)))
+            .ToList();
         var scored = _brain.Score(inhabitant, perceived);
         if (scored.Count == 0)
         {
@@ -301,13 +329,23 @@ public sealed class InhabitantsSystem : IWorldSystem
             destination = new Position(
                 inhabitant.Position.X + (((rng.NextDouble() * 2.0) - 1.0) * radius),
                 inhabitant.Position.Z + (((rng.NextDouble() * 2.0) - 1.0) * radius));
+            if (Routes is not null && !Routes.Connected(inhabitant.Position, destination))
+            {
+                // A spot in the sea or beyond a cliff: stay here instead (no search for the impossible).
+                destination = inhabitant.Position;
+            }
         }
 
         return new Activity(best.Action, null, destination, null);
     }
 
-    private bool MoveTowards(Inhabitant inhabitant, Position destination, double reach)
+    private bool MoveTowards(World world, Inhabitant inhabitant, Position destination, double reach)
     {
+        if (Routes is { } routes && inhabitant.Activity is { } activity)
+        {
+            return FollowRoute(world, inhabitant, activity, routes, destination, reach);
+        }
+
         var dx = destination.X - inhabitant.Position.X;
         var dz = destination.Z - inhabitant.Position.Z;
         var distance = Math.Sqrt((dx * dx) + (dz * dz));
@@ -321,6 +359,70 @@ public sealed class InhabitantsSystem : IWorldSystem
         inhabitant.Position = new Position(inhabitant.Position.X + (dx * travel / distance), inhabitant.Position.Z + (dz * travel / distance));
         return distance - travel <= reach;
     }
+
+    /// <summary>
+    /// Walks along the route to the destination (B2 R10): the route is searched once when the walk starts
+    /// and kept in the activity (saved and hashed, so a loaded game walks on identically); speed follows
+    /// the ground (shallow water, slopes). No route: the action is cancelled with the reason.
+    /// </summary>
+    private bool FollowRoute(World world, Inhabitant inhabitant, Activity activity, Map.IRouteFinder routes, Position destination, double reach)
+    {
+        if (Distance(inhabitant.Position, destination) <= reach)
+        {
+            return true;
+        }
+
+        var route = activity.Route;
+        if (route is null)
+        {
+            var found = routes.Find(inhabitant.Position, destination);
+            if (found.Status != Map.PathStatus.Found)
+            {
+                Report(new WorldEvent(ActionCancelled, world.Tick, inhabitant.Id, activity.Action, activity.TargetId)
+                {
+                    Detail = found.Status == Map.PathStatus.Unreachable ? Unreachable : NoRouteInBudget,
+                });
+                inhabitant.Activity = null;
+                return false;
+            }
+
+            route = found.Waypoints;
+        }
+
+        var budget = _brain.Weights.MoveSpeedMPerMinute * 60.0 / _ticksPerHour * routes.SpeedFactor(inhabitant.Position);
+        var next = 0;
+        var arrived = false;
+        while (budget > 1e-9 && next < route.Count)
+        {
+            var point = route[next];
+            var last = next == route.Count - 1;
+            var stop = last ? reach : 0.0;
+            var distance = Distance(inhabitant.Position, point);
+            var travel = Math.Min(budget, Math.Max(0.0, distance - stop));
+            if (distance > 0)
+            {
+                inhabitant.Position = new Position(
+                    inhabitant.Position.X + ((point.X - inhabitant.Position.X) * travel / distance),
+                    inhabitant.Position.Z + ((point.Z - inhabitant.Position.Z) * travel / distance));
+            }
+
+            budget -= travel;
+            if (distance - travel <= stop + 1e-9)
+            {
+                next++;
+                arrived = last;
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        inhabitant.Activity = activity with { Route = [.. route.Skip(next)] };
+        return arrived || Distance(inhabitant.Position, destination) <= reach;
+    }
+
+    private static double Distance(Position a, Position b) => Math.Sqrt(((b.X - a.X) * (b.X - a.X)) + ((b.Z - a.Z) * (b.Z - a.Z)));
 
     private void Finish(World world, Inhabitant inhabitant, Activity activity, WorldObject? target)
     {

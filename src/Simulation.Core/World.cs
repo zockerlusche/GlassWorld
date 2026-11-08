@@ -34,6 +34,16 @@ public interface IWorldSystem
 }
 
 /// <summary>
+/// A system whose state may be empty. While <see cref="HasState"/> is false the world hash leaves the
+/// system out, so adding a system does not change the hash of worlds that never use it (golden hashes).
+/// </summary>
+public interface IOptionalWorldState
+{
+    /// <summary>True once the system holds any state.</summary>
+    bool HasState { get; }
+}
+
+/// <summary>
 /// The simulation world: fixed tick, world time, seeded random streams and a state hash. Systems run in
 /// the order they were registered (an explicit list, no reflection). No Godot, no wall clock (ADR-0002).
 /// </summary>
@@ -150,6 +160,11 @@ public sealed class World
 
         foreach (var system in _systems)
         {
+            if (system is IOptionalWorldState { HasState: false })
+            {
+                continue;
+            }
+
             hasher.Section("system:" + system.Name);
             system.WriteState(hasher);
         }

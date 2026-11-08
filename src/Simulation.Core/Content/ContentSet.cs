@@ -1,8 +1,11 @@
+using System.Collections.Frozen;
 using GlassWorld.Contracts;
 using GlassWorld.Contracts.Validation;
 using GlassWorld.Simulation.Behaviour;
+using GlassWorld.Simulation.Inventions;
 using GlassWorld.Simulation.Map;
 using GlassWorld.Simulation.Objects;
+using GlassWorld.Simulation.Safety;
 using GlassWorld.Simulation.Time;
 
 namespace GlassWorld.Simulation.Content;
@@ -25,10 +28,18 @@ public sealed class ContentSet
         UtilityBrain brain,
         WorldGenContent worldGen,
         GiftRules giftRules,
-        FavorSettings favor)
+        FavorSettings favor,
+        InventionRules inventions,
+        ChronicleKinds chronicle,
+        WritingMedia writing,
+        SkillPractice skillPractice)
     {
         GiftRules = giftRules;
         Favor = favor;
+        Inventions = inventions;
+        Chronicle = chronicle;
+        Writing = writing;
+        SkillPractice = skillPractice;
         Calendar = calendar;
         Objects = objects;
         Combinations = combinations;
@@ -38,6 +49,9 @@ public sealed class ContentSet
         Brain = brain;
         WorldGen = worldGen;
     }
+
+    /// <summary>Value ranges of the appearance record (content/look/appearance.json, B2 R27).</summary>
+    public LookAppearance Appearance { get; private init; } = null!;
 
     /// <summary>Rules for gifts and calls for help (content/player/gift_rules.json).</summary>
     public GiftRules GiftRules { get; }
@@ -68,6 +82,18 @@ public sealed class ContentSet
 
     /// <summary>World generator and weather data (content/world, content/climate; B2).</summary>
     public WorldGenContent WorldGen { get; }
+
+    /// <summary>Invention settings, vocabularies and content guard for the core's final check (D471 D5).</summary>
+    public InventionRules Inventions { get; }
+
+    /// <summary>Which core events become chronicle entries (content/chronicle/kinds.json).</summary>
+    public ChronicleKinds Chronicle { get; }
+
+    /// <summary>Writing carriers and what write/read need (content/writing/media.json, B8 R13-R15).</summary>
+    public WritingMedia Writing { get; }
+
+    /// <summary>Which action practises which skill (content/skills/practice.json, B5 R18).</summary>
+    public SkillPractice SkillPractice { get; }
 
     /// <summary>Loads and checks the content folder.</summary>
     public static ContentSet Load(string contentDirectory)
@@ -100,7 +126,27 @@ public sealed class ContentSet
             needs,
             objects.PropertyVocabulary);
         var worldGen = WorldGenContent.Load(contentDirectory, vocabularies, objects, calendar);
+        var inventionSettings = ContractSerializer.Deserialize<InventionSettings>(File.ReadAllText(Path.Combine(contentDirectory, "invention", "settings.json")));
+        var inventions = new InventionRules(
+            inventionSettings,
+            objects.PropertyVocabulary,
+            Ids(vocabularies, VocabularyKind.Action).ToFrozenSet(StringComparer.Ordinal),
+            Ids(vocabularies, VocabularyKind.Process).ToFrozenSet(StringComparer.Ordinal),
+            [.. Required(vocabularies, VocabularyKind.Tech_level).Entries.Select(e => e.Id)],
+            TextGuard.FromJson(File.ReadAllText(Path.Combine(contentDirectory, "safety", "rules.json"))),
+            new BuildRules(
+                ContractSerializer.Deserialize<BuildSettings>(File.ReadAllText(Path.Combine(contentDirectory, "build", "settings.json"))),
+                ContractSerializer.Deserialize<BuildKit>(File.ReadAllText(Path.Combine(contentDirectory, "build", "kit.json"))),
+                model.Needs.Where(n => n.NeglectBelow > 0).Select(n => n.Id).ToFrozenSet(StringComparer.Ordinal),
+                ContractSerializer.Deserialize<JobPhases>(File.ReadAllText(Path.Combine(contentDirectory, "jobs", "phases.json"))).NightDayPhases.ToFrozenSet(StringComparer.Ordinal),
+                ContractSerializer.Deserialize<SoundGeneration>(File.ReadAllText(Path.Combine(contentDirectory, "sound", "generation.json")))));
+        CheckInventions(inventions, actions, Ids(vocabularies, VocabularyKind.Shape), Ids(vocabularies, VocabularyKind.Time_of_day));
+        var chronicle = ContractSerializer.Deserialize<ChronicleKinds>(File.ReadAllText(Path.Combine(contentDirectory, "chronicle", "kinds.json")));
         var player = Path.Combine(contentDirectory, "player");
+        var writing = ContractSerializer.Deserialize<WritingMedia>(File.ReadAllText(Path.Combine(contentDirectory, "writing", "media.json")));
+        CheckWriting(writing, Ids(vocabularies, VocabularyKind.Writing_medium), Ids(vocabularies, VocabularyKind.Weather), Ids(vocabularies, VocabularyKind.Property), Ids(vocabularies, VocabularyKind.Trait));
+        var skillPractice = ContractSerializer.Deserialize<SkillPractice>(File.ReadAllText(Path.Combine(contentDirectory, "skills", "practice.json")));
+        CheckSkills(model, skillPractice, Ids(vocabularies, VocabularyKind.Skill), Ids(vocabularies, VocabularyKind.Action));
         return new ContentSet(
             calendar,
             objects,
@@ -111,7 +157,109 @@ public sealed class ContentSet
             brain,
             worldGen,
             ContractSerializer.Deserialize<GiftRules>(File.ReadAllText(Path.Combine(player, "gift_rules.json"))),
-            ContractSerializer.Deserialize<FavorSettings>(File.ReadAllText(Path.Combine(player, "favor.json"))));
+            ContractSerializer.Deserialize<FavorSettings>(File.ReadAllText(Path.Combine(player, "favor.json"))),
+            inventions,
+            chronicle,
+            writing,
+            skillPractice)
+        {
+            Appearance = LoadAppearance(contentDirectory),
+        };
+    }
+
+    /// <summary>Every carrier of the vocabulary has exactly one entry; all ids it uses are known (B8 R13).</summary>
+    private static void CheckWriting(WritingMedia writing, HashSet<string> media, HashSet<string> weather, HashSet<string> properties, HashSet<string> traits)
+    {
+        var problems = new List<string>();
+        var defined = writing.Media.Select(m => m.Id).ToList();
+        problems.AddRange(defined.GroupBy(id => id, StringComparer.Ordinal).Where(g => g.Count() > 1).Select(g => $"carrier '{g.Key}' twice"));
+        problems.AddRange(defined.Where(id => !media.Contains(id)).Select(id => $"unknown carrier '{id}'"));
+        problems.AddRange(media.Where(id => !defined.Contains(id, StringComparer.Ordinal)).Select(id => $"carrier '{id}' has no entry"));
+        problems.AddRange(writing.Media.SelectMany(m => m.WeatherLoss).Where(w => !weather.Contains(w.Weather)).Select(w => $"unknown weather '{w.Weather}'"));
+        problems.AddRange(writing.Media.SelectMany(m => m.WeatherLoss.GroupBy(w => w.Weather, StringComparer.Ordinal).Where(g => g.Count() > 1).Select(g => $"carrier '{m.Id}' names weather '{g.Key}' twice")));
+        problems.AddRange(writing.Media.SelectMany(m => m.ToolProperties).Where(p => !properties.Contains(p)).Select(p => $"unknown tool property '{p}'"));
+        if (!traits.Contains(writing.Read.CuriosityTrait))
+        {
+            problems.Add($"unknown trait '{writing.Read.CuriosityTrait}'");
+        }
+
+        if (problems.Count > 0)
+        {
+            throw new InvalidDataException("Writing media: " + string.Join("; ", problems) + ".");
+        }
+    }
+
+    /// <summary>The register names every skill of the vocabulary once; practice uses known actions and skills (A1372).</summary>
+    private static void CheckSkills(InhabitantModel model, SkillPractice practice, HashSet<string> skills, HashSet<string> actions)
+    {
+        var problems = new List<string>();
+        var registered = model.Skills.Select(s => s.Id).ToList();
+        problems.AddRange(registered.GroupBy(id => id, StringComparer.Ordinal).Where(g => g.Count() > 1).Select(g => $"skill '{g.Key}' twice"));
+        problems.AddRange(registered.Where(id => !skills.Contains(id)).Select(id => $"unknown skill '{id}'"));
+        problems.AddRange(skills.Where(id => !registered.Contains(id, StringComparer.Ordinal)).Select(id => $"skill '{id}' is not in the register"));
+        problems.AddRange(model.Skills.Where(s => s.StartLevelMin > s.StartLevelMax).Select(s => $"skill '{s.Id}' has min above max"));
+        problems.AddRange(practice.Practice.Where(p => !skills.Contains(p.Skill)).Select(p => $"practice of unknown skill '{p.Skill}'"));
+        problems.AddRange(practice.Practice.Where(p => !actions.Contains(p.Action)).Select(p => $"practice by unknown action '{p.Action}'"));
+        if (model.SkillRules.RuntimeStartLevelMin > model.SkillRules.RuntimeStartLevelMax)
+        {
+            problems.Add("new skills: start level min above max");
+        }
+
+        if (problems.Count > 0)
+        {
+            throw new InvalidDataException("Skills: " + string.Join("; ", problems) + ".");
+        }
+    }
+
+    private static LookAppearance LoadAppearance(string contentDirectory)
+    {
+        var data = ContractSerializer.Deserialize<LookAppearance>(File.ReadAllText(Path.Combine(contentDirectory, "look", "appearance.json")));
+        var problems = new List<string>();
+        if (data.HeightCm.Min > data.HeightCm.Max || data.BuildPermille.Min > data.BuildPermille.Max || data.HeadScale.Min > data.HeadScale.Max)
+        {
+            problems.Add("a range has min > max");
+        }
+
+        problems.AddRange(data.Shapes.Where(s => s.Min > s.Max).Select(s => $"shape '{s.Id}' has min > max"));
+        if (data.AgeStages.Count == 0 || data.SkinTones.Count == 0 || data.HairStyles.Count == 0 || data.HairColors.Count == 0
+            || data.ClothingStyles.Count == 0 || data.ClothingColors.Count == 0)
+        {
+            problems.Add("every list needs at least one value");
+        }
+
+        return problems.Count == 0 ? data : throw new InvalidDataException("Appearance data: " + string.Join("; ", problems) + ".");
+    }
+
+    private static void CheckInventions(InventionRules rules, ActionRules actions, HashSet<string> shapes, HashSet<string> dayPhases)
+    {
+        var problems = new List<string>();
+        problems.AddRange(rules.Settings.ImpliedProperties.Where(p => !rules.Properties.Contains(p)).Select(p => $"unknown implied property '{p}'"));
+        var build = rules.Build.Settings;
+        foreach (var action in new[] { build.StepAction, build.UseAction })
+        {
+            if (!actions.Actions.Contains(action, StringComparer.Ordinal))
+            {
+                problems.Add($"build action '{action}' has no timing in content/effects");
+            }
+        }
+
+        if (actions.OfferedActions.Contains(build.StepAction, StringComparer.Ordinal))
+        {
+            problems.Add($"step action '{build.StepAction}' must not be a decider option (decider_option false)");
+        }
+
+        problems.AddRange(rules.Build.Kit.Shapes.Where(s => !shapes.Contains(s)).Select(s => $"kit shape '{s}' not in vocabulary 'shape'"));
+        problems.AddRange(rules.Build.NightPhases.Where(p => !dayPhases.Contains(p)).Select(p => $"night phase '{p}' not in vocabulary 'time_of_day'"));
+        if (!rules.TechLevels.Contains(rules.Settings.TechLevel, StringComparer.Ordinal))
+        {
+            problems.Add($"unknown tech level '{rules.Settings.TechLevel}'");
+        }
+
+        problems.AddRange(rules.Settings.LivingProperties.Where(p => !rules.Properties.Contains(p)).Select(p => $"unknown living property '{p}'"));
+        if (problems.Count > 0)
+        {
+            throw new InvalidDataException("Invention settings: " + string.Join("; ", problems) + ".");
+        }
     }
 
     private static HashSet<string> Ids(Dictionary<VocabularyKind, Vocabulary> vocabularies, VocabularyKind kind) =>

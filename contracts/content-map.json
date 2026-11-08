@@ -67,6 +67,10 @@
       "schema": "synth-recipes"
     },
     {
+      "pattern": "music/music.json",
+      "schema": "music-settings"
+    },
+    {
       "pattern": "safety/rules.json",
       "schema": "safety-rules"
     },
@@ -149,6 +153,54 @@
     {
       "pattern": "sound/generation.json",
       "schema": "sound-generation"
+    },
+    {
+      "pattern": "hardware/night.json",
+      "schema": "night-plan"
+    },
+    {
+      "pattern": "build/kit.json",
+      "schema": "build-kit"
+    },
+    {
+      "pattern": "invention/settings.json",
+      "schema": "invention-settings"
+    },
+    {
+      "pattern": "build/settings.json",
+      "schema": "build-settings"
+    },
+    {
+      "pattern": "jobs/phases.json",
+      "schema": "job-phases"
+    },
+    {
+      "pattern": "sound/animals.json",
+      "schema": "animal-sound-settings"
+    },
+    {
+      "pattern": "voice/murmur.json",
+      "schema": "murmur-settings"
+    },
+    {
+      "pattern": "skills/practice.json",
+      "schema": "skill-practice"
+    },
+    {
+      "pattern": "writing/media.json",
+      "schema": "writing-media"
+    },
+    {
+      "pattern": "image/generation.json",
+      "schema": "image-generation"
+    },
+    {
+      "pattern": "dreams/settings.json",
+      "schema": "dream-settings"
+    },
+    {
+      "pattern": "model3d/settings.json",
+      "schema": "model3d-settings"
     }
   ]
 }

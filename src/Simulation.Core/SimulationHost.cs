@@ -3,6 +3,7 @@ using GlassWorld.Contracts.Validation;
 using GlassWorld.Simulation.Content;
 using GlassWorld.Simulation.Decisions;
 using GlassWorld.Simulation.Inhabitants;
+using GlassWorld.Simulation.Inventions;
 using GlassWorld.Simulation.Map;
 using GlassWorld.Simulation.Objects;
 using GlassWorld.Simulation.View;
@@ -16,10 +17,15 @@ namespace GlassWorld.Simulation;
 /// </summary>
 public sealed class SimulationHost
 {
-    private SimulationHost(ContentSet content, World world, WorldMapSystem? map, WorldObjects objects, DecisionsSystem decisions, InhabitantsSystem inhabitants, DeciderSettings deciderSettings, Player.PlayerSystem player)
+    private SimulationHost(ContentSet content, World world, WorldMapSystem? map, WorldTypeCatalog types, WorldObjects objects, DecisionsSystem decisions, InhabitantsSystem inhabitants, Player.PlayerSystem player, InventionSystem inventions, ChronicleSystem chronicle, DeciderSettings deciderSettings, Writing.WritingSystem writing, SkillRegister skills)
     {
+        Writing = writing;
+        Skills = skills;
         Map = map;
         Player = player;
+        Types = types;
+        Inventions = inventions;
+        Chronicle = chronicle;
         Content = content;
         World = world;
         Objects = objects;
@@ -37,6 +43,24 @@ public sealed class SimulationHost
     /// <summary>The generated island, or null on the placeholder world (B0/B1).</summary>
     public WorldMapSystem? Map { get; }
 
+    /// <summary>The type truth of this world: content types plus runtime types (inventions).</summary>
+    public WorldTypeCatalog Types { get; }
+
+    /// <summary>Wishes to invent, invention jobs and the inventions of this world (D471 D5).</summary>
+    public InventionSystem Inventions { get; }
+
+    /// <summary>The chronicle (core state, D471 D8).</summary>
+    public ChronicleSystem Chronicle { get; }
+
+    /// <summary>Writing on objects and how it wears away (B8 R13-R15).</summary>
+    public Writing.WritingSystem Writing { get; }
+
+    /// <summary>The weather (B2 R13), or null while the world has no weather system.</summary>
+    public Weather.IWeather? Weather { get; private init; }
+
+    /// <summary>Skills the world knows (B4b R11, B5 R18).</summary>
+    public SkillRegister Skills { get; }
+
     /// <summary>Objects.</summary>
     public WorldObjects Objects { get; }
 
@@ -53,27 +77,44 @@ public sealed class SimulationHost
     public DeciderSettings DeciderSettings { get; }
 
     /// <summary>Creates an empty simulation (no inhabitants, no objects) – the base for new worlds and save games.</summary>
-    public static SimulationHost CreateEmpty(string contentDirectory, ulong seed, IDecisionPort port, string displayLocale)
+    public static SimulationHost CreateEmpty(string contentDirectory, ulong seed, IDecisionPort port, string displayLocale, IJobPort? jobPort = null)
     {
         var content = ContentSet.Load(contentDirectory);
         var settings = ContractSerializer.Deserialize<DeciderSettings>(File.ReadAllText(Path.Combine(contentDirectory, "decider", "settings.json")));
-        return Assemble(content, settings, new World(seed, content.Calendar), port, displayLocale);
+        return Assemble(content, settings, new World(seed, content.Calendar), port, displayLocale, null, jobPort);
     }
 
     /// <summary>Assembles the systems around a given world (new or restored) in the fixed order.</summary>
     public static SimulationHost Assemble(ContentSet content, DeciderSettings settings, World world, IDecisionPort port, string displayLocale) =>
-        Assemble(content, settings, world, port, displayLocale, null);
+        Assemble(content, settings, world, port, displayLocale, null, null);
 
     /// <summary>
     /// Assembles the systems around a given world in the fixed order (worldmap → objects → decisions →
-    /// inhabitants); with a preset the island is generated from the world seed (also when loading).
+    /// inhabitants → inventions → chronicle); with a preset the island is generated from the world seed
+    /// (also when loading).
     /// </summary>
-    public static SimulationHost Assemble(ContentSet content, DeciderSettings settings, World world, IDecisionPort port, string displayLocale, string? worldPreset)
+    /// <remarks>
+    /// Rules judge targets by the world's type truth (content types plus runtime types). Without a job port
+    /// the invention system is dormant; invention and chronicle stay out of the world hash while empty, so
+    /// worlds without inventions keep their hashes.
+    /// </remarks>
+    /// <param name="content">Content.</param>
+    /// <param name="settings">Decider settings.</param>
+    /// <param name="world">New or restored world.</param>
+    /// <param name="port">Decider port.</param>
+    /// <param name="displayLocale">Player language.</param>
+    /// <param name="worldPreset">Preset of the island, or null for the placeholder world.</param>
+    /// <param name="jobPort">Job port, or null (inventions dormant).</param>
+    /// <param name="savedIsland">The island as a save game kept it (B2 R11); null = generate from seed and preset.</param>
+    public static SimulationHost Assemble(ContentSet content, DeciderSettings settings, World world, IDecisionPort port, string displayLocale, string? worldPreset, IJobPort? jobPort = null, (GeneratedIsland Island, int CellSizeCm)? savedIsland = null)
     {
         ArgumentNullException.ThrowIfNull(content);
         ArgumentNullException.ThrowIfNull(world);
-        var objects = new WorldObjects(content.Objects);
+        var types = new WorldTypeCatalog(content.Objects);
+        var actions = content.Actions.WithTruth(types);
+        var objects = new WorldObjects(types);
         WorldMapSystem? map = null;
+        Weather.WeatherSystem? weather = null;
         if (worldPreset is not null)
         {
             if (!content.WorldGen.Presets.TryGetValue(worldPreset, out var preset))
@@ -81,7 +122,8 @@ public sealed class SimulationHost
                 throw new InvalidDataException($"Unknown world preset '{worldPreset}'.");
             }
 
-            var island = WorldGenerator.Generate(content.WorldGen, content.Objects, worldPreset, world.Seed);
+            // A saved island is used as it is, so later changes of generator or data keep existing worlds.
+            var island = savedIsland?.Island ?? WorldGenerator.Generate(content.WorldGen, content.Objects, worldPreset, world.Seed);
             if (!island.Passed)
             {
                 throw new InvalidDataException($"World preset '{worldPreset}' with seed {world.Seed} gives no island that passes the check after {island.Attempts} attempts.");
@@ -92,26 +134,64 @@ public sealed class SimulationHost
                 .Where(r => r.RegrowHours is not null)
                 .GroupBy(r => r.ObjectType, StringComparer.Ordinal)
                 .ToDictionary(g => g.Key, g => (long)g.First().RegrowHours!.Value * ticksPerHour, StringComparer.Ordinal);
-            map = new WorldMapSystem(island, preset.Grid.CellSizeCm, objects, regrow);
+            map = new WorldMapSystem(island, savedIsland?.CellSizeCm ?? preset.Grid.CellSizeCm, objects, regrow) { NodeBudget = preset.Pathfinding.NodeBudget };
             world.Add(map);
+
+            // Weather of the preset's climate (B2 R13); worlds without a preset (placeholder) have none.
+            // The weather is island-wide for now; its height drop stands for the mean height of the start cells.
+            var startHeight = island.Starts.Count == 0 ? 0 : island.Starts.Sum(s => Math.Max(0, island.Map.Cell(s.X, s.Z).Height - preset.Terrain.SeaLevel)) / island.Starts.Count;
+            weather = new Weather.WeatherSystem(
+                content.WorldGen.Climates[preset.Climate.ClimateId],
+                -(preset.Climate.TemperatureDropPer100Height * startHeight / 100),
+                world.Calendar.Settings.TicksPerHour,
+                world.Calendar.Settings.HoursPerDay);
+            world.Add(weather);
         }
 
-        var inhabitants = new InhabitantsSystem(content.InhabitantModel, content.Actions, content.Brain, objects, world.Calendar.Settings.TicksPerHour);
-        var decisions = new DecisionsSystem(settings, inhabitants, objects, content.Actions, content.Brain, content.Vocabularies[VocabularyKind.Action], port, displayLocale);
+        var inhabitants = new InhabitantsSystem(content.InhabitantModel, actions, content.Brain, objects, world.Calendar.Settings.TicksPerHour) { Looks = content.Appearance, Routes = map };
+        var decisions = new DecisionsSystem(settings, inhabitants, objects, actions, content.Brain, content.Vocabularies[VocabularyKind.Action], port, displayLocale)
+        {
+            WeatherSource = weather,
+        };
         var player = new Simulation.Player.PlayerSystem(content.GiftRules, content.Favor, content.Brain.Weights, content.Brain, inhabitants, objects, world.Calendar.Settings.TicksPerHour);
         decisions.RegisterCommand(Simulation.Player.PlayerSystem.PlaceGift, player.Check, player.Apply);
         decisions.RegisterCommand(Simulation.Player.PlayerSystem.StartFavorCommand, player.CheckStartFavor, player.ApplyStartFavor);
-        world.Add(objects).Add(decisions).Add(inhabitants).Add(player);
-        return new SimulationHost(content, world, map, objects, decisions, inhabitants, settings, player);
+        var inventions = new InventionSystem(content.Inventions, inhabitants, objects, types, content.Brain.Weights.PerceptionRadiusM, jobPort, displayLocale);
+        var chronicle = new ChronicleSystem(content.Chronicle);
+        inhabitants.Reported += chronicle.Observe;
+        var skills = new SkillRegister(content.InhabitantModel.Skills, content.InhabitantModel.SkillRules, content.SkillPractice);
+
+        // New skills of an approved invention enter the register right away (refused ones are dropped, the invention stays).
+        inhabitants.Reported += e =>
+        {
+            if (e.Kind == InventionSystem.Invented && e.TargetId is { } typeId)
+            {
+                foreach (var ability in inventions.AbilitiesOf(typeId))
+                {
+                    if (skills.Add(ability, typeId) is { } reason)
+                    {
+                        inhabitants.Report(new WorldEvent(SkillRegister.SkillRefused, e.Tick, e.InhabitantId, null, typeId) { Detail = reason });
+                    }
+                }
+            }
+        };
+        // Texts wear by the weather (GW1 #95 wires the weather system before writing).
+        var writing = new Writing.WritingSystem(content.Writing, objects, weather, world.Calendar.Settings.TicksPerHour, world.Calendar.TicksPerDay);
+        world.Add(objects).Add(decisions).Add(inhabitants).Add(player).Add(inventions).Add(chronicle).Add(writing).Add(skills);
+        return new SimulationHost(content, world, map, types, objects, decisions, inhabitants, player, inventions, chronicle, settings, writing, skills)
+        {
+            WeatherSystem = weather,
+            Weather = weather,
+        };
     }
 
     /// <summary>
     /// Creates a new world on the flat placeholder start (content/world/placeholder-start.json) until B2
     /// generates the island: start inhabitants by group, objects scattered from the world seed.
     /// </summary>
-    public static SimulationHost CreatePlaceholderWorld(string contentDirectory, ulong seed, IDecisionPort port, string displayLocale)
+    public static SimulationHost CreatePlaceholderWorld(string contentDirectory, ulong seed, IDecisionPort port, string displayLocale, IJobPort? jobPort = null)
     {
-        var host = CreateEmpty(contentDirectory, seed, port, displayLocale);
+        var host = CreateEmpty(contentDirectory, seed, port, displayLocale, jobPort);
         var start = ContractSerializer.Deserialize<PlaceholderStart>(File.ReadAllText(Path.Combine(contentDirectory, "world", "placeholder-start.json")));
         var centres = start.Groups.ToDictionary(g => g.Group, g => new Position(g.X, g.Z));
         var rng = host.World.Random.Get("placeholder/start");
@@ -146,11 +226,11 @@ public sealed class SimulationHost
     /// at the start positions of their pair (group n = pair n − 1, members in start order), objects
     /// at the centres of their cells.
     /// </summary>
-    public static SimulationHost CreateGeneratedWorld(string contentDirectory, ulong seed, IDecisionPort port, string displayLocale, string worldPreset)
+    public static SimulationHost CreateGeneratedWorld(string contentDirectory, ulong seed, IDecisionPort port, string displayLocale, string worldPreset, IJobPort? jobPort = null)
     {
         var content = ContentSet.Load(contentDirectory);
         var settings = ContractSerializer.Deserialize<DeciderSettings>(File.ReadAllText(Path.Combine(contentDirectory, "decider", "settings.json")));
-        var host = Assemble(content, settings, new World(seed, content.Calendar), port, displayLocale, worldPreset);
+        var host = Assemble(content, settings, new World(seed, content.Calendar), port, displayLocale, worldPreset, jobPort);
         var map = host.Map!;
         var free = map.Island.Starts.GroupBy(s => s.Pair).ToDictionary(g => g.Key + 1, g => new Queue<StartPosition>(g));
         var positions = new List<Position>();
@@ -175,7 +255,10 @@ public sealed class SimulationHost
     }
 
     /// <summary>Read-only snapshot for the UI.</summary>
-    public WorldSnapshot Snapshot() => WorldView.Snapshot(World, Inhabitants, Objects, Decisions);
+    public WorldSnapshot Snapshot() => WorldView.Snapshot(World, Inhabitants, Objects, Decisions) with { Weather = WeatherSystem?.Read(World) };
+
+    /// <summary>The weather system itself (save games, debug jumps, player intervention); null without weather.</summary>
+    public Weather.WeatherSystem? WeatherSystem { get; private init; }
 
     private static Position Scatter(Random.Pcg32 rng, Position centre, double radius) =>
         new(centre.X + (((rng.NextDouble() * 2.0) - 1.0) * radius), centre.Z + (((rng.NextDouble() * 2.0) - 1.0) * radius));

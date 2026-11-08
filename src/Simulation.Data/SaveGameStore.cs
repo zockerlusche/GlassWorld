@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text.Json;
 using GlassWorld.Simulation.Decisions;
 using GlassWorld.Simulation.Inhabitants;
+using GlassWorld.Simulation.Inventions;
 using GlassWorld.Simulation.Objects;
 using GlassWorld.Simulation.Random;
 using GlassWorld.Simulation.State;
@@ -17,7 +18,7 @@ namespace GlassWorld.Simulation.Data;
 public static class SaveGameStore
 {
     /// <summary>Schema version written by this code.</summary>
-    public const int SchemaVersion = 1;
+    public const int SchemaVersion = 3;
 
     private static readonly JsonSerializerOptions Json = new() { IncludeFields = true };
 
@@ -35,6 +36,16 @@ public static class SaveGameStore
         CREATE TABLE questions(id TEXT PRIMARY KEY, data TEXT NOT NULL);
         CREATE TABLE last_asked(key TEXT PRIMARY KEY, tick INTEGER NOT NULL);
         CREATE TABLE decision_log(seq INTEGER PRIMARY KEY, kind TEXT NOT NULL, request_id TEXT NOT NULL, tick INTEGER NOT NULL, json TEXT NOT NULL, note TEXT);
+        """,
+        """
+        CREATE TABLE inventions(type_id TEXT PRIMARY KEY, request_id TEXT NOT NULL, inhabitant TEXT NOT NULL, tick INTEGER NOT NULL, invention TEXT NOT NULL, sound TEXT);
+        CREATE TABLE wants(inhabitant TEXT PRIMARY KEY, data TEXT NOT NULL);
+        CREATE TABLE invention_timers(kind TEXT NOT NULL, key TEXT NOT NULL, tick INTEGER NOT NULL, PRIMARY KEY(kind, key));
+        CREATE TABLE job_log(seq INTEGER PRIMARY KEY, kind TEXT NOT NULL, request_id TEXT NOT NULL, tick INTEGER NOT NULL, json TEXT NOT NULL, note TEXT);
+        CREATE TABLE chronicle(seq INTEGER PRIMARY KEY, tick INTEGER NOT NULL, kind TEXT NOT NULL, inhabitant TEXT NOT NULL, target TEXT, action TEXT);
+        """,
+        """
+        CREATE TABLE island(id INTEGER PRIMARY KEY CHECK (id = 1), data BLOB NOT NULL);
         """,
     ];
 
@@ -178,12 +189,39 @@ public static class SaveGameStore
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("world_preset", s.WorldPreset));
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("island_hash", s.IslandHash ?? string.Empty));
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("occurrences", JsonSerializer.Serialize(s.Occurrences ?? [])));
+            if (s.IslandData is not null)
+            {
+                // The generated island as one blob (B2 R11; GW2 review #94: no base64 in meta).
+                Insert(c, tx, "INSERT INTO island VALUES($a,$b)", (1, s.IslandData));
+            }
+        }
+
+        // Appearance records (B2 R27) as one JSON object by inhabitant id; older saves have none.
+        var appearances = s.Inhabitants.Where(i => i.Appearance is not null).ToDictionary(i => i.Id, i => i.Appearance!, StringComparer.Ordinal);
+        if (appearances.Count > 0)
+        {
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("appearances", JsonSerializer.Serialize(appearances, Json)));
         }
 
         if (s.Player is not null)
         {
             // Player part (B6) as one JSON value; doubles round-trip exactly, so the hash survives.
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("player", JsonSerializer.Serialize(s.Player, Json)));
+        }
+
+        if (s.Writing is not null)
+        {
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("writing", JsonSerializer.Serialize(s.Writing, Json)));
+        }
+
+        if (s.Weather is not null)
+        {
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("weather", JsonSerializer.Serialize(s.Weather, Json)));
+        }
+
+        if (s.Skills is not null)
+        {
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("skills", JsonSerializer.Serialize(s.Skills, Json)));
         }
 
         foreach (var (name, state) in s.Streams)
@@ -224,6 +262,83 @@ public static class SaveGameStore
         {
             Insert(c, tx, "INSERT INTO decision_log VALUES($a,$b,$c,$d,$e,$f)", (seq++, e.Kind.ToString(), e.RequestId, e.Tick, e.Json, e.Note));
         }
+
+        WriteInventions(c, tx, s.Inventions);
+        foreach (var r in s.Chronicle ?? [])
+        {
+            Insert(c, tx, "INSERT INTO chronicle VALUES($a,$b,$c,$d,$e,$f)", (r.Seq, r.Tick, r.Kind, r.InhabitantId, r.TargetId, r.Action));
+        }
+    }
+
+    /// <summary>
+    /// Invention state (D471 D5). Runtime types are not stored separately: they follow from the inventions
+    /// (one source of truth) and are registered again on load.
+    /// </summary>
+    private static void WriteInventions(SqliteConnection c, SqliteTransaction tx, InventionState? state)
+    {
+        if (state is null)
+        {
+            return;
+        }
+
+        Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("invention_counter", Str(state.Counter)));
+        if (state.Builds is { Count: > 0 } builds)
+        {
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("builds", JsonSerializer.Serialize(builds, Json)));
+        }
+
+        if (state.FirstUsed is { Count: > 0 } firstUsed)
+        {
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("first_used", JsonSerializer.Serialize(firstUsed, Json)));
+        }
+
+        if (state.Sounds is { Count: > 0 } sounds)
+        {
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("invention_sounds", JsonSerializer.Serialize(sounds, Json)));
+        }
+
+        foreach (var r in state.Inventions)
+        {
+            Insert(c, tx, "INSERT INTO inventions VALUES($a,$b,$c,$d,$e,$f)", (r.TypeId, r.RequestId, r.InhabitantId, r.Tick, r.InventionJson, r.SoundJson));
+        }
+
+        foreach (var w in state.Wants)
+        {
+            Insert(c, tx, "INSERT INTO wants VALUES($a,$b)", (w.InhabitantId, JsonSerializer.Serialize(w)));
+        }
+
+        foreach (var (key, tick) in state.Below)
+        {
+            Insert(c, tx, "INSERT INTO invention_timers VALUES($a,$b,$c)", ("below", key, tick));
+        }
+
+        foreach (var (key, tick) in state.Cooldowns)
+        {
+            Insert(c, tx, "INSERT INTO invention_timers VALUES($a,$b,$c)", ("cooldown", key, tick));
+        }
+
+        var seq = 0;
+        foreach (var e in state.Log)
+        {
+            Insert(c, tx, "INSERT INTO job_log VALUES($a,$b,$c,$d,$e,$f)", (seq++, e.Kind.ToString(), e.RequestId, e.Tick, e.Json, e.Note));
+        }
+    }
+
+    private static InventionState ReadInventions(SqliteConnection c, Dictionary<string, string> meta)
+    {
+        var timers = Query(c, "SELECT kind, key, tick FROM invention_timers ORDER BY kind, key", r => (Kind: r.GetString(0), Entry: new KeyValuePair<string, long>(r.GetString(1), r.GetInt64(2))));
+        return new InventionState(
+            meta.TryGetValue("invention_counter", out var counter) ? long.Parse(counter, CultureInfo.InvariantCulture) : 0,
+            [.. timers.Where(t => t.Kind == "below").Select(t => t.Entry)],
+            [.. timers.Where(t => t.Kind == "cooldown").Select(t => t.Entry)],
+            Query(c, "SELECT data FROM wants ORDER BY inhabitant", r => JsonSerializer.Deserialize<OpenWant>(r.GetString(0))!),
+            Query(c, "SELECT type_id, request_id, inhabitant, tick, invention, sound FROM inventions ORDER BY type_id",
+                r => new InventionRecord(r.GetString(0), r.GetString(1), r.GetString(2), r.GetInt64(3), r.GetString(4), r.IsDBNull(5) ? null : r.GetString(5))),
+            Query(c, "SELECT kind, request_id, tick, json, note FROM job_log ORDER BY seq",
+                r => new DecisionLogEntry(Enum.Parse<DecisionLogKind>(r.GetString(0)), r.GetString(1), r.GetInt64(2), r.GetString(3), r.IsDBNull(4) ? null : r.GetString(4))),
+            meta.TryGetValue("builds", out var builds) ? JsonSerializer.Deserialize<List<BuildTask>>(builds, Json) : null,
+            meta.TryGetValue("first_used", out var firstUsed) ? JsonSerializer.Deserialize<List<string>>(firstUsed, Json) : null,
+            meta.TryGetValue("invention_sounds", out var sounds) ? JsonSerializer.Deserialize<List<SoundTask>>(sounds, Json) : null);
     }
 
     private static SaveState Read(SqliteConnection c)
@@ -232,6 +347,9 @@ public static class SaveGameStore
         var beliefs = Query(c, "SELECT inhabitant, type, property, value, confidence FROM beliefs ORDER BY inhabitant, type, property",
                 r => (Inhabitant: r.GetString(0), Belief: new SavedBelief(r.GetString(1), r.GetString(2), r.GetInt64(3) != 0, r.GetDouble(4))))
             .ToLookup(x => x.Inhabitant, x => x.Belief, StringComparer.Ordinal);
+        var appearances = meta.TryGetValue("appearances", out var appearanceJson)
+            ? JsonSerializer.Deserialize<Dictionary<string, Appearance>>(appearanceJson, Json) ?? []
+            : [];
         return new SaveState(
             ulong.Parse(meta["seed"], CultureInfo.InvariantCulture),
             long.Parse(meta["tick"], CultureInfo.InvariantCulture),
@@ -252,7 +370,8 @@ public static class SaveGameStore
                     r.GetInt64(6),
                     r.IsDBNull(10) ? null : JsonSerializer.Deserialize<Activity>(r.GetString(10), Json),
                     r.IsDBNull(11) ? null : JsonSerializer.Deserialize<Activity>(r.GetString(11), Json),
-                    [.. beliefs[r.GetString(0)]])),
+                    [.. beliefs[r.GetString(0)]],
+                    appearances.GetValueOrDefault(r.GetString(0)))),
             long.Parse(meta["question_counter"], CultureInfo.InvariantCulture),
             Query(c, "SELECT data FROM questions ORDER BY id", r => JsonSerializer.Deserialize<SavedQuestion>(r.GetString(0))!),
             Query(c, "SELECT key, tick FROM last_asked ORDER BY key", r => new KeyValuePair<string, long>(r.GetString(0), r.GetInt64(1))),
@@ -260,10 +379,17 @@ public static class SaveGameStore
                 r => new DecisionLogEntry(Enum.Parse<DecisionLogKind>(r.GetString(0)), r.GetString(1), r.GetInt64(2), r.GetString(3), r.IsDBNull(4) ? null : r.GetString(4))),
             meta.GetValueOrDefault("world_preset"),
             meta.GetValueOrDefault("island_hash") is { Length: > 0 } islandHash ? islandHash : null,
-            meta.TryGetValue("occurrences", out var occurrences) ? JsonSerializer.Deserialize<List<Map.Occurrence>>(occurrences) : null)
+            meta.TryGetValue("occurrences", out var occurrences) ? JsonSerializer.Deserialize<List<Map.Occurrence>>(occurrences) : null,
+            ReadInventions(c, meta),
+            Query(c, "SELECT seq, tick, kind, inhabitant, target, action FROM chronicle ORDER BY seq",
+                r => new ChronicleRecord(r.GetInt64(0), r.GetInt64(1), r.GetString(2), r.GetString(3), r.IsDBNull(4) ? null : r.GetString(4), r.IsDBNull(5) ? null : r.GetString(5))))
         {
             // Save games from before the player system have no entry: the world keeps its defaults.
             Player = meta.TryGetValue("player", out var player) ? JsonSerializer.Deserialize<Simulation.Player.PlayerState>(player, Json) : null,
+            Writing = meta.TryGetValue("writing", out var writing) ? JsonSerializer.Deserialize<List<Simulation.Writing.WrittenText>>(writing, Json) : null,
+            IslandData = ReadIsland(c, meta),
+            Weather = meta.TryGetValue("weather", out var weather) ? JsonSerializer.Deserialize<Weather.WeatherState>(weather, Json) : null,
+            Skills = meta.TryGetValue("skills", out var skills) ? JsonSerializer.Deserialize<Simulation.Inhabitants.SkillRegisterState>(skills, Json) : null,
         };
     }
 
@@ -294,6 +420,24 @@ public static class SaveGameStore
 
             command.ExecuteNonQuery();
         }
+    }
+
+    /// <summary>
+    /// The island blob (schema 3); stands written between B2-4 builds kept it as base64 in meta and are
+    /// still read.
+    /// </summary>
+    private static byte[]? ReadIsland(SqliteConnection c, Dictionary<string, string> meta)
+    {
+        if (HasTable(c, "island"))
+        {
+            var rows = Query(c, "SELECT data FROM island WHERE id = 1", r => (byte[])r.GetValue(0));
+            if (rows.Count > 0)
+            {
+                return rows[0];
+            }
+        }
+
+        return meta.TryGetValue("island_data", out var base64) ? Convert.FromBase64String(base64) : null;
     }
 
     private static List<T> Query<T>(SqliteConnection c, string sql, Func<SqliteDataReader, T> map)

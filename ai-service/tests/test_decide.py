@@ -306,3 +306,15 @@ def test_full_queue_and_expired_deadline_at_the_endpoint(settings: Settings) -> 
     assert 503 in codes  # overloaded
     expired = post(app, "/decide", {**REQUEST, "deadline_ms": 100})
     assert expired.status_code in (200, 504)
+
+
+def test_worn_parts_one_per_slot(settings: Settings) -> None:
+    """B2540: the worn example is accepted; two parts in one slot are a bad request (#98)."""
+    request = json.loads(
+        (EXAMPLES / "valid/decision-request.cold-wearing-tunic.json").read_text("utf-8")
+    )
+    assert post(make_app(settings), "/decide", request).status_code == 200
+    request["inhabitant"]["worn"].append({"slot": "body", "type_id": "bark_cape", "properties": []})
+    response = post(make_app(settings), "/decide", request)
+    assert (response.status_code, response.json()["code"]) == (422, "bad_request")
+    assert "slot body" in response.json()["message"]

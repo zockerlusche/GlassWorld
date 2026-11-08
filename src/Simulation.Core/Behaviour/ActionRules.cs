@@ -8,7 +8,8 @@ namespace GlassWorld.Simulation.Behaviour;
 /// <param name="DurationTicks">How long the action takes once started.</param>
 /// <param name="ReachM">Distance to the target at which it can start.</param>
 /// <param name="RandomNearby">True if an action without a target happens at a random spot nearby.</param>
-public readonly record struct ActionTimingInfo(long DurationTicks, double ReachM, bool RandomNearby);
+/// <param name="Offered">False for actions the decider may not offer (the core plans them itself).</param>
+public readonly record struct ActionTimingInfo(long DurationTicks, double ReachM, bool RandomNearby, bool Offered = true);
 
 /// <summary>
 /// What actions do (content/effects/*.json). The effect of an action on a target is decided only by the
@@ -19,9 +20,9 @@ public sealed class ActionRules
 {
     private readonly FrozenDictionary<string, ActionTimingInfo> _timing;
     private readonly FrozenDictionary<string, EffectRule[]> _rules;
-    private readonly ObjectCatalog _catalog;
+    private readonly ITypeTruth _catalog;
 
-    private ActionRules(FrozenDictionary<string, ActionTimingInfo> timing, FrozenDictionary<string, EffectRule[]> rules, ObjectCatalog catalog)
+    private ActionRules(FrozenDictionary<string, ActionTimingInfo> timing, FrozenDictionary<string, EffectRule[]> rules, ITypeTruth catalog)
     {
         _timing = timing;
         _rules = rules;
@@ -30,6 +31,9 @@ public sealed class ActionRules
 
     /// <summary>Actions that have timing data.</summary>
     public IEnumerable<string> Actions => _timing.Keys.Order(StringComparer.Ordinal);
+
+    /// <summary>Actions the decider may offer as options (all with timing except those the core plans itself).</summary>
+    public IEnumerable<string> OfferedActions => _timing.Where(t => t.Value.Offered).Select(t => t.Key).Order(StringComparer.Ordinal);
 
     /// <summary>Builds the rules and checks every id against the vocabularies.</summary>
     public static ActionRules Create(IEnumerable<ActionEffects> files, ObjectCatalog catalog, Vocabulary actions, IReadOnlySet<string> needs, IReadOnlySet<string> moods, int ticksPerHour)
@@ -43,7 +47,7 @@ public sealed class ActionRules
         foreach (var t in all.SelectMany(f => f.Actions))
         {
             Require(actionIds.Contains(t.Action), $"timing for unknown action '{t.Action}'");
-            Require(timing.TryAdd(t.Action, new ActionTimingInfo(Math.Max(1, (long)t.DurationMinutes * ticksPerHour / 60), t.ReachM, t.Destination == ActionTimingDestination.Random_nearby)), $"timing for '{t.Action}' defined twice");
+            Require(timing.TryAdd(t.Action, new ActionTimingInfo(Math.Max(1, (long)t.DurationMinutes * ticksPerHour / 60), t.ReachM, t.Destination == ActionTimingDestination.Random_nearby, t.DeciderOption ?? true)), $"timing for '{t.Action}' defined twice");
         }
 
         foreach (var rule in all.SelectMany(f => f.Rules))
@@ -65,6 +69,16 @@ public sealed class ActionRules
             .GroupBy(r => r.Action, StringComparer.Ordinal)
             .ToFrozenDictionary(g => g.Key, g => g.OrderBy(r => r.RequiresProperty ?? string.Empty, StringComparer.Ordinal).ToArray(), StringComparer.Ordinal);
         return new ActionRules(timing.ToFrozenDictionary(StringComparer.Ordinal), rules, catalog);
+    }
+
+    /// <summary>
+    /// The same rules judged against another type truth (the world's catalog with runtime types). Cheap:
+    /// the rule tables are shared.
+    /// </summary>
+    public ActionRules WithTruth(ITypeTruth truth)
+    {
+        ArgumentNullException.ThrowIfNull(truth);
+        return new ActionRules(_timing, _rules, truth);
     }
 
     /// <summary>Timing of an action.</summary>

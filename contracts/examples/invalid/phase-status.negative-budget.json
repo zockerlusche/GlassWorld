@@ -1,0 +1,9 @@
+{
+  "contract_version": "0.2",
+  "phase": "night",
+  "budget_left_s": -5,
+  "queued": 3,
+  "running": 1,
+  "deferred": 0,
+  "done_tonight": 4
+}

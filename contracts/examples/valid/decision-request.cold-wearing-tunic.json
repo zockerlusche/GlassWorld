@@ -1,0 +1,124 @@
+{
+  "contract_version": "0.2",
+  "request_id": "be5f6071-8293-4dae-8f10-3b4c5d6e7f80",
+  "tick": 5400,
+  "seed": 424242,
+  "deadline_ms": 8000,
+  "display_locale": "de",
+  "inhabitant": {
+    "id": "inh-0001",
+    "needs": [
+      {
+        "id": "hunger",
+        "value": 0.18
+      },
+      {
+        "id": "sleep",
+        "value": 0.55
+      },
+      {
+        "id": "thirst",
+        "value": 0.7
+      }
+    ],
+    "mood": [
+      {
+        "id": "boredom",
+        "value": 0.3
+      },
+      {
+        "id": "sadness",
+        "value": 0.2
+      }
+    ],
+    "will_to_live": 0.8,
+    "traits": [
+      {
+        "id": "courage",
+        "value": 0.35
+      },
+      {
+        "id": "curiosity",
+        "value": 0.8
+      },
+      {
+        "id": "patience",
+        "value": 0.4
+      }
+    ],
+    "memory": {
+      "summary": "",
+      "recent": []
+    },
+    "knowledge": [],
+    "relationships": [],
+    "habits": [],
+    "worn": [
+      {
+        "slot": "body",
+        "type_id": "grass_tunic",
+        "properties": [
+          "warming"
+        ]
+      }
+    ],
+    "felt_temperature_c": 7.5
+  },
+  "environment": {
+    "time_of_day": "dusk",
+    "temperature_c": 6.5,
+    "weather": [
+      "rain",
+      "storm"
+    ]
+  },
+  "perception": {
+    "objects": [
+      {
+        "id": "obj-0042",
+        "type": "red_berry_bush",
+        "distance_m": 4.5,
+        "known_properties": []
+      },
+      {
+        "id": "obj-0007",
+        "type": "apple_tree",
+        "distance_m": 22.0,
+        "known_properties": [
+          {
+            "property": "edible",
+            "value": true,
+            "confidence": 0.9
+          }
+        ]
+      }
+    ],
+    "inhabitants": []
+  },
+  "options": [
+    {
+      "option_id": "o1",
+      "action": "inspect",
+      "target": "obj-0042",
+      "partners": []
+    },
+    {
+      "option_id": "o2",
+      "action": "eat",
+      "target": "obj-0042",
+      "partners": []
+    },
+    {
+      "option_id": "o3",
+      "action": "move_to",
+      "target": "obj-0007",
+      "partners": []
+    },
+    {
+      "option_id": "o4",
+      "action": "idle",
+      "target": null,
+      "partners": []
+    }
+  ]
+}

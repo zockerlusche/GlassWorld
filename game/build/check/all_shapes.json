@@ -1,0 +1,158 @@
+{
+  "contract_version": "0.2",
+  "job_id": "2b3c4d5e-6f7a-8b8c-9d0e-1f2a3b4c5d6e",
+  "tick": 1210,
+  "kind": "build_plan",
+  "state": "done",
+  "result": {
+    "build_plan": {
+      "parts": [
+        {
+          "shape": "box",
+          "size_m": {
+            "x": 0.4,
+            "y": 0.3,
+            "z": 0.3
+          },
+          "position_m": {
+            "x": -1.2,
+            "y": 0.15,
+            "z": 0.0
+          },
+          "rotation_y_deg": 0,
+          "material": "test_material",
+          "color": "wood_light",
+          "step": 1
+        },
+        {
+          "shape": "cylinder",
+          "size_m": {
+            "x": 0.4,
+            "y": 0.3,
+            "z": 0.3
+          },
+          "position_m": {
+            "x": -0.3999999999999999,
+            "y": 0.15,
+            "z": 0.0
+          },
+          "rotation_y_deg": 15,
+          "material": "test_material",
+          "color": "wood_dark",
+          "step": 1
+        },
+        {
+          "shape": "sphere",
+          "size_m": {
+            "x": 0.4,
+            "y": 0.3,
+            "z": 0.3
+          },
+          "position_m": {
+            "x": 0.40000000000000013,
+            "y": 0.15,
+            "z": 0.0
+          },
+          "rotation_y_deg": 30,
+          "material": "test_material",
+          "color": "stone_grey",
+          "step": 1
+        },
+        {
+          "shape": "cone",
+          "size_m": {
+            "x": 0.4,
+            "y": 0.3,
+            "z": 0.3
+          },
+          "position_m": {
+            "x": 1.2000000000000004,
+            "y": 0.15,
+            "z": 0.0
+          },
+          "rotation_y_deg": 45,
+          "material": "test_material",
+          "color": "clay_brown",
+          "step": 2
+        },
+        {
+          "shape": "wedge",
+          "size_m": {
+            "x": 0.4,
+            "y": 0.3,
+            "z": 0.3
+          },
+          "position_m": {
+            "x": -1.2,
+            "y": 0.15,
+            "z": 0.8
+          },
+          "rotation_y_deg": 60,
+          "material": "test_material",
+          "color": "reed_yellow",
+          "step": 2
+        },
+        {
+          "shape": "plank",
+          "size_m": {
+            "x": 1.2,
+            "y": 0.05,
+            "z": 0.25
+          },
+          "position_m": {
+            "x": -0.3999999999999999,
+            "y": 0.025,
+            "z": 0.8
+          },
+          "rotation_y_deg": 75,
+          "material": "test_material",
+          "color": "bark_brown",
+          "step": 2
+        },
+        {
+          "shape": "ring",
+          "size_m": {
+            "x": 0.5,
+            "y": 0.06,
+            "z": 0.5
+          },
+          "position_m": {
+            "x": 0.40000000000000013,
+            "y": 0.03,
+            "z": 0.8
+          },
+          "rotation_y_deg": 90,
+          "material": "test_material",
+          "color": "fibre_beige",
+          "step": 3
+        },
+        {
+          "shape": "bowl",
+          "size_m": {
+            "x": 0.4,
+            "y": 0.3,
+            "z": 0.3
+          },
+          "position_m": {
+            "x": 1.2000000000000004,
+            "y": 0.15,
+            "z": 0.8
+          },
+          "rotation_y_deg": 105,
+          "material": "test_material",
+          "color": "ash_grey",
+          "step": 3
+        }
+      ]
+    }
+  },
+  "error": null,
+  "provenance": {
+    "source": "mock",
+    "model": "mock",
+    "prompt_version": "builder/plan.v1",
+    "seed": 77,
+    "latency_ms": 1,
+    "attempts": 1
+  }
+}

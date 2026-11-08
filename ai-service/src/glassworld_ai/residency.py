@@ -28,7 +28,15 @@ from glassworld_contracts.models.model_footprints_schema import ModelFootprints
 
 
 class ResidencyError(Exception):
-    """A model cannot be made resident (unknown, larger than the budget, or a driver failed)."""
+    """A model cannot be made resident (unknown, larger than the budget, or a driver failed).
+
+    `permanent` is True when waiting does not help on this hardware (model larger than the
+    budget): the job then fails as not retryable, so the core falls back at once (review #82).
+    """
+
+    def __init__(self, message: str, *, permanent: bool = False) -> None:
+        super().__init__(message)
+        self.permanent = permanent
 
 
 @dataclass(frozen=True)
@@ -92,6 +100,20 @@ class Residency:
     def budget_mib(self) -> int:
         return self._budget
 
+    def fits_now(self, model_id: str) -> bool:
+        """Could the model run now WITHOUT unloading anything (loaded, or room and no conflict)?"""
+        if model_id in self._loaded:
+            return True
+        wanted = self._footprint(model_id)
+        conflict = any(
+            other in wanted.never_with or model_id in self._footprint(other).never_with
+            for other in self._loaded
+        )
+        return not conflict and self.used_mib() + wanted.vram_mib <= self._budget
+
+    def is_loaded(self, model_id: str) -> bool:
+        return model_id in self._loaded
+
     def knows(self, model_id: str) -> bool:
         """Whether models.json has a footprint for the model."""
         return model_id in self._footprints
@@ -133,7 +155,8 @@ class Residency:
                 return
             if wanted.vram_mib > self._budget:
                 raise ResidencyError(
-                    f"{model_id} needs {wanted.vram_mib} MiB, budget is {self._budget} MiB"
+                    f"{model_id} needs {wanted.vram_mib} MiB, budget is {self._budget} MiB",
+                    permanent=True,
                 )
             for other in sorted(self._loaded):
                 if other in wanted.never_with or model_id in self._footprint(other).never_with:

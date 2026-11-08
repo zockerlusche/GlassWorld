@@ -7,7 +7,7 @@ namespace GlassWorld.Simulation.Objects;
 /// The truth about object types: which properties each type really has (content/objects/*.json).
 /// Inhabitants never read this directly; they only hold beliefs (<see cref="BeliefSet"/>).
 /// </summary>
-public sealed class ObjectCatalog
+public sealed class ObjectCatalog : ITypeTruth
 {
     private readonly FrozenDictionary<string, FrozenSet<string>> _properties;
 

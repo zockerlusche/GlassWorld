@@ -50,6 +50,14 @@
       "sound": "action.combine"
     },
     {
+      "action": "use",
+      "sound": "action.combine"
+    },
+    {
+      "action": "build_step",
+      "sound": "action.combine"
+    },
+    {
       "action": "warn",
       "sound": "action.talk_to"
     },
@@ -128,7 +136,7 @@
   ],
   "ambience": [
     {
-      "biome": "beach",
+      "biome": "beach_sea",
       "sound": "ambience.waves"
     },
     {
@@ -136,15 +144,19 @@
       "sound": "ambience.meadow"
     },
     {
+      "biome": "field",
+      "sound": "ambience.meadow"
+    },
+    {
       "biome": "forest",
       "sound": "ambience.forest"
     },
     {
-      "biome": "stream",
+      "biome": "freshwater",
       "sound": "ambience.stream"
     },
     {
-      "biome": "rocks",
+      "biome": "rocks_hills",
       "sound": "ambience.rocks"
     },
     {
@@ -157,7 +169,7 @@
       "animal": "gull",
       "sound": "animal.gull.call",
       "biomes": [
-        "beach"
+        "beach_sea"
       ],
       "seasons": [
         "spring",
@@ -176,7 +188,7 @@
       "animal": "crab",
       "sound": "animal.crab.click",
       "biomes": [
-        "beach"
+        "beach_sea"
       ],
       "seasons": [
         "spring",
@@ -194,7 +206,8 @@
       "animal": "butterfly",
       "sound": "animal.butterfly.wings",
       "biomes": [
-        "meadow"
+        "meadow",
+        "field"
       ],
       "seasons": [
         "spring",
@@ -203,13 +216,14 @@
       "times_of_day": [
         "day"
       ],
-      "per_hour": 0
+      "per_hour": 2
     },
     {
       "animal": "bee",
       "sound": "animal.bee.buzz",
       "biomes": [
-        "meadow"
+        "meadow",
+        "field"
       ],
       "seasons": [
         "spring",
@@ -218,14 +232,15 @@
       "times_of_day": [
         "day"
       ],
-      "per_hour": 0
+      "per_hour": 6
     },
     {
       "animal": "songbird",
       "sound": "animal.songbird.song",
       "biomes": [
         "forest",
-        "meadow"
+        "meadow",
+        "field"
       ],
       "seasons": [
         "spring",
@@ -259,7 +274,7 @@
       "animal": "dragonfly",
       "sound": "animal.dragonfly.wings",
       "biomes": [
-        "stream",
+        "freshwater",
         "swamp"
       ],
       "seasons": [
@@ -269,13 +284,13 @@
       "times_of_day": [
         "day"
       ],
-      "per_hour": 0
+      "per_hour": 3
     },
     {
       "animal": "frog",
       "sound": "animal.frog.croak",
       "biomes": [
-        "stream",
+        "freshwater",
         "swamp"
       ],
       "seasons": [
@@ -293,6 +308,7 @@
       "sound": "animal.firefly.shimmer",
       "biomes": [
         "meadow",
+        "field",
         "forest"
       ],
       "seasons": [
@@ -301,7 +317,7 @@
       "times_of_day": [
         "night"
       ],
-      "per_hour": 0
+      "per_hour": 2
     },
     {
       "animal": "owl",
@@ -324,7 +340,7 @@
       "animal": "fish",
       "sound": "animal.fish.splash",
       "biomes": [
-        "stream"
+        "freshwater"
       ],
       "seasons": [
         "spring",
@@ -343,6 +359,7 @@
       "sound": "animal.wild_chicken.cluck",
       "biomes": [
         "meadow",
+        "field",
         "forest"
       ],
       "seasons": [
@@ -361,8 +378,9 @@
       "animal": "goat",
       "sound": "animal.goat.bleat",
       "biomes": [
-        "rocks",
-        "meadow"
+        "rocks_hills",
+        "meadow",
+        "field"
       ],
       "seasons": [
         "spring",

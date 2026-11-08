@@ -475,6 +475,10 @@
       "text": "Annähern"
     },
     {
+      "key": "vocab.action.build_step",
+      "text": "Bauen"
+    },
+    {
       "key": "vocab.action.combine",
       "text": "Kombinieren"
     },
@@ -525,6 +529,10 @@
     {
       "key": "vocab.action.wander",
       "text": "Umherstreifen"
+    },
+    {
+      "key": "vocab.action.use",
+      "text": "Benutzen"
     },
     {
       "key": "vocab.action.warn",
@@ -713,6 +721,10 @@
     {
       "key": "vocab.property.container",
       "text": "Behälter"
+    },
+    {
+      "key": "vocab.property.crafted",
+      "text": "selbst gemacht"
     },
     {
       "key": "vocab.property.cooling",
@@ -1049,6 +1061,250 @@
     {
       "key": "msg.command.already_started",
       "text": "Das geht nur beim Anlegen einer Welt."
+    },
+    {
+      "key": "vocab.object.apple",
+      "text": "Apfel"
+    },
+    {
+      "key": "vocab.object.red_berry",
+      "text": "Rote Beere"
+    },
+    {
+      "key": "vocab.object.blue_berry",
+      "text": "Blaubeere"
+    },
+    {
+      "key": "vocab.object.spring_water",
+      "text": "Quellwasser"
+    },
+    {
+      "key": "vocab.object.sea_water",
+      "text": "Meerwasser"
+    },
+    {
+      "key": "vocab.object.flint",
+      "text": "Feuerstein"
+    },
+    {
+      "key": "vocab.object.pyrite",
+      "text": "Pyrit"
+    },
+    {
+      "key": "vocab.object.dry_wood",
+      "text": "Trockenes Holz"
+    },
+    {
+      "key": "vocab.object.dry_grass",
+      "text": "Trockenes Gras"
+    },
+    {
+      "key": "vocab.object.spark",
+      "text": "Funke"
+    },
+    {
+      "key": "vocab.object.rock_niche",
+      "text": "Felsnische"
+    },
+    {
+      "key": "vocab.object.deciduous_tree",
+      "text": "Laubbaum"
+    },
+    {
+      "key": "vocab.object.conifer_tree",
+      "text": "Nadelbaum"
+    },
+    {
+      "key": "vocab.object.fruit_tree",
+      "text": "Obstbaum"
+    },
+    {
+      "key": "vocab.object.palm_tree",
+      "text": "Palme"
+    },
+    {
+      "key": "vocab.object.resin",
+      "text": "Harz"
+    },
+    {
+      "key": "vocab.object.bark",
+      "text": "Rinde"
+    },
+    {
+      "key": "vocab.object.berry_bush",
+      "text": "Beerenstrauch"
+    },
+    {
+      "key": "vocab.object.thorn_bush",
+      "text": "Dornenstrauch"
+    },
+    {
+      "key": "vocab.object.hazel_bush",
+      "text": "Haselstrauch"
+    },
+    {
+      "key": "vocab.object.hazelnut",
+      "text": "Haselnuss"
+    },
+    {
+      "key": "vocab.object.reed",
+      "text": "Schilf"
+    },
+    {
+      "key": "vocab.object.flax",
+      "text": "Flachs"
+    },
+    {
+      "key": "vocab.object.nettle",
+      "text": "Brennnessel"
+    },
+    {
+      "key": "vocab.object.healing_herb",
+      "text": "Heilkraut"
+    },
+    {
+      "key": "vocab.object.brown_mushroom",
+      "text": "Brauner Pilz"
+    },
+    {
+      "key": "vocab.object.red_mushroom",
+      "text": "Roter Pilz"
+    },
+    {
+      "key": "vocab.object.fieldstone",
+      "text": "Feldstein"
+    },
+    {
+      "key": "vocab.object.slate",
+      "text": "Schiefer"
+    },
+    {
+      "key": "vocab.object.sandstone",
+      "text": "Sandstein"
+    },
+    {
+      "key": "vocab.object.clay",
+      "text": "Lehm"
+    },
+    {
+      "key": "vocab.object.peat",
+      "text": "Torf"
+    },
+    {
+      "key": "vocab.object.driftwood",
+      "text": "Treibholz"
+    },
+    {
+      "key": "vocab.object.shell",
+      "text": "Muschel"
+    },
+    {
+      "key": "vocab.object.wild_grain",
+      "text": "Wildgetreide"
+    },
+    {
+      "key": "msg.hint.help_needed",
+      "text": "Bewohner {number} findet nichts gegen {need}."
+    },
+    {
+      "key": "msg.hint.place_gift",
+      "text": "Klicke in die Welt, wo die Gabe liegen soll (Esc bricht ab)."
+    },
+    {
+      "key": "msg.hint.gift_placed",
+      "text": "Die Gabe liegt jetzt in der Welt. Sie gehört niemandem."
+    },
+    {
+      "key": "ui.help.title",
+      "text": "Hilfe"
+    },
+    {
+      "key": "ui.help.empty",
+      "text": "Gerade bittet niemand um Hilfe."
+    },
+    {
+      "key": "ui.help.call",
+      "text": "Bewohner {number}: {need}"
+    },
+    {
+      "key": "ui.help.give",
+      "text": "{thing} hinlegen ({cost} Gunst)"
+    },
+    {
+      "key": "ui.favor.value",
+      "text": "Gunst {value}/{max}"
+    },
+    {
+      "key": "ui.favor.tooltip",
+      "text": "Gunst wächst langsam nach. Gaben kosten Gunst."
+    },
+    {
+      "key": "vocab.skill.building",
+      "text": "Bauen"
+    },
+    {
+      "key": "vocab.skill.gathering",
+      "text": "Sammeln"
+    },
+    {
+      "key": "vocab.skill.cooking",
+      "text": "Kochen"
+    },
+    {
+      "key": "vocab.skill.healing",
+      "text": "Heilen"
+    },
+    {
+      "key": "vocab.skill.music",
+      "text": "Musik"
+    },
+    {
+      "key": "vocab.skill.teaching",
+      "text": "Lehren"
+    },
+    {
+      "key": "vocab.skill.inventing",
+      "text": "Erfinden"
+    },
+    {
+      "key": "vocab.skill.swimming",
+      "text": "Schwimmen"
+    },
+    {
+      "key": "vocab.skill.reading",
+      "text": "Lesen"
+    },
+    {
+      "key": "vocab.skill.writing",
+      "text": "Schreiben"
+    },
+    {
+      "key": "vocab.writing_medium.sand_marks",
+      "text": "Zeichen im Sand"
+    },
+    {
+      "key": "vocab.writing_medium.rock_painting",
+      "text": "Felsbild"
+    },
+    {
+      "key": "vocab.writing_medium.carving_wood",
+      "text": "Ritzung in Holz"
+    },
+    {
+      "key": "vocab.writing_medium.carving_stone",
+      "text": "Ritzung in Stein"
+    },
+    {
+      "key": "vocab.writing_medium.tablet",
+      "text": "Tafel"
+    },
+    {
+      "key": "vocab.writing_medium.book",
+      "text": "Buch"
+    },
+    {
+      "key": "vocab.writing_medium.library",
+      "text": "Bibliothek"
     }
   ]
 }

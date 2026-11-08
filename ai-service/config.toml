@@ -16,9 +16,16 @@ probe_timeout_s = 2.0
 # Hardware tiers and thresholds (data, not code). Relative paths are relative to this file.
 hardware_tiers_file = "../content/hardware/tiers.json"
 model_footprints_file = "../content/hardware/models.json"   # B7 S2 residency
+night_plan_file = "../content/hardware/night.json"          # B7 S4 day/night planner
+benchmark_file = "../.local/ai-service/benchmark.json"     # B7 S7 measurement run (result)
+benchmark_on_first_start = false                            # the game turns it on; dev runs measure on demand
+image_backend = "mock"                                      # B7 S5: "comfyui" for the local image model
+image_output_dir = "../.local/ai-service/images"            # made pictures by name pattern
+image_workflows_dir = "../tools/comfyui/workflows"          # workflow templates (API format)
 # --- Decider (B3) ---
 # ollama = real model, mock = deterministic stand-in (CI), replay = answers from the call log
 decider_backend = "ollama"
+sound_backend = "mock"            # D471 D7: "moss" with moss_python/moss_model_dir/moss_code_dir (local, GW_AI_*)
 decider_prompt = "decider/decide"
 decider_prompt_version = 1
 temperature = 0.7          # technical start value, decided by TL (AMW #18519)
@@ -34,6 +41,10 @@ invention_prompt = "invention/invent"   # D471 D2: inventor
 invention_prompt_version = 1
 guard_prompt = "guard/invention"        # D471 D2: AI rule guard, own instruction (ADR-0005)
 guard_prompt_version = 1
+dream_prompt = "dream/tell"              # B7 S6 dreams in the computing night
+dream_prompt_version = 1
+help_prompt = "help/suggest"            # B6 R8/R10 help suggestions for the player (F5238)
+help_prompt_version = 1
 question_call_timeout_s = 60.0     # one model call (blocks the model like a decision, so <= the
                                    # core's decision deadline); WAITING in the queue has no limit (B2487)
 job_capacity = 256         # generation jobs held in memory (B7); the core resubmits after a restart
@@ -46,4 +57,9 @@ prompts_dir = "../prompts"
 content_dir = "../content"
 schemas_dir = "../contracts/schemas"
 log_dir = "../.local/ai-service/logs"
+sound_output_dir = "../.local/ai-service/sounds"   # D471 D7: made sounds by name pattern
+model3d_image_dir = "../.local/ai-service/images"  # B7 S9: input pictures of 3D jobs
+model3d_output_dir = "../.local/ai-service/models" # B7 S9: made 3D models (stand-in only)
+model3d_backend = "mock"                           # B7 S9: "trellis2" once wired (comfort tier only)
+moss_worker_script = "../tools/moss/worker.py"     # runs in the MOSS environment (moss_python)
 lock_dir = "../.local/ai-service"   # the game sets GW_AI_LOCK_DIR to the user data folder
