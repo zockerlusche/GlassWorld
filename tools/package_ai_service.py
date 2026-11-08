@@ -21,6 +21,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+MARKER = ".glassworld-ai-package"  # only a folder with this file is ever replaced
 REMOVE = [  # relative to the Python folder; not used by the service, licences outside the list
     "tcl",
     "Lib/tkinter",
@@ -91,7 +92,25 @@ def _toml(value: object) -> str:
         return repr(value)
     if isinstance(value, str):
         return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
+    if isinstance(value, list):
+        return "[" + ", ".join(_toml(v) for v in value) + "]"
     raise SystemExit(f"config value of type {type(value).__name__} not supported")
+
+
+def prepare_target(out_dir: Path) -> Path:
+    """The folder to (re)build. Never inside the repository (it would replace the source
+    ai-service/, review GW1 #115), and an existing folder only if this script made it."""
+    out = out_dir.resolve()
+    if out == ROOT or ROOT in out.parents:
+        raise SystemExit(f"refusing to package into the repository: {out}")
+    target = out / "ai-service"
+    if target.exists():
+        if not (target / MARKER).is_file():
+            raise SystemExit(f"{target} exists and was not made by this script; not replacing it")
+        shutil.rmtree(target)
+    target.mkdir(parents=True)
+    (target / MARKER).write_text("made by tools/package_ai_service.py", encoding="utf-8")
+    return target
 
 
 def main() -> None:
@@ -99,9 +118,7 @@ def main() -> None:
     parser.add_argument("python_dir", type=Path, help="unpacked python-build-standalone 3.12")
     parser.add_argument("out_dir", type=Path)
     args = parser.parse_args()
-    target = args.out_dir / "ai-service"
-    if target.exists():
-        shutil.rmtree(target)
+    target = prepare_target(args.out_dir)
     python_dir = target / "python"
     shutil.copytree(args.python_dir, python_dir)
     for rel in REMOVE:
@@ -110,7 +127,7 @@ def main() -> None:
             shutil.rmtree(path)
         elif path.exists():
             path.unlink()
-    for marker in python_dir.rglob("EXTERNALLY-MARKED"):
+    for marker in python_dir.rglob("EXTERNALLY-MANAGED"):
         marker.unlink()
     python = python_dir / "python.exe"
     requirements = target / "requirements.txt"
