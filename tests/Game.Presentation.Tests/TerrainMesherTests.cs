@@ -114,21 +114,22 @@ public sealed class TerrainMesherTests
         var map = builder.Build();
         var water = TerrainMesher.Water(map, 0, 0, Look);
 
-        // Ten water cells. The dry cells next to the swamp lie no higher than its surface, so they carry
-        // no bank plate (they would look flooded); the swamp comes down to them instead.
-        Assert.Equal((4 + 4 + 1 + 1) * 2, water.TriangleCount);
+        // Nine water plates: the running cell (2, 0) is drawn as a stream band (Streams), not here. The dry
+        // cells next to the swamp lie no higher than its surface, so they carry no bank plate (they would
+        // look flooded); the swamp comes down to them instead.
+        Assert.Equal((4 + 4 + 1) * 2, water.TriangleCount);
         var faces = Faces(water);
         (float Y, Rgb Color, (float, float) Flow) Cell(int x, int z) =>
             faces.Where(f => (int)f.X == x && (int)f.Z == z).Select(f => (f.Y, f.Color, f.Flow)).First();
 
         Assert.Equal((2f, Look.SeaDeep), (Cell(0, 2).Y, Cell(0, 2).Color));
         Assert.Equal((2f, Look.SeaShallow), (Cell(1, 2).Y, Cell(1, 2).Color));
-        Assert.Equal((3f, Look.Fresh, (0f, 1f)), (Cell(2, 0).Y, Cell(2, 0).Color, Cell(2, 0).Flow));
+        Assert.DoesNotContain(faces, f => (int)f.X == 2 && (int)f.Z == 0);
         Assert.Equal(Look.Swamp, Cell(3, 0).Color);
         Assert.Equal((0f, 0f), Cell(3, 0).Flow);
         Assert.DoesNotContain(faces, f => (int)f.Z >= 1 && (int)f.X >= 2);
         Assert.Equal(8 * 2, TerrainMesher.Water(map, 0, 0, Look, WaterKind.Salt).TriangleCount);
-        Assert.Equal(2 * 2, TerrainMesher.Water(map, 0, 0, Look, WaterKind.Fresh).TriangleCount);
+        Assert.Equal(1 * 2, TerrainMesher.Water(map, 0, 0, Look, WaterKind.Fresh).TriangleCount);
     }
 
     [Fact]
@@ -166,10 +167,146 @@ public sealed class TerrainMesherTests
     }
 
     [Fact]
-    public void ATwoCellStreamOfTheGeneratorIsOneSlopedRibbon()
+    public void ATwoCellStreamOfTheGeneratorIsOneContinuousBandBetweenItsCells()
     {
         // The generator's layout: a main cell (x = 1) and its side cell (x = 2) both run down the slope
-        // (flow 6 = +z) between dry banks. Both are sloped ribbons, no flat plate of still water.
+        // (flow 6 = +z) between dry banks. One band runs between them, no square cell plates (A1456).
+        var map = TwoCellStream();
+        Assert.Equal(0, TerrainMesher.Water(map, 0, 0, Look).TriangleCount);
+        var line = Assert.Single(TerrainMesher.StreamLines(map, Look));
+        Assert.All(line, p => Assert.Equal(2.0, p.X, 6));
+        Assert.Equal(0.5, line[0].Z, 6);
+        Assert.Equal(3.5, line[^1].Z, 6);
+
+        var stream = TerrainMesher.Streams(map, Look);
+        Assert.Equal((line.Count - 1) * 4, stream.TriangleCount);
+        Assert.All(Normals(stream), n => Assert.True(n.Y > 0, "every band face looks up"));
+        Assert.All(Faces(stream), f => Assert.Equal((0f, 1f), f.Flow));
+
+        // Continuous: every segment starts on the cross-section the one before it ended on.
+        var faces = Faces(stream);
+        for (var s = 1; s < line.Count - 1; s++)
+        {
+            var end = faces.Skip((s - 1) * 4).Take(4).SelectMany(f => f.Vertices).Where(v => Math.Abs(v.Z - line[s].Z) < 1e-4).Distinct().ToList();
+            var start = faces.Skip(s * 4).Take(4).SelectMany(f => f.Vertices).Where(v => Math.Abs(v.Z - line[s].Z) < 1e-4).Distinct().ToList();
+            Assert.Equal(3, end.Count);
+            Assert.Equal(end.Order(), start.Order());
+        }
+    }
+
+    [Fact]
+    public void AStreamBandFollowsTheCoresDirectionWithRoundedCorners()
+    {
+        // A stream that runs east (flow 0) for four cells and then turns south (flow 6).
+        var builder = new WorldMapBuilder(8, 1, 1, Biomes);
+        for (var z = 0; z < 8; z++)
+        {
+            for (var x = 0; x < 8; x++)
+            {
+                var flow = (x, z) switch
+                {
+                    ( < 4, 1) => (sbyte)0,
+                    (4, >= 1 and < 7) => (sbyte)6,
+                    _ => (sbyte)-1,
+                };
+                builder.Set(x, z, flow >= 0
+                    ? new MapCell(40 - x - z, WaterKind.Fresh, 2, flow, 1000, 150, 0, 3000)
+                    : new MapCell(42 - x - z, WaterKind.None, 0, -1, 400, 150, 1, 1000));
+            }
+        }
+
+        var map = builder.Build();
+        var raw = Assert.Single(TerrainMesher.StreamLines(map, Look with { StreamSmoothing = 0 }));
+        Assert.Equal([(0.5, 1.5), (1.5, 1.5), (2.5, 1.5), (3.5, 1.5), (4.5, 1.5), (4.5, 2.5), (4.5, 3.5), (4.5, 4.5), (4.5, 5.5), (4.5, 6.5)], raw.Select(p => (p.X, p.Z)));
+
+        var smooth = Assert.Single(TerrainMesher.StreamLines(map, Look));
+        Assert.True(smooth.Count > raw.Count);
+        Assert.Equal((raw[0].X, raw[0].Z), (smooth[0].X, smooth[0].Z));
+        Assert.Equal((raw[^1].X, raw[^1].Z), (smooth[^1].X, smooth[^1].Z));
+
+        // The corner (4.5, 1.5) is cut: no smoothed point lies on it, and the line never runs against the flow.
+        Assert.DoesNotContain(smooth, p => Math.Abs(p.X - 4.5) < 1e-6 && Math.Abs(p.Z - 1.5) < 1e-6);
+        for (var i = 1; i < smooth.Count; i++)
+        {
+            Assert.True(smooth[i].X >= smooth[i - 1].X - 1e-9 && smooth[i].Z >= smooth[i - 1].Z - 1e-9, "the band follows the core's direction");
+        }
+
+        // No squares: the band's corners are not the cell grid.
+        var stream = TerrainMesher.Streams(map, Look);
+        var offGrid = Enumerable.Range(0, stream.VertexCount).Count(i => Math.Abs(stream.Positions[i * 3] - MathF.Round(stream.Positions[i * 3])) > 0.01f);
+        Assert.True(offGrid > stream.VertexCount / 2, "band vertices lie off the cell corners");
+    }
+
+    [Fact]
+    public void AStreamBandNeverFloatsAboveItsBankByMoreThanTheLift()
+    {
+        // A stream runs down a slope; the banks are lower than the water.
+        var builder = new WorldMapBuilder(4, 1, 1, Biomes);
+        for (var z = 0; z < 4; z++)
+        {
+            for (var x = 0; x < 4; x++)
+            {
+                builder.Set(x, z, x == 1
+                    ? new MapCell(40 - (z * 3), WaterKind.Fresh, 2, 6, 1000, 150, 0, 3000)
+                    : new MapCell(38 - (z * 3), WaterKind.None, 0, -1, 400, 150, 1, 1000));
+            }
+        }
+
+        var map = builder.Build();
+        AssertBandRests(map, Look);
+        var heights = Ys(TerrainMesher.Streams(map, Look)).Distinct().Count();
+        Assert.True(heights > 2, "the band follows the slope");
+    }
+
+    [Theory]
+    [InlineData(7UL)]
+    [InlineData(42UL)]
+    public void TheStreamsOfTheRealIslandAreBandsResting(ulong seed)
+    {
+        var (map, look) = RealIsland(seed);
+        var lines = TerrainMesher.StreamLines(map, look);
+        Assert.NotEmpty(lines);
+        AssertBandRests(map, look);
+
+        // Every running cell lies under a band (within a cell diagonal of its centre line).
+        var points = lines.SelectMany(l => l).ToList();
+        for (var z = 0; z < map.DepthCells; z++)
+        {
+            for (var x = 0; x < map.WidthCells; x++)
+            {
+                if (map.Cell(x, z) is { Water: WaterKind.Fresh, Flow: >= 0 })
+                {
+                    var (cx, cz) = (x + 0.5, z + 0.5);
+                    Assert.True(points.Any(p => ((p.X - cx) * (p.X - cx)) + ((p.Z - cz) * (p.Z - cz)) <= 2.0), $"running cell ({x}, {z}) has no band");
+                }
+            }
+        }
+    }
+
+    /// <summary>Centre vertices lie at ground plus depth; every other vertex at most the shore lift above its ground.</summary>
+    private static void AssertBandRests(WorldMap map, TerrainLook look)
+    {
+        var centres = TerrainMesher.StreamLines(map, look).SelectMany(l => l).Select(p => (X: (float)p.X, Z: (float)p.Z, p.Depth)).ToList();
+        var stream = TerrainMesher.Streams(map, look);
+        Assert.True(stream.TriangleCount > 0);
+        for (var i = 0; i < stream.VertexCount; i++)
+        {
+            float x = stream.Positions[i * 3], y = stream.Positions[(i * 3) + 1], z = stream.Positions[(i * 3) + 2];
+            var ground = TerrainMesher.GroundHeight(map, look, x, z);
+            var centre = centres.Where(c => MathF.Abs(c.X - x) < 1e-5f && MathF.Abs(c.Z - z) < 1e-5f).Select(c => (double?)c.Depth).FirstOrDefault();
+            if (centre is { } depth)
+            {
+                Assert.Equal(ground + (float)(depth * look.UnitM), y, 4);
+            }
+            else
+            {
+                Assert.True(y <= ground + look.ShoreLiftM + 1e-4f, $"band edge at ({x}, {z}) floats {y - ground:0.000} m above the bank");
+            }
+        }
+    }
+
+    private static WorldMap TwoCellStream()
+    {
         var builder = new WorldMapBuilder(4, 1, 1, Biomes);
         for (var z = 0; z < 4; z++)
         {
@@ -181,21 +318,7 @@ public sealed class TerrainMesherTests
             }
         }
 
-        var map = builder.Build();
-        var stream = TerrainMesher.Water(map, 0, 0, Look);
-        Assert.Equal(8 * 2, stream.TriangleCount);
-        Assert.All(Normals(stream), n => Assert.True(n.Y < 0.999f, "every stream face follows the slope"));
-        Assert.All(Faces(stream), f => Assert.Equal((0f, 1f), f.Flow));
-
-        // Where both cells meet (x = 2) the water lies at ground plus depth; at the dry banks (x = 1 and 3)
-        // it comes down to the ground plus the shore lift, so no edge floats above the bank.
-        for (var i = 0; i < stream.VertexCount; i++)
-        {
-            float x = stream.Positions[i * 3], y = stream.Positions[(i * 3) + 1], z = stream.Positions[(i * 3) + 2];
-            var ground = TerrainMesher.GroundHeight(map, Look, x, z);
-            var inner = MathF.Abs(x - 2f) < 0.01f;
-            Assert.Equal(inner ? ground + (2 * Look.UnitM) : ground + Look.ShoreLiftM, y, 4);
-        }
+        return builder.Build();
     }
 
     [Theory]
@@ -322,29 +445,6 @@ public sealed class TerrainMesherTests
             island.Map,
             content.WorldGen.Presets["start_island"]);
         return (island.Map, look);
-    }
-
-    [Fact]
-    public void AStreamDoesNotSpillIntoItsBanks()
-    {
-        // A stream runs down a slope; its surface would float above the lower bank, so banks stay dry.
-        var builder = new WorldMapBuilder(4, 1, 1, Biomes);
-        for (var z = 0; z < 4; z++)
-        {
-            for (var x = 0; x < 4; x++)
-            {
-                builder.Set(x, z, x == 1
-                    ? new MapCell(40 - (z * 3), WaterKind.Fresh, 2, 6, 1000, 150, 0, 3000)
-                    : new MapCell(38 - (z * 3), WaterKind.None, 0, -1, 400, 150, 1, 1000));
-            }
-        }
-
-        var stream = TerrainMesher.Water(builder.Build(), 0, 0, Look);
-        Assert.Equal(4 * 2, stream.TriangleCount);
-
-        // The ribbon slopes with the ground (no flat plates): its surface heights differ along the stream.
-        var heights = Enumerable.Range(0, stream.VertexCount).Select(i => stream.Positions[(i * 3) + 1]).Distinct().Count();
-        Assert.True(heights > 2, "stream surface must follow the slope");
     }
 
     [Fact]

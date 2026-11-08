@@ -162,6 +162,37 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("lift_m")]
         public double LiftM { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("rest")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ObjectLookRest>))]
+        public ObjectLookRest Rest { get; set; } = default!;
+
+        /// <summary>
+        /// Radius in metres (at size factor 1) over which rest lowest/highest samples the ground.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("footprint_m")]
+        public double FootprintM { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Which ground height the object stands on: centre (the ground under its position), lowest or highest ground within its footprint. A pool rests on the highest point, so its level water shows whole and its stone basin reaches down the slope instead of the slope burying it. Objects are never tilted to the slope.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public enum ObjectLookRest
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("centre")]
+        Centre = 0,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("lowest")]
+        Lowest = 1,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("highest")]
+        Highest = 2,
+
+
     }
 
     /// <summary>

@@ -90,7 +90,9 @@
         "swamp",
         "deep_from_units",
         "swamp_max_units",
-        "stream_shore_lift_mm"
+        "stream_shore_lift_mm",
+        "stream_width_m",
+        "stream_smoothing"
       ],
       "properties": {
         "sea_shallow": {
@@ -121,6 +123,18 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 200
+        },
+        "stream_width_m": {
+          "description": "Width of a stream band in metres: streams are drawn as smooth bands along their centre line (A1456); the generator makes them two cells wide.",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 10
+        },
+        "stream_smoothing": {
+          "description": "Rounds of corner cutting (Chaikin) along a stream's centre line; each round doubles the points (0 = the cell-centre polyline).",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 6
         }
       }
     },

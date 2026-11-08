@@ -40,6 +40,8 @@ public readonly record struct Rgb(float R, float G, float B)
 /// <param name="UnitM">One height unit in metres.</param>
 /// <param name="CliffDrop">Height difference (units) from which neighbours form a cliff instead of a slope.</param>
 /// <param name="ShoreLiftM">How far a stream's edge lies above the dry bank (metres), so it never sinks into it.</param>
+/// <param name="StreamWidthM">Width of a stream band in metres (A1456).</param>
+/// <param name="StreamSmoothing">Rounds of corner cutting along a stream's centre line (0 = cell-centre polyline).</param>
 public sealed record TerrainLook(
     IReadOnlyList<Rgb> BiomeColors,
     Rgb Cliff,
@@ -55,7 +57,9 @@ public sealed record TerrainLook(
     float CellM,
     float UnitM,
     int CliffDrop,
-    float ShoreLiftM)
+    float ShoreLiftM,
+    float StreamWidthM = 1.9f,
+    int StreamSmoothing = 3)
 {
     /// <summary>Resolves the look data against the palette, the map's biome order and the preset.</summary>
     public static TerrainLook From(LookTerrain terrain, LookPalette palette, WorldMap map, WorldPreset preset)
@@ -85,7 +89,9 @@ public sealed record TerrainLook(
             preset.Grid.CellSizeCm / 100f,
             preset.Grid.HeightUnitMm / 1000f,
             preset.Terrain.CliffMinDrop,
-            terrain.Water.StreamShoreLiftMm / 1000f);
+            terrain.Water.StreamShoreLiftMm / 1000f,
+            (float)terrain.Water.StreamWidthM,
+            terrain.Water.StreamSmoothing);
     }
 }
 
@@ -144,7 +150,7 @@ public sealed class MeshData
 /// cliff walls. Water surfaces are flat quads at bed height plus depth, coloured by kind and depth, with
 /// the flow direction the core gave the stream. Deterministic: same map, same meshes.
 /// </summary>
-public static class TerrainMesher
+public static partial class TerrainMesher
 {
     // Corner offsets of a cell in the order (x, z), (x + 1, z), (x + 1, z + 1), (x, z + 1).
     private static readonly (int Dx, int Dz)[] Corners = [(0, 0), (1, 0), (1, 1), (0, 1)];
@@ -192,9 +198,10 @@ public static class TerrainMesher
     }
 
     /// <summary>
-    /// The water surfaces of one chunk (sea, lakes, streams, swamp), optionally of one kind only. The sea
-    /// is flat per cell. Fresh water is drawn corner by corner (see <see cref="FreshCorner"/>), so lakes,
-    /// streams, swamp and their banks share one surface at every grid corner and close against dry ground.
+    /// The water surfaces of one chunk (sea, lakes, swamp), optionally of one kind only. The sea is flat
+    /// per cell. Fresh water is drawn corner by corner (see <see cref="FreshCorner"/>), so lakes, swamp and
+    /// their banks share one surface at every grid corner and close against dry ground. Running water is
+    /// not drawn here but as smooth bands along the stream lines (<see cref="Streams"/>, A1456).
     /// </summary>
     public static MeshData Water(WorldMap map, int chunkX, int chunkZ, TerrainLook look, WaterKind? only = null)
     {
@@ -228,10 +235,13 @@ public static class TerrainMesher
                 continue;
             }
 
-            var flow = cell.Flow >= 0 && cell.Flow < FlowDirections.All.Count
-                ? Normalised(FlowDirections.All[cell.Flow])
-                : default;
-            Fresh(map, mesh, x, z, cell.WaterDepth <= look.SwampMaxUnits ? look.Swamp : look.Fresh, flow, look);
+            if (cell.Flow >= 0)
+            {
+                // A stream: drawn as a band along its line (Streams), not as square cell plates.
+                continue;
+            }
+
+            Fresh(map, mesh, x, z, cell.WaterDepth <= look.SwampMaxUnits ? look.Swamp : look.Fresh, default, look);
         }
 
         return mesh;
@@ -524,12 +534,6 @@ public static class TerrainMesher
         // Facing the neighbour (outwards); the edges a→b run around the cell in one sense for all four sides.
         mesh.Triangle(topA, lowB, lowA, look.Cliff);
         mesh.Triangle(topA, topB, lowB, look.Cliff);
-    }
-
-    private static (float X, float Z) Normalised((int Dx, int Dz) d)
-    {
-        var length = MathF.Sqrt((d.Dx * d.Dx) + (d.Dz * d.Dz));
-        return (d.Dx / length, d.Dz / length);
     }
 
     private enum Carrier

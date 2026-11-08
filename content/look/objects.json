@@ -23,7 +23,9 @@
       ],
       "size_m": 1.0,
       "size_jitter": 0.15,
-      "lift_m": 0.0
+      "lift_m": 0.0,
+      "rest": "centre",
+      "footprint_m": 0.0
     },
     {
       "id": "conifer",
@@ -38,7 +40,9 @@
       ],
       "size_m": 1.0,
       "size_jitter": 0.15,
-      "lift_m": 0.0
+      "lift_m": 0.0,
+      "rest": "centre",
+      "footprint_m": 0.0
     },
     {
       "id": "fruit_tree",
@@ -53,7 +57,9 @@
       ],
       "size_m": 0.9,
       "size_jitter": 0.12,
-      "lift_m": 0.0
+      "lift_m": 0.0,
+      "rest": "centre",
+      "footprint_m": 0.0
     },
     {
       "id": "palm",
@@ -67,7 +73,9 @@
       ],
       "size_m": 1.0,
       "size_jitter": 0.1,
-      "lift_m": 0.0
+      "lift_m": 0.0,
+      "rest": "centre",
+      "footprint_m": 0.0
     },
     {
       "id": "berry_bush",
@@ -81,7 +89,9 @@
       ],
       "size_m": 1.0,
       "size_jitter": 0.15,
-      "lift_m": 0.0
+      "lift_m": 0.0,
+      "rest": "centre",
+      "footprint_m": 0.0
     },
     {
       "id": "hazel_bush",
@@ -95,7 +105,9 @@
       ],
       "size_m": 1.1,
       "size_jitter": 0.15,
-      "lift_m": 0.0
+      "lift_m": 0.0,
+      "rest": "centre",
+      "footprint_m": 0.0
     },
     {
       "id": "thorn_bush",
@@ -108,7 +120,9 @@
       ],
       "size_m": 0.9,
       "size_jitter": 0.15,
-      "lift_m": 0.0
+      "lift_m": 0.0,
+      "rest": "centre",
+      "footprint_m": 0.0
     },
     {
       "id": "cave_rock",
@@ -121,7 +135,9 @@
       ],
       "size_m": 2.4,
       "size_jitter": 0.1,
-      "lift_m": -0.2
+      "lift_m": -0.2,
+      "rest": "centre",
+      "footprint_m": 0.0
     },
     {
       "id": "fieldstone",
@@ -134,7 +150,9 @@
       ],
       "size_m": 1.0,
       "size_jitter": 0.25,
-      "lift_m": -0.03
+      "lift_m": -0.03,
+      "rest": "centre",
+      "footprint_m": 0.0
     },
     {
       "id": "slate",
@@ -147,7 +165,9 @@
       ],
       "size_m": 0.9,
       "size_jitter": 0.2,
-      "lift_m": -0.03
+      "lift_m": -0.03,
+      "rest": "centre",
+      "footprint_m": 0.0
     },
     {
       "id": "sandstone",
@@ -160,7 +180,9 @@
       ],
       "size_m": 1.0,
       "size_jitter": 0.2,
-      "lift_m": -0.03
+      "lift_m": -0.03,
+      "rest": "centre",
+      "footprint_m": 0.0
     },
     {
       "id": "flint",
@@ -173,7 +195,9 @@
       ],
       "size_m": 0.55,
       "size_jitter": 0.15,
-      "lift_m": -0.02
+      "lift_m": -0.02,
+      "rest": "centre",
+      "footprint_m": 0.0
     },
     {
       "id": "pyrite",
@@ -186,7 +210,9 @@
       ],
       "size_m": 0.5,
       "size_jitter": 0.15,
-      "lift_m": -0.02
+      "lift_m": -0.02,
+      "rest": "centre",
+      "footprint_m": 0.0
     },
     {
       "id": "clay",
@@ -199,7 +225,9 @@
       ],
       "size_m": 0.7,
       "size_jitter": 0.2,
-      "lift_m": -0.04
+      "lift_m": -0.04,
+      "rest": "centre",
+      "footprint_m": 0.0
     },
     {
       "id": "peat",
@@ -212,7 +240,9 @@
       ],
       "size_m": 0.8,
       "size_jitter": 0.2,
-      "lift_m": -0.05
+      "lift_m": -0.05,
+      "rest": "centre",
+      "footprint_m": 0.0
     },
     {
       "id": "spring",
@@ -226,7 +256,9 @@
       ],
       "size_m": 0.8,
       "size_jitter": 0.1,
-      "lift_m": 0.0
+      "lift_m": 0.03,
+      "rest": "highest",
+      "footprint_m": 0.75
     },
     {
       "id": "sea_water",
@@ -239,7 +271,9 @@
       ],
       "size_m": 1.0,
       "size_jitter": 0.0,
-      "lift_m": 0.0
+      "lift_m": 0.0,
+      "rest": "centre",
+      "footprint_m": 0.0
     },
     {
       "id": "dry_wood",
@@ -253,7 +287,9 @@
       ],
       "size_m": 1.0,
       "size_jitter": 0.2,
-      "lift_m": 0.0
+      "lift_m": 0.0,
+      "rest": "centre",
+      "footprint_m": 0.0
     },
     {
       "id": "bark",
@@ -267,7 +303,9 @@
       ],
       "size_m": 0.55,
       "size_jitter": 0.2,
-      "lift_m": 0.0
+      "lift_m": 0.0,
+      "rest": "centre",
+      "footprint_m": 0.0
     },
     {
       "id": "driftwood",
@@ -281,7 +319,9 @@
       ],
       "size_m": 1.2,
       "size_jitter": 0.2,
-      "lift_m": 0.0
+      "lift_m": 0.0,
+      "rest": "centre",
+      "footprint_m": 0.0
     },
     {
       "id": "dry_grass",
@@ -294,7 +334,9 @@
       ],
       "size_m": 1.2,
       "size_jitter": 0.2,
-      "lift_m": 0.0
+      "lift_m": 0.0,
+      "rest": "centre",
+      "footprint_m": 0.0
     },
     {
       "id": "nettle",
@@ -307,7 +349,9 @@
       ],
       "size_m": 1.5,
       "size_jitter": 0.2,
-      "lift_m": 0.0
+      "lift_m": 0.0,
+      "rest": "centre",
+      "footprint_m": 0.0
     },
     {
       "id": "reed",
@@ -321,7 +365,9 @@
       ],
       "size_m": 1.0,
       "size_jitter": 0.2,
-      "lift_m": 0.0
+      "lift_m": 0.0,
+      "rest": "centre",
+      "footprint_m": 0.0
     },
     {
       "id": "wild_grain",
@@ -335,7 +381,9 @@
       ],
       "size_m": 0.8,
       "size_jitter": 0.2,
-      "lift_m": 0.0
+      "lift_m": 0.0,
+      "rest": "centre",
+      "footprint_m": 0.0
     },
     {
       "id": "flax",
@@ -349,7 +397,9 @@
       ],
       "size_m": 1.0,
       "size_jitter": 0.2,
-      "lift_m": 0.0
+      "lift_m": 0.0,
+      "rest": "centre",
+      "footprint_m": 0.0
     },
     {
       "id": "healing_herb",
@@ -363,7 +413,9 @@
       ],
       "size_m": 1.0,
       "size_jitter": 0.2,
-      "lift_m": 0.0
+      "lift_m": 0.0,
+      "rest": "centre",
+      "footprint_m": 0.0
     },
     {
       "id": "brown_mushroom",
@@ -377,7 +429,9 @@
       ],
       "size_m": 1.0,
       "size_jitter": 0.2,
-      "lift_m": 0.0
+      "lift_m": 0.0,
+      "rest": "centre",
+      "footprint_m": 0.0
     },
     {
       "id": "red_mushroom",
@@ -391,7 +445,9 @@
       ],
       "size_m": 1.0,
       "size_jitter": 0.2,
-      "lift_m": 0.0
+      "lift_m": 0.0,
+      "rest": "centre",
+      "footprint_m": 0.0
     },
     {
       "id": "apple",
@@ -404,7 +460,9 @@
       ],
       "size_m": 1.0,
       "size_jitter": 0.1,
-      "lift_m": 0.0
+      "lift_m": 0.0,
+      "rest": "centre",
+      "footprint_m": 0.0
     },
     {
       "id": "red_berry",
@@ -417,7 +475,9 @@
       ],
       "size_m": 0.7,
       "size_jitter": 0.1,
-      "lift_m": 0.0
+      "lift_m": 0.0,
+      "rest": "centre",
+      "footprint_m": 0.0
     },
     {
       "id": "blue_berry",
@@ -430,7 +490,9 @@
       ],
       "size_m": 0.7,
       "size_jitter": 0.1,
-      "lift_m": 0.0
+      "lift_m": 0.0,
+      "rest": "centre",
+      "footprint_m": 0.0
     },
     {
       "id": "hazelnut",
@@ -443,7 +505,9 @@
       ],
       "size_m": 0.6,
       "size_jitter": 0.1,
-      "lift_m": 0.0
+      "lift_m": 0.0,
+      "rest": "centre",
+      "footprint_m": 0.0
     },
     {
       "id": "resin",
@@ -456,7 +520,9 @@
       ],
       "size_m": 0.5,
       "size_jitter": 0.1,
-      "lift_m": 0.0
+      "lift_m": 0.0,
+      "rest": "centre",
+      "footprint_m": 0.0
     },
     {
       "id": "spark",
@@ -469,7 +535,9 @@
       ],
       "size_m": 0.4,
       "size_jitter": 0.0,
-      "lift_m": 0.05
+      "lift_m": 0.05,
+      "rest": "centre",
+      "footprint_m": 0.0
     },
     {
       "id": "shell",
@@ -482,7 +550,9 @@
       ],
       "size_m": 1.0,
       "size_jitter": 0.2,
-      "lift_m": 0.0
+      "lift_m": 0.0,
+      "rest": "centre",
+      "footprint_m": 0.0
     }
   ]
 }

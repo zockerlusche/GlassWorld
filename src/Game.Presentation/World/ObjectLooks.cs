@@ -10,7 +10,9 @@ namespace GlassWorld.Presentation.World;
 /// <param name="SizeM">Size factor.</param>
 /// <param name="SizeJitter">Size variation share either way.</param>
 /// <param name="LiftM">Height above the ground.</param>
-public sealed record ObjectLook(string VisualId, ObjectLookShape Shape, IReadOnlyList<string> Colors, double SizeM, double SizeJitter, double LiftM)
+/// <param name="Rest">Which ground height within the footprint the object stands on (never tilted).</param>
+/// <param name="FootprintM">Radius of the footprint at size factor 1.</param>
+public sealed record ObjectLook(string VisualId, ObjectLookShape Shape, IReadOnlyList<string> Colors, double SizeM, double SizeJitter, double LiftM, ObjectLookRest Rest = ObjectLookRest.Centre, double FootprintM = 0)
 {
     /// <summary>The colour of a role; a shape with more roles than colours repeats them from the start.</summary>
     public string Color(int role) => Colors[role % Colors.Count];
@@ -67,7 +69,7 @@ public sealed class ObjectLooks
             }
 
             CheckColors($"visual '{visual.Id}'", visual.Colors);
-            var look = new ObjectLook(visual.Id, visual.Shape, [.. visual.Colors], visual.SizeM, visual.SizeJitter, visual.LiftM);
+            var look = new ObjectLook(visual.Id, visual.Shape, [.. visual.Colors], visual.SizeM, visual.SizeJitter, visual.LiftM, visual.Rest, visual.FootprintM);
             visuals.Add(look);
             foreach (var type in visual.Types)
             {
@@ -129,7 +131,11 @@ public sealed class ObjectLooks
         return layout;
     }
 
-    /// <summary>One object on the ground: turn and size variation from its id (deterministic, no RNG state).</summary>
+    /// <summary>
+    /// One object on the ground, upright (never tilted to the slope): turn and size variation from its id
+    /// (deterministic, no RNG state); its height is the ground under its position, or the lowest or highest
+    /// ground within its footprint (<see cref="ObjectLook.Rest"/>), plus the lift.
+    /// </summary>
     public static ObjectPlacement Place(WorldObject obj, ObjectLook look, Func<double, double, double> ground)
     {
         ArgumentNullException.ThrowIfNull(obj);
@@ -138,7 +144,30 @@ public sealed class ObjectLooks
         var (x, z) = (obj.Position.X, obj.Position.Z);
         var yaw = Hash01(obj.Id, 1) * 2 * Math.PI;
         var scale = look.SizeM * (1 + (look.SizeJitter * ((Hash01(obj.Id, 2) * 2) - 1)));
-        return new ObjectPlacement(obj.Id, x, ground(x, z) + look.LiftM, z, yaw, scale);
+        return new ObjectPlacement(obj.Id, x, Rest(look, x, z, scale, ground) + look.LiftM, z, yaw, scale);
+    }
+
+    /// <summary>Samples in the footprint: the centre and two rings of eight points.</summary>
+    private static double Rest(ObjectLook look, double x, double z, double scale, Func<double, double, double> ground)
+    {
+        var height = ground(x, z);
+        var radius = look.FootprintM * scale;
+        if (look.Rest == ObjectLookRest.Centre || radius <= 0)
+        {
+            return height;
+        }
+
+        foreach (var share in (ReadOnlySpan<double>)[0.5, 1.0])
+        {
+            for (var k = 0; k < 8; k++)
+            {
+                var a = k * Math.PI / 4;
+                var h = ground(x + (Math.Cos(a) * radius * share), z + (Math.Sin(a) * radius * share));
+                height = look.Rest == ObjectLookRest.Highest ? Math.Max(height, h) : Math.Min(height, h);
+            }
+        }
+
+        return height;
     }
 
     /// <summary>

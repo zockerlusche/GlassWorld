@@ -124,6 +124,23 @@ public sealed class IslandLookTests
     }
 
     [Fact]
+    public void APoolRestsLevelOnTheHighestGroundOfItsFootprint()
+    {
+        // Ground rising with x (slope 0.5): the pool's level surface lies at the highest point under it, so
+        // the slope never buries it; centre-resting objects stand on the ground under their position.
+        Func<double, double, double> slope = (x, _) => x / 2;
+        var spring = Looks().For("spring_water");
+        Assert.Equal((ObjectLookShape.Pool, ObjectLookRest.Highest), (spring.Shape, spring.Rest));
+        var pool = new ObjectLook("pool", ObjectLookShape.Pool, ["fresh_water"], 1.0, 0, 0.03, ObjectLookRest.Highest, 0.75);
+        var placed = ObjectLooks.Place(new WorldObject("o1", "spring_water", new Position(10, 4)), pool, slope);
+        Assert.Equal(slope(10.75, 4) + 0.03, placed.Y, 9);
+        var low = ObjectLooks.Place(new WorldObject("o1", "spring_water", new Position(10, 4)), pool with { Rest = ObjectLookRest.Lowest }, slope);
+        Assert.Equal(slope(9.25, 4) + 0.03, low.Y, 9);
+        var tree = ObjectLooks.Place(new WorldObject("o2", "deciduous_tree", new Position(10, 4)), Looks().For("deciduous_tree"), slope);
+        Assert.Equal(slope(10, 4), tree.Y, 9);
+    }
+
+    [Fact]
     public void TheSignatureChangesWithTheObjectSetButNotWithItsOrder()
     {
         var a = new WorldObject("a", "apple", new Position(1, 1));

@@ -95,12 +95,14 @@ public static class ObjectShapes
                 parts.Add(new SphereMesh { Radius = 0.15f, Height = 0.15f, IsHemisphere = true, RadialSegments = 8, Rings = 3 }, At(0, 0.15f, 0), color(0));
                 break;
             case ObjectLookShape.Pool:
-                // A deep puck sunk into the ground, so the water shows level on a slope too.
-                parts.Add(new CylinderMesh { TopRadius = 0.7f, BottomRadius = 0.7f, Height = 0.4f, RadialSegments = 10 }, At(0, -0.15f, 0), color(0));
-                for (var i = 0; i < 7; i++)
+                // A small level pool (y = 0 is its water surface): water disc, a stone basin reaching down
+                // so a slope never buries it, and a ring of stones on the rim. Never tilted to the slope.
+                parts.Add(new CylinderMesh { TopRadius = 0.55f, BottomRadius = 0.55f, Height = 0.02f, RadialSegments = 12 }, At(0, -0.01f, 0), color(0));
+                parts.Add(new CylinderMesh { TopRadius = 0.62f, BottomRadius = 0.66f, Height = 0.7f, RadialSegments = 12 }, At(0, -0.375f, 0), color(1));
+                for (var i = 0; i < 8; i++)
                 {
-                    var a = i * Mathf.Tau / 7;
-                    parts.Add(IslandPiece.Rock(20 + i, new Vector3(0.24f, 0.14f, 0.2f), Colors.White), At(Mathf.Cos(a) * 0.78f, 0, Mathf.Sin(a) * 0.78f), color(1));
+                    var a = i * Mathf.Tau / 8;
+                    parts.Add(IslandPiece.Rock(20 + i, new Vector3(0.22f, 0.14f, 0.18f), Colors.White), At(Mathf.Cos(a) * 0.64f, -0.03f, Mathf.Sin(a) * 0.64f), color(1));
                 }
 
                 break;

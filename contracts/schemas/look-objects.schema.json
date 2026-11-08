@@ -105,7 +105,9 @@
         "colors",
         "size_m",
         "size_jitter",
-        "lift_m"
+        "lift_m",
+        "rest",
+        "footprint_m"
       ],
       "properties": {
         "id": {
@@ -153,8 +155,26 @@
           "type": "number",
           "minimum": -2,
           "maximum": 2
+        },
+        "rest": {
+          "$ref": "#/$defs/ObjectLookRest"
+        },
+        "footprint_m": {
+          "description": "Radius in metres (at size factor 1) over which rest lowest/highest samples the ground.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10
         }
       }
+    },
+    "ObjectLookRest": {
+      "description": "Which ground height the object stands on: centre (the ground under its position), lowest or highest ground within its footprint. A pool rests on the highest point, so its level water shows whole and its stone basin reaches down the slope instead of the slope burying it. Objects are never tilted to the slope.",
+      "type": "string",
+      "enum": [
+        "centre",
+        "lowest",
+        "highest"
+      ]
     }
   }
 }

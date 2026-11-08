@@ -52,6 +52,12 @@ class ObjectLookFallback(BaseModel):
 type Type = Annotated[str, Field(..., pattern='^[a-z][a-z0-9_]*$')]
 
 
+class ObjectLookRest(StrEnum):
+    centre = 'centre'
+    lowest = 'lowest'
+    highest = 'highest'
+
+
 class ObjectVisual(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -84,6 +90,13 @@ class ObjectVisual(BaseModel):
         description='Height above the ground in metres (negative sinks it in a little).',
         ge=-2.0,
         le=2.0,
+    )
+    rest: ObjectLookRest
+    footprint_m: float = Field(
+        ...,
+        description='Radius in metres (at size factor 1) over which rest lowest/highest samples the ground.',
+        ge=0.0,
+        le=10.0,
     )
 
 
