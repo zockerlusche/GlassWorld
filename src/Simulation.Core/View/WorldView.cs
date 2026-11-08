@@ -40,7 +40,11 @@ public sealed record InhabitantSnapshot(
 /// <param name="Inhabitants">Inhabitants in id order.</param>
 /// <param name="Objects">Objects in id order.</param>
 /// <param name="Events">Events of the most recent tick with events.</param>
-public sealed record WorldSnapshot(WorldTime Time, IReadOnlyList<InhabitantSnapshot> Inhabitants, IReadOnlyList<WorldObject> Objects, IReadOnlyList<WorldEvent> Events);
+public sealed record WorldSnapshot(WorldTime Time, IReadOnlyList<InhabitantSnapshot> Inhabitants, IReadOnlyList<WorldObject> Objects, IReadOnlyList<WorldEvent> Events)
+{
+    /// <summary>The weather now (B2 R13), or null without a weather system.</summary>
+    public Weather.WeatherReading? Weather { get; init; }
+}
 
 /// <summary>
 /// The UI's read port (R15a): copies of the core state that the presentation can keep and compare without

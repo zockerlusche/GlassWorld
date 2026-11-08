@@ -275,6 +275,7 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "climate_id",
         "base_temperature_tenth_c",
         "temperature_drop_per_100_height",
         "moisture_base_permille",
@@ -282,6 +283,10 @@
         "valley_moisture_bonus_permille"
       ],
       "properties": {
+        "climate_id": {
+          "description": "Climate of this world (file id in content/climate): weather states and their change per season (B2 R13).",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
         "base_temperature_tenth_c": {
           "description": "Base temperature at sea level in tenths of a degree Celsius.",
           "type": "integer",
