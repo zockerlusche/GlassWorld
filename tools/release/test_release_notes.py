@@ -142,3 +142,17 @@ def test_notes_file_is_utf8(tmp_path: Path) -> None:
     out = tmp_path / "notes.md"
     assert NOTES.main(["0.1.0", "--changelog", str(log), "--out", str(out)]) == 0
     assert "\u2192" in out.read_text(encoding="utf-8")
+
+
+def test_pack_finds_paths_in_binary_files(tmp_path: Path) -> None:
+    """Review GW1 #130: byte code and launchers carried the build machine's user folder."""
+    stage = tmp_path / "GlassWorld-probe-windows-x64"
+    (stage / "python" / "Scripts").mkdir(parents=True)
+    (stage / "python" / "mod.cpython-312.pyc").write_bytes(
+        b"\x00\x01C:/Users/Someone/AppData/uv/Lib/mod.py\x00"
+    )
+    wide = r"C:\Users\Someone\stage\python.exe".encode("utf-16-le")
+    (stage / "python" / "Scripts" / "tool.exe").write_bytes(b"MZ\x00" + wide)
+    (stage / "clean.bin").write_bytes(b"MZ nothing here")
+    leaks = PACK.leaked_paths(stage, [r"c:\users\someone"])
+    assert sorted(leaks) == ["python/Scripts/tool.exe", "python/mod.cpython-312.pyc"]

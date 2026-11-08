@@ -84,3 +84,21 @@ def test_build_machine_paths_are_stripped_from_installed_metadata(tmp_path: Path
     assert not (local / "direct_url.json").exists()
     assert "direct_url" not in (local / "RECORD").read_text(encoding="utf-8")
     assert (index / "direct_url.json").exists()  # no build path in it: untouched
+
+
+def test_finish_python_drops_launchers_tests_and_old_byte_code(tmp_path: Path) -> None:
+    """Review GW1 #130: launchers and byte code named the build machine."""
+    package = _module()
+    python_dir = tmp_path / "python"
+    (python_dir / "Scripts").mkdir(parents=True)
+    (python_dir / "Scripts" / "uvicorn.exe").write_bytes(b"MZ")
+    tests = python_dir / "Lib" / "site-packages" / "jsonschema" / "tests"
+    tests.mkdir(parents=True)
+    (tests / "test_x.py").write_text("x = 1\n", encoding="utf-8")
+    cache = python_dir / "Lib" / "asyncio" / "__pycache__"
+    cache.mkdir(parents=True)
+    (cache / "base.cpython-312.pyc").write_bytes(b"old")
+    package.finish_python(python_dir)  # no python.exe here: no recompilation
+    assert not (python_dir / "Scripts").exists()
+    assert not tests.exists()
+    assert not cache.exists()

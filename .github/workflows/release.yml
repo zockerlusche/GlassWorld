@@ -1,6 +1,8 @@
 # Release build (B10 R8): Windows archive, SHA256SUMS.txt and release notes from CHANGELOG.md.
 # A pushed tag vX.Y.Z builds that version; a manual run builds a probe of the current commit.
 # The workflow only ever creates a DRAFT release; publishing it is a manual step after review.
+# Two jobs (review GW1 #130): the build runs with a read-only token and no stored credentials; only
+# the small publish job, which runs no project code, may write (draft release).
 # The build itself is tools/release/build_release.sh, which also runs locally (reproducible).
 # Actions are pinned to commit SHAs (supply chain, ADR-0001).
 name: Release
@@ -35,12 +37,15 @@ env:
   EMBEDDED_PYTHON: "cpython-3.12.13"
 
 jobs:
-  windows:
+  build:
     name: Windows release archive
     runs-on: windows-2025
     timeout-minutes: 60
     permissions:
-      contents: write # only for creating the draft release
+      contents: read
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      name: ${{ steps.build.outputs.name }}
     defaults:
       run:
         shell: bash
@@ -48,6 +53,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           lfs: true
+          persist-credentials: false
       - name: Version
         id: version
         env:
@@ -104,17 +110,42 @@ jobs:
           name="$(sed -n 's/^RELEASE_OK //p' "$RUNNER_TEMP/build.log")"
           test -n "$name" || { echo "release build did not finish" >&2; exit 1; }
           echo "name=$name" >> "$GITHUB_OUTPUT"
+      - name: Keep the archive for the publish job
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release
+          path: |
+            ${{ runner.temp }}/release/${{ steps.build.outputs.name }}.zip
+            ${{ runner.temp }}/release/SHA256SUMS.txt
+            ${{ runner.temp }}/release/release-notes.md
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: Draft release
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write # only here: create the draft release; no project code runs in this job
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release
+          path: release
+      - name: Check the checksum
+        run: cd release && sha256sum -c SHA256SUMS.txt
       - name: Create the draft release
         env:
           GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ steps.version.outputs.version }}
-          NAME: ${{ steps.build.outputs.name }}
+          GH_REPO: ${{ github.repository }}
+          VERSION: ${{ needs.build.outputs.version }}
+          NAME: ${{ needs.build.outputs.name }}
         run: |
-          out="$RUNNER_TEMP/release"
           if [ "$VERSION" = "unreleased" ]; then
-            tag="probe-$(git rev-parse --short=8 HEAD)"; title="Probe build $tag"; extra="--prerelease"
+            tag="probe-${GITHUB_SHA::8}"; title="Probe build $tag"; extra="--prerelease"
           else
             tag="v$VERSION"; title="GlassWorld $VERSION"; extra=""
           fi
           gh release create "$tag" --draft $extra --target "$GITHUB_SHA" --title "$title" \
-            --notes-file "$out/release-notes.md" "$out/$NAME.zip" "$out/SHA256SUMS.txt"
+            --notes-file release/release-notes.md "release/$NAME.zip" release/SHA256SUMS.txt

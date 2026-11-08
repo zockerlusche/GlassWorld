@@ -12,10 +12,6 @@ import sys
 import zipfile
 from pathlib import Path
 
-TEXT_SUFFIXES = {
-    ".cmd", ".bat", ".ps1", ".sh", ".txt", ".md", ".json", ".toml", ".cfg", ".ini", ".xml",
-    ".yaml", ".yml", ".py", ".pth", "._pth",
-}  # fmt: skip
 CHUNK = 1 << 20
 
 
@@ -23,20 +19,27 @@ class PackError(Exception):
     pass
 
 
-def leaked_paths(stage: Path, forbidden: list[str]) -> list[str]:
-    """Text files that mention a forbidden path (both slash styles, any case)."""
-    needles = {
+def _needles(forbidden: list[str]) -> set[bytes]:
+    """Each path in both slash styles, as UTF-8 and UTF-16-LE bytes (Windows resources), lower."""
+    variants = {
         variant.lower()
         for path in forbidden
-        if path.strip()
-        for variant in (path, path.replace("\\", "/"), path.replace("/", "\\"))
+        if len(path.strip()) > 3  # never a bare drive or "/"
+        for variant in (path.rstrip("/\\"), path.replace("\\", "/"), path.replace("/", "\\"))
     }
+    return {v.encode(enc) for v in variants for enc in ("utf-8", "utf-16-le")}
+
+
+def leaked_paths(stage: Path, forbidden: list[str]) -> list[str]:
+    """Files of any kind (text, byte code, executables) that contain a forbidden path, any case
+    (review GW1 #130: .pyc and launchers carried the build machine's user folder)."""
+    needles = _needles(forbidden)
     found: list[str] = []
     for file in sorted(stage.rglob("*")):
-        if not file.is_file() or file.suffix.lower() not in TEXT_SUFFIXES:
+        if not file.is_file():
             continue
-        text = file.read_text(encoding="utf-8", errors="ignore").lower()
-        if any(needle in text for needle in needles):
+        data = file.read_bytes().lower()
+        if any(needle in data for needle in needles):
             found.append(file.relative_to(stage).as_posix())
     return found
 

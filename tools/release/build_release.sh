@@ -49,6 +49,21 @@ echo "== release notes"
 uv run --project "$ROOT" python "$ROOT/tools/release/release_notes.py" "${NOTES_ARGS[@]}" \
   --out "$OUT/release-notes.md"
 
+echo "== export preset"
+# export_presets.cfg is machine-local (.gitignore); a local one must match what CI uses (review
+# GW1 #130), otherwise a local release could differ (e.g. debug symbols or an embedded pck).
+PRESET="$ROOT/game/export_presets.cfg"
+if [ -f "$PRESET" ]; then
+  for line in 'binary_format/embed_pck=false' 'binary_format/architecture="x86_64"' \
+    'dotnet/include_scripts_content=false' 'dotnet/include_debug_symbols=false' \
+    'codesign/enable=false'; do
+    if ! grep -qxF "$line" "$PRESET"; then
+      echo "RELEASE_FAIL: $PRESET lacks '$line' (remove the file to use the release preset)" >&2
+      exit 1
+    fi
+  done
+fi
+
 echo "== Godot export (with smoke start)"
 bash "$ROOT/tools/export-windows.sh" "$STAGE"
 # The test package's start scripts point at the build machine's repository: not for a release.
@@ -59,6 +74,12 @@ uv run --project "$ROOT" python "$ROOT/tools/package_ai_service.py" "$PYTHON_DIR
 
 echo "== licences and docs"
 cp "$ROOT/LICENSE" "$ROOT/LICENSES.md" "$ROOT/README.md" "$ROOT/CHANGELOG.md" "$STAGE/"
+# Licence texts (review GW1 #130): the engine runtime with its bundled third-party notices and the
+# font licence; the Python packages bring theirs in ai-service/python (dist-info, LICENSE-python).
+# The complete notices with the in-game licence window are B10-S6.
+mkdir -p "$STAGE/licenses/fonts"
+cp -r "$ROOT/docs/licenses/." "$STAGE/licenses/"
+cp "$ROOT/game/ui/fonts/OFL.txt" "$STAGE/licenses/fonts/OFL.txt"
 rm -f "$STAGE/.glassworld-release"
 
 echo "== pack"
