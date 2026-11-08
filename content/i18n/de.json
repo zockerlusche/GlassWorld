@@ -1449,6 +1449,14 @@
     {
       "key": "vocab.event.mail_repeated",
       "text": "Nachricht klopft erneut"
+    },
+    {
+      "key": "vocab.event.writing_found",
+      "text": "Geschriebenes wiedergefunden"
+    },
+    {
+      "key": "msg.chronicle.found_writing",
+      "text": "{inhabitant} hat alte Zeichen gefunden: {target}."
     }
   ]
 }

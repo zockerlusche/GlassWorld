@@ -27,6 +27,15 @@
         "inhabitant",
         "action"
       ]
+    },
+    {
+      "id": "found_writing",
+      "event": "writing_found",
+      "text_key": "msg.chronicle.found_writing",
+      "params": [
+        "inhabitant",
+        "target"
+      ]
     }
   ]
 }

@@ -158,7 +158,7 @@ public sealed class ContentSet
         var chronicle = ContractSerializer.Deserialize<ChronicleKinds>(File.ReadAllText(Path.Combine(contentDirectory, "chronicle", "kinds.json")));
         var player = Path.Combine(contentDirectory, "player");
         var writing = ContractSerializer.Deserialize<WritingMedia>(File.ReadAllText(Path.Combine(contentDirectory, "writing", "media.json")));
-        CheckWriting(writing, Ids(vocabularies, VocabularyKind.Writing_medium), Ids(vocabularies, VocabularyKind.Weather), Ids(vocabularies, VocabularyKind.Property), Ids(vocabularies, VocabularyKind.Trait));
+        CheckWriting(writing, Ids(vocabularies, VocabularyKind.Writing_medium), Ids(vocabularies, VocabularyKind.Weather), Ids(vocabularies, VocabularyKind.Property), Ids(vocabularies, VocabularyKind.Trait), Ids(vocabularies, VocabularyKind.Biome));
         var skillPractice = ContractSerializer.Deserialize<SkillPractice>(File.ReadAllText(Path.Combine(contentDirectory, "skills", "practice.json")));
         CheckSkills(model, skillPractice, Ids(vocabularies, VocabularyKind.Skill), Ids(vocabularies, VocabularyKind.Action));
         return new ContentSet(
@@ -190,7 +190,7 @@ public sealed class ContentSet
     }
 
     /// <summary>Every carrier of the vocabulary has exactly one entry; all ids it uses are known (B8 R13).</summary>
-    private static void CheckWriting(WritingMedia writing, HashSet<string> media, HashSet<string> weather, HashSet<string> properties, HashSet<string> traits)
+    private static void CheckWriting(WritingMedia writing, HashSet<string> media, HashSet<string> weather, HashSet<string> properties, HashSet<string> traits, HashSet<string> biomes)
     {
         var problems = new List<string>();
         var defined = writing.Media.Select(m => m.Id).ToList();
@@ -200,6 +200,22 @@ public sealed class ContentSet
         problems.AddRange(writing.Media.SelectMany(m => m.WeatherLoss).Where(w => !weather.Contains(w.Weather)).Select(w => $"unknown weather '{w.Weather}'"));
         problems.AddRange(writing.Media.SelectMany(m => m.WeatherLoss.GroupBy(w => w.Weather, StringComparer.Ordinal).Where(g => g.Count() > 1).Select(g => $"carrier '{m.Id}' names weather '{g.Key}' twice")));
         problems.AddRange(writing.Media.SelectMany(m => m.ToolProperties).Where(p => !properties.Contains(p)).Select(p => $"unknown tool property '{p}'"));
+        problems.AddRange(writing.Media.SelectMany(m => m.Carrier.Properties).Where(p => !properties.Contains(p)).Select(p => $"unknown carrier property '{p}'"));
+        problems.AddRange(writing.Media.SelectMany(m => m.Carrier.Biomes).Where(b => !biomes.Contains(b)).Select(b => $"unknown carrier biome '{b}'"));
+        foreach (var m in writing.Media)
+        {
+            // Ground takes marks only in named biomes; objects are chosen by properties only.
+            if (m.Carrier.Surface == CarrierSurface.Ground && (m.Carrier.Biomes.Count == 0 || m.Carrier.Properties.Count > 0))
+            {
+                problems.Add($"carrier '{m.Id}' on the ground needs biomes and no properties");
+            }
+
+            if (m.Carrier.Surface == CarrierSurface.Object && m.Carrier.Biomes.Count > 0)
+            {
+                problems.Add($"carrier '{m.Id}' on objects names biomes");
+            }
+        }
+
         if (!traits.Contains(writing.Read.CuriosityTrait))
         {
             problems.Add($"unknown trait '{writing.Read.CuriosityTrait}'");
