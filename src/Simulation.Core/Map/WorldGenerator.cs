@@ -79,7 +79,7 @@ public sealed record GeneratedIsland(
 /// </summary>
 public static class WorldGenerator
 {
-    private static readonly (int Dx, int Dz)[] Neighbours8 = [(1, 0), (1, -1), (0, -1), (-1, -1), (-1, 0), (-1, 1), (0, 1), (1, 1)];
+    private static readonly (int Dx, int Dz)[] Neighbours8 = [.. FlowDirections.All];
     private static readonly (int Dx, int Dz)[] Neighbours4 = [(1, 0), (0, -1), (-1, 0), (0, 1)];
 
     /// <summary>Generates the start island; retries with derived seeds until the check passes.</summary>

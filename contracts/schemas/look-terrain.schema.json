@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/look-terrain.schema.json",
+  "title": "LookTerrain",
+  "description": "Data file content/look/terrain.json: how the island grid is drawn (B2 R18-R20): palette colours per biome, for cliffs and the ground under water, and the water surfaces. Ids refer to content/look/palette.json. Presentation only, not part of the hash. Values are placeholders.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "biome_colors",
+    "cliff_color",
+    "bed_color",
+    "water",
+    "slope_shade_permille"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "biome_colors": {
+      "description": "Ground colour of each biome (biome id from content/world/biomes.json, colour id from the palette).",
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "items": {
+        "$ref": "#/$defs/TerrainBiomeColor"
+      }
+    },
+    "cliff_color": {
+      "description": "Palette colour of cliff walls.",
+      "$ref": "common.schema.json#/$defs/VocabId"
+    },
+    "bed_color": {
+      "description": "Palette colour of the ground under water.",
+      "$ref": "common.schema.json#/$defs/VocabId"
+    },
+    "water": {
+      "$ref": "#/$defs/TerrainWater"
+    },
+    "slope_shade_permille": {
+      "description": "How much steep ground is darkened towards the cliff colour (0 = not at all, 1000 = fully).",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000
+    }
+  },
+  "$defs": {
+    "TerrainBiomeColor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "biome",
+        "color"
+      ],
+      "properties": {
+        "biome": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "color": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        }
+      }
+    },
+    "TerrainWater": {
+      "description": "Palette colours of the water surfaces and the depth (in height units) from which water counts as deep.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sea_shallow",
+        "sea_deep",
+        "fresh",
+        "swamp",
+        "deep_from_units",
+        "swamp_max_units"
+      ],
+      "properties": {
+        "sea_shallow": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "sea_deep": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "fresh": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "swamp": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "deep_from_units": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "swamp_max_units": {
+          "description": "Fresh water this shallow (height units) is drawn as murky swamp.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        }
+      }
+    }
+  }
+}
