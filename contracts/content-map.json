@@ -67,6 +67,10 @@
       "schema": "synth-recipes"
     },
     {
+      "pattern": "music/music.json",
+      "schema": "music-settings"
+    },
+    {
       "pattern": "safety/rules.json",
       "schema": "safety-rules"
     },

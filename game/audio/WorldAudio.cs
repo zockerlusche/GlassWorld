@@ -24,6 +24,7 @@ public partial class WorldAudio : Node3D
     private SoundDirector? _director;
     private WorldFeed? _feed;
     private ulong _worldSeed;
+    private WorldMusic? _music;
 
     /// <summary>Zoom 0 (fully in) .. 1 (fully out); set by the camera control.</summary>
     public double Zoom { get; set; } = 0.5;
@@ -55,6 +56,13 @@ public partial class WorldAudio : Node3D
         _director = new SoundDirector(RetroAudio.Library!, _mixer, _baseSounds?.Variants);
         _feed = new WorldFeed(host);
         _worldSeed = worldSeed;
+        _music = new WorldMusic { Name = "WorldMusic" };
+        AddChild(_music);
+        if (!_music.Setup(host, worldSeed, BusName(MixBusId.Music)))
+        {
+            _music.QueueFree();
+            _music = null;
+        }
         foreach (var bus in _mixer.Mix.Buses)
         {
             var name = BusName(bus.Id);
@@ -130,6 +138,9 @@ public partial class WorldAudio : Node3D
             player.Play();
         }
     }
+
+    /// <summary>Smoke run only: the background music (B8 R6).</summary>
+    public string MusicSelfCheck() => _music?.SelfCheck() ?? "music not set up";
 
     /// <summary>Sets a player's volume from its ground distance to the listener.</summary>
     public void ApplyVolume(AudioStreamPlayer3D player, MixBusId bus, Position listener)

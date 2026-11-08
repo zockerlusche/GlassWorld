@@ -263,6 +263,15 @@ public partial class Main
         }
 
         GD.Print("AUDIO_SPATIAL_OK");
+
+        var music = _audio?.MusicSelfCheck() ?? "world audio not set up";
+        if (music.Length > 0)
+        {
+            GD.PushError($"MUSIC_FAIL {music}");
+            return;
+        }
+
+        GD.Print("MUSIC_OK");
     }
 
     private static void CheckAudio(bool loaded)
