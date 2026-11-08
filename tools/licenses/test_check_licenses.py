@@ -218,3 +218,33 @@ def test_sound_files_map_by_their_recorded_origin(tmp_path: Path) -> None:
     problems = CHECK.check(root)
     assert any("origin 'synth'" in p for p in problems)
     assert any("b.wav" in p for p in problems)
+
+
+def _with_models(root: Path, models: list[dict[str, str]]) -> None:
+    (root / "content" / "ai").mkdir(parents=True, exist_ok=True)
+    data = {"contract_version": "0.2", "models": models}
+    (root / "content" / "ai" / "model-downloads.json").write_text(json.dumps(data), "utf-8")
+
+
+def test_offered_models_need_an_allowed_licence_and_a_row(tmp_path: Path) -> None:
+    """Review GW1 #125: the download list is covered like the packages."""
+    root = make_repo(tmp_path, [("Qwen3.5 9B (Ollama `lm:9b`)", "Apache-2.0")])
+    _with_models(root, [{"id": "lm:9b", "licence": "Apache-2.0"}])
+    assert CHECK.check(root) == []
+    _with_models(
+        root,
+        [
+            {"id": "lm:9b", "licence": "Proprietary (limited use)"},
+            {"id": "other:1b", "licence": "MIT"},
+        ],
+    )
+    problems = CHECK.check(root)
+    assert any("lm:9b" in p and "not allowed" in p for p in problems)
+    assert any("'other:1b' has no row" in p for p in problems)
+
+
+def test_a_model_row_must_name_the_id_in_backticks(tmp_path: Path) -> None:
+    """Review GW1 #125: a short id must not match an unrelated row by substring."""
+    root = make_repo(tmp_path, [("Helm charts", "MIT")])
+    _with_models(root, [{"id": "lm", "licence": "MIT"}])
+    assert any("'lm' has no row" in p for p in CHECK.check(root))

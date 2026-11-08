@@ -1,0 +1,19 @@
+{
+  "contract_version": "0.2",
+  "tier": "standard",
+  "total_bytes": 6550825550,
+  "missing_bytes": 6550825550,
+  "models": [
+    {
+      "id": "qwen3.5:9b",
+      "role": "language",
+      "licence": "Apache-2.0",
+      "size_bytes": 6550825550,
+      "done_bytes": 0,
+      "source_page": "https://ollama.com/library/qwen3.5:9b",
+      "purpose_key": "ui.setup.model_language",
+      "state": "missing",
+      "error": null
+    }
+  ]
+}
