@@ -1,0 +1,179 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/benchmark-status.schema.json",
+  "title": "BenchmarkStatus",
+  "description": "GET/POST /benchmark (B7 S7): state of the measurement run at first start (repeatable at any time) and its last result.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "state",
+    "result",
+    "error"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "state": {
+      "description": "none = never measured; running; done (result set); failed (error set, an older result may be kept).",
+      "type": "string",
+      "enum": [
+        "none",
+        "running",
+        "done",
+        "failed"
+      ]
+    },
+    "result": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/BenchmarkResult"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "error": {
+      "anyOf": [
+        {
+          "type": "string",
+          "maxLength": 300
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "BenchmarkResult": {
+      "description": "Result of the measurement run (B7 R6): what this PC needs per model. Saved and used by the planner (a night job starts only if it still fits into the night budget).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "measured_at",
+        "tier",
+        "gpu",
+        "vram_mib",
+        "answer_tokens",
+        "language",
+        "image",
+        "sound"
+      ],
+      "properties": {
+        "measured_at": {
+          "description": "Unix time in seconds (wall clock, informative only).",
+          "type": "integer",
+          "minimum": 0
+        },
+        "tier": {
+          "description": "Hardware tier at the time (null = below minimum).",
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "minimum",
+                "standard",
+                "comfort"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "gpu": {
+          "type": "string",
+          "maxLength": 128
+        },
+        "vram_mib": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1048576
+        },
+        "answer_tokens": {
+          "description": "Tokens of the language model's test answer.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4096
+        },
+        "language": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Measure"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "image": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Measure"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sound": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Measure"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "Measure": {
+      "description": "One model measured on this PC.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model",
+        "load_s",
+        "seconds_per_job",
+        "tokens_per_s"
+      ],
+      "properties": {
+        "model": {
+          "description": "Model id (content/hardware/models.json).",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "load_s": {
+          "description": "Seconds to make the model resident from unloaded.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 3600
+        },
+        "seconds_per_job": {
+          "description": "Seconds for one typical job once loaded (language: an answer of answer_tokens tokens; image: one picture; sound: one sound).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 3600
+        },
+        "tokens_per_s": {
+          "description": "Language model only: generated tokens per second; null for other models.",
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 10000
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,5 +1,5 @@
 using GlassWorld.Contracts;
-using GlassWorld.Simulation.Inhabitants;
+using GlassWorld.Simulation.Inventions;
 using GlassWorld.Simulation.Time;
 
 namespace GlassWorld.Presentation.World;
@@ -29,15 +29,17 @@ public sealed record ChronicleEntry(long Tick, string SeasonKey, int Day, long Y
 public sealed record ChronicleNames(Func<string, string> Inhabitant, Func<string, string?> Target, Func<string, string> Action);
 
 /// <summary>
-/// The chronicle as the player reads it (B8 R9/R10, D471 D8): core events of the kinds listed in
-/// content/chronicle/kinds.json become entries, newest first; <see cref="Line"/> gives the base line
-/// (text key + parameters, DE/EN, no AI). Other events are ignored. Until the core keeps the chronicle
-/// as state (D5, GW1), this view collects from the event feed since the game started.
+/// The chronicle as the player reads it (B8 R9/R10, D471 D8): the core keeps the chronicle as saved
+/// state (<see cref="IChronicle"/>, GW1 #75); this view takes its entries of the kinds listed in
+/// content/chronicle/kinds.json, newest first, also those from before a save game was loaded.
+/// <see cref="Line"/> gives the base line (text key + parameters, DE/EN, no AI).
 /// </summary>
 public sealed class ChronicleBook(ChronicleKinds kinds, WorldCalendar calendar)
 {
-    private readonly Dictionary<string, ChronicleKind> _byEvent = (kinds ?? throw new ArgumentNullException(nameof(kinds))).Kinds.ToDictionary(k => k.Event, StringComparer.Ordinal);
+    private readonly Dictionary<string, ChronicleKind> _byId = (kinds ?? throw new ArgumentNullException(nameof(kinds))).Kinds.ToDictionary(k => k.Id, StringComparer.Ordinal);
     private readonly List<ChronicleEntry> _entries = [];
+    private long _lastSeq;
+    private IChronicle? _source;
 
     /// <summary>Entries, newest first.</summary>
     public IReadOnlyList<ChronicleEntry> Entries => _entries;
@@ -45,19 +47,49 @@ public sealed class ChronicleBook(ChronicleKinds kinds, WorldCalendar calendar)
     /// <summary>Changes whenever an entry is added (for the window to update only then).</summary>
     public int Version { get; private set; }
 
-    /// <summary>Adds entries for the chronicle events among <paramref name="events"/>.</summary>
+    /// <summary>
+    /// Takes the core's entries that are new since the last call (all of them the first time). Another
+    /// chronicle, or one with fewer entries (a different or older world was loaded), starts the book
+    /// over, so no entry is skipped (GW1 review #89 K1).
+    /// </summary>
     /// <returns>Number of new entries.</returns>
-    public int Add(IEnumerable<WorldEvent> events)
+    public int Sync(IChronicle chronicle)
     {
-        ArgumentNullException.ThrowIfNull(events);
+        ArgumentNullException.ThrowIfNull(chronicle);
+        if (!ReferenceEquals(chronicle, _source) || chronicle.LastSeq < _lastSeq)
+        {
+            var hadEntries = _entries.Count > 0;
+            _source = chronicle;
+            _entries.Clear();
+            _lastSeq = 0;
+            if (hadEntries)
+            {
+                Version++;
+            }
+        }
+
+        return chronicle.LastSeq > _lastSeq ? Add(chronicle.Since(_lastSeq)) : 0;
+    }
+
+    /// <summary>Adds core entries in sequence order; entries already taken and unknown kinds are skipped.</summary>
+    /// <returns>Number of new entries.</returns>
+    public int Add(IEnumerable<ChronicleRecord> records)
+    {
+        ArgumentNullException.ThrowIfNull(records);
         ArgumentNullException.ThrowIfNull(calendar);
         var added = 0;
-        foreach (var e in events)
+        foreach (var r in records.OrderBy(r => r.Seq))
         {
-            if (_byEvent.TryGetValue(e.Kind, out var kind))
+            if (r.Seq <= _lastSeq)
             {
-                var time = calendar.At(e.Tick);
-                _entries.Insert(0, new ChronicleEntry(e.Tick, "time.season." + time.SeasonId, time.DayOfSeason, time.Year, kind, e.InhabitantId, e.TargetId, e.Action));
+                continue;
+            }
+
+            _lastSeq = r.Seq;
+            if (_byId.TryGetValue(r.Kind, out var kind))
+            {
+                var time = calendar.At(r.Tick);
+                _entries.Insert(0, new ChronicleEntry(r.Tick, "time.season." + time.SeasonId, time.DayOfSeason, time.Year, kind, r.InhabitantId, r.TargetId, r.Action));
                 added++;
             }
         }
@@ -68,6 +100,29 @@ public sealed class ChronicleBook(ChronicleKinds kinds, WorldCalendar calendar)
         }
 
         return added;
+    }
+
+    /// <summary>
+    /// Name of a chronicle target in the display language: an invention type ("invented") or a placed
+    /// object of an invention type ("first_use"). Null for anything else (the line says "something").
+    /// The names are the AI's, checked by the rule guard, in DE and EN (B2535: no player names here).
+    /// </summary>
+    /// <param name="id">Target id from the entry (type id or object id).</param>
+    /// <param name="catalog">Runtime types of the world.</param>
+    /// <param name="typeOfObject">Type id of an object id, or null if there is no such object.</param>
+    /// <param name="locale">Display language (de/en).</param>
+    public static string? InventionName(string id, IRuntimeCatalog catalog, Func<string, string?> typeOfObject, string locale)
+    {
+        ArgumentNullException.ThrowIfNull(catalog);
+        ArgumentNullException.ThrowIfNull(typeOfObject);
+        var invention = catalog.Invention(id) ?? (typeOfObject(id) is { } type ? catalog.Invention(type) : null);
+        if (invention is null)
+        {
+            return null;
+        }
+
+        var name = locale.StartsWith("en", StringComparison.OrdinalIgnoreCase) ? invention.Name.En : invention.Name.De;
+        return string.IsNullOrWhiteSpace(name) ? null : name;
     }
 
     /// <summary>

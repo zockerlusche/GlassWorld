@@ -1,0 +1,76 @@
+{
+  "contract_version": "0.2",
+  "media": [
+    {
+      "id": "sand_marks",
+      "decay_per_day": 0.5,
+      "weather_loss": [
+        { "weather": "rain", "per_hour": 0.6 },
+        { "weather": "storm", "per_hour": 1.0 },
+        { "weather": "snow", "per_hour": 0.3 }
+      ],
+      "tool_properties": [],
+      "legibility": 0.6,
+      "capacity": 1
+    },
+    {
+      "id": "rock_painting",
+      "decay_per_day": 0.002,
+      "weather_loss": [
+        { "weather": "rain", "per_hour": 0.002 },
+        { "weather": "storm", "per_hour": 0.005 }
+      ],
+      "tool_properties": [],
+      "legibility": 0.7,
+      "capacity": 2
+    },
+    {
+      "id": "carving_wood",
+      "decay_per_day": 0.001,
+      "weather_loss": [
+        { "weather": "rain", "per_hour": 0.0005 }
+      ],
+      "tool_properties": ["sharp"],
+      "legibility": 0.8,
+      "capacity": 2
+    },
+    {
+      "id": "carving_stone",
+      "decay_per_day": 0.0001,
+      "weather_loss": [],
+      "tool_properties": ["hard", "sharp"],
+      "legibility": 0.85,
+      "capacity": 3
+    },
+    {
+      "id": "tablet",
+      "decay_per_day": 0.0005,
+      "weather_loss": [
+        { "weather": "rain", "per_hour": 0.001 }
+      ],
+      "tool_properties": ["sharp"],
+      "legibility": 0.9,
+      "capacity": 5
+    },
+    {
+      "id": "book",
+      "decay_per_day": 0.0002,
+      "weather_loss": [
+        { "weather": "rain", "per_hour": 0.01 }
+      ],
+      "tool_properties": ["sharp"],
+      "legibility": 1.0,
+      "capacity": 50
+    },
+    {
+      "id": "library",
+      "decay_per_day": 0.00005,
+      "weather_loss": [],
+      "tool_properties": [],
+      "legibility": 1.0,
+      "capacity": 1000
+    }
+  ],
+  "write": { "ability": "writing", "min_level": 0.1 },
+  "read": { "ability": "reading", "min_level": 0.1, "min_legibility": 0.15, "curiosity_trait": "curiosity", "curiosity_min": 0.5 }
+}

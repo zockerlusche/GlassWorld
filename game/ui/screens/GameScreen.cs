@@ -314,12 +314,6 @@ public partial class GameScreen : CanvasLayer
         window.FitInto(GetViewport().GetVisibleRect().Size);
     }
 
-    /// <summary>
-    /// Names of inventions for the chronicle (D471 D8): the runtime object types of D5 bring a generated
-    /// name in the player's language; until then null, and the line says "something unknown".
-    /// </summary>
-    public Func<string, string?> InventionName { get; set; } = _ => null;
-
     /// <summary>Starts the chronicle window with the chronicle kinds of the data (B8 R9/R10).</summary>
     public void SetupChronicle(Contracts.ChronicleKinds kinds)
     {
@@ -463,7 +457,7 @@ public partial class GameScreen : CanvasLayer
             {
                 Localization.TextCatalogs.SetLanguage(locale);
                 var book = new ChronicleBook(_kinds!, host.World.Calendar);
-                book.Add(_kinds!.Kinds.Select(k => new GlassWorld.Simulation.Inhabitants.WorldEvent(k.Event, 1, "inh-000001", "eat", "obj-000001")));
+                book.Add(_kinds!.Kinds.Select((k, i) => new Simulation.Inventions.ChronicleRecord(i + 1, 1, k.Id, "inh-000001", "obj-000001", "eat")));
                 foreach (var entry in book.Entries)
                 {
                     var text = ChronicleText(entry);
@@ -489,6 +483,12 @@ public partial class GameScreen : CanvasLayer
 
     private void RefreshChronicle()
     {
+        if (_chronicle is not null && _presenter?.Host is { } host)
+        {
+            // The core keeps the chronicle (saved state, #75); take what is new.
+            _chronicle.Sync(host.Chronicle);
+        }
+
         if (_chronicle is null || _chronicle.Version == _chronicleShown)
         {
             return;

@@ -199,6 +199,7 @@ public partial class WorldPresenter : Node3D
 
         _clock += delta;
         ShowThoughts();
+        FollowWithCamera(delta);
     }
 
     /// <inheritdoc/>
@@ -262,6 +263,64 @@ public partial class WorldPresenter : Node3D
         }
     }
 
+    private int _focusGroup = 1;
+    private double _focusUntil;
+    private bool _groundReady;
+
+    /// <summary>
+    /// Observer camera until B2-3 brings the real camera: follows the group where the last thought
+    /// appeared, otherwise switches groups every 30 s; smooth, presentation only. On first use the B0
+    /// island placeholder is hidden and a plain ground is laid under the placeholder world.
+    /// </summary>
+    private void FollowWithCamera(double delta)
+    {
+        if (_host is null || GetViewport().GetCamera3D() is not { } camera)
+        {
+            return;
+        }
+
+        if (!_groundReady)
+        {
+            _groundReady = true;
+            if (GetParent()?.GetNodeOrNull<Node3D>("IslandPlaceholder") is { } island)
+            {
+                island.Visible = false;
+            }
+
+            AddChild(new MeshInstance3D
+            {
+                Name = "PlaceholderGround",
+                Mesh = new PlaneMesh { Size = new Vector2(400, 120) },
+                MaterialOverride = new StandardMaterial3D { AlbedoColor = new Color(0.86f, 0.78f, 0.55f) },
+            });
+        }
+
+        var groups = _host.Inhabitants.All.Select(i => i.Group).Distinct().Order().ToList();
+        if (groups.Count == 0)
+        {
+            return;
+        }
+
+        if (_clock > _focusUntil)
+        {
+            var next = groups.IndexOf(_focusGroup) + 1;
+            _focusGroup = groups[next % groups.Count];
+            _focusUntil = _clock + 30.0;
+        }
+
+        var members = _host.Inhabitants.All.Where(i => i.Group == _focusGroup).ToList();
+        if (members.Count == 0)
+        {
+            return;
+        }
+
+        var centre = new Vector3((float)members.Average(i => i.Position.X), 0.9f, (float)members.Average(i => i.Position.Z));
+        var wanted = centre + new Vector3(0, 9f, 13f);
+        var blend = 1 - Mathf.Exp(-2.5f * (float)delta);
+        camera.GlobalPosition = camera.GlobalPosition.Lerp(wanted, blend);
+        camera.LookAt(centre, Vector3.Up);
+    }
+
     private void ShowThoughts()
     {
         if (_host is null)
@@ -278,6 +337,8 @@ public partial class WorldPresenter : Node3D
                 bubble.Label.Text = text;
                 bubble.Label.Visible = true;
                 _thoughts[e.InhabitantId] = (bubble.Label, _clock + ThoughtSeconds);
+                _focusGroup = _host.Inhabitants.Get(e.InhabitantId).Group;
+                _focusUntil = _clock + 12.0;
             }
         }
 

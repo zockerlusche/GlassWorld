@@ -9,14 +9,28 @@ namespace GlassWorld.AiClient.Tests;
 
 public sealed class HttpDecisionPortTests
 {
+    /// <summary>
+    /// Upper bound for a request against the fake service; a passing run takes milliseconds. It was
+    /// 5 s, which a loaded CI machine sometimes exceeded together with the one-time schema load.
+    /// </summary>
+    private static readonly TimeSpan IdleLimit = TimeSpan.FromSeconds(30);
+
     private static readonly string Content = FindContent();
+
+    /// <summary>
+    /// The first contract validation loads all schemas once (about 1-2 s, measured; longer under a
+    /// parallel test run). Error answers are validated in the port, so this happens before the timed
+    /// part: the tests measure the port, not the schema load (cause of the flaky
+    /// ErrorBodyWithoutValidJson... runs).
+    /// </summary>
+    public HttpDecisionPortTests() => _ = ContractValidator.SchemaNames.Count;
 
     [Fact]
     public async Task UnreachableServiceGivesARetryableModelUnavailable()
     {
         using var port = NewPort(new FakeService(_ => throw new HttpRequestException("connection refused")));
         port.Send("r1", SampleRequest());
-        await port.WhenIdleAsync(TimeSpan.FromSeconds(5));
+        Assert.True(await port.WhenIdleAsync(IdleLimit), "the port did not finish its requests in time");
 
         var message = Assert.Single(port.Receive(0));
         Assert.True(message.IsError);
@@ -32,7 +46,7 @@ public sealed class HttpDecisionPortTests
     {
         using var port = NewPort(new FakeService(_ => new HttpResponseMessage((HttpStatusCode)status) { Content = new StringContent("<html>oops</html>") }));
         port.Send("r1", SampleRequest());
-        await port.WhenIdleAsync(TimeSpan.FromSeconds(5));
+        Assert.True(await port.WhenIdleAsync(IdleLimit), "the port did not finish its requests in time");
 
         var message = Assert.Single(port.Receive(0));
         Assert.True(message.IsError);
@@ -66,7 +80,7 @@ public sealed class HttpDecisionPortTests
             return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(answer, Encoding.UTF8, "application/json") };
         }));
         port.Send("r1", SampleRequest());
-        await port.WhenIdleAsync(TimeSpan.FromSeconds(5));
+        Assert.True(await port.WhenIdleAsync(IdleLimit), "the port did not finish its requests in time");
 
         var message = Assert.Single(port.Receive(0));
         Assert.False(message.IsError);
@@ -89,7 +103,7 @@ public sealed class HttpDecisionPortTests
         for (var i = 0; i < 120; i++)
         {
             host.World.Step();
-            await port.WhenIdleAsync(TimeSpan.FromSeconds(5));
+            Assert.True(await port.WhenIdleAsync(IdleLimit), "the port did not finish its requests in time");
         }
 
         Assert.NotEmpty(host.Decisions.Open);
@@ -116,7 +130,7 @@ public sealed class HttpDecisionPortTests
         for (var i = 0; i < retryTicks + 5; i++)
         {
             host.World.Step();
-            await port.WhenIdleAsync(TimeSpan.FromSeconds(5));
+            Assert.True(await port.WhenIdleAsync(IdleLimit), "the port did not finish its requests in time");
         }
 
         Assert.Contains(host.Decisions.Log.Entries, e => e.Kind == DecisionLogKind.Response);
