@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from pathlib import Path
 from typing import Any
 
@@ -209,19 +210,22 @@ def test_a_model_larger_than_the_budget_fails_the_job_for_good() -> None:
 
     runner = JobRunner({"sound": handler}, 8, gate=planner)
 
-    class FakeJob:
-        request_id = "s1"
-        kind = type("K", (), {"value": "sound"})()
-        priority = 10
+    job = GenerationJob.model_validate(
+        json.loads(
+            (REPO / "contracts/examples/valid/generation-job.sound-door.json").read_text("utf-8")
+        )
+    )
+    job_id = str(job.request_id)
 
-        def model_dump(self, mode: str = "json") -> dict[str, str]:
-            return {"id": "s1"}
+    async def scenario() -> Any:
+        runner.submit(job)
+        for _ in range(500):  # wait for the state, not for a fixed time (review GW1 H1)
+            status = runner.status(job_id)
+            if status is not None and status.state.value == "failed":
+                return status
+            await asyncio.sleep(0.01)
+        raise AssertionError("job did not fail")
 
-    async def scenario() -> None:
-        runner.submit(FakeJob())  # type: ignore[arg-type]
-        await asyncio.sleep(0.02)
-
-    asyncio.run(scenario())
-    assert runner.counts() == {"queued": 0, "running": 0, "deferred": 0}
-    record = runner._records["s1"]  # pyright: ignore[reportPrivateUsage]
-    assert record.error is not None and record.error.retryable is False
+    status = asyncio.run(scenario())
+    assert status.error is not None
+    assert (status.error.code.value, status.error.retryable) == ("model_unavailable", False)
