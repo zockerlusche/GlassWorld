@@ -242,6 +242,45 @@ public sealed class InventionTests : IDisposable
         }
     }
 
+    [Fact]
+    public void AnApprovedInventionBringsItsNewSkillIntoTheRegister()
+    {
+        // A1372 (B4b R11): introduces_abilities -> skill register, saved with the world; a duplicate is dropped.
+        var port = new ScriptedJobPort();
+        var host = World(port, 12);
+        RunUntilJob(host, port);
+        var job = port.Submitted.Single();
+        var status = Approved(job, ["container"]);
+        status.Result!.Invention!.Invention!.IntroducesAbilities =
+        [
+            new NewAbility { Id = "braiding", NameDe = "Flechten", NameEn = "braiding", StartLevel = 0.1, Actions = ["combine", "use"] },
+            new NewAbility { Id = "building", NameDe = "Bauen", NameEn = "building", StartLevel = 0.1, Actions = ["use"] },
+        ];
+        var before = host.World.StateHash();
+        port.Answer(job, status);
+        host.World.Step();
+
+        var typeId = InventionSystem.TypeIdFor(job.RequestId);
+        var added = Assert.Single(host.Skills.Added);
+        Assert.Equal(("braiding", "Flechten", typeId), (added.Id, added.NameDe, added.SourceTypeId));
+        Assert.Contains(host.Skills.PractisedBy("combine"), p => p.Skill == "braiding");
+        Assert.Contains(host.Inhabitants.Events, e => e.Kind == SkillRegister.SkillRefused && e.TargetId == typeId && e.Detail == SkillRegister.ReasonTaken);
+        Assert.NotEqual(before, host.World.StateHash());
+
+        var path = Path.Combine(Path.GetTempPath(), "gw-skills-" + Guid.NewGuid().ToString("N") + ".sqlite");
+        try
+        {
+            SaveGameStore.Save(path, StateCodec.Capture(host));
+            var loaded = StateCodec.Restore(Factory(new ReplayJobPort(host.Inventions.Log), new ReplayDecisionPort(host.Decisions.Log)), SaveGameStore.Load(path));
+            Assert.Equal(host.World.StateHash(), loaded.World.StateHash());
+            Assert.Equal(["combine", "use"], Assert.Single(loaded.Skills.Added).Actions);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
     private static SimulationHost World(IJobPort? port, ulong seed, IDecisionPort? decisions = null)
     {
         var host = SimulationHost.CreateEmpty(ContentDirectory, seed, decisions ?? new MockDecisionPort(), "de", port);

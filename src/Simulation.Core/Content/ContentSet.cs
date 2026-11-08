@@ -31,13 +31,15 @@ public sealed class ContentSet
         FavorSettings favor,
         InventionRules inventions,
         ChronicleKinds chronicle,
-        WritingMedia writing)
+        WritingMedia writing,
+        SkillPractice skillPractice)
     {
         GiftRules = giftRules;
         Favor = favor;
         Inventions = inventions;
         Chronicle = chronicle;
         Writing = writing;
+        SkillPractice = skillPractice;
         Calendar = calendar;
         Objects = objects;
         Combinations = combinations;
@@ -90,6 +92,9 @@ public sealed class ContentSet
     /// <summary>Writing carriers and what write/read need (content/writing/media.json, B8 R13-R15).</summary>
     public WritingMedia Writing { get; }
 
+    /// <summary>Which action practises which skill (content/skills/practice.json, B5 R18).</summary>
+    public SkillPractice SkillPractice { get; }
+
     /// <summary>Loads and checks the content folder.</summary>
     public static ContentSet Load(string contentDirectory)
     {
@@ -140,6 +145,8 @@ public sealed class ContentSet
         var player = Path.Combine(contentDirectory, "player");
         var writing = ContractSerializer.Deserialize<WritingMedia>(File.ReadAllText(Path.Combine(contentDirectory, "writing", "media.json")));
         CheckWriting(writing, Ids(vocabularies, VocabularyKind.Writing_medium), Ids(vocabularies, VocabularyKind.Weather), Ids(vocabularies, VocabularyKind.Property), Ids(vocabularies, VocabularyKind.Trait));
+        var skillPractice = ContractSerializer.Deserialize<SkillPractice>(File.ReadAllText(Path.Combine(contentDirectory, "skills", "practice.json")));
+        CheckSkills(model, skillPractice, Ids(vocabularies, VocabularyKind.Skill), Ids(vocabularies, VocabularyKind.Action));
         return new ContentSet(
             calendar,
             objects,
@@ -153,7 +160,8 @@ public sealed class ContentSet
             ContractSerializer.Deserialize<FavorSettings>(File.ReadAllText(Path.Combine(player, "favor.json"))),
             inventions,
             chronicle,
-            writing)
+            writing,
+            skillPractice)
         {
             Appearance = LoadAppearance(contentDirectory),
         };
@@ -178,6 +186,28 @@ public sealed class ContentSet
         if (problems.Count > 0)
         {
             throw new InvalidDataException("Writing media: " + string.Join("; ", problems) + ".");
+        }
+    }
+
+    /// <summary>The register names every skill of the vocabulary once; practice uses known actions and skills (A1372).</summary>
+    private static void CheckSkills(InhabitantModel model, SkillPractice practice, HashSet<string> skills, HashSet<string> actions)
+    {
+        var problems = new List<string>();
+        var registered = model.Skills.Select(s => s.Id).ToList();
+        problems.AddRange(registered.GroupBy(id => id, StringComparer.Ordinal).Where(g => g.Count() > 1).Select(g => $"skill '{g.Key}' twice"));
+        problems.AddRange(registered.Where(id => !skills.Contains(id)).Select(id => $"unknown skill '{id}'"));
+        problems.AddRange(skills.Where(id => !registered.Contains(id, StringComparer.Ordinal)).Select(id => $"skill '{id}' is not in the register"));
+        problems.AddRange(model.Skills.Where(s => s.StartLevelMin > s.StartLevelMax).Select(s => $"skill '{s.Id}' has min above max"));
+        problems.AddRange(practice.Practice.Where(p => !skills.Contains(p.Skill)).Select(p => $"practice of unknown skill '{p.Skill}'"));
+        problems.AddRange(practice.Practice.Where(p => !actions.Contains(p.Action)).Select(p => $"practice by unknown action '{p.Action}'"));
+        if (model.SkillRules.RuntimeStartLevelMin > model.SkillRules.RuntimeStartLevelMax)
+        {
+            problems.Add("new skills: start level min above max");
+        }
+
+        if (problems.Count > 0)
+        {
+            throw new InvalidDataException("Skills: " + string.Join("; ", problems) + ".");
         }
     }
 

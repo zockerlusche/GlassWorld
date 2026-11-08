@@ -17,9 +17,10 @@ namespace GlassWorld.Simulation;
 /// </summary>
 public sealed class SimulationHost
 {
-    private SimulationHost(ContentSet content, World world, WorldMapSystem? map, WorldTypeCatalog types, WorldObjects objects, DecisionsSystem decisions, InhabitantsSystem inhabitants, Player.PlayerSystem player, InventionSystem inventions, ChronicleSystem chronicle, DeciderSettings deciderSettings, Writing.WritingSystem writing)
+    private SimulationHost(ContentSet content, World world, WorldMapSystem? map, WorldTypeCatalog types, WorldObjects objects, DecisionsSystem decisions, InhabitantsSystem inhabitants, Player.PlayerSystem player, InventionSystem inventions, ChronicleSystem chronicle, DeciderSettings deciderSettings, Writing.WritingSystem writing, SkillRegister skills)
     {
         Writing = writing;
+        Skills = skills;
         Map = map;
         Player = player;
         Types = types;
@@ -56,6 +57,9 @@ public sealed class SimulationHost
 
     /// <summary>The weather (B2 R13), or null while the world has no weather system.</summary>
     public Weather.IWeather? Weather { get; private init; }
+
+    /// <summary>Skills the world knows (B4b R11, B5 R18).</summary>
+    public SkillRegister Skills { get; }
 
     /// <summary>Objects.</summary>
     public WorldObjects Objects { get; }
@@ -155,10 +159,26 @@ public sealed class SimulationHost
         var inventions = new InventionSystem(content.Inventions, inhabitants, objects, types, content.Brain.Weights.PerceptionRadiusM, jobPort, displayLocale);
         var chronicle = new ChronicleSystem(content.Chronicle);
         inhabitants.Reported += chronicle.Observe;
+        var skills = new SkillRegister(content.InhabitantModel.Skills, content.InhabitantModel.SkillRules, content.SkillPractice);
+
+        // New skills of an approved invention enter the register right away (refused ones are dropped, the invention stays).
+        inhabitants.Reported += e =>
+        {
+            if (e.Kind == InventionSystem.Invented && e.TargetId is { } typeId)
+            {
+                foreach (var ability in inventions.AbilitiesOf(typeId))
+                {
+                    if (skills.Add(ability, typeId) is { } reason)
+                    {
+                        inhabitants.Report(new WorldEvent(SkillRegister.SkillRefused, e.Tick, e.InhabitantId, null, typeId) { Detail = reason });
+                    }
+                }
+            }
+        };
         // Texts wear by the weather (GW1 #95 wires the weather system before writing).
         var writing = new Writing.WritingSystem(content.Writing, objects, weather, world.Calendar.Settings.TicksPerHour, world.Calendar.TicksPerDay);
-        world.Add(objects).Add(decisions).Add(inhabitants).Add(player).Add(inventions).Add(chronicle).Add(writing);
-        return new SimulationHost(content, world, map, types, objects, decisions, inhabitants, player, inventions, chronicle, settings, writing)
+        world.Add(objects).Add(decisions).Add(inhabitants).Add(player).Add(inventions).Add(chronicle).Add(writing).Add(skills);
+        return new SimulationHost(content, world, map, types, objects, decisions, inhabitants, player, inventions, chronicle, settings, writing, skills)
         {
             WeatherSystem = weather,
             Weather = weather,

@@ -63,6 +63,9 @@ public sealed record SaveState(
 
     /// <summary>The weather (B2 R13); null in worlds without weather and in older save games.</summary>
     public Weather.WeatherState? Weather { get; init; }
+
+    /// <summary>New skills of inventions (A1372); null in save games from before or without any.</summary>
+    public SkillRegisterState? Skills { get; init; }
 }
 
 /// <summary>Captures and restores the complete state of a <see cref="SimulationHost"/>.</summary>
@@ -107,6 +110,7 @@ public static class StateCodec
             Writing = host.Writing.HasState ? host.Writing.Capture() : null,
             IslandData = host.Map is { } map ? Map.IslandCodec.Encode(map.Island, map.CellSizeCm) : null,
             Weather = host.WeatherSystem?.Capture(),
+            Skills = host.Skills.HasState ? host.Skills.Capture() : null,
         };
     }
 
@@ -135,6 +139,7 @@ public static class StateCodec
         }
 
         host.Chronicle.Restore(state.Chronicle ?? []);
+        host.Skills.Restore(state.Skills);
         foreach (var obj in state.Objects)
         {
             host.Objects.Restore(obj, state.NextObjectNumber);

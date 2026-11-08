@@ -140,5 +140,9 @@ namespace GlassWorld.Contracts
         Writing_medium = 15,
 
 
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("skill")]
+        Skill = 16,
+
+
     }
 }

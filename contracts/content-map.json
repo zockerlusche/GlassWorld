@@ -171,6 +171,10 @@
       "schema": "job-phases"
     },
     {
+      "pattern": "skills/practice.json",
+      "schema": "skill-practice"
+    },
+    {
       "pattern": "writing/media.json",
       "schema": "writing-media"
     },

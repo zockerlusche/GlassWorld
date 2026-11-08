@@ -69,6 +69,9 @@ REFERENCES = [
     ("writing/media.json", "media[].weather_loss[].weather", "weather"),
     ("writing/media.json", "media[].tool_properties[]", "property"),
     ("writing/media.json", "read.curiosity_trait", "trait"),
+    ("inhabitants/model.json", "skills[].id", "skill"),
+    ("skills/practice.json", "practice[].skill", "skill"),
+    ("skills/practice.json", "practice[].action", "action"),
 ]
 
 # Tables that define one entry per vocabulary id of their kind.
@@ -78,6 +81,7 @@ DEFINITIONS = [
     ("climate/temperate.json", "weather.states[].weather", "weather"),
     ("look/daylight.json", "phases[].phase", "time_of_day"),
     ("writing/media.json", "media[].id", "writing_medium"),
+    ("inhabitants/model.json", "skills[].id", "skill"),
 ]
 
 
