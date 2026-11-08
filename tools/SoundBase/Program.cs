@@ -26,6 +26,8 @@ Directory.CreateDirectory(outDir);
 var target = selection["target"]!;
 var gate = target["gate_dbfs"]!.GetValue<double>();
 var peakMax = target["peak_max_dbfs"]!.GetValue<double>();
+var cleanGain = target["clean_gain_db"]!.GetValue<double>();
+var cleanFloor = target["clean_floor_dbfs"]!.GetValue<double>();
 var origins = selection["origins"]!.AsArray().ToDictionary(o => o!["id"]!.GetValue<string>(), o => o!);
 
 var sounds = new JsonArray();
@@ -48,13 +50,28 @@ foreach (var entry in selection["sounds"]!.AsArray())
             sound = Trim(sound, gate);
         }
 
+        // Normalising must not raise noise (TL #19652): rumble off for every file; files raised a lot or
+        // whose noise floor would end high get a gentle noise gate first (and one-shots their tails trimmed again).
+        double? floorBefore = sound.Seconds >= 1.0 ? Pcm.NoiseFloorDbfs(sound) : null; // short sounds: only the sound itself
+        sound = new MonoSound(Cleaning.HighPass(sound.Samples, sound.SampleRate, 60), sound.SampleRate);
         var gain = wanted - Pcm.LoudnessDbfs(sound, gate);
+        var cleaned = gain > cleanGain || floorBefore + gain > cleanFloor;
+        if (cleaned)
+        {
+            sound = new MonoSound(Cleaning.Denoise(sound.Samples), sound.SampleRate);
+            if (kind == "one_shot")
+            {
+                sound = Trim(sound, gate);
+            }
+        }
+
         var normalised = Normalise(sound, wanted, gate, peakMax);
         var name = inputs.Count == 1 ? $"{id}.wav" : $"{id}_{n}.wav";
         var bytes = Pcm.WriteWav16(normalised);
         File.WriteAllBytes(Path.Combine(outDir, name), bytes);
         var back = Pcm.ReadWav(bytes);
-        Console.WriteLine($"{name,-32} {back.Seconds,5:0.00} s  loud {Pcm.LoudnessDbfs(back, gate),6:0.0}  peak {Pcm.PeakDbfs(back),6:0.0}  gain {gain,6:0.0}");
+        double? floorAfter = back.Seconds >= 1.0 ? Pcm.NoiseFloorDbfs(back) : null;
+        Console.WriteLine($"{name,-32} {back.Seconds,5:0.00} s  loud {Pcm.LoudnessDbfs(back, gate),6:0.0}  peak {Pcm.PeakDbfs(back),6:0.0}  gain {gain,6:0.0}  floor {floorBefore?.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) ?? "-",6} -> {floorAfter?.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) ?? "-",6}{(cleaned ? "  cleaned" : string.Empty)}");
         files.Add(new JsonObject
         {
             ["file"] = name,
@@ -62,6 +79,8 @@ foreach (var entry in selection["sounds"]!.AsArray())
             ["sha256"] = Convert.ToHexStringLower(SHA256.HashData(bytes)),
             ["prompt"] = input["prompt"]?.DeepClone() ?? entry["prompt"]?.DeepClone(),
             ["seed"] = input["seed"]?.DeepClone() ?? entry["seed"]?.DeepClone(),
+            ["noise_floor_dbfs"] = floorAfter is { } f ? Math.Round(f, 1) : null,
+            ["cleaned"] = cleaned,
         });
         if (fileOrigin != origin["id"]!.GetValue<string>())
         {

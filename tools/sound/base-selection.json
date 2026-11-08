@@ -6,7 +6,9 @@
     "peak_max_dbfs": -1,
     "gate_dbfs": -50,
     "one_shot_max_s": 4,
-    "loop_max_s": 12
+    "loop_max_s": 12,
+    "clean_gain_db": 6,
+    "clean_floor_dbfs": -60
   },
   "origins": [
     {
