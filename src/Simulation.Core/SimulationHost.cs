@@ -183,7 +183,11 @@ public sealed class SimulationHost
             }
         };
         // Texts wear by the weather (GW1 #95 wires the weather system before writing).
-        var writing = new Writing.WritingSystem(content.Writing, objects, weather, world.Calendar.Settings.TicksPerHour, world.Calendar.TicksPerDay);
+        var writing = new Writing.WritingSystem(content.Writing, objects, weather, world.Calendar.Settings.TicksPerHour, world.Calendar.TicksPerDay)
+        {
+            Inhabitants = inhabitants,
+            PerceptionRadiusM = content.Brain.Weights.PerceptionRadiusM,
+        };
         var mailbox = new Simulation.Player.MailboxSystem(content.MessageKinds, inhabitants, player, world.Calendar.Settings.TicksPerHour);
         decisions.RegisterCommand(Simulation.Player.MailboxSystem.Acknowledge, mailbox.Check, mailbox.Apply);
 

@@ -1453,6 +1453,14 @@
     {
       "key": "vocab.event.mail_repeated",
       "text": "Message knocks again"
+    },
+    {
+      "key": "vocab.event.writing_found",
+      "text": "Writing found again"
+    },
+    {
+      "key": "msg.chronicle.found_writing",
+      "text": "{inhabitant} found old signs: {target}."
     }
   ]
 }

@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using GlassWorld.Contracts;
+using GlassWorld.Simulation.Inhabitants;
 using GlassWorld.Simulation.Objects;
 using GlassWorld.Simulation.State;
 using GlassWorld.Simulation.Weather;
@@ -35,6 +36,16 @@ public sealed partial class WritingSystem : IWorldSystem, IOptionalWorldState
     private readonly int _ticksPerHour;
     private readonly long _ticksPerDay;
     private readonly SortedDictionary<string, WrittenText> _texts = new(StringComparer.Ordinal);
+    private readonly SortedSet<string> _seen = new(StringComparer.Ordinal); // "inhabitant|object": texts someone has seen
+
+    /// <summary>Event: an inhabitant saw an old text of another author for the first time (R15, found again).</summary>
+    public const string WritingFound = "writing_found";
+
+    /// <summary>The inhabitants who notice writing; null = nobody notices (unit tests of wear alone).</summary>
+    public InhabitantsSystem? Inhabitants { get; init; }
+
+    /// <summary>How far an inhabitant notices writing (the perception radius of the behaviour data).</summary>
+    public double PerceptionRadiusM { get; init; }
 
     /// <summary>Creates the system; <paramref name="weather"/> is null while the world has no weather.</summary>
     public WritingSystem(WritingMedia rules, WorldObjects objects, IWeather? weather, int ticksPerHour, long ticksPerDay)
@@ -53,7 +64,10 @@ public sealed partial class WritingSystem : IWorldSystem, IOptionalWorldState
     public string Name => "writing";
 
     /// <inheritdoc/>
-    public bool HasState => _texts.Count > 0;
+    public bool HasState => _texts.Count > 0 || _seen.Count > 0;
+
+    /// <summary>Who has seen which text ("inhabitant|object"), in order.</summary>
+    public IReadOnlyList<string> Seen => [.. _seen];
 
     /// <summary>All texts in object id order.</summary>
     public IReadOnlyList<WrittenText> Texts => [.. _texts.Values];
@@ -105,7 +119,7 @@ public sealed partial class WritingSystem : IWorldSystem, IOptionalWorldState
             if (!_objects.TryGet(text.ObjectId, out var obj))
             {
                 // The object is gone (used up, burnt): so is what was written on it.
-                _texts.Remove(text.ObjectId);
+                Forget(text.ObjectId);
                 continue;
             }
 
@@ -119,13 +133,61 @@ public sealed partial class WritingSystem : IWorldSystem, IOptionalWorldState
             var legibility = text.Legibility - loss;
             if (legibility <= 0)
             {
-                _texts.Remove(text.ObjectId);
+                Forget(text.ObjectId);
             }
             else
             {
                 _texts[text.ObjectId] = text with { Legibility = legibility };
             }
         }
+
+        Notice(world.Tick);
+    }
+
+    /// <summary>
+    /// Inhabitants near a readable text of another author see it; the first sight of a text at least
+    /// <c>found.after_days</c> old is a find (event <see cref="WritingFound"/>, detail = author). Seeing
+    /// needs no skill: reading what it says is a separate step (<see cref="CanRead"/>). Cost per tick:
+    /// readable texts x inhabitants (distance only); with many texts (libraries) a spatial lookup or an
+    /// hourly check comes with the write action (review GW1 #119). Carving into standing trees is intended.
+    /// </summary>
+    private void Notice(long tick)
+    {
+        if (Inhabitants is null || _texts.Count == 0)
+        {
+            return;
+        }
+
+        var radius2 = PerceptionRadiusM * PerceptionRadiusM;
+        var oldTicks = (long)(_rules.Found.AfterDays * _ticksPerDay);
+        foreach (var text in _texts.Values.Where(Readable).ToList())
+        {
+            if (!_objects.TryGet(text.ObjectId, out var obj))
+            {
+                continue;
+            }
+
+            foreach (var inhabitant in Inhabitants.All.Where(i => i.Id != text.AuthorId).OrderBy(i => i.Id, StringComparer.Ordinal))
+            {
+                var dx = inhabitant.Position.X - obj.Position.X;
+                var dz = inhabitant.Position.Z - obj.Position.Z;
+                if ((dx * dx) + (dz * dz) > radius2 || !_seen.Add(inhabitant.Id + "|" + text.ObjectId))
+                {
+                    continue;
+                }
+
+                if (tick - text.WrittenTick >= oldTicks)
+                {
+                    Inhabitants.Report(new WorldEvent(WritingFound, tick, inhabitant.Id, null, text.ObjectId) { Detail = text.AuthorId });
+                }
+            }
+        }
+    }
+
+    private void Forget(string objectId)
+    {
+        _texts.Remove(objectId);
+        _seen.RemoveWhere(s => s.EndsWith("|" + objectId, StringComparison.Ordinal));
     }
 
     /// <inheritdoc/>
@@ -137,6 +199,12 @@ public sealed partial class WritingSystem : IWorldSystem, IOptionalWorldState
         {
             hasher.Write(t.ObjectId).Write(t.MediumId).Write(t.KnowledgeRef).Write(t.AuthorId).Write(t.WrittenTick).Write(t.Legibility);
         }
+
+        hasher.Write(_seen.Count);
+        foreach (var s in _seen)
+        {
+            hasher.Write(s);
+        }
     }
 
     /// <summary>The state to save.</summary>
@@ -147,9 +215,10 @@ public sealed partial class WritingSystem : IWorldSystem, IOptionalWorldState
     /// objects cannot carry makes the load fail cleanly with <see cref="InvalidDataException"/> instead of
     /// failing later inside a tick (review #93).
     /// </summary>
-    public void Restore(IEnumerable<WrittenText>? texts)
+    public void Restore(IEnumerable<WrittenText>? texts, IEnumerable<string>? seen = null)
     {
         _texts.Clear();
+        _seen.Clear();
         foreach (var text in texts ?? [])
         {
             var problem = Problem(text, checkObject: true)
@@ -162,6 +231,19 @@ public sealed partial class WritingSystem : IWorldSystem, IOptionalWorldState
             }
 
             _texts[text.ObjectId] = text;
+        }
+
+        foreach (var entry in seen ?? [])
+        {
+            var parts = entry.Split('|');
+            if (parts.Length != 2 || !_texts.ContainsKey(parts[1]))
+            {
+                _texts.Clear();
+                _seen.Clear();
+                throw new InvalidDataException($"Save game writing: seen entry '{entry}' names no text.");
+            }
+
+            _seen.Add(entry);
         }
     }
 

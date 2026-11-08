@@ -221,6 +221,11 @@ public static class SaveGameStore
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("writing", JsonSerializer.Serialize(s.Writing, Json)));
         }
 
+        if (s.WritingSeen is not null)
+        {
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("writing_seen", JsonSerializer.Serialize(s.WritingSeen, Json)));
+        }
+
         if (s.Weather is not null)
         {
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("weather", JsonSerializer.Serialize(s.Weather, Json)));
@@ -408,6 +413,7 @@ public static class SaveGameStore
             // Save games from before the player system have no entry: the world keeps its defaults.
             Player = meta.TryGetValue("player", out var player) ? JsonSerializer.Deserialize<Simulation.Player.PlayerState>(player, Json) : null,
             Writing = meta.TryGetValue("writing", out var writing) ? JsonSerializer.Deserialize<List<Simulation.Writing.WrittenText>>(writing, Json) : null,
+            WritingSeen = meta.TryGetValue("writing_seen", out var seen) ? JsonSerializer.Deserialize<List<string>>(seen, Json) : null,
             IslandData = ReadIsland(c, meta),
             Weather = meta.TryGetValue("weather", out var weather) ? JsonSerializer.Deserialize<Weather.WeatherState>(weather, Json) : null,
             Skills = meta.TryGetValue("skills", out var skills) ? JsonSerializer.Deserialize<Simulation.Inhabitants.SkillRegisterState>(skills, Json) : null,

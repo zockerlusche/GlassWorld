@@ -65,6 +65,9 @@ public sealed record SaveState(
     /// <summary>Writing on objects (B8 R15); null in save games from before.</summary>
     public IReadOnlyList<Writing.WrittenText>? Writing { get; init; }
 
+    /// <summary>Who has seen which text ("inhabitant|object", R15 found again); null when nobody has.</summary>
+    public IReadOnlyList<string>? WritingSeen { get; init; }
+
     /// <summary>The weather (B2 R13); null in worlds without weather and in older save games.</summary>
     public Weather.WeatherState? Weather { get; init; }
 
@@ -116,6 +119,7 @@ public static class StateCodec
         {
             Player = host.Player.Capture(),
             Writing = host.Writing.HasState ? host.Writing.Capture() : null,
+            WritingSeen = host.Writing.Seen.Count > 0 ? host.Writing.Seen : null,
             IslandData = host.Map is { } map ? Map.IslandCodec.Encode(map.Island, map.CellSizeCm) : null,
             Weather = host.WeatherSystem?.Capture(),
             Skills = host.Skills.HasState ? host.Skills.Capture() : null,
@@ -155,7 +159,7 @@ public static class StateCodec
         }
 
         // Texts after their objects (a text needs its object).
-        host.Writing.Restore(state.Writing);
+        host.Writing.Restore(state.Writing, state.WritingSeen);
 
         host.Objects.Restore(state.NextObjectNumber);
         host.Map?.Restore(state.Occurrences ?? []);

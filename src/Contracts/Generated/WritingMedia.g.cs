@@ -52,6 +52,12 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("capacity")]
         public int Capacity { get; set; } = default!;
 
+        /// <summary>
+        /// What can carry this kind of writing: the ground in some biomes (marks in sand), or an object whose type has ALL the listed properties (true properties of the catalog, so invented types qualify too).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("carrier")]
+        public Carrier Carrier { get; set; } = new Carrier();
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -108,6 +114,40 @@ namespace GlassWorld.Contracts
 
     }
 
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class FindingWriting
+    {
+
+        /// <summary>
+        /// Least age in game days for a first sight to count as finding.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("after_days")]
+        public double AfterDays { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class Carrier
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("surface")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<CarrierSurface>))]
+        public CarrierSurface Surface { get; set; } = default!;
+
+        /// <summary>
+        /// Object surface: property ids the object type must ALL have (empty = any object). Ground: must be empty.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("properties")]
+        public System.Collections.Generic.ICollection<string> Properties { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// Ground surface: biome ids where the ground takes marks. Object: must be empty.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("biomes")]
+        public System.Collections.Generic.ICollection<string> Biomes { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+    }
+
     /// <summary>
     /// Writing as a frame (B8 R13-R15): what each carrier (writing_medium vocabulary) is like - how long writing on it lasts, what weather wears it, which tool properties writing on it needs, how readable it can be and how much it holds - and what the actions write and read need. Nothing here says when or whether writing appears: that comes from inventions (B4b) and practice over generations (B9). Values are placeholders until Marcel's word.
     /// </summary>
@@ -132,6 +172,26 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("read")]
         public ReadingAction Read { get; set; } = new ReadingAction();
+
+        /// <summary>
+        /// Finding writing again (R15): an inhabitant who sees a readable text of another author for the first time finds it when it is at least this old (written generations ago, lost and found). Younger texts are only remembered as seen.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("found")]
+        public FindingWriting Found { get; set; } = new FindingWriting();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public enum CarrierSurface
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("ground")]
+        Ground = 0,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("object")]
+        Object = 1,
+
 
     }
 }

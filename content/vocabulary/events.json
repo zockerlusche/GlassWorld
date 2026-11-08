@@ -93,6 +93,10 @@
     {
       "id": "mail_repeated",
       "description": "An unread message knocks again (Detail = message kind)."
+    },
+    {
+      "id": "writing_found",
+      "description": "An inhabitant sees an old readable text of another author for the first time: writing found again (B8 R15; target = the object, Detail = author)."
     }
   ]
 }

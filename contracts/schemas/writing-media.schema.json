@@ -9,7 +9,8 @@
     "contract_version",
     "media",
     "write",
-    "read"
+    "read",
+    "found"
   ],
   "properties": {
     "contract_version": {
@@ -30,6 +31,10 @@
     "read": {
       "description": "What reading needs; reading in passing also needs curiosity above the threshold.",
       "$ref": "#/$defs/ReadingAction"
+    },
+    "found": {
+      "description": "Finding writing again (R15): an inhabitant who sees a readable text of another author for the first time finds it when it is at least this old (written generations ago, lost and found). Younger texts are only remembered as seen.",
+      "$ref": "#/$defs/FindingWriting"
     }
   },
   "$defs": {
@@ -42,7 +47,8 @@
         "weather_loss",
         "tool_properties",
         "legibility",
-        "capacity"
+        "capacity",
+        "carrier"
       ],
       "properties": {
         "id": {
@@ -82,6 +88,10 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 10000
+        },
+        "carrier": {
+          "description": "What can carry this kind of writing: the ground in some biomes (marks in sand), or an object whose type has ALL the listed properties (true properties of the catalog, so invented types qualify too).",
+          "$ref": "#/$defs/Carrier"
         }
       }
     },
@@ -155,6 +165,55 @@
           "type": "number",
           "minimum": 0,
           "maximum": 1
+        }
+      }
+    },
+    "FindingWriting": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "after_days"
+      ],
+      "properties": {
+        "after_days": {
+          "description": "Least age in game days for a first sight to count as finding.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100000
+        }
+      }
+    },
+    "Carrier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "surface",
+        "properties",
+        "biomes"
+      ],
+      "properties": {
+        "surface": {
+          "type": "string",
+          "enum": [
+            "ground",
+            "object"
+          ]
+        },
+        "properties": {
+          "description": "Object surface: property ids the object type must ALL have (empty = any object). Ground: must be empty.",
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          }
+        },
+        "biomes": {
+          "description": "Ground surface: biome ids where the ground takes marks. Object: must be empty.",
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          }
         }
       }
     }

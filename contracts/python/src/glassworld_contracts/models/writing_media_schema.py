@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from enum import StrEnum
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -67,6 +68,40 @@ class ReadingAction(BaseModel):
     curiosity_min: float = Field(..., ge=0.0, le=1.0)
 
 
+class FindingWriting(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    after_days: float = Field(
+        ...,
+        description='Least age in game days for a first sight to count as finding.',
+        ge=0.0,
+        le=100000.0,
+    )
+
+
+class Surface(StrEnum):
+    ground = 'ground'
+    object = 'object'
+
+
+class Carrier(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    surface: Surface
+    properties: list[common_schema.VocabId] = Field(
+        ...,
+        description='Object surface: property ids the object type must ALL have (empty = any object). Ground: must be empty.',
+        max_length=8,
+    )
+    biomes: list[common_schema.VocabId] = Field(
+        ...,
+        description='Ground surface: biome ids where the ground takes marks. Object: must be empty.',
+        max_length=16,
+    )
+
+
 class WritingMedium(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -105,6 +140,10 @@ class WritingMedium(BaseModel):
         ge=1,
         le=10000,
     )
+    carrier: Carrier = Field(
+        ...,
+        description='What can carry this kind of writing: the ground in some biomes (marks in sand), or an object whose type has ALL the listed properties (true properties of the catalog, so invented types qualify too).',
+    )
 
 
 class WritingMedia(BaseModel):
@@ -123,4 +162,8 @@ class WritingMedia(BaseModel):
     read: ReadingAction = Field(
         ...,
         description='What reading needs; reading in passing also needs curiosity above the threshold.',
+    )
+    found: FindingWriting = Field(
+        ...,
+        description='Finding writing again (R15): an inhabitant who sees a readable text of another author for the first time finds it when it is at least this old (written generations ago, lost and found). Younger texts are only remembered as seen.',
     )
