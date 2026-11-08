@@ -92,7 +92,8 @@ public sealed class TerrainCliffTests
     public void TheRealIslandHasWallsOnlyAtRockCliffsAndIsClosed(ulong seed)
     {
         var (map, look) = RealIsland(seed);
-        Assert.Equal(12, look.CliffDrop);
+        var preset = Content.Value.WorldGen.Presets["start_island"];
+        Assert.InRange(look.CliffDrop, preset.Terrain.WalkableSlope + 1, preset.Terrain.CliffMinDrop);
         AssertWallsOnlyAtRockCliffs(map, look);
         AssertWallTopsAreTerraceEdges(map, look);
         AssertClosed(map, look);
@@ -253,9 +254,33 @@ public sealed class TerrainCliffTests
         return builder.Build();
     }
 
+    [Fact]
+    public void TheLooksCliffsMustMatchTheCoresCliffsAndCaves()
+    {
+        var content = Content.Value;
+        var preset = content.WorldGen.Presets["start_island"];
+        Contracts.LookTerrain Terrain() => ContractSerializer.Deserialize<Contracts.LookTerrain>(File.ReadAllText(Path.Combine(TestPaths.Root, "content", "look", "terrain.json")));
+        var palette = ContractSerializer.Deserialize<Contracts.LookPalette>(File.ReadAllText(Path.Combine(TestPaths.Root, "content", "look", "palette.json")));
+        var island = WorldGenerator.Generate(content.WorldGen, content.Objects, "start_island", 7).Map;
+        Assert.Equal(preset.Terrain.CliffMinDrop, TerrainLook.From(Terrain(), palette, island, preset).CliffDrop);
+
+        // Walls on steps the core calls walkable, or missing on steps where it puts caves, are refused.
+        var low = Terrain();
+        low.Cliffs.MinDropMm = preset.Terrain.WalkableSlope * preset.Grid.HeightUnitMm;
+        Assert.Throws<InvalidDataException>(() => TerrainLook.From(low, palette, island, preset));
+        var high = Terrain();
+        high.Cliffs.MinDropMm = (preset.Terrain.CliffMinDrop + 1) * preset.Grid.HeightUnitMm;
+        Assert.Throws<InvalidDataException>(() => TerrainLook.From(high, palette, island, preset));
+        var noCaves = Terrain();
+        noCaves.Cliffs.Biomes = ["meadow"];
+        Assert.Throws<InvalidDataException>(() => TerrainLook.From(noCaves, palette, island, preset));
+    }
+
+    private static readonly Lazy<ContentSet> Content = new(() => ContentSet.Load(Path.Combine(TestPaths.Root, "content")));
+
     private static (WorldMap Map, TerrainLook Look) RealIsland(ulong seed)
     {
-        var content = ContentSet.Load(Path.Combine(TestPaths.Root, "content"));
+        var content = Content.Value;
         var island = WorldGenerator.Generate(content.WorldGen, content.Objects, "start_island", seed);
         var look = TerrainLook.From(
             ContractSerializer.Deserialize<Contracts.LookTerrain>(File.ReadAllText(Path.Combine(TestPaths.Root, "content", "look", "terrain.json"))),

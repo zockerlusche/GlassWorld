@@ -250,10 +250,22 @@ namespace GlassWorld.Contracts
         public double OutlineWidthM { get; set; } = default!;
 
         /// <summary>
-        /// How far (metres) the underside of an object lying on the ground (align ground or ground_uphill) may float above or sink below the drawn ground within its footprint (D576, TL #19553); the tests hold every object of the start island to it. Placeholder value.
+        /// How far (metres) the underside of an object lying on the ground (align ground or ground_uphill) may float above or sink below the drawn ground within its footprint (D576, TL #19553). A lying object whose best fit is worse (for example across a rock wall) stands upright instead; the tests hold every object of the start island to it. Placeholder value.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("ground_tolerance_m")]
         public double GroundToleranceM { get; set; } = default!;
+
+        /// <summary>
+        /// Turns a long lying object (a log) tries over half a circle when its own turn (from its id) does not fit the ground within half the tolerance; it keeps the best fitting one. Placeholder value.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("turn_tries")]
+        public int TurnTries { get; set; } = default!;
+
+        /// <summary>
+        /// Smallest footprint radius (metres) over which a lying object samples the ground, so even a tiny one finds the slope. Placeholder value.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("min_footprint_m")]
+        public double MinFootprintM { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("fallback")]
         public ObjectLookFallback Fallback { get; set; } = new ObjectLookFallback();

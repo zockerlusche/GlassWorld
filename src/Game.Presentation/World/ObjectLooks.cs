@@ -36,6 +36,16 @@ public sealed record ObjectLook(
     public double HalfWidthM => FootprintWidthM ?? FootprintM;
 }
 
+/// <summary>How lying objects meet the ground (<c>content/look/objects.json</c>, D576).</summary>
+/// <param name="ToleranceM">Largest float or sink of a lying object's underside; a worse fit stands upright instead.</param>
+/// <param name="TurnTries">Turns a long lying object tries over half a circle when its own turn fits badly.</param>
+/// <param name="MinFootprintM">Smallest footprint radius a lying object samples the ground over.</param>
+public sealed record GroundFit(double ToleranceM, int TurnTries, double MinFootprintM)
+{
+    /// <summary>Defaults for callers without look data (tests): the data's placeholder values.</summary>
+    public static GroundFit Default { get; } = new(0.06, 8, 0.05);
+}
+
 /// <summary>Where one object is drawn: on the ground under its core position, turned and sized from its id.</summary>
 /// <param name="ObjectId">Core object id.</param>
 /// <param name="X">X in metres (core position).</param>
@@ -109,6 +119,11 @@ public sealed class ObjectLooks
     private readonly Dictionary<string, ObjectLook> _byType = new(StringComparer.Ordinal);
     private readonly HashSet<string> _reported = new(StringComparer.Ordinal);
 
+    // Placements by object id, type and position: the ground never changes at run time, so an object is
+    // placed once and a refresh (an object eaten, one regrown) only places the new ones (GW3 #120).
+    private Dictionary<(string Id, string Type, double X, double Z), ObjectPlacement> _placed = [];
+    private Func<double, double, double>? _placedOn;
+
     /// <summary>Reads the data; every colour must be a palette id and every type may appear only once.</summary>
     public ObjectLooks(LookObjects data, IReadOnlySet<string> paletteIds)
     {
@@ -126,7 +141,7 @@ public sealed class ObjectLooks
         }
 
         CheckColors("the fallback", data.Fallback.Colors);
-        GroundToleranceM = data.GroundToleranceM;
+        Fit = new GroundFit(data.GroundToleranceM, data.TurnTries, data.MinFootprintM);
         Fallback = new ObjectLook(FallbackId, data.Fallback.Shape, [.. data.Fallback.Colors], data.Fallback.SizeM, 0, 0);
         var visuals = new List<ObjectLook> { Fallback };
         foreach (var visual in data.Visuals)
@@ -155,7 +170,10 @@ public sealed class ObjectLooks
     public ObjectLook Fallback { get; }
 
     /// <summary>How far a lying object's underside may float above or sink below the drawn ground (metres).</summary>
-    public double GroundToleranceM { get; }
+    public double GroundToleranceM => Fit.ToleranceM;
+
+    /// <summary>How lying objects meet the ground, from the data.</summary>
+    public GroundFit Fit { get; }
 
     /// <summary>Every visual, the fallback first.</summary>
     public IReadOnlyList<ObjectLook> Visuals { get; }
@@ -171,13 +189,17 @@ public sealed class ObjectLooks
 
     /// <summary>
     /// Groups the objects by visual (none-shapes left out) and places each on the ground; calls
-    /// <paramref name="unknown"/> once per unknown type.
+    /// <paramref name="unknown"/> once per unknown type. Placements are kept for the objects still there
+    /// (by id, type and position), so only new or moved objects are placed again; another ground function
+    /// starts afresh.
     /// </summary>
     public IReadOnlyDictionary<string, List<ObjectPlacement>> Layout(IEnumerable<WorldObject> objects, Func<double, double, double> ground, Action<string>? unknown = null)
     {
         ArgumentNullException.ThrowIfNull(objects);
         ArgumentNullException.ThrowIfNull(ground);
         var layout = new Dictionary<string, List<ObjectPlacement>>(StringComparer.Ordinal);
+        var known = ReferenceEquals(ground, _placedOn) ? _placed : [];
+        var placed = new Dictionary<(string Id, string Type, double X, double Z), ObjectPlacement>(known.Count);
         foreach (var obj in objects)
         {
             if (FirstUnknown(obj.TypeId))
@@ -196,9 +218,17 @@ public sealed class ObjectLooks
                 layout[look.VisualId] = list = [];
             }
 
-            list.Add(Place(obj, look, ground));
+            var key = (obj.Id, obj.TypeId, obj.Position.X, obj.Position.Z);
+            if (!known.TryGetValue(key, out var placement))
+            {
+                placement = Place(obj, look, ground, Fit);
+            }
+
+            placed[key] = placement;
+            list.Add(placement);
         }
 
+        (_placed, _placedOn) = (placed, ground);
         return layout;
     }
 
@@ -208,14 +238,16 @@ public sealed class ObjectLooks
     /// within its footprint (<see cref="ObjectLook.Rest"/>). A lying object (D576) takes the plane that
     /// fits the drawn ground under its footprint best: its up axis is that plane's normal and its height
     /// the plane's, so its underside neither floats nor sinks more than the ground's own bumps; a long one
-    /// tries a few turns near its own and keeps the one that fits best; an uphill one turns its local +x
-    /// side up the slope. The lift comes on top.
+    /// tries other turns if its own fits badly and keeps the one that fits best; an uphill one turns its
+    /// local +x side up the slope. A lying object whose best fit is still beyond the tolerance (across a
+    /// rock wall) stands upright on the ground under its position instead. The lift comes on top.
     /// </summary>
-    public static ObjectPlacement Place(WorldObject obj, ObjectLook look, Func<double, double, double> ground)
+    public static ObjectPlacement Place(WorldObject obj, ObjectLook look, Func<double, double, double> ground, GroundFit? fit = null)
     {
         ArgumentNullException.ThrowIfNull(obj);
         ArgumentNullException.ThrowIfNull(look);
         ArgumentNullException.ThrowIfNull(ground);
+        fit ??= GroundFit.Default;
         var (x, z) = (obj.Position.X, obj.Position.Z);
         var yaw = Hash01(obj.Id, 1) * 2 * Math.PI;
         var scale = look.SizeM * (1 + (look.SizeJitter * ((Hash01(obj.Id, 2) * 2) - 1)));
@@ -224,8 +256,8 @@ public sealed class ObjectLooks
             return new ObjectPlacement(obj.Id, x, Rest(look, x, z, scale, ground) + look.LiftM, z, yaw, scale, new Point3(0, 1, 0));
         }
 
-        var (length, width) = (Math.Max(look.FootprintM * scale, MinFootprintM), Math.Max(look.HalfWidthM * scale, MinFootprintM));
-        Fit best;
+        var (length, width) = (Math.Max(look.FootprintM * scale, fit.MinFootprintM), Math.Max(look.HalfWidthM * scale, fit.MinFootprintM));
+        PlaneFit best;
         if (look.Align == ObjectLookAlign.Ground_uphill)
         {
             // Up the slope of the round fit; on flat ground the turn from the id.
@@ -236,9 +268,9 @@ public sealed class ObjectLooks
         else
         {
             best = FitPlane(x, z, yaw, length, width, ground);
-            for (var k = 1; k < TurnTries && Math.Abs(length - width) > 1e-9; k++)
+            for (var k = 1; k < fit.TurnTries && Math.Abs(length - width) > 1e-9 && best.Error > fit.ToleranceM / 2; k++)
             {
-                var other = FitPlane(x, z, yaw + (k * Math.PI / TurnTries), length, width, ground);
+                var other = FitPlane(x, z, yaw + (k * Math.PI / fit.TurnTries), length, width, ground);
                 if (other.Error < best.Error - 1e-9)
                 {
                     best = other;
@@ -246,23 +278,22 @@ public sealed class ObjectLooks
             }
         }
 
+        if (best.Error > fit.ToleranceM)
+        {
+            return new ObjectPlacement(obj.Id, x, ground(x, z) + look.LiftM, z, yaw, scale, new Point3(0, 1, 0));
+        }
+
         var up = new Point3(-best.Gx, 1, -best.Gz);
         var norm = Math.Sqrt((up.X * up.X) + 1 + (up.Z * up.Z));
         return new ObjectPlacement(obj.Id, x, best.Height + look.LiftM, z, best.Yaw, scale, new Point3(up.X / norm, 1 / norm, up.Z / norm));
     }
 
-    /// <summary>Turns a long lying object tries (over half a circle, both ends look alike).</summary>
-    private const int TurnTries = 8;
-
-    /// <summary>Smallest footprint radius a lying object samples the ground over (metres), so even a tiny one finds the slope.</summary>
-    private const double MinFootprintM = 0.05;
-
     /// <summary>
     /// The plane that fits the ground under an elliptic footprint (half axes <paramref name="length"/> along
     /// the turned local x, <paramref name="width"/> across) best: least squares over its centre and two rings,
-    /// then shifted so the largest float equals the largest sink (<see cref="Fit.Error"/>).
+    /// then shifted so the largest float equals the largest sink (<see cref="PlaneFit.Error"/>).
     /// </summary>
-    private static Fit FitPlane(double x, double z, double yaw, double length, double width, Func<double, double, double> ground)
+    private static PlaneFit FitPlane(double x, double z, double yaw, double length, double width, Func<double, double, double> ground)
     {
         var (c, s) = (Math.Cos(yaw), Math.Sin(yaw));
         Span<double> dx = stackalloc double[17], dz = stackalloc double[17], h = stackalloc double[17];
@@ -305,7 +336,7 @@ public sealed class ObjectLooks
             (above, below) = (Math.Max(above, e), Math.Min(below, e));
         }
 
-        return new Fit(c0 + ((above + below) / 2), gx, gz, (above - below) / 2, yaw);
+        return new PlaneFit(c0 + ((above + below) / 2), gx, gz, (above - below) / 2, yaw);
     }
 
     /// <summary>Samples in the footprint: the centre and two rings of eight points.</summary>
@@ -358,7 +389,7 @@ public sealed class ObjectLooks
     }
 
     /// <summary>A plane under a footprint: height at the centre, slope along x and z, the largest float or sink, and the turn it was fitted for.</summary>
-    private readonly record struct Fit(double Height, double Gx, double Gz, double Error, double Yaw);
+    private readonly record struct PlaneFit(double Height, double Gx, double Gz, double Error, double Yaw);
 
     /// <summary>Deterministic value in [0, 1) from a text and a salt (FNV-1a, stable across runs and platforms).</summary>
     public static double Hash01(string text, int salt) => Fnv(text, salt) / 4294967296.0;

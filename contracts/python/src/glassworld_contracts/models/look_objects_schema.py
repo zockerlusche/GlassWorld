@@ -127,8 +127,20 @@ class LookObjects(BaseModel):
     )
     ground_tolerance_m: float = Field(
         ...,
-        description='How far (metres) the underside of an object lying on the ground (align ground or ground_uphill) may float above or sink below the drawn ground within its footprint (D576, TL #19553); the tests hold every object of the start island to it. Placeholder value.',
+        description='How far (metres) the underside of an object lying on the ground (align ground or ground_uphill) may float above or sink below the drawn ground within its footprint (D576, TL #19553). A lying object whose best fit is worse (for example across a rock wall) stands upright instead; the tests hold every object of the start island to it. Placeholder value.',
         ge=0.0,
+        le=1.0,
+    )
+    turn_tries: int = Field(
+        ...,
+        description='Turns a long lying object (a log) tries over half a circle when its own turn (from its id) does not fit the ground within half the tolerance; it keeps the best fitting one. Placeholder value.',
+        ge=1,
+        le=32,
+    )
+    min_footprint_m: float = Field(
+        ...,
+        description='Smallest footprint radius (metres) over which a lying object samples the ground, so even a tiny one finds the slope. Placeholder value.',
+        gt=0.0,
         le=1.0,
     )
     fallback: ObjectLookFallback

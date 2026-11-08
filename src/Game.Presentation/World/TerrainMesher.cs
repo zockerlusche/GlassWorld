@@ -81,7 +81,19 @@ public sealed record TerrainLook(
             throw new InvalidDataException($"Terrain look names unknown cliff biome '{biome}'.");
         }
 
+        // The walls must stand where the core has its cliffs: every rock step of the core's cliff drop is a
+        // wall (caves lie at their foot, preset caves.cliff_biome) and no walkable slope is (GW3 #120).
         var unitMm = preset.Grid.HeightUnitMm;
+        var dropUnits = (terrain.Cliffs.MinDropMm + unitMm - 1) / unitMm;
+        if (dropUnits > preset.Terrain.CliffMinDrop || dropUnits <= preset.Terrain.WalkableSlope)
+        {
+            throw new InvalidDataException($"Terrain look cliffs.min_drop_mm {terrain.Cliffs.MinDropMm} must lie above the preset's walkable slope ({preset.Terrain.WalkableSlope} units) and at most at its cliff drop ({preset.Terrain.CliffMinDrop} units of {unitMm} mm).");
+        }
+
+        if (!terrain.Cliffs.Biomes.Contains(preset.Caves.CliffBiome, StringComparer.Ordinal))
+        {
+            throw new InvalidDataException($"Terrain look cliffs.biomes must contain the preset's cave cliff biome '{preset.Caves.CliffBiome}'.");
+        }
         return new TerrainLook(
             biomeColors,
             Color(terrain.CliffColor),
@@ -96,7 +108,7 @@ public sealed record TerrainLook(
             (float)terrain.SlopeShadeGain,
             preset.Grid.CellSizeCm / 100f,
             preset.Grid.HeightUnitMm / 1000f,
-            (terrain.Cliffs.MinDropMm + unitMm - 1) / unitMm,
+            dropUnits,
             terrain.Water.StreamShoreLiftMm / 1000f,
             (float)terrain.Water.StreamWidthM,
             terrain.Water.StreamSmoothing,
@@ -475,7 +487,7 @@ public static partial class TerrainMesher
 
     /// <summary>
     /// Height and colour of the grid corner (gx, gz) if all cells around it form one group (no rock wall
-    /// meets there): then every cell around it gives the corner the same height (<see cref="CornerHeights"/>)
+    /// meets there): then every cell around it gives the corner the same height (<see cref="CornerHeights(WorldMap, int, int, TerrainLook)"/>)
     /// and colour (<see cref="CornerColors"/>).
     /// </summary>
     private static bool PlainCorner(WorldMap map, TerrainLook look, int gx, int gz, out int height, out Rgb color)
@@ -703,7 +715,9 @@ public static partial class TerrainMesher
         var cx = Math.Min((int)Math.Floor(fx), map.WidthCells - 1);
         var cz = Math.Min((int)Math.Floor(fz), map.DepthCells - 1);
         double u = fx - cx, v = fz - cz;
-        var h = CornerHeights(map, cx, cz, look);
+        // Allocation free: called for every figure, object and camera sample.
+        Span<int> h = stackalloc int[4];
+        CornerHeights(map, cx, cz, look, h);
         double height;
         if (SplitsAlong02(h))
         {
@@ -802,7 +816,7 @@ public static partial class TerrainMesher
     }
 
     /// <summary>Whether a cell's top is split along the diagonal from corner 0 to corner 2 (the flatter one, so ridges stay sharp).</summary>
-    private static bool SplitsAlong02(int[] h) => Math.Abs(h[0] - h[2]) <= Math.Abs(h[1] - h[3]);
+    private static bool SplitsAlong02(ReadOnlySpan<int> h) => Math.Abs(h[0] - h[2]) <= Math.Abs(h[1] - h[3]);
 
     private static void AddQuad(MeshData mesh, int x, int z, float y, Rgb color, (float X, float Z) flow, TerrainLook look)
     {
@@ -842,16 +856,21 @@ public static partial class TerrainMesher
     /// </summary>
     public static int[] CornerHeights(WorldMap map, int x, int z, TerrainLook look)
     {
+        var result = new int[4];
+        CornerHeights(map, x, z, look, result);
+        return result;
+    }
+
+    /// <summary>The corner heights of a cell (see <see cref="CornerHeights(WorldMap, int, int, TerrainLook)"/>) into four given slots, without allocating.</summary>
+    public static void CornerHeights(WorldMap map, int x, int z, TerrainLook look, Span<int> into)
+    {
         ArgumentNullException.ThrowIfNull(map);
         ArgumentNullException.ThrowIfNull(look);
-        var result = new int[4];
         for (var k = 0; k < 4; k++)
         {
             int gx = x + Corners[k].Dx, gz = z + Corners[k].Dz;
-            result[k] = GroupHeight(map, gx, gz, CornerGroup(map, look, gx, gz, Slot(gx, gz, x, z)).Members);
+            into[k] = GroupHeight(map, gx, gz, CornerGroup(map, look, gx, gz, Slot(gx, gz, x, z)).Members);
         }
-
-        return result;
     }
 
     /// <summary>

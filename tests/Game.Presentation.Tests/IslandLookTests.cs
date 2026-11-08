@@ -255,6 +255,60 @@ public sealed class IslandLookTests
         Assert.True(Math.Abs(ax.X) < Math.Abs(ax.Z), "the log lies along the hollow");
     }
 
+    [Fact]
+    public void ALogThatCannotLieFlatAcrossAWallStandsUprightInstead()
+    {
+        // A 2 m rock wall right under the log in every direction: no turn fits within the tolerance.
+        var wood = Looks().For("dry_wood");
+        Func<double, double, double> wall = (x, z) => (x - 10) * (z - 4) > 0 ? 2.0 : 0.0;
+        var placed = ObjectLooks.Place(new WorldObject("obj_5", "dry_wood", new Position(10.01, 4.01)), wood, wall, Looks().Fit);
+        Assert.Equal(new Point3(0, 1, 0), placed.Up);
+        Assert.Equal(wall(10.01, 4.01) + wood.LiftM, placed.Y, 9);
+        Assert.Equal((0.06, 8, 0.05), (Looks().Fit.ToleranceM, Looks().Fit.TurnTries, Looks().Fit.MinFootprintM));
+    }
+
+    [Fact]
+    public void ARefreshPlacesOnlyNewObjects()
+    {
+        // The ground never changes: placements are kept by id, type and position (GW3 #120).
+        var looks = Looks();
+        var samples = 0;
+        Func<double, double, double> ground = (x, z) =>
+        {
+            samples++;
+            return (x * 0.2) + (z * 0.1);
+        };
+        var objects = new List<WorldObject> { new("a", "dry_wood", new Position(3, 4)), new("b", "flint", new Position(5, 6)), new("c", "deciduous_tree", new Position(7, 8)) };
+        var first = looks.Layout(objects, ground);
+        Assert.True(samples > 0);
+        samples = 0;
+        var again = looks.Layout(objects, ground);
+        Assert.Equal(0, samples);
+        Assert.Equal(first["dry_wood"], again["dry_wood"]);
+
+        // One eaten, one new, one moved: only the new and the moved one are placed.
+        objects.RemoveAt(1);
+        objects.Add(new WorldObject("d", "flint", new Position(1, 1)));
+        objects[0] = objects[0] with { Position = new Position(3.5, 4) };
+        looks.Layout(objects, ground);
+        var expected = 0;
+        var count = 0;
+        Func<double, double, double> counting = (x, z) =>
+        {
+            count++;
+            return (x * 0.2) + (z * 0.1);
+        };
+        ObjectLooks.Place(objects[0], looks.For("dry_wood"), counting, looks.Fit);
+        ObjectLooks.Place(objects[2], looks.For("flint"), counting, looks.Fit);
+        expected = count;
+        Assert.Equal(expected, samples);
+
+        // Another ground function starts afresh.
+        samples = 0;
+        looks.Layout(objects, (x, z) => ground(x, z));
+        Assert.True(samples > expected);
+    }
+
     [Theory]
     [InlineData(7UL)]
     [InlineData(42UL)]
@@ -269,7 +323,9 @@ public sealed class IslandLookTests
         double Ground(double x, double z) => TerrainMesher.GroundHeight(map.Map, terrain, x, z);
         var looks = Looks();
         Assert.InRange(looks.GroundToleranceM, 0.0, 0.1);
-        var (lying, worst) = (0, 0.0);
+        var (lying, worst, upright) = (0, 0.0, 0);
+        bool Flat(Simulation.Objects.WorldObject o) =>
+            new[] { (0.3, 0.0), (-0.3, 0.0), (0.0, 0.3), (0.0, -0.3) }.All(d => Math.Abs(Ground(o.Position.X + d.Item1, o.Position.Z + d.Item2) - Ground(o.Position.X, o.Position.Z)) < 1e-6);
         foreach (var obj in host.Objects.All)
         {
             var look = looks.For(obj.TypeId);
@@ -278,10 +334,17 @@ public sealed class IslandLookTests
                 continue;
             }
 
-            var placed = ObjectLooks.Place(obj, look, Ground);
-            if (!look.Lies)
+            var placed = ObjectLooks.Place(obj, look, Ground, looks.Fit);
+            if (look.Lies && placed.Up == new Point3(0, 1, 0) && !Flat(obj))
+            {
+                // Its best fit was beyond the tolerance (across a rock wall): it stands upright instead.
+                upright++;
+            }
+
+            if (!look.Lies || placed.Up == new Point3(0, 1, 0))
             {
                 Assert.Equal(ObjectLookRest.Centre, look.Rest);
+                Assert.True(!look.Lies || Math.Abs(placed.YawRad - (ObjectLooks.Hash01(obj.Id, 1) * 2 * Math.PI)) < 1e-9 || !Flat(obj), "an upright fallback keeps its own turn");
                 Assert.Equal(Ground(obj.Position.X, obj.Position.Z), placed.Y - look.LiftM, 6);
                 continue;
             }
@@ -303,6 +366,7 @@ public sealed class IslandLookTests
         }
 
         Assert.True(lying > 20, $"seed {seed}: only {lying} lying objects");
+        Assert.True(upright <= lying / 10, $"seed {seed}: {upright} of {lying} lying objects stand upright");
         Assert.True(worst > 0, "the check samples real slopes");
     }
 

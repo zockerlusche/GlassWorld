@@ -3,6 +3,8 @@
   "outline": true,
   "outline_width_m": 0.03,
   "ground_tolerance_m": 0.06,
+  "turn_tries": 8,
+  "min_footprint_m": 0.05,
   "fallback": {
     "shape": "marker",
     "colors": [

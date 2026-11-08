@@ -10,6 +10,8 @@
     "outline",
     "outline_width_m",
     "ground_tolerance_m",
+    "turn_tries",
+    "min_footprint_m",
     "fallback",
     "visuals"
   ],
@@ -28,9 +30,21 @@
       "maximum": 0.5
     },
     "ground_tolerance_m": {
-      "description": "How far (metres) the underside of an object lying on the ground (align ground or ground_uphill) may float above or sink below the drawn ground within its footprint (D576, TL #19553); the tests hold every object of the start island to it. Placeholder value.",
+      "description": "How far (metres) the underside of an object lying on the ground (align ground or ground_uphill) may float above or sink below the drawn ground within its footprint (D576, TL #19553). A lying object whose best fit is worse (for example across a rock wall) stands upright instead; the tests hold every object of the start island to it. Placeholder value.",
       "type": "number",
       "minimum": 0,
+      "maximum": 1
+    },
+    "turn_tries": {
+      "description": "Turns a long lying object (a log) tries over half a circle when its own turn (from its id) does not fit the ground within half the tolerance; it keeps the best fitting one. Placeholder value.",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 32
+    },
+    "min_footprint_m": {
+      "description": "Smallest footprint radius (metres) over which a lying object samples the ground, so even a tiny one finds the slope. Placeholder value.",
+      "type": "number",
+      "exclusiveMinimum": 0,
       "maximum": 1
     },
     "fallback": {
