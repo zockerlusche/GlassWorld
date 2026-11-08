@@ -12,27 +12,6 @@ namespace GlassWorld.Contracts
 {
     #pragma warning disable // Disable all warnings
 
-    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
-    public partial class Tier
-    {
-
-        [System.Text.Json.Serialization.JsonPropertyName("id")]
-        public string Id { get; set; } = default!;
-
-        /// <summary>
-        /// Short English description of what runs on this tier.
-        /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("description")]
-        public string Description { get; set; } = default!;
-
-        /// <summary>
-        /// The tier applies if at least one of these requirement sets is fully met.
-        /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("requires_any")]
-        public System.Collections.Generic.ICollection<Requirement> RequiresAny { get; set; } = new System.Collections.ObjectModel.Collection<Requirement>();
-
-    }
-
     /// <summary>
     /// All given limits must be met. Omitted limits are not checked.
     /// </summary>

@@ -13,6 +13,7 @@ from pydantic import BaseModel, ValidationError
 
 from glassworld_contracts import (
     CONTRACT_VERSION,
+    BenchmarkStatus,
     ConversationRequest,
     ConversationResponse,
     DecisionRequest,
@@ -51,6 +52,7 @@ MODELS: dict[str, type[BaseModel]] = {
     "job-list": JobList,
     "phase-change": PhaseChange,
     "phase-status": PhaseStatus,
+    "benchmark-status": BenchmarkStatus,
 }
 
 # Schema rules the generated pydantic models do not enforce. JSON Schema validation
