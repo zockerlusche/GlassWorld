@@ -1,0 +1,20 @@
+{
+  "contract_version": "0.2",
+  "shapes": ["box", "cylinder", "sphere", "cone", "wedge", "plank", "ring", "bowl"],
+  "colors": [
+    { "id": "wood_light", "color": "#c9a26b" },
+    { "id": "wood_dark", "color": "#8a5a3c" },
+    { "id": "bark_brown", "color": "#966245" },
+    { "id": "clay_brown", "color": "#b8714d" },
+    { "id": "ash_grey", "color": "#a39e99" },
+    { "id": "stone_grey", "color": "#ada8a8" },
+    { "id": "charcoal", "color": "#4b4544" },
+    { "id": "reed_yellow", "color": "#d9c27a" },
+    { "id": "fibre_beige", "color": "#e3d2a8" },
+    { "id": "leaf_green", "color": "#6fa35c" },
+    { "id": "ochre", "color": "#d4a24c" },
+    { "id": "shell_white", "color": "#f1ece0" }
+  ],
+  "max_parts": 24,
+  "max_part_size_m": 4
+}

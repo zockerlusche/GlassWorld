@@ -153,6 +153,10 @@
     {
       "pattern": "hardware/night.json",
       "schema": "night-plan"
+    },
+    {
+      "pattern": "build/kit.json",
+      "schema": "build-kit"
     }
   ]
 }
