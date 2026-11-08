@@ -16,7 +16,8 @@
     "passing",
     "wait_while_question_open",
     "request_max_knowledge",
-    "request_max_inhabitants"
+    "request_max_inhabitants",
+    "max_pass_on_options"
   ],
   "properties": {
     "contract_version": {
@@ -72,16 +73,22 @@
       }
     },
     "request_max_knowledge": {
-      "description": "Most knowledge entries in one decider request (text budget).",
+      "description": "Most knowledge entries in one decider request (text budget). At most 32 (decision-request: knowledge holds 32).",
       "type": "integer",
       "minimum": 0,
-      "maximum": 256
+      "maximum": 32
     },
     "request_max_inhabitants": {
-      "description": "Most perceived inhabitants and relationships in one decider request.",
+      "description": "Most perceived inhabitants and relationships in one decider request. At most 16 (decision-request: perception.inhabitants and relationships hold 16).",
       "type": "integer",
       "minimum": 0,
-      "maximum": 64
+      "maximum": 16
+    },
+    "max_pass_on_options": {
+      "description": "Most options for passing knowledge on in one decision request (the request holds at most 32 options in all).",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 32
     }
   },
   "$defs": {

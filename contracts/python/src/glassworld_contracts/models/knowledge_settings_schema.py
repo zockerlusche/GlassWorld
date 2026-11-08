@@ -81,13 +81,19 @@ class KnowledgeSettings(BaseModel):
     )
     request_max_knowledge: int = Field(
         ...,
-        description='Most knowledge entries in one decider request (text budget).',
+        description='Most knowledge entries in one decider request (text budget). At most 32 (decision-request: knowledge holds 32).',
         ge=0,
-        le=256,
+        le=32,
     )
     request_max_inhabitants: int = Field(
         ...,
-        description='Most perceived inhabitants and relationships in one decider request.',
+        description='Most perceived inhabitants and relationships in one decider request. At most 16 (decision-request: perception.inhabitants and relationships hold 16).',
         ge=0,
-        le=64,
+        le=16,
+    )
+    max_pass_on_options: int = Field(
+        ...,
+        description='Most options for passing knowledge on in one decision request (the request holds at most 32 options in all).',
+        ge=0,
+        le=32,
     )

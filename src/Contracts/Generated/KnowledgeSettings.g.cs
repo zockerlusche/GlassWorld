@@ -107,16 +107,22 @@ namespace GlassWorld.Contracts
         public System.Collections.Generic.ICollection<string> WaitWhileQuestionOpen { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
         /// <summary>
-        /// Most knowledge entries in one decider request (text budget).
+        /// Most knowledge entries in one decider request (text budget). At most 32 (decision-request: knowledge holds 32).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("request_max_knowledge")]
         public int RequestMaxKnowledge { get; set; } = default!;
 
         /// <summary>
-        /// Most perceived inhabitants and relationships in one decider request.
+        /// Most perceived inhabitants and relationships in one decider request. At most 16 (decision-request: perception.inhabitants and relationships hold 16).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("request_max_inhabitants")]
         public int RequestMaxInhabitants { get; set; } = default!;
+
+        /// <summary>
+        /// Most options for passing knowledge on in one decision request (the request holds at most 32 options in all).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max_pass_on_options")]
+        public int MaxPassOnOptions { get; set; } = default!;
 
     }
 }

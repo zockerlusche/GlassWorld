@@ -38,5 +38,6 @@
     "drink"
   ],
   "request_max_knowledge": 24,
-  "request_max_inhabitants": 8
+  "request_max_inhabitants": 8,
+  "max_pass_on_options": 8
 }

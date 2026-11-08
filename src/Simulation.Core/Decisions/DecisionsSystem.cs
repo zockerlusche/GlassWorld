@@ -406,9 +406,13 @@ public sealed class DecisionsSystem : IWorldSystem
     }
 
     /// <summary>Options the core allows: object actions on the subject and every action without a target (target kind from the action vocabulary).</summary>
+    /// <summary>Most options a decision request may hold (contract decision-request: options maxItems).</summary>
+    public const int MaxOptions = 32;
+
     private List<(string OptionId, string Action, string? TargetId)> BuildOptions(Inhabitant asker, WorldObject? target)
     {
         var raw = new List<(string Action, string? TargetId)>();
+        var passOn = new List<(string Action, string? TargetId)>();
         foreach (var action in _actions.OfferedActions)
         {
             switch (_actionTargets.GetValueOrDefault(action, VocabularyEntryTarget.None))
@@ -426,7 +430,7 @@ public sealed class DecisionsSystem : IWorldSystem
                     {
                         if (InhabitantsSystem.PassableBelief(knowledge, asker, other, action) is not null)
                         {
-                            raw.Add((action, other.Id));
+                            passOn.Add((action, other.Id));
                         }
                     }
 
@@ -437,7 +441,11 @@ public sealed class DecisionsSystem : IWorldSystem
             }
         }
 
-        return [.. raw.Select((o, i) => (string.Create(CultureInfo.InvariantCulture, $"o{i + 1}"), o.Action, o.TargetId))];
+        // Passing knowledge on comes after the usual options and never pushes the request over the
+        // contract's limit (review GW2 #103): at most the data's number, in a fixed order.
+        var room = Math.Max(0, MaxOptions - raw.Count);
+        raw.AddRange(passOn.Take(Math.Min(room, Knowledge?.MaxPassOnOptions ?? 0)));
+        return [.. raw.Take(MaxOptions).Select((o, i) => (string.Create(CultureInfo.InvariantCulture, $"o{i + 1}"), o.Action, o.TargetId))];
     }
 
     private DecisionRequest BuildRequest(World world, Inhabitant inhabitant, string requestId, List<(string OptionId, string Action, string? TargetId)> options)

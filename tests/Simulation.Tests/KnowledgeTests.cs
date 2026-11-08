@@ -155,6 +155,46 @@ public sealed class KnowledgeTests : IDisposable
         Assert.Contains(request.Options, o => o.Action == "warn" && o.Target == "inh-000002");
     }
 
+    [Theory]
+    [InlineData(32)]
+    [InlineData(2)]
+    public void PassingKnowledgeOnNeverPushesTheRequestOverTheContractLimit(int maxPassOn)
+    {
+        // Review GW2 #103: three pass-on actions x many inhabitants in sight exceeded the 32 options of the
+        // contract, so every request was refused. Pass-on options are capped by data and by the contract.
+        var settings = ContractSerializer.Deserialize<KnowledgeSettings>(ContractSerializer.Serialize(Content.Knowledge));
+        settings.MaxPassOnOptions = maxPassOn;
+        settings.RequestMaxInhabitants = 16; // the schema maximum (the contract holds 16 inhabitants)
+        var w = NewWorld(new SilentPort(), settings);
+        var asker = w.Inhabitants.Get("inh-000001");
+        asker.Beliefs.Set("red_berry", "poisonous", true, 1.0, KnowledgeSources.Experienced, null, 2);
+        for (var i = 0; i < 20; i++)
+        {
+            w.Inhabitants.Add(new Inhabitant(
+                string.Create(System.Globalization.CultureInfo.InvariantCulture, $"inh-9{i:00000}"),
+                asker.Sex,
+                asker.Group,
+                new Position(1 + (i % 5), 1 + (i / 5)),
+                new Dictionary<string, double>(asker.Needs),
+                new Dictionary<string, double>(asker.Moods),
+                new Dictionary<string, double>(asker.Traits),
+                asker.WillToLive));
+        }
+
+        w.Objects.Spawn("red_berry", new Position(2, 2));
+        w.Objects.Spawn("apple", new Position(2, 0)); // something unknown, so the asker asks
+        bool AskerAsked() => w.Decisions.Log.Entries.Any(e => e.Kind == DecisionLogKind.Request
+            && ContractSerializer.Deserialize<DecisionRequest>(e.Json).Inhabitant.Id == "inh-000001");
+        RunUntil(w.World, AskerAsked);
+
+        var requests = w.Decisions.Log.Entries.Where(e => e.Kind == DecisionLogKind.Request).Select(e => e.Json).ToList();
+        Assert.All(requests, json => Assert.Empty(ContractValidator.Validate("decision-request", json)));
+        var request = requests.Select(ContractSerializer.Deserialize<DecisionRequest>).First(r => r.Inhabitant.Id == "inh-000001");
+        Assert.InRange(request.Options.Count, 1, DecisionsSystem.MaxOptions);
+        var passOn = request.Options.Count(o => settings.Passing.Any(p => p.Action == o.Action));
+        Assert.InRange(passOn, 1, maxPassOn);
+    }
+
     [Fact]
     public void KnowledgeAndTrustSurviveSaveAndLoadAndReplay()
     {
