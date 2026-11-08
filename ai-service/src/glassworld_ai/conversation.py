@@ -30,7 +30,7 @@ from glassworld_ai.llm.ollama import OllamaClient
 from glassworld_ai.prompts import PromptTemplate
 from glassworld_ai.queue import ModelQueue, Priority
 from glassworld_ai.safety import TextGuard
-from glassworld_ai.words import ContextError, humanize, plain_id
+from glassworld_ai.words import ContextError, bands, humanize, plain_id, quote, word
 from glassworld_contracts import CONTRACT_VERSION
 from glassworld_contracts.models.conversation_request_schema import ConversationRequest
 from glassworld_contracts.models.conversation_response_schema import ConversationResponse
@@ -99,14 +99,6 @@ def parse(raw: str, schema: dict[str, Any], guard: TextGuard) -> dict[str, Any]:
     return values
 
 
-def _level(value: float, bands: dict[str, str]) -> str:
-    """The words of the first band whose upper bound is not below the value."""
-    for upper, words in sorted(((float(k), v) for k, v in bands.items()), key=lambda b: b[0]):
-        if value <= upper:
-            return words
-    return list(bands.values())[-1]
-
-
 def values(
     request: ConversationRequest, template: PromptTemplate, expressions: dict[str, str]
 ) -> dict[str, str]:
@@ -118,26 +110,45 @@ def values(
     speaker = request.speaker
     relation = speaker.relation_to_player
 
-    def levels(items: Any) -> str:
-        return ", ".join(f"{humanize(plain_id(i.id))} {float(i.value):.1f}" for i in items) or "-"
+    need_words = bands(settings, "need_words")
+    mood_words = bands(settings, "mood_words")
+    trait_words = bands(settings, "trait_words")
+    relation_words = bands(settings, "relation_words")
 
-    lines = "\n".join(
-        f"- {'player' if plain_id(line.author) == 'player' else 'you'}: {line.text.text}"
-        for line in request.recent_lines
+    def levels(items: Any, words: list[tuple[float, str]]) -> str:
+        parts = [
+            f"{humanize(plain_id(i.id))}: {word(words, float(i.value))} ({float(i.value):.2f})"
+            for i in items
+        ]
+        return ", ".join(parts) or "-"
+
+    # Needs: 0 = urgent, 1 = satisfied (contract and core), most urgent first, one per line.
+    needs = sorted(speaker.needs, key=lambda n: (float(n.value), plain_id(n.id)))
+    needs_text = "\n".join(
+        f"- {humanize(plain_id(n.id))}: {word(need_words, float(n.value))} ({float(n.value):.2f})"
+        for n in needs
     )
+
+    def feeling(value: float) -> str:
+        return f"{word(relation_words, value)} ({value:.1f})"
+
+    # What was said comes from outside: quoted, so it can never look like part of the prompt.
+    said = [
+        ("player" if plain_id(line.author) == "player" else "you") + ": " + line.text.text
+        for line in request.recent_lines
+    ]
+    understanding = word(bands(settings, "understanding_words"), float(speaker.understanding))
     return {
         "language": language,
-        "understanding": _level(
-            float(speaker.understanding), _table(settings, "understanding_bands")
-        ),
-        "trust": f"{float(relation.trust):.1f}",
-        "awe": f"{float(relation.awe):.1f}",
-        "fear": f"{float(relation.fear):.1f}",
-        "needs": levels(speaker.needs),
-        "mood": levels(speaker.mood),
-        "traits": levels(speaker.traits),
-        "recent": lines or "- (nothing yet)",
-        "player_text": request.player_text,
+        "understanding": understanding,
+        "trust": feeling(float(relation.trust)),
+        "awe": feeling(float(relation.awe)),
+        "fear": feeling(float(relation.fear)),
+        "needs": needs_text or "- (none)",
+        "mood": levels(speaker.mood, mood_words),
+        "traits": levels(speaker.traits, trait_words),
+        "recent": quote("\n".join(said)) or "(nothing yet)",
+        "player_text": quote(request.player_text) or "> ...",
         "expressions": "\n".join(f"- {k}: {v}" for k, v in sorted(expressions.items()))
         or "- (none)",
         "reply_max": str(REPLY_MAX),
