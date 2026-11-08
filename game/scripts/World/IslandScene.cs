@@ -1,11 +1,11 @@
 using System.Globalization;
 using GlassWorld.Contracts;
-using AnimationLibrary = GlassWorld.Contracts.AnimationLibrary;
 using GlassWorld.Contracts.Validation;
 using GlassWorld.Presentation.World;
 using GlassWorld.Simulation;
 using GlassWorld.Simulation.Decisions;
 using Godot;
+using AnimationLibrary = GlassWorld.Contracts.AnimationLibrary;
 
 namespace GlassWorld.Game.World;
 
@@ -119,8 +119,8 @@ public partial class IslandScene : Node3D
 
         if (_check)
         {
-            GD.Print($"ISLAND_OK seed={seed} chunks={view.GroundChunks} ground_triangles={view.GroundTriangles} water_triangles={view.WaterTriangles}");
-            GetTree().Quit(view.GroundChunks == island.Map.ChunksX * island.Map.ChunksZ && view.GroundTriangles > 0 && view.WaterTriangles > 0 ? 0 : 1);
+            GD.Print($"ISLAND_OK seed={seed} chunks={view.GroundChunks} ground_triangles={view.GroundTriangles} water_triangles={view.WaterTriangles} figures={_figures.Count}");
+            GetTree().Quit(view.GroundChunks == island.Map.ChunksX * island.Map.ChunksZ && view.GroundTriangles > 0 && view.WaterTriangles > 0 && _figures.Count == host.Inhabitants.All.Count() ? 0 : 1);
             return;
         }
 

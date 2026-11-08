@@ -1,9 +1,9 @@
 using GlassWorld.Contracts;
-using AnimationLibrary = GlassWorld.Contracts.AnimationLibrary;
 using GlassWorld.Game.Prototype.Look;
 using GlassWorld.Presentation.World;
 using GlassWorld.Simulation.View;
 using Godot;
+using AnimationLibrary = GlassWorld.Contracts.AnimationLibrary;
 
 namespace GlassWorld.Game.World;
 
