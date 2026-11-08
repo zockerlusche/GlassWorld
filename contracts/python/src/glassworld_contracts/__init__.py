@@ -17,6 +17,7 @@ from glassworld_contracts.models.help_suggestions_response_schema import HelpSug
 from glassworld_contracts.models.job_accepted_schema import JobAccepted
 from glassworld_contracts.models.job_list_schema import JobList
 from glassworld_contracts.models.job_status_schema import JobStatus
+from glassworld_contracts.models.model_setup_status_schema import ModelSetupStatus
 from glassworld_contracts.models.ollama_setup_status_schema import OllamaSetupStatus
 from glassworld_contracts.models.phase_change_schema import PhaseChange
 from glassworld_contracts.models.phase_status_schema import PhaseStatus
@@ -41,6 +42,7 @@ __all__ = [
     "JobAccepted",
     "JobList",
     "JobStatus",
+    "ModelSetupStatus",
     "OllamaSetupStatus",
     "PhaseChange",
     "PhaseStatus",

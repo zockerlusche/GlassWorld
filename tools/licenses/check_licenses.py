@@ -187,6 +187,7 @@ def check(root: Path, *, nuget_assets: bool = False) -> list[str]:
         entry = rule["entry"]
         if entry != "own" and not any(n.startswith(entry.lower()) for n in names_lower):
             problems.append(f"assets.json: rule {rule['glob']} names '{entry}', not in LICENSES.md")
+    problems += model_problems(root, rows)
     by_library = library_assets(root, rules_file, names_lower, problems)
     for path in asset_files(root):
         if path in by_library:
@@ -218,6 +219,24 @@ def library_assets(
             for item in sound["files"]:
                 covered.add(f"{lib['folder']}/{item['file']}")
     return covered
+
+
+def model_problems(root: Path, rows: list[Row]) -> list[str]:
+    """Models offered for download (content/ai/model-downloads.json, B10 R4): each licence must be
+    allowed or approved, and a LICENSES.md row must name the model (review GW1 #125)."""
+    path = root / "content" / "ai" / "model-downloads.json"
+    if not path.is_file():
+        return []
+    problems: list[str] = []
+    for model in json.loads(path.read_text(encoding="utf-8"))["models"]:
+        model_id = str(model["id"])
+        problem = license_problem(Row(model_id, str(model["licence"]), frozenset()))
+        if problem:
+            problems.append(f"model-downloads.json: {problem}")
+        # The row names the model id in backticks (review GW1 #125: no loose substring match).
+        if not any(f"`{model_id.lower()}`" in row.name.lower() for row in rows):
+            problems.append(f"model-downloads.json: model '{model_id}' has no row in LICENSES.md")
+    return problems
 
 
 def main(argv: list[str] | None = None) -> int:

@@ -117,13 +117,13 @@ namespace GlassWorld.Contracts
         public string Url { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("size_bytes")]
-        public int SizeBytes { get; set; } = default!;
+        public long SizeBytes { get; set; } = default!;
 
         /// <summary>
         /// Bytes on disk so far (kept after a cancel: the next start continues).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("done_bytes")]
-        public int DoneBytes { get; set; } = default!;
+        public long DoneBytes { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("licence")]
         public string Licence { get; set; } = default!;

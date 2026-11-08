@@ -1489,6 +1489,10 @@
     {
       "key": "msg.chronicle.found_writing",
       "text": "{inhabitant} found old signs: {target}."
+    },
+    {
+      "key": "ui.setup.model_language",
+      "text": "Language model: how the inhabitants think, talk and ask"
     }
   ]
 }

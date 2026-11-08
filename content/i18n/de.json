@@ -1489,6 +1489,10 @@
     {
       "key": "msg.chronicle.found_writing",
       "text": "{inhabitant} hat alte Zeichen gefunden: {target}."
+    },
+    {
+      "key": "ui.setup.model_language",
+      "text": "Sprachmodell: Denken, Sprechen und Fragen der Bewohner"
     }
   ]
 }

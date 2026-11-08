@@ -81,12 +81,14 @@
         },
         "size_bytes": {
           "type": "integer",
-          "minimum": 0
+          "minimum": 0,
+          "format": "int64"
         },
         "done_bytes": {
           "description": "Bytes on disk so far (kept after a cancel: the next start continues).",
           "type": "integer",
-          "minimum": 0
+          "minimum": 0,
+          "format": "int64"
         },
         "licence": {
           "type": "string",

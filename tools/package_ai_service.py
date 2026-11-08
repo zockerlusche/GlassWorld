@@ -68,6 +68,8 @@ model_footprints_file = "../content/hardware/models.json"
 night_plan_file = "../content/hardware/night.json"
 ollama_runtime_file = "../content/ai/ollama-runtime.json"
 ollama_install_dir = "data/ollama"
+model_downloads_file = "../content/ai/model-downloads.json"
+model_store_dir = "data/model-store"
 moss_worker_script = "data/moss-worker-not-shipped.py"
 """
 
