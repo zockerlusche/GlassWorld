@@ -195,13 +195,19 @@ public sealed class SimulationHost
         var mailbox = new Simulation.Player.MailboxSystem(content.MessageKinds, inhabitants, player, world.Calendar.Settings.TicksPerHour);
         decisions.RegisterCommand(Simulation.Player.MailboxSystem.Acknowledge, mailbox.Check, mailbox.Apply);
 
+        // Talking with an inhabitant (B6 R13): the AI port is set by the game, the core decides.
+        var expressions = content.Vocabularies[VocabularyKind.Expression].Entries.Select(e => e.Id).ToHashSet(StringComparer.Ordinal);
+        var conversation = new Simulation.Player.ConversationSystem(content.Conversation, content.Knowledge, inhabitants, player, decisions, content.Inventions.Guard, expressions, displayLocale, world.Calendar.Settings.TicksPerHour);
+        decisions.RegisterCommand(Simulation.Player.ConversationSystem.SendText, conversation.Check, conversation.Apply);
+
         // The mailbox after the chronicle (agreed order): help_needed is reported by the player system earlier in the tick.
-        world.Add(objects).Add(decisions).Add(inhabitants).Add(player).Add(inventions).Add(chronicle).Add(writing).Add(skills).Add(skillLevels).Add(mailbox);
+        world.Add(objects).Add(decisions).Add(inhabitants).Add(player).Add(inventions).Add(chronicle).Add(writing).Add(skills).Add(skillLevels).Add(mailbox).Add(conversation);
         return new SimulationHost(content, world, map, types, objects, decisions, inhabitants, player, inventions, chronicle, settings, writing, skills, mailbox)
         {
             WeatherSystem = weather,
             Weather = weather,
             SkillLevels = skillLevels,
+            Conversation = conversation,
         };
     }
 
@@ -279,6 +285,9 @@ public sealed class SimulationHost
 
     /// <summary>The weather system itself (save games, debug jumps, player intervention); null without weather.</summary>
     public Weather.WeatherSystem? WeatherSystem { get; private init; }
+
+    /// <summary>Talking with inhabitants (B6 R13, A1342).</summary>
+    public Player.ConversationSystem Conversation { get; private init; } = null!;
 
     /// <summary>Skill levels per inhabitant (start level, talent, practice; B5 part).</summary>
     public SkillLevelsSystem SkillLevels { get; private init; } = null!;

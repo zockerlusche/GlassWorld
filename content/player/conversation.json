@@ -1,0 +1,52 @@
+{
+  "contract_version": "0.2",
+  "deadline_ms": 8000,
+  "no_answer_after_hours": 1,
+  "recent_lines_max": 6,
+  "understanding_start": 0.0,
+  "understanding_max": 1.0,
+  "fear_start": 0.1,
+  "refund_on_no_answer": true,
+  "outcomes": [
+    {
+      "outcome": "reply",
+      "understanding": 0.03,
+      "affection": 0.02,
+      "trust": 0.02,
+      "respect": 0.0,
+      "fear": -0.01
+    },
+    {
+      "outcome": "gesture",
+      "understanding": 0.02,
+      "affection": 0.01,
+      "trust": 0.01,
+      "respect": 0.0,
+      "fear": -0.01
+    },
+    {
+      "outcome": "not_understood",
+      "understanding": 0.01,
+      "affection": 0.0,
+      "trust": 0.0,
+      "respect": 0.01,
+      "fear": 0.0
+    },
+    {
+      "outcome": "decline",
+      "understanding": 0.01,
+      "affection": -0.01,
+      "trust": 0.0,
+      "respect": 0.0,
+      "fear": 0.0
+    },
+    {
+      "outcome": "no_answer",
+      "understanding": 0.0,
+      "affection": 0.0,
+      "trust": 0.0,
+      "respect": 0.0,
+      "fear": 0.0
+    }
+  ]
+}

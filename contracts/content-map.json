@@ -191,6 +191,10 @@
       "schema": "murmur-settings"
     },
     {
+      "pattern": "player/conversation.json",
+      "schema": "conversation-settings"
+    },
+    {
       "pattern": "skills/practice.json",
       "schema": "skill-practice"
     },

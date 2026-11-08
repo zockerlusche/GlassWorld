@@ -253,6 +253,11 @@ public static class SaveGameStore
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("mailbox", JsonSerializer.Serialize(s.Mailbox, Json)));
         }
 
+        if (s.Conversation is not null)
+        {
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("conversation", JsonSerializer.Serialize(s.Conversation, Json)));
+        }
+
         foreach (var (name, state) in s.Streams)
         {
             Insert(c, tx, "INSERT INTO streams VALUES($a,$b,$c)", (name, Str(state.State), Str(state.Increment)));
@@ -435,6 +440,7 @@ public static class SaveGameStore
             Weather = meta.TryGetValue("weather", out var weather) ? JsonSerializer.Deserialize<Weather.WeatherState>(weather, Json) : null,
             Skills = meta.TryGetValue("skills", out var skills) ? JsonSerializer.Deserialize<Simulation.Inhabitants.SkillRegisterState>(skills, Json) : null,
             Mailbox = meta.TryGetValue("mailbox", out var mailbox) ? JsonSerializer.Deserialize<Simulation.Player.MailboxState>(mailbox, Json) : null,
+            Conversation = meta.TryGetValue("conversation", out var conversation) ? JsonSerializer.Deserialize<Simulation.Player.ConversationState>(conversation, Json) : null,
         };
     }
 

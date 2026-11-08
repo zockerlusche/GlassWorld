@@ -1,0 +1,458 @@
+using GlassWorld.Contracts;
+using GlassWorld.Contracts.Validation;
+using GlassWorld.Simulation.Decisions;
+using GlassWorld.Simulation.Inhabitants;
+using GlassWorld.Simulation.Objects;
+using GlassWorld.Simulation.Safety;
+using GlassWorld.Simulation.State;
+
+namespace GlassWorld.Simulation.Player;
+
+/// <summary>Connection to the AI service for conversations (B6 R13): shaped like <see cref="IDecisionPort"/>.</summary>
+public interface IConversationPort
+{
+    /// <summary>Sends a conversation request (JSON of the contract conversation-request).</summary>
+    void Send(string requestId, string requestJson);
+
+    /// <summary>Answers or errors that arrived (taken in the tick that reads them).</summary>
+    IReadOnlyList<PortMessage> Receive(long tick);
+}
+
+/// <summary>Kind of a conversation log entry.</summary>
+public enum ConversationLogKind
+{
+    /// <summary>A request sent.</summary>
+    Request,
+
+    /// <summary>An answer taken.</summary>
+    Response,
+
+    /// <summary>An error taken (service off, timeout).</summary>
+    Error,
+}
+
+/// <summary>One logged conversation message (replays take answers only from here).</summary>
+/// <param name="Kind">What it is.</param>
+/// <param name="RequestId">The request.</param>
+/// <param name="Tick">Tick it was sent or taken.</param>
+/// <param name="Json">The message.</param>
+public sealed record ConversationLogEntry(ConversationLogKind Kind, string RequestId, long Tick, string Json);
+
+/// <summary>A line of a conversation an inhabitant remembers.</summary>
+/// <param name="FromPlayer">True if the player said it.</param>
+/// <param name="Tick">When.</param>
+/// <param name="Locale">Language of the text.</param>
+/// <param name="Text">What was said.</param>
+public sealed record ConversationLineState(bool FromPlayer, long Tick, string Locale, string Text);
+
+/// <summary>What an inhabitant keeps from talking with the player.</summary>
+/// <param name="Understanding">How well it understands the player (0..1, grows from gestures to sentences).</param>
+/// <param name="Fear">Fear of the player (trust and respect live in the relationships, other id "player").</param>
+/// <param name="Lines">Recent lines, oldest first, at most the data's count.</param>
+public sealed record ConversationMemory(double Understanding, double Fear, IReadOnlyList<ConversationLineState> Lines);
+
+/// <summary>A sentence of the player waiting for an answer.</summary>
+/// <param name="RequestId">Request sent for it.</param>
+/// <param name="InhabitantId">Who was spoken to.</param>
+/// <param name="Tick">When it was said.</param>
+public sealed record OpenConversation(string RequestId, string InhabitantId, long Tick);
+
+/// <summary>Saved conversation state.</summary>
+/// <param name="Memories">Per inhabitant.</param>
+/// <param name="Open">Sentences waiting for an answer.</param>
+/// <param name="Counter">Request counter (ids).</param>
+/// <param name="Log">Requests and answers (replay).</param>
+public sealed record ConversationState(IReadOnlyDictionary<string, ConversationMemory> Memories, IReadOnlyList<OpenConversation> Open, long Counter, IReadOnlyList<ConversationLogEntry> Log);
+
+/// <summary>
+/// Talking with an inhabitant (B6 R13, A1342; D333). The player's sentence becomes the command send_text:
+/// it goes through the content guard first (refused text costs no favour), costs a little favour and
+/// asks the AI service through <see cref="IConversationPort"/>. The answer is only a proposal (B2462):
+/// the core checks it (contract, request, content guard, expression vocabulary) and computes every change
+/// to understanding, fear and the relationship to the player from the data's rules, never from numbers
+/// of the answer. Not understood becomes a question to the AI with a question mark (B2511); no answer
+/// gives a calm hint and the favour back (R16). The state is optional: worlds without conversations
+/// keep their hash.
+/// </summary>
+public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
+{
+    /// <summary>Player command: say something to an inhabitant.</summary>
+    public const string SendText = "send_text";
+
+    /// <summary>Reason: the content guard refused the text.</summary>
+    public const string ReasonRefused = "msg.command.text_refused";
+
+    /// <summary>Reason: nothing to say.</summary>
+    public const string ReasonEmpty = "msg.command.text_empty";
+
+    /// <summary>Reason: the inhabitant has not answered the last sentence yet.</summary>
+    public const string ReasonOpen = "msg.command.conversation_open";
+
+    /// <summary>Other id of the player in an inhabitant's relationships.</summary>
+    public const string PlayerId = "player";
+
+    /// <summary>Intervention id of a conversation in the favour costs.</summary>
+    public const string Intervention = "conversation";
+
+    private readonly ConversationSettings _settings;
+    private readonly KnowledgeSettings _knowledge;
+    private readonly InhabitantsSystem _inhabitants;
+    private readonly PlayerSystem _player;
+    private readonly DecisionsSystem _decisions;
+    private readonly TextGuard _guard;
+    private readonly IReadOnlySet<string> _expressions;
+    private readonly string _displayLocale;
+    private readonly int _ticksPerHour;
+    private readonly SortedDictionary<string, ConversationMemory> _memories = new(StringComparer.Ordinal);
+    private readonly SortedDictionary<string, OpenConversation> _open = new(StringComparer.Ordinal);
+    private readonly List<ConversationLogEntry> _log = [];
+    private long _counter;
+
+    /// <summary>Creates the system; the AI connection is set later through <see cref="Port"/>.</summary>
+    public ConversationSystem(ConversationSettings settings, KnowledgeSettings knowledge, InhabitantsSystem inhabitants, PlayerSystem player, DecisionsSystem decisions, TextGuard guard, IReadOnlySet<string> expressions, string displayLocale, int ticksPerHour)
+    {
+        _settings = settings ?? throw new ArgumentNullException(nameof(settings));
+        _knowledge = knowledge ?? throw new ArgumentNullException(nameof(knowledge));
+        _inhabitants = inhabitants ?? throw new ArgumentNullException(nameof(inhabitants));
+        _player = player ?? throw new ArgumentNullException(nameof(player));
+        _decisions = decisions ?? throw new ArgumentNullException(nameof(decisions));
+        _guard = guard ?? throw new ArgumentNullException(nameof(guard));
+        _expressions = expressions ?? throw new ArgumentNullException(nameof(expressions));
+        _displayLocale = displayLocale;
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(ticksPerHour);
+        _ticksPerHour = ticksPerHour;
+        var outcomes = settings.Outcomes.Select(o => o.Outcome).ToHashSet();
+        if (outcomes.Count != Enum.GetValues<OutcomeChangeOutcome>().Length)
+        {
+            throw new InvalidDataException("Conversation: every outcome needs exactly one entry of changes.");
+        }
+    }
+
+    /// <summary>
+    /// The connection to the AI service (the game sets it like the decision port; tests the mock). Null =
+    /// no service: every sentence ends in no answer after the data's time (R16). Not part of the state.
+    /// </summary>
+    public IConversationPort? Port { get; set; }
+
+    /// <inheritdoc/>
+    public string Name => "conversation";
+
+    /// <inheritdoc/>
+    public bool HasState => _memories.Count > 0 || _open.Count > 0;
+
+    /// <summary>Logged requests and answers.</summary>
+    public IReadOnlyList<ConversationLogEntry> Log => _log;
+
+    /// <summary>What an inhabitant keeps from talking with the player (start values if never spoken to).</summary>
+    public ConversationMemory MemoryOf(string inhabitantId) =>
+        _memories.GetValueOrDefault(inhabitantId) ?? new ConversationMemory(_settings.UnderstandingStart, _settings.FearStart, []);
+
+    /// <summary>Whether a sentence to the inhabitant still waits for an answer.</summary>
+    public bool IsWaiting(string inhabitantId) => _open.Values.Any(o => o.InhabitantId == inhabitantId);
+
+    /// <summary>Checks send_text at once (the UI shows the reason).</summary>
+    public CommandResult Check(PlayerCommand command)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        if (command.InhabitantId is null || !_inhabitants.All.Any(i => i.Id == command.InhabitantId))
+        {
+            return new CommandResult(false, "msg.command.no_inhabitant");
+        }
+
+        if (string.IsNullOrWhiteSpace(command.Text))
+        {
+            return new CommandResult(false, ReasonEmpty);
+        }
+
+        if (!_guard.Check(command.Text).Allowed)
+        {
+            return new CommandResult(false, ReasonRefused);
+        }
+
+        if (IsWaiting(command.InhabitantId))
+        {
+            return new CommandResult(false, ReasonOpen);
+        }
+
+        return _player.CanAfford(Intervention) ? new CommandResult(true, null) : new CommandResult(false, PlayerSystem.ReasonNoFavor);
+    }
+
+    /// <summary>Applies send_text at its tick (checked again: things may have changed).</summary>
+    public void Apply(World world, PlayerCommand command)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        if (!Check(command).Accepted)
+        {
+            return;
+        }
+
+        var inhabitant = _inhabitants.Get(command.InhabitantId!);
+        var text = command.Text!.Trim();
+        _player.Spend(Intervention);
+        var memory = MemoryOf(inhabitant.Id);
+        var request = Request(world, inhabitant, memory, text);
+        _memories[inhabitant.Id] = Remember(memory, new ConversationLineState(true, world.Tick, _displayLocale, text));
+        _open[request.RequestId] = new OpenConversation(request.RequestId, inhabitant.Id, world.Tick);
+        var json = ContractSerializer.Serialize(request);
+        _log.Add(new ConversationLogEntry(ConversationLogKind.Request, request.RequestId, world.Tick, json));
+        _inhabitants.Report(new WorldEvent("conversation_started", world.Tick, inhabitant.Id, null, null) { Text = text });
+        Port?.Send(request.RequestId, json);
+    }
+
+    /// <inheritdoc/>
+    public void Advance(World world)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        foreach (var message in Port?.Receive(world.Tick) ?? [])
+        {
+            Take(world, message);
+        }
+
+        // No answer in time (service off or too slow): calm hint and the favour back (R16).
+        var limit = (long)Math.Ceiling(_settings.NoAnswerAfterHours * _ticksPerHour);
+        foreach (var open in _open.Values.Where(o => world.Tick - o.Tick >= limit).ToList())
+        {
+            NoAnswer(world, open);
+        }
+    }
+
+    /// <inheritdoc/>
+    public void WriteState(StateHasher hasher)
+    {
+        ArgumentNullException.ThrowIfNull(hasher);
+        hasher.Write(_counter).Write(_memories.Count);
+        foreach (var (id, memory) in _memories)
+        {
+            hasher.Write(id).Write(memory.Understanding).Write(memory.Fear).Write(memory.Lines.Count);
+            foreach (var line in memory.Lines)
+            {
+                hasher.Write(line.FromPlayer ? 1 : 0).Write(line.Tick).Write(line.Locale).Write(line.Text);
+            }
+        }
+
+        hasher.Write(_open.Count);
+        foreach (var open in _open.Values)
+        {
+            hasher.Write(open.RequestId).Write(open.InhabitantId).Write(open.Tick);
+        }
+    }
+
+    /// <summary>The state to save.</summary>
+    public ConversationState Capture() => new(new SortedDictionary<string, ConversationMemory>(_memories, StringComparer.Ordinal), [.. _open.Values], _counter, [.. _log]);
+
+    /// <summary>Restores saved state (null = a save game from before conversations).</summary>
+    public void Restore(ConversationState? state)
+    {
+        _memories.Clear();
+        _open.Clear();
+        _log.Clear();
+        _counter = state?.Counter ?? 0;
+        foreach (var (id, memory) in state?.Memories ?? new Dictionary<string, ConversationMemory>())
+        {
+            _memories[id] = memory;
+        }
+
+        foreach (var open in state?.Open ?? [])
+        {
+            _open[open.RequestId] = open;
+        }
+
+        _log.AddRange(state?.Log ?? []);
+    }
+
+    private ConversationRequest Request(World world, Inhabitant inhabitant, ConversationMemory memory, string text)
+    {
+        _counter++;
+        var start = new Relation(_knowledge.RelationshipStart.Affection, _knowledge.RelationshipStart.Trust, _knowledge.RelationshipStart.Respect);
+        var relation = inhabitant.Relationships.Get(PlayerId, start);
+        return new ConversationRequest
+        {
+            ContractVersion = ContractInfo.Version,
+            RequestId = DecisionIds.RequestId(world.Seed, world.Tick, inhabitant.Id, _counter),
+            Tick = world.Tick,
+            Seed = world.Random.Get("conversation/seed").NextInt(0, int.MaxValue),
+            DeadlineMs = _settings.DeadlineMs,
+            DisplayLocale = Enum.Parse<Locale>(_displayLocale, ignoreCase: true),
+            Speaker = new Speaker
+            {
+                Id = inhabitant.Id,
+                Needs = [.. inhabitant.Needs.Select(n => new Level { Id = n.Key, Value = n.Value })],
+                Mood = [.. inhabitant.Moods.Where(m => m.Value > 0).Select(m => new Level { Id = m.Key, Value = m.Value })],
+                Traits = [.. inhabitant.Traits.Select(t => new Level { Id = t.Key, Value = t.Value })],
+                WillToLive = inhabitant.WillToLive,
+                Understanding = memory.Understanding,
+                RelationToPlayer = new RelationToPlayer { Trust = relation.Trust, Awe = relation.Respect, Fear = memory.Fear },
+            },
+            PlayerText = text,
+            RecentLines = [.. memory.Lines.Select(l => new ConversationLine
+            {
+                Author = l.FromPlayer ? ConversationLineAuthor.Player : ConversationLineAuthor.Inhabitant,
+                Tick = l.Tick,
+                Text = new GeneratedText { Locale = Enum.Parse<Locale>(l.Locale, ignoreCase: true), Text = l.Text },
+            })],
+        };
+    }
+
+    private void Take(World world, PortMessage message)
+    {
+        if (!_open.TryGetValue(message.RequestId, out var open))
+        {
+            return; // late or unknown: nothing waits for it any more
+        }
+
+        _log.Add(new ConversationLogEntry(message.IsError ? ConversationLogKind.Error : ConversationLogKind.Response, message.RequestId, world.Tick, message.Json));
+        if (message.IsError)
+        {
+            NoAnswer(world, open);
+            return;
+        }
+
+        ConversationResponse response;
+        try
+        {
+            response = ContractSerializer.Deserialize<ConversationResponse>(message.Json);
+        }
+        catch (ContractViolationException)
+        {
+            NoAnswer(world, open);
+            return;
+        }
+
+        if (response.RequestId != open.RequestId)
+        {
+            NoAnswer(world, open);
+            return;
+        }
+
+        _open.Remove(open.RequestId);
+        var inhabitant = _inhabitants.Get(open.InhabitantId);
+
+        // The answer is a proposal: text only if the guard allows it, expressions only from the vocabulary.
+        var reply = response.Reply is { } r && !string.IsNullOrWhiteSpace(r.Text) && _guard.Check(r.Text).Allowed ? r : null;
+        var expression = response.Expression is { } e && _expressions.Contains(e) ? e : null;
+        var outcome = response.Outcome switch
+        {
+            ConversationResponseOutcome.Reply when reply is null => OutcomeChangeOutcome.Gesture,
+            ConversationResponseOutcome.Reply => OutcomeChangeOutcome.Reply,
+            ConversationResponseOutcome.Gesture => OutcomeChangeOutcome.Gesture,
+            ConversationResponseOutcome.Decline => OutcomeChangeOutcome.Decline,
+            _ => OutcomeChangeOutcome.Not_understood,
+        };
+        Change(inhabitant, outcome, reply is null ? null : new ConversationLineState(false, world.Tick, reply.Locale.ToString().ToLowerInvariant(), reply.Text));
+        switch (outcome)
+        {
+            case OutcomeChangeOutcome.Reply:
+                _inhabitants.Report(new WorldEvent("said", world.Tick, inhabitant.Id, null, null) { Text = reply!.Text, Detail = expression });
+                break;
+            case OutcomeChangeOutcome.Gesture:
+                _inhabitants.Report(new WorldEvent("gestured", world.Tick, inhabitant.Id, null, null) { Detail = expression });
+                break;
+            case OutcomeChangeOutcome.Decline:
+                _inhabitants.Report(new WorldEvent("declined", world.Tick, inhabitant.Id, null, null) { Text = reply?.Text, Detail = expression });
+                break;
+            default:
+                _inhabitants.Report(new WorldEvent("not_understood", world.Tick, inhabitant.Id, null, null));
+                _decisions.NoticePlayer(world, inhabitant.Id); // B2511: a question with a question mark
+                break;
+        }
+    }
+
+    private void NoAnswer(World world, OpenConversation open)
+    {
+        _open.Remove(open.RequestId);
+        if (_settings.RefundOnNoAnswer)
+        {
+            _player.Refund(Intervention);
+        }
+
+        Change(_inhabitants.Get(open.InhabitantId), OutcomeChangeOutcome.No_answer, null);
+        _inhabitants.Report(new WorldEvent("no_answer", world.Tick, open.InhabitantId, null, null));
+    }
+
+    /// <summary>Applies the data's changes for an outcome (never numbers from the answer, B2462).</summary>
+    private void Change(Inhabitant inhabitant, OutcomeChangeOutcome outcome, ConversationLineState? line)
+    {
+        var rule = _settings.Outcomes.Single(o => o.Outcome == outcome);
+        var memory = MemoryOf(inhabitant.Id);
+        memory = memory with
+        {
+            Understanding = Math.Clamp(memory.Understanding + rule.Understanding, 0, _settings.UnderstandingMax),
+            Fear = Math.Clamp(memory.Fear + rule.Fear, 0, 1),
+        };
+        _memories[inhabitant.Id] = line is null ? memory : Remember(memory, line);
+        if (rule.Affection != 0 || rule.Trust != 0 || rule.Respect != 0)
+        {
+            var start = new Relation(_knowledge.RelationshipStart.Affection, _knowledge.RelationshipStart.Trust, _knowledge.RelationshipStart.Respect);
+            var r = inhabitant.Relationships.Get(PlayerId, start);
+            inhabitant.Relationships.Set(PlayerId, new Relation(
+                Math.Clamp(r.Affection + rule.Affection, 0, 1),
+                Math.Clamp(r.Trust + rule.Trust, 0, 1),
+                Math.Clamp(r.Respect + rule.Respect, 0, 1)));
+        }
+    }
+
+    private ConversationMemory Remember(ConversationMemory memory, ConversationLineState line)
+    {
+        var lines = memory.Lines.Append(line).TakeLast(_settings.RecentLinesMax).ToList();
+        return memory with { Lines = lines };
+    }
+}
+
+/// <summary>
+/// Stand-in for the AI service in tests and offline runs: answers at the next tick, deterministically from
+/// the request (seed and understanding): little understanding gives gestures or not understood, more gives
+/// a short reply in the player's language.
+/// </summary>
+public sealed class MockConversationPort : IConversationPort
+{
+    private readonly Queue<PortMessage> _ready = new();
+
+    /// <inheritdoc/>
+    public void Send(string requestId, string requestJson)
+    {
+        var request = ContractSerializer.Deserialize<ConversationRequest>(requestJson);
+        var roll = (request.Seed % 100) / 100.0;
+        var understanding = request.Speaker.Understanding;
+        var outcome = roll > understanding + 0.6 ? ConversationResponseOutcome.Not_understood
+            : understanding < 0.3 ? ConversationResponseOutcome.Gesture
+            : ConversationResponseOutcome.Reply;
+        var reply = outcome == ConversationResponseOutcome.Reply
+            ? new GeneratedText { Locale = request.DisplayLocale, Text = request.DisplayLocale == Locale.De ? "Hm, ja." : "Hm, yes." }
+            : null;
+        var response = new ConversationResponse
+        {
+            ContractVersion = request.ContractVersion,
+            RequestId = request.RequestId,
+            Tick = request.Tick,
+            Outcome = outcome,
+            Reply = reply,
+            Expression = outcome == ConversationResponseOutcome.Gesture ? "wave" : null,
+            Rationale = "mock",
+            Meta = new ResponseMeta { Source = ResponseMetaSource.Mock, Model = "mock", LatencyMs = 0, Attempts = 1 },
+        };
+        _ready.Enqueue(new PortMessage(requestId, ContractSerializer.Serialize(response), IsError: false));
+    }
+
+    /// <inheritdoc/>
+    public IReadOnlyList<PortMessage> Receive(long tick)
+    {
+        var messages = _ready.ToList();
+        _ready.Clear();
+        return messages;
+    }
+}
+
+/// <summary>Replays answers and errors from a conversation log at their logged ticks (deterministic replay).</summary>
+public sealed class ReplayConversationPort(IEnumerable<ConversationLogEntry> log) : IConversationPort
+{
+    private readonly List<ConversationLogEntry> _answers = [.. log.Where(e => e.Kind != ConversationLogKind.Request)];
+
+    /// <inheritdoc/>
+    public void Send(string requestId, string requestJson)
+    {
+    }
+
+    /// <inheritdoc/>
+    public IReadOnlyList<PortMessage> Receive(long tick) =>
+        [.. _answers.Where(e => e.Tick == tick).Select(e => new PortMessage(e.RequestId, e.Json, e.Kind == ConversationLogKind.Error))];
+}
