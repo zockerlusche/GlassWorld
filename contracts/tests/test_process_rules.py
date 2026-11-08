@@ -12,9 +12,18 @@ from pathlib import Path
 from typing import Any
 
 CONTENT = Path(__file__).resolve().parents[2] / "content"
-RULES: list[dict[str, Any]] = json.loads((CONTENT / "processes/rules.json").read_text("utf-8"))[
-    "rules"
-]
+_DATA: dict[str, Any] = json.loads((CONTENT / "processes/rules.json").read_text("utf-8"))
+
+
+def specificity(rule: dict[str, Any]) -> tuple[int, int, int, int, str]:
+    """Tie-break of the schema (and of the core, P3): the most specific matching rule wins."""
+    required = sum(len(c["properties_all"]) for c in rule["inputs"])
+    tool = rule["tool"] is not None
+    heat = rule["heat_min"] is not None
+    return (-len(rule["inputs"]), -required, -tool, -heat, rule["id"])
+
+
+RULES: list[dict[str, Any]] = sorted(_DATA["rules"], key=specificity)
 HEAT = json.loads((CONTENT / "processes/rules.json").read_text("utf-8"))["heat_levels"]
 CATALOG = {
     t["id"]: set(t["properties"])
@@ -31,7 +40,7 @@ def _fits(props: set[str], cond: dict[str, Any] | None) -> bool:
 def apply(
     process: str, inputs: list[set[str]], tool: set[str] | None = None, heat: str | None = None
 ) -> set[str]:
-    """Properties of the first input after the first matching rule of `process`."""
+    """Properties of the first input after the most specific matching rule of `process`."""
     for rule in RULES:
         if rule["process"] != process or len(rule["inputs"]) != len(inputs):
             continue
@@ -99,3 +108,10 @@ def test_dough_is_not_a_clay_pot() -> None:
     except AssertionError:
         return
     raise AssertionError("dough must not be shaped into a fired vessel")
+
+
+def test_the_most_specific_rule_wins() -> None:
+    """Review GW1 #100: heating dry food in its own shell fits 'heat_water_container' (1 required
+    property) and 'roast_food' (2): roasting is more specific and wins, in the test as in P3."""
+    result = apply("heat", [{"edible", "long_lasting", "container"}], heat="open_fire")
+    assert "cooked" in result and "hot" not in result
