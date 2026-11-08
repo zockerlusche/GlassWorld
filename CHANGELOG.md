@@ -71,6 +71,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - `src/AiClient`: HTTP decider port to the local AI service (`POST /decide`, session token); an unreachable service becomes a retryable `model_unavailable`, so questions wait and inhabitants live on in routine mode (B3 S6, acceptance A3/A6).
 - The game starts the local AI service itself with `GLASSWORLD_AI=live` (ready line, session token, Job Object, `/shutdown` on exit) and shows thought bubbles from answers; without the service it runs on in routine mode (B3 S7).
 
+### Changed
+
+- Chronicle window reads the core chronicle (D471 D8, `IChronicle` from #75) instead of collecting events since the game started: a loaded save game shows its history, and `ChronicleBook.Sync` takes only what is new. Invented things are named in the display language (DE/EN) through `IRuntimeCatalog`; `first_use` finds the name through the placed object's type. The unused `GameScreen.InventionName` hook is gone.
+
 ### Fixed
 
 - AI service: `POST /phase` with a lower tick and another phase is applied (loading an older save turns the clock back; only the same phase is ignored); a model larger than the VRAM budget fails its job as not retryable, so the core falls back at once (review #82).
