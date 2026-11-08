@@ -255,6 +255,34 @@ public static partial class TerrainMesher
             used.UnionWith([(cx0 + e, cz0), (cx0 + e, cz0 + n), (cx0, cz0 + e), (cx0 + n, cz0 + e)]);
         }
 
+        // A merged sea floor must never rise above a base corner. The base vertices its border keeps can
+        // lift its fan, so it is checked as drawn; a block that would rise is drawn cell by cell instead,
+        // which adds its corners to the kept vertices, so the other sea blocks are checked again.
+        for (var again = true; again;)
+        {
+            again = false;
+            for (var i = 0; i < pieces.Count; i++)
+            {
+                var (x0, z0, size, shape) = pieces[i];
+                if (!shape.HasFlag(Shape.Sea) || FanStaysBelowCorners(map, look, x0, z0, size, shape, used))
+                {
+                    continue;
+                }
+
+                pieces.RemoveAt(i--);
+                for (var z = z0; z < z0 + size; z++)
+                {
+                    for (var x = x0; x < x0 + size; x++)
+                    {
+                        pieces.Add((x, z, 1, Shape.None));
+                        used.UnionWith([(x, z), (x + 1, z), (x + 1, z + 1), (x, z + 1)]);
+                    }
+                }
+
+                again = true;
+            }
+        }
+
         var mesh = new MeshData();
         foreach (var (x0, z0, size, shape) in pieces)
         {
@@ -439,7 +467,7 @@ public static partial class TerrainMesher
             return Shape.None;
         }
 
-        var shape = Shape.Fan;
+        var shape = Shape.Fan | Shape.Sea;
         shape |= Below((i, j) => DiagonalAt(corners, step, i, j, along02: true)) ? Shape.Diagonal02 : Shape.None;
         shape |= Below((i, j) => DiagonalAt(corners, step, i, j, along02: false)) ? Shape.Diagonal13 : Shape.None;
         return shape;
@@ -569,6 +597,35 @@ public static partial class TerrainMesher
         {
             Top(mesh, centre, Vertex(ring[e]), Vertex(ring[(e + 1) % ring.Count]), look);
         }
+    }
+
+    /// <summary>Whether the merged block, drawn with the border vertices <paramref name="used"/> keeps, lies at or below every base corner it covers.</summary>
+    private static bool FanStaysBelowCorners(WorldMap map, TerrainLook look, int x0, int z0, int step, Shape shape, HashSet<(int X, int Z)> used)
+    {
+        var drawn = new MeshData();
+        Fan(map, look, drawn, x0, z0, step, shape, used);
+        var p = drawn.Positions;
+        for (var j = 0; j <= step; j++)
+        {
+            for (var i = 0; i <= step; i++)
+            {
+                PlainCorner(map, look, x0 + i, z0 + j, out var h, out _);
+                float x = (x0 + i) * look.CellM, z = (z0 + j) * look.CellM, top = (h * look.UnitM) + 1e-4f;
+                for (var t = 0; t < drawn.TriangleCount; t++)
+                {
+                    int a = t * 9, b = a + 3, c = a + 6;
+                    var det = ((p[b + 2] - p[c + 2]) * (p[a] - p[c])) + ((p[c] - p[b]) * (p[a + 2] - p[c + 2]));
+                    var wa = (((p[b + 2] - p[c + 2]) * (x - p[c])) + ((p[c] - p[b]) * (z - p[c + 2]))) / det;
+                    var wb = (((p[c + 2] - p[a + 2]) * (x - p[c])) + ((p[a] - p[c]) * (z - p[c + 2]))) / det;
+                    if (wa >= -1e-4f && wb >= -1e-4f && wa + wb <= 1 + 1e-4f && (wa * p[a + 1]) + (wb * p[b + 1]) + ((1 - wa - wb) * p[c + 1]) > top)
+                    {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        return true;
     }
 
     /// <summary>
@@ -1001,6 +1058,7 @@ public static partial class TerrainMesher
         Fan = 1,
         Diagonal02 = 2,
         Diagonal13 = 4,
+        Sea = 8,
     }
 
     private enum Carrier
