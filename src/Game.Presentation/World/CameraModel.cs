@@ -64,6 +64,20 @@ public sealed class CameraModel
     /// <summary>Current (eased) height of the target in metres; it follows the ground under the target.</summary>
     public double TargetHeight => _height;
 
+    /// <summary>
+    /// How far out the camera is zoomed, 0 (closest) .. 1 (farthest) over the distance range of the data:
+    /// the sound mix widens its ranges with it (WorldAudio.Zoom).
+    /// </summary>
+    public double ZoomShare => ZoomShareOf(_distance, _data);
+
+    /// <summary>The zoom share of a distance over the data's distance range (0..1, clamped).</summary>
+    public static double ZoomShareOf(double distance, LookCamera data)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+        var range = data.DistanceM.Max - data.DistanceM.Min;
+        return range > 0 ? Math.Clamp((distance - data.DistanceM.Min) / range, 0, 1) : 0;
+    }
+
     /// <summary>Whether the camera follows a figure.</summary>
     public bool Following => _follow is not null;
 

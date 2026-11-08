@@ -45,6 +45,12 @@ public partial class WorldAudio : Node3D
     /// </summary>
     public Func<double, double, float>? GroundHeight { get; set; }
 
+    /// <summary>
+    /// Island mode: where the mix listens and the zoom (0..1), read every frame (the camera rig's target on
+    /// the ground and its distance in the zoom range); null = the camera listens and Zoom stays as set.
+    /// </summary>
+    public Func<(Position Listener, double Zoom)?>? Hearing { get; set; }
+
     /// <summary>Zoom 0 (fully in) .. 1 (fully out); set by the camera control.</summary>
     public double Zoom { get; set; } = 0.5;
 
@@ -465,6 +471,12 @@ public partial class WorldAudio : Node3D
 
     private Position Listener()
     {
+        if (Hearing?.Invoke() is { } hearing)
+        {
+            Zoom = hearing.Zoom;
+            return hearing.Listener;
+        }
+
         var camera = GetViewport()?.GetCamera3D();
         return camera is null ? new Position(0, 0) : new Position(camera.GlobalPosition.X, camera.GlobalPosition.Z);
     }

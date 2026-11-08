@@ -85,10 +85,11 @@ public partial class IslandScene : Node3D
 
         _daylight = Look<LookDaylight>("daylight.json");
         _shots = Look<LookShots>("shots.json");
-        _environment = new WorldEnvironment { Environment = new Godot.Environment { TonemapMode = Godot.Environment.ToneMapper.Linear } };
+        _environment = new WorldEnvironment { Environment = new Godot.Environment() };
         AddChild(_environment);
-        _sun = new DirectionalLight3D { Name = "Sun", ShadowEnabled = true, ShadowBlur = 2f };
+        _sun = new DirectionalLight3D { Name = "Sun" };
         AddChild(_sun);
+        DaylightLook.ApplyRendering(_daylight, _sun, _environment.Environment);
         ApplyPhase("day");
 
         // Figures of the inhabitants (B2-4): appearance from the core, clips from the library.
@@ -126,7 +127,7 @@ public partial class IslandScene : Node3D
         // The camera target follows the ground, but never sinks below the sea surface.
         var seaLevel = host.Content.WorldGen.Presets[preset].Terrain.SeaLevel * terrain.UnitM;
         _rig = CameraRig.Create(Look<LookCamera>("camera.json"), _width, _depth, () => _figures.Values.Select(f => (f.InhabitantId, f.Position)), (x, z) => Math.Max(seaLevel, IslandView.GroundHeight(ground, terrain, x, z)));
-        _rig.FigurePosition = id => _figures.TryGetValue(id, out var f) ? f.Position : null;
+        _rig.FindFigure = id => _figures.TryGetValue(id, out var f) ? f.Position : null;
         AddChild(_rig);
         if (Arg("--follow") is { } follow && _shotDirectory is null)
         {

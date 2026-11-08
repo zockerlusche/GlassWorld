@@ -124,6 +124,81 @@ public sealed class IslandLookTests
     }
 
     [Fact]
+    public void AGiftOnWaterOrOffTheIslandIsRefusedWithAReason()
+    {
+        // Column 0 is sea, column 1 a lake, the rest dry land; the sea surface lies at 2.0 m.
+        var builder = new Simulation.Map.WorldMapBuilder(4, 1, 1, ["low"]);
+        for (var z = 0; z < 4; z++)
+        {
+            for (var x = 0; x < 4; x++)
+            {
+                builder.Set(x, z, x switch
+                {
+                    0 => new Simulation.Map.MapCell(10, Simulation.Map.WaterKind.Salt, 10, -1, 1000, 150, 0, Simulation.Map.MapCell.Blocked),
+                    1 => new Simulation.Map.MapCell(26, Simulation.Map.WaterKind.Fresh, 4, -1, 1000, 150, 0, 3000),
+                    _ => new Simulation.Map.MapCell(30, Simulation.Map.WaterKind.None, 0, -1, 400, 150, 0, 1000),
+                });
+            }
+        }
+
+        var map = builder.Build();
+        Assert.Equal(GiftSpot.OnWater, GiftSpot.Refusal(map, 1, 0.5, 2.5, 1.0, 2.0));
+        Assert.Equal(GiftSpot.OnWater, GiftSpot.Refusal(map, 1, 1.5, 2.5, 2.6, 2.0));
+        Assert.Null(GiftSpot.Refusal(map, 1, 2.5, 2.5, 3.0, 2.0));
+        Assert.Equal(GiftSpot.OffIsland, GiftSpot.Refusal(map, 1, -0.5, 2.5, 3.0, 2.0));
+        Assert.Equal(GiftSpot.OffIsland, GiftSpot.Refusal(map, 1, 2.5, 4.2, 3.0, 2.0));
+
+        // Dry land below the sea surface (a dip at the coast) counts as water too.
+        Assert.Equal(GiftSpot.OnWater, GiftSpot.Refusal(map, 1, 3.5, 0.5, 1.9, 2.0));
+
+        // The click ray meets the sea surface where the seabed lies lower: it lands where the player clicked.
+        var surface = GiftSpot.Surface((x, _) => x < 10 ? -3.0 : 1.0, 0.0);
+        var hit = GroundRay.Hit(new Point3(0, 10, 0), new Point3(0, -1, 1), surface, 0.5, 1000, 20)!.Value;
+        Assert.Equal(10.0, hit.Z, 3);
+        Assert.Equal(0.0, hit.Y, 9);
+
+        // Every reason has a text in both languages.
+        foreach (var language in new[] { "de", "en" })
+        {
+            var catalog = File.ReadAllText(Path.Combine(Content, "i18n", language + ".json"));
+            Assert.Contains($"\"{GiftSpot.OnWater}\"", catalog, StringComparison.Ordinal);
+            Assert.Contains($"\"{GiftSpot.OffIsland}\"", catalog, StringComparison.Ordinal);
+        }
+    }
+
+    [Theory]
+    [InlineData(8.0, 0.0)]
+    [InlineData(260.0, 1.0)]
+    [InlineData(134.0, 0.5)]
+    [InlineData(2.0, 0.0)]
+    [InlineData(500.0, 1.0)]
+    public void TheSoundZoomFollowsTheCameraDistanceOverItsZoomRange(double distance, double share)
+    {
+        var camera = Read<LookCamera>("look", "camera.json");
+        Assert.Equal((8.0, 260.0), (camera.DistanceM.Min, camera.DistanceM.Max));
+        Assert.Equal(share, CameraModel.ZoomShareOf(distance, camera), 9);
+        var model = new CameraModel(camera, 0, 0, 100, 100);
+        Assert.Equal(CameraModel.ZoomShareOf(camera.DistanceM.Start, camera), model.ZoomShare, 9);
+    }
+
+    [Fact]
+    public void TheLeaveKeyHandsTheCameraBackToTheObserverAtOnce()
+    {
+        var observer = new ObserverFocus(new WorldLookObserver { GroupSwitchS = 30, ThoughtFocusS = 12, ResumeAfterIdleS = 45, DistanceM = 48 });
+        observer.Choose("inh_1");
+        Assert.False(observer.Observing(10));
+        observer.HandBack(10);
+        Assert.Null(observer.Chosen);
+        Assert.True(observer.Observing(10));
+
+        // Also after panning: the leave key ends the idle pause.
+        observer.PlayerTookCamera(20);
+        Assert.False(observer.Observing(21));
+        observer.HandBack(21);
+        Assert.True(observer.Observing(21));
+    }
+
+    [Fact]
     public void APoolRestsLevelOnTheHighestGroundOfItsFootprint()
     {
         // Ground rising with x (slope 0.5): the pool's level surface lies at the highest point under it, so

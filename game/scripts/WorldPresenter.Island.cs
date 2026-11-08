@@ -32,6 +32,10 @@ public partial class WorldPresenter
     private LookAppearance? _appearanceLook;
     private ObserverFocus? _observer;
     private Func<double, double, double> _ground = (_, _) => 0;
+    private double _seaLevelM = double.NegativeInfinity;
+    private float _cellM = 1;
+    private readonly List<int> _groups = [];
+    private readonly Dictionary<int, List<Node3D>> _groupMembers = [];
     private int? _observedGroup;
     private bool _wasObserving;
     private double _speedSeen = double.NaN;
@@ -54,6 +58,22 @@ public partial class WorldPresenter
 
     /// <summary>Ground height in metres at (x, z): the drawn island ground, 0 on the placeholder.</summary>
     public float GroundHeight(double x, double z) => (float)_ground(x, z);
+
+    /// <summary>
+    /// Island mode: why a gift may not lie at a ground point (water, off the island) as a reason key, or
+    /// null if it may (always null on the placeholder). The screen shows the reason and sends nothing.
+    /// </summary>
+    public string? GiftRefusal(Vector3 point) =>
+        Mode == WorldLookMode.Island && _host?.Map is { } map
+            ? GiftSpot.Refusal(map.Map, _cellM, point.X, point.Z, _ground(point.X, point.Z), _seaLevelM)
+            : null;
+
+    /// <summary>
+    /// Island mode: where the sound mix listens (the point the camera looks at, on the ground) and how far
+    /// out the camera is zoomed (0..1); null on the placeholder (the camera itself listens there).
+    /// </summary>
+    public (Simulation.Objects.Position Listener, double Zoom)? Hearing() =>
+        _rig is null ? null : (new Simulation.Objects.Position(_rig.Model.Target.X, _rig.Model.Target.Z), _rig.Model.ZoomShare);
 
     /// <summary>
     /// Where the question marks of an inhabitant hang: below the head anchor at the island's label height,
@@ -108,7 +128,9 @@ public partial class WorldPresenter
         }
 
         var ray = _look.GroundRay;
-        var hit = GroundRay.Hit(new Point3(from.X, from.Y, from.Z), new Point3(direction.X, direction.Y, direction.Z), _ground, ray.StepM, ray.MaxDistanceM, ray.RefineSteps);
+        // The ray meets the sea surface where it lies above the ground, so a click on the sea lands where
+        // the player sees it (the screen then refuses it, GiftRefusal).
+        var hit = GroundRay.Hit(new Point3(from.X, from.Y, from.Z), new Point3(direction.X, direction.Y, direction.Z), GiftSpot.Surface(_ground, _seaLevelM), ray.StepM, ray.MaxDistanceM, ray.RefineSteps);
         return hit is { } p ? new Vector3((float)p.X, (float)p.Y, (float)p.Z) : null;
     }
 
@@ -192,7 +214,7 @@ public partial class WorldPresenter
             return "the ground ray from the screen centre finds no ground";
         }
 
-        var height = GroundHeight(ground.X, ground.Z);
+        var height = Math.Max(GroundHeight(ground.X, ground.Z), (float)_seaLevelM);
         return Math.Abs(ground.Y - height) > 0.01f
             ? $"ground point {ground} is not on the drawn ground ({height:0.00} m)"
             : string.Empty;
@@ -217,6 +239,8 @@ public partial class WorldPresenter
         var terrain = _islandView.Look!;
         var ground = map.Map;
         _ground = (x, z) => IslandView.GroundHeight(ground, terrain, x, z);
+        _seaLevelM = preset.Terrain.SeaLevel * terrain.UnitM;
+        _cellM = terrain.CellM;
 
         _objectsView = ObjectsView.Create(Read<LookObjects>(content, "look", "objects.json"), Read<LookPalette>(content, "look", "palette.json"), _ground);
         AddChild(_objectsView);
@@ -230,14 +254,18 @@ public partial class WorldPresenter
 
         var width = map.Map.WidthCells * terrain.CellM;
         var depth = map.Map.DepthCells * terrain.CellM;
-        var seaLevel = preset.Terrain.SeaLevel * terrain.UnitM;
+        var seaLevel = (float)_seaLevelM;
         var camera = Read<LookCamera>(content, "look", "camera.json");
         _rig = CameraRig.Create(camera, width, depth, () => _islandNodes.Select(f => (f.Key, f.Value.Position)), (x, z) => Math.Max(seaLevel, IslandView.GroundHeight(ground, terrain, x, z)));
         _rig.SelectOnClick = false;
+        _rig.FindFigure = id => _islandNodes.TryGetValue(id, out var node) ? node.Position : (Vector3?)null;
         _rig.Panned += () => _observer?.PlayerTookCamera(_clock);
+
+        // The leave key hands the camera back to the observer at once (GW3 #113, finding 4).
+        _rig.Left += () => _observer?.HandBack(_clock);
         AddChild(_rig);
         _observer = new ObserverFocus(_look.Observer);
-        if (_observer.Update(_clock, Groups()) is { } first && Centre(first) is { } start)
+        if (_observer.Update(_clock, _groups) is { } first && Centre(first) is { } start)
         {
             // Start right above the first group, then follow it smoothly.
             _rig.Model.Set(start.X, start.Z, camera.StartYawDeg, _look.Observer.DistanceM);
@@ -246,6 +274,33 @@ public partial class WorldPresenter
 
         LightTheIsland(content);
         GD.Print($"ISLAND_WORLD preset={map.Island.PresetId} chunks={_islandView.GroundChunks} figures={_islandFigures.Count} objects_drawn={_objectsView.Drawn} layers={_objectsView.Layers}");
+    }
+
+    /// <summary>Takes back a half-built island (nodes, scene light, state), so the placeholder world can start.</summary>
+    private void UndoIsland()
+    {
+        RestoreScene();
+        foreach (var child in GetChildren())
+        {
+            RemoveChild(child);
+            child.QueueFree();
+        }
+
+        _host = null;
+        Mode = WorldLookMode.Placeholder;
+        _look = null;
+        _islandView = null;
+        _objectsView = null;
+        _rig = null;
+        _figureShared = null;
+        _observer = null;
+        _islandNodes.Clear();
+        _islandFigures.Clear();
+        _thoughts.Clear();
+        _groups.Clear();
+        _groupMembers.Clear();
+        _ground = (_, _) => 0;
+        _seaLevelM = double.NegativeInfinity;
     }
 
     /// <summary>The day light of the data on the scene's sun and environment; the placeholder island and sea are hidden (restored on exit).</summary>
@@ -276,7 +331,8 @@ public partial class WorldPresenter
             AddChild(sun);
         }
 
-        var environment = new Godot.Environment { TonemapMode = Godot.Environment.ToneMapper.Linear };
+        var daylight = Read<LookDaylight>(content, "look", "daylight.json");
+        var environment = new Godot.Environment();
         if (worldEnvironment is null)
         {
             AddChild(new WorldEnvironment { Name = "IslandEnvironment", Environment = environment });
@@ -286,9 +342,8 @@ public partial class WorldPresenter
             worldEnvironment.Environment = environment;
         }
 
-        sun.ShadowEnabled = true;
-        sun.ShadowBlur = 2f;
-        DaylightLook.Apply(Read<LookDaylight>(content, "look", "daylight.json"), _look.DayPhase, sun, environment);
+        DaylightLook.ApplyRendering(daylight, sun, environment);
+        DaylightLook.Apply(daylight, _look.DayPhase, sun, environment);
     }
 
     /// <summary>Puts back what <see cref="LightTheIsland"/> changed in the scene (back to the menu).</summary>
@@ -343,24 +398,30 @@ public partial class WorldPresenter
         }
 
         var snapshot = _host.Snapshot();
-        var (added, removed) = FigureRoster.Diff(_islandNodes.Keys, snapshot.Inhabitants.Select(i => i.Id));
-        foreach (var id in removed)
+        HashSet<string>? fresh = null;
+        if (!SameRoster(snapshot.Inhabitants))
         {
-            RemoveFigure(id);
-        }
+            // Births, deaths, new inhabitants: only then the roster is compared and the groups rebuilt.
+            var (added, removed) = FigureRoster.Diff(_islandNodes.Keys, snapshot.Inhabitants.Select(i => i.Id));
+            foreach (var id in removed)
+            {
+                RemoveFigure(id);
+            }
 
-        var fresh = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var inhabitant in snapshot.Inhabitants.Where(i => added.Contains(i.Id)))
-        {
-            AddFigure(inhabitant);
-            fresh.Add(inhabitant.Id);
+            fresh = new HashSet<string>(added, StringComparer.Ordinal);
+            foreach (var inhabitant in snapshot.Inhabitants.Where(i => fresh.Contains(i.Id)))
+            {
+                AddFigure(inhabitant);
+            }
+
+            RebuildGroups();
         }
 
         foreach (var inhabitant in snapshot.Inhabitants)
         {
             if (_islandFigures.TryGetValue(inhabitant.Id, out var figure))
             {
-                figure.Apply(inhabitant, snapshot.Time.Tick, ticks, place || fresh.Contains(inhabitant.Id));
+                figure.Apply(inhabitant, snapshot.Time.Tick, ticks, place || fresh?.Contains(inhabitant.Id) == true);
             }
             else if (_islandNodes.TryGetValue(inhabitant.Id, out var standIn))
             {
@@ -389,7 +450,7 @@ public partial class WorldPresenter
             node = figure;
             head = figure.HeadAnchor;
         }
-        catch (Exception e) when (e is InvalidDataException or KeyNotFoundException)
+        catch (Exception e) when (e is not OutOfMemoryException)
         {
             // A figure that cannot be built stands in as a calm capsule; the world runs on (logged once).
             if (_islandReported.Add("figure:" + inhabitant.Id))
@@ -398,8 +459,9 @@ public partial class WorldPresenter
             }
 
             var height = (float)(_figuresLook?.HeadAnchorM ?? 1.9);
+            var standIn = _look!.StandIn;
             node = new Node3D { Name = inhabitant.Id };
-            node.AddChild(new MeshInstance3D { Name = "StandIn", Mesh = new CapsuleMesh { Radius = 0.35f, Height = 1.7f }, Position = new Vector3(0, 0.85f, 0) });
+            node.AddChild(new MeshInstance3D { Name = "StandIn", Mesh = new CapsuleMesh { Radius = (float)standIn.RadiusM, Height = (float)standIn.HeightM }, Position = new Vector3(0, (float)standIn.HeightM / 2, 0) });
             head = new Node3D { Name = HeadAnchorName, Position = new Vector3(0, height, 0) };
             node.AddChild(head);
             var (x, z) = (inhabitant.Position.X, inhabitant.Position.Z);
@@ -418,7 +480,7 @@ public partial class WorldPresenter
             NoDepthTest = true,
             Visible = false,
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
-            Width = 900,
+            Width = labels.ThoughtWidthPx,
         };
         head.AddChild(label);
         _thoughts[inhabitant.Id] = (label, 0);
@@ -448,7 +510,7 @@ public partial class WorldPresenter
             return;
         }
 
-        var group = _observer.Update(_clock, Groups());
+        var group = _observer.Update(_clock, _groups);
         var observing = _observer.Observing(_clock);
         if (observing && group is { } g && (g != _observedGroup || !_wasObserving))
         {
@@ -469,17 +531,69 @@ public partial class WorldPresenter
         }
     }
 
-    private List<int> Groups() => _host is null ? [] : [.. _host.Inhabitants.All.Select(i => i.Group).Distinct().Order()];
+    /// <summary>Whether the snapshot has exactly the inhabitants that have figures (no allocation).</summary>
+    private bool SameRoster(IReadOnlyList<InhabitantSnapshot> inhabitants)
+    {
+        if (inhabitants.Count != _islandNodes.Count)
+        {
+            return false;
+        }
 
-    /// <summary>Middle of a group's figures on the ground, or null without figures.</summary>
+        for (var i = 0; i < inhabitants.Count; i++)
+        {
+            if (!_islandNodes.ContainsKey(inhabitants[i].Id))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>Groups in order and their figures, rebuilt when the roster changes (not every frame).</summary>
+    private void RebuildGroups()
+    {
+        _groups.Clear();
+        _groupMembers.Clear();
+        if (_host is null)
+        {
+            return;
+        }
+
+        foreach (var inhabitant in _host.Inhabitants.All)
+        {
+            if (!_islandNodes.TryGetValue(inhabitant.Id, out var node))
+            {
+                continue;
+            }
+
+            if (!_groupMembers.TryGetValue(inhabitant.Group, out var members))
+            {
+                _groupMembers[inhabitant.Group] = members = [];
+                _groups.Add(inhabitant.Group);
+            }
+
+            members.Add(node);
+        }
+
+        _groups.Sort();
+    }
+
+    /// <summary>Middle of a group's figures on the ground, or null without figures (a plain loop, no allocation).</summary>
     private (double X, double Z)? Centre(int group)
     {
-        if (_host is null)
+        if (!_groupMembers.TryGetValue(group, out var members) || members.Count == 0)
         {
             return null;
         }
 
-        var members = _host.Inhabitants.All.Where(i => i.Group == group).Select(i => _islandNodes.GetValueOrDefault(i.Id)).OfType<Node3D>().ToList();
-        return members.Count == 0 ? null : (members.Average(m => (double)m.Position.X), members.Average(m => (double)m.Position.Z));
+        double x = 0, z = 0;
+        foreach (var member in members)
+        {
+            x += member.Position.X;
+            z += member.Position.Z;
+        }
+
+        return (x / members.Count, z / members.Count);
     }
 }

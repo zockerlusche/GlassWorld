@@ -9,6 +9,24 @@ namespace GlassWorld.Game.World;
 /// </summary>
 public static class DaylightLook
 {
+    /// <summary>Shadow softness and tone mapping from the daylight data (the same in every phase).</summary>
+    public static void ApplyRendering(LookDaylight daylight, DirectionalLight3D sun, Godot.Environment environment)
+    {
+        ArgumentNullException.ThrowIfNull(daylight);
+        ArgumentNullException.ThrowIfNull(sun);
+        ArgumentNullException.ThrowIfNull(environment);
+        sun.ShadowEnabled = true;
+        sun.ShadowBlur = (float)daylight.ShadowBlur;
+        environment.TonemapMode = daylight.Tonemap switch
+        {
+            LookDaylightTonemap.Reinhard => Godot.Environment.ToneMapper.Reinhardt,
+            LookDaylightTonemap.Filmic => Godot.Environment.ToneMapper.Filmic,
+            LookDaylightTonemap.Aces => Godot.Environment.ToneMapper.Aces,
+            LookDaylightTonemap.Agx => Godot.Environment.ToneMapper.Agx,
+            _ => Godot.Environment.ToneMapper.Linear,
+        };
+    }
+
     /// <summary>Applies the phase to the sun and the environment; an unknown phase is a data error.</summary>
     public static void Apply(LookDaylight daylight, string phase, DirectionalLight3D sun, Godot.Environment environment)
     {

@@ -234,7 +234,16 @@ public partial class GameScreen : CanvasLayer
         {
             if (WorldPoint(place.Position) is { } point)
             {
-                PlaceGift(_placing, point.X, point.Z);
+                // On the island a spot on water or off the island is refused here, before the core: no
+                // favour is spent and the gift never sinks out of reach (GW3 #113, finding 1).
+                if (_presenter?.GiftRefusal(point) is { } reason)
+                {
+                    ShowHint(new ToastMessage(reason, new Dictionary<string, string>(), null));
+                }
+                else
+                {
+                    PlaceGift(_placing, point.X, point.Z);
+                }
             }
 
             GetViewport().SetInputAsHandled();
@@ -426,10 +435,17 @@ public partial class GameScreen : CanvasLayer
                 return "the gift ray finds no ground behind the figure";
             }
 
+            // The ray lands on the drawn ground, or on the sea surface above it, which is refused as water.
             var height = _presenter.GroundHeight(ground.X, ground.Z);
-            if (Math.Abs(ground.Y - height) > 0.01f)
+            var onSea = ground.Y > height + 0.01f;
+            if (ground.Y < height - 0.01f || (onSea && _presenter.GiftRefusal(ground) != GiftSpot.OnWater))
             {
-                return $"the gift point {ground} is not on the drawn ground ({height:0.00} m)";
+                return $"the gift point {ground} is neither on the drawn ground ({height:0.00} m) nor refused as water";
+            }
+
+            if (_presenter.GiftRefusal(new Vector3(-5, 0, -5)) != GiftSpot.OffIsland)
+            {
+                return "a gift off the island is not refused";
             }
 
             if (_presenter.MarkAnchor(id, 0) is not { } anchor || anchor.Parent.Name != "HeadAnchor")

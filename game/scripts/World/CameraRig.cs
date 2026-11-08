@@ -41,6 +41,15 @@ public partial class CameraRig : Node3D
     /// <summary>Raised in a frame in which the player pans the camera (panning leaves follow mode).</summary>
     public event Action? Panned;
 
+    /// <summary>Raised when the player presses the leave key (follow mode ends).</summary>
+    public event Action? Left;
+
+    /// <summary>
+    /// Optional lookup of one figure's position by id, used by <see cref="FollowFigure"/> every frame
+    /// instead of searching all figures (no allocation per frame); null = search the figure list.
+    /// </summary>
+    public Func<string, Vector3?>? FindFigure { get; set; }
+
     /// <summary>
     /// Whether the rig itself picks figures on a left click (island scene). In the main game the game
     /// screen owns the left click (gift placement or figure selection) and tells the world, so one click
@@ -71,18 +80,14 @@ public partial class CameraRig : Node3D
     /// <summary>Follows the figure with this id (its position is read every frame), at the follow distance or <paramref name="distanceM"/>.</summary>
     public void FollowFigure(string id, double? distanceM = null)
     {
-        // Look the figure up by id each frame without scanning all figures, when the scene gives a lookup.
-        if (FigurePosition is { } lookup)
+        if (FindFigure is { } find)
         {
-            Model.Follow(() => lookup(id) is { } p ? (p.X, p.Z) : Model.Target, distanceM);
+            Model.Follow(() => find(id) is { } p ? (p.X, p.Z) : Model.Target, distanceM);
             return;
         }
 
         Model.Follow(() => _figures().Where(f => f.Id == id).Select(f => ((double)f.Position.X, (double)f.Position.Z)).DefaultIfEmpty(Model.Target).First(), distanceM);
     }
-
-    /// <summary>Optional position of a figure by id (no allocation per frame), set by the scene.</summary>
-    public Func<string, Vector3?>? FigurePosition { get; set; }
 
     /// <inheritdoc/>
     public override void _Notification(int what)
@@ -119,6 +124,7 @@ public partial class CameraRig : Node3D
         else if (@event.IsActionPressed(LeaveAction))
         {
             Model.StopFollowing();
+            Left?.Invoke();
         }
         else if (SelectOnClick && @event.IsActionPressed(SelectAction) && @event is InputEventMouseButton click)
         {

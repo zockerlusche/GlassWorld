@@ -97,5 +97,44 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("phases")]
         public System.Collections.Generic.ICollection<LookDaylightPhase> Phases { get; set; } = new System.Collections.ObjectModel.Collection<LookDaylightPhase>();
 
+        /// <summary>
+        /// Softness of the sun's shadow edges (Godot shadow blur; island scene and the main game's island mode).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("shadow_blur")]
+        public double ShadowBlur { get; set; } = default!;
+
+        /// <summary>
+        /// Tone mapping of the island's light (linear keeps the palette colours as written).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("tonemap")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<LookDaylightTonemap>))]
+        public LookDaylightTonemap Tonemap { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public enum LookDaylightTonemap
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("linear")]
+        Linear = 0,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("reinhard")]
+        Reinhard = 1,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("filmic")]
+        Filmic = 2,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("aces")]
+        Aces = 3,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("agx")]
+        Agx = 4,
+
+
     }
 }

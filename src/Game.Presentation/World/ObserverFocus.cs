@@ -87,6 +87,16 @@ public sealed class ObserverFocus
         }
     }
 
+    /// <summary>
+    /// The player let go of the camera on purpose (the leave key): the observer takes it back at once,
+    /// without the idle pause.
+    /// </summary>
+    public void HandBack(double now)
+    {
+        Chosen = null;
+        _manualUntil = now;
+    }
+
     private static int IndexOf(IReadOnlyList<int> groups, int group)
     {
         for (var i = 0; i < groups.Count; i++)

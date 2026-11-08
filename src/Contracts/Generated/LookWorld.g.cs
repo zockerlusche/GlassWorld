@@ -37,6 +37,12 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("pixel_size_m")]
         public double PixelSizeM { get; set; } = default!;
 
+        /// <summary>
+        /// Wrap width of a thought bubble in font pixels (times pixel_size_m gives metres).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("thought_width_px")]
+        public int ThoughtWidthPx { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -100,6 +106,21 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
+    /// Calm capsule drawn for an inhabitant whose figure cannot be built (logged once); the world runs on.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class WorldLookStandIn
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("radius_m")]
+        public double RadiusM { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("height_m")]
+        public double HeightM { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// Data file content/look/world.json: which world the main game builds for a new world (TL decision #19505): the flat placeholder start with capsules and spheres, or the generated island with the real figures and objects. The placeholder stays as the safe fallback; the environment variable GLASSWORLD_WORLD=island|placeholder overrides the value for tests and start scripts. A loaded world is always drawn the way it was made (a world with an island map as island). Also the presentation values of island mode. Presentation only, not part of the hash.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -142,6 +163,9 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("pick_height_share")]
         public double PickHeightShare { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("stand_in")]
+        public WorldLookStandIn StandIn { get; set; } = new WorldLookStandIn();
 
     }
 

@@ -85,19 +85,43 @@ public partial class WorldPresenter : Node3D
         }
 
         var port = CreatePort(contentDirectory);
-        var host = mode == WorldLookMode.Island
-            ? SimulationHost.CreateGeneratedWorld(contentDirectory, seed, port, "de", look.IslandPreset, _jobPort)
-            : SimulationHost.CreatePlaceholderWorld(contentDirectory, seed, port, "de", _jobPort);
-        if (startFavor is { } favor)
+        SimulationHost Make(WorldLookMode m)
         {
-            // Part of the start (GW1 review #67 S1/N1): as a command in the log, applied at the first
-            // tick, so a replay from seed and log starts with the same favour.
-            // Applied and logged at once: the world is saved right after creation, before the first tick
-            // (GW1 #73 F1); a replay applies the logged command again at the first tick.
-            host.Decisions.ApplySetup(host.World, new Simulation.Decisions.PlayerCommand(Simulation.Player.PlayerSystem.StartFavorCommand, null) { Amount = favor });
+            var made = m == WorldLookMode.Island
+                ? SimulationHost.CreateGeneratedWorld(contentDirectory, seed, port, "de", look.IslandPreset, _jobPort)
+                : SimulationHost.CreatePlaceholderWorld(contentDirectory, seed, port, "de", _jobPort);
+            if (startFavor is { } favor)
+            {
+                // Part of the start (GW1 review #67 S1/N1): as a command in the log, applied at the first
+                // tick, so a replay from seed and log starts with the same favour.
+                // Applied and logged at once: the world is saved right after creation, before the first tick
+                // (GW1 #73 F1); a replay applies the logged command again at the first tick.
+                made.Decisions.ApplySetup(made.World, new Simulation.Decisions.PlayerCommand(Simulation.Player.PlayerSystem.StartFavorCommand, null) { Amount = favor });
+            }
+
+            return made;
         }
 
-        Begin(host, savePath);
+        if (mode == WorldLookMode.Island)
+        {
+            try
+            {
+                Begin(Make(WorldLookMode.Island), savePath);
+            }
+            catch (Exception e) when (e is not OutOfMemoryException)
+            {
+                // A new world must always start (GW3 #113, finding 3): if the island cannot be generated or
+                // drawn, the placeholder world takes its place. A loaded island save still shows its error.
+                GD.PushWarning($"WORLD_LOOK_FALLBACK island failed ({e.GetType().Name}: {e.Message}); building the placeholder world");
+                UndoIsland();
+                Begin(Make(WorldLookMode.Placeholder), savePath);
+            }
+        }
+        else
+        {
+            Begin(Make(WorldLookMode.Placeholder), savePath);
+        }
+
         if (savePath is not null)
         {
             Save();

@@ -13,7 +13,8 @@
     "labels",
     "observer",
     "ground_ray",
-    "pick_height_share"
+    "pick_height_share",
+    "stand_in"
   ],
   "properties": {
     "contract_version": {
@@ -51,6 +52,9 @@
       "type": "number",
       "minimum": 0,
       "maximum": 1
+    },
+    "stand_in": {
+      "$ref": "#/$defs/WorldLookStandIn"
     }
   },
   "$defs": {
@@ -61,7 +65,8 @@
       "required": [
         "thought_above_head_m",
         "question_above_head_m",
-        "pixel_size_m"
+        "pixel_size_m",
+        "thought_width_px"
       ],
       "properties": {
         "thought_above_head_m": {
@@ -81,6 +86,12 @@
           "type": "number",
           "exclusiveMinimum": 0,
           "maximum": 0.1
+        },
+        "thought_width_px": {
+          "description": "Wrap width of a thought bubble in font pixels (times pixel_size_m gives metres).",
+          "type": "integer",
+          "minimum": 50,
+          "maximum": 4000
         }
       }
     },
@@ -148,6 +159,27 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 64
+        }
+      }
+    },
+    "WorldLookStandIn": {
+      "description": "Calm capsule drawn for an inhabitant whose figure cannot be built (logged once); the world runs on.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "radius_m",
+        "height_m"
+      ],
+      "properties": {
+        "radius_m": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 2
+        },
+        "height_m": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 5
         }
       }
     }

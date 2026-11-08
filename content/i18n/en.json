@@ -1055,6 +1055,14 @@
       "text": "Too close to an inhabitant – place it a little further away."
     },
     {
+      "key": "msg.gift.on_water",
+      "text": "That is water – put the gift on solid ground."
+    },
+    {
+      "key": "msg.gift.off_island",
+      "text": "That is not on the island – put the gift on the island."
+    },
+    {
       "key": "msg.command.no_position",
       "text": "Choose a spot in the world."
     },

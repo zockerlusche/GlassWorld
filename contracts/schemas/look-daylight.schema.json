@@ -9,7 +9,9 @@
     "contract_version",
     "night_min_brightness",
     "sun_azimuth_deg",
-    "phases"
+    "phases",
+    "shadow_blur",
+    "tonemap"
   ],
   "properties": {
     "contract_version": {
@@ -35,6 +37,23 @@
         "$ref": "#/$defs/LookDaylightPhase"
       },
       "maxItems": 8
+    },
+    "shadow_blur": {
+      "description": "Softness of the sun's shadow edges (Godot shadow blur; island scene and the main game's island mode).",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 10
+    },
+    "tonemap": {
+      "description": "Tone mapping of the island's light (linear keeps the palette colours as written).",
+      "type": "string",
+      "enum": [
+        "linear",
+        "reinhard",
+        "filmic",
+        "aces",
+        "agx"
+      ]
     }
   },
   "$defs": {

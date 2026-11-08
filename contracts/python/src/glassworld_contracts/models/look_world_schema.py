@@ -36,6 +36,12 @@ class WorldLookLabels(BaseModel):
         gt=0.0,
         le=0.1,
     )
+    thought_width_px: int = Field(
+        ...,
+        description='Wrap width of a thought bubble in font pixels (times pixel_size_m gives metres).',
+        ge=50,
+        le=4000,
+    )
 
 
 class WorldLookObserver(BaseModel):
@@ -86,6 +92,14 @@ class WorldLookGroundRay(BaseModel):
     )
 
 
+class WorldLookStandIn(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    radius_m: float = Field(..., gt=0.0, le=2.0)
+    height_m: float = Field(..., gt=0.0, le=5.0)
+
+
 class LookWorld(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -117,3 +131,4 @@ class LookWorld(BaseModel):
         ge=0.0,
         le=1.0,
     )
+    stand_in: WorldLookStandIn
