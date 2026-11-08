@@ -51,7 +51,8 @@ public sealed record MailRow(string Id, string? InhabitantId, int Number, string
 /// <param name="InhabitantId">Who.</param>
 /// <param name="Number">Neutral number of the inhabitant.</param>
 /// <param name="Need">Need id (vocabulary).</param>
-public sealed record HelpRow(string InhabitantId, int Number, string Need);
+/// <param name="Tick">When the call opened.</param>
+public sealed record HelpRow(string InhabitantId, int Number, string Need, long Tick);
 
 /// <summary>
 /// Read side of the UI (ADR-0008): turns the core's snapshots and event stream into what the
@@ -145,7 +146,7 @@ public sealed class WorldFeed
 
     /// <summary>Open calls for help (A1340): who and which need, oldest first.</summary>
     public IReadOnlyList<HelpRow> HelpCalls() =>
-        [.. _host.Player.Open.Select(c => new HelpRow(c.InhabitantId, NumberOf(c.InhabitantId), c.Need))];
+        [.. _host.Player.Open.Select(c => new HelpRow(c.InhabitantId, NumberOf(c.InhabitantId), c.Need, c.Tick))];
 
     /// <summary>Open mailbox messages (most urgent first) and the newest read ones (B6 R11).</summary>
     public (IReadOnlyList<MailRow> Open, IReadOnlyList<MailRow> History) Mail(int historyCount)

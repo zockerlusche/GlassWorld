@@ -1257,6 +1257,10 @@
     {
       "key": "ui.mailbox.history",
       "text": "Gelesen"
+    },
+    {
+      "key": "ui.help.answer",
+      "text": "Du könntest sagen: „{text}“"
     }
   ]
 }

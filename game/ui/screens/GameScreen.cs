@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Globalization;
 using GlassWorld.Contracts;
 using GlassWorld.Game.Ui.Components;
@@ -40,6 +41,9 @@ public partial class GameScreen : CanvasLayer
     private Label? _favor;
     private readonly VBoxContainer _helpList = new() { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
     private string _helpShape = "-";
+    private readonly Dictionary<string, IReadOnlyList<HelpCard>> _aiCards = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _askedHelp = new(StringComparer.Ordinal);
+    private readonly ConcurrentQueue<(string Key, IReadOnlyList<HelpCard>? Cards, string? Problem)> _helpAnswers = new();
     private string? _placing;
     private readonly VBoxContainer _mailList = new() { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
     private string _mailShape = "-";
@@ -152,6 +156,20 @@ public partial class GameScreen : CanvasLayer
         if (_feed is null || _board is null || _style is null || _presenter is null)
         {
             return;
+        }
+
+        while (_helpAnswers.TryDequeue(out var answer))
+        {
+            if (answer.Cards is not null)
+            {
+                _aiCards[answer.Key] = answer.Cards;
+                _helpShape = "-";
+            }
+            else
+            {
+                // Calm fallback: the window keeps the suggestions from the data (B3 A3).
+                GD.Print($"HELP_FALLBACK {answer.Problem}");
+            }
         }
 
         var events = _feed.NewEvents();
@@ -552,7 +570,13 @@ public partial class GameScreen : CanvasLayer
         _favor.Text = TextFill.Fill(Tr("ui.favor.value"), new Dictionary<string, string> { ["value"] = Number((long)Math.Floor(value)), ["max"] = Number((long)max) });
 
         var calls = _feed.HelpCalls();
-        var shape = string.Join(";", calls.Select(c => c.InhabitantId + "|" + c.Need));
+        var locale = HelpLocale();
+        foreach (var call in calls)
+        {
+            AskForHelp(host, call, locale);
+        }
+
+        var shape = locale + ";" + string.Join(";", calls.Select(c => HelpKey(c, locale) + (_aiCards.ContainsKey(HelpKey(c, locale)) ? "+ai" : string.Empty)));
         if (shape == _helpShape)
         {
             return;
@@ -580,12 +604,29 @@ public partial class GameScreen : CanvasLayer
                 AutoTranslateMode = AutoTranslateModeEnum.Disabled,
                 AutowrapMode = TextServer.AutowrapMode.WordSmart,
             });
-            foreach (var type in GiftFallback.For(call.Need, host.Content.Brain.Weights, host.Content.Objects, host.Content.GiftRules.MaxOpenSuggestions))
+            var cards = _aiCards.TryGetValue(HelpKey(call, locale), out var fromAi)
+                ? fromAi
+                : HelpSuggestions.Cards(null, HelpSuggestions.AllowedTypes(host, call), HelpSuggestions.MaxSuggestions(host));
+            foreach (var card in cards)
             {
+                if (card.Kind == HelpCard.Answer)
+                {
+                    // An encouraging sentence (own effort first, F5238); the AI text is in the display language.
+                    _helpList.AddChild(new Label
+                    {
+                        Text = TextFill.Fill(Tr("ui.help.answer"), new Dictionary<string, string> { ["text"] = card.Text ?? string.Empty }),
+                        AutoTranslateMode = AutoTranslateModeEnum.Disabled,
+                        AutowrapMode = TextServer.AutowrapMode.WordSmart,
+                    });
+                    continue;
+                }
+
+                var type = card.GiftType!;
                 var button = new Button
                 {
                     Text = TextFill.Fill(Tr("ui.help.give"), new Dictionary<string, string> { ["thing"] = Tr(VocabKeys.ObjectType(type)), ["cost"] = cost }),
                     AutoTranslateMode = AutoTranslateModeEnum.Disabled,
+                    TooltipText = card.Text ?? string.Empty,
                 };
                 button.Pressed += () =>
                 {
@@ -595,6 +636,34 @@ public partial class GameScreen : CanvasLayer
                 _helpList.AddChild(button);
             }
         }
+    }
+
+    private static string HelpLocale() =>
+        TranslationServer.GetLocale().StartsWith("en", StringComparison.Ordinal) ? "en" : "de";
+
+    private static string HelpKey(HelpRow call, string locale) =>
+        string.Create(CultureInfo.InvariantCulture, $"{call.InhabitantId}|{call.Need}|{call.Tick}|{locale}");
+
+    /// <summary>
+    /// Asks the AI once per call and language (A1341, F5238). The answer arrives later; until then, and
+    /// whenever it is unusable, the window shows the suggestions from the data.
+    /// </summary>
+    private void AskForHelp(Simulation.SimulationHost host, HelpRow call, string locale)
+    {
+        var key = HelpKey(call, locale);
+        if (_presenter?.HelpPort is not { } port || !_askedHelp.Add(key))
+        {
+            return;
+        }
+
+        var request = HelpSuggestions.Request(host, call, locale);
+        var allowed = HelpSuggestions.AllowedTypes(host, call);
+        var max = HelpSuggestions.MaxSuggestions(host);
+        _ = Task.Run(async () =>
+        {
+            var answer = await port.SuggestAsync(request).ConfigureAwait(false);
+            _helpAnswers.Enqueue(answer.Response is null ? (key, null, answer.Problem) : (key, HelpSuggestions.Cards(answer.Response, allowed, max), null));
+        });
     }
 
     /// <summary>
