@@ -18,7 +18,7 @@ namespace GlassWorld.Simulation.Data;
 public static class SaveGameStore
 {
     /// <summary>Schema version written by this code.</summary>
-    public const int SchemaVersion = 3;
+    public const int SchemaVersion = 4;
 
     private static readonly JsonSerializerOptions Json = new() { IncludeFields = true };
 
@@ -46,6 +46,13 @@ public static class SaveGameStore
         """,
         """
         CREATE TABLE island(id INTEGER PRIMARY KEY CHECK (id = 1), data BLOB NOT NULL);
+        """,
+        """
+        ALTER TABLE beliefs ADD COLUMN source TEXT NOT NULL DEFAULT 'experienced';
+        ALTER TABLE beliefs ADD COLUMN told_by TEXT;
+        ALTER TABLE beliefs ADD COLUMN tick INTEGER NOT NULL DEFAULT 0;
+        CREATE TABLE relationships(inhabitant TEXT NOT NULL, other TEXT NOT NULL, affection REAL NOT NULL, trust REAL NOT NULL, respect REAL NOT NULL,
+          PRIMARY KEY(inhabitant, other));
         """,
     ];
 
@@ -248,7 +255,12 @@ public static class SaveGameStore
                  i.Planned is null ? null : JsonSerializer.Serialize(i.Planned, Json)));
             foreach (var b in i.Beliefs)
             {
-                Insert(c, tx, "INSERT INTO beliefs VALUES($a,$b,$c,$d,$e)", (i.Id, b.TypeId, b.PropertyId, b.Value ? 1 : 0, b.Confidence));
+                Insert(c, tx, "INSERT INTO beliefs VALUES($a,$b,$c,$d,$e,$f,$g,$h)", (i.Id, b.TypeId, b.PropertyId, b.Value ? 1 : 0, b.Confidence, b.Source, b.ToldBy, b.Tick));
+            }
+
+            foreach (var r in i.Relations ?? [])
+            {
+                Insert(c, tx, "INSERT INTO relationships VALUES($a,$b,$c,$d,$e)", (i.Id, r.Other, r.Affection, r.Trust, r.Respect));
             }
         }
 
@@ -349,9 +361,12 @@ public static class SaveGameStore
     private static SaveState Read(SqliteConnection c)
     {
         var meta = Query(c, "SELECT key, value FROM meta", r => (r.GetString(0), r.GetString(1))).ToDictionary(x => x.Item1, x => x.Item2, StringComparer.Ordinal);
-        var beliefs = Query(c, "SELECT inhabitant, type, property, value, confidence FROM beliefs ORDER BY inhabitant, type, property",
-                r => (Inhabitant: r.GetString(0), Belief: new SavedBelief(r.GetString(1), r.GetString(2), r.GetInt64(3) != 0, r.GetDouble(4))))
+        var beliefs = Query(c, "SELECT inhabitant, type, property, value, confidence, source, told_by, tick FROM beliefs ORDER BY inhabitant, type, property",
+                r => (Inhabitant: r.GetString(0), Belief: new SavedBelief(r.GetString(1), r.GetString(2), r.GetInt64(3) != 0, r.GetDouble(4), r.GetString(5), r.IsDBNull(6) ? null : r.GetString(6), r.GetInt64(7))))
             .ToLookup(x => x.Inhabitant, x => x.Belief, StringComparer.Ordinal);
+        var relations = Query(c, "SELECT inhabitant, other, affection, trust, respect FROM relationships ORDER BY inhabitant, other",
+                r => (Inhabitant: r.GetString(0), Relation: new SavedRelation(r.GetString(1), r.GetDouble(2), r.GetDouble(3), r.GetDouble(4))))
+            .ToLookup(x => x.Inhabitant, x => x.Relation, StringComparer.Ordinal);
         var appearances = meta.TryGetValue("appearances", out var appearanceJson)
             ? JsonSerializer.Deserialize<Dictionary<string, Appearance>>(appearanceJson, Json) ?? []
             : [];
@@ -376,7 +391,8 @@ public static class SaveGameStore
                     r.IsDBNull(10) ? null : JsonSerializer.Deserialize<Activity>(r.GetString(10), Json),
                     r.IsDBNull(11) ? null : JsonSerializer.Deserialize<Activity>(r.GetString(11), Json),
                     [.. beliefs[r.GetString(0)]],
-                    appearances.GetValueOrDefault(r.GetString(0)))),
+                    appearances.GetValueOrDefault(r.GetString(0)),
+                    [.. relations[r.GetString(0)]])),
             long.Parse(meta["question_counter"], CultureInfo.InvariantCulture),
             Query(c, "SELECT data FROM questions ORDER BY id", r => JsonSerializer.Deserialize<SavedQuestion>(r.GetString(0))!),
             Query(c, "SELECT key, tick FROM last_asked ORDER BY key", r => new KeyValuePair<string, long>(r.GetString(0), r.GetInt64(1))),

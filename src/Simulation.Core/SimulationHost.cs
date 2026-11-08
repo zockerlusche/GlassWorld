@@ -152,11 +152,13 @@ public sealed class SimulationHost
             world.Add(weather);
         }
 
-        var inhabitants = new InhabitantsSystem(content.InhabitantModel, actions, content.Brain, objects, world.Calendar.Settings.TicksPerHour) { Looks = content.Appearance, Routes = map };
+        var inhabitants = new InhabitantsSystem(content.InhabitantModel, actions, content.Brain, objects, world.Calendar.Settings.TicksPerHour) { Looks = content.Appearance, Routes = map, Knowledge = content.Knowledge, EventKinds = content.EventKinds };
         var decisions = new DecisionsSystem(settings, inhabitants, objects, actions, content.Brain, content.Vocabularies[VocabularyKind.Action], port, displayLocale)
         {
             WeatherSource = weather,
+            Knowledge = content.Knowledge,
         };
+        inhabitants.QuestionOpen = decisions.HasOpenQuestion;
         var player = new Simulation.Player.PlayerSystem(content.GiftRules, content.Favor, content.Brain.Weights, content.Brain, inhabitants, objects, world.Calendar.Settings.TicksPerHour);
         decisions.RegisterCommand(Simulation.Player.PlayerSystem.PlaceGift, player.Check, player.Apply);
         decisions.RegisterCommand(Simulation.Player.PlayerSystem.StartFavorCommand, player.CheckStartFavor, player.ApplyStartFavor);

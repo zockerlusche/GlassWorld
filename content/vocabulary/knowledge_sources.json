@@ -1,0 +1,22 @@
+{
+  "contract_version": "0.2",
+  "kind": "knowledge_source",
+  "entries": [
+    {
+      "id": "experienced",
+      "description": "Tried it out oneself; certain."
+    },
+    {
+      "id": "heard",
+      "description": "Heard it from another inhabitant; as sure as the trust in them."
+    },
+    {
+      "id": "guessed",
+      "description": "A guess of the AI; capped confidence."
+    },
+    {
+      "id": "read",
+      "description": "Read it (writing, B9)."
+    }
+  ]
+}

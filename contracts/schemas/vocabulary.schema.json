@@ -33,7 +33,9 @@
         "shape",
         "guard_reason",
         "writing_medium",
-        "skill"
+        "skill",
+        "event",
+        "knowledge_source"
       ]
     },
     "entries": {

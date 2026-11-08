@@ -7,7 +7,10 @@ using GlassWorld.Simulation.Random;
 namespace GlassWorld.Simulation.State;
 
 /// <summary>A belief as saved.</summary>
-public sealed record SavedBelief(string TypeId, string PropertyId, bool Value, double Confidence);
+public sealed record SavedBelief(string TypeId, string PropertyId, bool Value, double Confidence, string Source = KnowledgeSources.Experienced, string? ToldBy = null, long Tick = 0);
+
+/// <summary>A relationship as saved (B4a R7).</summary>
+public sealed record SavedRelation(string Other, double Affection, double Trust, double Respect);
 
 /// <summary>An inhabitant as saved.</summary>
 public sealed record SavedInhabitant(
@@ -23,7 +26,8 @@ public sealed record SavedInhabitant(
     Activity? Activity,
     Activity? Planned,
     IReadOnlyList<SavedBelief> Beliefs,
-    Appearance? Appearance = null);
+    Appearance? Appearance = null,
+    IReadOnlyList<SavedRelation>? Relations = null);
 
 /// <summary>An open question as saved.</summary>
 public sealed record SavedQuestion(string Id, string InhabitantId, string Kind, string Subject, string RequestId, long AskedTick, IReadOnlyList<SavedOption> Options, long? RetryAtTick);
@@ -97,8 +101,9 @@ public static class StateCodec
                 i.NeglectTicks,
                 i.Activity,
                 i.Planned,
-                [.. i.Beliefs.All.Select(b => new SavedBelief(b.TypeId, b.PropertyId, b.Belief.Value, b.Belief.Confidence))],
-                i.Appearance))],
+                [.. i.Beliefs.All.Select(b => new SavedBelief(b.TypeId, b.PropertyId, b.Belief.Value, b.Belief.Confidence, b.Belief.Source, b.Belief.ToldBy, b.Belief.Tick))],
+                i.Appearance,
+                [.. i.Relationships.All.Select(r => new SavedRelation(r.Other, r.Relation.Affection, r.Relation.Trust, r.Relation.Respect))]))],
             counter,
             [.. questions.Select(q => new SavedQuestion(q.Id, q.InhabitantId, q.Kind, q.Subject, q.RequestId, q.AskedTick, [.. q.Options.Select(o => new SavedOption(o.OptionId, o.Action, o.TargetId))], q.RetryAtTick))],
             lastAsked,
@@ -173,7 +178,12 @@ public static class StateCodec
             };
             foreach (var belief in saved.Beliefs)
             {
-                inhabitant.Beliefs.Set(belief.TypeId, belief.PropertyId, belief.Value, belief.Confidence);
+                inhabitant.Beliefs.Set(belief.TypeId, belief.PropertyId, belief.Value, belief.Confidence, belief.Source, belief.ToldBy, belief.Tick);
+            }
+
+            foreach (var relation in saved.Relations ?? [])
+            {
+                inhabitant.Relationships.Set(relation.Other, new Relation(relation.Affection, relation.Trust, relation.Respect));
             }
 
             host.Inhabitants.Add(inhabitant);

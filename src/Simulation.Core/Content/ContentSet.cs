@@ -58,6 +58,12 @@ public sealed class ContentSet
     /// <summary>Mailbox message kinds (content/player/message_kinds.json).</summary>
     public MessageKinds MessageKinds { get; }
 
+    /// <summary>Knowledge with its source, trust and passing on (content/knowledge/settings.json, B4a R3/R4/R7).</summary>
+    public KnowledgeSettings Knowledge { get; private init; } = null!;
+
+    /// <summary>Event kinds the core may report (vocabulary <c>event</c>); reporting another kind is a data error.</summary>
+    public FrozenSet<string> EventKinds { get; private init; } = FrozenSet<string>.Empty;
+
     /// <summary>Rules for gifts and calls for help (content/player/gift_rules.json).</summary>
     public GiftRules GiftRules { get; }
 
@@ -170,6 +176,8 @@ public sealed class ContentSet
             ContractSerializer.Deserialize<MessageKinds>(File.ReadAllText(Path.Combine(player, "message_kinds.json"))))
         {
             Appearance = LoadAppearance(contentDirectory),
+            Knowledge = LoadKnowledge(contentDirectory, vocabularies, objects),
+            EventKinds = Required(vocabularies, VocabularyKind.Event).Entries.Select(e => e.Id).ToFrozenSet(StringComparer.Ordinal),
         };
     }
 
@@ -215,6 +223,30 @@ public sealed class ContentSet
         {
             throw new InvalidDataException("Skills: " + string.Join("; ", problems) + ".");
         }
+    }
+
+    private static KnowledgeSettings LoadKnowledge(string contentDirectory, Dictionary<VocabularyKind, Vocabulary> vocabularies, ObjectCatalog objects)
+    {
+        var data = ContractSerializer.Deserialize<KnowledgeSettings>(File.ReadAllText(Path.Combine(contentDirectory, "knowledge", "settings.json")));
+        var actions = Required(vocabularies, VocabularyKind.Action).Entries.ToDictionary(e => e.Id, StringComparer.Ordinal);
+        var problems = new List<string>();
+        foreach (var passing in data.Passing)
+        {
+            if (!actions.TryGetValue(passing.Action, out var action) || action.Target != VocabularyEntryTarget.Inhabitant)
+            {
+                problems.Add($"passing action '{passing.Action}' is not an action with an inhabitant target");
+            }
+
+            problems.AddRange(passing.Properties.Where(p => !objects.PropertyVocabulary.Contains(p)).Select(p => $"passing action '{passing.Action}' names unknown property '{p}'"));
+        }
+
+        problems.AddRange(data.WaitWhileQuestionOpen.Where(a => !actions.ContainsKey(a)).Select(a => $"unknown action '{a}' in wait_while_question_open"));
+        if (problems.Count > 0)
+        {
+            throw new InvalidDataException("Knowledge settings: " + string.Join("; ", problems) + ".");
+        }
+
+        return data;
     }
 
     private static LookAppearance LoadAppearance(string contentDirectory)

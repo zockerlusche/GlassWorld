@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/knowledge-settings.schema.json",
+  "title": "KnowledgeSettings",
+  "description": "Data file content/knowledge/settings.json: how knowledge with its source behaves in the core (B4a R3, R4, R7, W1595): confidence by source, trust between inhabitants, which actions pass on what, what the routine leaves alone while a question is open, and how much goes to the decider. Values are placeholders (F5262: placeholders count as start values).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "experienced_confidence",
+    "guessed_cap",
+    "relationship_start",
+    "trust_true_heard_gain",
+    "trust_false_heard_loss",
+    "min_teller_confidence",
+    "passing",
+    "wait_while_question_open",
+    "request_max_knowledge",
+    "request_max_inhabitants",
+    "max_pass_on_options"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "experienced_confidence": {
+      "description": "Confidence of what an inhabitant tried out itself (spec: certain).",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "guessed_cap": {
+      "description": "Highest confidence of an AI guess.",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "relationship_start": {
+      "$ref": "#/$defs/KnowledgeRelationship"
+    },
+    "trust_true_heard_gain": {
+      "description": "Trust gained in a teller when one's own experience confirms what one heard.",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "trust_false_heard_loss": {
+      "description": "Trust lost in a teller when one's own experience contradicts what one heard.",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "min_teller_confidence": {
+      "description": "Only knowledge at least this sure is passed on.",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "passing": {
+      "type": "array",
+      "maxItems": 16,
+      "items": {
+        "$ref": "#/$defs/KnowledgePassing"
+      }
+    },
+    "wait_while_question_open": {
+      "description": "Actions the routine does not do on a thing while its question to the AI is open (W1595).",
+      "type": "array",
+      "maxItems": 32,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "common.schema.json#/$defs/VocabId"
+      }
+    },
+    "request_max_knowledge": {
+      "description": "Most knowledge entries in one decider request (text budget). At most 32 (decision-request: knowledge holds 32).",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 32
+    },
+    "request_max_inhabitants": {
+      "description": "Most perceived inhabitants and relationships in one decider request. At most 16 (decision-request: perception.inhabitants and relationships hold 16).",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 16
+    },
+    "max_pass_on_options": {
+      "description": "Most options for passing knowledge on in one decision request (the request holds at most 32 options in all).",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 32
+    }
+  },
+  "$defs": {
+    "KnowledgeRelationship": {
+      "description": "Values 0..1 towards someone one has just met.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "affection",
+        "trust",
+        "respect"
+      ],
+      "properties": {
+        "affection": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "trust": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "respect": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "KnowledgePassing": {
+      "description": "An action that passes on knowledge to another inhabitant: which beliefs it carries.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action",
+        "properties",
+        "value"
+      ],
+      "properties": {
+        "action": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "properties": {
+          "description": "Properties it passes on (empty = any).",
+          "type": "array",
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          }
+        },
+        "value": {
+          "description": "Only beliefs with this value (null = either).",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}

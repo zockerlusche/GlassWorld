@@ -57,6 +57,13 @@ public sealed class DecisionsSystem : IWorldSystem
     /// <summary>The world's weather for the decider's environment (B2 R13); null = fallback values from the settings.</summary>
     public Weather.WeatherSystem? WeatherSource { get; init; }
 
+    /// <summary>Knowledge data (B4a): passing actions as options, knowledge and relationships in the request.</summary>
+    public KnowledgeSettings? Knowledge { get; init; }
+
+    /// <summary>Whether the inhabitant has an open question about a type (W1595; the routine waits for the answer).</summary>
+    public bool HasOpenQuestion(string inhabitantId, string typeId) =>
+        _open.Values.Any(q => q.InhabitantId == inhabitantId && q.Subject == "type:" + typeId);
+
     /// <summary>Trigger: an object type without any belief.</summary>
     public const string UnknownObject = "unknown_object";
 
@@ -376,7 +383,7 @@ public sealed class DecisionsSystem : IWorldSystem
     private OpenQuestion Send(World world, Inhabitant inhabitant, string questionId, string kind, string subject, WorldObject? target)
     {
         var requestId = DecisionIds.RequestId(world.Seed, world.Tick, inhabitant.Id, _counter);
-        var options = BuildOptions(target);
+        var options = BuildOptions(inhabitant, target);
         var json = ContractSerializer.Serialize(BuildRequest(world, inhabitant, requestId, options));
         Log.Add(new DecisionLogEntry(DecisionLogKind.Request, requestId, world.Tick, json, null));
         _port.Send(requestId, json);
@@ -399,9 +406,13 @@ public sealed class DecisionsSystem : IWorldSystem
     }
 
     /// <summary>Options the core allows: object actions on the subject and every action without a target (target kind from the action vocabulary).</summary>
-    private List<(string OptionId, string Action, string? TargetId)> BuildOptions(WorldObject? target)
+    /// <summary>Most options a decision request may hold (contract decision-request: options maxItems).</summary>
+    public const int MaxOptions = 32;
+
+    private List<(string OptionId, string Action, string? TargetId)> BuildOptions(Inhabitant asker, WorldObject? target)
     {
         var raw = new List<(string Action, string? TargetId)>();
+        var passOn = new List<(string Action, string? TargetId)>();
         foreach (var action in _actions.OfferedActions)
         {
             switch (_actionTargets.GetValueOrDefault(action, VocabularyEntryTarget.None))
@@ -412,13 +423,29 @@ public sealed class DecisionsSystem : IWorldSystem
                 case VocabularyEntryTarget.None:
                     raw.Add((action, null));
                     break;
+                case VocabularyEntryTarget.Inhabitant when Knowledge is { } knowledge:
+                    // Passing on knowledge (B4a R4): offered towards someone in sight when the asker knows
+                    // something this action carries and the other has not experienced it.
+                    foreach (var other in PerceivedInhabitants(asker).Take(knowledge.RequestMaxInhabitants))
+                    {
+                        if (InhabitantsSystem.PassableBelief(knowledge, asker, other, action) is not null)
+                        {
+                            passOn.Add((action, other.Id));
+                        }
+                    }
+
+                    break;
                 default:
-                    // Inhabitant targets need inhabitant perception (B3/B9); object actions need a subject.
+                    // Other inhabitant actions follow with B3/B9; object actions need a subject.
                     break;
             }
         }
 
-        return [.. raw.Select((o, i) => (string.Create(CultureInfo.InvariantCulture, $"o{i + 1}"), o.Action, o.TargetId))];
+        // Passing knowledge on comes after the usual options and never pushes the request over the
+        // contract's limit (review GW2 #103): at most the data's number, in a fixed order.
+        var room = Math.Max(0, MaxOptions - raw.Count);
+        raw.AddRange(passOn.Take(Math.Min(room, Knowledge?.MaxPassOnOptions ?? 0)));
+        return [.. raw.Take(MaxOptions).Select((o, i) => (string.Create(CultureInfo.InvariantCulture, $"o{i + 1}"), o.Action, o.TargetId))];
     }
 
     private DecisionRequest BuildRequest(World world, Inhabitant inhabitant, string requestId, List<(string OptionId, string Action, string? TargetId)> options)
@@ -432,7 +459,7 @@ public sealed class DecisionsSystem : IWorldSystem
             Seed = seed,
             DeadlineMs = _settings.DeadlineMs,
             DisplayLocale = Enum.Parse<Locale>(_displayLocale, ignoreCase: true),
-            Inhabitant = InhabitantStates.Of(inhabitant),
+            Inhabitant = InhabitantStates.Of(inhabitant, Knowledge, Perceived(inhabitant).Select(o => o.TypeId), PerceivedInhabitants(inhabitant).Select(i => i.Id)),
             Environment = new EnvironmentState
             {
                 TimeOfDay = world.Now.Phase.ToString().ToLowerInvariant(),
@@ -449,8 +476,9 @@ public sealed class DecisionsSystem : IWorldSystem
                     KnownProperties = [.. inhabitant.Beliefs.About(o.TypeId).Select(b => new KnownProperty { Property = b.PropertyId, Value = b.Belief.Value, Confidence = b.Belief.Confidence })],
                 })],
 
-                // Contract 0.2: other inhabitants in sight follow with B4a-S5 (first encounter).
-                Inhabitants = [],
+                // Contract 0.2 (B4a-S5): other inhabitants in sight, nearest first.
+                Inhabitants = [.. PerceivedInhabitants(inhabitant).Take(Knowledge?.RequestMaxInhabitants ?? 0)
+                    .Select(i => new PerceivedInhabitant { Id = i.Id, DistanceM = Distance(inhabitant.Position, i.Position) })],
             },
             Options = [.. options.Select(o => new Option { OptionId = o.OptionId, Action = o.Action, Target = o.TargetId })],
         };
@@ -543,6 +571,19 @@ public sealed class DecisionsSystem : IWorldSystem
 
         _open.Remove(question.Id);
         _inhabitants.Report(new WorldEvent(eventKind, world.Tick, question.InhabitantId, null, question.Id));
+    }
+
+    /// <summary>Other inhabitants within the perception radius, nearest first, ties by id.</summary>
+    private List<Inhabitant> PerceivedInhabitants(Inhabitant inhabitant)
+    {
+        var radius = _brain.Weights.PerceptionRadiusM;
+        return [.. _inhabitants.All
+            .Where(i => i.Id != inhabitant.Id)
+            .Select(i => (i, d: Distance(inhabitant.Position, i.Position)))
+            .Where(x => x.d <= radius)
+            .OrderBy(x => x.d)
+            .ThenBy(x => x.i.Id, StringComparer.Ordinal)
+            .Select(x => x.i)];
     }
 
     private static double Distance(Position a, Position b)

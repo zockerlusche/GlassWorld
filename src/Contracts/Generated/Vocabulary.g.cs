@@ -144,5 +144,13 @@ namespace GlassWorld.Contracts
         Skill = 16,
 
 
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("event")]
+        Event = 17,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("knowledge_source")]
+        Knowledge_source = 18,
+
+
     }
 }

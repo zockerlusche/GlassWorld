@@ -205,6 +205,10 @@
     {
       "pattern": "model3d/settings.json",
       "schema": "model3d-settings"
+    },
+    {
+      "pattern": "knowledge/settings.json",
+      "schema": "knowledge-settings"
     }
   ]
 }

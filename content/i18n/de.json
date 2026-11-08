@@ -1333,6 +1333,114 @@
     {
       "key": "vocab.writing_medium.library",
       "text": "Bibliothek"
+    },
+    {
+      "key": "vocab.event.action_started",
+      "text": "Handlung beginnt"
+    },
+    {
+      "key": "vocab.event.action_finished",
+      "text": "Handlung beendet"
+    },
+    {
+      "key": "vocab.event.action_cancelled",
+      "text": "Handlung abgebrochen"
+    },
+    {
+      "key": "vocab.event.question_opened",
+      "text": "Frage gestellt"
+    },
+    {
+      "key": "vocab.event.question_answered",
+      "text": "Frage beantwortet"
+    },
+    {
+      "key": "vocab.event.question_failed",
+      "text": "Frage unbeantwortet"
+    },
+    {
+      "key": "vocab.event.thought",
+      "text": "Gedanke"
+    },
+    {
+      "key": "vocab.event.knowledge_gained",
+      "text": "Neues Wissen"
+    },
+    {
+      "key": "vocab.event.invention_wanted",
+      "text": "Erfindungswunsch"
+    },
+    {
+      "key": "vocab.event.invention_rejected",
+      "text": "Erfindung abgelehnt"
+    },
+    {
+      "key": "vocab.event.invention_failed",
+      "text": "Erfindung gescheitert"
+    },
+    {
+      "key": "vocab.event.invented",
+      "text": "Erfunden"
+    },
+    {
+      "key": "vocab.event.build_planned",
+      "text": "Bauplan steht"
+    },
+    {
+      "key": "vocab.event.build_plan_rejected",
+      "text": "Bauplan abgelehnt"
+    },
+    {
+      "key": "vocab.event.build_step",
+      "text": "Bauschritt fertig"
+    },
+    {
+      "key": "vocab.event.build_failed",
+      "text": "Bau gescheitert"
+    },
+    {
+      "key": "vocab.event.built",
+      "text": "Gebaut"
+    },
+    {
+      "key": "vocab.event.first_use",
+      "text": "Zum ersten Mal benutzt"
+    },
+    {
+      "key": "vocab.event.gift_placed",
+      "text": "Gabe hingelegt"
+    },
+    {
+      "key": "vocab.event.help_needed",
+      "text": "Hilferuf"
+    },
+    {
+      "key": "vocab.knowledge_source.experienced",
+      "text": "selbst erlebt"
+    },
+    {
+      "key": "vocab.knowledge_source.heard",
+      "text": "gehört"
+    },
+    {
+      "key": "vocab.knowledge_source.guessed",
+      "text": "vermutet"
+    },
+    {
+      "key": "vocab.knowledge_source.read",
+      "text": "gelesen"
+    },
+    {
+      "key": "vocab.event.skill_refused",
+      "text": "Neue Fähigkeit abgelehnt"
+    },
+    {
+      "key": "vocab.event.mail_arrived",
+      "text": "Nachricht im Postfach"
+    },
+    {
+      "key": "vocab.event.mail_repeated",
+      "text": "Nachricht klopft erneut"
     }
   ]
 }

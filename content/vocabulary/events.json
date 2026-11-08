@@ -1,0 +1,98 @@
+{
+  "contract_version": "0.2",
+  "kind": "event",
+  "entries": [
+    {
+      "id": "action_started",
+      "description": "An inhabitant starts an action."
+    },
+    {
+      "id": "action_finished",
+      "description": "An inhabitant finishes an action."
+    },
+    {
+      "id": "action_cancelled",
+      "description": "An action is cancelled (target gone, no way there)."
+    },
+    {
+      "id": "question_opened",
+      "description": "An inhabitant asks the AI about something it does not understand."
+    },
+    {
+      "id": "question_answered",
+      "description": "The AI answered a question."
+    },
+    {
+      "id": "question_failed",
+      "description": "A question could not be answered."
+    },
+    {
+      "id": "thought",
+      "description": "A thought of an inhabitant (text in the player's language)."
+    },
+    {
+      "id": "knowledge_gained",
+      "description": "An inhabitant now knows or believes something new, with its source (B4a R3)."
+    },
+    {
+      "id": "invention_wanted",
+      "description": "A lasting lack becomes the wish to invent something."
+    },
+    {
+      "id": "invention_rejected",
+      "description": "The final check refused an invention."
+    },
+    {
+      "id": "invention_failed",
+      "description": "An invention job failed."
+    },
+    {
+      "id": "invented",
+      "description": "An invention was approved."
+    },
+    {
+      "id": "build_planned",
+      "description": "A building plan was approved."
+    },
+    {
+      "id": "build_plan_rejected",
+      "description": "A building plan was refused."
+    },
+    {
+      "id": "build_step",
+      "description": "A building step is done."
+    },
+    {
+      "id": "build_failed",
+      "description": "Building gave up after too many plans."
+    },
+    {
+      "id": "built",
+      "description": "An invention was built."
+    },
+    {
+      "id": "first_use",
+      "description": "An invention was used for the first time."
+    },
+    {
+      "id": "gift_placed",
+      "description": "The player placed a gift."
+    },
+    {
+      "id": "help_needed",
+      "description": "An inhabitant really lacks something and calls for help."
+    },
+    {
+      "id": "skill_refused",
+      "description": "A new skill from an invention was not taken into the register (duplicate, limit or invalid)."
+    },
+    {
+      "id": "mail_arrived",
+      "description": "A message arrived in the player's mailbox (Detail = message kind)."
+    },
+    {
+      "id": "mail_repeated",
+      "description": "An unread message knocks again (Detail = message kind)."
+    }
+  ]
+}

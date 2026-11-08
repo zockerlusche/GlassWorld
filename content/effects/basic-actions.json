@@ -8,7 +8,10 @@
     { "action": "idle", "destination": "here", "duration_minutes": 15, "reach_m": 0 },
     { "action": "use", "destination": "here", "duration_minutes": 10, "reach_m": 1.5 },
     { "action": "build_step", "destination": "here", "duration_minutes": 30, "reach_m": 1.5, "decider_option": false },
-    { "action": "wander", "destination": "random_nearby", "duration_minutes": 30, "reach_m": 0 }
+    { "action": "wander", "destination": "random_nearby", "duration_minutes": 30, "reach_m": 0 },
+    { "action": "warn", "destination": "here", "duration_minutes": 5, "reach_m": 2 },
+    { "action": "show", "destination": "here", "duration_minutes": 5, "reach_m": 2 },
+    { "action": "teach", "destination": "here", "duration_minutes": 5, "reach_m": 2 }
   ],
   "rules": [
     { "action": "eat", "requires_property": "edible", "consumes_target": true, "effects": [
