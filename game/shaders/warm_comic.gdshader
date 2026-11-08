@@ -14,9 +14,11 @@ uniform vec4 region_shoes : source_color = vec4(0.18, 0.15, 0.14, 1.0);
 uniform vec4 region_hair : source_color = vec4(0.41, 0.15, 0.03, 1.0);
 uniform vec4 region_eyes : source_color = vec4(0.12, 0.09, 0.08, 1.0);
 // Which body parts show skin: short sleeves, shorts or a dress (upper legs in the top colour).
-uniform bool forearm_skin = true;
-uniform bool shin_skin = false;
-uniform bool thigh_top = false;
+// Body regions clothing may cover (F4): 0 skin, 1 top colour, 2 bottom colour.
+uniform int forearm_paint = 0;
+uniform int thigh_paint = 2;
+uniform int lower_thigh_paint = 2;
+uniform int shin_paint = 2;
 
 // Light ramp: brightness of the shadow, middle and lit step and where the steps start (palette.json ramp).
 uniform float shade_dark = 0.78;
@@ -28,6 +30,10 @@ uniform vec4 shadow_tint : source_color = vec4(0.86, 0.78, 0.86, 1.0);
 
 varying vec3 base_color;
 
+vec3 paint(int mode) {
+	return mode == 1 ? region_top.rgb : (mode == 2 ? region_bottom.rgb : region_skin.rgb);
+}
+
 vec3 region_color(float r) {
 	int i = int(round(r * 10.0));
 	if (i == 1) return region_skin.rgb;
@@ -35,10 +41,11 @@ vec3 region_color(float r) {
 	if (i == 3) return region_bottom.rgb;
 	if (i == 4) return region_shoes.rgb;
 	if (i == 5) return region_hair.rgb;
-	if (i == 6) return shin_skin ? region_skin.rgb : region_bottom.rgb;
-	if (i == 7) return forearm_skin ? region_skin.rgb : region_top.rgb;
-	if (i == 8) return thigh_top ? region_top.rgb : region_bottom.rgb;
+	if (i == 6) return paint(shin_paint);
+	if (i == 7) return paint(forearm_paint);
+	if (i == 8) return paint(thigh_paint);
 	if (i == 9) return region_eyes.rgb;
+	if (i == 10) return paint(lower_thigh_paint);
 	return region_top.rgb;
 }
 
