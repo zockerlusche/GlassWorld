@@ -40,6 +40,7 @@ public partial class Main : Node3D
     private MainMenu? _menu;
     private WorldPresenter? _world;
     private WorldAudio? _audio;
+    private FeelingSymbols? _symbols;
     private GameScreen? _screen;
     private WorldMeta? _meta;
     private GwWindow? _pause;
@@ -218,6 +219,14 @@ public partial class Main : Node3D
         var host = _world.Host!;
         GD.Print($"WORLD_OK seed={host.World.Seed} inhabitants={host.Inhabitants.All.Count()} objects={host.Objects.Count} hash={host.World.StateHash()[..12]}");
 
+        _symbols = new FeelingSymbols { Name = "FeelingSymbols" };
+        _world.AddChild(_symbols);
+        if (!_symbols.Setup(host, _world, () => _settings.FeelingSymbols, () => _settings.ReduceMotion))
+        {
+            _symbols.QueueFree();
+            _symbols = null;
+        }
+
         _audio = new WorldAudio { Name = "WorldAudio" };
         AddChild(_audio);
         var spatialReady = _audio.Setup(host, host.World.Seed);
@@ -371,6 +380,7 @@ public partial class Main : Node3D
         _world?.QueueFree();
         _screen = null;
         _audio = null;
+        _symbols = null;
         _world = null;
         _meta = null;
         _pause = null;

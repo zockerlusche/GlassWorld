@@ -80,6 +80,7 @@ public partial class SettingsWindow : GwWindow
         Row("ui.settings.text_scale", SizeSlider(limits.Tokens.TextScale, settings.TextScale, v => _settings with { TextScale = v }, style.Tokens.Window.CardBarWidth, style.Tokens.Window.SettingsApplyMs));
         Row("ui.settings.high_contrast", Toggle(settings.HighContrast, v => _settings with { HighContrast = v }));
         Row("ui.settings.reduce_motion", Toggle(settings.ReduceMotion, v => _settings with { ReduceMotion = v }));
+        Row("ui.settings.feeling_symbols", Toggle(settings.FeelingSymbols, v => _settings with { FeelingSymbols = v }));
         Row("ui.settings.hide_ui", Toggle(settings.HideUi, v => _settings with { HideUi = v }));
 
         Section("ui.settings.section.hints");

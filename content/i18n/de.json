@@ -1061,6 +1061,10 @@
     {
       "key": "msg.command.already_started",
       "text": "Das geht nur beim Anlegen einer Welt."
+    },
+    {
+      "key": "ui.settings.feeling_symbols",
+      "text": "Gefühls-Symbole über den Köpfen"
     }
   ]
 }

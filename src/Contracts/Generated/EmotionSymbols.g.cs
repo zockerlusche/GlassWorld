@@ -136,6 +136,12 @@ namespace GlassWorld.Contracts
         public double HeadOffsetM { get; set; } = default!;
 
         /// <summary>
+        /// Head height above the figure origin when the figure has no head anchor (until B2-4).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("fallback_head_m")]
+        public double FallbackHeadM { get; set; } = default!;
+
+        /// <summary>
         /// Symbols at once above one inhabitant (lasting ones first).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("max_per_inhabitant")]

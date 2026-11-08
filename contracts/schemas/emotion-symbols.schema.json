@@ -8,6 +8,7 @@
   "required": [
     "contract_version",
     "head_offset_m",
+    "fallback_head_m",
     "max_per_inhabitant",
     "rise",
     "orbit",
@@ -23,6 +24,12 @@
       "type": "number",
       "minimum": 0,
       "maximum": 2
+    },
+    "fallback_head_m": {
+      "description": "Head height above the figure origin when the figure has no head anchor (until B2-4).",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 3
     },
     "max_per_inhabitant": {
       "description": "Symbols at once above one inhabitant (lasting ones first).",

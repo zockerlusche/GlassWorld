@@ -1,6 +1,7 @@
 {
   "contract_version": "0.2",
   "head_offset_m": 0.35,
+  "fallback_head_m": 0.9,
   "max_per_inhabitant": 2,
   "rise": { "duration_s": 2.2, "rise_m": 0.5 },
   "orbit": { "radius_m": 0.22, "period_s": 4, "copies": 3 },

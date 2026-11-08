@@ -1061,6 +1061,10 @@
     {
       "key": "msg.command.already_started",
       "text": "That is only possible when a world is created."
+    },
+    {
+      "key": "ui.settings.feeling_symbols",
+      "text": "Feeling symbols above heads"
     }
   ]
 }

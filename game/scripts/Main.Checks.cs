@@ -39,6 +39,16 @@ public partial class Main
         CheckAudio(audioLoaded);
         CheckSpatial(spatialReady);
         CheckSoundLibrary();
+        var symbols = _symbols?.SelfCheck() ?? "feeling symbols not set up";
+        if (symbols.Length > 0)
+        {
+            GD.PushError($"SYMBOLS_FAIL {symbols}");
+        }
+        else
+        {
+            GD.Print("SYMBOLS_OK");
+        }
+
         _uiCheckDone = false;
         _ = CheckUiAsync(_style);
     }

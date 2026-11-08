@@ -114,6 +114,12 @@ class EmotionSymbols(BaseModel):
     head_offset_m: float = Field(
         ..., description="Height above the figure's head anchor.", ge=0.0, le=2.0
     )
+    fallback_head_m: float = Field(
+        ...,
+        description='Head height above the figure origin when the figure has no head anchor (until B2-4).',
+        ge=0.0,
+        le=3.0,
+    )
     max_per_inhabitant: int = Field(
         ...,
         description='Symbols at once above one inhabitant (lasting ones first).',
