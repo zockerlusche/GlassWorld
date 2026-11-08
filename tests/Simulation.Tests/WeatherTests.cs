@@ -192,7 +192,7 @@ public sealed class WeatherTests : IDisposable
     }
 
     [Fact]
-    public void WeatherAtAnswersForKnownTicksAndRefusesOthers()
+    public void WeatherAtAnswersForKnownAndOldTicksAndRefusesTheFuture()
     {
         var (world, weather) = Bare(4);
         world.Run(world.Calendar.TicksPerDay * 3);
@@ -201,8 +201,12 @@ public sealed class WeatherTests : IDisposable
         Assert.Equal(weather.Current, weather.WeatherAt(new Position(100, 50), weather.SinceTick));
         Assert.Throws<ArgumentOutOfRangeException>(() => weather.WeatherAt(anywhere, world.Tick + 1));
 
+        // Long ago (before the kept history): the oldest kept phase, never an exception.
         world.Run(world.Calendar.TicksPerDay * 40);
-        Assert.Throws<ArgumentOutOfRangeException>(() => weather.WeatherAt(anywhere, 0));
+        var oldest = weather.WeatherAt(anywhere, 0);
+        Assert.False(string.IsNullOrEmpty(oldest));
+        Assert.Equal(oldest, weather.WeatherAt(anywhere, 1));
+        Assert.InRange(weather.WindAt(0), 0.0, 1.0);
     }
 
     [Fact]

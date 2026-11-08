@@ -116,7 +116,7 @@ public sealed class WeatherSystem : IWorldSystem, IWeather
     /// kept in a history of <see cref="HistoryLength"/> changes; a tick before that history or after the
     /// current tick throws <see cref="ArgumentOutOfRangeException"/>, so a caller never gets a guess.
     /// </summary>
-    /// <exception cref="ArgumentOutOfRangeException">The tick lies in the future or before the kept history.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">The tick lies in the future (older ticks get the oldest kept phase).</exception>
     public string WeatherAt(Position at, long tick) => _history[KnownPhase(tick)].Value;
 
     /// <summary>
@@ -126,7 +126,7 @@ public sealed class WeatherSystem : IWorldSystem, IWeather
     /// and its index (SplitMix64, no stream, nothing saved), so the same seed gives the same wind. The same
     /// ticks as <see cref="WeatherAt"/> are allowed.
     /// </summary>
-    /// <exception cref="ArgumentOutOfRangeException">The tick lies in the future or before the kept history.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">The tick lies in the future.</exception>
     public double WindAt(long tick) => Wind(KnownPhase(tick), tick);
 
     /// <summary>The weather now with its numbers from the data.</summary>
@@ -219,12 +219,20 @@ public sealed class WeatherSystem : IWorldSystem, IWeather
         _knownUntil = tick;
     }
 
-    /// <summary>Index of the kept phase a tick lies in; throws for ticks before the history or in the future.</summary>
+    /// <summary>
+    /// Index of the kept phase a tick lies in. Ticks before the kept history get the oldest kept phase
+    /// (memory and chronicle may ask about long ago; review GW2 #95/#112); future ticks throw.
+    /// </summary>
     private int KnownPhase(long tick)
     {
-        if (tick < _history[0].Key || tick > _knownUntil)
+        if (tick > _knownUntil)
         {
-            throw new ArgumentOutOfRangeException(nameof(tick), tick, $"weather is known for ticks {_history[0].Key}..{_knownUntil}");
+            throw new ArgumentOutOfRangeException(nameof(tick), tick, $"weather is known up to tick {_knownUntil}");
+        }
+
+        if (tick < _history[0].Key)
+        {
+            return 0;
         }
 
         for (var i = _history.Count - 1; i > 0; i--)
