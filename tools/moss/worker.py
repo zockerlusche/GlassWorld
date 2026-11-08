@@ -7,6 +7,8 @@ With --resident everything is built straight on the GPU and the weights are stre
 by tensor from the safetensors files, without CPU offload (TL #19563): the process then needs
 about 7 GB of RAM instead of ~12 GB, while the whole model (~7.8 GB in bfloat16) stays in VRAM.
 The peak working set goes to stderr ("PEAK_RSS_GB ...") after loading and after each request.
+--resident is for development and batch runs only (VRAM peak ~10 GB is above the service budget;
+the AI service would need its own footprint entry first, review GW2 #117).
 Requests:
 
     {"prompt": "...", "seconds": 2.0, "loop": false, "steps": 50, "seed": 77, "out": "x/snd.wav"}
