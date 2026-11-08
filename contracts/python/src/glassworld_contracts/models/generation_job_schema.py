@@ -221,6 +221,27 @@ class DreamPayload(BaseModel):
     )
 
 
+class Model3dPayload(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    image_file: str = Field(
+        ...,
+        description="Picture of the thing from an image job (file name in the service's image folder, no path).",
+        max_length=120,
+        pattern='^[a-z0-9][a-z0-9_.-]*\\.png$',
+    )
+    object_type: common_schema.VocabId | None = Field(
+        ..., description='The (runtime) object type the model belongs to, if any.'
+    )
+    max_triangles: int = Field(
+        ...,
+        description='Upper bound for the mesh (data, low-poly style).',
+        ge=12,
+        le=50000,
+    )
+
+
 class BuildPlanPayload(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -274,6 +295,7 @@ class JobPayload(BaseModel):
     sound: SoundPayload | None = None
     image: ImagePayload | None = None
     dream: DreamPayload | None = None
+    model3d: Model3dPayload | None = None
 
 
 class GenerationJob(BaseModel):

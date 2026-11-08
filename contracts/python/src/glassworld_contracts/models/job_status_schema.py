@@ -252,6 +252,20 @@ class DreamResult(BaseModel):
     about: common_schema.Subject | None
 
 
+class Model3dResult(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    file: str = Field(
+        ...,
+        description="File name in the service's output folder (no path).",
+        max_length=120,
+        pattern='^[a-z0-9][a-z0-9_.-]*\\.glb$',
+    )
+    triangles: int = Field(..., ge=1, le=50000)
+    seed_used: int = Field(..., ge=0, le=2147483647)
+
+
 class QuestionResult(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -301,6 +315,7 @@ class JobResult(BaseModel):
     sound: SoundResult | None = None
     image: ImageResult | None = None
     dream: DreamResult | None = None
+    model3d: Model3dResult | None = None
 
 
 class JobStatus(BaseModel):

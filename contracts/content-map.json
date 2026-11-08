@@ -181,6 +181,10 @@
     {
       "pattern": "dreams/settings.json",
       "schema": "dream-settings"
+    },
+    {
+      "pattern": "model3d/settings.json",
+      "schema": "model3d-settings"
     }
   ]
 }

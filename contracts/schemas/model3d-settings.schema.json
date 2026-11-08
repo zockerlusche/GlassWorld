@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/model3d-settings.schema.json",
+  "title": "Model3dSettings",
+  "description": "Image to 3D (B7 R9, ADR-0004): which tier may make 3D models (capability flag) and with which backend, and the triangle limit. TRELLIS.2 is not wired yet (interface and stand-in only, A1412); values are placeholders.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "by_tier",
+    "max_triangles",
+    "priority"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "by_tier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "minimum",
+        "standard",
+        "comfort"
+      ],
+      "properties": {
+        "minimum": {
+          "description": "Backend on this tier, or null = no 3D models (the construction-kit builder is used).",
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "mock",
+                "trellis2"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "standard": {
+          "description": "Backend on this tier, or null = no 3D models (the construction-kit builder is used).",
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "mock",
+                "trellis2"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "comfort": {
+          "description": "Backend on this tier, or null = no 3D models (the construction-kit builder is used).",
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "mock",
+                "trellis2"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "max_triangles": {
+      "type": "integer",
+      "minimum": 12,
+      "maximum": 50000
+    },
+    "priority": {
+      "description": "Job priority of 3D jobs (B7 O2); when they run is in content/hardware/night.json.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    }
+  }
+}

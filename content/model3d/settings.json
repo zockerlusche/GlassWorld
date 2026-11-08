@@ -1,0 +1,10 @@
+{
+  "contract_version": "0.2",
+  "by_tier": {
+    "minimum": null,
+    "standard": null,
+    "comfort": "mock"
+  },
+  "max_triangles": 4000,
+  "priority": 5
+}

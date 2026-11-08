@@ -47,6 +47,7 @@ from glassworld_ai.llm.ollama import (
     OllamaUnavailableError,
 )
 from glassworld_ai.memory.condense import MockMemory, OllamaMemory, ReplayMemory
+from glassworld_ai.model3d import Model3dJobs, load_model3d_settings
 from glassworld_ai.planner import Planner, load_night_plan
 from glassworld_ai.probes import HttpProbes, Probes
 from glassworld_ai.prompts import PromptTemplate, load_prompt
@@ -183,6 +184,15 @@ def create_app(
     )
     if job_handlers is None:
         app.state.jobs.register("sound", _sound_handler(settings))
+        app.state.jobs.register(
+            "model3d",
+            Model3dJobs(
+                load_model3d_settings(settings.content_dir),
+                settings.model3d_image_dir,
+                settings.model3d_output_dir,
+                lambda: getattr(app.state, "tier", None),
+            ),
+        )
     if job_handlers is None and settings.image_backend == "mock":
         planner.release("image")
         app.state.jobs.register(
