@@ -80,6 +80,11 @@ class InventionSettings(BaseModel):
         ge=1,
         le=16,
     )
+    implied_properties: list[common_schema.VocabId] = Field(
+        ...,
+        description='Properties every runtime type from an invention has besides its own introduces (e.g. that inhabitants made it, so the routine layer can offer to use it).',
+        max_length=16,
+    )
     living_properties: list[common_schema.VocabId] = Field(
         ...,
         description='B2531: properties only living beings have. An invention that brings one of them is refused by the core. Empty while the property vocabulary has none.',

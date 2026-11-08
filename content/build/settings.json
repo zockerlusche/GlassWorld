@@ -1,0 +1,11 @@
+{
+  "contract_version": "0.2",
+  "job_priority": 30,
+  "retry_after_minutes": 60,
+  "max_plan_attempts": 3,
+  "bounds_tolerance": 1.5,
+  "step_action": "build_step",
+  "use_action": "use",
+  "min_need_to_build": 0.3,
+  "sound_max_attempts": 3
+}

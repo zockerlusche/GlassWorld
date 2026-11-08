@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Globalization;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Threading.Channels;
 using GlassWorld.Contracts;
 using GlassWorld.Contracts.Validation;
 using GlassWorld.Simulation.Decisions;
@@ -20,8 +21,16 @@ public sealed class HttpJobPort : IJobPort, IDisposable
     private readonly HttpClient _http;
     private readonly TimeSpan _pollInterval;
     private readonly TimeSpan _maxPollInterval;
+
+    /// <summary>How the port waits between polls; tests replace it to record the waits (no wall clock).</summary>
+    internal Func<TimeSpan, CancellationToken, Task> Delay { get; init; } = (wait, stop) => Task.Delay(wait, stop);
     private readonly ConcurrentQueue<PortMessage> _ready = new();
     private readonly CancellationTokenSource _stop = new();
+    private readonly Lock _phaseLock = new();
+    private readonly Channel<string> _phaseQueue = Channel.CreateUnbounded<string>(new UnboundedChannelOptions { SingleReader = true });
+    private readonly Task _phaseWorker;
+    private string? _phase;
+    private long _phaseTick;
     private int _inFlight;
 
     /// <summary>Creates the port for a running service.</summary>
@@ -47,6 +56,7 @@ public sealed class HttpJobPort : IJobPort, IDisposable
         _http.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         _pollInterval = pollInterval;
         _maxPollInterval = maxPollInterval ?? TimeSpan.FromSeconds(30);
+        _phaseWorker = Task.Run(SendPhasesAsync);
     }
 
     /// <summary>Port for a started service (polls every second).</summary>
@@ -78,12 +88,18 @@ public sealed class HttpJobPort : IJobPort, IDisposable
         return messages;
     }
 
-    /// <summary>Waits until every submitted job is final (tests and shutdown).</summary>
+    /// <summary>Waits until every submitted job is final; throws <see cref="TimeoutException"/> if that takes longer than <paramref name="timeout"/>.</summary>
     public async Task WhenIdleAsync(TimeSpan timeout)
     {
         var until = DateTime.UtcNow + timeout;
-        while (InFlight > 0 && DateTime.UtcNow < until)
+        while (InFlight > 0)
         {
+            if (DateTime.UtcNow >= until)
+            {
+                // Never return quietly: a caller must not read results that are not there yet.
+                throw new TimeoutException(string.Create(CultureInfo.InvariantCulture, $"{InFlight} job call(s) still running after {timeout.TotalSeconds:F1} s."));
+            }
+
             await Task.Delay(10).ConfigureAwait(false);
         }
     }
@@ -91,6 +107,17 @@ public sealed class HttpJobPort : IJobPort, IDisposable
     /// <inheritdoc/>
     public void Dispose()
     {
+        // Let the last phase signals go out (e.g. day when the game closes), then stop.
+        _phaseQueue.Writer.TryComplete();
+        try
+        {
+            _phaseWorker.Wait(TimeSpan.FromSeconds(1));
+        }
+        catch (AggregateException)
+        {
+            // Best effort.
+        }
+
         _stop.Cancel();
         _stop.Dispose();
         _http.Dispose();
@@ -140,7 +167,7 @@ public sealed class HttpJobPort : IJobPort, IDisposable
                         break;
                 }
 
-                await Task.Delay(wait, stop).ConfigureAwait(false);
+                await Delay(wait, stop).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException) when (stop.IsCancellationRequested)
@@ -170,6 +197,88 @@ public sealed class HttpJobPort : IJobPort, IDisposable
     /// True for a done or failed job. A body that is no valid JobStatus is handed to the core as is, which
     /// logs it as a contract violation (never polled forever).
     /// </summary>
+    /// <summary>
+    /// Tells the service that the compute night begins or ends (<c>POST /phase</c>, contract <c>phase-change</c>);
+    /// a real change is sent, the same phase again only with <paramref name="force"/> (a new or loaded world).
+    /// Asynchronous and best effort, in call order (one sender); a failure only means the service plans
+    /// without it until the next signal or <see cref="Resend"/>.
+    /// </summary>
+    public void SetPhase(string phase, long tick, bool force = false)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(phase);
+        lock (_phaseLock)
+        {
+            if (_phase == phase && !force)
+            {
+                return;
+            }
+
+            _phase = phase;
+            _phaseTick = tick;
+        }
+
+        SendPhase(phase, tick);
+    }
+
+    /// <summary>Sends the last phase again, e.g. after the service was started anew (it starts in day).</summary>
+    public void Resend()
+    {
+        string? phase;
+        long tick;
+        lock (_phaseLock)
+        {
+            (phase, tick) = (_phase, _phaseTick);
+        }
+
+        if (phase is not null)
+        {
+            SendPhase(phase, tick);
+        }
+    }
+
+    private void SendPhase(string phase, long tick)
+    {
+        var body = ContractSerializer.Serialize(new PhaseChange
+        {
+            ContractVersion = ContractInfo.Version,
+            Phase = phase == JobPhase.Night ? PhaseChangePhase.Night : PhaseChangePhase.Day,
+            Tick = tick,
+        });
+        Interlocked.Increment(ref _inFlight);
+        if (!_phaseQueue.Writer.TryWrite(body))
+        {
+            Interlocked.Decrement(ref _inFlight);
+        }
+    }
+
+    /// <summary>The one sender of phase signals: posts them in the order they were set (review GW2 #82).</summary>
+    private async Task SendPhasesAsync()
+    {
+        try
+        {
+            await foreach (var body in _phaseQueue.Reader.ReadAllAsync(_stop.Token).ConfigureAwait(false))
+            {
+                try
+                {
+                    using var content = new StringContent(body, Encoding.UTF8, "application/json");
+                    using var response = await _http.PostAsync(new Uri("phase", UriKind.Relative), content, _stop.Token).ConfigureAwait(false);
+                }
+                catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+                {
+                    // Best effort: the planner works without the signal until the next one.
+                }
+                finally
+                {
+                    Interlocked.Decrement(ref _inFlight);
+                }
+            }
+        }
+        catch (Exception ex) when (ex is OperationCanceledException or ObjectDisposedException)
+        {
+            // The game is closing.
+        }
+    }
+
     /// <summary>Cancels a job the core no longer waits for (<c>DELETE /jobs/{id}</c>, idempotent, best effort).</summary>
     public async Task CancelAsync(string requestId)
     {

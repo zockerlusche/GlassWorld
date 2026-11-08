@@ -52,10 +52,10 @@ hut
 - strike (Hit one hard thing against another.)
 
 ## Properties a thing can have
-braidable, building_material, burnable, container, cooling, drinkable, edible, fibrous, hard, hardens_in_fire, healing, hot, insulating, long_lasting, malleable, poisonous, portable, salty, scratchable, sharp, sheltering, sparks, splittable, sticky
+braidable, building_material, burnable, container, cooling, crafted, drinkable, edible, fibrous, hard, hardens_in_fire, healing, hot, insulating, long_lasting, malleable, poisonous, portable, salty, scratchable, sharp, sheltering, sparks, splittable, sticky
 
 ## Actions a thing can be used for
-approach, combine, drink, drop, eat, idle, inspect, move_to, pick_up, show, sleep, talk_to, teach, wander, warn
+approach, build_step, combine, drink, drop, eat, idle, inspect, move_to, pick_up, show, sleep, talk_to, teach, use, wander, warn
 
 
 Describe one idea.

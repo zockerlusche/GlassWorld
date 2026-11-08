@@ -475,6 +475,10 @@
       "text": "Annähern"
     },
     {
+      "key": "vocab.action.build_step",
+      "text": "Bauen"
+    },
+    {
       "key": "vocab.action.combine",
       "text": "Kombinieren"
     },
@@ -525,6 +529,10 @@
     {
       "key": "vocab.action.wander",
       "text": "Umherstreifen"
+    },
+    {
+      "key": "vocab.action.use",
+      "text": "Benutzen"
     },
     {
       "key": "vocab.action.warn",
@@ -713,6 +721,10 @@
     {
       "key": "vocab.property.container",
       "text": "Behälter"
+    },
+    {
+      "key": "vocab.property.crafted",
+      "text": "selbst gemacht"
     },
     {
       "key": "vocab.property.cooling",
