@@ -1239,6 +1239,30 @@
       "text": "Gunst wächst langsam nach. Gaben kosten Gunst."
     },
     {
+      "key": "msg.mail.knock",
+      "text": "Bewohner {number} klopft an die Scheibe: findet nichts gegen {need}."
+    },
+    {
+      "key": "msg.command.no_message",
+      "text": "Diese Nachricht ist schon gelesen."
+    },
+    {
+      "key": "ui.mailbox.empty",
+      "text": "Keine neuen Nachrichten."
+    },
+    {
+      "key": "ui.mailbox.read",
+      "text": "Als gelesen markieren"
+    },
+    {
+      "key": "ui.mailbox.history",
+      "text": "Gelesen"
+    },
+    {
+      "key": "ui.help.answer",
+      "text": "Du könntest sagen: „{text}“"
+    },
+    {
       "key": "vocab.skill.building",
       "text": "Bauen"
     },

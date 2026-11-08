@@ -101,6 +101,9 @@ public sealed class PlayerSystem : IWorldSystem
     /// <summary>Open calls for help, oldest first.</summary>
     public IReadOnlyList<HelpCall> Open => _open;
 
+    /// <summary>Futile attempts of an inhabitant for a need so far (read only, e.g. for help suggestions).</summary>
+    public int AttemptsOf(string inhabitantId, string need) => _attempts.GetValueOrDefault(inhabitantId + "|" + need);
+
     /// <summary>Favour cost of an intervention (0 if the data has none).</summary>
     public double CostOf(string intervention) => _favor.Costs.FirstOrDefault(c => c.Intervention == intervention)?.Cost1 ?? 0;
 

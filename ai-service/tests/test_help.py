@@ -177,3 +177,15 @@ def test_endpoint(settings: Settings) -> None:
             assert bad.json()["request_id"] == REQUEST_DATA["request_id"]
 
     asyncio.run(scenario())
+
+
+def test_the_mock_answers_like_the_shared_example() -> None:
+    """A1341 criterion 3: the mock gives 2 suggestions; the game's C# tests serve this very file."""
+    expected = json.loads(
+        (REPO / "contracts/examples/valid/help-suggestions-response.mock.json").read_text("utf-8")
+    )
+    response = asyncio.run(MockHelp().suggest(REQUEST, time.monotonic() + 8))
+    actual = response.model_dump(mode="json")
+    actual["meta"]["latency_ms"] = expected["meta"]["latency_ms"]
+    assert actual == expected
+    assert 2 <= len(actual["suggestions"]) <= 3

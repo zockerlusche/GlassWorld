@@ -37,5 +37,6 @@
       "repeat_after_hours": 6,
       "max_urgency": 3
     }
-  ]
+  ],
+  "history_max": 50
 }

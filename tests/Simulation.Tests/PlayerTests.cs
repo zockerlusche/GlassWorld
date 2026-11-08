@@ -226,6 +226,109 @@ public sealed class PlayerTests : IDisposable
         Assert.Null(RunUntil(host, PlayerSystem.HelpNeeded, days: 0.1, detail: "thirst"));
     }
 
+    [Fact]
+    public void ACallForHelpIsAKnockInTheMailboxThatComesBackUntilRead()
+    {
+        // A1341 criterion 1: unacknowledged messages repeat with rising urgency; read ones move to history.
+        var host = WorldWithThirsty(out var thirsty);
+        var arrived = RunUntil(host, MailboxSystem.MailArrived, days: 2);
+        Assert.NotNull(arrived);
+        var knock = host.Mailbox.Open.First(m => m.Detail == "thirst");
+        Assert.Equal((MailboxSystem.KnockKind, thirsty.Id, 0), (knock.Kind, knock.InhabitantId, knock.Urgency));
+
+        var kind = host.Content.MessageKinds.Kinds.Single(k => k.Id == MailboxSystem.KnockKind);
+        var repeat = (long)kind.RepeatAfterHours * host.World.Calendar.Settings.TicksPerHour;
+        Assert.Contains(host.Player.Open, c => c.InhabitantId == thirsty.Id && c.Need == "thirst");
+        // Within the call's lifetime (suggestion_expiry_hours) the urgency climbs to the kind's limit.
+        StayThirsty(host, thirsty, (repeat * kind.MaxUrgency) + 1);
+        var later = host.Mailbox.Open.Single(m => m.Id == knock.Id);
+        Assert.Equal(kind.MaxUrgency, later.Urgency);
+        Assert.True(later.Repeats >= kind.MaxUrgency);
+
+        Assert.True(host.Decisions.Submit(new PlayerCommand(MailboxSystem.Acknowledge, null) { MessageId = knock.Id }).Accepted);
+        host.World.Step();
+        Assert.DoesNotContain(host.Mailbox.Open, m => m.Id == knock.Id);
+        Assert.Equal(knock.Id, host.Mailbox.History[0].Id);
+        var repeats = host.Mailbox.History[0].Repeats;
+        host.World.Run(repeat * 2);
+        Assert.Equal(repeats, host.Mailbox.History[0].Repeats);
+        Assert.Equal(MailboxSystem.ReasonNoMessage, host.Decisions.Submit(new PlayerCommand(MailboxSystem.Acknowledge, null) { MessageId = knock.Id }).ReasonKey);
+    }
+
+    [Fact]
+    public void AKnockWhoseCallIsOverCalmsDownAndStopsRepeating()
+    {
+        // Review #86 (B2466): no rising pressure once the need is met.
+        var host = WorldWithThirsty(out var thirsty);
+        Assert.NotNull(RunUntil(host, MailboxSystem.MailArrived, days: 2));
+        var knock = host.Mailbox.Open.First(m => m.Detail == "thirst");
+        var kind = host.Content.MessageKinds.Kinds.Single(k => k.Id == MailboxSystem.KnockKind);
+        var repeat = (long)kind.RepeatAfterHours * host.World.Calendar.Settings.TicksPerHour;
+        StayThirsty(host, thirsty, repeat + 1);
+        Assert.True(host.Mailbox.Open.Single(m => m.Id == knock.Id).Urgency > 0);
+
+        thirsty.Needs["thirst"] = 1.0;
+        host.World.Run(repeat * 3);
+        var calm = host.Mailbox.Open.Single(m => m.Id == knock.Id);
+        Assert.Equal(0, calm.Urgency);
+        Assert.True(calm.Settled);
+
+        // Thirsty again later: a new call brings a new knock that replaces the calm, unread one.
+        StayThirsty(host, thirsty, repeat * 3);
+        var current = Assert.Single(host.Mailbox.Open, m => m.InhabitantId == thirsty.Id && m.Detail == "thirst");
+        Assert.NotEqual(knock.Id, current.Id);
+        Assert.False(current.Settled);
+    }
+
+    [Fact]
+    public void AnUnmetNeedDoesNotPileUpKnocks()
+    {
+        // Review #86: calls expire and open again; each new knock replaces the unread one before it.
+        var host = WorldWithThirsty(out var thirsty);
+        StayThirsty(host, thirsty, host.World.Calendar.TicksPerDay * 4);
+        Assert.True(host.Mailbox.Open.Count(m => m.InhabitantId == thirsty.Id && m.Detail == "thirst") <= 1);
+    }
+
+    [Fact]
+    public void AnEmptyMailboxStaysOutOfTheHashAndBrokenSavesAreRefused()
+    {
+        // Review #86: the agreed rule "hash only with content"; Restore checks kinds and ids.
+        var host = WorldWithThirsty(out _);
+        Assert.False(host.Mailbox.HasState);
+        Assert.NotNull(RunUntil(host, MailboxSystem.MailArrived, days: 2));
+        Assert.True(host.Mailbox.HasState);
+        var state = host.Mailbox.Capture();
+        var message = state.Messages[0];
+        Assert.Throws<InvalidDataException>(() => host.Mailbox.Restore(state with { Messages = [message with { Kind = "letter" }] }));
+        Assert.Throws<InvalidDataException>(() => host.Mailbox.Restore(state with { Messages = [message, message] }));
+        Assert.Throws<InvalidDataException>(() => host.Mailbox.Restore(state with { Counter = 0 }));
+        host.Mailbox.Restore(state);
+        Assert.Equal(state.Messages.Count, host.Mailbox.Open.Count + host.Mailbox.History.Count);
+    }
+
+    [Fact]
+    public void TheMailboxSurvivesSaveAndLoad()
+    {
+        var host = WorldWithThirsty(out _);
+        Assert.NotNull(RunUntil(host, MailboxSystem.MailArrived, days: 2));
+        var path = Path.Combine(_directory, "mail.sqlite");
+        SaveGameStore.Save(path, StateCodec.Capture(host));
+        var settings = Contracts.Validation.ContractSerializer.Deserialize<Contracts.DeciderSettings>(File.ReadAllText(Path.Combine(ContentDirectory, "decider", "settings.json")));
+        var loaded = StateCodec.Restore(new SimulationHostFactory(ContentSet.Load(ContentDirectory), settings, new ReplayDecisionPort(host.Decisions.Log), "de"), SaveGameStore.Load(path));
+        Assert.Equal(host.World.StateHash(), loaded.World.StateHash());
+        Assert.Equal(host.Mailbox.Open, loaded.Mailbox.Open);
+    }
+
+    /// <summary>Runs while keeping the inhabitant thirsty, so the call for help stays open.</summary>
+    private static void StayThirsty(SimulationHost host, Inhabitant inhabitant, long ticks)
+    {
+        for (long t = 0; t < ticks; t++)
+        {
+            inhabitant.Needs["thirst"] = 0.05;
+            host.World.Step();
+        }
+    }
+
     private static SimulationHost WorldWithThirsty(out Inhabitant inhabitant)
     {
         var host = SimulationHost.CreateEmpty(ContentDirectory, 1, new MockDecisionPort(), "de");
