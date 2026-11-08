@@ -195,6 +195,10 @@
       "schema": "skill-practice"
     },
     {
+      "pattern": "skills/levels.json",
+      "schema": "skill-level-settings"
+    },
+    {
       "pattern": "writing/media.json",
       "schema": "writing-media"
     },
