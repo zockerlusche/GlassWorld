@@ -33,7 +33,8 @@
         "states",
         "seasons",
         "snow_weather",
-        "drought_weather"
+        "drought_weather",
+        "temperature"
       ],
       "properties": {
         "change_every_hours": {
@@ -85,6 +86,9 @@
         "drought_weather": {
           "description": "Weather id added to the conditions after drought_after_dry_days without precipitation (a signal for B5).",
           "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "temperature": {
+          "$ref": "#/$defs/ClimateTemperature"
         }
       }
     },
@@ -181,6 +185,105 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 10000
+        }
+      }
+    },
+    "ClimateTemperature": {
+      "description": "Air temperature in tenths of a degree (B2 R13, B5 R1): base value of the climate plus an offset for the season, the weather and the time of day; the preset's height drop applies on top. Every season, weather state and time of day needs an entry (load check).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "base_tenth_c",
+        "seasons",
+        "weathers",
+        "times_of_day"
+      ],
+      "properties": {
+        "base_tenth_c": {
+          "type": "integer",
+          "minimum": -600,
+          "maximum": 600
+        },
+        "seasons": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "description": "Offset per season.",
+          "items": {
+            "$ref": "#/$defs/TemperatureSeasonOffset"
+          }
+        },
+        "weathers": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "description": "Offset per weather state.",
+          "items": {
+            "$ref": "#/$defs/TemperatureWeatherOffset"
+          }
+        },
+        "times_of_day": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "description": "Offset per time of day (dawn, day, dusk, night).",
+          "items": {
+            "$ref": "#/$defs/TemperatureTimeOffset"
+          }
+        }
+      }
+    },
+    "TemperatureSeasonOffset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "season",
+        "offset_tenth_c"
+      ],
+      "properties": {
+        "season": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "offset_tenth_c": {
+          "type": "integer",
+          "minimum": -1000,
+          "maximum": 1000
+        }
+      }
+    },
+    "TemperatureWeatherOffset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "weather",
+        "offset_tenth_c"
+      ],
+      "properties": {
+        "weather": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "offset_tenth_c": {
+          "type": "integer",
+          "minimum": -1000,
+          "maximum": 1000
+        }
+      }
+    },
+    "TemperatureTimeOffset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "time_of_day",
+        "offset_tenth_c"
+      ],
+      "properties": {
+        "time_of_day": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "offset_tenth_c": {
+          "type": "integer",
+          "minimum": -1000,
+          "maximum": 1000
         }
       }
     }

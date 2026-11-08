@@ -10,7 +10,7 @@ namespace GlassWorld.Simulation.Weather;
 /// <param name="WindPermille">Wind 0..1000 (plants sway with it, B2 R21).</param>
 /// <param name="PrecipitationPermille">Precipitation 0..1000.</param>
 /// <param name="CloudPermille">Cloud cover 0..1000.</param>
-/// <param name="TemperatureTenthC">Air temperature in tenths of a degree (base value until B5 adds the table).</param>
+/// <param name="TemperatureTenthC">Air temperature in tenths of a degree (climate table, see <see cref="WeatherSystem.TemperatureAt"/>).</param>
 /// <param name="SinceTick">Tick at which the main weather began.</param>
 /// <param name="NextChangeTick">Tick of the next possible change.</param>
 /// <param name="TransitionMinutes">How long the presentation blends a change.</param>
@@ -46,7 +46,10 @@ public sealed class WeatherSystem : IWorldSystem, IWeather
 
     private readonly ClimateWeather _data;
     private readonly Dictionary<string, ClimateWeatherState> _states;
-    private readonly int _temperatureTenthC;
+    private readonly int _heightOffsetTenthC;
+    private readonly Dictionary<string, int> _seasonOffsets;
+    private readonly Dictionary<string, int> _weatherOffsets;
+    private readonly Dictionary<string, int> _timeOffsets;
     private readonly long _changeTicks;
     private readonly long _droughtTicks;
     private readonly List<KeyValuePair<long, string>> _history = [];
@@ -55,14 +58,22 @@ public sealed class WeatherSystem : IWorldSystem, IWeather
     // The world tick up to which the weather is known: systems advance at tick t, then the world moves to t + 1.
     private long _knownUntil;
 
-    /// <summary>Creates the weather of a climate; it starts with the first state of the data at tick 0.</summary>
-    public WeatherSystem(ClimateSettings climate, int temperatureTenthC, int ticksPerHour, int hoursPerDay)
+    /// <summary>
+    /// Creates the weather of a climate; it starts with the first state of the data at tick 0.
+    /// <paramref name="heightOffsetTenthC"/> is the preset's height drop for the place the island-wide
+    /// weather stands for (the mean height of the start cells, see SimulationHost).
+    /// </summary>
+    public WeatherSystem(ClimateSettings climate, int heightOffsetTenthC, int ticksPerHour, int hoursPerDay)
     {
         ArgumentNullException.ThrowIfNull(climate);
         ArgumentOutOfRangeException.ThrowIfLessThan(ticksPerHour, 1);
         _data = climate.Weather;
         _states = _data.States.ToDictionary(s => s.Weather, StringComparer.Ordinal);
-        _temperatureTenthC = temperatureTenthC;
+        _heightOffsetTenthC = heightOffsetTenthC;
+        var temperature = _data.Temperature;
+        _seasonOffsets = temperature.Seasons.ToDictionary(s => s.Season, s => s.OffsetTenthC, StringComparer.Ordinal);
+        _weatherOffsets = temperature.Weathers.ToDictionary(w => w.Weather, w => w.OffsetTenthC, StringComparer.Ordinal);
+        _timeOffsets = temperature.TimesOfDay.ToDictionary(t => t.TimeOfDay, t => t.OffsetTenthC, StringComparer.Ordinal);
         _changeTicks = Math.Max(1L, (long)_data.ChangeEveryHours * ticksPerHour);
         _droughtTicks = (long)_data.DroughtAfterDryDays * hoursPerDay * ticksPerHour;
         Current = _data.States.First().Weather;
@@ -118,7 +129,20 @@ public sealed class WeatherSystem : IWorldSystem, IWeather
         ArgumentNullException.ThrowIfNull(world);
         var state = _states[Current];
         var next = ((world.Tick / _changeTicks) + 1) * _changeTicks;
-        return new WeatherReading(Current, Conditions, state.WindPermille, state.PrecipitationPermille, state.CloudPermille, _temperatureTenthC, SinceTick, next, _data.TransitionMinutes);
+        return new WeatherReading(Current, Conditions, state.WindPermille, state.PrecipitationPermille, state.CloudPermille, TemperatureAt(world.Now, Current), SinceTick, next, _data.TransitionMinutes);
+    }
+
+    /// <summary>
+    /// Air temperature in tenths of a degree: climate base + offset of the season + offset of the weather
+    /// (none when <paramref name="weather"/> is null) + offset of the time of day + the height drop.
+    /// Integers only; every season, weather and time of day has an entry (checked at load).
+    /// </summary>
+    public int TemperatureAt(Time.WorldTime time, string? weather)
+    {
+        var sum = _data.Temperature.BaseTenthC + _heightOffsetTenthC
+            + _seasonOffsets.GetValueOrDefault(time.SeasonId)
+            + _timeOffsets.GetValueOrDefault(time.Phase.ToString().ToLowerInvariant());
+        return weather is null ? sum : sum + _weatherOffsets.GetValueOrDefault(weather);
     }
 
     /// <summary>Sets the main weather now (player intervention, B6; debug jumps, R23). Unknown ids are refused.</summary>
@@ -141,7 +165,8 @@ public sealed class WeatherSystem : IWorldSystem, IWeather
         if (tick > 0 && tick % _changeTicks == 0)
         {
             var next = Draw(world.Now.SeasonId, world.Random.Get("weather/change"));
-            if (_states[next].PrecipitationPermille > 0 && _temperatureTenthC < _data.SnowBelowTenthC && _states.ContainsKey(_data.SnowWeather))
+            // Snow or rain is decided by the temperature without the new weather's own offset.
+            if (_states[next].PrecipitationPermille > 0 && TemperatureAt(world.Now, null) < _data.SnowBelowTenthC && _states.ContainsKey(_data.SnowWeather))
             {
                 next = _data.SnowWeather;
             }

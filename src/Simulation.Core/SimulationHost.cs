@@ -130,9 +130,11 @@ public sealed class SimulationHost
             world.Add(map);
 
             // Weather of the preset's climate (B2 R13); worlds without a preset (placeholder) have none.
+            // The weather is island-wide for now; its height drop stands for the mean height of the start cells.
+            var startHeight = island.Starts.Count == 0 ? 0 : island.Starts.Sum(s => Math.Max(0, island.Map.Cell(s.X, s.Z).Height - preset.Terrain.SeaLevel)) / island.Starts.Count;
             weather = new Weather.WeatherSystem(
                 content.WorldGen.Climates[preset.Climate.ClimateId],
-                preset.Climate.BaseTemperatureTenthC,
+                -(preset.Climate.TemperatureDropPer100Height * startHeight / 100),
                 world.Calendar.Settings.TicksPerHour,
                 world.Calendar.Settings.HoursPerDay);
             world.Add(weather);

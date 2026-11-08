@@ -218,6 +218,10 @@ public sealed class WorldGenContent
         var states = weather.States.Select(s => s.Weather).ToHashSet(StringComparer.Ordinal);
         Duplicates(weather.States.Select(s => s.Weather), $"climate '{climate.Id}' weather state", problems);
         problems.AddRange(states.Where(s => !weatherVocabulary.Contains(s)).Select(s => $"climate '{climate.Id}': weather '{s}' not in vocabulary 'weather'"));
+        var temperature = weather.Temperature;
+        problems.AddRange(calendar.Settings.Seasons.Select(s => s.Id).Where(s => !temperature.Seasons.Any(t => t.Season == s)).Select(s => $"climate '{climate.Id}': no temperature offset for season '{s}'"));
+        problems.AddRange(states.Where(s => !temperature.Weathers.Any(t => t.Weather == s)).Select(s => $"climate '{climate.Id}': no temperature offset for weather '{s}'"));
+        problems.AddRange(Enum.GetNames<Time.DayPhase>().Select(p => p.ToLowerInvariant()).Where(p => !temperature.TimesOfDay.Any(t => t.TimeOfDay == p)).Select(p => $"climate '{climate.Id}': no temperature offset for time of day '{p}'"));
         foreach (var (what, id) in new[] { ("snow", weather.SnowWeather), ("drought", weather.DroughtWeather) })
         {
             if (!states.Contains(id))

@@ -22,18 +22,18 @@ public sealed class WeatherTests : IDisposable
 
     private static ClimateSettings Climate() => Content.Value.WorldGen.Climates["temperate"];
 
-    private static (World World, WeatherSystem Weather) Bare(ulong seed, ClimateSettings? climate = null, int temperatureTenthC = 160)
+    private static (World World, WeatherSystem Weather) Bare(ulong seed, ClimateSettings? climate = null, int heightOffsetTenthC = 0)
     {
         var world = new World(seed, Content.Value.Calendar);
         var settings = world.Calendar.Settings;
-        var weather = new WeatherSystem(climate ?? Climate(), temperatureTenthC, settings.TicksPerHour, settings.HoursPerDay);
+        var weather = new WeatherSystem(climate ?? Climate(), heightOffsetTenthC, settings.TicksPerHour, settings.HoursPerDay);
         world.Add(weather);
         return (world, weather);
     }
 
-    private static List<(long Tick, string Season, string Weather)> Year(ulong seed, ClimateSettings? climate = null, int temperatureTenthC = 160)
+    private static List<(long Tick, string Season, string Weather)> Year(ulong seed, ClimateSettings? climate = null, int heightOffsetTenthC = 0)
     {
-        var (world, weather) = Bare(seed, climate, temperatureTenthC);
+        var (world, weather) = Bare(seed, climate, heightOffsetTenthC);
         var phases = new List<(long, string, string)>();
         weather.Changed += (_, now, tick) => phases.Add((tick, world.Calendar.At(tick).SeasonId, now));
         world.Run(world.Calendar.TicksPerDay * 28);
@@ -109,7 +109,8 @@ public sealed class WeatherTests : IDisposable
             row.To = [new ClimateTransitionTarget { Weather = "rain", Weight = 1 }];
         }
 
-        var phases = Year(9, climate);
+        // Warm enough everywhere that the rain never turns into snow.
+        var phases = Year(9, climate, heightOffsetTenthC: 2000);
         Assert.Equal("rain", Assert.Single(phases).Weather);
     }
 
@@ -122,8 +123,54 @@ public sealed class WeatherTests : IDisposable
             row.To = [new ClimateTransitionTarget { Weather = "rain", Weight = 1 }];
         }
 
-        var phases = Year(9, climate, temperatureTenthC: climate.Weather.SnowBelowTenthC - 1);
+        // Far below the snow temperature in every season and time of day.
+        var phases = Year(9, climate, heightOffsetTenthC: -2000);
         Assert.Equal(climate.Weather.SnowWeather, Assert.Single(phases).Weather);
+    }
+
+    [Fact]
+    public void FrostIsBelowZeroAndHeatAboveTwentyFiveWhereverTheyOccur()
+    {
+        var climate = Climate();
+        var (world, weather) = Bare(1);
+        var calendar = world.Calendar;
+        foreach (var table in climate.Weather.Seasons)
+        {
+            var reachable = table.Transitions.SelectMany(t => t.To.Select(x => x.Weather).Append(t.FromWeather)).ToHashSet(StringComparer.Ordinal);
+            var seasonIndex = calendar.Settings.Seasons.Select(s => s.Id).ToList().IndexOf(table.Season);
+            for (var hour = 0; hour < calendar.Settings.HoursPerDay; hour++)
+            {
+                var tick = (seasonIndex * calendar.Settings.DaysPerSeason * calendar.TicksPerDay) + ((long)hour * calendar.Settings.TicksPerHour);
+                var time = calendar.At(tick);
+                if (reachable.Contains("frost"))
+                {
+                    Assert.True(weather.TemperatureAt(time, "frost") < 0, $"frost in {table.Season} at {hour}h is {weather.TemperatureAt(time, "frost")}");
+                }
+
+                if (reachable.Contains("heat"))
+                {
+                    Assert.True(weather.TemperatureAt(time, "heat") > 250, $"heat in {table.Season} at {hour}h is {weather.TemperatureAt(time, "heat")}");
+                }
+            }
+        }
+    }
+
+    [Fact]
+    public void SummerIsWarmerThanWinterAndTheDataDecide()
+    {
+        var (world, weather) = Bare(1);
+        var calendar = world.Calendar;
+        var ids = calendar.Settings.Seasons.Select(s => s.Id).ToList();
+        long Noon(string season) => (ids.IndexOf(season) * calendar.Settings.DaysPerSeason * calendar.TicksPerDay) + (12L * calendar.Settings.TicksPerHour);
+        Assert.True(weather.TemperatureAt(calendar.At(Noon("summer")), "clear") > weather.TemperatureAt(calendar.At(Noon("winter")), "clear"));
+
+        var warmer = ContractSerializer.Deserialize<ClimateSettings>(ContractSerializer.Serialize(Climate()));
+        warmer.Weather.Temperature.BaseTenthC += 50;
+        var (_, changed) = Bare(1, warmer);
+        Assert.Equal(weather.TemperatureAt(calendar.At(Noon("winter")), "clear") + 50, changed.TemperatureAt(calendar.At(Noon("winter")), "clear"));
+
+        var (_, high) = Bare(1, heightOffsetTenthC: -40);
+        Assert.Equal(weather.TemperatureAt(calendar.At(Noon("summer")), "clear") - 40, high.TemperatureAt(calendar.At(Noon("summer")), "clear"));
     }
 
     [Fact]

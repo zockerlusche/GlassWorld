@@ -64,6 +64,9 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("drought_weather")]
         public string DroughtWeather { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("temperature")]
+        public ClimateTemperature Temperature { get; set; } = new ClimateTemperature();
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -135,6 +138,72 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("weight")]
         public int Weight { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Air temperature in tenths of a degree (B2 R13, B5 R1): base value of the climate plus an offset for the season, the weather and the time of day; the preset's height drop applies on top. Every season, weather state and time of day needs an entry (load check).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ClimateTemperature
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("base_tenth_c")]
+        public int BaseTenthC { get; set; } = default!;
+
+        /// <summary>
+        /// Offset per season.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("seasons")]
+        public System.Collections.Generic.ICollection<TemperatureSeasonOffset> Seasons { get; set; } = new System.Collections.ObjectModel.Collection<TemperatureSeasonOffset>();
+
+        /// <summary>
+        /// Offset per weather state.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("weathers")]
+        public System.Collections.Generic.ICollection<TemperatureWeatherOffset> Weathers { get; set; } = new System.Collections.ObjectModel.Collection<TemperatureWeatherOffset>();
+
+        /// <summary>
+        /// Offset per time of day (dawn, day, dusk, night).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("times_of_day")]
+        public System.Collections.Generic.ICollection<TemperatureTimeOffset> TimesOfDay { get; set; } = new System.Collections.ObjectModel.Collection<TemperatureTimeOffset>();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class TemperatureSeasonOffset
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("season")]
+        public string Season { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("offset_tenth_c")]
+        public int OffsetTenthC { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class TemperatureWeatherOffset
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("weather")]
+        public string Weather { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("offset_tenth_c")]
+        public int OffsetTenthC { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class TemperatureTimeOffset
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("time_of_day")]
+        public string TimeOfDay { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("offset_tenth_c")]
+        public int OffsetTenthC { get; set; } = default!;
 
     }
 
