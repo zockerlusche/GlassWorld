@@ -14,7 +14,7 @@ public sealed record MonoSound(float[] Samples, int SampleRate)
 
 /// <summary>
 /// WAV files and loudness for the base sound library (B8-4): reads 16-bit PCM and 32-bit float WAV
-/// (any channel count, mixed to mono), writes 16-bit PCM mono, and measures gated RMS loudness and
+/// (any channel count, mixed to mono), writes 16-bit PCM mono, and measures integrated loudness (LUFS, BS.1770) and
 /// peak. No external library; the same code serves the library tool and the tests.
 /// </summary>
 public static class Pcm
@@ -92,34 +92,81 @@ public static class Pcm
     }
 
     /// <summary>
-    /// Gated RMS loudness in dBFS: mean power of the 50 ms frames above <paramref name="gateDbfs"/>
-    /// (silence before and after a sound does not lower it). -120 if every frame is below the gate.
+    /// Integrated loudness in LUFS after ITU-R BS.1770 (TL #19678): K-weighting (high shelf plus RLB
+    /// high-pass, coefficients for any sample rate as in libebur128), 400 ms blocks overlapping by 75 %,
+    /// an absolute gate at <paramref name="gateLufs"/> and the relative gate 10 LU below the gated mean.
+    /// Low rumble hardly counts, so cutting it no longer makes normalising lift the hiss. A sound shorter
+    /// than one block is measured as one block. -120 for silence.
     /// </summary>
-    public static double LoudnessDbfs(MonoSound sound, double gateDbfs)
+    public static double Loudness(MonoSound sound, double gateLufs)
     {
         ArgumentNullException.ThrowIfNull(sound);
-        var frame = Math.Max(1, sound.SampleRate / 20);
-        var gate = Math.Pow(10, gateDbfs / 10);
-        double sum = 0;
-        var count = 0;
-        for (var start = 0; start < sound.Samples.Length; start += frame)
+        if (sound.Samples.Length == 0)
         {
-            var end = Math.Min(sound.Samples.Length, start + frame);
-            double power = 0;
-            for (var i = start; i < end; i++)
-            {
-                power += (double)sound.Samples[i] * sound.Samples[i];
-            }
-
-            power /= end - start;
-            if (power > gate)
-            {
-                sum += power;
-                count++;
-            }
+            return -120;
         }
 
-        return count == 0 ? -120 : 10 * Math.Log10(sum / count);
+        var weighted = KWeighted(sound);
+        var block = Math.Min(weighted.Length, (int)(0.4 * sound.SampleRate));
+        var step = Math.Max(1, block / 4);
+        var powers = new List<double>();
+        for (var start = 0; start + block <= weighted.Length; start += step)
+        {
+            double sum = 0;
+            for (var i = start; i < start + block; i++)
+            {
+                sum += weighted[i] * weighted[i];
+            }
+
+            powers.Add(sum / block);
+        }
+
+        static double Lufs(double power) => -0.691 + (10 * Math.Log10(power + 1e-30));
+        var absolute = powers.Where(p => Lufs(p) > gateLufs).ToList();
+        if (absolute.Count == 0)
+        {
+            return -120;
+        }
+
+        var relative = Lufs(absolute.Average()) - 10;
+        var gated = absolute.Where(p => Lufs(p) > relative).ToList();
+        return Lufs(gated.Average());
+    }
+
+    /// <summary>The K-weighted signal (BS.1770 stage 1 high shelf, stage 2 RLB high-pass).</summary>
+    private static double[] KWeighted(MonoSound sound)
+    {
+        var rate = (double)sound.SampleRate;
+        double k = Math.Tan(Math.PI * 1681.974450955533 / rate), q = 0.7071752369554196;
+        var vh = Math.Pow(10, 3.999843853973347 / 20);
+        var vb = Math.Pow(vh, 0.4996667741545416);
+        var a0 = 1 + (k / q) + (k * k);
+        var shelf = (B0: (vh + (vb * k / q) + (k * k)) / a0, B1: 2 * ((k * k) - vh) / a0, B2: (vh - (vb * k / q) + (k * k)) / a0, A1: 2 * ((k * k) - 1) / a0, A2: (1 - (k / q) + (k * k)) / a0);
+        k = Math.Tan(Math.PI * 38.13547087602444 / rate);
+        q = 0.5003270373238773;
+        a0 = 1 + (k / q) + (k * k);
+        var highPass = (B0: 1.0, B1: -2.0, B2: 1.0, A1: 2 * ((k * k) - 1) / a0, A2: (1 - (k / q) + (k * k)) / a0);
+        var x = new double[sound.Samples.Length];
+        for (var i = 0; i < x.Length; i++)
+        {
+            x[i] = sound.Samples[i];
+        }
+
+        return Biquad(Biquad(x, shelf), highPass);
+    }
+
+    private static double[] Biquad(double[] x, (double B0, double B1, double B2, double A1, double A2) f)
+    {
+        var y = new double[x.Length];
+        double x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+        for (var i = 0; i < x.Length; i++)
+        {
+            var value = (f.B0 * x[i]) + (f.B1 * x1) + (f.B2 * x2) - (f.A1 * y1) - (f.A2 * y2);
+            (x2, x1, y2, y1) = (x1, x[i], y1, value);
+            y[i] = value;
+        }
+
+        return y;
     }
 
     /// <summary>

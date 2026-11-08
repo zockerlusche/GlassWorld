@@ -7,6 +7,8 @@
 ollama_url = "http://127.0.0.1:11434"
 ollama_runtime_file = "../content/ai/ollama-runtime.json"
 ollama_install_dir = "../.local/ai-service/ollama"   # the game sets GW_AI_OLLAMA_INSTALL_DIR
+model_downloads_file = "../content/ai/model-downloads.json"  # B10 R4: models per tier
+model_store_dir = "../.local/ai-service/model-store"     # the game sets GW_AI_MODEL_STORE_DIR
 comfyui_url = "http://127.0.0.1:8188"
 
 # Decider and rule guard model (ADR-0001, ADR-0005). Pinned by digest prefix because tags can move.
@@ -50,6 +52,8 @@ dream_prompt = "dream/tell"              # B7 S6 dreams in the computing night
 dream_prompt_version = 1
 help_prompt = "help/suggest"            # B6 R8/R10 help suggestions for the player (F5238)
 help_prompt_version = 1
+conversation_prompt = "conversation/reply"  # B6 R13 talking with an inhabitant (A1342)
+conversation_prompt_version = 1
 builder_prompt = "builder/plan"     # D471 D3: building plan from kit parts
 builder_prompt_version = 1
 question_call_timeout_s = 60.0     # one model call (blocks the model like a decision, so <= the

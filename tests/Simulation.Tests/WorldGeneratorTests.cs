@@ -98,9 +98,9 @@ public sealed class WorldGeneratorTests
     /// be equal on Windows and Linux (CI). A deliberate change of generator or data updates them here.
     /// </summary>
     [Theory]
-    [InlineData(1UL, "f172c2be8f7feed1f13d8b8db64289de3ad693035590270b78cf62fbd25ae5e4")]
-    [InlineData(7UL, "69a39fe42892cc7bf22231f0ef698fde4a508560845d7a1b84b343946997f11b")]
-    [InlineData(2026UL, "1df5e9f74e635e959c7de1352beda8a58532f18c748cf8e513f1f89ef9badc14")]
+    [InlineData(1UL, "8894214a38873584f665dc6da84aad91cccd945ec529a24d27c641fe91ec41ea")]
+    [InlineData(7UL, "3905642f72ecf91cc3231f32615227a89f9b3461336518754aeda764c0642094")]
+    [InlineData(2026UL, "9055f1b11605ad882cdfc869c8a1bc8490796a1f7d4d37ec5655ed5dfe45a202")]
     public void GoldenWorldHashesAreStableAcrossMachines(ulong seed, string expected)
     {
         var actual = Generate(seed).Hash();
@@ -132,10 +132,13 @@ public sealed class WorldGeneratorTests
             }
         }
 
-        Assert.All(island.Check.Where(c => c.Id.StartsWith(MandatoryResult.ReportPrefix + "start_supply/", StringComparison.Ordinal)), c => Assert.True(c.Passed, c.Id));
+        Assert.All(island.Check.Where(c => c.Id.Contains("start_supply/", StringComparison.Ordinal)), c => Assert.True(c.Passed, c.Id));
     }
 
-    /// <summary>Where the supply cannot be placed (no fitting cell in the radius) the check reports it; the island still passes.</summary>
+    /// <summary>
+    /// The check reports what the poorest start finds; only a mandatory resource (drink) decides whether
+    /// the island passes (a failed one regenerates it), the others only report.
+    /// </summary>
     [Theory]
     [InlineData(1UL)]
     [InlineData(6UL)]
@@ -146,11 +149,42 @@ public sealed class WorldGeneratorTests
         Assert.True(island.Passed);
         foreach (var resource in Content.Value.WorldGen.Presets["start_island"].Start.Supply.Resources)
         {
-            var line = Assert.Single(island.Check, c => c.Id == $"{MandatoryResult.ReportPrefix}start_supply/{resource.Id}");
-            Assert.True(line.ReportOnly);
+            var mandatory = resource.Mandatory == true;
+            var line = Assert.Single(island.Check, c => c.Id == $"{(mandatory ? string.Empty : MandatoryResult.ReportPrefix)}start_supply/{resource.Id}");
+            Assert.Equal(!mandatory, line.ReportOnly);
+            Assert.True(!mandatory || line.Passed, $"{resource.Id} is mandatory and passed");
             Assert.Equal(island.Starts.Min(start => Supplied(island, start, resource)), line.Reachable);
             Assert.Equal(resource.Min, line.Min);
         }
+    }
+
+    /// <summary>
+    /// A drink supply that a start misses fails the attempt (mandatory, GW3 #120): the generator tries the
+    /// next sub-seeds and reports the island as failed if none serves every start. The mandatory water
+    /// check counts drinkable, not salty objects.
+    /// </summary>
+    [Fact]
+    public void AMissingDrinkSupplyFailsTheAttemptAndRegenerates()
+    {
+        var island = Generate(42);
+        var water = Assert.Single(island.Check, c => c.Id == "drinking_water");
+        var catalog = Content.Value.Objects;
+        Assert.Equal(island.Objects.Count(o => catalog.HasProperty(o.TypeId, "drinkable") && !catalog.HasProperty(o.TypeId, "salty")), water.Total);
+        Assert.True(water.Passed);
+
+        var content = ContentSet.Load(Path.Combine(TestData.Root, "content"));
+        var preset = content.WorldGen.Presets["start_island"];
+        var drink = preset.Start.Supply.Resources.Single(r => r.Id == "drink");
+        Assert.True(drink.Mandatory);
+        drink.Min = 100;
+        var starved = WorldGenerator.Generate(content.WorldGen, content.Objects, "start_island", 42);
+        Assert.False(starved.Passed);
+        Assert.Equal(preset.Start.MaxAttempts, starved.Attempts);
+        var line = Assert.Single(starved.Check, c => c.Id == "start_supply/drink");
+        Assert.False(line.Passed || line.ReportOnly);
+
+        // Deterministic: the same seed gives the same failed island.
+        Assert.Equal(starved.Hash(), WorldGenerator.Generate(content.WorldGen, content.Objects, "start_island", 42).Hash());
     }
 
     /// <summary>

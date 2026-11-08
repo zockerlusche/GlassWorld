@@ -94,12 +94,12 @@ public sealed class SoundLibrary
     }
 
     /// <summary>Gated loudness of a rendered sound (dBFS).</summary>
-    public double LoudnessOf(short[] pcm) => Pcm.LoudnessDbfs(ToSound(pcm), Loudness?.GateDbfs ?? -50);
+    public double LoudnessOf(short[] pcm) => Pcm.Loudness(ToSound(pcm), Loudness?.GateDbfs ?? -50);
 
     private short[] Normalise(short[] pcm, LibraryTarget target, double wanted)
     {
         var sound = ToSound(pcm);
-        var loudness = Pcm.LoudnessDbfs(sound, target.GateDbfs);
+        var loudness = Pcm.Loudness(sound, target.GateDbfs);
         if (loudness <= -119)
         {
             return pcm;

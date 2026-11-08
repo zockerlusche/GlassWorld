@@ -1,0 +1,23 @@
+{
+  "contract_version": "0.2",
+  "models": [
+    {
+      "id": "qwen3.5:9b",
+      "kind": "ollama",
+      "role": "language",
+      "tiers": [
+        "minimum",
+        "standard",
+        "comfort"
+      ],
+      "licence": "Apache-2.0",
+      "size_bytes": 6550825550,
+      "source_page": "https://ollama.com/library/qwen3.5:9b",
+      "purpose_key": "ui.setup.model_language",
+      "ollama": {
+        "name": "qwen3.5:9b",
+        "digest": "56671c2ab9385f9cfcb404638e32cd62d88e3501d44822208363c010179a3c90"
+      }
+    }
+  ]
+}

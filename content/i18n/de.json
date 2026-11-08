@@ -1541,6 +1541,10 @@
     {
       "key": "ui.card.talk_send",
       "text": "Sagen"
+    },
+    {
+      "key": "ui.setup.model_language",
+      "text": "Sprachmodell: Denken, Sprechen und Fragen der Bewohner"
     }
   ]
 }

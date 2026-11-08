@@ -454,6 +454,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("min")]
         public int Min { get; set; } = default!;
 
+        /// <summary>
+        /// If true, a start that misses this resource within the radius fails the generation attempt, which is then repeated with the next derived sub-seed (deterministic); the check line is start_supply/&lt;id&gt;. If false or absent, the line only reports (report/start_supply/&lt;id&gt;).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("mandatory")]
+        public bool? Mandatory { get; set; } = default!;
+
     }
 
     /// <summary>

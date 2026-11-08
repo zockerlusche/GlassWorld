@@ -118,7 +118,7 @@ public sealed class MurmurTests
         Assert.True(peak <= Settings.Peak + 0.01, $"peak {peak:0.00}");
 
         // Same level as the library one-shots (review #90): on the loudness target unless the peak limit caps it.
-        var loudness = Pcm.LoudnessDbfs(new MonoSound([.. pcm.Select(s => s / 32768f)], Voice.SampleRate), Settings.GateDbfs);
+        var loudness = Pcm.Loudness(new MonoSound([.. pcm.Select(s => s / 32768f)], Voice.SampleRate), Settings.GateDbfs);
         Assert.True(loudness <= Settings.LoudnessDbfs + 0.5, $"loudness {loudness:0.0} dBFS");
         Assert.True(loudness >= Settings.LoudnessDbfs - 0.5 || peak >= Settings.Peak - 0.01, $"loudness {loudness:0.0} dBFS, peak {peak:0.00}");
         var max = (Settings.Length.MaxSyllables * ((Settings.Syllable.DurationS * 1.5 / 0.3) + Settings.Consonant.DurationS + Settings.Syllable.PauseS)) + 0.1;

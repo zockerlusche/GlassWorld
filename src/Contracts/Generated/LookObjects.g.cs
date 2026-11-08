@@ -166,16 +166,27 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ObjectLookRest>))]
         public ObjectLookRest Rest { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("align")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ObjectLookAlign>))]
+        public ObjectLookAlign Align { get; set; } = default!;
+
         /// <summary>
-        /// Radius in metres (at size factor 1) over which rest lowest/highest samples the ground.
+        /// Radius in metres (at size factor 1) over which the object meets the ground: rest lowest/highest samples it, align ground fits the slope to it (for a long object: half its length along its local x axis).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("footprint_m")]
         public double FootprintM { get; set; } = default!;
 
+        /// <summary>
+        /// Half width in metres (at size factor 1) of an elongated footprint across its local x axis (a log); absent = round (footprint_m).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("footprint_width_m")]
+        public double? FootprintWidthM { get; set; } = default!;
+
     }
 
     /// <summary>
-    /// Which ground height the object stands on: centre (the ground under its position), lowest or highest ground within its footprint. A pool rests on the highest point, so its level water shows whole and its stone basin reaches down the slope instead of the slope burying it. Objects are never tilted to the slope.
+    /// Which ground height an upright object stands on: centre (the ground under its position), lowest or highest ground within its footprint. Objects that lie on the ground (align ground, ground_uphill) follow the slope instead and ignore it.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public enum ObjectLookRest
@@ -191,6 +202,27 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("highest")]
         Highest = 2,
+
+
+    }
+
+    /// <summary>
+    /// How an object meets the ground (D576): upright stands straight up on its rest height (trees, bushes, plants); ground lies on the ground and follows its slope (logs, stones), turned from its id towards the turn that fits the ground best; ground_uphill lies on the ground like ground with its local +x side facing uphill (a spring pool with its stones at the uphill side).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public enum ObjectLookAlign
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("upright")]
+        Upright = 0,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("ground")]
+        Ground = 1,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("ground_uphill")]
+        Ground_uphill = 2,
 
 
     }
@@ -216,6 +248,24 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("outline_width_m")]
         public double OutlineWidthM { get; set; } = default!;
+
+        /// <summary>
+        /// How far (metres) the underside of an object lying on the ground (align ground or ground_uphill) may float above or sink below the drawn ground within its footprint (D576, TL #19553). A lying object whose best fit is worse (for example across a rock wall) stands upright instead; the tests hold every object of the start island to it. Placeholder value.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("ground_tolerance_m")]
+        public double GroundToleranceM { get; set; } = default!;
+
+        /// <summary>
+        /// Turns a long lying object (a log) tries over half a circle when its own turn (from its id) does not fit the ground within half the tolerance; it keeps the best fitting one. Placeholder value.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("turn_tries")]
+        public int TurnTries { get; set; } = default!;
+
+        /// <summary>
+        /// Smallest footprint radius (metres) over which a lying object samples the ground, so even a tiny one finds the slope. Placeholder value.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("min_footprint_m")]
+        public double MinFootprintM { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("fallback")]
         public ObjectLookFallback Fallback { get; set; } = new ObjectLookFallback();
