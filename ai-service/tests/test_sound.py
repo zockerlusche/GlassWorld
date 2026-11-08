@@ -14,11 +14,12 @@ from typing import Any
 import httpx
 import pytest
 
-from conftest import TEST_HOST, TOKEN, FakeProbes
+from conftest import REFERENCE_PC, TEST_HOST, TOKEN, FakeProbes
 from glassworld_ai.app import create_app
 from glassworld_ai.config import Settings
 from glassworld_ai.decider.backends import MockDecider
 from glassworld_ai.jobs import JobFailedError
+from glassworld_ai.residency import HookDriver
 from glassworld_ai.sound import (
     GenerationSettings,
     MockSound,
@@ -160,3 +161,48 @@ def test_the_worker_never_loads_by_itself(tmp_path: Path) -> None:
     with pytest.raises(WorkerError):
         asyncio.run(worker.render({}, 1))
     assert not worker.running
+
+
+def test_the_mock_backend_changes_no_residency(settings: Settings, tmp_path: Path) -> None:
+    app = create_app(
+        settings.model_copy(update={"decider_backend": "mock", "sound_output_dir": tmp_path}),
+        allowed_hosts=frozenset({TEST_HOST}),
+        probes=FakeProbes(),
+        decider=MockDecider(),
+    )
+    assert app.state.moss_worker is None
+    assert app.state.planner.model_of("sound") is None  # a mock sound never unloads the LLM
+
+
+def test_the_moss_backend_loads_only_through_the_residency(
+    settings: Settings, tmp_path: Path
+) -> None:
+    app = create_app(
+        settings.model_copy(
+            update={
+                "decider_backend": "mock",
+                "sound_backend": "moss",
+                "sound_output_dir": tmp_path,
+                "moss_python": tmp_path / "python.exe",
+                "moss_model_dir": tmp_path,
+                "moss_code_dir": tmp_path,
+            }
+        ),
+        allowed_hosts=frozenset({TEST_HOST}),
+        probes=FakeProbes(),
+        hardware=REFERENCE_PC,
+        decider=MockDecider(),
+        transport=httpx.MockTransport(lambda request: httpx.Response(200, json={})),
+    )
+    worker = app.state.moss_worker
+    assert worker is not None
+    assert app.state.planner.model_of("sound") == "moss-sound"
+
+    async def scenario() -> None:
+        async with app.router.lifespan_context(app):
+            driver = app.state.residency._drivers["hook"]  # pyright: ignore[reportPrivateUsage]
+            assert isinstance(driver, HookDriver)
+            assert driver.on_load == worker.load and driver.on_unload == worker.unload
+            assert driver.alive("moss-sound") is False  # not started yet
+
+    asyncio.run(scenario())

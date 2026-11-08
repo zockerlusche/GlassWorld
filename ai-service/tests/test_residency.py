@@ -287,3 +287,32 @@ def test_warm_up_never_loads_past_the_budget(settings: Settings) -> None:
     asyncio.run(scenario())
     assert app.state.warm_up == "failed"  # budget 5632 < 6615: refused, not loaded anyway
     assert calls == []
+
+
+def test_a_hook_model_that_ended_by_itself_is_loaded_again() -> None:
+    """The sound worker may end on its own (timeout, crash): ensure starts it again (#79)."""
+    log: list[str] = []
+    running = {"snd": False}
+
+    async def load(model_id: str) -> None:
+        log.append(f"load {model_id}")
+        running[model_id] = True
+
+    async def unload(model_id: str) -> None:
+        log.append(f"unload {model_id}")
+        running[model_id] = False
+
+    hook = HookDriver(load, unload, is_alive=lambda m: running[m])
+    residency = Residency(
+        {"snd": Footprint("snd", "sound", "hook", 5000, 1.0, frozenset())}, 7680, {"hook": hook}
+    )
+
+    async def scenario() -> None:
+        await residency.ensure("snd")
+        await residency.ensure("snd")  # still running: nothing happens
+        running["snd"] = False  # the worker ended
+        await residency.ensure("snd")
+        await residency.release_all()  # service end: the worker is stopped
+
+    asyncio.run(scenario())
+    assert log == ["load snd", "load snd", "unload snd"]

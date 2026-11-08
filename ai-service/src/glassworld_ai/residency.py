@@ -150,6 +150,8 @@ class Residency:
         """Make `model_id` resident; unloads conflicting and least recently used models first."""
         async with self._lock:
             wanted = self._footprint(model_id)
+            if model_id in self._loaded and not self._still_loaded(wanted):
+                del self._loaded[model_id]  # e.g. the sound worker ended (timeout, crash)
             if model_id in self._loaded:
                 self._loaded[model_id] = self._clock()
                 return
@@ -166,6 +168,11 @@ class Residency:
                 await self._unload(oldest)
             await self._driver(wanted).load(model_id)
             self._loaded[model_id] = self._clock()
+
+    def _still_loaded(self, footprint: Footprint) -> bool:
+        driver = self._drivers.get(footprint.runtime)
+        alive = getattr(driver, "alive", None)
+        return bool(alive(footprint.model_id)) if callable(alive) else True
 
     async def release(self, model_id: str) -> None:
         """Unload a model now (e.g. the language model at night)."""
@@ -272,8 +279,14 @@ class HookDriver:
     on_load: Callable[[str], Awaitable[None]]
     on_unload: Callable[[str], Awaitable[None]]
 
+    is_alive: Callable[[str], bool] | None = None
+
     async def load(self, model_id: str) -> None:
         await self.on_load(model_id)
 
     async def unload(self, model_id: str) -> None:
         await self.on_unload(model_id)
+
+    def alive(self, model_id: str) -> bool:
+        """Is the model still in VRAM? (A worker process may have ended on its own.)"""
+        return self.is_alive(model_id) if self.is_alive is not None else True
