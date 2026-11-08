@@ -1,5 +1,6 @@
 using GlassWorld.Simulation.Decisions;
 using GlassWorld.Simulation.Inhabitants;
+using GlassWorld.Simulation.Inventions;
 using GlassWorld.Simulation.Objects;
 using GlassWorld.Simulation.Random;
 
@@ -46,7 +47,9 @@ public sealed record SaveState(
     IReadOnlyList<DecisionLogEntry> DecisionLog,
     string? WorldPreset = null,
     string? IslandHash = null,
-    IReadOnlyList<Map.Occurrence>? Occurrences = null)
+    IReadOnlyList<Map.Occurrence>? Occurrences = null,
+    InventionState? Inventions = null,
+    IReadOnlyList<ChronicleRecord>? Chronicle = null)
 {
     /// <summary>Favour, futile attempts and calls for help (B6); null in save games from before.</summary>
     public Player.PlayerState? Player { get; init; }
@@ -85,7 +88,9 @@ public static class StateCodec
             [.. host.Decisions.Log.Entries],
             host.Map?.Island.PresetId,
             host.Map?.IslandHash,
-            host.Map is null ? null : [.. host.Map.Occurrences])
+            host.Map is null ? null : [.. host.Map.Occurrences],
+            host.Inventions.Capture(),
+            [.. host.Chronicle.All])
         {
             Player = host.Player.Capture(),
         };
@@ -106,6 +111,14 @@ public static class StateCodec
             throw new InvalidDataException(
                 $"The island of this save game (preset '{state.WorldPreset}', hash {state.IslandHash[..12]}) differs from the island the current data generate ({host.Map?.IslandHash[..12] ?? "none"}): world data or generator changed since the save.");
         }
+
+        // Runtime types first: objects of invented types are restored right after.
+        if (state.Inventions is not null)
+        {
+            host.Inventions.Restore(state.Inventions);
+        }
+
+        host.Chronicle.Restore(state.Chronicle ?? []);
         foreach (var obj in state.Objects)
         {
             host.Objects.Restore(obj, state.NextObjectNumber);
@@ -148,14 +161,14 @@ public static class StateCodec
 }
 
 /// <summary>Everything needed to assemble a simulation around a world (content, decider settings, port, locale).</summary>
-public sealed class SimulationHostFactory(Content.ContentSet content, Contracts.DeciderSettings settings, IDecisionPort port, string displayLocale)
+public sealed class SimulationHostFactory(Content.ContentSet content, Contracts.DeciderSettings settings, IDecisionPort port, string displayLocale, IJobPort? jobPort = null)
 {
     /// <summary>The content.</summary>
     public Content.ContentSet Content { get; } = content;
 
     /// <summary>Assembles the systems around <paramref name="world"/>.</summary>
-    public SimulationHost Assemble(World world) => SimulationHost.Assemble(Content, settings, world, port, displayLocale);
+    public SimulationHost Assemble(World world) => Assemble(world, null);
 
     /// <summary>Assembles the systems around <paramref name="world"/>, on the island of the preset if one is given.</summary>
-    public SimulationHost Assemble(World world, string? worldPreset) => SimulationHost.Assemble(Content, settings, world, port, displayLocale, worldPreset);
+    public SimulationHost Assemble(World world, string? worldPreset) => SimulationHost.Assemble(Content, settings, world, port, displayLocale, worldPreset, jobPort);
 }

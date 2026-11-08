@@ -89,6 +89,9 @@ public sealed class InhabitantsSystem : IWorldSystem
     /// </summary>
     public IReadOnlyList<SequencedEvent> EventsSince(long seq) => [.. _history.Where(e => e.Seq > seq)];
 
+    /// <summary>Raised for every reported event, right away and in report order (chronicle, D471 D8).</summary>
+    public event Action<WorldEvent>? Reported;
+
     /// <summary>Adds an event; the per-tick list is cleared when the first event of a new tick arrives.</summary>
     public void Report(WorldEvent worldEvent)
     {
@@ -106,6 +109,8 @@ public sealed class InhabitantsSystem : IWorldSystem
         {
             _history.RemoveFirst();
         }
+
+        Reported?.Invoke(worldEvent);
     }
 
     /// <summary>

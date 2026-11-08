@@ -157,6 +157,10 @@
     {
       "pattern": "build/kit.json",
       "schema": "build-kit"
+    },
+    {
+      "pattern": "invention/settings.json",
+      "schema": "invention-settings"
     }
   ]
 }
