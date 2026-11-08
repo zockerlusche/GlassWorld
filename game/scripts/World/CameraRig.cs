@@ -63,8 +63,23 @@ public partial class CameraRig : Node3D
         Model.Follow(() => _figures().Where(f => f.Id == id).Select(f => ((double)f.Position.X, (double)f.Position.Z)).DefaultIfEmpty(Model.Target).First());
 
     /// <inheritdoc/>
+    public override void _Notification(int what)
+    {
+        // A rotate button released while the window had no focus (or swallowed by a GUI) never reaches
+        // the rig, so rotating stops whenever focus is lost.
+        if (what is (int)NotificationApplicationFocusOut or (int)NotificationWMWindowFocusOut)
+        {
+            _rotating = false;
+        }
+    }
+
+    /// <inheritdoc/>
     public override void _UnhandledInput(InputEvent @event)
     {
+        // Integration note (GameScreen): a left click is also the gift placement there. When the rig is
+        // wired into the game screen, left-click selection must be owned by one place (for example the
+        // game screen decides between gift placement and figure selection and calls the rig), so one
+        // click never does both.
         if (@event.IsActionPressed(ZoomInAction))
         {
             Model.Zoom(1);
