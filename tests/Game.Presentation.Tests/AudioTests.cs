@@ -20,8 +20,13 @@ public sealed class AudioTests
     [Fact]
     public void EveryActionOfTheVocabularyHasASound()
     {
-        var missing = VocabularyIds("actions.json").Where(id => Library.Value.ForAction(id) is null).ToList();
-        Assert.True(missing.Count == 0, "actions without sound: " + string.Join(", ", missing));
+        // Every action has an entry; null means silent on purpose (waiting and sleeping, Marcel W1643).
+        var mapped = Library.Value.Map.Actions.Select(a => a.Action).ToHashSet(StringComparer.Ordinal);
+        var missing = VocabularyIds("actions.json").Where(id => !mapped.Contains(id)).ToList();
+        Assert.True(missing.Count == 0, "actions without an entry: " + string.Join(", ", missing));
+        Assert.Null(Library.Value.ForAction("idle"));
+        Assert.Null(Library.Value.ForAction("sleep"));
+        Assert.NotNull(Library.Value.ForAction("drink"));
     }
 
     [Fact]

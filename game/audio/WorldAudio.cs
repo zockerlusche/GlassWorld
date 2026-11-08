@@ -60,6 +60,13 @@ public partial class WorldAudio : Node3D
             return false;
         }
 
+        // A limiter on the master bus (B8 R7): many sounds at once never clip (Marcel W1643: "grauenhaft").
+        var master = AudioServer.GetBusIndex(BusName(MixBusId.Master));
+        if (master >= 0 && !Enumerable.Range(0, AudioServer.GetBusEffectCount(master)).Any(i => AudioServer.GetBusEffect(master, i) is AudioEffectHardLimiter))
+        {
+            AudioServer.AddBusEffect(master, new AudioEffectHardLimiter { CeilingDb = -1f });
+        }
+
         _baseSounds = LoadBaseSounds();
         _inventionSounds = new InventionSounds(host.Inventions, host.Objects, _baseSounds, madeSounds);
         _useAction = host.Content.Inventions.Build.Settings.UseAction;
@@ -168,6 +175,15 @@ public partial class WorldAudio : Node3D
 
     /// <summary>Stops the music before the game quits (see <see cref="WorldMusic.Silence"/>).</summary>
     public void Silence() => _music?.Silence();
+
+    /// <summary>Smoke run only: the master bus has its limiter (B8 R7).</summary>
+    public static string LimiterSelfCheck()
+    {
+        var master = AudioServer.GetBusIndex(BusName(MixBusId.Master));
+        return master >= 0 && Enumerable.Range(0, AudioServer.GetBusEffectCount(master)).Any(i => AudioServer.GetBusEffect(master, i) is AudioEffectHardLimiter)
+            ? string.Empty
+            : "no limiter on the master bus";
+    }
 
     /// <summary>Smoke run only: the background music (B8 R6).</summary>
     public string MusicSelfCheck() => _music?.SelfCheck() ?? "music not set up";

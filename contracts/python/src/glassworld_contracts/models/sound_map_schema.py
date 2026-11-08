@@ -3,11 +3,21 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from . import common_schema
+
+type Sound = Annotated[
+    str,
+    Field(
+        ...,
+        description='Language-neutral sound id, e.g. step.grass; null = silent on purpose (waiting and sleeping make no sound, Marcel W1643).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*){1,3}$',
+    ),
+]
 
 
 class SoundForAction(BaseModel):
@@ -20,11 +30,9 @@ class SoundForAction(BaseModel):
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
-    sound: str = Field(
+    sound: Sound | None = Field(
         ...,
-        description='Language-neutral sound id, e.g. step.grass, animal.frog.call.',
-        max_length=64,
-        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*){1,3}$',
+        description='Language-neutral sound id, e.g. step.grass; null = silent on purpose (waiting and sleeping make no sound, Marcel W1643).',
     )
 
 

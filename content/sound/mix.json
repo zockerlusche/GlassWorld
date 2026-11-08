@@ -11,40 +11,40 @@
     },
     {
       "id": "music",
-      "volume_db": -8,
-      "max_voices": 2,
+      "volume_db": -14,
+      "max_voices": 1,
       "full_volume_m": 0,
       "silent_m": 0,
       "curve": "linear"
     },
     {
       "id": "ambience",
-      "volume_db": -6,
-      "max_voices": 6,
+      "volume_db": -60,
+      "max_voices": 2,
       "full_volume_m": 20,
       "silent_m": 120,
       "curve": "linear"
     },
     {
       "id": "animals",
-      "volume_db": -6,
-      "max_voices": 12,
+      "volume_db": -60,
+      "max_voices": 2,
       "full_volume_m": 4,
       "silent_m": 45,
       "curve": "smooth"
     },
     {
       "id": "voices",
-      "volume_db": -3,
-      "max_voices": 8,
+      "volume_db": -60,
+      "max_voices": 2,
       "full_volume_m": 3,
       "silent_m": 30,
       "curve": "smooth"
     },
     {
       "id": "effects",
-      "volume_db": -4,
-      "max_voices": 24,
+      "volume_db": -60,
+      "max_voices": 3,
       "full_volume_m": 3,
       "silent_m": 40,
       "curve": "smooth"
