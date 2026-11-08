@@ -100,6 +100,11 @@ def test_missing_nuget_package_is_red(tmp_path: Path) -> None:
         ("LGPL-2.1", "approval"),
         ("CC-BY-NC 4.0", "approval"),
         ("Proprietary", "not allowed"),
+        ("Proprietary (limited use)", "not allowed"),  # 'mit' inside 'limited' (review #51)
+        ("Commercial, permitted for internal use", "not allowed"),
+        ("Public Domain", "not allowed"),
+        ("Zlib", "not allowed"),
+        ("MIT-like custom terms", "not allowed"),
         ("MPL-2.0", "unmodified"),
     ],
 )
@@ -142,3 +147,62 @@ def test_names_with_siblings_and_children() -> None:
     assert {"njsonschema-codegeneration", "njsonschema-codegeneration-csharp"} <= keys
     assert {"sqlitepclraw-bundle-e-sqlite3", "sqlitepclraw-core", "sqlitepclraw-provider"} <= keys
     assert {"jinja2", "markupsafe"} <= keys
+
+
+@pytest.mark.parametrize(
+    "license_text",
+    [
+        "MIT (repository licence); model Apache-2.0 (D397)",
+        "MIT or Apache-2.0",
+        'CC0 1.0 (page licence field: "CC0", checked)',
+        "Zlib (approved by Marcel, F5265 = A)",
+        "SIL OFL 1.1 (unmodified, approved F5242; license text in `OFL.txt`)",
+    ],
+)
+def test_allowed_and_approved_texts_pass(tmp_path: Path, license_text: str) -> None:
+    root = make_repo(tmp_path, [("thing", license_text)], packages=["thing"])
+    assert CHECK.check(root) == []
+
+
+def test_a_tool_that_is_not_distributed_needs_no_approval(tmp_path: Path) -> None:
+    root = make_repo(tmp_path, [], packages=[])
+    table = (tmp_path / "LICENSES.md").read_text(encoding="utf-8")
+    table += "| Blender | 4.5 (not distributed) | tool | GPL-3.0-or-later, tool only | src | x |\n"
+    table += "| Shipped | 1 | lib | GPL-3.0, tool only | src | game |\n"
+    (tmp_path / "LICENSES.md").write_text(table, encoding="utf-8")
+    problems = CHECK.check(root)
+    assert len(problems) == 1 and problems[0].startswith("Shipped")
+
+
+def test_sound_files_map_by_their_recorded_origin(tmp_path: Path) -> None:
+    root = make_repo(
+        tmp_path,
+        [("Kenney Impact Sounds - steps", "CC0 1.0")],
+        assets={"game/assets/sound/base/a.wav": "x", "game/assets/sound/base/b.wav": "x"},
+    )
+    library = {
+        "origins": [{"id": "kenney"}, {"id": "synth"}],
+        "sounds": [
+            {"origin": "kenney", "files": [{"file": "a.wav"}]},
+            {"origin": "synth", "files": [{"file": "b.wav"}]},
+        ],
+    }
+    (root / "content/sound").mkdir(parents=True)
+    (root / "content/sound/library.json").write_text(json.dumps(library), encoding="utf-8")
+    config = {
+        "rules": [],
+        "libraries": [
+            {
+                "file": "content/sound/library.json",
+                "folder": "game/assets/sound/base",
+                "origins": {"kenney": "Kenney Impact Sounds", "synth": "own"},
+            }
+        ],
+    }
+    (root / "tools/licenses/assets.json").write_text(json.dumps(config), encoding="utf-8")
+    assert CHECK.check(root) == []
+    config["libraries"][0]["origins"].pop("synth")
+    (root / "tools/licenses/assets.json").write_text(json.dumps(config), encoding="utf-8")
+    problems = CHECK.check(root)
+    assert any("origin 'synth'" in p for p in problems)
+    assert any("b.wav" in p for p in problems)

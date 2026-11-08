@@ -27,19 +27,19 @@ import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 
-ALLOWED = (
-    "apache-2.0",
-    "mit",
-    "cc0",
-    "bsd-2-clause",
-    "bsd-3-clause",
-    "psf-2.0",
-    "isc",
-    "mpl-2.0",
-    "public domain",
-)
+# Licence ids allowed without approval (B2482), compared as WHOLE tokens (review GW1 #51:
+# a substring test let 'Proprietary (limited use)' through via 'mit' inside other words).
+ALLOWED = frozenset(
+    {"apache-2.0", "mit", "cc0", "cc0-1.0", "bsd-2-clause", "bsd-3-clause", "psf-2.0", "isc",
+     "mpl-2.0"}
+)  # fmt: skip
+# Words that may stand next to a licence id in the licence cell (scope, not a licence).
+SCOPE_WORDS = frozenset(
+    {"1.0", "and", "or", "model", "models", "clips", "code", "weights", "data", "unmodified"}
+)  # fmt: skip
 NEEDS_APPROVAL = ("gpl", "agpl", "lgpl", "non-commercial", "noncommercial", "cc-by-nc", "unknown")
-APPROVAL = re.compile(r"approved\s+F\d+", re.IGNORECASE)
+APPROVAL = re.compile(r"\bapproved\b[^;]{0,40}?\bF\d+", re.IGNORECASE)
+TOOL_ONLY = "tool only"  # an authoring tool that is never distributed (e.g. Blender)
 ASSET_SUFFIXES = {
     ".glb", ".gltf", ".fbx", ".obj", ".blend",
     ".ttf", ".otf", ".woff", ".woff2",
@@ -53,6 +53,7 @@ class Row:
     name: str
     license: str
     keys: frozenset[str]  # normalized names this row covers
+    distributed: bool = True  # False when the row says 'not distributed' (authoring tools)
 
 
 def normalize(name: str) -> str:
@@ -86,19 +87,30 @@ def parse_rows(text: str) -> list[Row]:
             stem = base.strip().rsplit("_", 1)[0].rsplit(".", 1)[0]
             for part in extra.group(1).split(","):
                 keys.add(normalize(f"{stem}.{part.strip()}"))
-        rows.append(Row(name, license_text, frozenset(keys)))
+        distributed = "not distributed" not in line.lower()
+        rows.append(Row(name, license_text, frozenset(keys), distributed))
     return rows
 
 
-def license_problem(row: Row) -> str | None:
+def licence_tokens(text: str) -> list[str]:
+    """Licence cell without explanations (parentheses, quotes, backticks) as lower-case tokens."""
+    plain = re.sub(r"\([^)]*\)|`[^`]*`|\"[^\"]*\"", " ", text.lower())
+    return re.findall(r"[a-z0-9][a-z0-9.\-]*[a-z0-9]|[a-z0-9]", plain)
+
+
+def license_problem(row: Row, *, distributed: bool = True) -> str | None:
     text = row.license.lower()
     if APPROVAL.search(row.license):
         return None
+    if not distributed and TOOL_ONLY in text:
+        return None  # never shipped: the licence does not reach the game (row says so)
     if any(bad in text for bad in NEEDS_APPROVAL):
         return (
             f"{row.name}: license '{row.license}' needs Marcel's approval (write 'approved F<nr>')"
         )
-    if not any(ok in text for ok in ALLOWED):
+    tokens = licence_tokens(row.license)
+    others = [t for t in tokens if t not in ALLOWED and t not in SCOPE_WORDS]
+    if not any(t in ALLOWED for t in tokens) or others:
         return f"{row.name}: license '{row.license}' is not allowed by B2482"
     if "mpl-2.0" in text and "unmodified" not in text:
         return f"{row.name}: MPL-2.0 only for unmodified files (write 'unmodified')"
@@ -156,7 +168,7 @@ def check(root: Path, *, nuget_assets: bool = False) -> list[str]:
     rows = parse_rows((root / "LICENSES.md").read_text(encoding="utf-8"))
     covered = {key for row in rows for key in row.keys}
     names_lower = [row.name.lower() for row in rows]
-    problems = [p for p in (license_problem(r) for r in rows) if p]
+    problems = [p for p in (license_problem(r, distributed=r.distributed) for r in rows) if p]
 
     for package in uv_packages(root):
         if normalize(package) not in covered:
@@ -178,10 +190,37 @@ def check(root: Path, *, nuget_assets: bool = False) -> list[str]:
         entry = rule["entry"]
         if entry != "own" and not any(n.startswith(entry.lower()) for n in names_lower):
             problems.append(f"assets.json: rule {rule['glob']} names '{entry}', not in LICENSES.md")
+    by_library = library_assets(root, rules_file, names_lower, problems)
     for path in asset_files(root):
+        if path in by_library:
+            continue
         if not any(fnmatch.fnmatchcase(path, rule["glob"]) for rule in rules):
             problems.append(f"asset '{path}' matches no rule in tools/licenses/assets.json")
     return problems
+
+
+def library_assets(
+    root: Path, rules_file: Path, names_lower: list[str], problems: list[str]
+) -> set[str]:
+    """Assets whose source is recorded per file in a data library (e.g. the base sounds, one
+    folder from several sources): each file's origin must map to a LICENSES.md row."""
+    covered: set[str] = set()
+    config = json.loads(rules_file.read_text(encoding="utf-8")).get("libraries", [])
+    for lib in config:
+        data = json.loads((root / lib["file"]).read_text(encoding="utf-8"))
+        rows_by_origin: dict[str, str] = lib["origins"]
+        for origin in data["origins"]:
+            entry = rows_by_origin.get(origin["id"])
+            if entry is None:
+                problems.append(f"{lib['file']}: origin '{origin['id']}' has no LICENSES.md row")
+            elif entry != "own" and not any(n.startswith(entry.lower()) for n in names_lower):
+                problems.append(f"{lib['file']}: origin row '{entry}' not in LICENSES.md")
+        for sound in data["sounds"]:
+            if sound["origin"] not in rows_by_origin:
+                continue
+            for item in sound["files"]:
+                covered.add(f"{lib['folder']}/{item['file']}")
+    return covered
 
 
 def main(argv: list[str] | None = None) -> int:

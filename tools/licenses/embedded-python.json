@@ -1,0 +1,19 @@
+{
+  "description": "Every DLL and extension module of the embedded Python (B10-S2) must match a pattern here; the row is the start of its LICENSES.md row name (review GW1 #51). tools/package_ai_service.py checks this after trimming.",
+  "files": {
+    "python3.dll": "CPython (embedded",
+    "python312.dll": "CPython (embedded",
+    "libcrypto-3-x64.dll": "OpenSSL (in the embedded Python)",
+    "libssl-3-x64.dll": "OpenSSL (in the embedded Python)",
+    "_ssl.pyd": "OpenSSL (in the embedded Python)",
+    "_hashlib.pyd": "OpenSSL (in the embedded Python)",
+    "libffi-8.dll": "libffi (in the embedded Python)",
+    "_ctypes.pyd": "libffi (in the embedded Python)",
+    "pyexpat.pyd": "expat (in the embedded Python)",
+    "_elementtree.pyd": "expat (in the embedded Python)",
+    "_decimal.pyd": "mpdecimal (in the embedded Python)",
+    "vcruntime140.dll": "Microsoft Visual C++ runtime (in the embedded Python)",
+    "vcruntime140_1.dll": "Microsoft Visual C++ runtime (in the embedded Python)",
+    "*.pyd": "CPython (embedded"
+  }
+}
