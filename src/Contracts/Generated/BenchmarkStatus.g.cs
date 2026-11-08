@@ -292,6 +292,20 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("habits")]
         public System.Collections.Generic.ICollection<Habit> Habits { get; set; } = new System.Collections.ObjectModel.Collection<Habit>();
 
+        /// <summary>
+        /// What the inhabitant wears (B2540), one part per slot at most. Optional until the core sends it (absent = unknown).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("worn")]
+        public System.Collections.Generic.ICollection<WornItem>? Worn { get; set; } = default!;
+
+        /// <summary>
+        /// Temperature as the inhabitant feels it (weather, height, clothing; computed by the core, B2540), or null without weather. Optional until the core sends it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("felt_temperature_c")]
+        public double? FeltTemperatureC { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -735,6 +749,30 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("en")]
         public string En { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// One worn part (B2540): its slot, its type and what the inhabitant BELIEVES about it (beliefs, not the truth).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class WornItem
+    {
+
+        /// <summary>
+        /// Slot (vocabulary slot, e.g. body, legs, feet, head, over).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("slot")]
+        public string Slot { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("type_id")]
+        public string TypeId { get; set; } = default!;
+
+        /// <summary>
+        /// Properties the inhabitant believes the part has (e.g. warming, water_repellent).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("properties")]
+        public System.Collections.Generic.ICollection<string> Properties { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
     }
 
