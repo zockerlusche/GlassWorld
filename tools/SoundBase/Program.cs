@@ -54,7 +54,7 @@ foreach (var entry in selection["sounds"]!.AsArray())
         // whose noise floor would end high get a gentle noise gate first (and one-shots their tails trimmed again).
         double? floorBefore = sound.Seconds >= 1.0 ? Pcm.NoiseFloorDbfs(sound) : null; // short sounds: only the sound itself
         sound = new MonoSound(Cleaning.HighPass(sound.Samples, sound.SampleRate, 60), sound.SampleRate);
-        var gain = wanted - Pcm.LoudnessDbfs(sound, gate);
+        var gain = wanted - Pcm.Loudness(sound, gate);
         var cleaned = gain > cleanGain || floorBefore + gain > cleanFloor;
         if (cleaned)
         {
@@ -71,7 +71,7 @@ foreach (var entry in selection["sounds"]!.AsArray())
         File.WriteAllBytes(Path.Combine(outDir, name), bytes);
         var back = Pcm.ReadWav(bytes);
         double? floorAfter = back.Seconds >= 1.0 ? Pcm.NoiseFloorDbfs(back) : null;
-        Console.WriteLine($"{name,-32} {back.Seconds,5:0.00} s  loud {Pcm.LoudnessDbfs(back, gate),6:0.0}  peak {Pcm.PeakDbfs(back),6:0.0}  gain {gain,6:0.0}  floor {floorBefore?.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) ?? "-",6} -> {floorAfter?.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) ?? "-",6}{(cleaned ? "  cleaned" : string.Empty)}");
+        Console.WriteLine($"{name,-32} {back.Seconds,5:0.00} s  loud {Pcm.Loudness(back, gate),6:0.0}  peak {Pcm.PeakDbfs(back),6:0.0}  gain {gain,6:0.0}  floor {floorBefore?.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) ?? "-",6} -> {floorAfter?.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) ?? "-",6}{(cleaned ? "  cleaned" : string.Empty)}");
         files.Add(new JsonObject
         {
             ["file"] = name,
@@ -122,18 +122,18 @@ return 0;
 // the loudness is brought back. A file that still peaks too high is scaled down as a last step.
 static MonoSound Normalise(MonoSound sound, double wanted, double gate, double peakMax)
 {
-    var samples = Scale(sound.Samples, wanted - Pcm.LoudnessDbfs(sound, gate));
+    var samples = Scale(sound.Samples, wanted - Pcm.Loudness(sound, gate));
     for (var pass = 0; pass < 12 && PeakDb(samples) > peakMax + 0.05; pass++)
     {
         samples = Limit(samples, sound.SampleRate, peakMax - 0.3);
-        samples = Scale(samples, wanted - Pcm.LoudnessDbfs(new MonoSound(samples, sound.SampleRate), gate));
+        samples = Scale(samples, wanted - Pcm.Loudness(new MonoSound(samples, sound.SampleRate), gate));
     }
 
     // The gate decides which frames count: after a big gain change quiet frames cross it, so measure
     // again and correct a few times until the gated loudness sits on the target (action.drop: -18.2).
     for (var pass = 0; pass < 6; pass++)
     {
-        var off = wanted - Pcm.LoudnessDbfs(new MonoSound(samples, sound.SampleRate), gate);
+        var off = wanted - Pcm.Loudness(new MonoSound(samples, sound.SampleRate), gate);
         if (Math.Abs(off) < 0.05)
         {
             break;

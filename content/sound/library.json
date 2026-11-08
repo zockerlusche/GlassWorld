@@ -72,7 +72,7 @@
         {
           "file": "action.combine.wav",
           "source": "r3/action.combine.wav",
-          "sha256": "7f782342e604502599d701a57f43f947291bc678b019d806a095c16fa496d0a6",
+          "sha256": "cfb67300ff69e7c82531cc91d0ed615d373327ea32e271760ce9396a4013e2ba",
           "prompt": "Hands fitting a small stone onto a wooden stick, one soft short knock, close, quiet, no noise, no other sounds.",
           "seed": 521,
           "noise_floor_dbfs": null,
@@ -97,7 +97,7 @@
         {
           "file": "action.drink.wav",
           "source": "https://opengameart.org/content/liquid-bottle-drink-set",
-          "sha256": "1355322f820c318bd3f07729ced2626f55d76808926ab1ead1d88b18c80d278c",
+          "sha256": "5ce71c1d55e96d6f0b38d9f53d23643bfdb22d9d2e71cb80f3772af873d28c21",
           "prompt": null,
           "seed": null,
           "noise_floor_dbfs": null,
@@ -121,7 +121,7 @@
         {
           "file": "action.drop.wav",
           "source": "r3/action.drop.wav",
-          "sha256": "923397c225096c982ae179edd5c974c72471bed2d0d5afcf08fedb5a3f177621",
+          "sha256": "3e024468a59063624ccc06c30807e9bc17c952340dc8dc5616d836ef9d5db6b4",
           "prompt": "A heavy stone placed on a grassy ground, one short low muffled thump, close, no other sounds.",
           "seed": 531,
           "noise_floor_dbfs": null,
@@ -147,10 +147,10 @@
         {
           "file": "action.eat.wav",
           "source": "https://bigsoundbank.com/apple-crunched-2-s1114.html",
-          "sha256": "85e1ea651b3c6ae19d75b23822bef08918489680c0813d4bd3c3294bfe8041de",
+          "sha256": "c4f170f519fe36b3eb35cb4db9bd190e6175631b4d96a904ae41c75f98c98975",
           "prompt": null,
           "seed": null,
-          "noise_floor_dbfs": -46.4,
+          "noise_floor_dbfs": -57,
           "cleaned": true
         }
       ]
@@ -172,10 +172,10 @@
         {
           "file": "action.inspect.wav",
           "source": "r2/action.inspect__B.wav",
-          "sha256": "b4ca57e02d3ded84132c7e260d44ae09db5821390447b4e36631befb04c875ee",
+          "sha256": "8918465dc90146bb417bbb70661b2af4dcd5e35a8ea850bab24cafc201a64bcd",
           "prompt": "Hands gently turning a small leaf, faint soft rustle, very quiet, close, no other sounds.",
           "seed": 125,
-          "noise_floor_dbfs": -36.5,
+          "noise_floor_dbfs": -39.4,
           "cleaned": true
         }
       ]
@@ -196,7 +196,7 @@
         {
           "file": "action.pick_up.wav",
           "source": "Audio/impactSoft_medium_000.ogg",
-          "sha256": "4b3073ec55d7001e6cb03804dc85d96902687a865bc985dd2a732ee4eda3e1bf",
+          "sha256": "ef1a3ca174bb7519db45e602c8c0803681c9c74690eff28fdc0031735bc61fd6",
           "prompt": null,
           "seed": null,
           "noise_floor_dbfs": null,
@@ -221,10 +221,10 @@
         {
           "file": "action.rustle.wav",
           "source": "action.rustle.wav",
-          "sha256": "905e4c50855309febe996990cbd521a66539bc6a7300cc57e80fbad75e2f2ae7",
+          "sha256": "e13c8a0a789f8d6aa721d38195f2132ede16c40bd87232b73e74fa7e74cb978f",
           "prompt": "A person brushing through dry grass, short rustle, close, calm, no other sounds.",
           "seed": 10,
-          "noise_floor_dbfs": -24.8,
+          "noise_floor_dbfs": -28,
           "cleaned": true
         }
       ]
@@ -243,7 +243,7 @@
         {
           "file": "action.talk_to.wav",
           "source": "r3/action.talk_to.wav",
-          "sha256": "3fdaefc9fd2c573278b0bdabf4408c5b89ef1ee2df70c697e41fc926e23996db",
+          "sha256": "7085965b06c316575f98ba2ee4d35762dfe99cd03208f33cda47a9380659e2d8",
           "prompt": "A short soft friendly hum of a person, like \u0027mhm\u0027, very quiet, close, no words, no other sounds.",
           "seed": 551,
           "noise_floor_dbfs": null,
@@ -267,10 +267,10 @@
         {
           "file": "ambience.leaves.wav",
           "source": "ambience.leaves.wav",
-          "sha256": "331120c18bc52fcd5e2ac879ea7a14d82f558e7894af91677e2b2425bea2e688",
+          "sha256": "ceef6affe95054ab8ee212e5c3690c9f02692c125f95c42438de463dd217eab5",
           "prompt": "Leaves rustling in the treetops in a light breeze, forest, calm, no birds, no voices, no music.",
           "seed": 8,
-          "noise_floor_dbfs": -23.9,
+          "noise_floor_dbfs": -26.7,
           "cleaned": true
         }
       ]
@@ -295,10 +295,10 @@
         {
           "file": "ambience.stream.wav",
           "source": "ambience.stream.wav",
-          "sha256": "b52f96dc1e9f6d6adafd87691e0050fa5a771e876e7de9b4491cf797df8a9e3a",
+          "sha256": "5fd905f12d65c7e8395160c3fe3d98847302b03ad2247758eaf5558361cf6718",
           "prompt": "A small clear creek babbling over pebbles, close, calm, steady, no voices, no music.",
           "seed": 8,
-          "noise_floor_dbfs": -25.6,
+          "noise_floor_dbfs": -28.2,
           "cleaned": true
         }
       ]
@@ -319,10 +319,10 @@
         {
           "file": "ambience.swamp.wav",
           "source": "r3/ambience.swamp.wav",
-          "sha256": "340ed0a628380edcb23daba2c44a6681373ad64247c9e42d227eacc8e7b91f4d",
+          "sha256": "cf0b3eceaf59f6059020898cb6e3ea7a7d274392897f0b490f9bf177d342c9b0",
           "prompt": "Quiet marsh in daylight, gentle bubbling water and insects, open air, no reverb, no echo, continuous.",
           "seed": 313,
-          "noise_floor_dbfs": -23.4,
+          "noise_floor_dbfs": -25.2,
           "cleaned": true
         }
       ]
@@ -345,19 +345,19 @@
         {
           "file": "ambience.waves_0.wav",
           "source": "ambience.waves.wav",
-          "sha256": "0141bfe6b647b2d577768844bf8db17d8251f533ca8a209c3cc9c3064a9178ee",
+          "sha256": "f76e5c7a99365d1096b7d1c657d1588eb3314f98615c71876f749773d936d0a9",
           "prompt": "Gentle ocean waves rolling onto a sandy beach, calm, steady, no wind, no voices, no music.",
           "seed": 8,
-          "noise_floor_dbfs": -39.5,
+          "noise_floor_dbfs": -43.6,
           "cleaned": true
         },
         {
           "file": "ambience.waves_1.wav",
           "source": "r2/ambience.waves__B.wav",
-          "sha256": "b8cbae459cd51283c6da7169bb807ce632583501c6914b9e0085d43deff5e8ba",
+          "sha256": "d20d754f231de242de2d154092166f8a78b07bc2cf72c82f8356a4ede04e61ee",
           "prompt": "Calm sea, small waves softly washing onto a sandy beach, continuous, no other sounds.",
           "seed": 105,
-          "noise_floor_dbfs": -40.4,
+          "noise_floor_dbfs": -43.9,
           "cleaned": true
         }
       ]
@@ -380,10 +380,10 @@
         {
           "file": "ambience.wind.wav",
           "source": "r2/ambience.wind__A.wav",
-          "sha256": "e90d3bc602e0f06e019b0a2c118e0688e87102a08cbc0e5350d164c47c675a29",
+          "sha256": "7f5f01a031026f61b59239619bcecd8222894e0fc6a8ada9ee7d41e75a604aea",
           "prompt": "Soft wind blowing over an open grassy meadow, gentle gusts, calm, no voices, no music.",
           "seed": 8,
-          "noise_floor_dbfs": -54.8,
+          "noise_floor_dbfs": -55,
           "cleaned": true
         }
       ]
@@ -404,7 +404,7 @@
         {
           "file": "animal.bee.buzz.wav",
           "source": "https://bigsoundbank.com/solitary-bees-or-flies-s0101.html",
-          "sha256": "a3fe8207a116a557fd67ff2ca7c903866f5150488d96ef083a067f3eabe17129",
+          "sha256": "6de97c2c2059f6c9cf74c4ae80c2986fd29f116e63fe6e7b7ab002ec6e278af7",
           "prompt": null,
           "seed": null,
           "noise_floor_dbfs": null,
@@ -426,7 +426,7 @@
         {
           "file": "animal.butterfly.wings.wav",
           "source": "r4/animal.butterfly.wings.wav",
-          "sha256": "172d7c767b7db8a460343d6102f9ef98dc350faf1b9987d929000e7062efd697",
+          "sha256": "5719b908ecf491c2e71974669ce58f34e2d40d4759f20aa989a255560df83709",
           "prompt": "Delicate quick fluttering of tiny thin wings passing by, light and airy, high pitched, no bass, no other sounds.",
           "seed": 721,
           "noise_floor_dbfs": null,
@@ -450,7 +450,7 @@
         {
           "file": "animal.crab.click.wav",
           "source": "r4/animal.crab.click.wav",
-          "sha256": "a27e2c3e0ecb1c253517cc2e1588852c13bd581c9d4a3bf60448363f91f56884",
+          "sha256": "fac52363bc303238d476de3e5d2c289d2465eb4e3d4da148097f83d8486cedac",
           "prompt": "A little crab scuttling over a flat stone, quick tiny dry ticking steps, close, no other sounds.",
           "seed": 731,
           "noise_floor_dbfs": null,
@@ -474,7 +474,7 @@
         {
           "file": "animal.firefly.shimmer.wav",
           "source": "r3/animal.firefly.shimmer.wav",
-          "sha256": "ab00679d8e195fb5f773b9c9d0977b880275988a685d8476dc78ef8424176dcc",
+          "sha256": "51006149a61894bd7cdae44ab287a574801b6a298ad905810775cab93994c31f",
           "prompt": "A very faint soft high shimmering tinkle, like a tiny glint of light, very quiet, calm, no other sounds.",
           "seed": 590,
           "noise_floor_dbfs": null,
@@ -498,7 +498,7 @@
         {
           "file": "animal.fish.splash.wav",
           "source": "https://bigsoundbank.com/splash-small-6-s1534.html",
-          "sha256": "e1c9749eafa6f2053ea66bc053584bda7886d2d0a5808c6cb06f0097c7fe44ee",
+          "sha256": "f8db085dda0fd6322d5363199c28ec49724f4e2f63bbf19dc938247a419da21a",
           "prompt": null,
           "seed": null,
           "noise_floor_dbfs": null,
@@ -522,10 +522,10 @@
         {
           "file": "animal.frog.croak.wav",
           "source": "https://bigsoundbank.com/one-frog-s0819.html",
-          "sha256": "8824c28808bc6bc6184484068c8d30bf80ba03ae450a6b9b5f8837b8c13a45df",
+          "sha256": "f9bb8f63a10be0238702693c23bac98c2d24f255412f003e7988ff63934142c6",
           "prompt": null,
           "seed": null,
-          "noise_floor_dbfs": -53.5,
+          "noise_floor_dbfs": -54.2,
           "cleaned": true
         }
       ]
@@ -545,7 +545,7 @@
         {
           "file": "animal.goat.bleat.wav",
           "source": "https://bigsoundbank.com/bleating-goat-1-s0279.html",
-          "sha256": "b522d0c78a2ed03c4ffc61b7a645403bc02ee7804d7cabee1796199a1be7bd4b",
+          "sha256": "3f3298b4bbc4d2e6f3b3aae5d0090c638be4004bf94398031c62b2845ccdffd2",
           "prompt": null,
           "seed": null,
           "noise_floor_dbfs": null,
@@ -570,19 +570,19 @@
         {
           "file": "animal.gull.call_0.wav",
           "source": "animal.gull.call.wav",
-          "sha256": "1d811bf71ea4a952fcb3dfc932445c49ee77c1c2ba20aebbb3d5949b67cbf51b",
+          "sha256": "ff8822c30566c735314b09769a3f55256dee9013dc46536e02b7a5be20d36e43",
           "prompt": "A single seagull call at a quiet beach, no other sounds.",
           "seed": 8,
-          "noise_floor_dbfs": -48.9,
+          "noise_floor_dbfs": -53.9,
           "cleaned": true
         },
         {
           "file": "animal.gull.call_1.wav",
           "source": "r2/animal.gull.call__B.wav",
-          "sha256": "03ae0e593e68ce086b5948aba71f204b08abe9e59d91ece611ab475c9379aeef",
+          "sha256": "5cbce97787a770c3f2585ee2e6402f4a89491e3e0af1876a349b3e4d0d9c80e3",
           "prompt": "A single seagull calling at the seaside, natural recording, no other sounds.",
           "seed": 107,
-          "noise_floor_dbfs": -62.4,
+          "noise_floor_dbfs": -65.3,
           "cleaned": true
         }
       ]
@@ -602,7 +602,7 @@
         {
           "file": "animal.owl.hoot.wav",
           "source": "https://bigsoundbank.com/tawny-owl-3-s3459.html",
-          "sha256": "eeb185ba2175282065866ea44238804650ed31db6397b911580c6cf1cee739f8",
+          "sha256": "dc8b93f95de93b9d7775308e602ad306a43a2269b2abbb14a26bfec8a48ae903",
           "prompt": null,
           "seed": null,
           "noise_floor_dbfs": null,
@@ -627,46 +627,46 @@
         {
           "file": "animal.songbird.song_0.wav",
           "source": "animal.songbird.song.wav",
-          "sha256": "45b3de4d46110e3001e62d6323c7cfdf4c961c2fd7132792b381f5aff45cc41f",
+          "sha256": "7d65eba787b1fa5416212c394f9b7a77c26b61be59389b0afa702bb967729838",
           "prompt": "A small songbird singing one short melodic phrase, outdoors, calm, no other sounds.",
           "seed": 8,
-          "noise_floor_dbfs": -44.3,
+          "noise_floor_dbfs": -48.6,
           "cleaned": true
         },
         {
           "file": "animal.songbird.song_1.wav",
           "source": "r2/animal.songbird.song__B.wav",
-          "sha256": "e74db61eacec18f2d54f048f668b81e54634d0f4677552d93b2b99bafb7c8d0e",
+          "sha256": "685bce497276e26bde9e728891f8655fd6bea3bda648985961021703e5395ef3",
           "prompt": "A small songbird singing a short cheerful melody in a quiet garden, natural recording.",
           "seed": 108,
-          "noise_floor_dbfs": -36.5,
+          "noise_floor_dbfs": -39.4,
           "cleaned": true
         },
         {
           "file": "animal.songbird.song_2.wav",
           "source": "birdsong/songbird_1.wav",
-          "sha256": "a22c30e5ed9f4dd7ad60d8d22af4a5dc66321fd4cc65bb5e306bccba9692ac11",
+          "sha256": "338a7f3fb080a3db303dc6862fb0d516fcfeeef2ed42af257b01b88c47e1cff9",
           "prompt": "A small songbird singing a short cheerful melody in a quiet garden, natural recording.",
           "seed": 151,
-          "noise_floor_dbfs": -35,
+          "noise_floor_dbfs": -38.4,
           "cleaned": true
         },
         {
           "file": "animal.songbird.song_3.wav",
           "source": "birdsong/songbird_2.wav",
-          "sha256": "5bd70526ea95f15b934832cd326a22bb141b4beae758bae24e0ebec9a23baac8",
+          "sha256": "5feddb1615d4d3e5812ed1b94d3253e83cb7f86fc38a8d85c0afef4a203d4c68",
           "prompt": "A small songbird singing a short cheerful melody in a quiet garden, natural recording.",
           "seed": 152,
-          "noise_floor_dbfs": -30.1,
+          "noise_floor_dbfs": -33.7,
           "cleaned": true
         },
         {
           "file": "animal.songbird.song_4.wav",
           "source": "birdsong/songbird_3.wav",
-          "sha256": "ed5bc24921932500eb0f8bcb999814b8785c4c97834cabd50c66d793fc08ae24",
+          "sha256": "86421840bbb48a3ec796d4c1f1bb3174f5f8b8a7812c9fb3bc2d435114d23842",
           "prompt": "A small songbird singing a short cheerful melody in a quiet garden, natural recording.",
           "seed": 153,
-          "noise_floor_dbfs": -40.6,
+          "noise_floor_dbfs": -43.8,
           "cleaned": true
         }
       ]
@@ -687,10 +687,10 @@
         {
           "file": "animal.squirrel.chatter.wav",
           "source": "r3/animal.squirrel.chatter.wav",
-          "sha256": "638f3d7e1566ccccf25f16415eb451ba2559381e2feace93087857a040727d5f",
+          "sha256": "df2c476bff8060bc3cb352578be660958e1a13550ce2909ce8f1aee5b36995a9",
           "prompt": "A small squirrel making short squeaky chirps from a branch, natural, close, no hissing, no other sounds.",
           "seed": 321,
-          "noise_floor_dbfs": -65.5,
+          "noise_floor_dbfs": -61.6,
           "cleaned": true
         }
       ]
@@ -710,10 +710,10 @@
         {
           "file": "animal.wild_chicken.cluck.wav",
           "source": "https://bigsoundbank.com/annoyed-hen-s0453.html",
-          "sha256": "0a8a6bc287f95e4aa6ce25db59cf97481e42dff3836114d60e787d6782cdd4cf",
+          "sha256": "4057123e0fcd14d98d45c0fd83c28c59b278612d8dd6a3a40ec3ac067ac17edc",
           "prompt": null,
           "seed": null,
-          "noise_floor_dbfs": -75.1,
+          "noise_floor_dbfs": -72,
           "cleaned": false
         }
       ]
@@ -736,7 +736,7 @@
         {
           "file": "object.chop_wood.wav",
           "source": "Audio/chop.ogg",
-          "sha256": "644cb7fd7c5676aae29a79a3a4dc440cff6439b167af5c3c2999d77ceb82d576",
+          "sha256": "78e1f7e1389cf6b2d0a8fe7c838e0f7e5a9634f1c433b130d1033b5d6735a430",
           "prompt": null,
           "seed": null,
           "noise_floor_dbfs": null,
@@ -762,7 +762,7 @@
         {
           "file": "object.creak_0.wav",
           "source": "Audio/creak1.ogg",
-          "sha256": "b0943588646787135998672fea407e2344fb6f20fc38deb83bfedb94de9db4ed",
+          "sha256": "80c662c85e55d9702972f64ad600e78bd0e69bb2b8b4d1c9299e338526d0f2b0",
           "prompt": null,
           "seed": null,
           "noise_floor_dbfs": null,
@@ -771,7 +771,7 @@
         {
           "file": "object.creak_1.wav",
           "source": "Audio/creak2.ogg",
-          "sha256": "36223708ed93262091355a82199f1e2ae536ff885f655ec6300b9fe2d21bd144",
+          "sha256": "38aa97b3fb7025153c48cd23b2adec2328db0b5c90c3f0e9bdb59f6f26ad52be",
           "prompt": null,
           "seed": null,
           "noise_floor_dbfs": null,
@@ -780,7 +780,7 @@
         {
           "file": "object.creak_2.wav",
           "source": "Audio/creak3.ogg",
-          "sha256": "7a73171097db8df51a72b164060becaeb943b8bc9098bccc215a8296e90234b8",
+          "sha256": "07f642ae65fb0ae69692cb18fedc995dce63c96e78623dda922960acca72a3cf",
           "prompt": null,
           "seed": null,
           "noise_floor_dbfs": null,
@@ -789,10 +789,10 @@
         {
           "file": "object.creak_3.wav",
           "source": "r2/object.creak__B.wav",
-          "sha256": "8f0a1ba6637ef2ef7ec7c79d8e10a46f51fa23d566c3acd5ac3a61ae736d0afe",
+          "sha256": "87938095eefa6203ec535aae5c1062b309667c4ac0354d820b518509edf0693f",
           "prompt": "A wooden door creaking open slowly, close, natural, no other sounds.",
           "seed": 110,
-          "noise_floor_dbfs": -43.6,
+          "noise_floor_dbfs": -46.5,
           "cleaned": true,
           "origin": "moss"
         }
@@ -816,10 +816,10 @@
         {
           "file": "object.fire.wav",
           "source": "object.fire.wav",
-          "sha256": "a005425ea2628729942c86263ae8e1efd8c44e177553de8d2293abf4a22efdd6",
+          "sha256": "0a9c786939c123d00cc5371b6ea7110f9cd996d6f8dae6949232b728c2d3eed9",
           "prompt": "A small campfire crackling softly, close, calm, no voices, no music.",
           "seed": 8,
-          "noise_floor_dbfs": -25.5,
+          "noise_floor_dbfs": -24.7,
           "cleaned": true
         }
       ]
@@ -842,7 +842,7 @@
         {
           "file": "object.knock_stone_0.wav",
           "source": "Audio/impactMining_000.ogg",
-          "sha256": "6ee0c88a1ee48de56f4505e44dab50249cc3339c08ef0fd04ec476ed4253e0ba",
+          "sha256": "9574df6fe24af08c4bc76c3e1c453f3214e2863649b97a082344260a81084c7a",
           "prompt": null,
           "seed": null,
           "noise_floor_dbfs": null,
@@ -851,7 +851,7 @@
         {
           "file": "object.knock_stone_1.wav",
           "source": "Audio/impactMining_001.ogg",
-          "sha256": "8d46b2a6ca8fe0d41b0615aead417d0e5e018f0eb0c539dc92fa20fd5a304a08",
+          "sha256": "c3dcaaf08c79b4cca1d7304b2f48eebaf95ba9973538be421007414a0da8f3f0",
           "prompt": null,
           "seed": null,
           "noise_floor_dbfs": null,
@@ -860,7 +860,7 @@
         {
           "file": "object.knock_stone_2.wav",
           "source": "Audio/impactMining_002.ogg",
-          "sha256": "861bb7fc6d0f02a21486117536d71fa72e6eaf06b135e59e173973283480ad79",
+          "sha256": "03f15c4244c1319928186a94daa081d9470ea9d0c55ec5572a430e5294cd48f1",
           "prompt": null,
           "seed": null,
           "noise_floor_dbfs": null,
@@ -869,7 +869,7 @@
         {
           "file": "object.knock_stone_3.wav",
           "source": "Audio/impactMining_003.ogg",
-          "sha256": "de1f53caf090501df959fa61e6ad8970e84d9ce64a5e04c90960a71f08b101bd",
+          "sha256": "20a7d64263526805dadb074ee3e08e14742c7cc39ed066690ba298581dd4f863",
           "prompt": null,
           "seed": null,
           "noise_floor_dbfs": null,
@@ -878,7 +878,7 @@
         {
           "file": "object.knock_stone_4.wav",
           "source": "Audio/impactMining_004.ogg",
-          "sha256": "9aa7156f2083532e9454c14b5a382c84486213a548b22164d01346cfb0435078",
+          "sha256": "182b735389c5c2aa1e297d3ff2b68e472d24b2e94de2ef4c08421a7d5b483e3a",
           "prompt": null,
           "seed": null,
           "noise_floor_dbfs": null,
@@ -903,7 +903,7 @@
         {
           "file": "object.knock_wood_0.wav",
           "source": "Audio/impactWood_light_000.ogg",
-          "sha256": "0945f3ddd5951faf754fe3568f8307415baa4aa7539947f6f3f106d7be34050e",
+          "sha256": "fad36c50a06eb904eedf5c0a7d9fecfddf182eeee96349955eda5240c0017cf9",
           "prompt": null,
           "seed": null,
           "noise_floor_dbfs": null,
@@ -912,7 +912,7 @@
         {
           "file": "object.knock_wood_1.wav",
           "source": "Audio/impactWood_light_001.ogg",
-          "sha256": "95386a3fee73f6b009557fe6d0d9498c1f6273520663e3e3c065ba4c830469f7",
+          "sha256": "dc5901b77da605a1bab2dfaf5aa1a5d85b7e2148713b2dc5d30a43e7f3fcba44",
           "prompt": null,
           "seed": null,
           "noise_floor_dbfs": null,
@@ -921,7 +921,7 @@
         {
           "file": "object.knock_wood_2.wav",
           "source": "Audio/impactWood_light_002.ogg",
-          "sha256": "d81ce17c8d0c98456f7ac4cc3d9ced37780ff01a6f1c0b07cd28fb0fb3f2c5a8",
+          "sha256": "bd4cc70a92bfe70db1927fad2da210cd01effb094e866ff3903f385e6a2f2b13",
           "prompt": null,
           "seed": null,
           "noise_floor_dbfs": null,
@@ -930,7 +930,7 @@
         {
           "file": "object.knock_wood_3.wav",
           "source": "Audio/impactWood_light_003.ogg",
-          "sha256": "1c7a6a7ce2e6803ffd4aa1faf40e9b3ebdbd1ca50b442683a9e859bbb685e24d",
+          "sha256": "3d98586021f47a352ac24258314d53c2e1add4d9c4cb0b075da1b7daa31dece0",
           "prompt": null,
           "seed": null,
           "noise_floor_dbfs": null,
@@ -939,7 +939,7 @@
         {
           "file": "object.knock_wood_4.wav",
           "source": "Audio/impactWood_light_004.ogg",
-          "sha256": "f22eb41e06ae4fe20ddf12e7d4927b7a3d6c82ab5e968f92c0e3476ae37465e1",
+          "sha256": "6b433a936c7493ca023cf16e6a3d59c43721cd19ecffab1ff775a20181d03682",
           "prompt": null,
           "seed": null,
           "noise_floor_dbfs": null,
@@ -964,7 +964,7 @@
         {
           "file": "object.strike_spark.wav",
           "source": "r3/object.strike_spark.wav",
-          "sha256": "a2f88a514ff25f8a791635d6018be1119b748a107459382e60c1177c0067675a",
+          "sha256": "fad5e1d4f44e9bf16420f41f67c2cf71128c9fa5a5490b90a50000638b79e82c",
           "prompt": "A single sharp scrape of hard stone on steel, very short dry snap, close, no metallic ringing, no other sounds.",
           "seed": 511,
           "noise_floor_dbfs": null,
@@ -989,7 +989,7 @@
         {
           "file": "step.grass_0.wav",
           "source": "Audio/footstep_grass_000.ogg",
-          "sha256": "34eb67374e78241f6d5f0d4b55885e47107aad375e2058adf3fdcf19529547eb",
+          "sha256": "853bc944199c410947c4d17655b225c533dbca62c2829b62d4825015343cef05",
           "prompt": null,
           "seed": null,
           "noise_floor_dbfs": null,
@@ -998,7 +998,7 @@
         {
           "file": "step.grass_1.wav",
           "source": "Audio/footstep_grass_001.ogg",
-          "sha256": "94d72626a4aceba79ebd2b39764434eeb1308a8035c7075cbe60d171de792b66",
+          "sha256": "795b43226eac48cb1fcf46d8d38653e5c3c822593a59c64c2f44157e36e281d0",
           "prompt": null,
           "seed": null,
           "noise_floor_dbfs": null,
@@ -1007,7 +1007,7 @@
         {
           "file": "step.grass_2.wav",
           "source": "Audio/footstep_grass_002.ogg",
-          "sha256": "d25d86871c54c863870b4bbf6e8faa57fdec7aa8aa451124032178009cd4bbf1",
+          "sha256": "a840632958c22ee11cd4c91881ac4aab5b065d3d252a2a4d19e93a9079eac783",
           "prompt": null,
           "seed": null,
           "noise_floor_dbfs": null,
@@ -1016,7 +1016,7 @@
         {
           "file": "step.grass_3.wav",
           "source": "Audio/footstep_grass_003.ogg",
-          "sha256": "be5566a234d62a9cad5186a8f4840787ed7179fcf7741a8dbf642167f8a38f64",
+          "sha256": "d643bbc1513999ab7368bb941d11565efec77caf96a82a4d9e3e14826cc954ba",
           "prompt": null,
           "seed": null,
           "noise_floor_dbfs": null,
@@ -1025,7 +1025,7 @@
         {
           "file": "step.grass_4.wav",
           "source": "Audio/footstep_grass_004.ogg",
-          "sha256": "fe4933d08c36d4551347b24d663bf3810bcac621d230ee948855af65e05dbe7d",
+          "sha256": "253fbf1acde9256a4a8b4efa30aa430670e8baeb364865f2cf727ae53ee0e8a5",
           "prompt": null,
           "seed": null,
           "noise_floor_dbfs": null,
@@ -1049,7 +1049,7 @@
         {
           "file": "step.rock_0.wav",
           "source": "r2/step.rock_v0.wav",
-          "sha256": "cce0f6ac56631b661556ca8978794b5d67a532c86f0309e4382d1b17061fd80a",
+          "sha256": "82744e77d4c3837501c9ba889ce54e3d5bda07323ae9940acc5ec0370010b56a",
           "prompt": "One footstep on a rock, light, close, natural, no other sounds.",
           "seed": 116,
           "noise_floor_dbfs": null,
@@ -1058,7 +1058,7 @@
         {
           "file": "step.rock_1.wav",
           "source": "r2/step.rock_v1.wav",
-          "sha256": "9b472366ebae5f50bdaee85d12416726ade48be2ee6972cd9612fb6a1ee6cf11",
+          "sha256": "8f30d9870ee86062887448b2729eaca4c35e41f818979694a64d52f385a9aa0c",
           "prompt": "One footstep on a rock, light, close, natural, no other sounds.",
           "seed": 116,
           "noise_floor_dbfs": null,
@@ -1067,7 +1067,7 @@
         {
           "file": "step.rock_2.wav",
           "source": "r2/step.rock_v2.wav",
-          "sha256": "6b3d1012a245f5d4941b7b3a85e40eb40213fa91c98ff92cbb7d630e70995810",
+          "sha256": "5eba557d7a705e35c94c135137adbfa14a8ce29d399d6a6545af3d8dbde10090",
           "prompt": "One footstep on a rock, light, close, natural, no other sounds.",
           "seed": 116,
           "noise_floor_dbfs": null,
@@ -1076,7 +1076,7 @@
         {
           "file": "step.rock_3.wav",
           "source": "r2/step.rock_v3.wav",
-          "sha256": "0c1898de2d7f30620042f71e52b34c2be4f7de888736a1242de800e559aaa66e",
+          "sha256": "742bb0548e62bd9a86fbce4fa2f1e13627d5cc983d8bd8a074c409a49ec0ade1",
           "prompt": "One footstep on a rock, light, close, natural, no other sounds.",
           "seed": 116,
           "noise_floor_dbfs": null,
@@ -1085,7 +1085,7 @@
         {
           "file": "step.rock_4.wav",
           "source": "r2/step.rock_v4.wav",
-          "sha256": "707df6afdd38750f371ba148ce5ca8ba4873bd680e4741433528c9df09734ec1",
+          "sha256": "4e19227ef01836b8085d5e31ece3fd65de9dc1e25ccea2bc1f2498cd7ca0fc61",
           "prompt": "One footstep on a rock, light, close, natural, no other sounds.",
           "seed": 116,
           "noise_floor_dbfs": null,
@@ -1108,46 +1108,46 @@
         {
           "file": "step.sand_0.wav",
           "source": "r2/step.sand_v0.wav",
-          "sha256": "df7a842a942767168ce1589999a5f9d3f30d97d818d1e424d09aadc0e7cd1b95",
+          "sha256": "0620350f8e9ef721705f8630f265a0c2ce1bcb43bf3963e6840be771be65f255",
           "prompt": "Two soft barefoot footsteps on dry sand, close, quiet, no other sounds.",
           "seed": 10,
-          "noise_floor_dbfs": -56.8,
+          "noise_floor_dbfs": -48.5,
           "cleaned": true
         },
         {
           "file": "step.sand_1.wav",
           "source": "r2/step.sand_v1.wav",
-          "sha256": "f1bc69a7fbc77e1a45ee21cf10d08637a3493347b2aa12edbd3abeed25b63037",
+          "sha256": "0de297c04fe8c44dc96d83d5aba13e54c830a5f0cc6ece021d49e1cf9ba4e928",
           "prompt": "Two soft barefoot footsteps on dry sand, close, quiet, no other sounds.",
           "seed": 10,
-          "noise_floor_dbfs": -56,
+          "noise_floor_dbfs": -46.3,
           "cleaned": true
         },
         {
           "file": "step.sand_2.wav",
           "source": "r2/step.sand_v2.wav",
-          "sha256": "badcd21702cb65c7f89068502747e7844ac8777f2c09eb681084ce5b35fbf796",
+          "sha256": "b5500134aafeb1125e3624149d868e0c5e6dbbe485b14b90497c211459c762d6",
           "prompt": "Two soft barefoot footsteps on dry sand, close, quiet, no other sounds.",
           "seed": 10,
-          "noise_floor_dbfs": -55.1,
+          "noise_floor_dbfs": -47.8,
           "cleaned": true
         },
         {
           "file": "step.sand_3.wav",
           "source": "r2/step.sand_v3.wav",
-          "sha256": "151750a840da37b18284c55b8546eb2f34b26d8a0fd4666876c23bf137e2ba94",
+          "sha256": "9ffca071308f8c824f4f9e8f08c22030c3063a6b30f72573b8041012154ae1b6",
           "prompt": "Two soft barefoot footsteps on dry sand, close, quiet, no other sounds.",
           "seed": 10,
-          "noise_floor_dbfs": -56.4,
+          "noise_floor_dbfs": -48.4,
           "cleaned": true
         },
         {
           "file": "step.sand_4.wav",
           "source": "r2/step.sand_v4.wav",
-          "sha256": "12555a742e56bd19b67e2514823ef47b9af56885466a84ef2ef510fedcaa72c3",
+          "sha256": "a89f794d517f2ae7f3c9c0a05b62499dde1aa142f4c4aec012a42865407e9234",
           "prompt": "Two soft barefoot footsteps on dry sand, close, quiet, no other sounds.",
           "seed": 10,
-          "noise_floor_dbfs": -56.9,
+          "noise_floor_dbfs": -47.3,
           "cleaned": true
         }
       ]
@@ -1168,7 +1168,7 @@
         {
           "file": "step.snow_0.wav",
           "source": "Audio/footstep_snow_000.ogg",
-          "sha256": "3141feede04ed1b385b2156d9ea5d46f25f0d5b07685f6f9b7748b1ff5e2327b",
+          "sha256": "4d31820dbcee6c4241ab5f7ad3388df7288b2bd42dee8ab2e15c32b525325a7c",
           "prompt": null,
           "seed": null,
           "noise_floor_dbfs": null,
@@ -1177,7 +1177,7 @@
         {
           "file": "step.snow_1.wav",
           "source": "Audio/footstep_snow_001.ogg",
-          "sha256": "acc0a15b8bc3619e9f6cf7e96aff9833d8e13147ff21ccff7a8c495bcbf8fbea",
+          "sha256": "c75600f29b91373836ab98f3165294a28840e9eb6ee80920d1c9c548626b56cc",
           "prompt": null,
           "seed": null,
           "noise_floor_dbfs": null,
@@ -1186,7 +1186,7 @@
         {
           "file": "step.snow_2.wav",
           "source": "Audio/footstep_snow_002.ogg",
-          "sha256": "569230c1257d80d7126a13138438aad4a1217a7ffd383cf30bde0c7100adaead",
+          "sha256": "ef0cec4fb7b342f484d6f7ce1c055c297fd6b76f325385b9b5d8956ae090d1b9",
           "prompt": null,
           "seed": null,
           "noise_floor_dbfs": null,
@@ -1195,7 +1195,7 @@
         {
           "file": "step.snow_3.wav",
           "source": "Audio/footstep_snow_003.ogg",
-          "sha256": "2e1b39cc537d45ba644ac393f3fe805bb7f29415e85d98fa3147ace7e05ee69f",
+          "sha256": "cf98b405f37608d070fc1ce35b2a93e5d76eb33ce1ba40600913f420725dd405",
           "prompt": null,
           "seed": null,
           "noise_floor_dbfs": null,
@@ -1204,7 +1204,7 @@
         {
           "file": "step.snow_4.wav",
           "source": "Audio/footstep_snow_004.ogg",
-          "sha256": "b54fc1c2f8ca2b10dd3745a3bf77dcb4d2b1cfbd09d8d5c35ea68985df73eead",
+          "sha256": "524df34a5be71e4e1385f3b8ce6a8c88d2a1551ac911c5ca34bd79156e6ede34",
           "prompt": null,
           "seed": null,
           "noise_floor_dbfs": null,
@@ -1228,16 +1228,16 @@
         {
           "file": "step.water_0.wav",
           "source": "step.water.wav",
-          "sha256": "ab768cbe8e823ca7dbd1f182b00cce9e2075fc4eb318f82dfda28d1fb463c7c6",
+          "sha256": "9791f459cfae4e1b9d6bf9e40dc3154f5f93bbfa4b5ac84cb775eea1f17f693e",
           "prompt": "Two footsteps splashing in shallow water, close, calm, no other sounds.",
           "seed": 8,
-          "noise_floor_dbfs": -56.9,
+          "noise_floor_dbfs": -57.7,
           "cleaned": true
         },
         {
           "file": "step.water_1.wav",
           "source": "https://bigsoundbank.com/steps-in-the-mud-s0495.html",
-          "sha256": "20adca202a1b5f54601d788772c8c3e897d9a13096174c5c3fd598247ae5835a",
+          "sha256": "dcd05f348b050e033466e94db362649a208e3edb3a111f83d7ebc92249b99e83",
           "prompt": null,
           "seed": null,
           "noise_floor_dbfs": null,
@@ -1263,7 +1263,7 @@
         {
           "file": "step.wood_0.wav",
           "source": "Audio/footstep_wood_000.ogg",
-          "sha256": "ed8c708b15a66b57935054e2885eecdfd66ab544b1396a9ffae73b91eb808fc6",
+          "sha256": "652bf6a28c164b370e1a01912ae01945f38eb39cc6f5069ed58fef0294ca8d06",
           "prompt": null,
           "seed": null,
           "noise_floor_dbfs": null,
@@ -1272,7 +1272,7 @@
         {
           "file": "step.wood_1.wav",
           "source": "Audio/footstep_wood_001.ogg",
-          "sha256": "3c2bbd234ceb9126a375838b11aa2c1eddd879bbfbc52590d7c68a783366d8ca",
+          "sha256": "232d4f752cc01be1a5d8db1af4dbf124888719361bdbda642f6a175033e62c5c",
           "prompt": null,
           "seed": null,
           "noise_floor_dbfs": null,
@@ -1281,7 +1281,7 @@
         {
           "file": "step.wood_2.wav",
           "source": "Audio/footstep_wood_002.ogg",
-          "sha256": "07c0b79033a1c200dc77ac70cdd179147b9eeacd523ed4007c6671a754331347",
+          "sha256": "4df437cfebd2a9daf536aab64b8497d9a1d50a9960e808f5431505f238158760",
           "prompt": null,
           "seed": null,
           "noise_floor_dbfs": null,
@@ -1290,7 +1290,7 @@
         {
           "file": "step.wood_3.wav",
           "source": "Audio/footstep_wood_003.ogg",
-          "sha256": "cd56f87a294d740170f19603e36d72ca8dcc6a9b560a7b97df43811b58c73b71",
+          "sha256": "5a1136d71fce37dd77ec6b2b073f264452f031f6d3c7bf7c7c5b11eec65407c3",
           "prompt": null,
           "seed": null,
           "noise_floor_dbfs": null,
@@ -1299,7 +1299,7 @@
         {
           "file": "step.wood_4.wav",
           "source": "Audio/footstep_wood_004.ogg",
-          "sha256": "bf74d821d5077e8ab1e73632a2956fd1b0d974a2370fe5eb4d090880b1549e16",
+          "sha256": "4848722118ad7c5fba5185481711992ba3108a5c6951d4ba1ab9604e914d27b0",
           "prompt": null,
           "seed": null,
           "noise_floor_dbfs": null,
@@ -1321,19 +1321,19 @@
         {
           "file": "voice.child_high.calm_0.wav",
           "source": "voice/voice.child_high.calm_A.wav",
-          "sha256": "c0cdb1a689dca5c7adb7d787213e232c7b7379845b11d75050a5a92db25fcb94",
+          "sha256": "cb9c1a1f56104cb1e95718a292c23ec50bb621674120f46b0458cc4958ed771e",
           "prompt": "A young child with a high bright voice calmly mumbling a short sentence without any real words, gentle babble, calm, close, no other sounds.",
           "seed": 324,
-          "noise_floor_dbfs": -66.5,
+          "noise_floor_dbfs": -65.7,
           "cleaned": true
         },
         {
           "file": "voice.child_high.calm_1.wav",
           "source": "voice/voice.child_high.calm_B.wav",
-          "sha256": "f86dcd7544faa1f1f5f35b436b0abf1de65f0c87d90044a86b6af8645b4f5760",
+          "sha256": "ae3671e51c24b64e4ce9102456a0851f1f4477ad959dd0636bec348bd59f84d4",
           "prompt": "A young child with a high bright voice calmly mumbling a short sentence without any real words, gentle babble, calm, close, no other sounds.",
           "seed": 325,
-          "noise_floor_dbfs": -66.1,
+          "noise_floor_dbfs": -64.3,
           "cleaned": false
         }
       ]
@@ -1352,19 +1352,19 @@
         {
           "file": "voice.child_high.question_0.wav",
           "source": "voice/voice.child_high.question_A.wav",
-          "sha256": "eaeba9e0fad30aa94100b1f52f3a9df9da6fbdffb4438220ddec6cbba6992e1e",
+          "sha256": "f4a76aa2014e0e08929b31a97d085ca3f8e8b4d9f40a05b6c2b2709265d3684e",
           "prompt": "A young child with a high bright voice mumbling a short question, rising at the end without any real words, gentle babble, calm, close, no other sounds.",
           "seed": 326,
-          "noise_floor_dbfs": -52.3,
+          "noise_floor_dbfs": -52.8,
           "cleaned": true
         },
         {
           "file": "voice.child_high.question_1.wav",
           "source": "voice/voice.child_high.question_B.wav",
-          "sha256": "22a6b3de792984174ecbe81fb216dfa75cd4ea9875e43b78318d0c5efe88af9c",
+          "sha256": "931ff3a3b7a517e3507e672910f29810d6bb403919833555c844da9d3568086e",
           "prompt": "A young child with a high bright voice mumbling a short question, rising at the end without any real words, gentle babble, calm, close, no other sounds.",
           "seed": 327,
-          "noise_floor_dbfs": -75.3,
+          "noise_floor_dbfs": -75.1,
           "cleaned": false
         }
       ]
@@ -1383,19 +1383,19 @@
         {
           "file": "voice.child_low.calm_0.wav",
           "source": "voice/voice.child_low.calm_A.wav",
-          "sha256": "c34c28a881dbf9bd0bfa5754c99082363b4ff3263437d4152fafccce3a5c3ff5",
+          "sha256": "4764a60528cc8ca43c71dded932d8b8f54103f81f65d15cda5fb35ddaac36f8d",
           "prompt": "A young child with a slightly lower soft voice calmly mumbling a short sentence without any real words, gentle babble, calm, close, no other sounds.",
           "seed": 328,
-          "noise_floor_dbfs": -58.3,
+          "noise_floor_dbfs": -56.9,
           "cleaned": true
         },
         {
           "file": "voice.child_low.calm_1.wav",
           "source": "voice/voice.child_low.calm_B.wav",
-          "sha256": "0ab58a5ac1aa0db2200f36f88cd5817f4b70c55332dd51411262ed108b92d352",
+          "sha256": "51981099d1701f7f18524290fbf00318e48cebe2a8d424da20a3dc9c5b07627d",
           "prompt": "A young child with a slightly lower soft voice calmly mumbling a short sentence without any real words, gentle babble, calm, close, no other sounds.",
           "seed": 329,
-          "noise_floor_dbfs": -51.1,
+          "noise_floor_dbfs": -49.1,
           "cleaned": true
         }
       ]
@@ -1414,19 +1414,19 @@
         {
           "file": "voice.child_low.question_0.wav",
           "source": "voice/voice.child_low.question_A.wav",
-          "sha256": "12a54c9dadda5b2f3ffdf94bb942d6e2b9e0b122426ace01ad07d5fbe338f19a",
+          "sha256": "0eb9511f1e2889b4e20cfc59b42fbb36cc48cfb5eaa1e06939bde3581fdb97dc",
           "prompt": "A young child with a slightly lower soft voice mumbling a short question, rising at the end without any real words, gentle babble, calm, close, no other sounds.",
           "seed": 330,
-          "noise_floor_dbfs": -29.4,
+          "noise_floor_dbfs": -29.6,
           "cleaned": true
         },
         {
           "file": "voice.child_low.question_1.wav",
           "source": "voice/voice.child_low.question_B.wav",
-          "sha256": "fee8932b79632c5dae54850a2688efce5b1a0f58124be363169765ac64219a31",
+          "sha256": "0a5b593a3d415c1a1b2d5e3c46356058bcaae2cd90e854847885722babc68323",
           "prompt": "A young child with a slightly lower soft voice mumbling a short question, rising at the end without any real words, gentle babble, calm, close, no other sounds.",
           "seed": 331,
-          "noise_floor_dbfs": -63.2,
+          "noise_floor_dbfs": -62.7,
           "cleaned": false
         }
       ]
@@ -1445,19 +1445,19 @@
         {
           "file": "voice.female_high.calm_0.wav",
           "source": "voice/voice.female_high.calm_A.wav",
-          "sha256": "df094bec6531b282b2c08611dd2b33c5a5fd91cb0017a06be4caee9ae35a555b",
+          "sha256": "c108bdaeba3658bf7fd7a07772e2ec232f462c55d44f05b442dd566edc3d151b",
           "prompt": "A woman with a high gentle voice calmly mumbling a short sentence without any real words, gentle babble, calm, close, no other sounds.",
           "seed": 332,
-          "noise_floor_dbfs": -46.4,
+          "noise_floor_dbfs": -45.5,
           "cleaned": true
         },
         {
           "file": "voice.female_high.calm_1.wav",
           "source": "voice/voice.female_high.calm_B.wav",
-          "sha256": "21d5f3497679ef92de91bf26fdfe7593ceccc6d7ea09e3453b366df5d71431e3",
+          "sha256": "6fe2a8c14a13f47de5d6496b8f92bcfa6ffc13a640317a0478929956fbcba4b5",
           "prompt": "A woman with a high gentle voice calmly mumbling a short sentence without any real words, gentle babble, calm, close, no other sounds.",
           "seed": 333,
-          "noise_floor_dbfs": -48.7,
+          "noise_floor_dbfs": -48,
           "cleaned": true
         }
       ]
@@ -1476,16 +1476,16 @@
         {
           "file": "voice.female_high.question_0.wav",
           "source": "voice/voice.female_high.question_A.wav",
-          "sha256": "cfd3781ee213da2ecc598d503dc3e43b7b8c9807a4ae04d8f235749d9d40bd6a",
+          "sha256": "7ba6181a0064ac83ea9f9b9592d1bbcc05613fc0169fe7e89f7207cd4bfb98f0",
           "prompt": "A woman with a high gentle voice mumbling a short question, rising at the end without any real words, gentle babble, calm, close, no other sounds.",
           "seed": 334,
-          "noise_floor_dbfs": -67.5,
+          "noise_floor_dbfs": -66.4,
           "cleaned": false
         },
         {
           "file": "voice.female_high.question_1.wav",
           "source": "voice/voice.female_high.question_B.wav",
-          "sha256": "991aeeb1480809f094728e8e93cc200a59f1fde5cc48aaecebacc758f6609f5e",
+          "sha256": "b37af8a6a3d36bddb605590233cbc8a08f4e7c4332bebf7809c4f525d37ccb82",
           "prompt": "A woman with a high gentle voice mumbling a short question, rising at the end without any real words, gentle babble, calm, close, no other sounds.",
           "seed": 335,
           "noise_floor_dbfs": -58,
@@ -1507,19 +1507,19 @@
         {
           "file": "voice.female_low.calm_0.wav",
           "source": "voice/voice.female_low.calm_A.wav",
-          "sha256": "737e83ab2c0abfb18a5b1e8a0d284198f125ce98b015b35590fb45de0fa47bdd",
+          "sha256": "ce68b3b6a0d4b5ebdffbf6e1e0474cb90620946535606251642b6c4d10904c33",
           "prompt": "A woman with a low warm voice calmly mumbling a short sentence without any real words, gentle babble, calm, close, no other sounds.",
           "seed": 336,
-          "noise_floor_dbfs": -59.4,
+          "noise_floor_dbfs": -58.9,
           "cleaned": true
         },
         {
           "file": "voice.female_low.calm_1.wav",
           "source": "voice/voice.female_low.calm_B.wav",
-          "sha256": "aa289510aca3849567f86935149ce1d33df414e4c87b81286a40bd9f61111d60",
+          "sha256": "c8674fe97d6be1793fc62deda5a1b37aa6de0e6debfe2e45d182916cd19e69b8",
           "prompt": "A woman with a low warm voice calmly mumbling a short sentence without any real words, gentle babble, calm, close, no other sounds.",
           "seed": 337,
-          "noise_floor_dbfs": -48.3,
+          "noise_floor_dbfs": -47.7,
           "cleaned": true
         }
       ]
@@ -1538,19 +1538,19 @@
         {
           "file": "voice.female_low.question_0.wav",
           "source": "voice/voice.female_low.question_A.wav",
-          "sha256": "2bece3f90c2038796725ce7b03e825f73aa6d275b796581d585b1ce87670c7bf",
+          "sha256": "05a3bb9878f67ab7ad1fc9308c4c48a87b9cc53eb6115f4699390cabb2fdf738",
           "prompt": "A woman with a low warm voice mumbling a short question, rising at the end without any real words, gentle babble, calm, close, no other sounds.",
           "seed": 338,
-          "noise_floor_dbfs": -70.6,
+          "noise_floor_dbfs": -70,
           "cleaned": true
         },
         {
           "file": "voice.female_low.question_1.wav",
           "source": "voice/voice.female_low.question_B.wav",
-          "sha256": "c3970efa4848aa546f07008e67419a6f33e85cb2c05053edd7b868d9aa48b3c7",
+          "sha256": "fb9fd878fee1e32793d6e1a23fa93bf47ab4dd9f027c41f2b6e8211c5afcb139",
           "prompt": "A woman with a low warm voice mumbling a short question, rising at the end without any real words, gentle babble, calm, close, no other sounds.",
           "seed": 339,
-          "noise_floor_dbfs": -42.3,
+          "noise_floor_dbfs": -41.5,
           "cleaned": true
         }
       ]
@@ -1569,19 +1569,19 @@
         {
           "file": "voice.male_high.calm_0.wav",
           "source": "voice/voice.male_high.calm_A.wav",
-          "sha256": "e2a70d94e4164ed9aeffce1a784e77422596fc35b2a5df45d3604f7658b84490",
+          "sha256": "b55a6579227ce27ae2047a04a2fd245e09eac5d5d4b0da098d868f5b31735178",
           "prompt": "A man with a light tenor voice calmly mumbling a short sentence without any real words, gentle babble, calm, close, no other sounds.",
           "seed": 340,
-          "noise_floor_dbfs": -56.2,
+          "noise_floor_dbfs": -54.8,
           "cleaned": true
         },
         {
           "file": "voice.male_high.calm_1.wav",
           "source": "voice/voice.male_high.calm_B.wav",
-          "sha256": "8476f6ab6d68aace660413bef2698adaf95e71a4ae9142b5ddddebab8a2c4843",
+          "sha256": "e0c9eb0d2be47686f9e3fbe7c587e5c10b39c9606f9fb51ab5092b868dfe5365",
           "prompt": "A man with a light tenor voice calmly mumbling a short sentence without any real words, gentle babble, calm, close, no other sounds.",
           "seed": 341,
-          "noise_floor_dbfs": -35.2,
+          "noise_floor_dbfs": -34.4,
           "cleaned": true
         }
       ]
@@ -1600,19 +1600,19 @@
         {
           "file": "voice.male_high.question_0.wav",
           "source": "voice/voice.male_high.question_A.wav",
-          "sha256": "992776460a6f199b910e4f5c14d13ca434ef82aae22f79d349a7881f22e0ded4",
+          "sha256": "a41fcf5769d03d5a7840203916c30e56dfba4833cfdaf374843ef44109ebe153",
           "prompt": "A man with a light tenor voice mumbling a short question, rising at the end without any real words, gentle babble, calm, close, no other sounds.",
           "seed": 342,
-          "noise_floor_dbfs": -53.2,
+          "noise_floor_dbfs": -52.9,
           "cleaned": true
         },
         {
           "file": "voice.male_high.question_1.wav",
           "source": "voice/voice.male_high.question_B.wav",
-          "sha256": "18552f179d26f1a7ce70d31438ccf89094fbe54687589671f95f2530373fe5d8",
+          "sha256": "c666663edb2504d172d706c9af55fee4a235a7661b8873266afc8b769cc2c30b",
           "prompt": "A man with a light tenor voice mumbling a short question, rising at the end without any real words, gentle babble, calm, close, no other sounds.",
           "seed": 343,
-          "noise_floor_dbfs": -46.1,
+          "noise_floor_dbfs": -45.4,
           "cleaned": true
         }
       ]
@@ -1631,19 +1631,19 @@
         {
           "file": "voice.male_low.calm_0.wav",
           "source": "voice/voice.male_low.calm_A.wav",
-          "sha256": "c5154bad64b569ef149df98568af9c3cc36f242eeb0619d203df1b3a69ff00d0",
+          "sha256": "23810792214568175b77adf6a8663ff5a99d905d990f122a45debe8073759844",
           "prompt": "A man with a deep calm voice calmly mumbling a short sentence without any real words, gentle babble, calm, close, no other sounds.",
           "seed": 344,
-          "noise_floor_dbfs": -47.7,
+          "noise_floor_dbfs": -47.5,
           "cleaned": true
         },
         {
           "file": "voice.male_low.calm_1.wav",
           "source": "voice/voice.male_low.calm_B.wav",
-          "sha256": "15fe9f73052a6da76b05878d958dcf2f3b6d4c95090cd0e23a058513c283a24c",
+          "sha256": "bb98c515d1fda23c2f291a5b5450420d7a61e78e5049618c9289ab2d42146162",
           "prompt": "A man with a deep calm voice calmly mumbling a short sentence without any real words, gentle babble, calm, close, no other sounds.",
           "seed": 345,
-          "noise_floor_dbfs": -44.7,
+          "noise_floor_dbfs": -46.4,
           "cleaned": true
         }
       ]
@@ -1662,19 +1662,19 @@
         {
           "file": "voice.male_low.question_0.wav",
           "source": "voice/voice.male_low.question_A.wav",
-          "sha256": "993bb350cf45236acc1df73f9320d3ebcef81f394bd7401b25053d91e7fdc3b4",
+          "sha256": "f6643f4b1ef9fae4cd207321cda74e3d1663ab4a1571dc7ef14b9d5b738374a5",
           "prompt": "A man with a deep calm voice mumbling a short question, rising at the end without any real words, gentle babble, calm, close, no other sounds.",
           "seed": 346,
-          "noise_floor_dbfs": -62.2,
-          "cleaned": false
+          "noise_floor_dbfs": -59.5,
+          "cleaned": true
         },
         {
           "file": "voice.male_low.question_1.wav",
           "source": "voice/voice.male_low.question_B.wav",
-          "sha256": "e6ee2d5f4efc35ccab8ef9a1ff987652b9b38933723f0347387d4aa0d1cb53af",
+          "sha256": "d2e24675bb9f7dbef00268a95a584fafb7d6938b12620a7927130ef67cfe7f77",
           "prompt": "A man with a deep calm voice mumbling a short question, rising at the end without any real words, gentle babble, calm, close, no other sounds.",
           "seed": 347,
-          "noise_floor_dbfs": -40.5,
+          "noise_floor_dbfs": -40.8,
           "cleaned": true
         }
       ]
@@ -1696,10 +1696,10 @@
         {
           "file": "weather.heat.wav",
           "source": "https://bigsoundbank.com/singing-insect-1-s3089.html",
-          "sha256": "e918f0ded0b484f83aad0ebbd8f451f0afa7aaf5f4f124a2cb6982976bbe2ddf",
+          "sha256": "dc6dfdcd4a80dee67570501fa076f6f823c6a74b3f9c404431c5cf77a7864ba7",
           "prompt": null,
           "seed": null,
-          "noise_floor_dbfs": -76.4,
+          "noise_floor_dbfs": -76.9,
           "cleaned": false
         }
       ]
@@ -1719,19 +1719,19 @@
         {
           "file": "weather.rain_0.wav",
           "source": "synth_recipes.json#weather.rain",
-          "sha256": "656ee1ed99c5de18d50db6814bd93b670c46d3f7543a53356964a64f3920023a",
+          "sha256": "6c838a679e458b02fa3f6841f262ff1f3034cc183e42bbff5507c7e2809231f9",
           "prompt": null,
           "seed": null,
-          "noise_floor_dbfs": -39.9,
+          "noise_floor_dbfs": -43.5,
           "cleaned": true
         },
         {
           "file": "weather.rain_1.wav",
           "source": "r2/weather.rain__B.wav",
-          "sha256": "40a6d6407549038eb82bc45aa07ed7f326527aed8b88d9c8c559264c09551b04",
+          "sha256": "4ace6e233b2648f8d8c3458bd44c3fc4a87f558350cf22a7a4ccc63658be518b",
           "prompt": "Gentle steady rain on leaves, calm, continuous, no thunder.",
           "seed": 148,
-          "noise_floor_dbfs": -22.3,
+          "noise_floor_dbfs": -23.3,
           "cleaned": true,
           "origin": "moss"
         }
@@ -1752,10 +1752,10 @@
         {
           "file": "weather.snow.wav",
           "source": "r3/weather.snow.wav",
-          "sha256": "bcaa3852faaef33f415b81030ddae73bc8434809e4af4fcb2903851ce8a6a7b2",
+          "sha256": "875024c947f6028cc39098f43143133e103f59286fe97b012c6fab4cd5df2922",
           "prompt": "Still winter air while snow falls, almost silent, a tiny soft settling of snow on branches now and then, no hiss, no rain, continuous.",
           "seed": 323,
-          "noise_floor_dbfs": -37.4,
+          "noise_floor_dbfs": -35.2,
           "cleaned": true
         }
       ]
@@ -1777,10 +1777,10 @@
         {
           "file": "weather.storm.wav",
           "source": "r2/weather.storm__B.wav",
-          "sha256": "02f9b9254d77e2139b3260337d9352f0c4478cf193579bf2260954721698e1ba",
+          "sha256": "9e902697d42296773d766992ec7abe8663a88d1ca8224eb0bdd3c7e3f58ae361",
           "prompt": "Strong wind and heavy rain, distant soft thunder, continuous, not too loud.",
           "seed": 150,
-          "noise_floor_dbfs": -27.7,
+          "noise_floor_dbfs": -26.9,
           "cleaned": true
         }
       ]

@@ -144,7 +144,7 @@
           "maximum": 1
         },
         "loudness_dbfs": {
-          "description": "Gated RMS loudness the sound is normalised to: the same target as every other sound (Marcel W1645); peak stays the upper limit.",
+          "description": "Integrated loudness (LUFS, ITU-R BS.1770) the sound is normalised to: the same target as every other sound (Marcel W1645); peak stays the upper limit.",
           "type": "number",
           "minimum": -40,
           "maximum": -6

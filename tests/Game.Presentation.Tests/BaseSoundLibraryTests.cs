@@ -44,13 +44,14 @@ public sealed class BaseSoundLibraryTests
     [Fact]
     public void LoudnessOfAKnownSignal()
     {
-        // A full-scale sine has an RMS of -3.01 dBFS; half amplitude -9.03 dBFS.
+        // BS.1770: a half-amplitude sine is -9.03 dB in power; K-weighting at 440 Hz adds about 0 dB and the
+        // -0.691 offset (which balances the +0.69 dB at 1 kHz) makes it about -9.72 LUFS.
         var samples = Enumerable.Range(0, 48000).Select(i => (float)(0.5 * Math.Sin(2 * Math.PI * 440 * i / 48000))).ToArray();
         var sound = new MonoSound(samples, 48000);
-        Assert.InRange(Pcm.LoudnessDbfs(sound, -50), -9.1, -8.9);
+        Assert.InRange(Pcm.Loudness(sound, -50), -9.8, -9.6);
         Assert.InRange(Pcm.PeakDbfs(sound), -6.1, -5.9);
         var back = Pcm.ReadWav(Pcm.WriteWav16(sound));
-        Assert.InRange(Pcm.LoudnessDbfs(back, -50), -9.1, -8.9);
+        Assert.InRange(Pcm.Loudness(back, -50), -9.8, -9.6);
     }
 }
 

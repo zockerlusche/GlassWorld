@@ -185,7 +185,7 @@ class MurmurSettings(BaseModel):
     )
     loudness_dbfs: float = Field(
         ...,
-        description='Gated RMS loudness a murmur is normalised to, like the library one-shots (review #90).',
+        description='Integrated loudness (LUFS, ITU-R BS.1770) a murmur is normalised to, like the library one-shots (review #90).',
         ge=-40.0,
         le=-6.0,
     )

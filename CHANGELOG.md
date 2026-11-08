@@ -42,6 +42,7 @@ Each release gets its own section (version and date); until then changes collect
 
 ### Changed
 
+- Loudness is measured as real integrated loudness after ITU-R BS.1770 (LUFS, TL #19678): K-weighting (high shelf plus RLB high-pass for any sample rate), 400 ms blocks overlapping by 75 %, absolute gate from the data and the relative gate at -10 LU. Unweighted gated RMS let low rumble count, so cutting it made normalising lift the hiss (review GW1 #121: rustle +6.7 dB, rain +4.4 dB). `Pcm.Loudness` replaces `Pcm.LoudnessDbfs` everywhere: base library and its check, retro synth, murmur, music and birdsong. The data fields keep their names (`*_dbfs`) and now mean LUFS. Library rebuilt: all files -21.0 to -20.0 LUFS; noise floors rustle -24.8 -> -28.0, rain -22.3 -> -23.3, swamp -23.4 -> -25.2 dBFS. Reference test: a full-scale 997 Hz sine measures -3.0 LUFS at 48, 44.1 and 22.05 kHz.
 - Inhabitants walk about 1.5 m per tick instead of 40 m (`move_speed_m_per_minute` left `utility.json`; the gait table replaces it). Walks across the island now take many ticks, so the same seed gives a different run than before: state hashes of runs change (golden test hashes do not, they cover no walking). Older save games load and walk on at the new speed.
 
 ### Fixed

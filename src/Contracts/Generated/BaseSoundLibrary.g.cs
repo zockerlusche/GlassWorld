@@ -20,13 +20,13 @@ namespace GlassWorld.Contracts
     {
 
         /// <summary>
-        /// Gated RMS loudness of single sounds (dBFS).
+        /// Integrated loudness of single sounds (LUFS, ITU-R BS.1770; the field name keeps dbfs).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("one_shot_dbfs")]
         public double OneShotDbfs { get; set; } = default!;
 
         /// <summary>
-        /// Gated RMS loudness of loops (dBFS); quieter, they run for long.
+        /// Integrated loudness of loops (LUFS, ITU-R BS.1770; the field name keeps dbfs).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("loop_dbfs")]
         public double LoopDbfs { get; set; } = default!;
