@@ -111,6 +111,11 @@ class MusicMood(BaseModel):
     rest_chance: float = Field(..., ge=0.0, le=0.9)
     melody: MusicVoice
     pad: MusicPad
+    alternates: list[common_schema.VocabId] | None = Field(
+        None,
+        description='Other moods that may play instead of this one, one piece at a time, chosen from the piece seed (listening test 2: both as variants, W1651).',
+        max_length=8,
+    )
 
 
 class MusicSettings(BaseModel):

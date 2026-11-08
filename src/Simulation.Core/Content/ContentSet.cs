@@ -109,6 +109,9 @@ public sealed class ContentSet
     /// <summary>Which action practises which skill (content/skills/practice.json, B5 R18).</summary>
     public SkillPractice SkillPractice { get; }
 
+    /// <summary>Talent, forgetting and maximum of skill levels per inhabitant (content/skills/levels.json).</summary>
+    public SkillLevelSettings SkillLevels { get; init; } = new();
+
     /// <summary>Loads and checks the content folder.</summary>
     public static ContentSet Load(string contentDirectory)
     {
@@ -138,7 +141,8 @@ public sealed class ContentSet
             ContractSerializer.Deserialize<UtilityWeights>(File.ReadAllText(Path.Combine(contentDirectory, "behaviour", "utility.json"))),
             actions,
             needs,
-            objects.PropertyVocabulary);
+            objects.PropertyVocabulary,
+            Required(vocabularies, VocabularyKind.Action).Entries.Where(e => (e.Target ?? VocabularyEntryTarget.None) == VocabularyEntryTarget.None).Select(e => e.Id).ToFrozenSet(StringComparer.Ordinal));
         var worldGen = WorldGenContent.Load(contentDirectory, vocabularies, objects, calendar);
         var inventionSettings = ContractSerializer.Deserialize<InventionSettings>(File.ReadAllText(Path.Combine(contentDirectory, "invention", "settings.json")));
         var inventions = new InventionRules(
@@ -158,7 +162,7 @@ public sealed class ContentSet
         var chronicle = ContractSerializer.Deserialize<ChronicleKinds>(File.ReadAllText(Path.Combine(contentDirectory, "chronicle", "kinds.json")));
         var player = Path.Combine(contentDirectory, "player");
         var writing = ContractSerializer.Deserialize<WritingMedia>(File.ReadAllText(Path.Combine(contentDirectory, "writing", "media.json")));
-        CheckWriting(writing, Ids(vocabularies, VocabularyKind.Writing_medium), Ids(vocabularies, VocabularyKind.Weather), Ids(vocabularies, VocabularyKind.Property), Ids(vocabularies, VocabularyKind.Trait));
+        CheckWriting(writing, Ids(vocabularies, VocabularyKind.Writing_medium), Ids(vocabularies, VocabularyKind.Weather), Ids(vocabularies, VocabularyKind.Property), Ids(vocabularies, VocabularyKind.Trait), Ids(vocabularies, VocabularyKind.Biome));
         var skillPractice = ContractSerializer.Deserialize<SkillPractice>(File.ReadAllText(Path.Combine(contentDirectory, "skills", "practice.json")));
         CheckSkills(model, skillPractice, Ids(vocabularies, VocabularyKind.Skill), Ids(vocabularies, VocabularyKind.Action));
         return new ContentSet(
@@ -178,6 +182,7 @@ public sealed class ContentSet
             skillPractice,
             ContractSerializer.Deserialize<MessageKinds>(File.ReadAllText(Path.Combine(player, "message_kinds.json"))))
         {
+            SkillLevels = LoadSkillLevels(contentDirectory),
             Appearance = LoadAppearance(contentDirectory),
             Gaits = GaitTable.Create(
                 ContractSerializer.Deserialize<GaitSettings>(File.ReadAllText(Path.Combine(contentDirectory, "behaviour", "gaits.json"))),
@@ -190,7 +195,7 @@ public sealed class ContentSet
     }
 
     /// <summary>Every carrier of the vocabulary has exactly one entry; all ids it uses are known (B8 R13).</summary>
-    private static void CheckWriting(WritingMedia writing, HashSet<string> media, HashSet<string> weather, HashSet<string> properties, HashSet<string> traits)
+    private static void CheckWriting(WritingMedia writing, HashSet<string> media, HashSet<string> weather, HashSet<string> properties, HashSet<string> traits, HashSet<string> biomes)
     {
         var problems = new List<string>();
         var defined = writing.Media.Select(m => m.Id).ToList();
@@ -200,6 +205,22 @@ public sealed class ContentSet
         problems.AddRange(writing.Media.SelectMany(m => m.WeatherLoss).Where(w => !weather.Contains(w.Weather)).Select(w => $"unknown weather '{w.Weather}'"));
         problems.AddRange(writing.Media.SelectMany(m => m.WeatherLoss.GroupBy(w => w.Weather, StringComparer.Ordinal).Where(g => g.Count() > 1).Select(g => $"carrier '{m.Id}' names weather '{g.Key}' twice")));
         problems.AddRange(writing.Media.SelectMany(m => m.ToolProperties).Where(p => !properties.Contains(p)).Select(p => $"unknown tool property '{p}'"));
+        problems.AddRange(writing.Media.SelectMany(m => m.Carrier.Properties).Where(p => !properties.Contains(p)).Select(p => $"unknown carrier property '{p}'"));
+        problems.AddRange(writing.Media.SelectMany(m => m.Carrier.Biomes).Where(b => !biomes.Contains(b)).Select(b => $"unknown carrier biome '{b}'"));
+        foreach (var m in writing.Media)
+        {
+            // Ground takes marks only in named biomes; objects are chosen by properties only.
+            if (m.Carrier.Surface == CarrierSurface.Ground && (m.Carrier.Biomes.Count == 0 || m.Carrier.Properties.Count > 0))
+            {
+                problems.Add($"carrier '{m.Id}' on the ground needs biomes and no properties");
+            }
+
+            if (m.Carrier.Surface == CarrierSurface.Object && m.Carrier.Biomes.Count > 0)
+            {
+                problems.Add($"carrier '{m.Id}' on objects names biomes");
+            }
+        }
+
         if (!traits.Contains(writing.Read.CuriosityTrait))
         {
             problems.Add($"unknown trait '{writing.Read.CuriosityTrait}'");
@@ -209,6 +230,17 @@ public sealed class ContentSet
         {
             throw new InvalidDataException("Writing media: " + string.Join("; ", problems) + ".");
         }
+    }
+
+    private static SkillLevelSettings LoadSkillLevels(string contentDirectory)
+    {
+        var levels = ContractSerializer.Deserialize<SkillLevelSettings>(File.ReadAllText(Path.Combine(contentDirectory, "skills", "levels.json")));
+        if (levels.TalentMin > levels.TalentMax)
+        {
+            throw new InvalidDataException($"Skill levels: talent_min {levels.TalentMin} above talent_max {levels.TalentMax}.");
+        }
+
+        return levels;
     }
 
     /// <summary>The register names every skill of the vocabulary once; practice uses known actions and skills (A1372).</summary>

@@ -17,7 +17,9 @@
             "hard",
             "splittable"
           ],
-          "properties_none": []
+          "properties_none": [
+            "sharp"
+          ]
         }
       ],
       "tool": {
@@ -36,6 +38,80 @@
         "remove_properties": [],
         "produces": null,
         "consumes": []
+      }
+    },
+    {
+      "id": "strike_hard_stone_to_edge",
+      "process": "strike",
+      "inputs": [
+        {
+          "properties_all": [
+            "hard",
+            "portable"
+          ],
+          "properties_none": [
+            "sharp",
+            "building_material"
+          ]
+        }
+      ],
+      "tool": {
+        "properties_all": [
+          "hard"
+        ],
+        "properties_none": []
+      },
+      "heat_min": null,
+      "duration_ticks": 40,
+      "tech_level": "tool",
+      "result": {
+        "add_properties": [
+          "sharp"
+        ],
+        "remove_properties": [],
+        "produces": null,
+        "consumes": []
+      }
+    },
+    {
+      "id": "bind_edge_to_handle",
+      "process": "bind",
+      "inputs": [
+        {
+          "properties_all": [
+            "hard",
+            "sharp"
+          ],
+          "properties_none": []
+        },
+        {
+          "properties_all": [
+            "burnable",
+            "building_material"
+          ],
+          "properties_none": []
+        },
+        {
+          "properties_all": [
+            "fibrous"
+          ],
+          "properties_none": []
+        }
+      ],
+      "tool": null,
+      "heat_min": null,
+      "duration_ticks": 60,
+      "tech_level": "tool",
+      "result": {
+        "add_properties": [
+          "portable"
+        ],
+        "remove_properties": [],
+        "produces": null,
+        "consumes": [
+          1,
+          2
+        ]
       }
     },
     {
@@ -87,7 +163,7 @@
       "tech_level": "tool",
       "result": {
         "add_properties": [
-          "sticky"
+          "long_lasting"
         ],
         "remove_properties": [],
         "produces": null,
@@ -95,45 +171,29 @@
       }
     },
     {
-      "id": "bind_edge_to_handle",
-      "process": "bind",
+      "id": "dry_fibres",
+      "process": "dry",
       "inputs": [
-        {
-          "properties_all": [
-            "hard",
-            "sharp"
-          ],
-          "properties_none": []
-        },
-        {
-          "properties_all": [
-            "burnable"
-          ],
-          "properties_none": [
-            "sharp"
-          ]
-        },
         {
           "properties_all": [
             "fibrous"
           ],
-          "properties_none": []
+          "properties_none": [
+            "burnable"
+          ]
         }
       ],
       "tool": null,
       "heat_min": null,
-      "duration_ticks": 60,
-      "tech_level": "tool",
+      "duration_ticks": 120,
+      "tech_level": "wilderness",
       "result": {
         "add_properties": [
-          "portable"
+          "burnable"
         ],
         "remove_properties": [],
         "produces": null,
-        "consumes": [
-          1,
-          2
-        ]
+        "consumes": []
       }
     },
     {
@@ -142,14 +202,17 @@
       "inputs": [
         {
           "properties_all": [
-            "malleable"
+            "malleable",
+            "hardens_in_fire"
           ],
-          "properties_none": []
+          "properties_none": [
+            "container"
+          ]
         }
       ],
       "tool": null,
       "heat_min": null,
-      "duration_ticks": 40,
+      "duration_ticks": 60,
       "tech_level": "tool",
       "result": {
         "add_properties": [
@@ -175,13 +238,15 @@
       "tool": null,
       "heat_min": "kiln",
       "duration_ticks": 240,
-      "tech_level": "workshop",
+      "tech_level": "hut",
       "result": {
         "add_properties": [
-          "hard"
+          "hard",
+          "long_lasting"
         ],
         "remove_properties": [
-          "malleable"
+          "malleable",
+          "hardens_in_fire"
         ],
         "produces": null,
         "consumes": []
@@ -193,50 +258,130 @@
       "inputs": [
         {
           "properties_all": [
-            "burnable"
+            "burnable",
+            "building_material"
           ],
-          "properties_none": [
-            "hot"
-          ]
+          "properties_none": []
         }
       ],
       "tool": null,
       "heat_min": "embers",
-      "duration_ticks": 180,
+      "duration_ticks": 300,
       "tech_level": "hut",
       "result": {
         "add_properties": [
-          "burnable"
+          "smoulders"
         ],
         "remove_properties": [
-          "building_material"
+          "building_material",
+          "splittable"
         ],
         "produces": null,
         "consumes": []
       }
     },
     {
-      "id": "dry_fibres",
-      "process": "dry",
+      "id": "burn_to_ash",
+      "process": "fire",
       "inputs": [
         {
           "properties_all": [
-            "fibrous"
+            "burnable"
+          ],
+          "properties_none": [
+            "hardens_in_fire"
+          ]
+        }
+      ],
+      "tool": null,
+      "heat_min": "open_fire",
+      "duration_ticks": 120,
+      "tech_level": "tool",
+      "result": {
+        "add_properties": [
+          "fine_grained",
+          "alkaline"
+        ],
+        "remove_properties": [
+          "burnable",
+          "building_material",
+          "fibrous",
+          "braidable"
+        ],
+        "produces": null,
+        "consumes": []
+      }
+    },
+    {
+      "id": "melt_sand_with_ash",
+      "process": "melt",
+      "inputs": [
+        {
+          "properties_all": [
+            "fine_grained",
+            "hard"
+          ],
+          "properties_none": []
+        },
+        {
+          "properties_all": [
+            "fine_grained",
+            "alkaline"
           ],
           "properties_none": []
         }
       ],
       "tool": null,
-      "heat_min": null,
-      "duration_ticks": 120,
-      "tech_level": "tool",
+      "heat_min": "furnace",
+      "duration_ticks": 360,
+      "tech_level": "workshop",
       "result": {
         "add_properties": [
-          "burnable"
+          "transparent"
+        ],
+        "remove_properties": [
+          "fine_grained"
+        ],
+        "produces": null,
+        "consumes": [
+          1
+        ]
+      }
+    },
+    {
+      "id": "melt_with_furnace",
+      "process": "melt",
+      "inputs": [
+        {
+          "properties_all": [
+            "hard",
+            "scratchable"
+          ],
+          "properties_none": [
+            "fine_grained"
+          ]
+        },
+        {
+          "properties_all": [
+            "smoulders"
+          ],
+          "properties_none": []
+        }
+      ],
+      "tool": null,
+      "heat_min": "furnace",
+      "duration_ticks": 360,
+      "tech_level": "metal",
+      "result": {
+        "add_properties": [
+          "malleable",
+          "hot"
         ],
         "remove_properties": [],
         "produces": null,
-        "consumes": []
+        "consumes": [
+          1
+        ]
       }
     },
     {
@@ -252,7 +397,7 @@
       ],
       "tool": null,
       "heat_min": "open_fire",
-      "duration_ticks": 30,
+      "duration_ticks": 60,
       "tech_level": "hut",
       "result": {
         "add_properties": [
@@ -264,37 +409,288 @@
       }
     },
     {
-      "id": "melt_with_furnace",
-      "process": "melt",
+      "id": "roast_food",
+      "process": "heat",
       "inputs": [
         {
           "properties_all": [
-            "hard",
-            "scratchable"
+            "edible",
+            "long_lasting"
           ],
-          "properties_none": []
+          "properties_none": [
+            "cooked",
+            "malleable"
+          ]
+        }
+      ],
+      "tool": null,
+      "heat_min": "embers",
+      "duration_ticks": 40,
+      "tech_level": "tool",
+      "result": {
+        "add_properties": [
+          "cooked"
+        ],
+        "remove_properties": [],
+        "produces": null,
+        "consumes": []
+      }
+    },
+    {
+      "id": "cook_food",
+      "process": "heat",
+      "inputs": [
+        {
+          "properties_all": [
+            "edible"
+          ],
+          "properties_none": [
+            "cooked",
+            "long_lasting"
+          ]
         },
         {
           "properties_all": [
-            "burnable"
+            "container",
+            "hard"
           ],
           "properties_none": []
         }
       ],
       "tool": null,
-      "heat_min": "furnace",
-      "duration_ticks": 300,
-      "tech_level": "metal",
+      "heat_min": "open_fire",
+      "duration_ticks": 90,
+      "tech_level": "hut",
       "result": {
         "add_properties": [
-          "malleable",
-          "hot"
+          "cooked"
         ],
         "remove_properties": [],
+        "produces": null,
+        "consumes": []
+      }
+    },
+    {
+      "id": "dry_fruit",
+      "process": "dry",
+      "inputs": [
+        {
+          "properties_all": [
+            "edible"
+          ],
+          "properties_none": [
+            "long_lasting",
+            "cooked"
+          ]
+        }
+      ],
+      "tool": null,
+      "heat_min": null,
+      "duration_ticks": 600,
+      "tech_level": "wilderness",
+      "result": {
+        "add_properties": [
+          "long_lasting"
+        ],
+        "remove_properties": [],
+        "produces": null,
+        "consumes": []
+      }
+    },
+    {
+      "id": "grind_grain_to_flour",
+      "process": "grind",
+      "inputs": [
+        {
+          "properties_all": [
+            "edible",
+            "long_lasting"
+          ],
+          "properties_none": [
+            "fine_grained",
+            "cooked"
+          ]
+        }
+      ],
+      "tool": {
+        "properties_all": [
+          "hard"
+        ],
+        "properties_none": []
+      },
+      "heat_min": null,
+      "duration_ticks": 90,
+      "tech_level": "tool",
+      "result": {
+        "add_properties": [
+          "fine_grained"
+        ],
+        "remove_properties": [],
+        "produces": null,
+        "consumes": []
+      }
+    },
+    {
+      "id": "grind_nuts_with_water_to_milk",
+      "process": "mix",
+      "inputs": [
+        {
+          "properties_all": [
+            "edible",
+            "fine_grained",
+            "fatty"
+          ],
+          "properties_none": []
+        },
+        {
+          "properties_all": [
+            "drinkable"
+          ],
+          "properties_none": [
+            "salty"
+          ]
+        }
+      ],
+      "tool": null,
+      "heat_min": null,
+      "duration_ticks": 40,
+      "tech_level": "hut",
+      "result": {
+        "add_properties": [
+          "milky",
+          "drinkable"
+        ],
+        "remove_properties": [
+          "fine_grained"
+        ],
         "produces": null,
         "consumes": [
           1
         ]
+      }
+    },
+    {
+      "id": "mix_flour_to_dough",
+      "process": "mix",
+      "inputs": [
+        {
+          "properties_all": [
+            "edible",
+            "fine_grained"
+          ],
+          "properties_none": [
+            "fatty"
+          ]
+        },
+        {
+          "properties_all": [
+            "drinkable"
+          ],
+          "properties_none": [
+            "salty"
+          ]
+        }
+      ],
+      "tool": null,
+      "heat_min": null,
+      "duration_ticks": 30,
+      "tech_level": "hut",
+      "result": {
+        "add_properties": [
+          "malleable"
+        ],
+        "remove_properties": [
+          "fine_grained"
+        ],
+        "produces": null,
+        "consumes": [
+          1
+        ]
+      }
+    },
+    {
+      "id": "bake_dough_to_bread",
+      "process": "heat",
+      "inputs": [
+        {
+          "properties_all": [
+            "edible",
+            "malleable"
+          ],
+          "properties_none": [
+            "hardens_in_fire"
+          ]
+        }
+      ],
+      "tool": null,
+      "heat_min": "embers",
+      "duration_ticks": 120,
+      "tech_level": "hut",
+      "result": {
+        "add_properties": [
+          "cooked",
+          "long_lasting"
+        ],
+        "remove_properties": [
+          "malleable"
+        ],
+        "produces": null,
+        "consumes": []
+      }
+    },
+    {
+      "id": "churn_milk_to_butter",
+      "process": "strike",
+      "inputs": [
+        {
+          "properties_all": [
+            "milky",
+            "drinkable"
+          ],
+          "properties_none": []
+        }
+      ],
+      "tool": null,
+      "heat_min": null,
+      "duration_ticks": 120,
+      "tech_level": "hut",
+      "result": {
+        "add_properties": [
+          "fatty"
+        ],
+        "remove_properties": [
+          "drinkable"
+        ],
+        "produces": null,
+        "consumes": []
+      }
+    },
+    {
+      "id": "curdle_milk_to_cheese",
+      "process": "heat",
+      "inputs": [
+        {
+          "properties_all": [
+            "milky",
+            "drinkable"
+          ],
+          "properties_none": []
+        }
+      ],
+      "tool": null,
+      "heat_min": "warm",
+      "duration_ticks": 600,
+      "tech_level": "hut",
+      "result": {
+        "add_properties": [
+          "long_lasting",
+          "malleable"
+        ],
+        "remove_properties": [
+          "drinkable"
+        ],
+        "produces": null,
+        "consumes": []
       }
     }
   ]

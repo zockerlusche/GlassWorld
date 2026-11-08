@@ -32,6 +32,13 @@ namespace GlassWorld.Contracts
         public System.Collections.Generic.ICollection<string> AvoidProperties { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
         /// <summary>
+        /// Action without a target (vocabulary target none) for looking further away while the inhabitant believes some kind of thing has target_property and nothing it avoids; scored with search_weight. Needs a target_property. Absent or null = the need waits until something turns up.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("search_action")]
+        public string? SearchAction { get; set; } = default!;
+
+        /// <summary>
         /// Need whose value is the curve input; null = constant input 1.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("need")]
@@ -78,6 +85,18 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("unknown_target_belief")]
         public double UnknownTargetBelief { get; set; } = default!;
+
+        /// <summary>
+        /// Score factor of looking further away (search_action) against a target in sight: the search scores urgency x the surest helpful belief x this value, so a weak or doubtful target in sight still competes. At most unknown_target_belief (checked at load): trying something unknown close by never loses to searching far away.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("search_weight")]
+        public double SearchWeight { get; set; } = default!;
+
+        /// <summary>
+        /// Game hours after which an inhabitant stops looking further away for a need, until the need is met or something believed helpful is in sight again (no endless search for what is gone or was heard wrongly).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("search_give_up_hours")]
+        public double SearchGiveUpHours { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("considerations")]
         public System.Collections.Generic.ICollection<Consideration> Considerations { get; set; } = new System.Collections.ObjectModel.Collection<Consideration>();

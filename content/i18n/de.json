@@ -635,6 +635,10 @@
       "text": "Gähnt"
     },
     {
+      "key": "vocab.expression.aha",
+      "text": "Hat eine Idee"
+    },
+    {
       "key": "vocab.mood.anger",
       "text": "Wut"
     },
@@ -805,6 +809,34 @@
     {
       "key": "vocab.property.sticky",
       "text": "Klebrig"
+    },
+    {
+      "key": "vocab.property.fine_grained",
+      "text": "Feinkörnig"
+    },
+    {
+      "key": "vocab.property.alkaline",
+      "text": "Laugig"
+    },
+    {
+      "key": "vocab.property.smoulders",
+      "text": "Glüht lange"
+    },
+    {
+      "key": "vocab.property.transparent",
+      "text": "Durchsichtig"
+    },
+    {
+      "key": "vocab.property.cooked",
+      "text": "Gekocht"
+    },
+    {
+      "key": "vocab.property.milky",
+      "text": "Milchig"
+    },
+    {
+      "key": "vocab.property.fatty",
+      "text": "Fettig"
     },
     {
       "key": "vocab.time_of_day.dawn",
@@ -1449,6 +1481,18 @@
     {
       "key": "vocab.event.mail_repeated",
       "text": "Nachricht klopft erneut"
+    },
+    {
+      "key": "vocab.event.writing_found",
+      "text": "Geschriebenes wiedergefunden"
+    },
+    {
+      "key": "msg.chronicle.found_writing",
+      "text": "{inhabitant} hat alte Zeichen gefunden: {target}."
+    },
+    {
+      "key": "ui.setup.model_language",
+      "text": "Sprachmodell: Denken, Sprechen und Fragen der Bewohner"
     }
   ]
 }

@@ -110,6 +110,10 @@
     },
     "placeholder_body": {
       "$ref": "#/$defs/MurmurPlaceholderBody"
+    },
+    "samples": {
+      "description": "Recorded murmur voices (listening test 3, W1664): when a voice of the base library fits, it plays instead of the formant murmur. Child below child_age_max (body age), otherwise by sex; high voice below high_size_max (body size). Empty voices = formant murmur only.",
+      "$ref": "#/$defs/MurmurSamples"
     }
   },
   "$defs": {
@@ -383,6 +387,76 @@
           "type": "number",
           "minimum": 50,
           "maximum": 600
+        }
+      }
+    },
+    "MurmurSamples": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "child_age_max",
+        "high_size_max",
+        "voices"
+      ],
+      "properties": {
+        "child_age_max": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "high_size_max": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "voices": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "$ref": "#/$defs/MurmurSampleVoice"
+          }
+        }
+      }
+    },
+    "MurmurSampleVoice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "child",
+        "sex",
+        "high",
+        "calm",
+        "question"
+      ],
+      "properties": {
+        "child": {
+          "type": "boolean"
+        },
+        "sex": {
+          "description": "Sex vocabulary id, or null for any (children).",
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/VocabId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "high": {
+          "type": "boolean"
+        },
+        "calm": {
+          "description": "Base library sound id for calm sentences (and exclamations).",
+          "type": "string",
+          "pattern": "^[a-z0-9_.]+$",
+          "maxLength": 80
+        },
+        "question": {
+          "description": "Base library sound id for questions.",
+          "type": "string",
+          "pattern": "^[a-z0-9_.]+$",
+          "maxLength": 80
         }
       }
     }

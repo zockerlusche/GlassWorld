@@ -67,7 +67,7 @@ class EnvironmentState(BaseModel):
     )
     temperature_c: float = Field(
         ...,
-        description='Felt temperature of the inhabitant in degrees Celsius: air temperature plus wind, wetness, sun or shade, reduced by protection (clothing, hut, cave, fire, body warmth of others). The need warmth is derived from it by the core. Rounded to 1 decimal.',
+        description="AIR temperature at the inhabitant's place (weather, season, height). What the inhabitant feels personally (clothing, wet, conditions) is InhabitantState.felt_temperature_c (B2540).",
         ge=-60.0,
         le=60.0,
     )

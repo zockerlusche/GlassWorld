@@ -103,6 +103,13 @@ public static class BaseSoundCheck
                     problems.Add($"{file.File}: peak {peak:0.0} dBFS above {target.PeakMaxDbfs:0.0}");
                 }
 
+                // Noise floor column (TL #19652): recorded for files of at least 1 s, null for shorter ones.
+                double? floor = wav.Seconds >= 1.0 ? Pcm.NoiseFloorDbfs(wav) : null;
+                if (floor is null != file.NoiseFloorDbfs is null || (floor is { } measured && Math.Abs(measured - file.NoiseFloorDbfs!.Value) > 0.5))
+                {
+                    problems.Add($"{file.File}: noise floor {floor?.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) ?? "none"} differs from library.json ({file.NoiseFloorDbfs?.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) ?? "none"})");
+                }
+
                 if (wav.Seconds > maxSeconds + 0.01)
                 {
                     problems.Add($"{file.File}: {wav.Seconds:0.00} s longer than {maxSeconds:0.##} s");

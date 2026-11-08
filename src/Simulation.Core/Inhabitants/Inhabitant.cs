@@ -74,6 +74,12 @@ public sealed class Inhabitant
     /// </summary>
     public Activity? Planned { get; internal set; }
 
+    /// <summary>
+    /// Since which tick the inhabitant has been looking further away, per search key (need); removed once the
+    /// need is met or something helpful is in sight again. Searches give up after search_give_up_hours.
+    /// </summary>
+    public SortedDictionary<string, long> SearchSince { get; } = new(StringComparer.Ordinal);
+
     /// <summary>How the inhabitant looks (B2 R27); null only in worlds built without look data (tests).</summary>
     public Appearance? Appearance { get; set; }
 
@@ -96,6 +102,16 @@ public sealed class Inhabitant
         WriteActivity(hasher, Planned);
         hasher.Write(Appearance is not null);
         Appearance?.WriteState(hasher);
+
+        // Searches only while there are any, so states without them keep their hashes.
+        if (SearchSince.Count > 0)
+        {
+            hasher.Write("search").Write(SearchSince.Count);
+            foreach (var (key, tick) in SearchSince)
+            {
+                hasher.Write(key).Write(tick);
+            }
+        }
     }
 
     private static void WriteActivity(StateHasher hasher, Activity? activity)

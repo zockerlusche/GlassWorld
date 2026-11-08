@@ -133,52 +133,6 @@ class Subject(BaseModel):
     id: str = Field(..., max_length=64, pattern='^[a-z][a-z0-9_.-]*$')
 
 
-class KnowledgeEntry(BaseModel):
-    model_config = ConfigDict(
-        extra='forbid',
-    )
-    subject: Subject
-    property: str = Field(
-        ...,
-        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
-        max_length=64,
-        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
-    )
-    value: bool
-    confidence: float = Field(..., ge=0.0, le=1.0)
-    source: KnowledgeSource
-    told_by: EntityId | None = Field(
-        ..., description='Teller for source heard (or writer for read); null otherwise.'
-    )
-    tick: int = Field(..., description='Simulation tick the message refers to.', ge=0)
-
-
-class MemoryEvent(BaseModel):
-    model_config = ConfigDict(
-        extra='forbid',
-    )
-    tick: int = Field(..., description='Simulation tick the message refers to.', ge=0)
-    kind: str = Field(
-        ...,
-        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
-        max_length=64,
-        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
-    )
-    about: Subject | None
-
-
-class Memory(BaseModel):
-    model_config = ConfigDict(
-        extra='forbid',
-    )
-    summary: str = Field(
-        ...,
-        description='Internal English text for the AI (B4a R5); never shown to the player (player texts only via keys or GeneratedText).',
-        max_length=1200,
-    )
-    recent: list[MemoryEvent] = Field(..., max_length=12)
-
-
 class Relationship(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -454,6 +408,76 @@ class FeltCondition(BaseModel):
     body_part: VocabId | None = Field(
         ..., description='Where it is felt (vocabulary body_part), or null.'
     )
+
+
+class Place(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    x_m: float = Field(..., ge=-100000.0, le=100000.0)
+    z_m: float = Field(..., ge=-100000.0, le=100000.0)
+
+
+class KnowledgeEntry(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    subject: Subject
+    property: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    value: bool
+    confidence: float = Field(..., ge=0.0, le=1.0)
+    source: KnowledgeSource
+    told_by: EntityId | None = Field(
+        ..., description='Teller for source heard (or writer for read); null otherwise.'
+    )
+    tick: int = Field(..., description='Simulation tick the message refers to.', ge=0)
+    place: Place | None = Field(
+        None,
+        description='Where it was (B2533), null if not tied to a place. Optional: absent = unknown (older cores).',
+    )
+    object: EntityId | None = Field(
+        None,
+        description='The object instance it was about (B2533), null if none. Optional: absent = unknown.',
+    )
+
+
+class MemoryEvent(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    tick: int = Field(..., description='Simulation tick the message refers to.', ge=0)
+    kind: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    about: Subject | None
+    place: Place | None = Field(
+        None,
+        description='Where it was (B2533), null if not tied to a place. Optional: absent = unknown (older cores).',
+    )
+    object: EntityId | None = Field(
+        None,
+        description='The object instance it was about (B2533), null if none. Optional: absent = unknown.',
+    )
+
+
+class Memory(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    summary: str = Field(
+        ...,
+        description='Internal English text for the AI (B4a R5); never shown to the player (player texts only via keys or GeneratedText).',
+        max_length=1200,
+    )
+    recent: list[MemoryEvent] = Field(..., max_length=12)
 
 
 class InhabitantState(BaseModel):

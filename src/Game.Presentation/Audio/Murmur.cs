@@ -70,6 +70,33 @@ public sealed class Murmur(MurmurSettings settings)
             Math.Max(0.5, 1 + (v.SizeFormant * size)));
     }
 
+    /// <summary>
+    /// The recorded voice for a sentence (listening test 3, W1664), or null when the data has none that
+    /// fits: child below the data's age, otherwise by sex; high voice below the data's size. Questions use
+    /// the question recording, everything else the calm one. Which of the recordings of that sound plays
+    /// follows the inhabitant and the sentence, so a sentence always sounds the same.
+    /// </summary>
+    public (string SoundId, int Variant)? SampleFor(string inhabitantId, string sex, VoiceBody body, string text)
+    {
+        ArgumentNullException.ThrowIfNull(body);
+        if (_settings.Samples is not { } samples)
+        {
+            return null;
+        }
+
+        var child = body.Age < samples.ChildAgeMax;
+        var high = body.Size < samples.HighSizeMax;
+        var voice = samples.Voices.FirstOrDefault(v => v.Child == child && v.High == high && (child || v.Sex == sex));
+        if (voice is null)
+        {
+            return null;
+        }
+
+        var sound = KindOf(text) == MurmurMelodyKind.Question ? voice.Question : voice.Calm;
+        var variant = (int)(SplitMix64.SeedOf($"murmur-sample|{inhabitantId}|{text}") % 1024);
+        return (sound, variant);
+    }
+
     /// <summary>Sentence kind from the last visible character (language-neutral marks from the data).</summary>
     public MurmurMelodyKind KindOf(string text)
     {

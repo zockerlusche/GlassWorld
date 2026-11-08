@@ -17,6 +17,12 @@ from fastapi.responses import JSONResponse, Response
 
 from glassworld_ai import SERVICE_VERSION
 from glassworld_ai.benchmark import Benchmark, HandlerProbe, OllamaLanguageProbe
+from glassworld_ai.builder.plan import (
+    MockBuilder,
+    OllamaBuilder,
+    ReplayBuilder,
+    bounds_tolerance,
+)
 from glassworld_ai.calllog import CallLog
 from glassworld_ai.config import Settings
 from glassworld_ai.decider.backends import (
@@ -49,6 +55,8 @@ from glassworld_ai.llm.ollama import (
 )
 from glassworld_ai.memory.condense import MockMemory, OllamaMemory, ReplayMemory
 from glassworld_ai.model3d import Model3dJobs, load_model3d_settings
+from glassworld_ai.model_setup import ModelSetup, load_catalog
+from glassworld_ai.ollama_setup import OllamaSetup, load_runtime
 from glassworld_ai.planner import Planner, load_night_plan
 from glassworld_ai.probes import HttpProbes, Probes
 from glassworld_ai.process.judge import (
@@ -63,6 +71,7 @@ from glassworld_ai.questions.handlers import MockQuestions, OllamaQuestions, Rep
 from glassworld_ai.queue import ModelQueue
 from glassworld_ai.residency import (
     ComfyUIDriver,
+    HookDriver,
     OllamaDriver,
     Residency,
     ResidencyError,
@@ -112,6 +121,8 @@ def create_app(
     tiers = load_tiers(settings.hardware_tiers_file)  # fail fast on a broken data file
     game_vram, footprints = load_footprints(settings.model_footprints_file)
     night_budget, night_kinds = load_night_plan(settings.night_plan_file)
+    ollama_runtime = load_runtime(settings.ollama_runtime_file)
+    model_catalog = load_catalog(settings.model_downloads_file)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
@@ -120,6 +131,12 @@ def create_app(
                 str(settings.ollama_url), settings.decider_model, client, settings.keep_alive
             )
             app.state.ollama = ollama
+            setup: OllamaSetup = app.state.ollama_setup
+            autostart: asyncio.Task[bool] | None = None
+            if settings.ollama_autostart and settings.decider_backend == "ollama":
+                # B10 R3: our own installed copy is started (warm-up retries); the player's own
+                # only via POST /setup/ollama/start after consent (review GW1 #122).
+                autostart = asyncio.create_task(setup.ensure_running())
             if probes is None:
                 app.state.probes = HttpProbes(settings, client)
             if hardware is None:
@@ -129,6 +146,14 @@ def create_app(
                 "ollama", OllamaDriver(str(settings.ollama_url), client, settings.keep_alive)
             )
             residency.register_driver("comfyui", ComfyUIDriver(str(settings.comfyui_url), client))
+            worker: MossWorker | None = app.state.moss_worker
+            if worker is not None:
+                # Starting the worker = loading MOSS, ending it = unloading (B8, GW3 #79); only
+                # the residency does it, so it never shares the card with the language model.
+                residency.register_driver(
+                    "hook",
+                    HookDriver(worker.load, worker.unload, is_alive=lambda _: worker.running),
+                )
             if decider is None:
                 app.state.decider = _build_decider(settings, ollama, app.state.queue)
             if helper is None:
@@ -141,6 +166,7 @@ def create_app(
                 app.state.jobs.register("dream", _ollama_dreams(settings, ollama, app))
                 app.state.jobs.register("process", _ollama_processes(settings, ollama, app))
                 app.state.jobs.register("invention", _ollama_inventions(settings, ollama, app))
+                app.state.jobs.register("build_plan", _ollama_builder(settings, ollama, app))
             warm_task: asyncio.Task[None] | None = None
             if settings.warm_up and settings.decider_backend == "ollama":
                 app.state.warm_up = "starting"
@@ -172,6 +198,15 @@ def create_app(
                     with contextlib.suppress(asyncio.CancelledError):
                         await first_run
                 await app.state.benchmark.close()
+                pending_start: asyncio.Task[bool] | None = getattr(app.state, "ollama_start", None)
+                if pending_start is not None and not pending_start.done():
+                    pending_start.cancel()
+                    with contextlib.suppress(asyncio.CancelledError):
+                        await pending_start
+                if autostart is not None and not autostart.done():
+                    autostart.cancel()
+                    with contextlib.suppress(asyncio.CancelledError):
+                        await autostart
                 await app.state.jobs.close()
                 with contextlib.suppress(ResidencyError):
                     await app.state.residency.release_all()  # also image/sound models (R3)
@@ -180,6 +215,8 @@ def create_app(
                         OllamaUnavailableError, OllamaResponseError, httpx.HTTPError
                     ):
                         await ollama.unload(timeout=10)
+                await app.state.model_setup.close()
+                await setup.close()  # only an Ollama the service started itself
 
     app = FastAPI(
         title="GlassWorld AI service",
@@ -190,6 +227,22 @@ def create_app(
         openapi_url=None,
     )
     validator = ContractValidator(settings.schemas_dir)
+    app.state.ollama_setup = OllamaSetup(
+        ollama_runtime,
+        install_dir=settings.ollama_install_dir,
+        ollama_url=str(settings.ollama_url),
+        transport=transport,
+        models_dir=settings.ollama_models_dir,
+        start_timeout_s=settings.ollama_start_timeout_s,
+    )
+    app.state.model_setup = ModelSetup(
+        model_catalog,
+        store_dir=settings.model_store_dir,
+        ollama_url=str(settings.ollama_url),
+        tier=lambda: getattr(app.state, "tier", None),
+        transport=transport,
+        ollama_models_dir=settings.ollama_models_dir,
+    )
     app.state.queue = queue or ModelQueue(settings.queue_size)
     # Job kinds get their handlers in their own steps (question: B4a S2, image: B7 S5, ...).
     # The Ollama question handler needs the HTTP client and is registered in the lifespan.
@@ -205,8 +258,12 @@ def create_app(
         settings.job_capacity,
         gate=planner,
     )
+    app.state.moss_worker = None
     if job_handlers is None:
-        app.state.jobs.register("sound", _sound_handler(settings))
+        sound_handler, app.state.moss_worker = _sound_handler(settings)
+        app.state.jobs.register("sound", sound_handler)
+        if app.state.moss_worker is None:
+            planner.release("sound")  # the mock needs no VRAM: keep the language model
         app.state.jobs.register(
             "model3d",
             Model3dJobs(
@@ -395,6 +452,105 @@ def create_app(
     @app.get("/phase")
     async def phase_status() -> Response:
         return JSONResponse(_phase_status().model_dump(mode="json"))
+
+    @app.get("/setup/ollama")
+    async def ollama_setup_status() -> Response:
+        """B10 R3: is a usable Ollama there, and what the download would be (dialog, R4)."""
+        setup: OllamaSetup = app.state.ollama_setup
+        return JSONResponse((await setup.status()).model_dump(mode="json"))
+
+    @app.post("/setup/ollama/download")
+    async def ollama_setup_download(request: Request) -> Response:
+        """Load Ollama, only with {"consent": true} from the game's dialog; poll the GET."""
+        refused = await _consent_refused(request)
+        if refused is not None:
+            return refused
+        setup: OllamaSetup = app.state.ollama_setup
+        setup.start_download()
+        return JSONResponse((await setup.status()).model_dump(mode="json"), status_code=202)
+
+    @app.post("/setup/ollama/start")
+    async def ollama_setup_start(request: Request) -> Response:
+        """Start an installed Ollama, also the player's own, only with {"consent": true}."""
+        refused = await _consent_refused(request)
+        if refused is not None:
+            return refused
+        setup: OllamaSetup = app.state.ollama_setup
+        app.state.ollama_start = asyncio.create_task(setup.ensure_running(external=True))
+        await asyncio.sleep(0)  # let it reach "starting"
+        return JSONResponse((await setup.status()).model_dump(mode="json"), status_code=202)
+
+    async def _consent_refused(request: Request) -> Response | None:
+        return (await _consented(request))[0]
+
+    async def _consented(request: Request) -> tuple[Response | None, dict[str, object]]:
+        body = await _read_body(request)
+        try:
+            data: object = json.loads(body or b"null")
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            data = None
+        if not isinstance(data, dict) or cast(dict[str, object], data).get("consent") is not True:
+            refused = error_response(
+                "bad_request", 'The player has to agree first: {"consent": true}.', retryable=False
+            )
+            return refused, {}
+        if app.state.stopping:
+            return error_response("model_unavailable", "Service is stopping."), {}
+        return None, cast(dict[str, object], data)
+
+    @app.get("/setup/models")
+    async def model_setup_status() -> Response:
+        """B10 R4: the detected tier's models, what is there and what the dialog offers."""
+        models: ModelSetup = app.state.model_setup
+        return JSONResponse((await models.status()).model_dump(mode="json"))
+
+    @app.post("/setup/models/download")
+    async def model_setup_download(request: Request) -> Response:
+        """Load the agreed models: {"consent": true, "models": [ids], "replace": [ids]?}."""
+        refused, data = await _consented(request)
+        if refused is not None:
+            return refused
+        ids = data.get("models")
+        if (
+            not isinstance(ids, list)
+            or not ids
+            or not all(isinstance(i, str) for i in cast(list[object], ids))
+        ):
+            return error_response(
+                "bad_request", 'Name the agreed models: {"models": [ids]}.', retryable=False
+            )
+        replace = data.get("replace", [])
+        if not isinstance(replace, list) or not all(
+            isinstance(i, str) for i in cast(list[object], replace)
+        ):
+            return error_response(
+                "bad_request", "replace must be a list of model ids.", retryable=False
+            )
+        models: ModelSetup = app.state.model_setup
+        unknown = models.start(
+            [str(i) for i in cast(list[object], ids)],
+            [str(i) for i in cast(list[object], replace)],
+        )
+        if unknown:
+            return error_response(
+                "bad_request", f"Not offered for this tier: {', '.join(unknown)}.", retryable=False
+            )
+        await asyncio.sleep(0)
+        return JSONResponse((await models.status()).model_dump(mode="json"), status_code=202)
+
+    @app.post("/setup/models/cancel")
+    async def model_setup_cancel() -> Response:
+        """Stop the model download; what is on disk stays and the next download continues."""
+        models: ModelSetup = app.state.model_setup
+        await models.cancel()
+        return JSONResponse((await models.status()).model_dump(mode="json"))
+
+    @app.post("/setup/ollama/cancel")
+    async def ollama_setup_cancel() -> Response:
+        """Stop the download; what is on disk stays and the next download continues."""
+        setup: OllamaSetup = app.state.ollama_setup
+        await setup.cancel()
+        return JSONResponse((await setup.status()).model_dump(mode="json"))
 
     @app.get("/benchmark")
     async def benchmark_status() -> Response:
@@ -631,7 +787,7 @@ async def _warm_up(app: FastAPI, ollama: OllamaClient, retry_s: float) -> None:
         await asyncio.sleep(retry_s)
 
 
-def _sound_handler(settings: Settings) -> Handler:
+def _sound_handler(settings: Settings) -> tuple[Handler, MossWorker | None]:
     """Sound jobs (D471 D7): the MOSS worker if configured, otherwise the deterministic mock."""
     generation = load_generation_settings(settings.content_dir)
     if settings.sound_backend == "moss":
@@ -650,10 +806,11 @@ def _sound_handler(settings: Settings) -> Handler:
             settings.moss_code_dir,
             settings.moss_start_timeout_s,
         )
-        return MossSound(
+        handler = MossSound(
             worker, settings.sound_output_dir, generation, settings.sound_render_timeout_s
         )
-    return MockSound(settings.sound_output_dir, generation)
+        return handler, worker
+    return MockSound(settings.sound_output_dir, generation), None
 
 
 def _text_guard(settings: Settings) -> TextGuard:
@@ -810,6 +967,7 @@ def _offline_handlers(settings: Settings) -> dict[str, Handler]:
             "dream": MockDreams(),
             "process": MockProcesses(),
             "invention": MockInventions(vocab),
+            "build_plan": MockBuilder(),
         }
     if settings.decider_backend == "replay":
         template = load_prompt(
@@ -826,6 +984,9 @@ def _offline_handlers(settings: Settings) -> dict[str, Handler]:
                 vocab,
                 tech_levels(settings.content_dir),
                 safety_categories(settings.content_dir),
+            ),
+            "build_plan": ReplayBuilder(
+                _builder_log(settings), bounds_tolerance(settings.content_dir)
             ),
         }
     return {}
@@ -901,6 +1062,23 @@ def _ollama_dreams(settings: Settings, ollama: OllamaClient, app: FastAPI) -> Ol
         settings=_call_settings(settings),
         log=_dream_log(settings),
         guard=_text_guard(settings),
+    )
+
+
+def _builder_log(settings: Settings) -> CallLog:
+    return CallLog(settings.log_dir / "builder.jsonl")
+
+
+def _ollama_builder(settings: Settings, ollama: OllamaClient, app: FastAPI) -> OllamaBuilder:
+    return OllamaBuilder(
+        client=ollama,
+        queue=app.state.queue,
+        template=load_prompt(
+            settings.prompts_dir, settings.builder_prompt, settings.builder_prompt_version
+        ),
+        settings=_call_settings(settings),
+        log=_builder_log(settings),
+        tolerance=bounds_tolerance(settings.content_dir),
     )
 
 

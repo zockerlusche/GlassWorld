@@ -61,6 +61,24 @@ public sealed class GaitTests
     }
 
     [Fact]
+    public void LookingFurtherAwayForAPressingNeedHurries()
+    {
+        // Review GW3 #118: the search walk takes the gait of the need it searches for (search_action in utility.json).
+        var search = Content.Brain.Weights.Considerations.Single(c => c.Need == "thirst" && c.TargetProperty is not null).SearchAction!;
+        var (world, inhabitants, _) = NewWorld(Content.Gaits);
+        var thirsty = Satisfied(inhabitants.Get("inh-000001"));
+        thirsty.Needs["thirst"] = 0.05;
+        thirsty.Activity = new Activity(search, null, new Position(100, 0), null);
+        var calm = Satisfied(inhabitants.Get("inh-000002"));
+        calm.Activity = new Activity(search, null, new Position(600, 0), null);
+
+        world.Step();
+        Assert.Equal(Data.PressingNeedGait, inhabitants.GaitOf(thirsty));
+        Assert.Equal(Data.WalkMPerTick * Factor(Data.PressingNeedGait!), thirsty.Position.X, 9);
+        Assert.Equal(Data.ActionGaits.Single(a => a.Action == search).Gait, inhabitants.GaitOf(calm));
+    }
+
+    [Fact]
     public void ChangedDataChangesSpeedAndGaitWithoutCodeChange()
     {
         var data = Clone(Data);

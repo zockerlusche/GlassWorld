@@ -9,6 +9,8 @@ a simple THING or BUILDING that does not exist yet.
 
 Rules for the idea:
 - Only things and buildings. Never invent animals, plants, people or any living being.
+- category: "object" for anything you can carry or hold (cup, basket, tool, mat); "building" only
+  for something fixed and big enough to stand or sit in or under (hut, shelter, fireplace wall).
 - Only from the materials listed under "What you can see and reach". Name them exactly as listed.
   Do not assume a property that is not listed for a material.
 - Keep it simple and at the given tech level; no metal before the metal level.
@@ -16,7 +18,9 @@ Rules for the idea:
   animals. Cutting tools are fine when their purpose is material or plants.
 - Small and practical: at most $max_size metres in each direction.
 - 2 to 8 steps, each step one basic process from the list.
-- "introduces": only properties from the list that the new thing really has.
+- "introduces": properties of the NEW THING itself, from the list (a cup is a "container", not
+  "drinkable"; a stone blade is "sharp"). Only what it really has.
+- Use the material that suits the purpose best (a sharp stone to cut, clay for a vessel).
 - A short name in German AND English (max. 40 characters each), plain words.
 - thought: ONE short sentence of this person about the idea in $thought_language, or null.
 - The world is calm and friendly, suitable for players aged 12.

@@ -11,7 +11,8 @@
       ],
       "tool_properties": [],
       "legibility": 0.6,
-      "capacity": 1
+      "capacity": 1,
+      "carrier": { "surface": "ground", "properties": [], "biomes": ["beach_sea"] }
     },
     {
       "id": "rock_painting",
@@ -22,7 +23,8 @@
       ],
       "tool_properties": [],
       "legibility": 0.7,
-      "capacity": 2
+      "capacity": 2,
+      "carrier": { "surface": "object", "properties": ["hard"], "biomes": [] }
     },
     {
       "id": "carving_wood",
@@ -32,7 +34,8 @@
       ],
       "tool_properties": ["sharp"],
       "legibility": 0.8,
-      "capacity": 2
+      "capacity": 2,
+      "carrier": { "surface": "object", "properties": ["building_material", "burnable"], "biomes": [] }
     },
     {
       "id": "carving_stone",
@@ -40,7 +43,8 @@
       "weather_loss": [],
       "tool_properties": ["hard", "sharp"],
       "legibility": 0.85,
-      "capacity": 3
+      "capacity": 3,
+      "carrier": { "surface": "object", "properties": ["hard", "building_material"], "biomes": [] }
     },
     {
       "id": "tablet",
@@ -50,7 +54,8 @@
       ],
       "tool_properties": ["sharp"],
       "legibility": 0.9,
-      "capacity": 5
+      "capacity": 5,
+      "carrier": { "surface": "object", "properties": ["crafted"], "biomes": [] }
     },
     {
       "id": "book",
@@ -60,7 +65,8 @@
       ],
       "tool_properties": ["sharp"],
       "legibility": 1.0,
-      "capacity": 50
+      "capacity": 50,
+      "carrier": { "surface": "object", "properties": ["crafted"], "biomes": [] }
     },
     {
       "id": "library",
@@ -68,9 +74,11 @@
       "weather_loss": [],
       "tool_properties": [],
       "legibility": 1.0,
-      "capacity": 1000
+      "capacity": 1000,
+      "carrier": { "surface": "object", "properties": ["crafted"], "biomes": [] }
     }
   ],
   "write": { "ability": "writing", "min_level": 0.1 },
+  "found": { "after_days": 30 },
   "read": { "ability": "reading", "min_level": 0.1, "min_legibility": 0.15, "curiosity_trait": "curiosity", "curiosity_min": 0.5 }
 }

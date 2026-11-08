@@ -195,6 +195,10 @@
       "schema": "skill-practice"
     },
     {
+      "pattern": "skills/levels.json",
+      "schema": "skill-level-settings"
+    },
+    {
       "pattern": "writing/media.json",
       "schema": "writing-media"
     },
@@ -233,6 +237,14 @@
     {
       "pattern": "look/objects.json",
       "schema": "look-objects"
+    },
+    {
+      "pattern": "ai/ollama-runtime.json",
+      "schema": "ollama-runtime"
+    },
+    {
+      "pattern": "ai/model-downloads.json",
+      "schema": "model-downloads"
     }
   ]
 }

@@ -210,6 +210,13 @@ public static class SaveGameStore
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("appearances", JsonSerializer.Serialize(appearances, Json)));
         }
 
+        // Searches under way (give-up clock) as one JSON object by inhabitant id; older saves have none.
+        var searches = s.Inhabitants.Where(i => i.SearchSince is { Count: > 0 }).ToDictionary(i => i.Id, i => i.SearchSince!, StringComparer.Ordinal);
+        if (searches.Count > 0)
+        {
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("search_since", JsonSerializer.Serialize(searches, Json)));
+        }
+
         if (s.Player is not null)
         {
             // Player part (B6) as one JSON value; doubles round-trip exactly, so the hash survives.
@@ -219,6 +226,16 @@ public static class SaveGameStore
         if (s.Writing is not null)
         {
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("writing", JsonSerializer.Serialize(s.Writing, Json)));
+        }
+
+        if (s.SkillGains is not null)
+        {
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("skill_gains", JsonSerializer.Serialize(s.SkillGains, Json)));
+        }
+
+        if (s.WritingSeen is not null)
+        {
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("writing_seen", JsonSerializer.Serialize(s.WritingSeen, Json)));
         }
 
         if (s.Weather is not null)
@@ -370,6 +387,9 @@ public static class SaveGameStore
         var appearances = meta.TryGetValue("appearances", out var appearanceJson)
             ? JsonSerializer.Deserialize<Dictionary<string, Appearance>>(appearanceJson, Json) ?? []
             : [];
+        var searches = meta.TryGetValue("search_since", out var searchJson)
+            ? JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, long>>>(searchJson, Json) ?? []
+            : [];
         return new SaveState(
             ulong.Parse(meta["seed"], CultureInfo.InvariantCulture),
             long.Parse(meta["tick"], CultureInfo.InvariantCulture),
@@ -392,7 +412,8 @@ public static class SaveGameStore
                     r.IsDBNull(11) ? null : JsonSerializer.Deserialize<Activity>(r.GetString(11), Json),
                     [.. beliefs[r.GetString(0)]],
                     appearances.GetValueOrDefault(r.GetString(0)),
-                    [.. relations[r.GetString(0)]])),
+                    [.. relations[r.GetString(0)]],
+                    searches.GetValueOrDefault(r.GetString(0)))),
             long.Parse(meta["question_counter"], CultureInfo.InvariantCulture),
             Query(c, "SELECT data FROM questions ORDER BY id", r => JsonSerializer.Deserialize<SavedQuestion>(r.GetString(0))!),
             Query(c, "SELECT key, tick FROM last_asked ORDER BY key", r => new KeyValuePair<string, long>(r.GetString(0), r.GetInt64(1))),
@@ -408,6 +429,8 @@ public static class SaveGameStore
             // Save games from before the player system have no entry: the world keeps its defaults.
             Player = meta.TryGetValue("player", out var player) ? JsonSerializer.Deserialize<Simulation.Player.PlayerState>(player, Json) : null,
             Writing = meta.TryGetValue("writing", out var writing) ? JsonSerializer.Deserialize<List<Simulation.Writing.WrittenText>>(writing, Json) : null,
+            WritingSeen = meta.TryGetValue("writing_seen", out var seen) ? JsonSerializer.Deserialize<List<string>>(seen, Json) : null,
+            SkillGains = meta.TryGetValue("skill_gains", out var gains) ? JsonSerializer.Deserialize<List<Simulation.Inhabitants.SkillGain>>(gains, Json) : null,
             IslandData = ReadIsland(c, meta),
             Weather = meta.TryGetValue("weather", out var weather) ? JsonSerializer.Deserialize<Weather.WeatherState>(weather, Json) : null,
             Skills = meta.TryGetValue("skills", out var skills) ? JsonSerializer.Deserialize<Simulation.Inhabitants.SkillRegisterState>(skills, Json) : null,

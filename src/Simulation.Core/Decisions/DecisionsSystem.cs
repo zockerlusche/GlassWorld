@@ -520,17 +520,26 @@ public sealed class DecisionsSystem : IWorldSystem
         }
 
         var chosen = question.Options.Where(o => o.OptionId == response.OptionId).ToList();
-        if (chosen.Count != 1 || (chosen[0].TargetId is not null && !_objects.TryGet(chosen[0].TargetId!, out _)))
+        var resolved = chosen.Count == 1 && chosen[0].TargetId is { } id ? _inhabitants.ResolveTarget(id) : null;
+        if (chosen.Count != 1 || (chosen[0].TargetId is not null && resolved is null))
         {
             Log.Add(new DecisionLogEntry(DecisionLogKind.Discarded, message.RequestId, world.Tick, message.Json, ReplayNotes.UnknownOption));
-            Close(world, question, "question_failed");
+            Close(world, question, "question_failed", ReplayNotes.UnknownOption);
+            return;
+        }
+
+        var inhabitant = _inhabitants.Get(question.InhabitantId);
+        var (_, action, targetId) = chosen[0];
+        if (resolved?.Inhabitant is { } listener && (Knowledge is not { } knowledge || InhabitantsSystem.PassableBelief(knowledge, inhabitant, listener, action) is null))
+        {
+            // Between offer and answer the listener may have learned it themselves: no walk over for nothing.
+            Log.Add(new DecisionLogEntry(DecisionLogKind.Discarded, message.RequestId, world.Tick, message.Json, ReplayNotes.NothingToPass));
+            Close(world, question, "question_failed", ReplayNotes.NothingToPass);
             return;
         }
 
         Log.Add(new DecisionLogEntry(DecisionLogKind.Response, message.RequestId, world.Tick, message.Json, null));
-        var inhabitant = _inhabitants.Get(question.InhabitantId);
-        var (_, action, targetId) = chosen[0];
-        var destination = targetId is not null && _objects.TryGet(targetId, out var target) ? target.Position : inhabitant.Position;
+        var destination = resolved?.Position ?? inhabitant.Position;
         var decided = new Activity(action, targetId, destination, null);
         if (inhabitant.Activity?.RemainingTicks is not null)
         {
@@ -562,7 +571,7 @@ public sealed class DecisionsSystem : IWorldSystem
         }
     }
 
-    private void Close(World world, OpenQuestion? question, string eventKind)
+    private void Close(World world, OpenQuestion? question, string eventKind, string? reason = null)
     {
         if (question is null)
         {
@@ -570,7 +579,7 @@ public sealed class DecisionsSystem : IWorldSystem
         }
 
         _open.Remove(question.Id);
-        _inhabitants.Report(new WorldEvent(eventKind, world.Tick, question.InhabitantId, null, question.Id));
+        _inhabitants.Report(new WorldEvent(eventKind, world.Tick, question.InhabitantId, null, question.Id) { Detail = reason });
     }
 
     /// <summary>Other inhabitants within the perception radius, nearest first, ties by id.</summary>

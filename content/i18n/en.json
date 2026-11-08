@@ -635,6 +635,10 @@
       "text": "Yawns"
     },
     {
+      "key": "vocab.expression.aha",
+      "text": "Has an idea"
+    },
+    {
       "key": "vocab.mood.anger",
       "text": "Anger"
     },
@@ -805,6 +809,34 @@
     {
       "key": "vocab.property.sticky",
       "text": "Sticky"
+    },
+    {
+      "key": "vocab.property.fine_grained",
+      "text": "Fine-grained"
+    },
+    {
+      "key": "vocab.property.alkaline",
+      "text": "Alkaline"
+    },
+    {
+      "key": "vocab.property.smoulders",
+      "text": "Smoulders"
+    },
+    {
+      "key": "vocab.property.transparent",
+      "text": "Transparent"
+    },
+    {
+      "key": "vocab.property.cooked",
+      "text": "Cooked"
+    },
+    {
+      "key": "vocab.property.milky",
+      "text": "Milky"
+    },
+    {
+      "key": "vocab.property.fatty",
+      "text": "Fatty"
     },
     {
       "key": "vocab.time_of_day.dawn",
@@ -1449,6 +1481,18 @@
     {
       "key": "vocab.event.mail_repeated",
       "text": "Message knocks again"
+    },
+    {
+      "key": "vocab.event.writing_found",
+      "text": "Writing found again"
+    },
+    {
+      "key": "msg.chronicle.found_writing",
+      "text": "{inhabitant} found old signs: {target}."
+    },
+    {
+      "key": "ui.setup.model_language",
+      "text": "Language model: how the inhabitants think, talk and ask"
     }
   ]
 }

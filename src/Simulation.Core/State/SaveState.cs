@@ -27,7 +27,8 @@ public sealed record SavedInhabitant(
     Activity? Planned,
     IReadOnlyList<SavedBelief> Beliefs,
     Appearance? Appearance = null,
-    IReadOnlyList<SavedRelation>? Relations = null);
+    IReadOnlyList<SavedRelation>? Relations = null,
+    IReadOnlyDictionary<string, long>? SearchSince = null);
 
 /// <summary>An open question as saved.</summary>
 public sealed record SavedQuestion(string Id, string InhabitantId, string Kind, string Subject, string RequestId, long AskedTick, IReadOnlyList<SavedOption> Options, long? RetryAtTick);
@@ -65,11 +66,17 @@ public sealed record SaveState(
     /// <summary>Writing on objects (B8 R15); null in save games from before.</summary>
     public IReadOnlyList<Writing.WrittenText>? Writing { get; init; }
 
+    /// <summary>Who has seen which text ("inhabitant|object", R15 found again); null when nobody has.</summary>
+    public IReadOnlyList<string>? WritingSeen { get; init; }
+
     /// <summary>The weather (B2 R13); null in worlds without weather and in older save games.</summary>
     public Weather.WeatherState? Weather { get; init; }
 
     /// <summary>New skills of inventions (A1372); null in save games from before or without any.</summary>
     public SkillRegisterState? Skills { get; init; }
+
+    /// <summary>Practised skill gains per inhabitant (B5 part); null when nobody has practised.</summary>
+    public IReadOnlyList<SkillGain>? SkillGains { get; init; }
 
     /// <summary>The mailbox (B6 R11); null in save games from before.</summary>
     public Player.MailboxState? Mailbox { get; init; }
@@ -103,7 +110,8 @@ public static class StateCodec
                 i.Planned,
                 [.. i.Beliefs.All.Select(b => new SavedBelief(b.TypeId, b.PropertyId, b.Belief.Value, b.Belief.Confidence, b.Belief.Source, b.Belief.ToldBy, b.Belief.Tick))],
                 i.Appearance,
-                [.. i.Relationships.All.Select(r => new SavedRelation(r.Other, r.Relation.Affection, r.Relation.Trust, r.Relation.Respect))]))],
+                [.. i.Relationships.All.Select(r => new SavedRelation(r.Other, r.Relation.Affection, r.Relation.Trust, r.Relation.Respect))],
+                i.SearchSince.Count > 0 ? new Dictionary<string, long>(i.SearchSince, StringComparer.Ordinal) : null))],
             counter,
             [.. questions.Select(q => new SavedQuestion(q.Id, q.InhabitantId, q.Kind, q.Subject, q.RequestId, q.AskedTick, [.. q.Options.Select(o => new SavedOption(o.OptionId, o.Action, o.TargetId))], q.RetryAtTick))],
             lastAsked,
@@ -116,9 +124,11 @@ public static class StateCodec
         {
             Player = host.Player.Capture(),
             Writing = host.Writing.HasState ? host.Writing.Capture() : null,
+            WritingSeen = host.Writing.Seen.Count > 0 ? host.Writing.Seen : null,
             IslandData = host.Map is { } map ? Map.IslandCodec.Encode(map.Island, map.CellSizeCm) : null,
             Weather = host.WeatherSystem?.Capture(),
             Skills = host.Skills.HasState ? host.Skills.Capture() : null,
+            SkillGains = host.SkillLevels.HasState ? host.SkillLevels.Capture() : null,
             Mailbox = host.Mailbox.Capture(),
         };
     }
@@ -149,13 +159,14 @@ public static class StateCodec
 
         host.Chronicle.Restore(state.Chronicle ?? []);
         host.Skills.Restore(state.Skills);
+        host.SkillLevels.Restore(state.SkillGains);
         foreach (var obj in state.Objects)
         {
             host.Objects.Restore(obj, state.NextObjectNumber);
         }
 
         // Texts after their objects (a text needs its object).
-        host.Writing.Restore(state.Writing);
+        host.Writing.Restore(state.Writing, state.WritingSeen);
 
         host.Objects.Restore(state.NextObjectNumber);
         host.Map?.Restore(state.Occurrences ?? []);
@@ -184,6 +195,11 @@ public static class StateCodec
             foreach (var relation in saved.Relations ?? [])
             {
                 inhabitant.Relationships.Set(relation.Other, new Relation(relation.Affection, relation.Trust, relation.Respect));
+            }
+
+            foreach (var (key, tick) in saved.SearchSince ?? new Dictionary<string, long>())
+            {
+                inhabitant.SearchSince[key] = tick;
             }
 
             host.Inhabitants.Add(inhabitant);
