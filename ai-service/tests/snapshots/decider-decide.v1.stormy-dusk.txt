@@ -52,6 +52,6 @@ Character:
 - o4: idle (Stay where you are and rest briefly.)
 
 ## Possible body expressions (optional)
-back_away, cheer, hum, laugh, look_around, ponder, sit_sadly, spin_with_joy, stomp, stretch, wave, yawn
+aha, back_away, cheer, hum, laugh, look_around, ponder, sit_sadly, spin_with_joy, stomp, stretch, wave, yawn
 
 Write the thought in German.

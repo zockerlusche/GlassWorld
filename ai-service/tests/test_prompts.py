@@ -45,7 +45,7 @@ def _render(request: DecisionRequest, budget: int = BUDGET, version: int = 1) ->
     )
 
 
-@pytest.mark.parametrize("version", [1, 2])
+@pytest.mark.parametrize("version", [1, 2, 3])
 @pytest.mark.parametrize("case", ["hungry-berries", "stormy-dusk"])
 def test_decider_prompt_snapshot(case: str, version: int) -> None:
     text = _render(_request(case), version=version)
@@ -55,6 +55,18 @@ def test_decider_prompt_snapshot(case: str, version: int) -> None:
         snapshot.write_text(text, encoding="utf-8", newline="\n")
     assert snapshot.exists(), f"missing snapshot {snapshot.name}; run with GW_UPDATE_SNAPSHOTS=1"
     assert text == snapshot.read_text(encoding="utf-8")
+
+
+@pytest.mark.parametrize("case", ["feeling-sick", "cold-wearing-tunic"])
+def test_decider_v3_body_snapshot(case: str) -> None:
+    """Prompt v3 (B2540/B2543): clothing, felt temperature, felt conditions, visible signs."""
+    text = _render(_request(case), version=3)
+    snapshot = SNAPSHOTS / f"decider-decide.v3.{case}.txt"
+    if os.environ.get("GW_UPDATE_SNAPSHOTS") == "1":
+        snapshot.write_text(text, encoding="utf-8", newline="\n")
+    assert snapshot.exists(), f"missing snapshot {snapshot.name}; run with GW_UPDATE_SNAPSHOTS=1"
+    assert text == snapshot.read_text(encoding="utf-8")
+    assert "inh-0002" not in text.split("=== user ===")[-1].split("## People")[0]
 
 
 def test_rendering_is_deterministic() -> None:

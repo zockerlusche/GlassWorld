@@ -362,6 +362,11 @@
       "clip": "wave"
     },
     {
+      "kind": "expression",
+      "id": "aha",
+      "clip": "ponder"
+    },
+    {
       "kind": "work",
       "id": "carry",
       "clip": "carry"

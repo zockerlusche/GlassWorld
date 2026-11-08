@@ -49,6 +49,10 @@
     {
       "id": "wave",
       "description": "Wave a hand."
+    },
+    {
+      "id": "aha",
+      "description": "Suddenly has an idea: stops, raises a finger."
     }
   ]
 }

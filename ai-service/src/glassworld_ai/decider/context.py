@@ -83,7 +83,9 @@ def build_values(
 
     if template.version >= 2:
         # v2 parts count against the budget too (review GW1 D2); objects get what is left.
-        values.update(_v2_values(request, settings, vocab))
+        values.update(_v2_values(request, settings, vocab, signs=template.version >= 3))
+    if template.version >= 3:
+        values["body"] = _body(request, settings)
     # Fit the objects into what is left of the character budget; option targets always stay.
     used = sum(len(v) for k, v in values.items() if k != "objects")
     lines: list[str] = []
@@ -101,7 +103,7 @@ def build_values(
 
 
 def _v2_values(
-    request: DecisionRequest, settings: dict[str, Any], vocab: Vocabulary
+    request: DecisionRequest, settings: dict[str, Any], vocab: Vocabulary, signs: bool = False
 ) -> dict[str, str]:
     """Memory, knowledge, habits and people (prompt v2, B4a S3). Only beliefs, never truth."""
     inhabitant = request.inhabitant
@@ -144,7 +146,11 @@ def _v2_values(
                 f"trust them {_word(relation_words, relation.trust)}, "
                 f"respect them {_word(relation_words, relation.respect)}"
             )
-        people_lines.append(f"- person [{other_id}], {other.distance_m:.1f} m away: {feeling}")
+        seen = [_humanize(_id(c)) for c in other.visible_conditions or []]
+        looks = f"; looks {', '.join(seen)}" if signs and seen else ""  # signs only (B2543)
+        people_lines.append(
+            f"- person [{other_id}], {other.distance_m:.1f} m away: {feeling}{looks}"
+        )
     habit_lines = [
         f"- {_word(habit_words, h.strength)}: {_vocab_line(vocab, 'action', _id(h.action))}"
         + (f" ({subject_name(h.about, settings)})" if h.about is not None else "")
@@ -158,6 +164,31 @@ def _v2_values(
         "habits": "\n".join(habit_lines) or "- (no habits yet)",
         "people": "\n".join(people_lines) or "- (nobody)",
     }
+
+
+def _body(request: DecisionRequest, settings: dict[str, Any]) -> str:
+    """Prompt v3 (B2540/B2543): what you wear, how warm you feel, how you feel. Only beliefs and
+    felt states, never the truth or the cause."""
+    inhabitant = request.inhabitant
+    lines: list[str] = []
+    felt = inhabitant.felt_temperature_c
+    if felt is not None:
+        lines.append(f"- You feel {_word(_bands(settings, 'felt_words'), float(felt))}.")
+    slots_raw: object = settings.get("slot_names", {})
+    slots = cast(dict[str, str], slots_raw) if isinstance(slots_raw, dict) else {}
+    for item in inhabitant.worn or []:
+        slot = _id(item.slot)
+        believed = ", ".join(_humanize(_id(p)) for p in item.properties)
+        lines.append(
+            f"- You wear {_humanize(_id(item.type_id))} {slots.get(slot, slot)}"
+            + (f" (you think it is {believed})" if believed else "")
+        )
+    severity = _bands(settings, "severity_words")
+    for cond in inhabitant.conditions or []:
+        where = f" in the {_humanize(_id(cond.body_part))}" if cond.body_part is not None else ""
+        feeling = f"{_word(severity, cond.severity)} {_humanize(_id(cond.condition))}"
+        lines.append(f"- You feel {feeling}{where}.")
+    return "\n".join(lines) or "- (nothing special: no clothes, you feel fine)"
 
 
 def _environment(request: DecisionRequest, vocab: Vocabulary) -> str:
