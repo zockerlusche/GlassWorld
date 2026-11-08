@@ -82,6 +82,12 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("peak")]
         public double Peak { get; set; } = default!;
 
+        /// <summary>
+        /// Gated RMS loudness the sound is normalised to: the same target as every other sound (Marcel W1645); peak stays the upper limit.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("loudness_dbfs")]
+        public double LoudnessDbfs { get; set; } = default!;
+
     }
 
     /// <summary>

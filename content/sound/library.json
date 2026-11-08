@@ -3,7 +3,7 @@
   "fallback_min_score": 2,
   "target": {
     "one_shot_dbfs": -20,
-    "loop_dbfs": -26,
+    "loop_dbfs": -20,
     "tolerance_db": 1.5,
     "peak_max_dbfs": -1,
     "gate_dbfs": -50,
@@ -31,22 +31,104 @@
       "url": "https://huggingface.co/OpenMOSS-Team/MOSS-SoundEffect-v2.0",
       "license": "MIT",
       "archive_sha256": null
+    },
+    {
+      "id": "bigsoundbank",
+      "name": "BigSoundBank (Joseph Sardin), single recordings",
+      "url": "https://bigsoundbank.com",
+      "license": "CC0-1.0",
+      "archive_sha256": null
+    },
+    {
+      "id": "opengameart",
+      "name": "OpenGameArt.org, single CC0 recordings",
+      "url": "https://opengameart.org",
+      "license": "CC0-1.0",
+      "archive_sha256": null
+    },
+    {
+      "id": "own_synth",
+      "name": "GlassWorld retro synthesis (content/sound/synth_recipes.json), own work",
+      "url": "https://github.com/zockerlusche/GlassWorld",
+      "license": "MIT",
+      "archive_sha256": null
     }
   ],
   "sounds": [
     {
+      "id": "action.drink",
+      "kind": "one_shot",
+      "origin": "opengameart",
+      "sound_words": [
+        "gulp",
+        "sip",
+        "swallow"
+      ],
+      "context_words": [
+        "drink",
+        "water"
+      ],
+      "files": [
+        {
+          "file": "action.drink.wav",
+          "source": "https://opengameart.org/content/liquid-bottle-drink-set",
+          "sha256": "5099d4aafdfa894e18b684f7856ddc94ff083846c5a70a32dfa157c035f0bdfa",
+          "prompt": null,
+          "seed": null
+        }
+      ]
+    },
+    {
+      "id": "action.eat",
+      "kind": "one_shot",
+      "origin": "bigsoundbank",
+      "sound_words": [
+        "bite",
+        "chew",
+        "crunch"
+      ],
+      "context_words": [
+        "eat",
+        "food",
+        "apple"
+      ],
+      "files": [
+        {
+          "file": "action.eat.wav",
+          "source": "https://bigsoundbank.com/apple-crunched-2-s1114.html",
+          "sha256": "4781c3f62e47855e5deba25e9a778a795aa614971108ed0195402a0c3f41af34",
+          "prompt": null,
+          "seed": null
+        }
+      ]
+    },
+    {
+      "id": "action.inspect",
+      "kind": "one_shot",
+      "origin": "moss",
+      "sound_words": [
+        "rustle",
+        "turn"
+      ],
+      "context_words": [
+        "inspect",
+        "look",
+        "leaf"
+      ],
+      "files": [
+        {
+          "file": "action.inspect.wav",
+          "source": "r2/action.inspect__B.wav",
+          "sha256": "5bb1d897a8ac41157eb3582f91801a93bc6b4aedbbe5fa0b39107dd1c0e11e53",
+          "prompt": "Hands gently turning a small leaf, faint soft rustle, very quiet, close, no other sounds.",
+          "seed": 125
+        }
+      ]
+    },
+    {
       "id": "action.rustle",
       "kind": "one_shot",
       "origin": "moss",
-      "files": [
-        {
-          "file": "action.rustle.wav",
-          "source": "action.rustle.wav",
-          "sha256": "59410c79c5d112f2fff21c1981a8cb432cdbbce3896bfd095f72987f949865c0",
-          "prompt": "A person brushing through dry grass, short rustle, close, calm, no other sounds.",
-          "seed": 10
-        }
-      ],
       "sound_words": [
         "rustle",
         "swish",
@@ -55,21 +137,21 @@
       "context_words": [
         "grass",
         "straw"
+      ],
+      "files": [
+        {
+          "file": "action.rustle.wav",
+          "source": "action.rustle.wav",
+          "sha256": "59410c79c5d112f2fff21c1981a8cb432cdbbce3896bfd095f72987f949865c0",
+          "prompt": "A person brushing through dry grass, short rustle, close, calm, no other sounds.",
+          "seed": 10
+        }
       ]
     },
     {
       "id": "ambience.leaves",
       "kind": "loop",
       "origin": "moss",
-      "files": [
-        {
-          "file": "ambience.leaves.wav",
-          "source": "ambience.leaves.wav",
-          "sha256": "4a16f0fea6c0d107bbb7a9ac483613e0db2121ba47d1f68bafe913135f827199",
-          "prompt": "Leaves rustling in the treetops in a light breeze, forest, calm, no birds, no voices, no music.",
-          "seed": 8
-        }
-      ],
       "sound_words": [
         "rustle"
       ],
@@ -77,21 +159,21 @@
         "leaves",
         "foliage",
         "tree"
+      ],
+      "files": [
+        {
+          "file": "ambience.leaves.wav",
+          "source": "ambience.leaves.wav",
+          "sha256": "04592fa9c4f30714a9bbf6cb925428da361bcbd2656481409f031adc76d40113",
+          "prompt": "Leaves rustling in the treetops in a light breeze, forest, calm, no birds, no voices, no music.",
+          "seed": 8
+        }
       ]
     },
     {
       "id": "ambience.stream",
       "kind": "loop",
       "origin": "moss",
-      "files": [
-        {
-          "file": "ambience.stream.wav",
-          "source": "ambience.stream.wav",
-          "sha256": "644d05d35191e1d6346a8cbd59711230656159b3c329888e1b6a90d54f5a5d1e",
-          "prompt": "A small clear creek babbling over pebbles, close, calm, steady, no voices, no music.",
-          "seed": 8
-        }
-      ],
       "sound_words": [
         "babble",
         "trickle",
@@ -103,21 +185,43 @@
         "water",
         "stream",
         "creek"
+      ],
+      "files": [
+        {
+          "file": "ambience.stream.wav",
+          "source": "ambience.stream.wav",
+          "sha256": "beef1dacded19e5a8985618e55a523268bfed4b2ae372f2962ce1b35041b0535",
+          "prompt": "A small clear creek babbling over pebbles, close, calm, steady, no voices, no music.",
+          "seed": 8
+        }
+      ]
+    },
+    {
+      "id": "ambience.swamp",
+      "kind": "loop",
+      "origin": "moss",
+      "sound_words": [
+        "croak",
+        "squelch"
+      ],
+      "context_words": [
+        "swamp",
+        "marsh"
+      ],
+      "files": [
+        {
+          "file": "ambience.swamp.wav",
+          "source": "r2/ambience.swamp__B.wav",
+          "sha256": "0e8db03d5fdc23e8c4a933356f1cbdc5ffa63521c6e798dc99c5252512642a69",
+          "prompt": "Calm swamp at dusk, soft water, faint distant frogs, quiet, continuous.",
+          "seed": 131
+        }
       ]
     },
     {
       "id": "ambience.waves",
       "kind": "loop",
       "origin": "moss",
-      "files": [
-        {
-          "file": "ambience.waves.wav",
-          "source": "ambience.waves.wav",
-          "sha256": "a82d0715138f24e20a4a67b22906215fd2ae512f671b808edeab2eeb634b2c83",
-          "prompt": "Gentle ocean waves rolling onto a sandy beach, calm, steady, no wind, no voices, no music.",
-          "seed": 8
-        }
-      ],
       "sound_words": [
         "waves",
         "surf",
@@ -127,21 +231,28 @@
         "sea",
         "ocean",
         "beach"
+      ],
+      "files": [
+        {
+          "file": "ambience.waves_0.wav",
+          "source": "ambience.waves.wav",
+          "sha256": "2ecadf3e4e58e923e5297b8b9120ccc02a77330a6a13d0d910ed1d28b027c180",
+          "prompt": "Gentle ocean waves rolling onto a sandy beach, calm, steady, no wind, no voices, no music.",
+          "seed": 8
+        },
+        {
+          "file": "ambience.waves_1.wav",
+          "source": "r2/ambience.waves__B.wav",
+          "sha256": "97cc74fcd684ef31e07c311360cf3cf3f57b6d3c5823b85cdd121536cf89dbd6",
+          "prompt": "Calm sea, small waves softly washing onto a sandy beach, continuous, no other sounds.",
+          "seed": 105
+        }
       ]
     },
     {
       "id": "ambience.wind",
       "kind": "loop",
       "origin": "moss",
-      "files": [
-        {
-          "file": "ambience.wind.wav",
-          "source": "ambience.wind.wav",
-          "sha256": "200924644abf8b86bcd82041a609e61413d8c92de0eb4da6a96706aa0af84c9a",
-          "prompt": "Soft wind blowing over an open grassy meadow, gentle gusts, calm, no voices, no music.",
-          "seed": 8
-        }
-      ],
       "sound_words": [
         "whoosh",
         "howl",
@@ -151,21 +262,108 @@
       "context_words": [
         "wind",
         "breeze"
+      ],
+      "files": [
+        {
+          "file": "ambience.wind.wav",
+          "source": "r2/ambience.wind__A.wav",
+          "sha256": "072b0a5050ee864022a191b1c5af6fc136142c345401bf00e66b7cd1c3de636f",
+          "prompt": "Soft wind blowing over an open grassy meadow, gentle gusts, calm, no voices, no music.",
+          "seed": 8
+        }
+      ]
+    },
+    {
+      "id": "animal.bee.buzz",
+      "kind": "one_shot",
+      "origin": "bigsoundbank",
+      "sound_words": [
+        "buzz",
+        "bzz"
+      ],
+      "context_words": [
+        "bee",
+        "insect"
+      ],
+      "files": [
+        {
+          "file": "animal.bee.buzz.wav",
+          "source": "https://bigsoundbank.com/solitary-bees-or-flies-s0101.html",
+          "sha256": "9a44df0e971edb5c4889940a4ab8e62172640f32ab8392dc16818022b1c3bda3",
+          "prompt": null,
+          "seed": null
+        }
+      ]
+    },
+    {
+      "id": "animal.fish.splash",
+      "kind": "one_shot",
+      "origin": "bigsoundbank",
+      "sound_words": [
+        "splash",
+        "plop"
+      ],
+      "context_words": [
+        "fish",
+        "lake"
+      ],
+      "files": [
+        {
+          "file": "animal.fish.splash.wav",
+          "source": "https://bigsoundbank.com/splash-small-6-s1534.html",
+          "sha256": "eba97a036413187f14720010a58a3162eaca21d893901387fa48a2c858cefb8e",
+          "prompt": null,
+          "seed": null
+        }
+      ]
+    },
+    {
+      "id": "animal.frog.croak",
+      "kind": "one_shot",
+      "origin": "bigsoundbank",
+      "sound_words": [
+        "croak",
+        "ribbit"
+      ],
+      "context_words": [
+        "frog",
+        "pond"
+      ],
+      "files": [
+        {
+          "file": "animal.frog.croak.wav",
+          "source": "https://bigsoundbank.com/one-frog-s0819.html",
+          "sha256": "2250552c06cd9930e41d784153e6701620a0b5be702850eda1203f57c40e57a7",
+          "prompt": null,
+          "seed": null
+        }
+      ]
+    },
+    {
+      "id": "animal.goat.bleat",
+      "kind": "one_shot",
+      "origin": "bigsoundbank",
+      "sound_words": [
+        "bleat",
+        "baa"
+      ],
+      "context_words": [
+        "goat"
+      ],
+      "files": [
+        {
+          "file": "animal.goat.bleat.wav",
+          "source": "https://bigsoundbank.com/bleating-goat-1-s0279.html",
+          "sha256": "b81a8869a25ae130cc0716233da8f0dd5c37a10faac9c659588becadbcb6ca18",
+          "prompt": null,
+          "seed": null
+        }
       ]
     },
     {
       "id": "animal.gull.call",
       "kind": "one_shot",
       "origin": "moss",
-      "files": [
-        {
-          "file": "animal.gull.call.wav",
-          "source": "animal.gull.call.wav",
-          "sha256": "e14aa3971882d5520f7acd6407f340f9bc5ccc7198002abf137b27666eca9c2b",
-          "prompt": "A single seagull call at a quiet beach, no other sounds.",
-          "seed": 8
-        }
-      ],
       "sound_words": [
         "cry",
         "call",
@@ -174,21 +372,49 @@
       "context_words": [
         "gull",
         "seagull"
+      ],
+      "files": [
+        {
+          "file": "animal.gull.call_0.wav",
+          "source": "animal.gull.call.wav",
+          "sha256": "e14aa3971882d5520f7acd6407f340f9bc5ccc7198002abf137b27666eca9c2b",
+          "prompt": "A single seagull call at a quiet beach, no other sounds.",
+          "seed": 8
+        },
+        {
+          "file": "animal.gull.call_1.wav",
+          "source": "r2/animal.gull.call__B.wav",
+          "sha256": "e287c23ed04cf2ecef8ad6e3f3367d73850c38560839f13e7993a0ca222d1904",
+          "prompt": "A single seagull calling at the seaside, natural recording, no other sounds.",
+          "seed": 107
+        }
+      ]
+    },
+    {
+      "id": "animal.owl.hoot",
+      "kind": "one_shot",
+      "origin": "bigsoundbank",
+      "sound_words": [
+        "hoot"
+      ],
+      "context_words": [
+        "owl",
+        "night"
+      ],
+      "files": [
+        {
+          "file": "animal.owl.hoot.wav",
+          "source": "https://bigsoundbank.com/tawny-owl-3-s3459.html",
+          "sha256": "446802c363b079e62ee5a7c6c3093859980ae5d00259729d56679002ad8edcb9",
+          "prompt": null,
+          "seed": null
+        }
       ]
     },
     {
       "id": "animal.songbird.song",
       "kind": "one_shot",
       "origin": "moss",
-      "files": [
-        {
-          "file": "animal.songbird.song.wav",
-          "source": "animal.songbird.song.wav",
-          "sha256": "1f6b428e70d0bacdbd03250ac05006527338b0ac0301322b52b5d47deaa36ff2",
-          "prompt": "A small songbird singing one short melodic phrase, outdoors, calm, no other sounds.",
-          "seed": 8
-        }
-      ],
       "sound_words": [
         "sing",
         "chirp",
@@ -197,21 +423,49 @@
       ],
       "context_words": [
         "bird"
+      ],
+      "files": [
+        {
+          "file": "animal.songbird.song_0.wav",
+          "source": "animal.songbird.song.wav",
+          "sha256": "76e850e832c69f2788cfe6db38e45322255097ff7318aa08a6c90205144df691",
+          "prompt": "A small songbird singing one short melodic phrase, outdoors, calm, no other sounds.",
+          "seed": 8
+        },
+        {
+          "file": "animal.songbird.song_1.wav",
+          "source": "r2/animal.songbird.song__B.wav",
+          "sha256": "87677952cb4018148d114ecb0ccb70a7faeacf0b8164d9066fa14bfac0f9fef6",
+          "prompt": "A small songbird singing a short cheerful melody in a quiet garden, natural recording.",
+          "seed": 108
+        }
+      ]
+    },
+    {
+      "id": "animal.wild_chicken.cluck",
+      "kind": "one_shot",
+      "origin": "bigsoundbank",
+      "sound_words": [
+        "cluck"
+      ],
+      "context_words": [
+        "chicken",
+        "hen"
+      ],
+      "files": [
+        {
+          "file": "animal.wild_chicken.cluck.wav",
+          "source": "https://bigsoundbank.com/annoyed-hen-s0453.html",
+          "sha256": "56bff803d32ff225dad6e5cabf0ab690e1d71c9cb3b11f317628d4c98d07d195",
+          "prompt": null,
+          "seed": null
+        }
       ]
     },
     {
       "id": "object.chop_wood",
       "kind": "one_shot",
       "origin": "kenney_rpg",
-      "files": [
-        {
-          "file": "object.chop_wood.wav",
-          "source": "Audio/chop.ogg",
-          "sha256": "1c39e2ca6fc99a2ce5835fc753fdb1169f98cd0cb6a6294ca0b880edab364a82",
-          "prompt": null,
-          "seed": null
-        }
-      ],
       "sound_words": [
         "chop",
         "split",
@@ -221,12 +475,31 @@
         "axe",
         "wood",
         "log"
+      ],
+      "files": [
+        {
+          "file": "object.chop_wood.wav",
+          "source": "Audio/chop.ogg",
+          "sha256": "87f5497ba863680a465534cbd7ee12786d9c2c66fca9963416a6dbf07e1c195b",
+          "prompt": null,
+          "seed": null
+        }
       ]
     },
     {
       "id": "object.creak",
       "kind": "one_shot",
       "origin": "kenney_rpg",
+      "sound_words": [
+        "creak",
+        "squeak",
+        "groan"
+      ],
+      "context_words": [
+        "door",
+        "hinge",
+        "wooden"
+      ],
       "files": [
         {
           "file": "object.creak_0.wav",
@@ -248,32 +521,21 @@
           "sha256": "af18c89d3c7d1997cb2278bf49243e47f4b45bf9cb1de2eee3ed150b087c1de7",
           "prompt": null,
           "seed": null
+        },
+        {
+          "file": "object.creak_3.wav",
+          "source": "r2/object.creak__B.wav",
+          "sha256": "2ba7b7b3b67a7ed0548d32b83b326001b7dfd90bcc44ade974a378813d6744af",
+          "prompt": "A wooden door creaking open slowly, close, natural, no other sounds.",
+          "seed": 110,
+          "origin": "moss"
         }
-      ],
-      "sound_words": [
-        "creak",
-        "squeak",
-        "groan"
-      ],
-      "context_words": [
-        "door",
-        "hinge",
-        "wooden"
       ]
     },
     {
       "id": "object.fire",
       "kind": "loop",
       "origin": "moss",
-      "files": [
-        {
-          "file": "object.fire.wav",
-          "source": "object.fire.wav",
-          "sha256": "07b61ff0ec046223aa0cca81bc38635c8c87e422db015a97076e37f3c4c49e99",
-          "prompt": "A small campfire crackling softly, close, calm, no voices, no music.",
-          "seed": 8
-        }
-      ],
       "sound_words": [
         "crackle",
         "hiss",
@@ -283,12 +545,31 @@
         "fire",
         "flame",
         "burn"
+      ],
+      "files": [
+        {
+          "file": "object.fire.wav",
+          "source": "object.fire.wav",
+          "sha256": "8a1911ebc58de72a412883112a88cc22e8c1d64bdc4b0d7b21778dffa5e562c5",
+          "prompt": "A small campfire crackling softly, close, calm, no voices, no music.",
+          "seed": 8
+        }
       ]
     },
     {
       "id": "object.knock_stone",
       "kind": "one_shot",
       "origin": "kenney_impact",
+      "sound_words": [
+        "knock",
+        "clack",
+        "tap",
+        "hammer"
+      ],
+      "context_words": [
+        "stone",
+        "rock"
+      ],
       "files": [
         {
           "file": "object.knock_stone_0.wav",
@@ -307,14 +588,14 @@
         {
           "file": "object.knock_stone_2.wav",
           "source": "Audio/impactMining_002.ogg",
-          "sha256": "ebd804642abc1eea50b8b8f74b6c3430d438fbe3fca614b2b16674b3e2627f9f",
+          "sha256": "06f7c14a5f91b2339b3500a81b6501e0e221b3755876dc1c290cefc2a11a30c9",
           "prompt": null,
           "seed": null
         },
         {
           "file": "object.knock_stone_3.wav",
           "source": "Audio/impactMining_003.ogg",
-          "sha256": "5738f2dce08d320d9fe6cb016e555fb19f7919182368de783b68d3d99e8b9816",
+          "sha256": "26e29d1d5b88835f0a7d27cf3264288ae42fb2fdfcf13da25f2706d89da19fb5",
           "prompt": null,
           "seed": null
         },
@@ -325,22 +606,21 @@
           "prompt": null,
           "seed": null
         }
-      ],
-      "sound_words": [
-        "knock",
-        "clack",
-        "tap",
-        "hammer"
-      ],
-      "context_words": [
-        "stone",
-        "rock"
       ]
     },
     {
       "id": "object.knock_wood",
       "kind": "one_shot",
       "origin": "kenney_impact",
+      "sound_words": [
+        "thud",
+        "bump",
+        "knock"
+      ],
+      "context_words": [
+        "wood",
+        "wooden"
+      ],
       "files": [
         {
           "file": "object.knock_wood_0.wav",
@@ -352,7 +632,7 @@
         {
           "file": "object.knock_wood_1.wav",
           "source": "Audio/impactWood_light_001.ogg",
-          "sha256": "c4a1bd4a06ca6a378d9dccfa688e68260877808ebcbb444915b7e8d933a1e589",
+          "sha256": "774eef80f30cebc9f6235cd5439adcd8a607d9f488280b88381b5c5c8fa458aa",
           "prompt": null,
           "seed": null
         },
@@ -366,41 +646,23 @@
         {
           "file": "object.knock_wood_3.wav",
           "source": "Audio/impactWood_light_003.ogg",
-          "sha256": "23a95f2f329faff7939525e760dacc705df152bbff784d61069f4b6cb7b1f570",
+          "sha256": "6b99698cae3ac364ffb0dad809a4cc89a2dd56890e21ad404fee4f720237ef33",
           "prompt": null,
           "seed": null
         },
         {
           "file": "object.knock_wood_4.wav",
           "source": "Audio/impactWood_light_004.ogg",
-          "sha256": "62bdf9e64f52d5df7be73c60daea39e3a12a13ac15d10940e7e88579ac038141",
+          "sha256": "694a6ad05371fd870ace93cfa09e1a2bf1c5d4b7565b3c806e442eab8eb06313",
           "prompt": null,
           "seed": null
         }
-      ],
-      "sound_words": [
-        "thud",
-        "bump",
-        "knock"
-      ],
-      "context_words": [
-        "wood",
-        "wooden"
       ]
     },
     {
       "id": "object.strike_spark",
       "kind": "one_shot",
       "origin": "moss",
-      "files": [
-        {
-          "file": "object.strike_spark.wav",
-          "source": "object.strike_spark.wav",
-          "sha256": "a9a4885930b9af7257e1b5fca80bf2498806a1de6b543a895c6524cf3f3aac4f",
-          "prompt": "Striking flint against a pyrite stone once, a sharp stony click with sparks, close, no other sounds.",
-          "seed": 9
-        }
-      ],
       "sound_words": [
         "click",
         "strike",
@@ -409,49 +671,21 @@
       "context_words": [
         "flint",
         "pyrite"
+      ],
+      "files": [
+        {
+          "file": "object.strike_spark.wav",
+          "source": "object.strike_spark.wav",
+          "sha256": "8693441b0fe0d765da1b17a095afcfbf08e506ddc6c5600862891415885d4cbd",
+          "prompt": "Striking flint against a pyrite stone once, a sharp stony click with sparks, close, no other sounds.",
+          "seed": 9
+        }
       ]
     },
     {
       "id": "step.grass",
       "kind": "one_shot",
       "origin": "kenney_impact",
-      "files": [
-        {
-          "file": "step.grass_0.wav",
-          "source": "Audio/footstep_grass_000.ogg",
-          "sha256": "c9515599193aa1c339efbffb86487006d519f4b2f7c01fc993ceca6b2a028337",
-          "prompt": null,
-          "seed": null
-        },
-        {
-          "file": "step.grass_1.wav",
-          "source": "Audio/footstep_grass_001.ogg",
-          "sha256": "c23dadb054ef06550a90ba1148dacdc5bd1ee971a2f3bcff3d83a532d3bb7f81",
-          "prompt": null,
-          "seed": null
-        },
-        {
-          "file": "step.grass_2.wav",
-          "source": "Audio/footstep_grass_002.ogg",
-          "sha256": "584659d53902b229814e499f21b0bb64390035614370c17b0e0683c7b82bd3a8",
-          "prompt": null,
-          "seed": null
-        },
-        {
-          "file": "step.grass_3.wav",
-          "source": "Audio/footstep_grass_003.ogg",
-          "sha256": "4bc3fb77589a468d7da24f29f1e2bf70f2c7629a0b86a787ebda260d6f9aee43",
-          "prompt": null,
-          "seed": null
-        },
-        {
-          "file": "step.grass_4.wav",
-          "source": "Audio/footstep_grass_004.ogg",
-          "sha256": "d17f5e8b93261e175717a109c91f2ae251653421c8b03b62ba90e319f814096c",
-          "prompt": null,
-          "seed": null
-        }
-      ],
       "sound_words": [
         "footstep",
         "step",
@@ -460,49 +694,49 @@
       ],
       "context_words": [
         "grass"
+      ],
+      "files": [
+        {
+          "file": "step.grass_0.wav",
+          "source": "Audio/footstep_grass_000.ogg",
+          "sha256": "0bd24703476cae94635b8cd857d4371b477984c367eadc564b1e1c889bf9f3c2",
+          "prompt": null,
+          "seed": null
+        },
+        {
+          "file": "step.grass_1.wav",
+          "source": "Audio/footstep_grass_001.ogg",
+          "sha256": "4e2397d769b1fce3876f1ab06e780b0098532c4bfd46ee4bc87ef2c4452207e9",
+          "prompt": null,
+          "seed": null
+        },
+        {
+          "file": "step.grass_2.wav",
+          "source": "Audio/footstep_grass_002.ogg",
+          "sha256": "6af4762ec708347004bc5bee9933e9835d5f8f27988d74335e3f75ac617854e9",
+          "prompt": null,
+          "seed": null
+        },
+        {
+          "file": "step.grass_3.wav",
+          "source": "Audio/footstep_grass_003.ogg",
+          "sha256": "ba27e944ed229ce2ccc8b9888a6d50b407e4f9da64520862c4dc0b42be969ea5",
+          "prompt": null,
+          "seed": null
+        },
+        {
+          "file": "step.grass_4.wav",
+          "source": "Audio/footstep_grass_004.ogg",
+          "sha256": "53fc153e9f598b30dd781e36dcdfbae98224b73c580b7169dc354d4c70e0b804",
+          "prompt": null,
+          "seed": null
+        }
       ]
     },
     {
       "id": "step.rock",
       "kind": "one_shot",
-      "origin": "kenney_impact",
-      "files": [
-        {
-          "file": "step.rock_0.wav",
-          "source": "Audio/footstep_concrete_000.ogg",
-          "sha256": "15ed91703a456229b91d436dd7a8e0caf476a6af17e429f536c1d0477b222d04",
-          "prompt": null,
-          "seed": null
-        },
-        {
-          "file": "step.rock_1.wav",
-          "source": "Audio/footstep_concrete_001.ogg",
-          "sha256": "41a6cdcd96a7860ebe54ba58b414e6adab00a295da176bd3c209886406bcc7a3",
-          "prompt": null,
-          "seed": null
-        },
-        {
-          "file": "step.rock_2.wav",
-          "source": "Audio/footstep_concrete_002.ogg",
-          "sha256": "ee9487a5b6f89bb31434c4e42086c7285df5485192320db30f1728e7eba851fc",
-          "prompt": null,
-          "seed": null
-        },
-        {
-          "file": "step.rock_3.wav",
-          "source": "Audio/footstep_concrete_003.ogg",
-          "sha256": "017738e65bdc638ebe4449b3c03e46ce42e8855916338c925ad7bc041e87590e",
-          "prompt": null,
-          "seed": null
-        },
-        {
-          "file": "step.rock_4.wav",
-          "source": "Audio/footstep_concrete_004.ogg",
-          "sha256": "0aac456a4db6d53853b6d449fd33bb7a3095fcb2b55e94ac3552add433425f31",
-          "prompt": null,
-          "seed": null
-        }
-      ],
+      "origin": "moss",
       "sound_words": [
         "footstep",
         "step"
@@ -510,33 +744,106 @@
       "context_words": [
         "stone",
         "rock"
+      ],
+      "files": [
+        {
+          "file": "step.rock_0.wav",
+          "source": "r2/step.rock_v0.wav",
+          "sha256": "cd35164e6a0328bc11fbba9bf5077a8a6adb3c8cb6a1ba953cb228051da8d350",
+          "prompt": "One footstep on a rock, light, close, natural, no other sounds.",
+          "seed": 116
+        },
+        {
+          "file": "step.rock_1.wav",
+          "source": "r2/step.rock_v1.wav",
+          "sha256": "388370b659b157246a2c3d6447bcbb67d77d0a751d1cedbcd18138e642b23c6a",
+          "prompt": "One footstep on a rock, light, close, natural, no other sounds.",
+          "seed": 116
+        },
+        {
+          "file": "step.rock_2.wav",
+          "source": "r2/step.rock_v2.wav",
+          "sha256": "e52e15096303012cbcf778ff5dcc5765eeb41b751cf7d7554f4e8f3ef9393f5d",
+          "prompt": "One footstep on a rock, light, close, natural, no other sounds.",
+          "seed": 116
+        },
+        {
+          "file": "step.rock_3.wav",
+          "source": "r2/step.rock_v3.wav",
+          "sha256": "ce3f24e3a6718e7709f5043bdb08fdd10cac759d4e1e118f966469d2c5b016eb",
+          "prompt": "One footstep on a rock, light, close, natural, no other sounds.",
+          "seed": 116
+        },
+        {
+          "file": "step.rock_4.wav",
+          "source": "r2/step.rock_v4.wav",
+          "sha256": "923acc0941ed343819f813064d7c6eea2681228000c20ba08827bba2a9549b41",
+          "prompt": "One footstep on a rock, light, close, natural, no other sounds.",
+          "seed": 116
+        }
       ]
     },
     {
       "id": "step.sand",
       "kind": "one_shot",
       "origin": "moss",
-      "files": [
-        {
-          "file": "step.sand.wav",
-          "source": "step.sand.wav",
-          "sha256": "2a44e9d1db94c5ebc0d37b384729bc87fcd7a61a1b85aa9d9132dfca463f7de9",
-          "prompt": "Two soft barefoot footsteps on dry sand, close, quiet, no other sounds.",
-          "seed": 10
-        }
-      ],
       "sound_words": [
         "footstep",
         "step"
       ],
       "context_words": [
         "sand"
+      ],
+      "files": [
+        {
+          "file": "step.sand_0.wav",
+          "source": "r2/step.sand_v0.wav",
+          "sha256": "73a0a5fbca9bafe9bd52bba6ab2b6ca5706e8410dbb1772368d2cb6ba1f9cb32",
+          "prompt": "Two soft barefoot footsteps on dry sand, close, quiet, no other sounds.",
+          "seed": 10
+        },
+        {
+          "file": "step.sand_1.wav",
+          "source": "r2/step.sand_v1.wav",
+          "sha256": "7a365bada3afe7133731e461ccf51f5c3d83909a25981c66bfe2f2284beef445",
+          "prompt": "Two soft barefoot footsteps on dry sand, close, quiet, no other sounds.",
+          "seed": 10
+        },
+        {
+          "file": "step.sand_2.wav",
+          "source": "r2/step.sand_v2.wav",
+          "sha256": "65dc6de4cde062b7d602519a24b68dd8c31dc524d9efa80faee155b19a226bd3",
+          "prompt": "Two soft barefoot footsteps on dry sand, close, quiet, no other sounds.",
+          "seed": 10
+        },
+        {
+          "file": "step.sand_3.wav",
+          "source": "r2/step.sand_v3.wav",
+          "sha256": "7aa380712db8c60755722e8e9d993640514367934fc4a00a3184501ed27dca57",
+          "prompt": "Two soft barefoot footsteps on dry sand, close, quiet, no other sounds.",
+          "seed": 10
+        },
+        {
+          "file": "step.sand_4.wav",
+          "source": "r2/step.sand_v4.wav",
+          "sha256": "71b9685088c54f89ae0ac2da1a8682029d4e978d2d2218e267fe9716e1210923",
+          "prompt": "Two soft barefoot footsteps on dry sand, close, quiet, no other sounds.",
+          "seed": 10
+        }
       ]
     },
     {
       "id": "step.snow",
       "kind": "one_shot",
       "origin": "kenney_impact",
+      "sound_words": [
+        "crunch",
+        "footstep",
+        "step"
+      ],
+      "context_words": [
+        "snow"
+      ],
       "files": [
         {
           "file": "step.snow_0.wav",
@@ -562,7 +869,7 @@
         {
           "file": "step.snow_3.wav",
           "source": "Audio/footstep_snow_003.ogg",
-          "sha256": "b036ab78fa41f2572ec87c026c79131f9647afe3769a140b75fca5fb24a65aeb",
+          "sha256": "184372c5686e577496049cd829ee3cd441007baed9c59feabe934a6d877d219e",
           "prompt": null,
           "seed": null
         },
@@ -573,29 +880,12 @@
           "prompt": null,
           "seed": null
         }
-      ],
-      "sound_words": [
-        "crunch",
-        "footstep",
-        "step"
-      ],
-      "context_words": [
-        "snow"
       ]
     },
     {
       "id": "step.water",
       "kind": "one_shot",
       "origin": "moss",
-      "files": [
-        {
-          "file": "step.water.wav",
-          "source": "step.water.wav",
-          "sha256": "db30525ca5585bc64d47ccd17c976389c6654b160bcf98943372d02b9c246de7",
-          "prompt": "Two footsteps splashing in shallow water, close, calm, no other sounds.",
-          "seed": 8
-        }
-      ],
       "sound_words": [
         "splash",
         "wade"
@@ -603,24 +893,50 @@
       "context_words": [
         "puddle",
         "water"
+      ],
+      "files": [
+        {
+          "file": "step.water_0.wav",
+          "source": "step.water.wav",
+          "sha256": "85c711c3b3af2b12c6c4add91d530fc437dfee926a244c2972e858db46c50cfa",
+          "prompt": "Two footsteps splashing in shallow water, close, calm, no other sounds.",
+          "seed": 8
+        },
+        {
+          "file": "step.water_1.wav",
+          "source": "https://bigsoundbank.com/steps-in-the-mud-s0495.html",
+          "sha256": "b633a089c2a767cca878981f1a2d33d272ecdf29e314307a9dc085581b7d271c",
+          "prompt": null,
+          "seed": null,
+          "origin": "bigsoundbank"
+        }
       ]
     },
     {
       "id": "step.wood",
       "kind": "one_shot",
       "origin": "kenney_impact",
+      "sound_words": [
+        "footstep",
+        "step"
+      ],
+      "context_words": [
+        "boards",
+        "plank",
+        "floor"
+      ],
       "files": [
         {
           "file": "step.wood_0.wav",
           "source": "Audio/footstep_wood_000.ogg",
-          "sha256": "e05b7f3e85d7874ac5ea8adbe7e1a23a5ace0615948adf9b396f7428d82ae0b6",
+          "sha256": "0e63d9666b803a5ce64c537b58ed233548d43768b89610ff0fc848ee037295d1",
           "prompt": null,
           "seed": null
         },
         {
           "file": "step.wood_1.wav",
           "source": "Audio/footstep_wood_001.ogg",
-          "sha256": "cf0f69c73c5e31caca17fce5053a3bc4a29217e1b3290ac63f6b5954d75e689a",
+          "sha256": "6d420b3753864fd2c026f6435a55eb5123e309d43afc077422c5a5ade7466f06",
           "prompt": null,
           "seed": null
         },
@@ -634,7 +950,7 @@
         {
           "file": "step.wood_3.wav",
           "source": "Audio/footstep_wood_003.ogg",
-          "sha256": "6327e613d628ddb28076be13769afb3b033958e60e1213b72c1519f1e6417485",
+          "sha256": "9cf3d05a6130253e2ad8fc7f2b0e22a0931c46d8950e1b0929dc32e202480f69",
           "prompt": null,
           "seed": null
         },
@@ -645,15 +961,81 @@
           "prompt": null,
           "seed": null
         }
-      ],
+      ]
+    },
+    {
+      "id": "weather.heat",
+      "kind": "loop",
+      "origin": "bigsoundbank",
       "sound_words": [
-        "footstep",
-        "step"
+        "chirp",
+        "cicada"
       ],
       "context_words": [
-        "boards",
-        "plank",
-        "floor"
+        "heat",
+        "summer",
+        "hot"
+      ],
+      "files": [
+        {
+          "file": "weather.heat.wav",
+          "source": "https://bigsoundbank.com/singing-insect-1-s3089.html",
+          "sha256": "ba6698d2fbfec046140a1d76b64b171fdd041c24dcf275c64de1ae8dcf22f539",
+          "prompt": null,
+          "seed": null
+        }
+      ]
+    },
+    {
+      "id": "weather.rain",
+      "kind": "loop",
+      "origin": "own_synth",
+      "sound_words": [
+        "patter",
+        "drip"
+      ],
+      "context_words": [
+        "rain"
+      ],
+      "files": [
+        {
+          "file": "weather.rain_0.wav",
+          "source": "synth_recipes.json#weather.rain",
+          "sha256": "2443382e79cfa8fbdec5f1765e216d5306271eedbbcb754dcab1df1b6b4d1b4f",
+          "prompt": null,
+          "seed": null
+        },
+        {
+          "file": "weather.rain_1.wav",
+          "source": "r2/weather.rain__B.wav",
+          "sha256": "33fdc60d665e8d96fa868d13c583e6704ccef13c10ad82068b82d276ab2eb0a4",
+          "prompt": "Gentle steady rain on leaves, calm, continuous, no thunder.",
+          "seed": 148,
+          "origin": "moss"
+        }
+      ]
+    },
+    {
+      "id": "weather.storm",
+      "kind": "loop",
+      "origin": "moss",
+      "sound_words": [
+        "roar",
+        "thunder",
+        "gust"
+      ],
+      "context_words": [
+        "storm",
+        "wind"
+      ],
+      "files": [
+        {
+          "file": "weather.storm.wav",
+          "source": "r2/weather.storm__B.wav",
+          "sha256": "84e76c6fcb68eb7fed8e2cf12ab7e694cad51e1820ff0a298a1864fab754d833",
+          "prompt": "Strong wind and heavy rain, distant soft thunder, continuous, not too loud.",
+          "seed": 150
+        }
       ]
     }
   ]
