@@ -67,8 +67,8 @@
       "schema": "synth-recipes"
     },
     {
-      "pattern": "voice/murmur.json",
-      "schema": "murmur-settings"
+      "pattern": "sound/animals.json",
+      "schema": "animal-sound-settings"
     },
     {
       "pattern": "safety/rules.json",
@@ -173,6 +173,10 @@
     {
       "pattern": "jobs/phases.json",
       "schema": "job-phases"
+    },
+    {
+      "pattern": "voice/murmur.json",
+      "schema": "murmur-settings"
     },
     {
       "pattern": "skills/practice.json",

@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/animal-sound-settings.schema.json",
+  "title": "AnimalSoundSettings",
+  "description": "Animal calls near the camera (B8 R4, B2481) and the procedural songbird melodies. Which animal calls where, when and how often stays in sound/sound_map.json; this file holds how calls are placed and how a song is built. Sound is presentation only and never changes the simulation. Values are placeholders until Marcel's word.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "call_radius_m",
+    "max_calls_per_second",
+    "birdsong"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "call_radius_m": {
+      "$ref": "#/$defs/CallRadius"
+    },
+    "max_calls_per_second": {
+      "description": "At most this many calls start per real second (fast forward and jumps stay calm, review #91); calls beyond it are skipped.",
+      "type": "number",
+      "minimum": 0.1,
+      "maximum": 10
+    },
+    "birdsong": {
+      "$ref": "#/$defs/BirdsongSettings"
+    }
+  },
+  "$defs": {
+    "CallRadius": {
+      "description": "Until animals are objects (B5): a call sounds at a random place in this ring around the listener.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "min",
+        "max"
+      ],
+      "properties": {
+        "min": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 200
+        },
+        "max": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 200
+        }
+      }
+    },
+    "BirdsongSettings": {
+      "description": "A small melody per call: notes from a scale (semitone steps above a base pitch), with glides and short trills. Every call gets its own seed, so songs vary. Limits keep the highest tone below about 10 kHz (base 4 kHz, one octave, glide 3 semitones).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sound",
+        "notes_min",
+        "notes_max",
+        "base_hz_min",
+        "base_hz_max",
+        "steps",
+        "note_s_min",
+        "note_s_max",
+        "gap_s",
+        "glide_semitones",
+        "trill_chance",
+        "trill_notes",
+        "peak"
+      ],
+      "properties": {
+        "sound": {
+          "description": "Sound id in the sound map that is sung instead of played from its recipe.",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "notes_min": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 32
+        },
+        "notes_max": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 32
+        },
+        "base_hz_min": {
+          "type": "number",
+          "minimum": 500,
+          "maximum": 4000
+        },
+        "base_hz_max": {
+          "type": "number",
+          "minimum": 500,
+          "maximum": 4000
+        },
+        "steps": {
+          "description": "Semitone steps above the base pitch a note may take.",
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 16,
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 12
+          }
+        },
+        "note_s_min": {
+          "type": "number",
+          "minimum": 0.02,
+          "maximum": 1
+        },
+        "note_s_max": {
+          "type": "number",
+          "minimum": 0.02,
+          "maximum": 1
+        },
+        "gap_s": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.5
+        },
+        "glide_semitones": {
+          "description": "Largest pitch glide within a note (up or down).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 3
+        },
+        "trill_chance": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "trill_notes": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 12
+        },
+        "peak": {
+          "type": "number",
+          "minimum": 0.05,
+          "maximum": 1
+        }
+      }
+    }
+  }
+}
