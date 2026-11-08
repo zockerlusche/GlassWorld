@@ -22,11 +22,11 @@ public sealed class WorldObjects : IWorldSystem
 {
     private readonly SortedDictionary<string, WorldObject> _objects = new(StringComparer.Ordinal);
 
-    /// <summary>Creates the registry for a catalog.</summary>
-    public WorldObjects(ObjectCatalog catalog) => Catalog = catalog;
+    /// <summary>Creates the registry for a type truth (the world's catalog, or a content catalog in tests).</summary>
+    public WorldObjects(ITypeTruth catalog) => Catalog = catalog;
 
     /// <summary>The truth about types.</summary>
-    public ObjectCatalog Catalog { get; }
+    public ITypeTruth Catalog { get; }
 
     /// <summary>Next number for an object id.</summary>
     public long NextNumber { get; private set; } = 1;

@@ -19,9 +19,9 @@ public sealed class ActionRules
 {
     private readonly FrozenDictionary<string, ActionTimingInfo> _timing;
     private readonly FrozenDictionary<string, EffectRule[]> _rules;
-    private readonly ObjectCatalog _catalog;
+    private readonly ITypeTruth _catalog;
 
-    private ActionRules(FrozenDictionary<string, ActionTimingInfo> timing, FrozenDictionary<string, EffectRule[]> rules, ObjectCatalog catalog)
+    private ActionRules(FrozenDictionary<string, ActionTimingInfo> timing, FrozenDictionary<string, EffectRule[]> rules, ITypeTruth catalog)
     {
         _timing = timing;
         _rules = rules;
@@ -65,6 +65,16 @@ public sealed class ActionRules
             .GroupBy(r => r.Action, StringComparer.Ordinal)
             .ToFrozenDictionary(g => g.Key, g => g.OrderBy(r => r.RequiresProperty ?? string.Empty, StringComparer.Ordinal).ToArray(), StringComparer.Ordinal);
         return new ActionRules(timing.ToFrozenDictionary(StringComparer.Ordinal), rules, catalog);
+    }
+
+    /// <summary>
+    /// The same rules judged against another type truth (the world's catalog with runtime types). Cheap:
+    /// the rule tables are shared.
+    /// </summary>
+    public ActionRules WithTruth(ITypeTruth truth)
+    {
+        ArgumentNullException.ThrowIfNull(truth);
+        return new ActionRules(_timing, _rules, truth);
     }
 
     /// <summary>Timing of an action.</summary>

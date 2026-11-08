@@ -1,8 +1,11 @@
+using System.Collections.Frozen;
 using GlassWorld.Contracts;
 using GlassWorld.Contracts.Validation;
 using GlassWorld.Simulation.Behaviour;
+using GlassWorld.Simulation.Inventions;
 using GlassWorld.Simulation.Map;
 using GlassWorld.Simulation.Objects;
+using GlassWorld.Simulation.Safety;
 using GlassWorld.Simulation.Time;
 
 namespace GlassWorld.Simulation.Content;
@@ -25,10 +28,14 @@ public sealed class ContentSet
         UtilityBrain brain,
         WorldGenContent worldGen,
         GiftRules giftRules,
-        FavorSettings favor)
+        FavorSettings favor,
+        InventionRules inventions,
+        ChronicleKinds chronicle)
     {
         GiftRules = giftRules;
         Favor = favor;
+        Inventions = inventions;
+        Chronicle = chronicle;
         Calendar = calendar;
         Objects = objects;
         Combinations = combinations;
@@ -69,6 +76,12 @@ public sealed class ContentSet
     /// <summary>World generator and weather data (content/world, content/climate; B2).</summary>
     public WorldGenContent WorldGen { get; }
 
+    /// <summary>Invention settings, vocabularies and content guard for the core's final check (D471 D5).</summary>
+    public InventionRules Inventions { get; }
+
+    /// <summary>Which core events become chronicle entries (content/chronicle/kinds.json).</summary>
+    public ChronicleKinds Chronicle { get; }
+
     /// <summary>Loads and checks the content folder.</summary>
     public static ContentSet Load(string contentDirectory)
     {
@@ -100,6 +113,16 @@ public sealed class ContentSet
             needs,
             objects.PropertyVocabulary);
         var worldGen = WorldGenContent.Load(contentDirectory, vocabularies, objects, calendar);
+        var inventionSettings = ContractSerializer.Deserialize<InventionSettings>(File.ReadAllText(Path.Combine(contentDirectory, "invention", "settings.json")));
+        var inventions = new InventionRules(
+            inventionSettings,
+            objects.PropertyVocabulary,
+            Ids(vocabularies, VocabularyKind.Action).ToFrozenSet(StringComparer.Ordinal),
+            Ids(vocabularies, VocabularyKind.Process).ToFrozenSet(StringComparer.Ordinal),
+            [.. Required(vocabularies, VocabularyKind.Tech_level).Entries.Select(e => e.Id)],
+            TextGuard.FromJson(File.ReadAllText(Path.Combine(contentDirectory, "safety", "rules.json"))));
+        CheckInventions(inventions);
+        var chronicle = ContractSerializer.Deserialize<ChronicleKinds>(File.ReadAllText(Path.Combine(contentDirectory, "chronicle", "kinds.json")));
         var player = Path.Combine(contentDirectory, "player");
         return new ContentSet(
             calendar,
@@ -111,7 +134,24 @@ public sealed class ContentSet
             brain,
             worldGen,
             ContractSerializer.Deserialize<GiftRules>(File.ReadAllText(Path.Combine(player, "gift_rules.json"))),
-            ContractSerializer.Deserialize<FavorSettings>(File.ReadAllText(Path.Combine(player, "favor.json"))));
+            ContractSerializer.Deserialize<FavorSettings>(File.ReadAllText(Path.Combine(player, "favor.json"))),
+            inventions,
+            chronicle);
+    }
+
+    private static void CheckInventions(InventionRules rules)
+    {
+        var problems = new List<string>();
+        if (!rules.TechLevels.Contains(rules.Settings.TechLevel, StringComparer.Ordinal))
+        {
+            problems.Add($"unknown tech level '{rules.Settings.TechLevel}'");
+        }
+
+        problems.AddRange(rules.Settings.LivingProperties.Where(p => !rules.Properties.Contains(p)).Select(p => $"unknown living property '{p}'"));
+        if (problems.Count > 0)
+        {
+            throw new InvalidDataException("Invention settings: " + string.Join("; ", problems) + ".");
+        }
     }
 
     private static HashSet<string> Ids(Dictionary<VocabularyKind, Vocabulary> vocabularies, VocabularyKind kind) =>

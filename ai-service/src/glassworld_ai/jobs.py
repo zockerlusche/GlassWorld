@@ -16,6 +16,7 @@ import itertools
 import json
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
+from typing import Protocol
 
 from glassworld_contracts import CONTRACT_VERSION, GenerationJob, JobStatus
 
@@ -88,10 +89,27 @@ def _text(value: object) -> str:
     return str(getattr(inner, "value", inner))
 
 
-class JobRunner:
-    """Holds jobs and runs them one at a time: highest priority first, then in arrival order."""
+class Gate(Protocol):
+    """Decides when a kind may run and prepares its model (the day/night planner, B7 S4)."""
 
-    def __init__(self, handlers: Mapping[str, Handler], capacity: int) -> None:
+    def allowed(self, kind: str) -> bool: ...
+    def night_only(self, kind: str) -> bool: ...
+    async def prepare(self, kind: str) -> None: ...
+    def affinity(self, kind: str) -> int: ...
+    def finished(self) -> None: ...
+
+
+class JobRunner:
+    """Holds jobs and runs them one at a time: highest priority first, then in arrival order.
+
+    With a gate, a job runs only when its kind is allowed now; night-only kinds wait as "deferred"
+    by day and when the night budget is used up (B7 R4).
+    """
+
+    def __init__(
+        self, handlers: Mapping[str, Handler], capacity: int, gate: Gate | None = None
+    ) -> None:
+        self._gate = gate
         self._handlers = dict(handlers)
         self._capacity = capacity
         self._records: dict[str, _Record] = {}
@@ -122,9 +140,35 @@ class JobRunner:
             return known.state, False
         if len(self._records) >= self._capacity and not self._evict_one_finished():
             raise JobsFullError(f"{len(self._records)} jobs held")
-        self._records[job_id] = _Record(job, next(self._sequence), digest)
+        record = _Record(job, next(self._sequence), digest)
+        self._records[job_id] = record
+        self._defer_if_waiting(record)
         self._wake()
-        return "queued", True
+        return record.state, True
+
+    def reschedule(self) -> None:
+        """After a phase change: deferred jobs that may run now become queued, and night-only jobs
+        that may not run now become deferred; then the worker continues."""
+        for record in self._records.values():
+            if record.state == "deferred" and (
+                self._gate is None or self._gate.allowed(record.kind)
+            ):
+                record.state = "queued"
+            elif record.state == "queued":
+                self._defer_if_waiting(record)
+        self._wake()
+
+    def counts(self) -> dict[str, int]:
+        result: dict[str, int] = {"queued": 0, "running": 0, "deferred": 0}
+        for record in self._records.values():
+            if record.state in result:
+                result[record.state] += 1
+        return result
+
+    def _defer_if_waiting(self, record: _Record) -> None:
+        gate = self._gate
+        if gate is not None and gate.night_only(record.kind) and not gate.allowed(record.kind):
+            record.state = "deferred"
 
     def status(self, job_id: str) -> JobStatus | None:
         record = self._records.get(job_id)
@@ -179,16 +223,36 @@ class JobRunner:
 
     def _next(self) -> _Record | None:
         queued = [r for r in self._records.values() if r.state == "queued"]
-        return min(queued, key=_Record.order) if queued else None
+        for record in queued:  # e.g. the night budget ran out meanwhile
+            self._defer_if_waiting(record)
+        ready = [r for r in queued if r.state == "queued"]
+        if not ready:
+            return None
+        gate = self._gate
+        if gate is None:
+            return min(ready, key=_Record.order)
+        # Jobs whose model is resident first (no reloading), then priority and arrival.
+        return min(ready, key=lambda r: (gate.affinity(r.kind), *r.order()))
 
     async def _drain(self) -> None:
         while (record := self._next()) is not None:
             record.state = "running"
+            if self._gate is not None:
+                try:
+                    await self._gate.prepare(record.kind)  # make the model resident (B7 S2)
+                except Exception as error:
+                    record.error = JobFailedError(
+                        "model_unavailable", f"model not available: {error}", retryable=True
+                    )
+                    record.state = "failed"
+                    continue
             task = asyncio.ensure_future(self._handlers[record.kind](record.job))
             self._current = (record.job_id, task)
             try:
                 record.outcome = await task
                 record.state = "done"
+                if self._gate is not None:
+                    self._gate.finished()
             except asyncio.CancelledError:
                 if self._records.get(record.job_id) is not record:
                     continue  # cancelled through DELETE: the record is gone, go on with the next

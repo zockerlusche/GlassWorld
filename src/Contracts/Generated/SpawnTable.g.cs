@@ -37,6 +37,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("max_total")]
         public int MaxTotal { get; set; } = default!;
 
+        /// <summary>
+        /// Game hours after an instance was used up until a new one of the same type appears at the same place (minimal regrowth before B5; placeholder values). Absent = does not regrow.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("regrow_hours")]
+        public int? RegrowHours { get; set; } = default!;
+
     }
 
     /// <summary>

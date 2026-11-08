@@ -9,9 +9,9 @@ namespace GlassWorld.Simulation.Objects;
 public sealed class CombinationRuleSet
 {
     private readonly IReadOnlyList<CombinationRule> _rules;
-    private readonly ObjectCatalog _catalog;
+    private readonly ITypeTruth _catalog;
 
-    private CombinationRuleSet(IReadOnlyList<CombinationRule> rules, ObjectCatalog catalog)
+    private CombinationRuleSet(IReadOnlyList<CombinationRule> rules, ITypeTruth catalog)
     {
         _rules = rules;
         _catalog = catalog;
@@ -58,6 +58,13 @@ public sealed class CombinationRuleSet
         }
 
         return new CombinationRuleSet(rules, catalog);
+    }
+
+    /// <summary>The same rules matched against another type truth (the world's catalog with runtime types).</summary>
+    public CombinationRuleSet WithTruth(ITypeTruth truth)
+    {
+        ArgumentNullException.ThrowIfNull(truth);
+        return new CombinationRuleSet(_rules, truth);
     }
 
     /// <summary>

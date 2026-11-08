@@ -92,6 +92,20 @@ class Residency:
     def budget_mib(self) -> int:
         return self._budget
 
+    def fits_now(self, model_id: str) -> bool:
+        """Could the model run now WITHOUT unloading anything (loaded, or room and no conflict)?"""
+        if model_id in self._loaded:
+            return True
+        wanted = self._footprint(model_id)
+        conflict = any(
+            other in wanted.never_with or model_id in self._footprint(other).never_with
+            for other in self._loaded
+        )
+        return not conflict and self.used_mib() + wanted.vram_mib <= self._budget
+
+    def is_loaded(self, model_id: str) -> bool:
+        return model_id in self._loaded
+
     def knows(self, model_id: str) -> bool:
         """Whether models.json has a footprint for the model."""
         return model_id in self._footprints

@@ -26,6 +26,7 @@ public partial class WorldPresenter : Node3D
     private readonly Dictionary<string, (Label3D Label, double Until)> _thoughts = new(StringComparer.Ordinal);
     private AiServiceProcess? _service;
     private HttpDecisionPort? _livePort;
+    private HttpJobPort? _jobPort;
     private long _seenEvents;
     private double _clock;
     private SimulationHost? _host;
@@ -68,7 +69,8 @@ public partial class WorldPresenter : Node3D
     /// <param name="savePath">Save game, or null for an unsaved world.</param>
     public void CreateWorld(string contentDirectory, ulong seed, int? startFavor, string? savePath)
     {
-        var host = SimulationHost.CreatePlaceholderWorld(contentDirectory, seed, CreatePort(contentDirectory), "de");
+        var port = CreatePort(contentDirectory);
+        var host = SimulationHost.CreatePlaceholderWorld(contentDirectory, seed, port, "de", _jobPort);
         if (startFavor is { } favor)
         {
             // Part of the start (GW1 review #67 S1/N1): as a command in the log, applied at the first
@@ -97,7 +99,8 @@ public partial class WorldPresenter : Node3D
         ArgumentException.ThrowIfNullOrEmpty(savePath);
         var settings = Contracts.Validation.ContractSerializer.Deserialize<Contracts.DeciderSettings>(
             System.IO.File.ReadAllText(System.IO.Path.Combine(contentDirectory, "decider", "settings.json")));
-        var factory = new SimulationHostFactory(ContentSet.Load(contentDirectory), settings, port ?? CreatePort(contentDirectory), "de");
+        var decisions = port ?? CreatePort(contentDirectory);
+        var factory = new SimulationHostFactory(ContentSet.Load(contentDirectory), settings, decisions, "de", _jobPort);
         var host = StateCodec.Restore(factory, SaveGameStore.Load(savePath));
         HashAtLoad = host.World.StateHash();
         host.Decisions.ResendPendingAfterLoad(host.World);
@@ -198,6 +201,7 @@ public partial class WorldPresenter : Node3D
     public override void _ExitTree()
     {
         _livePort?.Dispose();
+        _jobPort?.Dispose();
         if (_service is not null)
         {
             // ADR-0006: shutdown endpoint unloads the model (frees VRAM), then the process is killed.
@@ -238,6 +242,9 @@ public partial class WorldPresenter : Node3D
             var settings = Contracts.Validation.ContractSerializer.Deserialize<Contracts.DeciderSettings>(
                 System.IO.File.ReadAllText(System.IO.Path.Combine(contentDirectory, "decider", "settings.json")));
             _livePort = HttpDecisionPort.ForService(_service, settings.DeadlineMs);
+
+            // Generation jobs (inventions, D471): only with the live service; with the mock the system is dormant.
+            _jobPort = HttpJobPort.ForService(_service);
             GD.Print($"AI_SERVICE live on port {_service.Port}");
             return _livePort;
         }

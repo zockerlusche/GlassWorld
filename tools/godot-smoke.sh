@@ -122,4 +122,12 @@ if ! grep -Eq '^PENETRATION_OK samples=[1-9][0-9]* .* used_over=0$' "$PEN_LOG"; 
   echo "SMOKE_FAIL: an arm goes into the body in a clip the figures play (marker 'PENETRATION_OK ... used_over=0' missing)" >&2
   exit 1
 fi
+# Building plans (D471 D6): one mesh per part, inside the part sizes, visible step by step.
+BUILD_LOG="$(mktemp)"
+timeout "$TIMEOUT_S" "$GODOT" --headless --path "$GAME" --quit-after 600 res://build/build_plan_check.tscn >"$BUILD_LOG" 2>&1
+if ! grep -Eq '^BUILD_PLAN_OK plans=[1-9][0-9]* parts=[1-9][0-9]* shapes=[1-9][0-9]* failures=0$' "$BUILD_LOG"; then
+  cat "$BUILD_LOG" >&2
+  echo "SMOKE_FAIL: a building plan is not drawn part by part (marker 'BUILD_PLAN_OK ... failures=0' missing)" >&2
+  exit 1
+fi
 echo "SMOKE_PASS: $FRAMES frames without errors"

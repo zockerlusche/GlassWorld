@@ -149,6 +149,18 @@
     {
       "pattern": "sound/generation.json",
       "schema": "sound-generation"
+    },
+    {
+      "pattern": "hardware/night.json",
+      "schema": "night-plan"
+    },
+    {
+      "pattern": "build/kit.json",
+      "schema": "build-kit"
+    },
+    {
+      "pattern": "invention/settings.json",
+      "schema": "invention-settings"
     }
   ]
 }

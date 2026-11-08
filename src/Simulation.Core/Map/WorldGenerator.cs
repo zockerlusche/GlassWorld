@@ -637,7 +637,7 @@ public static class WorldGenerator
                 foreach (var (dx, dz) in Neighbours4)
                 {
                     var n = map.Cell(x + dx, z + dz);
-                    if (n.Height - c.Height >= preset.Terrain.CliffMinDrop && map.BiomeIds[n.Biome] == "rocks_hills")
+                    if (n.Height - c.Height >= preset.Terrain.CliffMinDrop && map.BiomeIds[n.Biome] == preset.Caves.CliffBiome)
                     {
                         candidates.Add((x, z));
                         break;
@@ -650,7 +650,7 @@ public static class WorldGenerator
         for (var k = 0; k < count; k++)
         {
             var pick = rng.NextInt(0, candidates.Count);
-            objects.Add(new IslandObject("rock_niche", candidates[pick].X, candidates[pick].Z));
+            objects.Add(new IslandObject(preset.Caves.ObjectType, candidates[pick].X, candidates[pick].Z));
             candidates.RemoveAt(pick);
         }
     }
@@ -760,7 +760,7 @@ public static class WorldGenerator
             for (var x = 1; x < map.WidthCells - 1; x++)
             {
                 var c = map.Cell(x, z);
-                if (c.Water == WaterKind.None && c.WalkCost != MapCell.Blocked && map.BiomeIds[c.Biome] == "beach_sea" && NearSalt(map, x, z, 3))
+                if (c.Water == WaterKind.None && c.WalkCost != MapCell.Blocked && map.BiomeIds[c.Biome] == preset.Start.Biome && NearSalt(map, x, z, 3))
                 {
                     beach.Add((x, z));
                 }

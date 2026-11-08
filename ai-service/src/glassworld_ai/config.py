@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     hardware_tiers_file: Path = Field(
         description="Tier thresholds (content/hardware/tiers.json); relative to the config file.",
     )
+    night_plan_file: Path = Field(
+        description="When job kinds run and which model they need (content/hardware/night.json).",
+    )
     model_footprints_file: Path = Field(
         description="VRAM/load time per model (content/hardware/models.json, B7 S2).",
     )
@@ -127,6 +130,7 @@ def load_settings(config_file: Path | None = None) -> Settings:
         "moss_worker_script",
         "hardware_tiers_file",
         "model_footprints_file",
+        "night_plan_file",
     ):
         value: Path = getattr(settings, name)
         if not value.is_absolute():

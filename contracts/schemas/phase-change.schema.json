@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/phase-change.schema.json",
+  "title": "PhaseChange",
+  "description": "Core -> AI service (POST /phase, B7 R3): the world time switched between day and night.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "phase",
+    "tick"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "phase": {
+      "type": "string",
+      "enum": [
+        "day",
+        "night"
+      ]
+    },
+    "tick": {
+      "$ref": "common.schema.json#/$defs/Tick"
+    }
+  }
+}

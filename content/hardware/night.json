@@ -1,0 +1,56 @@
+{
+  "contract_version": "0.2",
+  "night_budget_s": 1800,
+  "kinds": [
+    {
+      "kind": "question",
+      "when": "any",
+      "model": "qwen3.5:9b"
+    },
+    {
+      "kind": "invention",
+      "when": "any",
+      "model": "qwen3.5:9b"
+    },
+    {
+      "kind": "build_plan",
+      "when": "any",
+      "model": "qwen3.5:9b"
+    },
+    {
+      "kind": "process",
+      "when": "any",
+      "model": "qwen3.5:9b"
+    },
+    {
+      "kind": "memory",
+      "when": "night",
+      "model": "qwen3.5:9b"
+    },
+    {
+      "kind": "dream",
+      "when": "night",
+      "model": "qwen3.5:9b"
+    },
+    {
+      "kind": "chronicle",
+      "when": "night",
+      "model": "qwen3.5:9b"
+    },
+    {
+      "kind": "image",
+      "when": "night",
+      "model": "z-image-turbo"
+    },
+    {
+      "kind": "sound",
+      "when": "night",
+      "model": "moss-sound"
+    },
+    {
+      "kind": "model3d",
+      "when": "night",
+      "model": null
+    }
+  ]
+}
