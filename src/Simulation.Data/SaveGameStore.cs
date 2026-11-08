@@ -186,6 +186,10 @@ public static class SaveGameStore
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("world_preset", s.WorldPreset));
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("island_hash", s.IslandHash ?? string.Empty));
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("occurrences", JsonSerializer.Serialize(s.Occurrences ?? [])));
+            if (s.IslandData is not null)
+            {
+                Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("island_data", s.IslandData));
+            }
         }
 
         // Appearance records (B2 R27) as one JSON object by inhabitant id; older saves have none.
@@ -363,6 +367,7 @@ public static class SaveGameStore
         {
             // Save games from before the player system have no entry: the world keeps its defaults.
             Player = meta.TryGetValue("player", out var player) ? JsonSerializer.Deserialize<Simulation.Player.PlayerState>(player, Json) : null,
+            IslandData = meta.GetValueOrDefault("island_data"),
         };
     }
 
