@@ -209,47 +209,15 @@ class Habit(BaseModel):
     strength: float = Field(..., ge=0.0, le=1.0)
 
 
-class InhabitantState(BaseModel):
-    model_config = ConfigDict(
-        extra='forbid',
-    )
-    id: str = Field(
+type FeltTemperatureC = Annotated[
+    float,
+    Field(
         ...,
-        description='Id of an object or inhabitant instance in the world, assigned by the core.',
-        max_length=64,
-        pattern='^[a-z][a-z0-9_-]*$',
-    )
-    needs: list[LevelEntry] = Field(
-        ...,
-        description='Need satisfaction: 0 = fully unsatisfied (urgent, e.g. hunger 0.1 = very hungry), 1 = fully satisfied. Sorted by id by the core.',
-        max_length=32,
-    )
-    mood: list[LevelEntry] = Field(
-        ...,
-        description='Current emotions with intensity 0 = absent, 1 = very strong. Only emotions above zero are listed. Sorted by id by the core.',
-        max_length=32,
-    )
-    traits: list[LevelEntry] = Field(
-        ...,
-        description='Long-term character traits, 0 = very low, 1 = very high. Sorted by id by the core.',
-        max_length=32,
-    )
-    will_to_live: float = Field(
-        ...,
-        description='Main wellbeing value, normalised to 0..1 (shown to the player as 0-100).',
-        ge=0.0,
-        le=1.0,
-    )
-    memory: Memory
-    knowledge: list[KnowledgeEntry] = Field(
-        ...,
-        description='Relevant beliefs (about perceived things first), sorted by subject.',
-        max_length=32,
-    )
-    relationships: list[Relationship] = Field(
-        ..., description='Towards perceived inhabitants, sorted by id.', max_length=16
-    )
-    habits: list[Habit] = Field(..., max_length=8)
+        description='Temperature as the inhabitant feels it (weather, height, clothing; computed by the core, B2540), or null without weather. Optional until the core sends it.',
+        ge=-80.0,
+        le=80.0,
+    ),
+]
 
 
 class Thought(BaseModel):
@@ -442,6 +410,81 @@ class LocalizedName(BaseModel):
     )
     de: str = Field(..., max_length=40, min_length=1)
     en: str = Field(..., max_length=40, min_length=1)
+
+
+class WornItem(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    slot: str = Field(
+        ...,
+        description='Slot (vocabulary slot, e.g. body, legs, feet, head, over).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    type_id: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    properties: list[VocabId] = Field(
+        ...,
+        description='Properties the inhabitant believes the part has (e.g. warming, water_repellent).',
+        max_length=8,
+    )
+
+
+class InhabitantState(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    id: str = Field(
+        ...,
+        description='Id of an object or inhabitant instance in the world, assigned by the core.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_-]*$',
+    )
+    needs: list[LevelEntry] = Field(
+        ...,
+        description='Need satisfaction: 0 = fully unsatisfied (urgent, e.g. hunger 0.1 = very hungry), 1 = fully satisfied. Sorted by id by the core.',
+        max_length=32,
+    )
+    mood: list[LevelEntry] = Field(
+        ...,
+        description='Current emotions with intensity 0 = absent, 1 = very strong. Only emotions above zero are listed. Sorted by id by the core.',
+        max_length=32,
+    )
+    traits: list[LevelEntry] = Field(
+        ...,
+        description='Long-term character traits, 0 = very low, 1 = very high. Sorted by id by the core.',
+        max_length=32,
+    )
+    will_to_live: float = Field(
+        ...,
+        description='Main wellbeing value, normalised to 0..1 (shown to the player as 0-100).',
+        ge=0.0,
+        le=1.0,
+    )
+    memory: Memory
+    knowledge: list[KnowledgeEntry] = Field(
+        ...,
+        description='Relevant beliefs (about perceived things first), sorted by subject.',
+        max_length=32,
+    )
+    relationships: list[Relationship] = Field(
+        ..., description='Towards perceived inhabitants, sorted by id.', max_length=16
+    )
+    habits: list[Habit] = Field(..., max_length=8)
+    worn: list[WornItem] | None = Field(
+        None,
+        description='What the inhabitant wears (B2540), one part per slot at most. Optional until the core sends it (absent = unknown).',
+        max_length=8,
+    )
+    felt_temperature_c: FeltTemperatureC | None = Field(
+        None,
+        description='Temperature as the inhabitant feels it (weather, height, clothing; computed by the core, B2540), or null without weather. Optional until the core sends it.',
+    )
 
 
 class Invention(BaseModel):
