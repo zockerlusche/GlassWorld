@@ -59,8 +59,20 @@ public partial class CameraRig : Node3D
     public Camera3D Camera => _camera;
 
     /// <summary>Follows the figure with this id (its position is read every frame), at the follow distance or <paramref name="distanceM"/>.</summary>
-    public void FollowFigure(string id, double? distanceM = null) =>
+    public void FollowFigure(string id, double? distanceM = null)
+    {
+        // Look the figure up by id each frame without scanning all figures, when the scene gives a lookup.
+        if (FigurePosition is { } lookup)
+        {
+            Model.Follow(() => lookup(id) is { } p ? (p.X, p.Z) : Model.Target, distanceM);
+            return;
+        }
+
         Model.Follow(() => _figures().Where(f => f.Id == id).Select(f => ((double)f.Position.X, (double)f.Position.Z)).DefaultIfEmpty(Model.Target).First(), distanceM);
+    }
+
+    /// <summary>Optional position of a figure by id (no allocation per frame), set by the scene.</summary>
+    public Func<string, Vector3?>? FigurePosition { get; set; }
 
     /// <inheritdoc/>
     public override void _Notification(int what)

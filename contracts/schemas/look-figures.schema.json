@@ -70,8 +70,8 @@
     "walk_min_step_m": {
       "description": "Least ground distance in metres an inhabitant must move in a tick to be shown walking (whatever the action; actions walk to their target first).",
       "type": "number",
-      "minimum": 0,
-      "maximum": 5
+      "maximum": 5,
+      "exclusiveMinimum": 0
     },
     "turn_rate_deg_s": {
       "description": "How fast a figure turns towards where it walks, in degrees per real second.",

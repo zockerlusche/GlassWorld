@@ -97,7 +97,7 @@ class LookFigures(BaseModel):
     walk_min_step_m: float = Field(
         ...,
         description='Least ground distance in metres an inhabitant must move in a tick to be shown walking (whatever the action; actions walk to their target first).',
-        ge=0.0,
+        gt=0.0,
         le=5.0,
     )
     turn_rate_deg_s: float = Field(

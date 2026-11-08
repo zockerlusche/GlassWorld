@@ -10,6 +10,7 @@ namespace GlassWorld.Presentation.World;
 public sealed class FigureShared
 {
     private readonly HashSet<string> _reported = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _reportedClips = new(StringComparer.Ordinal);
 
     /// <summary>Creates the shared state from the data and the world's calendar at a time factor.</summary>
     public FigureShared(AnimationLibrary library, LookFigures figures, WorldTimeSettings time, double speed)
@@ -43,4 +44,7 @@ public sealed class FigureShared
 
     /// <summary>True the first time <paramref name="key"/> is reported in this run, false after.</summary>
     public bool FirstReport(string key) => _reported.Add(key);
+
+    /// <summary>True the first time the fallback of clip <paramref name="clipId"/> is reported in this run (no string building per tick).</summary>
+    public bool FirstClipReport(string clipId) => _reportedClips.Add(clipId);
 }

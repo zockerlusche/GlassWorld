@@ -126,6 +126,7 @@ public partial class IslandScene : Node3D
         // The camera target follows the ground, but never sinks below the sea surface.
         var seaLevel = host.Content.WorldGen.Presets[preset].Terrain.SeaLevel * terrain.UnitM;
         _rig = CameraRig.Create(Look<LookCamera>("camera.json"), _width, _depth, () => _figures.Values.Select(f => (f.InhabitantId, f.Position)), (x, z) => Math.Max(seaLevel, IslandView.GroundHeight(ground, terrain, x, z)));
+        _rig.FigurePosition = id => _figures.TryGetValue(id, out var f) ? f.Position : null;
         AddChild(_rig);
         if (Arg("--follow") is { } follow && _shotDirectory is null)
         {
@@ -163,8 +164,9 @@ public partial class IslandScene : Node3D
     /// <inheritdoc/>
     public override void _Process(double delta)
     {
-        // While a shot is pending the world waits, so the figure stays in the picture.
-        if (_current is null)
+        // Screenshot runs keep the world still (it was warmed with --warm-ticks), so every shot repeats
+        // exactly whatever the frame rate; normal and --follow runs step the world by real time.
+        if (_shotDirectory is null)
         {
             StepWorld(delta);
         }

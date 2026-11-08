@@ -147,7 +147,7 @@ public partial class FigureView : Node3D
 
     private void Report(ClipChoice choice)
     {
-        if (choice.FellBack && _shared.FirstReport("clip:" + choice.ClipId))
+        if (choice.FellBack && _shared.FirstClipReport(choice.ClipId))
         {
             GD.Print($"ANIMATION_FALLBACK clip={choice.ClipId} plays {choice.Asset}");
         }
