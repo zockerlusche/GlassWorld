@@ -70,7 +70,7 @@
     "max_attempts": 8,
     "biome": "beach_sea",
     "supply": {
-      "radius_cells": 30,
+      "radius_cells": 12,
       "resources": [
         {
           "id": "food",
