@@ -37,6 +37,23 @@ public sealed record InhabitantCard(InhabitantRow Row, IReadOnlyList<CardValue> 
 /// <param name="Time">hh:mm.</param>
 public sealed record ClockView(string SeasonKey, string PhaseKey, long Year, int Day, string Time);
 
+/// <summary>A mailbox message as the screen shows it.</summary>
+/// <param name="Id">Message id.</param>
+/// <param name="InhabitantId">Sender, or null for the world.</param>
+/// <param name="Number">Neutral number of the sender (0 = none).</param>
+/// <param name="Kind">Message kind.</param>
+/// <param name="TextKey">Text key.</param>
+/// <param name="Detail">Detail for the text (e.g. need id).</param>
+/// <param name="Urgency">0..3; shown as a warmer tint, never blinking.</param>
+public sealed record MailRow(string Id, string? InhabitantId, int Number, string Kind, string TextKey, string? Detail, int Urgency);
+
+/// <summary>An open call for help as the screen shows it.</summary>
+/// <param name="InhabitantId">Who.</param>
+/// <param name="Number">Neutral number of the inhabitant.</param>
+/// <param name="Need">Need id (vocabulary).</param>
+/// <param name="Tick">When the call opened.</param>
+public sealed record HelpRow(string InhabitantId, int Number, string Need, long Tick);
+
 /// <summary>
 /// Read side of the UI (ADR-0008): turns the core's snapshots and event stream into what the
 /// windows show. Snapshots are taken only when the tick changed; events are fetched with a cursor so
@@ -123,6 +140,21 @@ public sealed class WorldFeed
         [.. Snapshot.Inhabitants.Where(i => i.OpenQuestionIds.Count > 0)
             .OrderByDescending(i => i.OpenQuestionIds.Count).ThenBy(i => i.Id, StringComparer.Ordinal)
             .Select(i => (i.Id, i.OpenQuestionIds.Count))];
+
+    /// <summary>Current favour and its maximum (B6 R9).</summary>
+    public (double Value, double Maximum) Favor() => (_host.Player.Favor, _host.Content.Favor.Maximum);
+
+    /// <summary>Open calls for help (A1340): who and which need, oldest first.</summary>
+    public IReadOnlyList<HelpRow> HelpCalls() =>
+        [.. _host.Player.Open.Select(c => new HelpRow(c.InhabitantId, NumberOf(c.InhabitantId), c.Need, c.Tick))];
+
+    /// <summary>Open mailbox messages (most urgent first) and the newest read ones (B6 R11).</summary>
+    public (IReadOnlyList<MailRow> Open, IReadOnlyList<MailRow> History) Mail(int historyCount)
+    {
+        static MailRow Row(Simulation.Player.MailMessage m) =>
+            new(m.Id, m.InhabitantId, m.InhabitantId is null ? 0 : NumberOf(m.InhabitantId), m.Kind, m.TextKey, m.Detail, m.Urgency);
+        return ([.. _host.Mailbox.Open.Select(Row)], [.. _host.Mailbox.History.Take(historyCount).Select(Row)]);
+    }
 
     /// <summary>The world clock.</summary>
     public ClockView Clock()

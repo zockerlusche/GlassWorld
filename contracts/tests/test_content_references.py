@@ -65,6 +65,17 @@ REFERENCES = [
     ("climate/temperate.json", "weather.seasons[].transitions[].to[].weather", "weather"),
     ("look/epochs.json", "epochs[].id", "epoch"),
     ("look/daylight.json", "phases[].phase", "time_of_day"),
+    ("music/music.json", "rules[].times_of_day[]", "time_of_day"),
+    ("sound/sound_map.json", "ambience[].biome", "biome"),
+    ("sound/sound_map.json", "animals[].biomes[]", "biome"),
+    ("sound/sound_map.json", "animals[].times_of_day[]", "time_of_day"),
+    ("writing/media.json", "media[].id", "writing_medium"),
+    ("writing/media.json", "media[].weather_loss[].weather", "weather"),
+    ("writing/media.json", "media[].tool_properties[]", "property"),
+    ("writing/media.json", "read.curiosity_trait", "trait"),
+    ("inhabitants/model.json", "skills[].id", "skill"),
+    ("skills/practice.json", "practice[].skill", "skill"),
+    ("skills/practice.json", "practice[].action", "action"),
 ]
 
 # Tables that define one entry per vocabulary id of their kind.
@@ -73,6 +84,8 @@ DEFINITIONS = [
     ("look/epochs.json", "epochs[].id", "epoch"),
     ("climate/temperate.json", "weather.states[].weather", "weather"),
     ("look/daylight.json", "phases[].phase", "time_of_day"),
+    ("writing/media.json", "media[].id", "writing_medium"),
+    ("inhabitants/model.json", "skills[].id", "skill"),
 ]
 
 
@@ -80,6 +93,12 @@ DEFINITIONS = [
 def test_every_vocabulary_id_has_a_display_text(locale: str) -> None:
     keys = {entry["key"] for entry in _load(f"i18n/{locale}.json")["entries"]}
     expected = {f"vocab.{kind}.{i}" for kind, ids in VOCABULARY.items() for i in ids}
+    # Object types are named too (help window, A1340); same rule as the C# CatalogTests.
+    expected |= {
+        f"vocab.object.{t['id']}"
+        for path in sorted((CONTENT / "objects").glob("*.json"))
+        for t in json.loads(path.read_text(encoding="utf-8"))["types"]
+    }
     assert sorted(expected - keys) == [], f"{locale}: vocabulary ids without display text"
     stale = {k for k in keys if k.startswith("vocab.")} - expected
     assert sorted(stale) == [], f"{locale}: display texts for unknown vocabulary ids"

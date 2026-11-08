@@ -147,6 +147,10 @@ public sealed partial class InventionSystem : IWorldSystem, IOptionalWorldState,
     /// <inheritdoc/>
     public InventionInfo? Invention(string typeId) => _inventions.TryGetValue(typeId, out var record) ? InfoOf(record) : null;
 
+    /// <summary>New skills an approved invention brings (B4b R11); empty for other types.</summary>
+    public IReadOnlyList<NewAbility> AbilitiesOf(string typeId) =>
+        _inventions.TryGetValue(typeId, out var record) ? [.. Parse(record).IntroducesAbilities ?? []] : [];
+
     /// <summary>Runtime type id for an approved invention of a job (deterministic).</summary>
     public static string TypeIdFor(string requestId)
     {

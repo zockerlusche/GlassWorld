@@ -19,7 +19,8 @@
     "table",
     "toast",
     "durations_ms",
-    "palettes"
+    "palettes",
+    "knock"
   ],
   "properties": {
     "contract_version": {
@@ -94,6 +95,9 @@
       "items": {
         "$ref": "#/$defs/UiPalette"
       }
+    },
+    "knock": {
+      "$ref": "#/$defs/UiKnock"
     }
   },
   "$defs": {
@@ -452,6 +456,64 @@
           "description": "Colour as #RRGGBB or #RRGGBBAA.",
           "type": "string",
           "pattern": "^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$"
+        }
+      }
+    },
+    "UiKnock": {
+      "description": "The knock at the glass and the mailbox urgency (A1341, review #86): ring sizes in px at the start and how much they grow, a small shake, and how warm the most urgent message gets. Calm values only (B2466).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "outer_px",
+        "outer_grow_px",
+        "inner_px",
+        "inner_grow_px",
+        "shakes",
+        "shake_px",
+        "urgency_tint"
+      ],
+      "properties": {
+        "outer_px": {
+          "description": "Outer ring radius at the start.",
+          "type": "number",
+          "minimum": 4,
+          "maximum": 64
+        },
+        "outer_grow_px": {
+          "description": "How much the outer ring grows.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 64
+        },
+        "inner_px": {
+          "description": "Inner ring radius at the start.",
+          "type": "number",
+          "minimum": 2,
+          "maximum": 64
+        },
+        "inner_grow_px": {
+          "description": "How much the inner ring grows.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 64
+        },
+        "shakes": {
+          "description": "Shakes during the tremor.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 12
+        },
+        "shake_px": {
+          "description": "Shake width.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 6
+        },
+        "urgency_tint": {
+          "description": "Share of the attention colour at the highest urgency (0 = no tint).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
         }
       }
     }

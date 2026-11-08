@@ -14,6 +14,10 @@ namespace GlassWorld.Game;
 public partial class Main
 {
     private bool _uiCheckDone = true;
+    /// <summary>Frames the audio server gets to let go of the stopped music before quitting (measured: 1 is too few headless).</summary>
+    private const int SilenceFrames = 30;
+
+    private int _silenceFrames = -1;
 
     /// <inheritdoc/>
     public override void _Process(double delta)
@@ -26,6 +30,18 @@ public partial class Main
         _frame++;
         if (_frame >= _smokeFrames && _uiCheckDone)
         {
+            // A few frames for the audio server to let go of the music before quitting (no leaks at exit, review #92).
+            if (_silenceFrames < 0)
+            {
+                _audio?.Silence();
+                _silenceFrames = SilenceFrames;
+            }
+
+            if (--_silenceFrames > 0)
+            {
+                return;
+            }
+
             GD.Print($"WORLD_TICKS {_world?.Host?.World.Tick ?? -1}");
             GD.Print($"SMOKE_OK frames={_frame}");
             GetTree().Quit(0);
@@ -148,6 +164,12 @@ public partial class Main
 
             menu.OpenWindow?.Close();
             menu.Free();
+
+            // The game screen too (review #76: the favour tooltip showed its key).
+            if (_screen is not null)
+            {
+                problems.AddRange(RawKeys(_screen).Select(key => $"{locale} game screen: raw key '{key}'"));
+            }
         }
 
         TextCatalogs.SetLanguage(language);
@@ -191,10 +213,11 @@ public partial class Main
         };
     }
 
-    /// <summary>Visible texts below <paramref name="root"/> that are keys without a translation.</summary>
+    /// <summary>Visible texts below <paramref name="root"/> that are keys without a translation, or tooltip keys the control does not translate.</summary>
     private static IEnumerable<string> RawKeys(Node root)
     {
         var texts = new List<string>();
+        var untranslated = new List<string>();
         foreach (var node in root.FindChildren("*", nameof(Control), recursive: true, owned: false).OfType<Control>().Where(c => c.IsVisibleInTree()))
         {
             switch (node)
@@ -214,9 +237,21 @@ public partial class Main
             }
 
             texts.Add(node.TooltipText);
+
+            // A tooltip key on a control that does not translate its tooltip shows raw (review #76).
+            var tooltipTranslated = node.TooltipAutoTranslateMode switch
+            {
+                Node.AutoTranslateModeEnum.Always => true,
+                Node.AutoTranslateModeEnum.Disabled => false,
+                _ => node.CanAutoTranslate(),
+            };
+            if (TextKeys.LooksLikeKey(node.TooltipText) && !tooltipTranslated)
+            {
+                untranslated.Add(node.TooltipText);
+            }
         }
 
-        return texts.Where(t => TextKeys.LooksLikeKey(t) && root.Tr(t) == t).Distinct(StringComparer.Ordinal);
+        return texts.Where(t => TextKeys.LooksLikeKey(t) && root.Tr(t) == t).Concat(untranslated).Distinct(StringComparer.Ordinal);
     }
 
     /// <summary>
@@ -273,6 +308,24 @@ public partial class Main
         }
 
         GD.Print("AUDIO_SPATIAL_OK");
+
+        var music = _audio?.MusicSelfCheck() ?? "world audio not set up";
+        if (music.Length > 0)
+        {
+            GD.PushError($"MUSIC_FAIL {music}");
+            return;
+        }
+
+        GD.Print("MUSIC_OK");
+
+        var animals = _audio?.AnimalSelfCheck() ?? "world audio not set up";
+        if (animals.Length > 0)
+        {
+            GD.PushError($"ANIMALS_FAIL {animals}");
+            return;
+        }
+
+        GD.Print("ANIMALS_OK");
     }
 
     private static void CheckAudio(bool loaded)
@@ -285,6 +338,15 @@ public partial class Main
         }
 
         GD.Print($"AUDIO_OK sounds={RetroAudio.Library!.UsedSoundIds().Count()}");
+
+        var murmur = MurmurAudio.SelfCheck();
+        if (murmur.Length > 0)
+        {
+            GD.PushError($"MURMUR_FAIL {murmur}");
+            return;
+        }
+
+        GD.Print("MURMUR_OK");
     }
 
     /// <summary>Screenshot run (self-acceptance, KR5): saves the shots, then quits.</summary>
@@ -348,6 +410,27 @@ public partial class Main
             }
 
             CheckSave(_contentDirectory);
+
+            // After the save check: placing a gift runs more ticks (A1340).
+            var gift = _screen is null ? "game screen missing" : await _screen.CheckGiftAsync();
+            if (gift.Length > 0)
+            {
+                problems = [.. problems, "gift: " + gift];
+            }
+            else
+            {
+                GD.Print("GIFT_OK");
+            }
+
+            var knock = _screen is null ? "game screen missing" : await _screen.CheckKnockAsync();
+            if (knock.Length > 0)
+            {
+                problems = [.. problems, "knock: " + knock];
+            }
+            else
+            {
+                GD.Print("KNOCK_OK");
+            }
             problems = [.. problems, .. await CheckMenusAsync()];
             foreach (var problem in problems)
             {

@@ -1,0 +1,23 @@
+{
+  "contract_version": "0.2",
+  "job_id": "ad4e5f60-7182-4c9d-8e0f-2a3b4c5d6e7f",
+  "tick": 1210,
+  "kind": "model3d",
+  "state": "done",
+  "result": {
+    "model3d": {
+      "file": "model.obj",
+      "triangles": 12,
+      "seed_used": 5151
+    }
+  },
+  "error": null,
+  "provenance": {
+    "source": "mock",
+    "model": "mock",
+    "prompt_version": null,
+    "seed": 5151,
+    "latency_ms": 1,
+    "attempts": 1
+  }
+}

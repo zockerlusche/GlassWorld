@@ -24,6 +24,13 @@ public partial class WorldAudio : Node3D
     private SoundDirector? _director;
     private WorldFeed? _feed;
     private ulong _worldSeed;
+    private WorldMusic? _music;
+    private SimulationHost? _host;
+    private AnimalCalls? _animals;
+    private BirdsongSettings? _birdsong;
+    private long _animalTick = -1;
+    private CallBudget? _callBudget;
+    private double _clock;
 
     /// <summary>Zoom 0 (fully in) .. 1 (fully out); set by the camera control.</summary>
     public double Zoom { get; set; } = 0.5;
@@ -55,6 +62,27 @@ public partial class WorldAudio : Node3D
         _director = new SoundDirector(RetroAudio.Library!, _mixer, _baseSounds?.Variants);
         _feed = new WorldFeed(host);
         _worldSeed = worldSeed;
+        _music = new WorldMusic { Name = "WorldMusic" };
+        AddChild(_music);
+        if (!_music.Setup(host, worldSeed, BusName(MixBusId.Music)))
+        {
+            _music.QueueFree();
+            _music = null;
+        }
+
+        _host = host;
+        try
+        {
+            var animals = GlassWorld.Contracts.Validation.ContractSerializer.Deserialize<AnimalSoundSettings>(Read("content.sound.animals.json"));
+            _animals = new AnimalCalls(RetroAudio.Library!, animals);
+            _callBudget = new CallBudget(animals.MaxCallsPerSecond);
+            _birdsong = animals.Birdsong;
+        }
+        catch (Exception e) when (e is InvalidDataException or GlassWorld.Contracts.Validation.ContractViolationException)
+        {
+            // Without the data the world stays quiet of animals; everything else still sounds.
+            GD.PushError($"audio: {e.Message}");
+        }
         foreach (var bus in _mixer.Mix.Buses)
         {
             var name = BusName(bus.Id);
@@ -99,6 +127,7 @@ public partial class WorldAudio : Node3D
             return;
         }
 
+        _clock += delta;
         var listener = Listener();
         foreach (var (bus, pool) in _pools)
         {
@@ -108,6 +137,7 @@ public partial class WorldAudio : Node3D
             }
         }
 
+        PlayAnimals(listener);
         var events = _feed.NewEvents();
         if (events.Count == 0)
         {
@@ -129,6 +159,107 @@ public partial class WorldAudio : Node3D
             ApplyVolume(player, request.Bus, listener);
             player.Play();
         }
+    }
+
+    /// <summary>Stops the music before the game quits (see <see cref="WorldMusic.Silence"/>).</summary>
+    public void Silence() => _music?.Silence();
+
+    /// <summary>Smoke run only: the background music (B8 R6).</summary>
+    public string MusicSelfCheck() => _music?.SelfCheck() ?? "music not set up";
+
+    /// <summary>The biome under a ground position, or null without a map or outside it.</summary>
+    public string? BiomeAt(Position position)
+    {
+        if (_host?.Map is not { } map)
+        {
+            return null;
+        }
+
+        var x = (int)Math.Floor(position.X * 100 / map.CellSizeCm);
+        var z = (int)Math.Floor(position.Z * 100 / map.CellSizeCm);
+        return map.Map.Contains(x, z) ? map.Map.BiomeAt(x, z) : null;
+    }
+
+    /// <summary>
+    /// Animal calls since the last frame near the listener (B8 R4). After a jump (fast forward, loading)
+    /// only the last game hour sounds; a full animal bus skips calls (voice limit, B8 R7).
+    /// </summary>
+    private void PlayAnimals(Position listener)
+    {
+        if (_host is null || _animals is null || !_pools.TryGetValue(MixBusId.Animals, out var pool))
+        {
+            return;
+        }
+
+        var now = _host.World.Tick;
+        var perHour = _host.World.Calendar.Settings.TicksPerHour;
+        var from = _animalTick < 0 ? now : Math.Max(_animalTick, now - perHour);
+        _animalTick = now;
+        if (now <= from)
+        {
+            return;
+        }
+
+        var calendar = _host.World.Calendar;
+        foreach (var call in _animals.Between(from, now, perHour, t => HourTime.Of(calendar.At(t)), BiomeAt(listener), listener, _worldSeed))
+        {
+            var player = pool.FirstOrDefault(p => !p.Playing);
+            if (player is null)
+            {
+                return;
+            }
+
+            if (_callBudget is not null && !_callBudget.TryTake(_clock))
+            {
+                continue;
+            }
+
+            player.Stream = call.Sung && _birdsong is not null ? Song(call.Seed) : Stream(call.SoundId, call.Variant);
+            player.Position = new Vector3((float)call.Position.X, 0, (float)call.Position.Z);
+            ApplyVolume(player, MixBusId.Animals, listener);
+            player.Play();
+        }
+    }
+
+    /// <summary>A songbird melody for one call (each call its own seed, B8 R4).</summary>
+    private AudioStreamWav Song(ulong seed)
+    {
+        var rate = RetroAudio.Library!.SampleRate;
+        var pcm = Birdsong.Render(_birdsong!, rate, seed);
+        var bytes = new byte[pcm.Length * 2];
+        Buffer.BlockCopy(pcm, 0, bytes, 0, bytes.Length);
+        return new AudioStreamWav { Format = AudioStreamWav.FormatEnum.Format16Bits, MixRate = rate, Stereo = false, Data = bytes };
+    }
+
+    /// <summary>
+    /// Smoke run only: over one game day in the forest and on the meadow, animals call near the listener
+    /// and the songbird sings a melody of plausible length.
+    /// </summary>
+    /// <returns>Empty if fine, otherwise the first problem.</returns>
+    public string AnimalSelfCheck()
+    {
+        if (_host is null || _animals is null || _birdsong is null)
+        {
+            return "animal sounds not set up";
+        }
+
+        var calendar = _host.World.Calendar;
+        var heard = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var biome in new[] { "forest", "meadow" })
+        {
+            foreach (var call in _animals.Between(0, calendar.TicksPerDay, calendar.Settings.TicksPerHour, t => HourTime.Of(calendar.At(t)), biome, new Position(0, 0), _worldSeed))
+            {
+                heard.Add(call.Animal);
+            }
+        }
+
+        if (!heard.Contains("songbird") || heard.Count < 3)
+        {
+            return "too few animals over a day: " + string.Join(", ", heard.Order(StringComparer.Ordinal));
+        }
+
+        var song = Song(1);
+        return song.GetLength() is > 0.1 and < 5 ? string.Empty : $"songbird melody is {song.GetLength():0.00} s";
     }
 
     /// <summary>Sets a player's volume from its ground distance to the listener.</summary>

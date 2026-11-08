@@ -22,7 +22,8 @@ public sealed record SavedInhabitant(
     long NeglectTicks,
     Activity? Activity,
     Activity? Planned,
-    IReadOnlyList<SavedBelief> Beliefs);
+    IReadOnlyList<SavedBelief> Beliefs,
+    Appearance? Appearance = null);
 
 /// <summary>An open question as saved.</summary>
 public sealed record SavedQuestion(string Id, string InhabitantId, string Kind, string Subject, string RequestId, long AskedTick, IReadOnlyList<SavedOption> Options, long? RetryAtTick);
@@ -51,8 +52,23 @@ public sealed record SaveState(
     InventionState? Inventions = null,
     IReadOnlyList<ChronicleRecord>? Chronicle = null)
 {
+    /// <summary>The generated island as compact bytes (B2 R11); null on the placeholder world and in older saves.</summary>
+    public byte[]? IslandData { get; init; }
+
     /// <summary>Favour, futile attempts and calls for help (B6); null in save games from before.</summary>
     public Player.PlayerState? Player { get; init; }
+
+    /// <summary>Writing on objects (B8 R15); null in save games from before.</summary>
+    public IReadOnlyList<Writing.WrittenText>? Writing { get; init; }
+
+    /// <summary>The weather (B2 R13); null in worlds without weather and in older save games.</summary>
+    public Weather.WeatherState? Weather { get; init; }
+
+    /// <summary>New skills of inventions (A1372); null in save games from before or without any.</summary>
+    public SkillRegisterState? Skills { get; init; }
+
+    /// <summary>The mailbox (B6 R11); null in save games from before.</summary>
+    public Player.MailboxState? Mailbox { get; init; }
 }
 
 /// <summary>Captures and restores the complete state of a <see cref="SimulationHost"/>.</summary>
@@ -81,7 +97,8 @@ public static class StateCodec
                 i.NeglectTicks,
                 i.Activity,
                 i.Planned,
-                [.. i.Beliefs.All.Select(b => new SavedBelief(b.TypeId, b.PropertyId, b.Belief.Value, b.Belief.Confidence))]))],
+                [.. i.Beliefs.All.Select(b => new SavedBelief(b.TypeId, b.PropertyId, b.Belief.Value, b.Belief.Confidence))],
+                i.Appearance))],
             counter,
             [.. questions.Select(q => new SavedQuestion(q.Id, q.InhabitantId, q.Kind, q.Subject, q.RequestId, q.AskedTick, [.. q.Options.Select(o => new SavedOption(o.OptionId, o.Action, o.TargetId))], q.RetryAtTick))],
             lastAsked,
@@ -93,6 +110,11 @@ public static class StateCodec
             [.. host.Chronicle.All])
         {
             Player = host.Player.Capture(),
+            Writing = host.Writing.HasState ? host.Writing.Capture() : null,
+            IslandData = host.Map is { } map ? Map.IslandCodec.Encode(map.Island, map.CellSizeCm) : null,
+            Weather = host.WeatherSystem?.Capture(),
+            Skills = host.Skills.HasState ? host.Skills.Capture() : null,
+            Mailbox = host.Mailbox.Capture(),
         };
     }
 
@@ -102,7 +124,9 @@ public static class StateCodec
         ArgumentNullException.ThrowIfNull(factory);
         ArgumentNullException.ThrowIfNull(state);
         var world = World.Restore(state.Seed, factory.Content.Calendar, state.Tick, state.Streams);
-        var host = factory.Assemble(world, state.WorldPreset);
+        // Saves with island data load that island (B2 R11); older saves generate it again and are
+        // checked against their island hash below.
+        var host = factory.Assemble(world, state.WorldPreset, state.IslandData is { } data ? Map.IslandCodec.Decode(data) : null);
 
         // The island is generated again from the current data; if data or generator changed since the
         // save, the world would differ silently, so such a save is refused (review GW2 #56).
@@ -119,10 +143,14 @@ public static class StateCodec
         }
 
         host.Chronicle.Restore(state.Chronicle ?? []);
+        host.Skills.Restore(state.Skills);
         foreach (var obj in state.Objects)
         {
             host.Objects.Restore(obj, state.NextObjectNumber);
         }
+
+        // Texts after their objects (a text needs its object).
+        host.Writing.Restore(state.Writing);
 
         host.Objects.Restore(state.NextObjectNumber);
         host.Map?.Restore(state.Occurrences ?? []);
@@ -141,6 +169,7 @@ public static class StateCodec
                 NeglectTicks = saved.NeglectTicks,
                 Activity = saved.Activity,
                 Planned = saved.Planned,
+                Appearance = saved.Appearance,
             };
             foreach (var belief in saved.Beliefs)
             {
@@ -156,6 +185,11 @@ public static class StateCodec
             state.LastAsked,
             state.DecisionLog);
         host.Player.Restore(state.Player);
+        host.Mailbox.Restore(state.Mailbox);
+        if (state.Weather is not null)
+        {
+            host.WeatherSystem?.Restore(state.Weather, state.Tick);
+        }
         return host;
     }
 }
@@ -170,5 +204,9 @@ public sealed class SimulationHostFactory(Content.ContentSet content, Contracts.
     public SimulationHost Assemble(World world) => Assemble(world, null);
 
     /// <summary>Assembles the systems around <paramref name="world"/>, on the island of the preset if one is given.</summary>
-    public SimulationHost Assemble(World world, string? worldPreset) => SimulationHost.Assemble(Content, settings, world, port, displayLocale, worldPreset, jobPort);
+    public SimulationHost Assemble(World world, string? worldPreset) => Assemble(world, worldPreset, null);
+
+    /// <summary>Assembles the systems around <paramref name="world"/>, on a saved island if one is given (B2 R11).</summary>
+    public SimulationHost Assemble(World world, string? worldPreset, (Map.GeneratedIsland Island, int CellSizeCm)? savedIsland) =>
+        SimulationHost.Assemble(Content, settings, world, port, displayLocale, worldPreset, jobPort, savedIsland);
 }

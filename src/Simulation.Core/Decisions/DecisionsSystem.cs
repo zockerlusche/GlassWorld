@@ -35,6 +35,9 @@ public sealed record PlayerCommand(string Kind, string? InhabitantId)
 
     /// <summary>A whole number for commands that need one (e.g. the start favour).</summary>
     public int? Amount { get; init; }
+
+    /// <summary>Mailbox message a command is about (acknowledge).</summary>
+    public string? MessageId { get; init; }
 }
 
 /// <summary>Result of a player command.</summary>
@@ -51,6 +54,9 @@ public sealed record CommandResult(bool Accepted, string? ReasonKey);
 /// </summary>
 public sealed class DecisionsSystem : IWorldSystem
 {
+    /// <summary>The world's weather for the decider's environment (B2 R13); null = fallback values from the settings.</summary>
+    public Weather.WeatherSystem? WeatherSource { get; init; }
+
     /// <summary>Trigger: an object type without any belief.</summary>
     public const string UnknownObject = "unknown_object";
 
@@ -430,8 +436,8 @@ public sealed class DecisionsSystem : IWorldSystem
             Environment = new EnvironmentState
             {
                 TimeOfDay = world.Now.Phase.ToString().ToLowerInvariant(),
-                TemperatureC = _settings.FallbackEnvironment.TemperatureC,
-                Weather = [.. _settings.FallbackEnvironment.Weather],
+                TemperatureC = WeatherSource is { } w ? Math.Round(w.Read(world).TemperatureTenthC / 10.0, 1) : _settings.FallbackEnvironment.TemperatureC,
+                Weather = WeatherSource is { } source ? [.. source.Conditions] : [.. _settings.FallbackEnvironment.Weather],
             },
             Perception = new Perception
             {

@@ -1,0 +1,162 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/writing-media.schema.json",
+  "title": "WritingMedia",
+  "description": "Writing as a frame (B8 R13-R15): what each carrier (writing_medium vocabulary) is like - how long writing on it lasts, what weather wears it, which tool properties writing on it needs, how readable it can be and how much it holds - and what the actions write and read need. Nothing here says when or whether writing appears: that comes from inventions (B4b) and practice over generations (B9). Values are placeholders until Marcel's word.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "media",
+    "write",
+    "read"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "media": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "items": {
+        "$ref": "#/$defs/WritingMedium"
+      }
+    },
+    "write": {
+      "description": "What writing needs: the ability (an ability id of the register, B4b/B5), a carrier and a tool with the carrier's tool properties.",
+      "$ref": "#/$defs/WritingAction"
+    },
+    "read": {
+      "description": "What reading needs; reading in passing also needs curiosity above the threshold.",
+      "$ref": "#/$defs/ReadingAction"
+    }
+  },
+  "$defs": {
+    "WritingMedium": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "decay_per_day",
+        "weather_loss",
+        "tool_properties",
+        "legibility",
+        "capacity"
+      ],
+      "properties": {
+        "id": {
+          "description": "writing_medium vocabulary id.",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "decay_per_day": {
+          "description": "Legibility lost per game day by itself (0 = lasts).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "weather_loss": {
+          "description": "Extra legibility lost per game hour in a weather (e.g. rain wipes sand).",
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "$ref": "#/$defs/WeatherLoss"
+          }
+        },
+        "tool_properties": {
+          "description": "Property ids a tool needs to write on this carrier (empty = a finger is enough).",
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          }
+        },
+        "legibility": {
+          "description": "Best legibility writing on this carrier can have (times the writer's ability).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "capacity": {
+          "description": "How many knowledge entries fit on one carrier.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        }
+      }
+    },
+    "WeatherLoss": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "weather",
+        "per_hour"
+      ],
+      "properties": {
+        "weather": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "per_hour": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "WritingAction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ability",
+        "min_level"
+      ],
+      "properties": {
+        "ability": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "min_level": {
+          "description": "Least ability level (0..1) for the action to work at all.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "ReadingAction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ability",
+        "min_level",
+        "min_legibility",
+        "curiosity_trait",
+        "curiosity_min"
+      ],
+      "properties": {
+        "ability": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "min_level": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "min_legibility": {
+          "description": "Below this legibility nothing can be read any more (the object stays).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "curiosity_trait": {
+          "description": "Trait id that stands for curiosity (reading in passing).",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "curiosity_min": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    }
+  }
+}

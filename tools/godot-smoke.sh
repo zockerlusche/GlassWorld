@@ -78,6 +78,10 @@ if ! grep -Eq '^MENU_OK screens=[1-9][0-9]*$' "$LOG"; then
   echo "SMOKE_FAIL: menus, settings or pause menu show a raw key or leave the screen (marker 'MENU_OK' missing)" >&2
   exit 1
 fi
+if ! grep -q '^GIFT_OK$' "$LOG"; then
+  echo "SMOKE_FAIL: placing a gift through the screen failed (marker 'GIFT_OK' missing)" >&2
+  exit 1
+fi
 if ! grep -q '^SCREEN_OK$' "$LOG"; then
   echo "SMOKE_FAIL: game screen check failed (marker 'SCREEN_OK' missing)" >&2
   exit 1

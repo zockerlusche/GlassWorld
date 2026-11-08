@@ -258,6 +258,57 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
+    /// The knock at the glass and the mailbox urgency (A1341, review #86): ring sizes in px at the start and how much they grow, a small shake, and how warm the most urgent message gets. Calm values only (B2466).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class UiKnock
+    {
+
+        /// <summary>
+        /// Outer ring radius at the start.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("outer_px")]
+        public double OuterPx { get; set; } = default!;
+
+        /// <summary>
+        /// How much the outer ring grows.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("outer_grow_px")]
+        public double OuterGrowPx { get; set; } = default!;
+
+        /// <summary>
+        /// Inner ring radius at the start.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("inner_px")]
+        public double InnerPx { get; set; } = default!;
+
+        /// <summary>
+        /// How much the inner ring grows.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("inner_grow_px")]
+        public double InnerGrowPx { get; set; } = default!;
+
+        /// <summary>
+        /// Shakes during the tremor.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("shakes")]
+        public double Shakes { get; set; } = default!;
+
+        /// <summary>
+        /// Shake width.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("shake_px")]
+        public double ShakePx { get; set; } = default!;
+
+        /// <summary>
+        /// Share of the attention colour at the highest urgency (0 = no tint).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("urgency_tint")]
+        public double UrgencyTint { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// Design tokens of the UI standard D366 (KR6): sizes in logical pixels at the base resolution and 100 %, colours per palette, timings. The game builds its theme from this file; no UI value lives in code.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -332,6 +383,9 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("palettes")]
         public System.Collections.Generic.ICollection<UiPalette> Palettes { get; set; } = new System.Collections.ObjectModel.Collection<UiPalette>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("knock")]
+        public UiKnock Knock { get; set; } = new UiKnock();
 
     }
 

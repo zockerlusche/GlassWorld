@@ -51,6 +51,11 @@ public partial class Main : Node3D
     /// <inheritdoc/>
     public override void _Ready()
     {
+        if (TimedShots.FromEnvironment() is { } shots)
+        {
+            AddChild(shots);
+        }
+
         GD.Print($"GlassWorld started, core: {CoreInfo.AssemblyName}");
 
         // Closing the window always saves first (B2469); the quit happens in _Notification.
@@ -58,7 +63,7 @@ public partial class Main : Node3D
         var textsLoaded = TextCatalogs.Install();
         ReadArguments();
         _contentDirectory = ContentLocator.ContentDirectory();
-        var audioLoaded = RetroAudio.Load();
+        var audioLoaded = RetroAudio.Load() & MurmurAudio.Load();
         _baseStyle = UiSetup.Load();
         _mix = ContractSerializer.Deserialize<SoundMix>(System.IO.File.ReadAllText(System.IO.Path.Combine(_contentDirectory, "sound", "mix.json")));
         _library = new WorldLibrary(ProjectSettings.GlobalizePath("user://worlds"));

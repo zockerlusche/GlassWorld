@@ -1065,6 +1065,274 @@
     {
       "key": "ui.settings.feeling_symbols",
       "text": "Feeling symbols above heads"
+    },
+    {
+      "key": "vocab.object.apple",
+      "text": "Apple"
+    },
+    {
+      "key": "vocab.object.red_berry",
+      "text": "Red berry"
+    },
+    {
+      "key": "vocab.object.blue_berry",
+      "text": "Blueberry"
+    },
+    {
+      "key": "vocab.object.spring_water",
+      "text": "Spring water"
+    },
+    {
+      "key": "vocab.object.sea_water",
+      "text": "Sea water"
+    },
+    {
+      "key": "vocab.object.flint",
+      "text": "Flint"
+    },
+    {
+      "key": "vocab.object.pyrite",
+      "text": "Pyrite"
+    },
+    {
+      "key": "vocab.object.dry_wood",
+      "text": "Dry wood"
+    },
+    {
+      "key": "vocab.object.dry_grass",
+      "text": "Dry grass"
+    },
+    {
+      "key": "vocab.object.spark",
+      "text": "Spark"
+    },
+    {
+      "key": "vocab.object.rock_niche",
+      "text": "Rock niche"
+    },
+    {
+      "key": "vocab.object.deciduous_tree",
+      "text": "Deciduous tree"
+    },
+    {
+      "key": "vocab.object.conifer_tree",
+      "text": "Conifer"
+    },
+    {
+      "key": "vocab.object.fruit_tree",
+      "text": "Fruit tree"
+    },
+    {
+      "key": "vocab.object.palm_tree",
+      "text": "Palm tree"
+    },
+    {
+      "key": "vocab.object.resin",
+      "text": "Resin"
+    },
+    {
+      "key": "vocab.object.bark",
+      "text": "Bark"
+    },
+    {
+      "key": "vocab.object.berry_bush",
+      "text": "Berry bush"
+    },
+    {
+      "key": "vocab.object.thorn_bush",
+      "text": "Thorn bush"
+    },
+    {
+      "key": "vocab.object.hazel_bush",
+      "text": "Hazel bush"
+    },
+    {
+      "key": "vocab.object.hazelnut",
+      "text": "Hazelnut"
+    },
+    {
+      "key": "vocab.object.reed",
+      "text": "Reed"
+    },
+    {
+      "key": "vocab.object.flax",
+      "text": "Flax"
+    },
+    {
+      "key": "vocab.object.nettle",
+      "text": "Nettle"
+    },
+    {
+      "key": "vocab.object.healing_herb",
+      "text": "Healing herb"
+    },
+    {
+      "key": "vocab.object.brown_mushroom",
+      "text": "Brown mushroom"
+    },
+    {
+      "key": "vocab.object.red_mushroom",
+      "text": "Red mushroom"
+    },
+    {
+      "key": "vocab.object.fieldstone",
+      "text": "Fieldstone"
+    },
+    {
+      "key": "vocab.object.slate",
+      "text": "Slate"
+    },
+    {
+      "key": "vocab.object.sandstone",
+      "text": "Sandstone"
+    },
+    {
+      "key": "vocab.object.clay",
+      "text": "Clay"
+    },
+    {
+      "key": "vocab.object.peat",
+      "text": "Peat"
+    },
+    {
+      "key": "vocab.object.driftwood",
+      "text": "Driftwood"
+    },
+    {
+      "key": "vocab.object.shell",
+      "text": "Shell"
+    },
+    {
+      "key": "vocab.object.wild_grain",
+      "text": "Wild grain"
+    },
+    {
+      "key": "msg.hint.help_needed",
+      "text": "Inhabitant {number} finds nothing for {need}."
+    },
+    {
+      "key": "msg.hint.place_gift",
+      "text": "Click in the world where the gift should lie (Esc cancels)."
+    },
+    {
+      "key": "msg.hint.gift_placed",
+      "text": "The gift now lies in the world. It belongs to nobody."
+    },
+    {
+      "key": "ui.help.title",
+      "text": "Help"
+    },
+    {
+      "key": "ui.help.empty",
+      "text": "Nobody needs help right now."
+    },
+    {
+      "key": "ui.help.call",
+      "text": "Inhabitant {number}: {need}"
+    },
+    {
+      "key": "ui.help.give",
+      "text": "Place {thing} ({cost} favour)"
+    },
+    {
+      "key": "ui.favor.value",
+      "text": "Favour {value}/{max}"
+    },
+    {
+      "key": "ui.favor.tooltip",
+      "text": "Favour grows back slowly. Gifts cost favour."
+    },
+    {
+      "key": "msg.mail.knock",
+      "text": "Inhabitant {number} knocks at the glass: finds nothing for {need}."
+    },
+    {
+      "key": "msg.command.no_message",
+      "text": "This message has already been read."
+    },
+    {
+      "key": "ui.mailbox.empty",
+      "text": "No new messages."
+    },
+    {
+      "key": "ui.mailbox.read",
+      "text": "Mark as read"
+    },
+    {
+      "key": "ui.mailbox.history",
+      "text": "Read earlier"
+    },
+    {
+      "key": "ui.help.answer",
+      "text": "You could say: “{text}”"
+    },
+    {
+      "key": "vocab.skill.building",
+      "text": "building"
+    },
+    {
+      "key": "vocab.skill.gathering",
+      "text": "gathering"
+    },
+    {
+      "key": "vocab.skill.cooking",
+      "text": "cooking"
+    },
+    {
+      "key": "vocab.skill.healing",
+      "text": "healing"
+    },
+    {
+      "key": "vocab.skill.music",
+      "text": "music"
+    },
+    {
+      "key": "vocab.skill.teaching",
+      "text": "teaching"
+    },
+    {
+      "key": "vocab.skill.inventing",
+      "text": "inventing"
+    },
+    {
+      "key": "vocab.skill.swimming",
+      "text": "swimming"
+    },
+    {
+      "key": "vocab.skill.reading",
+      "text": "reading"
+    },
+    {
+      "key": "vocab.skill.writing",
+      "text": "writing"
+    },
+    {
+      "key": "vocab.writing_medium.sand_marks",
+      "text": "marks in the sand"
+    },
+    {
+      "key": "vocab.writing_medium.rock_painting",
+      "text": "rock painting"
+    },
+    {
+      "key": "vocab.writing_medium.carving_wood",
+      "text": "carving in wood"
+    },
+    {
+      "key": "vocab.writing_medium.carving_stone",
+      "text": "carving in stone"
+    },
+    {
+      "key": "vocab.writing_medium.tablet",
+      "text": "tablet"
+    },
+    {
+      "key": "vocab.writing_medium.book",
+      "text": "book"
+    },
+    {
+      "key": "vocab.writing_medium.library",
+      "text": "library"
     }
   ]
 }

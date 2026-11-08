@@ -42,3 +42,9 @@ class MessageKinds(BaseModel):
         description='Contract version. Incompatible changes require a new major version and an ADR.',
     )
     kinds: list[MessageKind] = Field(..., min_length=1)
+    history_max: int = Field(
+        ...,
+        description='Read messages kept as history; older ones are dropped (save game and hash stay bounded, review #86).',
+        ge=1,
+        le=1000,
+    )

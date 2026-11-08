@@ -229,3 +229,10 @@ def test_a_model_larger_than_the_budget_fails_the_job_for_good() -> None:
     status = asyncio.run(scenario())
     assert status.error is not None
     assert (status.error.code.value, status.error.retryable) == ("model_unavailable", False)
+
+
+def test_a_released_kind_changes_no_residency() -> None:
+    planner = Planner(100, dict(KINDS), lambda: None, lambda: "standard")
+    planner.release("image")
+    assert planner.model_of("image") is None
+    assert planner.night_only("image")  # still a night kind

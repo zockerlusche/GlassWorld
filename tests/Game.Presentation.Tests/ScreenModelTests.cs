@@ -38,6 +38,17 @@ public sealed class ScreenModelTests
     }
 
     [Fact]
+    public void ACallForHelpBecomesAHintNamingTheNeed()
+    {
+        var rows = new[] { new InhabitantRow("inh-000003", 3, 80, false, null, 0) };
+        var events = new[] { new WorldEvent(Simulation.Player.PlayerSystem.HelpNeeded, 9, "inh-000003", null, null) { Detail = "thirst" } };
+        var hint = Assert.Single(ScreenModel.Hints(events, rows));
+        Assert.Equal("msg.hint.help_needed", hint.TextKey);
+        Assert.Equal("vocab.need.thirst", hint.Args["need"]);
+        Assert.Equal("3", hint.Args["number"]);
+    }
+
+    [Fact]
     public void PickTakesTheNearestFigureWithinTheRadius()
     {
         var figures = new[] { ("a", 100.0, 100.0), ("b", 130.0, 100.0), ("c", 400.0, 400.0) };

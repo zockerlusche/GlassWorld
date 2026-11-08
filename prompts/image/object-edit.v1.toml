@@ -1,0 +1,16 @@
+name = "image/object-edit"
+version = 1
+description = "Picture of an invented thing in the style of the reference picture (B7 R7, TL #18681: qwen-image-edit + D355 only on tier comfort). 'user' is the edit instruction; the workflow takes the reference picture as image 1."
+
+system = ""
+
+user = """
+Draw a new picture in exactly the drawing style, line work and colours of image 1, but do not copy its content: $subject. $framing $style Calm and friendly, suitable for children. No people, no animals, no text, no letters, no watermark.
+"""
+
+[settings.framing]
+icon = "A single object, centred, seen slightly from above, whole object visible, on a plain soft light background, soft even light."
+texture = "A flat, seamless, tileable close-up texture of its main material seen straight from above, evenly lit, no object outline, no shadows."
+
+[settings.styles]
+warm_comic = "Warm hand-inked comic look."

@@ -1,0 +1,46 @@
+{
+  "contract_version": "0.2",
+  "kind": "skill",
+  "entries": [
+    {
+      "id": "building",
+      "description": "Putting things together so that they stand and hold."
+    },
+    {
+      "id": "gathering",
+      "description": "Finding and collecting what can be used."
+    },
+    {
+      "id": "cooking",
+      "description": "Preparing food so that it tastes and keeps better."
+    },
+    {
+      "id": "healing",
+      "description": "Helping a hurt or sick body to get well."
+    },
+    {
+      "id": "music",
+      "description": "Making sounds and rhythms that others like to hear."
+    },
+    {
+      "id": "teaching",
+      "description": "Passing on what one knows so that others understand."
+    },
+    {
+      "id": "inventing",
+      "description": "Thinking up new things and trying them out."
+    },
+    {
+      "id": "swimming",
+      "description": "Moving safely through water."
+    },
+    {
+      "id": "reading",
+      "description": "Understanding what others have written."
+    },
+    {
+      "id": "writing",
+      "description": "Putting knowledge into marks that others can read."
+    }
+  ]
+}
