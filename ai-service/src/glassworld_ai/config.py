@@ -60,6 +60,8 @@ class Settings(BaseSettings):
     invention_prompt_version: int = Field(ge=1)
     guard_prompt: str = Field(pattern=r"^[a-z][a-z0-9_]*/[a-z][a-z0-9_-]*$")
     guard_prompt_version: int = Field(ge=1)
+    help_prompt: str = Field(pattern=r"^[a-z][a-z0-9_]*/[a-z][a-z0-9_-]*$")
+    help_prompt_version: int = Field(ge=1)
     question_call_timeout_s: float = Field(
         gt=0, le=3600, description="Per model call; questions themselves have no deadline."
     )
