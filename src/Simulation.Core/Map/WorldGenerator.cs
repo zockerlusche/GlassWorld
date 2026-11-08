@@ -129,7 +129,7 @@ public static class WorldGenerator
         }
 
         Streams(preset, heights, water, depth, flow, w, d, Stream(attemptSeed, "worldgen/water"));
-        var moisture = Moisture(preset, heights, water, w, d);
+        var moisture = Moisture(preset, heights, water, w, d, attemptSeed);
         Swamp(preset, heights, water, depth, moisture, w, d);
 
         var biomeIds = content.BiomeIds;
@@ -440,7 +440,7 @@ public static class WorldGenerator
         return outlet;
     }
 
-    private static int[] Moisture(WorldPreset preset, int[] heights, WaterKind[] water, int w, int d)
+    private static int[] Moisture(WorldPreset preset, int[] heights, WaterKind[] water, int w, int d, ulong seed)
     {
         var climate = preset.Climate;
         var radius = climate.MoistureWaterRadiusCells;
@@ -492,7 +492,9 @@ public static class WorldGenerator
 
                 var near = distance[i] == int.MaxValue || radius == 0 ? 0 : Math.Max(0, radius - distance[i]) * (1000 - climate.MoistureBasePermille) / radius;
                 var valley = heights[i] + 2 < LocalMean(heights, w, d, x, z, 3) ? climate.ValleyMoistureBonusPermille : 0;
-                moisture[i] = Math.Clamp(climate.MoistureBasePermille + (near * 4 / 5) + valley + nearSea, 0, 1000);
+                // Noise gives wet zones natural edges instead of even rings around the water.
+                var noise = (ValueNoise(seed ^ 0x3015E, 11, x, z, climate.MoistureNoiseWavelengthCells) - 500) * climate.MoistureNoisePermille / 500;
+                moisture[i] = Math.Clamp(climate.MoistureBasePermille + (near * 4 / 5) + valley + nearSea + noise, 0, 1000);
             }
         }
 

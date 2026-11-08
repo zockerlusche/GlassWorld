@@ -280,7 +280,9 @@
         "temperature_drop_per_100_height",
         "moisture_base_permille",
         "moisture_water_radius_cells",
-        "valley_moisture_bonus_permille"
+        "valley_moisture_bonus_permille",
+        "moisture_noise_permille",
+        "moisture_noise_wavelength_cells"
       ],
       "properties": {
         "climate_id": {
@@ -315,6 +317,18 @@
           "description": "Extra moisture in hollows and valleys.",
           "type": "integer",
           "minimum": 0,
+          "maximum": 1000
+        },
+        "moisture_noise_permille": {
+          "description": "Strength of the moisture noise, so wet zones (forest, swamp) have natural edges instead of even rings around the water.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "moisture_noise_wavelength_cells": {
+          "description": "Wavelength of the moisture noise in cells.",
+          "type": "integer",
+          "minimum": 2,
           "maximum": 1000
         }
       }

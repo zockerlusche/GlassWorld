@@ -123,6 +123,15 @@ class WorldPresetClimate(BaseModel):
     valley_moisture_bonus_permille: int = Field(
         ..., description='Extra moisture in hollows and valleys.', ge=0, le=1000
     )
+    moisture_noise_permille: int = Field(
+        ...,
+        description='Strength of the moisture noise, so wet zones (forest, swamp) have natural edges instead of even rings around the water.',
+        ge=0,
+        le=1000,
+    )
+    moisture_noise_wavelength_cells: int = Field(
+        ..., description='Wavelength of the moisture noise in cells.', ge=2, le=1000
+    )
 
 
 class WorldPresetStart(BaseModel):

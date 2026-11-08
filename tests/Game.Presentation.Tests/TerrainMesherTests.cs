@@ -109,19 +109,33 @@ public sealed class TerrainMesherTests
             }
         }
 
-        var water = TerrainMesher.Water(builder.Build(), 0, 0, Look);
-        Assert.Equal((4 + 4 + 1 + 1) * 2, water.TriangleCount);
-        var vertices = Enumerable.Range(0, water.VertexCount).Select(i => (
-            X: water.Positions[i * 3], Y: water.Positions[(i * 3) + 1],
-            Color: new Rgb(water.Colors[i * 3], water.Colors[(i * 3) + 1], water.Colors[(i * 3) + 2]),
-            Flow: (water.Flow[i * 2], water.Flow[(i * 2) + 1]))).ToList();
-        Assert.All(vertices.Where(v => v.X < 1f), v => Assert.Equal((2f, Look.SeaDeep), (v.Y, v.Color)));
-        Assert.All(vertices.Where(v => v.X is > 1f and < 2f), v => Assert.Equal((2f, Look.SeaShallow), (v.Y, v.Color)));
-        var stream = vertices.Where(v => v.X is > 2f and < 3f).ToList();
-        Assert.All(stream, v => Assert.Equal((3f, Look.Fresh, (0f, 1f)), (v.Y, v.Color, v.Flow)));
-        Assert.All(vertices.Where(v => v.X > 3f), v => Assert.Equal(Look.Swamp, v.Color));
-        Assert.Equal(8 * 2, TerrainMesher.Water(builder.Build(), 0, 0, Look, WaterKind.Salt).TriangleCount);
-        Assert.Equal(2 * 2, TerrainMesher.Water(builder.Build(), 0, 0, Look, WaterKind.Fresh).TriangleCount);
+        var map = builder.Build();
+        var water = TerrainMesher.Water(map, 0, 0, Look);
+
+        // Two banks (dry cells next to the fresh water) carry the water surface too: 10 water cells + 2 banks.
+        Assert.Equal((4 + 4 + 1 + 1 + 2) * 2, water.TriangleCount);
+        var faces = Enumerable.Range(0, water.TriangleCount).Select(f =>
+        {
+            var v = f * 3;
+            return (
+                X: (water.Positions[v * 3] + water.Positions[(v + 1) * 3] + water.Positions[(v + 2) * 3]) / 3,
+                Z: (water.Positions[(v * 3) + 2] + water.Positions[((v + 1) * 3) + 2] + water.Positions[((v + 2) * 3) + 2]) / 3,
+                Y: water.Positions[(v * 3) + 1],
+                Color: new Rgb(water.Colors[v * 3], water.Colors[(v * 3) + 1], water.Colors[(v * 3) + 2]),
+                Flow: (water.Flow[v * 2], water.Flow[(v * 2) + 1]));
+        }).ToList();
+        (float, float, float, Rgb, (float, float)) Cell(int x, int z) =>
+            faces.Where(f => (int)f.X == x && (int)f.Z == z).Select(f => (f.X, f.Z, f.Y, f.Color, f.Flow)).First();
+
+        Assert.Equal((2f, Look.SeaDeep), (Cell(0, 2).Item3, Cell(0, 2).Item4));
+        Assert.Equal((2f, Look.SeaShallow), (Cell(1, 2).Item3, Cell(1, 2).Item4));
+        Assert.Equal((3f, Look.Fresh, (0f, 1f)), (Cell(2, 0).Item3, Cell(2, 0).Item4, Cell(2, 0).Item5));
+        Assert.Equal((3f, Look.Swamp), (Cell(3, 0).Item3, Cell(3, 0).Item4));
+        Assert.Equal(3f, Cell(2, 1).Item3, 3);
+        Assert.Equal((0f, 0f), Cell(2, 1).Item5);
+        Assert.DoesNotContain(faces, f => (int)f.Z >= 2 && (int)f.X >= 2);
+        Assert.Equal(8 * 2, TerrainMesher.Water(map, 0, 0, Look, WaterKind.Salt).TriangleCount);
+        Assert.Equal((2 + 2) * 2, TerrainMesher.Water(map, 0, 0, Look, WaterKind.Fresh).TriangleCount);
     }
 
     [Fact]

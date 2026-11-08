@@ -196,7 +196,20 @@ public static class TerrainMesher
         foreach (var (x, z) in CellsOf(map, chunkX, chunkZ))
         {
             var cell = map.Cell(x, z);
-            if (cell.Water == WaterKind.None || (only is { } kind && cell.Water != kind))
+            if (cell.Water == WaterKind.None)
+            {
+                // Banks: a dry cell next to fresh water carries that water's surface too. Where the bank
+                // rises above it the ground hides it, so the visible shore follows the slope (smooth, like
+                // the coast) instead of the cell edges.
+                if (only is null or WaterKind.Fresh && BankWater(map, x, z) is { } bank)
+                {
+                    AddQuad(mesh, x, z, bank.Surface * look.UnitM, bank.Color(look), default, look);
+                }
+
+                continue;
+            }
+
+            if (only is { } kind && cell.Water != kind)
             {
                 continue;
             }
@@ -208,12 +221,44 @@ public static class TerrainMesher
             var flow = cell.Flow >= 0 && cell.Flow < FlowDirections.All.Count
                 ? Normalised(FlowDirections.All[cell.Flow])
                 : default;
-            float x0 = x * look.CellM, x1 = (x + 1) * look.CellM, z0 = z * look.CellM, z1 = (z + 1) * look.CellM;
-            mesh.Triangle((x0, y, z0), (x1, y, z1), (x1, y, z0), color, flow);
-            mesh.Triangle((x0, y, z0), (x0, y, z1), (x1, y, z1), color, flow);
+            AddQuad(mesh, x, z, y, color, flow, look);
         }
 
         return mesh;
+    }
+
+    private static void AddQuad(MeshData mesh, int x, int z, float y, Rgb color, (float X, float Z) flow, TerrainLook look)
+    {
+        float x0 = x * look.CellM, x1 = (x + 1) * look.CellM, z0 = z * look.CellM, z1 = (z + 1) * look.CellM;
+        mesh.Triangle((x0, y, z0), (x1, y, z1), (x1, y, z0), color, flow);
+        mesh.Triangle((x0, y, z0), (x0, y, z1), (x1, y, z1), color, flow);
+    }
+
+    /// <summary>The highest fresh water surface among the eight neighbours of a dry cell, if any.</summary>
+    private static (int Surface, bool Swamp, Func<TerrainLook, Rgb> Color)? BankWater(WorldMap map, int x, int z)
+    {
+        (int Surface, int Depth)? best = null;
+        foreach (var (dx, dz) in FlowDirections.All)
+        {
+            int nx = x + dx, nz = z + dz;
+            if (!map.Contains(nx, nz))
+            {
+                continue;
+            }
+
+            var n = map.Cell(nx, nz);
+            if (n.Water == WaterKind.Fresh && (best is null || n.Height + n.WaterDepth > best.Value.Surface))
+            {
+                best = (n.Height + n.WaterDepth, n.WaterDepth);
+            }
+        }
+
+        if (best is not { } water)
+        {
+            return null;
+        }
+
+        return (water.Surface, false, look => water.Depth <= look.SwampMaxUnits ? look.Swamp : look.Fresh);
     }
 
     /// <summary>

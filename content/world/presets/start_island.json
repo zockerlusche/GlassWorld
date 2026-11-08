@@ -53,7 +53,9 @@
     "temperature_drop_per_100_height": 40,
     "moisture_base_permille": 350,
     "moisture_water_radius_cells": 12,
-    "valley_moisture_bonus_permille": 200
+    "valley_moisture_bonus_permille": 200,
+    "moisture_noise_permille": 180,
+    "moisture_noise_wavelength_cells": 14
   },
   "caves": {
     "min": 1,

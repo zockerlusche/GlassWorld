@@ -211,6 +211,18 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("valley_moisture_bonus_permille")]
         public int ValleyMoistureBonusPermille { get; set; } = default!;
 
+        /// <summary>
+        /// Strength of the moisture noise, so wet zones (forest, swamp) have natural edges instead of even rings around the water.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("moisture_noise_permille")]
+        public int MoistureNoisePermille { get; set; } = default!;
+
+        /// <summary>
+        /// Wavelength of the moisture noise in cells.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("moisture_noise_wavelength_cells")]
+        public int MoistureNoiseWavelengthCells { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
