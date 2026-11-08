@@ -154,6 +154,43 @@ class SoundPayload(BaseModel):
     )
 
 
+class Purpose(StrEnum):
+    icon = 'icon'
+    texture = 'texture'
+
+
+class ImagePayload(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    subject: str = Field(
+        ...,
+        description="Short English description of what to show, e.g. 'a clay water vessel with a handle' (from the invention). No people, no text.",
+        max_length=300,
+        min_length=1,
+    )
+    purpose: Purpose = Field(
+        ...,
+        description='icon = the thing alone on a plain background (UI); texture = a seamless surface of its main material.',
+    )
+    style: str = Field(
+        ...,
+        description='Style id from the image prompt (e.g. warm_comic, B2501/D355).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    width: int = Field(
+        ...,
+        description='Pixels (from content/image/generation.json by purpose).',
+        ge=256,
+        le=2048,
+    )
+    height: int = Field(..., ge=256, le=2048)
+    object_type: common_schema.VocabId | None = Field(
+        ..., description='The (runtime) object type the picture belongs to, if any.'
+    )
+
+
 class BuildPlanPayload(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -205,6 +242,7 @@ class JobPayload(BaseModel):
     process: ProcessPayload | None = None
     memory: MemoryPayload | None = None
     sound: SoundPayload | None = None
+    image: ImagePayload | None = None
 
 
 class GenerationJob(BaseModel):

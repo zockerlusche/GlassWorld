@@ -95,6 +95,9 @@
         },
         "sound": {
           "$ref": "#/$defs/SoundPayload"
+        },
+        "image": {
+          "$ref": "#/$defs/ImagePayload"
         }
       },
       "minProperties": 1,
@@ -422,6 +425,61 @@
         },
         "object_type": {
           "description": "The (runtime) object type the sound belongs to, if any.",
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/VocabId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "ImagePayload": {
+      "description": "A picture for a thing (B7 R7, A1408): an icon for the UI or a texture, made in the computing night by the local image model in the game's style. If it fails, the thing keeps the colours and materials of the construction kit.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "subject",
+        "purpose",
+        "style",
+        "width",
+        "height",
+        "object_type"
+      ],
+      "properties": {
+        "subject": {
+          "description": "Short English description of what to show, e.g. 'a clay water vessel with a handle' (from the invention). No people, no text.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "purpose": {
+          "description": "icon = the thing alone on a plain background (UI); texture = a seamless surface of its main material.",
+          "type": "string",
+          "enum": [
+            "icon",
+            "texture"
+          ]
+        },
+        "style": {
+          "description": "Style id from the image prompt (e.g. warm_comic, B2501/D355).",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "width": {
+          "description": "Pixels (from content/image/generation.json by purpose).",
+          "type": "integer",
+          "minimum": 256,
+          "maximum": 2048
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 256,
+          "maximum": 2048
+        },
+        "object_type": {
+          "description": "The (runtime) object type the picture belongs to, if any.",
           "anyOf": [
             {
               "$ref": "common.schema.json#/$defs/VocabId"

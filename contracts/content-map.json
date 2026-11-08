@@ -169,6 +169,10 @@
     {
       "pattern": "jobs/phases.json",
       "schema": "job-phases"
+    },
+    {
+      "pattern": "image/generation.json",
+      "schema": "image-generation"
     }
   ]
 }

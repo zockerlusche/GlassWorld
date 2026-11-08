@@ -30,6 +30,7 @@ from glassworld_ai.errors import error_response, install_error_handlers
 from glassworld_ai.hardware import HardwareInfo, detect_hardware, load_tiers, select_tier
 from glassworld_ai.health import health_status
 from glassworld_ai.help import HelpSuggester, MockHelp, OllamaHelp, ReplayHelp
+from glassworld_ai.image import ComfyImages, MockImages, load_image_settings
 from glassworld_ai.invention.flow import (
     MockInventions,
     OllamaInventions,
@@ -122,6 +123,8 @@ def create_app(
                 app.state.decider = _build_decider(settings, ollama, app.state.queue)
             if helper is None:
                 app.state.helper = _build_helper(settings, ollama, app.state.queue)
+            if job_handlers is None and settings.image_backend == "comfyui":
+                app.state.jobs.register("image", _comfy_images(settings, client, app))
             if job_handlers is None and settings.decider_backend == "ollama":
                 app.state.jobs.register("question", _ollama_questions(settings, ollama, app))
                 app.state.jobs.register("memory", _ollama_memory(settings, ollama, app))
@@ -178,6 +181,17 @@ def create_app(
     )
     if job_handlers is None:
         app.state.jobs.register("sound", _sound_handler(settings))
+    if job_handlers is None and settings.image_backend == "mock":
+        planner.release("image")
+        app.state.jobs.register(
+            "image",
+            MockImages(
+                load_image_settings(settings.content_dir),
+                settings.prompts_dir,
+                settings.image_output_dir,
+                _image_tier(app),
+            ),
+        )
 
     def _set_hardware(target: FastAPI, info: HardwareInfo) -> None:
         target.state.hardware = info
@@ -557,6 +571,31 @@ def _sound_handler(settings: Settings) -> Handler:
             worker, settings.sound_output_dir, generation, settings.sound_render_timeout_s
         )
     return MockSound(settings.sound_output_dir, generation)
+
+
+def _image_tier(app: FastAPI) -> Callable[[], str | None]:
+    return lambda: getattr(app.state, "tier", None)
+
+
+def _comfy_images(settings: Settings, client: httpx.AsyncClient, app: FastAPI) -> ComfyImages:
+    async def ensure(model_id: str) -> None:
+        residency: Residency | None = getattr(app.state, "residency", None)
+        if residency is not None and residency.knows(model_id):
+            await residency.ensure(model_id)
+
+    return ComfyImages(
+        base_url=str(settings.comfyui_url),
+        client=client,
+        settings=load_image_settings(settings.content_dir),
+        workflows_dir=settings.image_workflows_dir,
+        prompts_dir=settings.prompts_dir,
+        content_dir=settings.content_dir,
+        output_dir=settings.image_output_dir,
+        tier=_image_tier(app),
+        ensure_model=ensure,
+        poll_s=settings.image_poll_s,
+        timeout_s=settings.image_timeout_s,
+    )
 
 
 def _offline_handlers(settings: Settings) -> dict[str, Handler]:
