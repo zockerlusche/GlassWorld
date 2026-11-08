@@ -324,6 +324,15 @@ public partial class Main
 
         GD.Print("AUDIO_LIMITER_OK");
 
+        var ambience = _audio?.AmbienceSelfCheck() ?? "world audio not set up";
+        if (ambience.Length > 0)
+        {
+            GD.PushError($"AMBIENCE_FAIL {ambience}");
+            return;
+        }
+
+        GD.Print("AMBIENCE_OK");
+
         var music = _audio?.MusicSelfCheck() ?? "world audio not set up";
         if (music.Length > 0)
         {

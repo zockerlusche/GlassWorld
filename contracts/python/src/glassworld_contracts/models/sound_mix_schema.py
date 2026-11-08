@@ -81,6 +81,14 @@ class MixPlayerRange(BaseModel):
     max: float = Field(..., description='Loudest setting (dB).', ge=0.0, le=12.0)
 
 
+class MixAmbience(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    fade_s: float = Field(..., ge=0.5, le=20.0)
+    hold_s: float = Field(..., ge=0.0, le=60.0)
+
+
 class SoundMix(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -98,3 +106,4 @@ class SoundMix(BaseModel):
         ge=1,
         le=1000,
     )
+    ambience: MixAmbience

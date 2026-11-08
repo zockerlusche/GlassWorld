@@ -96,6 +96,21 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
+    /// Biome ambience (B8 R7): cross-fade time between biome loops and how long a new biome must hold before the change (no flicker along borders).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class MixAmbience
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("fade_s")]
+        public double FadeS { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("hold_s")]
+        public double HoldS { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// Mixing and spatial sound (B8 R7, B2512): buses with default volumes, how loud a sound is at a distance from the listener (camera), how far it can be heard, how zoom changes the hearing range, and how many sounds a bus plays at once. All distances are metres; core positions are converted to metres via cell_size_cm of the world preset (B2), so changing the cell size does not change these values.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -119,6 +134,9 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("defaults_version")]
         public int DefaultsVersion { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("ambience")]
+        public MixAmbience Ambience { get; set; } = new MixAmbience();
 
     }
 

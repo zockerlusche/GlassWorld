@@ -58,5 +58,9 @@
   "player_volume_db": {
     "min": -60,
     "max": 6
+  },
+  "ambience": {
+    "fade_s": 4,
+    "hold_s": 5
   }
 }
