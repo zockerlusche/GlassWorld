@@ -153,7 +153,12 @@ public sealed class TerrainMesherTests
             }
         }
 
-        Assert.Equal(4 * 2, TerrainMesher.Water(builder.Build(), 0, 0, Look).TriangleCount);
+        var stream = TerrainMesher.Water(builder.Build(), 0, 0, Look);
+        Assert.Equal(4 * 2, stream.TriangleCount);
+
+        // The ribbon slopes with the ground (no flat plates): its surface heights differ along the stream.
+        var heights = Enumerable.Range(0, stream.VertexCount).Select(i => stream.Positions[(i * 3) + 1]).Distinct().Count();
+        Assert.True(heights > 2, "stream surface must follow the slope");
     }
 
     [Fact]

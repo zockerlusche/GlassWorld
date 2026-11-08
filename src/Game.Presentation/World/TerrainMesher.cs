@@ -221,6 +221,18 @@ public static class TerrainMesher
             var flow = cell.Flow >= 0 && cell.Flow < FlowDirections.All.Count
                 ? Normalised(FlowDirections.All[cell.Flow])
                 : default;
+            if (cell.Water == WaterKind.Fresh && cell.Flow >= 0)
+            {
+                // Running water follows the slope: the ground's corner heights plus the depth, so a stream
+                // is a ribbon down the hill instead of a stair of flat plates.
+                var h = CornerHeights(map, x, z, look.CliffDrop);
+                (float, float, float) Corner(int k) =>
+                    ((x + Corners[k].Dx) * look.CellM, (h[k] + cell.WaterDepth) * look.UnitM, (z + Corners[k].Dz) * look.CellM);
+                mesh.Triangle(Corner(0), Corner(2), Corner(1), color, flow);
+                mesh.Triangle(Corner(0), Corner(3), Corner(2), color, flow);
+                continue;
+            }
+
             AddQuad(mesh, x, z, y, color, flow, look);
         }
 
