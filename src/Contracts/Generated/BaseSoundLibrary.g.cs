@@ -58,6 +58,18 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("loop_max_s")]
         public double LoopMaxS { get; set; } = default!;
 
+        /// <summary>
+        /// Files raised by more than this when normalising get the gentle noise gate first (TL #19652).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("clean_gain_db")]
+        public double CleanGainDb { get; set; } = default!;
+
+        /// <summary>
+        /// Files whose noise floor would end above this after normalising get the gentle noise gate first.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("clean_floor_dbfs")]
+        public double CleanFloorDbfs { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -165,6 +177,18 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("origin")]
         public string? Origin { get; set; } = default!;
+
+        /// <summary>
+        /// Noise floor of the file in the repository (10th percentile of 50 ms frames, dBFS); null for files shorter than 1 s, where it would only measure the sound itself (their silent tails are trimmed).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("noise_floor_dbfs")]
+        public double? NoiseFloorDbfs { get; set; } = default!;
+
+        /// <summary>
+        /// True if the noise gate ran before normalising.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("cleaned")]
+        public bool Cleaned { get; set; } = default!;
 
     }
 

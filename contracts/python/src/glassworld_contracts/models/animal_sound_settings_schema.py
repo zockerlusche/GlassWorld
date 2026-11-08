@@ -57,6 +57,12 @@ class BirdsongSettings(BaseModel):
         ge=-40.0,
         le=-6.0,
     )
+    recorded_share: float = Field(
+        ...,
+        description='Share of songbird calls that play a recorded song of the base library (animal.songbird.song) instead of a synthesised melody (listening test 2: both as variants, W1651). 0 = melodies only.',
+        ge=0.0,
+        le=1.0,
+    )
 
 
 class AnimalSoundSettings(BaseModel):

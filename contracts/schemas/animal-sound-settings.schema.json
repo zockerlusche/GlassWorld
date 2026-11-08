@@ -68,7 +68,8 @@
         "trill_chance",
         "trill_notes",
         "peak",
-        "loudness_dbfs"
+        "loudness_dbfs",
+        "recorded_share"
       ],
       "properties": {
         "sound": {
@@ -147,6 +148,12 @@
           "type": "number",
           "minimum": -40,
           "maximum": -6
+        },
+        "recorded_share": {
+          "description": "Share of songbird calls that play a recorded song of the base library (animal.songbird.song) instead of a synthesised melody (listening test 2: both as variants, W1651). 0 = melodies only.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
         }
       }
     }

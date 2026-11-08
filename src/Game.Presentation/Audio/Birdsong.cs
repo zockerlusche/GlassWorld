@@ -46,6 +46,16 @@ public static class Birdsong
         return notes;
     }
 
+    /// <summary>
+    /// Whether a songbird call with this seed plays a recorded song of the base library instead of a
+    /// synthesised melody (share from the data, listening test 2: both as variants).
+    /// </summary>
+    public static bool Recorded(BirdsongSettings settings, ulong seed)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+        return (seed % 10_000) / 10_000.0 < settings.RecordedShare;
+    }
+
     /// <summary>Renders the song for a seed into 16-bit mono PCM.</summary>
     public static short[] Render(BirdsongSettings settings, int sampleRate, ulong seed)
     {

@@ -52,7 +52,9 @@
         "peak_max_dbfs",
         "gate_dbfs",
         "one_shot_max_s",
-        "loop_max_s"
+        "loop_max_s",
+        "clean_gain_db",
+        "clean_floor_dbfs"
       ],
       "properties": {
         "one_shot_dbfs": {
@@ -95,6 +97,18 @@
           "type": "number",
           "minimum": 0.5,
           "maximum": 120
+        },
+        "clean_gain_db": {
+          "description": "Files raised by more than this when normalising get the gentle noise gate first (TL #19652).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 60
+        },
+        "clean_floor_dbfs": {
+          "description": "Files whose noise floor would end above this after normalising get the gentle noise gate first.",
+          "type": "number",
+          "minimum": -120,
+          "maximum": 0
         }
       }
     },
@@ -209,7 +223,9 @@
         "source",
         "sha256",
         "prompt",
-        "seed"
+        "seed",
+        "noise_floor_dbfs",
+        "cleaned"
       ],
       "properties": {
         "file": {
@@ -255,6 +271,23 @@
         "origin": {
           "description": "Origin of this file when it differs from the sound's origin (A and B chosen as variants). Must be the id of an entry in this file's `origins` list (checked by BaseSoundCheck).",
           "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "noise_floor_dbfs": {
+          "description": "Noise floor of the file in the repository (10th percentile of 50 ms frames, dBFS); null for files shorter than 1 s, where it would only measure the sound itself (their silent tails are trimmed).",
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": -120,
+              "maximum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "cleaned": {
+          "description": "True if the noise gate ran before normalising.",
+          "type": "boolean"
         }
       }
     }

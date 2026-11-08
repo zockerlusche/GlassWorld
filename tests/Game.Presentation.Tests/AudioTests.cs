@@ -12,8 +12,11 @@ public sealed class AudioTests
     private static readonly string[] AnimalList =
         ["gull", "crab", "butterfly", "bee", "songbird", "squirrel", "dragonfly", "frog", "firefly", "owl", "fish", "wild_chicken", "goat"];
 
-    /// <summary>Animals the spec keeps silent near the camera (B8 R4: firefly "still"; Marcel W1645 rejected its tone).</summary>
-    private static readonly string[] SilentBySpec = ["firefly"];
+    /// <summary>
+    /// Animals the spec keeps silent near the camera. None at present: the firefly was silent after Marcel
+    /// rejected its tone (W1645) and has a chosen sound again since listening test 3 (W1664).
+    /// </summary>
+    private static readonly string[] SilentBySpec = [];
 
     private static readonly string Root = TestPaths.Root;
     private static readonly string MapJson = File.ReadAllText(Path.Combine(Root, "content", "sound", "sound_map.json"));
