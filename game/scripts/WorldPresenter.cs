@@ -342,6 +342,9 @@ public partial class WorldPresenter : Node3D
     /// appeared, otherwise switches groups every 30 s; smooth, presentation only. On first use the B0
     /// island placeholder is hidden and a plain ground is laid under the placeholder world.
     /// </summary>
+    /// <summary>Picture runs only: the placeholder camera stays where it was put and does not follow the groups.</summary>
+    public bool CameraHeld { get; set; }
+
     private void FollowWithCamera(double delta)
     {
         if (_host is null || GetViewport().GetCamera3D() is not { } camera)
@@ -363,6 +366,11 @@ public partial class WorldPresenter : Node3D
                 Mesh = new PlaneMesh { Size = new Vector2(400, 120) },
                 MaterialOverride = new StandardMaterial3D { AlbedoColor = new Color(0.86f, 0.78f, 0.55f) },
             });
+        }
+
+        if (CameraHeld)
+        {
+            return;
         }
 
         var groups = _host.Inhabitants.All.Select(i => i.Group).Distinct().Order().ToList();

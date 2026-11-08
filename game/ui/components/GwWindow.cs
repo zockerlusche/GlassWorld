@@ -27,6 +27,9 @@ public partial class GwWindow : PanelContainer
     /// <summary>Container for the window's content (inside the scroll area).</summary>
     public VBoxContainer Content { get; } = new() { SizeFlagsHorizontal = SizeFlags.ExpandFill };
 
+    /// <summary>Scrolls the content to its end (screenshots of the last section).</summary>
+    public void ScrollToEnd() => _scroll.ScrollVertical = (int)_scroll.GetVScrollBar().MaxValue;
+
     /// <summary>Creates an empty window; call <see cref="Setup"/> before adding it to the tree.</summary>
     public GwWindow()
     {

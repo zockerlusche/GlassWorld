@@ -380,6 +380,39 @@ public partial class Main
         var files = await UiShots.RunAsync(this, _screen!, style, _shotsFolder!);
         GD.Print($"UI_SHOTS_OK {files.Count}");
 
+        // Talking (A1342): the card with its talk field, a sentence and the inhabitant's first reaction
+        // (at the start it understands little: a gesture or a question mark, D333).
+        var talker = _world!.Host!.Inhabitants.All.OrderBy(i => i.Id, StringComparer.Ordinal).First().Id;
+        if (!_world.CloseLook(talker, 8) && GetViewport().GetCamera3D() is { } talkCamera && _world.GetNodeOrNull<Node3D>(talker) is { } talkFigure)
+        {
+            // Placeholder world: the camera close to the inhabitant's head, the bubble above it.
+            _world.CameraHeld = true;
+            var head = talkFigure.GlobalPosition + new Vector3(0, 1.1f, 0);
+            talkCamera.GlobalPosition = head + new Vector3(1.2f, 0.6f, 3.2f);
+            talkCamera.LookAt(head + new Vector3(0, 0.4f, 0), Vector3.Up);
+        }
+
+        foreach (var (locale, sentence) in new[] { ("de", "Hallo! Wie geht es dir?"), ("en", "Hello! How are you?") })
+        {
+            TextCatalogs.SetLanguage(locale);
+            _screen!.Say(talker, sentence);
+            _screen.ShowTalkForShots(sentence);
+            for (var i = 0; i < 3; i++)
+            {
+                _world.Host.World.Step();
+            }
+
+            for (var i = 0; i < 20; i++)
+            {
+                await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            }
+
+            _screen.Refresh();
+            await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
+            var talk = System.IO.Path.Combine(_shotsFolder!, $"talk_{locale}.png");
+            GD.Print($"UI_SHOT {talk} {GetViewport().GetTexture().GetImage().SavePng(talk)}");
+        }
+
         // Feeling symbols (B2541): the icon sheet and every symbol above the inhabitants.
         if (_symbols is not null)
         {

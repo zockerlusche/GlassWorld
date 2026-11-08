@@ -34,6 +34,7 @@ public partial class GameScreen : CanvasLayer
     private readonly Dictionary<string, ProgressBar> _cardBars = new(StringComparer.Ordinal);
     private Label? _cardAction;
     private Label? _cardQuestions;
+    private LineEdit? _talkInput;
     private string _cardShape = string.Empty;
     private readonly GwToasts _toasts = new();
     private PanelContainer? _topBar;
@@ -1156,6 +1157,7 @@ public partial class GameScreen : CanvasLayer
                 AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled,
             };
             input.PlaceholderText = Tr("ui.card.talk_hint");
+            _talkInput = input;
             var send = new Button { Text = "ui.card.talk_send" };
             void Submit()
             {
@@ -1203,6 +1205,17 @@ public partial class GameScreen : CanvasLayer
             _card!.Content.AddChild(row);
             _cardBars[key] = bar;
         }
+    }
+
+    /// <summary>Screenshots only: the card scrolled to its talk field with a sentence in it.</summary>
+    public void ShowTalkForShots(string sentence)
+    {
+        if (_talkInput is not null)
+        {
+            _talkInput.Text = sentence;
+        }
+
+        _card?.ScrollToEnd();
     }
 
     /// <summary>
