@@ -4,14 +4,9 @@
 from __future__ import annotations
 
 from enum import StrEnum
-from typing import Annotated, Literal
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
-
-type DetailDistancesMItem = Annotated[
-    float,
-    Field(..., description='Distance of a level-of-detail step.', ge=1.0, le=10000.0),
-]
 
 
 class Shadows(StrEnum):
@@ -44,9 +39,6 @@ class QualityLevel(BaseModel):
     )
     grass_distance_m: float = Field(
         ..., description='Distance up to which grass is drawn.', ge=0.0, le=1000.0
-    )
-    detail_distances_m: list[DetailDistancesMItem] = Field(
-        ..., description='Ascending detail distances.', max_length=6, min_length=1
     )
     shadows: Shadows = Field(..., description='Shadow quality.')
     outline: Outline = Field(..., description='Outline method of the comic style.')

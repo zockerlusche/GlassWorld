@@ -215,7 +215,7 @@
       "schema": "look-terrain"
     },
     {
-      "pattern": "look/shots.json",
+      "pattern": "look/shots*.json",
       "schema": "look-shots"
     },
     {

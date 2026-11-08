@@ -6,11 +6,6 @@
       "id": "low",
       "grass_density": 0.3,
       "grass_distance_m": 30.0,
-      "detail_distances_m": [
-        25.0,
-        60.0,
-        140.0
-      ],
       "shadows": "off",
       "outline": "inverted_hull"
     },
@@ -18,11 +13,6 @@
       "id": "medium",
       "grass_density": 0.6,
       "grass_distance_m": 50.0,
-      "detail_distances_m": [
-        35.0,
-        90.0,
-        200.0
-      ],
       "shadows": "low",
       "outline": "inverted_hull"
     },
@@ -30,11 +20,6 @@
       "id": "high",
       "grass_density": 1.0,
       "grass_distance_m": 80.0,
-      "detail_distances_m": [
-        50.0,
-        120.0,
-        260.0
-      ],
       "shadows": "high",
       "outline": "post_process"
     }

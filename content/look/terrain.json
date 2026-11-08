@@ -52,5 +52,26 @@
     "stripe_strength": 0.12,
     "shimmer_speed": 0.7,
     "shimmer_strength": 0.04
+  },
+  "detail": {
+    "levels": [
+      {
+        "cell_step": 1,
+        "until_m": 240.0
+      },
+      {
+        "cell_step": 2,
+        "until_m": 400.0,
+        "max_error_mm": 200,
+        "max_color_delta_permille": 30
+      },
+      {
+        "cell_step": 4,
+        "max_error_mm": 400,
+        "max_color_delta_permille": 50
+      }
+    ],
+    "sea_floor_margin_mm": 500,
+    "switch_margin_m": 4.0
   }
 }

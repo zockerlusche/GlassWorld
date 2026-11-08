@@ -112,7 +112,67 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
-    /// Data file content/look/terrain.json: how the island grid is drawn (B2 R18-R20): palette colours per biome, for cliffs and the ground under water, and the water surfaces. Ids refer to content/look/palette.json. Presentation only, not part of the hash. Values are placeholders.
+    /// Detail levels of the terrain chunks (B2 R18): each chunk has one ground mesh per level, built once from the base grid (it never changes at run time). A coarser level merges blocks of plain dry land into a few triangles within its tolerances and draws coast, banks, water and cliffs as the base grid does; the water is always drawn from the base grid. Godot switches between the levels by the camera distance to the chunk (visibility ranges, switched at until_m without fade, with a small hysteresis: the levels share their borders and differ only within the tolerances) and culls chunks outside the view.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class TerrainDetail
+    {
+
+        /// <summary>
+        /// Levels from near to far: the first has cell_step 1 (the base grid); cell steps rise, each a divisor of the chunk size; every level but the last ends at until_m (rising), the last reaches to the horizon; coarser levels need max_error_mm and max_color_delta_permille.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("levels")]
+        public System.Collections.Generic.ICollection<TerrainDetailLevel> Levels { get; set; } = new System.Collections.ObjectModel.Collection<TerrainDetailLevel>();
+
+        /// <summary>
+        /// Coarser levels merge open sea bed only where every merged corner lies at least this far (millimetres) below the sea surface, so the floor never shows through or flickers with the water.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("sea_floor_margin_mm")]
+        public int SeaFloorMarginMm { get; set; } = default!;
+
+        /// <summary>
+        /// Hysteresis of the switch between two levels (metres): a shown level stays up to twice this beyond until_m, so chunks do not pop back and forth while the camera eases; a hidden one appears exactly at until_m. Levels must lie more than four margins apart.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("switch_margin_m")]
+        public double SwitchMarginM { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class TerrainDetailLevel
+    {
+
+        /// <summary>
+        /// Edge length in grid cells of the blocks this level may merge (1 = every cell of the base grid).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("cell_step")]
+        public int CellStep { get; set; } = default!;
+
+        /// <summary>
+        /// Camera distance to the chunk (metres) up to which this level is drawn; missing on the last level.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("until_m")]
+        public double? UntilM { get; set; } = default!;
+
+        /// <summary>
+        /// Largest height difference (millimetres) of a merged block from the base grid; blocks that would differ more stay at full detail.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("max_error_mm")]
+        public int? MaxErrorMm { get; set; } = default!;
+
+        /// <summary>
+        /// Largest colour difference per channel (permille) of a merged block from the base grid; blocks that would differ more stay at full detail.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("max_color_delta_permille")]
+        public int? MaxColorDeltaPermille { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Data file content/look/terrain.json: how the island grid is drawn (B2 R18-R20): palette colours per biome, for cliffs and the ground under water, the water surfaces and the detail levels of the chunks. Ids refer to content/look/palette.json. Presentation only, not part of the hash. Values are placeholders.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class LookTerrain
@@ -162,6 +222,9 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("water_shader")]
         public TerrainWaterShader WaterShader { get; set; } = new TerrainWaterShader();
+
+        [System.Text.Json.Serialization.JsonPropertyName("detail")]
+        public TerrainDetail Detail { get; set; } = new TerrainDetail();
 
     }
 }
