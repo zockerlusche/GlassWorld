@@ -1,5 +1,6 @@
 using GlassWorld.Contracts;
 using GlassWorld.Simulation.Objects;
+using GlassWorld.Simulation.Random;
 using GlassWorld.Simulation.State;
 
 namespace GlassWorld.Simulation.Weather;
@@ -7,7 +8,7 @@ namespace GlassWorld.Simulation.Weather;
 /// <summary>The weather now, for the presentation and the decider (all values from the climate data).</summary>
 /// <param name="Weather">Main weather id.</param>
 /// <param name="Conditions">All current conditions (main weather, plus drought after dry days), sorted by id.</param>
-/// <param name="WindPermille">Wind 0..1000 (plants sway with it, B2 R21).</param>
+/// <param name="WindPermille">Base wind 0..1000 of the weather (data); the wind with gusts is <see cref="WeatherReading.Wind"/>.</param>
 /// <param name="PrecipitationPermille">Precipitation 0..1000.</param>
 /// <param name="CloudPermille">Cloud cover 0..1000.</param>
 /// <param name="TemperatureTenthC">Air temperature in tenths of a degree (climate table, see <see cref="WeatherSystem.TemperatureAt"/>).</param>
@@ -23,7 +24,11 @@ public sealed record WeatherReading(
     int TemperatureTenthC,
     long SinceTick,
     long NextChangeTick,
-    int TransitionMinutes);
+    int TransitionMinutes)
+{
+    /// <summary>Wind 0..1 now with the blend after a change and the slow gusts (<see cref="IWeather.WindAt"/>; sound, plants sway, GW3).</summary>
+    public double Wind { get; init; }
+}
 
 /// <summary>Saved state of the weather (save games, meta JSON).</summary>
 /// <param name="Weather">Main weather id.</param>
@@ -52,6 +57,9 @@ public sealed class WeatherSystem : IWorldSystem, IWeather
     private readonly Dictionary<string, int> _timeOffsets;
     private readonly long _changeTicks;
     private readonly long _droughtTicks;
+    private readonly long _gustTicks;
+    private readonly long _transitionTicks;
+    private readonly ulong _windSeed;
     private readonly List<KeyValuePair<long, string>> _history = [];
     private long _dryTicks;
 
@@ -61,9 +69,10 @@ public sealed class WeatherSystem : IWorldSystem, IWeather
     /// <summary>
     /// Creates the weather of a climate; it starts with the first state of the data at tick 0.
     /// <paramref name="heightOffsetTenthC"/> is the preset's height drop for the place the island-wide
-    /// weather stands for (the mean height of the start cells, see SimulationHost).
+    /// weather stands for (the mean height of the start cells, see SimulationHost); the gusts of the wind
+    /// follow from <paramref name="seed"/> (the world seed).
     /// </summary>
-    public WeatherSystem(ClimateSettings climate, int heightOffsetTenthC, int ticksPerHour, int hoursPerDay)
+    public WeatherSystem(ClimateSettings climate, int heightOffsetTenthC, int ticksPerHour, int hoursPerDay, ulong seed)
     {
         ArgumentNullException.ThrowIfNull(climate);
         ArgumentOutOfRangeException.ThrowIfLessThan(ticksPerHour, 1);
@@ -76,6 +85,9 @@ public sealed class WeatherSystem : IWorldSystem, IWeather
         _timeOffsets = temperature.TimesOfDay.ToDictionary(t => t.TimeOfDay, t => t.OffsetTenthC, StringComparer.Ordinal);
         _changeTicks = Math.Max(1L, (long)_data.ChangeEveryHours * ticksPerHour);
         _droughtTicks = (long)_data.DroughtAfterDryDays * hoursPerDay * ticksPerHour;
+        _gustTicks = Math.Max(1L, (long)_data.GustPeriodMinutes * ticksPerHour / 60);
+        _transitionTicks = (long)_data.TransitionMinutes * ticksPerHour / 60;
+        _windSeed = seed ^ RandomStreams.Fnv1a64("weather/wind");
         Current = _data.States.First().Weather;
         _history.Add(new KeyValuePair<long, string>(0, Current));
     }
@@ -105,23 +117,17 @@ public sealed class WeatherSystem : IWorldSystem, IWeather
     /// current tick throws <see cref="ArgumentOutOfRangeException"/>, so a caller never gets a guess.
     /// </summary>
     /// <exception cref="ArgumentOutOfRangeException">The tick lies in the future or before the kept history.</exception>
-    public string WeatherAt(Position at, long tick)
-    {
-        if (tick < _history[0].Key || tick > _knownUntil)
-        {
-            throw new ArgumentOutOfRangeException(nameof(tick), tick, $"weather is known for ticks {_history[0].Key}..{_knownUntil}");
-        }
+    public string WeatherAt(Position at, long tick) => _history[KnownPhase(tick)].Value;
 
-        for (var i = _history.Count - 1; i >= 0; i--)
-        {
-            if (_history[i].Key <= tick)
-            {
-                return _history[i].Value;
-            }
-        }
-
-        return _history[0].Value;
-    }
+    /// <summary>
+    /// Wind 0..1 at a tick: the base wind of the weather (wind_permille), blended linearly from the previous
+    /// weather over transition_minutes after a change, plus gusts of up to gust_permille up or down. The
+    /// gusts swing smoothly between key values every gust_period_minutes, each drawn from the world seed
+    /// and its index (SplitMix64, no stream, nothing saved), so the same seed gives the same wind. The same
+    /// ticks as <see cref="WeatherAt"/> are allowed.
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">The tick lies in the future or before the kept history.</exception>
+    public double WindAt(long tick) => Wind(KnownPhase(tick), tick);
 
     /// <summary>The weather now with its numbers from the data.</summary>
     public WeatherReading Read(World world)
@@ -129,7 +135,10 @@ public sealed class WeatherSystem : IWorldSystem, IWeather
         ArgumentNullException.ThrowIfNull(world);
         var state = _states[Current];
         var next = ((world.Tick / _changeTicks) + 1) * _changeTicks;
-        return new WeatherReading(Current, Conditions, state.WindPermille, state.PrecipitationPermille, state.CloudPermille, TemperatureAt(world.Now, Current), SinceTick, next, _data.TransitionMinutes);
+        return new WeatherReading(Current, Conditions, state.WindPermille, state.PrecipitationPermille, state.CloudPermille, TemperatureAt(world.Now, Current), SinceTick, next, _data.TransitionMinutes)
+        {
+            Wind = Wind(_history.Count - 1, world.Tick),
+        };
     }
 
     /// <summary>
@@ -208,6 +217,60 @@ public sealed class WeatherSystem : IWorldSystem, IWeather
         _history.Clear();
         _history.AddRange(state.History);
         _knownUntil = tick;
+    }
+
+    /// <summary>Index of the kept phase a tick lies in; throws for ticks before the history or in the future.</summary>
+    private int KnownPhase(long tick)
+    {
+        if (tick < _history[0].Key || tick > _knownUntil)
+        {
+            throw new ArgumentOutOfRangeException(nameof(tick), tick, $"weather is known for ticks {_history[0].Key}..{_knownUntil}");
+        }
+
+        for (var i = _history.Count - 1; i > 0; i--)
+        {
+            if (_history[i].Key <= tick)
+            {
+                return i;
+            }
+        }
+
+        return 0;
+    }
+
+    private double Wind(int phase, long tick)
+    {
+        var state = _states[_history[phase].Value];
+        double wind = state.WindPermille;
+        double gust = state.GustPermille;
+        var since = tick - _history[phase].Key;
+        if (phase > 0 && since >= 0 && since < _transitionTicks)
+        {
+            // Blend from the previous weather (presentation blends over the same transition_minutes).
+            var before = _states[_history[phase - 1].Value];
+            var f = (double)since / _transitionTicks;
+            wind = before.WindPermille + ((wind - before.WindPermille) * f);
+            gust = before.GustPermille + ((gust - before.GustPermille) * f);
+        }
+
+        return Math.Clamp((wind + (gust * Gust(tick))) / 1000.0, 0.0, 1.0);
+    }
+
+    /// <summary>Slow gust −1..1: smoothstep between key values every gust period, drawn from seed and key index.</summary>
+    private double Gust(long tick)
+    {
+        var key = Math.DivRem(Math.Max(0, tick), _gustTicks, out var into);
+        var f = (double)into / _gustTicks;
+        var s = f * f * (3.0 - (2.0 * f));
+        var a = GustKey(key);
+        return a + ((GustKey(key + 1) - a) * s);
+    }
+
+    private double GustKey(long key)
+    {
+        var mix = _windSeed ^ unchecked((ulong)key * 0xD1B54A32D192ED03UL);
+        var bits = RandomStreams.SplitMix64(ref mix) >> 11;
+        return (bits * (1.0 / (1UL << 53)) * 2.0) - 1.0;
     }
 
     private void Change(string weather, long tick)

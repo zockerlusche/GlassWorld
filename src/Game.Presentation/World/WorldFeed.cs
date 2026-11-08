@@ -91,7 +91,7 @@ public sealed class WorldFeed
         {
             if (_snapshot is null || _snapshotTick != _host.World.Tick)
             {
-                _snapshot = WorldView.Snapshot(_host.World, _host.Inhabitants, _host.Objects, _host.Decisions);
+                _snapshot = _host.Snapshot();
                 _snapshotTick = _host.World.Tick;
             }
 

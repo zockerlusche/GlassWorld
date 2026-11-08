@@ -49,19 +49,22 @@ public sealed class InhabitantsSystem : IWorldSystem
     private readonly InhabitantModel _model;
     private readonly ActionRules _actions;
     private readonly UtilityBrain _brain;
+    private readonly GaitTable _gaits;
     private readonly WorldObjects _objects;
     private readonly int _ticksPerHour;
     private long _eventsTick = -1;
     private readonly LinkedList<SequencedEvent> _history = new();
 
     /// <summary>Creates the system.</summary>
-    public InhabitantsSystem(InhabitantModel model, ActionRules actions, UtilityBrain brain, WorldObjects objects, int ticksPerHour)
+    public InhabitantsSystem(InhabitantModel model, ActionRules actions, UtilityBrain brain, GaitTable gaits, WorldObjects objects, int ticksPerHour)
     {
         ArgumentNullException.ThrowIfNull(model);
+        ArgumentNullException.ThrowIfNull(gaits);
         ArgumentOutOfRangeException.ThrowIfLessThan(ticksPerHour, 1);
         _model = model;
         _actions = actions;
         _brain = brain;
+        _gaits = gaits;
         _objects = objects;
         _ticksPerHour = ticksPerHour;
     }
@@ -193,6 +196,16 @@ public sealed class InhabitantsSystem : IWorldSystem
 
     /// <summary>Looks up an inhabitant.</summary>
     public Inhabitant Get(string id) => _inhabitants[id];
+
+    /// <summary>
+    /// The gait the inhabitant walks in (gait id of content/behaviour/gaits.json), or null when it is not on
+    /// its way (no activity, or the action has started). Derived from the state, so it is not saved or hashed.
+    /// </summary>
+    public string? GaitOf(Inhabitant inhabitant)
+    {
+        ArgumentNullException.ThrowIfNull(inhabitant);
+        return inhabitant.Activity is { RemainingTicks: null } activity ? _gaits.GaitFor(inhabitant, activity.Action) : null;
+    }
 
     /// <inheritdoc/>
     public void Advance(World world)
@@ -397,7 +410,7 @@ public sealed class InhabitantsSystem : IWorldSystem
             return true;
         }
 
-        var step = _brain.Weights.MoveSpeedMPerMinute * 60.0 / _ticksPerHour;
+        var step = StepOf(inhabitant);
         var travel = Math.Min(step, distance - reach);
         inhabitant.Position = new Position(inhabitant.Position.X + (dx * travel / distance), inhabitant.Position.Z + (dz * travel / distance));
         return distance - travel <= reach;
@@ -432,7 +445,7 @@ public sealed class InhabitantsSystem : IWorldSystem
             route = found.Waypoints;
         }
 
-        var budget = _brain.Weights.MoveSpeedMPerMinute * 60.0 / _ticksPerHour * routes.SpeedFactor(inhabitant.Position);
+        var budget = StepOf(inhabitant) * routes.SpeedFactor(inhabitant.Position);
         var next = 0;
         var arrived = false;
         while (budget > 1e-9 && next < route.Count)
@@ -464,6 +477,9 @@ public sealed class InhabitantsSystem : IWorldSystem
         inhabitant.Activity = activity with { Route = [.. route.Skip(next)] };
         return arrived || Distance(inhabitant.Position, destination) <= reach;
     }
+
+    /// <summary>Metres the inhabitant walks this tick on flat ground, by its gait (data, F5264).</summary>
+    private double StepOf(Inhabitant inhabitant) => _gaits.MetresPerTick(GaitOf(inhabitant) ?? _gaits.Data.DefaultGait);
 
     private static double Distance(Position a, Position b) => Math.Sqrt(((b.X - a.X) * (b.X - a.X)) + ((b.Z - a.Z) * (b.Z - a.Z)));
 

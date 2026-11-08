@@ -91,6 +91,9 @@ public sealed class ContentSet
     /// <summary>Routine layer (content/behaviour/utility.json).</summary>
     public UtilityBrain Brain { get; }
 
+    /// <summary>Walking speed and gaits (content/behaviour/gaits.json, F5264).</summary>
+    public GaitTable Gaits { get; private init; } = null!;
+
     /// <summary>World generator and weather data (content/world, content/climate; B2).</summary>
     public WorldGenContent WorldGen { get; }
 
@@ -176,6 +179,11 @@ public sealed class ContentSet
             ContractSerializer.Deserialize<MessageKinds>(File.ReadAllText(Path.Combine(player, "message_kinds.json"))))
         {
             Appearance = LoadAppearance(contentDirectory),
+            Gaits = GaitTable.Create(
+                ContractSerializer.Deserialize<GaitSettings>(File.ReadAllText(Path.Combine(contentDirectory, "behaviour", "gaits.json"))),
+                Ids(vocabularies, VocabularyKind.Action),
+                brain.Weights,
+                model),
             Knowledge = LoadKnowledge(contentDirectory, vocabularies, objects),
             EventKinds = Required(vocabularies, VocabularyKind.Event).Entries.Select(e => e.Id).ToFrozenSet(StringComparer.Ordinal),
         };

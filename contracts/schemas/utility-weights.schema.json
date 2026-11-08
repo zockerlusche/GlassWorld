@@ -5,10 +5,9 @@
   "description": "Data file content/behaviour/utility.json: how the routine layer (utility AI, fallback when no AI answer is there) scores the options the core offers. A score is weight x curve(need value) x belief factor; curves are point tables with linear interpolation (no transcendental math in the core). Placeholders until Marcel decides.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["contract_version", "move_speed_m_per_minute", "perception_radius_m", "distance_falloff", "learning_step", "unknown_target_belief", "considerations"],
+  "required": ["contract_version", "perception_radius_m", "distance_falloff", "learning_step", "unknown_target_belief", "considerations"],
   "properties": {
     "contract_version": { "$ref": "common.schema.json#/$defs/ContractVersion" },
-    "move_speed_m_per_minute": { "type": "number", "minimum": 0.1, "maximum": 1000 },
     "perception_radius_m": { "type": "number", "minimum": 1, "maximum": 10000 },
     "distance_falloff": { "description": "Score factor lost at the edge of the perception radius (linear with distance; 0 = distance does not matter).", "type": "number", "minimum": 0, "maximum": 1 },
     "learning_step": { "description": "Confidence added per experience (frame for learning; B4a extends it).", "type": "number", "minimum": 0, "maximum": 1 },
