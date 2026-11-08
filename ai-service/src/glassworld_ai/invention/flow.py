@@ -114,7 +114,6 @@ def invention_schema(
                 "type": "array",
                 "minItems": 1,
                 "maxItems": 6,
-                "uniqueItems": True,
                 "items": material,
             },
             "size_m": {
@@ -137,7 +136,6 @@ def invention_schema(
                             "type": "array",
                             "minItems": 1,
                             "maxItems": 6,
-                            "uniqueItems": True,
                             "items": material,
                         },
                     },
@@ -146,7 +144,6 @@ def invention_schema(
             "introduces": {
                 "type": "array",
                 "maxItems": 6,
-                "uniqueItems": True,
                 "items": _strings(vocab.ids("property")),
             },
             "tech_level": _strings(levels),
@@ -182,7 +179,6 @@ def guard_schema(invention: dict[str, Any], reasons: list[str]) -> dict[str, Any
             "reasons": {
                 "type": "array",
                 "maxItems": 6,
-                "uniqueItems": True,
                 "items": _strings(reasons),
             },
             "invention": {"anyOf": [invention, {"type": "null"}]},
@@ -228,8 +224,20 @@ def _validated(raw: str, schema: dict[str, Any]) -> dict[str, Any]:
     return cast(dict[str, Any], data)
 
 
+def _dedupe(values: list[str]) -> list[str]:
+    return list(dict.fromkeys(values))
+
+
 def _check_invention(invention: dict[str, Any]) -> None:
-    """Rules a schema cannot say: step materials must be among the invention's materials."""
+    """Rules a schema cannot say: step materials must be among the invention's materials.
+
+    Repeated entries are removed first: Ollama's structured output does not enforce uniqueItems
+    (live run L701), and a repeated id adds nothing (normalisation, nothing invented).
+    """
+    invention["materials"] = _dedupe(invention["materials"])
+    invention["introduces"] = _dedupe(invention["introduces"])
+    for step in invention["steps"]:
+        step["materials"] = _dedupe(step["materials"])
     used = set(invention["materials"])
     for step in invention["steps"]:
         extra = sorted(set(step["materials"]) - used)
@@ -245,6 +253,7 @@ def parse_inventor(raw: str, schema: dict[str, Any]) -> dict[str, Any]:
 
 def parse_guard(raw: str, schema: dict[str, Any]) -> dict[str, Any]:
     data = _validated(raw, schema)
+    data["reasons"] = _dedupe(data["reasons"])  # the contract wants unique codes
     if data["decision"] == "downsize":
         if data["invention"] is None:
             raise InvalidOutputError("downsize needs the changed invention")

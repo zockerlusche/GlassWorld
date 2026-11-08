@@ -33,6 +33,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- Invention prompts after the live test set (D527): inventor and guard sharpened; the guard corrects small mistakes itself (downsize) instead of rejecting (TL #19204); repeated ids normalised.
 - Inhabitants walk about 1.5 m per tick instead of 40 m (`move_speed_m_per_minute` left `utility.json`; the gait table replaces it). Walks across the island now take many ticks, so the same seed gives a different run than before: state hashes of runs change (golden test hashes do not, they cover no walking). Older save games load and walk on at the new speed.
 
 ### Fixed

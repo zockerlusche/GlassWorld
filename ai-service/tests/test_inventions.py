@@ -298,3 +298,18 @@ def test_reason_codes_come_from_the_data(settings: Settings) -> None:
     )
     result = _result(asyncio.run(handler(JOB)))  # the unknown code is invalid, the retry is used
     assert result["rounds"][0]["reasons"] == ["harmful"]
+
+
+def test_repeated_ids_are_normalised_not_rejected(settings: Settings) -> None:
+    repeated = {
+        **BOWL,
+        "materials": ["clay_lump", "clay_lump"],
+        "steps": [
+            {"process": "shape", "materials": ["clay_lump", "clay_lump"]},
+            {"process": "dry", "materials": ["clay_lump"]},
+        ],
+    }
+    handler, _, _ = _handler(settings, [proposal(repeated), verdict("approve")])
+    result = _result(asyncio.run(handler(JOB)))
+    assert result["invention"]["materials"] == ["clay_lump"]
+    assert result["invention"]["steps"][0]["materials"] == ["clay_lump"]
