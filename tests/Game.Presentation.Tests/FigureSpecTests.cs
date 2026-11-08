@@ -52,6 +52,7 @@ public sealed class FigureSpecTests
         foreach (var model in figures.Bodies.Select(b => b.Model).Distinct())
         {
             var glb = File.ReadAllBytes(Path.Combine(folder, model + ".glb"));
+            Assert.SkipWhen(GlassWorld.Presentation.Audio.BaseSoundCheck.IsLfsPointer(glb), "LFS files not checked out; the game smoke run loads the figures (ISLAND_OK figures=N).");
             using var json = System.Text.Json.JsonDocument.Parse(glb.AsMemory(20, BitConverter.ToInt32(glb, 12)));
             var meshes = json.RootElement.GetProperty("nodes").EnumerateArray()
                 .Select(n => n.TryGetProperty("name", out var name) ? name.GetString() : null).ToHashSet();

@@ -86,6 +86,10 @@ public sealed class LookContentTests
 
         var models = Read<LookFigures>("look", "figures.json").Bodies.Select(b => b.Model).Distinct(StringComparer.Ordinal).ToList();
         Assert.NotEmpty(models);
+        var first = File.ReadAllBytes(Path.Combine(TestData.Root, "game", "assets", "characters", "glassworld", models[0] + ".glb"));
+        Assert.SkipWhen(
+            first.Length > 7 && System.Text.Encoding.ASCII.GetString(first, 0, 7) == "version",
+            "LFS files not checked out; the game smoke run plays the clips (ISLAND_OK figures=N).");
         foreach (var model in models)
         {
             var available = GlbClips(Path.Combine(TestData.Root, "game", "assets", "characters", "glassworld", model + ".glb"));
