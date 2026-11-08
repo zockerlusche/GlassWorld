@@ -125,7 +125,7 @@ class LibraryFile(BaseModel):
     )
     origin: str | None = Field(
         None,
-        description="Origin of this file when it differs from the sound's origin (A and B chosen as variants).",
+        description="Origin of this file when it differs from the sound's origin (A and B chosen as variants). Must be the id of an entry in this file's `origins` list (checked by BaseSoundCheck).",
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )

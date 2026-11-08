@@ -160,7 +160,7 @@ namespace GlassWorld.Contracts
         public int? Seed { get; set; } = default!;
 
         /// <summary>
-        /// Origin of this file when it differs from the sound's origin (A and B chosen as variants).
+        /// Origin of this file when it differs from the sound's origin (A and B chosen as variants). Must be the id of an entry in this file's `origins` list (checked by BaseSoundCheck).
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("origin")]
