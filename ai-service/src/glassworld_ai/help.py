@@ -121,10 +121,10 @@ def parse(
             item["gift"] = None
         elif item["gift"] is None:
             raise InvalidOutputError("a gift suggestion needs a gift")
+        elif item["gift"]["type_id"] not in limits:
+            raise InvalidOutputError("gift not in the allowed list")
         elif item["gift"]["amount"] > limits[item["gift"]["type_id"]]:
             raise InvalidOutputError("gift amount above what the world allows")
-        if item["kind"] == "gift" and item["gift"]["type_id"] not in limits:
-            raise InvalidOutputError("gift not in the allowed list")
         verdict = guard.check(item["text"])
         if not verdict.allowed:
             raise InvalidOutputError(f"text blocked by the content guard ({verdict.category})")
