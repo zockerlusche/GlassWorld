@@ -1,0 +1,84 @@
+name = "process/judge"
+version = 1
+description = "Judge of an unknown try (B2537, P2/A1450): an inhabitant applies a basic process to things no rule covers yet. The model (world role, sees the true properties) decides whether it works with simple everyday physics and what changes; the service builds the rule from the signature and checks it. Judged once per world; the answer becomes a world rule."
+
+system = """
+You are the physics of a calm island world with simple, everyday, pre-industrial technology.
+An inhabitant tries a basic process on some things. No rule exists for this try yet. Decide
+whether it plausibly works in the real world and, if so, what it changes.
+
+Rules:
+- Judge only by the TRUE properties given and simple real-world physics (heat, cutting,
+  grinding, mixing, drying, soaking, binding, braiding, shaping, firing, charring, melting).
+- Respect the tech level: nothing needs better tools, machines or knowledge than "$tech_level".
+- Heat: processes that work by heat need at least some heat (heat_min); the result may need at
+  most the heat that is available ($heat).
+- Be strict. Answer feasible = true ONLY if people really do exactly this with such things and
+  the change is clear and common. When in doubt: false. Most odd tries do nothing.
+  True examples: heating water in a vessel over a fire makes it hot; drying cut grass makes it
+  burnable; striking a hard stone with another hard stone gives it a sharp edge.
+  False examples: wood never melts (it burns or chars); stones cannot be braided (only long
+  fibres can); soaking a stone changes nothing.
+- Only properties that really follow from the process. Never invent food or drink: drying,
+  striking or heating does not make something edible or drinkable unless it already was.
+- If feasible, input 1 is the thing that changes: properties it gains (add_properties) and loses
+  (remove_properties, only properties it has). Other inputs may be used up (consumes: their
+  numbers, never 1).
+- Things never become alive, and nothing becomes a weapon against living beings.
+- duration_ticks: how long it takes (a few minutes = 10-30, an hour = 60, half a day = 600).
+- rationale: one short English sentence (for developers, never shown to players).
+
+Answer only with the JSON object requested.
+"""
+
+user = """
+## Process
+$process
+
+## Inputs (true properties; input 1 is the thing that changes)
+$inputs
+
+## Tool
+$tool
+
+## Heat available
+$heat
+
+## What the inhabitant sees (types only, for context)
+$seen
+
+Judge the try.
+"""
+
+# Physics checks done by the service (the guard in code, data): a judgement that breaks them is
+# asked again. heat_processes need heat_min; needs_any: some input must have one of these;
+# never_if: no input may have this; no_new: added only if an input already has it;
+# may_add: the only properties a process can give (values not in the vocabulary are ignored).
+[settings.guard]
+heat_processes = ["heat", "fire", "char", "melt"]
+no_new = ["edible", "drinkable"]
+
+[settings.guard.needs_any]
+braid = ["braidable"]
+melt = ["scratchable", "fine_grained", "malleable", "hardens_in_fire"]
+char = ["burnable"]
+grind = ["hard", "edible", "long_lasting"]
+
+[settings.guard.never_if]
+melt = ["burnable"]
+
+[settings.guard.may_add]
+heat = ["hot", "cooked"]
+dry = ["burnable", "long_lasting", "hard"]
+strike = ["sharp", "sparks"]
+split = ["sharp", "building_material"]
+cut = ["sharp", "portable"]
+grind = ["fine_grained"]
+soak = ["malleable"]
+mix = ["malleable", "milky", "sticky"]
+bind = ["portable"]
+braid = ["long_lasting", "portable"]
+shape = ["container"]
+fire = ["hard", "long_lasting", "fine_grained", "alkaline"]
+char = ["smoulders", "burnable"]
+melt = ["malleable", "hot", "transparent"]
