@@ -25,6 +25,12 @@ from glassworld_ai.builder.plan import (
 )
 from glassworld_ai.calllog import CallLog
 from glassworld_ai.config import Settings
+from glassworld_ai.conversation import (
+    Conversationalist,
+    MockConversation,
+    OllamaConversation,
+    ReplayConversation,
+)
 from glassworld_ai.decider.backends import (
     Decider,
     DecisionError,
@@ -84,6 +90,7 @@ from glassworld_ai.validation import ContractValidator
 from glassworld_ai.vocabulary import Vocabulary
 from glassworld_contracts import (
     CONTRACT_VERSION,
+    ConversationRequest,
     DecisionRequest,
     GenerationJob,
     HealthStatus,
@@ -105,6 +112,7 @@ def create_app(
     hardware: HardwareInfo | None = None,
     decider: Decider | None = None,
     helper: HelpSuggester | None = None,
+    conversation: Conversationalist | None = None,
     queue: ModelQueue | None = None,
     on_started: Callable[[], None] | None = None,
     request_exit: Callable[[], None] | None = None,
@@ -156,6 +164,8 @@ def create_app(
                 app.state.decider = _build_decider(settings, ollama, app.state.queue)
             if helper is None:
                 app.state.helper = _build_helper(settings, ollama, app.state.queue)
+            if conversation is None:
+                app.state.conversation = _build_conversation(settings, ollama, app.state.queue)
             if job_handlers is None and settings.image_backend == "comfyui":
                 app.state.jobs.register("image", _comfy_images(settings, client, app))
             if job_handlers is None and settings.decider_backend == "ollama":
@@ -303,6 +313,8 @@ def create_app(
         app.state.decider = decider
     if helper is not None:
         app.state.helper = helper
+    if conversation is not None:
+        app.state.conversation = conversation
     app.state.warm_up = "done"
     app.state.ollama = None
     app.state.stopping = False
@@ -596,6 +608,56 @@ def create_app(
         except Exception as error:
             return error_response(
                 "internal", type(error).__name__, request_id=request_id, tick=decision_request.tick
+            )
+        return JSONResponse(answer.model_dump(mode="json"))
+
+    @app.post("/conversation")
+    async def conversation_route(request: Request) -> Response:
+        """B6 R13 (A1342): an inhabitant answers the player; the player waits (PLAYER)."""
+        received = time.monotonic()
+        body = await _read_body(request)
+        if body is None:
+            return error_response("bad_request", f"Request body above {MAX_BODY_BYTES} bytes.")
+        try:
+            data: object = json.loads(body)
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            return error_response("bad_request", "Request body is not valid JSON.")
+        problems = validator.errors("conversation-request", data)
+        if problems:
+            rid, rtick = _ids_if_valid(data)
+            return error_response(
+                "bad_request",
+                "Invalid ConversationRequest: " + "; ".join(problems[:3]),
+                request_id=rid,
+                tick=rtick,
+            )
+        talk = ConversationRequest.model_validate(data)
+        request_id = str(getattr(talk.request_id, "root", talk.request_id))
+        deadline = received + talk.deadline_ms / 1000
+        tick = talk.tick
+        if app.state.stopping:
+            return error_response(
+                "model_unavailable", "Service is stopping.", request_id=request_id, tick=tick
+            )
+        if settings.decider_backend == "ollama" and (
+            getattr(app.state, "tier", "unknown") is None or planner.language_model_blocked()
+        ):
+            return error_response(
+                "model_unavailable",
+                "The language model is not available now.",
+                request_id=request_id,
+                tick=tick,
+            )
+        current: Conversationalist = app.state.conversation
+        try:
+            answer = await current.answer(talk, deadline)
+        except JobFailedError as error:
+            return error_response(
+                error.code, str(error), request_id=request_id, tick=tick, retryable=error.retryable
+            )
+        except Exception as error:
+            return error_response(
+                "internal", type(error).__name__, request_id=request_id, tick=tick
             )
         return JSONResponse(answer.model_dump(mode="json"))
 
@@ -1059,6 +1121,30 @@ def _ollama_questions(settings: Settings, ollama: OllamaClient, app: FastAPI) ->
         vocab=Vocabulary.load(settings.content_dir / "vocabulary"),
         settings=_call_settings(settings),
         log=_question_log(settings),
+    )
+
+
+def _build_conversation(
+    settings: Settings, ollama: OllamaClient, queue: ModelQueue
+) -> Conversationalist:
+    guard = TextGuard.from_file(settings.content_dir / "safety" / "rules.json")
+    vocab = Vocabulary.load(settings.content_dir / "vocabulary")
+    expressions = {e: vocab.describe("expression", e) or e for e in vocab.ids("expression")}
+    log = CallLog(settings.log_dir / "conversation.jsonl")
+    if settings.decider_backend == "mock":
+        return MockConversation()
+    if settings.decider_backend == "replay":
+        return ReplayConversation(log, guard, expressions)
+    return OllamaConversation(
+        client=ollama,
+        queue=queue,
+        template=load_prompt(
+            settings.prompts_dir, settings.conversation_prompt, settings.conversation_prompt_version
+        ),
+        settings=_call_settings(settings),
+        log=log,
+        guard=guard,
+        expressions=expressions,
     )
 
 
