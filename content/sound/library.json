@@ -169,6 +169,28 @@
       ]
     },
     {
+      "id": "action.pick_up",
+      "kind": "one_shot",
+      "origin": "kenney_impact",
+      "sound_words": [
+        "thud",
+        "rustle"
+      ],
+      "context_words": [
+        "pick",
+        "take"
+      ],
+      "files": [
+        {
+          "file": "action.pick_up.wav",
+          "source": "Audio/impactSoft_medium_000.ogg",
+          "sha256": "9cd88506f38842378ac28e84d42f583c4580a3d9448a045d019826b128a622c5",
+          "prompt": null,
+          "seed": null
+        }
+      ]
+    },
+    {
       "id": "action.rustle",
       "kind": "one_shot",
       "origin": "moss",
@@ -359,6 +381,48 @@
       ]
     },
     {
+      "id": "animal.butterfly.wings",
+      "kind": "one_shot",
+      "origin": "moss",
+      "sound_words": [
+        "flutter"
+      ],
+      "context_words": [
+        "butterfly"
+      ],
+      "files": [
+        {
+          "file": "animal.butterfly.wings.wav",
+          "source": "r4/animal.butterfly.wings.wav",
+          "sha256": "515f7ad7f4240fc0aae9eac41eb75c27124486f595fe9bd4c3b363c08929f52f",
+          "prompt": "Delicate quick fluttering of tiny thin wings passing by, light and airy, high pitched, no bass, no other sounds.",
+          "seed": 721
+        }
+      ]
+    },
+    {
+      "id": "animal.crab.click",
+      "kind": "one_shot",
+      "origin": "moss",
+      "sound_words": [
+        "click",
+        "tick"
+      ],
+      "context_words": [
+        "crab",
+        "beach"
+      ],
+      "files": [
+        {
+          "file": "animal.crab.click.wav",
+          "source": "r4/animal.crab.click.wav",
+          "sha256": "407b51819b1f3185c172bb64645bb79f3a55baf86e41725950882e358cb2a2b3",
+          "prompt": "A little crab scuttling over a flat stone, quick tiny dry ticking steps, close, no other sounds.",
+          "seed": 731
+        }
+      ]
+    },
+    {
       "id": "animal.firefly.shimmer",
       "kind": "one_shot",
       "origin": "moss",
@@ -523,6 +587,27 @@
           "sha256": "0c51ed1867381add8022803e394dc33b3d8131cb6eb5e235c167535ab2a72449",
           "prompt": "A small songbird singing a short cheerful melody in a quiet garden, natural recording.",
           "seed": 108
+        },
+        {
+          "file": "animal.songbird.song_2.wav",
+          "source": "birdsong/songbird_1.wav",
+          "sha256": "3775fcbbde075e0c9704448597095e02bf770f14c5d6e67edbf3563fd398cc03",
+          "prompt": "A small songbird singing a short cheerful melody in a quiet garden, natural recording.",
+          "seed": 151
+        },
+        {
+          "file": "animal.songbird.song_3.wav",
+          "source": "birdsong/songbird_2.wav",
+          "sha256": "eedf627a68a9885b2b5ffcee1291ea2de9551a542b77579639e9f15c1c136c6b",
+          "prompt": "A small songbird singing a short cheerful melody in a quiet garden, natural recording.",
+          "seed": 152
+        },
+        {
+          "file": "animal.songbird.song_4.wav",
+          "source": "birdsong/songbird_3.wav",
+          "sha256": "238f4f4293a5b0d4f545ba2218f36c113dbbf601d32150ce4c1a13a12af70328",
+          "prompt": "A small songbird singing a short cheerful melody in a quiet garden, natural recording.",
+          "seed": 153
         }
       ]
     },
@@ -1067,6 +1152,330 @@
           "sha256": "23a24b443288080b106bad014434c550394094bd9000b5e21b31b86ce3dbbf8e",
           "prompt": null,
           "seed": null
+        }
+      ]
+    },
+    {
+      "id": "voice.child_high.calm",
+      "kind": "one_shot",
+      "origin": "moss",
+      "sound_words": [
+        "mumble"
+      ],
+      "context_words": [
+        "voice"
+      ],
+      "files": [
+        {
+          "file": "voice.child_high.calm_0.wav",
+          "source": "voice/voice.child_high.calm_A.wav",
+          "sha256": "f411f75e16161ced114bc511d2464799207570e77de20af1ecc389e940601755",
+          "prompt": "A young child with a high bright voice calmly mumbling a short sentence without any real words, gentle babble, calm, close, no other sounds.",
+          "seed": 324
+        },
+        {
+          "file": "voice.child_high.calm_1.wav",
+          "source": "voice/voice.child_high.calm_B.wav",
+          "sha256": "35a83c1a2dab1e939ed8f44805592830e959600211ee9d281775e3d8ccad9684",
+          "prompt": "A young child with a high bright voice calmly mumbling a short sentence without any real words, gentle babble, calm, close, no other sounds.",
+          "seed": 325
+        }
+      ]
+    },
+    {
+      "id": "voice.child_high.question",
+      "kind": "one_shot",
+      "origin": "moss",
+      "sound_words": [
+        "mumble"
+      ],
+      "context_words": [
+        "voice"
+      ],
+      "files": [
+        {
+          "file": "voice.child_high.question_0.wav",
+          "source": "voice/voice.child_high.question_A.wav",
+          "sha256": "795f500a15c44f361aa4dc5b768084195e8484177832a87fe4c645f5c9016fbe",
+          "prompt": "A young child with a high bright voice mumbling a short question, rising at the end without any real words, gentle babble, calm, close, no other sounds.",
+          "seed": 326
+        },
+        {
+          "file": "voice.child_high.question_1.wav",
+          "source": "voice/voice.child_high.question_B.wav",
+          "sha256": "1a32db7b3d93ccde18f46bfdd8b70b1ece95568cc9c9f3c19aede4e07e93c5d9",
+          "prompt": "A young child with a high bright voice mumbling a short question, rising at the end without any real words, gentle babble, calm, close, no other sounds.",
+          "seed": 327
+        }
+      ]
+    },
+    {
+      "id": "voice.child_low.calm",
+      "kind": "one_shot",
+      "origin": "moss",
+      "sound_words": [
+        "mumble"
+      ],
+      "context_words": [
+        "voice"
+      ],
+      "files": [
+        {
+          "file": "voice.child_low.calm_0.wav",
+          "source": "voice/voice.child_low.calm_A.wav",
+          "sha256": "616181838bc332d18c3df2c85344b0ba130872db63a6b022036ec74d08de8311",
+          "prompt": "A young child with a slightly lower soft voice calmly mumbling a short sentence without any real words, gentle babble, calm, close, no other sounds.",
+          "seed": 328
+        },
+        {
+          "file": "voice.child_low.calm_1.wav",
+          "source": "voice/voice.child_low.calm_B.wav",
+          "sha256": "3035451a2d366caf11d2e90c6e83ec8abbfd57fd82aa2b083f62b44db948f4d1",
+          "prompt": "A young child with a slightly lower soft voice calmly mumbling a short sentence without any real words, gentle babble, calm, close, no other sounds.",
+          "seed": 329
+        }
+      ]
+    },
+    {
+      "id": "voice.child_low.question",
+      "kind": "one_shot",
+      "origin": "moss",
+      "sound_words": [
+        "mumble"
+      ],
+      "context_words": [
+        "voice"
+      ],
+      "files": [
+        {
+          "file": "voice.child_low.question_0.wav",
+          "source": "voice/voice.child_low.question_A.wav",
+          "sha256": "9b7b43153924dadbd96a5710d116f142d4c04f50b87655025fb5852cadc7e9f6",
+          "prompt": "A young child with a slightly lower soft voice mumbling a short question, rising at the end without any real words, gentle babble, calm, close, no other sounds.",
+          "seed": 330
+        },
+        {
+          "file": "voice.child_low.question_1.wav",
+          "source": "voice/voice.child_low.question_B.wav",
+          "sha256": "f9ee148f0ab507858d27ff9421c095c289e16f65319941a47fc5c77b7f5c878a",
+          "prompt": "A young child with a slightly lower soft voice mumbling a short question, rising at the end without any real words, gentle babble, calm, close, no other sounds.",
+          "seed": 331
+        }
+      ]
+    },
+    {
+      "id": "voice.female_high.calm",
+      "kind": "one_shot",
+      "origin": "moss",
+      "sound_words": [
+        "mumble"
+      ],
+      "context_words": [
+        "voice"
+      ],
+      "files": [
+        {
+          "file": "voice.female_high.calm_0.wav",
+          "source": "voice/voice.female_high.calm_A.wav",
+          "sha256": "55ad4435e994b40f07b663d89e9bc8f017e7a18689ca581be6f101c894d1a157",
+          "prompt": "A woman with a high gentle voice calmly mumbling a short sentence without any real words, gentle babble, calm, close, no other sounds.",
+          "seed": 332
+        },
+        {
+          "file": "voice.female_high.calm_1.wav",
+          "source": "voice/voice.female_high.calm_B.wav",
+          "sha256": "0ffd3b686a8da13a840631f55f168ba23adc912352132e8d2a4a758b5a4e00c5",
+          "prompt": "A woman with a high gentle voice calmly mumbling a short sentence without any real words, gentle babble, calm, close, no other sounds.",
+          "seed": 333
+        }
+      ]
+    },
+    {
+      "id": "voice.female_high.question",
+      "kind": "one_shot",
+      "origin": "moss",
+      "sound_words": [
+        "mumble"
+      ],
+      "context_words": [
+        "voice"
+      ],
+      "files": [
+        {
+          "file": "voice.female_high.question_0.wav",
+          "source": "voice/voice.female_high.question_A.wav",
+          "sha256": "53cfeb2a2599dbf638fe082af7e01303a24beb1d56731499e29ce40ad8ee0109",
+          "prompt": "A woman with a high gentle voice mumbling a short question, rising at the end without any real words, gentle babble, calm, close, no other sounds.",
+          "seed": 334
+        },
+        {
+          "file": "voice.female_high.question_1.wav",
+          "source": "voice/voice.female_high.question_B.wav",
+          "sha256": "a7b587b5e3e98b2bbf715986b89642e33c626a04cdb2441affff532c5500d46a",
+          "prompt": "A woman with a high gentle voice mumbling a short question, rising at the end without any real words, gentle babble, calm, close, no other sounds.",
+          "seed": 335
+        }
+      ]
+    },
+    {
+      "id": "voice.female_low.calm",
+      "kind": "one_shot",
+      "origin": "moss",
+      "sound_words": [
+        "mumble"
+      ],
+      "context_words": [
+        "voice"
+      ],
+      "files": [
+        {
+          "file": "voice.female_low.calm_0.wav",
+          "source": "voice/voice.female_low.calm_A.wav",
+          "sha256": "d38ce6841c35578a942cdc9388fe3568a8c3d64a0aeac86c71557ab0f46a6617",
+          "prompt": "A woman with a low warm voice calmly mumbling a short sentence without any real words, gentle babble, calm, close, no other sounds.",
+          "seed": 336
+        },
+        {
+          "file": "voice.female_low.calm_1.wav",
+          "source": "voice/voice.female_low.calm_B.wav",
+          "sha256": "683255b2b9c7f92b9b8ff018fbfbb2d043e5e429dccab86cacf4b3d8c80f72c5",
+          "prompt": "A woman with a low warm voice calmly mumbling a short sentence without any real words, gentle babble, calm, close, no other sounds.",
+          "seed": 337
+        }
+      ]
+    },
+    {
+      "id": "voice.female_low.question",
+      "kind": "one_shot",
+      "origin": "moss",
+      "sound_words": [
+        "mumble"
+      ],
+      "context_words": [
+        "voice"
+      ],
+      "files": [
+        {
+          "file": "voice.female_low.question_0.wav",
+          "source": "voice/voice.female_low.question_A.wav",
+          "sha256": "cec23448ccfbd191ac934b69c3edd41fbe438bca85db5b22f3338a7d19ca7e68",
+          "prompt": "A woman with a low warm voice mumbling a short question, rising at the end without any real words, gentle babble, calm, close, no other sounds.",
+          "seed": 338
+        },
+        {
+          "file": "voice.female_low.question_1.wav",
+          "source": "voice/voice.female_low.question_B.wav",
+          "sha256": "6fbe7f33f0cdf0135cc647961a4097e9e63579f00ca23bb6a3630c747e69afab",
+          "prompt": "A woman with a low warm voice mumbling a short question, rising at the end without any real words, gentle babble, calm, close, no other sounds.",
+          "seed": 339
+        }
+      ]
+    },
+    {
+      "id": "voice.male_high.calm",
+      "kind": "one_shot",
+      "origin": "moss",
+      "sound_words": [
+        "mumble"
+      ],
+      "context_words": [
+        "voice"
+      ],
+      "files": [
+        {
+          "file": "voice.male_high.calm_0.wav",
+          "source": "voice/voice.male_high.calm_A.wav",
+          "sha256": "a3270fb75cbca3a7e046129cc71adb6fbaa56d09e69e0470545216911cdd75f4",
+          "prompt": "A man with a light tenor voice calmly mumbling a short sentence without any real words, gentle babble, calm, close, no other sounds.",
+          "seed": 340
+        },
+        {
+          "file": "voice.male_high.calm_1.wav",
+          "source": "voice/voice.male_high.calm_B.wav",
+          "sha256": "70ed9b3073b996fe28c8c98214aa0d1342bdcb43aa9a33d853b3df4275d44bdd",
+          "prompt": "A man with a light tenor voice calmly mumbling a short sentence without any real words, gentle babble, calm, close, no other sounds.",
+          "seed": 341
+        }
+      ]
+    },
+    {
+      "id": "voice.male_high.question",
+      "kind": "one_shot",
+      "origin": "moss",
+      "sound_words": [
+        "mumble"
+      ],
+      "context_words": [
+        "voice"
+      ],
+      "files": [
+        {
+          "file": "voice.male_high.question_0.wav",
+          "source": "voice/voice.male_high.question_A.wav",
+          "sha256": "dd7b5106b97e46a6ffb080869fcaccdaad2d100a73a726909e09b6184c737489",
+          "prompt": "A man with a light tenor voice mumbling a short question, rising at the end without any real words, gentle babble, calm, close, no other sounds.",
+          "seed": 342
+        },
+        {
+          "file": "voice.male_high.question_1.wav",
+          "source": "voice/voice.male_high.question_B.wav",
+          "sha256": "65a0d75d05c5fb37633a248e1a5c5194c4b83ba3a98e9f6149d1d2ddc0051cdb",
+          "prompt": "A man with a light tenor voice mumbling a short question, rising at the end without any real words, gentle babble, calm, close, no other sounds.",
+          "seed": 343
+        }
+      ]
+    },
+    {
+      "id": "voice.male_low.calm",
+      "kind": "one_shot",
+      "origin": "moss",
+      "sound_words": [
+        "mumble"
+      ],
+      "context_words": [
+        "voice"
+      ],
+      "files": [
+        {
+          "file": "voice.male_low.calm_0.wav",
+          "source": "voice/voice.male_low.calm_A.wav",
+          "sha256": "92d6e82fb934df1a599cacd32d20bf53524ca2e3f6872cb836bf78aea10b4aab",
+          "prompt": "A man with a deep calm voice calmly mumbling a short sentence without any real words, gentle babble, calm, close, no other sounds.",
+          "seed": 344
+        },
+        {
+          "file": "voice.male_low.calm_1.wav",
+          "source": "voice/voice.male_low.calm_B.wav",
+          "sha256": "d48feac1248828eddbc69549926daea48658f50b87565ce1d04dea55e8ef422e",
+          "prompt": "A man with a deep calm voice calmly mumbling a short sentence without any real words, gentle babble, calm, close, no other sounds.",
+          "seed": 345
+        }
+      ]
+    },
+    {
+      "id": "voice.male_low.question",
+      "kind": "one_shot",
+      "origin": "moss",
+      "sound_words": [
+        "mumble"
+      ],
+      "context_words": [
+        "voice"
+      ],
+      "files": [
+        {
+          "file": "voice.male_low.question_0.wav",
+          "source": "voice/voice.male_low.question_A.wav",
+          "sha256": "551304c7877a749af2fa3c9c9c1b13e6bc01af9c5e8099bdb3dbe944c3f013fe",
+          "prompt": "A man with a deep calm voice mumbling a short question, rising at the end without any real words, gentle babble, calm, close, no other sounds.",
+          "seed": 346
+        },
+        {
+          "file": "voice.male_low.question_1.wav",
+          "source": "voice/voice.male_low.question_B.wav",
+          "sha256": "d21b9a2c8273c2c24a45db6e1c74339d55a45bf1e58f8fd41619df3c175762ff",
+          "prompt": "A man with a deep calm voice mumbling a short question, rising at the end without any real words, gentle babble, calm, close, no other sounds.",
+          "seed": 347
         }
       ]
     },

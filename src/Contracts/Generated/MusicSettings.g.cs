@@ -58,6 +58,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("pad")]
         public MusicPad Pad { get; set; } = new MusicPad();
 
+        /// <summary>
+        /// Other moods that may play instead of this one, one piece at a time, chosen from the piece seed (listening test 2: both as variants, W1651).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("alternates")]
+        public System.Collections.Generic.ICollection<string>? Alternates { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]

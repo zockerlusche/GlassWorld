@@ -85,6 +85,7 @@ public partial class WorldAudio : Node3D
         }
 
         _baseSounds = LoadBaseSounds();
+        MurmurAudio.Samples = (soundId, variant) => _baseSounds?.File(soundId, variant) is null ? null : Stream(soundId, variant);
         _inventionSounds = new InventionSounds(host.Inventions, host.Objects, _baseSounds, madeSounds);
         _useAction = host.Content.Inventions.Build.Settings.UseAction;
         _director = new SoundDirector(RetroAudio.Library!, _mixer, _baseSounds?.Variants);
@@ -361,7 +362,9 @@ public partial class WorldAudio : Node3D
                 continue;
             }
 
-            player.Stream = call.Sung && _birdsong is not null ? Song(call.Seed) : Stream(call.SoundId, call.Variant);
+            // A sung call is a synthesised melody or, by the data's share, a recorded song (both variants, W1651).
+            player.Stream = call.Sung && _birdsong is not null && !Birdsong.Recorded(_birdsong, call.Seed) ? Song(call.Seed)
+                : Stream(call.SoundId, call.Sung ? (int)(call.Seed % 1024) : call.Variant);
             player.Position = At(call.Position);
             ApplyVolume(player, MixBusId.Animals, listener);
             player.Play();

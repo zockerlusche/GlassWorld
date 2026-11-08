@@ -190,6 +190,51 @@ namespace GlassWorld.Contracts
 
     }
 
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class MurmurSamples
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("child_age_max")]
+        public double ChildAgeMax { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("high_size_max")]
+        public double HighSizeMax { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("voices")]
+        public System.Collections.Generic.ICollection<MurmurSampleVoice> Voices { get; set; } = new System.Collections.ObjectModel.Collection<MurmurSampleVoice>();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class MurmurSampleVoice
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("child")]
+        public bool Child { get; set; } = default!;
+
+        /// <summary>
+        /// Sex vocabulary id, or null for any (children).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("sex")]
+        public string? Sex { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("high")]
+        public bool High { get; set; } = default!;
+
+        /// <summary>
+        /// Base library sound id for calm sentences (and exclamations).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("calm")]
+        public string Calm { get; set; } = default!;
+
+        /// <summary>
+        /// Base library sound id for questions.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("question")]
+        public string Question { get; set; } = default!;
+
+    }
+
     /// <summary>
     /// Murmur (B8 R5, F5243=B): inhabitants speak audibly only a murmur without words, made from small sound blocks (vowel-like formants, soft consonant noise), no TTS. Voice per inhabitant from body values; length and melody follow the bubble text; the same sentence and inhabitant always give the same sound. All values are placeholders until Marcel's word.
     /// </summary>
@@ -259,6 +304,13 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("placeholder_body")]
         public MurmurPlaceholderBody PlaceholderBody { get; set; } = new MurmurPlaceholderBody();
+
+        /// <summary>
+        /// Recorded murmur voices (listening test 3, W1664): when a voice of the base library fits, it plays instead of the formant murmur. Child below child_age_max (body age), otherwise by sex; high voice below high_size_max (body size). Empty voices = formant murmur only.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("samples")]
+        public MurmurSamples? Samples { get; set; } = default!;
 
     }
 
