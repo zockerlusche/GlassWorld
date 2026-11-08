@@ -80,7 +80,7 @@ namespace GlassWorld.Contracts
         public ModelsState State { get; set; } = default!;
 
         /// <summary>
-        /// Stable code when failed: network, checksum_mismatch, digest_mismatch, runtime_missing, disk.
+        /// Stable code when failed: network, checksum_mismatch, model_moved (the registry tag now has another digest; the pulled model was removed), runtime_missing, disk_full (checked before writing), disk.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("error")]
         public string? Error { get; set; } = default!;

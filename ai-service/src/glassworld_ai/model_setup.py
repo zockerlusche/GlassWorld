@@ -20,6 +20,7 @@ import contextlib
 import json
 import logging
 import os
+import shutil
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
@@ -111,8 +112,12 @@ class ModelSetup:
         ollama_url: str,
         tier: Callable[[], str | None],
         transport: httpx.AsyncBaseTransport | None = None,
+        ollama_models_dir: Path | None = None,
+        free_bytes: Callable[[Path], int] | None = None,
     ) -> None:
         self._catalog = catalog
+        self._ollama_models_dir = ollama_models_dir or Path.home() / ".ollama" / "models"
+        self._free_bytes = free_bytes or _free_bytes
         self._store = store_dir
         self._ollama = ollama_url.rstrip("/")
         self._tier = tier
@@ -260,6 +265,7 @@ class ModelSetup:
             model = next(m for m in self._catalog if m.id == model_id)
             self._phase[model_id] = "downloading"
             try:
+                self._check_space(model)
                 if model.kind == "ollama":
                     await self._pull(model)
                 else:
@@ -273,6 +279,13 @@ class ModelSetup:
             except OSError as error:
                 _log.warning("model download %s: file error: %s", model_id, error)
                 self._phase[model_id], self._error[model_id] = "failed", "disk"
+
+    def _check_space(self, model: Model) -> None:
+        """Refuse before writing when the disk cannot hold the rest (review GW1 #125)."""
+        where = self._ollama_models_dir if model.kind == "ollama" else self._store
+        need = model.size_bytes - (0 if model.kind == "ollama" else self._files_on_disk(model))
+        if self._free_bytes(where) < need:
+            raise ModelError("disk_full", f"{need} bytes needed in {where}")
 
     async def _pull(self, model: Model) -> None:
         local = await self._ollama_models()
@@ -307,7 +320,14 @@ class ModelSetup:
                     self._phase[model.id] = "verifying"
         local = await self._ollama_models()
         if local is None or not _has_digest(local, model):
-            raise ModelError("digest_mismatch", f"{model.ollama_name} has another digest")
+            # The registry tag has moved (review GW1 #125): remove what was just pulled so it
+            # neither takes space nor is used, and say so; the data needs a new pinned digest.
+            with contextlib.suppress(httpx.HTTPError):
+                async with self._client() as client:
+                    await client.request(
+                        "DELETE", self._ollama + "/api/delete", json={"model": model.ollama_name}
+                    )
+            raise ModelError("model_moved", f"{model.ollama_name} now has another digest")
 
     async def _fetch_files(self, model: Model) -> None:
         folder = self._folder(model)
@@ -346,3 +366,11 @@ def _has_digest(local: dict[str, str], model: Model) -> bool:
         and model.ollama_digest is not None
         and (found == model.ollama_digest or model.ollama_digest.startswith(found))
     )
+
+
+def _free_bytes(path: Path) -> int:
+    """Free space of the drive that holds `path` (the folder may not exist yet)."""
+    probe = path
+    while not probe.exists() and probe.parent != probe:
+        probe = probe.parent
+    return shutil.disk_usage(probe).free

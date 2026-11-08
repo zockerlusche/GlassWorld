@@ -69,6 +69,7 @@ class FakeNet:
         self.files = {URL_A: FILE_A, URL_B: FILE_B}
         self.ranges: list[tuple[str, str | None]] = []
         self.pulls = 0
+        self.deleted: list[str] = []
 
     def handler(self, request: httpx.Request) -> httpx.Response:
         url = str(request.url)
@@ -78,6 +79,11 @@ class FakeNet:
             if request.url.path == "/api/tags":
                 listed = [{"name": n, "digest": d} for n, d in self.models.items()]
                 return httpx.Response(200, json={"models": listed})
+            if request.url.path == "/api/delete":
+                name = json.loads(request.content)["model"]
+                self.deleted.append(name)
+                self.models.pop(name, None)
+                return httpx.Response(200)
             if request.url.path == "/api/pull":
                 self.pulls += 1
                 name = json.loads(request.content)["model"]
@@ -121,13 +127,21 @@ class FakeNet:
         return httpx.Response(404)
 
 
-def _setup(tmp_path: Path, net: FakeNet, tier: str | None = "standard") -> ModelSetup:
+def _plenty(_path: Path) -> int:
+    return 10**12
+
+
+def _setup(
+    tmp_path: Path, net: FakeNet, tier: str | None = "standard", free: Any = _plenty
+) -> ModelSetup:
     return ModelSetup(
         (LANGUAGE, IMAGE),
         store_dir=tmp_path / "store",
         ollama_url=OLLAMA,
         tier=lambda: tier,
         transport=httpx.MockTransport(net.handler),
+        ollama_models_dir=tmp_path / "ollama-models",
+        free_bytes=free,
     )
 
 
@@ -211,14 +225,16 @@ def test_a_present_model_is_not_pulled_again(tmp_path: Path) -> None:
     assert net.pulls == 0
 
 
-def test_a_wrong_digest_after_the_pull_fails(tmp_path: Path) -> None:
+def test_a_moved_tag_is_removed_again_and_reported(tmp_path: Path) -> None:
+    """Review GW1 #125: a pull with another digest must not stay installed."""
     net = FakeNet(pulled_digest="cd" * 32)
 
     async def body() -> Any:
         return await _all(_setup(tmp_path, net), ["lm:9b"])
 
     model = _by_id(asyncio.run(body()))["lm:9b"]
-    assert model.state == "failed" and model.error == "digest_mismatch"
+    assert model.state == "failed" and model.error == "model_moved"
+    assert net.deleted == ["lm:9b"] and "lm:9b" not in net.models
 
 
 def test_a_pull_error_is_reported(tmp_path: Path) -> None:
@@ -400,3 +416,33 @@ def test_get_models_answers_with_the_contract(settings: Settings, tmp_path: Path
     validator = ContractValidator(REPO / "contracts/schemas")
     assert validator.errors("model-setup-status", response.json()) == []
     assert [m["id"] for m in response.json()["models"]] == ["qwen3.5:9b"]
+
+
+def test_a_full_disk_is_found_before_writing(tmp_path: Path) -> None:
+    """Review GW1 #125: refuse before a multi-GB download, not after filling the disk."""
+    net = FakeNet()
+
+    def little(_path: Path) -> int:
+        return 100  # less than either model
+
+    async def body() -> Any:
+        return await _all(_setup(tmp_path, net, free=little), ["lm:9b", "picture"])
+
+    models = _by_id(asyncio.run(body()))
+    assert models["lm:9b"].error == "disk_full" and models["picture"].error == "disk_full"
+    assert net.pulls == 0 and not net.ranges
+
+
+def test_free_space_counts_files_already_on_disk(tmp_path: Path) -> None:
+    net = FakeNet()
+    part = tmp_path / "store/picture/a.gguf.part"
+    part.parent.mkdir(parents=True)
+    part.write_bytes(FILE_A[:3000])  # 3000 of 5000 there
+
+    def just_enough(_path: Path) -> int:
+        return 2000
+
+    async def body() -> Any:
+        return await _all(_setup(tmp_path, net, free=just_enough), ["picture"])
+
+    assert _by_id(asyncio.run(body()))["picture"].state == "present"

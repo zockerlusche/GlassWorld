@@ -37,7 +37,7 @@ type Error = Annotated[
     str,
     Field(
         ...,
-        description='Stable code when failed: network, checksum_mismatch, digest_mismatch, runtime_missing, disk.',
+        description='Stable code when failed: network, checksum_mismatch, model_moved (the registry tag now has another digest; the pulled model was removed), runtime_missing, disk_full (checked before writing), disk.',
         pattern='^[a-z_]{1,32}$',
     ),
 ]
@@ -64,7 +64,7 @@ class Model(BaseModel):
     )
     error: Error | None = Field(
         ...,
-        description='Stable code when failed: network, checksum_mismatch, digest_mismatch, runtime_missing, disk.',
+        description='Stable code when failed: network, checksum_mismatch, model_moved (the registry tag now has another digest; the pulled model was removed), runtime_missing, disk_full (checked before writing), disk.',
     )
 
 
