@@ -1,0 +1,120 @@
+# Release build (B10 R8): Windows archive, SHA256SUMS.txt and release notes from CHANGELOG.md.
+# A pushed tag vX.Y.Z builds that version; a manual run builds a probe of the current commit.
+# The workflow only ever creates a DRAFT release; publishing it is a manual step after review.
+# The build itself is tools/release/build_release.sh, which also runs locally (reproducible).
+# Actions are pinned to commit SHAs (supply chain, ADR-0001).
+name: Release
+
+on:
+  push:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Semantic version with a CHANGELOG section (e.g. 0.1.0), or 'unreleased' for a probe"
+        required: true
+        default: "unreleased"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  DOTNET_NOLOGO: "true"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "true"
+  GODOT_VERSION: "4.7.2"
+  GODOT_WIN_ZIP: "Godot_v4.7.2-stable_mono_win64.zip"
+  GODOT_TEMPLATES: "Godot_v4.7.2-stable_mono_export_templates.tpz"
+  # From SHA512-SUMS.txt of https://github.com/godotengine/godot-builds/releases/tag/4.7.2-stable
+  GODOT_WIN_ZIP_SHA512: "79229fd112b0c9cbeab82363a4ef7be18ea70f1caf86bf912789335b136fbe7e01db0053a33461438c5da1c680c17bbb10040bd09bedc51221cd4423d0367757"
+  GODOT_TEMPLATES_SHA512: "bb5c41d72370ed743660361f6228006f808ab04ca33abdc545d740b044f3fe057f32ae8cb7873a1bc86ddcd82ae683b9f6dfdfe4179852f2c0f1acde2ff6bd5a"
+  UV_VERSION: "0.11.10"
+  EMBEDDED_PYTHON: "cpython-3.12.13"
+
+jobs:
+  windows:
+    name: Windows release archive
+    runs-on: windows-2025
+    timeout-minutes: 60
+    permissions:
+      contents: write # only for creating the draft release
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          lfs: true
+      - name: Version
+        id: version
+        env:
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+        run: |
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then v="${GITHUB_REF_NAME#v}"; else v="$INPUT_VERSION"; fi
+          if [ "$v" != "unreleased" ] && ! [[ "$v" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "not a semantic version: $v" >&2; exit 1
+          fi
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          global-json-file: global.json
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: ${{ env.UV_VERSION }}
+      - name: Python environment and embedded Python
+        id: python
+        run: |
+          uv sync --frozen
+          uv python install "$EMBEDDED_PYTHON"
+          exe="$(uv python find --managed-python "$EMBEDDED_PYTHON")"
+          echo "dir=$(dirname "$exe")" >> "$GITHUB_OUTPUT"
+      - name: Cache Godot and export templates
+        id: cache-godot
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/godot
+            ~/AppData/Roaming/Godot/export_templates
+          key: godot-${{ env.GODOT_VERSION }}-mono-win64-${{ env.GODOT_WIN_ZIP_SHA512 }}-${{ env.GODOT_TEMPLATES_SHA512 }}
+      - name: Download Godot and export templates (verified)
+        if: steps.cache-godot.outputs.cache-hit != 'true'
+        run: |
+          base="https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-stable"
+          curl -fsSL -o "$RUNNER_TEMP/$GODOT_WIN_ZIP" "$base/$GODOT_WIN_ZIP"
+          curl -fsSL -o "$RUNNER_TEMP/$GODOT_TEMPLATES" "$base/$GODOT_TEMPLATES"
+          echo "$GODOT_WIN_ZIP_SHA512  $RUNNER_TEMP/$GODOT_WIN_ZIP" | sha512sum -c -
+          echo "$GODOT_TEMPLATES_SHA512  $RUNNER_TEMP/$GODOT_TEMPLATES" | sha512sum -c -
+          mkdir -p ~/godot "$APPDATA/Godot/export_templates"
+          unzip -q "$RUNNER_TEMP/$GODOT_WIN_ZIP" -d ~/godot
+          unzip -q "$RUNNER_TEMP/$GODOT_TEMPLATES" -d "$RUNNER_TEMP/templates"
+          mv "$RUNNER_TEMP/templates/templates" "$APPDATA/Godot/export_templates/${GODOT_VERSION}.stable.mono"
+      - name: Build the release archive
+        id: build
+        env:
+          PYTHON_DIR: ${{ steps.python.outputs.dir }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          GODOT="$(find ~/godot -maxdepth 2 -type f -name 'Godot_v*_mono_win64_console.exe' | head -n 1)"
+          test -n "$GODOT" || { echo "Godot console executable not found" >&2; exit 1; }
+          export GODOT
+          bash tools/release/build_release.sh "$VERSION" "$RUNNER_TEMP/release" | tee "$RUNNER_TEMP/build.log"
+          name="$(sed -n 's/^RELEASE_OK //p' "$RUNNER_TEMP/build.log")"
+          test -n "$name" || { echo "release build did not finish" >&2; exit 1; }
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+      - name: Create the draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+          NAME: ${{ steps.build.outputs.name }}
+        run: |
+          out="$RUNNER_TEMP/release"
+          if [ "$VERSION" = "unreleased" ]; then
+            tag="probe-$(git rev-parse --short=8 HEAD)"; title="Probe build $tag"; extra="--prerelease"
+          else
+            tag="v$VERSION"; title="GlassWorld $VERSION"; extra=""
+          fi
+          gh release create "$tag" --draft $extra --target "$GITHUB_SHA" --title "$title" \
+            --notes-file "$out/release-notes.md" "$out/$NAME.zip" "$out/SHA256SUMS.txt"

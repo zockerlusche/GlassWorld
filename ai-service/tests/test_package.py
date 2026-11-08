@@ -63,3 +63,24 @@ def test_every_library_of_the_embedded_python_needs_a_licence_row(tmp_path: Path
     (python_dir / "DLLs" / "_brand_new.pyd").write_bytes(b"MZ")
     with pytest.raises(SystemExit, match=r"_brand_new.pyd"):
         package.check_inventory(python_dir)
+
+
+def test_build_machine_paths_are_stripped_from_installed_metadata(tmp_path: Path) -> None:
+    """B10 R8 privacy: pip's direct_url.json of local packages names the build folder."""
+    package = _module()
+    site = tmp_path / "python" / "Lib" / "site-packages"
+    local = site / "glassworld_ai_service-0.1.0.dist-info"
+    index = site / "httpx-0.28.1.dist-info"
+    for folder in (local, index):
+        folder.mkdir(parents=True)
+    (local / "direct_url.json").write_text('{"url": "file:///F:/build/ai-service"}', "utf-8")
+    (local / "RECORD").write_text(
+        "glassworld_ai/__init__.py,sha256=x,1\n"
+        "glassworld_ai_service-0.1.0.dist-info/direct_url.json,,\n",
+        encoding="utf-8",
+    )
+    (index / "direct_url.json").write_text('{"url": "https://example.invalid/x.whl"}', "utf-8")
+    package.strip_build_paths(tmp_path / "python")
+    assert not (local / "direct_url.json").exists()
+    assert "direct_url" not in (local / "RECORD").read_text(encoding="utf-8")
+    assert (index / "direct_url.json").exists()  # no build path in it: untouched
