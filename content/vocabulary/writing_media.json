@@ -1,0 +1,34 @@
+{
+  "contract_version": "0.2",
+  "kind": "writing_medium",
+  "entries": [
+    {
+      "id": "sand_marks",
+      "description": "Marks drawn in sand or soft earth; rain and waves wipe them away soon."
+    },
+    {
+      "id": "rock_painting",
+      "description": "Pictures painted on rock or a cave wall with earth colours."
+    },
+    {
+      "id": "carving_wood",
+      "description": "Signs cut into wood with a sharp tool."
+    },
+    {
+      "id": "carving_stone",
+      "description": "Signs scratched into stone with a hard, sharp tool."
+    },
+    {
+      "id": "tablet",
+      "description": "A flat tablet made to be written on."
+    },
+    {
+      "id": "book",
+      "description": "Many written pages bound together."
+    },
+    {
+      "id": "library",
+      "description": "A place that keeps many written things together."
+    }
+  ]
+}

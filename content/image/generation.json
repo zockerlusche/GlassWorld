@@ -1,0 +1,31 @@
+{
+  "contract_version": "0.2",
+  "by_tier": {
+    "minimum": null,
+    "standard": {
+      "workflow": "z-image-turbo-t2i",
+      "model": "z-image-turbo",
+      "prompt": "image/object",
+      "prompt_version": 1,
+      "reference_image": null
+    },
+    "comfort": {
+      "workflow": "qwen-image-edit-style",
+      "model": "qwen-image-edit-2511",
+      "prompt": "image/object-edit",
+      "prompt_version": 1,
+      "reference_image": "image/style-reference-warm-comic.png"
+    }
+  },
+  "sizes": {
+    "icon": {
+      "width": 512,
+      "height": 512
+    },
+    "texture": {
+      "width": 512,
+      "height": 512
+    }
+  },
+  "priority": 10
+}

@@ -1,0 +1,30 @@
+{
+  "contract_version": "0.2",
+  "practice": [
+    {
+      "action": "build_step",
+      "skill": "building",
+      "gain": 0.01
+    },
+    {
+      "action": "pick_up",
+      "skill": "gathering",
+      "gain": 0.005
+    },
+    {
+      "action": "combine",
+      "skill": "inventing",
+      "gain": 0.01
+    },
+    {
+      "action": "teach",
+      "skill": "teaching",
+      "gain": 0.01
+    },
+    {
+      "action": "show",
+      "skill": "teaching",
+      "gain": 0.005
+    }
+  ]
+}

@@ -96,6 +96,12 @@ class WorldPresetClimate(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
+    climate_id: str = Field(
+        ...,
+        description='Climate of this world (file id in content/climate): weather states and their change per season (B2 R13).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
     base_temperature_tenth_c: int = Field(
         ...,
         description='Base temperature at sea level in tenths of a degree Celsius.',

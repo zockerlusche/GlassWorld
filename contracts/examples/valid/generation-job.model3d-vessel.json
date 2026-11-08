@@ -1,0 +1,18 @@
+{
+  "contract_version": "0.2",
+  "tick": 1210,
+  "seed": 5151,
+  "display_locale": "de",
+  "request_id": "ad4e5f60-7182-4c9d-8e0f-2a3b4c5d6e7f",
+  "kind": "model3d",
+  "priority": 5,
+  "inhabitant": null,
+  "object": null,
+  "payload": {
+    "model3d": {
+      "image_file": "img-8b2c3d4e-5f60-4a7b-8c9d-0e1f2a3b4c5d.png",
+      "object_type": "rt_vessel_clay",
+      "max_triangles": 4000
+    }
+  }
+}

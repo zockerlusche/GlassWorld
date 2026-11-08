@@ -1061,6 +1061,74 @@
     {
       "key": "msg.command.already_started",
       "text": "That is only possible when a world is created."
+    },
+    {
+      "key": "vocab.skill.building",
+      "text": "building"
+    },
+    {
+      "key": "vocab.skill.gathering",
+      "text": "gathering"
+    },
+    {
+      "key": "vocab.skill.cooking",
+      "text": "cooking"
+    },
+    {
+      "key": "vocab.skill.healing",
+      "text": "healing"
+    },
+    {
+      "key": "vocab.skill.music",
+      "text": "music"
+    },
+    {
+      "key": "vocab.skill.teaching",
+      "text": "teaching"
+    },
+    {
+      "key": "vocab.skill.inventing",
+      "text": "inventing"
+    },
+    {
+      "key": "vocab.skill.swimming",
+      "text": "swimming"
+    },
+    {
+      "key": "vocab.skill.reading",
+      "text": "reading"
+    },
+    {
+      "key": "vocab.skill.writing",
+      "text": "writing"
+    },
+    {
+      "key": "vocab.writing_medium.sand_marks",
+      "text": "marks in the sand"
+    },
+    {
+      "key": "vocab.writing_medium.rock_painting",
+      "text": "rock painting"
+    },
+    {
+      "key": "vocab.writing_medium.carving_wood",
+      "text": "carving in wood"
+    },
+    {
+      "key": "vocab.writing_medium.carving_stone",
+      "text": "carving in stone"
+    },
+    {
+      "key": "vocab.writing_medium.tablet",
+      "text": "tablet"
+    },
+    {
+      "key": "vocab.writing_medium.book",
+      "text": "book"
+    },
+    {
+      "key": "vocab.writing_medium.library",
+      "text": "library"
     }
   ]
 }

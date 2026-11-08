@@ -288,6 +288,15 @@ public partial class Main
         }
 
         GD.Print("MUSIC_OK");
+
+        var animals = _audio?.AnimalSelfCheck() ?? "world audio not set up";
+        if (animals.Length > 0)
+        {
+            GD.PushError($"ANIMALS_FAIL {animals}");
+            return;
+        }
+
+        GD.Print("ANIMALS_OK");
     }
 
     private static void CheckAudio(bool loaded)
@@ -300,6 +309,15 @@ public partial class Main
         }
 
         GD.Print($"AUDIO_OK sounds={RetroAudio.Library!.UsedSoundIds().Count()}");
+
+        var murmur = MurmurAudio.SelfCheck();
+        if (murmur.Length > 0)
+        {
+            GD.PushError($"MURMUR_FAIL {murmur}");
+            return;
+        }
+
+        GD.Print("MURMUR_OK");
     }
 
     /// <summary>Screenshot run (self-acceptance, KR5): saves the shots, then quits.</summary>

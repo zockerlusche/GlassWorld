@@ -10,6 +10,19 @@
     { "id": "fun", "decay_per_hour": 0.02, "neglect_below": 0.0 },
     { "id": "purpose", "decay_per_hour": 0.005, "neglect_below": 0.0 }
   ],
+  "skills": [
+    { "id": "building", "start_level_min": 0, "start_level_max": 0.2 },
+    { "id": "gathering", "start_level_min": 0, "start_level_max": 0.2 },
+    { "id": "cooking", "start_level_min": 0, "start_level_max": 0.2 },
+    { "id": "healing", "start_level_min": 0, "start_level_max": 0.2 },
+    { "id": "music", "start_level_min": 0, "start_level_max": 0.2 },
+    { "id": "teaching", "start_level_min": 0, "start_level_max": 0.2 },
+    { "id": "inventing", "start_level_min": 0, "start_level_max": 0.2 },
+    { "id": "swimming", "start_level_min": 0, "start_level_max": 0.2 },
+    { "id": "reading", "start_level_min": 0, "start_level_max": 0 },
+    { "id": "writing", "start_level_min": 0, "start_level_max": 0 }
+  ],
+  "skill_rules": { "runtime_start_level_min": 0, "runtime_start_level_max": 0.3, "runtime_gain": 0.01, "max_runtime_skills": 8 },
   "moods": [
     { "id": "joy", "baseline": 0.4, "return_per_hour": 0.02 },
     { "id": "sadness", "baseline": 0.1, "return_per_hour": 0.02 },
