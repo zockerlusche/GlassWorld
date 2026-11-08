@@ -73,4 +73,7 @@ if ! grep -Eq '^WORLD_OK seed=[0-9]+ inhabitants=[1-9][0-9]* ' "$LOG" || ! grep 
   exit 1
 fi
 grep -E '^WORLD_OK' "$LOG"
+# Start script with the local AI service (test package): the service runs from this repository.
+printf '@echo off\r\nrem GlassWorld mit lokaler KI starten (Testpaket). Der KI-Dienst laeuft aus dem Repository.\r\nset GLASSWORLD_AI=live\r\nset GLASSWORLD_AI_ROOT=%s\r\nstart "" "%%~dp0GlassWorld.exe"\r\n' "$ROOT" > "$OUT/Start-mit-KI.cmd"
+printf '@echo off\r\nrem GlassWorld ohne KI starten (Routine-Modus, zum Vergleich).\r\nstart "" "%%~dp0GlassWorld.exe"\r\n' > "$OUT/Start-ohne-KI.cmd"
 echo "EXPORT_OK $OUT/GlassWorld.exe"

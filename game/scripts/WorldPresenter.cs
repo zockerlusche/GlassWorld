@@ -226,7 +226,10 @@ public partial class WorldPresenter : Node3D
             return new MockDecisionPort();
         }
 
-        var repository = System.IO.Path.GetFullPath(System.IO.Path.Combine(contentDirectory, ".."));
+        // The AI service runs from the repository (uv project). An exported build sits elsewhere, so
+        // GLASSWORLD_AI_ROOT may name the folder that holds it (test package, until B10 packages the service).
+        var root = System.Environment.GetEnvironmentVariable("GLASSWORLD_AI_ROOT");
+        var repository = System.IO.Path.GetFullPath(string.IsNullOrWhiteSpace(root) ? System.IO.Path.Combine(contentDirectory, "..") : root);
         try
         {
             var userData = System.IO.Path.Combine(OS.GetUserDataDir(), "ai-service");
