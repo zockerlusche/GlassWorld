@@ -35,8 +35,7 @@ def main() -> int:
     sys.stdout = sys.stderr
 
     def answer(text: str) -> None:
-        protocol.write(text + "
-")
+        protocol.write(text + "\n")
         protocol.flush()
 
     import numpy as np
