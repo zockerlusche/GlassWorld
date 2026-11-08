@@ -79,9 +79,9 @@ def test_measure_finds_level_and_silence(tmp_path: Path) -> None:
     _write(tmp_path / "loud.wav", 1.0, 0.5)
     _write(tmp_path / "quiet.wav", 1.0, 0.0)
     loud = measure_wav(tmp_path / "loud.wav")
-    assert loud.seconds == pytest.approx(1.0)
-    assert loud.peak == pytest.approx(0.5, abs=0.01)
-    assert loud.loudness_dbfs == pytest.approx(-9.03, abs=0.1)  # sine at half scale
+    assert abs(loud.seconds - 1.0) < 1e-6
+    assert abs(loud.peak - 0.5) < 0.01
+    assert abs(loud.loudness_dbfs + 9.03) < 0.1  # sine at half scale
     assert measure_wav(tmp_path / "quiet.wav").loudness_dbfs == -120.0
 
 

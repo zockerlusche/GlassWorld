@@ -4,7 +4,7 @@ Runs in the MOSS environment (torch cu128, official code at a pinned commit), st
 the service (glassworld_ai.sound.worker). Loads the pipeline once (DiT in bfloat16, official VRAM
 management; measurement report D440), prints READY, then renders one JSON request per stdin line:
 
-    {"prompt": "...", "seconds": 2.0, "loop": false, "steps": 50, "seed": 77, "out": "C:/.../snd.wav"}
+    {"prompt": "...", "seconds": 2.0, "loop": false, "steps": 50, "seed": 77, "out": "x/snd.wav"}
 
 and answers with one JSON line {"ok": true} or {"ok": false, "error": "..."}. Loops get a crossfaded
 seam so they repeat without a click. Writes 16-bit PCM mono; the service checks the file.
@@ -70,7 +70,7 @@ def main() -> int:
                 out, np.clip(mono, -1.0, 1.0).astype(np.float32), pipe.sample_rate, subtype="PCM_16"
             )
             print(json.dumps({"ok": True}), flush=True)
-        except Exception as error:  # noqa: BLE001 - one bad request must not end the worker
+        except Exception as error:  # one bad request must not end the worker
             print(
                 json.dumps({"ok": False, "error": f"{type(error).__name__}: {error}"[:300]}),
                 flush=True,
