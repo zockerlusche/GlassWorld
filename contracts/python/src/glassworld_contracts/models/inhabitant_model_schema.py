@@ -175,7 +175,7 @@ class InhabitantModel(BaseModel):
     start: StartModel
     skills: list[SkillModel] = Field(
         ...,
-        description='Skill register (B5 R18, B4b R11): every skill of the skill vocabulary with the range of its start level for start inhabitants. B5 adds level tables and decay. Which action practises which skill is the effect skill_practice in content/effects/.',
+        description='Skill register (B5 R18, B4b R11): every skill of the skill vocabulary with the range of its start level for start inhabitants. B5 adds level tables and decay. Which action practises which skill is the effect skill_practice in content/skills/practice.json.',
         max_length=64,
         min_length=1,
     )
