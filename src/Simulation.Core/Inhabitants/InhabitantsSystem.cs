@@ -2,6 +2,7 @@ using System.Globalization;
 using GlassWorld.Contracts;
 using GlassWorld.Simulation.Behaviour;
 using GlassWorld.Simulation.Objects;
+using GlassWorld.Simulation.Random;
 using GlassWorld.Simulation.State;
 
 namespace GlassWorld.Simulation.Inhabitants;
@@ -140,7 +141,14 @@ public sealed class InhabitantsSystem : IWorldSystem
 
             var moods = _model.Moods.ToDictionary(m => m.Id, m => m.Baseline, StringComparer.Ordinal);
             var sex = starters[i].Sex == StartInhabitantSex.Female ? "female" : "male";
-            Add(new Inhabitant(id, sex, starters[i].Group, positions[i], needs, moods, traits, _model.WillToLive.Start));
+            var inhabitant = new Inhabitant(id, sex, starters[i].Group, positions[i], needs, moods, traits, _model.WillToLive.Start);
+            if (Looks is { } looks)
+            {
+                // Own stream, not kept among the world's streams: the record is drawn once and saved.
+                inhabitant.Appearance = Appearance.Draw(looks, RandomStreams.Create(world.Seed, $"inhabitant/{id}/appearance"), looks.StartAgeDays);
+            }
+
+            Add(inhabitant);
         }
     }
 
@@ -150,6 +158,9 @@ public sealed class InhabitantsSystem : IWorldSystem
         ArgumentNullException.ThrowIfNull(inhabitant);
         _inhabitants.Add(inhabitant.Id, inhabitant);
     }
+
+    /// <summary>Value ranges for the appearance of new inhabitants (null = no appearance, tests).</summary>
+    public LookAppearance? Looks { get; init; }
 
     /// <summary>Looks up an inhabitant.</summary>
     public Inhabitant Get(string id) => _inhabitants[id];

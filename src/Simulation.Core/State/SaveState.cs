@@ -22,7 +22,8 @@ public sealed record SavedInhabitant(
     long NeglectTicks,
     Activity? Activity,
     Activity? Planned,
-    IReadOnlyList<SavedBelief> Beliefs);
+    IReadOnlyList<SavedBelief> Beliefs,
+    Appearance? Appearance = null);
 
 /// <summary>An open question as saved.</summary>
 public sealed record SavedQuestion(string Id, string InhabitantId, string Kind, string Subject, string RequestId, long AskedTick, IReadOnlyList<SavedOption> Options, long? RetryAtTick);
@@ -81,7 +82,8 @@ public static class StateCodec
                 i.NeglectTicks,
                 i.Activity,
                 i.Planned,
-                [.. i.Beliefs.All.Select(b => new SavedBelief(b.TypeId, b.PropertyId, b.Belief.Value, b.Belief.Confidence))]))],
+                [.. i.Beliefs.All.Select(b => new SavedBelief(b.TypeId, b.PropertyId, b.Belief.Value, b.Belief.Confidence))],
+                i.Appearance))],
             counter,
             [.. questions.Select(q => new SavedQuestion(q.Id, q.InhabitantId, q.Kind, q.Subject, q.RequestId, q.AskedTick, [.. q.Options.Select(o => new SavedOption(o.OptionId, o.Action, o.TargetId))], q.RetryAtTick))],
             lastAsked,
@@ -141,6 +143,7 @@ public static class StateCodec
                 NeglectTicks = saved.NeglectTicks,
                 Activity = saved.Activity,
                 Planned = saved.Planned,
+                Appearance = saved.Appearance,
             };
             foreach (var belief in saved.Beliefs)
             {

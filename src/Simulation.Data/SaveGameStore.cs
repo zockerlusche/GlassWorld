@@ -188,6 +188,13 @@ public static class SaveGameStore
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("occurrences", JsonSerializer.Serialize(s.Occurrences ?? [])));
         }
 
+        // Appearance records (B2 R27) as one JSON object by inhabitant id; older saves have none.
+        var appearances = s.Inhabitants.Where(i => i.Appearance is not null).ToDictionary(i => i.Id, i => i.Appearance!, StringComparer.Ordinal);
+        if (appearances.Count > 0)
+        {
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("appearances", JsonSerializer.Serialize(appearances, Json)));
+        }
+
         if (s.Player is not null)
         {
             // Player part (B6) as one JSON value; doubles round-trip exactly, so the hash survives.
@@ -317,6 +324,9 @@ public static class SaveGameStore
         var beliefs = Query(c, "SELECT inhabitant, type, property, value, confidence FROM beliefs ORDER BY inhabitant, type, property",
                 r => (Inhabitant: r.GetString(0), Belief: new SavedBelief(r.GetString(1), r.GetString(2), r.GetInt64(3) != 0, r.GetDouble(4))))
             .ToLookup(x => x.Inhabitant, x => x.Belief, StringComparer.Ordinal);
+        var appearances = meta.TryGetValue("appearances", out var appearanceJson)
+            ? JsonSerializer.Deserialize<Dictionary<string, Appearance>>(appearanceJson, Json) ?? []
+            : [];
         return new SaveState(
             ulong.Parse(meta["seed"], CultureInfo.InvariantCulture),
             long.Parse(meta["tick"], CultureInfo.InvariantCulture),
@@ -337,7 +347,8 @@ public static class SaveGameStore
                     r.GetInt64(6),
                     r.IsDBNull(10) ? null : JsonSerializer.Deserialize<Activity>(r.GetString(10), Json),
                     r.IsDBNull(11) ? null : JsonSerializer.Deserialize<Activity>(r.GetString(11), Json),
-                    [.. beliefs[r.GetString(0)]])),
+                    [.. beliefs[r.GetString(0)]],
+                    appearances.GetValueOrDefault(r.GetString(0)))),
             long.Parse(meta["question_counter"], CultureInfo.InvariantCulture),
             Query(c, "SELECT data FROM questions ORDER BY id", r => JsonSerializer.Deserialize<SavedQuestion>(r.GetString(0))!),
             Query(c, "SELECT key, tick FROM last_asked ORDER BY key", r => new KeyValuePair<string, long>(r.GetString(0), r.GetInt64(1))),

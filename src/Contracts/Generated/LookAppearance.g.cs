@@ -163,5 +163,17 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("elder_hair_colors")]
         public System.Collections.Generic.ICollection<string> ElderHairColors { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
+        /// <summary>
+        /// Age in days of the start inhabitants; the age stage follows from age_stages (ageing comes with B9).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("start_age_days")]
+        public int StartAgeDays { get; set; } = default!;
+
+        /// <summary>
+        /// Chance that an inhabitant gets one body shape from shapes (in the shape's range).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("shape_chance_permille")]
+        public int ShapeChancePermille { get; set; } = default!;
+
     }
 }

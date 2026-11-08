@@ -70,6 +70,9 @@ public sealed class Inhabitant
     /// </summary>
     public Activity? Planned { get; internal set; }
 
+    /// <summary>How the inhabitant looks (B2 R27); null only in worlds built without look data (tests).</summary>
+    public Appearance? Appearance { get; set; }
+
     /// <summary>Writes the complete state in canonical order.</summary>
     public void WriteState(StateHasher hasher)
     {
@@ -81,6 +84,8 @@ public sealed class Inhabitant
         Beliefs.WriteState(hasher);
         WriteActivity(hasher, Activity);
         WriteActivity(hasher, Planned);
+        hasher.Write(Appearance is not null);
+        Appearance?.WriteState(hasher);
     }
 
     private static void WriteActivity(StateHasher hasher, Activity? activity)
