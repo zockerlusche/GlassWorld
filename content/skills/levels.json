@@ -1,0 +1,7 @@
+{
+  "contract_version": "0.2",
+  "talent_min": 0.5,
+  "talent_max": 1.5,
+  "forget_per_day": 0.001,
+  "max_level": 1.0
+}

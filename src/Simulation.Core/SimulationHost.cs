@@ -168,6 +168,10 @@ public sealed class SimulationHost
         inhabitants.Reported += chronicle.Observe;
         var skills = new SkillRegister(content.InhabitantModel.Skills, content.InhabitantModel.SkillRules, content.SkillPractice);
 
+        // Skill levels per inhabitant (B5 part): finished actions practise their skills.
+        var skillLevels = new SkillLevelsSystem(content.SkillLevels, skills, world.Seed, world.Calendar.TicksPerDay);
+        inhabitants.Reported += skillLevels.Observe;
+
         // New skills of an approved invention enter the register right away (refused ones are dropped, the invention stays).
         inhabitants.Reported += e =>
         {
@@ -192,11 +196,12 @@ public sealed class SimulationHost
         decisions.RegisterCommand(Simulation.Player.MailboxSystem.Acknowledge, mailbox.Check, mailbox.Apply);
 
         // The mailbox after the chronicle (agreed order): help_needed is reported by the player system earlier in the tick.
-        world.Add(objects).Add(decisions).Add(inhabitants).Add(player).Add(inventions).Add(chronicle).Add(writing).Add(skills).Add(mailbox);
+        world.Add(objects).Add(decisions).Add(inhabitants).Add(player).Add(inventions).Add(chronicle).Add(writing).Add(skills).Add(skillLevels).Add(mailbox);
         return new SimulationHost(content, world, map, types, objects, decisions, inhabitants, player, inventions, chronicle, settings, writing, skills, mailbox)
         {
             WeatherSystem = weather,
             Weather = weather,
+            SkillLevels = skillLevels,
         };
     }
 
@@ -274,6 +279,9 @@ public sealed class SimulationHost
 
     /// <summary>The weather system itself (save games, debug jumps, player intervention); null without weather.</summary>
     public Weather.WeatherSystem? WeatherSystem { get; private init; }
+
+    /// <summary>Skill levels per inhabitant (start level, talent, practice; B5 part).</summary>
+    public SkillLevelsSystem SkillLevels { get; private init; } = null!;
 
     private static Position Scatter(Random.Pcg32 rng, Position centre, double radius) =>
         new(centre.X + (((rng.NextDouble() * 2.0) - 1.0) * radius), centre.Z + (((rng.NextDouble() * 2.0) - 1.0) * radius));

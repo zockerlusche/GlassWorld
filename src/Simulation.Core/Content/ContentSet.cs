@@ -109,6 +109,9 @@ public sealed class ContentSet
     /// <summary>Which action practises which skill (content/skills/practice.json, B5 R18).</summary>
     public SkillPractice SkillPractice { get; }
 
+    /// <summary>Talent, forgetting and maximum of skill levels per inhabitant (content/skills/levels.json).</summary>
+    public SkillLevelSettings SkillLevels { get; init; } = new();
+
     /// <summary>Loads and checks the content folder.</summary>
     public static ContentSet Load(string contentDirectory)
     {
@@ -178,6 +181,7 @@ public sealed class ContentSet
             skillPractice,
             ContractSerializer.Deserialize<MessageKinds>(File.ReadAllText(Path.Combine(player, "message_kinds.json"))))
         {
+            SkillLevels = LoadSkillLevels(contentDirectory),
             Appearance = LoadAppearance(contentDirectory),
             Gaits = GaitTable.Create(
                 ContractSerializer.Deserialize<GaitSettings>(File.ReadAllText(Path.Combine(contentDirectory, "behaviour", "gaits.json"))),
@@ -225,6 +229,17 @@ public sealed class ContentSet
         {
             throw new InvalidDataException("Writing media: " + string.Join("; ", problems) + ".");
         }
+    }
+
+    private static SkillLevelSettings LoadSkillLevels(string contentDirectory)
+    {
+        var levels = ContractSerializer.Deserialize<SkillLevelSettings>(File.ReadAllText(Path.Combine(contentDirectory, "skills", "levels.json")));
+        if (levels.TalentMin > levels.TalentMax)
+        {
+            throw new InvalidDataException($"Skill levels: talent_min {levels.TalentMin} above talent_max {levels.TalentMax}.");
+        }
+
+        return levels;
     }
 
     /// <summary>The register names every skill of the vocabulary once; practice uses known actions and skills (A1372).</summary>

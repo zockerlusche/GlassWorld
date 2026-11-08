@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/skill-levels.schema.json",
+  "title": "SkillLevelSettings",
+  "description": "Skill levels per inhabitant (B5 part, TL #19589): every inhabitant has, per skill of the register, a start level (from the register's range) and a talent, both drawn once from the world seed; practice (skills/practice.json) adds gain x talent when an action finishes, up to max_level; unpractised gains fade by forget_per_day. Values are placeholders until Marcel's word.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "talent_min",
+    "talent_max",
+    "forget_per_day",
+    "max_level"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "talent_min": {
+      "description": "Smallest talent: practice gain is multiplied by it.",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 5
+    },
+    "talent_max": {
+      "description": "Largest talent (at least talent_min).",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 5
+    },
+    "forget_per_day": {
+      "description": "Practised level lost per game day (never below the start level).",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "max_level": {
+      "description": "Highest level a skill can reach.",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    }
+  }
+}
