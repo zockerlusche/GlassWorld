@@ -1,0 +1,25 @@
+{
+  "contract_version": "0.2",
+  "state": "halfway",
+  "error": null,
+  "result": {
+    "measured_at": 1794189600,
+    "tier": "standard",
+    "gpu": "NVIDIA GeForce RTX 3080",
+    "vram_mib": 10240,
+    "answer_tokens": 128,
+    "language": {
+      "model": "qwen3.5:9b",
+      "load_s": 6.2,
+      "seconds_per_job": 2.9,
+      "tokens_per_s": 44.1
+    },
+    "image": {
+      "model": "z-image-turbo",
+      "load_s": 9.8,
+      "seconds_per_job": 10.2,
+      "tokens_per_s": null
+    },
+    "sound": null
+  }
+}

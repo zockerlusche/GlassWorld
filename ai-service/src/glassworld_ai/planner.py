@@ -59,6 +59,16 @@ class Planner:
         self._night_started: float | None = None
         self.done_tonight = 0
         self._last_tick = -1
+        self._job_seconds: dict[str, float] = {}  # by model, from the measurement run (B7 S7)
+        self.measuring = False  # the measurement run holds the card (B7 S7)
+
+    def set_job_seconds(self, seconds: dict[str, float]) -> None:
+        """Measured seconds per job by model (B7 S7); used for the night budget."""
+        self._job_seconds = dict(seconds)
+
+    def expected_s(self, kind: str) -> float:
+        model = self.model_of(kind)
+        return self._job_seconds.get(model, 0.0) if model is not None else 0.0
 
     def change(self, phase: str, tick: int) -> bool:
         """Apply a phase change from the core; idempotent (review GW1 P2).
@@ -99,7 +109,10 @@ class Planner:
         """May a job of this kind start now?"""
         if not self.night_only(kind):
             return True
-        return self.phase == "night" and self.budget_left_s() > 0
+        # A night job starts only if its measured time still fits into the budget (B7 S7);
+        # unmeasured kinds need only some budget left.
+        left = self.budget_left_s()
+        return self.phase == "night" and left > 0 and left >= self.expected_s(kind)
 
     async def prepare(self, kind: str) -> None:
         """Make the kind's model resident before the job runs (no-op without model or residency)."""
@@ -130,6 +143,8 @@ class Planner:
     def language_model_blocked(self) -> bool:
         """Review GW1 P1: a decision must not load the language model next to a night model that
         must not share the card (e.g. sound). Then the core stays in routine mode for a moment."""
+        if self.measuring:
+            return True  # the measurement run loads and unloads models one after the other
         model = self.model_of("question")
         residency = self._residency()
         if model is None or residency is None or not residency.knows(model):

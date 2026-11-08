@@ -43,6 +43,15 @@ class Settings(BaseSettings):
         description="VRAM/load time per model (content/hardware/models.json, B7 S2).",
     )
 
+    # Measurement run (B7 S7)
+    benchmark_file: Path = Field(description="Saved result of the measurement run.")
+    benchmark_on_first_start: bool = Field(
+        default=False, description="Measure once after the first start (the game turns it on)."
+    )
+    benchmark_answer_tokens: int = Field(
+        default=128, ge=16, le=2048, description="Tokens of the language model's test answer."
+    )
+
     # Image jobs (B7 S5)
     image_backend: Literal["mock", "comfyui"] = Field(
         default="mock", description="comfyui = the local image model, mock = a plain picture."
@@ -155,6 +164,7 @@ def load_settings(config_file: Path | None = None) -> Settings:
         "model_footprints_file",
         "night_plan_file",
         "image_output_dir",
+        "benchmark_file",
         "image_workflows_dir",
     ):
         value: Path = getattr(settings, name)

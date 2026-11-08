@@ -110,6 +110,7 @@ class JobRunner:
         self, handlers: Mapping[str, Handler], capacity: int, gate: Gate | None = None
     ) -> None:
         self._gate = gate
+        self._held = False
         self._handlers = dict(handlers)
         self._capacity = capacity
         self._records: dict[str, _Record] = {}
@@ -121,6 +122,9 @@ class JobRunner:
     def register(self, kind: str, handler: Handler) -> None:
         """Add the handler of a kind that needs resources from the app start (model client)."""
         self._handlers[kind] = handler
+
+    def handler(self, kind: str) -> Handler | None:
+        return self._handlers.get(kind)
 
     def supports(self, kind: str) -> bool:
         return kind in self._handlers
@@ -156,6 +160,14 @@ class JobRunner:
                 record.state = "queued"
             elif record.state == "queued":
                 self._defer_if_waiting(record)
+        self._wake()
+
+    def hold(self) -> None:
+        """No new job starts until resume() (the measurement run, B7 S7); a running one ends."""
+        self._held = True
+
+    def resume(self) -> None:
+        self._held = False
         self._wake()
 
     def counts(self) -> dict[str, int]:
@@ -222,6 +234,8 @@ class JobRunner:
         self._worker = asyncio.get_running_loop().create_task(self._drain())
 
     def _next(self) -> _Record | None:
+        if self._held:
+            return None
         queued = [r for r in self._records.values() if r.state == "queued"]
         for record in queued:  # e.g. the night budget ran out meanwhile
             self._defer_if_waiting(record)

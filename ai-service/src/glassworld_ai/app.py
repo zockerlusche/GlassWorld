@@ -16,6 +16,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, Response
 
 from glassworld_ai import SERVICE_VERSION
+from glassworld_ai.benchmark import Benchmark, HandlerProbe, OllamaLanguageProbe
 from glassworld_ai.calllog import CallLog
 from glassworld_ai.config import Settings
 from glassworld_ai.decider.backends import (
@@ -136,6 +137,15 @@ def create_app(
             if settings.warm_up and settings.decider_backend == "ollama":
                 app.state.warm_up = "starting"
                 warm_task = asyncio.create_task(_warm_up(app, ollama, settings.warm_up_retry_s))
+            app.state.benchmark = _build_benchmark(settings, client, app)
+            first_run: asyncio.Task[None] | None = None
+            if (
+                settings.benchmark_on_first_start
+                and app.state.benchmark.state == "none"
+                and app.state.benchmark.available
+                and getattr(app.state, "tier", None) is not None
+            ):
+                first_run = asyncio.create_task(_first_benchmark(app, warm_task))
             if on_started is not None:
                 on_started()
             try:
@@ -149,6 +159,11 @@ def create_app(
                 # the queue (waiting calls end at once, nothing reloads the model), then unload.
                 app.state.stopping = True
                 await app.state.queue.close()
+                if first_run is not None:
+                    first_run.cancel()
+                    with contextlib.suppress(asyncio.CancelledError):
+                        await first_run
+                await app.state.benchmark.close()
                 await app.state.jobs.close()
                 with contextlib.suppress(ResidencyError):
                     await app.state.residency.release_all()  # also image/sound models (R3)
@@ -194,6 +209,19 @@ def create_app(
                 settings.model3d_backend,
             ),
         )
+    # Without the model clients (tests, before the lifespan) the run has nothing to measure.
+    app.state.benchmark = Benchmark(
+        store=settings.benchmark_file,
+        runner=app.state.jobs,
+        residency=lambda: None,
+        hardware=lambda: (None, "", 0),
+        answer_tokens=settings.benchmark_answer_tokens,
+        language=None,
+        image=None,
+        sound=None,
+        on_result=planner.set_job_seconds,
+        restore=_nothing,
+    )
     if job_handlers is None and settings.image_backend == "mock":
         planner.release("image")
         app.state.jobs.register(
@@ -359,6 +387,24 @@ def create_app(
     @app.get("/phase")
     async def phase_status() -> Response:
         return JSONResponse(_phase_status().model_dump(mode="json"))
+
+    @app.get("/benchmark")
+    async def benchmark_status() -> Response:
+        """B7 S7: the measurement run's state and last result."""
+        return JSONResponse(app.state.benchmark.status().model_dump(mode="json"))
+
+    @app.post("/benchmark")
+    async def benchmark_start() -> Response:
+        """Measure again (or for the first time); runs in the background, poll GET /benchmark."""
+        run: Benchmark = app.state.benchmark
+        if not run.available:
+            return error_response(
+                "model_unavailable", "No local model to measure (mock backends).", retryable=False
+            )
+        if app.state.stopping:
+            return error_response("model_unavailable", "Service is stopping.")
+        run.start()
+        return JSONResponse(run.status().model_dump(mode="json"), status_code=202)
 
     @app.get("/jobs/{job_id}")
     async def job_status(job_id: str) -> Response:
@@ -589,6 +635,119 @@ def _sound_handler(settings: Settings) -> Handler:
 
 def _text_guard(settings: Settings) -> TextGuard:
     return TextGuard.from_file(settings.content_dir / "safety" / "rules.json")
+
+
+async def _nothing() -> None:
+    return None
+
+
+async def _first_benchmark(app: FastAPI, warm_task: asyncio.Task[None] | None) -> None:
+    """Measure once after the first start, when the warm-up is over (B7 R6)."""
+    if warm_task is not None:
+        with contextlib.suppress(Exception):
+            await warm_task
+    run: Benchmark = app.state.benchmark
+    run.start()
+
+
+def _bench_job(kind: str, payload: dict[str, object], seed: int) -> GenerationJob:
+    return GenerationJob.model_validate(
+        {
+            "contract_version": CONTRACT_VERSION,
+            "request_id": BENCH_IDS[kind],
+            "tick": 0,
+            "seed": seed,
+            "display_locale": "en",
+            "kind": kind,
+            "priority": 0,
+            "inhabitant": None,
+            "object": None,
+            "payload": {kind: payload},
+        }
+    )
+
+
+BENCH_IDS = {
+    "image": "00000000-0000-8000-8000-0000000b0001",
+    "sound": "00000000-0000-8000-8000-0000000b0002",
+}
+
+
+def _build_benchmark(settings: Settings, client: httpx.AsyncClient, app: FastAPI) -> Benchmark:
+    """The measurement run with probes for the models this PC really uses (B7 S7)."""
+    runner: JobRunner = app.state.jobs
+    planner: Planner = app.state.planner
+    tier: str | None = getattr(app.state, "tier", None)
+    language = (
+        OllamaLanguageProbe(
+            str(settings.ollama_url), client, settings.decider_model, settings.keep_alive
+        )
+        if settings.decider_backend == "ollama"
+        else None
+    )
+    image: HandlerProbe | None = None
+    image_handler = runner.handler("image")
+    plans = load_image_settings(settings.content_dir).by_tier
+    plan = plans.get(tier) if tier is not None else None
+    if settings.image_backend == "comfyui" and image_handler is not None and plan is not None:
+        width, height = load_image_settings(settings.content_dir).sizes["icon"]
+        image_payload: dict[str, object] = {
+            "subject": "a round clay bowl",
+            "purpose": "icon",
+            "style": "warm_comic",
+            "width": width,
+            "height": height,
+            "object_type": None,
+        }
+        image = HandlerProbe(
+            plan.model, image_handler, lambda seed: _bench_job("image", image_payload, seed)
+        )
+    sound: HandlerProbe | None = None
+    sound_handler = runner.handler("sound")
+    if settings.sound_backend == "moss" and sound_handler is not None:
+        generation = json.loads(
+            (settings.content_dir / "sound" / "generation.json").read_text(encoding="utf-8")
+        )
+        sound_payload: dict[str, object] = {
+            "description": "wooden door creaks",
+            "kind": "one_shot",
+            "seconds": generation["seconds"]["one_shot"],
+            "steps": generation["default_steps"],
+            "object_type": None,
+        }
+        sound = HandlerProbe(
+            "moss-sound", sound_handler, lambda seed: _bench_job("sound", sound_payload, seed)
+        )
+
+    def hardware() -> tuple[str | None, str, int]:
+        info: HardwareInfo | None = getattr(app.state, "hardware", None)
+        if info is None or not info.gpus:
+            return tier, "", 0
+        largest = max(info.gpus, key=lambda g: g.vram_mib)
+        return tier, largest.name, largest.vram_mib
+
+    async def restore() -> None:
+        residency: Residency | None = getattr(app.state, "residency", None)
+        model = settings.decider_model
+        if planner.phase == "day" and residency is not None and residency.knows(model):
+            await residency.ensure(model)  # the language model back for the day
+
+    def measuring(on: bool) -> None:
+        planner.measuring = on
+
+    return Benchmark(
+        store=settings.benchmark_file,
+        runner=runner,
+        residency=lambda: getattr(app.state, "residency", None),
+        hardware=hardware,
+        answer_tokens=settings.benchmark_answer_tokens,
+        language=language,
+        image=image,
+        sound=sound,
+        on_result=planner.set_job_seconds,
+        restore=restore,
+        measuring=measuring,
+    )
 
 
 def _image_tier(app: FastAPI) -> Callable[[], str | None]:
