@@ -14,13 +14,15 @@ namespace GlassWorld.Simulation.Inventions;
 /// <param name="Processes">Process vocabulary (steps).</param>
 /// <param name="TechLevels">Tech levels in their order (vocabulary order).</param>
 /// <param name="Guard">Content guard for generated names (B2466).</param>
+/// <param name="Build">Construction kit, build settings and compute-night phases (D471 stages 4, 5, 7).</param>
 public sealed record InventionRules(
     InventionSettings Settings,
     FrozenSet<string> Properties,
     FrozenSet<string> Actions,
     FrozenSet<string> Processes,
     IReadOnlyList<string> TechLevels,
-    TextGuard Guard);
+    TextGuard Guard,
+    BuildRules Build);
 
 /// <summary>
 /// The core's final, deterministic check of an AI invention (ADR-0005: the AI proposes, the core decides).

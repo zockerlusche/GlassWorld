@@ -77,7 +77,9 @@ public sealed class InventionTests : IDisposable
 
         var typeId = InventionSystem.TypeIdFor(job.RequestId);
         Assert.True(host.Types.Contains(typeId));
-        Assert.Equal(introduces.Order(StringComparer.Ordinal), host.Types.TrueProperties(typeId).Order(StringComparer.Ordinal));
+        // Its own properties plus those every invention has (implied_properties, data).
+        var expected = introduces.Concat(Content.Value.Inventions.Settings.ImpliedProperties).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal);
+        Assert.Equal(expected, host.Types.TrueProperties(typeId).Order(StringComparer.Ordinal));
         var info = Assert.IsType<InventionInfo>(host.Inventions.Invention(typeId));
         Assert.Equal(host.Inhabitants.All.Single().Id, info.InhabitantId);
         Assert.Empty(host.Inventions.Wants);

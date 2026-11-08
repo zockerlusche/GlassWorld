@@ -1,0 +1,381 @@
+using GlassWorld.Contracts;
+using GlassWorld.Contracts.Validation;
+using GlassWorld.Simulation.Content;
+using GlassWorld.Simulation.Data;
+using GlassWorld.Simulation.Decisions;
+using GlassWorld.Simulation.Inhabitants;
+using GlassWorld.Simulation.Inventions;
+using GlassWorld.Simulation.Objects;
+using GlassWorld.Simulation.State;
+
+namespace GlassWorld.Simulation.Tests;
+
+/// <summary>
+/// D471 D5 part 2: approved invention → build_plan job → the core's plan check (B4b R14) → building step
+/// by step with materials from perception → the object stands → first use; save, load, replay; compute
+/// night signal. Inventions and plans are test data built from the contract examples.
+/// </summary>
+public sealed class BuildingTests : IDisposable
+{
+    private const string Need = "thirst";
+    // A copy of the content in which the inventor builds even while thirsty (min_need_to_build 0), so no
+    // test has to change the world from outside and every run can be replayed from seed and logs.
+    private static readonly Lazy<string> EagerContent = new(CopyContentBuildingAlways);
+    private static readonly Lazy<ContentSet> Content = new(() => ContentSet.Load(EagerContent.Value));
+
+    // Test data from the start catalogue: the invention is made of the first, its step of the last.
+    private static readonly string[] NearbyTypes = ["flint", "dry_grass", "pyrite"];
+
+    private readonly string _directory = Path.Combine(Path.GetTempPath(), "glassworld-tests-" + Path.GetRandomFileName());
+
+    public BuildingTests() => Directory.CreateDirectory(_directory);
+
+    public void Dispose() => Directory.Delete(_directory, recursive: true);
+
+    [Fact]
+    public void AnApprovedInventionAsksForAPlanWithTheConstructionKit()
+    {
+        var (host, port, typeId) = Invented(21);
+        var planJob = Assert.Single(port.Submitted, j => j.Kind == JobKind.Build_plan);
+        var kit = Content.Value.Inventions.Build.Kit;
+        Assert.Equal(kit.Shapes, planJob.Payload.BuildPlan!.Shapes);
+        Assert.Equal(kit.Colors.Select(c => c.Id), planJob.Payload.BuildPlan.Colors);
+        Assert.Equal(Math.Min(kit.MaxParts, Content.Value.Inventions.Settings.Limits.MaxParts), planJob.Payload.BuildPlan.MaxParts);
+        Assert.Equal(host.Inventions.Invention(typeId)!.Name.De, planJob.Payload.BuildPlan.Invention.Name.De);
+        Assert.Contains(host.Inventions.Log.Entries, e => e.Kind == DecisionLogKind.JobRequest && e.RequestId == planJob.RequestId);
+    }
+
+    [Fact]
+    public void TheInventorBuildsStepByStepUsesUpTheMaterialAndTheObjectStands()
+    {
+        var (host, port, typeId) = Invented(22);
+        var events = Record(host);
+        AnswerPlan(port, Plan());
+        RunUntil(host, () => host.Inventions.Builds.Single().BuiltObjectId is not null, 3000);
+
+        var task = host.Inventions.Builds.Single();
+        Assert.True(host.Objects.TryGet(task.BuiltObjectId!, out var built));
+        Assert.Equal(typeId, built.TypeId);
+        Assert.Equal(new Position(task.SiteX, task.SiteZ), built.Position);
+        Assert.DoesNotContain(host.Objects.All, o => o.TypeId == NearbyTypes[0]);
+        Assert.DoesNotContain(host.Objects.All, o => o.TypeId == NearbyTypes[^1]);
+        Assert.Contains(host.Objects.All, o => o.TypeId == NearbyTypes[1]);
+        Assert.Equal(["1", "2"], events.Where(e => e.Kind == InventionSystem.BuildStep).Select(e => e.Action));
+        Assert.Single(events, e => e.Kind == InventionSystem.Built && e.TargetId == built.Id);
+        Assert.Single(events, e => e.Kind == InventionSystem.BuildPlanned && e.TargetId == typeId);
+    }
+
+    [Fact]
+    public void WithoutMaterialInSightTheBuildingWaitsAndGoesOnWhenItAppears()
+    {
+        var (host, port, _) = Invented(23);
+        var stepMaterial = host.Objects.All.Single(o => o.TypeId == NearbyTypes[^1]);
+        host.Objects.Remove(stepMaterial.Id);
+        AnswerPlan(port, Plan());
+        RunUntil(host, () => host.Inventions.Builds.Single().StepsDone == 1, 3000);
+
+        host.World.Run(host.World.Calendar.Settings.TicksPerHour * 6);
+        var waiting = host.Inventions.Builds.Single();
+        Assert.Equal(1, waiting.StepsDone);
+        Assert.Null(waiting.BuiltObjectId);
+        Assert.Null(waiting.PendingObjectId);
+
+        host.Objects.Spawn(NearbyTypes[^1], stepMaterial.Position);
+        RunUntil(host, () => host.Inventions.Builds.Single().BuiltObjectId is not null, 3000);
+    }
+
+    [Fact]
+    public void TheFirstUseOfAnInventionIsAChronicleEventOnlyOnce()
+    {
+        var (host, port, typeId) = Invented(24);
+        AnswerPlan(port, Plan());
+        RunUntil(host, () => host.Inventions.Builds.Single().BuiltObjectId is not null, 3000);
+        var built = host.Inventions.Builds.Single().BuiltObjectId!;
+        var inhabitant = host.Inhabitants.All.Single();
+        var use = Content.Value.Inventions.Build.Settings.UseAction;
+
+        for (var round = 0; round < 2; round++)
+        {
+            host.Objects.TryGet(built, out var obj);
+            inhabitant.Planned = new Activity(use, built, obj.Position, null);
+            var before = host.Chronicle.All.Count;
+            RunUntil(host, () => inhabitant.Planned is null && inhabitant.Activity?.Action != use, 2000);
+            if (round == 0)
+            {
+                var entry = Assert.Single(host.Chronicle.All.Skip(before));
+                Assert.Equal((InventionSystem.FirstUse, inhabitant.Id, built), (entry.Kind, entry.InhabitantId, entry.TargetId));
+            }
+            else
+            {
+                Assert.DoesNotContain(host.Chronicle.All.Skip(before), e => e.Kind == InventionSystem.FirstUse);
+            }
+        }
+
+        Assert.Equal([typeId], host.Inventions.FirstUsed);
+    }
+
+    [Fact]
+    public void ThePlanCheckRefusesWhatTheKitAndTheInventionForbid()
+    {
+        var rules = Content.Value.Inventions;
+        var invention = Invention();
+        var maxParts = rules.Settings.Limits.MaxParts;
+        Assert.Empty(BuildPlanCheck.Check(Plan(), invention, rules.Build.Kit, rules.Build.Settings, maxParts));
+
+        Assert.Contains(BuildPlanCheck.PartCount, Check(p => p.Parts = [p.Parts.First()]));
+        Assert.Contains(BuildPlanCheck.PartCount, Check(p => p.Parts = [.. Enumerable.Repeat(p.Parts.First(), maxParts + 1)]));
+        Assert.Contains(BuildPlanCheck.UnknownShape, Check(p => p.Parts.First().Shape = "no_such_shape"));
+        Assert.Contains(BuildPlanCheck.UnknownColor, Check(p => p.Parts.First().Color = "no_such_colour"));
+        Assert.Contains(BuildPlanCheck.MaterialNotInInvention, Check(p => p.Parts.First().Material = NearbyTypes[1]));
+        Assert.Contains(BuildPlanCheck.StepsNotContinuous, Check(p => p.Parts.Last().Step = 3));
+        Assert.Contains(BuildPlanCheck.PartTooLarge, Check(p => p.Parts.First().SizeM.X = rules.Build.Kit.MaxPartSizeM * 2));
+        Assert.Contains(BuildPlanCheck.OutOfBounds, Check(p => p.Parts.Last().PositionM.X = invention.SizeM.X * 3));
+
+        IReadOnlyList<string> Check(Action<BuildPlan> change)
+        {
+            var plan = Plan();
+            change(plan);
+            return BuildPlanCheck.Check(plan, invention, rules.Build.Kit, rules.Build.Settings, maxParts);
+        }
+    }
+
+    [Fact]
+    public void ARefusedPlanIsAskedForAgainAndAfterTheLastAttemptTheInventionStaysUnbuilt()
+    {
+        var (host, port, typeId) = Invented(25);
+        var settings = Content.Value.Inventions.Build.Settings;
+        var events = Record(host);
+        var bad = Plan();
+        bad.Parts.First().Material = NearbyTypes[1];
+        for (var attempt = 1; attempt <= settings.MaxPlanAttempts; attempt++)
+        {
+            AnswerPlan(port, bad);
+            host.World.Step();
+            if (attempt < settings.MaxPlanAttempts)
+            {
+                RunUntil(host, () => port.Submitted.Count(j => j.Kind == JobKind.Build_plan) == attempt + 1, 2000);
+            }
+        }
+
+        var task = host.Inventions.Builds.Single();
+        Assert.True(task.GaveUp);
+        Assert.Null(task.PlanJson);
+        Assert.Equal(settings.MaxPlanAttempts, events.Count(e => e.Kind == InventionSystem.BuildPlanRejected));
+        Assert.Single(events, e => e.Kind == InventionSystem.BuildFailed && e.TargetId == typeId);
+        Assert.Equal(settings.MaxPlanAttempts, port.Submitted.Select(j => j.RequestId).Distinct().Count(id => port.Submitted.Single(j => j.RequestId == id).Kind == JobKind.Build_plan));
+    }
+
+    [Fact]
+    public void SaveAndLoadDuringTheBuildingGiveTheSameHashAndTheSameBuilding()
+    {
+        var (host, port, _) = Invented(26);
+        AnswerPlan(port, Plan());
+        RunUntil(host, () => host.Inventions.Builds.Single().StepsDone == 1, 3000);
+        var path = Path.Combine(_directory, "building.db");
+        SaveGameStore.Save(path, StateCodec.Capture(host));
+        Assert.Equal(host.World.StateHash(), Restore(path, host).World.StateHash());
+
+        RunUntil(host, () => host.Inventions.Builds.Single().BuiltObjectId is not null, 3000);
+        var loaded = Restore(path, host);
+        loaded.World.Run(host.World.Tick - loaded.World.Tick);
+        Assert.Equal(host.Inventions.Builds, loaded.Inventions.Builds);
+        Assert.Equal(host.World.StateHash(), loaded.World.StateHash());
+    }
+
+    [Fact]
+    public void AReplayFromSeedAndLogsBuildsTheSame()
+    {
+        var (original, port, _) = Invented(27);
+        AnswerPlan(port, Plan());
+        RunUntil(original, () => original.Inventions.Builds.Single().BuiltObjectId is not null, 3000);
+
+        var replay = World(new ReplayJobPort(original.Inventions.Log), 27, new ReplayDecisionPort(original.Decisions.Log));
+        replay.World.Run(original.World.Tick);
+        Assert.Equal(original.World.StateHash(), replay.World.StateHash());
+    }
+
+    [Fact]
+    public void TheComputeNightIsSignalledFromTheCalendar()
+    {
+        var port = new ScriptedJobPort();
+        var host = World(port, 28);
+        host.World.Run(host.World.Calendar.TicksPerDay * 2);
+        var night = Content.Value.Inventions.Build.NightPhases;
+        Assert.True(port.Phases.Count >= 4, $"only {port.Phases.Count} phase signals in two days");
+        Assert.All(port.Phases.Zip(port.Phases.Skip(1)), p => Assert.NotEqual(p.First.Phase, p.Second.Phase));
+        foreach (var (phase, tick) in port.Phases)
+        {
+            var isNight = night.Contains(host.World.Calendar.At(tick).Phase.ToString().ToLowerInvariant());
+            Assert.Equal(isNight ? JobPhase.Night : JobPhase.Day, phase);
+        }
+    }
+
+    [Fact]
+    public void TheDeciderNeverOffersTheBuildingStep()
+    {
+        var step = Content.Value.Inventions.Build.Settings.StepAction;
+        Assert.Contains(step, Content.Value.Actions.Actions);
+        Assert.DoesNotContain(step, Content.Value.Actions.OfferedActions);
+        Assert.Contains(Content.Value.Inventions.Build.Settings.UseAction, Content.Value.Actions.OfferedActions);
+    }
+
+    // ------------------------------------------------------------------ helpers (test data only)
+
+    private static (SimulationHost Host, ScriptedJobPort Port, string TypeId) Invented(ulong seed)
+    {
+        var port = new ScriptedJobPort();
+        var host = World(port, seed);
+        var limit = (Content.Value.Inventions.Settings.Trigger.HoursBelow + 2) * host.World.Calendar.Settings.TicksPerHour;
+        for (var i = 0; i < limit && port.Submitted.Count == 0; i++)
+        {
+            host.World.Step();
+        }
+
+        var job = Assert.Single(port.Submitted);
+        port.Answer(job, Approved(job));
+        host.World.Step();
+        var typeId = InventionSystem.TypeIdFor(job.RequestId);
+        Assert.True(host.Types.Contains(typeId));
+        return (host, port, typeId);
+    }
+
+    private static SimulationHost World(IJobPort port, ulong seed, IDecisionPort? decisions = null)
+    {
+        var host = SimulationHost.CreateEmpty(EagerContent.Value, seed, decisions ?? new MockDecisionPort(), "de", port);
+        var model = Content.Value.InhabitantModel;
+        var needs = model.Needs.ToDictionary(n => n.Id, n => n.Id == Need ? 0.0 : 1.0, StringComparer.Ordinal);
+        var moods = model.Moods.ToDictionary(m => m.Id, m => m.Baseline, StringComparer.Ordinal);
+        var traits = model.Start.Traits.ToDictionary(t => t.Id, t => (t.Min + t.Max) / 2, StringComparer.Ordinal);
+        host.Inhabitants.Add(new Inhabitant("inh-000001", "female", 1, new Position(0, 0), needs, moods, traits, model.WillToLive.Start));
+        for (var i = 0; i < NearbyTypes.Length; i++)
+        {
+            host.Objects.Spawn(NearbyTypes[i], new Position(1 + i, 0));
+        }
+
+        return host;
+    }
+
+    private static string CopyContentBuildingAlways()
+    {
+        var source = Path.Combine(TestData.Root, "content");
+        var target = Path.Combine(Path.GetTempPath(), "glassworld-building-content-" + Path.GetRandomFileName());
+        foreach (var file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories))
+        {
+            var to = Path.Combine(target, Path.GetRelativePath(source, file));
+            Directory.CreateDirectory(Path.GetDirectoryName(to)!);
+            File.Copy(file, to);
+        }
+
+        var settings = Path.Combine(target, "build", "settings.json");
+        var build = ContractSerializer.Deserialize<BuildSettings>(File.ReadAllText(settings));
+        build.MinNeedToBuild = 0;
+        File.WriteAllText(settings, ContractSerializer.Serialize(build));
+        return target;
+    }
+
+    private static List<WorldEvent> Record(SimulationHost host)
+    {
+        var events = new List<WorldEvent>();
+        host.Inhabitants.Reported += events.Add;
+        return events;
+    }
+
+    private static void RunUntil(SimulationHost host, Func<bool> done, int maxTicks)
+    {
+        for (var i = 0; i < maxTicks && !done(); i++)
+        {
+            host.World.Step();
+        }
+
+        Assert.True(done(), "condition not reached");
+    }
+
+    private static void AnswerPlan(ScriptedJobPort port, BuildPlan plan)
+    {
+        var job = port.Submitted.Last(j => j.Kind == JobKind.Build_plan);
+        var example = File.ReadAllText(Path.Combine(TestData.Root, "contracts", "examples", "valid", "job-status.build-plan-bowl.json"));
+        var status = ContractSerializer.Deserialize<JobStatus>(example);
+        status.JobId = job.RequestId;
+        status.Tick = job.Tick;
+        status.Result!.BuildPlan = plan;
+        port.Answer(job, status);
+    }
+
+    /// <summary>Two parts in two steps: the invention's material first, then its step material.</summary>
+    private static BuildPlan Plan()
+    {
+        var kit = Content.Value.Inventions.Build.Kit;
+        var plan = new BuildPlan();
+        for (var i = 0; i < 2; i++)
+        {
+            plan.Parts.Add(new BuildPart
+            {
+                Shape = kit.Shapes.ElementAt(i),
+                SizeM = new SizeM2 { X = 0.3, Y = 0.2, Z = 0.3 },
+                PositionM = new PositionM { X = 0, Y = 0.1 + (0.2 * i), Z = 0 },
+                RotationYDeg = 0,
+                Material = i == 0 ? NearbyTypes[0] : NearbyTypes[^1],
+                Color = kit.Colors.ElementAt(i).Id,
+                Step = i + 1,
+            });
+        }
+
+        return plan;
+    }
+
+    private static Invention Invention()
+    {
+        var example = File.ReadAllText(Path.Combine(TestData.Root, "contracts", "examples", "valid", "job-status.invention-approved.json"));
+        var invention = ContractSerializer.Deserialize<JobStatus>(example).Result!.Invention!.Invention!;
+        invention.Materials = [NearbyTypes[0]];
+        foreach (var step in invention.Steps)
+        {
+            step.Materials = [NearbyTypes[^1]];
+        }
+
+        invention.Introduces = ["container"];
+        invention.TechLevel = Content.Value.Inventions.Settings.TechLevel;
+        invention.SizeM.X = invention.SizeM.Y = invention.SizeM.Z = Content.Value.Inventions.Settings.Limits.MaxSizeM / 2;
+        return invention;
+    }
+
+    private static JobStatus Approved(GenerationJob job)
+    {
+        var example = File.ReadAllText(Path.Combine(TestData.Root, "contracts", "examples", "valid", "job-status.invention-approved.json"));
+        var status = ContractSerializer.Deserialize<JobStatus>(example);
+        status.JobId = job.RequestId;
+        status.Tick = job.Tick;
+        status.Result!.Invention!.Invention = Invention();
+        return status;
+    }
+
+    private static SimulationHost Restore(string path, SimulationHost original)
+    {
+        var settings = ContractSerializer.Deserialize<DeciderSettings>(File.ReadAllText(Path.Combine(EagerContent.Value, "decider", "settings.json")));
+        var factory = new SimulationHostFactory(ContentSet.Load(EagerContent.Value), settings, new ReplayDecisionPort(original.Decisions.Log), "de", new ReplayJobPort(original.Inventions.Log));
+        return StateCodec.Restore(factory, SaveGameStore.Load(path));
+    }
+
+    /// <summary>Records submitted jobs and phase signals; outcomes are handed in by the test.</summary>
+    private sealed class ScriptedJobPort : IJobPort
+    {
+        private readonly Queue<PortMessage> _ready = new();
+
+        public List<GenerationJob> Submitted { get; } = [];
+
+        public List<(string Phase, long Tick)> Phases { get; } = [];
+
+        public void Submit(string requestId, string jobJson) => Submitted.Add(ContractSerializer.Deserialize<GenerationJob>(jobJson));
+
+        public void Answer(GenerationJob job, JobStatus status) => _ready.Enqueue(new PortMessage(job.RequestId, ContractSerializer.Serialize(status), IsError: false));
+
+        public IReadOnlyList<PortMessage> Receive(long tick)
+        {
+            var ready = _ready.ToList();
+            _ready.Clear();
+            return ready;
+        }
+
+        public void SetPhase(string phase, long tick) => Phases.Add((phase, tick));
+    }
+}

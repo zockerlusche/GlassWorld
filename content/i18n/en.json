@@ -475,6 +475,10 @@
       "text": "Approach"
     },
     {
+      "key": "vocab.action.build_step",
+      "text": "Build"
+    },
+    {
       "key": "vocab.action.combine",
       "text": "Combine"
     },
@@ -525,6 +529,10 @@
     {
       "key": "vocab.action.wander",
       "text": "Wander"
+    },
+    {
+      "key": "vocab.action.use",
+      "text": "Use"
     },
     {
       "key": "vocab.action.warn",
@@ -713,6 +721,10 @@
     {
       "key": "vocab.property.container",
       "text": "Container"
+    },
+    {
+      "key": "vocab.property.crafted",
+      "text": "hand-made"
     },
     {
       "key": "vocab.property.cooling",

@@ -5,7 +5,7 @@
   "description": "Data file content/invention/settings.json (D471 D5, B4b): when an inhabitant wants to invent something, what the core sends to the AI and the limits of its final check. Placeholders until Marcel decides; no invention, recipe or object is named here.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["contract_version", "job_priority", "trigger", "retry_after_minutes", "tech_level", "limits", "max_materials", "living_properties"],
+  "required": ["contract_version", "job_priority", "trigger", "retry_after_minutes", "tech_level", "limits", "max_materials", "living_properties", "implied_properties"],
   "properties": {
     "contract_version": { "$ref": "common.schema.json#/$defs/ContractVersion" },
     "job_priority": { "description": "Priority of invention jobs in the service queue (B7 O2).", "type": "integer", "minimum": 0, "maximum": 100 },
@@ -14,6 +14,13 @@
     "tech_level": { "description": "Highest tech level the world allows now (vocabulary tech_level; order of the vocabulary = order of the levels).", "$ref": "common.schema.json#/$defs/VocabId" },
     "limits": { "$ref": "#/$defs/InventionLimitSettings" },
     "max_materials": { "description": "At most this many perceived things are sent as materials (contract maximum 16).", "type": "integer", "minimum": 1, "maximum": 16 },
+    "implied_properties": {
+      "description": "Properties every runtime type from an invention has besides its own introduces (e.g. that inhabitants made it, so the routine layer can offer to use it).",
+      "type": "array",
+      "maxItems": 16,
+      "uniqueItems": true,
+      "items": { "$ref": "common.schema.json#/$defs/VocabId" }
+    },
     "living_properties": {
       "description": "B2531: properties only living beings have. An invention that brings one of them is refused by the core. Empty while the property vocabulary has none.",
       "type": "array",

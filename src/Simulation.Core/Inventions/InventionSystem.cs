@@ -54,13 +54,17 @@ public interface IRuntimeCatalog
 /// <param name="Wants">Open wishes.</param>
 /// <param name="Inventions">Inventions in type id order.</param>
 /// <param name="Log">Job log.</param>
+/// <param name="Builds">Building tasks (null in save games from before building).</param>
+/// <param name="FirstUsed">Runtime types already used once.</param>
 public sealed record InventionState(
     long Counter,
     IReadOnlyList<KeyValuePair<string, long>> Below,
     IReadOnlyList<KeyValuePair<string, long>> Cooldowns,
     IReadOnlyList<OpenWant> Wants,
     IReadOnlyList<InventionRecord> Inventions,
-    IReadOnlyList<DecisionLogEntry> Log);
+    IReadOnlyList<DecisionLogEntry> Log,
+    IReadOnlyList<BuildTask>? Builds = null,
+    IReadOnlyList<string>? FirstUsed = null);
 
 /// <summary>
 /// Inventions in the core (D471 D5, a world system): a lasting lack becomes a wish, the wish becomes an
@@ -69,7 +73,7 @@ public sealed record InventionState(
 /// Without an answer the wish stays open (B2487); there is never a substitute result. Every value comes
 /// from data; nothing here names an invention.
 /// </summary>
-public sealed class InventionSystem : IWorldSystem, IOptionalWorldState, IRuntimeCatalog
+public sealed partial class InventionSystem : IWorldSystem, IOptionalWorldState, IRuntimeCatalog
 {
     /// <summary>Event: an invention entered the world (target = runtime type id, action = purpose).</summary>
     public const string Invented = "invented";
@@ -115,13 +119,14 @@ public sealed class InventionSystem : IWorldSystem, IOptionalWorldState, IRuntim
         _perceptionRadiusM = perceptionRadiusM;
         _port = port;
         _displayLocale = displayLocale;
+        inhabitants.Reported += Observe;
     }
 
     /// <inheritdoc/>
     public string Name => "invention";
 
     /// <inheritdoc/>
-    public bool HasState => _counter > 0 || _below.Count > 0 || _cooldowns.Count > 0 || _wants.Count > 0 || _inventions.Count > 0;
+    public bool HasState => _counter > 0 || _below.Count > 0 || _cooldowns.Count > 0 || _wants.Count > 0 || _inventions.Count > 0 || _builds.Count > 0 || _firstUsed.Count > 0;
 
     /// <summary>Job log (requests and the outcomes that took effect).</summary>
     public DecisionLog Log { get; } = new();
@@ -173,6 +178,8 @@ public sealed class InventionSystem : IWorldSystem, IOptionalWorldState, IRuntim
         }
 
         Trigger(world);
+        AdvanceBuilds(world);
+        SignalPhase(world);
     }
 
     /// <inheritdoc/>
@@ -210,11 +217,13 @@ public sealed class InventionSystem : IWorldSystem, IOptionalWorldState, IRuntim
                 hasher.Write(p);
             }
         }
+
+        WriteBuildState(hasher);
     }
 
     /// <summary>Takes the complete state.</summary>
     public InventionState Capture() =>
-        new(_counter, [.. _below], [.. _cooldowns], [.. _wants.Values], [.. _inventions.Values], [.. Log.Entries]);
+        new(_counter, [.. _below], [.. _cooldowns], [.. _wants.Values], [.. _inventions.Values], [.. Log.Entries], [.. _builds.Values], [.. _firstUsed]);
 
     /// <summary>Restores a captured state; registers the runtime types of the inventions.</summary>
     public void Restore(InventionState state)
@@ -238,7 +247,7 @@ public sealed class InventionSystem : IWorldSystem, IOptionalWorldState, IRuntim
 
         foreach (var record in state.Inventions)
         {
-            _types.Register(record.TypeId, Parse(record).Introduces);
+            _types.Register(record.TypeId, Parse(record).Introduces.Concat(_rules.Settings.ImpliedProperties).Distinct(StringComparer.Ordinal));
             _inventions[record.TypeId] = record;
         }
 
@@ -246,6 +255,8 @@ public sealed class InventionSystem : IWorldSystem, IOptionalWorldState, IRuntim
         {
             Log.Add(entry);
         }
+
+        RestoreBuilds(state);
     }
 
     private static Invention Parse(InventionRecord record) =>
@@ -382,6 +393,11 @@ public sealed class InventionSystem : IWorldSystem, IOptionalWorldState, IRuntim
 
     private void Apply(World world, PortMessage message)
     {
+        if (ApplyBuild(world, message))
+        {
+            return;
+        }
+
         var want = _wants.Values.FirstOrDefault(w => w.RequestId == message.RequestId && w.RetryAtTick is null);
         if (message.IsError)
         {
@@ -446,7 +462,7 @@ public sealed class InventionSystem : IWorldSystem, IOptionalWorldState, IRuntim
         }
 
         var invention = result.Invention!;
-        _types.Register(typeId, invention.Introduces);
+        _types.Register(typeId, invention.Introduces.Concat(_rules.Settings.ImpliedProperties).Distinct(StringComparer.Ordinal));
         _inventions[typeId] = new InventionRecord(
             typeId,
             want.RequestId,
@@ -456,6 +472,7 @@ public sealed class InventionSystem : IWorldSystem, IOptionalWorldState, IRuntim
             result.Sound is null ? null : JsonSerializer.Serialize(result.Sound, RecordJson));
         Close(world, want, null);
         _inhabitants.Report(new WorldEvent(Invented, world.Tick, want.InhabitantId, invention.Purpose, typeId));
+        StartBuild(world, typeId, want.InhabitantId);
     }
 
     /// <summary>B2487: a retryable failure keeps the wish and sends it again later with a new id; otherwise it closes.</summary>

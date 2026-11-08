@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/build-settings.schema.json",
+  "title": "BuildSettings",
+  "description": "Data file content/build/settings.json: how the core asks for a building plan for an approved invention, checks it (B4b R14) and lets the inventor build it step by step (D471 D5, stages 4, 5, 7). Values are placeholders until Marcel decides.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "job_priority",
+    "retry_after_minutes",
+    "max_plan_attempts",
+    "bounds_tolerance",
+    "step_action",
+    "use_action",
+    "min_need_to_build"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "job_priority": {
+      "description": "Priority of build_plan jobs (higher first).",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "retry_after_minutes": {
+      "description": "Game minutes until a plan is asked for again after an error or a refused plan.",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100000
+    },
+    "max_plan_attempts": {
+      "description": "Most plans asked for one invention; after that it stays unbuilt.",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 20
+    },
+    "bounds_tolerance": {
+      "description": "How much larger than the invention's size the box around all parts may be (factor per axis).",
+      "type": "number",
+      "minimum": 1,
+      "maximum": 10
+    },
+    "step_action": {
+      "description": "Action (vocabulary, with timing and effects in content/effects) by which the builder uses up one material object for a step.",
+      "$ref": "common.schema.json#/$defs/VocabId"
+    },
+    "use_action": {
+      "description": "Action (vocabulary) by which inhabitants use a made thing; its first use of an invention becomes the event first_use.",
+      "$ref": "common.schema.json#/$defs/VocabId"
+    },
+    "min_need_to_build": {
+      "description": "The inventor only builds while every need that can be neglected is at least this high.",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    }
+  }
+}

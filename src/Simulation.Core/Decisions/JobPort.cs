@@ -13,6 +13,24 @@ public interface IJobPort
 
     /// <summary>Final job states (or service errors) that are ready at <paramref name="tick"/>, in arrival order.</summary>
     IReadOnlyList<PortMessage> Receive(long tick);
+
+    /// <summary>
+    /// Tells the AI service that the compute night begins or ends (<see cref="JobPhase"/>). Only a signal for
+    /// the service's planner: nothing in the world depends on it, so replay and test ports ignore it.
+    /// </summary>
+    void SetPhase(string phase, long tick)
+    {
+    }
+}
+
+/// <summary>Phases the core signals to the AI service (B7 S4).</summary>
+public static class JobPhase
+{
+    /// <summary>Compute night: the service may run deferred night jobs.</summary>
+    public const string Night = "night";
+
+    /// <summary>Day: only the jobs the game needs now.</summary>
+    public const string Day = "day";
 }
 
 /// <summary>Replays job outcomes from a recorded log: each takes effect at the tick it took effect originally.</summary>

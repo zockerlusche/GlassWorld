@@ -161,6 +161,14 @@
     {
       "pattern": "invention/settings.json",
       "schema": "invention-settings"
+    },
+    {
+      "pattern": "build/settings.json",
+      "schema": "build-settings"
+    },
+    {
+      "pattern": "jobs/phases.json",
+      "schema": "job-phases"
     }
   ]
 }
