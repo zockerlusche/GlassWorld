@@ -90,7 +90,8 @@ public partial class GameScreen : CanvasLayer
         _sideBar.Add("help", "ui.help.title").Content.AddChild(_helpList);
 
         // Favour in the top bar (B6 R9): a number, the tooltip says what it is for.
-        _favor = new Label { AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled, TooltipText = "ui.favor.tooltip", MouseFilter = Control.MouseFilterEnum.Stop };
+        // The value is filled in code (no translation), the tooltip is a key: translate it (review #76).
+        _favor = new Label { AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled, TooltipText = "ui.favor.tooltip", TooltipAutoTranslateMode = Node.AutoTranslateModeEnum.Always, MouseFilter = Control.MouseFilterEnum.Stop };
         _topBar.GetChild(0).AddChild(_favor);
         _root.AddChild(_sideBar);
         foreach (var panel in _sideBar.Panels)
