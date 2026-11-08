@@ -134,4 +134,12 @@ if ! grep -Eq '^BUILD_PLAN_OK plans=[1-9][0-9]* parts=[1-9][0-9]* shapes=[1-9][0
   echo "SMOKE_FAIL: a building plan is not drawn part by part (marker 'BUILD_PLAN_OK ... failures=0' missing)" >&2
   exit 1
 fi
+# Island (B2-3): terrain and water meshes of the generated start island, one per chunk.
+ISLAND_LOG="$(mktemp)"
+timeout "$TIMEOUT_S" "$GODOT" --headless --path "$GAME" --quit-after 1200 res://world/island.tscn -- --seed=7 --check >"$ISLAND_LOG" 2>&1
+if ! grep -Eq '^ISLAND_OK seed=7 chunks=[1-9][0-9]* ground_triangles=[1-9][0-9]* water_triangles=[1-9][0-9]*$' "$ISLAND_LOG" || grep -Eq '^(ERROR|SCRIPT ERROR)|Unhandled exception' "$ISLAND_LOG"; then
+  cat "$ISLAND_LOG" >&2
+  echo "SMOKE_FAIL: the island is not drawn (marker 'ISLAND_OK ...' missing or errors)" >&2
+  exit 1
+fi
 echo "SMOKE_PASS: $FRAMES frames without errors"

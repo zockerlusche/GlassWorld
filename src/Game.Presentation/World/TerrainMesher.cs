@@ -105,7 +105,11 @@ public sealed class MeshData
     public int TriangleCount => VertexCount / 3;
 
     /// <summary>Adds a triangle with its face normal (counter-clockwise seen from the normal side).</summary>
-    public void Triangle((float X, float Y, float Z) a, (float X, float Y, float Z) b, (float X, float Y, float Z) c, Rgb color, (float X, float Z) flow = default)
+    public void Triangle((float X, float Y, float Z) a, (float X, float Y, float Z) b, (float X, float Y, float Z) c, Rgb color, (float X, float Z) flow = default) =>
+        Triangle(a, b, c, color, color, color, flow);
+
+    /// <summary>Adds a triangle with one colour per vertex (blended across the face).</summary>
+    public void Triangle((float X, float Y, float Z) a, (float X, float Y, float Z) b, (float X, float Y, float Z) c, Rgb colorA, Rgb colorB, Rgb colorC, (float X, float Z) flow = default)
     {
         float ux = b.X - a.X, uy = b.Y - a.Y, uz = b.Z - a.Z;
         float vx = c.X - a.X, vy = c.Y - a.Y, vz = c.Z - a.Z;
@@ -118,7 +122,7 @@ public sealed class MeshData
             nz /= length;
         }
 
-        foreach (var (x, y, z) in new[] { a, b, c })
+        foreach (var ((x, y, z), color) in new[] { (a, colorA), (b, colorB), (c, colorC) })
         {
             Positions.AddRange([x, y, z]);
             Normals.AddRange([nx, ny, nz]);
@@ -155,20 +159,22 @@ public static class TerrainMesher
                 p[k] = ((x + Corners[k].Dx) * look.CellM, h[k] * look.UnitM, (z + Corners[k].Dz) * look.CellM);
             }
 
-            var baseColor = cell.Water == WaterKind.None ? look.BiomeColors[cell.Biome] : look.Bed;
+            // Corner colours blend the ground colours around each corner, so biome borders are soft lines
+            // instead of cell stairs.
+            var col = CornerColors(map, x, z, look);
 
             // Two triangles, split along the flatter diagonal so ridges stay sharp; seen from above (+y).
             var steepA = Math.Abs(h[0] - h[2]);
             var steepB = Math.Abs(h[1] - h[3]);
             if (steepA <= steepB)
             {
-                Top(mesh, p[0], p[2], p[1], baseColor, look);
-                Top(mesh, p[0], p[3], p[2], baseColor, look);
+                Top(mesh, (p[0], col[0]), (p[2], col[2]), (p[1], col[1]), look);
+                Top(mesh, (p[0], col[0]), (p[3], col[3]), (p[2], col[2]), look);
             }
             else
             {
-                Top(mesh, p[0], p[3], p[1], baseColor, look);
-                Top(mesh, p[1], p[3], p[2], baseColor, look);
+                Top(mesh, (p[0], col[0]), (p[3], col[3]), (p[1], col[1]), look);
+                Top(mesh, (p[1], col[1]), (p[3], col[3]), (p[2], col[2]), look);
             }
 
             // Cliff walls: this cell owns the wall on each edge where its edge lies above the neighbour's.
@@ -264,14 +270,49 @@ public static class TerrainMesher
         }
     }
 
-    private static void Top(MeshData mesh, (float X, float Y, float Z) a, (float X, float Y, float Z) b, (float X, float Y, float Z) c, Rgb color, TerrainLook look)
+    private static Rgb GroundColor(MapCell cell, TerrainLook look) => cell.Water == WaterKind.None ? look.BiomeColors[cell.Biome] : look.Bed;
+
+    private static Rgb[] CornerColors(WorldMap map, int x, int z, TerrainLook look)
     {
+        var own = map.Cell(x, z);
+        var result = new Rgb[4];
+        for (var k = 0; k < 4; k++)
+        {
+            float r = 0, g = 0, b = 0;
+            var count = 0;
+            for (var oz = -1; oz <= 0; oz++)
+            {
+                for (var ox = -1; ox <= 0; ox++)
+                {
+                    int nx = x + Corners[k].Dx + ox, nz = z + Corners[k].Dz + oz;
+                    if (!map.Contains(nx, nz) || Math.Abs(map.Cell(nx, nz).Height - own.Height) >= look.CliffDrop)
+                    {
+                        continue;
+                    }
+
+                    var c = GroundColor(map.Cell(nx, nz), look);
+                    r += c.R;
+                    g += c.G;
+                    b += c.B;
+                    count++;
+                }
+            }
+
+            result[k] = count == 0 ? GroundColor(own, look) : new Rgb(r / count, g / count, b / count);
+        }
+
+        return result;
+    }
+
+    private static void Top(MeshData mesh, ((float X, float Y, float Z) P, Rgb C) va, ((float X, float Y, float Z) P, Rgb C) vb, ((float X, float Y, float Z) P, Rgb C) vc, TerrainLook look)
+    {
+        var (a, b, c) = (va.P, vb.P, vc.P);
         // Steeper faces lean towards the cliff colour (normal.y = 1 flat, 0 vertical).
         float ux = b.X - a.X, uy = b.Y - a.Y, uz = b.Z - a.Z, vx = c.X - a.X, vy = c.Y - a.Y, vz = c.Z - a.Z;
         float nx = (uy * vz) - (uz * vy), ny = (uz * vx) - (ux * vz), nz = (ux * vy) - (uy * vx);
         var up = ny / MathF.Max(1e-6f, MathF.Sqrt((nx * nx) + (ny * ny) + (nz * nz)));
         var steep = Math.Clamp((1f - up) * 3f, 0f, 1f) * look.SlopeShade;
-        mesh.Triangle(a, b, c, color.Lerp(look.Cliff, steep));
+        mesh.Triangle(a, b, c, va.C.Lerp(look.Cliff, steep), vb.C.Lerp(look.Cliff, steep), vc.C.Lerp(look.Cliff, steep));
     }
 
     private static void Wall(WorldMap map, TerrainLook look, MeshData mesh, int x, int z, int[] h, int dx, int dz)
