@@ -132,7 +132,7 @@ public sealed class WorldGeneratorTests
             }
         }
 
-        Assert.All(island.Check.Where(c => c.Id.StartsWith("start_supply/", StringComparison.Ordinal)), c => Assert.True(c.Passed, c.Id));
+        Assert.All(island.Check.Where(c => c.Id.StartsWith(MandatoryResult.ReportPrefix + "start_supply/", StringComparison.Ordinal)), c => Assert.True(c.Passed, c.Id));
     }
 
     /// <summary>Where the supply cannot be placed (no fitting cell in the radius) the check reports it; the island still passes.</summary>
@@ -146,7 +146,8 @@ public sealed class WorldGeneratorTests
         Assert.True(island.Passed);
         foreach (var resource in Content.Value.WorldGen.Presets["start_island"].Start.Supply.Resources)
         {
-            var line = Assert.Single(island.Check, c => c.Id == $"start_supply/{resource.Id}");
+            var line = Assert.Single(island.Check, c => c.Id == $"{MandatoryResult.ReportPrefix}start_supply/{resource.Id}");
+            Assert.True(line.ReportOnly);
             Assert.Equal(island.Starts.Min(start => Supplied(island, start, resource)), line.Reachable);
             Assert.Equal(resource.Min, line.Min);
         }

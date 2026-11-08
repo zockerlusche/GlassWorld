@@ -17,6 +17,12 @@ public sealed record NeighbourIsland(int X, int Z, int GroupSize);
 /// <summary>Result of one mandatory category of the start-island check (R7).</summary>
 public sealed record MandatoryResult(string Id, int Reachable, int Total, int Min, int Max)
 {
+    /// <summary>Id prefix of lines that only report (such as the start supply) and do not decide whether the island passes.</summary>
+    public const string ReportPrefix = "report/";
+
+    /// <summary>Whether this line only reports (its id starts with <see cref="ReportPrefix"/>); kept in the id, so saved islands keep it.</summary>
+    public bool ReportOnly => Id.StartsWith(ReportPrefix, StringComparison.Ordinal);
+
     /// <summary>Whether the category is satisfied: enough reachable from every start, not too many in total.</summary>
     public bool Passed => Reachable >= Min && Total <= Max;
 }
@@ -162,7 +168,7 @@ public static class WorldGenerator
             present[b] = true;
         }
 
-        var passed = starts.Count == preset.Start.Pairs * 2 && check.All(c => c.Passed) && Connected(map, starts) && present.All(p => p);
+        var passed = starts.Count == preset.Start.Pairs * 2 && check.All(c => c.Passed || c.ReportOnly) && Connected(map, starts) && present.All(p => p);
 
         // The start supply is reported with the check but does not decide it: an island without fresh
         // water near one start is still a valid island (and failing it would reject most seeds).
@@ -1087,7 +1093,7 @@ public static class WorldGenerator
     }
 
     /// <summary>
-    /// The start supply as reported check lines (<c>start_supply/&lt;id&gt;</c>): reachable is what the
+    /// The start supply as report-only check lines (<c>report/start_supply/&lt;id&gt;</c>): reachable is what the
     /// poorest start finds within the radius and its walkable area, so a start the supply could not
     /// serve shows as a failed line instead of passing silently. These lines do not decide whether the
     /// island passes.
@@ -1108,7 +1114,7 @@ public static class WorldGenerator
                     && resource.PropertiesAll.All(p => catalog.HasProperty(o.TypeId, p))
                     && !resource.PropertiesNone.Any(p => catalog.HasProperty(o.TypeId, p)));
             });
-            yield return new MandatoryResult($"start_supply/{resource.Id}", fewest, fewest, resource.Min, int.MaxValue);
+            yield return new MandatoryResult($"{MandatoryResult.ReportPrefix}start_supply/{resource.Id}", fewest, fewest, resource.Min, int.MaxValue);
         }
     }
 
