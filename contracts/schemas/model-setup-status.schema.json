@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/model-setup-status.schema.json",
+  "title": "ModelSetupStatus",
+  "description": "GET /setup/models and the answers of POST /setup/models/download and /cancel (B10 R4): the models of the detected tier, what is there and what the dialog offers.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "tier",
+    "total_bytes",
+    "missing_bytes",
+    "models"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "tier": {
+      "description": "Detected hardware tier; null below the minimum (then no model is offered).",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "minimum",
+            "standard",
+            "comfort"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "total_bytes": {
+      "type": "integer",
+      "minimum": 0,
+      "format": "int64"
+    },
+    "missing_bytes": {
+      "description": "Still to download (size minus what is on disk).",
+      "type": "integer",
+      "minimum": 0,
+      "format": "int64"
+    },
+    "models": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "role",
+          "licence",
+          "size_bytes",
+          "done_bytes",
+          "source_page",
+          "purpose_key",
+          "state",
+          "error"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9._:-]{0,63}$"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "language",
+              "image",
+              "image_edit",
+              "sound",
+              "model3d"
+            ]
+          },
+          "licence": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "size_bytes": {
+            "type": "integer",
+            "minimum": 0,
+            "format": "int64"
+          },
+          "done_bytes": {
+            "type": "integer",
+            "minimum": 0,
+            "format": "int64"
+          },
+          "source_page": {
+            "type": "string",
+            "maxLength": 300
+          },
+          "purpose_key": {
+            "description": "Text key (DE/EN, content/i18n) for the purpose shown in the dialog.",
+            "type": "string",
+            "pattern": "^ui\\.setup\\.model_[a-z0-9_]+$"
+          },
+          "state": {
+            "description": "present; missing (offer it); queued; downloading; verifying; waiting_for_runtime (needs Ollama first, see /setup/ollama); failed (error set; downloading again continues).",
+            "type": "string",
+            "enum": [
+              "present",
+              "missing",
+              "queued",
+              "downloading",
+              "verifying",
+              "waiting_for_runtime",
+              "failed"
+            ]
+          },
+          "error": {
+            "description": "Stable code when failed: network, checksum_mismatch, digest_mismatch, runtime_missing, disk.",
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-z_]{1,32}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}
