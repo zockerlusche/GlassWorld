@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/gait-settings.schema.json",
+  "title": "GaitSettings",
+  "description": "Data file content/behaviour/gaits.json (Marcel F5264 = A): how far an inhabitant walks per tick and which gait the core uses for a walk. One tick is one game minute, about 0.83 s real time at normal speed, so the metres per tick are also the speed the eye sees. The core reports the gait id in the inhabitant snapshot; the presentation plays the animation gait of the same id. The gait follows from data only, first match wins: pressing_need_gait if the walk's action serves a need below its neglect_below, then action_gaits, then default_gait. Factors are placeholders: look first, then tune.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "walk_m_per_tick", "gaits", "default_gait", "action_gaits", "pressing_need_gait"],
+  "properties": {
+    "contract_version": { "$ref": "common.schema.json#/$defs/ContractVersion" },
+    "walk_m_per_tick": { "description": "Metres per tick of a factor-1 gait on flat meadow (shallow water and slopes slow it by the map's speed factor).", "type": "number", "minimum": 0.1, "maximum": 100 },
+    "gaits": { "description": "The gaits the core knows; ids match the gaits of content/animation/library.json.", "type": "array", "minItems": 1, "maxItems": 16, "items": { "$ref": "#/$defs/Gait" } },
+    "default_gait": { "description": "Gait of every walk that no other rule names.", "$ref": "common.schema.json#/$defs/VocabId" },
+    "action_gaits": { "description": "Gait per action (action vocabulary), each action at most once.", "type": "array", "maxItems": 64, "items": { "$ref": "#/$defs/ActionGait" } },
+    "pressing_need_gait": {
+      "description": "Gait of a walk whose action serves a need (the need of the action's first consideration in content/behaviour/utility.json) that is below the need's neglect_below in content/inhabitants/model.json. null = no such rule.",
+      "anyOf": [{ "$ref": "common.schema.json#/$defs/VocabId" }, { "type": "null" }]
+    }
+  },
+  "$defs": {
+    "Gait": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "factor_of_walk"],
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/VocabId" },
+        "factor_of_walk": { "description": "Speed as a multiple of walk_m_per_tick (placeholder).", "type": "number", "minimum": 0.1, "maximum": 10 }
+      }
+    },
+    "ActionGait": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["action", "gait"],
+      "properties": {
+        "action": { "$ref": "common.schema.json#/$defs/VocabId" },
+        "gait": { "$ref": "common.schema.json#/$defs/VocabId" }
+      }
+    }
+  }
+}

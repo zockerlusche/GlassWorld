@@ -312,7 +312,7 @@ public sealed class DecisionTests
     {
         var world = new World(seed, Content.Calendar);
         var objects = new WorldObjects(Content.Objects);
-        var inhabitants = new InhabitantsSystem(Content.InhabitantModel, Content.Actions, Content.Brain, objects, world.Calendar.Settings.TicksPerHour);
+        var inhabitants = new InhabitantsSystem(Content.InhabitantModel, Content.Actions, Content.Brain, Content.Gaits, objects, world.Calendar.Settings.TicksPerHour);
         var settings = triggers ? Settings : new DeciderSettings
         {
             ContractVersion = Settings.ContractVersion,

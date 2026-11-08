@@ -1,0 +1,15 @@
+{
+  "contract_version": "0.2",
+  "walk_m_per_tick": 1.5,
+  "gaits": [
+    { "id": "stroll", "factor_of_walk": 0.7 },
+    { "id": "walk", "factor_of_walk": 1.0 },
+    { "id": "hurry", "factor_of_walk": 1.4 },
+    { "id": "run", "factor_of_walk": 1.9 }
+  ],
+  "default_gait": "walk",
+  "action_gaits": [
+    { "action": "wander", "gait": "stroll" }
+  ],
+  "pressing_need_gait": "hurry"
+}

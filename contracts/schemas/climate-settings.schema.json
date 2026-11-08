@@ -34,7 +34,8 @@
         "seasons",
         "snow_weather",
         "drought_weather",
-        "temperature"
+        "temperature",
+        "gust_period_minutes"
       ],
       "properties": {
         "change_every_hours": {
@@ -89,6 +90,12 @@
         },
         "temperature": {
           "$ref": "#/$defs/ClimateTemperature"
+        },
+        "gust_period_minutes": {
+          "description": "Game minutes between two gust key values (GW3): the wind swings smoothly between values drawn from the world seed and the tick, so the same seed gives the same wind. Placeholder.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1440
         }
       }
     },
@@ -98,6 +105,7 @@
       "required": [
         "weather",
         "wind_permille",
+        "gust_permille",
         "precipitation_permille",
         "cloud_permille"
       ],
@@ -106,7 +114,13 @@
           "$ref": "common.schema.json#/$defs/VocabId"
         },
         "wind_permille": {
-          "description": "Wind strength.",
+          "description": "Base wind strength of this weather (sound and nature motion read the wind with its gusts, IWeather.WindAt).",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "gust_permille": {
+          "description": "How far the slow gusts swing the wind around wind_permille, up and down (the result stays within 0..1000). Placeholder.",
           "type": "integer",
           "minimum": 0,
           "maximum": 1000

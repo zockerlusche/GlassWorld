@@ -251,7 +251,7 @@ public sealed class KnowledgeTests : IDisposable
         knowledge ??= Content.Knowledge;
         var world = new World(1, Content.Calendar);
         var objects = new WorldObjects(Content.Objects);
-        var inhabitants = new InhabitantsSystem(Content.InhabitantModel, Content.Actions, Content.Brain, objects, world.Calendar.Settings.TicksPerHour)
+        var inhabitants = new InhabitantsSystem(Content.InhabitantModel, Content.Actions, Content.Brain, Content.Gaits, objects, world.Calendar.Settings.TicksPerHour)
         {
             Knowledge = knowledge,
             EventKinds = Content.EventKinds,

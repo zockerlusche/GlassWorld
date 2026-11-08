@@ -8,6 +8,12 @@ Distributions must ship the license notices of all listed components.
 
 | Name | Version | Kind | License | Source | Used in |
 |---|---|---|---|---|---|
+| CPython (embedded, python-build-standalone) | 3.12.13 | Python runtime of the packaged AI service (B10-S2) | PSF-2.0 | https://github.com/astral-sh/python-build-standalone (project MPL-2.0, unmodified) | release package `ai-service/python/` |
+| OpenSSL (in the embedded Python) | 3.x | Library | Apache-2.0 | https://www.openssl.org | `ai-service/python/DLLs` |
+| libffi (in the embedded Python) | 3.x | Library | MIT | https://sourceware.org/libffi | `ai-service/python/DLLs` |
+| expat (in the embedded Python) | 2.x | Library | MIT | https://libexpat.github.io | `ai-service/python` (pyexpat) |
+| mpdecimal (in the embedded Python) | 2.5 | Library | BSD-2-Clause | https://www.bytereef.org/mpdecimal | `ai-service/python` (_decimal) |
+| zlib (in the embedded Python) | 1.3 | Library | Zlib (approved by Marcel, F5265 = A) | https://zlib.net | inside `python312.dll` |
 | Microsoft.NET.Test.Sdk | 18.11.0 | NuGet package (test only) | MIT | https://github.com/microsoft/vstest | tests/ |
 | xunit.v3 | 4.0.2 | NuGet package (test only) | Apache-2.0 | https://github.com/xunit/xunit | tests/ |
 | xunit.runner.visualstudio | 4.0.1 | NuGet package (test only) | Apache-2.0 | https://github.com/xunit/visualstudio.xunit | tests/ |

@@ -148,11 +148,12 @@ public sealed class SimulationHost
                 content.WorldGen.Climates[preset.Climate.ClimateId],
                 -(preset.Climate.TemperatureDropPer100Height * startHeight / 100),
                 world.Calendar.Settings.TicksPerHour,
-                world.Calendar.Settings.HoursPerDay);
+                world.Calendar.Settings.HoursPerDay,
+                world.Seed);
             world.Add(weather);
         }
 
-        var inhabitants = new InhabitantsSystem(content.InhabitantModel, actions, content.Brain, objects, world.Calendar.Settings.TicksPerHour) { Looks = content.Appearance, Routes = map, Knowledge = content.Knowledge, EventKinds = content.EventKinds };
+        var inhabitants = new InhabitantsSystem(content.InhabitantModel, actions, content.Brain, content.Gaits, objects, world.Calendar.Settings.TicksPerHour) { Looks = content.Appearance, Routes = map, Knowledge = content.Knowledge, EventKinds = content.EventKinds };
         var decisions = new DecisionsSystem(settings, inhabitants, objects, actions, content.Brain, content.Vocabularies[VocabularyKind.Action], port, displayLocale)
         {
             WeatherSource = weather,

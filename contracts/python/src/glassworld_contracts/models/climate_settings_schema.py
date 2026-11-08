@@ -18,7 +18,18 @@ class ClimateWeatherState(BaseModel):
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
-    wind_permille: int = Field(..., description='Wind strength.', ge=0, le=1000)
+    wind_permille: int = Field(
+        ...,
+        description='Base wind strength of this weather (sound and nature motion read the wind with its gusts, IWeather.WindAt).',
+        ge=0,
+        le=1000,
+    )
+    gust_permille: int = Field(
+        ...,
+        description='How far the slow gusts swing the wind around wind_permille, up and down (the result stays within 0..1000). Placeholder.',
+        ge=0,
+        le=1000,
+    )
     precipitation_permille: int = Field(
         ..., description='Rain or snow strength.', ge=0, le=1000
     )
@@ -182,6 +193,12 @@ class ClimateWeather(BaseModel):
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
     temperature: ClimateTemperature
+    gust_period_minutes: int = Field(
+        ...,
+        description='Game minutes between two gust key values (GW3): the wind swings smoothly between values drawn from the world seed and the tick, so the same seed gives the same wind. Placeholder.',
+        ge=1,
+        le=1440,
+    )
 
 
 class ClimateSettings(BaseModel):

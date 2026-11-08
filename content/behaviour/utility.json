@@ -1,6 +1,5 @@
 {
   "contract_version": "0.2",
-  "move_speed_m_per_minute": 40,
   "perception_radius_m": 60,
   "distance_falloff": 0.5,
   "learning_step": 0.5,

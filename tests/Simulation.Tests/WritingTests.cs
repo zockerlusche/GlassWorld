@@ -185,5 +185,7 @@ public sealed class WritingTests : IDisposable
         public string Current => weather;
 
         public string WeatherAt(Position at, long tick) => weather;
+
+        public double WindAt(long tick) => 0.0;
     }
 }

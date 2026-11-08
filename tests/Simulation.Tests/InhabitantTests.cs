@@ -142,7 +142,7 @@ public sealed class InhabitantTests
     {
         var world = new World(seed, Content.Calendar);
         var objects = new WorldObjects(Content.Objects);
-        var inhabitants = new InhabitantsSystem(model ?? Content.InhabitantModel, Content.Actions, Content.Brain, objects, world.Calendar.Settings.TicksPerHour);
+        var inhabitants = new InhabitantsSystem(model ?? Content.InhabitantModel, Content.Actions, Content.Brain, Content.Gaits, objects, world.Calendar.Settings.TicksPerHour);
         world.Add(objects).Add(inhabitants);
         inhabitants.SpawnStartInhabitants(world, StartPositions);
         return (world, inhabitants, objects);

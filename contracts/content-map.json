@@ -35,6 +35,10 @@
       "schema": "utility-weights"
     },
     {
+      "pattern": "behaviour/gaits.json",
+      "schema": "gait-settings"
+    },
+    {
       "pattern": "decider/settings.json",
       "schema": "decider-settings"
     },
