@@ -168,7 +168,7 @@ public sealed class Murmur(MurmurSettings settings)
         }
 
         var loudest = mix.Max(Math.Abs);
-        var loudness = Pcm.LoudnessDbfs(new MonoSound([.. mix.Select(x => (float)x)], rate), _settings.GateDbfs);
+        var loudness = Pcm.Loudness(new MonoSound([.. mix.Select(x => (float)x)], rate), _settings.GateDbfs);
         var toLoudness = double.IsFinite(loudness) ? Math.Pow(10, (_settings.LoudnessDbfs - loudness) / 20) : 0;
         var scale = loudest > 0 ? Math.Min(toLoudness, _settings.Peak / loudest) : 0;
         var pcm = new short[mix.Length];

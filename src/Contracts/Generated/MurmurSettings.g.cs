@@ -255,7 +255,7 @@ namespace GlassWorld.Contracts
         public double Peak { get; set; } = default!;
 
         /// <summary>
-        /// Gated RMS loudness a murmur is normalised to, like the library one-shots (review #90).
+        /// Integrated loudness (LUFS, ITU-R BS.1770) a murmur is normalised to, like the library one-shots (review #90).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("loudness_dbfs")]
         public double LoudnessDbfs { get; set; } = default!;
