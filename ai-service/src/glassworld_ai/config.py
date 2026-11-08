@@ -102,6 +102,10 @@ class Settings(BaseSettings):
     sound_output_dir: Path = Field(description="Made sounds; the game copies them into the world.")
     model3d_image_dir: Path = Field(description="Pictures of image jobs (input of 3D jobs).")
     model3d_output_dir: Path = Field(description="Made 3D models; the game copies them.")
+    model3d_backend: Literal["mock", "trellis2"] = Field(
+        default="mock",
+        description="mock = stand-in box; trellis2 = the real model (not wired yet).",
+    )
     moss_worker_script: Path = Field(description="tools/moss/worker.py")
     token: SecretStr | None = Field(
         default=None,

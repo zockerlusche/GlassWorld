@@ -23,12 +23,18 @@ JOB_DATA: dict[str, Any] = json.loads(
 JOB = GenerationJob.model_validate(JOB_DATA)
 
 
-def _handler(tmp_path: Path, tier: str, plan: Model3dPlan | None = None) -> Model3dJobs:
+def _handler(
+    tmp_path: Path, tier: str, plan: Model3dPlan | None = None, backend: str = "mock"
+) -> Model3dJobs:
     images = tmp_path / "images"
     images.mkdir(exist_ok=True)
     (images / JOB_DATA["payload"]["model3d"]["image_file"]).write_bytes(b"png")
     return Model3dJobs(
-        plan or load_model3d_settings(REPO / "content"), images, tmp_path / "models", lambda: tier
+        plan or load_model3d_settings(REPO / "content"),
+        images,
+        tmp_path / "models",
+        lambda: tier,
+        backend,
     )
 
 
@@ -48,7 +54,7 @@ def _status(outcome: JobOutcome) -> dict[str, Any]:
 
 def test_only_comfort_has_image_to_3d() -> None:
     plan = load_model3d_settings(REPO / "content")
-    assert plan.by_tier == {"minimum": None, "standard": None, "comfort": "mock"}
+    assert plan.by_tier == {"minimum": None, "standard": None, "comfort": "trellis2"}
 
 
 def test_the_box_is_a_valid_glb() -> None:
@@ -75,12 +81,7 @@ def test_comfort_makes_the_stand_in(tmp_path: Path, settings: Settings) -> None:
         ("minimum", None, "model_unavailable"),
         (
             "comfort",
-            Model3dPlan({"minimum": None, "standard": None, "comfort": "trellis2"}, 4000),
-            "model_unavailable",
-        ),
-        (
-            "comfort",
-            Model3dPlan({"minimum": None, "standard": None, "comfort": "mock"}, 6),
+            Model3dPlan({"minimum": None, "standard": None, "comfort": "trellis2"}, 6),
             "bad_request",
         ),
     ],
@@ -100,3 +101,9 @@ def test_a_missing_picture_is_a_bad_request(tmp_path: Path) -> None:
     with pytest.raises(JobFailedError) as error:
         asyncio.run(handler(JOB))
     assert error.value.code == "bad_request"
+
+
+def test_the_real_backend_is_not_wired_yet(tmp_path: Path) -> None:
+    with pytest.raises(JobFailedError) as error:
+        asyncio.run(_handler(tmp_path, "comfort", backend="trellis2")(JOB))
+    assert (error.value.code, error.value.retryable) == ("model_unavailable", False)

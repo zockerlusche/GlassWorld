@@ -10,17 +10,14 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class Minimum(StrEnum):
-    mock = 'mock'
     trellis2 = 'trellis2'
 
 
 class Standard(StrEnum):
-    mock = 'mock'
     trellis2 = 'trellis2'
 
 
 class Comfort(StrEnum):
-    mock = 'mock'
     trellis2 = 'trellis2'
 
 
@@ -30,15 +27,15 @@ class ByTier(BaseModel):
     )
     minimum: Minimum | None = Field(
         ...,
-        description='Backend on this tier, or null = no 3D models (the construction-kit builder is used).',
+        description='Image-to-3D model on this tier, or null = no 3D models (the construction-kit builder is used). Whether the real model or a stand-in runs is service configuration (model3d_backend).',
     )
     standard: Standard | None = Field(
         ...,
-        description='Backend on this tier, or null = no 3D models (the construction-kit builder is used).',
+        description='Image-to-3D model on this tier, or null = no 3D models (the construction-kit builder is used). Whether the real model or a stand-in runs is service configuration (model3d_backend).',
     )
     comfort: Comfort | None = Field(
         ...,
-        description='Backend on this tier, or null = no 3D models (the construction-kit builder is used).',
+        description='Image-to-3D model on this tier, or null = no 3D models (the construction-kit builder is used). Whether the real model or a stand-in runs is service configuration (model3d_backend).',
     )
 
 

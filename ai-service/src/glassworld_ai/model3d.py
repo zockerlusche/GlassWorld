@@ -101,7 +101,9 @@ class Model3dJobs:
         image_dir: Path,
         output_dir: Path,
         tier: Callable[[], str | None],
+        backend: str = "mock",
     ) -> None:
+        self._backend = backend
         self._plan = plan
         self._image_dir = image_dir
         self._output_dir = output_dir
@@ -110,17 +112,17 @@ class Model3dJobs:
     async def __call__(self, job: GenerationJob) -> JobOutcome:
         payload = _payload(job)
         tier = self._tier()
-        backend = self._plan.by_tier.get(tier) if tier is not None else None
-        if backend is None:
+        model = self._plan.by_tier.get(tier) if tier is not None else None
+        if model is None:
             raise JobFailedError(
                 "model_unavailable",
                 f"no image-to-3D on tier {tier or 'below minimum'} (construction kit, ADR-0004)",
                 retryable=False,
             )
-        if backend != "mock":
+        if self._backend != "mock":
             raise JobFailedError(
                 "model_unavailable",
-                f"3D backend {backend} is not wired yet (B7 S9)",
+                f"3D model {model} is not wired yet (B7 S9)",
                 retryable=False,
             )
         if not (self._image_dir / str(payload.image_file)).is_file():

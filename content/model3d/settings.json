@@ -3,7 +3,7 @@
   "by_tier": {
     "minimum": null,
     "standard": null,
-    "comfort": "mock"
+    "comfort": "trellis2"
   },
   "max_triangles": 4000,
   "priority": 5

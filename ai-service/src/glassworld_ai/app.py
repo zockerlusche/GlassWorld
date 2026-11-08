@@ -191,6 +191,7 @@ def create_app(
                 settings.model3d_image_dir,
                 settings.model3d_output_dir,
                 lambda: getattr(app.state, "tier", None),
+                settings.model3d_backend,
             ),
         )
     if job_handlers is None and settings.image_backend == "mock":

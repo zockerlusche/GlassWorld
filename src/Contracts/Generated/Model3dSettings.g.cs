@@ -40,12 +40,8 @@ namespace GlassWorld.Contracts
     public enum Minimum
     {
 
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("mock")]
-        Mock = 0,
-
-
         [System.Text.Json.Serialization.JsonStringEnumMemberName("trellis2")]
-        Trellis2 = 1,
+        Trellis2 = 0,
 
 
     }
@@ -54,12 +50,8 @@ namespace GlassWorld.Contracts
     public enum Standard
     {
 
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("mock")]
-        Mock = 0,
-
-
         [System.Text.Json.Serialization.JsonStringEnumMemberName("trellis2")]
-        Trellis2 = 1,
+        Trellis2 = 0,
 
 
     }
@@ -68,12 +60,8 @@ namespace GlassWorld.Contracts
     public enum Comfort
     {
 
-        [System.Text.Json.Serialization.JsonStringEnumMemberName("mock")]
-        Mock = 0,
-
-
         [System.Text.Json.Serialization.JsonStringEnumMemberName("trellis2")]
-        Trellis2 = 1,
+        Trellis2 = 0,
 
 
     }

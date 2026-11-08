@@ -25,12 +25,11 @@
       ],
       "properties": {
         "minimum": {
-          "description": "Backend on this tier, or null = no 3D models (the construction-kit builder is used).",
+          "description": "Image-to-3D model on this tier, or null = no 3D models (the construction-kit builder is used). Whether the real model or a stand-in runs is service configuration (model3d_backend).",
           "anyOf": [
             {
               "type": "string",
               "enum": [
-                "mock",
                 "trellis2"
               ]
             },
@@ -40,12 +39,11 @@
           ]
         },
         "standard": {
-          "description": "Backend on this tier, or null = no 3D models (the construction-kit builder is used).",
+          "description": "Image-to-3D model on this tier, or null = no 3D models (the construction-kit builder is used). Whether the real model or a stand-in runs is service configuration (model3d_backend).",
           "anyOf": [
             {
               "type": "string",
               "enum": [
-                "mock",
                 "trellis2"
               ]
             },
@@ -55,12 +53,11 @@
           ]
         },
         "comfort": {
-          "description": "Backend on this tier, or null = no 3D models (the construction-kit builder is used).",
+          "description": "Image-to-3D model on this tier, or null = no 3D models (the construction-kit builder is used). Whether the real model or a stand-in runs is service configuration (model3d_backend).",
           "anyOf": [
             {
               "type": "string",
               "enum": [
-                "mock",
                 "trellis2"
               ]
             },
