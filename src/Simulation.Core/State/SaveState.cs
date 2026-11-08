@@ -60,6 +60,9 @@ public sealed record SaveState(
 
     /// <summary>Writing on objects (B8 R15); null in save games from before.</summary>
     public IReadOnlyList<Writing.WrittenText>? Writing { get; init; }
+
+    /// <summary>The weather (B2 R13); null in worlds without weather and in older save games.</summary>
+    public Weather.WeatherState? Weather { get; init; }
 }
 
 /// <summary>Captures and restores the complete state of a <see cref="SimulationHost"/>.</summary>
@@ -103,6 +106,7 @@ public static class StateCodec
             Player = host.Player.Capture(),
             Writing = host.Writing.HasState ? host.Writing.Capture() : null,
             IslandData = host.Map is { } map ? Map.IslandCodec.Encode(map.Island, map.CellSizeCm) : null,
+            Weather = host.WeatherSystem?.Capture(),
         };
     }
 
@@ -172,6 +176,10 @@ public static class StateCodec
             state.LastAsked,
             state.DecisionLog);
         host.Player.Restore(state.Player);
+        if (state.Weather is not null)
+        {
+            host.WeatherSystem?.Restore(state.Weather, state.Tick);
+        }
         return host;
     }
 }
