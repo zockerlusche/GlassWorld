@@ -291,14 +291,60 @@ public static class WorldGenerator
         }
 
         var springs = rng.NextInt(preset.Water.Springs.Min, preset.Water.Springs.Max + 1);
+        var sides = new List<(int Side, int Main)>();
         for (var s = 0; s < springs && candidates.Count > 0; s++)
         {
             var start = candidates[rng.NextInt(0, candidates.Count)];
-            Run(preset, heights, water, depth, flow, w, d, start % w, start / w);
+            Run(preset, heights, water, depth, flow, w, d, start % w, start / w, sides);
+        }
+
+        SideFlow(heights, water, depth, flow, w, d, sides);
+    }
+
+    /// <summary>
+    /// Streams are two cells wide; once all streams and lakes are in place, each side cell runs the way
+    /// its main cell runs, so it belongs to the running stream instead of lying still beside it. Where
+    /// that way would lead uphill or onto dry land, it takes its lowest water neighbour that is not
+    /// higher (ties by direction order); without one it stays still. Side cells a lake took stay still.
+    /// </summary>
+    private static void SideFlow(int[] heights, WaterKind[] water, int[] depth, sbyte[] flow, int w, int d, List<(int Side, int Main)> sides)
+    {
+        foreach (var (side, main) in sides)
+        {
+            if (flow[side] >= 0 || flow[main] < 0 || water[side] != WaterKind.Fresh || depth[side] != 2)
+            {
+                continue;
+            }
+
+            int sx = side % w, sz = side / w;
+            bool Runs(int k)
+            {
+                int nx = sx + Neighbours8[k].Dx, nz = sz + Neighbours8[k].Dz;
+                return nx >= 0 && nz >= 0 && nx < w && nz < d && water[(nz * w) + nx] != WaterKind.None && heights[(nz * w) + nx] <= heights[side];
+            }
+
+            if (Runs(flow[main]))
+            {
+                flow[side] = flow[main];
+                continue;
+            }
+
+            int best = -1, bestHeight = int.MaxValue;
+            for (var k = 0; k < 8; k++)
+            {
+                var n = ((sz + Neighbours8[k].Dz) * w) + sx + Neighbours8[k].Dx;
+                if (Runs(k) && heights[n] < bestHeight)
+                {
+                    best = k;
+                    bestHeight = heights[n];
+                }
+            }
+
+            flow[side] = (sbyte)best;
         }
     }
 
-    private static void Run(WorldPreset preset, int[] heights, WaterKind[] water, int[] depth, sbyte[] flow, int w, int d, int x, int z)
+    private static void Run(WorldPreset preset, int[] heights, WaterKind[] water, int[] depth, sbyte[] flow, int w, int d, int x, int z, List<(int Side, int Main)> sides)
     {
         var sea = preset.Terrain.SeaLevel;
         for (var guard = 0; guard < w * d; guard++)
@@ -336,7 +382,7 @@ public static class WorldGenerator
             if (best < 0)
             {
                 // A pit: fill it to its spill point as a lake, then continue from the outlet.
-                var outlet = Lake(preset, heights, water, depth, w, d, x, z);
+                var outlet = Lake(preset, heights, water, depth, flow, w, d, x, z);
                 if (outlet < 0)
                 {
                     return;
@@ -349,7 +395,8 @@ public static class WorldGenerator
 
             flow[i] = (sbyte)best;
 
-            // Streams are two cells wide: the lower side neighbour carries water too (no flow of its own).
+            // Streams are two cells wide: the lower side neighbour carries water too; it gets its flow once
+            // all streams are in place (SideFlow), so it is drawn as part of the sloped stream.
             int side = -1, sideHeight = int.MaxValue;
             foreach (var (dx, dz) in Neighbours4)
             {
@@ -371,6 +418,7 @@ public static class WorldGenerator
             {
                 water[side] = WaterKind.Fresh;
                 depth[side] = 2;
+                sides.Add((side, i));
             }
 
             x += Neighbours8[best].Dx;
@@ -387,7 +435,7 @@ public static class WorldGenerator
     /// rises to the highest cell taken; the first rim cell lower than the level is the outlet, where the
     /// stream continues. Returns the outlet cell or -1.
     /// </summary>
-    private static int Lake(WorldPreset preset, int[] heights, WaterKind[] water, int[] depth, int w, int d, int x, int z)
+    private static int Lake(WorldPreset preset, int[] heights, WaterKind[] water, int[] depth, sbyte[] flow, int w, int d, int x, int z)
     {
         var start = (z * w) + x;
         var level = heights[start];
@@ -434,6 +482,9 @@ public static class WorldGenerator
             {
                 water[c] = WaterKind.Fresh;
                 depth[c] = Math.Max(depth[c], Math.Max(2, level - heights[c] + 1));
+
+                // A lake lies still, also where an earlier stream ran through it.
+                flow[c] = -1;
             }
         }
 
