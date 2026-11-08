@@ -114,7 +114,10 @@ public sealed class Murmur(MurmurSettings settings)
         return new MurmurPlan(kind, blocks);
     }
 
-    /// <summary>Renders a plan into 16-bit mono PCM (same plan, same samples).</summary>
+    /// <summary>
+    /// Renders a plan into 16-bit mono PCM (same plan, same samples), at the data's loudness like the
+    /// library one-shots, never above the data's peak (review #90).
+    /// </summary>
     public short[] Render(MurmurPlan plan)
     {
         ArgumentNullException.ThrowIfNull(plan);
@@ -138,7 +141,9 @@ public sealed class Murmur(MurmurSettings settings)
         }
 
         var loudest = mix.Max(Math.Abs);
-        var scale = loudest > 0 ? _settings.Peak / loudest : 0;
+        var loudness = Pcm.LoudnessDbfs(new MonoSound([.. mix.Select(x => (float)x)], rate), _settings.GateDbfs);
+        var toLoudness = double.IsFinite(loudness) ? Math.Pow(10, (_settings.LoudnessDbfs - loudness) / 20) : 0;
+        var scale = loudest > 0 ? Math.Min(toLoudness, _settings.Peak / loudest) : 0;
         var pcm = new short[mix.Length];
         for (var i = 0; i < mix.Length; i++)
         {
@@ -197,13 +202,13 @@ public sealed class Murmur(MurmurSettings settings)
     private sealed class Resonator(double hz, double bandwidth, int rate)
     {
         private readonly double _r = Math.Exp(-Math.PI * bandwidth / rate);
+        private readonly double _a1 = 2 * Math.Exp(-Math.PI * bandwidth / rate) * Math.Cos(2 * Math.PI * Math.Min(hz, (rate / 2.0) - 1) / rate);
         private double _y1;
         private double _y2;
 
         public double Next(double x)
         {
-            var a1 = 2 * _r * Math.Cos(2 * Math.PI * Math.Min(hz, (rate / 2.0) - 1) / rate);
-            var y = ((1 - _r) * x) + (a1 * _y1) - (_r * _r * _y2);
+            var y = ((1 - _r) * x) + (_a1 * _y1) - (_r * _r * _y2);
             _y2 = _y1;
             _y1 = y;
             return y;

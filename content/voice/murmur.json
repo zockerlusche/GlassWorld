@@ -2,6 +2,8 @@
   "contract_version": "0.2",
   "sample_rate": 22050,
   "peak": 0.5,
+  "loudness_dbfs": -20,
+  "gate_dbfs": -50,
   "syllable": {
     "duration_s": 0.16,
     "variation": 0.25,

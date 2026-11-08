@@ -145,9 +145,21 @@ class MurmurSettings(BaseModel):
     sample_rate: SampleRate
     peak: float = Field(
         ...,
-        description='A murmur is normalised to this peak (limiter, B8 R7).',
+        description='Upper limit for the peak (limiter, B8 R7); the level itself comes from loudness_dbfs.',
         ge=0.1,
         le=1.0,
+    )
+    loudness_dbfs: float = Field(
+        ...,
+        description='Gated RMS loudness a murmur is normalised to, like the library one-shots (review #90).',
+        ge=-40.0,
+        le=-6.0,
+    )
+    gate_dbfs: float = Field(
+        ...,
+        description='Gate of the loudness measurement (same as the library).',
+        ge=-80.0,
+        le=-20.0,
     )
     syllable: MurmurSyllable
     length: MurmurLength

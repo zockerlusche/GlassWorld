@@ -204,10 +204,22 @@ namespace GlassWorld.Contracts
         public MurmurSettingsSampleRate SampleRate { get; set; } = default!;
 
         /// <summary>
-        /// A murmur is normalised to this peak (limiter, B8 R7).
+        /// Upper limit for the peak (limiter, B8 R7); the level itself comes from loudness_dbfs.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("peak")]
         public double Peak { get; set; } = default!;
+
+        /// <summary>
+        /// Gated RMS loudness a murmur is normalised to, like the library one-shots (review #90).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("loudness_dbfs")]
+        public double LoudnessDbfs { get; set; } = default!;
+
+        /// <summary>
+        /// Gate of the loudness measurement (same as the library).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("gate_dbfs")]
+        public double GateDbfs { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("syllable")]
         public MurmurSyllable Syllable { get; set; } = new MurmurSyllable();

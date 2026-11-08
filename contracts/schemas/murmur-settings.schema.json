@@ -9,6 +9,8 @@
     "contract_version",
     "sample_rate",
     "peak",
+    "loudness_dbfs",
+    "gate_dbfs",
     "syllable",
     "length",
     "vowels",
@@ -33,10 +35,22 @@
       ]
     },
     "peak": {
-      "description": "A murmur is normalised to this peak (limiter, B8 R7).",
+      "description": "Upper limit for the peak (limiter, B8 R7); the level itself comes from loudness_dbfs.",
       "type": "number",
       "minimum": 0.1,
       "maximum": 1
+    },
+    "loudness_dbfs": {
+      "description": "Gated RMS loudness a murmur is normalised to, like the library one-shots (review #90).",
+      "type": "number",
+      "minimum": -40,
+      "maximum": -6
+    },
+    "gate_dbfs": {
+      "description": "Gate of the loudness measurement (same as the library).",
+      "type": "number",
+      "minimum": -80,
+      "maximum": -20
     },
     "syllable": {
       "$ref": "#/$defs/MurmurSyllable"

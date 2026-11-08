@@ -115,7 +115,12 @@ public sealed class MurmurTests
         var voice = Voice.VoiceOf("female", Voice.PlaceholderBody("inh-000001"));
         var pcm = Voice.Render(Voice.Plan("inh-000001", voice, Sentence));
         var peak = pcm.Max(s => Math.Abs((int)s)) / (double)short.MaxValue;
-        Assert.InRange(peak, Settings.Peak - 0.01, Settings.Peak + 0.01);
+        Assert.True(peak <= Settings.Peak + 0.01, $"peak {peak:0.00}");
+
+        // Same level as the library one-shots (review #90): on the loudness target unless the peak limit caps it.
+        var loudness = Pcm.LoudnessDbfs(new MonoSound([.. pcm.Select(s => s / 32768f)], Voice.SampleRate), Settings.GateDbfs);
+        Assert.True(loudness <= Settings.LoudnessDbfs + 0.5, $"loudness {loudness:0.0} dBFS");
+        Assert.True(loudness >= Settings.LoudnessDbfs - 0.5 || peak >= Settings.Peak - 0.01, $"loudness {loudness:0.0} dBFS, peak {peak:0.00}");
         var max = (Settings.Length.MaxSyllables * ((Settings.Syllable.DurationS * 1.5 / 0.3) + Settings.Consonant.DurationS + Settings.Syllable.PauseS)) + 0.1;
         Assert.True(pcm.Length / (double)Voice.SampleRate < max);
     }
