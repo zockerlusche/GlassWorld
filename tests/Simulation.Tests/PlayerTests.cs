@@ -208,9 +208,13 @@ public sealed class PlayerTests : IDisposable
 
         var replay = WorldWithThirsty(out _);
         replay.Decisions.LoadReplay(original.Decisions.Log);
-        replay.World.Run(510);
+
+        // The gift appears right after the command takes effect (it may be eaten later).
+        var apples = replay.Objects.All.Count(o => o.TypeId == "apple");
+        replay.World.Run(12);
+        Assert.Equal(apples + 1, replay.Objects.All.Count(o => o.TypeId == "apple"));
+        replay.World.Run(510 - 12);
         Assert.Equal(original.World.StateHash(), replay.World.StateHash());
-        Assert.Contains(replay.Objects.All, o => o.TypeId == "apple");
     }
 
     [Fact]

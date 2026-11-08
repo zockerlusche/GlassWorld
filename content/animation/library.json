@@ -261,6 +261,16 @@
     },
     {
       "kind": "action",
+      "id": "use",
+      "clip": "handle"
+    },
+    {
+      "kind": "action",
+      "id": "build_step",
+      "clip": "hammer"
+    },
+    {
+      "kind": "action",
       "id": "warn",
       "clip": "talk"
     },

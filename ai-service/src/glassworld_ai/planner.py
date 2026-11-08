@@ -63,13 +63,14 @@ class Planner:
     def change(self, phase: str, tick: int) -> bool:
         """Apply a phase change from the core; idempotent (review GW1 P2).
 
-        The same phase again or an older tick changes nothing (retry, reload, service restart).
+        The same phase again changes nothing (retry, service restart): the night budget keeps
+        running. A lower tick with another phase is applied: loading an older save turns the
+        clock back (review #82); the core sends its phase changes in order.
         Returns whether it changed.
         """
-        if tick <= self._last_tick or phase == self.phase:
-            self._last_tick = max(self._last_tick, tick)
-            return False
         self._last_tick = tick
+        if phase == self.phase:
+            return False
         if phase == "night":
             self.start_night()
         else:

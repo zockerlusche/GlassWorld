@@ -15,5 +15,8 @@
     "max_rounds": 2
   },
   "max_materials": 12,
-  "living_properties": []
+  "living_properties": [],
+  "implied_properties": [
+    "crafted"
+  ]
 }

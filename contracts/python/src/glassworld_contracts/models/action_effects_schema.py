@@ -43,6 +43,10 @@ class ActionTiming(BaseModel):
         ...,
         description='Where an action without a target happens: here, or at a random spot within the perception radius (own seed stream).',
     )
+    decider_option: bool | None = Field(
+        None,
+        description='Whether the decider may offer this action as an option (default true). Actions the core plans itself, such as building steps, are false.',
+    )
 
 
 class Effect(BaseModel):

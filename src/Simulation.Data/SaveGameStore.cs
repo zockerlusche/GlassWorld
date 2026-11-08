@@ -257,6 +257,21 @@ public static class SaveGameStore
         }
 
         Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("invention_counter", Str(state.Counter)));
+        if (state.Builds is { Count: > 0 } builds)
+        {
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("builds", JsonSerializer.Serialize(builds, Json)));
+        }
+
+        if (state.FirstUsed is { Count: > 0 } firstUsed)
+        {
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("first_used", JsonSerializer.Serialize(firstUsed, Json)));
+        }
+
+        if (state.Sounds is { Count: > 0 } sounds)
+        {
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("invention_sounds", JsonSerializer.Serialize(sounds, Json)));
+        }
+
         foreach (var r in state.Inventions)
         {
             Insert(c, tx, "INSERT INTO inventions VALUES($a,$b,$c,$d,$e,$f)", (r.TypeId, r.RequestId, r.InhabitantId, r.Tick, r.InventionJson, r.SoundJson));
@@ -295,7 +310,10 @@ public static class SaveGameStore
             Query(c, "SELECT type_id, request_id, inhabitant, tick, invention, sound FROM inventions ORDER BY type_id",
                 r => new InventionRecord(r.GetString(0), r.GetString(1), r.GetString(2), r.GetInt64(3), r.GetString(4), r.IsDBNull(5) ? null : r.GetString(5))),
             Query(c, "SELECT kind, request_id, tick, json, note FROM job_log ORDER BY seq",
-                r => new DecisionLogEntry(Enum.Parse<DecisionLogKind>(r.GetString(0)), r.GetString(1), r.GetInt64(2), r.GetString(3), r.IsDBNull(4) ? null : r.GetString(4))));
+                r => new DecisionLogEntry(Enum.Parse<DecisionLogKind>(r.GetString(0)), r.GetString(1), r.GetInt64(2), r.GetString(3), r.IsDBNull(4) ? null : r.GetString(4))),
+            meta.TryGetValue("builds", out var builds) ? JsonSerializer.Deserialize<List<BuildTask>>(builds, Json) : null,
+            meta.TryGetValue("first_used", out var firstUsed) ? JsonSerializer.Deserialize<List<string>>(firstUsed, Json) : null,
+            meta.TryGetValue("invention_sounds", out var sounds) ? JsonSerializer.Deserialize<List<SoundTask>>(sounds, Json) : null);
     }
 
     private static SaveState Read(SqliteConnection c)

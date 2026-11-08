@@ -13,7 +13,7 @@ import asyncio
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Protocol
 
 import httpx
 
@@ -37,7 +37,6 @@ from glassworld_ai.queue import (
     QueueFullError,
 )
 from glassworld_ai.words import plain_id
-from glassworld_contracts import GenerationJob
 
 NO_WAIT_LIMIT_S = 7 * 24 * 3600.0  # queue wait for jobs: practically unlimited (B2487)
 
@@ -65,10 +64,22 @@ def fail(code: str, message: str) -> JobFailedError:
     return JobFailedError(code, message, retryable=code in RETRYABLE_CODES)
 
 
+class Asked(Protocol):
+    """What a model call needs from its request: ids for the log, the seed and a dump."""
+
+    @property
+    def request_id(self) -> Any: ...
+    @property
+    def tick(self) -> int: ...
+    @property
+    def seed(self) -> int: ...
+    def model_dump(self, *, mode: str = ...) -> dict[str, Any]: ...
+
+
 async def ask_model[T](
     *,
     role: str,
-    job: GenerationJob,
+    job: Asked,
     rendered: RenderedPrompt,
     schema: dict[str, Any],
     parse: Callable[[str], T],
@@ -76,8 +87,14 @@ async def ask_model[T](
     queue: ModelQueue,
     settings: ModelCallSettings,
     log: CallLog,
+    priority: Priority = Priority.BACKGROUND,
+    deadline: float | None = None,
 ) -> Answer[T]:
-    """Ask until `parse` accepts an answer (1 + max_retries attempts) or a hard error occurs."""
+    """Ask until `parse` accepts an answer (1 + max_retries attempts) or a hard error occurs.
+
+    Jobs wait without limit (background, B2487); a player request passes priority PLAYER and its
+    absolute deadline (time.monotonic()).
+    """
     started = time.monotonic()
     messages = [ChatMessage("system", rendered.system), ChatMessage("user", rendered.user)]
     attempts = 1 + settings.max_retries
@@ -123,14 +140,16 @@ async def ask_model[T](
                 seed=seed,
                 temperature=settings.temperature,
                 num_ctx=settings.num_ctx,
-                timeout=settings.call_timeout_s,
+                timeout=settings.call_timeout_s
+                if deadline is None
+                else max(0.1, min(settings.call_timeout_s, deadline - time.monotonic())),
             )
 
         # The queue deadline covers waiting AND the call; the call itself is limited by the
         # HTTP timeout (call_timeout_s), so the wait is practically unlimited.
-        deadline = time.monotonic() + NO_WAIT_LIMIT_S
+        until = deadline if deadline is not None else time.monotonic() + NO_WAIT_LIMIT_S
         try:
-            result = await queue.run(Priority.BACKGROUND, deadline, call)
+            result = await queue.run(priority, until, call)
         except asyncio.CancelledError:
             record("cancelled", None, "job cancelled (DELETE or shutdown)")
             raise

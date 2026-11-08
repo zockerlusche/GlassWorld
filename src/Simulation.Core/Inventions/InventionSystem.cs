@@ -35,7 +35,9 @@ public sealed record InventionRecord(string TypeId, string RequestId, string Inh
 /// <param name="Purpose">Action it is made for.</param>
 /// <param name="InhabitantId">Inventor.</param>
 /// <param name="Tick">Tick it entered the world.</param>
-public sealed record InventionInfo(string TypeId, LocalizedName Name, InventionCategory Category, string Purpose, string InhabitantId, long Tick);
+/// <param name="SoundFile">Its own sound from the sound model (file name in the service's output folder), or null: then the game takes the base library by the description (D471 D7).</param>
+/// <param name="SoundDescription">The rule guard's sound description, or null when it needs no sound.</param>
+public sealed record InventionInfo(string TypeId, LocalizedName Name, InventionCategory Category, string Purpose, string InhabitantId, long Tick, string? SoundFile = null, string? SoundDescription = null);
 
 /// <summary>Runtime types of the world (inventions) for UI and later systems.</summary>
 public interface IRuntimeCatalog
@@ -54,13 +56,19 @@ public interface IRuntimeCatalog
 /// <param name="Wants">Open wishes.</param>
 /// <param name="Inventions">Inventions in type id order.</param>
 /// <param name="Log">Job log.</param>
+/// <param name="Builds">Building tasks (null in save games from before building).</param>
+/// <param name="FirstUsed">Runtime types already used once.</param>
+/// <param name="Sounds">Sound jobs of inventions and their results.</param>
 public sealed record InventionState(
     long Counter,
     IReadOnlyList<KeyValuePair<string, long>> Below,
     IReadOnlyList<KeyValuePair<string, long>> Cooldowns,
     IReadOnlyList<OpenWant> Wants,
     IReadOnlyList<InventionRecord> Inventions,
-    IReadOnlyList<DecisionLogEntry> Log);
+    IReadOnlyList<DecisionLogEntry> Log,
+    IReadOnlyList<BuildTask>? Builds = null,
+    IReadOnlyList<string>? FirstUsed = null,
+    IReadOnlyList<SoundTask>? Sounds = null);
 
 /// <summary>
 /// Inventions in the core (D471 D5, a world system): a lasting lack becomes a wish, the wish becomes an
@@ -69,7 +77,7 @@ public sealed record InventionState(
 /// Without an answer the wish stays open (B2487); there is never a substitute result. Every value comes
 /// from data; nothing here names an invention.
 /// </summary>
-public sealed class InventionSystem : IWorldSystem, IOptionalWorldState, IRuntimeCatalog
+public sealed partial class InventionSystem : IWorldSystem, IOptionalWorldState, IRuntimeCatalog
 {
     /// <summary>Event: an invention entered the world (target = runtime type id, action = purpose).</summary>
     public const string Invented = "invented";
@@ -115,13 +123,14 @@ public sealed class InventionSystem : IWorldSystem, IOptionalWorldState, IRuntim
         _perceptionRadiusM = perceptionRadiusM;
         _port = port;
         _displayLocale = displayLocale;
+        inhabitants.Reported += Observe;
     }
 
     /// <inheritdoc/>
     public string Name => "invention";
 
     /// <inheritdoc/>
-    public bool HasState => _counter > 0 || _below.Count > 0 || _cooldowns.Count > 0 || _wants.Count > 0 || _inventions.Count > 0;
+    public bool HasState => _counter > 0 || _below.Count > 0 || _cooldowns.Count > 0 || _wants.Count > 0 || _inventions.Count > 0 || _builds.Count > 0 || _firstUsed.Count > 0 || _sounds.Count > 0;
 
     /// <summary>Job log (requests and the outcomes that took effect).</summary>
     public DecisionLog Log { get; } = new();
@@ -133,10 +142,10 @@ public sealed class InventionSystem : IWorldSystem, IOptionalWorldState, IRuntim
     public IEnumerable<InventionRecord> Records => _inventions.Values;
 
     /// <inheritdoc/>
-    public IReadOnlyList<InventionInfo> Inventions => [.. _inventions.Values.Select(Info)];
+    public IReadOnlyList<InventionInfo> Inventions => [.. _inventions.Values.Select(InfoOf)];
 
     /// <inheritdoc/>
-    public InventionInfo? Invention(string typeId) => _inventions.TryGetValue(typeId, out var record) ? Info(record) : null;
+    public InventionInfo? Invention(string typeId) => _inventions.TryGetValue(typeId, out var record) ? InfoOf(record) : null;
 
     /// <summary>Runtime type id for an approved invention of a job (deterministic).</summary>
     public static string TypeIdFor(string requestId)
@@ -173,6 +182,8 @@ public sealed class InventionSystem : IWorldSystem, IOptionalWorldState, IRuntim
         }
 
         Trigger(world);
+        AdvanceBuilds(world);
+        SignalPhase(world);
     }
 
     /// <inheritdoc/>
@@ -210,11 +221,13 @@ public sealed class InventionSystem : IWorldSystem, IOptionalWorldState, IRuntim
                 hasher.Write(p);
             }
         }
+
+        WriteBuildState(hasher);
     }
 
     /// <summary>Takes the complete state.</summary>
     public InventionState Capture() =>
-        new(_counter, [.. _below], [.. _cooldowns], [.. _wants.Values], [.. _inventions.Values], [.. Log.Entries]);
+        new(_counter, [.. _below], [.. _cooldowns], [.. _wants.Values], [.. _inventions.Values], [.. Log.Entries], [.. _builds.Values], [.. _firstUsed], [.. _sounds.Values]);
 
     /// <summary>Restores a captured state; registers the runtime types of the inventions.</summary>
     public void Restore(InventionState state)
@@ -238,7 +251,7 @@ public sealed class InventionSystem : IWorldSystem, IOptionalWorldState, IRuntim
 
         foreach (var record in state.Inventions)
         {
-            _types.Register(record.TypeId, Parse(record).Introduces);
+            _types.Register(record.TypeId, Parse(record).Introduces.Concat(_rules.Settings.ImpliedProperties).Distinct(StringComparer.Ordinal));
             _inventions[record.TypeId] = record;
         }
 
@@ -246,16 +259,22 @@ public sealed class InventionSystem : IWorldSystem, IOptionalWorldState, IRuntim
         {
             Log.Add(entry);
         }
+
+        RestoreBuilds(state);
     }
 
     private static Invention Parse(InventionRecord record) =>
         JsonSerializer.Deserialize<Invention>(record.InventionJson, RecordJson)
         ?? throw new InvalidDataException($"Invention '{record.TypeId}' has no record.");
 
-    private static InventionInfo Info(InventionRecord record)
+    private InventionInfo InfoOf(InventionRecord record)
     {
         var invention = Parse(record);
-        return new InventionInfo(record.TypeId, invention.Name, invention.Category, invention.Purpose, record.InhabitantId, record.Tick);
+        var decision = SoundOf(record);
+        string? file = _sounds.TryGetValue(record.TypeId, out var sound) && sound.ResultJson is not null
+            ? JsonSerializer.Deserialize<SoundResult>(sound.ResultJson, RecordJson)?.File
+            : null;
+        return new InventionInfo(record.TypeId, invention.Name, invention.Category, invention.Purpose, record.InhabitantId, record.Tick, file, decision?.Needed == true ? decision.Description : null);
     }
 
     private static int SeedOf(string requestId) =>
@@ -382,6 +401,11 @@ public sealed class InventionSystem : IWorldSystem, IOptionalWorldState, IRuntim
 
     private void Apply(World world, PortMessage message)
     {
+        if (ApplySound(world, message) || ApplyBuild(world, message))
+        {
+            return;
+        }
+
         var want = _wants.Values.FirstOrDefault(w => w.RequestId == message.RequestId && w.RetryAtTick is null);
         if (message.IsError)
         {
@@ -446,7 +470,7 @@ public sealed class InventionSystem : IWorldSystem, IOptionalWorldState, IRuntim
         }
 
         var invention = result.Invention!;
-        _types.Register(typeId, invention.Introduces);
+        _types.Register(typeId, invention.Introduces.Concat(_rules.Settings.ImpliedProperties).Distinct(StringComparer.Ordinal));
         _inventions[typeId] = new InventionRecord(
             typeId,
             want.RequestId,
@@ -456,6 +480,7 @@ public sealed class InventionSystem : IWorldSystem, IOptionalWorldState, IRuntim
             result.Sound is null ? null : JsonSerializer.Serialize(result.Sound, RecordJson));
         Close(world, want, null);
         _inhabitants.Report(new WorldEvent(Invented, world.Tick, want.InhabitantId, invention.Purpose, typeId));
+        StartBuild(world, typeId, want.InhabitantId);
     }
 
     /// <summary>B2487: a retryable failure keeps the wish and sends it again later with a new id; otherwise it closes.</summary>

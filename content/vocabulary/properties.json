@@ -97,6 +97,10 @@
     {
       "id": "sheltering",
       "description": "Gives shelter from wind and rain."
+    },
+    {
+      "id": "crafted",
+      "description": "Made by inhabitants from an invention."
     }
   ]
 }

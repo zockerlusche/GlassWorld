@@ -399,7 +399,7 @@ public sealed class DecisionsSystem : IWorldSystem
     private List<(string OptionId, string Action, string? TargetId)> BuildOptions(WorldObject? target)
     {
         var raw = new List<(string Action, string? TargetId)>();
-        foreach (var action in _actions.Actions)
+        foreach (var action in _actions.OfferedActions)
         {
             switch (_actionTargets.GetValueOrDefault(action, VocabularyEntryTarget.None))
             {

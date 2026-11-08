@@ -50,6 +50,14 @@
       "sound": "action.combine"
     },
     {
+      "action": "use",
+      "sound": "action.combine"
+    },
+    {
+      "action": "build_step",
+      "sound": "action.combine"
+    },
+    {
       "action": "warn",
       "sound": "action.talk_to"
     },
