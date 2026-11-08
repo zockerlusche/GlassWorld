@@ -17,7 +17,9 @@
     "age_stages",
     "shapes",
     "head_scale",
-    "elder_hair_colors"
+    "elder_hair_colors",
+    "start_age_days",
+    "shape_chance_permille"
   ],
   "properties": {
     "contract_version": {
@@ -113,6 +115,18 @@
         "type": "string",
         "pattern": "^#[0-9a-f]{6}$"
       }
+    },
+    "start_age_days": {
+      "description": "Age in days of the start inhabitants; the age stage follows from age_stages (ageing comes with B9).",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100000
+    },
+    "shape_chance_permille": {
+      "description": "Chance that an inhabitant gets one body shape from shapes (in the shape's range).",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000
     }
   },
   "$defs": {

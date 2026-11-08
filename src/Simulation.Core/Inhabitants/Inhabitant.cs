@@ -8,7 +8,8 @@ namespace GlassWorld.Simulation.Inhabitants;
 /// <param name="TargetId">Target object id, or null.</param>
 /// <param name="Destination">Where the inhabitant walks before the action starts.</param>
 /// <param name="RemainingTicks">Ticks left once the action has started; null while still walking.</param>
-public sealed record Activity(string Action, string? TargetId, Position Destination, long? RemainingTicks);
+/// <param name="Route">Waypoints still to walk on a map (B2 R10), searched once when the walk starts; null without a map.</param>
+public sealed record Activity(string Action, string? TargetId, Position Destination, long? RemainingTicks, IReadOnlyList<Position>? Route = null);
 
 /// <summary>
 /// An inhabitant's state. Needs, moods and traits are registers keyed by vocabulary id (not enums), so
@@ -70,6 +71,9 @@ public sealed class Inhabitant
     /// </summary>
     public Activity? Planned { get; internal set; }
 
+    /// <summary>How the inhabitant looks (B2 R27); null only in worlds built without look data (tests).</summary>
+    public Appearance? Appearance { get; set; }
+
     /// <summary>Writes the complete state in canonical order.</summary>
     public void WriteState(StateHasher hasher)
     {
@@ -81,6 +85,8 @@ public sealed class Inhabitant
         Beliefs.WriteState(hasher);
         WriteActivity(hasher, Activity);
         WriteActivity(hasher, Planned);
+        hasher.Write(Appearance is not null);
+        Appearance?.WriteState(hasher);
     }
 
     private static void WriteActivity(StateHasher hasher, Activity? activity)
@@ -89,6 +95,11 @@ public sealed class Inhabitant
         if (activity is { } a)
         {
             hasher.Write(a.Action).Write(a.TargetId ?? string.Empty).Write(a.Destination.X).Write(a.Destination.Z).Write(a.RemainingTicks ?? -1);
+            hasher.Write(a.Route?.Count ?? -1);
+            foreach (var point in a.Route ?? [])
+            {
+                hasher.Write(point.X).Write(point.Z);
+            }
         }
     }
 

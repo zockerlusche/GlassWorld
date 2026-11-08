@@ -87,7 +87,15 @@ public sealed class SimulationHost
     /// the invention system is dormant; invention and chronicle stay out of the world hash while empty, so
     /// worlds without inventions keep their hashes.
     /// </remarks>
-    public static SimulationHost Assemble(ContentSet content, DeciderSettings settings, World world, IDecisionPort port, string displayLocale, string? worldPreset, IJobPort? jobPort = null)
+    /// <param name="content">Content.</param>
+    /// <param name="settings">Decider settings.</param>
+    /// <param name="world">New or restored world.</param>
+    /// <param name="port">Decider port.</param>
+    /// <param name="displayLocale">Player language.</param>
+    /// <param name="worldPreset">Preset of the island, or null for the placeholder world.</param>
+    /// <param name="jobPort">Job port, or null (inventions dormant).</param>
+    /// <param name="savedIsland">The island as a save game kept it (B2 R11); null = generate from seed and preset.</param>
+    public static SimulationHost Assemble(ContentSet content, DeciderSettings settings, World world, IDecisionPort port, string displayLocale, string? worldPreset, IJobPort? jobPort = null, (GeneratedIsland Island, int CellSizeCm)? savedIsland = null)
     {
         ArgumentNullException.ThrowIfNull(content);
         ArgumentNullException.ThrowIfNull(world);
@@ -102,7 +110,8 @@ public sealed class SimulationHost
                 throw new InvalidDataException($"Unknown world preset '{worldPreset}'.");
             }
 
-            var island = WorldGenerator.Generate(content.WorldGen, content.Objects, worldPreset, world.Seed);
+            // A saved island is used as it is, so later changes of generator or data keep existing worlds.
+            var island = savedIsland?.Island ?? WorldGenerator.Generate(content.WorldGen, content.Objects, worldPreset, world.Seed);
             if (!island.Passed)
             {
                 throw new InvalidDataException($"World preset '{worldPreset}' with seed {world.Seed} gives no island that passes the check after {island.Attempts} attempts.");
@@ -113,11 +122,11 @@ public sealed class SimulationHost
                 .Where(r => r.RegrowHours is not null)
                 .GroupBy(r => r.ObjectType, StringComparer.Ordinal)
                 .ToDictionary(g => g.Key, g => (long)g.First().RegrowHours!.Value * ticksPerHour, StringComparer.Ordinal);
-            map = new WorldMapSystem(island, preset.Grid.CellSizeCm, objects, regrow);
+            map = new WorldMapSystem(island, savedIsland?.CellSizeCm ?? preset.Grid.CellSizeCm, objects, regrow) { NodeBudget = preset.Pathfinding.NodeBudget };
             world.Add(map);
         }
 
-        var inhabitants = new InhabitantsSystem(content.InhabitantModel, actions, content.Brain, objects, world.Calendar.Settings.TicksPerHour);
+        var inhabitants = new InhabitantsSystem(content.InhabitantModel, actions, content.Brain, objects, world.Calendar.Settings.TicksPerHour) { Looks = content.Appearance, Routes = map };
         var decisions = new DecisionsSystem(settings, inhabitants, objects, actions, content.Brain, content.Vocabularies[VocabularyKind.Action], port, displayLocale);
         var player = new Simulation.Player.PlayerSystem(content.GiftRules, content.Favor, content.Brain.Weights, content.Brain, inhabitants, objects, world.Calendar.Settings.TicksPerHour);
         decisions.RegisterCommand(Simulation.Player.PlayerSystem.PlaceGift, player.Check, player.Apply);
