@@ -1029,6 +1029,22 @@
     {
       "key": "vocab.guard_reason.implausible",
       "text": "Implausible"
+    },
+    {
+      "key": "msg.command.no_favor",
+      "text": "Your favour is not enough for that right now."
+    },
+    {
+      "key": "msg.command.unknown_type",
+      "text": "That does not exist in this world."
+    },
+    {
+      "key": "msg.command.too_close",
+      "text": "Too close to an inhabitant – place it a little further away."
+    },
+    {
+      "key": "msg.command.no_position",
+      "text": "Choose a spot in the world."
     }
   ]
 }

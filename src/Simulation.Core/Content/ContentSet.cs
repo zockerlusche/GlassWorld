@@ -23,8 +23,12 @@ public sealed class ContentSet
         InhabitantModel inhabitantModel,
         ActionRules actions,
         UtilityBrain brain,
-        WorldGenContent worldGen)
+        WorldGenContent worldGen,
+        GiftRules giftRules,
+        FavorSettings favor)
     {
+        GiftRules = giftRules;
+        Favor = favor;
         Calendar = calendar;
         Objects = objects;
         Combinations = combinations;
@@ -34,6 +38,12 @@ public sealed class ContentSet
         Brain = brain;
         WorldGen = worldGen;
     }
+
+    /// <summary>Rules for gifts and calls for help (content/player/gift_rules.json).</summary>
+    public GiftRules GiftRules { get; }
+
+    /// <summary>Favour: maximum, start options, growth and costs (content/player/favor.json).</summary>
+    public FavorSettings Favor { get; }
 
     /// <summary>World time.</summary>
     public WorldCalendar Calendar { get; }
@@ -90,7 +100,18 @@ public sealed class ContentSet
             needs,
             objects.PropertyVocabulary);
         var worldGen = WorldGenContent.Load(contentDirectory, vocabularies, objects, calendar);
-        return new ContentSet(calendar, objects, combinations, vocabularies, model, actions, brain, worldGen);
+        var player = Path.Combine(contentDirectory, "player");
+        return new ContentSet(
+            calendar,
+            objects,
+            combinations,
+            vocabularies,
+            model,
+            actions,
+            brain,
+            worldGen,
+            ContractSerializer.Deserialize<GiftRules>(File.ReadAllText(Path.Combine(player, "gift_rules.json"))),
+            ContractSerializer.Deserialize<FavorSettings>(File.ReadAllText(Path.Combine(player, "favor.json"))));
     }
 
     private static HashSet<string> Ids(Dictionary<VocabularyKind, Vocabulary> vocabularies, VocabularyKind kind) =>

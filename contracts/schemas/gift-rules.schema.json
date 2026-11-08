@@ -10,7 +10,10 @@
     "futile_attempts_threshold",
     "suggestion_expiry_hours",
     "max_open_suggestions",
-    "min_distance_to_inhabitant_m"
+    "min_distance_to_inhabitant_m",
+    "urgent_below",
+    "missing_radius_m",
+    "search_actions"
   ],
   "properties": {
     "contract_version": {
@@ -38,6 +41,28 @@
       "type": "number",
       "minimum": 0,
       "maximum": 100
+    },
+    "urgent_below": {
+      "description": "A need below this value counts as pressing: an action that ends while nothing in sight seems to help counts as a futile attempt (placeholder, Marcel's value).",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "missing_radius_m": {
+      "description": "The core's check 'really missing': if any object that truly helps lies within this distance, no help is offered; the inhabitant is to search (F5238; placeholder).",
+      "type": "number",
+      "minimum": 1,
+      "maximum": 1000
+    },
+    "search_actions": {
+      "description": "Actions that count as trying to find something (searching, examining); only these count as futile effort, not sleeping or resting (GW1 review #67 S2).",
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 8,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "common.schema.json#/$defs/VocabId"
+      }
     }
   }
 }

@@ -7,6 +7,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from . import common_schema
+
 
 class GiftRules(BaseModel):
     model_config = ConfigDict(
@@ -34,4 +36,22 @@ class GiftRules(BaseModel):
         description='A gift never lands on or right next to an inhabitant.',
         ge=0.0,
         le=100.0,
+    )
+    urgent_below: float = Field(
+        ...,
+        description="A need below this value counts as pressing: an action that ends while nothing in sight seems to help counts as a futile attempt (placeholder, Marcel's value).",
+        ge=0.0,
+        le=1.0,
+    )
+    missing_radius_m: float = Field(
+        ...,
+        description="The core's check 'really missing': if any object that truly helps lies within this distance, no help is offered; the inhabitant is to search (F5238; placeholder).",
+        ge=1.0,
+        le=1000.0,
+    )
+    search_actions: list[common_schema.VocabId] = Field(
+        ...,
+        description='Actions that count as trying to find something (searching, examining); only these count as futile effort, not sleeping or resting (GW1 review #67 S2).',
+        max_length=8,
+        min_length=1,
     )

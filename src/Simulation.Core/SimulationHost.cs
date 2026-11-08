@@ -16,9 +16,10 @@ namespace GlassWorld.Simulation;
 /// </summary>
 public sealed class SimulationHost
 {
-    private SimulationHost(ContentSet content, World world, WorldMapSystem? map, WorldObjects objects, DecisionsSystem decisions, InhabitantsSystem inhabitants, DeciderSettings deciderSettings)
+    private SimulationHost(ContentSet content, World world, WorldMapSystem? map, WorldObjects objects, DecisionsSystem decisions, InhabitantsSystem inhabitants, DeciderSettings deciderSettings, Player.PlayerSystem player)
     {
         Map = map;
+        Player = player;
         Content = content;
         World = world;
         Objects = objects;
@@ -41,6 +42,9 @@ public sealed class SimulationHost
 
     /// <summary>Questions to the decider and player commands.</summary>
     public DecisionsSystem Decisions { get; }
+
+    /// <summary>The player's part: favour, calls for help, gifts (B6).</summary>
+    public Player.PlayerSystem Player { get; }
 
     /// <summary>Inhabitants.</summary>
     public InhabitantsSystem Inhabitants { get; }
@@ -89,8 +93,10 @@ public sealed class SimulationHost
         var objects = new WorldObjects(content.Objects);
         var inhabitants = new InhabitantsSystem(content.InhabitantModel, content.Actions, content.Brain, objects, world.Calendar.Settings.TicksPerHour);
         var decisions = new DecisionsSystem(settings, inhabitants, objects, content.Actions, content.Brain, content.Vocabularies[VocabularyKind.Action], port, displayLocale);
-        world.Add(objects).Add(decisions).Add(inhabitants);
-        return new SimulationHost(content, world, map, objects, decisions, inhabitants, settings);
+        var player = new Simulation.Player.PlayerSystem(content.GiftRules, content.Favor, content.Brain.Weights, content.Brain, inhabitants, objects, world.Calendar.Settings.TicksPerHour);
+        decisions.RegisterCommand(Simulation.Player.PlayerSystem.PlaceGift, player.Check, player.Apply);
+        world.Add(objects).Add(decisions).Add(inhabitants).Add(player);
+        return new SimulationHost(content, world, map, objects, decisions, inhabitants, settings, player);
     }
 
     /// <summary>

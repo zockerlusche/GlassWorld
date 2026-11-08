@@ -16,6 +16,9 @@ public sealed record WorldEvent(string Kind, long Tick, string InhabitantId, str
 {
     /// <summary>Text for the player (thought bubble), already in the player's language; null for most events.</summary>
     public string? Text { get; init; }
+
+    /// <summary>Language-neutral detail of the event (e.g. the need of a call for help, the type of a gift).</summary>
+    public string? Detail { get; init; }
 }
 
 /// <summary>An event with its running number (UI and sound read everything since their last number).</summary>

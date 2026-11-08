@@ -55,16 +55,27 @@ public partial class WorldPresenter : Node3D
     public string? HashAtLoad { get; private set; }
 
     /// <summary>Builds the placeholder start world for a seed and creates the visuals (no save game).</summary>
-    public void Start(string contentDirectory, ulong seed) => CreateWorld(contentDirectory, seed, null);
+    public void Start(string contentDirectory, ulong seed) => CreateWorld(contentDirectory, seed, null, null);
 
     /// <summary>
     /// Starts a new world. Until B2-2 generates the island, size and climate are only stored by the
     /// caller; the world is the placeholder start for the seed. With a save path the world is saved at
     /// once and then after every game day (B2487, Leitbild: at most one game day lost).
     /// </summary>
-    public void CreateWorld(string contentDirectory, ulong seed, string? savePath)
+    /// <param name="contentDirectory">Content folder.</param>
+    /// <param name="seed">World seed.</param>
+    /// <param name="startFavor">Start favour chosen in the new-world form (null = default of the data).</param>
+    /// <param name="savePath">Save game, or null for an unsaved world.</param>
+    public void CreateWorld(string contentDirectory, ulong seed, int? startFavor, string? savePath)
     {
-        Begin(SimulationHost.CreatePlaceholderWorld(contentDirectory, seed, CreatePort(contentDirectory), "de"), savePath);
+        var host = SimulationHost.CreatePlaceholderWorld(contentDirectory, seed, CreatePort(contentDirectory), "de");
+        if (startFavor is { } favor)
+        {
+            // Part of the start state (GW1 review #67 S1): same world code = same favour.
+            host.Player.SetStartFavor(favor);
+        }
+
+        Begin(host, savePath);
         if (savePath is not null)
         {
             Save();

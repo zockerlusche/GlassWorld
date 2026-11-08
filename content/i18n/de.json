@@ -1029,6 +1029,22 @@
     {
       "key": "vocab.guard_reason.implausible",
       "text": "Unplausibel"
+    },
+    {
+      "key": "msg.command.no_favor",
+      "text": "Dafür reicht deine Gunst gerade nicht."
+    },
+    {
+      "key": "msg.command.unknown_type",
+      "text": "Das gibt es in dieser Welt nicht."
+    },
+    {
+      "key": "msg.command.too_close",
+      "text": "Zu nah an einem Bewohner – leg es etwas weiter weg."
+    },
+    {
+      "key": "msg.command.no_position",
+      "text": "Wähle eine Stelle in der Welt."
     }
   ]
 }

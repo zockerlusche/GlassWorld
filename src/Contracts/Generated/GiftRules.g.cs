@@ -43,5 +43,23 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("min_distance_to_inhabitant_m")]
         public double MinDistanceToInhabitantM { get; set; } = default!;
 
+        /// <summary>
+        /// A need below this value counts as pressing: an action that ends while nothing in sight seems to help counts as a futile attempt (placeholder, Marcel's value).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("urgent_below")]
+        public double UrgentBelow { get; set; } = default!;
+
+        /// <summary>
+        /// The core's check 'really missing': if any object that truly helps lies within this distance, no help is offered; the inhabitant is to search (F5238; placeholder).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("missing_radius_m")]
+        public double MissingRadiusM { get; set; } = default!;
+
+        /// <summary>
+        /// Actions that count as trying to find something (searching, examining); only these count as futile effort, not sleeping or resting (GW1 review #67 S2).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("search_actions")]
+        public System.Collections.Generic.ICollection<string> SearchActions { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
     }
 }
