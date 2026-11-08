@@ -29,6 +29,16 @@ def main() -> int:
     os.environ.setdefault("TORCHDYNAMO_DISABLE", "1")
     sys.path.insert(0, args.code_dir)
 
+    # The protocol has stdout to itself: the model code prints while loading ("Loading from ..."),
+    # so everything else goes to stderr (found in the first live run).
+    protocol = sys.stdout
+    sys.stdout = sys.stderr
+
+    def answer(text: str) -> None:
+        protocol.write(text + "
+")
+        protocol.flush()
+
     import numpy as np
     import soundfile as sf
     import torch
@@ -42,7 +52,7 @@ def main() -> int:
     pipe.engine.enable_cpu_offload()
     pipe.engine.load_models_to_device([])
     torch.cuda.empty_cache()
-    print("READY", flush=True)
+    answer("READY")
 
     for line in sys.stdin:
         try:
@@ -69,12 +79,9 @@ def main() -> int:
             sf.write(
                 out, np.clip(mono, -1.0, 1.0).astype(np.float32), pipe.sample_rate, subtype="PCM_16"
             )
-            print(json.dumps({"ok": True}), flush=True)
+            answer(json.dumps({"ok": True}))
         except Exception as error:  # one bad request must not end the worker
-            print(
-                json.dumps({"ok": False, "error": f"{type(error).__name__}: {error}"[:300]}),
-                flush=True,
-            )
+            answer(json.dumps({"ok": False, "error": f"{type(error).__name__}: {error}"[:300]}))
     return 0
 
 
