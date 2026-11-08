@@ -1,0 +1,143 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/look-figures.schema.json",
+  "title": "LookFigures",
+  "description": "Data file content/look/figures.json: how the appearance record of an inhabitant (core, B2 R27) becomes a figure: body model per age stage and sex, hair mesh per hair style, sleeves and leg length per clothing style, shoe colour and the model heights for scaling. Presentation only, not part of the hash. Values are placeholders.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "bodies",
+    "hair",
+    "clothing",
+    "shoe_color",
+    "outline",
+    "crossfade_s",
+    "idle_slot_s",
+    "head_anchor_m"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "bodies": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "items": {
+        "$ref": "#/$defs/FigureBody"
+      }
+    },
+    "hair": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "items": {
+        "$ref": "#/$defs/FigureHair"
+      }
+    },
+    "clothing": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "items": {
+        "$ref": "#/$defs/FigureClothing"
+      }
+    },
+    "shoe_color": {
+      "type": "string",
+      "pattern": "^#[0-9a-f]{6}$"
+    },
+    "outline": {
+      "description": "Whether figures get the ink outline pass.",
+      "type": "boolean"
+    },
+    "crossfade_s": {
+      "description": "Cross-fade between clips in seconds.",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 2
+    },
+    "idle_slot_s": {
+      "description": "Real seconds one idle behaviour lasts before the next is drawn.",
+      "type": "number",
+      "minimum": 1,
+      "maximum": 120
+    },
+    "head_anchor_m": {
+      "description": "Height of the head anchor above the feet at scale 1 (thought bubble, question mark).",
+      "type": "number",
+      "minimum": 0.5,
+      "maximum": 3
+    }
+  },
+  "$defs": {
+    "FigureBody": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "age_stage",
+        "sex",
+        "model",
+        "model_height_cm"
+      ],
+      "properties": {
+        "age_stage": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "sex": {
+          "description": "female, male or any.",
+          "type": "string",
+          "pattern": "^(female|male|any)$"
+        },
+        "model": {
+          "description": "Body model in game/assets/characters/glassworld (without .glb).",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "model_height_cm": {
+          "description": "Height of the model at scale 1.",
+          "type": "integer",
+          "minimum": 30,
+          "maximum": 250
+        }
+      }
+    },
+    "FigureHair": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "style",
+        "mesh"
+      ],
+      "properties": {
+        "style": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "mesh": {
+          "description": "Hair mesh in the body model (Hair_<mesh>).",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        }
+      }
+    },
+    "FigureClothing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "style",
+        "short_sleeves",
+        "shorts"
+      ],
+      "properties": {
+        "style": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "short_sleeves": {
+          "type": "boolean"
+        },
+        "shorts": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}
