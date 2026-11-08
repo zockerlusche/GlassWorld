@@ -129,11 +129,14 @@ def test_sound_jobs_run_over_jobs_with_the_mock(settings: Settings, tmp_path: Pa
             transport=transport, base_url=f"http://{TEST_HOST}", headers={"x-gw-token": TOKEN}
         ) as client:
             assert (await client.post("/jobs", json=JOB_DATA)).status_code == 202
-            for _ in range(400):
+            # Upper bound for a slow CI runner; a passing run takes well under a second.
+            loop = asyncio.get_running_loop()
+            until = loop.time() + 30
+            while loop.time() < until:
                 body: dict[str, Any] = (await client.get(f"/jobs/{JOB_DATA['request_id']}")).json()
                 if body["state"] in ("done", "failed"):
                     return body
-                await asyncio.sleep(0.005)
+                await asyncio.sleep(0.02)
         raise AssertionError("sound job never finished")
 
     status = asyncio.run(scenario())

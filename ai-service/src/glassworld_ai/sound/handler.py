@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
+import array
 import hashlib
 import json
 import math
-import struct
 import time
 import wave
 from dataclasses import dataclass
@@ -164,11 +164,15 @@ class MockSound:
             wav.setnchannels(1)
             wav.setsampwidth(2)
             wav.setframerate(rate)
-            frames = bytearray()
-            for i in range(count):
-                fade = min(1.0, i / (0.02 * rate), (count - i) / (0.02 * rate))
-                value = 0.3 * fade * math.sin(2 * math.pi * frequency * i / rate)
-                frames += struct.pack("<h", int(value * 32767))
-            wav.writeframes(bytes(frames))
+            ramp = 0.02 * rate
+            step = 2 * math.pi * frequency / rate
+            samples = array.array(
+                "h",
+                (
+                    int(9830 * min(1.0, i / ramp, (count - i) / ramp) * math.sin(step * i))
+                    for i in range(count)
+                ),
+            )
+            wav.writeframes(samples.tobytes())
         stats = measure_wav(target)
         return JobOutcome(_result(name, stats, seed, 1), "mock", "mock", None, 0, 1)
