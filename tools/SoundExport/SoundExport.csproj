@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Developer tool (TL W1644): exports every sound of the game as its own numbered WAV file plus
+       LISTE.md (German) for Marcel's listening test. Renders with the game's own code. Not shipped. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>GlassWorld.Tools.SoundExport</RootNamespace>
+    <AssemblyName>GlassWorld.Tools.SoundExport</AssemblyName>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Game.Presentation\Game.Presentation.csproj" />
+  </ItemGroup>
+</Project>
