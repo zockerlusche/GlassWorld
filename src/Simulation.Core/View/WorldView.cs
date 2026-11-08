@@ -29,7 +29,11 @@ public sealed record InhabitantSnapshot(
     bool Fading,
     string? Action,
     string? TargetId,
-    IReadOnlyList<string> OpenQuestionIds);
+    IReadOnlyList<string> OpenQuestionIds)
+{
+    /// <summary>How the inhabitant looks (B2 R27): the game draws the figure from it, B8 voices read the body values.</summary>
+    public Appearance? Appearance { get; init; }
+}
 
 /// <summary>Read-only picture of the world at one tick.</summary>
 /// <param name="Time">World time.</param>
@@ -65,7 +69,10 @@ public static class WorldView
                 inhabitants.IsFading(i),
                 i.Activity?.Action,
                 i.Activity?.TargetId,
-                decisions.OpenQuestionIds(i.Id)))],
+                decisions.OpenQuestionIds(i.Id))
+            {
+                Appearance = i.Appearance,
+            })],
             [.. objects.All],
             [.. inhabitants.Events]);
     }

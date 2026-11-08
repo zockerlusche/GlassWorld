@@ -48,6 +48,9 @@ public sealed class ContentSet
         WorldGen = worldGen;
     }
 
+    /// <summary>Value ranges of the appearance record (content/look/appearance.json, B2 R27).</summary>
+    public LookAppearance Appearance { get; private init; } = null!;
+
     /// <summary>Rules for gifts and calls for help (content/player/gift_rules.json).</summary>
     public GiftRules GiftRules { get; }
 
@@ -150,7 +153,10 @@ public sealed class ContentSet
             ContractSerializer.Deserialize<FavorSettings>(File.ReadAllText(Path.Combine(player, "favor.json"))),
             inventions,
             chronicle,
-            writing);
+            writing)
+        {
+            Appearance = LoadAppearance(contentDirectory),
+        };
     }
 
     /// <summary>Every carrier of the vocabulary has exactly one entry; all ids it uses are known (B8 R13).</summary>
@@ -173,6 +179,25 @@ public sealed class ContentSet
         {
             throw new InvalidDataException("Writing media: " + string.Join("; ", problems) + ".");
         }
+    }
+
+    private static LookAppearance LoadAppearance(string contentDirectory)
+    {
+        var data = ContractSerializer.Deserialize<LookAppearance>(File.ReadAllText(Path.Combine(contentDirectory, "look", "appearance.json")));
+        var problems = new List<string>();
+        if (data.HeightCm.Min > data.HeightCm.Max || data.BuildPermille.Min > data.BuildPermille.Max || data.HeadScale.Min > data.HeadScale.Max)
+        {
+            problems.Add("a range has min > max");
+        }
+
+        problems.AddRange(data.Shapes.Where(s => s.Min > s.Max).Select(s => $"shape '{s.Id}' has min > max"));
+        if (data.AgeStages.Count == 0 || data.SkinTones.Count == 0 || data.HairStyles.Count == 0 || data.HairColors.Count == 0
+            || data.ClothingStyles.Count == 0 || data.ClothingColors.Count == 0)
+        {
+            problems.Add("every list needs at least one value");
+        }
+
+        return problems.Count == 0 ? data : throw new InvalidDataException("Appearance data: " + string.Join("; ", problems) + ".");
     }
 
     private static void CheckInventions(InventionRules rules, ActionRules actions, HashSet<string> shapes, HashSet<string> dayPhases)

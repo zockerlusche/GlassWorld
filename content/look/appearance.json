@@ -101,5 +101,7 @@
     "#c9c6c0",
     "#e6e3dd",
     "#a8a39b"
-  ]
+  ],
+  "start_age_days": 300,
+  "shape_chance_permille": 400
 }
