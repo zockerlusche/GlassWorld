@@ -10,6 +10,7 @@
     "sample_rate",
     "peak",
     "fade_s",
+    "min_mood_s",
     "piece_s",
     "pause_s",
     "moods",
@@ -37,6 +38,12 @@
       "type": "number",
       "minimum": 8,
       "maximum": 15
+    },
+    "min_mood_s": {
+      "description": "A mood plays at least this long in real seconds before the next change (at least fade_s, checked on load): at fast forward a short twilight does not cut a piece off (review #92).",
+      "type": "number",
+      "minimum": 8,
+      "maximum": 600
     },
     "piece_s": {
       "$ref": "#/$defs/MusicRange"
@@ -74,12 +81,12 @@
       "properties": {
         "min": {
           "type": "number",
-          "minimum": 0,
+          "minimum": 1,
           "maximum": 600
         },
         "max": {
           "type": "number",
-          "minimum": 0,
+          "minimum": 1,
           "maximum": 600
         }
       }
@@ -107,14 +114,14 @@
           "maximum": 440
         },
         "scale": {
-          "description": "Semitone steps above the root the melody may use.",
+          "description": "Semitone steps above the root the melody may use (at most one octave: with root and octave limits no melody note goes above about 1.8 kHz).",
           "type": "array",
           "minItems": 3,
           "maxItems": 12,
           "items": {
             "type": "integer",
             "minimum": 0,
-            "maximum": 24
+            "maximum": 12
           }
         },
         "tempo_bpm": {
@@ -168,7 +175,7 @@
         "octave": {
           "type": "integer",
           "minimum": -1,
-          "maximum": 2
+          "maximum": 1
         },
         "gain": {
           "type": "number",
@@ -221,7 +228,7 @@
           "items": {
             "type": "integer",
             "minimum": 0,
-            "maximum": 24
+            "maximum": 12
           }
         },
         "bars": {

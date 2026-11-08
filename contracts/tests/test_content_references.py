@@ -65,6 +65,7 @@ REFERENCES = [
     ("climate/temperate.json", "weather.seasons[].transitions[].to[].weather", "weather"),
     ("look/epochs.json", "epochs[].id", "epoch"),
     ("look/daylight.json", "phases[].phase", "time_of_day"),
+    ("music/music.json", "rules[].times_of_day[]", "time_of_day"),
 ]
 
 # Tables that define one entry per vocabulary id of their kind.

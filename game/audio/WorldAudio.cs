@@ -139,6 +139,9 @@ public partial class WorldAudio : Node3D
         }
     }
 
+    /// <summary>Stops the music before the game quits (see <see cref="WorldMusic.Silence"/>).</summary>
+    public void Silence() => _music?.Silence();
+
     /// <summary>Smoke run only: the background music (B8 R6).</summary>
     public string MusicSelfCheck() => _music?.SelfCheck() ?? "music not set up";
 

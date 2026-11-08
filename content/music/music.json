@@ -3,55 +3,206 @@
   "sample_rate": 22050,
   "peak": 0.35,
   "fade_s": 10,
-  "piece_s": { "min": 45, "max": 90 },
-  "pause_s": { "min": 20, "max": 60 },
+  "min_mood_s": 30,
+  "piece_s": {
+    "min": 45,
+    "max": 90
+  },
+  "pause_s": {
+    "min": 20,
+    "max": 60
+  },
   "moods": [
     {
       "id": "dawn",
       "root_hz": 220,
-      "scale": [0, 2, 4, 7, 9, 12],
+      "scale": [
+        0,
+        2,
+        4,
+        7,
+        9,
+        12
+      ],
       "tempo_bpm": 60,
-      "note_beats": [1, 2, 3],
+      "note_beats": [
+        1,
+        2,
+        3
+      ],
       "rest_chance": 0.3,
-      "melody": { "wave": "triangle", "octave": 1, "gain": 0.5, "attack_s": 0.15, "release_s": 0.8 },
-      "pad": { "wave": "sine", "gain": 0.35, "chord": [0, 7, 16], "bars": 4, "attack_s": 2.0, "release_s": 2.5 }
+      "melody": {
+        "wave": "triangle",
+        "octave": 1,
+        "gain": 0.5,
+        "attack_s": 0.15,
+        "release_s": 0.8
+      },
+      "pad": {
+        "wave": "sine",
+        "gain": 0.35,
+        "chord": [
+          0,
+          7,
+          4
+        ],
+        "bars": 4,
+        "attack_s": 2.0,
+        "release_s": 2.5
+      }
     },
     {
       "id": "day",
       "root_hz": 196,
-      "scale": [0, 2, 4, 7, 9, 12, 14],
+      "scale": [
+        0,
+        2,
+        4,
+        7,
+        9,
+        12
+      ],
       "tempo_bpm": 72,
-      "note_beats": [1, 1, 2],
+      "note_beats": [
+        1,
+        1,
+        2
+      ],
       "rest_chance": 0.25,
-      "melody": { "wave": "triangle", "octave": 1, "gain": 0.55, "attack_s": 0.08, "release_s": 0.6 },
-      "pad": { "wave": "sine", "gain": 0.3, "chord": [0, 4, 7], "bars": 2, "attack_s": 1.0, "release_s": 1.5 }
+      "melody": {
+        "wave": "triangle",
+        "octave": 1,
+        "gain": 0.55,
+        "attack_s": 0.08,
+        "release_s": 0.6
+      },
+      "pad": {
+        "wave": "sine",
+        "gain": 0.3,
+        "chord": [
+          0,
+          4,
+          7
+        ],
+        "bars": 2,
+        "attack_s": 1.0,
+        "release_s": 1.5
+      }
     },
     {
       "id": "dusk",
       "root_hz": 174.6,
-      "scale": [0, 3, 5, 7, 10, 12],
+      "scale": [
+        0,
+        3,
+        5,
+        7,
+        10,
+        12
+      ],
       "tempo_bpm": 56,
-      "note_beats": [2, 3, 4],
+      "note_beats": [
+        2,
+        3,
+        4
+      ],
       "rest_chance": 0.35,
-      "melody": { "wave": "sine", "octave": 1, "gain": 0.5, "attack_s": 0.2, "release_s": 1.2 },
-      "pad": { "wave": "sine", "gain": 0.35, "chord": [0, 7, 15], "bars": 4, "attack_s": 2.5, "release_s": 3.0 }
+      "melody": {
+        "wave": "sine",
+        "octave": 1,
+        "gain": 0.5,
+        "attack_s": 0.2,
+        "release_s": 1.2
+      },
+      "pad": {
+        "wave": "sine",
+        "gain": 0.35,
+        "chord": [
+          0,
+          7,
+          3
+        ],
+        "bars": 4,
+        "attack_s": 2.5,
+        "release_s": 3.0
+      }
     },
     {
       "id": "night",
       "root_hz": 130.8,
-      "scale": [0, 2, 3, 7, 10, 12],
+      "scale": [
+        0,
+        2,
+        3,
+        7,
+        10,
+        12
+      ],
       "tempo_bpm": 44,
-      "note_beats": [2, 4],
+      "note_beats": [
+        2,
+        4
+      ],
       "rest_chance": 0.5,
-      "melody": { "wave": "sine", "octave": 1, "gain": 0.4, "attack_s": 0.4, "release_s": 2.0 },
-      "pad": { "wave": "sine", "gain": 0.4, "chord": [0, 7, 12], "bars": 8, "attack_s": 4.0, "release_s": 4.0 }
+      "melody": {
+        "wave": "sine",
+        "octave": 1,
+        "gain": 0.4,
+        "attack_s": 0.4,
+        "release_s": 2.0
+      },
+      "pad": {
+        "wave": "sine",
+        "gain": 0.4,
+        "chord": [
+          0,
+          7,
+          12
+        ],
+        "bars": 8,
+        "attack_s": 4.0,
+        "release_s": 4.0
+      }
     }
   ],
   "rules": [
-    { "mood": "dawn", "times_of_day": ["dawn"], "seasons": [], "epochs": [] },
-    { "mood": "dusk", "times_of_day": ["dusk"], "seasons": [], "epochs": [] },
-    { "mood": "night", "times_of_day": ["night"], "seasons": [], "epochs": [] },
-    { "mood": "night", "times_of_day": [], "seasons": ["winter"], "epochs": [] },
-    { "mood": "day", "times_of_day": [], "seasons": [], "epochs": [] }
+    {
+      "mood": "dawn",
+      "times_of_day": [
+        "dawn"
+      ],
+      "seasons": [],
+      "epochs": []
+    },
+    {
+      "mood": "dusk",
+      "times_of_day": [
+        "dusk"
+      ],
+      "seasons": [],
+      "epochs": []
+    },
+    {
+      "mood": "night",
+      "times_of_day": [
+        "night"
+      ],
+      "seasons": [],
+      "epochs": []
+    },
+    {
+      "mood": "night",
+      "times_of_day": [],
+      "seasons": [
+        "winter"
+      ],
+      "epochs": []
+    },
+    {
+      "mood": "day",
+      "times_of_day": [],
+      "seasons": [],
+      "epochs": []
+    }
   ]
 }

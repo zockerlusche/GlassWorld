@@ -118,12 +118,32 @@ public static class MusicComposer
 /// change of mood cross-fades over the data's fade time; between two pieces of one mood comes a pause.
 /// No time pressure, no alarm (B2466). Driven with any clock (real seconds in the game, virtual in tests).
 /// </summary>
-public sealed class MusicDirector(MusicSettings settings, ulong worldSeed)
+public sealed class MusicDirector
 {
-    private readonly MusicSettings _settings = settings ?? throw new ArgumentNullException(nameof(settings));
+    private readonly MusicSettings _settings;
+    private readonly ulong _worldSeed;
     private double _pieceEnds;
+    private double _moodSince;
     private double? _pauseEnds;
     private long _counter;
+
+    /// <summary>Creates the director; throws <see cref="InvalidDataException"/> for inconsistent data.</summary>
+    public MusicDirector(MusicSettings settings, ulong worldSeed)
+    {
+        _settings = settings ?? throw new ArgumentNullException(nameof(settings));
+        _worldSeed = worldSeed;
+        var moods = settings.Moods.Select(m => m.Id).ToHashSet(StringComparer.Ordinal);
+        var problems = settings.Rules.Where(r => !moods.Contains(r.Mood)).Select(r => $"rule names unknown mood '{r.Mood}'").ToList();
+        if (settings.MinMoodS < settings.FadeS)
+        {
+            problems.Add($"min_mood_s {settings.MinMoodS} is shorter than fade_s {settings.FadeS}");
+        }
+
+        if (problems.Count > 0)
+        {
+            throw new InvalidDataException("Music: " + string.Join("; ", problems) + ".");
+        }
+    }
 
     /// <summary>The mood playing now (null before the first piece).</summary>
     public string? Current { get; private set; }
@@ -154,11 +174,19 @@ public sealed class MusicDirector(MusicSettings settings, ulong worldSeed)
     /// <summary>Advances to <paramref name="now"/> (seconds) with the mood that should play.</summary>
     public MusicStep Update(double now, string wanted)
     {
-        if (Current is null || wanted != Current)
+        // A mood keeps playing for at least min_mood_s (>= fade_s): a short twilight at fast forward never
+        // cuts a piece off mid-fade, and the music does not hop back and forth (review #92).
+        if (Current is null || (wanted != Current && now - _moodSince >= _settings.MinMoodS))
         {
             var fadeOut = Current is null || _pauseEnds is not null ? 0 : _settings.FadeS;
             Current = wanted;
+            _moodSince = now;
             return new MusicStep(NewPiece(now, wanted), fadeOut);
+        }
+
+        if (wanted != Current)
+        {
+            return new MusicStep(null, 0);
         }
 
         if (_pauseEnds is null && now >= _pieceEnds)
@@ -176,13 +204,13 @@ public sealed class MusicDirector(MusicSettings settings, ulong worldSeed)
         var seconds = Between(_settings.PieceS, "piece");
         _pieceEnds = now + seconds;
         _pauseEnds = null;
-        var seed = SplitMix64.SeedOf(string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{worldSeed}|music|{mood}|{_counter++}"));
+        var seed = SplitMix64.SeedOf(string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{_worldSeed}|music|{mood}|{_counter++}"));
         return new MusicCue(mood, seed, seconds, _settings.FadeS);
     }
 
     private double Between(MusicRange range, string what)
     {
-        var random = new SplitMix64(SplitMix64.SeedOf(string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{worldSeed}|music-{what}|{_counter}")));
+        var random = new SplitMix64(SplitMix64.SeedOf(string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{_worldSeed}|music-{what}|{_counter}")));
         return range.Min + ((Math.Max(range.Min, range.Max) - range.Min) * (random.NextSigned() + 1) / 2);
     }
 }

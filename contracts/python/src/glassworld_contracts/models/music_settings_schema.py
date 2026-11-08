@@ -21,11 +21,11 @@ class MusicRange(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
-    min: float = Field(..., ge=0.0, le=600.0)
-    max: float = Field(..., ge=0.0, le=600.0)
+    min: float = Field(..., ge=1.0, le=600.0)
+    max: float = Field(..., ge=1.0, le=600.0)
 
 
-type ScaleItem = Annotated[int, Field(..., ge=0, le=24)]
+type ScaleItem = Annotated[int, Field(..., ge=0, le=12)]
 
 
 type NoteBeat = Annotated[float, Field(..., ge=0.5, le=8.0)]
@@ -43,13 +43,13 @@ class MusicVoice(BaseModel):
     wave: Wave = Field(
         ..., description='Only soft waves (no square or saw: those sound like alarms).'
     )
-    octave: int = Field(..., ge=-1, le=2)
+    octave: int = Field(..., ge=-1, le=1)
     gain: float = Field(..., ge=0.0, le=1.0)
     attack_s: float = Field(..., description='Gentle onsets only.', ge=0.04, le=4.0)
     release_s: float = Field(..., ge=0.1, le=6.0)
 
 
-type ChordItem = Annotated[int, Field(..., ge=0, le=24)]
+type ChordItem = Annotated[int, Field(..., ge=0, le=12)]
 
 
 class MusicPad(BaseModel):
@@ -97,7 +97,7 @@ class MusicMood(BaseModel):
     root_hz: float = Field(..., ge=80.0, le=440.0)
     scale: list[ScaleItem] = Field(
         ...,
-        description='Semitone steps above the root the melody may use.',
+        description='Semitone steps above the root the melody may use (at most one octave: with root and octave limits no melody note goes above about 1.8 kHz).',
         max_length=12,
         min_length=3,
     )
@@ -128,6 +128,12 @@ class MusicSettings(BaseModel):
         description='Cross-fade between pieces of different moods (spec 33: 8-15 s).',
         ge=8.0,
         le=15.0,
+    )
+    min_mood_s: float = Field(
+        ...,
+        description='A mood plays at least this long in real seconds before the next change (at least fade_s, checked on load): at fast forward a short twilight does not cut a piece off (review #92).',
+        ge=8.0,
+        le=600.0,
     )
     piece_s: MusicRange
     pause_s: MusicRange = Field(

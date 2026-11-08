@@ -14,6 +14,10 @@ namespace GlassWorld.Game;
 public partial class Main
 {
     private bool _uiCheckDone = true;
+    /// <summary>Frames the audio server gets to let go of the stopped music before quitting (measured: 1 is too few headless).</summary>
+    private const int SilenceFrames = 30;
+
+    private int _silenceFrames = -1;
 
     /// <inheritdoc/>
     public override void _Process(double delta)
@@ -26,6 +30,18 @@ public partial class Main
         _frame++;
         if (_frame >= _smokeFrames && _uiCheckDone)
         {
+            // A few frames for the audio server to let go of the music before quitting (no leaks at exit, review #92).
+            if (_silenceFrames < 0)
+            {
+                _audio?.Silence();
+                _silenceFrames = SilenceFrames;
+            }
+
+            if (--_silenceFrames > 0)
+            {
+                return;
+            }
+
             GD.Print($"WORLD_TICKS {_world?.Host?.World.Tick ?? -1}");
             GD.Print($"SMOKE_OK frames={_frame}");
             GetTree().Quit(0);

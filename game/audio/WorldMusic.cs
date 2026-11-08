@@ -40,7 +40,16 @@ public partial class WorldMusic : Node
             return false;
         }
 
-        _director = new MusicDirector(_settings, worldSeed);
+        try
+        {
+            _director = new MusicDirector(_settings, worldSeed);
+        }
+        catch (InvalidDataException e)
+        {
+            GD.PushError($"music: {e.Message}");
+            return false;
+        }
+
         for (var i = 0; i < _players.Length; i++)
         {
             _players[i] = new AudioStreamPlayer { Bus = bus, VolumeDb = -80 };
@@ -71,11 +80,18 @@ public partial class WorldMusic : Node
         if (_rendering is { IsCompleted: true } done)
         {
             _rendering = null;
-            if (done.IsCompletedSuccessfully)
+            if (!done.IsCompletedSuccessfully)
+            {
+                GD.PushError($"music: a piece could not be rendered ({done.Exception?.GetBaseException().Message})");
+            }
+            else
             {
                 var (stream, cue) = done.Result;
                 _active = 1 - _active;
+                var old = _players[_active].Stream;
+                _players[_active].Stop();
                 _players[_active].Stream = stream;
+                old?.Dispose();
                 _players[_active].Play();
                 _fades[_active] = (0, 1, _clock, cue.FadeInS);
             }
@@ -100,6 +116,32 @@ public partial class WorldMusic : Node
         }
     }
 
+    /// <inheritdoc/>
+    public override void _ExitTree() => Silence();
+
+    /// <summary>
+    /// Stops the players, frees their streams and drops a piece still rendering, so nothing is left at
+    /// exit (review #92). Call it a frame before quitting: the audio server lets go of a stopped
+    /// playback only in its next mix step.
+    /// </summary>
+    public void Silence()
+    {
+        if (_rendering is { } pending)
+        {
+            // A piece still rendering is dropped; its stream is freed as soon as it is done.
+            _ = pending.ContinueWith(t => t.Result.Stream.Dispose(), TaskContinuationOptions.OnlyOnRanToCompletion);
+            _rendering = null;
+        }
+
+        foreach (var player in _players.Where(p => p is not null))
+        {
+            player.Stop();
+            var stream = player.Stream;
+            player.Stream = null;
+            stream?.Dispose();
+        }
+    }
+
     /// <summary>
     /// Smoke run only: a piece of every mood renders to the planned length, and a change of the phase
     /// of the day changes the mood with a cross-fade.
@@ -114,7 +156,7 @@ public partial class WorldMusic : Node
 
         foreach (var mood in _settings.Moods)
         {
-            var stream = Stream(MusicComposer.Render(_settings, mood, 1, 4), (int)_settings.SampleRate);
+            using var stream = Stream(MusicComposer.Render(_settings, mood, 1, 4), (int)_settings.SampleRate);
             if (Math.Abs(stream.GetLength() - 4) > 0.01)
             {
                 return $"piece of '{mood.Id}' is {stream.GetLength():0.00} s";
@@ -125,8 +167,9 @@ public partial class WorldMusic : Node
         var day = check.MoodFor("day", "spring", DefaultEpoch);
         var night = check.MoodFor("night", "spring", DefaultEpoch);
         check.Update(0, day);
-        var change = check.Update(1, night);
-        return day != night && change.Start?.Mood == night && change.FadeOutS == _settings.FadeS
+        var held = check.Update(1, night);
+        var change = check.Update(_settings.MinMoodS, night);
+        return day != night && held.Start is null && change.Start?.Mood == night && change.FadeOutS == _settings.FadeS
             ? string.Empty
             : $"no cross-fade from '{day}' to '{night}'";
     }

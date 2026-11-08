@@ -35,7 +35,7 @@ namespace GlassWorld.Contracts
         public double RootHz { get; set; } = default!;
 
         /// <summary>
-        /// Semitone steps above the root the melody may use.
+        /// Semitone steps above the root the melody may use (at most one octave: with root and octave limits no melody note goes above about 1.8 kHz).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("scale")]
         public System.Collections.Generic.ICollection<int> Scale { get; set; } = new System.Collections.ObjectModel.Collection<int>();
@@ -161,6 +161,12 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("fade_s")]
         public double FadeS { get; set; } = default!;
+
+        /// <summary>
+        /// A mood plays at least this long in real seconds before the next change (at least fade_s, checked on load): at fast forward a short twilight does not cut a piece off (review #92).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("min_mood_s")]
+        public double MinMoodS { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("piece_s")]
         public MusicRange PieceS { get; set; } = new MusicRange();

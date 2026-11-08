@@ -56,13 +56,14 @@ public sealed class MusicTests
         Assert.Null(director.Update(1, "day").Start);
 
         // Dusk: the day piece fades out while the dusk piece fades in, over the data's fade time.
-        var change = director.Update(2, "dusk");
+        var at = Settings.MinMoodS;
+        var change = director.Update(at, "dusk");
         Assert.Equal("dusk", change.Start!.Mood);
         Assert.Equal(Settings.FadeS, change.FadeOutS);
         Assert.Equal(Settings.FadeS, change.Start.FadeInS);
 
         // The piece ends by itself: silence, then the next piece of the same mood.
-        var end = 2 + change.Start.Seconds;
+        var end = at + change.Start.Seconds;
         Assert.Null(director.Update(end, "dusk").Start);
         Assert.Null(director.Update(end + Settings.PauseS.Min - 1, "dusk").Start);
         var next = director.Update(end + Settings.PauseS.Max + 1, "dusk");
@@ -75,6 +76,53 @@ public sealed class MusicTests
     }
 
     [Fact]
+    public void APhaseShorterThanTheFadeDoesNotCutAPieceOff()
+    {
+        // Review #92: at x16 a twilight lasts 2.3 s, less than fade_s; the mood holds for min_mood_s.
+        var director = new MusicDirector(Settings, 42);
+        Assert.NotNull(director.Update(0, "day").Start);
+        Assert.Null(director.Update(2.3, "dusk").Start);
+        Assert.Null(director.Update(4.6, "night").Start);
+        Assert.Equal("day", director.Current);
+        var change = director.Update(Settings.MinMoodS, "night");
+        Assert.Equal(("night", Settings.FadeS), (change.Start!.Mood, change.FadeOutS));
+    }
+
+    [Fact]
+    public void AtFastForwardMoodsNeverChangeFasterThanTheMinimumAndFadesNeverOverlap()
+    {
+        // A whole spring day at x16 in real seconds: every start is at least min_mood_s after the one
+        // before, which is at least fade_s, so a fading piece has ended before its player is used again.
+        var director = new MusicDirector(Settings, 42);
+        var factor = Calendar.Settings.FastForwardFactors.Max();
+        var secondsPerTick = Calendar.RealSecondsPerTickAtNormalSpeed / factor;
+        var starts = new List<double>();
+        for (long t = 0; t < Calendar.TicksPerDay; t++)
+        {
+            var now = t * secondsPerTick;
+            if (director.Update(now, director.MoodAt(Calendar.At(t), "wilderness")) is { Start: not null, FadeOutS: > 0 })
+            {
+                starts.Add(now);
+            }
+        }
+
+        Assert.NotEmpty(starts);
+        Assert.All(starts.Zip(starts.Skip(1)), p => Assert.True(p.Second - p.First >= Settings.MinMoodS - 1e-9, $"{p.First:0.0} s -> {p.Second:0.0} s"));
+        Assert.True(Settings.MinMoodS >= Settings.FadeS);
+    }
+
+    [Fact]
+    public void BrokenMusicDataIsRefusedOnLoad()
+    {
+        var unknown = ContractSerializer.Deserialize<MusicSettings>(File.ReadAllText(Path.Combine(TestPaths.Root, "content", "music", "music.json")));
+        unknown.Rules.First().Mood = "no_such_mood";
+        Assert.Throws<InvalidDataException>(() => new MusicDirector(unknown, 1));
+        var short_ = ContractSerializer.Deserialize<MusicSettings>(File.ReadAllText(Path.Combine(TestPaths.Root, "content", "music", "music.json")));
+        short_.MinMoodS = short_.FadeS - 1;
+        Assert.Throws<InvalidDataException>(() => new MusicDirector(short_, 1));
+    }
+
+    [Fact]
     public void ThereAreNoAlarmTones()
     {
         // Criterion 2, measured on the rendered pieces of every mood: no high or short notes, no sudden
@@ -84,7 +132,7 @@ public sealed class MusicTests
             foreach (var seed in new ulong[] { 1, 2, 3 })
             {
                 var notes = MusicComposer.Notes(mood, seed, 40);
-                Assert.All(notes, n => Assert.InRange(n.Hz, 50, 1500));
+                Assert.All(notes, n => Assert.InRange(n.Hz, 50, 1800));
                 Assert.All(notes.Where(n => !n.Pad), n => Assert.True(n.DurationS >= 0.3, $"{mood.Id}: note of {n.DurationS:0.00} s"));
 
                 var pcm = MusicComposer.Render(Settings, mood, seed, 40);
