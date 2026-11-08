@@ -447,7 +447,7 @@ def create_app(
             data: object = json.loads(body)
         except (json.JSONDecodeError, UnicodeDecodeError):
             return error_response("bad_request", "Request body is not valid JSON.")
-        problems = validator.errors("decision-request", data)
+        problems = validator.errors("decision-request", data) or _worn_problems(data)
         if problems:
             rid, rtick = _ids_if_valid(data)
             return error_response(
@@ -573,6 +573,21 @@ async def _read_body(request: Request) -> bytes | None:
 
 _JOB_STATES = frozenset({"queued", "running", "done", "failed", "deferred"})
 _UUID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
+
+
+def _worn_problems(data: object) -> list[str]:
+    """B2540: at most one worn part per slot (JSON Schema cannot say this; review GW1 #98)."""
+    inhabitant = cast(dict[str, object], data).get("inhabitant") if isinstance(data, dict) else None
+    worn = cast(dict[str, object], inhabitant).get("worn") if isinstance(inhabitant, dict) else None
+    if not isinstance(worn, list):
+        return []
+    slots = [
+        str(cast(dict[str, object], item).get("slot"))
+        for item in cast(list[object], worn)
+        if isinstance(item, dict)
+    ]
+    doubled = sorted({s for s in slots if slots.count(s) > 1})
+    return [f"inhabitant.worn: more than one part in slot {s}" for s in doubled]
 
 
 def _ids_if_valid(data: object) -> tuple[str | None, int | None]:
