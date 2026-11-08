@@ -9,30 +9,30 @@ namespace GlassWorld.Game.World;
 
 /// <summary>
 /// One inhabitant on the island (B2 R27–R29): the figure built from the core's appearance record, standing
-/// on the ground height, turned towards where it walks. Its AnimationTree mixes the gaits by speed without
-/// steps (blend space over the library gaits) and cross-fades to the clip of the current action or, without
-/// an action, to an idle behaviour chosen from core values (deterministic from id and time slot). Unknown or
-/// not-yet-made clips play the fallback and are logged once. Presentation only.
+/// on the ground height. <see cref="FigureMotion"/> moves it evenly from tick to tick and eases its facing;
+/// while the core moves it, its AnimationTree plays the gait blend by game-time speed, played faster or
+/// slower within the data range so the feet roughly match the screen; standing, it cross-fades between two
+/// action slots to the clip of its action or to an idle behaviour from core values (deterministic from id
+/// and core tick). Unknown or not-yet-made clips are logged once. Presentation only.
 /// </summary>
 public partial class FigureView : Node3D
 {
-    private const string LocoBlend = "parameters/loco/blend_position";
-    private const string ModeRequest = "parameters/mode/transition_request";
+    private static readonly StringName LocoBlend = "parameters/loco/blend_position";
+    private static readonly StringName LocoScale = "parameters/loco_speed/scale";
+    private static readonly StringName ModeRequest = "parameters/mode/transition_request";
+    private static readonly string[] ActSlots = ["act_a", "act_b"];
+    private static readonly StringName[] ActScale = ["parameters/act_a_speed/scale", "parameters/act_b_speed/scale"];
 
-    private static readonly HashSet<string> Reported = new(StringComparer.Ordinal);
-
-    private AnimationChooser _chooser = null!;
+    private FigureShared _shared = null!;
+    private FigureMotion _motion = null!;
     private AnimationTree _tree = null!;
-    private AnimationNodeAnimation _act = null!;
-    private HashSet<string> _gaitClips = [];
+    private readonly AnimationNodeAnimation[] _act = new AnimationNodeAnimation[2];
     private Func<double, double, float> _ground = (_, _) => 0f;
-    private Vector3 _from;
-    private Vector3 _to;
-    private float _speedCmS;
-    private string _mode = "loco";
+    private double _scale = 1;
+    private bool _walking = true;
+    private int _slot = 1;
     private string? _actAsset;
-    private double _idleSlotS;
-    private double _clock;
+    private double _actSpeed = 1;
 
     /// <summary>Inhabitant id.</summary>
     public string InhabitantId { get; private set; } = string.Empty;
@@ -44,12 +44,12 @@ public partial class FigureView : Node3D
     public string CurrentClip { get; private set; } = string.Empty;
 
     /// <summary>Builds the figure of an inhabitant.</summary>
-    public static FigureView Create(InhabitantSnapshot inhabitant, FigureSpec spec, AnimationLibrary library, LookFigures figures, Func<double, double, float> groundHeight)
+    public static FigureView Create(InhabitantSnapshot inhabitant, FigureSpec spec, FigureShared shared, Func<double, double, float> groundHeight)
     {
         ArgumentNullException.ThrowIfNull(inhabitant);
         ArgumentNullException.ThrowIfNull(spec);
-        ArgumentNullException.ThrowIfNull(library);
-        ArgumentNullException.ThrowIfNull(figures);
+        ArgumentNullException.ThrowIfNull(shared);
+        var figures = shared.Figures;
         var comic = GD.Load<Shader>("res://shaders/warm_comic.gdshader");
         var outline = figures.Outline ? GD.Load<Shader>("res://shaders/outline_hull.gdshader") : null;
         var look = new FigureLook(
@@ -68,101 +68,124 @@ public partial class FigureView : Node3D
             Elder: spec.Elder);
         var figure = FigureFactory.Build(look, comic, outline);
 
+        var start = new Point3(inhabitant.Position.X, groundHeight(inhabitant.Position.X, inhabitant.Position.Z), inhabitant.Position.Z);
         var view = new FigureView
         {
             Name = inhabitant.Id,
             InhabitantId = inhabitant.Id,
-            _chooser = new AnimationChooser(library),
+            _shared = shared,
             _ground = groundHeight,
-            _idleSlotS = figures.IdleSlotS,
-            _gaitClips = library.Gaits.Select(g => g.Clip).ToHashSet(StringComparer.Ordinal),
+            _scale = spec.Scale,
+            _motion = new FigureMotion(start, figures.TurnRateDegS),
         };
         view.AddChild(figure.Root);
         view.HeadAnchor = new Node3D { Name = "HeadAnchor", Position = new Vector3(0, (float)(figures.HeadAnchorM * spec.Scale), 0) };
         view.AddChild(view.HeadAnchor);
 
-        // Replace the prototype's idle/walk/jog tree by the library's gaits and an action slot.
+        // Replace the prototype's idle/walk/jog tree by the library's gaits and two action slots.
         figure.Tree.Active = false;
         figure.Tree.QueueFree();
         var player = figure.Root.FindChildren("*", "AnimationPlayer", true, false).OfType<AnimationPlayer>().Single();
-        view.BuildTree(figure.Root, player, library, figures.CrossfadeS);
-
-        var start = new Vector3((float)inhabitant.Position.X, groundHeight(inhabitant.Position.X, inhabitant.Position.Z), (float)inhabitant.Position.Z);
-        view._from = view._to = start;
-        view.Position = start;
+        view.BuildTree(figure.Root, player, shared.Library, figures.CrossfadeS);
+        view.Position = ToVector(start);
         return view;
     }
 
     /// <summary>
-    /// Takes the inhabitant's state after a tick: the new position (eased towards over the tick), the action
-    /// and the core values for idle. <paramref name="tickSeconds"/> is the real time one tick lasts.
+    /// Takes the inhabitant's state after <paramref name="ticks"/> core ticks (now at <paramref name="tick"/>):
+    /// the figure walks evenly to the new position over the real time of those ticks, or with
+    /// <paramref name="place"/> stands there at once (after a warm-up).
     /// </summary>
-    public void Apply(InhabitantSnapshot inhabitant, double tickSeconds)
+    public void Apply(InhabitantSnapshot inhabitant, long tick, int ticks, bool place = false)
     {
         ArgumentNullException.ThrowIfNull(inhabitant);
-        _from = Position;
-        _to = new Vector3((float)inhabitant.Position.X, _ground(inhabitant.Position.X, inhabitant.Position.Z), (float)inhabitant.Position.Z);
-        var flat = new Vector2(_to.X - _from.X, _to.Z - _from.Z);
-        _speedCmS = tickSeconds > 0 ? (float)(flat.Length() * 100 / tickSeconds) : 0f;
-        if (flat.LengthSquared() > 1e-6f)
+        var figures = _shared.Figures;
+        var to = new Point3(inhabitant.Position.X, _ground(inhabitant.Position.X, inhabitant.Position.Z), inhabitant.Position.Z);
+        if (place)
         {
-            Rotation = new Vector3(0, Mathf.Atan2(flat.X, flat.Y), 0);
-        }
-
-        ClipChoice choice;
-        if (inhabitant.Action is { } action)
-        {
-            choice = _chooser.ForAction(action);
-            if (_gaitClips.Contains(choice.ClipId))
-            {
-                // Walking actions: the gait follows the real speed (stroll … run), no fixed clip.
-                SetMode("loco", null);
-                _tree.Set(LocoBlend, _speedCmS);
-                CurrentClip = _chooser.ForSpeed(_speedCmS).ClipId;
-                return;
-            }
+            _motion.Place(to);
+            Position = ToVector(to);
         }
         else
         {
-            var values = inhabitant.Needs.Concat(inhabitant.Moods).Concat(inhabitant.Traits)
-                .GroupBy(kv => kv.Key, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.First().Value, StringComparer.Ordinal);
-            choice = _chooser.ForIdle(InhabitantId, (long)Math.Floor(_clock / _idleSlotS), values);
+            _motion.Retarget(to, Math.Max(1, ticks), _shared.GameSecondsPerTick, _shared.RealSecondsPerTick, figures.WalkMinStepM);
         }
 
-        if (choice.FellBack && Reported.Add(choice.ClipId))
+        var chooser = _shared.Chooser;
+        AnimationChooser.CoreValues(_shared.Values, inhabitant.Needs, inhabitant.Moods, inhabitant.Traits);
+        var moving = !place && _motion.StepM >= figures.WalkMinStepM;
+        var clip = chooser.ForInhabitant(inhabitant.Action, moving, InhabitantId, tick / figures.IdleSlotTicks, _shared.Values);
+        if (clip.Missing is { } missing)
         {
-            GD.Print($"ANIMATION_FALLBACK clip={choice.ClipId} plays {choice.Asset}");
+            Report(missing);
         }
 
-        SetMode("act", choice.Asset, choice.Speed);
-        CurrentClip = choice.ClipId;
+        if (clip.Walking)
+        {
+            // The gait follows the game-time speed (stroll … run); its playback roughly follows the screen.
+            var gait = chooser.ForSpeed(_motion.GameSpeedCmS);
+            var scale = FigureMotion.GaitTimeScale(_motion.ScreenSpeedCmS, chooser.GroundSpeedCmS(_motion.GameSpeedCmS), _scale, figures.GaitTimeScale.Min, figures.GaitTimeScale.Max);
+            Walk(_motion.GameSpeedCmS, scale);
+            CurrentClip = gait.ClipId;
+            return;
+        }
+
+        Report(clip.Clip);
+        Act(clip.Clip);
+        CurrentClip = clip.Clip.ClipId;
     }
 
     /// <inheritdoc/>
     public override void _Process(double delta)
     {
-        _clock += delta;
-
-        // Ease towards the position of the latest tick (R17: interpolate between ticks).
-        Position = Position.Lerp(_to, 1 - Mathf.Exp(-12f * (float)delta));
+        // Even pace from tick to tick (R17); the height follows the ground under the figure.
+        _motion.Advance(delta);
+        var p = _motion.Position;
+        Position = new Vector3((float)p.X, _ground(p.X, p.Z), (float)p.Z);
+        Rotation = new Vector3(0, (float)_motion.Yaw, 0);
     }
 
-    private void SetMode(string mode, string? asset, double speed = 1.0)
+    private void Report(ClipChoice choice)
     {
-        if (mode == "act" && asset is not null && asset != _actAsset)
+        if (choice.FellBack && _shared.FirstReport("clip:" + choice.ClipId))
         {
-            _act.Animation = asset;
-            _actAsset = asset;
-            _tree.Set("parameters/act_speed/scale", speed);
+            GD.Print($"ANIMATION_FALLBACK clip={choice.ClipId} plays {choice.Asset}");
+        }
+    }
+
+    private void Walk(double blend, double scale)
+    {
+        _tree.Set(LocoBlend, blend);
+        _tree.Set(LocoScale, scale);
+        if (!_walking)
+        {
             _tree.Set(ModeRequest, "loco");
-            _tree.Set(ModeRequest, "act");
+            _walking = true;
+        }
+    }
+
+    private void Act(ClipChoice choice)
+    {
+        if (!_walking && choice.Asset == _actAsset)
+        {
+            if (choice.Speed != _actSpeed)
+            {
+                _tree.Set(ActScale[_slot], choice.Speed);
+                _actSpeed = choice.Speed;
+            }
+
+            return;
         }
 
-        if (_mode != mode)
-        {
-            _tree.Set(ModeRequest, mode);
-            _mode = mode;
-        }
+        // A new clip goes into the other slot, so the transition cross-fades from the one playing and
+        // restarts the new one from its first frame (input reset).
+        _slot = 1 - _slot;
+        _act[_slot].Animation = choice.Asset;
+        _tree.Set(ActScale[_slot], choice.Speed);
+        _tree.Set(ModeRequest, ActSlots[_slot]);
+        _actAsset = choice.Asset;
+        _actSpeed = choice.Speed;
+        _walking = false;
     }
 
     private void BuildTree(Node3D root, AnimationPlayer player, AnimationLibrary library, double crossfade)
@@ -175,35 +198,53 @@ public partial class FigureView : Node3D
             var asset = Asset(gait.Clip) ?? Asset(library.FallbackClip)!;
             if (!player.HasAnimation(asset))
             {
-                GD.PushError($"FIGURE gait clip missing in the model: {asset}");
+                if (_shared.FirstReport("gait:" + gait.Id))
+                {
+                    GD.PushError($"FIGURE gait '{gait.Id}' clip missing in the model: {asset}");
+                }
+
                 continue;
             }
 
             player.GetAnimation(asset).LoopMode = Animation.LoopModeEnum.Linear;
-            loco.AddBlendPoint(new AnimationNodeAnimation { Animation = asset }, gait.MinSpeedCmS);
+            loco.AddBlendPoint(new AnimationNodeAnimation { Animation = asset }, gait.MinSpeedCmS, -1, gait.Id);
         }
 
-        _act = new AnimationNodeAnimation { Animation = Asset(library.FallbackClip)! };
         var transition = new AnimationNodeTransition { XfadeTime = (float)crossfade };
         transition.AddInput("loco");
-        transition.AddInput("act");
-
         var blend = new AnimationNodeBlendTree();
         blend.AddNode("loco", loco);
-        blend.AddNode("act", _act);
-        blend.AddNode("act_speed", new AnimationNodeTimeScale());
+        blend.AddNode("loco_speed", new AnimationNodeTimeScale());
+        blend.ConnectNode("loco_speed", 0, "loco");
         blend.AddNode("mode", transition);
-        blend.ConnectNode("act_speed", 0, "act");
-        blend.ConnectNode("mode", 0, "loco");
-        blend.ConnectNode("mode", 1, "act_speed");
+        blend.ConnectNode("mode", 0, "loco_speed");
+        for (var i = 0; i < ActSlots.Length; i++)
+        {
+            var slot = ActSlots[i];
+            _act[i] = new AnimationNodeAnimation { Animation = Asset(library.FallbackClip)! };
+            transition.AddInput(slot);
+            transition.SetInputReset(i + 1, true);
+            blend.AddNode(slot, _act[i]);
+            blend.AddNode(slot + "_speed", new AnimationNodeTimeScale());
+            blend.ConnectNode(slot + "_speed", 0, slot);
+            blend.ConnectNode("mode", i + 1, slot + "_speed");
+        }
+
         blend.ConnectNode("output", 0, "mode");
 
         _tree = new AnimationTree { Name = "Motion", TreeRoot = blend };
         root.AddChild(_tree);
         _tree.AnimPlayer = _tree.GetPathTo(player);
-        _tree.Set("parameters/act_speed/scale", 1.0);
+        _tree.Set(LocoScale, 1.0);
+        foreach (var scale in ActScale)
+        {
+            _tree.Set(scale, 1.0);
+        }
+
         _tree.Active = true;
     }
+
+    private static Vector3 ToVector(Point3 p) => new((float)p.X, (float)p.Y, (float)p.Z);
 
     private static Color Srgb(string hex) => Color.FromHtml(hex);
 }

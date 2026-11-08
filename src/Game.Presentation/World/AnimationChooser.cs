@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using System.Text;
 using GlassWorld.Contracts;
 
@@ -11,31 +12,46 @@ namespace GlassWorld.Presentation.World;
 /// <param name="FellBack">True when the wanted clip is unknown or not made yet (log it, B2 R28).</param>
 public sealed record ClipChoice(string ClipId, string Asset, double Speed, bool Loop, bool FellBack);
 
+/// <summary>What a figure shows after a tick.</summary>
+/// <param name="Clip">The action or idle clip (when walking: the action's clip, the gait plays instead).</param>
+/// <param name="Walking">True when the figure walks (the gait blend plays).</param>
+/// <param name="Missing">The action's clip when it was not made yet and the idle behaviour stands in (log it once).</param>
+public readonly record struct FigureClip(ClipChoice Clip, bool Walking, ClipChoice? Missing);
+
 /// <summary>
 /// Chooses figure clips from <c>content/animation/library.json</c> without Godot (B2 R27–R29): the clip of an
 /// action or expression, the gait by speed and the idle behaviour between tasks. Idle choice is weighted by
 /// core values (needs, moods, traits 0..1) and drawn from a hash of inhabitant id and time slot, so
-/// screenshots repeat exactly; it never touches the world (not in the hash).
+/// screenshots repeat exactly; it never touches the world (not in the hash). One chooser serves all figures
+/// of a scene; it keeps reusable buffers, so it is not thread-safe.
 /// </summary>
 public sealed class AnimationChooser
 {
-    private readonly Dictionary<string, AnimationClip> _clips;
+    private readonly Dictionary<string, ClipChoice> _choices;
     private readonly Dictionary<(string Kind, string Id), string> _mappings;
-    private readonly AnimationClip _fallback;
-    private readonly IReadOnlyList<AnimationGait> _gaits;
-    private readonly IReadOnlyList<AnimationIdle> _idle;
+    private readonly ClipChoice _fallback;
+    private readonly AnimationGait[] _gaits;
+    private readonly (string Clip, double Weight, (string Value, bool High, double Weight)[] Factors)[] _idle;
+    private readonly HashSet<string> _idleClips;
+    private readonly HashSet<string> _gaitClips;
+    private readonly double[] _weights;
 
     /// <summary>Creates the chooser over the library data.</summary>
     public AnimationChooser(AnimationLibrary library)
     {
         ArgumentNullException.ThrowIfNull(library);
-        _clips = library.Clips.ToDictionary(c => c.Id, StringComparer.Ordinal);
+        var clips = library.Clips.ToDictionary(c => c.Id, StringComparer.Ordinal);
+        _choices = clips.Values.Where(c => c.Source == AnimationClipSource.Asset && c.Asset is not null)
+            .ToDictionary(c => c.Id, c => new ClipChoice(c.Id, c.Asset!, c.Speed ?? 1.0, c.Loop, FellBack: false), StringComparer.Ordinal);
         _mappings = library.Mappings.ToDictionary(m => (m.Kind.ToString().ToLowerInvariant(), m.Id), m => m.Clip);
-        _fallback = _clips.TryGetValue(library.FallbackClip, out var f) && f.Source == AnimationClipSource.Asset
-            ? f
+        _fallback = _choices.TryGetValue(library.FallbackClip, out var f)
+            ? f with { FellBack = true }
             : throw new InvalidDataException($"Fallback clip '{library.FallbackClip}' must be an asset clip.");
         _gaits = [.. library.Gaits.OrderBy(g => g.MinSpeedCmS)];
-        _idle = [.. library.Idle];
+        _idle = [.. library.Idle.Select(i => (i.Clip, i.Weight, i.Factors.Select(x => (x.Value, x.When == AnimationIdleFactorWhen.High, x.Weight)).ToArray()))];
+        _idleClips = library.Idle.Select(i => i.Clip).ToHashSet(StringComparer.Ordinal);
+        _gaitClips = library.Gaits.Select(g => g.Clip).ToHashSet(StringComparer.Ordinal);
+        _weights = new double[_idle.Length];
     }
 
     /// <summary>The clip for an action id from the vocabulary.</summary>
@@ -47,19 +63,71 @@ public sealed class AnimationChooser
     /// <summary>The clip for a work activity of the library (carry, hammer, chop …).</summary>
     public ClipChoice ForWork(string work) => Resolve(_mappings.GetValueOrDefault(("work", work)));
 
-    /// <summary>The gait clip for a walking speed in cm/s (the fastest gait whose minimum is reached).</summary>
-    public ClipChoice ForSpeed(double speedCmS)
+    /// <summary>The gait clip for a game-time walking speed in cm per game second (the fastest gait whose minimum is reached).</summary>
+    public ClipChoice ForSpeed(double speedCmS) => Resolve(GaitFor(speedCmS)?.Clip);
+
+    /// <summary>
+    /// The ground speed of the gait blend at a game-time speed (cm/s at playback 1, scale 1): linear between
+    /// the two gait points around it, as the blend space mixes them; the first or last outside.
+    /// </summary>
+    public double GroundSpeedCmS(double speedCmS)
     {
-        AnimationGait? gait = _gaits.Count > 0 ? _gaits[0] : null;
-        foreach (var g in _gaits)
+        if (_gaits.Length == 0)
         {
-            if (g.MinSpeedCmS <= speedCmS)
+            return 0;
+        }
+
+        if (speedCmS <= _gaits[0].MinSpeedCmS)
+        {
+            return _gaits[0].GroundSpeedCmS;
+        }
+
+        for (var i = 1; i < _gaits.Length; i++)
+        {
+            var (a, b) = (_gaits[i - 1], _gaits[i]);
+            if (speedCmS <= b.MinSpeedCmS)
             {
-                gait = g;
+                var t = b.MinSpeedCmS > a.MinSpeedCmS ? (speedCmS - a.MinSpeedCmS) / (b.MinSpeedCmS - a.MinSpeedCmS) : 1;
+                return a.GroundSpeedCmS + ((b.GroundSpeedCmS - a.GroundSpeedCmS) * t);
             }
         }
 
-        return Resolve(gait?.Clip);
+        return _gaits[^1].GroundSpeedCmS;
+    }
+
+    /// <summary>
+    /// What a figure shows after a tick (B2 R28): it walks (gait blend) when the core moved it, whatever the
+    /// action (actions walk to their target first). Standing, it plays its action's clip; an action whose
+    /// clip is an idle behaviour (the action <c>idle</c>), no action, or an action whose clip is not made yet
+    /// play the idle behaviour from core values instead (the missing clip is returned for the log).
+    /// </summary>
+    public FigureClip ForInhabitant(string? action, bool moving, string inhabitantId, long slot, IReadOnlyDictionary<string, double> values)
+    {
+        ClipChoice? missing = null;
+        if (action is not null)
+        {
+            var clip = ForAction(action);
+            if (moving)
+            {
+                return new FigureClip(clip, Walking: true, null);
+            }
+
+            if (clip.FellBack)
+            {
+                missing = clip;
+            }
+            else if (!_idleClips.Contains(clip.ClipId) && !_gaitClips.Contains(clip.ClipId))
+            {
+                // A walking action that does not move (waiting, arrived) stands in its idle behaviour too.
+                return new FigureClip(clip, Walking: false, null);
+            }
+        }
+        else if (moving)
+        {
+            return new FigureClip(_fallback, Walking: true, null);
+        }
+
+        return new FigureClip(ForIdle(inhabitantId, slot, values), Walking: false, missing);
     }
 
     /// <summary>
@@ -70,21 +138,29 @@ public sealed class AnimationChooser
     {
         ArgumentNullException.ThrowIfNull(inhabitantId);
         ArgumentNullException.ThrowIfNull(values);
-        var weights = _idle.Select(i => i.Weight + i.Factors.Sum(f =>
+        var total = 0.0;
+        for (var i = 0; i < _idle.Length; i++)
         {
-            var v = Math.Clamp(values.GetValueOrDefault(f.Value, 0.5), 0, 1);
-            return f.Weight * (f.When == AnimationIdleFactorWhen.High ? v : 1 - v);
-        })).ToList();
-        var total = weights.Sum();
+            var weight = _idle[i].Weight;
+            foreach (var (value, high, factor) in _idle[i].Factors)
+            {
+                var v = Math.Clamp(values.GetValueOrDefault(value, 0.5), 0, 1);
+                weight += factor * (high ? v : 1 - v);
+            }
+
+            _weights[i] = weight;
+            total += weight;
+        }
+
         if (total <= 0)
         {
-            return Resolve(null);
+            return _fallback;
         }
 
         var pick = Unit(inhabitantId, slot) * total;
-        for (var i = 0; i < weights.Count; i++)
+        for (var i = 0; i < _weights.Length; i++)
         {
-            pick -= weights[i];
+            pick -= _weights[i];
             if (pick < 0)
             {
                 return Resolve(_idle[i].Clip);
@@ -94,12 +170,41 @@ public sealed class AnimationChooser
         return Resolve(_idle[^1].Clip);
     }
 
+    /// <summary>
+    /// Fills <paramref name="target"/> with the core values the idle weights read: needs, then moods, then
+    /// traits (the first one of an id wins). The buffer is reused, so a tick allocates nothing.
+    /// </summary>
+    public static void CoreValues(Dictionary<string, double> target, FrozenDictionary<string, double> needs, FrozenDictionary<string, double> moods, FrozenDictionary<string, double> traits)
+    {
+        ArgumentNullException.ThrowIfNull(target);
+        ArgumentNullException.ThrowIfNull(needs);
+        ArgumentNullException.ThrowIfNull(moods);
+        ArgumentNullException.ThrowIfNull(traits);
+        target.Clear();
+        foreach (var (key, value) in needs)
+        {
+            target.TryAdd(key, value);
+        }
+
+        foreach (var (key, value) in moods)
+        {
+            target.TryAdd(key, value);
+        }
+
+        foreach (var (key, value) in traits)
+        {
+            target.TryAdd(key, value);
+        }
+    }
+
     /// <summary>A number in [0, 1) from inhabitant id and slot (FNV-1a, then SplitMix64): same input, same number.</summary>
     public static double Unit(string inhabitantId, long slot)
     {
         ArgumentNullException.ThrowIfNull(inhabitantId);
+        var max = Encoding.UTF8.GetMaxByteCount(inhabitantId.Length);
+        Span<byte> bytes = max <= 256 ? stackalloc byte[max] : new byte[max];
         var hash = 14695981039346656037UL;
-        foreach (var b in Encoding.UTF8.GetBytes(inhabitantId))
+        foreach (var b in bytes[..Encoding.UTF8.GetBytes(inhabitantId, bytes)])
         {
             hash = (hash ^ b) * 1099511628211UL;
         }
@@ -112,14 +217,34 @@ public sealed class AnimationChooser
         return (z >> 11) * (1.0 / (1UL << 53));
     }
 
-    private ClipChoice Resolve(string? clipId)
+    private AnimationGait? GaitFor(double speedCmS)
     {
-        if (clipId is not null && _clips.TryGetValue(clipId, out var clip) && clip.Source == AnimationClipSource.Asset && clip.Asset is not null)
+        AnimationGait? gait = _gaits.Length > 0 ? _gaits[0] : null;
+        foreach (var g in _gaits)
         {
-            return new ClipChoice(clip.Id, clip.Asset, clip.Speed ?? 1.0, clip.Loop, FellBack: false);
+            if (g.MinSpeedCmS <= speedCmS)
+            {
+                gait = g;
+            }
         }
 
-        // Unknown, not made yet, a blend or procedural: the fallback clip plays (the caller logs it once).
-        return new ClipChoice(clipId ?? _fallback.Id, _fallback.Asset!, _fallback.Speed ?? 1.0, _fallback.Loop, FellBack: true);
+        return gait;
+    }
+
+    private ClipChoice Resolve(string? clipId)
+    {
+        if (clipId is null)
+        {
+            return _fallback;
+        }
+
+        if (!_choices.TryGetValue(clipId, out var choice))
+        {
+            // Unknown, not made yet, a blend or procedural: the fallback clip plays (the caller logs it once).
+            choice = _fallback with { ClipId = clipId };
+            _choices[clipId] = choice;
+        }
+
+        return choice;
     }
 }

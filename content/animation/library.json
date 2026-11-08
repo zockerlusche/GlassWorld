@@ -426,22 +426,26 @@
     {
       "id": "stroll",
       "clip": "stroll",
-      "min_speed_cm_s": 0
+      "min_speed_cm_s": 0,
+      "ground_speed_cm_s": 110
     },
     {
       "id": "walk",
       "clip": "walk",
-      "min_speed_cm_s": 60
+      "min_speed_cm_s": 60,
+      "ground_speed_cm_s": 130
     },
     {
       "id": "hurry",
       "clip": "hurry",
-      "min_speed_cm_s": 130
+      "min_speed_cm_s": 130,
+      "ground_speed_cm_s": 260
     },
     {
       "id": "run",
       "clip": "run",
-      "min_speed_cm_s": 250
+      "min_speed_cm_s": 250,
+      "ground_speed_cm_s": 260
     }
   ],
   "idle": [

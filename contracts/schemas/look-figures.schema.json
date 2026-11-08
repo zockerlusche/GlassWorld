@@ -13,7 +13,10 @@
     "shoe_color",
     "outline",
     "crossfade_s",
-    "idle_slot_s",
+    "idle_slot_ticks",
+    "walk_min_step_m",
+    "turn_rate_deg_s",
+    "gait_time_scale",
     "head_anchor_m"
   ],
   "properties": {
@@ -58,11 +61,27 @@
       "minimum": 0,
       "maximum": 2
     },
-    "idle_slot_s": {
-      "description": "Real seconds one idle behaviour lasts before the next is drawn.",
-      "type": "number",
+    "idle_slot_ticks": {
+      "description": "World ticks one idle behaviour lasts before the next is drawn (from the core tick, so pictures repeat at any frame rate).",
+      "type": "integer",
       "minimum": 1,
-      "maximum": 120
+      "maximum": 1000
+    },
+    "walk_min_step_m": {
+      "description": "Least ground distance in metres an inhabitant must move in a tick to be shown walking (whatever the action; actions walk to their target first).",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 5
+    },
+    "turn_rate_deg_s": {
+      "description": "How fast a figure turns towards where it walks, in degrees per real second.",
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "maximum": 3600
+    },
+    "gait_time_scale": {
+      "description": "Range of the gait playback factor: the gait clips play faster or slower so the feet roughly match the on-screen speed, but never beyond this range (calm world, B2466).",
+      "$ref": "#/$defs/GaitTimeScale"
     },
     "head_anchor_m": {
       "description": "Height of the head anchor above the feet at scale 1 (thought bubble, question mark).",
@@ -136,6 +155,28 @@
         },
         "shorts": {
           "type": "boolean"
+        }
+      }
+    },
+    "GaitTimeScale": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "min",
+        "max"
+      ],
+      "properties": {
+        "min": {
+          "description": "Slowest playback factor.",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        },
+        "max": {
+          "description": "Fastest playback factor.",
+          "type": "number",
+          "minimum": 1,
+          "maximum": 4
         }
       }
     }

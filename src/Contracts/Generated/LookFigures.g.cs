@@ -69,6 +69,24 @@ namespace GlassWorld.Contracts
 
     }
 
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class GaitTimeScale
+    {
+
+        /// <summary>
+        /// Slowest playback factor.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("min")]
+        public double Min { get; set; } = default!;
+
+        /// <summary>
+        /// Fastest playback factor.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max")]
+        public double Max { get; set; } = default!;
+
+    }
+
     /// <summary>
     /// Data file content/look/figures.json: how the appearance record of an inhabitant (core, B2 R27) becomes a figure: body model per age stage and sex, hair mesh per hair style, sleeves and leg length per clothing style, shoe colour and the model heights for scaling. Presentation only, not part of the hash. Values are placeholders.
     /// </summary>
@@ -104,10 +122,28 @@ namespace GlassWorld.Contracts
         public double CrossfadeS { get; set; } = default!;
 
         /// <summary>
-        /// Real seconds one idle behaviour lasts before the next is drawn.
+        /// World ticks one idle behaviour lasts before the next is drawn (from the core tick, so pictures repeat at any frame rate).
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("idle_slot_s")]
-        public double IdleSlotS { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("idle_slot_ticks")]
+        public int IdleSlotTicks { get; set; } = default!;
+
+        /// <summary>
+        /// Least ground distance in metres an inhabitant must move in a tick to be shown walking (whatever the action; actions walk to their target first).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("walk_min_step_m")]
+        public double WalkMinStepM { get; set; } = default!;
+
+        /// <summary>
+        /// How fast a figure turns towards where it walks, in degrees per real second.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("turn_rate_deg_s")]
+        public double TurnRateDegS { get; set; } = default!;
+
+        /// <summary>
+        /// Range of the gait playback factor: the gait clips play faster or slower so the feet roughly match the on-screen speed, but never beyond this range (calm world, B2466).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("gait_time_scale")]
+        public GaitTimeScale GaitTimeScale { get; set; } = new GaitTimeScale();
 
         /// <summary>
         /// Height of the head anchor above the feet at scale 1 (thought bubble, question mark).

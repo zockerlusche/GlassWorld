@@ -92,6 +92,12 @@
   "shoe_color": "#3a2a20",
   "outline": false,
   "crossfade_s": 0.25,
-  "idle_slot_s": 8,
+  "idle_slot_ticks": 10,
+  "walk_min_step_m": 0.05,
+  "turn_rate_deg_s": 360,
+  "gait_time_scale": {
+    "min": 0.6,
+    "max": 1.5
+  },
   "head_anchor_m": 1.95
 }

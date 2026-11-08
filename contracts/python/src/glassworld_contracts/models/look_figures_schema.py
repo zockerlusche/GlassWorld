@@ -64,6 +64,14 @@ class FigureClothing(BaseModel):
     shorts: bool
 
 
+class GaitTimeScale(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    min: float = Field(..., description='Slowest playback factor.', gt=0.0, le=1.0)
+    max: float = Field(..., description='Fastest playback factor.', ge=1.0, le=4.0)
+
+
 class LookFigures(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -80,11 +88,27 @@ class LookFigures(BaseModel):
     crossfade_s: float = Field(
         ..., description='Cross-fade between clips in seconds.', ge=0.0, le=2.0
     )
-    idle_slot_s: float = Field(
+    idle_slot_ticks: int = Field(
         ...,
-        description='Real seconds one idle behaviour lasts before the next is drawn.',
-        ge=1.0,
-        le=120.0,
+        description='World ticks one idle behaviour lasts before the next is drawn (from the core tick, so pictures repeat at any frame rate).',
+        ge=1,
+        le=1000,
+    )
+    walk_min_step_m: float = Field(
+        ...,
+        description='Least ground distance in metres an inhabitant must move in a tick to be shown walking (whatever the action; actions walk to their target first).',
+        ge=0.0,
+        le=5.0,
+    )
+    turn_rate_deg_s: float = Field(
+        ...,
+        description='How fast a figure turns towards where it walks, in degrees per real second.',
+        gt=0.0,
+        le=3600.0,
+    )
+    gait_time_scale: GaitTimeScale = Field(
+        ...,
+        description='Range of the gait playback factor: the gait clips play faster or slower so the feet roughly match the on-screen speed, but never beyond this range (calm world, B2466).',
     )
     head_anchor_m: float = Field(
         ...,
