@@ -17,7 +17,10 @@
     "pan_speed_m_s",
     "smoothing",
     "follow_distance_m",
-    "bounds_margin_m"
+    "bounds_margin_m",
+    "pick_radius_m",
+    "near_m",
+    "far_m"
   ],
   "properties": {
     "contract_version": {
@@ -87,6 +90,24 @@
       "type": "number",
       "minimum": 0,
       "maximum": 1000
+    },
+    "pick_radius_m": {
+      "description": "How close (metres, on the ground) a click must land to a figure to pick it.",
+      "type": "number",
+      "minimum": 0.1,
+      "maximum": 20
+    },
+    "near_m": {
+      "description": "Near clipping distance of the camera.",
+      "type": "number",
+      "minimum": 0.01,
+      "maximum": 10
+    },
+    "far_m": {
+      "description": "Far clipping distance of the camera.",
+      "type": "number",
+      "minimum": 10,
+      "maximum": 100000
     }
   },
   "$defs": {

@@ -91,7 +91,6 @@ public sealed class GeneratedWorldTests : IDisposable
         host.World.Step();
         var gone = map.Occurrences[0];
         Assert.NotNull(gone.GoneSinceTick);
-        var countGone = host.Objects.All.Count(o => o.TypeId == place.TypeId);
 
         while (host.World.Tick - gone.GoneSinceTick!.Value < regrowTicks)
         {
@@ -106,7 +105,10 @@ public sealed class GeneratedWorldTests : IDisposable
         Assert.True(host.Objects.TryGet(grown.ObjectId, out var obj));
         Assert.Equal(place.TypeId, obj.TypeId);
         Assert.Equal(map.CentreOf(place.X, place.Z), obj.Position);
-        Assert.True(host.Objects.All.Count(o => o.TypeId == place.TypeId) >= countGone);
+
+        // Regrowth places exactly one thing at the occurrence's place (no double placing). The total of the
+        // type is not checked: inhabitants eat and drink other ones of it during the regrow time.
+        Assert.Single(host.Objects.All, o => o.TypeId == place.TypeId && o.Position == obj.Position);
     }
 
     [Fact]

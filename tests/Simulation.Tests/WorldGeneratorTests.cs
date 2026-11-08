@@ -98,12 +98,101 @@ public sealed class WorldGeneratorTests
     /// be equal on Windows and Linux (CI). A deliberate change of generator or data updates them here.
     /// </summary>
     [Theory]
-    [InlineData(1UL, "5839f56c6942754255ebc76c07718e62e98ab70c8e5329ec25b764d231974b6f")]
-    [InlineData(7UL, "50b12edf7e2e7e3000163a6c18d22ed1f399177ca1b222bf2b40d3c3ebaada3b")]
-    [InlineData(2026UL, "7d4f81036954a0e3337c553a9f97ea3c72ebfa0aae251ce199d6a38425bc3c92")]
+    [InlineData(1UL, "f172c2be8f7feed1f13d8b8db64289de3ad693035590270b78cf62fbd25ae5e4")]
+    [InlineData(7UL, "69a39fe42892cc7bf22231f0ef698fde4a508560845d7a1b84b343946997f11b")]
+    [InlineData(2026UL, "1df5e9f74e635e959c7de1352beda8a58532f18c748cf8e513f1f89ef9badc14")]
     public void GoldenWorldHashesAreStableAcrossMachines(ulong seed, string expected)
     {
         var actual = Generate(seed).Hash();
         Assert.True(actual == expected, $"golden world hash for seed {seed} changed: {actual}");
+    }
+
+    /// <summary>
+    /// Start supply (TL #19280, F5263): starts are chosen where the supply is possible, so every start of
+    /// the acceptance seeds finds the listed resources within the radius and within its walkable area.
+    /// </summary>
+    [Theory]
+    [InlineData(1UL)]
+    [InlineData(6UL)]
+    [InlineData(7UL)]
+    [InlineData(42UL)]
+    [InlineData(99UL)]
+    [InlineData(123UL)]
+    [InlineData(2026UL)]
+    public void EveryStartFindsItsSupplyWithinTheRadius(ulong seed)
+    {
+        var island = Generate(seed);
+        var supply = Content.Value.WorldGen.Presets["start_island"].Start.Supply;
+        foreach (var start in island.Starts)
+        {
+            foreach (var resource in supply.Resources)
+            {
+                var near = Supplied(island, start, resource);
+                Assert.True(near >= resource.Min, $"seed {seed}: start ({start.X}, {start.Z}) has {near} '{resource.Id}', wants {resource.Min}");
+            }
+        }
+
+        Assert.All(island.Check.Where(c => c.Id.StartsWith(MandatoryResult.ReportPrefix + "start_supply/", StringComparison.Ordinal)), c => Assert.True(c.Passed, c.Id));
+    }
+
+    /// <summary>Where the supply cannot be placed (no fitting cell in the radius) the check reports it; the island still passes.</summary>
+    [Theory]
+    [InlineData(1UL)]
+    [InlineData(6UL)]
+    [InlineData(42UL)]
+    public void TheCheckReportsWhatThePoorestStartFinds(ulong seed)
+    {
+        var island = Generate(seed);
+        Assert.True(island.Passed);
+        foreach (var resource in Content.Value.WorldGen.Presets["start_island"].Start.Supply.Resources)
+        {
+            var line = Assert.Single(island.Check, c => c.Id == $"{MandatoryResult.ReportPrefix}start_supply/{resource.Id}");
+            Assert.True(line.ReportOnly);
+            Assert.Equal(island.Starts.Min(start => Supplied(island, start, resource)), line.Reachable);
+            Assert.Equal(resource.Min, line.Min);
+        }
+    }
+
+    /// <summary>
+    /// The start supply places only what the spawn table allows: a type on the cells of one of its
+    /// rules (the rule's biome, or a bank of it for water biomes) and never beyond the rules' max_total.
+    /// </summary>
+    [Theory]
+    [InlineData(1UL)]
+    [InlineData(6UL)]
+    [InlineData(42UL)]
+    public void ObjectsKeepToTheSpawnTable(ulong seed)
+    {
+        var island = Generate(seed);
+        var spawns = Content.Value.WorldGen.Spawns.Spawns;
+        var cave = Content.Value.WorldGen.Presets["start_island"].Caves.ObjectType;
+        var map = island.Map;
+        foreach (var o in island.Objects.Where(o => o.TypeId != cave))
+        {
+            var biomes = spawns.Where(r => r.ObjectType == o.TypeId).Select(r => r.Biome).ToHashSet(StringComparer.Ordinal);
+            var around = new[] { (0, 0), (1, 0), (-1, 0), (0, 1), (0, -1) }
+                .Where(d => map.Contains(o.X + d.Item1, o.Z + d.Item2))
+                .Select(d => map.BiomeAt(o.X + d.Item1, o.Z + d.Item2));
+            Assert.True(around.Any(biomes.Contains), $"seed {seed}: {o.TypeId} at ({o.X}, {o.Z}) lies in {map.BiomeAt(o.X, o.Z)}, outside its spawn biomes");
+        }
+
+        foreach (var type in spawns.GroupBy(r => r.ObjectType, StringComparer.Ordinal))
+        {
+            Assert.True(island.Objects.Count(o => o.TypeId == type.Key) <= type.Sum(r => r.MaxTotal), $"seed {seed}: more {type.Key} than the spawn table allows");
+        }
+    }
+
+    private static int Supplied(GeneratedIsland island, StartPosition start, Contracts.StartSupplyResource resource)
+    {
+        var catalog = Content.Value.Objects;
+        var radius = Content.Value.WorldGen.Presets["start_island"].Start.Supply.RadiusCells;
+        var areas = PathFinder.WalkableAreas(island.Map);
+        var w = island.Map.WidthCells;
+        var area = areas[(start.Z * w) + start.X];
+        return island.Objects.Count(o =>
+            ((o.X - start.X) * (o.X - start.X)) + ((o.Z - start.Z) * (o.Z - start.Z)) <= radius * radius
+            && area != 0 && areas[(o.Z * w) + o.X] == area
+            && resource.PropertiesAll.All(p => catalog.HasProperty(o.TypeId, p))
+            && !resource.PropertiesNone.Any(p => catalog.HasProperty(o.TypeId, p)));
     }
 }

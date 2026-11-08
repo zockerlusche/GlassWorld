@@ -64,3 +64,15 @@ class LookCamera(BaseModel):
     bounds_margin_m: float = Field(
         ..., description='How far the view may leave the island.', ge=0.0, le=1000.0
     )
+    pick_radius_m: float = Field(
+        ...,
+        description='How close (metres, on the ground) a click must land to a figure to pick it.',
+        ge=0.1,
+        le=20.0,
+    )
+    near_m: float = Field(
+        ..., description='Near clipping distance of the camera.', ge=0.01, le=10.0
+    )
+    far_m: float = Field(
+        ..., description='Far clipping distance of the camera.', ge=10.0, le=100000.0
+    )

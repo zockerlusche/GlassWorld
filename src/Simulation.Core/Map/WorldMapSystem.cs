@@ -132,54 +132,10 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
             return false;
         }
 
-        _areas ??= Areas(Map);
+        _areas ??= PathFinder.WalkableAreas(Map);
         var w = Map.WidthCells;
         var area = _areas[(from.Z * w) + from.X];
         return area != 0 && area == _areas[(to.Z * w) + to.X];
-    }
-
-    /// <summary>Walkable areas: flood fill with the path finder's step rule (0 = blocked).</summary>
-    private static int[] Areas(WorldMap map)
-    {
-        int w = map.WidthCells, d = map.DepthCells;
-        var areas = new int[w * d];
-        var next = 0;
-        var queue = new Queue<int>();
-        for (var i = 0; i < w * d; i++)
-        {
-            if (areas[i] != 0 || map.Cell(i % w, i / w).WalkCost == MapCell.Blocked)
-            {
-                continue;
-            }
-
-            areas[i] = ++next;
-            queue.Enqueue(i);
-            while (queue.TryDequeue(out var c))
-            {
-                int cx = c % w, cz = c / w;
-                for (var dz = -1; dz <= 1; dz++)
-                {
-                    for (var dx = -1; dx <= 1; dx++)
-                    {
-                        int nx = cx + dx, nz = cz + dz;
-                        if ((dx == 0 && dz == 0) || !map.Contains(nx, nz) || areas[(nz * w) + nx] != 0 || map.Cell(nx, nz).WalkCost == MapCell.Blocked)
-                        {
-                            continue;
-                        }
-
-                        if (dx != 0 && dz != 0 && (map.Cell(cx + dx, cz).WalkCost == MapCell.Blocked || map.Cell(cx, cz + dz).WalkCost == MapCell.Blocked))
-                        {
-                            continue;
-                        }
-
-                        areas[(nz * w) + nx] = next;
-                        queue.Enqueue((nz * w) + nx);
-                    }
-                }
-            }
-        }
-
-        return areas;
     }
 
     /// <inheritdoc/>

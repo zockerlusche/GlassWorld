@@ -1,0 +1,54 @@
+{
+  "contract_version": "0.2",
+  "biome_colors": [
+    {
+      "biome": "beach_sea",
+      "color": "sand"
+    },
+    {
+      "biome": "meadow",
+      "color": "grass"
+    },
+    {
+      "biome": "field",
+      "color": "grass_edge"
+    },
+    {
+      "biome": "forest",
+      "color": "foliage"
+    },
+    {
+      "biome": "freshwater",
+      "color": "grass_edge"
+    },
+    {
+      "biome": "rocks_hills",
+      "color": "rock"
+    },
+    {
+      "biome": "swamp",
+      "color": "foliage_dark"
+    }
+  ],
+  "cliff_color": "rock_dark",
+  "bed_color": "sand_wet",
+  "water": {
+    "sea_shallow": "sea_shallow",
+    "sea_deep": "sea_deep",
+    "fresh": "fresh_water",
+    "swamp": "swamp_water",
+    "deep_from_units": 8,
+    "swamp_max_units": 1,
+    "stream_shore_lift_mm": 30
+  },
+  "slope_shade_permille": 350,
+  "slope_shade_gain": 3.0,
+  "open_sea_size_factor": 8.0,
+  "water_shader": {
+    "stripe_scale": 1.6,
+    "stripe_speed": 0.6,
+    "stripe_strength": 0.12,
+    "shimmer_speed": 0.7,
+    "shimmer_strength": 0.04
+  }
+}

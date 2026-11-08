@@ -53,7 +53,9 @@
     "temperature_drop_per_100_height": 40,
     "moisture_base_permille": 350,
     "moisture_water_radius_cells": 12,
-    "valley_moisture_bonus_permille": 200
+    "valley_moisture_bonus_permille": 200,
+    "moisture_noise_permille": 180,
+    "moisture_noise_wavelength_cells": 14
   },
   "caves": {
     "min": 1,
@@ -66,7 +68,32 @@
     "min_pair_distance_cells": 40,
     "max_pair_distance_cells": 160,
     "max_attempts": 8,
-    "biome": "beach_sea"
+    "biome": "beach_sea",
+    "supply": {
+      "radius_cells": 30,
+      "resources": [
+        {
+          "id": "food",
+          "properties_all": [
+            "edible"
+          ],
+          "properties_none": [
+            "poisonous"
+          ],
+          "min": 4
+        },
+        {
+          "id": "drink",
+          "properties_all": [
+            "drinkable"
+          ],
+          "properties_none": [
+            "salty"
+          ],
+          "min": 1
+        }
+      ]
+    }
   },
   "neighbours": {
     "islands": {

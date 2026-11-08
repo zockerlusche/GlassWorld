@@ -8,6 +8,7 @@
   "required": [
     "contract_version",
     "night_min_brightness",
+    "sun_azimuth_deg",
     "phases"
   ],
   "properties": {
@@ -19,6 +20,12 @@
       "type": "number",
       "minimum": 0,
       "maximum": 1
+    },
+    "sun_azimuth_deg": {
+      "description": "Compass direction the sunlight comes from (degrees around the vertical; the elevation comes from the phase).",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 360
     },
     "phases": {
       "description": "One entry per time of day (vocabulary kind time_of_day).",

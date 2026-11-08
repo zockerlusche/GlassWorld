@@ -58,6 +58,12 @@ class LookDaylight(BaseModel):
     night_min_brightness: float = Field(
         ..., description='Lowest overall brightness at night (0..1).', ge=0.0, le=1.0
     )
+    sun_azimuth_deg: float = Field(
+        ...,
+        description='Compass direction the sunlight comes from (degrees around the vertical; the elevation comes from the phase).',
+        ge=0.0,
+        le=360.0,
+    )
     phases: list[LookDaylightPhase] = Field(
         ...,
         description='One entry per time of day (vocabulary kind time_of_day).',

@@ -73,7 +73,7 @@ internal static class WorldGenCommand
             watch.ElapsedMilliseconds,
             map.BiomeIds.Select((id, i) => new KeyValuePair<string, int>(id, shares[i] * 1000 / cells)).ToDictionary(),
             map.BiomeIds.Select((id, i) => new KeyValuePair<string, int>(id, shares[i])).ToDictionary(),
-            island.Check.Select(c => new CheckLine(c.Id, c.Reachable, c.Total, c.Min, c.Max, c.Passed)).ToList(),
+            island.Check.Select(c => new CheckLine(c.Id, c.Reachable, c.Total, c.Min, c.Max, c.Passed, c.ReportOnly)).ToList(),
             island.Objects.GroupBy(o => o.TypeId).OrderBy(g => g.Key, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.Count()),
             island.Starts.Select(s => new[] { s.Pair, s.X, s.Z }).ToList(),
             island.CliffCells,
@@ -90,7 +90,7 @@ internal static class WorldGenCommand
             Console.WriteLine("  biome cells " + string.Join(", ", report.BiomeCells.Select(b => $"{b.Key} {b.Value}")));
             foreach (var c in island.Check)
             {
-                Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"  check {c.Id,-14} reachable {c.Reachable,4} total {c.Total,4} (min {c.Min}, max {c.Max}) {(c.Passed ? "ok" : "FAIL")}"));
+                Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"  check {c.Id,-14} reachable {c.Reachable,4} total {c.Total,4} (min {c.Min}, max {c.Max}) {Verdict(c)}"));
             }
 
             Console.WriteLine("  objects " + string.Join(", ", report.Objects.Select(o => $"{o.Key} {o.Value}")));
@@ -103,6 +103,9 @@ internal static class WorldGenCommand
 
         return island.Passed ? 0 : 2;
     }
+
+    // Report-only lines (start supply) never fail the island, so they read ok / short instead of FAIL.
+    private static string Verdict(MandatoryResult c) => c.ReportOnly ? (c.Passed ? "ok (report only)" : "short (report only)") : (c.Passed ? "ok" : "FAIL");
 
     private static void WritePng(string path, GeneratedIsland island, Contracts.BiomeTable biomes)
     {
@@ -199,7 +202,7 @@ internal static class WorldGenCommand
         return ~crc;
     }
 
-    private sealed record CheckLine(string Id, int Reachable, int Total, int Min, int Max, bool Passed);
+    private sealed record CheckLine(string Id, int Reachable, int Total, int Min, int Max, bool Passed, bool ReportOnly);
 
     private sealed record Report(
         ulong Seed,

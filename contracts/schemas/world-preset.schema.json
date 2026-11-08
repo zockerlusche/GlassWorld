@@ -280,7 +280,9 @@
         "temperature_drop_per_100_height",
         "moisture_base_permille",
         "moisture_water_radius_cells",
-        "valley_moisture_bonus_permille"
+        "valley_moisture_bonus_permille",
+        "moisture_noise_permille",
+        "moisture_noise_wavelength_cells"
       ],
       "properties": {
         "climate_id": {
@@ -316,6 +318,18 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 1000
+        },
+        "moisture_noise_permille": {
+          "description": "Strength of the moisture noise, so wet zones (forest, swamp) have natural edges instead of even rings around the water.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "moisture_noise_wavelength_cells": {
+          "description": "Wavelength of the moisture noise in cells.",
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 1000
         }
       }
     },
@@ -327,7 +341,8 @@
         "min_pair_distance_cells",
         "max_pair_distance_cells",
         "max_attempts",
-        "biome"
+        "biome",
+        "supply"
       ],
       "properties": {
         "pairs": {
@@ -357,6 +372,9 @@
         "biome": {
           "description": "Biome of the start cells (by the sea).",
           "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "supply": {
+          "$ref": "#/$defs/StartSupply"
         }
       }
     },
@@ -532,6 +550,69 @@
         "cliff_biome": {
           "description": "Biome of the cliff above the cave.",
           "$ref": "common.schema.json#/$defs/VocabId"
+        }
+      }
+    },
+    "StartSupply": {
+      "description": "Start supply: what every start position finds within sight and within its walkable area, so a new world does not fail on water or food out of reach (TL #19280). Missing items are placed near the start from the island's own spawn rules: only in the biomes of a rule and within its max_total, preferably where the start can walk. (Not the player's start favour.)",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "radius_cells",
+        "resources"
+      ],
+      "properties": {
+        "radius_cells": {
+          "description": "Radius around each start position in cells (within the inhabitants' perception).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "resources": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "$ref": "#/$defs/StartSupplyResource"
+          }
+        }
+      }
+    },
+    "StartSupplyResource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "properties_all",
+        "properties_none",
+        "min"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "properties_all": {
+          "description": "True properties an object must have.",
+          "type": "array",
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          }
+        },
+        "properties_none": {
+          "description": "True properties it must not have.",
+          "type": "array",
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          }
+        },
+        "min": {
+          "description": "Fewest such objects within the radius of every start position.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
         }
       }
     }

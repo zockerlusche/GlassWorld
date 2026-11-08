@@ -56,6 +56,54 @@ public static class PathFinder
     private static readonly (int Dx, int Dz, long Step)[] Steps =
         [(1, 0, Straight), (0, 1, Straight), (-1, 0, Straight), (0, -1, Straight), (1, 1, Diagonal), (-1, 1, Diagonal), (-1, -1, Diagonal), (1, -1, Diagonal)];
 
+    /// <summary>
+    /// Walkable areas: flood fill with the path finder's step rule; one area number per cell (index
+    /// z × width + x), 0 = blocked. Two cells with the same number are connected by a walk.
+    /// </summary>
+    public static int[] WalkableAreas(WorldMap map)
+    {
+        ArgumentNullException.ThrowIfNull(map);
+        int w = map.WidthCells, d = map.DepthCells;
+        var areas = new int[w * d];
+        var next = 0;
+        var queue = new Queue<int>();
+        for (var i = 0; i < w * d; i++)
+        {
+            if (areas[i] != 0 || map.Cell(i % w, i / w).WalkCost == MapCell.Blocked)
+            {
+                continue;
+            }
+
+            areas[i] = ++next;
+            queue.Enqueue(i);
+            while (queue.TryDequeue(out var c))
+            {
+                int cx = c % w, cz = c / w;
+                for (var dz = -1; dz <= 1; dz++)
+                {
+                    for (var dx = -1; dx <= 1; dx++)
+                    {
+                        int nx = cx + dx, nz = cz + dz;
+                        if ((dx == 0 && dz == 0) || !map.Contains(nx, nz) || areas[(nz * w) + nx] != 0 || map.Cell(nx, nz).WalkCost == MapCell.Blocked)
+                        {
+                            continue;
+                        }
+
+                        if (dx != 0 && dz != 0 && (map.Cell(cx + dx, cz).WalkCost == MapCell.Blocked || map.Cell(cx, cz + dz).WalkCost == MapCell.Blocked))
+                        {
+                            continue;
+                        }
+
+                        areas[(nz * w) + nx] = next;
+                        queue.Enqueue((nz * w) + nx);
+                    }
+                }
+            }
+        }
+
+        return areas;
+    }
+
     /// <summary>Finds the cheapest path from <paramref name="from"/> to <paramref name="to"/>.</summary>
     /// <param name="map">The base grid.</param>
     /// <param name="from">Start cell (may itself be costly; it is never entered).</param>

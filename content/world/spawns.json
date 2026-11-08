@@ -409,6 +409,28 @@
       "regrow_hours": 6
     },
     {
+      "biome": "meadow",
+      "object_type": "spring_water",
+      "per_1000_cells": 40,
+      "cluster": {
+        "min": 1,
+        "max": 1
+      },
+      "max_total": 24,
+      "regrow_hours": 6
+    },
+    {
+      "biome": "forest",
+      "object_type": "spring_water",
+      "per_1000_cells": 40,
+      "cluster": {
+        "min": 1,
+        "max": 1
+      },
+      "max_total": 24,
+      "regrow_hours": 6
+    },
+    {
       "biome": "beach_sea",
       "object_type": "sea_water",
       "per_1000_cells": 120,

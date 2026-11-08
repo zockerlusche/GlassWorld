@@ -209,6 +209,14 @@
     {
       "pattern": "knowledge/settings.json",
       "schema": "knowledge-settings"
+    },
+    {
+      "pattern": "look/terrain.json",
+      "schema": "look-terrain"
+    },
+    {
+      "pattern": "look/shots.json",
+      "schema": "look-shots"
     }
   ]
 }

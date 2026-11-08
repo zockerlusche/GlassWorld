@@ -7,6 +7,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from . import common_schema
+
 
 class WorldPresetCountRange(BaseModel):
     model_config = ConfigDict(
@@ -123,41 +125,14 @@ class WorldPresetClimate(BaseModel):
     valley_moisture_bonus_permille: int = Field(
         ..., description='Extra moisture in hollows and valleys.', ge=0, le=1000
     )
-
-
-class WorldPresetStart(BaseModel):
-    model_config = ConfigDict(
-        extra='forbid',
-    )
-    pairs: int = Field(
+    moisture_noise_permille: int = Field(
         ...,
-        description='Number of start pairs (B2517: two pairs, each a woman and a man).',
-        ge=1,
-        le=8,
-    )
-    min_pair_distance_cells: int = Field(
-        ...,
-        description='Smallest distance between two pairs; larger than the view range so they do not see each other at start (R9).',
-        ge=1,
-        le=100000,
-    )
-    max_pair_distance_cells: int = Field(
-        ...,
-        description='Largest walking distance between two pairs, so they can find each other (B2520).',
-        ge=1,
-        le=100000,
-    )
-    max_attempts: int = Field(
-        ...,
-        description='Most generation attempts with derived sub-seeds before the mandatory check is reported as failed (R7).',
-        ge=1,
+        description='Strength of the moisture noise, so wet zones (forest, swamp) have natural edges instead of even rings around the water.',
+        ge=0,
         le=1000,
     )
-    biome: str = Field(
-        ...,
-        description='Biome of the start cells (by the sea).',
-        max_length=64,
-        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    moisture_noise_wavelength_cells: int = Field(
+        ..., description='Wavelength of the moisture noise in cells.', ge=2, le=1000
     )
 
 
@@ -258,6 +233,30 @@ class WorldPresetCaves(BaseModel):
     )
 
 
+class StartSupplyResource(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    id: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    properties_all: list[common_schema.VocabId] = Field(
+        ..., description='True properties an object must have.', max_length=16
+    )
+    properties_none: list[common_schema.VocabId] = Field(
+        ..., description='True properties it must not have.', max_length=16
+    )
+    min: int = Field(
+        ...,
+        description='Fewest such objects within the radius of every start position.',
+        ge=1,
+        le=100,
+    )
+
+
 class WorldPresetTerrain(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -320,6 +319,56 @@ class WorldPresetTides(BaseModel):
         max_length=64,
         min_length=2,
     )
+
+
+class StartSupply(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    radius_cells: int = Field(
+        ...,
+        description="Radius around each start position in cells (within the inhabitants' perception).",
+        ge=1,
+        le=1000,
+    )
+    resources: list[StartSupplyResource] = Field(..., max_length=32)
+
+
+class WorldPresetStart(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    pairs: int = Field(
+        ...,
+        description='Number of start pairs (B2517: two pairs, each a woman and a man).',
+        ge=1,
+        le=8,
+    )
+    min_pair_distance_cells: int = Field(
+        ...,
+        description='Smallest distance between two pairs; larger than the view range so they do not see each other at start (R9).',
+        ge=1,
+        le=100000,
+    )
+    max_pair_distance_cells: int = Field(
+        ...,
+        description='Largest walking distance between two pairs, so they can find each other (B2520).',
+        ge=1,
+        le=100000,
+    )
+    max_attempts: int = Field(
+        ...,
+        description='Most generation attempts with derived sub-seeds before the mandatory check is reported as failed (R7).',
+        ge=1,
+        le=1000,
+    )
+    biome: str = Field(
+        ...,
+        description='Biome of the start cells (by the sea).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    supply: StartSupply
 
 
 class WorldPreset(BaseModel):

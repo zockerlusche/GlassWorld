@@ -103,6 +103,8 @@ public sealed class WorldMapTests
         { "world/presets/start_island.json", "\"object_type\": \"rock_niche\"", "\"object_type\": \"dragon_lair\"", "cave object type 'dragon_lair'" },
         { "world/presets/start_island.json", "\"cliff_biome\": \"rocks_hills\"", "\"cliff_biome\": \"glacier\"", "cave cliff biome 'glacier'" },
         { "world/presets/start_island.json", "\"biome\": \"beach_sea\"", "\"biome\": \"lagoon\"", "start biome 'lagoon'" },
+        { "world/presets/start_island.json", "\"properties_all\": [\n            \"edible\"\n          ]", "\"properties_all\": [\n            \"magic\"\n          ]", "start supply 'food' uses unknown properties magic" },
+        { "world/presets/start_island.json", "\"properties_all\": [\n            \"edible\"\n          ]", "\"properties_all\": [\n            \"sheltering\"\n          ]", "start supply 'food' matches no spawn type of the island" },
         { "world/spawns.json", "\"max_total\": 24,\n      \"regrow_hours\": 96", "\"max_total\": 24,\n      \"regrow_hours\": 97", "disagree on regrow_hours" },
     };
 

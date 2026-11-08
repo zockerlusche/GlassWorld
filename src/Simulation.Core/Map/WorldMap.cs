@@ -15,6 +15,13 @@ public enum WaterKind : byte
     Salt = 2,
 }
 
+/// <summary>The eight flow directions; <see cref="MapCell.Flow"/> indexes into <see cref="All"/> (-1 = still water).</summary>
+public static class FlowDirections
+{
+    /// <summary>Directions as cell steps: east, north-east, north, north-west, west, south-west, south, south-east.</summary>
+    public static IReadOnlyList<(int Dx, int Dz)> All { get; } = [(1, 0), (1, -1), (0, -1), (-1, -1), (-1, 0), (-1, 1), (0, 1), (1, 1)];
+}
+
 /// <summary>
 /// One cell of the base grid (B2 R1). All values are integers so generation and hashing are exact on
 /// every platform (ADR-0002): heights and depths in height units, moisture in permille, temperature in
