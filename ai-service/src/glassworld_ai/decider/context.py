@@ -86,6 +86,7 @@ def build_values(
         values.update(_v2_values(request, settings, vocab, signs=template.version >= 3))
     if template.version >= 3:
         values["body"] = _body(request, settings)
+        values["environment"] = _environment(request, vocab, air=True)
     # Fit the objects into what is left of the character budget; option targets always stay.
     used = sum(len(v) for k, v in values.items() if k != "objects")
     lines: list[str] = []
@@ -147,7 +148,7 @@ def _v2_values(
                 f"respect them {_word(relation_words, relation.respect)}"
             )
         seen = [_humanize(_id(c)) for c in other.visible_conditions or []]
-        looks = f"; looks {', '.join(seen)}" if signs and seen else ""  # signs only (B2543)
+        looks = f"; you notice: {', '.join(seen)}" if signs and seen else ""  # signs (B2543)
         people_lines.append(
             f"- person [{other_id}], {other.distance_m:.1f} m away: {feeling}{looks}"
         )
@@ -176,6 +177,8 @@ def _body(request: DecisionRequest, settings: dict[str, Any]) -> str:
         lines.append(f"- You feel {_word(_bands(settings, 'felt_words'), float(felt))}.")
     slots_raw: object = settings.get("slot_names", {})
     slots = cast(dict[str, str], slots_raw) if isinstance(slots_raw, dict) else {}
+    if inhabitant.worn == []:  # sent and empty: wears nothing (absent = unknown, no line)
+        lines.append("- You wear nothing.")
     for item in inhabitant.worn or []:
         slot = _id(item.slot)
         believed = ", ".join(_humanize(_id(p)) for p in item.properties)
@@ -188,17 +191,19 @@ def _body(request: DecisionRequest, settings: dict[str, Any]) -> str:
         where = f" in the {_humanize(_id(cond.body_part))}" if cond.body_part is not None else ""
         feeling = f"{_word(severity, cond.severity)} {_humanize(_id(cond.condition))}"
         lines.append(f"- You feel {feeling}{where}.")
-    return "\n".join(lines) or "- (nothing special: no clothes, you feel fine)"
+    return "\n".join(lines) or "- (nothing particular to notice)"
 
 
-def _environment(request: DecisionRequest, vocab: Vocabulary) -> str:
+def _environment(request: DecisionRequest, vocab: Vocabulary, air: bool = False) -> str:
     env = request.environment
     weather = ", ".join(_vocab_line(vocab, "weather", _id(w)) for w in env.weather)
     time_of_day = _vocab_line(vocab, "time_of_day", _id(env.time_of_day))
     return "\n".join(
         [
             f"- Time of day: {time_of_day}",
-            f"- It feels like {env.temperature_c:.1f} degrees Celsius to you.",
+            f"- Air temperature: {env.temperature_c:.1f} degrees Celsius."
+            if air  # v3: the felt temperature is under "Your body" (review GW1 #116)
+            else f"- It feels like {env.temperature_c:.1f} degrees Celsius to you.",
             f"- Weather: {weather}",
         ]
     )

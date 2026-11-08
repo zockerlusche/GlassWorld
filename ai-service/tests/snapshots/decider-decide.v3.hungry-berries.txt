@@ -59,11 +59,11 @@ Character:
 - sometimes: drink (Drink from an object or water source.) (thing 'spring water') at day
 
 ## Your body
-- (nothing special: no clothes, you feel fine)
+- (nothing particular to notice)
 
 ## Surroundings
 - Time of day: day (The sun is up.)
-- It feels like 17.5 degrees Celsius to you.
+- Air temperature: 17.5 degrees Celsius.
 - Weather: cloudy (Grey clouds cover the sky.)
 
 ## What you see

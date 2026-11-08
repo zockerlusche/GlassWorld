@@ -61,7 +61,7 @@ Character:
 
 ## Surroundings
 - Time of day: dusk (The sun is setting.)
-- It feels like 6.5 degrees Celsius to you.
+- Air temperature: 6.5 degrees Celsius.
 - Weather: rain (It is raining.), storm (Strong wind with heavy rain.)
 
 ## What you see
