@@ -34,6 +34,11 @@ public static class BaseSoundCheck
                 problems.Add($"{sound.Id}: unknown origin {sound.Origin}");
             }
 
+            foreach (var file in sound.Files.Where(f => f.Origin is not null && !origins.ContainsKey(f.Origin)))
+            {
+                problems.Add($"{file.File}: unknown origin {file.Origin}");
+            }
+
             if (!mapped.Contains(sound.Id) && sound.SoundWords.Count == 0)
             {
                 problems.Add($"{sound.Id}: neither used by the sound map nor reachable by keywords");

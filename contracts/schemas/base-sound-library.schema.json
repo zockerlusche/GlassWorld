@@ -251,6 +251,10 @@
               "type": "null"
             }
           ]
+        },
+        "origin": {
+          "description": "Origin of this file when it differs from the sound's origin (A and B chosen as variants).",
+          "$ref": "common.schema.json#/$defs/VocabId"
         }
       }
     }
