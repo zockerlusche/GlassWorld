@@ -234,7 +234,7 @@ public static class TerrainMesher
         mesh.Triangle((x0, y, z0), (x0, y, z1), (x1, y, z1), color, flow);
     }
 
-    /// <summary>The highest fresh water surface among the eight neighbours of a dry cell, if any.</summary>
+    /// <summary>The highest still fresh water surface among the eight neighbours of a dry cell, if any.</summary>
     private static (int Surface, bool Swamp, Func<TerrainLook, Rgb> Color)? BankWater(WorldMap map, int x, int z)
     {
         (int Surface, int Depth)? best = null;
@@ -246,8 +246,10 @@ public static class TerrainMesher
                 continue;
             }
 
+            // Only still water (lakes, swamp) reaches into its banks; a stream runs down a slope, so its
+            // surface would float above the lower bank.
             var n = map.Cell(nx, nz);
-            if (n.Water == WaterKind.Fresh && (best is null || n.Height + n.WaterDepth > best.Value.Surface))
+            if (n.Water == WaterKind.Fresh && n.Flow < 0 && (best is null || n.Height + n.WaterDepth > best.Value.Surface))
             {
                 best = (n.Height + n.WaterDepth, n.WaterDepth);
             }

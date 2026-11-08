@@ -139,6 +139,24 @@ public sealed class TerrainMesherTests
     }
 
     [Fact]
+    public void AStreamDoesNotSpillIntoItsBanks()
+    {
+        // A stream runs down a slope; its surface would float above the lower bank, so banks stay dry.
+        var builder = new WorldMapBuilder(4, 1, 1, Biomes);
+        for (var z = 0; z < 4; z++)
+        {
+            for (var x = 0; x < 4; x++)
+            {
+                builder.Set(x, z, x == 1
+                    ? new MapCell(40 - (z * 3), WaterKind.Fresh, 2, 6, 1000, 150, 0, 3000)
+                    : new MapCell(38 - (z * 3), WaterKind.None, 0, -1, 400, 150, 1, 1000));
+            }
+        }
+
+        Assert.Equal(4 * 2, TerrainMesher.Water(builder.Build(), 0, 0, Look).TriangleCount);
+    }
+
+    [Fact]
     public void TheRealIslandMeshesDeterministicallyWithoutBrokenValues()
     {
         var content = ContentSet.Load(Path.Combine(TestPaths.Root, "content"));
