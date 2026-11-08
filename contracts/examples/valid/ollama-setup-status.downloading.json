@@ -8,7 +8,11 @@
     "size_bytes": 1601954968,
     "done_bytes": 412000000,
     "licence": "MIT",
-    "source_page": "https://github.com/ollama/ollama/releases/tag/v0.40.14"
+    "source_page": "https://github.com/ollama/ollama/releases/tag/v0.40.14",
+    "includes": [
+      "NVIDIA CUDA runtime (NVIDIA CUDA EULA)",
+      "Microsoft Visual C++ runtime (Microsoft licence)"
+    ]
   },
   "error": null,
   "state": "downloading"

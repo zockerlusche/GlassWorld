@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from enum import StrEnum
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -30,6 +30,9 @@ class Asset(BaseModel):
         description='Path of the program inside the archive.',
         pattern='^[A-Za-z0-9._/-]+$',
     )
+
+
+type Include = Annotated[str, Field(..., max_length=120, min_length=1)]
 
 
 class OllamaRuntime(BaseModel):
@@ -60,3 +63,8 @@ class OllamaRuntime(BaseModel):
         ..., pattern='^https://github\\.com/ollama/ollama/releases/tag/v[0-9.]+$'
     )
     assets: list[Asset] = Field(..., min_length=1)
+    includes: list[Include] | None = Field(
+        None,
+        description='Other parts of the official archive, named in the download dialog (review GW1 #122).',
+        max_length=8,
+    )

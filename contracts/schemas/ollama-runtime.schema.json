@@ -77,6 +77,16 @@
           }
         }
       }
+    },
+    "includes": {
+      "description": "Other parts of the official archive, named in the download dialog (review GW1 #122).",
+      "type": "array",
+      "maxItems": 8,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 120
+      }
     }
   }
 }

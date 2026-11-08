@@ -29,6 +29,9 @@ class Source(StrEnum):
 type Version = Annotated[str, Field(..., max_length=64)]
 
 
+type Include = Annotated[str, Field(..., max_length=120)]
+
+
 class Download(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -42,6 +45,11 @@ class Download(BaseModel):
     )
     licence: str = Field(..., max_length=64)
     source_page: str = Field(..., max_length=512)
+    includes: list[Include] = Field(
+        ...,
+        description='Other parts of the official archive the dialog names (they come with Ollama from its source; we do not redistribute them).',
+        max_length=8,
+    )
 
 
 type Error = Annotated[
@@ -64,7 +72,7 @@ class OllamaSetupStatus(BaseModel):
     )
     state: State = Field(
         ...,
-        description='running = a usable Ollama answers; outdated = one answers but is older than accept_from (the player has to update or close it); installed = a usable program is on disk but not running; starting; missing = offer the download; downloading / verifying / installing; failed (error set; the download can be started again and continues).',
+        description="running = a usable Ollama answers; outdated = one answers but is older than accept_from (the player has to update or close it); installed = a usable program is on disk but not running (ours starts by itself; the player's own (source external) only via POST /setup/ollama/start after consent); starting; missing = offer the download; downloading / verifying / installing; failed (error set; the download can be started again and continues).",
     )
     source: Source | None = Field(
         ...,

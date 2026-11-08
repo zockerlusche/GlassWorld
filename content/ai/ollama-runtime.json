@@ -12,5 +12,9 @@
       "size_bytes": 1601954968,
       "executable": "ollama.exe"
     }
+  ],
+  "includes": [
+    "NVIDIA CUDA runtime (NVIDIA CUDA EULA)",
+    "Microsoft Visual C++ runtime (Microsoft licence)"
   ]
 }

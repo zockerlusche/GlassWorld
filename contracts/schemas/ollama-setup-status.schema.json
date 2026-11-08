@@ -19,7 +19,7 @@
       "$ref": "common.schema.json#/$defs/ContractVersion"
     },
     "state": {
-      "description": "running = a usable Ollama answers; outdated = one answers but is older than accept_from (the player has to update or close it); installed = a usable program is on disk but not running; starting; missing = offer the download; downloading / verifying / installing; failed (error set; the download can be started again and continues).",
+      "description": "running = a usable Ollama answers; outdated = one answers but is older than accept_from (the player has to update or close it); installed = a usable program is on disk but not running (ours starts by itself; the player's own (source external) only via POST /setup/ollama/start after consent); starting; missing = offer the download; downloading / verifying / installing; failed (error set; the download can be started again and continues).",
       "type": "string",
       "enum": [
         "running",
@@ -71,7 +71,8 @@
         "size_bytes",
         "done_bytes",
         "licence",
-        "source_page"
+        "source_page",
+        "includes"
       ],
       "properties": {
         "url": {
@@ -94,6 +95,15 @@
         "source_page": {
           "type": "string",
           "maxLength": 512
+        },
+        "includes": {
+          "description": "Other parts of the official archive the dialog names (they come with Ollama from its source; we do not redistribute them).",
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "type": "string",
+            "maxLength": 120
+          }
         }
       }
     },

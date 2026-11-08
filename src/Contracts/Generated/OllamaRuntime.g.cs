@@ -46,6 +46,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("assets")]
         public System.Collections.Generic.ICollection<Assets> Assets { get; set; } = new System.Collections.ObjectModel.Collection<Assets>();
 
+        /// <summary>
+        /// Other parts of the official archive, named in the download dialog (review GW1 #122).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("includes")]
+        public System.Collections.Generic.ICollection<string>? Includes { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]

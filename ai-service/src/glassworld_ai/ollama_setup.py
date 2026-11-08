@@ -81,6 +81,7 @@ class Runtime:
     licence: str
     source_page: str
     assets: tuple[Asset, ...]
+    includes: tuple[str, ...] = ()
 
     def asset_for(self, platform: str) -> Asset | None:
         return next((a for a in self.assets if a.platform == platform), None)
@@ -94,6 +95,7 @@ def load_runtime(path: Path) -> Runtime:
         licence=data["licence"],
         source_page=data["source_page"],
         assets=tuple(Asset(**a) for a in data["assets"]),
+        includes=tuple(data.get("includes", [])),
     )
 
 
@@ -304,6 +306,7 @@ class OllamaSetup:
                     "done_bytes": self._done_bytes,
                     "licence": self._runtime.licence,
                     "source_page": self._runtime.source_page,
+                    "includes": list(self._runtime.includes),
                 },
                 "error": self._error if state == "failed" else None,
             }
@@ -321,13 +324,20 @@ class OllamaSetup:
         self._task = asyncio.create_task(self._install())
 
     async def cancel(self) -> None:
-        """Stop a running download; what is on disk stays, the next start continues."""
+        """Stop a running download; what is on disk stays, the next start continues.
+
+        Checking and unpacking run in worker threads that cannot be interrupted; a cancel then
+        waits until they are done, so no second install writes into the same folder (review
+        GW1 #122).
+        """
         task = self._task
-        if task is not None and not task.done():
+        if task is None or task.done():
+            return
+        if self._phase == "downloading":
             task.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
-                await task
-        if self._phase in {"downloading", "verifying", "installing"}:
+        with contextlib.suppress(asyncio.CancelledError):
+            await asyncio.shield(task)
+        if self._phase == "downloading":
             self._phase = None
 
     async def _install(self) -> None:
@@ -405,14 +415,20 @@ class OllamaSetup:
         self._done_bytes = 0
 
     # --- start / stop -------------------------------------------------------------------
-    async def ensure_running(self) -> bool:
-        """Start an installed Ollama when none answers. True when a usable one answers."""
+    async def ensure_running(self, *, external: bool = False) -> bool:
+        """Start an installed Ollama when none answers. True when a usable one answers.
+
+        Automatically only our own (managed) copy. The player's own installed Ollama is started
+        only when the game asks after the player agreed (`external=True`, review GW1 #122), and
+        then with its own model folder.
+        """
         async with self._lock:
             running = await self._running_version()
             if running is not None:
                 return self._fits(running)
             exe = self.managed_executable()
-            if exe is None:
+            own = exe is not None
+            if exe is None and external:
                 found = await asyncio.to_thread(self._external_executable)
                 exe = found[0] if found else None
             if exe is None:
@@ -423,7 +439,7 @@ class OllamaSetup:
                 return False
             self._phase = "starting"
             try:
-                self._process = self._launcher(exe, self._serve_env())
+                self._process = self._launcher(exe, self._serve_env(own=own))
             except OSError:
                 self._phase, self._error = "failed", "start_failed"
                 return False
@@ -440,12 +456,13 @@ class OllamaSetup:
             self._phase, self._error = "failed", "start_failed"
             return False
 
-    def _serve_env(self) -> dict[str, str]:
+    def _serve_env(self, *, own: bool) -> dict[str, str]:
         env = dict(os.environ)
         host = urlsplit(self._url)
-        env["OLLAMA_HOST"] = f"{host.hostname}:{host.port or 11434}"  # localhost only (config)
-        if self._models_dir is not None:
-            env["OLLAMA_MODELS"] = str(self._models_dir)
+        name = f"[{host.hostname}]" if ":" in (host.hostname or "") else host.hostname
+        env["OLLAMA_HOST"] = f"{name}:{host.port or 11434}"  # localhost only (config)
+        if own and self._models_dir is not None:
+            env["OLLAMA_MODELS"] = str(self._models_dir)  # the player's own keeps its folder
         return env
 
     def _stop_own(self) -> None:

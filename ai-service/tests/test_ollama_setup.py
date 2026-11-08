@@ -184,7 +184,8 @@ def _newer(_path: Path) -> str:
     return "0.41.0"
 
 
-def test_an_installed_but_stopped_ollama_of_the_player_is_started(tmp_path: Path) -> None:
+def test_the_players_own_installed_ollama_starts_only_on_request(tmp_path: Path) -> None:
+    """Review GW1 #122: never started without asking, and with its own model folder."""
     exe = tmp_path / "Programs/Ollama/ollama.exe"
     exe.parent.mkdir(parents=True)
     exe.write_bytes(b"MZ")
@@ -193,12 +194,18 @@ def test_an_installed_but_stopped_ollama_of_the_player_is_started(tmp_path: Path
     async def body(client: httpx.AsyncBaseTransport) -> Any:
         setup = _setup(tmp_path, world, client, candidates=[exe], version_of=_newer)
         before = await setup.status()
-        started = await setup.ensure_running()
-        return before, started
+        automatic = await setup.ensure_running()
+        launched_automatically = list(world.launched)
+        asked = await setup.ensure_running(external=True)
+        return before, automatic, launched_automatically, asked
 
-    before, started = _run(world, body)
+    before, automatic, launched_automatically, asked = _run(world, body)
     assert before.state == "installed" and before.source == "external"
-    assert started and world.launched[0][0] == exe
+    assert automatic is False and launched_automatically == []
+    assert asked and world.launched[0][0] == exe
+    assert "OLLAMA_MODELS" not in world.launched[0][1] or world.launched[0][1][
+        "OLLAMA_MODELS"
+    ] != str(tmp_path / "models")
 
 
 def test_download_checks_unpacks_and_starts_on_localhost(tmp_path: Path) -> None:
@@ -360,3 +367,54 @@ def test_an_unfinished_unpack_is_replaced_and_only_the_marker_completes_it(tmp_p
     assert _run(world, body) is None
     assert (leftover / "ollama.exe").read_bytes() == b"MZ fake program"
     assert (leftover / MARKER).is_file()
+
+
+def test_a_cancel_while_unpacking_waits_for_the_worker(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Review GW1 #122: the unpack thread cannot be stopped, so cancel waits for it."""
+    import time
+
+    original = OllamaSetup._unpack  # pyright: ignore[reportPrivateUsage]
+
+    def slow_unpack(self: OllamaSetup, asset: Asset) -> None:
+        time.sleep(0.3)
+        original(self, asset)
+
+    monkeypatch.setattr(OllamaSetup, "_unpack", slow_unpack)
+    world = World()
+
+    async def body(client: httpx.AsyncBaseTransport) -> Any:
+        setup = _setup(tmp_path, world, client)
+        setup.start_download()
+        for _ in range(200):
+            if (await setup.status()).state == "installing":
+                break
+            await asyncio.sleep(0.01)
+        await setup.cancel()
+        assert not setup.busy()
+        return setup.managed_executable()
+
+    assert _run(world, body) is not None  # the unpack finished; nothing half-written
+
+
+def test_an_ipv6_localhost_gets_brackets(tmp_path: Path) -> None:
+    world = World()
+
+    async def body(client: httpx.AsyncBaseTransport) -> Any:
+        setup = _setup(tmp_path, world, client, url="http://[::1]:11999")
+        await _finish(setup)
+
+    _run(world, body)
+    assert world.launched[0][1]["OLLAMA_HOST"] == "[::1]:11999"
+
+
+def test_the_dialog_learns_what_else_the_archive_contains() -> None:
+    runtime = load_runtime(REPO / "content/ai/ollama-runtime.json")
+    assert any("CUDA" in item for item in runtime.includes)
+
+
+def test_starting_the_players_ollama_needs_consent(settings: Settings, tmp_path: Path) -> None:
+    app = _offline_app(settings, tmp_path)
+    response = post(app, "/setup/ollama/start", {})
+    assert response.status_code == 422 and response.json()["code"] == "bad_request"

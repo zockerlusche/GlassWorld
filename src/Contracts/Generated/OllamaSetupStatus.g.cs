@@ -23,7 +23,7 @@ namespace GlassWorld.Contracts
         public string ContractVersion { get; set; } = default!;
 
         /// <summary>
-        /// running = a usable Ollama answers; outdated = one answers but is older than accept_from (the player has to update or close it); installed = a usable program is on disk but not running; starting; missing = offer the download; downloading / verifying / installing; failed (error set; the download can be started again and continues).
+        /// running = a usable Ollama answers; outdated = one answers but is older than accept_from (the player has to update or close it); installed = a usable program is on disk but not running (ours starts by itself; the player's own (source external) only via POST /setup/ollama/start after consent); starting; missing = offer the download; downloading / verifying / installing; failed (error set; the download can be started again and continues).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("state")]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<OllamaSetupStatusState>))]
@@ -130,6 +130,12 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("source_page")]
         public string SourcePage { get; set; } = default!;
+
+        /// <summary>
+        /// Other parts of the official archive the dialog names (they come with Ollama from its source; we do not redistribute them).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("includes")]
+        public System.Collections.Generic.ICollection<string> Includes { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
     }
 }

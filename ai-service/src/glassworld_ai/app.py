@@ -132,7 +132,8 @@ def create_app(
             setup: OllamaSetup = app.state.ollama_setup
             autostart: asyncio.Task[bool] | None = None
             if settings.ollama_autostart and settings.decider_backend == "ollama":
-                # B10 R3: an installed Ollama that does not run yet is started (warm-up retries).
+                # B10 R3: our own installed copy is started (warm-up retries); the player's own
+                # only via POST /setup/ollama/start after consent (review GW1 #122).
                 autostart = asyncio.create_task(setup.ensure_running())
             if probes is None:
                 app.state.probes = HttpProbes(settings, client)
@@ -195,6 +196,11 @@ def create_app(
                     with contextlib.suppress(asyncio.CancelledError):
                         await first_run
                 await app.state.benchmark.close()
+                pending_start: asyncio.Task[bool] | None = getattr(app.state, "ollama_start", None)
+                if pending_start is not None and not pending_start.done():
+                    pending_start.cancel()
+                    with contextlib.suppress(asyncio.CancelledError):
+                        await pending_start
                 if autostart is not None and not autostart.done():
                     autostart.cancel()
                     with contextlib.suppress(asyncio.CancelledError):
@@ -445,6 +451,25 @@ def create_app(
     @app.post("/setup/ollama/download")
     async def ollama_setup_download(request: Request) -> Response:
         """Load Ollama, only with {"consent": true} from the game's dialog; poll the GET."""
+        refused = await _consent_refused(request)
+        if refused is not None:
+            return refused
+        setup: OllamaSetup = app.state.ollama_setup
+        setup.start_download()
+        return JSONResponse((await setup.status()).model_dump(mode="json"), status_code=202)
+
+    @app.post("/setup/ollama/start")
+    async def ollama_setup_start(request: Request) -> Response:
+        """Start an installed Ollama, also the player's own, only with {"consent": true}."""
+        refused = await _consent_refused(request)
+        if refused is not None:
+            return refused
+        setup: OllamaSetup = app.state.ollama_setup
+        app.state.ollama_start = asyncio.create_task(setup.ensure_running(external=True))
+        await asyncio.sleep(0)  # let it reach "starting"
+        return JSONResponse((await setup.status()).model_dump(mode="json"), status_code=202)
+
+    async def _consent_refused(request: Request) -> Response | None:
         body = await _read_body(request)
         try:
             data: object = json.loads(body or b"null")
@@ -456,9 +481,7 @@ def create_app(
             )
         if app.state.stopping:
             return error_response("model_unavailable", "Service is stopping.")
-        setup: OllamaSetup = app.state.ollama_setup
-        setup.start_download()
-        return JSONResponse((await setup.status()).model_dump(mode="json"), status_code=202)
+        return None
 
     @app.post("/setup/ollama/cancel")
     async def ollama_setup_cancel() -> Response:
