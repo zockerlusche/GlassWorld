@@ -1,0 +1,103 @@
+{
+  "contract_version": "0.2",
+  "bodies": [
+    {
+      "age_stage": "baby",
+      "sex": "any",
+      "model": "child",
+      "model_height_cm": 120
+    },
+    {
+      "age_stage": "child",
+      "sex": "any",
+      "model": "child",
+      "model_height_cm": 120
+    },
+    {
+      "age_stage": "youth",
+      "sex": "female",
+      "model": "adult_female",
+      "model_height_cm": 170
+    },
+    {
+      "age_stage": "youth",
+      "sex": "male",
+      "model": "adult_male",
+      "model_height_cm": 176
+    },
+    {
+      "age_stage": "adult",
+      "sex": "female",
+      "model": "adult_female",
+      "model_height_cm": 170
+    },
+    {
+      "age_stage": "adult",
+      "sex": "male",
+      "model": "adult_male",
+      "model_height_cm": 176
+    },
+    {
+      "age_stage": "elder",
+      "sex": "female",
+      "model": "adult_female",
+      "model_height_cm": 170
+    },
+    {
+      "age_stage": "elder",
+      "sex": "male",
+      "model": "adult_male",
+      "model_height_cm": 176
+    }
+  ],
+  "hair": [
+    {
+      "style": "short",
+      "mesh": "short"
+    },
+    {
+      "style": "long",
+      "mesh": "long"
+    },
+    {
+      "style": "curly",
+      "mesh": "tousled"
+    },
+    {
+      "style": "braided",
+      "mesh": "long"
+    },
+    {
+      "style": "tied",
+      "mesh": "bun"
+    }
+  ],
+  "clothing": [
+    {
+      "style": "tunic",
+      "short_sleeves": true,
+      "shorts": false
+    },
+    {
+      "style": "wrap",
+      "short_sleeves": true,
+      "shorts": true
+    },
+    {
+      "style": "shirt_trousers",
+      "short_sleeves": false,
+      "shorts": false
+    }
+  ],
+  "shoe_color": "#3a2a20",
+  "outline": false,
+  "crossfade_s": 0.25,
+  "idle_slot_ticks": 10,
+  "walk_min_step_m": 0.05,
+  "turn_rate_deg_s": 360,
+  "gait_time_scale": {
+    "min": 0.6,
+    "max": 1.5
+  },
+  "head_anchor_m": 1.95
+}

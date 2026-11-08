@@ -1,11 +1,50 @@
 {
   "contract_version": "0.2",
   "points": [
-    { "id": "island", "target_x_permille": 500, "target_z_permille": 500, "yaw_deg": 30, "distance_m": 260 },
-    { "id": "start", "target_x_permille": 500, "target_z_permille": 500, "yaw_deg": 30, "distance_m": 60 },
-    { "id": "close", "target_x_permille": 500, "target_z_permille": 500, "yaw_deg": 120, "distance_m": 30 }
+    {
+      "id": "island",
+      "target_x_permille": 500,
+      "target_z_permille": 500,
+      "yaw_deg": 30,
+      "distance_m": 260
+    },
+    {
+      "id": "start",
+      "target_x_permille": 500,
+      "target_z_permille": 500,
+      "yaw_deg": 30,
+      "distance_m": 60
+    },
+    {
+      "id": "close",
+      "target_x_permille": 500,
+      "target_z_permille": 500,
+      "yaw_deg": 120,
+      "distance_m": 30
+    },
+    {
+      "id": "figures",
+      "target_x_permille": 500,
+      "target_z_permille": 500,
+      "yaw_deg": 30,
+      "distance_m": 14,
+      "inhabitant": 0
+    },
+    {
+      "id": "figures_far",
+      "target_x_permille": 500,
+      "target_z_permille": 500,
+      "yaw_deg": 60,
+      "distance_m": 40,
+      "inhabitant": 1
+    }
   ],
-  "projections": ["perspective", "orthographic"],
-  "phases": ["day"],
+  "projections": [
+    "perspective",
+    "orthographic"
+  ],
+  "phases": [
+    "day"
+  ],
   "settle_frames": 12
 }

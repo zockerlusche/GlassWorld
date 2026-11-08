@@ -52,6 +52,20 @@ public sealed class CameraModelTests
     }
 
     [Fact]
+    public void FollowingCanKeepTheDistanceOfAShotPoint()
+    {
+        var data = Data();
+        var camera = new CameraModel(data, 0, 0, 192, 192);
+        var position = (X: 40d, Z: 150d);
+        var distance = Math.Clamp(data.FollowDistanceM / 2, data.DistanceM.Min, data.DistanceM.Max);
+        camera.Set(40, 150, 30, distance);
+        camera.Follow(() => position, distance);
+        position = (44, 152);
+        Settle(camera);
+        Assert.Equal((44, 152, distance), (Math.Round(camera.Target.X, 2), Math.Round(camera.Target.Z, 2), Math.Round(camera.Distance, 6)));
+    }
+
+    [Fact]
     public void FollowingTracksTheFigureAtTheFollowDistance()
     {
         var data = Data();

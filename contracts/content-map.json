@@ -217,6 +217,10 @@
     {
       "pattern": "look/shots.json",
       "schema": "look-shots"
+    },
+    {
+      "pattern": "look/figures.json",
+      "schema": "look-figures"
     }
   ]
 }

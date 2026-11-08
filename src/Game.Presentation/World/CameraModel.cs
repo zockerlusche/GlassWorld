@@ -105,12 +105,15 @@ public sealed class CameraModel
         Clamp();
     }
 
-    /// <summary>Follows a figure (its position is read every update) at the follow distance.</summary>
-    public void Follow(Func<(double X, double Z)> position)
+    /// <summary>
+    /// Follows a figure (its position is read every update) at the follow distance, or at
+    /// <paramref name="distanceM"/> when given (the screenshot tool keeps the distance of its shot point).
+    /// </summary>
+    public void Follow(Func<(double X, double Z)> position, double? distanceM = null)
     {
         ArgumentNullException.ThrowIfNull(position);
         _follow = position;
-        _wantDistance = Math.Clamp(_data.FollowDistanceM, _data.DistanceM.Min, _data.DistanceM.Max);
+        _wantDistance = Math.Clamp(distanceM ?? _data.FollowDistanceM, _data.DistanceM.Min, _data.DistanceM.Max);
     }
 
     /// <summary>Leaves follow mode; the camera stays where it is.</summary>

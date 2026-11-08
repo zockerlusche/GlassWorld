@@ -43,6 +43,14 @@ class AnimationClip(BaseModel):
         description='asset: a clip from a CC0 GLB; blend: mix of other clips; procedural: LookAt/IK in code; placeholder: not yet made.',
     )
     loop: bool = Field(..., description='Whether the clip loops.')
+    asset: str | None = Field(
+        None,
+        description='Name of the clip in the figure GLB (source asset; the importer drops the _Loop suffix). The asset clips of this file are the allowlist of approved clips: the game plays no other clip of the GLB, and clips that show violence are never approved (B2466).',
+        pattern='^[A-Za-z][A-Za-z0-9_]{0,63}$',
+    )
+    speed: float | None = Field(
+        None, description='Playback speed factor (1 = as authored).', gt=0.0, le=4.0
+    )
 
 
 class AnimationMapping(BaseModel):
@@ -81,7 +89,16 @@ class AnimationGait(BaseModel):
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
     min_speed_cm_s: int = Field(
-        ..., description='Speed from which this gait applies.', ge=0, le=10000
+        ...,
+        description='Game-time speed (distance per game second, not per real second) from which this gait applies; also its point in the gait blend.',
+        ge=0,
+        le=10000,
+    )
+    ground_speed_cm_s: int = Field(
+        ...,
+        description="Speed the clip's feet show over the ground at playback speed 1 and figure scale 1 (placeholder estimate); the gait plays faster or slower to roughly match the on-screen speed.",
+        ge=1,
+        le=2000,
     )
 
 

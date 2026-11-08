@@ -137,7 +137,7 @@ fi
 # Island (B2-3): terrain and water meshes of the generated start island, one per chunk.
 ISLAND_LOG="$(mktemp)"
 timeout "$TIMEOUT_S" "$GODOT" --headless --path "$GAME" --quit-after 1200 res://world/island.tscn -- --seed=7 --check >"$ISLAND_LOG" 2>&1
-if ! grep -Eq '^ISLAND_OK seed=7 chunks=[1-9][0-9]* ground_triangles=[1-9][0-9]* water_triangles=[1-9][0-9]*$' "$ISLAND_LOG" || grep -Eq '^(ERROR|SCRIPT ERROR)|Unhandled exception' "$ISLAND_LOG"; then
+if ! grep -Eq '^ISLAND_OK seed=7 chunks=[1-9][0-9]* ground_triangles=[1-9][0-9]* water_triangles=[1-9][0-9]* figures=[1-9][0-9]*$' "$ISLAND_LOG" || grep -Eq '^(ERROR|SCRIPT ERROR)|Unhandled exception' "$ISLAND_LOG"; then
   cat "$ISLAND_LOG" >&2
   echo "SMOKE_FAIL: the island is not drawn (marker 'ISLAND_OK ...' missing or errors)" >&2
   exit 1

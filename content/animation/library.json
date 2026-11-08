@@ -24,33 +24,35 @@
     },
     {
       "id": "drink",
-      "source": "placeholder",
-      "loop": true
+      "source": "asset",
+      "loop": true,
+      "asset": "Interact",
+      "speed": 0.8
     },
     {
       "id": "eat",
-      "source": "placeholder",
-      "loop": true
+      "source": "asset",
+      "loop": true,
+      "asset": "Interact",
+      "speed": 0.8
     },
     {
       "id": "fallback",
-      "source": "placeholder",
-      "loop": true
+      "source": "asset",
+      "loop": true,
+      "asset": "Idle"
     },
     {
       "id": "hammer",
-      "source": "placeholder",
-      "loop": false
+      "source": "asset",
+      "loop": false,
+      "asset": "Fixing_Kneeling"
     },
     {
       "id": "handle",
-      "source": "placeholder",
-      "loop": true
-    },
-    {
-      "id": "hop",
-      "source": "placeholder",
-      "loop": true
+      "source": "asset",
+      "loop": true,
+      "asset": "Interact"
     },
     {
       "id": "hug",
@@ -64,8 +66,9 @@
     },
     {
       "id": "hurry",
-      "source": "blend",
-      "loop": true
+      "source": "asset",
+      "loop": true,
+      "asset": "Jog_Fwd"
     },
     {
       "id": "knock_glass",
@@ -99,13 +102,16 @@
     },
     {
       "id": "pick_up",
-      "source": "placeholder",
-      "loop": false
+      "source": "asset",
+      "loop": false,
+      "asset": "PickUp_Table"
     },
     {
       "id": "pick_up_inspect",
-      "source": "placeholder",
-      "loop": false
+      "source": "asset",
+      "loop": false,
+      "asset": "PickUp_Table",
+      "speed": 0.7
     },
     {
       "id": "ponder",
@@ -114,23 +120,27 @@
     },
     {
       "id": "put_down",
-      "source": "placeholder",
-      "loop": false
+      "source": "asset",
+      "loop": false,
+      "asset": "PickUp_Table"
     },
     {
       "id": "run",
-      "source": "placeholder",
-      "loop": true
+      "source": "asset",
+      "loop": true,
+      "asset": "Jog_Fwd"
     },
     {
       "id": "sit",
-      "source": "placeholder",
-      "loop": true
+      "source": "asset",
+      "loop": true,
+      "asset": "Sitting_Idle"
     },
     {
       "id": "sit_down",
-      "source": "placeholder",
-      "loop": false
+      "source": "asset",
+      "loop": false,
+      "asset": "Sitting_Enter"
     },
     {
       "id": "sit_sad",
@@ -149,8 +159,9 @@
     },
     {
       "id": "stand",
-      "source": "placeholder",
-      "loop": true
+      "source": "asset",
+      "loop": true,
+      "asset": "Idle"
     },
     {
       "id": "stomp",
@@ -164,28 +175,34 @@
     },
     {
       "id": "stroll",
-      "source": "placeholder",
-      "loop": true
+      "source": "asset",
+      "loop": true,
+      "asset": "Walk_Formal",
+      "speed": 0.8
     },
     {
       "id": "swim",
-      "source": "placeholder",
-      "loop": true
+      "source": "asset",
+      "loop": true,
+      "asset": "Swim_Fwd"
     },
     {
       "id": "talk",
-      "source": "placeholder",
-      "loop": true
+      "source": "asset",
+      "loop": true,
+      "asset": "Idle_Talking"
     },
     {
       "id": "wake_up",
-      "source": "placeholder",
-      "loop": false
+      "source": "asset",
+      "loop": false,
+      "asset": "Sitting_Exit"
     },
     {
       "id": "walk",
-      "source": "placeholder",
-      "loop": true
+      "source": "asset",
+      "loop": true,
+      "asset": "Walk"
     },
     {
       "id": "wave",
@@ -409,27 +426,26 @@
     {
       "id": "stroll",
       "clip": "stroll",
-      "min_speed_cm_s": 0
+      "min_speed_cm_s": 0,
+      "ground_speed_cm_s": 110
     },
     {
       "id": "walk",
       "clip": "walk",
-      "min_speed_cm_s": 60
+      "min_speed_cm_s": 60,
+      "ground_speed_cm_s": 130
     },
     {
       "id": "hurry",
       "clip": "hurry",
-      "min_speed_cm_s": 130
+      "min_speed_cm_s": 130,
+      "ground_speed_cm_s": 260
     },
     {
       "id": "run",
       "clip": "run",
-      "min_speed_cm_s": 250
-    },
-    {
-      "id": "hop",
-      "clip": "hop",
-      "min_speed_cm_s": 400
+      "min_speed_cm_s": 250,
+      "ground_speed_cm_s": 260
     }
   ],
   "idle": [

@@ -32,6 +32,20 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("loop")]
         public bool Loop { get; set; } = default!;
 
+        /// <summary>
+        /// Name of the clip in the figure GLB (source asset; the importer drops the _Loop suffix). The asset clips of this file are the allowlist of approved clips: the game plays no other clip of the GLB, and clips that show violence are never approved (B2466).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("asset")]
+        public string? Asset { get; set; } = default!;
+
+        /// <summary>
+        /// Playback speed factor (1 = as authored).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("speed")]
+        public double? Speed { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -64,10 +78,16 @@ namespace GlassWorld.Contracts
         public string Clip { get; set; } = default!;
 
         /// <summary>
-        /// Speed from which this gait applies.
+        /// Game-time speed (distance per game second, not per real second) from which this gait applies; also its point in the gait blend.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("min_speed_cm_s")]
         public int MinSpeedCmS { get; set; } = default!;
+
+        /// <summary>
+        /// Speed the clip's feet show over the ground at playback speed 1 and figure scale 1 (placeholder estimate); the gait plays faster or slower to roughly match the on-screen speed.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("ground_speed_cm_s")]
+        public int GroundSpeedCmS { get; set; } = default!;
 
     }
 

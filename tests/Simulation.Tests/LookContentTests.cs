@@ -48,6 +48,82 @@ public sealed class LookContentTests
         Assert.Equal(speeds.Order(), speeds);
     }
 
+    /// <summary>Words in GLB clip names that mean violence (B2466); never approved.</summary>
+    private static readonly string[] Refused =
+        ["Sword", "Spell", "Shoot", "Punch", "Kick", "Hit", "Death", "Dead", "Die", "Gun", "Pistol", "Rifle", "Bow", "Arrow",
+         "Attack", "Roll", "Stab", "Slash", "Shield", "Fight", "Knife", "Melee", "Aim", "Reload"];
+
+    private static bool IsRefused(string asset) => Refused.Any(w => asset.Contains(w, StringComparison.Ordinal));
+
+    /// <summary>Clip names of a GLB (the importer drops "_Loop").</summary>
+    private static HashSet<string> GlbClips(string file)
+    {
+        var glb = File.ReadAllBytes(file);
+        var jsonLength = BitConverter.ToInt32(glb, 12);
+        using var document = System.Text.Json.JsonDocument.Parse(glb.AsMemory(20, jsonLength));
+        return document.RootElement.GetProperty("animations").EnumerateArray()
+            .Select(a => a.GetProperty("name").GetString()!.Replace("_Loop", string.Empty, StringComparison.Ordinal))
+            .ToHashSet(StringComparer.Ordinal);
+    }
+
+    /// <summary>
+    /// Coverage of the figure clips (B2 R27): the asset clips of the library are the allowlist of approved
+    /// clips (the game plays no other); every clip the library uses is on it, every approved clip exists in
+    /// every figure GLB that figures.json names, and no approved clip shows violence
+    /// (B2466). The clips still to be made are the non-asset ones.
+    /// </summary>
+    [Fact]
+    public void ApprovedClipsExistInEveryFigureGlbAndShowNoViolence()
+    {
+        var library = Read<AnimationLibrary>("animation", "library.json");
+        var approved = library.Clips.Where(c => c.Source == AnimationClipSource.Asset).ToList();
+        Assert.NotEmpty(approved);
+        Assert.All(approved, c => Assert.False(c.Asset is null || IsRefused(c.Asset), $"clip '{c.Id}' names '{c.Asset}', not approvable"));
+        Assert.All(library.Clips.Where(c => c.Source != AnimationClipSource.Asset), c => Assert.Null(c.Asset));
+        var fallback = Assert.Single(library.Clips, c => c.Id == library.FallbackClip);
+        Assert.Equal(AnimationClipSource.Asset, fallback.Source);
+        Assert.All(library.Gaits, g => Assert.Contains(approved, c => c.Id == g.Clip));
+
+        var models = Read<LookFigures>("look", "figures.json").Bodies.Select(b => b.Model).Distinct(StringComparer.Ordinal).ToList();
+        Assert.NotEmpty(models);
+        var first = File.ReadAllBytes(Path.Combine(TestData.Root, "game", "assets", "characters", "glassworld", models[0] + ".glb"));
+        Assert.SkipWhen(
+            first.Length > 7 && System.Text.Encoding.ASCII.GetString(first, 0, 7) == "version",
+            "LFS files not checked out; the game smoke run plays the clips (ISLAND_OK figures=N).");
+        foreach (var model in models)
+        {
+            var available = GlbClips(Path.Combine(TestData.Root, "game", "assets", "characters", "glassworld", model + ".glb"));
+            Assert.All(approved, c => Assert.True(available.Contains(c.Asset!), $"clip '{c.Id}' names '{c.Asset}', not in {model}.glb"));
+
+            // The check itself: every violent clip the figure GLB brings is refused.
+            Assert.All(available.Where(a => a.StartsWith("Sword", StringComparison.Ordinal) || a.StartsWith("Spell", StringComparison.Ordinal)
+                || a.StartsWith("Pistol", StringComparison.Ordinal) || a.StartsWith("Punch", StringComparison.Ordinal)
+                || a.StartsWith("Hit", StringComparison.Ordinal) || a.StartsWith("Death", StringComparison.Ordinal)
+                || a.StartsWith("Roll", StringComparison.Ordinal)), a => Assert.True(IsRefused(a), a));
+        }
+    }
+
+    [Theory]
+    [InlineData("Idle_Sword", true)]
+    [InlineData("Spell_Simple_Shoot", true)]
+    [InlineData("Spell_Simple_Idle", true)]
+    [InlineData("Roll_RM", true)]
+    [InlineData("Kick_Low", true)]
+    [InlineData("Bow_Draw", true)]
+    [InlineData("Walk_Formal", false)]
+    [InlineData("Jog_Fwd", false)]
+    [InlineData("Idle_Talking", false)]
+    public void ViolentClipNamesAreRefusedAnywhereInTheName(string asset, bool refused) => Assert.Equal(refused, IsRefused(asset));
+
+    [Fact]
+    public void TheLibraryHasNoHopGaitAndRunIsAJog()
+    {
+        // Calm world (B2466, review of PR #99): run jogs, there is no hop gait; TL may revisit.
+        var library = Read<AnimationLibrary>("animation", "library.json");
+        Assert.DoesNotContain(library.Gaits, g => g.Id == "hop");
+        Assert.Equal("Jog_Fwd", library.Clips.Single(c => c.Id == "run").Asset);
+    }
+
     [Fact]
     public void EpochsMatchTheVocabularyInOrderOfTechLevel()
     {

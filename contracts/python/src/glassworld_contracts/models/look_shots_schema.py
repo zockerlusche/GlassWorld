@@ -30,6 +30,12 @@ class ShotPoint(BaseModel):
     )
     yaw_deg: float = Field(..., ge=-360.0, le=360.0)
     distance_m: float = Field(..., gt=0.0, le=2000.0)
+    inhabitant: int | None = Field(
+        None,
+        description='Optional: look at the inhabitant with this index (ordered by id) instead of the map target.',
+        ge=0,
+        le=1000,
+    )
 
 
 class LookShots(BaseModel):
