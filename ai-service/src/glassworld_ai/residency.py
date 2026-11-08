@@ -95,6 +95,26 @@ class Residency:
         self._clock = clock
         self._loaded: dict[str, float] = {}  # model id -> last use
         self._lock = asyncio.Lock()
+        self._pins: dict[str, int] = {}  # model id -> jobs using it right now (never evicted)
+        self._unpinned = asyncio.Event()
+
+    def driver_for(self, runtime: str) -> Driver | None:
+        return self._drivers.get(runtime)
+
+    def pin(self, model_id: str) -> None:
+        """A job uses the model now: it is not unloaded until unpin (review GW3 #85)."""
+        self._pins[model_id] = self._pins.get(model_id, 0) + 1
+
+    def unpin(self, model_id: str) -> None:
+        count = self._pins.get(model_id, 0) - 1
+        if count > 0:
+            self._pins[model_id] = count
+        else:
+            self._pins.pop(model_id, None)
+        self._unpinned.set()
+
+    def pinned(self, model_id: str) -> bool:
+        return self._pins.get(model_id, 0) > 0
 
     @property
     def budget_mib(self) -> int:
@@ -147,27 +167,60 @@ class Residency:
         self._loaded[model_id] = self._clock()
 
     async def ensure(self, model_id: str) -> None:
-        """Make `model_id` resident; unloads conflicting and least recently used models first."""
-        async with self._lock:
-            wanted = self._footprint(model_id)
-            if model_id in self._loaded and not self._still_loaded(wanted):
-                del self._loaded[model_id]  # e.g. the sound worker ended (timeout, crash)
-            if model_id in self._loaded:
-                self._loaded[model_id] = self._clock()
-                return
-            if wanted.vram_mib > self._budget:
-                raise ResidencyError(
-                    f"{model_id} needs {wanted.vram_mib} MiB, budget is {self._budget} MiB",
-                    permanent=True,
-                )
-            for other in sorted(self._loaded):
-                if other in wanted.never_with or model_id in self._footprint(other).never_with:
-                    await self._unload(other)
-            while self.used_mib() + wanted.vram_mib > self._budget:
-                oldest = min(self._loaded, key=lambda m: (self._loaded[m], m))
-                await self._unload(oldest)
-            await self._driver(wanted).load(model_id)
-            self._loaded[model_id] = self._clock()
+        """Make `model_id` resident; unloads conflicting and least recently used models first.
+
+        A model a job is using (pinned) is never unloaded: ensure waits until it is free, without
+        holding the lock (a running job may ensure its own model meanwhile).
+        """
+        wanted = self._footprint(model_id)
+        if model_id in self._loaded and self._still_loaded(wanted):
+            self._loaded[model_id] = self._clock()  # already there: no waiting behind others
+            return
+        while True:
+            self._unpinned.clear()
+            async with self._lock:
+                if model_id in self._loaded and not self._still_loaded(wanted):
+                    del self._loaded[model_id]  # e.g. the sound worker ended (timeout, crash)
+                if model_id in self._loaded:
+                    self._loaded[model_id] = self._clock()
+                    return
+                if wanted.vram_mib > self._budget:
+                    raise ResidencyError(
+                        f"{model_id} needs {wanted.vram_mib} MiB, budget is {self._budget} MiB",
+                        permanent=True,
+                    )
+                victims = self._victims(model_id, wanted)
+                if victims is not None:
+                    for other in victims:
+                        if other in self._loaded:  # a ComfyUI /free may have taken it already
+                            await self._unload(other)
+                    await self._driver(wanted).load(model_id)
+                    self._loaded[model_id] = self._clock()
+                    return
+            await self._unpinned.wait()  # a needed model is in use: wait for the job to end
+
+    def _victims(self, model_id: str, wanted: Footprint) -> list[str] | None:
+        """Models to unload for `wanted` (conflicts, then least recently used free ones), or None
+        when that would need a model a job is using right now."""
+        victims = [
+            m
+            for m in sorted(self._loaded)
+            if m in wanted.never_with or model_id in self._footprint(m).never_with
+        ]
+        if any(self.pinned(m) for m in victims):
+            return None
+        used = self.used_mib() - sum(self._footprint(m).vram_mib for m in victims)
+        free = sorted(
+            (m for m in self._loaded if m not in victims and not self.pinned(m)),
+            key=lambda m: (self._loaded[m], m),
+        )
+        while used + wanted.vram_mib > self._budget:
+            if not free:
+                return None
+            oldest = free.pop(0)
+            victims.append(oldest)
+            used -= self._footprint(oldest).vram_mib
+        return victims
 
     def _still_loaded(self, footprint: Footprint) -> bool:
         driver = self._drivers.get(footprint.runtime)

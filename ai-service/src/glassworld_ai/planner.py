@@ -126,6 +126,7 @@ class Planner:
         ):
             return
         await residency.ensure(plan.model)
+        residency.pin(plan.model)  # in use until done(kind): never unloaded mid-job (GW3 #85)
 
     def affinity(self, kind: str) -> int:
         """0 if the kind's model is resident now (run it first: no reloading), else 1."""
@@ -157,6 +158,15 @@ class Planner:
         plan = self._kinds.get(kind)
         if plan is not None:
             self._kinds[kind] = KindPlan(plan.when, None)
+
+    def done(self, kind: str) -> None:
+        """The job of this kind ended (done, failed or cancelled): its model may be unloaded."""
+        plan = self._kinds.get(kind)
+        residency = self._residency()
+        if plan is None or plan.model is None or residency is None:
+            return
+        if residency.pinned(plan.model):
+            residency.unpin(plan.model)
 
     def finished(self) -> None:
         if self.phase == "night":

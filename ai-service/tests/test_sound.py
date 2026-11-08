@@ -200,7 +200,7 @@ def test_the_moss_backend_loads_only_through_the_residency(
 
     async def scenario() -> None:
         async with app.router.lifespan_context(app):
-            driver = app.state.residency._drivers["hook"]  # pyright: ignore[reportPrivateUsage]
+            driver = app.state.residency.driver_for("hook")
             assert isinstance(driver, HookDriver)
             assert driver.on_load == worker.load and driver.on_unload == worker.unload
             assert driver.alive("moss-sound") is False  # not started yet
