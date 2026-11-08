@@ -747,6 +747,7 @@ def _build_benchmark(settings: Settings, client: httpx.AsyncClient, app: FastAPI
         on_result=planner.set_job_seconds,
         restore=restore,
         measuring=measuring,
+        overall_timeout_s=settings.benchmark_timeout_s,
     )
 
 

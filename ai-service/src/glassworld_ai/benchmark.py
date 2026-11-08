@@ -26,6 +26,10 @@ from glassworld_contracts import CONTRACT_VERSION, BenchmarkStatus
 IDLE_POLL_S = 0.5
 
 
+class StillBusyError(RuntimeError):
+    """A job did not end in time before the measurement."""
+
+
 @dataclass(frozen=True)
 class Generated:
     """What the language model reports for one answer (Ollama eval statistics)."""
@@ -70,6 +74,7 @@ class Benchmark:
         restore: Callable[[], Awaitable[None]],
         measuring: Callable[[bool], None] = lambda _: None,
         idle_timeout_s: float = 600,
+        overall_timeout_s: float = 1800,
         clock: Callable[[], float] = time.monotonic,
         wall: Callable[[], float] = time.time,
     ) -> None:
@@ -85,6 +90,7 @@ class Benchmark:
         self._restore = restore
         self._measuring = measuring
         self._idle_timeout_s = idle_timeout_s
+        self._overall_timeout_s = overall_timeout_s
         self._clock = clock
         self._wall = wall
         self.state = "none"
@@ -126,34 +132,16 @@ class Benchmark:
         self._runner.hold()
         self._measuring(True)
         try:
-            await self._wait_idle()
-            residency = self._residency()
-            if residency is not None:
-                await residency.release_all()  # every model measured from unloaded
-            language = await self._section(self._measure_language)
-            image = await self._section(lambda: self._measure_job(self._image))
-            sound = await self._section(lambda: self._measure_job(self._sound))
-            if language is None and image is None and sound is None:
-                raise RuntimeError(self.error or "no model could be measured")
-            tier, gpu, vram = self._hardware()
-            self.result = {
-                "measured_at": int(self._wall()),
-                "tier": tier,
-                "gpu": gpu[:128],
-                "vram_mib": vram,
-                "answer_tokens": self._answer_tokens,
-                "language": language,
-                "image": image,
-                "sound": sound,
-            }
-            self.status()  # validates the result against the contract
-            self._save()
-            self._apply()
+            async with asyncio.timeout(self._overall_timeout_s):  # review GW1 #97
+                await self._measure_all()
             self.state = "done"
         except asyncio.CancelledError:
             self.state = "failed"
             self.error = "cancelled"
             raise
+        except TimeoutError:
+            self.state = "failed"
+            self.error = f"measurement took longer than {self._overall_timeout_s:.0f} s"
         except Exception as error:
             self.state = "failed"
             self.error = f"{type(error).__name__}: {error}"[:300]
@@ -163,13 +151,38 @@ class Benchmark:
                 await self._restore()  # e.g. the language model back for the day
             self._runner.resume()
 
+    async def _measure_all(self) -> None:
+        await self._wait_idle()
+        residency = self._residency()
+        if residency is not None:
+            await residency.release_all()  # every model measured from unloaded
+        language = await self._section(self._measure_language)
+        image = await self._section(lambda: self._measure_job(self._image))
+        sound = await self._section(lambda: self._measure_job(self._sound))
+        if language is None and image is None and sound is None:
+            raise RuntimeError(self.error or "no model could be measured")
+        tier, gpu, vram = self._hardware()
+        self.result = {
+            "measured_at": int(self._wall()),
+            "tier": tier,
+            "gpu": gpu[:128],
+            "vram_mib": vram,
+            "answer_tokens": self._answer_tokens,
+            "language": language,
+            "image": image,
+            "sound": sound,
+        }
+        self.status()  # validates the result against the contract
+        self._save()
+        self._apply()
+
     # --- internals ------------------------------------------------------------------------
 
     async def _wait_idle(self) -> None:
         until = self._clock() + self._idle_timeout_s
         while self._runner.counts()["running"] > 0:
             if self._clock() >= until:
-                raise TimeoutError("a job kept running; measure again later")
+                raise StillBusyError("a job kept running; measure again later")
             await asyncio.sleep(IDLE_POLL_S)
 
     async def _section(
@@ -261,6 +274,9 @@ class Benchmark:
             )
         except (OSError, ValueError):
             return  # never measured, or an unreadable file: measure again
+        _, gpu, vram = self._hardware()
+        if gpu and (data.get("gpu") != gpu[:128] or data.get("vram_mib") != vram):
+            return  # another graphics card: the old values do not hold (review GW1 #97)
         self.result = data
         self.state = "done"
         self._apply()

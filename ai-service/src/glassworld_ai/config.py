@@ -48,6 +48,9 @@ class Settings(BaseSettings):
     benchmark_on_first_start: bool = Field(
         default=False, description="Measure once after the first start (the game turns it on)."
     )
+    benchmark_timeout_s: float = Field(
+        default=1800, gt=0, le=7200, description="Upper limit for one measurement run."
+    )
     benchmark_answer_tokens: int = Field(
         default=128, ge=16, le=2048, description="Tokens of the language model's test answer."
     )

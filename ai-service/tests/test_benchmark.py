@@ -257,3 +257,54 @@ def test_endpoints_without_models(settings: Settings, tmp_path: Path) -> None:
             assert (body["code"], body["retryable"]) == ("model_unavailable", False)
 
     asyncio.run(scenario())
+
+
+def test_another_graphics_card_measures_again(tmp_path: Path) -> None:
+    setup = Setup(Clock())
+    run, _ = _benchmark(tmp_path, setup, Runner(), setup.language(), setup.image(), {})
+    asyncio.run(run.run())
+    assert run.state == "done"
+    other = Benchmark(
+        store=tmp_path / "benchmark.json",
+        runner=Runner(),
+        residency=lambda: None,
+        hardware=lambda: ("comfort", "NVIDIA GeForce RTX 4090", 24564),
+        answer_tokens=128,
+        language=None,
+        image=None,
+        sound=None,
+        on_result=lambda _: None,
+        restore=_noop,
+    )
+    assert other.state == "none" and other.result is None
+
+
+def test_a_run_has_an_overall_time_limit(tmp_path: Path) -> None:
+    setup = Setup(Clock())
+
+    class Slow:
+        model = "llm"
+
+        async def generate(self, tokens: int) -> Generated:
+            await asyncio.sleep(10)
+            return Generated(tokens, 1.0)
+
+    run = Benchmark(
+        store=tmp_path / "benchmark.json",
+        runner=Runner(),
+        residency=lambda: setup.residency,
+        hardware=lambda: ("standard", "gpu", 10240),
+        answer_tokens=128,
+        language=Slow(),
+        image=None,
+        sound=None,
+        on_result=lambda _: None,
+        restore=_noop,
+        overall_timeout_s=0.05,
+    )
+    asyncio.run(run.run())
+    assert run.state == "failed" and run.error is not None and "longer than" in run.error
+
+
+async def _noop() -> None:
+    return None
