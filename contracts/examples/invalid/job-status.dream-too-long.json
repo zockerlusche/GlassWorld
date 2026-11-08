@@ -1,0 +1,29 @@
+{
+  "contract_version": "0.2",
+  "job_id": "9c3d4e5f-6071-4b8c-9d0e-1f2a3b4c5d6e",
+  "tick": 1210,
+  "kind": "dream",
+  "state": "done",
+  "result": {
+    "dream": {
+      "text": {
+        "locale": "de",
+        "text": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      "tone": "joyful",
+      "about": {
+        "kind": "type",
+        "id": "red_berries"
+      }
+    }
+  },
+  "error": null,
+  "provenance": {
+    "source": "ollama",
+    "model": "qwen3.5:9b",
+    "prompt_version": "dream/tell.v1",
+    "seed": 3131,
+    "latency_ms": 5200,
+    "attempts": 1
+  }
+}

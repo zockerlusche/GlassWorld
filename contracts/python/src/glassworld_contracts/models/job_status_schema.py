@@ -238,6 +238,20 @@ class ImageResult(BaseModel):
     )
 
 
+class DreamResult(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    text: common_schema.GeneratedText
+    tone: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    about: common_schema.Subject | None
+
+
 class QuestionResult(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -286,6 +300,7 @@ class JobResult(BaseModel):
     memory: MemoryResult | None = None
     sound: SoundResult | None = None
     image: ImageResult | None = None
+    dream: DreamResult | None = None
 
 
 class JobStatus(BaseModel):

@@ -92,6 +92,9 @@
         },
         "image": {
           "$ref": "#/$defs/ImageResult"
+        },
+        "dream": {
+          "$ref": "#/$defs/DreamResult"
         }
       },
       "minProperties": 1,
@@ -627,6 +630,34 @@
         },
         "style": {
           "$ref": "common.schema.json#/$defs/VocabId"
+        }
+      }
+    },
+    "DreamResult": {
+      "description": "The dream: text in the player's language (checked by the content guard), its tone (one of the allowed tones) and what it was mostly about (one of the day's subjects, or null). The core applies the tone's effect from data and checks both.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "text",
+        "tone",
+        "about"
+      ],
+      "properties": {
+        "text": {
+          "$ref": "common.schema.json#/$defs/GeneratedText"
+        },
+        "tone": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "about": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/Subject"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
     }

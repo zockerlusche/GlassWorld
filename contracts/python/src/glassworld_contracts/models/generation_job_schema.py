@@ -191,6 +191,36 @@ class ImagePayload(BaseModel):
     )
 
 
+class DreamPayload(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    events: list[MemoryFact] = Field(
+        ...,
+        description='Events of the day, oldest first (same form as for the memory).',
+        max_length=16,
+        min_length=1,
+    )
+    memory: str = Field(
+        ...,
+        description="The inhabitant's memory summary for background (English, internal; may be empty).",
+        max_length=1200,
+    )
+    mood: common_schema.VocabId | None = Field(
+        ...,
+        description='Strongest mood at the end of the day (vocabulary moods), or null.',
+    )
+    tones: list[common_schema.VocabId] = Field(
+        ...,
+        description='Tones the dream may have (from content/dreams/settings.json); the answer names one of them.',
+        max_length=8,
+        min_length=1,
+    )
+    max_chars: int = Field(
+        ..., description='Length limit of the dream text (data).', ge=40, le=280
+    )
+
+
 class BuildPlanPayload(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -243,6 +273,7 @@ class JobPayload(BaseModel):
     memory: MemoryPayload | None = None
     sound: SoundPayload | None = None
     image: ImagePayload | None = None
+    dream: DreamPayload | None = None
 
 
 class GenerationJob(BaseModel):
