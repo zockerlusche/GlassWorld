@@ -66,6 +66,8 @@ model3d_output_dir = "data/models"
 hardware_tiers_file = "../content/hardware/tiers.json"
 model_footprints_file = "../content/hardware/models.json"
 night_plan_file = "../content/hardware/night.json"
+ollama_runtime_file = "../content/ai/ollama-runtime.json"
+ollama_install_dir = "data/ollama"
 moss_worker_script = "data/moss-worker-not-shipped.py"
 """
 
