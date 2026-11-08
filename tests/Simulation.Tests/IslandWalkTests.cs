@@ -159,6 +159,30 @@ public sealed class IslandWalkTests : IDisposable
     }
 
     [Fact]
+    public void TheIslandIsAStoredBlobAndOlderBase64StandsStillLoad()
+    {
+        var host = SimulationHost.CreateGeneratedWorld(ContentDirectory, 7, new MockDecisionPort(), "de", Preset);
+        var path = Path.Combine(_directory, "blob.db");
+        var state = StateCodec.Capture(host);
+        SaveGameStore.Save(path, state);
+        Assert.Equal(state.IslandData, SaveGameStore.Load(path).IslandData);
+
+        // A stand written by an earlier B2-4 build: the island as base64 in meta, no blob row.
+        using (var connection = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={path};Pooling=False"))
+        {
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = "DELETE FROM island; INSERT INTO meta VALUES('island_data', $data);";
+            command.Parameters.AddWithValue("$data", Convert.ToBase64String(state.IslandData!));
+            command.ExecuteNonQuery();
+        }
+
+        var older = SaveGameStore.Load(path);
+        Assert.Equal(state.IslandData, older.IslandData);
+        Assert.Equal(host.World.StateHash(), Restore(older, new MockDecisionPort()).World.StateHash());
+    }
+
+    [Fact]
     public void TheIslandCodecRoundTripsEveryCell()
     {
         var content = ContentSet.Load(ContentDirectory);

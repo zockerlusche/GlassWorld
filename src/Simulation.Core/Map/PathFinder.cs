@@ -17,11 +17,14 @@ public enum PathStatus
 /// <param name="Status">Whether a path was found.</param>
 /// <param name="Cells">The cells to walk, in order; empty unless found (or if start equals goal).</param>
 /// <param name="Expanded">Nodes the search expanded.</param>
-public sealed record PathResult(PathStatus Status, IReadOnlyList<(int X, int Z)> Cells, int Expanded);
+/// <param name="Cost">Total cost of the path (walk cost × step length in thousandths; 0 unless found).</param>
+public sealed record PathResult(PathStatus Status, IReadOnlyList<(int X, int Z)> Cells, int Expanded, long Cost = 0);
 
 /// <summary>
 /// A* over the walk costs of the base grid (B2 R10): eight directions, diagonals only when both
-/// orthogonal neighbours are walkable, step cost = 10 (straight) or 14 (diagonal) × walk cost / 1000.
+/// orthogonal neighbours are walkable, step cost = walk cost × 1000 (straight) or × 1414 (diagonal), all
+/// in integers without rounding per step; the estimate is the octile distance × the lowest walk cost in
+/// the same units, so it never exceeds the true cost (admissible, review GW2 #94).
 /// Ties are broken by a fixed rule (lower total, then lower remaining estimate, then lower cell index),
 /// so the same map and endpoints always give the same path. A node budget from the data bounds every
 /// search. Integers only (ADR-0002); no Godot navigation.
@@ -47,8 +50,11 @@ public static class PathFinder
         internal int Size { get; } = size;
     }
 
-    private static readonly (int Dx, int Dz, int Step)[] Steps =
-        [(1, 0, 10), (0, 1, 10), (-1, 0, 10), (0, -1, 10), (1, 1, 14), (-1, 1, 14), (-1, -1, 14), (1, -1, 14)];
+    private const long Straight = 1000;
+    private const long Diagonal = 1414;
+
+    private static readonly (int Dx, int Dz, long Step)[] Steps =
+        [(1, 0, Straight), (0, 1, Straight), (-1, 0, Straight), (0, -1, Straight), (1, 1, Diagonal), (-1, 1, Diagonal), (-1, -1, Diagonal), (1, -1, Diagonal)];
 
     /// <summary>Finds the cheapest path from <paramref name="from"/> to <paramref name="to"/>.</summary>
     /// <param name="map">The base grid.</param>
@@ -87,13 +93,14 @@ public static class PathFinder
         long G(int i) => s.Seen[i] == stamp ? g[i] : long.MaxValue;
         var start = (from.Z * w) + from.X;
         var goal = (to.Z * w) + to.X;
-        var unit = Math.Max(1, minWalkCost);
+        var unit = Math.Max(0, minWalkCost);
 
         long Estimate(int index)
         {
             int dx = Math.Abs((index % w) - to.X), dz = Math.Abs((index / w) - to.Z);
-            var octile = (10L * Math.Max(dx, dz)) + (4L * Math.Min(dx, dz));
-            return octile * unit / 1000;
+            // Straight steps for the difference, diagonal steps for the overlap: max·1000 + min·414.
+            var octile = (Straight * Math.Max(dx, dz)) + ((Diagonal - Straight) * Math.Min(dx, dz));
+            return octile * unit;
         }
 
         var open = new PriorityQueue<int, (long F, long H, int Index)>();
@@ -111,7 +118,7 @@ public static class PathFinder
 
             if (current == goal)
             {
-                return new PathResult(PathStatus.Found, Trace(came, goal, start, w), expanded);
+                return new PathResult(PathStatus.Found, Trace(came, goal, start, w), expanded, g[goal]);
             }
 
             if (++expanded > nodeBudget)
@@ -142,7 +149,7 @@ public static class PathFinder
                 }
 
                 var next = (nz * w) + nx;
-                var tentative = g[current] + ((long)step * cost / 1000);
+                var tentative = g[current] + (step * cost);
                 if (IsClosed(next) || tentative >= G(next))
                 {
                     continue;

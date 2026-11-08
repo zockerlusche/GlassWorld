@@ -70,6 +70,61 @@ public sealed class PathFinderTests
         Assert.Equal(first.Cells, again.Cells);
     }
 
+    [Fact]
+    public void CheapCellsBelowOneHundredAreNotFreeButStillPreferred()
+    {
+        // A corridor of cost 50 one row off the direct line: cheaper than the direct line of cost 1000,
+        // and its steps still cost something (no rounding to zero).
+        var map = Map(10, 3, (x, z) => z == 0 ? 50 : 1000);
+        var path = PathFinder.Find(map, (0, 1), (9, 1), 10000, 50);
+        Assert.Equal(PathStatus.Found, path.Status);
+        Assert.Contains(path.Cells, c => c.Z == 0);
+        Assert.True(path.Cost > 0);
+        Assert.Equal(CostOf(map, (0, 1), path.Cells), path.Cost);
+    }
+
+    [Fact]
+    public void AStarFindsTheSameCostAsDijkstraOnRandomMaps()
+    {
+        // Property: with an admissible estimate A* is optimal; Dijkstra = A* without estimate.
+        var rng = new GlassWorld.Simulation.Random.Pcg32(20261108, 7);
+        for (var round = 0; round < 60; round++)
+        {
+            var costs = new int[20 * 20];
+            for (var i = 0; i < costs.Length; i++)
+            {
+                costs[i] = rng.NextInt(0, 100) < 15 ? MapCell.Blocked : 20 + rng.NextInt(0, 4000);
+            }
+
+            var map = Map(20, 20, (x, z) => costs[(z * 20) + x]);
+            var from = (rng.NextInt(0, 20), rng.NextInt(0, 20));
+            var to = (rng.NextInt(0, 20), rng.NextInt(0, 20));
+            var min = costs.Where(c => c != MapCell.Blocked).Min();
+            var astar = PathFinder.Find(map, from, to, 100000, min);
+            var dijkstra = PathFinder.Find(map, from, to, 100000, 0);
+            Assert.Equal(dijkstra.Status, astar.Status);
+            Assert.Equal(dijkstra.Cost, astar.Cost);
+            if (astar.Status == PathStatus.Found)
+            {
+                Assert.Equal(CostOf(map, from, astar.Cells), astar.Cost);
+            }
+        }
+    }
+
+    private static long CostOf(WorldMap map, (int X, int Z) from, IReadOnlyList<(int X, int Z)> cells)
+    {
+        long total = 0;
+        var previous = from;
+        foreach (var cell in cells)
+        {
+            var diagonal = cell.X != previous.X && cell.Z != previous.Z;
+            total += (diagonal ? 1414L : 1000L) * map.Cell(cell.X, cell.Z).WalkCost;
+            previous = cell;
+        }
+
+        return total;
+    }
+
     private static WorldMap Map(int width, int depth, Func<int, int, int> cost)
     {
         var builder = new WorldMapBuilder(1, width, depth, Biomes);

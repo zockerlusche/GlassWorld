@@ -18,7 +18,7 @@ namespace GlassWorld.Simulation.Data;
 public static class SaveGameStore
 {
     /// <summary>Schema version written by this code.</summary>
-    public const int SchemaVersion = 2;
+    public const int SchemaVersion = 3;
 
     private static readonly JsonSerializerOptions Json = new() { IncludeFields = true };
 
@@ -43,6 +43,9 @@ public static class SaveGameStore
         CREATE TABLE invention_timers(kind TEXT NOT NULL, key TEXT NOT NULL, tick INTEGER NOT NULL, PRIMARY KEY(kind, key));
         CREATE TABLE job_log(seq INTEGER PRIMARY KEY, kind TEXT NOT NULL, request_id TEXT NOT NULL, tick INTEGER NOT NULL, json TEXT NOT NULL, note TEXT);
         CREATE TABLE chronicle(seq INTEGER PRIMARY KEY, tick INTEGER NOT NULL, kind TEXT NOT NULL, inhabitant TEXT NOT NULL, target TEXT, action TEXT);
+        """,
+        """
+        CREATE TABLE island(id INTEGER PRIMARY KEY CHECK (id = 1), data BLOB NOT NULL);
         """,
     ];
 
@@ -188,7 +191,8 @@ public static class SaveGameStore
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("occurrences", JsonSerializer.Serialize(s.Occurrences ?? [])));
             if (s.IslandData is not null)
             {
-                Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("island_data", s.IslandData));
+                // The generated island as one blob (B2 R11; GW2 review #94: no base64 in meta).
+                Insert(c, tx, "INSERT INTO island VALUES($a,$b)", (1, s.IslandData));
             }
         }
 
@@ -367,7 +371,7 @@ public static class SaveGameStore
         {
             // Save games from before the player system have no entry: the world keeps its defaults.
             Player = meta.TryGetValue("player", out var player) ? JsonSerializer.Deserialize<Simulation.Player.PlayerState>(player, Json) : null,
-            IslandData = meta.GetValueOrDefault("island_data"),
+            IslandData = ReadIsland(c, meta),
         };
     }
 
@@ -398,6 +402,24 @@ public static class SaveGameStore
 
             command.ExecuteNonQuery();
         }
+    }
+
+    /// <summary>
+    /// The island blob (schema 3); stands written between B2-4 builds kept it as base64 in meta and are
+    /// still read.
+    /// </summary>
+    private static byte[]? ReadIsland(SqliteConnection c, Dictionary<string, string> meta)
+    {
+        if (HasTable(c, "island"))
+        {
+            var rows = Query(c, "SELECT data FROM island WHERE id = 1", r => (byte[])r.GetValue(0));
+            if (rows.Count > 0)
+            {
+                return rows[0];
+            }
+        }
+
+        return meta.TryGetValue("island_data", out var base64) ? Convert.FromBase64String(base64) : null;
     }
 
     private static List<T> Query<T>(SqliteConnection c, string sql, Func<SqliteDataReader, T> map)

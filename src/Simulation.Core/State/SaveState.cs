@@ -52,8 +52,8 @@ public sealed record SaveState(
     InventionState? Inventions = null,
     IReadOnlyList<ChronicleRecord>? Chronicle = null)
 {
-    /// <summary>The generated island as compact bytes (base64, B2 R11); null on the placeholder world and in older saves.</summary>
-    public string? IslandData { get; init; }
+    /// <summary>The generated island as compact bytes (B2 R11); null on the placeholder world and in older saves.</summary>
+    public byte[]? IslandData { get; init; }
 
     /// <summary>Favour, futile attempts and calls for help (B6); null in save games from before.</summary>
     public Player.PlayerState? Player { get; init; }
@@ -98,7 +98,7 @@ public static class StateCodec
             [.. host.Chronicle.All])
         {
             Player = host.Player.Capture(),
-            IslandData = host.Map is { } map ? Convert.ToBase64String(Map.IslandCodec.Encode(map.Island, map.CellSizeCm)) : null,
+            IslandData = host.Map is { } map ? Map.IslandCodec.Encode(map.Island, map.CellSizeCm) : null,
         };
     }
 
@@ -110,7 +110,7 @@ public static class StateCodec
         var world = World.Restore(state.Seed, factory.Content.Calendar, state.Tick, state.Streams);
         // Saves with island data load that island (B2 R11); older saves generate it again and are
         // checked against their island hash below.
-        var host = factory.Assemble(world, state.WorldPreset, state.IslandData is { } data ? Map.IslandCodec.Decode(Convert.FromBase64String(data)) : null);
+        var host = factory.Assemble(world, state.WorldPreset, state.IslandData is { } data ? Map.IslandCodec.Decode(data) : null);
 
         // The island is generated again from the current data; if data or generator changed since the
         // save, the world would differ silently, so such a save is refused (review GW2 #56).
