@@ -56,6 +56,27 @@
   ],
   "sounds": [
     {
+      "id": "action.combine",
+      "kind": "one_shot",
+      "origin": "moss",
+      "sound_words": [
+        "tap",
+        "knock"
+      ],
+      "context_words": [
+        "combine"
+      ],
+      "files": [
+        {
+          "file": "action.combine.wav",
+          "source": "r3/action.combine.wav",
+          "sha256": "221e4e5b7f62f393aa7e2c009ab12095dfaf17ce8d4fc4892277e963ec359509",
+          "prompt": "Hands fitting a small stone onto a wooden stick, one soft short knock, close, quiet, no noise, no other sounds.",
+          "seed": 521
+        }
+      ]
+    },
+    {
       "id": "action.drink",
       "kind": "one_shot",
       "origin": "opengameart",
@@ -75,6 +96,28 @@
           "sha256": "5099d4aafdfa894e18b684f7856ddc94ff083846c5a70a32dfa157c035f0bdfa",
           "prompt": null,
           "seed": null
+        }
+      ]
+    },
+    {
+      "id": "action.drop",
+      "kind": "one_shot",
+      "origin": "moss",
+      "sound_words": [
+        "thud",
+        "thump"
+      ],
+      "context_words": [
+        "drop",
+        "ground"
+      ],
+      "files": [
+        {
+          "file": "action.drop.wav",
+          "source": "r3/action.drop.wav",
+          "sha256": "d0675e9edd117127f81dd1ea5583988c92833b739495fdc5b449d581a1924019",
+          "prompt": "A heavy stone placed on a grassy ground, one short low muffled thump, close, no other sounds.",
+          "seed": 531
         }
       ]
     },
@@ -142,9 +185,29 @@
         {
           "file": "action.rustle.wav",
           "source": "action.rustle.wav",
-          "sha256": "59410c79c5d112f2fff21c1981a8cb432cdbbce3896bfd095f72987f949865c0",
+          "sha256": "a54dda9a08cd3e76c03fb20d3d190849d9164fb99ccdc2b7645bbce5db5f9981",
           "prompt": "A person brushing through dry grass, short rustle, close, calm, no other sounds.",
           "seed": 10
+        }
+      ]
+    },
+    {
+      "id": "action.talk_to",
+      "kind": "one_shot",
+      "origin": "moss",
+      "sound_words": [
+        "mhm"
+      ],
+      "context_words": [
+        "talk"
+      ],
+      "files": [
+        {
+          "file": "action.talk_to.wav",
+          "source": "r3/action.talk_to.wav",
+          "sha256": "d0c1ea69e6fbde0d9c724f9aa1cba792d530c8b7b9eec7c09b0de804c1401af0",
+          "prompt": "A short soft friendly hum of a person, like \u0027mhm\u0027, very quiet, close, no words, no other sounds.",
+          "seed": 551
         }
       ]
     },
@@ -211,10 +274,10 @@
       "files": [
         {
           "file": "ambience.swamp.wav",
-          "source": "r2/ambience.swamp__B.wav",
-          "sha256": "0e8db03d5fdc23e8c4a933356f1cbdc5ffa63521c6e798dc99c5252512642a69",
-          "prompt": "Calm swamp at dusk, soft water, faint distant frogs, quiet, continuous.",
-          "seed": 131
+          "source": "r3/ambience.swamp.wav",
+          "sha256": "b071b9172f7c9ae09e7762e9ab44fc6ab54eeee00e13e30314dcf4430b069e34",
+          "prompt": "Quiet marsh in daylight, gentle bubbling water and insects, open air, no reverb, no echo, continuous.",
+          "seed": 313
         }
       ]
     },
@@ -296,6 +359,28 @@
       ]
     },
     {
+      "id": "animal.firefly.shimmer",
+      "kind": "one_shot",
+      "origin": "moss",
+      "sound_words": [
+        "shimmer",
+        "tinkle"
+      ],
+      "context_words": [
+        "firefly",
+        "night"
+      ],
+      "files": [
+        {
+          "file": "animal.firefly.shimmer.wav",
+          "source": "r3/animal.firefly.shimmer.wav",
+          "sha256": "12a7f368ed84b6f67fbecfac1b72225427de5f30c496f423d10b12fe9442e795",
+          "prompt": "A very faint soft high shimmering tinkle, like a tiny glint of light, very quiet, calm, no other sounds.",
+          "seed": 590
+        }
+      ]
+    },
+    {
       "id": "animal.fish.splash",
       "kind": "one_shot",
       "origin": "bigsoundbank",
@@ -354,7 +439,7 @@
         {
           "file": "animal.goat.bleat.wav",
           "source": "https://bigsoundbank.com/bleating-goat-1-s0279.html",
-          "sha256": "b81a8869a25ae130cc0716233da8f0dd5c37a10faac9c659588becadbcb6ca18",
+          "sha256": "21e583606489e8de1b1455f982190e8dceaeb1ddce8eebc7d13108bbdadccb72",
           "prompt": null,
           "seed": null
         }
@@ -384,7 +469,7 @@
         {
           "file": "animal.gull.call_1.wav",
           "source": "r2/animal.gull.call__B.wav",
-          "sha256": "e287c23ed04cf2ecef8ad6e3f3367d73850c38560839f13e7993a0ca222d1904",
+          "sha256": "1bd1c997eef2fa941f25aea730cbaa8e3ef2c269184652977eea06c317ca0158",
           "prompt": "A single seagull calling at the seaside, natural recording, no other sounds.",
           "seed": 107
         }
@@ -435,9 +520,31 @@
         {
           "file": "animal.songbird.song_1.wav",
           "source": "r2/animal.songbird.song__B.wav",
-          "sha256": "87677952cb4018148d114ecb0ccb70a7faeacf0b8164d9066fa14bfac0f9fef6",
+          "sha256": "0c51ed1867381add8022803e394dc33b3d8131cb6eb5e235c167535ab2a72449",
           "prompt": "A small songbird singing a short cheerful melody in a quiet garden, natural recording.",
           "seed": 108
+        }
+      ]
+    },
+    {
+      "id": "animal.squirrel.chatter",
+      "kind": "one_shot",
+      "origin": "moss",
+      "sound_words": [
+        "chatter",
+        "chirp"
+      ],
+      "context_words": [
+        "squirrel",
+        "tree"
+      ],
+      "files": [
+        {
+          "file": "animal.squirrel.chatter.wav",
+          "source": "r3/animal.squirrel.chatter.wav",
+          "sha256": "1b056456560c3c4375ea2bfae2ea656150994105c6de30aac66e2cc6e524d99e",
+          "prompt": "A small squirrel making short squeaky chirps from a branch, natural, close, no hissing, no other sounds.",
+          "seed": 321
         }
       ]
     },
@@ -456,7 +563,7 @@
         {
           "file": "animal.wild_chicken.cluck.wav",
           "source": "https://bigsoundbank.com/annoyed-hen-s0453.html",
-          "sha256": "56bff803d32ff225dad6e5cabf0ab690e1d71c9cb3b11f317628d4c98d07d195",
+          "sha256": "e3bd9638ddad10f053317582d6856094a93ab6eb8969cd4c353a1af7da6745ec",
           "prompt": null,
           "seed": null
         }
@@ -504,14 +611,14 @@
         {
           "file": "object.creak_0.wav",
           "source": "Audio/creak1.ogg",
-          "sha256": "686541c67b94847cea77bc7860bebd4a589b59d3ec3e3b123bbbf85b70bb6e41",
+          "sha256": "42213af66f1f6e2db6321d5a5df56d06eea3c7e95c752b1f67877f39b6515265",
           "prompt": null,
           "seed": null
         },
         {
           "file": "object.creak_1.wav",
           "source": "Audio/creak2.ogg",
-          "sha256": "65cf5953c7ea9a8b1f24f96c896b7595b11478c534c9d12755dad004533901ae",
+          "sha256": "b0f002a851bf608a85bd48ba12cb4584fed6a7d061cf9a3f0eb29a9d31d056e8",
           "prompt": null,
           "seed": null
         },
@@ -675,10 +782,10 @@
       "files": [
         {
           "file": "object.strike_spark.wav",
-          "source": "object.strike_spark.wav",
-          "sha256": "8693441b0fe0d765da1b17a095afcfbf08e506ddc6c5600862891415885d4cbd",
-          "prompt": "Striking flint against a pyrite stone once, a sharp stony click with sparks, close, no other sounds.",
-          "seed": 9
+          "source": "r3/object.strike_spark.wav",
+          "sha256": "034dd04769cdacf130e263efd985ecdf237175328e393b32623ee0be624c6c99",
+          "prompt": "A single sharp scrape of hard stone on steel, very short dry snap, close, no metallic ringing, no other sounds.",
+          "seed": 511
         }
       ]
     },
@@ -749,35 +856,35 @@
         {
           "file": "step.rock_0.wav",
           "source": "r2/step.rock_v0.wav",
-          "sha256": "cd35164e6a0328bc11fbba9bf5077a8a6adb3c8cb6a1ba953cb228051da8d350",
+          "sha256": "a86c415164d5bb248ef995ed7155e05e1a28f20316f59a30008c0354ba00a51e",
           "prompt": "One footstep on a rock, light, close, natural, no other sounds.",
           "seed": 116
         },
         {
           "file": "step.rock_1.wav",
           "source": "r2/step.rock_v1.wav",
-          "sha256": "388370b659b157246a2c3d6447bcbb67d77d0a751d1cedbcd18138e642b23c6a",
+          "sha256": "13634f84db132f11aea5fa89ddd266491d234e740528d81f3df011ce9751ea7d",
           "prompt": "One footstep on a rock, light, close, natural, no other sounds.",
           "seed": 116
         },
         {
           "file": "step.rock_2.wav",
           "source": "r2/step.rock_v2.wav",
-          "sha256": "e52e15096303012cbcf778ff5dcc5765eeb41b751cf7d7554f4e8f3ef9393f5d",
+          "sha256": "456b48e7dc058ccfe7a759d3d29ed79debaaa6ba5691bfa9cc4e7e4cbdaaf7a0",
           "prompt": "One footstep on a rock, light, close, natural, no other sounds.",
           "seed": 116
         },
         {
           "file": "step.rock_3.wav",
           "source": "r2/step.rock_v3.wav",
-          "sha256": "ce3f24e3a6718e7709f5043bdb08fdd10cac759d4e1e118f966469d2c5b016eb",
+          "sha256": "0d696e712c9b64c707d44fdb34b9aee2c6adff93ad928496c25aee4ad75dde41",
           "prompt": "One footstep on a rock, light, close, natural, no other sounds.",
           "seed": 116
         },
         {
           "file": "step.rock_4.wav",
           "source": "r2/step.rock_v4.wav",
-          "sha256": "923acc0941ed343819f813064d7c6eea2681228000c20ba08827bba2a9549b41",
+          "sha256": "30af017bf75d5d656c97e6244ab716aae3f023d22efb45401b1978aa76700240",
           "prompt": "One footstep on a rock, light, close, natural, no other sounds.",
           "seed": 116
         }
@@ -805,7 +912,7 @@
         {
           "file": "step.sand_1.wav",
           "source": "r2/step.sand_v1.wav",
-          "sha256": "7a365bada3afe7133731e461ccf51f5c3d83909a25981c66bfe2f2284beef445",
+          "sha256": "e2c257452892f58ca7c9add852c64a2c1b35ccb2d3d64d6740996b6d334d7dbe",
           "prompt": "Two soft barefoot footsteps on dry sand, close, quiet, no other sounds.",
           "seed": 10
         },
@@ -1001,7 +1108,7 @@
         {
           "file": "weather.rain_0.wav",
           "source": "synth_recipes.json#weather.rain",
-          "sha256": "2443382e79cfa8fbdec5f1765e216d5306271eedbbcb754dcab1df1b6b4d1b4f",
+          "sha256": "d2146696c40c461b22c720649af5a500da8182c51de9bcdb3e753bc66aacc0ce",
           "prompt": null,
           "seed": null
         },
@@ -1012,6 +1119,27 @@
           "prompt": "Gentle steady rain on leaves, calm, continuous, no thunder.",
           "seed": 148,
           "origin": "moss"
+        }
+      ]
+    },
+    {
+      "id": "weather.snow",
+      "kind": "loop",
+      "origin": "moss",
+      "sound_words": [
+        "hush"
+      ],
+      "context_words": [
+        "snow",
+        "winter"
+      ],
+      "files": [
+        {
+          "file": "weather.snow.wav",
+          "source": "r3/weather.snow.wav",
+          "sha256": "deb52a2901a6e24d62ce8dcf2a859eeadfb486fb695e8273f990632f884a9880",
+          "prompt": "Still winter air while snow falls, almost silent, a tiny soft settling of snow on branches now and then, no hiss, no rain, continuous.",
+          "seed": 323
         }
       ]
     },

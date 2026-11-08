@@ -110,6 +110,23 @@ static MonoSound Normalise(MonoSound sound, double wanted, double gate, double p
         samples = Scale(samples, wanted - Pcm.LoudnessDbfs(new MonoSound(samples, sound.SampleRate), gate));
     }
 
+    // The gate decides which frames count: after a big gain change quiet frames cross it, so measure
+    // again and correct a few times until the gated loudness sits on the target (action.drop: -18.2).
+    for (var pass = 0; pass < 6; pass++)
+    {
+        var off = wanted - Pcm.LoudnessDbfs(new MonoSound(samples, sound.SampleRate), gate);
+        if (Math.Abs(off) < 0.05)
+        {
+            break;
+        }
+
+        samples = Scale(samples, off);
+        if (PeakDb(samples) > peakMax + 0.05)
+        {
+            samples = Limit(samples, sound.SampleRate, peakMax - 0.3);
+        }
+    }
+
     if (PeakDb(samples) > peakMax)
     {
         samples = Scale(samples, peakMax - PeakDb(samples));

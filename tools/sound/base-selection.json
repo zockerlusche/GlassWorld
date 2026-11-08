@@ -60,6 +60,26 @@
   ],
   "sounds": [
     {
+      "id": "action.combine",
+      "kind": "one_shot",
+      "origin": "moss",
+      "inputs": [
+        {
+          "file": "r3/action.combine.wav",
+          "origin": "moss",
+          "prompt": "Hands fitting a small stone onto a wooden stick, one soft short knock, close, quiet, no noise, no other sounds.",
+          "seed": 521
+        }
+      ],
+      "sound_words": [
+        "tap",
+        "knock"
+      ],
+      "context_words": [
+        "combine"
+      ]
+    },
+    {
       "id": "action.drink",
       "kind": "one_shot",
       "origin": "opengameart",
@@ -78,6 +98,27 @@
       "context_words": [
         "drink",
         "water"
+      ]
+    },
+    {
+      "id": "action.drop",
+      "kind": "one_shot",
+      "origin": "moss",
+      "inputs": [
+        {
+          "file": "r3/action.drop.wav",
+          "origin": "moss",
+          "prompt": "A heavy stone placed on a grassy ground, one short low muffled thump, close, no other sounds.",
+          "seed": 531
+        }
+      ],
+      "sound_words": [
+        "thud",
+        "thump"
+      ],
+      "context_words": [
+        "drop",
+        "ground"
       ]
     },
     {
@@ -147,6 +188,25 @@
       ]
     },
     {
+      "id": "action.talk_to",
+      "kind": "one_shot",
+      "origin": "moss",
+      "inputs": [
+        {
+          "file": "r3/action.talk_to.wav",
+          "origin": "moss",
+          "prompt": "A short soft friendly hum of a person, like 'mhm', very quiet, close, no words, no other sounds.",
+          "seed": 551
+        }
+      ],
+      "sound_words": [
+        "mhm"
+      ],
+      "context_words": [
+        "talk"
+      ]
+    },
+    {
       "id": "ambience.leaves",
       "kind": "loop",
       "origin": "moss",
@@ -198,10 +258,10 @@
       "origin": "moss",
       "inputs": [
         {
-          "file": "r2/ambience.swamp__B.wav",
+          "file": "r3/ambience.swamp.wav",
           "origin": "moss",
-          "prompt": "Calm swamp at dusk, soft water, faint distant frogs, quiet, continuous.",
-          "seed": 131
+          "prompt": "Quiet marsh in daylight, gentle bubbling water and insects, open air, no reverb, no echo, continuous.",
+          "seed": 313
         }
       ],
       "sound_words": [
@@ -283,6 +343,27 @@
       "context_words": [
         "bee",
         "insect"
+      ]
+    },
+    {
+      "id": "animal.firefly.shimmer",
+      "kind": "one_shot",
+      "origin": "moss",
+      "inputs": [
+        {
+          "file": "r3/animal.firefly.shimmer.wav",
+          "origin": "moss",
+          "prompt": "A very faint soft high shimmering tinkle, like a tiny glint of light, very quiet, calm, no other sounds.",
+          "seed": 590
+        }
+      ],
+      "sound_words": [
+        "shimmer",
+        "tinkle"
+      ],
+      "context_words": [
+        "firefly",
+        "night"
       ]
     },
     {
@@ -417,6 +498,27 @@
       ],
       "context_words": [
         "bird"
+      ]
+    },
+    {
+      "id": "animal.squirrel.chatter",
+      "kind": "one_shot",
+      "origin": "moss",
+      "inputs": [
+        {
+          "file": "r3/animal.squirrel.chatter.wav",
+          "origin": "moss",
+          "prompt": "A small squirrel making short squeaky chirps from a branch, natural, close, no hissing, no other sounds.",
+          "seed": 321
+        }
+      ],
+      "sound_words": [
+        "chatter",
+        "chirp"
+      ],
+      "context_words": [
+        "squirrel",
+        "tree"
       ]
     },
     {
@@ -596,10 +698,10 @@
       "origin": "moss",
       "inputs": [
         {
-          "file": "object.strike_spark.wav",
+          "file": "r3/object.strike_spark.wav",
           "origin": "moss",
-          "prompt": "Striking flint against a pyrite stone once, a sharp stony click with sparks, close, no other sounds.",
-          "seed": 9
+          "prompt": "A single sharp scrape of hard stone on steel, very short dry snap, close, no metallic ringing, no other sounds.",
+          "seed": 511
         }
       ],
       "sound_words": [
@@ -878,6 +980,26 @@
       ],
       "context_words": [
         "rain"
+      ]
+    },
+    {
+      "id": "weather.snow",
+      "kind": "loop",
+      "origin": "moss",
+      "inputs": [
+        {
+          "file": "r3/weather.snow.wav",
+          "origin": "moss",
+          "prompt": "Still winter air while snow falls, almost silent, a tiny soft settling of snow on branches now and then, no hiss, no rain, continuous.",
+          "seed": 323
+        }
+      ],
+      "sound_words": [
+        "hush"
+      ],
+      "context_words": [
+        "snow",
+        "winter"
       ]
     },
     {
