@@ -35,6 +35,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ActionTimingDestination>))]
         public ActionTimingDestination Destination { get; set; } = default!;
 
+        /// <summary>
+        /// Whether the decider may offer this action as an option (default true). Actions the core plans itself, such as building steps, are false.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("decider_option")]
+        public bool? DeciderOption { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]

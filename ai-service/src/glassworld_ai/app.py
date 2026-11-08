@@ -29,6 +29,7 @@ from glassworld_ai.decider.backends import (
 from glassworld_ai.errors import error_response, install_error_handlers
 from glassworld_ai.hardware import HardwareInfo, detect_hardware, load_tiers, select_tier
 from glassworld_ai.health import health_status
+from glassworld_ai.help import HelpSuggester, MockHelp, OllamaHelp, ReplayHelp
 from glassworld_ai.invention.flow import (
     MockInventions,
     OllamaInventions,
@@ -36,7 +37,7 @@ from glassworld_ai.invention.flow import (
     safety_categories,
     tech_levels,
 )
-from glassworld_ai.jobs import Handler, JobConflictError, JobRunner, JobsFullError
+from glassworld_ai.jobs import Handler, JobConflictError, JobFailedError, JobRunner, JobsFullError
 from glassworld_ai.llm.jobcall import ModelCallSettings
 from glassworld_ai.llm.ollama import (
     OllamaClient,
@@ -57,7 +58,9 @@ from glassworld_ai.residency import (
     budget_mib,
     load_footprints,
 )
+from glassworld_ai.safety import TextGuard
 from glassworld_ai.security import make_access_guard
+from glassworld_ai.sound import MockSound, MossSound, MossWorker, load_generation_settings
 from glassworld_ai.validation import ContractValidator
 from glassworld_ai.vocabulary import Vocabulary
 from glassworld_contracts import (
@@ -65,6 +68,7 @@ from glassworld_contracts import (
     DecisionRequest,
     GenerationJob,
     HealthStatus,
+    HelpSuggestionsRequest,
     JobAccepted,
     JobList,
     PhaseChange,
@@ -81,6 +85,7 @@ def create_app(
     probes: Probes | None = None,
     hardware: HardwareInfo | None = None,
     decider: Decider | None = None,
+    helper: HelpSuggester | None = None,
     queue: ModelQueue | None = None,
     on_started: Callable[[], None] | None = None,
     request_exit: Callable[[], None] | None = None,
@@ -115,6 +120,8 @@ def create_app(
             residency.register_driver("comfyui", ComfyUIDriver(str(settings.comfyui_url), client))
             if decider is None:
                 app.state.decider = _build_decider(settings, ollama, app.state.queue)
+            if helper is None:
+                app.state.helper = _build_helper(settings, ollama, app.state.queue)
             if job_handlers is None and settings.decider_backend == "ollama":
                 app.state.jobs.register("question", _ollama_questions(settings, ollama, app))
                 app.state.jobs.register("memory", _ollama_memory(settings, ollama, app))
@@ -169,6 +176,8 @@ def create_app(
         settings.job_capacity,
         gate=planner,
     )
+    if job_handlers is None:
+        app.state.jobs.register("sound", _sound_handler(settings))
 
     def _set_hardware(target: FastAPI, info: HardwareInfo) -> None:
         target.state.hardware = info
@@ -182,6 +191,8 @@ def create_app(
         _set_hardware(app, hardware)
     if decider is not None:
         app.state.decider = decider
+    if helper is not None:
+        app.state.helper = helper
     app.state.warm_up = "done"
     app.state.ollama = None
     app.state.stopping = False
@@ -412,6 +423,56 @@ def create_app(
             )
         return JSONResponse(answer.model_dump(mode="json"))
 
+    @app.post("/help-suggestions")
+    async def help_suggestions(request: Request) -> Response:
+        """B6 R8/R10 (F5238): 1-3 calm suggestions for the player; the player waits (PLAYER)."""
+        received = time.monotonic()
+        body = await _read_body(request)
+        if body is None:
+            return error_response("bad_request", f"Request body above {MAX_BODY_BYTES} bytes.")
+        try:
+            data: object = json.loads(body)
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            return error_response("bad_request", "Request body is not valid JSON.")
+        problems = validator.errors("help-suggestions-request", data)
+        if problems:
+            rid, rtick = _ids_if_valid(data)
+            return error_response(
+                "bad_request",
+                "Invalid HelpSuggestionsRequest: " + "; ".join(problems[:3]),
+                request_id=rid,
+                tick=rtick,
+            )
+        help_request = HelpSuggestionsRequest.model_validate(data)
+        request_id = str(getattr(help_request.request_id, "root", help_request.request_id))
+        deadline = received + help_request.deadline_ms / 1000
+        tick = help_request.tick
+        if app.state.stopping:
+            return error_response(
+                "model_unavailable", "Service is stopping.", request_id=request_id, tick=tick
+            )
+        if settings.decider_backend == "ollama" and (
+            getattr(app.state, "tier", "unknown") is None or planner.language_model_blocked()
+        ):
+            return error_response(
+                "model_unavailable",
+                "The language model is not available now.",
+                request_id=request_id,
+                tick=tick,
+            )
+        current: HelpSuggester = app.state.helper
+        try:
+            answer = await current.suggest(help_request, deadline)
+        except JobFailedError as error:
+            return error_response(
+                error.code, str(error), request_id=request_id, tick=tick, retryable=error.retryable
+            )
+        except Exception as error:
+            return error_response(
+                "internal", type(error).__name__, request_id=request_id, tick=tick
+            )
+        return JSONResponse(answer.model_dump(mode="json"))
+
     return app
 
 
@@ -471,6 +532,31 @@ async def _warm_up(app: FastAPI, ollama: OllamaClient, retry_s: float) -> None:
         except (OllamaUnavailableError, OllamaResponseError, httpx.HTTPError, ResidencyError):
             app.state.warm_up = "failed"
         await asyncio.sleep(retry_s)
+
+
+def _sound_handler(settings: Settings) -> Handler:
+    """Sound jobs (D471 D7): the MOSS worker if configured, otherwise the deterministic mock."""
+    generation = load_generation_settings(settings.content_dir)
+    if settings.sound_backend == "moss":
+        if (
+            settings.moss_python is None
+            or settings.moss_model_dir is None
+            or settings.moss_code_dir is None
+        ):
+            raise ValueError(
+                "sound_backend moss needs moss_python, moss_model_dir and moss_code_dir"
+            )
+        worker = MossWorker(
+            settings.moss_python,
+            settings.moss_worker_script,
+            settings.moss_model_dir,
+            settings.moss_code_dir,
+            settings.moss_start_timeout_s,
+        )
+        return MossSound(
+            worker, settings.sound_output_dir, generation, settings.sound_render_timeout_s
+        )
+    return MockSound(settings.sound_output_dir, generation)
 
 
 def _offline_handlers(settings: Settings) -> dict[str, Handler]:
@@ -567,6 +653,25 @@ def _ollama_questions(settings: Settings, ollama: OllamaClient, app: FastAPI) ->
         vocab=Vocabulary.load(settings.content_dir / "vocabulary"),
         settings=_call_settings(settings),
         log=_question_log(settings),
+    )
+
+
+def _build_helper(settings: Settings, ollama: OllamaClient, queue: ModelQueue) -> HelpSuggester:
+    guard = TextGuard.from_file(settings.content_dir / "safety" / "rules.json")
+    log = CallLog(settings.log_dir / "help.jsonl")
+    if settings.decider_backend == "mock":
+        return MockHelp()
+    if settings.decider_backend == "replay":
+        return ReplayHelp(log, guard)
+    return OllamaHelp(
+        client=ollama,
+        queue=queue,
+        template=load_prompt(
+            settings.prompts_dir, settings.help_prompt, settings.help_prompt_version
+        ),
+        settings=_call_settings(settings),
+        log=log,
+        guard=guard,
     )
 
 

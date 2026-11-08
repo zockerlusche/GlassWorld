@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using GlassWorld.Contracts;
 using GlassWorld.Contracts.Validation;
+using GlassWorld.Simulation.Decisions;
 
 namespace GlassWorld.AiClient.Tests;
 
@@ -115,7 +116,8 @@ public sealed class HttpJobPortTests
     public async Task ADeferredJobIsPolledLessAndLessOften()
     {
         var job = Job();
-        var times = new List<DateTime>();
+        var polls = 0;
+        var waits = new List<TimeSpan>();
         using var port = new HttpJobPort(new Uri("http://127.0.0.1:5000/"), "token", TimeSpan.FromSeconds(5), TimeSpan.FromMilliseconds(10), new FakeService(request =>
         {
             if (request.Method == HttpMethod.Post)
@@ -123,16 +125,94 @@ public sealed class HttpJobPortTests
                 return Json(HttpStatusCode.Accepted, ContractSerializer.Serialize(new JobAccepted { ContractVersion = ContractInfo.Version, JobId = job.RequestId, State = JobState.Queued }));
             }
 
-            times.Add(DateTime.UtcNow);
-            return Json(HttpStatusCode.OK, Status(job, times.Count < 6 ? JobState.Deferred : JobState.Done));
-        }), maxPollInterval: TimeSpan.FromMilliseconds(160));
+            polls++;
+            return Json(HttpStatusCode.OK, Status(job, polls < 7 ? JobState.Deferred : JobState.Done));
+        }), maxPollInterval: TimeSpan.FromMilliseconds(160))
+        {
+            // Record the waits instead of sleeping: the test does not depend on the machine's speed.
+            Delay = (wait, _) =>
+            {
+                lock (waits)
+                {
+                    waits.Add(wait);
+                }
+
+                return Task.CompletedTask;
+            },
+        };
 
         port.Submit(job.RequestId, ContractSerializer.Serialize(job));
         await port.WhenIdleAsync(TimeSpan.FromSeconds(10));
 
         Assert.False(Assert.Single(port.Receive(0)).IsError);
-        var gaps = times.Zip(times.Skip(1), (a, b) => (b - a).TotalMilliseconds).ToList();
-        Assert.True(gaps[^1] > gaps[0], $"polls did not slow down: {string.Join(", ", gaps)}");
+        Assert.Equal([20, 40, 80, 160, 160, 160], waits.Select(w => (int)w.TotalMilliseconds));
+    }
+
+    [Fact]
+    public async Task OnlyARealPhaseChangeIsPostedAndResendRepeatsTheLastOne()
+    {
+        var posts = new List<(string Path, string Body, bool Token)>();
+        using var port = NewPort(request =>
+        {
+            posts.Add((request.RequestUri!.AbsolutePath, request.Content!.ReadAsStringAsync().Result, request.Headers.Contains(HttpDecisionPort.TokenHeader)));
+            return Json(HttpStatusCode.OK, "{}");
+        });
+
+        port.SetPhase(JobPhase.Night, 1320);
+        await port.WhenIdleAsync(TimeSpan.FromSeconds(5));
+        port.SetPhase(JobPhase.Night, 1321);
+        await port.WhenIdleAsync(TimeSpan.FromSeconds(5));
+        port.SetPhase(JobPhase.Day, 1800);
+        await port.WhenIdleAsync(TimeSpan.FromSeconds(5));
+        port.Resend();
+        await port.WhenIdleAsync(TimeSpan.FromSeconds(5));
+
+        Assert.Equal(3, posts.Count);
+        Assert.All(posts, p => Assert.Equal(("/phase", true), (p.Path, p.Token)));
+        Assert.All(posts, p => Assert.Empty(ContractValidator.Validate("phase-change", p.Body)));
+        var sent = posts.Select(p => ContractSerializer.Deserialize<PhaseChange>(p.Body)).Select(c => (c.Phase, c.Tick)).ToList();
+        Assert.Equal([(PhaseChangePhase.Night, 1320L), (PhaseChangePhase.Day, 1800L), (PhaseChangePhase.Day, 1800L)], sent);
+    }
+
+    [Fact]
+    public async Task PhaseSignalsArriveInCallOrderAndForceSendsTheSamePhaseAgain()
+    {
+        var phases = new List<PhaseChangePhase>();
+        var first = true;
+        using var port = NewPort(request =>
+        {
+            if (first)
+            {
+                // The first post is slow: the later ones must still arrive after it.
+                first = false;
+                Thread.Sleep(200);
+            }
+
+            lock (phases)
+            {
+                phases.Add(ContractSerializer.Deserialize<PhaseChange>(request.Content!.ReadAsStringAsync().Result).Phase);
+            }
+
+            return Json(HttpStatusCode.OK, "{}");
+        });
+
+        port.SetPhase(JobPhase.Night, 10);
+        port.SetPhase(JobPhase.Day, 20);
+        port.SetPhase(JobPhase.Night, 30);
+        port.SetPhase(JobPhase.Night, 31, force: true);
+        await port.WhenIdleAsync(TimeSpan.FromSeconds(5));
+
+        Assert.Equal([PhaseChangePhase.Night, PhaseChangePhase.Day, PhaseChangePhase.Night, PhaseChangePhase.Night], phases);
+    }
+
+    [Fact]
+    public async Task AnUnreachableServiceDoesNotBreakThePhaseSignal()
+    {
+        using var port = NewPort(_ => throw new HttpRequestException("connection refused"));
+        port.SetPhase(JobPhase.Night, 5);
+        await port.WhenIdleAsync(TimeSpan.FromSeconds(5));
+        Assert.Equal(0, port.InFlight);
+        Assert.Empty(port.Receive(0));
     }
 
     private static HttpJobPort NewPort(Func<HttpRequestMessage, HttpResponseMessage> respond) =>

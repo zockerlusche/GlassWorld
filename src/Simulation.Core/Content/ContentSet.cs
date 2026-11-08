@@ -120,8 +120,14 @@ public sealed class ContentSet
             Ids(vocabularies, VocabularyKind.Action).ToFrozenSet(StringComparer.Ordinal),
             Ids(vocabularies, VocabularyKind.Process).ToFrozenSet(StringComparer.Ordinal),
             [.. Required(vocabularies, VocabularyKind.Tech_level).Entries.Select(e => e.Id)],
-            TextGuard.FromJson(File.ReadAllText(Path.Combine(contentDirectory, "safety", "rules.json"))));
-        CheckInventions(inventions);
+            TextGuard.FromJson(File.ReadAllText(Path.Combine(contentDirectory, "safety", "rules.json"))),
+            new BuildRules(
+                ContractSerializer.Deserialize<BuildSettings>(File.ReadAllText(Path.Combine(contentDirectory, "build", "settings.json"))),
+                ContractSerializer.Deserialize<BuildKit>(File.ReadAllText(Path.Combine(contentDirectory, "build", "kit.json"))),
+                model.Needs.Where(n => n.NeglectBelow > 0).Select(n => n.Id).ToFrozenSet(StringComparer.Ordinal),
+                ContractSerializer.Deserialize<JobPhases>(File.ReadAllText(Path.Combine(contentDirectory, "jobs", "phases.json"))).NightDayPhases.ToFrozenSet(StringComparer.Ordinal),
+                ContractSerializer.Deserialize<SoundGeneration>(File.ReadAllText(Path.Combine(contentDirectory, "sound", "generation.json")))));
+        CheckInventions(inventions, actions, Ids(vocabularies, VocabularyKind.Shape), Ids(vocabularies, VocabularyKind.Time_of_day));
         var chronicle = ContractSerializer.Deserialize<ChronicleKinds>(File.ReadAllText(Path.Combine(contentDirectory, "chronicle", "kinds.json")));
         var player = Path.Combine(contentDirectory, "player");
         return new ContentSet(
@@ -139,9 +145,26 @@ public sealed class ContentSet
             chronicle);
     }
 
-    private static void CheckInventions(InventionRules rules)
+    private static void CheckInventions(InventionRules rules, ActionRules actions, HashSet<string> shapes, HashSet<string> dayPhases)
     {
         var problems = new List<string>();
+        problems.AddRange(rules.Settings.ImpliedProperties.Where(p => !rules.Properties.Contains(p)).Select(p => $"unknown implied property '{p}'"));
+        var build = rules.Build.Settings;
+        foreach (var action in new[] { build.StepAction, build.UseAction })
+        {
+            if (!actions.Actions.Contains(action, StringComparer.Ordinal))
+            {
+                problems.Add($"build action '{action}' has no timing in content/effects");
+            }
+        }
+
+        if (actions.OfferedActions.Contains(build.StepAction, StringComparer.Ordinal))
+        {
+            problems.Add($"step action '{build.StepAction}' must not be a decider option (decider_option false)");
+        }
+
+        problems.AddRange(rules.Build.Kit.Shapes.Where(s => !shapes.Contains(s)).Select(s => $"kit shape '{s}' not in vocabulary 'shape'"));
+        problems.AddRange(rules.Build.NightPhases.Where(p => !dayPhases.Contains(p)).Select(p => $"night phase '{p}' not in vocabulary 'time_of_day'"));
         if (!rules.TechLevels.Contains(rules.Settings.TechLevel, StringComparer.Ordinal))
         {
             problems.Add($"unknown tech level '{rules.Settings.TechLevel}'");

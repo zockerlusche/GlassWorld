@@ -104,6 +104,12 @@ namespace GlassWorld.Contracts
         public int MaxMaterials { get; set; } = default!;
 
         /// <summary>
+        /// Properties every runtime type from an invention has besides its own introduces (e.g. that inhabitants made it, so the routine layer can offer to use it).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("implied_properties")]
+        public System.Collections.Generic.ICollection<string> ImpliedProperties { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
         /// B2531: properties only living beings have. An invention that brings one of them is refused by the core. Empty while the property vocabulary has none.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("living_properties")]

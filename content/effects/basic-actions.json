@@ -6,6 +6,8 @@
     { "action": "sleep", "destination": "here", "duration_minutes": 480, "reach_m": 0 },
     { "action": "inspect", "destination": "here", "duration_minutes": 5, "reach_m": 2 },
     { "action": "idle", "destination": "here", "duration_minutes": 15, "reach_m": 0 },
+    { "action": "use", "destination": "here", "duration_minutes": 10, "reach_m": 1.5 },
+    { "action": "build_step", "destination": "here", "duration_minutes": 30, "reach_m": 1.5, "decider_option": false },
     { "action": "wander", "destination": "random_nearby", "duration_minutes": 30, "reach_m": 0 }
   ],
   "rules": [
@@ -35,6 +37,13 @@
     { "action": "wander", "requires_property": null, "consumes_target": false, "effects": [
       { "kind": "need", "id": "fun", "delta": 0.08 },
       { "kind": "mood", "id": "boredom", "delta": -0.1 }
+    ] },
+    { "action": "use", "requires_property": "crafted", "consumes_target": false, "effects": [
+      { "kind": "need", "id": "purpose", "delta": 0.15 },
+      { "kind": "mood", "id": "joy", "delta": 0.05 }
+    ] },
+    { "action": "build_step", "requires_property": null, "consumes_target": true, "effects": [
+      { "kind": "need", "id": "purpose", "delta": 0.05 }
     ] }
   ]
 }

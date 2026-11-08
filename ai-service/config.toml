@@ -20,6 +20,7 @@ night_plan_file = "../content/hardware/night.json"          # B7 S4 day/night pl
 # --- Decider (B3) ---
 # ollama = real model, mock = deterministic stand-in (CI), replay = answers from the call log
 decider_backend = "ollama"
+sound_backend = "mock"            # D471 D7: "moss" with moss_python/moss_model_dir/moss_code_dir (local, GW_AI_*)
 decider_prompt = "decider/decide"
 decider_prompt_version = 1
 temperature = 0.7          # technical start value, decided by TL (AMW #18519)
@@ -35,6 +36,8 @@ invention_prompt = "invention/invent"   # D471 D2: inventor
 invention_prompt_version = 1
 guard_prompt = "guard/invention"        # D471 D2: AI rule guard, own instruction (ADR-0005)
 guard_prompt_version = 1
+help_prompt = "help/suggest"            # B6 R8/R10 help suggestions for the player (F5238)
+help_prompt_version = 1
 question_call_timeout_s = 60.0     # one model call (blocks the model like a decision, so <= the
                                    # core's decision deadline); WAITING in the queue has no limit (B2487)
 job_capacity = 256         # generation jobs held in memory (B7); the core resubmits after a restart
@@ -47,4 +50,6 @@ prompts_dir = "../prompts"
 content_dir = "../content"
 schemas_dir = "../contracts/schemas"
 log_dir = "../.local/ai-service/logs"
+sound_output_dir = "../.local/ai-service/sounds"   # D471 D7: made sounds by name pattern
+moss_worker_script = "../tools/moss/worker.py"     # runs in the MOSS environment (moss_python)
 lock_dir = "../.local/ai-service"   # the game sets GW_AI_LOCK_DIR to the user data folder
