@@ -136,8 +136,12 @@ namespace GlassWorld.Contracts
         Guard_reason = 14,
 
 
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("writing_medium")]
+        Writing_medium = 15,
+
+
         [System.Text.Json.Serialization.JsonStringEnumMemberName("skill")]
-        Skill = 15,
+        Skill = 16,
 
 
     }

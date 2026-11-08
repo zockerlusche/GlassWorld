@@ -1,0 +1,26 @@
+{
+  "contract_version": "0.2",
+  "job_id": "8b2c3d4e-5f60-4a7b-8c9d-0e1f2a3b4c5d",
+  "tick": 1210,
+  "kind": "image",
+  "state": "done",
+  "result": {
+    "image": {
+      "file": "../../game/icon.png",
+      "width": 512,
+      "height": 512,
+      "seed_used": 4242,
+      "workflow": "z-image-turbo-t2i",
+      "style": "warm_comic"
+    }
+  },
+  "error": null,
+  "provenance": {
+    "source": "comfyui",
+    "model": "z-image-turbo",
+    "prompt_version": "image/object.v1",
+    "seed": 4242,
+    "latency_ms": 9100,
+    "attempts": 1
+  }
+}

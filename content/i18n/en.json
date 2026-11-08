@@ -1101,6 +1101,34 @@
     {
       "key": "vocab.skill.writing",
       "text": "writing"
+    },
+    {
+      "key": "vocab.writing_medium.sand_marks",
+      "text": "marks in the sand"
+    },
+    {
+      "key": "vocab.writing_medium.rock_painting",
+      "text": "rock painting"
+    },
+    {
+      "key": "vocab.writing_medium.carving_wood",
+      "text": "carving in wood"
+    },
+    {
+      "key": "vocab.writing_medium.carving_stone",
+      "text": "carving in stone"
+    },
+    {
+      "key": "vocab.writing_medium.tablet",
+      "text": "tablet"
+    },
+    {
+      "key": "vocab.writing_medium.book",
+      "text": "book"
+    },
+    {
+      "key": "vocab.writing_medium.library",
+      "text": "library"
     }
   ]
 }

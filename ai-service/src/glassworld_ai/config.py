@@ -43,6 +43,17 @@ class Settings(BaseSettings):
         description="VRAM/load time per model (content/hardware/models.json, B7 S2).",
     )
 
+    # Image jobs (B7 S5)
+    image_backend: Literal["mock", "comfyui"] = Field(
+        default="mock", description="comfyui = the local image model, mock = a plain picture."
+    )
+    image_output_dir: Path = Field(description="Made pictures; the game copies them.")
+    image_workflows_dir: Path = Field(description="ComfyUI workflow templates (API format).")
+    image_poll_s: float = Field(default=1.0, gt=0, le=60, description="ComfyUI history poll.")
+    image_timeout_s: float = Field(
+        default=900, gt=0, le=7200, description="Per picture (comfort edit takes ~5 min)."
+    )
+
     # Decider (B3)
     decider_backend: Literal["ollama", "mock", "replay"]
     decider_prompt: str = Field(pattern=r"^[a-z][a-z0-9_]*/[a-z][a-z0-9_-]*$")
@@ -60,6 +71,8 @@ class Settings(BaseSettings):
     invention_prompt_version: int = Field(ge=1)
     guard_prompt: str = Field(pattern=r"^[a-z][a-z0-9_]*/[a-z][a-z0-9_-]*$")
     guard_prompt_version: int = Field(ge=1)
+    dream_prompt: str = Field(pattern=r"^[a-z][a-z0-9_]*/[a-z][a-z0-9_-]*$")
+    dream_prompt_version: int = Field(ge=1)
     help_prompt: str = Field(pattern=r"^[a-z][a-z0-9_]*/[a-z][a-z0-9_-]*$")
     help_prompt_version: int = Field(ge=1)
     question_call_timeout_s: float = Field(
@@ -133,6 +146,8 @@ def load_settings(config_file: Path | None = None) -> Settings:
         "hardware_tiers_file",
         "model_footprints_file",
         "night_plan_file",
+        "image_output_dir",
+        "image_workflows_dir",
     ):
         value: Path = getattr(settings, name)
         if not value.is_absolute():

@@ -17,8 +17,9 @@ namespace GlassWorld.Simulation;
 /// </summary>
 public sealed class SimulationHost
 {
-    private SimulationHost(ContentSet content, World world, WorldMapSystem? map, WorldTypeCatalog types, WorldObjects objects, DecisionsSystem decisions, InhabitantsSystem inhabitants, Player.PlayerSystem player, InventionSystem inventions, ChronicleSystem chronicle, DeciderSettings deciderSettings, SkillRegister skills)
+    private SimulationHost(ContentSet content, World world, WorldMapSystem? map, WorldTypeCatalog types, WorldObjects objects, DecisionsSystem decisions, InhabitantsSystem inhabitants, Player.PlayerSystem player, InventionSystem inventions, ChronicleSystem chronicle, DeciderSettings deciderSettings, Writing.WritingSystem writing, SkillRegister skills)
     {
+        Writing = writing;
         Skills = skills;
         Map = map;
         Player = player;
@@ -50,6 +51,12 @@ public sealed class SimulationHost
 
     /// <summary>The chronicle (core state, D471 D8).</summary>
     public ChronicleSystem Chronicle { get; }
+
+    /// <summary>Writing on objects and how it wears away (B8 R13-R15).</summary>
+    public Writing.WritingSystem Writing { get; }
+
+    /// <summary>The weather (B2 R13), or null while the world has no weather system.</summary>
+    public Weather.IWeather? Weather { get; private init; }
 
     /// <summary>Skills the world knows (B4b R11, B5 R18).</summary>
     public SkillRegister Skills { get; }
@@ -91,7 +98,15 @@ public sealed class SimulationHost
     /// the invention system is dormant; invention and chronicle stay out of the world hash while empty, so
     /// worlds without inventions keep their hashes.
     /// </remarks>
-    public static SimulationHost Assemble(ContentSet content, DeciderSettings settings, World world, IDecisionPort port, string displayLocale, string? worldPreset, IJobPort? jobPort = null)
+    /// <param name="content">Content.</param>
+    /// <param name="settings">Decider settings.</param>
+    /// <param name="world">New or restored world.</param>
+    /// <param name="port">Decider port.</param>
+    /// <param name="displayLocale">Player language.</param>
+    /// <param name="worldPreset">Preset of the island, or null for the placeholder world.</param>
+    /// <param name="jobPort">Job port, or null (inventions dormant).</param>
+    /// <param name="savedIsland">The island as a save game kept it (B2 R11); null = generate from seed and preset.</param>
+    public static SimulationHost Assemble(ContentSet content, DeciderSettings settings, World world, IDecisionPort port, string displayLocale, string? worldPreset, IJobPort? jobPort = null, (GeneratedIsland Island, int CellSizeCm)? savedIsland = null)
     {
         ArgumentNullException.ThrowIfNull(content);
         ArgumentNullException.ThrowIfNull(world);
@@ -99,6 +114,7 @@ public sealed class SimulationHost
         var actions = content.Actions.WithTruth(types);
         var objects = new WorldObjects(types);
         WorldMapSystem? map = null;
+        Weather.WeatherSystem? weather = null;
         if (worldPreset is not null)
         {
             if (!content.WorldGen.Presets.TryGetValue(worldPreset, out var preset))
@@ -106,7 +122,8 @@ public sealed class SimulationHost
                 throw new InvalidDataException($"Unknown world preset '{worldPreset}'.");
             }
 
-            var island = WorldGenerator.Generate(content.WorldGen, content.Objects, worldPreset, world.Seed);
+            // A saved island is used as it is, so later changes of generator or data keep existing worlds.
+            var island = savedIsland?.Island ?? WorldGenerator.Generate(content.WorldGen, content.Objects, worldPreset, world.Seed);
             if (!island.Passed)
             {
                 throw new InvalidDataException($"World preset '{worldPreset}' with seed {world.Seed} gives no island that passes the check after {island.Attempts} attempts.");
@@ -117,12 +134,25 @@ public sealed class SimulationHost
                 .Where(r => r.RegrowHours is not null)
                 .GroupBy(r => r.ObjectType, StringComparer.Ordinal)
                 .ToDictionary(g => g.Key, g => (long)g.First().RegrowHours!.Value * ticksPerHour, StringComparer.Ordinal);
-            map = new WorldMapSystem(island, preset.Grid.CellSizeCm, objects, regrow);
+            map = new WorldMapSystem(island, savedIsland?.CellSizeCm ?? preset.Grid.CellSizeCm, objects, regrow) { NodeBudget = preset.Pathfinding.NodeBudget };
             world.Add(map);
+
+            // Weather of the preset's climate (B2 R13); worlds without a preset (placeholder) have none.
+            // The weather is island-wide for now; its height drop stands for the mean height of the start cells.
+            var startHeight = island.Starts.Count == 0 ? 0 : island.Starts.Sum(s => Math.Max(0, island.Map.Cell(s.X, s.Z).Height - preset.Terrain.SeaLevel)) / island.Starts.Count;
+            weather = new Weather.WeatherSystem(
+                content.WorldGen.Climates[preset.Climate.ClimateId],
+                -(preset.Climate.TemperatureDropPer100Height * startHeight / 100),
+                world.Calendar.Settings.TicksPerHour,
+                world.Calendar.Settings.HoursPerDay);
+            world.Add(weather);
         }
 
-        var inhabitants = new InhabitantsSystem(content.InhabitantModel, actions, content.Brain, objects, world.Calendar.Settings.TicksPerHour);
-        var decisions = new DecisionsSystem(settings, inhabitants, objects, actions, content.Brain, content.Vocabularies[VocabularyKind.Action], port, displayLocale);
+        var inhabitants = new InhabitantsSystem(content.InhabitantModel, actions, content.Brain, objects, world.Calendar.Settings.TicksPerHour) { Looks = content.Appearance, Routes = map };
+        var decisions = new DecisionsSystem(settings, inhabitants, objects, actions, content.Brain, content.Vocabularies[VocabularyKind.Action], port, displayLocale)
+        {
+            WeatherSource = weather,
+        };
         var player = new Simulation.Player.PlayerSystem(content.GiftRules, content.Favor, content.Brain.Weights, content.Brain, inhabitants, objects, world.Calendar.Settings.TicksPerHour);
         decisions.RegisterCommand(Simulation.Player.PlayerSystem.PlaceGift, player.Check, player.Apply);
         decisions.RegisterCommand(Simulation.Player.PlayerSystem.StartFavorCommand, player.CheckStartFavor, player.ApplyStartFavor);
@@ -145,8 +175,14 @@ public sealed class SimulationHost
                 }
             }
         };
-        world.Add(objects).Add(decisions).Add(inhabitants).Add(player).Add(inventions).Add(chronicle).Add(skills);
-        return new SimulationHost(content, world, map, types, objects, decisions, inhabitants, player, inventions, chronicle, settings, skills);
+        // Texts wear by the weather (GW1 #95 wires the weather system before writing).
+        var writing = new Writing.WritingSystem(content.Writing, objects, weather, world.Calendar.Settings.TicksPerHour, world.Calendar.TicksPerDay);
+        world.Add(objects).Add(decisions).Add(inhabitants).Add(player).Add(inventions).Add(chronicle).Add(writing).Add(skills);
+        return new SimulationHost(content, world, map, types, objects, decisions, inhabitants, player, inventions, chronicle, settings, writing, skills)
+        {
+            WeatherSystem = weather,
+            Weather = weather,
+        };
     }
 
     /// <summary>
@@ -219,7 +255,10 @@ public sealed class SimulationHost
     }
 
     /// <summary>Read-only snapshot for the UI.</summary>
-    public WorldSnapshot Snapshot() => WorldView.Snapshot(World, Inhabitants, Objects, Decisions);
+    public WorldSnapshot Snapshot() => WorldView.Snapshot(World, Inhabitants, Objects, Decisions) with { Weather = WeatherSystem?.Read(World) };
+
+    /// <summary>The weather system itself (save games, debug jumps, player intervention); null without weather.</summary>
+    public Weather.WeatherSystem? WeatherSystem { get; private init; }
 
     private static Position Scatter(Random.Pcg32 rng, Position centre, double radius) =>
         new(centre.X + (((rng.NextDouble() * 2.0) - 1.0) * radius), centre.Z + (((rng.NextDouble() * 2.0) - 1.0) * radius));

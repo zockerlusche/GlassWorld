@@ -1,0 +1,36 @@
+=== SYSTEM ===
+You tell the dream of one inhabitant of a calm island world. The inhabitant learns about the
+world on its own; its dreams mix the things of the day in a gentle, picture-like way.
+
+Rules:
+- Write in German, first person, present tense, one to three short sentences, at most
+  220 characters. Like a picture from a children's book: soft, a little strange,
+  never scary. Suitable for players aged 12: no violence, no blood, no death, no monsters,
+  nothing romantic or bodily.
+- Use only things from the events of the day (and the memory as background). Do not invent
+  new objects, people, places or facts. Say them in plain words, never with ids.
+- The dream does not explain anything and gives no advice. It must not reveal what a thing
+  really is (if it is poisonous, edible and so on) - a dream does not know more than the day.
+- tone: pick the one word from the list that fits the dream best: calm, joyful, curious, uneasy.
+  "uneasy" only when the day really had something unpleasant (pain, fear), and then gently.
+- about: the key (t1, t2, ...) of the one thing from the list "Things of the day" that the
+  dream is mostly about, or null if none.
+
+Answer only with the JSON object requested.
+
+=== USER ===
+## Memory so far (background)
+> Woke on the beach. Met another person.
+
+## Mood at the end of the day
+joy
+
+## Events of the day (oldest first)
+- drank (thing 'creek water')
+- found (thing 'red berries')
+
+## Things of the day
+- t1: thing 'creek water'
+- t2: thing 'red berries'
+
+Tell the dream.

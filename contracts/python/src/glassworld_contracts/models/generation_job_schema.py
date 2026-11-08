@@ -154,6 +154,73 @@ class SoundPayload(BaseModel):
     )
 
 
+class Purpose(StrEnum):
+    icon = 'icon'
+    texture = 'texture'
+
+
+class ImagePayload(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    subject: str = Field(
+        ...,
+        description="Short English description of what to show, e.g. 'a clay water vessel with a handle' (from the invention). No people, no text.",
+        max_length=300,
+        min_length=1,
+    )
+    purpose: Purpose = Field(
+        ...,
+        description='icon = the thing alone on a plain background (UI); texture = a seamless surface of its main material.',
+    )
+    style: str = Field(
+        ...,
+        description='Style id from the image prompt (e.g. warm_comic, B2501/D355).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    width: int = Field(
+        ...,
+        description='Pixels (from content/image/generation.json by purpose).',
+        ge=256,
+        le=2048,
+    )
+    height: int = Field(..., ge=256, le=2048)
+    object_type: common_schema.VocabId | None = Field(
+        ..., description='The (runtime) object type the picture belongs to, if any.'
+    )
+
+
+class DreamPayload(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    events: list[MemoryFact] = Field(
+        ...,
+        description='Events of the day, oldest first (same form as for the memory).',
+        max_length=16,
+        min_length=1,
+    )
+    memory: str = Field(
+        ...,
+        description="The inhabitant's memory summary for background (English, internal; may be empty).",
+        max_length=1200,
+    )
+    mood: common_schema.VocabId | None = Field(
+        ...,
+        description='Strongest mood at the end of the day (vocabulary moods), or null.',
+    )
+    tones: list[common_schema.VocabId] = Field(
+        ...,
+        description='Tones the dream may have (from content/dreams/settings.json); the answer names one of them.',
+        max_length=8,
+        min_length=1,
+    )
+    max_chars: int = Field(
+        ..., description='Length limit of the dream text (data).', ge=40, le=280
+    )
+
+
 class BuildPlanPayload(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -205,6 +272,8 @@ class JobPayload(BaseModel):
     process: ProcessPayload | None = None
     memory: MemoryPayload | None = None
     sound: SoundPayload | None = None
+    image: ImagePayload | None = None
+    dream: DreamPayload | None = None
 
 
 class GenerationJob(BaseModel):

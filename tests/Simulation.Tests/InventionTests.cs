@@ -176,7 +176,7 @@ public sealed class InventionTests : IDisposable
             connection.Open();
             using var command = connection.CreateCommand();
             command.CommandText = """
-                DROP TABLE inventions; DROP TABLE wants; DROP TABLE invention_timers; DROP TABLE job_log; DROP TABLE chronicle;
+                DROP TABLE inventions; DROP TABLE wants; DROP TABLE invention_timers; DROP TABLE job_log; DROP TABLE chronicle; DROP TABLE island;
                 DELETE FROM meta WHERE key = 'invention_counter';
                 PRAGMA user_version = 1;
                 """;

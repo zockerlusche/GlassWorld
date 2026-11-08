@@ -43,6 +43,14 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("sound")]
         public SoundResult? Sound { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("image")]
+        public ImageResult? Image { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("dream")]
+        public DreamResult? Dream { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -344,6 +352,60 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("loudness_dbfs")]
         public double LoudnessDbfs { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A made picture (B7 R7): a PNG the service wrote into its output folder under a name by pattern; the game copies it into the world folder. Checked by the service (PNG, size) before it reports done.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ImageResult
+    {
+
+        /// <summary>
+        /// File name in the service's output folder (no path).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("file")]
+        public string File { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("width")]
+        public int Width { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("height")]
+        public int Height { get; set; } = default!;
+
+        /// <summary>
+        /// Seed the picture was made with, so it can be made again.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("seed_used")]
+        public int SeedUsed { get; set; } = default!;
+
+        /// <summary>
+        /// ComfyUI workflow template used (tools/comfyui/workflows), e.g. z-image-turbo-t2i.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("workflow")]
+        public string Workflow { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("style")]
+        public string Style { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// The dream: text in the player's language (checked by the content guard), its tone (one of the allowed tones) and what it was mostly about (one of the day's subjects, or null). The core applies the tone's effect from data and checks both.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class DreamResult
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("text")]
+        public GeneratedText Text { get; set; } = new GeneratedText();
+
+        [System.Text.Json.Serialization.JsonPropertyName("tone")]
+        public string Tone { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("about")]
+        public Subject? About { get; set; } = default!;
 
     }
 

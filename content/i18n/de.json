@@ -1101,6 +1101,34 @@
     {
       "key": "vocab.skill.writing",
       "text": "Schreiben"
+    },
+    {
+      "key": "vocab.writing_medium.sand_marks",
+      "text": "Zeichen im Sand"
+    },
+    {
+      "key": "vocab.writing_medium.rock_painting",
+      "text": "Felsbild"
+    },
+    {
+      "key": "vocab.writing_medium.carving_wood",
+      "text": "Ritzung in Holz"
+    },
+    {
+      "key": "vocab.writing_medium.carving_stone",
+      "text": "Ritzung in Stein"
+    },
+    {
+      "key": "vocab.writing_medium.tablet",
+      "text": "Tafel"
+    },
+    {
+      "key": "vocab.writing_medium.book",
+      "text": "Buch"
+    },
+    {
+      "key": "vocab.writing_medium.library",
+      "text": "Bibliothek"
     }
   ]
 }

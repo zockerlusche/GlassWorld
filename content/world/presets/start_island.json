@@ -48,6 +48,7 @@
     "swamp_min_moisture_permille": 750
   },
   "climate": {
+    "climate_id": "temperate",
     "base_temperature_tenth_c": 160,
     "temperature_drop_per_100_height": 40,
     "moisture_base_permille": 350,
