@@ -1529,6 +1529,10 @@
     {
       "key": "msg.hint.no_answer",
       "text": "The inhabitants cannot answer right now. You get your favour back."
+    },
+    {
+      "key": "ui.setup.model_language",
+      "text": "Language model: how the inhabitants think, talk and ask"
     }
   ]
 }

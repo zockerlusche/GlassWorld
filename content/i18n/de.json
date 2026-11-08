@@ -1529,6 +1529,10 @@
     {
       "key": "msg.hint.no_answer",
       "text": "Die Bewohner können gerade nicht antworten. Deine Gunst bekommst du zurück."
+    },
+    {
+      "key": "ui.setup.model_language",
+      "text": "Sprachmodell: Denken, Sprechen und Fragen der Bewohner"
     }
   ]
 }

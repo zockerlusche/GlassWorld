@@ -194,7 +194,7 @@ namespace GlassWorld.Contracts
         public System.Collections.Generic.ICollection<MusicRule> Rules { get; set; } = new System.Collections.ObjectModel.Collection<MusicRule>();
 
         /// <summary>
-        /// Gated RMS loudness the sound is normalised to: the same target as every other sound (Marcel W1645); peak stays the upper limit.
+        /// Integrated loudness (LUFS, ITU-R BS.1770) the sound is normalised to: the same target as every other sound (Marcel W1645); peak stays the upper limit.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("loudness_dbfs")]
         public double LoudnessDbfs { get; set; } = default!;

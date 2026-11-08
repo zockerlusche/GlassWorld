@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-import hashlib
 import json
 import logging
 import os
@@ -23,7 +22,6 @@ import re
 import shutil
 import subprocess
 import sys
-import time
 import zipfile
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -33,6 +31,7 @@ from urllib.parse import urlsplit
 
 import httpx
 
+from glassworld_ai.downloads import TooLargeError, fetch_resumable, sha256_of, with_retries
 from glassworld_contracts import CONTRACT_VERSION, OllamaSetupStatus
 
 State = Literal[
@@ -129,26 +128,6 @@ def safe_extract(archive: Path, target: Path) -> None:
             dest.parent.mkdir(parents=True, exist_ok=True)
             with zf.open(info) as src, dest.open("wb") as out:
                 shutil.copyfileobj(src, out, CHUNK)
-
-
-def _with_retries(step: Callable[[], object], attempts: int = 10, wait_s: float = 1.0) -> None:
-    """File steps that a virus scanner may briefly block on Windows (PermissionError)."""
-    for attempt in range(attempts):
-        try:
-            step()
-            return
-        except PermissionError:
-            if attempt == attempts - 1:
-                raise
-            time.sleep(wait_s)
-
-
-def sha256_of(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as f:
-        while block := f.read(CHUNK):
-            digest.update(block)
-    return digest.hexdigest()
 
 
 VersionReader = Callable[[Path], str | None]
@@ -366,34 +345,14 @@ class OllamaSetup:
             self._phase, self._error = "failed", "disk"
 
     async def _download(self, asset: Asset) -> None:
-        self._part.parent.mkdir(parents=True, exist_ok=True)
-        have = self._part.stat().st_size if self._part.is_file() else 0
-        if have > asset.size_bytes:
-            self._part.unlink()
-            have = 0
-        self._done_bytes = have
-        if have == asset.size_bytes:
-            return
-        headers = {"Range": f"bytes={have}-"} if have else {}
-        timeout = httpx.Timeout(30.0, read=120.0)
-        async with (
-            self._new_client() as client,
-            client.stream(
-                "GET", asset.url, headers=headers, timeout=timeout, follow_redirects=True
-            ) as response,
-        ):
-            if response.status_code == 416:  # nothing left to fetch: the size check decides
-                return
-            response.raise_for_status()
-            if have and response.status_code != 206:
-                have = 0  # the server sent the whole file again
-            with self._part.open("ab" if have else "wb") as out:
-                self._done_bytes = have
-                async for chunk in response.aiter_bytes(CHUNK):
-                    await asyncio.to_thread(out.write, chunk)
-                    self._done_bytes += len(chunk)
-                    if self._done_bytes > asset.size_bytes:
-                        raise SetupError("checksum_mismatch", "the download is too large")
+        def seen(done: int) -> None:
+            self._done_bytes = done
+
+        try:
+            async with self._new_client() as client:
+                await fetch_resumable(client, asset.url, self._part, asset.size_bytes, seen)
+        except TooLargeError as error:
+            raise SetupError("checksum_mismatch", "the download is too large") from error
 
     def _unpack(self, asset: Asset) -> None:
         """Unpack straight into the version folder; the marker, written last, makes it complete.
@@ -404,14 +363,14 @@ class OllamaSetup:
         target = self._version_dir
         for leftover in (target, self._dir / f"{self._runtime.version}.partial"):
             if leftover.exists():  # an unmarked, unfinished unpack of ours
-                _with_retries(lambda path=leftover: shutil.rmtree(path))
+                with_retries(lambda path=leftover: shutil.rmtree(path))
         target.mkdir(parents=True)
         safe_extract(self._part, target)
         if not (target / asset.executable).is_file():
             raise SetupError("bad_archive", f"{asset.executable} missing in the archive")
         marker = {"version": self._runtime.version, "sha256": asset.sha256, "url": asset.url}
         (target / MARKER).write_text(json.dumps(marker), encoding="utf-8")
-        _with_retries(lambda: self._part.unlink(missing_ok=True))  # 1.5 GB not needed any more
+        with_retries(lambda: self._part.unlink(missing_ok=True))  # 1.5 GB not needed any more
         self._done_bytes = 0
 
     # --- start / stop -------------------------------------------------------------------

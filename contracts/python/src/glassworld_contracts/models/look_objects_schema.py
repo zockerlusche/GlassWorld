@@ -58,6 +58,12 @@ class ObjectLookRest(StrEnum):
     highest = 'highest'
 
 
+class ObjectLookAlign(StrEnum):
+    upright = 'upright'
+    ground = 'ground'
+    ground_uphill = 'ground_uphill'
+
+
 class ObjectVisual(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -92,9 +98,16 @@ class ObjectVisual(BaseModel):
         le=2.0,
     )
     rest: ObjectLookRest
+    align: ObjectLookAlign
     footprint_m: float = Field(
         ...,
-        description='Radius in metres (at size factor 1) over which rest lowest/highest samples the ground.',
+        description='Radius in metres (at size factor 1) over which the object meets the ground: rest lowest/highest samples it, align ground fits the slope to it (for a long object: half its length along its local x axis).',
+        ge=0.0,
+        le=10.0,
+    )
+    footprint_width_m: float | None = Field(
+        None,
+        description='Half width in metres (at size factor 1) of an elongated footprint across its local x axis (a log); absent = round (footprint_m).',
         ge=0.0,
         le=10.0,
     )
@@ -111,6 +124,24 @@ class LookObjects(BaseModel):
     outline: bool = Field(..., description='Whether objects get the ink outline pass.')
     outline_width_m: float = Field(
         ..., description='Width of the ink outline hull in metres.', ge=0.0, le=0.5
+    )
+    ground_tolerance_m: float = Field(
+        ...,
+        description='How far (metres) the underside of an object lying on the ground (align ground or ground_uphill) may float above or sink below the drawn ground within its footprint (D576, TL #19553). A lying object whose best fit is worse (for example across a rock wall) stands upright instead; the tests hold every object of the start island to it. Placeholder value.',
+        ge=0.0,
+        le=1.0,
+    )
+    turn_tries: int = Field(
+        ...,
+        description='Turns a long lying object (a log) tries over half a circle when its own turn (from its id) does not fit the ground within half the tolerance; it keeps the best fitting one. Placeholder value.',
+        ge=1,
+        le=32,
+    )
+    min_footprint_m: float = Field(
+        ...,
+        description='Smallest footprint radius (metres) over which a lying object samples the ground, so even a tiny one finds the slope. Placeholder value.',
+        gt=0.0,
+        le=1.0,
     )
     fallback: ObjectLookFallback
     visuals: list[ObjectVisual] = Field(..., max_length=256, min_length=1)

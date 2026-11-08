@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -23,6 +23,27 @@ class TerrainBiomeColor(BaseModel):
         description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+
+
+type Biome = Annotated[str, Field(..., pattern='^[a-z][a-z0-9_]*$')]
+
+
+class TerrainCliffs(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    biomes: list[Biome] = Field(
+        ...,
+        description='Biome ids (content/world/biomes.json) whose cells form rock walls where they stand above a neighbour.',
+        max_length=64,
+        min_length=0,
+    )
+    min_drop_mm: int = Field(
+        ...,
+        description='Smallest height difference (millimetres) between neighbouring cells that becomes a rock wall.',
+        ge=1,
+        le=1000000,
     )
 
 
@@ -186,6 +207,7 @@ class LookTerrain(BaseModel):
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
     water: TerrainWater
+    cliffs: TerrainCliffs
     slope_shade_permille: int = Field(
         ...,
         description='How much steep ground is darkened towards the cliff colour (0 = not at all, 1000 = fully).',

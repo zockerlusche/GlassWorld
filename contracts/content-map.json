@@ -245,6 +245,10 @@
     {
       "pattern": "ai/ollama-runtime.json",
       "schema": "ollama-runtime"
+    },
+    {
+      "pattern": "ai/model-downloads.json",
+      "schema": "model-downloads"
     }
   ]
 }
