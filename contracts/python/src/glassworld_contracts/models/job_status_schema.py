@@ -174,6 +174,37 @@ class MemoryResult(BaseModel):
     kept: list[common_schema.Tick] = Field(..., max_length=32)
 
 
+class SoundResult(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    file: str = Field(
+        ...,
+        description="File name in the service's output folder (no path).",
+        max_length=120,
+        pattern='^[a-z0-9][a-z0-9_.-]*\\.wav$',
+    )
+    seconds: float = Field(..., ge=0.0, le=60.0)
+    seed_used: int = Field(
+        ...,
+        description='Seed of the accepted try (job seed + retries), so the sound can be made again.',
+        ge=0,
+    )
+    attempts: int = Field(
+        ...,
+        description='Tries until one passed the check (1 + seed retries).',
+        ge=1,
+        le=10,
+    )
+    peak_dbfs: float = Field(..., ge=-120.0, le=0.0)
+    loudness_dbfs: float = Field(
+        ...,
+        description='Gated RMS loudness as measured by the service.',
+        ge=-120.0,
+        le=0.0,
+    )
+
+
 class QuestionResult(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -220,6 +251,7 @@ class JobResult(BaseModel):
     build_plan: BuildPlan | None = None
     process: ProcessResult | None = None
     memory: MemoryResult | None = None
+    sound: SoundResult | None = None
 
 
 class JobStatus(BaseModel):

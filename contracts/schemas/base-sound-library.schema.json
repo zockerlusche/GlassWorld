@@ -165,12 +165,7 @@
           "maxLength": 64
         },
         "kind": {
-          "description": "one_shot = a single sound; loop = repeats seamlessly while it plays.",
-          "type": "string",
-          "enum": [
-            "one_shot",
-            "loop"
-          ]
+          "$ref": "common.schema.json#/$defs/SoundKind"
         },
         "origin": {
           "$ref": "common.schema.json#/$defs/VocabId"

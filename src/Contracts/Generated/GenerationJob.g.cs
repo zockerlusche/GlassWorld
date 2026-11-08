@@ -39,6 +39,10 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("memory")]
         public MemoryPayload? Memory { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("sound")]
+        public SoundPayload? Sound { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -241,6 +245,43 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("formative")]
         public bool Formative { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A sound for a thing that needs one (B2530, D471 D7): made in the computing night by the local sound model from the rule guard's description; if that fails, the core falls back to the base library.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class SoundPayload
+    {
+
+        /// <summary>
+        /// Short English description of the sound (from the rule guard's SoundDecision), e.g. 'wooden door creaks'.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("description")]
+        public string Description { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("kind")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SoundKind>))]
+        public SoundKind Kind { get; set; } = default!;
+
+        /// <summary>
+        /// Length to make (from content/sound/generation.json by kind).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("seconds")]
+        public double Seconds { get; set; } = default!;
+
+        /// <summary>
+        /// Sampling steps of the sound model (data, D440: at least 25).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("steps")]
+        public int Steps { get; set; } = default!;
+
+        /// <summary>
+        /// The (runtime) object type the sound belongs to, if any.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("object_type")]
+        public string? ObjectType { get; set; } = default!;
 
     }
 

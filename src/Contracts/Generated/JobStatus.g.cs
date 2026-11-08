@@ -39,6 +39,10 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("memory")]
         public MemoryResult? Memory { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("sound")]
+        public SoundResult? Sound { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -301,6 +305,45 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("kept")]
         public System.Collections.Generic.ICollection<long> Kept { get; set; } = new System.Collections.ObjectModel.Collection<long>();
+
+    }
+
+    /// <summary>
+    /// A made sound (D471 D7): a WAV the service wrote into its output folder under a name by pattern; the game copies it into the world folder. Checked by the service (length, level, silence) before it reports done.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class SoundResult
+    {
+
+        /// <summary>
+        /// File name in the service's output folder (no path).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("file")]
+        public string File { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("seconds")]
+        public double Seconds { get; set; } = default!;
+
+        /// <summary>
+        /// Seed of the accepted try (job seed + retries), so the sound can be made again.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("seed_used")]
+        public int SeedUsed { get; set; } = default!;
+
+        /// <summary>
+        /// Tries until one passed the check (1 + seed retries).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("attempts")]
+        public int Attempts { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("peak_dbfs")]
+        public double PeakDbfs { get; set; } = default!;
+
+        /// <summary>
+        /// Gated RMS loudness as measured by the service.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("loudness_dbfs")]
+        public double LoudnessDbfs { get; set; } = default!;
 
     }
 

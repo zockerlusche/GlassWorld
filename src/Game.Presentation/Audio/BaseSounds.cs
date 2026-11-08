@@ -39,7 +39,7 @@ public sealed class BaseSounds
     }
 
     /// <summary>True if the sound repeats seamlessly (ambience, fire).</summary>
-    public bool IsLoop(string soundId) => _sounds.TryGetValue(soundId, out var sound) && sound.Kind == LibrarySoundKind.Loop;
+    public bool IsLoop(string soundId) => _sounds.TryGetValue(soundId, out var sound) && sound.Kind == SoundKind.Loop;
 
     /// <summary>
     /// Base sound for a short English description (e.g. "wooden door creaks"): sound words count 2,

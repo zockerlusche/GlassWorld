@@ -1,0 +1,13 @@
+{
+  "contract_version": "0.2",
+  "min_steps": 25,
+  "default_steps": 50,
+  "seconds": {
+    "one_shot": 2.0,
+    "loop": 8.0
+  },
+  "audible_peak_min": 0.05,
+  "audible_rms_min": 0.001,
+  "seed_retries": 2,
+  "priority": 10
+}
