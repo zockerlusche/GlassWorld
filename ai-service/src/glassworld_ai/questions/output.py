@@ -17,6 +17,7 @@ from typing import Any
 from jsonschema import Draft202012Validator
 
 from glassworld_ai.llm.jobcall import InvalidOutputError
+from glassworld_ai.words import leaked_ids
 
 THOUGHT_MAX = 140
 RATIONALE_MAX = 280
@@ -111,7 +112,7 @@ def parse_answer(
         guesses = ()
     thought = values["thought"]
     if isinstance(thought, str):
-        leaked = sorted(i for i in hidden_ids if i in thought)
+        leaked = leaked_ids(thought, hidden_ids)
         if leaked:  # the player sees the thought; internal ids must not show (live probe L663)
             raise InvalidQuestionOutputError(f"thought shows internal ids {leaked}")
     return ModelAnswer(

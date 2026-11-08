@@ -16,6 +16,8 @@ from typing import Any
 
 from jsonschema import Draft202012Validator
 
+from glassworld_ai.words import leaked_ids
+
 THOUGHT_MAX = 140
 RATIONALE_MAX = 280
 
@@ -56,8 +58,11 @@ def output_schema(option_ids: list[str], expression_ids: list[str]) -> dict[str,
     }
 
 
-def parse_choice(raw: str, schema: dict[str, Any]) -> ModelChoice:
-    """Parse and validate the raw model text against `schema`."""
+def parse_choice(
+    raw: str, schema: dict[str, Any], hidden_ids: frozenset[str] = frozenset()
+) -> ModelChoice:
+    """Parse and validate the raw model text against `schema`; the player-visible thought must
+    not show internal entity ids (`hidden_ids`)."""
     try:
         data: Any = json.loads(raw)
     except json.JSONDecodeError as error:
@@ -70,6 +75,10 @@ def parse_choice(raw: str, schema: dict[str, Any]) -> ModelChoice:
     assert isinstance(data, dict)
     values: dict[str, Any] = dict(data)
     thought = values["thought"]
+    if isinstance(thought, str):
+        leaked = leaked_ids(thought, hidden_ids)
+        if leaked:
+            raise InvalidModelOutputError(f"thought shows internal ids {leaked}")
     return ModelChoice(
         rationale=str(values["rationale"]),
         option_id=str(values["option_id"]),

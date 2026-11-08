@@ -318,3 +318,18 @@ def test_worn_parts_one_per_slot(settings: Settings) -> None:
     response = post(make_app(settings), "/decide", request)
     assert (response.status_code, response.json()["code"]) == (422, "bad_request")
     assert "slot body" in response.json()["message"]
+
+
+def test_thought_with_an_internal_id_is_retried(settings: Settings) -> None:
+    answers = iter([_good(thought="Was ist obj-0042 nur?"), _good()])
+    app, log = _ollama_app(settings, lambda _: _ollama_answer(next(answers)))
+    body = post(app, "/decide", REQUEST).json()
+    assert body["meta"]["attempts"] == 2
+    assert [r["outcome"] for r in log.read()] == ["invalid", "ok"]
+
+
+@pytest.mark.parametrize("spelling", ["obj-0042", "OBJ 0042", "obj_0042", "Obj0042"])
+def test_internal_ids_are_caught_in_any_spelling(settings: Settings, spelling: str) -> None:
+    answers = iter([_good(thought=f"Was ist {spelling} nur?"), _good()])
+    app, _ = _ollama_app(settings, lambda _: _ollama_answer(next(answers)))
+    assert post(app, "/decide", REQUEST).json()["meta"]["attempts"] == 2

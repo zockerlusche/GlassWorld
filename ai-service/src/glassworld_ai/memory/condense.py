@@ -28,9 +28,8 @@ from glassworld_ai.llm.jobcall import (
 )
 from glassworld_ai.llm.ollama import OllamaClient
 from glassworld_ai.prompts import PromptTemplate
-from glassworld_ai.questions.context import quote, subject_name  # move to words.py with #42
 from glassworld_ai.queue import ModelQueue
-from glassworld_ai.words import ContextError, humanize, plain_id
+from glassworld_ai.words import ContextError, humanize, plain_id, quote, subject_name
 from glassworld_contracts import GenerationJob
 
 ROLE = "memory"
