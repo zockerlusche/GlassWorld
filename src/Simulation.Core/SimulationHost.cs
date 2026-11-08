@@ -50,6 +50,9 @@ public sealed class SimulationHost
     /// <summary>The chronicle (core state, D471 D8).</summary>
     public ChronicleSystem Chronicle { get; }
 
+    /// <summary>The weather (B2 R13), or null while the world has no weather system.</summary>
+    public Weather.IWeather? Weather { get; private set; }
+
     /// <summary>Objects.</summary>
     public WorldObjects Objects { get; }
 
