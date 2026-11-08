@@ -66,7 +66,9 @@
       "additionalProperties": false,
       "required": [
         "duration_s",
-        "rise_m"
+        "rise_m",
+        "start_m",
+        "fade_in_share"
       ],
       "properties": {
         "duration_s": {
@@ -78,6 +80,18 @@
           "type": "number",
           "minimum": 0,
           "maximum": 2
+        },
+        "start_m": {
+          "description": "Start height above the head, above the plane of circling symbols (no overlap).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "fade_in_share": {
+          "description": "Share of the duration used to fade in; the rest fades out.",
+          "type": "number",
+          "minimum": 0.01,
+          "maximum": 0.9
         }
       }
     },
@@ -88,7 +102,8 @@
       "required": [
         "radius_m",
         "period_s",
-        "copies"
+        "copies",
+        "fade_in_s"
       ],
       "properties": {
         "radius_m": {
@@ -105,6 +120,12 @@
         "copies": {
           "type": "integer",
           "minimum": 1,
+          "maximum": 5
+        },
+        "fade_in_s": {
+          "description": "Fade-in time of circling symbols.",
+          "type": "number",
+          "minimum": 0,
           "maximum": 5
         }
       }

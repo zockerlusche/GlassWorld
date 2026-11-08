@@ -36,10 +36,20 @@ public sealed class EmotionSymbolTests
         var planner = New();
         var love = Data.Triggers.First(t => t.Mood == "love");
         var high = Subject("inh-000002", ("love", love.Threshold + 0.1));
+        Assert.Empty(planner.Update(0, [], [Calm("inh-000002")]));
         Assert.Equal("heart", Assert.Single(planner.Update(0, [], [high])).Symbol);
         Assert.Empty(planner.Update(Data.Rise.DurationS + 1, [], [high]));
         planner.Update(love.CooldownS + 5, [], [Calm("inh-000002")]);
         Assert.Equal("heart", Assert.Single(planner.Update(love.CooldownS + 6, [], [high])).Symbol);
+    }
+
+    [Fact]
+    public void AfterStartOrLoadHighMoodsDoNotAllFireAtOnce()
+    {
+        // Review #101: the first look only notes what is already high.
+        var planner = New();
+        var everything = Subject("inh-000005", [.. Data.Triggers.Where(t => t.Mode == EmotionTriggerMode.Rises).Select(t => (t.Mood!, 1.0))]);
+        Assert.DoesNotContain(planner.Update(0, [], [everything]), s => s.Motion == SymbolMotion.Rise);
     }
 
     [Fact]

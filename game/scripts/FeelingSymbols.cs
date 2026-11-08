@@ -205,8 +205,9 @@ public partial class FeelingSymbols : Node3D
         if (view.Motion == SymbolMotion.Rise)
         {
             var t = Math.Clamp(age / data.Rise.DurationS, 0, 1);
-            var alpha = t < 0.15 ? t / 0.15 : 1 - ((t - 0.15) / 0.85);
-            sprites[0].GlobalPosition = head + new Vector3(0, still ? 0 : (float)(data.Rise.RiseM * t), 0);
+            var share = data.Rise.FadeInShare;
+            var alpha = t < share ? t / share : 1 - ((t - share) / (1 - share));
+            sprites[0].GlobalPosition = head + new Vector3(0, (float)data.Rise.StartM + (still ? 0 : (float)(data.Rise.RiseM * t)), 0);
             sprites[0].Modulate = new Color(1, 1, 1, (float)alpha);
             return;
         }
@@ -215,7 +216,7 @@ public partial class FeelingSymbols : Node3D
         {
             var angle = (still ? 0 : 2 * Math.PI * age / data.Orbit.PeriodS) + (k * 2 * Math.PI / sprites.Count);
             sprites[k].GlobalPosition = head + new Vector3((float)(data.Orbit.RadiusM * Math.Cos(angle)), 0, (float)(data.Orbit.RadiusM * Math.Sin(angle)));
-            sprites[k].Modulate = new Color(1, 1, 1, (float)Math.Clamp(age / 0.3, 0, 1));
+            sprites[k].Modulate = new Color(1, 1, 1, (float)(data.Orbit.FadeInS <= 0 ? 1 : Math.Clamp(age / data.Orbit.FadeInS, 0, 1)));
         }
     }
 

@@ -65,7 +65,12 @@ public static class SymbolIcons
         EmotionSymbolShape.Star => (p => Polygon(p, StarPoints(0.44, 0.19)), null),
         EmotionSymbolShape.Storm_cloud => (p => Union(Circle(p, -0.18, 0.02, 0.17), Circle(p, 0.04, 0.12, 0.22), Circle(p, 0.22, 0.0, 0.16), Box(p, 0.02, -0.06, 0.34, 0.1)), p => Polygon(p, [(0.02, -0.04), (-0.08, -0.14), (0.0, -0.14), (-0.06, -0.26), (0.08, -0.1), (0.0, -0.1), (0.08, -0.04)])),
         EmotionSymbolShape.Plaster => (p => Rotated(p, 0.6, q => Box(q, 0, 0, 0.4, 0.13) - 0.04), p => Rotated(p, 0.6, q => Box(q, 0, 0, 0.1, 0.09)) + 0.06),
-        EmotionSymbolShape.Sick_face => (p => Circle(p, 0, 0, 0.4), p => Union(Circle(p, -0.13, 0.08, 0.05), Circle(p, 0.13, 0.08, 0.05), Box(p, 0, -0.16, 0.14, 0.03))),
+        EmotionSymbolShape.Sick_face => (p => Circle(p, 0, 0, 0.4), p => Union(
+            Box(p, -0.13, 0.1, 0.07, 0.02),
+            Box(p, 0.13, 0.1, 0.07, 0.02),
+            Rotated(p, 0.5, q => Box(q, -0.1, -0.12, 0.06, 0.025)),
+            Rotated(p, -0.5, q => Box(q, 0.0, -0.17, 0.06, 0.025)),
+            Rotated(p, 0.5, q => Box(q, 0.1, -0.12, 0.06, 0.025)))),
         _ => throw new ArgumentOutOfRangeException(nameof(shape), shape, "unknown symbol shape"),
     };
 

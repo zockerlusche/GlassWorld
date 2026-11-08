@@ -3,8 +3,8 @@
   "head_offset_m": 0.35,
   "fallback_head_m": 0.9,
   "max_per_inhabitant": 2,
-  "rise": { "duration_s": 2.2, "rise_m": 0.5 },
-  "orbit": { "radius_m": 0.22, "period_s": 4, "copies": 3 },
+  "rise": { "duration_s": 2.2, "rise_m": 0.5, "start_m": 0.2, "fade_in_share": 0.15 },
+  "orbit": { "radius_m": 0.22, "period_s": 4, "copies": 3, "fade_in_s": 0.3 },
   "symbols": [
     { "id": "heart", "shape": "heart", "fill": "#e8546b", "size_m": 0.22 },
     { "id": "note", "shape": "note", "fill": "#3a3a52", "size_m": 0.22 },
@@ -17,7 +17,7 @@
   ],
   "triggers": [
     { "symbol": "bulb", "event": "invented", "mood": null, "condition": null, "mode": "once", "threshold": 0, "cooldown_s": 5 },
-    { "symbol": "bulb", "event": "aha", "mood": null, "condition": null, "mode": "once", "threshold": 0, "cooldown_s": 5 },
+    { "symbol": "bulb", "event": "knowledge_gained", "mood": null, "condition": null, "mode": "once", "threshold": 0, "cooldown_s": 5 },
     { "symbol": "heart", "event": null, "mood": "love", "condition": null, "mode": "rises", "threshold": 0.6, "cooldown_s": 30 },
     { "symbol": "note", "event": null, "mood": "joy", "condition": null, "mode": "rises", "threshold": 0.7, "cooldown_s": 30 },
     { "symbol": "tear", "event": null, "mood": "sadness", "condition": null, "mode": "rises", "threshold": 0.6, "cooldown_s": 30 },

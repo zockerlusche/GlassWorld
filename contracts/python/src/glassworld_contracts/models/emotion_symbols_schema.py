@@ -17,6 +17,18 @@ class RiseMotion(BaseModel):
     )
     duration_s: float = Field(..., ge=0.3, le=10.0)
     rise_m: float = Field(..., ge=0.0, le=2.0)
+    start_m: float = Field(
+        ...,
+        description='Start height above the head, above the plane of circling symbols (no overlap).',
+        ge=0.0,
+        le=1.0,
+    )
+    fade_in_share: float = Field(
+        ...,
+        description='Share of the duration used to fade in; the rest fades out.',
+        ge=0.01,
+        le=0.9,
+    )
 
 
 class OrbitMotion(BaseModel):
@@ -28,6 +40,9 @@ class OrbitMotion(BaseModel):
         ..., description='Time for one round (calm: no fast spinning).', ge=1.0, le=30.0
     )
     copies: int = Field(..., ge=1, le=5)
+    fade_in_s: float = Field(
+        ..., description='Fade-in time of circling symbols.', ge=0.0, le=5.0
+    )
 
 
 class Shape(StrEnum):

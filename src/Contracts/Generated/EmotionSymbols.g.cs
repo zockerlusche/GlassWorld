@@ -25,6 +25,18 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("rise_m")]
         public double RiseM { get; set; } = default!;
 
+        /// <summary>
+        /// Start height above the head, above the plane of circling symbols (no overlap).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("start_m")]
+        public double StartM { get; set; } = default!;
+
+        /// <summary>
+        /// Share of the duration used to fade in; the rest fades out.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("fade_in_share")]
+        public double FadeInShare { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -45,6 +57,12 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("copies")]
         public int Copies { get; set; } = default!;
+
+        /// <summary>
+        /// Fade-in time of circling symbols.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("fade_in_s")]
+        public double FadeInS { get; set; } = default!;
 
     }
 

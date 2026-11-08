@@ -41,6 +41,7 @@ public sealed class EmotionSymbolPlanner
     private readonly Dictionary<(string Inhabitant, string Symbol), double> _cooldownUntil = [];
     private readonly HashSet<(string Inhabitant, int Trigger)> _above = [];
     private readonly Dictionary<(string Inhabitant, string Symbol), double> _lastingSince = [];
+    private readonly HashSet<string> _seen = new(StringComparer.Ordinal);
 
     /// <summary>Creates the planner; throws <see cref="InvalidDataException"/> for inconsistent data.</summary>
     /// <param name="data">The symbol set (content/ui/emotion_symbols.json).</param>
@@ -105,6 +106,9 @@ public sealed class EmotionSymbolPlanner
         var lasting = new List<SymbolView>();
         foreach (var subject in subjects)
         {
+            // The first look at an inhabitant (start, load) only notes what is already high: no burst of
+            // short symbols for moods that did not just rise (review #101).
+            var first = _seen.Add(subject.Id);
             for (var i = 0; i < _triggers.Count; i++)
             {
                 var t = _triggers[i];
@@ -113,7 +117,7 @@ public sealed class EmotionSymbolPlanner
                     : t.Condition is { } condition && subject.Conditions.Contains(condition);
                 var key = (subject.Id, i);
                 var was = _above.Contains(key);
-                if (on && !was && t.Mode == EmotionTriggerMode.Rises)
+                if (on && !was && !first && t.Mode == EmotionTriggerMode.Rises)
                 {
                     StartShort(subject.Id, t, now);
                 }
