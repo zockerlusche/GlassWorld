@@ -14,14 +14,14 @@ Distributions must ship the license notices of all listed components.
 | expat (in the embedded Python) | 2.x | Library | MIT | https://libexpat.github.io | `ai-service/python` (pyexpat) |
 | mpdecimal (in the embedded Python) | 2.5 | Library | BSD-2-Clause | https://www.bytereef.org/mpdecimal | `ai-service/python` (_decimal) |
 | zlib (in the embedded Python) | 1.3 | Library | Zlib (approved by Marcel, F5265 = A) | https://zlib.net | inside `python312.dll` |
-| Microsoft Visual C++ runtime (in the embedded Python) | 14.x (vcruntime140.dll, vcruntime140_1.dll) | Runtime library shipped with CPython for Windows | Microsoft Visual C++ Redistributable licence - approval pending (F5268) | https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist | `ai-service/python/` |
+| Microsoft Visual C++ runtime (in the embedded Python) | 14.x (vcruntime140.dll, vcruntime140_1.dll) | Runtime library shipped with CPython for Windows | Microsoft Visual C++ Redistributable licence (only these two files, unmodified; approved F5268) | https://learn.microsoft.com/cpp/windows/latest-supported-vc-redist | `ai-service/python/` |
 | Microsoft.NET.Test.Sdk | 18.11.0 | NuGet package (test only) | MIT | https://github.com/microsoft/vstest | tests/ |
 | xunit.v3 | 4.0.2 | NuGet package (test only) | Apache-2.0 | https://github.com/xunit/xunit | tests/ |
 | xunit.runner.visualstudio | 4.0.1 | NuGet package (test only) | Apache-2.0 | https://github.com/xunit/visualstudio.xunit | tests/ |
 | Microsoft.CodeAnalysis.BannedApiAnalyzers | 5.6.0 | NuGet analyzer (build time only) | MIT | https://github.com/dotnet/roslyn | src/Simulation.Core |
 | Microsoft.Data.Sqlite | 10.0.14 | NuGet package (runtime, save games) | MIT | https://github.com/dotnet/efcore | src/Simulation.Data |
 | SQLitePCLRaw.bundle_e_sqlite3 (+ core, provider) | via Microsoft.Data.Sqlite | NuGet package (runtime, native SQLite) | Apache-2.0 | https://github.com/ericsink/SQLitePCL.raw | src/Simulation.Data |
-| SQLite | via SQLitePCLRaw | native library | Public Domain | https://sqlite.org | src/Simulation.Data |
+| SQLite | via SQLitePCLRaw | native library | Public Domain (unmodified; approved F5267) | https://sqlite.org | src/Simulation.Data |
 | pydantic | >=2.12,<3 (locked 2.14.3) | Python runtime library | MIT | https://github.com/pydantic/pydantic | contracts/python, ai-service |
 | jsonschema | 4.25.1 | Python runtime library (ai-service request validation) and tests | MIT | https://github.com/python-jsonschema/jsonschema | ai-service, contract tests |
 | referencing | 0.37.0 (via jsonschema) | Python runtime library (via jsonschema) | MIT | https://github.com/python-jsonschema/referencing | ai-service, contract tests |
@@ -103,4 +103,4 @@ Distributions must ship the license notices of all listed components.
 | Style reference warm comic (D355) | KI run L593, z-image-turbo, seed 20261110, prompt `prompts/style/s1-style-variants.v1` (warm_comic) | Image (own work, generated locally) | MIT (repository licence); model Apache-2.0 | this repository | `content/image/style-reference-warm-comic.png` (style reference for tier comfort, B2501) |
 | NVorbis | 0.10.5 | NuGet package (tool only, Ogg Vorbis decoding in `tools/SoundBase`), not shipped | MIT | https://github.com/NVorbis/NVorbis | tools/SoundBase |
 | GlassWorld figure bodies (adult_female, adult_male, child; 4 hair styles) | built by `tools/figures/build_figures.py` from `tools/figures/bodies.json` | 3D models (own work) on the Quaternius CC0 rig with its CC0 clips | MIT (repository license); clips CC0 | this repository | game/assets/characters/glassworld |
-| Blender | 4.5.15 LTS (portable, SHA-256 52dd02fd…74f8d), not distributed | Authoring tool (headless model build, B2474) | GPL-3.0-or-later, tool only, output is our own | https://download.blender.org/release/Blender4.5/ | tools/figures |
+| Blender | 4.5.15 LTS (portable, SHA-256 52dd02fd…74f8d), not distributed | Authoring tool (headless model build, B2474) | GPL-3.0-or-later, tool only (approved F5257/B2527), output is our own | https://download.blender.org/release/Blender4.5/ | tools/figures |

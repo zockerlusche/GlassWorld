@@ -164,14 +164,26 @@ def test_allowed_and_approved_texts_pass(tmp_path: Path, license_text: str) -> N
     assert CHECK.check(root) == []
 
 
-def test_a_tool_that_is_not_distributed_needs_no_approval(tmp_path: Path) -> None:
+def test_a_tool_that_is_not_distributed_needs_an_approval_too(tmp_path: Path) -> None:
+    """Review GW1 #51: 'tool only' is no exemption; the row names its decision."""
     root = make_repo(tmp_path, [], packages=[])
     table = (tmp_path / "LICENSES.md").read_text(encoding="utf-8")
-    table += "| Blender | 4.5 (not distributed) | tool | GPL-3.0-or-later, tool only | src | x |\n"
-    table += "| Shipped | 1 | lib | GPL-3.0, tool only | src | game |\n"
+    table += "| Blender | 4.5, not distributed | tool | GPL-3.0-or-later, tool only | src | x |\n"
+    table += (
+        "| Kimodo | 1, not distributed | tool | GPL-3.0, tool only (approved F5258) | src | x |\n"
+    )
     (tmp_path / "LICENSES.md").write_text(table, encoding="utf-8")
     problems = CHECK.check(root)
-    assert len(problems) == 1 and problems[0].startswith("Shipped")
+    assert len(problems) == 1 and problems[0].startswith("Blender")
+
+
+@pytest.mark.parametrize(
+    "license_text",
+    ["GPL-3.0 (not approved F1234)", "GPL-3.0, not  approved F1234", "Zlib (NOT approved F7)"],
+)
+def test_not_approved_is_no_approval(tmp_path: Path, license_text: str) -> None:
+    root = make_repo(tmp_path, [("thing", license_text)], packages=["thing"])
+    assert len(CHECK.check(root)) == 1
 
 
 def test_sound_files_map_by_their_recorded_origin(tmp_path: Path) -> None:

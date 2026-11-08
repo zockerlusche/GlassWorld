@@ -38,8 +38,8 @@ SCOPE_WORDS = frozenset(
     {"1.0", "and", "or", "model", "models", "clips", "code", "weights", "data", "unmodified"}
 )  # fmt: skip
 NEEDS_APPROVAL = ("gpl", "agpl", "lgpl", "non-commercial", "noncommercial", "cc-by-nc", "unknown")
-APPROVAL = re.compile(r"\bapproved\b[^;]{0,40}?\bF\d+", re.IGNORECASE)
-TOOL_ONLY = "tool only"  # an authoring tool that is never distributed (e.g. Blender)
+# 'approved ... F<nr>', but never 'not approved' / 'unapproved' (review GW1 #51).
+APPROVAL = re.compile(r"(?<!\bnot\s)(?<!\bnot\s\s)\bapproved\b[^;]{0,40}?\bF\d+", re.IGNORECASE)
 ASSET_SUFFIXES = {
     ".glb", ".gltf", ".fbx", ".obj", ".blend",
     ".ttf", ".otf", ".woff", ".woff2",
@@ -53,7 +53,6 @@ class Row:
     name: str
     license: str
     keys: frozenset[str]  # normalized names this row covers
-    distributed: bool = True  # False when the row says 'not distributed' (authoring tools)
 
 
 def normalize(name: str) -> str:
@@ -87,8 +86,7 @@ def parse_rows(text: str) -> list[Row]:
             stem = base.strip().rsplit("_", 1)[0].rsplit(".", 1)[0]
             for part in extra.group(1).split(","):
                 keys.add(normalize(f"{stem}.{part.strip()}"))
-        distributed = "not distributed" not in line.lower()
-        rows.append(Row(name, license_text, frozenset(keys), distributed))
+        rows.append(Row(name, license_text, frozenset(keys)))
     return rows
 
 
@@ -98,12 +96,11 @@ def licence_tokens(text: str) -> list[str]:
     return re.findall(r"[a-z0-9][a-z0-9.\-]*[a-z0-9]|[a-z0-9]", plain)
 
 
-def license_problem(row: Row, *, distributed: bool = True) -> str | None:
+def license_problem(row: Row) -> str | None:
+    """Tools that are never shipped need an approval reference too (review GW1 #51)."""
     text = row.license.lower()
     if APPROVAL.search(row.license):
         return None
-    if not distributed and TOOL_ONLY in text:
-        return None  # never shipped: the licence does not reach the game (row says so)
     if any(bad in text for bad in NEEDS_APPROVAL):
         return (
             f"{row.name}: license '{row.license}' needs Marcel's approval (write 'approved F<nr>')"
@@ -168,7 +165,7 @@ def check(root: Path, *, nuget_assets: bool = False) -> list[str]:
     rows = parse_rows((root / "LICENSES.md").read_text(encoding="utf-8"))
     covered = {key for row in rows for key in row.keys}
     names_lower = [row.name.lower() for row in rows]
-    problems = [p for p in (license_problem(r, distributed=r.distributed) for r in rows) if p]
+    problems = [p for p in (license_problem(r) for r in rows) if p]
 
     for package in uv_packages(root):
         if normalize(package) not in covered:
