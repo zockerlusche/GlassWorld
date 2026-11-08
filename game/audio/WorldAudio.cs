@@ -24,6 +24,7 @@ public partial class WorldAudio : Node3D
     private SoundDirector? _director;
     private WorldFeed? _feed;
     private ulong _worldSeed;
+    private WorldMusic? _music;
     private SimulationHost? _host;
     private AnimalCalls? _animals;
     private BirdsongSettings? _birdsong;
@@ -61,6 +62,14 @@ public partial class WorldAudio : Node3D
         _director = new SoundDirector(RetroAudio.Library!, _mixer, _baseSounds?.Variants);
         _feed = new WorldFeed(host);
         _worldSeed = worldSeed;
+        _music = new WorldMusic { Name = "WorldMusic" };
+        AddChild(_music);
+        if (!_music.Setup(host, worldSeed, BusName(MixBusId.Music)))
+        {
+            _music.QueueFree();
+            _music = null;
+        }
+
         _host = host;
         try
         {
@@ -151,6 +160,12 @@ public partial class WorldAudio : Node3D
             player.Play();
         }
     }
+
+    /// <summary>Stops the music before the game quits (see <see cref="WorldMusic.Silence"/>).</summary>
+    public void Silence() => _music?.Silence();
+
+    /// <summary>Smoke run only: the background music (B8 R6).</summary>
+    public string MusicSelfCheck() => _music?.SelfCheck() ?? "music not set up";
 
     /// <summary>The biome under a ground position, or null without a map or outside it.</summary>
     public string? BiomeAt(Position position)

@@ -65,6 +65,7 @@ REFERENCES = [
     ("climate/temperate.json", "weather.seasons[].transitions[].to[].weather", "weather"),
     ("look/epochs.json", "epochs[].id", "epoch"),
     ("look/daylight.json", "phases[].phase", "time_of_day"),
+    ("music/music.json", "rules[].times_of_day[]", "time_of_day"),
     ("sound/sound_map.json", "ambience[].biome", "biome"),
     ("sound/sound_map.json", "animals[].biomes[]", "biome"),
     ("sound/sound_map.json", "animals[].times_of_day[]", "time_of_day"),
