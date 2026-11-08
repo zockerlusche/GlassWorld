@@ -520,7 +520,7 @@ public sealed class DecisionsSystem : IWorldSystem
         }
 
         var chosen = question.Options.Where(o => o.OptionId == response.OptionId).ToList();
-        if (chosen.Count != 1 || (chosen[0].TargetId is not null && !_objects.TryGet(chosen[0].TargetId!, out _)))
+        if (chosen.Count != 1 || (chosen[0].TargetId is { } id && TargetPosition(id) is null))
         {
             Log.Add(new DecisionLogEntry(DecisionLogKind.Discarded, message.RequestId, world.Tick, message.Json, ReplayNotes.UnknownOption));
             Close(world, question, "question_failed");
@@ -530,7 +530,7 @@ public sealed class DecisionsSystem : IWorldSystem
         Log.Add(new DecisionLogEntry(DecisionLogKind.Response, message.RequestId, world.Tick, message.Json, null));
         var inhabitant = _inhabitants.Get(question.InhabitantId);
         var (_, action, targetId) = chosen[0];
-        var destination = targetId is not null && _objects.TryGet(targetId, out var target) ? target.Position : inhabitant.Position;
+        var destination = targetId is not null && TargetPosition(targetId) is { } at ? at : inhabitant.Position;
         var decided = new Activity(action, targetId, destination, null);
         if (inhabitant.Activity?.RemainingTicks is not null)
         {
@@ -548,6 +548,20 @@ public sealed class DecisionsSystem : IWorldSystem
             // Thought bubble (B3): the only player-visible text of a decision, in the display language.
             _inhabitants.Report(new WorldEvent("thought", world.Tick, inhabitant.Id, action, targetId) { Text = thought.Text });
         }
+    }
+
+    /// <summary>
+    /// Where an option's target is now: an object of the world or another inhabitant (passing knowledge on,
+    /// B4a R4; review GW3 #19577), or null if it no longer exists.
+    /// </summary>
+    private Position? TargetPosition(string targetId)
+    {
+        if (_objects.TryGet(targetId, out var target))
+        {
+            return target.Position;
+        }
+
+        return _inhabitants.All.FirstOrDefault(i => string.Equals(i.Id, targetId, StringComparison.Ordinal))?.Position;
     }
 
     private static bool IsRetryable(string json)
