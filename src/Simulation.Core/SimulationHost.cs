@@ -17,8 +17,9 @@ namespace GlassWorld.Simulation;
 /// </summary>
 public sealed class SimulationHost
 {
-    private SimulationHost(ContentSet content, World world, WorldMapSystem? map, WorldTypeCatalog types, WorldObjects objects, DecisionsSystem decisions, InhabitantsSystem inhabitants, Player.PlayerSystem player, InventionSystem inventions, ChronicleSystem chronicle, DeciderSettings deciderSettings)
+    private SimulationHost(ContentSet content, World world, WorldMapSystem? map, WorldTypeCatalog types, WorldObjects objects, DecisionsSystem decisions, InhabitantsSystem inhabitants, Player.PlayerSystem player, InventionSystem inventions, ChronicleSystem chronicle, DeciderSettings deciderSettings, Writing.WritingSystem writing)
     {
+        Writing = writing;
         Map = map;
         Player = player;
         Types = types;
@@ -49,6 +50,9 @@ public sealed class SimulationHost
 
     /// <summary>The chronicle (core state, D471 D8).</summary>
     public ChronicleSystem Chronicle { get; }
+
+    /// <summary>Writing on objects and how it wears away (B8 R13-R15).</summary>
+    public Writing.WritingSystem Writing { get; }
 
     /// <summary>Objects.</summary>
     public WorldObjects Objects { get; }
@@ -125,8 +129,10 @@ public sealed class SimulationHost
         var inventions = new InventionSystem(content.Inventions, inhabitants, objects, types, content.Brain.Weights.PerceptionRadiusM, jobPort, displayLocale);
         var chronicle = new ChronicleSystem(content.Chronicle);
         inhabitants.Reported += chronicle.Observe;
-        world.Add(objects).Add(decisions).Add(inhabitants).Add(player).Add(inventions).Add(chronicle);
-        return new SimulationHost(content, world, map, types, objects, decisions, inhabitants, player, inventions, chronicle, settings);
+        // Weather comes with GW1's weather core (Host.Weather, IWeather); until then texts wear only by themselves.
+        var writing = new Writing.WritingSystem(content.Writing, objects, weather: null, world.Calendar.Settings.TicksPerHour, world.Calendar.TicksPerDay);
+        world.Add(objects).Add(decisions).Add(inhabitants).Add(player).Add(inventions).Add(chronicle).Add(writing);
+        return new SimulationHost(content, world, map, types, objects, decisions, inhabitants, player, inventions, chronicle, settings, writing);
     }
 
     /// <summary>
