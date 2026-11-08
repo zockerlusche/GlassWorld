@@ -264,6 +264,7 @@ public sealed class InventionTests : IDisposable
         var added = Assert.Single(host.Skills.Added);
         Assert.Equal(("braiding", "Flechten", typeId), (added.Id, added.NameDe, added.SourceTypeId));
         Assert.Contains(host.Skills.PractisedBy("combine"), p => p.Skill == "braiding");
+        Assert.Contains(host.Inhabitants.Events, e => e.Kind == SkillRegister.SkillRefused && e.TargetId == typeId && e.Detail == SkillRegister.ReasonTaken);
         Assert.NotEqual(before, host.World.StateHash());
 
         var path = Path.Combine(Path.GetTempPath(), "gw-skills-" + Guid.NewGuid().ToString("N") + ".sqlite");

@@ -37,6 +37,9 @@ public sealed record SkillRegisterState(IReadOnlyList<SkillInfo> Skills);
 /// </summary>
 public sealed class SkillRegister : IWorldSystem, IOptionalWorldState
 {
+    /// <summary>Event: a new skill of an invention was refused (InhabitantId = inventor, TargetId = invention type, Detail = reason).</summary>
+    public const string SkillRefused = "skill_refused";
+
     /// <summary>Refusal: the id is already a skill.</summary>
     public const string ReasonTaken = "skill_id_taken";
 
@@ -155,11 +158,26 @@ public sealed class SkillRegister : IWorldSystem, IOptionalWorldState
     /// <summary>The state to save.</summary>
     public SkillRegisterState Capture() => new([.. _added]);
 
-    /// <summary>Restores new skills (null = a save game from before the register: none).</summary>
+    /// <summary>
+    /// Restores new skills (null = a save game from before the register: none). Each must pass the same
+    /// checks as when it was added, otherwise the load fails cleanly (review #96).
+    /// </summary>
     public void Restore(SkillRegisterState? state)
     {
         _added.Clear();
-        _added.AddRange(state?.Skills ?? []);
+        foreach (var skill in state?.Skills ?? [])
+        {
+            var reason = skill.SourceTypeId is null
+                ? "no source invention"
+                : Check(new NewAbility { Id = skill.Id, NameDe = skill.NameDe ?? string.Empty, NameEn = skill.NameEn ?? string.Empty, StartLevel = skill.StartLevelMin, Actions = [.. skill.Actions] });
+            if (reason is not null)
+            {
+                _added.Clear();
+                throw new InvalidDataException($"Save game skill '{skill.Id}': {reason}.");
+            }
+
+            _added.Add(skill);
+        }
     }
 
     private HashSet<string> ActionsOf(SkillInfo skill) =>

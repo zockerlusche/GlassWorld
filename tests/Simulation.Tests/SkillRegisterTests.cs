@@ -73,6 +73,21 @@ public sealed class SkillRegisterTests
         Assert.NotEqual(before, host.World.StateHash());
     }
 
+    [Fact]
+    public void ASaveGameWithSkillsTheDataCannotCarryFailsCleanly()
+    {
+        var register = New();
+        Assert.Null(register.Add(Ability("braiding", 0.1, "combine", "use"), "rt-000001"));
+        var good = register.Capture();
+        var copy = New();
+        copy.Restore(good);
+        Assert.Equal(good.Skills.Single().Id, copy.Added.Single().Id);
+        Assert.Throws<InvalidDataException>(() => copy.Restore(new SkillRegisterState([good.Skills[0] with { Id = "building" }])));
+        Assert.Throws<InvalidDataException>(() => copy.Restore(new SkillRegisterState([good.Skills[0], good.Skills[0]])));
+        Assert.Throws<InvalidDataException>(() => copy.Restore(new SkillRegisterState([good.Skills[0] with { SourceTypeId = null }])));
+        Assert.Empty(copy.Added);
+    }
+
     private static SkillRegister New() => new(Content.InhabitantModel.Skills, Content.InhabitantModel.SkillRules, Content.SkillPractice);
 
     private static NewAbility Ability(string id, double start, params string[] actions) =>

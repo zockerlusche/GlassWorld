@@ -138,7 +138,10 @@ public sealed class SimulationHost
             {
                 foreach (var ability in inventions.AbilitiesOf(typeId))
                 {
-                    skills.Add(ability, typeId);
+                    if (skills.Add(ability, typeId) is { } reason)
+                    {
+                        inhabitants.Report(new WorldEvent(SkillRegister.SkillRefused, e.Tick, e.InhabitantId, null, typeId) { Detail = reason });
+                    }
                 }
             }
         };
