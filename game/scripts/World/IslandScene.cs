@@ -71,7 +71,9 @@ public partial class IslandScene : Node3D
         AddChild(_sun);
         ApplyPhase("day");
 
-        _rig = CameraRig.Create(Look<LookCamera>("camera.json"), _width, _depth, () => []);
+        var ground = island.Map;
+        var terrain = view.Look;
+        _rig = CameraRig.Create(Look<LookCamera>("camera.json"), _width, _depth, () => [], (x, z) => IslandView.GroundHeight(ground, terrain, x, z));
         AddChild(_rig);
 
         if (_check)
