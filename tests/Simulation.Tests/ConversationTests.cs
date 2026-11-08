@@ -132,6 +132,22 @@ public sealed class ConversationTests : IDisposable
     }
 
     [Fact]
+    public void TheLogIsBoundedAndThePlayerIdIsReserved()
+    {
+        var (host, id) = Host();
+        host.Conversation.Port = new FixedPort(ConversationResponseOutcome.Reply, "Ja.", null);
+        var max = host.Content.Conversation.LogMaxEntries;
+        for (var i = 0; i < (max / 2) + 10; i++)
+        {
+            Say(host, id, $"Satz {i}");
+            host.World.Step();
+        }
+
+        Assert.True(host.Conversation.Log.Count <= max, $"{host.Conversation.Log.Count} log entries above {max}");
+        Assert.Equal("msg.command.no_inhabitant", Say(host, ConversationSystem.PlayerId, "Hallo").ReasonKey);
+    }
+
+    [Fact]
     public void ANewWorldStaysOutOfTheHashAndAReplayGivesTheSameWorld()
     {
         var fresh = Host().Host;

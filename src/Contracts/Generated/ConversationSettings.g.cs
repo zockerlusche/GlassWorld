@@ -107,6 +107,12 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("outcomes")]
         public System.Collections.Generic.ICollection<OutcomeChange> Outcomes { get; set; } = new System.Collections.ObjectModel.Collection<OutcomeChange>();
 
+        /// <summary>
+        /// Most conversation log entries kept (newest first stay; those of sentences still waiting are always kept). Older ones leave the save, so a replay reaches back only this far (review GW1 #128).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("log_max_entries")]
+        public int LogMaxEntries { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]

@@ -48,5 +48,6 @@
       "respect": 0.0,
       "fear": 0.0
     }
-  ]
+  ],
+  "log_max_entries": 500
 }

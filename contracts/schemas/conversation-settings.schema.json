@@ -14,7 +14,8 @@
     "understanding_max",
     "fear_start",
     "refund_on_no_answer",
-    "outcomes"
+    "outcomes",
+    "log_max_entries"
   ],
   "properties": {
     "contract_version": {
@@ -67,6 +68,12 @@
       "items": {
         "$ref": "#/$defs/OutcomeChange"
       }
+    },
+    "log_max_entries": {
+      "description": "Most conversation log entries kept (newest first stay; those of sentences still waiting are always kept). Older ones leave the save, so a replay reaches back only this far (review GW1 #128).",
+      "type": "integer",
+      "minimum": 10,
+      "maximum": 100000
     }
   },
   "$defs": {

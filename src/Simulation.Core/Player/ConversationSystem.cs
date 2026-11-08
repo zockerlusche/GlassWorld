@@ -154,7 +154,8 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
     public CommandResult Check(PlayerCommand command)
     {
         ArgumentNullException.ThrowIfNull(command);
-        if (command.InhabitantId is null || !_inhabitants.All.Any(i => i.Id == command.InhabitantId))
+        // "player" is the reserved other id of the player in the relationships: never an inhabitant.
+        if (command.InhabitantId is null || command.InhabitantId == PlayerId || Find(command.InhabitantId) is null)
         {
             return new CommandResult(false, "msg.command.no_inhabitant");
         }
@@ -194,7 +195,7 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
         _memories[inhabitant.Id] = Remember(memory, new ConversationLineState(true, world.Tick, _displayLocale, text));
         _open[request.RequestId] = new OpenConversation(request.RequestId, inhabitant.Id, world.Tick);
         var json = ContractSerializer.Serialize(request);
-        _log.Add(new ConversationLogEntry(ConversationLogKind.Request, request.RequestId, world.Tick, json));
+        Append(new ConversationLogEntry(ConversationLogKind.Request, request.RequestId, world.Tick, json));
         _inhabitants.Report(new WorldEvent("conversation_started", world.Tick, inhabitant.Id, null, null) { Text = text });
         Port?.Send(request.RequestId, json);
     }
@@ -270,6 +271,8 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
             ContractVersion = ContractInfo.Version,
             RequestId = DecisionIds.RequestId(world.Seed, world.Tick, inhabitant.Id, _counter),
             Tick = world.Tick,
+            // Created on the first sentence only (a new stream changes the hash), so worlds without
+            // conversations keep theirs.
             Seed = world.Random.Get("conversation/seed").NextInt(0, int.MaxValue),
             DeadlineMs = _settings.DeadlineMs,
             DisplayLocale = Enum.Parse<Locale>(_displayLocale, ignoreCase: true),
@@ -300,7 +303,7 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
             return; // late or unknown: nothing waits for it any more
         }
 
-        _log.Add(new ConversationLogEntry(message.IsError ? ConversationLogKind.Error : ConversationLogKind.Response, message.RequestId, world.Tick, message.Json));
+        Append(new ConversationLogEntry(message.IsError ? ConversationLogKind.Error : ConversationLogKind.Response, message.RequestId, world.Tick, message.Json));
         if (message.IsError)
         {
             NoAnswer(world, open);
@@ -325,7 +328,10 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
         }
 
         _open.Remove(open.RequestId);
-        var inhabitant = _inhabitants.Get(open.InhabitantId);
+        if (Find(open.InhabitantId) is not { } inhabitant)
+        {
+            return; // the inhabitant is gone (B9): nobody answers any more
+        }
 
         // The answer is a proposal: text only if the guard allows it, expressions only from the vocabulary.
         var reply = response.Reply is { } r && !string.IsNullOrWhiteSpace(r.Text) && _guard.Check(r.Text).Allowed ? r : null;
@@ -365,7 +371,11 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
             _player.Refund(Intervention);
         }
 
-        Change(_inhabitants.Get(open.InhabitantId), OutcomeChangeOutcome.No_answer, null);
+        if (Find(open.InhabitantId) is { } inhabitant)
+        {
+            Change(inhabitant, OutcomeChangeOutcome.No_answer, null);
+        }
+
         _inhabitants.Report(new WorldEvent("no_answer", world.Tick, open.InhabitantId, null, null));
     }
 
@@ -388,6 +398,26 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
                 Math.Clamp(r.Affection + rule.Affection, 0, 1),
                 Math.Clamp(r.Trust + rule.Trust, 0, 1),
                 Math.Clamp(r.Respect + rule.Respect, 0, 1)));
+        }
+    }
+
+    private Inhabitant? Find(string inhabitantId) => _inhabitants.All.FirstOrDefault(i => i.Id == inhabitantId);
+
+    /// <summary>Adds a log entry and keeps the log within the data's bound (entries of waiting sentences stay).</summary>
+    private void Append(ConversationLogEntry entry)
+    {
+        _log.Add(entry);
+        var excess = _log.Count - _settings.LogMaxEntries;
+        for (var i = 0; excess > 0 && i < _log.Count;)
+        {
+            if (_open.ContainsKey(_log[i].RequestId))
+            {
+                i++;
+                continue;
+            }
+
+            _log.RemoveAt(i);
+            excess--;
         }
     }
 

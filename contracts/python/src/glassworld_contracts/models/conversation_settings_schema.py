@@ -85,3 +85,9 @@ class ConversationSettings(BaseModel):
         description='Give the favour back when no answer comes (service off, timeout).',
     )
     outcomes: list[OutcomeChange] = Field(..., max_length=5, min_length=5)
+    log_max_entries: int = Field(
+        ...,
+        description='Most conversation log entries kept (newest first stay; those of sentences still waiting are always kept). Older ones leave the save, so a replay reaches back only this far (review GW1 #128).',
+        ge=10,
+        le=100000,
+    )
