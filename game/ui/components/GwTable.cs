@@ -128,7 +128,7 @@ public partial class GwTable : VBoxContainer
 
         return _columns[column].Numeric
             ? Presentation.Ui.TableSort.By(_rows, r => r.Numbers[column], _descending)
-            : Presentation.Ui.TableSort.By(_rows, r => r.Cells[column], _descending, StringComparer.Create(new System.Globalization.CultureInfo(TranslationServer.GetLocale()), System.Globalization.CompareOptions.IgnoreCase));
+            : Presentation.Ui.TableSort.By(_rows, r => r.Cells[column], _descending, StringComparer.InvariantCultureIgnoreCase);
     }
 
     private void Rebuild()
