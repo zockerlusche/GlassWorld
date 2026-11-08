@@ -210,6 +210,13 @@ public static class SaveGameStore
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("appearances", JsonSerializer.Serialize(appearances, Json)));
         }
 
+        // Searches under way (give-up clock) as one JSON object by inhabitant id; older saves have none.
+        var searches = s.Inhabitants.Where(i => i.SearchSince is { Count: > 0 }).ToDictionary(i => i.Id, i => i.SearchSince!, StringComparer.Ordinal);
+        if (searches.Count > 0)
+        {
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("search_since", JsonSerializer.Serialize(searches, Json)));
+        }
+
         if (s.Player is not null)
         {
             // Player part (B6) as one JSON value; doubles round-trip exactly, so the hash survives.
@@ -375,6 +382,9 @@ public static class SaveGameStore
         var appearances = meta.TryGetValue("appearances", out var appearanceJson)
             ? JsonSerializer.Deserialize<Dictionary<string, Appearance>>(appearanceJson, Json) ?? []
             : [];
+        var searches = meta.TryGetValue("search_since", out var searchJson)
+            ? JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, long>>>(searchJson, Json) ?? []
+            : [];
         return new SaveState(
             ulong.Parse(meta["seed"], CultureInfo.InvariantCulture),
             long.Parse(meta["tick"], CultureInfo.InvariantCulture),
@@ -397,7 +407,8 @@ public static class SaveGameStore
                     r.IsDBNull(11) ? null : JsonSerializer.Deserialize<Activity>(r.GetString(11), Json),
                     [.. beliefs[r.GetString(0)]],
                     appearances.GetValueOrDefault(r.GetString(0)),
-                    [.. relations[r.GetString(0)]])),
+                    [.. relations[r.GetString(0)]],
+                    searches.GetValueOrDefault(r.GetString(0)))),
             long.Parse(meta["question_counter"], CultureInfo.InvariantCulture),
             Query(c, "SELECT data FROM questions ORDER BY id", r => JsonSerializer.Deserialize<SavedQuestion>(r.GetString(0))!),
             Query(c, "SELECT key, tick FROM last_asked ORDER BY key", r => new KeyValuePair<string, long>(r.GetString(0), r.GetInt64(1))),

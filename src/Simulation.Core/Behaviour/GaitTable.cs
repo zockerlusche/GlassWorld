@@ -14,11 +14,11 @@ public sealed class GaitTable
 {
     private readonly FrozenDictionary<string, double> _metresPerTick;
     private readonly FrozenDictionary<string, string> _actionGaits;
-    private readonly FrozenDictionary<string, string> _actionNeeds;
+    private readonly FrozenDictionary<string, string[]> _actionNeeds;
     private readonly FrozenDictionary<string, double> _neglectBelow;
     private readonly string? _pressingGait;
 
-    private GaitTable(GaitSettings data, FrozenDictionary<string, string> actionNeeds, FrozenDictionary<string, double> neglectBelow)
+    private GaitTable(GaitSettings data, FrozenDictionary<string, string[]> actionNeeds, FrozenDictionary<string, double> neglectBelow)
     {
         Data = data;
         _metresPerTick = data.Gaits.ToFrozenDictionary(g => g.Id, g => data.WalkMPerTick * g.FactorOfWalk, StringComparer.Ordinal);
@@ -36,8 +36,9 @@ public sealed class GaitTable
 
     /// <summary>
     /// Builds the table and checks it: gait ids unique, every named gait defined, actions known and named
-    /// once. The need of an action is the need of its first utility consideration; its threshold is the
-    /// need's neglect_below in the inhabitant model (0 = never pressing).
+    /// once. The needs of an action are the need of its first utility consideration and the needs it
+    /// searches for (search_action, review GW3 #118); a threshold is the need's neglect_below in the
+    /// inhabitant model (0 = never pressing).
     /// </summary>
     public static GaitTable Create(GaitSettings data, IReadOnlySet<string> actions, UtilityWeights weights, InhabitantModel model)
     {
@@ -57,14 +58,26 @@ public sealed class GaitTable
             throw new InvalidDataException("Gaits: " + string.Join("; ", problems) + ".");
         }
 
-        var actionNeeds = new Dictionary<string, string>(StringComparer.Ordinal);
+        var actionNeeds = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+        var own = new HashSet<string>(StringComparer.Ordinal);
         foreach (var consideration in weights.Considerations.Where(c => c.Need is not null))
         {
-            actionNeeds.TryAdd(consideration.Action, consideration.Need!);
+            if (own.Add(consideration.Action))
+            {
+                Needs(consideration.Action).Add(consideration.Need!);
+            }
+
+            if (consideration.SearchAction is { } search && !Needs(search).Contains(consideration.Need!, StringComparer.Ordinal))
+            {
+                // Looking further away for a pressing need hurries like walking to the thing itself.
+                Needs(search).Add(consideration.Need!);
+            }
         }
 
+        List<string> Needs(string action) => actionNeeds.TryGetValue(action, out var list) ? list : actionNeeds[action] = [];
+
         var neglectBelow = model.Needs.Where(n => n.NeglectBelow > 0).ToFrozenDictionary(n => n.Id, n => n.NeglectBelow, StringComparer.Ordinal);
-        return new GaitTable(data, actionNeeds.ToFrozenDictionary(StringComparer.Ordinal), neglectBelow);
+        return new GaitTable(data, actionNeeds.ToFrozenDictionary(a => a.Key, a => a.Value.ToArray(), StringComparer.Ordinal), neglectBelow);
     }
 
     /// <summary>Metres per tick of a gait on flat ground (the map's speed factor slows it further).</summary>
@@ -76,9 +89,8 @@ public sealed class GaitTable
     {
         ArgumentNullException.ThrowIfNull(inhabitant);
         if (_pressingGait is { } pressing
-            && _actionNeeds.TryGetValue(action, out var need)
-            && _neglectBelow.TryGetValue(need, out var below)
-            && inhabitant.Needs.GetValueOrDefault(need, 1.0) < below)
+            && _actionNeeds.TryGetValue(action, out var needs)
+            && needs.Any(need => _neglectBelow.TryGetValue(need, out var below) && inhabitant.Needs.GetValueOrDefault(need, 1.0) < below))
         {
             return pressing;
         }
