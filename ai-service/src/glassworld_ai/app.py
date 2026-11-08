@@ -305,10 +305,8 @@ def create_app(
             return error_response("bad_request", "Invalid PhaseChange: " + "; ".join(problems[:3]))
         change = PhaseChange.model_validate(data)
         phase = str(getattr(change.phase, "value", change.phase))
-        if phase == "night":
-            planner.start_night()
-        else:
-            planner.start_day()
+        changed = planner.change(phase, change.tick)
+        if changed and phase == "day":
             model = planner.model_of("question")
             residency = getattr(app.state, "residency", None)
             if model and residency is not None and residency.knows(model):
@@ -391,6 +389,15 @@ def create_app(
                 request_id=request_id,
                 tick=decision_request.tick,
                 retryable=False,
+            )
+        if settings.decider_backend == "ollama" and planner.language_model_blocked():
+            # Night (review GW1 P1): a model that must not share the card is resident (e.g. sound);
+            # loading the language model now would overflow the VRAM. Routine mode for a moment.
+            return error_response(
+                "model_unavailable",
+                "Computing night: the language model is unloaded for another model.",
+                request_id=request_id,
+                tick=decision_request.tick,
             )
         current: Decider = app.state.decider
         try:

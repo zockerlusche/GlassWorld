@@ -152,3 +152,40 @@ def test_phase_endpoints(settings: Settings) -> None:
             assert (bad.status_code, bad.json()["code"]) == (422, "bad_request")
 
     asyncio.run(scenario())
+
+
+def test_phase_change_is_idempotent() -> None:
+    clock = Clock()
+    planner = Planner(100, KINDS, lambda: None, lambda: "standard", clock)
+    assert planner.change("night", 10)
+    clock.now = 60
+    assert not planner.change("night", 11)  # retry: same phase, budget keeps running
+    assert planner.budget_left_s() == 40
+    assert not planner.change("day", 5)  # older tick: ignored
+    assert planner.phase == "night"
+    assert planner.change("day", 20)
+
+
+def test_decisions_wait_while_a_conflicting_night_model_is_resident() -> None:
+    class Driver:
+        async def load(self, model_id: str) -> None:
+            return None
+
+        async def unload(self, model_id: str) -> None:
+            return None
+
+    residency = Residency(
+        {
+            "llm": Footprint("llm", "language", "d", 6000, 1.0, frozenset()),
+            "snd": Footprint("snd", "sound", "d", 5000, 1.0, frozenset({"llm"})),
+        },
+        7680,
+        {"d": Driver()},
+    )
+    planner = Planner(
+        100, {**KINDS, "sound": KindPlan("night", "snd")}, lambda: residency, lambda: "standard"
+    )
+    assert not planner.language_model_blocked()
+    asyncio.run(residency.ensure("snd"))
+    assert planner.language_model_blocked()  # /decide answers model_unavailable (routine mode)
+    assert planner.affinity("sound") == 0 and planner.affinity("question") == 1

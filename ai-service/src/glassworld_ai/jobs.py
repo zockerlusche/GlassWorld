@@ -95,6 +95,7 @@ class Gate(Protocol):
     def allowed(self, kind: str) -> bool: ...
     def night_only(self, kind: str) -> bool: ...
     async def prepare(self, kind: str) -> None: ...
+    def affinity(self, kind: str) -> int: ...
     def finished(self) -> None: ...
 
 
@@ -225,7 +226,13 @@ class JobRunner:
         for record in queued:  # e.g. the night budget ran out meanwhile
             self._defer_if_waiting(record)
         ready = [r for r in queued if r.state == "queued"]
-        return min(ready, key=_Record.order) if ready else None
+        if not ready:
+            return None
+        gate = self._gate
+        if gate is None:
+            return min(ready, key=_Record.order)
+        # Jobs whose model is resident first (no reloading), then priority and arrival.
+        return min(ready, key=lambda r: (gate.affinity(r.kind), *r.order()))
 
     async def _drain(self) -> None:
         while (record := self._next()) is not None:

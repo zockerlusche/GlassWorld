@@ -58,6 +58,23 @@ class Planner:
         self.phase = "day"
         self._night_started: float | None = None
         self.done_tonight = 0
+        self._last_tick = -1
+
+    def change(self, phase: str, tick: int) -> bool:
+        """Apply a phase change from the core; idempotent (review GW1 P2).
+
+        The same phase again or an older tick changes nothing (retry, reload, service restart).
+        Returns whether it changed.
+        """
+        if tick <= self._last_tick or phase == self.phase:
+            self._last_tick = max(self._last_tick, tick)
+            return False
+        self._last_tick = tick
+        if phase == "night":
+            self.start_night()
+        else:
+            self.start_day()
+        return True
 
     def start_night(self) -> None:
         self.phase = "night"
@@ -95,6 +112,28 @@ class Planner:
         ):
             return
         await residency.ensure(plan.model)
+
+    def affinity(self, kind: str) -> int:
+        """0 if the kind's model is resident now (run it first: no reloading), else 1."""
+        plan = self._kinds.get(kind)
+        residency = self._residency()
+        if (
+            plan is None
+            or plan.model is None
+            or residency is None
+            or not residency.knows(plan.model)
+        ):
+            return 0
+        return 0 if residency.is_loaded(plan.model) else 1
+
+    def language_model_blocked(self) -> bool:
+        """Review GW1 P1: a decision must not load the language model next to a night model that
+        must not share the card (e.g. sound). Then the core stays in routine mode for a moment."""
+        model = self.model_of("question")
+        residency = self._residency()
+        if model is None or residency is None or not residency.knows(model):
+            return False
+        return not residency.fits_now(model)
 
     def finished(self) -> None:
         if self.phase == "night":
