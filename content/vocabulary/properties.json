@@ -101,6 +101,34 @@
     {
       "id": "crafted",
       "description": "Made by inhabitants from an invention."
+    },
+    {
+      "id": "fine_grained",
+      "description": "Made of tiny grains or powder (sand, flour, ash)."
+    },
+    {
+      "id": "alkaline",
+      "description": "Like ash or lye: cleans and helps sand melt into glass."
+    },
+    {
+      "id": "smoulders",
+      "description": "Glows hot and long without a big flame (charcoal)."
+    },
+    {
+      "id": "transparent",
+      "description": "You can see through it (glass)."
+    },
+    {
+      "id": "cooked",
+      "description": "Heated food: easier to eat and more filling."
+    },
+    {
+      "id": "milky",
+      "description": "A white, creamy drink from grains, nuts or seeds."
+    },
+    {
+      "id": "fatty",
+      "description": "Rich and greasy, like butter or oil."
     }
   ]
 }
