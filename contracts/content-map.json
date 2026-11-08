@@ -171,6 +171,10 @@
       "schema": "job-phases"
     },
     {
+      "pattern": "writing/media.json",
+      "schema": "writing-media"
+    },
+    {
       "pattern": "image/generation.json",
       "schema": "image-generation"
     },

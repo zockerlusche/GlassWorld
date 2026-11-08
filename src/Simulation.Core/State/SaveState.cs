@@ -58,6 +58,9 @@ public sealed record SaveState(
     /// <summary>Favour, futile attempts and calls for help (B6); null in save games from before.</summary>
     public Player.PlayerState? Player { get; init; }
 
+    /// <summary>Writing on objects (B8 R15); null in save games from before.</summary>
+    public IReadOnlyList<Writing.WrittenText>? Writing { get; init; }
+
     /// <summary>The weather (B2 R13); null in worlds without weather and in older save games.</summary>
     public Weather.WeatherState? Weather { get; init; }
 }
@@ -101,6 +104,7 @@ public static class StateCodec
             [.. host.Chronicle.All])
         {
             Player = host.Player.Capture(),
+            Writing = host.Writing.HasState ? host.Writing.Capture() : null,
             IslandData = host.Map is { } map ? Map.IslandCodec.Encode(map.Island, map.CellSizeCm) : null,
             Weather = host.WeatherSystem?.Capture(),
         };
@@ -135,6 +139,9 @@ public static class StateCodec
         {
             host.Objects.Restore(obj, state.NextObjectNumber);
         }
+
+        // Texts after their objects (a text needs its object).
+        host.Writing.Restore(state.Writing);
 
         host.Objects.Restore(state.NextObjectNumber);
         host.Map?.Restore(state.Occurrences ?? []);
