@@ -44,6 +44,15 @@ public sealed class PlayerSystem : IWorldSystem
     /// <summary>Command kind: place a gift (TypeId, X, Z).</summary>
     public const string PlaceGift = "place_gift";
 
+    /// <summary>
+    /// Command kind: the start favour of a new world (Amount), allowed only before the first tick. As a
+    /// command it is in the log, so a replay from seed and log starts with the same favour (GW1 #67 N1).
+    /// </summary>
+    public const string StartFavorCommand = "start_favor";
+
+    /// <summary>Reason: the start favour can only be set before the world runs.</summary>
+    public const string ReasonAlreadyStarted = "msg.command.already_started";
+
     /// <summary>Reason: not enough favour.</summary>
     public const string ReasonNoFavor = "msg.command.no_favor";
 
@@ -67,6 +76,7 @@ public sealed class PlayerSystem : IWorldSystem
     private readonly int _ticksPerHour;
     private readonly SortedDictionary<string, int> _attempts = new(StringComparer.Ordinal);
     private readonly List<HelpCall> _open = [];
+    private bool _started;
 
     /// <summary>Creates the system; favour starts at the middle start option until the world sets it.</summary>
     public PlayerSystem(GiftRules rules, FavorSettings favor, UtilityWeights weights, UtilityBrain brain, InhabitantsSystem inhabitants, WorldObjects objects, int ticksPerHour)
@@ -94,7 +104,29 @@ public sealed class PlayerSystem : IWorldSystem
     /// <summary>Favour cost of an intervention (0 if the data has none).</summary>
     public double CostOf(string intervention) => _favor.Costs.FirstOrDefault(c => c.Intervention == intervention)?.Cost1 ?? 0;
 
-    /// <summary>Sets the start favour of a new world (one of the start options of the data).</summary>
+    /// <summary>Checks a start favour command (before the first tick, a start option of the data).</summary>
+    public CommandResult CheckStartFavor(PlayerCommand command)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        if (_started)
+        {
+            return new CommandResult(false, ReasonAlreadyStarted);
+        }
+
+        return command.Amount is { } amount && _favor.StartOptions.Contains(amount) ? new CommandResult(true, null) : new CommandResult(false, ReasonUnknownType);
+    }
+
+    /// <summary>Applies the start favour (from the command log at the first tick).</summary>
+    public void ApplyStartFavor(World world, PlayerCommand command)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        if (command.Amount is { } amount && _favor.StartOptions.Contains(amount))
+        {
+            Favor = amount;
+        }
+    }
+
+    /// <summary>Sets the start favour of a new world directly (tests); worlds use the command.</summary>
     public void SetStartFavor(int favor)
     {
         if (!_favor.StartOptions.Contains(favor))
@@ -151,6 +183,7 @@ public sealed class PlayerSystem : IWorldSystem
     public void Advance(World world)
     {
         ArgumentNullException.ThrowIfNull(world);
+        _started = true;
         Favor = Math.Min(_favor.Maximum, Favor + (_favor.RegrowPerHour / _ticksPerHour));
         var expiry = (long)(_rules.SuggestionExpiryHours * _ticksPerHour);
         _open.RemoveAll(c => world.Tick - c.Tick >= expiry);
@@ -222,6 +255,7 @@ public sealed class PlayerSystem : IWorldSystem
         }
 
         Favor = state.Favor;
+        _started = true;
         _attempts.Clear();
         foreach (var (key, count) in state.Attempts)
         {

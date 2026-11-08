@@ -32,6 +32,9 @@ public sealed record PlayerCommand(string Kind, string? InhabitantId)
 
     /// <summary>World position Z of a gift (metres).</summary>
     public double? Z { get; init; }
+
+    /// <summary>A whole number for commands that need one (e.g. the start favour).</summary>
+    public int? Amount { get; init; }
 }
 
 /// <summary>Result of a player command.</summary>

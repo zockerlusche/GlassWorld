@@ -165,6 +165,22 @@ public sealed class PlayerTests : IDisposable
     }
 
     [Fact]
+    public void StartFavourComesBackFromTheLog()
+    {
+        // GW1 review #67 N1: a replay from seed and log alone starts with the chosen favour.
+        var original = WorldWithThirsty(out _);
+        var low = original.Content.Favor.StartOptions.Min();
+        Assert.True(original.Decisions.Submit(new PlayerCommand(PlayerSystem.StartFavorCommand, null) { Amount = low }).Accepted);
+        original.World.Run(100);
+
+        var replay = WorldWithThirsty(out _);
+        replay.Decisions.LoadReplay(original.Decisions.Log);
+        replay.World.Run(100);
+        Assert.Equal(original.World.StateHash(), replay.World.StateHash());
+        Assert.Equal(PlayerSystem.ReasonAlreadyStarted, original.Decisions.Submit(new PlayerCommand(PlayerSystem.StartFavorCommand, null) { Amount = low }).ReasonKey);
+    }
+
+    [Fact]
     public void AReplayedGiftGivesTheSameWorld()
     {
         // GW1 review #67 T1: the command comes back from the log at the same tick.

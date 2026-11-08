@@ -1045,6 +1045,10 @@
     {
       "key": "msg.command.no_position",
       "text": "Choose a spot in the world."
+    },
+    {
+      "key": "msg.command.already_started",
+      "text": "That is only possible when a world is created."
     }
   ]
 }
