@@ -1,0 +1,22 @@
+{
+  "contract_version": "0.2",
+  "call_radius_m": {
+    "min": 6,
+    "max": 30
+  },
+  "birdsong": {
+    "sound": "animal.songbird.song",
+    "notes_min": 4,
+    "notes_max": 10,
+    "base_hz_min": 2200,
+    "base_hz_max": 3400,
+    "steps": [0, 2, 4, 7, 9, 12],
+    "note_s_min": 0.06,
+    "note_s_max": 0.18,
+    "gap_s": 0.04,
+    "glide_semitones": 3,
+    "trill_chance": 0.25,
+    "trill_notes": 4,
+    "peak": 0.35
+  }
+}

@@ -67,6 +67,10 @@
       "schema": "synth-recipes"
     },
     {
+      "pattern": "sound/animals.json",
+      "schema": "animal-sound-settings"
+    },
+    {
       "pattern": "safety/rules.json",
       "schema": "safety-rules"
     },

@@ -175,7 +175,7 @@
           }
         },
         "per_hour": {
-          "description": "How often one animal near the camera calls per game hour (0 = loop while near).",
+          "description": "How often one animal near the camera calls per game hour (0 = silent near the camera; heard only at the animal itself once animals are objects, B5).",
           "type": "number",
           "minimum": 0,
           "maximum": 600
