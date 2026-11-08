@@ -173,6 +173,10 @@
     {
       "pattern": "image/generation.json",
       "schema": "image-generation"
+    },
+    {
+      "pattern": "dreams/settings.json",
+      "schema": "dream-settings"
     }
   ]
 }

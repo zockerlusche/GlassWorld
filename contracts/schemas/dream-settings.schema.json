@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/dream-settings.schema.json",
+  "title": "DreamSettings",
+  "description": "Dreams in the computing night (B7 R8, A1409): the tones a dream may have and what each tone does in the core (mood, idea), the text length and the job priority. The AI only picks the tone; the effect is this data (frame, not outcome). Values are placeholders until Marcel decides.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "tones",
+    "max_chars",
+    "max_events",
+    "priority"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "tones": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 8,
+      "items": {
+        "$ref": "#/$defs/Tone"
+      }
+    },
+    "max_chars": {
+      "description": "Length limit of a dream text.",
+      "type": "integer",
+      "minimum": 40,
+      "maximum": 280
+    },
+    "max_events": {
+      "description": "Events of the day sent with a dream job (the most recent ones).",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 16
+    },
+    "priority": {
+      "description": "Job priority of dream jobs (B7 O2); when they run is in content/hardware/night.json.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    }
+  },
+  "$defs": {
+    "Tone": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "mood",
+        "mood_strength",
+        "idea"
+      ],
+      "properties": {
+        "id": {
+          "description": "Tone id the AI picks (English word, it is part of the prompt).",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "mood": {
+          "description": "Mood the dream leaves in the morning (vocabulary moods), or null.",
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/VocabId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "mood_strength": {
+          "description": "How strong that mood is (0..1; the core's mood model decides what it means).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "idea": {
+          "description": "True: the dream's subject (about) becomes a little more interesting the next day (curiosity, ideas).",
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

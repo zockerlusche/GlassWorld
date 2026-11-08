@@ -1,0 +1,32 @@
+{
+  "contract_version": "0.2",
+  "tones": [
+    {
+      "id": "calm",
+      "mood": null,
+      "mood_strength": 0.0,
+      "idea": false
+    },
+    {
+      "id": "joyful",
+      "mood": "joy",
+      "mood_strength": 0.3,
+      "idea": false
+    },
+    {
+      "id": "curious",
+      "mood": null,
+      "mood_strength": 0.0,
+      "idea": true
+    },
+    {
+      "id": "uneasy",
+      "mood": "fear",
+      "mood_strength": 0.2,
+      "idea": false
+    }
+  ],
+  "max_chars": 220,
+  "max_events": 8,
+  "priority": 20
+}
