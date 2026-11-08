@@ -306,6 +306,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("felt_temperature_c")]
         public double? FeltTemperatureC { get; set; } = default!;
 
+        /// <summary>
+        /// What the inhabitant feels (B2543). Optional until the core sends it (absent = nothing known).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("conditions")]
+        public System.Collections.Generic.ICollection<FeltCondition>? Conditions { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -773,6 +780,33 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("properties")]
         public System.Collections.Generic.ICollection<string> Properties { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+    }
+
+    /// <summary>
+    /// How the inhabitant feels (B2542/B2543): a felt state or symptom (vocabulary condition, e.g. feverish, weak, pain, nauseous), never the cause (the world knows the truth, the AI guesses). The core maps its internal cause to felt conditions through data.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class FeltCondition
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("condition")]
+        public string Condition { get; set; } = default!;
+
+        /// <summary>
+        /// 0 = barely, 1 = as strong as it gets.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("severity")]
+        public double Severity { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("since_tick")]
+        public long SinceTick { get; set; } = default!;
+
+        /// <summary>
+        /// Where it is felt (vocabulary body_part), or null.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("body_part")]
+        public string? BodyPart { get; set; } = default!;
 
     }
 

@@ -199,6 +199,15 @@
         "distance_m": {
           "type": "number",
           "minimum": 0
+        },
+        "visible_conditions": {
+          "description": "Conditions others can SEE (limping, lying down, pale; which ones is core data), never the cause (B2543). Optional until the core sends it.",
+          "type": "array",
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          }
         }
       }
     }
