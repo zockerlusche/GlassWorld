@@ -270,12 +270,18 @@ public partial class Main
                 .SelectMany(p => p.Value.EnumerateArray().Select(e => e.GetProperty("sound").GetString()!))
                 .ToList();
             var folder = ProjectSettings.GlobalizePath("res://assets/sound/base");
+
+            // Exported builds carry only the imported sounds, not the source files: there the check asks
+            // whether each sound loads; checksums and loudness of the sources are checked in the repository.
+            var exported = !OS.HasFeature("editor");
             var problems = BaseSoundCheck.DataProblems(library, mapped)
-                .Concat(BaseSoundCheck.FileProblems(library, name =>
-                {
-                    var path = System.IO.Path.Combine(folder, name);
-                    return System.IO.File.Exists(path) ? System.IO.File.ReadAllBytes(path) : null;
-                }))
+                .Concat(exported
+                    ? library.Sounds.SelectMany(s => s.Files).Where(f => !ResourceLoader.Exists("res://assets/sound/base/" + f.File)).Select(f => $"{f.File}: not in the export")
+                    : BaseSoundCheck.FileProblems(library, name =>
+                    {
+                        var path = System.IO.Path.Combine(folder, name);
+                        return System.IO.File.Exists(path) ? System.IO.File.ReadAllBytes(path) : null;
+                    }))
                 .ToList();
             foreach (var problem in problems)
             {

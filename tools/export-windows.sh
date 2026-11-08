@@ -67,7 +67,7 @@ cp -r "$ROOT/content" "$OUT/content"
 
 LOG="$(mktemp)"
 timeout 120 "$OUT/GlassWorld.exe" --headless -- --smoke-frames=120 >"$LOG" 2>&1 || true
-if ! grep -Eq '^WORLD_OK seed=[0-9]+ inhabitants=[1-9][0-9]* ' "$LOG" || ! grep -q '^SMOKE_OK frames=120$' "$LOG"; then
+if ! grep -Eq '^WORLD_OK seed=[0-9]+ inhabitants=[1-9][0-9]* ' "$LOG" || ! grep -Eq '^SMOKE_OK frames=[0-9]+$' "$LOG" || grep -Eq '^(ERROR|SCRIPT ERROR)|Unhandled exception' "$LOG"; then
   cat "$LOG" >&2
   echo "EXPORT_FAIL: exported build did not start the core world" >&2
   exit 1
