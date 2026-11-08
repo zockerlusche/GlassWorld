@@ -1,5 +1,6 @@
 {
   "contract_version": "0.2",
+  "defaults_version": 2,
   "buses": [
     {
       "id": "master",

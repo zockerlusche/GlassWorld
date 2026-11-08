@@ -9,7 +9,8 @@
     "contract_version",
     "buses",
     "zoom",
-    "player_volume_db"
+    "player_volume_db",
+    "defaults_version"
   ],
   "properties": {
     "contract_version": {
@@ -28,6 +29,12 @@
     },
     "player_volume_db": {
       "$ref": "#/$defs/MixPlayerRange"
+    },
+    "defaults_version": {
+      "description": "Raised when the default bus volumes change on purpose: saved player volumes from an older version are reset once to the new defaults (review #106).",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1000
     }
   },
   "$defs": {

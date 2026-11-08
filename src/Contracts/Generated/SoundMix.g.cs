@@ -114,6 +114,12 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("player_volume_db")]
         public MixPlayerRange PlayerVolumeDb { get; set; } = new MixPlayerRange();
 
+        /// <summary>
+        /// Raised when the default bus volumes change on purpose: saved player volumes from an older version are reset once to the new defaults (review #106).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("defaults_version")]
+        public int DefaultsVersion { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]

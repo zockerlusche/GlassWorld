@@ -14,7 +14,8 @@ var root = FindRoot();
 var content = Path.Combine(root, "content");
 var soundData = Path.Combine(content, "sound");
 Directory.CreateDirectory(output);
-foreach (var old in Directory.GetFiles(output, "*.wav"))
+// Only the tool's own files (NNN_name.wav and LISTE.md) are replaced; anything else in the folder stays (review #106).
+foreach (var old in Directory.GetFiles(output, "*.wav").Where(f => System.Text.RegularExpressions.Regex.IsMatch(Path.GetFileName(f), @"^\d{3}_.+\.wav$")))
 {
     File.Delete(old);
 }
@@ -96,7 +97,8 @@ if (args.Length > 1)
     rows.Add("| | **MOSS-Proben (für Erfindungen erzeugt)** | | | |");
     foreach (var extra in args[1..])
     {
-        var file = Next("moss_" + Path.GetFileNameWithoutExtension(extra).Replace("snd-", string.Empty, StringComparison.Ordinal)[..8]);
+        var stem = Path.GetFileNameWithoutExtension(extra).Replace("snd-", string.Empty, StringComparison.Ordinal);
+        var file = Next("moss_" + stem[..Math.Min(8, stem.Length)]);
         File.Copy(extra, Path.Combine(output, file), overwrite: true);
         Row(file, "Erfindung „Holztür knarrt“ (Live-Lauf D7, Beschreibung „wooden door creaks“)", origins.GetValueOrDefault("moss", "MOSS-SoundEffect, MIT"));
     }

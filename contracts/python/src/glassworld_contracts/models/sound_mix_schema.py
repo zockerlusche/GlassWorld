@@ -92,3 +92,9 @@ class SoundMix(BaseModel):
     buses: list[MixBus] = Field(..., max_length=6, min_length=6)
     zoom: MixZoom
     player_volume_db: MixPlayerRange
+    defaults_version: int = Field(
+        ...,
+        description='Raised when the default bus volumes change on purpose: saved player volumes from an older version are reset once to the new defaults (review #106).',
+        ge=1,
+        le=1000,
+    )
