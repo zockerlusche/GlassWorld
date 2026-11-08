@@ -8,58 +8,68 @@
     "drought_after_dry_days": 10,
     "snow_weather": "snow",
     "drought_weather": "drought",
+    "gust_period_minutes": 15,
     "states": [
       {
         "weather": "clear",
         "wind_permille": 150,
+        "gust_permille": 100,
         "precipitation_permille": 0,
         "cloud_permille": 100
       },
       {
         "weather": "cloudy",
         "wind_permille": 250,
+        "gust_permille": 150,
         "precipitation_permille": 0,
         "cloud_permille": 700
       },
       {
         "weather": "rain",
         "wind_permille": 300,
+        "gust_permille": 150,
         "precipitation_permille": 500,
         "cloud_permille": 900
       },
       {
         "weather": "storm",
         "wind_permille": 850,
+        "gust_permille": 150,
         "precipitation_permille": 850,
         "cloud_permille": 1000
       },
       {
         "weather": "fog",
         "wind_permille": 50,
+        "gust_permille": 30,
         "precipitation_permille": 0,
         "cloud_permille": 600
       },
       {
         "weather": "frost",
         "wind_permille": 100,
+        "gust_permille": 50,
         "precipitation_permille": 0,
         "cloud_permille": 200
       },
       {
         "weather": "snow",
         "wind_permille": 250,
+        "gust_permille": 150,
         "precipitation_permille": 450,
         "cloud_permille": 900
       },
       {
         "weather": "heat",
         "wind_permille": 50,
+        "gust_permille": 30,
         "precipitation_permille": 0,
         "cloud_permille": 0
       },
       {
         "weather": "drought",
         "wind_permille": 100,
+        "gust_permille": 80,
         "precipitation_permille": 0,
         "cloud_permille": 50
       }

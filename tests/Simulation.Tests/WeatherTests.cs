@@ -26,7 +26,7 @@ public sealed class WeatherTests : IDisposable
     {
         var world = new World(seed, Content.Value.Calendar);
         var settings = world.Calendar.Settings;
-        var weather = new WeatherSystem(climate ?? Climate(), heightOffsetTenthC, settings.TicksPerHour, settings.HoursPerDay);
+        var weather = new WeatherSystem(climate ?? Climate(), heightOffsetTenthC, settings.TicksPerHour, settings.HoursPerDay, seed);
         world.Add(weather);
         return (world, weather);
     }
@@ -192,7 +192,7 @@ public sealed class WeatherTests : IDisposable
     }
 
     [Fact]
-    public void WeatherAtAnswersForKnownTicksAndRefusesOthers()
+    public void WeatherAtAnswersForKnownAndOldTicksAndRefusesTheFuture()
     {
         var (world, weather) = Bare(4);
         world.Run(world.Calendar.TicksPerDay * 3);
@@ -201,8 +201,12 @@ public sealed class WeatherTests : IDisposable
         Assert.Equal(weather.Current, weather.WeatherAt(new Position(100, 50), weather.SinceTick));
         Assert.Throws<ArgumentOutOfRangeException>(() => weather.WeatherAt(anywhere, world.Tick + 1));
 
+        // Long ago (before the kept history): the oldest kept phase, never an exception.
         world.Run(world.Calendar.TicksPerDay * 40);
-        Assert.Throws<ArgumentOutOfRangeException>(() => weather.WeatherAt(anywhere, 0));
+        var oldest = weather.WeatherAt(anywhere, 0);
+        Assert.False(string.IsNullOrEmpty(oldest));
+        Assert.Equal(oldest, weather.WeatherAt(anywhere, 1));
+        Assert.InRange(weather.WindAt(0), 0.0, 1.0);
     }
 
     [Fact]
@@ -240,6 +244,111 @@ public sealed class WeatherTests : IDisposable
         replay.World.Run(original.World.Calendar.TicksPerDay * 3);
         Assert.Equal(original.WeatherSystem.Current, replay.WeatherSystem!.Current);
         Assert.Equal(original.World.StateHash(), replay.World.StateHash());
+    }
+
+    [Fact]
+    public void TheSameSeedGivesTheSameWindAndAnotherSeedOtherGusts()
+    {
+        static List<double> Winds(ulong seed)
+        {
+            var (world, weather) = Bare(seed);
+            var winds = new List<double>();
+            for (var i = 0; i < 3 * 1440; i++)
+            {
+                world.Step();
+                winds.Add(weather.WindAt(world.Tick));
+            }
+
+            return winds;
+        }
+
+        var a = Winds(5);
+        Assert.Equal(a, Winds(5));
+        Assert.NotEqual(a, Winds(6));
+        Assert.All(a, w => Assert.InRange(w, 0.0, 1.0));
+
+        // Gusts are slow: from one tick to the next the wind moves only a little (no flicker).
+        var steps = a.Zip(a.Skip(1), (x, y) => Math.Abs(y - x)).ToList();
+        Assert.True(steps.Max() < 0.05, $"largest step {steps.Max()}");
+        Assert.True(a.Distinct().Count() > 100, "the wind should vary");
+    }
+
+    [Fact]
+    public void TheWindFollowsTheDataOfTheWeather()
+    {
+        // One weather all year: the wind swings around its base by at most its gust.
+        var climate = ContractSerializer.Deserialize<ClimateSettings>(ContractSerializer.Serialize(Climate()));
+        foreach (var row in climate.Weather.Seasons.SelectMany(s => s.Transitions))
+        {
+            row.To = [new ClimateTransitionTarget { Weather = "clear", Weight = 1 }];
+        }
+
+        var clear = climate.Weather.States.Single(s => s.Weather == "clear");
+        var (world, weather) = Bare(3, climate);
+        var winds = new List<double>();
+        for (var i = 0; i < 1440; i++)
+        {
+            world.Step();
+            winds.Add(weather.WindAt(world.Tick));
+        }
+
+        Assert.All(winds, w => Assert.InRange(w, (clear.WindPermille - clear.GustPermille) / 1000.0, (clear.WindPermille + clear.GustPermille) / 1000.0));
+
+        // More base wind in the data, more wind; no gusts, exactly the base.
+        clear.WindPermille += 300;
+        clear.GustPermille = 0;
+        var (stormy, stronger) = Bare(3, climate);
+        stormy.Run(1440);
+        Assert.Equal((clear.WindPermille) / 1000.0, stronger.WindAt(stormy.Tick), 12);
+        Assert.True(stronger.WindAt(stormy.Tick) > winds.Max());
+    }
+
+    [Fact]
+    public void AfterAChangeTheWindBlendsOverTheTransition()
+    {
+        var climate = ContractSerializer.Deserialize<ClimateSettings>(ContractSerializer.Serialize(Climate()));
+        foreach (var state in climate.Weather.States)
+        {
+            state.GustPermille = 0;
+        }
+
+        var (world, weather) = Bare(8, climate);
+        world.Run(100);
+        var before = weather.WindAt(world.Tick);
+        weather.Force("storm", world.Tick);
+        var storm = climate.Weather.States.Single(s => s.Weather == "storm").WindPermille / 1000.0;
+        var transition = (long)climate.Weather.TransitionMinutes * world.Calendar.Settings.TicksPerHour / 60;
+        var start = world.Tick;
+        world.Run(transition);
+        Assert.Equal(before, weather.WindAt(start), 12);
+        Assert.Equal(before + ((storm - before) / 2), weather.WindAt(start + (transition / 2)), 12);
+        Assert.Equal(storm, weather.WindAt(start + transition), 12);
+        Assert.Throws<ArgumentOutOfRangeException>(() => weather.WindAt(world.Tick + 1));
+    }
+
+    [Fact]
+    public void TheWindIsInTheSnapshotAndTheSameAfterLoading()
+    {
+        var original = SimulationHost.CreateGeneratedWorld(ContentDirectory, 42, new MockDecisionPort(), "de", "start_island");
+        original.World.Run(original.World.Calendar.TicksPerDay + 101);
+        var reading = original.Snapshot().Weather!;
+        Assert.Equal(original.Weather!.WindAt(original.World.Tick), reading.Wind);
+        Assert.InRange(reading.Wind, 0.0, 1.0);
+
+        var path = Path.Combine(_directory, "wind.db");
+        SaveGameStore.Save(path, StateCodec.Capture(original));
+        var hash = original.World.StateHash();
+        var loaded = Restore(SaveGameStore.Load(path), new ReplayDecisionPort(original.Decisions.Log));
+        Assert.Equal(reading.Wind, loaded.Snapshot().Weather!.Wind);
+        Assert.Equal(hash, loaded.World.StateHash());
+        // Reading the wind changes nothing in the state; after loading it goes on the same way.
+        Assert.Equal(hash, original.World.StateHash());
+        for (var i = 0; i < 600; i++)
+        {
+            original.World.Step();
+            loaded.World.Step();
+            Assert.Equal(original.Weather.WindAt(original.World.Tick), loaded.Weather!.WindAt(loaded.World.Tick));
+        }
     }
 
     private static SimulationHost Restore(SaveState state, IDecisionPort port)

@@ -58,9 +58,6 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("contract_version")]
         public string ContractVersion { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("move_speed_m_per_minute")]
-        public double MoveSpeedMPerMinute { get; set; } = default!;
-
         [System.Text.Json.Serialization.JsonPropertyName("perception_radius_m")]
         public double PerceptionRadiusM { get; set; } = default!;
 

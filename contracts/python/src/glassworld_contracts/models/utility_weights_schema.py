@@ -51,7 +51,6 @@ class UtilityWeights(BaseModel):
         ...,
         description='Contract version. Incompatible changes require a new major version and an ADR.',
     )
-    move_speed_m_per_minute: float = Field(..., ge=0.1, le=1000.0)
     perception_radius_m: float = Field(..., ge=1.0, le=10000.0)
     distance_falloff: float = Field(
         ...,

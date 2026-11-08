@@ -33,6 +33,12 @@ public sealed record InhabitantSnapshot(
 {
     /// <summary>How the inhabitant looks (B2 R27): the game draws the figure from it, B8 voices read the body values.</summary>
     public Appearance? Appearance { get; init; }
+
+    /// <summary>
+    /// Gait id while the inhabitant walks (content/behaviour/gaits.json: stroll, walk, hurry, run …), null while
+    /// it stands or performs its action; the presentation plays the animation gait of the same id (F5264).
+    /// </summary>
+    public string? Gait { get; init; }
 }
 
 /// <summary>Read-only picture of the world at one tick.</summary>
@@ -76,6 +82,7 @@ public static class WorldView
                 decisions.OpenQuestionIds(i.Id))
             {
                 Appearance = i.Appearance,
+                Gait = inhabitants.GaitOf(i),
             })],
             [.. objects.All],
             [.. inhabitants.Events]);

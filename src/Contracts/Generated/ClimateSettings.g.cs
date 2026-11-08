@@ -67,6 +67,12 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("temperature")]
         public ClimateTemperature Temperature { get; set; } = new ClimateTemperature();
 
+        /// <summary>
+        /// Game minutes between two gust key values (GW3): the wind swings smoothly between values drawn from the world seed and the tick, so the same seed gives the same wind. Placeholder.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("gust_period_minutes")]
+        public int GustPeriodMinutes { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -77,10 +83,16 @@ namespace GlassWorld.Contracts
         public string Weather { get; set; } = default!;
 
         /// <summary>
-        /// Wind strength.
+        /// Base wind strength of this weather (sound and nature motion read the wind with its gusts, IWeather.WindAt).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("wind_permille")]
         public int WindPermille { get; set; } = default!;
+
+        /// <summary>
+        /// How far the slow gusts swing the wind around wind_permille, up and down (the result stays within 0..1000). Placeholder.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("gust_permille")]
+        public int GustPermille { get; set; } = default!;
 
         /// <summary>
         /// Rain or snow strength.
