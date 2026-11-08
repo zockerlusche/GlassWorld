@@ -44,6 +44,9 @@ public sealed record PlayerSettings
     /// <summary>No UI animation, no glass tremor (XAG 117).</summary>
     public bool ReduceMotion { get; init; }
 
+    /// <summary>Feeling symbols above the heads (B2541; on by default, can be switched off).</summary>
+    public bool FeelingSymbols { get; init; } = true;
+
     /// <summary>Hint display time factor 1..max (XAG 116).</summary>
     public int HintDurationFactor { get; init; } = 1;
 
