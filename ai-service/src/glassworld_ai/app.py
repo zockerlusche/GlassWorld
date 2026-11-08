@@ -26,6 +26,7 @@ from glassworld_ai.decider.backends import (
     OllamaDecider,
     ReplayDecider,
 )
+from glassworld_ai.dream import MockDreams, OllamaDreams, ReplayDreams
 from glassworld_ai.errors import error_response, install_error_handlers
 from glassworld_ai.hardware import HardwareInfo, detect_hardware, load_tiers, select_tier
 from glassworld_ai.health import health_status
@@ -128,6 +129,7 @@ def create_app(
             if job_handlers is None and settings.decider_backend == "ollama":
                 app.state.jobs.register("question", _ollama_questions(settings, ollama, app))
                 app.state.jobs.register("memory", _ollama_memory(settings, ollama, app))
+                app.state.jobs.register("dream", _ollama_dreams(settings, ollama, app))
                 app.state.jobs.register("invention", _ollama_inventions(settings, ollama, app))
             warm_task: asyncio.Task[None] | None = None
             if settings.warm_up and settings.decider_backend == "ollama":
@@ -611,6 +613,7 @@ def _offline_handlers(settings: Settings) -> dict[str, Handler]:
         return {
             "question": MockQuestions(vocab),
             "memory": MockMemory(),
+            "dream": MockDreams(),
             "invention": MockInventions(vocab),
         }
     if settings.decider_backend == "replay":
@@ -620,6 +623,7 @@ def _offline_handlers(settings: Settings) -> dict[str, Handler]:
         return {
             "question": ReplayQuestions(_question_log(settings), template, vocab),
             "memory": ReplayMemory(_memory_log(settings)),
+            "dream": ReplayDreams(_dream_log(settings), _text_guard(settings)),
             "invention": ReplayInventions(
                 _invention_log(settings),
                 *_invention_prompts(settings),
@@ -656,6 +660,23 @@ def _ollama_inventions(settings: Settings, ollama: OllamaClient, app: FastAPI) -
         settings=_call_settings(settings),
         log=_invention_log(settings),
         safety=safety_categories(settings.content_dir),
+    )
+
+
+def _dream_log(settings: Settings) -> CallLog:
+    return CallLog(settings.log_dir / "dreams.jsonl")
+
+
+def _ollama_dreams(settings: Settings, ollama: OllamaClient, app: FastAPI) -> OllamaDreams:
+    return OllamaDreams(
+        client=ollama,
+        queue=app.state.queue,
+        template=load_prompt(
+            settings.prompts_dir, settings.dream_prompt, settings.dream_prompt_version
+        ),
+        settings=_call_settings(settings),
+        log=_dream_log(settings),
+        guard=_text_guard(settings),
     )
 
 

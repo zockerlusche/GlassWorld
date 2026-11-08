@@ -47,6 +47,10 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("image")]
         public ImagePayload? Image { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("dream")]
+        public DreamPayload? Dream { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -329,6 +333,45 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("object_type")]
         public string? ObjectType { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A dream in the computing night (B7 R8, A1409): a short text in the player's language from the events of the day. The AI only tells the dream and picks a tone from the allowed list; what the dream does (mood, ideas) the core sets through data (content/dreams/settings.json). Shown in the chronicle (B8).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class DreamPayload
+    {
+
+        /// <summary>
+        /// Events of the day, oldest first (same form as for the memory).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("events")]
+        public System.Collections.Generic.ICollection<MemoryFact> Events { get; set; } = new System.Collections.ObjectModel.Collection<MemoryFact>();
+
+        /// <summary>
+        /// The inhabitant's memory summary for background (English, internal; may be empty).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("memory")]
+        public string Memory { get; set; } = default!;
+
+        /// <summary>
+        /// Strongest mood at the end of the day (vocabulary moods), or null.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("mood")]
+        public string? Mood { get; set; } = default!;
+
+        /// <summary>
+        /// Tones the dream may have (from content/dreams/settings.json); the answer names one of them.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("tones")]
+        public System.Collections.Generic.ICollection<string> Tones { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// Length limit of the dream text (data).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max_chars")]
+        public int MaxChars { get; set; } = default!;
 
     }
 

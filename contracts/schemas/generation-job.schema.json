@@ -98,6 +98,9 @@
         },
         "image": {
           "$ref": "#/$defs/ImagePayload"
+        },
+        "dream": {
+          "$ref": "#/$defs/DreamPayload"
         }
       },
       "minProperties": 1,
@@ -488,6 +491,61 @@
               "type": "null"
             }
           ]
+        }
+      }
+    },
+    "DreamPayload": {
+      "description": "A dream in the computing night (B7 R8, A1409): a short text in the player's language from the events of the day. The AI only tells the dream and picks a tone from the allowed list; what the dream does (mood, ideas) the core sets through data (content/dreams/settings.json). Shown in the chronicle (B8).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "events",
+        "memory",
+        "mood",
+        "tones",
+        "max_chars"
+      ],
+      "properties": {
+        "events": {
+          "description": "Events of the day, oldest first (same form as for the memory).",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": {
+            "$ref": "#/$defs/MemoryFact"
+          }
+        },
+        "memory": {
+          "description": "The inhabitant's memory summary for background (English, internal; may be empty).",
+          "type": "string",
+          "maxLength": 1200
+        },
+        "mood": {
+          "description": "Strongest mood at the end of the day (vocabulary moods), or null.",
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/VocabId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tones": {
+          "description": "Tones the dream may have (from content/dreams/settings.json); the answer names one of them.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          }
+        },
+        "max_chars": {
+          "description": "Length limit of the dream text (data).",
+          "type": "integer",
+          "minimum": 40,
+          "maximum": 280
         }
       }
     }
