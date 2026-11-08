@@ -37,6 +37,7 @@ public partial class WorldAudio : Node3D
     private readonly AudioStreamPlayer[] _ambiencePlayers = new AudioStreamPlayer[2];
     private readonly (double From, double To, double Start, double Length)[] _ambienceFades = new (double, double, double, double)[2];
     private int _ambienceActive;
+    private readonly Dictionary<string, AudioStreamWav> _loopStreams = new(StringComparer.Ordinal);
 
     /// <summary>Zoom 0 (fully in) .. 1 (fully out); set by the camera control.</summary>
     public double Zoom { get; set; } = 0.5;
@@ -246,17 +247,27 @@ public partial class WorldAudio : Node3D
         return length <= 0 ? to : from + ((to - from) * Math.Clamp((_clock - start) / length, 0, 1));
     }
 
-    /// <summary>A sound as an endless loop (library file or retro recipe).</summary>
+    /// <summary>
+    /// A sound as an endless loop (library file or retro recipe). The cached one-shot stream is never
+    /// changed: a loop gets its own copy, so the same sound played as an event stays a one-shot.
+    /// </summary>
     private AudioStreamWav LoopStream(string soundId)
     {
+        if (_loopStreams.TryGetValue(soundId, out var cached))
+        {
+            return cached;
+        }
+
         var stream = Stream(soundId, 0);
         if (stream.LoopMode == AudioStreamWav.LoopModeEnum.Disabled)
         {
+            stream = (AudioStreamWav)stream.Duplicate();
             stream.LoopMode = AudioStreamWav.LoopModeEnum.Forward;
             stream.LoopBegin = 0;
-            stream.LoopEnd = (int)(stream.GetLength() * stream.MixRate);
+            stream.LoopEnd = (int)Math.Round(stream.GetLength() * stream.MixRate);
         }
 
+        _loopStreams[soundId] = stream;
         return stream;
     }
 
@@ -275,9 +286,16 @@ public partial class WorldAudio : Node3D
                 return $"no ambience for {biome}";
             }
 
+            var oneShot = Stream(sound, 0);
+            var wasLooping = oneShot.LoopMode != AudioStreamWav.LoopModeEnum.Disabled;
             if (LoopStream(sound).LoopMode == AudioStreamWav.LoopModeEnum.Disabled)
             {
                 return $"ambience {sound} does not loop";
+            }
+
+            if (!wasLooping && Stream(sound, 0).LoopMode != AudioStreamWav.LoopModeEnum.Disabled)
+            {
+                return $"ambience {sound} changed the cached one-shot stream";
             }
         }
 
