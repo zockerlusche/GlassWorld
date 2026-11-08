@@ -1,0 +1,30 @@
+{
+  "description": "Every DLL and extension module of the embedded Python (B10-S2) must be named here (no wildcards: a new module needs a decision); the row is the start of its LICENSES.md row name (review GW1 #51). tools/package_ai_service.py checks this after trimming.",
+  "files": {
+    "_asyncio.pyd": "CPython (embedded",
+    "_ctypes.pyd": "libffi (in the embedded Python)",
+    "_decimal.pyd": "mpdecimal (in the embedded Python)",
+    "_elementtree.pyd": "expat (in the embedded Python)",
+    "_hashlib.pyd": "OpenSSL (in the embedded Python)",
+    "_msi.pyd": "CPython (embedded",
+    "_multiprocessing.pyd": "CPython (embedded",
+    "_overlapped.pyd": "CPython (embedded",
+    "_queue.pyd": "CPython (embedded",
+    "_socket.pyd": "CPython (embedded",
+    "_ssl.pyd": "OpenSSL (in the embedded Python)",
+    "_uuid.pyd": "CPython (embedded",
+    "_wmi.pyd": "CPython (embedded",
+    "_zoneinfo.pyd": "CPython (embedded",
+    "libcrypto-3-x64.dll": "OpenSSL (in the embedded Python)",
+    "libffi-8.dll": "libffi (in the embedded Python)",
+    "libssl-3-x64.dll": "OpenSSL (in the embedded Python)",
+    "pyexpat.pyd": "expat (in the embedded Python)",
+    "python3.dll": "CPython (embedded",
+    "python312.dll": "CPython (embedded",
+    "select.pyd": "CPython (embedded",
+    "unicodedata.pyd": "CPython (embedded",
+    "vcruntime140.dll": "Microsoft Visual C++ runtime (in the embedded Python)",
+    "vcruntime140_1.dll": "Microsoft Visual C++ runtime (in the embedded Python)",
+    "winsound.pyd": "CPython (embedded"
+  }
+}

@@ -44,6 +44,8 @@ jobs:
         run: dotnet build --no-restore -c Release
       - name: Test
         run: dotnet test --no-build -c Release
+      - name: License check incl. transitive NuGet packages (B10 S1)
+        run: python3 tools/licenses/check_licenses.py --nuget-assets
       - name: Generated C# contract types up to date
         if: hashFiles('contracts/schemas/*.schema.json') != ''
         run: dotnet run --project tools/ContractGen -c Release --no-build -- --check
@@ -81,6 +83,9 @@ jobs:
       - name: Generated models up to date
         if: steps.detect.outputs.present == 'true' && hashFiles('contracts/generate_python.py') != ''
         run: uv run python contracts/generate_python.py --check
+      - name: License check (uv.lock, NuGet references, assets; B10 S1)
+        if: steps.detect.outputs.present == 'true'
+        run: uv run python tools/licenses/check_licenses.py
       - name: Pytest (contracts + AI service with mock)
         if: steps.detect.outputs.present == 'true'
         run: uv run pytest

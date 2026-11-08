@@ -160,6 +160,20 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("tick")]
         public long Tick { get; set; } = default!;
 
+        /// <summary>
+        /// Where it was (B2533), null if not tied to a place. Optional: absent = unknown (older cores).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("place")]
+        public Place? Place { get; set; } = default!;
+
+        /// <summary>
+        /// The object instance it was about (B2533), null if none. Optional: absent = unknown.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("object")]
+        public string? Object { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -177,6 +191,20 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("about")]
         public Subject? About { get; set; } = default!;
+
+        /// <summary>
+        /// Where it was (B2533), null if not tied to a place. Optional: absent = unknown (older cores).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("place")]
+        public Place? Place { get; set; } = default!;
+
+        /// <summary>
+        /// The object instance it was about (B2533), null if none. Optional: absent = unknown.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("object")]
+        public string? Object { get; set; } = default!;
 
     }
 
@@ -807,6 +835,21 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("body_part")]
         public string? BodyPart { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Where something was met (B2533): horizontal world position in metres; the core keeps the full truth.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class Place
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("x_m")]
+        public double XM { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("z_m")]
+        public double ZM { get; set; } = default!;
 
     }
 

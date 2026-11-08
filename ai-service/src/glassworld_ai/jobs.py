@@ -96,6 +96,7 @@ class Gate(Protocol):
     def night_only(self, kind: str) -> bool: ...
     async def prepare(self, kind: str) -> None: ...
     def affinity(self, kind: str) -> int: ...
+    def done(self, kind: str) -> None: ...
     def finished(self) -> None: ...
 
 
@@ -287,6 +288,8 @@ class JobRunner:
                 record.state = "failed"
             finally:
                 self._current = None
+                if self._gate is not None:
+                    self._gate.done(record.kind)  # the job's model may be unloaded again
 
 
 def _status(record: _Record) -> JobStatus:

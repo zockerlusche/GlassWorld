@@ -48,3 +48,18 @@ def test_replaces_only_its_own_folder(tmp_path: Path) -> None:
     (first / "old.txt").write_text("x", encoding="utf-8")
     second = module.prepare_target(other)  # its own folder: rebuilt
     assert second == first and not (second / "old.txt").exists()
+
+
+def test_every_library_of_the_embedded_python_needs_a_licence_row(tmp_path: Path) -> None:
+    """Review GW1 #51: named one by one, so a new module in a newer build stops the package."""
+    package = _module()
+    python_dir = tmp_path / "python"
+    (python_dir / "DLLs").mkdir(parents=True)
+    for name in ("python312.dll", "vcruntime140.dll"):
+        (python_dir / name).write_bytes(b"MZ")
+    for name in ("_ssl.pyd", "_socket.pyd", "unicodedata.pyd"):
+        (python_dir / "DLLs" / name).write_bytes(b"MZ")
+    package.check_inventory(python_dir)  # all named: passes
+    (python_dir / "DLLs" / "_brand_new.pyd").write_bytes(b"MZ")
+    with pytest.raises(SystemExit, match=r"_brand_new.pyd"):
+        package.check_inventory(python_dir)

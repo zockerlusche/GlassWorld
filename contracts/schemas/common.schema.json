@@ -201,6 +201,28 @@
         },
         "tick": {
           "$ref": "#/$defs/Tick"
+        },
+        "place": {
+          "description": "Where it was (B2533), null if not tied to a place. Optional: absent = unknown (older cores).",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Place"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "object": {
+          "description": "The object instance it was about (B2533), null if none. Optional: absent = unknown.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EntityId"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
     },
@@ -224,6 +246,28 @@
           "anyOf": [
             {
               "$ref": "#/$defs/Subject"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "place": {
+          "description": "Where it was (B2533), null if not tied to a place. Optional: absent = unknown (older cores).",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Place"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "object": {
+          "description": "The object instance it was about (B2533), null if none. Optional: absent = unknown.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EntityId"
             },
             {
               "type": "null"
@@ -1027,6 +1071,27 @@
               "type": "null"
             }
           ]
+        }
+      }
+    },
+    "Place": {
+      "description": "Where something was met (B2533): horizontal world position in metres; the core keeps the full truth.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "x_m",
+        "z_m"
+      ],
+      "properties": {
+        "x_m": {
+          "type": "number",
+          "minimum": -100000,
+          "maximum": 100000
+        },
+        "z_m": {
+          "type": "number",
+          "minimum": -100000,
+          "maximum": 100000
         }
       }
     }

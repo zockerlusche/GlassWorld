@@ -811,6 +811,34 @@
       "text": "Klebrig"
     },
     {
+      "key": "vocab.property.fine_grained",
+      "text": "Feinkörnig"
+    },
+    {
+      "key": "vocab.property.alkaline",
+      "text": "Laugig"
+    },
+    {
+      "key": "vocab.property.smoulders",
+      "text": "Glüht lange"
+    },
+    {
+      "key": "vocab.property.transparent",
+      "text": "Durchsichtig"
+    },
+    {
+      "key": "vocab.property.cooked",
+      "text": "Gekocht"
+    },
+    {
+      "key": "vocab.property.milky",
+      "text": "Milchig"
+    },
+    {
+      "key": "vocab.property.fatty",
+      "text": "Fettig"
+    },
+    {
       "key": "vocab.time_of_day.dawn",
       "text": "Morgendämmerung"
     },

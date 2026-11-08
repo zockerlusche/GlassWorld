@@ -360,5 +360,10 @@ def test_a_process_that_can_change_nothing_is_not_feasible() -> None:
     data["payload"]["process"]["signature"].update(
         process="grind", inputs=[["edible", "long_lasting"]]
     )
-    result = parse_judgement(_raw(), GenerationJob.model_validate(data), CTX)
+    ctx = JudgeContext(
+        REPO / "content",
+        Vocabulary.load(REPO / "content/vocabulary"),
+        {**CTX.guard, "may_add": {"grind": []}, "may_remove": {"grind": []}},
+    )
+    result = parse_judgement(_raw(), GenerationJob.model_validate(data), ctx)
     assert result["feasible"] is False and "cannot change anything" in result["rationale"]
