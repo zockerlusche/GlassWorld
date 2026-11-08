@@ -69,6 +69,7 @@ from glassworld_ai.questions.handlers import MockQuestions, OllamaQuestions, Rep
 from glassworld_ai.queue import ModelQueue
 from glassworld_ai.residency import (
     ComfyUIDriver,
+    HookDriver,
     OllamaDriver,
     Residency,
     ResidencyError,
@@ -135,6 +136,14 @@ def create_app(
                 "ollama", OllamaDriver(str(settings.ollama_url), client, settings.keep_alive)
             )
             residency.register_driver("comfyui", ComfyUIDriver(str(settings.comfyui_url), client))
+            worker: MossWorker | None = app.state.moss_worker
+            if worker is not None:
+                # Starting the worker = loading MOSS, ending it = unloading (B8, GW3 #79); only
+                # the residency does it, so it never shares the card with the language model.
+                residency.register_driver(
+                    "hook",
+                    HookDriver(worker.load, worker.unload, is_alive=lambda _: worker.running),
+                )
             if decider is None:
                 app.state.decider = _build_decider(settings, ollama, app.state.queue)
             if helper is None:
@@ -212,8 +221,12 @@ def create_app(
         settings.job_capacity,
         gate=planner,
     )
+    app.state.moss_worker = None
     if job_handlers is None:
-        app.state.jobs.register("sound", _sound_handler(settings))
+        sound_handler, app.state.moss_worker = _sound_handler(settings)
+        app.state.jobs.register("sound", sound_handler)
+        if app.state.moss_worker is None:
+            planner.release("sound")  # the mock needs no VRAM: keep the language model
         app.state.jobs.register(
             "model3d",
             Model3dJobs(
@@ -638,7 +651,7 @@ async def _warm_up(app: FastAPI, ollama: OllamaClient, retry_s: float) -> None:
         await asyncio.sleep(retry_s)
 
 
-def _sound_handler(settings: Settings) -> Handler:
+def _sound_handler(settings: Settings) -> tuple[Handler, MossWorker | None]:
     """Sound jobs (D471 D7): the MOSS worker if configured, otherwise the deterministic mock."""
     generation = load_generation_settings(settings.content_dir)
     if settings.sound_backend == "moss":
@@ -657,10 +670,11 @@ def _sound_handler(settings: Settings) -> Handler:
             settings.moss_code_dir,
             settings.moss_start_timeout_s,
         )
-        return MossSound(
+        handler = MossSound(
             worker, settings.sound_output_dir, generation, settings.sound_render_timeout_s
         )
-    return MockSound(settings.sound_output_dir, generation)
+        return handler, worker
+    return MockSound(settings.sound_output_dir, generation), None
 
 
 def _text_guard(settings: Settings) -> TextGuard:

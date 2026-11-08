@@ -80,6 +80,7 @@ def test_prepare_makes_the_model_resident() -> None:
 
     async def scenario() -> None:
         await planner.prepare("question")
+        planner.done("question")  # the runner reports every job end
         await planner.prepare("image")  # does not fit next to the language model
 
     asyncio.run(scenario())
@@ -236,3 +237,39 @@ def test_a_released_kind_changes_no_residency() -> None:
     planner.release("image")
     assert planner.model_of("image") is None
     assert planner.night_only("image")  # still a night kind
+
+
+def test_a_model_in_use_is_not_unloaded_until_its_job_ends() -> None:
+    """Review GW3 #85: the morning ensure(language model) waits for a running sound job."""
+    log: list[str] = []
+
+    class Driver:
+        async def load(self, model_id: str) -> None:
+            log.append(f"load {model_id}")
+
+        async def unload(self, model_id: str) -> None:
+            log.append(f"unload {model_id}")
+
+    residency = Residency(
+        {
+            "llm": Footprint("llm", "language", "d", 6000, 1.0, frozenset()),
+            "snd": Footprint("snd", "sound", "d", 5000, 1.0, frozenset({"llm"})),
+        },
+        7680,
+        {"d": Driver()},
+    )
+    planner = Planner(
+        100, {"sound": KindPlan("night", "snd")}, lambda: residency, lambda: "standard"
+    )
+
+    async def scenario() -> None:
+        await planner.prepare("sound")  # the sound job starts rendering
+        morning = asyncio.create_task(residency.ensure("llm"))
+        await asyncio.sleep(0.05)
+        assert log == ["load snd"]  # MOSS keeps rendering, the language model waits
+        log.append("job ends")
+        planner.done("sound")
+        await asyncio.wait_for(morning, 1)
+
+    asyncio.run(scenario())
+    assert log == ["load snd", "job ends", "unload snd", "load llm"]
