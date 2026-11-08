@@ -58,6 +58,7 @@ from glassworld_ai.residency import (
     load_footprints,
 )
 from glassworld_ai.security import make_access_guard
+from glassworld_ai.sound import MockSound, MossSound, MossWorker, load_generation_settings
 from glassworld_ai.validation import ContractValidator
 from glassworld_ai.vocabulary import Vocabulary
 from glassworld_contracts import (
@@ -169,6 +170,8 @@ def create_app(
         settings.job_capacity,
         gate=planner,
     )
+    if job_handlers is None:
+        app.state.jobs.register("sound", _sound_handler(settings))
 
     def _set_hardware(target: FastAPI, info: HardwareInfo) -> None:
         target.state.hardware = info
@@ -471,6 +474,31 @@ async def _warm_up(app: FastAPI, ollama: OllamaClient, retry_s: float) -> None:
         except (OllamaUnavailableError, OllamaResponseError, httpx.HTTPError, ResidencyError):
             app.state.warm_up = "failed"
         await asyncio.sleep(retry_s)
+
+
+def _sound_handler(settings: Settings) -> Handler:
+    """Sound jobs (D471 D7): the MOSS worker if configured, otherwise the deterministic mock."""
+    generation = load_generation_settings(settings.content_dir)
+    if settings.sound_backend == "moss":
+        if (
+            settings.moss_python is None
+            or settings.moss_model_dir is None
+            or settings.moss_code_dir is None
+        ):
+            raise ValueError(
+                "sound_backend moss needs moss_python, moss_model_dir and moss_code_dir"
+            )
+        worker = MossWorker(
+            settings.moss_python,
+            settings.moss_worker_script,
+            settings.moss_model_dir,
+            settings.moss_code_dir,
+            settings.moss_start_timeout_s,
+        )
+        return MossSound(
+            worker, settings.sound_output_dir, generation, settings.sound_render_timeout_s
+        )
+    return MockSound(settings.sound_output_dir, generation)
 
 
 def _offline_handlers(settings: Settings) -> dict[str, Handler]:
