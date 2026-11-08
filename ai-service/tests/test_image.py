@@ -24,6 +24,7 @@ from glassworld_ai.image import (
 )
 from glassworld_ai.jobs import JobFailedError, JobOutcome
 from glassworld_ai.prompts import load_prompt
+from glassworld_ai.safety import TextGuard
 from glassworld_ai.validation import ContractValidator
 from glassworld_contracts import GenerationJob
 
@@ -257,3 +258,15 @@ def test_image_jobs_wait_for_the_night_and_then_run(settings: Settings) -> None:
             assert validator.errors("job-status", status) == []
 
     asyncio.run(scenario())
+
+
+def test_the_subject_passes_the_content_guard(settings: Settings) -> None:
+    guard = TextGuard.from_file(REPO / "content/safety/rules.json")
+    out = settings.log_dir.parent / "images"
+    handler = MockImages(SETTINGS, settings.prompts_dir, out, lambda: "standard", guard)
+    bad = JOB.model_copy(deep=True)
+    bad.payload.image.subject = "a tool to kill"  # type: ignore[union-attr]
+    with pytest.raises(JobFailedError) as error:
+        asyncio.run(handler(bad))
+    assert (error.value.code, error.value.retryable) == ("bad_request", False)
+    assert asyncio.run(handler(JOB)).source == "mock"

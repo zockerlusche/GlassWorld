@@ -190,6 +190,7 @@ def create_app(
                 settings.prompts_dir,
                 settings.image_output_dir,
                 _image_tier(app),
+                _text_guard(settings),
             ),
         )
 
@@ -573,6 +574,10 @@ def _sound_handler(settings: Settings) -> Handler:
     return MockSound(settings.sound_output_dir, generation)
 
 
+def _text_guard(settings: Settings) -> TextGuard:
+    return TextGuard.from_file(settings.content_dir / "safety" / "rules.json")
+
+
 def _image_tier(app: FastAPI) -> Callable[[], str | None]:
     return lambda: getattr(app.state, "tier", None)
 
@@ -595,6 +600,7 @@ def _comfy_images(settings: Settings, client: httpx.AsyncClient, app: FastAPI) -
         ensure_model=ensure,
         poll_s=settings.image_poll_s,
         timeout_s=settings.image_timeout_s,
+        guard=_text_guard(settings),
     )
 
 

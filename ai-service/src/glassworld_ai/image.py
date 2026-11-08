@@ -24,6 +24,7 @@ import httpx
 
 from glassworld_ai.jobs import JobFailedError, JobOutcome
 from glassworld_ai.prompts import PromptTemplate, load_prompt
+from glassworld_ai.safety import TextGuard
 from glassworld_ai.words import plain_id
 from glassworld_contracts import GenerationJob
 from glassworld_contracts.models.image_generation_schema import ImageGeneration
@@ -123,6 +124,19 @@ def _settings_table(template: PromptTemplate, key: str) -> dict[str, str]:
     return {str(k): str(v) for k, v in cast(dict[object, object], raw).items()}
 
 
+def check_subject(image: Any, guard: TextGuard | None) -> None:
+    """The subject goes into the image model: it passes the content guard first (review #83)."""
+    if guard is None:
+        return
+    verdict = guard.check(str(image.subject))
+    if not verdict.allowed:
+        raise _fail(
+            "bad_request",
+            f"subject blocked by the content guard ({verdict.category})",
+            retryable=False,
+        )
+
+
 def render_prompt(template: PromptTemplate, image: Any) -> str:
     purpose = plain_id(image.purpose)
     style = plain_id(image.style)
@@ -145,11 +159,13 @@ class ImageJobs:
         prompts_dir: Path,
         output_dir: Path,
         tier: Callable[[], str | None],
+        guard: TextGuard | None = None,
     ) -> None:
         self._settings = settings
         self._prompts_dir = prompts_dir
         self._output_dir = output_dir
         self._tier = tier
+        self.guard = guard
         self._templates: dict[tuple[str, int], PromptTemplate] = {}
 
     def plan(self) -> TierPlan:
@@ -219,8 +235,9 @@ class ComfyImages(ImageJobs):
         ensure_model: Callable[[str], Awaitable[None]],
         poll_s: float,
         timeout_s: float,
+        guard: TextGuard | None = None,
     ) -> None:
-        super().__init__(settings, prompts_dir, output_dir, tier)
+        super().__init__(settings, prompts_dir, output_dir, tier, guard)
         self._base = base_url.rstrip("/")
         self._client = client
         self._workflows_dir = workflows_dir
@@ -232,6 +249,7 @@ class ComfyImages(ImageJobs):
     async def __call__(self, job: GenerationJob) -> JobOutcome:
         started = time.monotonic()
         image = _payload(job)
+        check_subject(image, self.guard)
         plan = self.plan()
         template = self.template(plan)
         text = render_prompt(template, image)
@@ -366,6 +384,7 @@ class MockImages(ImageJobs):
 
     async def __call__(self, job: GenerationJob) -> JobOutcome:
         image = _payload(job)
+        check_subject(image, self.guard)
         plan = self.plan()  # the capability flag holds for the mock as well
         render_prompt(self.template(plan), image)  # unknown styles fail like with the model
         seed = int(job.seed)
