@@ -197,16 +197,19 @@ public static class UiTheme
     /// </summary>
     private static void BarStyle(Theme theme, UiStyle style)
     {
-        StyleBoxFlat Box(UiColorId fill)
+        // Thin border and small radius derived from the window tokens (half of each).
+        StyleBoxFlat Box(Color fill)
         {
-            var box = new StyleBoxFlat { BgColor = ToGodot(style.Color(fill)), BorderColor = ToGodot(style.Color(UiColorId.Border)) };
-            box.SetBorderWidthAll(1);
-            box.SetCornerRadiusAll(3);
+            var box = new StyleBoxFlat { BgColor = fill, BorderColor = ToGodot(style.Color(UiColorId.Border)) };
+            box.SetBorderWidthAll(Math.Max(1, style.Tokens.Window.BorderWidth / 2));
+            box.SetCornerRadiusAll(Math.Max(1, style.Tokens.Window.CornerRadius / 2));
             return box;
         }
 
-        theme.SetStylebox("background", "ProgressBar", Box(UiColorId.Panel));
-        theme.SetStylebox("fill", "ProgressBar", Box(UiColorId.Panel_strong));
+        // The fill leans toward the accent so the level stands out from the track, while dark text stays readable (review #104).
+        var panel = ToGodot(style.Color(UiColorId.Panel));
+        theme.SetStylebox("background", "ProgressBar", Box(panel));
+        theme.SetStylebox("fill", "ProgressBar", Box(panel.Lerp(ToGodot(style.Color(UiColorId.Accent)), 0.35f)));
         theme.SetColor("font_color", "ProgressBar", ToGodot(style.Color(UiColorId.Text)));
         theme.SetColor("font_outline_color", "ProgressBar", ToGodot(style.Color(UiColorId.Panel)));
         theme.SetConstant("outline_size", "ProgressBar", 0);
