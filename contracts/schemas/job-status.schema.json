@@ -89,6 +89,9 @@
         },
         "sound": {
           "$ref": "#/$defs/SoundResult"
+        },
+        "image": {
+          "$ref": "#/$defs/ImageResult"
         }
       },
       "minProperties": 1,
@@ -578,6 +581,52 @@
           "type": "number",
           "minimum": -120,
           "maximum": 0
+        }
+      }
+    },
+    "ImageResult": {
+      "description": "A made picture (B7 R7): a PNG the service wrote into its output folder under a name by pattern; the game copies it into the world folder. Checked by the service (PNG, size) before it reports done.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "file",
+        "width",
+        "height",
+        "seed_used",
+        "workflow",
+        "style"
+      ],
+      "properties": {
+        "file": {
+          "description": "File name in the service's output folder (no path).",
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9_.-]*\\.png$",
+          "maxLength": 120
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4096
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4096
+        },
+        "seed_used": {
+          "description": "Seed the picture was made with, so it can be made again.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "workflow": {
+          "description": "ComfyUI workflow template used (tools/comfyui/workflows), e.g. z-image-turbo-t2i.",
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9_-]*$",
+          "maxLength": 64
+        },
+        "style": {
+          "$ref": "common.schema.json#/$defs/VocabId"
         }
       }
     }
