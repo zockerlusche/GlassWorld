@@ -55,12 +55,6 @@
       "asset": "Interact"
     },
     {
-      "id": "hop",
-      "source": "asset",
-      "loop": true,
-      "asset": "Jump"
-    },
-    {
       "id": "hug",
       "source": "placeholder",
       "loop": false
@@ -134,7 +128,7 @@
       "id": "run",
       "source": "asset",
       "loop": true,
-      "asset": "Sprint"
+      "asset": "Jog_Fwd"
     },
     {
       "id": "sit",
@@ -448,11 +442,6 @@
       "id": "run",
       "clip": "run",
       "min_speed_cm_s": 250
-    },
-    {
-      "id": "hop",
-      "clip": "hop",
-      "min_speed_cm_s": 400
     }
   ],
   "idle": [
