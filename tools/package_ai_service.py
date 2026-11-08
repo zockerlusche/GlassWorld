@@ -1,0 +1,146 @@
+"""Package the AI service with an embedded Python (B10-S2, A1421).
+
+Builds <out>/ai-service/ next to the game:
+- python/: python-build-standalone 3.12 (MPL-2.0 project; CPython PSF), trimmed: Tcl/Tk, test
+  modules, bz2, lzma and sqlite are removed (not needed; their licences are outside the approved
+  list). zlib stays (inside python312.dll, needs approval F5265).
+- the service and its dependencies installed into that Python, exactly from uv.lock
+  (uv export --frozen, no dev dependencies, no hashes needed for local wheels).
+- prompts/, schemas/, workflows/, config.toml (paths relative to it) and run.cmd.
+The game starts python/python.exe -m glassworld_ai --config config.toml and sets GW_AI_* for the
+folders that must be writable (user data). Usage:
+  uv run python tools/package_ai_service.py <python-build-standalone dir> <out dir>
+"""
+
+from __future__ import annotations
+
+import argparse
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+REMOVE = [  # relative to the Python folder; not used by the service, licences outside the list
+    "tcl",
+    "Lib/tkinter",
+    "Lib/idlelib",
+    "Lib/turtledemo",
+    "Lib/test",
+    "Lib/sqlite3",
+    "Lib/turtle.py",
+    "DLLs/_tkinter.pyd",
+    "DLLs/tcl86t.dll",
+    "DLLs/tk86t.dll",
+    "DLLs/_bz2.pyd",
+    "DLLs/_lzma.pyd",
+    "DLLs/_sqlite3.pyd",
+    "DLLs/sqlite3.dll",
+    "include",
+    "libs",
+]
+CONFIG = """# Packaged AI service (B10-S2). Paths are relative to this file. The game overrides the
+# writable folders with GW_AI_* (lock, logs, outputs) so nothing is written next to the program.
+prompts_dir = "prompts"
+content_dir = "../content"
+schemas_dir = "schemas"
+image_workflows_dir = "workflows"
+log_dir = "data/logs"
+lock_dir = "data"
+benchmark_file = "data/benchmark.json"
+image_output_dir = "data/images"
+sound_output_dir = "data/sounds"
+model3d_image_dir = "data/images"
+model3d_output_dir = "data/models"
+hardware_tiers_file = "../content/hardware/tiers.json"
+model_footprints_file = "../content/hardware/models.json"
+night_plan_file = "../content/hardware/night.json"
+moss_worker_script = "data/moss-worker-not-shipped.py"
+"""
+
+
+def run(*args: str, cwd: Path = ROOT) -> str:
+    done = subprocess.run(args, cwd=cwd, capture_output=True, text=True)
+    if done.returncode != 0:
+        raise SystemExit(f"{' '.join(args)} failed:\n{done.stdout}\n{done.stderr}")
+    return done.stdout
+
+
+def packaged_config() -> str:
+    """The repository config with the packaged paths (keys that are paths are replaced)."""
+    import tomllib
+
+    base = tomllib.loads((ROOT / "ai-service/config.toml").read_text(encoding="utf-8"))
+    paths = tomllib.loads(CONFIG)
+    lines = [
+        CONFIG.rstrip(),
+        "",
+        "# Everything else as in the repository (ai-service/config.toml).",
+    ]
+    for key, value in base.items():
+        if key in paths or key == "token":
+            continue
+        lines.append(f"{key} = {_toml(value)}")
+    return "\n".join(lines) + "\n"
+
+
+def _toml(value: object) -> str:
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, int | float):
+        return repr(value)
+    if isinstance(value, str):
+        return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
+    raise SystemExit(f"config value of type {type(value).__name__} not supported")
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("python_dir", type=Path, help="unpacked python-build-standalone 3.12")
+    parser.add_argument("out_dir", type=Path)
+    args = parser.parse_args()
+    target = args.out_dir / "ai-service"
+    if target.exists():
+        shutil.rmtree(target)
+    python_dir = target / "python"
+    shutil.copytree(args.python_dir, python_dir)
+    for rel in REMOVE:
+        path = python_dir / rel
+        if path.is_dir():
+            shutil.rmtree(path)
+        elif path.exists():
+            path.unlink()
+    for marker in python_dir.rglob("EXTERNALLY-MARKED"):
+        marker.unlink()
+    python = python_dir / "python.exe"
+    requirements = target / "requirements.txt"
+    run("uv", "export", "--frozen", "--no-dev", "--no-hashes", "--no-emit-workspace",
+        "--no-header", "-o", str(requirements))  # fmt: skip
+    common = [
+        "uv",
+        "pip",
+        "install",
+        "--python",
+        str(python),
+        "--break-system-packages",
+        "--no-cache",
+    ]
+    run(*common, "-r", str(requirements))
+    run(*common, "--no-deps", str(ROOT / "contracts/python"), str(ROOT / "ai-service"))
+    shutil.copytree(ROOT / "prompts", target / "prompts")
+    shutil.copytree(ROOT / "contracts/schemas", target / "schemas")
+    shutil.copytree(ROOT / "tools/comfyui/workflows", target / "workflows")
+    (target / "data").mkdir()
+    (target / "config.toml").write_text(packaged_config(), encoding="utf-8", newline="\n")
+    (target / "run.cmd").write_text(
+        "@echo off\r\nrem Start the AI service by hand (the game starts it itself).\r\n"
+        '"%~dp0python\\python.exe" -m glassworld_ai --config "%~dp0config.toml" %*\r\n',
+        encoding="utf-8",
+    )
+    shutil.copy2(python_dir / "LICENSE.txt", target / "LICENSE-python.txt")
+    size = sum(p.stat().st_size for p in target.rglob("*") if p.is_file()) / 2**20
+    print(f"packaged {target} ({size:.0f} MiB)")
+
+
+if __name__ == "__main__":
+    sys.exit(main())
