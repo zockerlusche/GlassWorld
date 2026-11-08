@@ -37,6 +37,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("distance_m")]
         public double DistanceM { get; set; } = default!;
 
+        /// <summary>
+        /// Optional: look at the inhabitant with this index (ordered by id) instead of the map target.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("inhabitant")]
+        public int? Inhabitant { get; set; } = default!;
+
     }
 
     /// <summary>

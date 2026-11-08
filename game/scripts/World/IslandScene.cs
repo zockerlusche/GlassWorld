@@ -1,6 +1,8 @@
 using System.Globalization;
 using GlassWorld.Contracts;
+using AnimationLibrary = GlassWorld.Contracts.AnimationLibrary;
 using GlassWorld.Contracts.Validation;
+using GlassWorld.Presentation.World;
 using GlassWorld.Simulation;
 using GlassWorld.Simulation.Decisions;
 using Godot;
@@ -27,6 +29,12 @@ public partial class IslandScene : Node3D
     private (ShotPoint Point, string Projection, string Phase)? _current;
     private float _width;
     private float _depth;
+    private SimulationHost _host = null!;
+    private readonly Dictionary<string, FigureView> _figures = new(StringComparer.Ordinal);
+    private double _ticksPerSecond;
+    private int _maxTicksPerFrame;
+    private double _tickDebt;
+    private long _warmTicks;
 
     /// <inheritdoc/>
     public override void _Ready()
@@ -57,6 +65,12 @@ public partial class IslandScene : Node3D
         T Look<T>(string file)
             where T : class => ContractSerializer.Deserialize<T>(File.ReadAllText(Path.Combine(content, "look", file)));
         var host = SimulationHost.CreateGeneratedWorld(content, seed, new MockDecisionPort(), "de", preset);
+        _host = host;
+        var speed = double.Parse(Arg("--speed") ?? "1", CultureInfo.InvariantCulture);
+        _warmTicks = long.Parse(Arg("--warm-ticks") ?? "0", CultureInfo.InvariantCulture);
+        var time = host.World.Calendar.Settings;
+        _ticksPerSecond = time.TicksPerHour * time.HoursPerDay / (double)time.NormalRealSecondsPerDay * speed;
+        _maxTicksPerFrame = time.MaxTicksPerFrame;
         var island = host.Map!;
         var view = IslandView.Create(island, host.Content.WorldGen.Presets[preset], content);
         AddChild(view);
@@ -71,12 +85,36 @@ public partial class IslandScene : Node3D
         AddChild(_sun);
         ApplyPhase("day");
 
+        // Figures of the inhabitants (B2-4): appearance from the core, clips from the library.
+        var figuresLook = Look<LookFigures>("figures.json");
+        var appearanceLook = Look<LookAppearance>("appearance.json");
+        var library = ContractSerializer.Deserialize<AnimationLibrary>(File.ReadAllText(Path.Combine(content, "animation", "library.json")));
         var ground = island.Map;
         var terrain = view.Look;
+        foreach (var inhabitant in host.Snapshot().Inhabitants)
+        {
+            if (inhabitant.Appearance is not { } appearance)
+            {
+                continue;
+            }
+
+            var spec = FigureSpec.From(appearance, inhabitant.Sex, figuresLook, appearanceLook);
+            var figure = FigureView.Create(inhabitant, spec, library, figuresLook, (x, z) => IslandView.GroundHeight(ground, terrain, x, z));
+            AddChild(figure);
+            _figures[inhabitant.Id] = figure;
+        }
+
+        // Warm-up: let the world run a while before pictures (figures walk, sit, eat).
+        for (var i = 0; i < _warmTicks; i++)
+        {
+            host.World.Step();
+        }
+
+        ApplySnapshot();
 
         // The camera target follows the ground, but never sinks below the sea surface.
         var seaLevel = host.Content.WorldGen.Presets[preset].Terrain.SeaLevel * terrain.UnitM;
-        _rig = CameraRig.Create(Look<LookCamera>("camera.json"), _width, _depth, () => [], (x, z) => Math.Max(seaLevel, IslandView.GroundHeight(ground, terrain, x, z)));
+        _rig = CameraRig.Create(Look<LookCamera>("camera.json"), _width, _depth, () => _figures.Values.Select(f => (f.InhabitantId, f.Position)), (x, z) => Math.Max(seaLevel, IslandView.GroundHeight(ground, terrain, x, z)));
         AddChild(_rig);
 
         if (_check)
@@ -104,6 +142,7 @@ public partial class IslandScene : Node3D
     /// <inheritdoc/>
     public override void _Process(double delta)
     {
+        StepWorld(delta);
         if (_shotDirectory is null)
         {
             return;
@@ -122,7 +161,15 @@ public partial class IslandScene : Node3D
             var next = _plan.Dequeue();
             _current = next;
             _rig.Model.OrthographicOverride = next.Projection == "orthographic";
-            _rig.Model.Set(_width * next.Point.TargetXPermille / 1000.0, _depth * next.Point.TargetZPermille / 1000.0, next.Point.YawDeg, next.Point.DistanceM);
+            var (tx, tz) = (_width * next.Point.TargetXPermille / 1000.0, _depth * next.Point.TargetZPermille / 1000.0);
+            if (next.Point.Inhabitant is { } index && _figures.Count > 0)
+            {
+                // A close view of one inhabitant (pictures with figures, T1).
+                var figure = _figures.Values.OrderBy(f => f.InhabitantId, StringComparer.Ordinal).ElementAt(Math.Min(index, _figures.Count - 1));
+                (tx, tz) = (figure.Position.X, figure.Position.Z);
+            }
+
+            _rig.Model.Set(tx, tz, next.Point.YawDeg, next.Point.DistanceM);
             _rig.Apply();
             ApplyPhase(next.Phase);
             _wait = _shots.SettleFrames;
@@ -141,6 +188,41 @@ public partial class IslandScene : Node3D
         GetViewport().GetTexture().GetImage().SavePng(file);
         GD.Print($"ISLAND_SHOT {file}");
         _current = null;
+    }
+
+    /// <summary>Drives the world through a time store (R17): real time × speed, at most max_ticks_per_frame.</summary>
+    private void StepWorld(double delta)
+    {
+        if (_check || _figures.Count == 0)
+        {
+            return;
+        }
+
+        _tickDebt = Math.Min(_tickDebt + (delta * _ticksPerSecond), _maxTicksPerFrame);
+        var steps = (int)Math.Floor(_tickDebt);
+        if (steps == 0)
+        {
+            return;
+        }
+
+        _tickDebt -= steps;
+        for (var i = 0; i < steps; i++)
+        {
+            _host.World.Step();
+        }
+
+        ApplySnapshot(steps / _ticksPerSecond);
+    }
+
+    private void ApplySnapshot(double seconds = 1)
+    {
+        foreach (var inhabitant in _host.Snapshot().Inhabitants)
+        {
+            if (_figures.TryGetValue(inhabitant.Id, out var figure))
+            {
+                figure.Apply(inhabitant, seconds);
+            }
+        }
     }
 
     /// <summary>Light, sky and ambient of a day phase from the daylight data (B2-5 blends them over time).</summary>
