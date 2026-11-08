@@ -56,7 +56,7 @@ public static class ScreenModel
             var row = rows.FirstOrDefault(r => r.Id == e.InhabitantId);
             if (row is not null && e.Detail is not null)
             {
-                yield return new ToastMessage("msg.hint.help_needed", new Dictionary<string, string>(NameArgs(row)) { ["need"] = "vocab.need." + e.Detail }, "help");
+                yield return new ToastMessage("msg.hint.help_needed", new Dictionary<string, string>(NameArgs(row)) { ["need"] = VocabKeys.Need(e.Detail) }, "help");
             }
         }
 

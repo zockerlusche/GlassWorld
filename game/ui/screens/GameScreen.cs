@@ -393,7 +393,7 @@ public partial class GameScreen : CanvasLayer
     private ChronicleNames ChronicleNamesNow() => new(
         id => DisplayName(new InhabitantRow(id, WorldFeed.NumberOf(id), 0, false, null, 0)),
         id => InventionName(id),
-        action => "vocab.action." + action);
+        VocabKeys.Action);
 
     private void RefreshChronicle()
     {
@@ -510,7 +510,7 @@ public partial class GameScreen : CanvasLayer
         {
             _helpList.AddChild(new Label
             {
-                Text = TextFill.Fill(Tr("ui.help.call"), new Dictionary<string, string> { ["number"] = Number(call.Number), ["need"] = Tr("vocab.need." + call.Need) }),
+                Text = TextFill.Fill(Tr("ui.help.call"), new Dictionary<string, string> { ["number"] = Number(call.Number), ["need"] = Tr(VocabKeys.Need(call.Need)) }),
                 AutoTranslateMode = AutoTranslateModeEnum.Disabled,
                 AutowrapMode = TextServer.AutowrapMode.WordSmart,
             });
@@ -518,7 +518,7 @@ public partial class GameScreen : CanvasLayer
             {
                 var button = new Button
                 {
-                    Text = TextFill.Fill(Tr("ui.help.give"), new Dictionary<string, string> { ["thing"] = Tr("vocab.object." + type), ["cost"] = cost }),
+                    Text = TextFill.Fill(Tr("ui.help.give"), new Dictionary<string, string> { ["thing"] = Tr(VocabKeys.ObjectType(type)), ["cost"] = cost }),
                     AutoTranslateMode = AutoTranslateModeEnum.Disabled,
                 };
                 button.Pressed += () =>
