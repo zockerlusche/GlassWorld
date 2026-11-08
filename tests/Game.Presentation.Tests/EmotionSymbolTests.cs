@@ -101,6 +101,11 @@ public sealed class EmotionSymbolTests
             var fill = (Convert.ToByte(symbol.Fill[1..3], 16), Convert.ToByte(symbol.Fill[3..5], 16), Convert.ToByte(symbol.Fill[5..7], 16));
             Assert.Contains(Enumerable.Range(0, 64 * 64), i => pixels[(i * 4) + 3] == 255 && (pixels[i * 4], pixels[(i * 4) + 1], pixels[(i * 4) + 2]) == fill);
             Assert.Contains(Enumerable.Range(0, 64 * 64), i => pixels[(i * 4) + 3] == 255 && (pixels[i * 4], pixels[(i * 4) + 1], pixels[(i * 4) + 2]) == (0x2b, 0x2b, 0x3a));
+
+            // Mostly fill, little ink: the outline and details must not swallow the shape (the sheet once showed inverted icons).
+            var solid = Enumerable.Range(0, 64 * 64).Where(i => pixels[(i * 4) + 3] == 255).ToList();
+            var inked = solid.Count(i => (pixels[i * 4], pixels[(i * 4) + 1], pixels[(i * 4) + 2]) == (0x2b, 0x2b, 0x3a));
+            Assert.True(symbol.Id == "note" || inked < solid.Count * 0.6, $"{symbol.Id}: {inked} of {solid.Count} solid pixels are ink");
         }
     }
 

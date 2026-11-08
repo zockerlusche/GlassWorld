@@ -293,6 +293,33 @@ public partial class Main
         _world!.Speed = 0;
         var files = await UiShots.RunAsync(this, _screen!, style, _shotsFolder!);
         GD.Print($"UI_SHOTS_OK {files.Count}");
+
+        // Feeling symbols (B2541): the icon sheet and every symbol above the inhabitants.
+        if (_symbols is not null)
+        {
+            var sheet = System.IO.Path.Combine(_shotsFolder!, "symbols_sheet.png");
+            GD.Print($"UI_SHOT {sheet} {_symbols.IconSheet().SavePng(sheet)}");
+            _symbols.ShowAllForShots();
+
+            // A close look: no windows, the camera near the first inhabitants.
+            _screen!.Visible = false;
+            if (GetViewport().GetCamera3D() is { } camera && _world!.GetNodeOrNull<Node3D>(_world.Host!.Inhabitants.All.First().Id) is { } figure)
+            {
+                var head = figure.GlobalPosition + new Vector3(0, 1.1f, 0);
+                camera.GlobalPosition = head + new Vector3(0.6f, 0.1f, 1.6f);
+                camera.LookAt(head, Vector3.Up);
+            }
+
+            for (var i = 0; i < 20; i++)
+            {
+                await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            }
+
+            await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
+            var world = System.IO.Path.Combine(_shotsFolder!, "symbols_world.png");
+            GD.Print($"UI_SHOT {world} {GetViewport().GetTexture().GetImage().SavePng(world)}");
+        }
+
         GetTree().Quit(0);
     }
 

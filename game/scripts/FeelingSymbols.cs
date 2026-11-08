@@ -30,6 +30,7 @@ public partial class FeelingSymbols : Node3D
     private Node? _figures;
     private Func<bool> _enabled = () => true;
     private Func<bool> _reduceMotion = () => false;
+    private IReadOnlyList<SymbolView>? _frozen;
     private double _clock;
 
     /// <summary>Loads the symbol set; false (and an error) if the data is broken.</summary>
@@ -80,8 +81,47 @@ public partial class FeelingSymbols : Node3D
             return;
         }
 
+        if (_frozen is not null)
+        {
+            Show(_frozen);
+            return;
+        }
+
         var subjects = _host.Inhabitants.All.Select(i => new SymbolSubject(i.Id, i.Moods, NoConditions)).ToList();
         Show(_planner.Update(_clock, events, subjects));
+    }
+
+    /// <summary>Screenshot run only: every symbol of the data above the inhabitants in turn, still in place.</summary>
+    public void ShowAllForShots()
+    {
+        if (_data is null || _host is null)
+        {
+            return;
+        }
+
+        var who = _host.Inhabitants.All.Select(i => i.Id).ToList();
+        var lasting = _data.Triggers.Where(t => t.Mode == EmotionTriggerMode.Holds).Select(t => t.Symbol).ToHashSet(StringComparer.Ordinal);
+        _frozen = [.. _data.Symbols.Select((s, i) => new SymbolView(
+            who[i % who.Count],
+            s.Id,
+            lasting.Contains(s.Id) ? SymbolMotion.Orbit : SymbolMotion.Rise,
+            lasting.Contains(s.Id) ? _clock : _clock - (_data.Rise.DurationS * 0.35)))];
+        _reduceMotion = () => true;
+    }
+
+    /// <summary>Screenshot run only: all icons side by side (art check, D355).</summary>
+    public Image IconSheet()
+    {
+        var symbols = _data?.Symbols.ToList() ?? [];
+        var sheet = Image.CreateEmpty(Math.Max(1, symbols.Count) * IconPx, IconPx, false, Image.Format.Rgba8);
+        sheet.Fill(new Color(0.93f, 0.95f, 0.97f));
+        for (var i = 0; i < symbols.Count; i++)
+        {
+            var icon = _textures[symbols[i].Id].GetImage();
+            sheet.BlendRect(icon, new Rect2I(0, 0, IconPx, IconPx), new Vector2I(i * IconPx, 0));
+        }
+
+        return sheet;
     }
 
     /// <summary>Smoke run only: every symbol has its texture, an orbiting symbol becomes its copies, clearing removes them.</summary>

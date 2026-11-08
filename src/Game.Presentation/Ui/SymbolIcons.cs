@@ -55,16 +55,17 @@ public static class SymbolIcons
         return rgba;
     }
 
+    /// <summary>Body: inside negative (filled, outlined). Detail: inside negative is drawn in ink on the fill.</summary>
     private static (Func<(double X, double Y), double> Body, Func<(double X, double Y), double>? Detail) Shape(EmotionSymbolShape shape) => shape switch
     {
         EmotionSymbolShape.Heart => (p => Union(Circle(p, -0.17, 0.12, 0.2), Circle(p, 0.17, 0.12, 0.2), Polygon(p, [(-0.36, 0.06), (0.36, 0.06), (0, -0.42)])), null),
         EmotionSymbolShape.Note => (p => Union(Ellipse(p, -0.12, -0.28, 0.17, 0.12), Box(p, 0.03, 0.06, 0.04, 0.36), Polygon(p, [(0.03, 0.42), (0.3, 0.26), (0.3, 0.14), (0.03, 0.3)])), null),
-        EmotionSymbolShape.Bulb => (p => Union(Circle(p, 0, 0.1, 0.3), Box(p, 0, -0.28, 0.14, 0.14)), p => -Union(Box(p, 0, -0.24, 0.12, 0.015), Box(p, 0, -0.32, 0.12, 0.015))),
+        EmotionSymbolShape.Bulb => (p => Union(Circle(p, 0, 0.1, 0.3), Box(p, 0, -0.28, 0.14, 0.14)), p => Union(Box(p, 0, -0.24, 0.12, 0.015), Box(p, 0, -0.32, 0.12, 0.015))),
         EmotionSymbolShape.Tear => (p => Union(Circle(p, 0, -0.14, 0.26), Polygon(p, [(-0.24, -0.06), (0.24, -0.06), (0, 0.44)])), null),
         EmotionSymbolShape.Star => (p => Polygon(p, StarPoints(0.44, 0.19)), null),
-        EmotionSymbolShape.Storm_cloud => (p => Union(Circle(p, -0.18, 0.02, 0.17), Circle(p, 0.04, 0.12, 0.22), Circle(p, 0.22, 0.0, 0.16), Box(p, 0.02, -0.06, 0.34, 0.1)), p => -Polygon(p, [(0.02, -0.04), (-0.08, -0.14), (0.0, -0.14), (-0.06, -0.26), (0.08, -0.1), (0.0, -0.1), (0.08, -0.04)])),
-        EmotionSymbolShape.Plaster => (p => Rotated(p, 0.6, q => Box(q, 0, 0, 0.4, 0.13) - 0.04), p => -Rotated(p, 0.6, q => Box(q, 0, 0, 0.1, 0.09))),
-        EmotionSymbolShape.Sick_face => (p => Circle(p, 0, 0, 0.4), p => -Union(Circle(p, -0.13, 0.08, 0.05), Circle(p, 0.13, 0.08, 0.05), Box(p, 0, -0.16, 0.14, 0.03))),
+        EmotionSymbolShape.Storm_cloud => (p => Union(Circle(p, -0.18, 0.02, 0.17), Circle(p, 0.04, 0.12, 0.22), Circle(p, 0.22, 0.0, 0.16), Box(p, 0.02, -0.06, 0.34, 0.1)), p => Polygon(p, [(0.02, -0.04), (-0.08, -0.14), (0.0, -0.14), (-0.06, -0.26), (0.08, -0.1), (0.0, -0.1), (0.08, -0.04)])),
+        EmotionSymbolShape.Plaster => (p => Rotated(p, 0.6, q => Box(q, 0, 0, 0.4, 0.13) - 0.04), p => Rotated(p, 0.6, q => Box(q, 0, 0, 0.1, 0.09)) + 0.06),
+        EmotionSymbolShape.Sick_face => (p => Circle(p, 0, 0, 0.4), p => Union(Circle(p, -0.13, 0.08, 0.05), Circle(p, 0.13, 0.08, 0.05), Box(p, 0, -0.16, 0.14, 0.03))),
         _ => throw new ArgumentOutOfRangeException(nameof(shape), shape, "unknown symbol shape"),
     };
 
