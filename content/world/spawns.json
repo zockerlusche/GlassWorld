@@ -400,12 +400,12 @@
     {
       "biome": "freshwater",
       "object_type": "spring_water",
-      "per_1000_cells": 5,
+      "per_1000_cells": 10,
       "cluster": {
         "min": 1,
         "max": 1
       },
-      "max_total": 4,
+      "max_total": 12,
       "regrow_hours": 6
     },
     {
@@ -422,12 +422,12 @@
     {
       "biome": "forest",
       "object_type": "spring_water",
-      "per_1000_cells": 4,
+      "per_1000_cells": 8,
       "cluster": {
         "min": 1,
         "max": 1
       },
-      "max_total": 8,
+      "max_total": 24,
       "regrow_hours": 6
     },
     {
