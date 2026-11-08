@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/ollama-setup-status.schema.json",
+  "title": "OllamaSetupStatus",
+  "description": "GET /setup/ollama and the answers of POST /setup/ollama/download and /cancel (B10 R3): whether a usable Ollama runs, and the download the game's dialog offers (R4).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "state",
+    "source",
+    "version",
+    "required_version",
+    "download",
+    "error"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "state": {
+      "description": "running = a usable Ollama answers; outdated = one answers but is older than accept_from (the player has to update or close it); installed = a usable program is on disk but not running; starting; missing = offer the download; downloading / verifying / installing; failed (error set; the download can be started again and continues).",
+      "type": "string",
+      "enum": [
+        "running",
+        "outdated",
+        "installed",
+        "starting",
+        "missing",
+        "downloading",
+        "verifying",
+        "installing",
+        "failed"
+      ]
+    },
+    "source": {
+      "description": "external = the player's own Ollama; managed = the one the game loaded; null when none.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "external",
+            "managed"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "version": {
+      "anyOf": [
+        {
+          "type": "string",
+          "maxLength": 64
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "required_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "download": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "url",
+        "size_bytes",
+        "done_bytes",
+        "licence",
+        "source_page"
+      ],
+      "properties": {
+        "url": {
+          "type": "string",
+          "maxLength": 512
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "done_bytes": {
+          "description": "Bytes on disk so far (kept after a cancel: the next start continues).",
+          "type": "integer",
+          "minimum": 0
+        },
+        "licence": {
+          "type": "string",
+          "maxLength": 64
+        },
+        "source_page": {
+          "type": "string",
+          "maxLength": 512
+        }
+      }
+    },
+    "error": {
+      "description": "Stable code when state is failed: unsupported_platform, network, checksum_mismatch, bad_archive, disk, start_failed.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[a-z_]{1,32}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}

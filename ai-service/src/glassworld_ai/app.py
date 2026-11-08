@@ -55,6 +55,7 @@ from glassworld_ai.llm.ollama import (
 )
 from glassworld_ai.memory.condense import MockMemory, OllamaMemory, ReplayMemory
 from glassworld_ai.model3d import Model3dJobs, load_model3d_settings
+from glassworld_ai.ollama_setup import OllamaSetup, load_runtime
 from glassworld_ai.planner import Planner, load_night_plan
 from glassworld_ai.probes import HttpProbes, Probes
 from glassworld_ai.process.judge import (
@@ -119,6 +120,7 @@ def create_app(
     tiers = load_tiers(settings.hardware_tiers_file)  # fail fast on a broken data file
     game_vram, footprints = load_footprints(settings.model_footprints_file)
     night_budget, night_kinds = load_night_plan(settings.night_plan_file)
+    ollama_runtime = load_runtime(settings.ollama_runtime_file)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
@@ -127,6 +129,11 @@ def create_app(
                 str(settings.ollama_url), settings.decider_model, client, settings.keep_alive
             )
             app.state.ollama = ollama
+            setup: OllamaSetup = app.state.ollama_setup
+            autostart: asyncio.Task[bool] | None = None
+            if settings.ollama_autostart and settings.decider_backend == "ollama":
+                # B10 R3: an installed Ollama that does not run yet is started (warm-up retries).
+                autostart = asyncio.create_task(setup.ensure_running())
             if probes is None:
                 app.state.probes = HttpProbes(settings, client)
             if hardware is None:
@@ -188,6 +195,10 @@ def create_app(
                     with contextlib.suppress(asyncio.CancelledError):
                         await first_run
                 await app.state.benchmark.close()
+                if autostart is not None and not autostart.done():
+                    autostart.cancel()
+                    with contextlib.suppress(asyncio.CancelledError):
+                        await autostart
                 await app.state.jobs.close()
                 with contextlib.suppress(ResidencyError):
                     await app.state.residency.release_all()  # also image/sound models (R3)
@@ -196,6 +207,7 @@ def create_app(
                         OllamaUnavailableError, OllamaResponseError, httpx.HTTPError
                     ):
                         await ollama.unload(timeout=10)
+                await setup.close()  # only an Ollama the service started itself
 
     app = FastAPI(
         title="GlassWorld AI service",
@@ -206,6 +218,14 @@ def create_app(
         openapi_url=None,
     )
     validator = ContractValidator(settings.schemas_dir)
+    app.state.ollama_setup = OllamaSetup(
+        ollama_runtime,
+        install_dir=settings.ollama_install_dir,
+        ollama_url=str(settings.ollama_url),
+        transport=transport,
+        models_dir=settings.ollama_models_dir,
+        start_timeout_s=settings.ollama_start_timeout_s,
+    )
     app.state.queue = queue or ModelQueue(settings.queue_size)
     # Job kinds get their handlers in their own steps (question: B4a S2, image: B7 S5, ...).
     # The Ollama question handler needs the HTTP client and is registered in the lifespan.
@@ -415,6 +435,37 @@ def create_app(
     @app.get("/phase")
     async def phase_status() -> Response:
         return JSONResponse(_phase_status().model_dump(mode="json"))
+
+    @app.get("/setup/ollama")
+    async def ollama_setup_status() -> Response:
+        """B10 R3: is a usable Ollama there, and what the download would be (dialog, R4)."""
+        setup: OllamaSetup = app.state.ollama_setup
+        return JSONResponse((await setup.status()).model_dump(mode="json"))
+
+    @app.post("/setup/ollama/download")
+    async def ollama_setup_download(request: Request) -> Response:
+        """Load Ollama, only with {"consent": true} from the game's dialog; poll the GET."""
+        body = await _read_body(request)
+        try:
+            data: object = json.loads(body or b"null")
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            data = None
+        if not isinstance(data, dict) or cast(dict[str, object], data).get("consent") is not True:
+            return error_response(
+                "bad_request", 'The player has to agree first: {"consent": true}.', retryable=False
+            )
+        if app.state.stopping:
+            return error_response("model_unavailable", "Service is stopping.")
+        setup: OllamaSetup = app.state.ollama_setup
+        setup.start_download()
+        return JSONResponse((await setup.status()).model_dump(mode="json"), status_code=202)
+
+    @app.post("/setup/ollama/cancel")
+    async def ollama_setup_cancel() -> Response:
+        """Stop the download; what is on disk stays and the next download continues."""
+        setup: OllamaSetup = app.state.ollama_setup
+        await setup.cancel()
+        return JSONResponse((await setup.status()).model_dump(mode="json"))
 
     @app.get("/benchmark")
     async def benchmark_status() -> Response:
