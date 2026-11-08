@@ -30,6 +30,10 @@ question_prompt = "question/ask"   # B4a S2; backend follows decider_backend (ol
 question_prompt_version = 1
 memory_prompt = "memory/condense"  # B4a S4: memory condensation (job kind memory)
 memory_prompt_version = 1
+invention_prompt = "invention/invent"   # D471 D2: inventor
+invention_prompt_version = 1
+guard_prompt = "guard/invention"        # D471 D2: AI rule guard, own instruction (ADR-0005)
+guard_prompt_version = 1
 question_call_timeout_s = 60.0     # one model call (blocks the model like a decision, so <= the
                                    # core's decision deadline); WAITING in the queue has no limit (B2487)
 job_capacity = 256         # generation jobs held in memory (B7); the core resubmits after a restart

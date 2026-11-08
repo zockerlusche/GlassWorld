@@ -1005,6 +1005,30 @@
     {
       "key": "vocab.tech_level.wilderness",
       "text": "Wildnis"
+    },
+    {
+      "key": "vocab.guard_reason.living_being",
+      "text": "Lebewesen"
+    },
+    {
+      "key": "vocab.guard_reason.harmful",
+      "text": "Schädlich"
+    },
+    {
+      "key": "vocab.guard_reason.material",
+      "text": "Material"
+    },
+    {
+      "key": "vocab.guard_reason.tech_level",
+      "text": "Technikstufe"
+    },
+    {
+      "key": "vocab.guard_reason.too_large",
+      "text": "Zu groß"
+    },
+    {
+      "key": "vocab.guard_reason.implausible",
+      "text": "Unplausibel"
     }
   ]
 }
