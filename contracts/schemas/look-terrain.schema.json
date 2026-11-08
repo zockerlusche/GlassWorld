@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://glassworld.local/contracts/v0/look-terrain.schema.json",
   "title": "LookTerrain",
-  "description": "Data file content/look/terrain.json: how the island grid is drawn (B2 R18-R20): palette colours per biome, for cliffs and the ground under water, and the water surfaces. Ids refer to content/look/palette.json. Presentation only, not part of the hash. Values are placeholders.",
+  "description": "Data file content/look/terrain.json: how the island grid is drawn (B2 R18-R20): palette colours per biome, for cliffs and the ground under water, the water surfaces and the detail levels of the chunks. Ids refer to content/look/palette.json. Presentation only, not part of the hash. Values are placeholders.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -14,7 +14,8 @@
     "slope_shade_permille",
     "slope_shade_gain",
     "open_sea_size_factor",
-    "water_shader"
+    "water_shader",
+    "detail"
   ],
   "properties": {
     "contract_version": {
@@ -60,6 +61,9 @@
     },
     "water_shader": {
       "$ref": "#/$defs/TerrainWaterShader"
+    },
+    "detail": {
+      "$ref": "#/$defs/TerrainDetail"
     }
   },
   "$defs": {
@@ -179,6 +183,72 @@
           "type": "number",
           "minimum": 0,
           "maximum": 1
+        }
+      }
+    },
+    "TerrainDetail": {
+      "description": "Detail levels of the terrain chunks (B2 R18): each chunk has one ground mesh per level, built once from the base grid (it never changes at run time). A coarser level merges blocks of plain dry land into a few triangles within its tolerances and draws coast, banks, water and cliffs as the base grid does; the water is always drawn from the base grid. Godot switches between the levels by the camera distance to the chunk (visibility ranges, switched at until_m without fade, with a small hysteresis: the levels share their borders and differ only within the tolerances) and culls chunks outside the view.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "levels",
+        "sea_floor_margin_mm",
+        "switch_margin_m"
+      ],
+      "properties": {
+        "levels": {
+          "description": "Levels from near to far: the first has cell_step 1 (the base grid); cell steps rise, each a divisor of the chunk size; every level but the last ends at until_m (rising), the last reaches to the horizon; coarser levels need max_error_mm and max_color_delta_permille.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/TerrainDetailLevel"
+          }
+        },
+        "sea_floor_margin_mm": {
+          "description": "Coarser levels merge open sea bed only where every merged corner lies at least this far (millimetres) below the sea surface, so the floor never shows through or flickers with the water.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "switch_margin_m": {
+          "description": "Hysteresis of the switch between two levels (metres): a shown level stays up to twice this beyond until_m, so chunks do not pop back and forth while the camera eases; a hidden one appears exactly at until_m. Levels must lie more than four margins apart.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        }
+      }
+    },
+    "TerrainDetailLevel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cell_step"
+      ],
+      "properties": {
+        "cell_step": {
+          "description": "Edge length in grid cells of the blocks this level may merge (1 = every cell of the base grid).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        },
+        "until_m": {
+          "description": "Camera distance to the chunk (metres) up to which this level is drawn; missing on the last level.",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 100000
+        },
+        "max_error_mm": {
+          "description": "Largest height difference (millimetres) of a merged block from the base grid; blocks that would differ more stay at full detail.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "max_color_delta_permille": {
+          "description": "Largest colour difference per channel (permille) of a merged block from the base grid; blocks that would differ more stay at full detail.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
         }
       }
     }

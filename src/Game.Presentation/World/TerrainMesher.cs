@@ -148,7 +148,8 @@ public sealed class MeshData
 /// Builds low-poly meshes of the island grid per chunk (B2 R18, R20), without Godot. Slopes between
 /// neighbours closer than the cliff drop are smooth (shared corner heights); larger steps become vertical
 /// cliff walls. Water surfaces are flat quads at bed height plus depth, coloured by kind and depth, with
-/// the flow direction the core gave the stream. Deterministic: same map, same meshes.
+/// the flow direction the core gave the stream. Deterministic: same map, same meshes. The base grid never
+/// changes at run time, so a chunk's meshes are built once per detail level (<see cref="TerrainLevel"/>).
 /// </summary>
 public static partial class TerrainMesher
 {
@@ -163,38 +164,417 @@ public static partial class TerrainMesher
         var mesh = new MeshData();
         foreach (var (x, z) in CellsOf(map, chunkX, chunkZ))
         {
-            var cell = map.Cell(x, z);
-            var h = CornerHeights(map, x, z, look.CliffDrop);
-            var p = new (float X, float Y, float Z)[4];
-            for (var k = 0; k < 4; k++)
-            {
-                p[k] = ((x + Corners[k].Dx) * look.CellM, h[k] * look.UnitM, (z + Corners[k].Dz) * look.CellM);
-            }
-
-            // Corner colours blend the ground colours around each corner, so biome borders are soft lines
-            // instead of cell stairs.
-            var col = CornerColors(map, x, z, look);
-
-            // Two triangles, split along the flatter diagonal so ridges stay sharp; seen from above (+y).
-            if (SplitsAlong02(h))
-            {
-                Top(mesh, (p[0], col[0]), (p[2], col[2]), (p[1], col[1]), look);
-                Top(mesh, (p[0], col[0]), (p[3], col[3]), (p[2], col[2]), look);
-            }
-            else
-            {
-                Top(mesh, (p[0], col[0]), (p[3], col[3]), (p[1], col[1]), look);
-                Top(mesh, (p[1], col[1]), (p[3], col[3]), (p[2], col[2]), look);
-            }
-
-            // Cliff walls: this cell owns the wall on each edge where its edge lies above the neighbour's.
-            Wall(map, look, mesh, x, z, h, dx: 1, dz: 0);
-            Wall(map, look, mesh, x, z, h, dx: -1, dz: 0);
-            Wall(map, look, mesh, x, z, h, dx: 0, dz: 1);
-            Wall(map, look, mesh, x, z, h, dx: 0, dz: -1);
+            Cell(map, look, mesh, x, z);
         }
 
         return mesh;
+    }
+
+    /// <summary>
+    /// The ground of one chunk at a detail level (B2 R18). Level 0 is <see cref="Ground(WorldMap, int, int, TerrainLook)"/>.
+    /// A coarser level merges blocks of plain dry land (and of open sea bed) into a few triangles: a block of
+    /// <see cref="TerrainLevel.CellStep"/> cells if it passes <see cref="Mergeable"/> (no water in or next to
+    /// dry land, no cliff, within the level's height and colour tolerance), else its four half blocks, down
+    /// to blocks of 2. Every other cell is drawn exactly as on level 0, so coasts, banks, streams, lakes and
+    /// cliffs look the same at every level and the water (always drawn from the base grid) fits. All
+    /// vertices are corners of the base grid with their level-0 height. A merged block's border keeps every
+    /// base vertex another piece of the chunk uses and every base vertex on the chunk border, so pieces
+    /// meet without T-junctions and chunks of any two levels meet without cracks; no skirts are needed.
+    /// </summary>
+    public static MeshData Ground(TerrainLevel level, int chunkX, int chunkZ)
+    {
+        ArgumentNullException.ThrowIfNull(level);
+        var (map, look, step) = (level.Base, level.Look, level.CellStep);
+        if (step == 1)
+        {
+            return Ground(map, chunkX, chunkZ, look);
+        }
+
+        if (chunkX < 0 || chunkZ < 0 || chunkX >= map.ChunksX || chunkZ >= map.ChunksZ)
+        {
+            throw new ArgumentOutOfRangeException(nameof(chunkX), $"chunk ({chunkX}, {chunkZ}) is outside the map");
+        }
+
+        // Pieces of the chunk: merged blocks (size >= 2 with their shape) and single cells (size 1).
+        var pieces = new List<(int X0, int Z0, int Size, Shape Shape)>();
+        void Split(int x0, int z0, int size)
+        {
+            var shape = size >= 2 ? Mergeable(map, look, x0, z0, size, level.MaxErrorM, level.MaxColorDelta, level.SeaFloorMarginM) : Shape.None;
+            if (shape != Shape.None)
+            {
+                pieces.Add((x0, z0, size, shape));
+            }
+            else if (size >= 4 && size % 2 == 0)
+            {
+                var half = size / 2;
+                Split(x0, z0, half);
+                Split(x0 + half, z0, half);
+                Split(x0, z0 + half, half);
+                Split(x0 + half, z0 + half, half);
+            }
+            else
+            {
+                for (var z = z0; z < z0 + size; z++)
+                {
+                    for (var x = x0; x < x0 + size; x++)
+                    {
+                        pieces.Add((x, z, 1, Shape.None));
+                    }
+                }
+            }
+        }
+
+        int cx0 = chunkX * map.ChunkCells, cz0 = chunkZ * map.ChunkCells, n = map.ChunkCells;
+        for (var bz = 0; bz < n; bz += step)
+        {
+            for (var bx = 0; bx < n; bx += step)
+            {
+                Split(cx0 + bx, cz0 + bz, step);
+            }
+        }
+
+        // Base vertices a merged border must keep: every piece's corners and the whole chunk border.
+        var used = new HashSet<(int X, int Z)>();
+        foreach (var (x0, z0, size, _) in pieces)
+        {
+            used.UnionWith([(x0, z0), (x0 + size, z0), (x0 + size, z0 + size), (x0, z0 + size)]);
+        }
+
+        for (var e = 0; e <= n; e++)
+        {
+            used.UnionWith([(cx0 + e, cz0), (cx0 + e, cz0 + n), (cx0, cz0 + e), (cx0 + n, cz0 + e)]);
+        }
+
+        var mesh = new MeshData();
+        foreach (var (x0, z0, size, shape) in pieces)
+        {
+            if (size == 1)
+            {
+                Cell(map, look, mesh, x0, z0);
+            }
+            else
+            {
+                Fan(map, look, mesh, x0, z0, size, shape, used);
+            }
+        }
+
+        return mesh;
+    }
+
+    /// <summary>The top faces and owned cliff walls of one base grid cell.</summary>
+    private static void Cell(WorldMap map, TerrainLook look, MeshData mesh, int x, int z)
+    {
+        var h = CornerHeights(map, x, z, look.CliffDrop);
+        var p = new (float X, float Y, float Z)[4];
+        for (var k = 0; k < 4; k++)
+        {
+            p[k] = ((x + Corners[k].Dx) * look.CellM, h[k] * look.UnitM, (z + Corners[k].Dz) * look.CellM);
+        }
+
+        // Corner colours blend the ground colours around each corner, so biome borders are soft lines
+        // instead of cell stairs.
+        var col = CornerColors(map, x, z, look);
+
+        // Two triangles, split along the flatter diagonal so ridges stay sharp; seen from above (+y).
+        if (SplitsAlong02(h))
+        {
+            Top(mesh, (p[0], col[0]), (p[2], col[2]), (p[1], col[1]), look);
+            Top(mesh, (p[0], col[0]), (p[3], col[3]), (p[2], col[2]), look);
+        }
+        else
+        {
+            Top(mesh, (p[0], col[0]), (p[3], col[3]), (p[1], col[1]), look);
+            Top(mesh, (p[1], col[1]), (p[3], col[3]), (p[2], col[2]), look);
+        }
+
+        // Cliff walls: this cell owns the wall on each edge where its edge lies above the neighbour's.
+        Wall(map, look, mesh, x, z, h, dx: 1, dz: 0);
+        Wall(map, look, mesh, x, z, h, dx: -1, dz: 0);
+        Wall(map, look, mesh, x, z, h, dx: 0, dz: 1);
+        Wall(map, look, mesh, x, z, h, dx: 0, dz: -1);
+    }
+
+    /// <summary>
+    /// How the block of <paramref name="step"/> × <paramref name="step"/> cells at (x0, z0) may be drawn
+    /// (<see cref="Shape.None"/> = not as one piece). A block merges only if every cell is dry with no water
+    /// among its eight neighbours (so coasts and banks stay exact) or all of them are open sea (its bed is
+    /// hidden under the opaque sea, see <see cref="SeaFloor"/>), every grid corner of the block has no
+    /// cliff around it (one height and colour per corner, no walls), and every corner's height and colour
+    /// lies within half the tolerance of the fan over the block's four corners and its centre. The two
+    /// triangles over one diagonal are allowed where they meet the same test. Base vertices added on
+    /// detailed edges change the surface by at most that half again, so the drawn block stays within the
+    /// tolerance.
+    /// </summary>
+    private static Shape Mergeable(WorldMap map, TerrainLook look, int x0, int z0, int step, float maxErrorM, float maxColorDelta, float seaFloorMarginM)
+    {
+        int dry = 0, salt = 0, all = 0, surface = int.MaxValue;
+        for (var z = z0 - 1; z <= z0 + step; z++)
+        {
+            for (var x = x0 - 1; x <= x0 + step; x++)
+            {
+                if (map.Contains(x, z))
+                {
+                    var cell = map.Cell(x, z);
+                    (dry, salt, all) = (dry + (cell.Water == WaterKind.None ? 1 : 0), salt + (cell.Water == WaterKind.Salt ? 1 : 0), all + 1);
+                    surface = cell.Water == WaterKind.Salt ? Math.Min(surface, cell.Height + cell.WaterDepth) : surface;
+                }
+            }
+        }
+
+        // Open sea bed: hidden under the (unchanged) opaque sea, if it lies clearly below the surface.
+        var underSea = salt == all;
+        if (!underSea && dry != all)
+        {
+            return Shape.None;
+        }
+
+        var corners = new (int H, Rgb C)[step + 1, step + 1];
+        for (var j = 0; j <= step; j++)
+        {
+            for (var i = 0; i <= step; i++)
+            {
+                if (!PlainCorner(map, look, x0 + i, z0 + j, out corners[i, j].H, out corners[i, j].C))
+                {
+                    return Shape.None;
+                }
+            }
+        }
+
+        bool Within(Func<int, int, (float H, Rgb C)> surface)
+        {
+            for (var j = 0; j <= step; j++)
+            {
+                for (var i = 0; i <= step; i++)
+                {
+                    var (h, c) = surface(i, j);
+                    var (gh, gc) = corners[i, j];
+                    if (MathF.Abs(gh - h) * look.UnitM > maxErrorM / 2
+                        || MathF.Abs(gc.R - c.R) > maxColorDelta / 2
+                        || MathF.Abs(gc.G - c.G) > maxColorDelta / 2
+                        || MathF.Abs(gc.B - c.B) > maxColorDelta / 2)
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        if (underSea)
+        {
+            return SeaFloor(corners, step, look, (surface * look.UnitM) - seaFloorMarginM, maxErrorM);
+        }
+
+        var centre = Centre(corners, step);
+        if (!Within((i, j) => FanAt(corners, centre, step, i, j)))
+        {
+            return Shape.None;
+        }
+
+        var shape = Shape.Fan;
+        if (Within((i, j) => DiagonalAt(corners, step, i, j, along02: true)))
+        {
+            shape |= Shape.Diagonal02;
+        }
+
+        if (Within((i, j) => DiagonalAt(corners, step, i, j, along02: false)))
+        {
+            shape |= Shape.Diagonal13;
+        }
+
+        return shape;
+    }
+
+    /// <summary>
+    /// How a block of open sea bed may be drawn: only if every corner lies at least the margin below the
+    /// sea surface (<paramref name="topM"/> = surface minus margin), so the merged floor never comes near the
+    /// water and cannot show through it, and only in shapes that never raise the floor above any corner of
+    /// the base grid and lower it by at most half the height tolerance: the sea shader colours its bands by
+    /// the depth below the surface, so a deeper floor would change the sea's colour at the level switch.
+    /// </summary>
+    private static Shape SeaFloor((int H, Rgb C)[,] corners, int step, TerrainLook look, float topM, float maxErrorM)
+    {
+        for (var j = 0; j <= step; j++)
+        {
+            for (var i = 0; i <= step; i++)
+            {
+                if (corners[i, j].H * look.UnitM > topM)
+                {
+                    return Shape.None;
+                }
+            }
+        }
+
+        bool Below(Func<int, int, (float H, Rgb C)> surface)
+        {
+            for (var j = 0; j <= step; j++)
+            {
+                for (var i = 0; i <= step; i++)
+                {
+                    var h = surface(i, j).H;
+                    if (h > corners[i, j].H + 1e-3f || (corners[i, j].H - h) * look.UnitM > maxErrorM / 2)
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        var centre = Centre(corners, step);
+        if (!Below((i, j) => FanAt(corners, centre, step, i, j)))
+        {
+            return Shape.None;
+        }
+
+        var shape = Shape.Fan;
+        shape |= Below((i, j) => DiagonalAt(corners, step, i, j, along02: true)) ? Shape.Diagonal02 : Shape.None;
+        shape |= Below((i, j) => DiagonalAt(corners, step, i, j, along02: false)) ? Shape.Diagonal13 : Shape.None;
+        return shape;
+    }
+
+    /// <summary>
+    /// Height and colour of the grid corner (gx, gz) if no two cells around it are a cliff apart: then every
+    /// cell around it gives the corner the same height (<see cref="CornerHeights"/>) and colour (<see cref="CornerColors"/>).
+    /// </summary>
+    private static bool PlainCorner(WorldMap map, TerrainLook look, int gx, int gz, out int height, out Rgb color)
+    {
+        int min = int.MaxValue, max = int.MinValue, sum = 0, count = 0;
+        float r = 0, g = 0, b = 0;
+        for (var oz = -1; oz <= 0; oz++)
+        {
+            for (var ox = -1; ox <= 0; ox++)
+            {
+                if (!map.Contains(gx + ox, gz + oz))
+                {
+                    continue;
+                }
+
+                var cell = map.Cell(gx + ox, gz + oz);
+                (min, max, sum, count) = (Math.Min(min, cell.Height), Math.Max(max, cell.Height), sum + cell.Height, count + 1);
+                var col = GroundColor(cell, look);
+                (r, g, b) = (r + col.R, g + col.G, b + col.B);
+            }
+        }
+
+        height = (int)Math.Round((double)sum / count, MidpointRounding.AwayFromZero);
+        color = new Rgb(r / count, g / count, b / count);
+        return max - min < look.CliffDrop;
+    }
+
+    /// <summary>The fan's centre: the grid corner in the middle of the block (even steps) or the mean of its four corners.</summary>
+    private static (float H, Rgb C) Centre((int H, Rgb C)[,] k, int step)
+    {
+        if (step % 2 == 0)
+        {
+            return k[step / 2, step / 2];
+        }
+
+        var color = k[0, 0].C.Lerp(k[step, 0].C, 0.5f).Lerp(k[0, step].C.Lerp(k[step, step].C, 0.5f), 0.5f);
+        return ((k[0, 0].H + k[step, 0].H + k[0, step].H + k[step, step].H) / 4f, color);
+    }
+
+    /// <summary>Height and colour of the four-triangle fan (corners and centre) at the corner (i, j) of the block.</summary>
+    private static (float H, Rgb C) FanAt((int H, Rgb C)[,] k, (float H, Rgb C) centre, int step, int i, int j)
+    {
+        float m = step / 2f, u = i - m, v = j - m;
+
+        // The triangle of the edge the point faces: left (i = 0), right (i = step), front (j = 0) or back (j = step).
+        var ((ai, aj), (bi, bj)) = MathF.Abs(u) >= MathF.Abs(v)
+            ? (u <= 0 ? ((0, 0), (0, step)) : ((step, 0), (step, step)))
+            : (v <= 0 ? ((0, 0), (step, 0)) : ((0, step), (step, step)));
+        return Blend((m, m, centre.H, centre.C), (ai, aj, k[ai, aj].H, k[ai, aj].C), (bi, bj, k[bi, bj].H, k[bi, bj].C), i, j);
+    }
+
+    /// <summary>Height and colour of the two triangles over one diagonal (0–2 or 1–3) at the corner (i, j) of the block.</summary>
+    private static (float H, Rgb C) DiagonalAt((int H, Rgb C)[,] k, int step, int i, int j, bool along02)
+    {
+        (float, float, float, Rgb) P(int a, int b) => (a, b, k[a, b].H, k[a, b].C);
+        var s = step;
+        return along02
+            ? (i >= j ? Blend(P(0, 0), P(s, 0), P(s, s), i, j) : Blend(P(0, 0), P(0, s), P(s, s), i, j))
+            : (i + j <= s ? Blend(P(0, 0), P(s, 0), P(0, s), i, j) : Blend(P(s, s), P(0, s), P(s, 0), i, j));
+    }
+
+    /// <summary>Barycentric blend of height and colour of a triangle (given in block corner coordinates) at (i, j).</summary>
+    private static (float H, Rgb C) Blend((float I, float J, float H, Rgb C) a, (float I, float J, float H, Rgb C) b, (float I, float J, float H, Rgb C) c, float i, float j)
+    {
+        var det = ((b.J - c.J) * (a.I - c.I)) + ((c.I - b.I) * (a.J - c.J));
+        var wa = (((b.J - c.J) * (i - c.I)) + ((c.I - b.I) * (j - c.J))) / det;
+        var wb = (((c.J - a.J) * (i - c.I)) + ((a.I - c.I) * (j - c.J))) / det;
+        var wc = 1 - wa - wb;
+        return (
+            (wa * a.H) + (wb * b.H) + (wc * c.H),
+            new Rgb((wa * a.C.R) + (wb * b.C.R) + (wc * c.C.R), (wa * a.C.G) + (wb * b.C.G) + (wc * c.C.G), (wa * a.C.B) + (wb * b.C.B) + (wc * c.C.B)));
+    }
+
+    /// <summary>
+    /// A merged block. Its border runs counter-clockwise seen from above through the four corners and every
+    /// base vertex on its edges that <paramref name="used"/> holds (left x = x0, back z = z0 + step, right,
+    /// front). Where a
+    /// diagonal is allowed and both edges at one of its corners are plain, the border is fanned from that
+    /// corner (two triangles plus one per extra vertex on the far edges); otherwise from the centre.
+    /// </summary>
+    private static void Fan(WorldMap map, TerrainLook look, MeshData mesh, int x0, int z0, int step, Shape shape, HashSet<(int X, int Z)> used)
+    {
+        var k = new (int H, Rgb C)[step + 1, step + 1];
+        for (var j = 0; j <= step; j++)
+        {
+            for (var i = 0; i <= step; i++)
+            {
+                PlainCorner(map, look, x0 + i, z0 + j, out k[i, j].H, out k[i, j].C);
+            }
+        }
+
+        var ring = new List<(int I, int J)>();
+        bool Edge(Func<int, (int I, int J)> at)
+        {
+            var detailed = false;
+            for (var e = 0; e < step; e++)
+            {
+                var (i, j) = at(e);
+                if (e == 0 || used.Contains((x0 + i, z0 + j)))
+                {
+                    ring.Add((i, j));
+                    detailed |= e > 0;
+                }
+            }
+
+            return detailed;
+        }
+
+        // Corners in the ring: (0, 0) first, then (0, step), (step, step), (step, 0) after each edge.
+        var detailed = (Left: Edge(e => (0, e)), Back: Edge(e => (e, step)), Right: Edge(e => (step, step - e)), Front: Edge(e => (step - e, 0)));
+
+        ((float X, float Y, float Z) P, Rgb C) Vertex((int I, int J) v) =>
+            (((x0 + v.I) * look.CellM, k[v.I, v.J].H * look.UnitM, (z0 + v.J) * look.CellM), k[v.I, v.J].C);
+        (int, int)? apex =
+            shape.HasFlag(Shape.Diagonal02) && !detailed.Left && !detailed.Front ? (0, 0)
+            : shape.HasFlag(Shape.Diagonal02) && !detailed.Back && !detailed.Right ? (step, step)
+            : shape.HasFlag(Shape.Diagonal13) && !detailed.Left && !detailed.Back ? (0, step)
+            : shape.HasFlag(Shape.Diagonal13) && !detailed.Right && !detailed.Front ? (step, 0)
+            : null;
+        if (apex is { } a)
+        {
+            // Both ring neighbours of the apex are corners (its edges are plain), so every other pair of the
+            // ring with the apex is a proper triangle.
+            var at = ring.IndexOf(a);
+            for (var e = 1; e < ring.Count - 1; e++)
+            {
+                Top(mesh, Vertex(a), Vertex(ring[(at + e) % ring.Count]), Vertex(ring[(at + e + 1) % ring.Count]), look);
+            }
+
+            return;
+        }
+
+        var (centreH, centreC) = Centre(k, step);
+        var centre = (((x0 + (step / 2f)) * look.CellM, centreH * look.UnitM, (z0 + (step / 2f)) * look.CellM), centreC);
+        for (var e = 0; e < ring.Count; e++)
+        {
+            Top(mesh, centre, Vertex(ring[e]), Vertex(ring[(e + 1) % ring.Count]), look);
+        }
     }
 
     /// <summary>
@@ -260,7 +640,7 @@ public static partial class TerrainMesher
 
     /// <summary>
     /// Height in metres of the ground mesh at (x, z) in metres: the cell's top triangles interpolated
-    /// exactly as <see cref="Ground"/> splits them (same corner heights, same diagonal). Positions outside
+    /// exactly as <see cref="Ground(WorldMap, int, int, TerrainLook)"/> splits them (same corner heights, same diagonal). Positions outside
     /// the map are clamped to its edge. For placing figures and objects and for the camera target.
     /// </summary>
     public static float GroundHeight(WorldMap map, TerrainLook look, double x, double z)
@@ -442,6 +822,13 @@ public static partial class TerrainMesher
         return result;
     }
 
+    /// <summary>The water surfaces of one chunk at a detail level: always those of the base grid, so they fit the ground of every level.</summary>
+    public static MeshData Water(TerrainLevel level, int chunkX, int chunkZ, WaterKind? only = null)
+    {
+        ArgumentNullException.ThrowIfNull(level);
+        return Water(level.Base, chunkX, chunkZ, level.Look, only);
+    }
+
     private static IEnumerable<(int X, int Z)> CellsOf(WorldMap map, int chunkX, int chunkZ)
     {
         if (chunkX < 0 || chunkZ < 0 || chunkX >= map.ChunksX || chunkZ >= map.ChunksZ)
@@ -534,6 +921,16 @@ public static partial class TerrainMesher
         // Facing the neighbour (outwards); the edges a→b run around the cell in one sense for all four sides.
         mesh.Triangle(topA, lowB, lowA, look.Cliff);
         mesh.Triangle(topA, topB, lowB, look.Cliff);
+    }
+
+    /// <summary>How a block of a coarser level may be drawn.</summary>
+    [Flags]
+    private enum Shape
+    {
+        None = 0,
+        Fan = 1,
+        Diagonal02 = 2,
+        Diagonal13 = 4,
     }
 
     private enum Carrier

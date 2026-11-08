@@ -32,12 +32,6 @@ namespace GlassWorld.Contracts
         public double GrassDistanceM { get; set; } = default!;
 
         /// <summary>
-        /// Ascending detail distances.
-        /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("detail_distances_m")]
-        public System.Collections.Generic.ICollection<double> DetailDistancesM { get; set; } = new System.Collections.ObjectModel.Collection<double>();
-
-        /// <summary>
         /// Shadow quality.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("shadows")]

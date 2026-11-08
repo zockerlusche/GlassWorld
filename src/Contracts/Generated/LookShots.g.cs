@@ -47,7 +47,7 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
-    /// Data file content/look/shots.json: the screenshot tool (B2 R32) renders every fixed camera point in every projection and day phase as PNG (weather, season and epoch follow with B2-5). Presentation only.
+    /// Data files content/look/shots*.json: shot sets of the screenshot tool (B2 R32). It renders every fixed camera point in every projection and day phase as PNG, and optionally in every listed epoch, season and weather. shots.json is the default set (the T1 pictures); further sets such as shots_dimensions.json are chosen with --shot-set. Presentation only.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class LookShots
@@ -76,6 +76,27 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("settle_frames")]
         public int SettleFrames { get; set; } = default!;
+
+        /// <summary>
+        /// Optional: epochs from content/look/epochs.json; each picture then shows the palette of the epoch. Missing = the base palette, as before.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("epochs")]
+        public System.Collections.Generic.ICollection<string>? Epochs { get; set; } = default!;
+
+        /// <summary>
+        /// Optional: seasons from content/world/time.json; each picture then shows the season palette of content/look/palette.json. Missing = the base palette, as before.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("seasons")]
+        public System.Collections.Generic.ICollection<string>? Seasons { get; set; } = default!;
+
+        /// <summary>
+        /// Optional: weather ids from content/vocabulary/weather.json. Weather without a look yet is rendered unchanged with a note in the file name.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("weather")]
+        public System.Collections.Generic.ICollection<string>? Weather { get; set; } = default!;
 
     }
 }

@@ -171,4 +171,10 @@ if ! grep -Eq '^ISLAND_OK seed=7 chunks=[1-9][0-9]* ground_triangles=[1-9][0-9]*
   echo "SMOKE_FAIL: the island is not drawn (marker 'ISLAND_OK ...' missing or errors)" >&2
   exit 1
 fi
+# Detail levels (B2 R18): the base grid plus at least one coarser ground level; the water is the same at every level.
+if ! grep -Eq '^ISLAND_LOD seed=7 ground=1:[1-9][0-9]*(,[1-9][0-9]*:[1-9][0-9]*)+ water=[1-9][0-9]*$' "$ISLAND_LOG"; then
+  cat "$ISLAND_LOG" >&2
+  echo "SMOKE_FAIL: the island has no coarser detail level (marker 'ISLAND_LOD ...' missing)" >&2
+  exit 1
+fi
 echo "SMOKE_PASS: $FRAMES frames without errors"

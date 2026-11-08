@@ -105,6 +105,60 @@ class TerrainWaterShader(BaseModel):
     )
 
 
+class TerrainDetailLevel(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    cell_step: int = Field(
+        ...,
+        description='Edge length in grid cells of the blocks this level may merge (1 = every cell of the base grid).',
+        ge=1,
+        le=64,
+    )
+    until_m: float | None = Field(
+        None,
+        description='Camera distance to the chunk (metres) up to which this level is drawn; missing on the last level.',
+        gt=0.0,
+        le=100000.0,
+    )
+    max_error_mm: int | None = Field(
+        None,
+        description='Largest height difference (millimetres) of a merged block from the base grid; blocks that would differ more stay at full detail.',
+        ge=0,
+        le=100000,
+    )
+    max_color_delta_permille: int | None = Field(
+        None,
+        description='Largest colour difference per channel (permille) of a merged block from the base grid; blocks that would differ more stay at full detail.',
+        ge=0,
+        le=1000,
+    )
+
+
+class TerrainDetail(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    levels: list[TerrainDetailLevel] = Field(
+        ...,
+        description='Levels from near to far: the first has cell_step 1 (the base grid); cell steps rise, each a divisor of the chunk size; every level but the last ends at until_m (rising), the last reaches to the horizon; coarser levels need max_error_mm and max_color_delta_permille.',
+        max_length=8,
+        min_length=1,
+    )
+    sea_floor_margin_mm: int = Field(
+        ...,
+        description='Coarser levels merge open sea bed only where every merged corner lies at least this far (millimetres) below the sea surface, so the floor never shows through or flickers with the water.',
+        ge=0,
+        le=100000,
+    )
+    switch_margin_m: float = Field(
+        ...,
+        description='Hysteresis of the switch between two levels (metres): a shown level stays up to twice this beyond until_m, so chunks do not pop back and forth while the camera eases; a hidden one appears exactly at until_m. Levels must lie more than four margins apart.',
+        ge=0.0,
+        le=100.0,
+    )
+
+
 class LookTerrain(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -151,3 +205,4 @@ class LookTerrain(BaseModel):
         le=100.0,
     )
     water_shader: TerrainWaterShader
+    detail: TerrainDetail

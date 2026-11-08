@@ -12,7 +12,9 @@ namespace GlassWorld.Game.World;
 /// <summary>
 /// The generated island on its own (B2-3): terrain, water, light of a day phase and the island camera.
 /// Arguments after <c>--</c>: <c>--seed=N</c>, <c>--preset=ID</c>; <c>--shots=DIR</c> runs the screenshot
-/// tool (B2 R32: every point × projection × phase from <c>content/look/shots.json</c>, then quits; the world
+/// tool (B2 R32: every point × projection × phase, and the epochs, seasons and weather it lists, from
+/// <c>content/look/shots.json</c>, see <see cref="ShotPlan"/>, then quits; <c>--shot-set=NAME</c> takes
+/// <c>content/look/shots_NAME.json</c> instead, e.g. <c>dimensions</c>: epochs × seasons × weather; the world
 /// pauses while a shot is pending and a point with an inhabitant follows that figure);
 /// <c>--follow=POINT</c> follows the inhabitant of a shot point with its yaw and distance while the world runs
 /// (with Godot's <c>--write-movie</c> and <c>--fixed-fps</c> a repeatable clip); <c>--speed=F</c> is the time
@@ -21,7 +23,7 @@ namespace GlassWorld.Game.World;
 /// </summary>
 public partial class IslandScene : Node3D
 {
-    private readonly Queue<(ShotPoint Point, string Projection, string Phase)> _plan = new();
+    private readonly Queue<Shot> _plan = new();
     private CameraRig _rig = null!;
     private DirectionalLight3D _sun = null!;
     private WorldEnvironment _environment = null!;
@@ -30,7 +32,11 @@ public partial class IslandScene : Node3D
     private string? _shotDirectory;
     private bool _check;
     private int _wait;
-    private (ShotPoint Point, string Projection, string Phase)? _current;
+    private Shot? _current;
+    private IslandView? _view;
+    private LookPalette? _palette;
+    private LookEpochs? _epochs;
+    private (string? Epoch, string? Season) _variant;
     private float _width;
     private float _depth;
     private SimulationHost _host = null!;
@@ -84,7 +90,7 @@ public partial class IslandScene : Node3D
         _depth = island.Map.DepthCells * view.Look.CellM;
 
         _daylight = Look<LookDaylight>("daylight.json");
-        _shots = Look<LookShots>("shots.json");
+        _shots = Look<LookShots>(Arg("--shot-set") is { } set ? $"shots_{Path.GetFileName(set)}.json" : "shots.json");
         _environment = new WorldEnvironment { Environment = new Godot.Environment() };
         AddChild(_environment);
         _sun = new DirectionalLight3D { Name = "Sun" };
@@ -143,21 +149,24 @@ public partial class IslandScene : Node3D
         if (_check)
         {
             GD.Print($"ISLAND_OK seed={seed} chunks={view.GroundChunks} ground_triangles={view.GroundTriangles} water_triangles={view.WaterTriangles} figures={_figures.Count}");
+            GD.Print($"ISLAND_LOD seed={seed} ground={string.Join(",", view.LevelTriangles.Select(l => $"{l.CellStep}:{l.Ground}"))} water={view.WaterTriangles}");
             GetTree().Quit(view.GroundChunks == island.Map.ChunksX * island.Map.ChunksZ && view.GroundTriangles > 0 && view.WaterTriangles > 0 && _figures.Count == host.Inhabitants.All.Count() ? 0 : 1);
             return;
         }
 
         if (_shotDirectory is not null)
         {
-            foreach (var point in _shots.Points)
+            _view = view;
+            _palette = Look<LookPalette>("palette.json");
+            _epochs = Look<LookEpochs>("epochs.json");
+            var seasons = _palette.Seasons.Select(s => s.Season).ToHashSet(StringComparer.Ordinal);
+
+            // TODO(B2-5): no weather has a look yet; fill this set from the weather look data once it exists.
+            // Until then weather pictures are rendered unchanged and noted in the file name.
+            var weatherWithLook = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var shot in ShotPlan.Build(_shots, seasons, weatherWithLook))
             {
-                foreach (var projection in _shots.Projections)
-                {
-                    foreach (var phase in _shots.Phases)
-                    {
-                        _plan.Enqueue((point, projection, phase));
-                    }
-                }
+                _plan.Enqueue(shot);
             }
         }
     }
@@ -213,6 +222,13 @@ public partial class IslandScene : Node3D
 
             _rig.Apply();
             ApplyPhase(next.Phase);
+            if ((next.Epoch, next.Season) != _variant)
+            {
+                // Epoch and season change only the palette (B2 R19); without those lists this never runs.
+                _variant = (next.Epoch, next.Season);
+                _view!.ApplyPalette(ShotPlan.PaletteFor(_palette!, _epochs!, next.Epoch, next.Season));
+            }
+
             _wait = _shots.SettleFrames;
             return;
         }
@@ -222,10 +238,9 @@ public partial class IslandScene : Node3D
             return;
         }
 
-        var (point, projection, shotPhase) = _current.Value;
         Directory.CreateDirectory(_shotDirectory);
         var size = GetViewport().GetTexture().GetSize();
-        var file = Path.Combine(_shotDirectory, string.Create(CultureInfo.InvariantCulture, $"island_{point.Id}_{projection}_{shotPhase}_{size.X}x{size.Y}.png"));
+        var file = Path.Combine(_shotDirectory, _current.FileName((int)size.X, (int)size.Y));
         GetViewport().GetTexture().GetImage().SavePng(file);
         GD.Print($"ISLAND_SHOT {file}");
         _current = null;

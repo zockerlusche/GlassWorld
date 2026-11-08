@@ -59,3 +59,18 @@ class LookShots(BaseModel):
         ge=1,
         le=600,
     )
+    epochs: list[common_schema.VocabId] | None = Field(
+        None,
+        description='Optional: epochs from content/look/epochs.json; each picture then shows the palette of the epoch. Missing = the base palette, as before.',
+        min_length=1,
+    )
+    seasons: list[common_schema.VocabId] | None = Field(
+        None,
+        description='Optional: seasons from content/world/time.json; each picture then shows the season palette of content/look/palette.json. Missing = the base palette, as before.',
+        min_length=1,
+    )
+    weather: list[common_schema.VocabId] | None = Field(
+        None,
+        description='Optional: weather ids from content/vocabulary/weather.json. Weather without a look yet is rendered unchanged with a note in the file name.',
+        min_length=1,
+    )

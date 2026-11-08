@@ -149,17 +149,55 @@ public sealed class LookContentTests
     }
 
     [Fact]
-    public void QualityDefaultExistsAndDetailDistancesRise()
+    public void QualityDefaultExists()
     {
+        // Detail distances live in content/look/terrain.json (detail levels, B2 R18) only.
         var quality = Read<LookQuality>("look", "quality.json");
         Assert.Contains(quality.DefaultLevel, quality.Levels.Select(l => l.Id));
-        foreach (var level in quality.Levels)
-        {
-            var d = level.DetailDistancesM.ToList();
-            Assert.Equal(d.Order(), d);
-        }
 
         var camera = Read<LookCamera>("look", "camera.json");
         Assert.InRange(camera.DistanceM.Start, camera.DistanceM.Min, camera.DistanceM.Max);
+    }
+
+    [Fact]
+    public void ShotListsReferToKnownPhasesEpochsSeasonsAndWeather()
+    {
+        foreach (var file in Directory.GetFiles(Path.Combine(TestData.Root, "content", "look"), "shots*.json"))
+        {
+            ShotListsReferToKnownIds(ContractSerializer.Deserialize<LookShots>(File.ReadAllText(file)));
+        }
+
+        // The default set stays the six T1 pictures; the dimensions set shows epochs, seasons and weather (R32).
+        var plain = Read<LookShots>("look", "shots.json");
+        Assert.True(plain.Epochs is null && plain.Seasons is null && plain.Weather is null);
+        var dimensions = Read<LookShots>("look", "shots_dimensions.json");
+        Assert.Equal(Seasons().Order(StringComparer.Ordinal), dimensions.Seasons!.Order(StringComparer.Ordinal));
+        Assert.True(dimensions.Epochs!.Count >= 2 && dimensions.Weather!.Count >= 1);
+    }
+
+    private static void ShotListsReferToKnownIds(LookShots shots)
+    {
+        var phases = Read<LookDaylight>("look", "daylight.json").Phases.Select(p => p.Phase);
+        Assert.All(shots.Phases, p => Assert.Contains(p, phases));
+        var epochs = Read<LookEpochs>("look", "epochs.json").Epochs.Select(e => e.Id).ToHashSet(StringComparer.Ordinal);
+        Assert.All(shots.Epochs ?? [], e => Assert.Contains(e, epochs));
+        Assert.All(shots.Seasons ?? [], s => Assert.Contains(s, Seasons()));
+        Assert.All(shots.Weather ?? [], w => Assert.Contains(w, Vocabulary("weather.json")));
+    }
+
+    [Fact]
+    public void TerrainDetailLevelsStartAtTheBaseGridAndGetCoarser()
+    {
+        var detail = Read<LookTerrain>("look", "terrain.json").Detail;
+        var levels = detail.Levels.ToList();
+        Assert.Equal(1, levels[0].CellStep);
+        Assert.True(levels.Count >= 2, "at least one coarse level (B2 R18)");
+        Assert.Equal(levels.Select(l => l.CellStep).Order(), levels.Select(l => l.CellStep));
+        Assert.Null(levels[^1].UntilM);
+        Assert.All(levels.Skip(1), l => Assert.True(l.MaxErrorMm is not null && l.MaxColorDeltaPermille is not null, "coarser levels need their tolerances"));
+        var ends = levels.SkipLast(1).Select(l => l.UntilM!.Value).ToList();
+        Assert.Equal(ends.Order(), ends);
+        Assert.All(ends.Zip(ends.Skip(1)), p => Assert.True(p.Second - p.First > 4 * detail.SwitchMarginM));
+        Assert.True(detail.SeaFloorMarginMm > 0, "merged sea floor stays clearly below the surface");
     }
 }
