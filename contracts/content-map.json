@@ -67,6 +67,10 @@
       "schema": "synth-recipes"
     },
     {
+      "pattern": "voice/murmur.json",
+      "schema": "murmur-settings"
+    },
+    {
       "pattern": "safety/rules.json",
       "schema": "safety-rules"
     },
