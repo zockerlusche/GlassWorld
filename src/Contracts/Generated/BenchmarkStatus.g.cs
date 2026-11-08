@@ -307,7 +307,7 @@ namespace GlassWorld.Contracts
         public double? FeltTemperatureC { get; set; } = default!;
 
         /// <summary>
-        /// What the inhabitant feels (B2543). Optional until the core sends it (absent = nothing known).
+        /// What the inhabitant feels (B2543), at most one entry per condition and body part (the core guarantees it). Optional until the core sends it (absent = nothing known).
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("conditions")]

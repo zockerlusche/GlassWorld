@@ -107,7 +107,7 @@ namespace GlassWorld.Contracts
         public double DistanceM { get; set; } = default!;
 
         /// <summary>
-        /// Conditions others can SEE (limping, lying down, pale; which ones is core data), never the cause (B2543). Optional until the core sends it.
+        /// Signs others can SEE (vocabulary sign: limping, lying down, pale; which felt condition shows which sign is core data), never the cause (B2543). Optional until the core sends it.
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("visible_conditions")]

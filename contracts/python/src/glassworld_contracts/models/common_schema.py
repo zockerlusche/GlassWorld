@@ -508,7 +508,7 @@ class InhabitantState(BaseModel):
     )
     conditions: list[FeltCondition] | None = Field(
         None,
-        description='What the inhabitant feels (B2543). Optional until the core sends it (absent = nothing known).',
+        description='What the inhabitant feels (B2543), at most one entry per condition and body part (the core guarantees it). Optional until the core sends it (absent = nothing known).',
         max_length=8,
     )
 
