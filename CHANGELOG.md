@@ -5,6 +5,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Observer camera in the placeholder world (follows the group with the latest thought, else switches every 30 s; B0 island placeholder hidden) and timed window screenshots via `GLASSWORLD_SHOTS=dir;seconds,...` for acceptance documents (M1, groundwork for B2 R32).
+- Inhabitant card stays beside the side bar and its open panel and is re-fitted when the UI size changes (found in the 3840x1600 screenshots at 175 %: the card kept its old place, covered the inhabitant list and ran off the screen). The smoke checks the card at the smallest and largest UI size.
+
+### Fixed
+
+- Smoke test accepts `SMOKE_OK frames=N` with N at least the requested frames: the game waits for its own checks before quitting, which can take a few frames longer on a slow CI runner (seen: 614 of 600).
+
 ### Added
 
 - Writing as a frame in the core, part A (A1357, B8 R13-R15, spec 33 §9a): the vocabulary kind `writing_medium` has seven carriers, from marks in the sand to a library, with names in DE/EN. `content/writing/media.json` (schema `writing-media`, placeholder values) gives per carrier the decay per day, extra loss per weather (rain wipes sand), tool properties, best legibility and capacity, plus what write and read need (ability, least level, least legibility, curiosity). `WritingSystem` keeps the text on an object (knowledge ref, carrier, author, tick, legibility) and wears it away; at 0 the text is gone and the object stays; a text goes with its object; saved (meta `writing`); out of the hash while empty, so golden hashes are unchanged. `IWeather` is the interface agreed with GW1 for the weather core (#19313). The actions write and read come with the ability register (A1372) and the knowledge store (A1400).
