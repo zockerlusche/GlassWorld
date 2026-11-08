@@ -138,6 +138,12 @@ public partial class Main
 
             menu.OpenWindow?.Close();
             menu.Free();
+
+            // The game screen too (review #76: the favour tooltip showed its key).
+            if (_screen is not null)
+            {
+                problems.AddRange(RawKeys(_screen).Select(key => $"{locale} game screen: raw key '{key}'"));
+            }
         }
 
         TextCatalogs.SetLanguage(language);
@@ -181,10 +187,11 @@ public partial class Main
         };
     }
 
-    /// <summary>Visible texts below <paramref name="root"/> that are keys without a translation.</summary>
+    /// <summary>Visible texts below <paramref name="root"/> that are keys without a translation, or tooltip keys the control does not translate.</summary>
     private static IEnumerable<string> RawKeys(Node root)
     {
         var texts = new List<string>();
+        var untranslated = new List<string>();
         foreach (var node in root.FindChildren("*", nameof(Control), recursive: true, owned: false).OfType<Control>().Where(c => c.IsVisibleInTree()))
         {
             switch (node)
@@ -204,9 +211,21 @@ public partial class Main
             }
 
             texts.Add(node.TooltipText);
+
+            // A tooltip key on a control that does not translate its tooltip shows raw (review #76).
+            var tooltipTranslated = node.TooltipAutoTranslateMode switch
+            {
+                Node.AutoTranslateModeEnum.Always => true,
+                Node.AutoTranslateModeEnum.Disabled => false,
+                _ => node.CanAutoTranslate(),
+            };
+            if (TextKeys.LooksLikeKey(node.TooltipText) && !tooltipTranslated)
+            {
+                untranslated.Add(node.TooltipText);
+            }
         }
 
-        return texts.Where(t => TextKeys.LooksLikeKey(t) && root.Tr(t) == t).Distinct(StringComparer.Ordinal);
+        return texts.Where(t => TextKeys.LooksLikeKey(t) && root.Tr(t) == t).Concat(untranslated).Distinct(StringComparer.Ordinal);
     }
 
     /// <summary>
