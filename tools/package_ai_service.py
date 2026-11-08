@@ -3,7 +3,7 @@
 Builds <out>/ai-service/ next to the game:
 - python/: python-build-standalone 3.12 (MPL-2.0 project; CPython PSF), trimmed: Tcl/Tk, test
   modules, bz2, lzma and sqlite are removed (not needed; their licences are outside the approved
-  list). zlib stays (inside python312.dll, needs approval F5265).
+  list). zlib stays (inside python312.dll, approved F5265 = A).
 - the service and its dependencies installed into that Python, exactly from uv.lock
   (uv export --frozen, no dev dependencies, no hashes needed for local wheels).
 - prompts/, schemas/, workflows/, config.toml (paths relative to it) and run.cmd.
