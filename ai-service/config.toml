@@ -17,6 +17,9 @@ probe_timeout_s = 2.0
 hardware_tiers_file = "../content/hardware/tiers.json"
 model_footprints_file = "../content/hardware/models.json"   # B7 S2 residency
 night_plan_file = "../content/hardware/night.json"          # B7 S4 day/night planner
+image_backend = "mock"                                      # B7 S5: "comfyui" for the local image model
+image_output_dir = "../.local/ai-service/images"            # made pictures by name pattern
+image_workflows_dir = "../tools/comfyui/workflows"          # workflow templates (API format)
 # --- Decider (B3) ---
 # ollama = real model, mock = deterministic stand-in (CI), replay = answers from the call log
 decider_backend = "ollama"
