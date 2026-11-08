@@ -38,6 +38,9 @@ public sealed record PlayerCommand(string Kind, string? InhabitantId)
 
     /// <summary>Mailbox message a command is about (acknowledge).</summary>
     public string? MessageId { get; init; }
+
+    /// <summary>What the player says to an inhabitant (send_text, B6 R13).</summary>
+    public string? Text { get; init; }
 }
 
 /// <summary>Result of a player command.</summary>
@@ -308,6 +311,19 @@ public sealed class DecisionsSystem : IWorldSystem
         foreach (var (key, tick) in _lastAsked)
         {
             hasher.Write(key).Write(tick);
+        }
+    }
+
+    /// <summary>
+    /// The inhabitant noticed the player (e.g. did not understand what the player said, B2511): opens a
+    /// question to the AI with a question mark, like a click, within the usual limits and cooldown.
+    /// </summary>
+    public void NoticePlayer(World world, string inhabitantId)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        if (Enabled(NoticedPlayer))
+        {
+            Ask(world, _inhabitants.Get(inhabitantId), NoticedPlayer, "player", null);
         }
     }
 

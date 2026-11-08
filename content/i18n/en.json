@@ -1491,6 +1491,46 @@
       "text": "{inhabitant} found old signs: {target}."
     },
     {
+      "key": "vocab.event.conversation_started",
+      "text": "Spoken to"
+    },
+    {
+      "key": "vocab.event.said",
+      "text": "Answered"
+    },
+    {
+      "key": "vocab.event.gestured",
+      "text": "Gesture"
+    },
+    {
+      "key": "vocab.event.declined",
+      "text": "Does not want to answer"
+    },
+    {
+      "key": "vocab.event.not_understood",
+      "text": "Not understood"
+    },
+    {
+      "key": "vocab.event.no_answer",
+      "text": "No answer"
+    },
+    {
+      "key": "msg.command.text_refused",
+      "text": "The inhabitants do not say things like that – please put it differently."
+    },
+    {
+      "key": "msg.command.text_empty",
+      "text": "Write something first."
+    },
+    {
+      "key": "msg.command.conversation_open",
+      "text": "The inhabitant is still thinking about your last sentence."
+    },
+    {
+      "key": "msg.hint.no_answer",
+      "text": "The inhabitants cannot answer right now. You get your favour back."
+    },
+    {
       "key": "ui.setup.model_language",
       "text": "Language model: how the inhabitants think, talk and ask"
     }

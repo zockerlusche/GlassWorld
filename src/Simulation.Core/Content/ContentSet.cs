@@ -109,6 +109,9 @@ public sealed class ContentSet
     /// <summary>Which action practises which skill (content/skills/practice.json, B5 R18).</summary>
     public SkillPractice SkillPractice { get; }
 
+    /// <summary>Talking with an inhabitant: limits and changes by outcome (content/player/conversation.json, B6 R13).</summary>
+    public ConversationSettings Conversation { get; init; } = new();
+
     /// <summary>Talent, forgetting and maximum of skill levels per inhabitant (content/skills/levels.json).</summary>
     public SkillLevelSettings SkillLevels { get; init; } = new();
 
@@ -183,6 +186,7 @@ public sealed class ContentSet
             ContractSerializer.Deserialize<MessageKinds>(File.ReadAllText(Path.Combine(player, "message_kinds.json"))))
         {
             SkillLevels = LoadSkillLevels(contentDirectory),
+            Conversation = ContractSerializer.Deserialize<ConversationSettings>(File.ReadAllText(Path.Combine(contentDirectory, "player", "conversation.json"))),
             Appearance = LoadAppearance(contentDirectory),
             Gaits = GaitTable.Create(
                 ContractSerializer.Deserialize<GaitSettings>(File.ReadAllText(Path.Combine(contentDirectory, "behaviour", "gaits.json"))),
