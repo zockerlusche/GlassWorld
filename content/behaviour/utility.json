@@ -4,6 +4,8 @@
   "distance_falloff": 0.5,
   "learning_step": 0.5,
   "unknown_target_belief": 0.3,
+  "search_weight": 0.2,
+  "search_give_up_hours": 48,
   "considerations": [
     { "action": "eat", "target_property": "edible", "avoid_properties": ["poisonous"], "search_action": "wander", "need": "hunger", "weight": 1.0, "curve": [[0.0, 1.0], [0.5, 0.4], [0.8, 0.0], [1.0, 0.0]] },
     { "action": "drink", "target_property": "drinkable", "avoid_properties": ["salty", "poisonous"], "search_action": "wander", "need": "thirst", "weight": 1.0, "curve": [[0.0, 1.0], [0.5, 0.4], [0.8, 0.0], [1.0, 0.0]] },

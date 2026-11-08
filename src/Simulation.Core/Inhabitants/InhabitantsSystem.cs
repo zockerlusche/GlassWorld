@@ -22,6 +22,15 @@ public sealed record WorldEvent(string Kind, long Tick, string InhabitantId, str
     public string? Detail { get; init; }
 }
 
+/// <summary>What an activity or a decider option is aimed at: another inhabitant or an object of the world.</summary>
+/// <param name="Inhabitant">The other inhabitant (passing knowledge on, B4a R4), or null.</param>
+/// <param name="Thing">The object, or null.</param>
+public readonly record struct ActivityTarget(Inhabitant? Inhabitant, WorldObject? Thing)
+{
+    /// <summary>Where the target is now.</summary>
+    public Position Position => Inhabitant?.Position ?? Thing!.Position;
+}
+
 /// <summary>An event with its running number (UI and sound read everything since their last number).</summary>
 /// <param name="Seq">Running number, starting at 1, never reused.</param>
 /// <param name="Event">The event.</param>
@@ -198,6 +207,21 @@ public sealed class InhabitantsSystem : IWorldSystem
     public Inhabitant Get(string id) => _inhabitants[id];
 
     /// <summary>
+    /// The one resolver for targets of activities and decider options (review GW3 #118): another
+    /// inhabitant first, then an object; null when it no longer exists. Inhabitant and object ids never collide.
+    /// </summary>
+    public ActivityTarget? ResolveTarget(string targetId)
+    {
+        ArgumentNullException.ThrowIfNull(targetId);
+        if (_inhabitants.TryGetValue(targetId, out var other))
+        {
+            return new ActivityTarget(other, null);
+        }
+
+        return _objects.TryGet(targetId, out var obj) ? new ActivityTarget(null, obj) : null;
+    }
+
+    /// <summary>
     /// The gait the inhabitant walks in (gait id of content/behaviour/gaits.json), or null when it is not on
     /// its way (no activity, or the action has started). Derived from the state, so it is not saved or hashed.
     /// </summary>
@@ -302,19 +326,27 @@ public sealed class InhabitantsSystem : IWorldSystem
 
         WorldObject? target = null;
         Inhabitant? listener = null;
-        if (activity.TargetId is not null && _inhabitants.TryGetValue(activity.TargetId, out var other))
+        if (activity.TargetId is not null)
         {
-            // Actions towards another inhabitant (warn, show, teach): walk over to them.
-            listener = other;
-            // The listener may move: follow them, and plan the way again when they did.
-            activity = activity.Destination == other.Position ? activity : activity with { Destination = other.Position, Route = null };
-            inhabitant.Activity = activity;
+            if (ResolveTarget(activity.TargetId) is not { } resolved)
+            {
+                Report(new WorldEvent(ActionCancelled, world.Tick, inhabitant.Id, activity.Action, activity.TargetId));
+                inhabitant.Activity = null;
+                return;
+            }
+
+            target = resolved.Thing;
+            listener = resolved.Inhabitant;
         }
-        else if (activity.TargetId is not null && !_objects.TryGet(activity.TargetId, out target))
+
+        if (listener is not null && activity.RemainingTicks is null && Following(activity, listener))
         {
-            Report(new WorldEvent(ActionCancelled, world.Tick, inhabitant.Id, activity.Action, activity.TargetId));
-            inhabitant.Activity = null;
-            return;
+            // Actions towards another inhabitant (warn, show, teach): walk over to them and follow when they
+            // move. On a route map the way is planned again only once they have moved more than the action's
+            // reach, not every tick. Follow-up (review GW3 #118): a give-up rule for a listener who keeps
+            // walking away.
+            activity = activity with { Destination = listener.Position, Route = null };
+            inhabitant.Activity = activity;
         }
 
         if (activity.RemainingTicks is null)
@@ -347,6 +379,12 @@ public sealed class InhabitantsSystem : IWorldSystem
         inhabitant.Activity = null;
     }
 
+    /// <summary>Whether a walk to a listener must head for the listener's new position.</summary>
+    private bool Following(Activity activity, Inhabitant listener) =>
+        Routes is null
+            ? activity.Destination != listener.Position
+            : Distance(activity.Destination, listener.Position) > _actions.Timing(activity.Action).ReachM;
+
     private Activity? Choose(World world, Inhabitant inhabitant)
     {
         var radius = _brain.Weights.PerceptionRadiusM;
@@ -354,7 +392,18 @@ public sealed class InhabitantsSystem : IWorldSystem
         var perceived = _objects.All
             .Where(o => DistanceSquared(inhabitant.Position, o.Position) <= radius * radius && (Routes is null || Routes.Connected(inhabitant.Position, o.Position)))
             .ToList();
-        var scored = _brain.Score(inhabitant, perceived);
+
+        // Looking further away gives up after the data's hours, until the need is met or something that
+        // seems as good is in sight again (review GW3 #118: no endless search for what is gone).
+        var giveUpTicks = (long)(_brain.Weights.SearchGiveUpHours * _ticksPerHour);
+        var givenUp = inhabitant.SearchSince.Where(s => world.Tick - s.Value >= giveUpTicks).Select(s => s.Key).ToHashSet(StringComparer.Ordinal);
+        var searching = new HashSet<string>(StringComparer.Ordinal);
+        var scored = _brain.Score(inhabitant, perceived, givenUp, searching);
+        foreach (var over in inhabitant.SearchSince.Keys.Where(k => !searching.Contains(k)).ToList())
+        {
+            inhabitant.SearchSince.Remove(over);
+        }
+
         if (Knowledge is { } knowledge && QuestionOpen is { } open && knowledge.WaitWhileQuestionOpen.Count > 0)
         {
             // W1595: what the inhabitant asked about is not eaten (or drunk …) before the answer comes.
@@ -370,6 +419,10 @@ public sealed class InhabitantsSystem : IWorldSystem
         }
 
         var best = scored[0];
+        if (best.SearchFor is { } search)
+        {
+            inhabitant.SearchSince.TryAdd(search, world.Tick);
+        }
 
         if (best.TargetId is not null && _objects.TryGet(best.TargetId, out var target))
         {

@@ -33,7 +33,7 @@ class Consideration(BaseModel):
     )
     search_action: common_schema.VocabId | None = Field(
         None,
-        description="Action without a target that takes over the need's urgency when nothing within reach in sight is believed to have target_property, but the inhabitant believes some kind of thing has it (looking for it further away, e.g. wandering). Absent or null = the need waits until something turns up.",
+        description='Action without a target (vocabulary target none) for looking further away while the inhabitant believes some kind of thing has target_property and nothing it avoids; scored with search_weight. Needs a target_property. Absent or null = the need waits until something turns up.',
     )
     need: common_schema.VocabId | None = Field(
         ..., description='Need whose value is the curve input; null = constant input 1.'
@@ -73,5 +73,17 @@ class UtilityWeights(BaseModel):
         description='Belief factor for a target whose property the inhabitant does not know yet (trying unknown things).',
         ge=0.0,
         le=1.0,
+    )
+    search_weight: float = Field(
+        ...,
+        description='Score factor of looking further away (search_action) against a target in sight: the search scores urgency x the surest helpful belief x this value, so a weak or doubtful target in sight still competes. At most unknown_target_belief (checked at load): trying something unknown close by never loses to searching far away.',
+        ge=0.0,
+        le=1.0,
+    )
+    search_give_up_hours: float = Field(
+        ...,
+        description='Game hours after which an inhabitant stops looking further away for a need, until the need is met or something believed helpful is in sight again (no endless search for what is gone or was heard wrongly).',
+        ge=0.0,
+        le=10000.0,
     )
     considerations: list[Consideration] = Field(..., max_length=256, min_length=1)

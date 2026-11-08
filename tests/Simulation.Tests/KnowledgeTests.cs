@@ -216,6 +216,32 @@ public sealed class KnowledgeTests : IDisposable
     }
 
     [Fact]
+    public void AWarnAnsweredAfterTheListenerLearnedItThemselvesFailsWithAReason()
+    {
+        // Review GW3 #118: the answer is checked again; with nothing left to pass on nobody walks over.
+        var port = new WarnPort { Hold = true };
+        var w = NewWorld(port);
+        var events = new List<WorldEvent>();
+        w.Inhabitants.Reported += events.Add;
+        var teller = w.Inhabitants.Get("inh-000001");
+        var listener = w.Inhabitants.Get("inh-000002");
+        teller.Beliefs.Set("red_berry", "poisonous", true, 1.0, KnowledgeSources.Experienced, null, 2);
+        w.Objects.Spawn("red_berry", new Position(2, 2));
+        w.Objects.Spawn("apple", new Position(2, 0));
+        RunUntil(w.World, () => port.Pending > 0);
+        Assert.True(port.Pending > 0);
+
+        listener.Beliefs.Set("red_berry", "poisonous", true, 1.0, KnowledgeSources.Experienced, null, w.World.Tick);
+        port.Hold = false;
+        w.World.Step();
+
+        Assert.Contains(w.Decisions.Log.Entries, e => e.Kind == DecisionLogKind.Discarded && e.Note == ReplayNotes.NothingToPass);
+        Assert.Contains(events, e => e.Kind == "question_failed" && e.Detail == ReplayNotes.NothingToPass);
+        Assert.DoesNotContain(w.Decisions.Log.Entries, e => e.Kind == DecisionLogKind.Response);
+        Assert.NotEqual("warn", teller.Activity?.Action);
+    }
+
+    [Fact]
     public void KnowledgeAndTrustSurviveSaveAndLoadAndReplay()
     {
         var original = SimulationHost.CreatePlaceholderWorld(ContentDirectory, 5, new MockDecisionPort(), "de");
@@ -302,6 +328,12 @@ public sealed class KnowledgeTests : IDisposable
     {
         private readonly List<PortMessage> _ready = [];
 
+        /// <summary>While true, answers are kept back.</summary>
+        public bool Hold { get; set; }
+
+        /// <summary>Answers kept back so far.</summary>
+        public int Pending => _ready.Count;
+
         public void Send(string requestId, string requestJson)
         {
             var request = ContractSerializer.Deserialize<DecisionRequest>(requestJson);
@@ -326,6 +358,11 @@ public sealed class KnowledgeTests : IDisposable
 
         public IReadOnlyList<PortMessage> Receive(long tick)
         {
+            if (Hold)
+            {
+                return [];
+            }
+
             var ready = _ready.ToList();
             _ready.Clear();
             return ready;

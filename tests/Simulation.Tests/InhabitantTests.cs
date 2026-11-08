@@ -142,6 +142,89 @@ public sealed class InhabitantTests
     }
 
     [Fact]
+    public void AWeakTargetInSightCompetesWithLookingFurtherAway()
+    {
+        // Review GW3 #118: sea water heard to be salty (0.9) leaves a drink score below idle; the search for
+        // the spring the inhabitant knows must still be offered and win, scored urgency x belief x search_weight.
+        var (_, inhabitants, objects) = NewWorld(1);
+        var thirsty = inhabitants.Get("inh-000001");
+        thirsty.Needs["thirst"] = 0.3;
+        thirsty.Needs["fun"] = 1.0;
+        thirsty.Beliefs.Set("spring_water", "drinkable", true, 1.0);
+        thirsty.Beliefs.Set("sea_water", "drinkable", true, 1.0);
+        thirsty.Beliefs.Set("sea_water", "salty", true, 0.9, KnowledgeSources.Heard, "inh-000002");
+        var sea = objects.Spawn("sea_water", new Position(5, 0));
+
+        var options = Content.Brain.Score(thirsty, [sea]);
+        var weights = Content.Brain.Weights;
+        var drink = weights.Considerations.Single(c => c.Need == "thirst" && c.TargetProperty is not null);
+        var urgency = drink.Weight * new Curve(drink.Curve).At(0.3);
+        var search = Assert.Single(options, o => o.SearchFor == "thirst");
+        Assert.Equal((drink.SearchAction, (string?)null), (search.Action, search.TargetId));
+        Assert.Equal(urgency * 1.0 * weights.SearchWeight, search.Score, 9);
+        Assert.Contains(options, o => o.Action == "drink" && o.TargetId == sea.Id && o.Score < search.Score);
+        Assert.Same(search, options[0]);
+    }
+
+    [Fact]
+    public void LookingFurtherAwayGivesUpAfterTheDataHoursAndStartsAgainWhenSomethingTurnsUp()
+    {
+        // Review GW3 #118: no endless search for something gone or heard wrongly.
+        var (world, inhabitants, objects) = NewWorld(1);
+        var thirsty = inhabitants.Get("inh-000001");
+        thirsty.Beliefs.Set("spring_water", "drinkable", true, 1.0);
+        var events = new List<WorldEvent>();
+        inhabitants.Reported += events.Add;
+        var ticksPerHour = world.Calendar.Settings.TicksPerHour;
+        var giveUp = (long)(Content.Brain.Weights.SearchGiveUpHours * ticksPerHour);
+        var search = Content.Brain.Weights.Considerations.Single(c => c.Need == "thirst" && c.TargetProperty is not null).SearchAction;
+
+        for (long t = 0; t < giveUp + (3 * ticksPerHour); t++)
+        {
+            foreach (var need in thirsty.Needs.Keys.ToList())
+            {
+                thirsty.Needs[need] = need == "thirst" ? 0.3 : 1.0;
+            }
+
+            world.Step();
+        }
+
+        var since = Assert.Single(thirsty.SearchSince).Value;
+        Assert.True(world.Tick - since >= giveUp);
+        Assert.Contains(events, e => e.InhabitantId == thirsty.Id && e.Kind == InhabitantsSystem.ActionStarted && e.Action == search && e.Tick < since + giveUp);
+        Assert.DoesNotContain(events, e => e.InhabitantId == thirsty.Id && e.Kind == InhabitantsSystem.ActionStarted && e.Action == search && e.Tick > since + giveUp + ticksPerHour);
+
+        // Something believed helpful in sight: the search is over, and may start again later.
+        objects.Spawn("spring_water", new Position(thirsty.Position.X + 5, thirsty.Position.Z));
+        world.Run(ticksPerHour);
+        Assert.Empty(thirsty.SearchSince);
+    }
+
+    [Fact]
+    public void ASearchActionMustBeWithoutTargetOnAConsiderationWithATarget()
+    {
+        var targetless = Content.Vocabularies[VocabularyKind.Action].Entries
+            .Where(e => (e.Target ?? VocabularyEntryTarget.None) == VocabularyEntryTarget.None).Select(e => e.Id).ToHashSet(StringComparer.Ordinal);
+        var needs = Ids(VocabularyKind.Need);
+        var targeted = Clone(Content.Brain.Weights);
+        targeted.Considerations.Single(c => c.Action == "drink").SearchAction = "eat";
+        var objectAction = Clone(Content.Brain.Weights);
+        objectAction.Considerations.Single(c => c.Action == "drink").SearchAction = "inspect";
+        var noTarget = Clone(Content.Brain.Weights);
+        noTarget.Considerations.Single(c => c.Action == "sleep").SearchAction = "wander";
+        foreach (var weights in new[] { targeted, objectAction, noTarget })
+        {
+            Assert.Throws<InvalidDataException>(() => new UtilityBrain(weights, Content.Actions, needs, Content.Objects.PropertyVocabulary, targetless));
+        }
+
+        Assert.Throws<InvalidDataException>(() => new UtilityBrain(targeted, Content.Actions, needs, Content.Objects.PropertyVocabulary));
+        var greedy = Clone(Content.Brain.Weights);
+        greedy.SearchWeight = greedy.UnknownTargetBelief + 0.1;
+        Assert.Throws<InvalidDataException>(() => new UtilityBrain(greedy, Content.Actions, needs, Content.Objects.PropertyVocabulary, targetless));
+        _ = new UtilityBrain(Content.Brain.Weights, Content.Actions, needs, Content.Objects.PropertyVocabulary, targetless);
+    }
+
+    [Fact]
     public void SameSeedSameHistory()
     {
         var a = NewWorld(9);
