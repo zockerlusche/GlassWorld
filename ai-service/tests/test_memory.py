@@ -201,7 +201,14 @@ def test_memory_jobs_run_over_jobs_with_the_mock_backend(settings: Settings) -> 
         async with httpx.AsyncClient(
             transport=transport, base_url=f"http://{TEST_HOST}", headers={"x-gw-token": TOKEN}
         ) as client:
-            assert (await client.post("/jobs", json=JOB_DATA)).status_code == 202
+            accepted = await client.post("/jobs", json=JOB_DATA)
+            assert accepted.json()["state"] == "deferred"  # memory runs in the computing night
+            night = {
+                "contract_version": JOB_DATA["contract_version"],
+                "phase": "night",
+                "tick": 1300,
+            }
+            assert (await client.post("/phase", json=night)).status_code == 200
             for _ in range(200):
                 body: dict[str, Any] = (await client.get(f"/jobs/{JOB_DATA['request_id']}")).json()
                 if body["state"] == "done":

@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/phase-status.schema.json",
+  "title": "PhaseStatus",
+  "description": "AI service -> core (answer to POST /phase and GET /phase): phase, night budget left and job counts (for the night screen, R4).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "phase",
+    "budget_left_s",
+    "queued",
+    "running",
+    "deferred",
+    "done_tonight"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "phase": {
+      "type": "string",
+      "enum": [
+        "day",
+        "night"
+      ]
+    },
+    "budget_left_s": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "queued": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "running": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "deferred": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "done_tonight": {
+      "type": "integer",
+      "minimum": 0
+    }
+  }
+}
