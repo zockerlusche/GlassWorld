@@ -1225,6 +1225,14 @@
     {
       "key": "ui.favor.tooltip",
       "text": "Gunst wächst langsam nach. Gaben kosten Gunst."
+    },
+    {
+      "key": "msg.mail.knock",
+      "text": "Bewohner {number} klopft an die Scheibe: findet nichts gegen {need}."
+    },
+    {
+      "key": "msg.command.no_message",
+      "text": "Diese Nachricht ist schon gelesen."
     }
   ]
 }

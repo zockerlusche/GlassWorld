@@ -53,6 +53,9 @@ public sealed record SaveState(
 {
     /// <summary>Favour, futile attempts and calls for help (B6); null in save games from before.</summary>
     public Player.PlayerState? Player { get; init; }
+
+    /// <summary>The mailbox (B6 R11); null in save games from before.</summary>
+    public Player.MailboxState? Mailbox { get; init; }
 }
 
 /// <summary>Captures and restores the complete state of a <see cref="SimulationHost"/>.</summary>
@@ -93,6 +96,7 @@ public static class StateCodec
             [.. host.Chronicle.All])
         {
             Player = host.Player.Capture(),
+            Mailbox = host.Mailbox.Capture(),
         };
     }
 
@@ -156,6 +160,7 @@ public static class StateCodec
             state.LastAsked,
             state.DecisionLog);
         host.Player.Restore(state.Player);
+        host.Mailbox.Restore(state.Mailbox);
         return host;
     }
 }

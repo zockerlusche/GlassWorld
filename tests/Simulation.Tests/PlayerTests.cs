@@ -222,6 +222,46 @@ public sealed class PlayerTests : IDisposable
         Assert.Null(RunUntil(host, PlayerSystem.HelpNeeded, days: 0.1, detail: "thirst"));
     }
 
+    [Fact]
+    public void ACallForHelpIsAKnockInTheMailboxThatComesBackUntilRead()
+    {
+        // A1341 criterion 1: unacknowledged messages repeat with rising urgency; read ones move to history.
+        var host = WorldWithThirsty(out var thirsty);
+        var arrived = RunUntil(host, MailboxSystem.MailArrived, days: 2);
+        Assert.NotNull(arrived);
+        var knock = host.Mailbox.Open.First(m => m.Detail == "thirst");
+        Assert.Equal((MailboxSystem.KnockKind, thirsty.Id, 0), (knock.Kind, knock.InhabitantId, knock.Urgency));
+
+        var kind = host.Content.MessageKinds.Kinds.Single(k => k.Id == MailboxSystem.KnockKind);
+        var repeat = (long)kind.RepeatAfterHours * host.World.Calendar.Settings.TicksPerHour;
+        host.World.Run(repeat * (kind.MaxUrgency + 2));
+        var later = host.Mailbox.Open.Single(m => m.Id == knock.Id);
+        Assert.Equal(kind.MaxUrgency, later.Urgency);
+        Assert.True(later.Repeats >= kind.MaxUrgency + 1);
+
+        Assert.True(host.Decisions.Submit(new PlayerCommand(MailboxSystem.Acknowledge, null) { MessageId = knock.Id }).Accepted);
+        host.World.Step();
+        Assert.DoesNotContain(host.Mailbox.Open, m => m.Id == knock.Id);
+        Assert.Equal(knock.Id, host.Mailbox.History[0].Id);
+        var repeats = host.Mailbox.History[0].Repeats;
+        host.World.Run(repeat * 2);
+        Assert.Equal(repeats, host.Mailbox.History[0].Repeats);
+        Assert.Equal(MailboxSystem.ReasonNoMessage, host.Decisions.Submit(new PlayerCommand(MailboxSystem.Acknowledge, null) { MessageId = knock.Id }).ReasonKey);
+    }
+
+    [Fact]
+    public void TheMailboxSurvivesSaveAndLoad()
+    {
+        var host = WorldWithThirsty(out _);
+        Assert.NotNull(RunUntil(host, MailboxSystem.MailArrived, days: 2));
+        var path = Path.Combine(_directory, "mail.sqlite");
+        SaveGameStore.Save(path, StateCodec.Capture(host));
+        var settings = Contracts.Validation.ContractSerializer.Deserialize<Contracts.DeciderSettings>(File.ReadAllText(Path.Combine(ContentDirectory, "decider", "settings.json")));
+        var loaded = StateCodec.Restore(new SimulationHostFactory(ContentSet.Load(ContentDirectory), settings, new ReplayDecisionPort(host.Decisions.Log), "de"), SaveGameStore.Load(path));
+        Assert.Equal(host.World.StateHash(), loaded.World.StateHash());
+        Assert.Equal(host.Mailbox.Open, loaded.Mailbox.Open);
+    }
+
     private static SimulationHost WorldWithThirsty(out Inhabitant inhabitant)
     {
         var host = SimulationHost.CreateEmpty(ContentDirectory, 1, new MockDecisionPort(), "de");

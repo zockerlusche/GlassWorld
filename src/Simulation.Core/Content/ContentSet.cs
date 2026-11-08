@@ -30,8 +30,10 @@ public sealed class ContentSet
         GiftRules giftRules,
         FavorSettings favor,
         InventionRules inventions,
-        ChronicleKinds chronicle)
+        ChronicleKinds chronicle,
+        MessageKinds messageKinds)
     {
+        MessageKinds = messageKinds;
         GiftRules = giftRules;
         Favor = favor;
         Inventions = inventions;
@@ -45,6 +47,9 @@ public sealed class ContentSet
         Brain = brain;
         WorldGen = worldGen;
     }
+
+    /// <summary>Mailbox message kinds (content/player/message_kinds.json).</summary>
+    public MessageKinds MessageKinds { get; }
 
     /// <summary>Rules for gifts and calls for help (content/player/gift_rules.json).</summary>
     public GiftRules GiftRules { get; }
@@ -136,7 +141,8 @@ public sealed class ContentSet
             ContractSerializer.Deserialize<GiftRules>(File.ReadAllText(Path.Combine(player, "gift_rules.json"))),
             ContractSerializer.Deserialize<FavorSettings>(File.ReadAllText(Path.Combine(player, "favor.json"))),
             inventions,
-            chronicle);
+            chronicle,
+            ContractSerializer.Deserialize<MessageKinds>(File.ReadAllText(Path.Combine(player, "message_kinds.json"))));
     }
 
     private static void CheckInventions(InventionRules rules)

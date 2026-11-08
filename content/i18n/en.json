@@ -1225,6 +1225,14 @@
     {
       "key": "ui.favor.tooltip",
       "text": "Favour grows back slowly. Gifts cost favour."
+    },
+    {
+      "key": "msg.mail.knock",
+      "text": "Inhabitant {number} knocks at the glass: finds nothing for {need}."
+    },
+    {
+      "key": "msg.command.no_message",
+      "text": "This message has already been read."
     }
   ]
 }

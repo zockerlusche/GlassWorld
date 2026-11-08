@@ -17,8 +17,9 @@ namespace GlassWorld.Simulation;
 /// </summary>
 public sealed class SimulationHost
 {
-    private SimulationHost(ContentSet content, World world, WorldMapSystem? map, WorldTypeCatalog types, WorldObjects objects, DecisionsSystem decisions, InhabitantsSystem inhabitants, Player.PlayerSystem player, InventionSystem inventions, ChronicleSystem chronicle, DeciderSettings deciderSettings)
+    private SimulationHost(ContentSet content, World world, WorldMapSystem? map, WorldTypeCatalog types, WorldObjects objects, DecisionsSystem decisions, InhabitantsSystem inhabitants, Player.PlayerSystem player, InventionSystem inventions, ChronicleSystem chronicle, DeciderSettings deciderSettings, Player.MailboxSystem mailbox)
     {
+        Mailbox = mailbox;
         Map = map;
         Player = player;
         Types = types;
@@ -55,6 +56,9 @@ public sealed class SimulationHost
 
     /// <summary>Questions to the decider and player commands.</summary>
     public DecisionsSystem Decisions { get; }
+
+    /// <summary>The player's mailbox (B6 R10/R11).</summary>
+    public Player.MailboxSystem Mailbox { get; }
 
     /// <summary>The player's part: favour, calls for help, gifts (B6).</summary>
     public Player.PlayerSystem Player { get; }
@@ -125,8 +129,10 @@ public sealed class SimulationHost
         var inventions = new InventionSystem(content.Inventions, inhabitants, objects, types, content.Brain.Weights.PerceptionRadiusM, jobPort, displayLocale);
         var chronicle = new ChronicleSystem(content.Chronicle);
         inhabitants.Reported += chronicle.Observe;
-        world.Add(objects).Add(decisions).Add(inhabitants).Add(player).Add(inventions).Add(chronicle);
-        return new SimulationHost(content, world, map, types, objects, decisions, inhabitants, player, inventions, chronicle, settings);
+        var mailbox = new Simulation.Player.MailboxSystem(content.MessageKinds, inhabitants, world.Calendar.Settings.TicksPerHour);
+        decisions.RegisterCommand(Simulation.Player.MailboxSystem.Acknowledge, mailbox.Check, mailbox.Apply);
+        world.Add(objects).Add(decisions).Add(inhabitants).Add(player).Add(mailbox).Add(inventions).Add(chronicle);
+        return new SimulationHost(content, world, map, types, objects, decisions, inhabitants, player, inventions, chronicle, settings, mailbox);
     }
 
     /// <summary>
