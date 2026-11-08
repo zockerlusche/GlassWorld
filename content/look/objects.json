@@ -2,6 +2,7 @@
   "contract_version": "0.2",
   "outline": true,
   "outline_width_m": 0.03,
+  "ground_tolerance_m": 0.06,
   "fallback": {
     "shape": "marker",
     "colors": [
@@ -25,6 +26,7 @@
       "size_jitter": 0.15,
       "lift_m": 0.0,
       "rest": "centre",
+      "align": "upright",
       "footprint_m": 0.0
     },
     {
@@ -42,6 +44,7 @@
       "size_jitter": 0.15,
       "lift_m": 0.0,
       "rest": "centre",
+      "align": "upright",
       "footprint_m": 0.0
     },
     {
@@ -59,6 +62,7 @@
       "size_jitter": 0.12,
       "lift_m": 0.0,
       "rest": "centre",
+      "align": "upright",
       "footprint_m": 0.0
     },
     {
@@ -75,6 +79,7 @@
       "size_jitter": 0.1,
       "lift_m": 0.0,
       "rest": "centre",
+      "align": "upright",
       "footprint_m": 0.0
     },
     {
@@ -91,6 +96,7 @@
       "size_jitter": 0.15,
       "lift_m": 0.0,
       "rest": "centre",
+      "align": "upright",
       "footprint_m": 0.0
     },
     {
@@ -107,6 +113,7 @@
       "size_jitter": 0.15,
       "lift_m": 0.0,
       "rest": "centre",
+      "align": "upright",
       "footprint_m": 0.0
     },
     {
@@ -122,6 +129,7 @@
       "size_jitter": 0.15,
       "lift_m": 0.0,
       "rest": "centre",
+      "align": "upright",
       "footprint_m": 0.0
     },
     {
@@ -137,6 +145,7 @@
       "size_jitter": 0.1,
       "lift_m": -0.2,
       "rest": "centre",
+      "align": "upright",
       "footprint_m": 0.0
     },
     {
@@ -152,7 +161,8 @@
       "size_jitter": 0.25,
       "lift_m": -0.03,
       "rest": "centre",
-      "footprint_m": 0.0
+      "align": "ground",
+      "footprint_m": 0.35
     },
     {
       "id": "slate",
@@ -167,7 +177,8 @@
       "size_jitter": 0.2,
       "lift_m": -0.03,
       "rest": "centre",
-      "footprint_m": 0.0
+      "align": "ground",
+      "footprint_m": 0.35
     },
     {
       "id": "sandstone",
@@ -182,7 +193,8 @@
       "size_jitter": 0.2,
       "lift_m": -0.03,
       "rest": "centre",
-      "footprint_m": 0.0
+      "align": "ground",
+      "footprint_m": 0.35
     },
     {
       "id": "flint",
@@ -197,7 +209,8 @@
       "size_jitter": 0.15,
       "lift_m": -0.02,
       "rest": "centre",
-      "footprint_m": 0.0
+      "align": "ground",
+      "footprint_m": 0.35
     },
     {
       "id": "pyrite",
@@ -212,7 +225,8 @@
       "size_jitter": 0.15,
       "lift_m": -0.02,
       "rest": "centre",
-      "footprint_m": 0.0
+      "align": "ground",
+      "footprint_m": 0.35
     },
     {
       "id": "clay",
@@ -227,7 +241,8 @@
       "size_jitter": 0.2,
       "lift_m": -0.04,
       "rest": "centre",
-      "footprint_m": 0.0
+      "align": "ground",
+      "footprint_m": 0.35
     },
     {
       "id": "peat",
@@ -242,7 +257,8 @@
       "size_jitter": 0.2,
       "lift_m": -0.05,
       "rest": "centre",
-      "footprint_m": 0.0
+      "align": "ground",
+      "footprint_m": 0.35
     },
     {
       "id": "spring",
@@ -252,12 +268,14 @@
       "shape": "pool",
       "colors": [
         "fresh_water",
-        "rock"
+        "rock",
+        "ground"
       ],
       "size_m": 0.8,
       "size_jitter": 0.1,
-      "lift_m": 0.03,
-      "rest": "highest",
+      "lift_m": 0.0,
+      "rest": "centre",
+      "align": "ground_uphill",
       "footprint_m": 0.75
     },
     {
@@ -273,6 +291,7 @@
       "size_jitter": 0.0,
       "lift_m": 0.0,
       "rest": "centre",
+      "align": "upright",
       "footprint_m": 0.0
     },
     {
@@ -289,7 +308,9 @@
       "size_jitter": 0.2,
       "lift_m": 0.0,
       "rest": "centre",
-      "footprint_m": 0.0
+      "align": "ground",
+      "footprint_m": 0.5,
+      "footprint_width_m": 0.13
     },
     {
       "id": "bark",
@@ -305,7 +326,9 @@
       "size_jitter": 0.2,
       "lift_m": 0.0,
       "rest": "centre",
-      "footprint_m": 0.0
+      "align": "ground",
+      "footprint_m": 0.5,
+      "footprint_width_m": 0.13
     },
     {
       "id": "driftwood",
@@ -321,7 +344,9 @@
       "size_jitter": 0.2,
       "lift_m": 0.0,
       "rest": "centre",
-      "footprint_m": 0.0
+      "align": "ground",
+      "footprint_m": 0.5,
+      "footprint_width_m": 0.13
     },
     {
       "id": "dry_grass",
@@ -336,6 +361,7 @@
       "size_jitter": 0.2,
       "lift_m": 0.0,
       "rest": "centre",
+      "align": "upright",
       "footprint_m": 0.0
     },
     {
@@ -351,6 +377,7 @@
       "size_jitter": 0.2,
       "lift_m": 0.0,
       "rest": "centre",
+      "align": "upright",
       "footprint_m": 0.0
     },
     {
@@ -367,6 +394,7 @@
       "size_jitter": 0.2,
       "lift_m": 0.0,
       "rest": "centre",
+      "align": "upright",
       "footprint_m": 0.0
     },
     {
@@ -383,6 +411,7 @@
       "size_jitter": 0.2,
       "lift_m": 0.0,
       "rest": "centre",
+      "align": "upright",
       "footprint_m": 0.0
     },
     {
@@ -399,6 +428,7 @@
       "size_jitter": 0.2,
       "lift_m": 0.0,
       "rest": "centre",
+      "align": "upright",
       "footprint_m": 0.0
     },
     {
@@ -415,6 +445,7 @@
       "size_jitter": 0.2,
       "lift_m": 0.0,
       "rest": "centre",
+      "align": "upright",
       "footprint_m": 0.0
     },
     {
@@ -431,6 +462,7 @@
       "size_jitter": 0.2,
       "lift_m": 0.0,
       "rest": "centre",
+      "align": "upright",
       "footprint_m": 0.0
     },
     {
@@ -447,6 +479,7 @@
       "size_jitter": 0.2,
       "lift_m": 0.0,
       "rest": "centre",
+      "align": "upright",
       "footprint_m": 0.0
     },
     {
@@ -462,6 +495,7 @@
       "size_jitter": 0.1,
       "lift_m": 0.0,
       "rest": "centre",
+      "align": "upright",
       "footprint_m": 0.0
     },
     {
@@ -477,6 +511,7 @@
       "size_jitter": 0.1,
       "lift_m": 0.0,
       "rest": "centre",
+      "align": "upright",
       "footprint_m": 0.0
     },
     {
@@ -492,6 +527,7 @@
       "size_jitter": 0.1,
       "lift_m": 0.0,
       "rest": "centre",
+      "align": "upright",
       "footprint_m": 0.0
     },
     {
@@ -507,6 +543,7 @@
       "size_jitter": 0.1,
       "lift_m": 0.0,
       "rest": "centre",
+      "align": "upright",
       "footprint_m": 0.0
     },
     {
@@ -522,6 +559,7 @@
       "size_jitter": 0.1,
       "lift_m": 0.0,
       "rest": "centre",
+      "align": "upright",
       "footprint_m": 0.0
     },
     {
@@ -537,6 +575,7 @@
       "size_jitter": 0.0,
       "lift_m": 0.05,
       "rest": "centre",
+      "align": "upright",
       "footprint_m": 0.0
     },
     {
@@ -552,7 +591,8 @@
       "size_jitter": 0.2,
       "lift_m": 0.0,
       "rest": "centre",
-      "footprint_m": 0.0
+      "align": "ground",
+      "footprint_m": 0.12
     }
   ]
 }

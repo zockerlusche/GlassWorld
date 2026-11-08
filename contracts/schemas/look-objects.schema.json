@@ -9,6 +9,7 @@
     "contract_version",
     "outline",
     "outline_width_m",
+    "ground_tolerance_m",
     "fallback",
     "visuals"
   ],
@@ -25,6 +26,12 @@
       "type": "number",
       "minimum": 0,
       "maximum": 0.5
+    },
+    "ground_tolerance_m": {
+      "description": "How far (metres) the underside of an object lying on the ground (align ground or ground_uphill) may float above or sink below the drawn ground within its footprint (D576, TL #19553); the tests hold every object of the start island to it. Placeholder value.",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
     },
     "fallback": {
       "$ref": "#/$defs/ObjectLookFallback"
@@ -107,6 +114,7 @@
         "size_jitter",
         "lift_m",
         "rest",
+        "align",
         "footprint_m"
       ],
       "properties": {
@@ -159,8 +167,17 @@
         "rest": {
           "$ref": "#/$defs/ObjectLookRest"
         },
+        "align": {
+          "$ref": "#/$defs/ObjectLookAlign"
+        },
         "footprint_m": {
-          "description": "Radius in metres (at size factor 1) over which rest lowest/highest samples the ground.",
+          "description": "Radius in metres (at size factor 1) over which the object meets the ground: rest lowest/highest samples it, align ground fits the slope to it (for a long object: half its length along its local x axis).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "footprint_width_m": {
+          "description": "Half width in metres (at size factor 1) of an elongated footprint across its local x axis (a log); absent = round (footprint_m).",
           "type": "number",
           "minimum": 0,
           "maximum": 10
@@ -168,12 +185,21 @@
       }
     },
     "ObjectLookRest": {
-      "description": "Which ground height the object stands on: centre (the ground under its position), lowest or highest ground within its footprint. A pool rests on the highest point, so its level water shows whole and its stone basin reaches down the slope instead of the slope burying it. Objects are never tilted to the slope.",
+      "description": "Which ground height an upright object stands on: centre (the ground under its position), lowest or highest ground within its footprint. Objects that lie on the ground (align ground, ground_uphill) follow the slope instead and ignore it.",
       "type": "string",
       "enum": [
         "centre",
         "lowest",
         "highest"
+      ]
+    },
+    "ObjectLookAlign": {
+      "description": "How an object meets the ground (D576): upright stands straight up on its rest height (trees, bushes, plants); ground lies on the ground and follows its slope (logs, stones), turned from its id towards the turn that fits the ground best; ground_uphill lies on the ground like ground with its local +x side facing uphill (a spring pool with its stones at the uphill side).",
+      "type": "string",
+      "enum": [
+        "upright",
+        "ground",
+        "ground_uphill"
       ]
     }
   }

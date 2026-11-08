@@ -199,20 +199,111 @@ public sealed class IslandLookTests
     }
 
     [Fact]
-    public void APoolRestsLevelOnTheHighestGroundOfItsFootprint()
+    public void ASpringIsANaturalPoolLyingOnTheSlopeWithItsStonesUphill()
     {
-        // Ground rising with x (slope 0.5): the pool's level surface lies at the highest point under it, so
-        // the slope never buries it; centre-resting objects stand on the ground under their position.
+        // Ground rising with x (slope 0.5): the pool lies on the slope (no post below it, no level disc
+        // floating above it), its local +x side (the stones) faces uphill; trees stay upright (D576).
         Func<double, double, double> slope = (x, _) => x / 2;
         var spring = Looks().For("spring_water");
-        Assert.Equal((ObjectLookShape.Pool, ObjectLookRest.Highest), (spring.Shape, spring.Rest));
-        var pool = new ObjectLook("pool", ObjectLookShape.Pool, ["fresh_water"], 1.0, 0, 0.03, ObjectLookRest.Highest, 0.75);
-        var placed = ObjectLooks.Place(new WorldObject("o1", "spring_water", new Position(10, 4)), pool, slope);
-        Assert.Equal(slope(10.75, 4) + 0.03, placed.Y, 9);
-        var low = ObjectLooks.Place(new WorldObject("o1", "spring_water", new Position(10, 4)), pool with { Rest = ObjectLookRest.Lowest }, slope);
-        Assert.Equal(slope(9.25, 4) + 0.03, low.Y, 9);
+        Assert.Equal((ObjectLookShape.Pool, ObjectLookAlign.Ground_uphill), (spring.Shape, spring.Align));
+        Assert.Equal(["fresh_water", "rock", "ground"], spring.Colors);
+        var placed = ObjectLooks.Place(new WorldObject("o1", "spring_water", new Position(10, 4)), spring, slope);
+        Assert.Equal(slope(10, 4) + spring.LiftM, placed.Y, 6);
+        var norm = Math.Sqrt(1.25);
+        Assert.Equal(-0.5 / norm, placed.Up.X, 9);
+        Assert.Equal(1 / norm, placed.Up.Y, 9);
+        Assert.Equal(0, placed.Up.Z, 9);
+        var (ax, _, _) = placed.Axes();
+        Assert.True(ax.X > 0 && ax.Y > 0 && Math.Abs(ax.Z) < 1e-9, "the stones' side faces uphill");
+        foreach (var (lx, lz) in new[] { (0.75, 0.0), (-0.75, 0.0), (0.0, 0.75), (0.5, -0.5) })
+        {
+            var p = placed.ToWorld(new Point3(lx, 0, lz));
+            Assert.Equal(slope(p.X, p.Z) + spring.LiftM, p.Y, 6);
+        }
+
         var tree = ObjectLooks.Place(new WorldObject("o2", "deciduous_tree", new Position(10, 4)), Looks().For("deciduous_tree"), slope);
         Assert.Equal(slope(10, 4), tree.Y, 9);
+        Assert.Equal(new Point3(0, 1, 0), tree.Up);
+    }
+
+    [Fact]
+    public void ALogLiesOnTheGroundAndTurnsOnlyWhereTheGroundIsUneven()
+    {
+        var wood = Looks().For("dry_wood");
+        Assert.Equal((ObjectLookShape.Log, ObjectLookAlign.Ground), (wood.Shape, wood.Align));
+        var log = new WorldObject("obj_7", "dry_wood", new Position(10, 4));
+
+        // On flat ground it keeps the turn from its id and lies flat.
+        var flat = ObjectLooks.Place(log, wood, (_, _) => 2);
+        Assert.Equal(ObjectLooks.Hash01("obj_7", 1) * 2 * Math.PI, flat.YawRad, 9);
+        Assert.Equal((0, 1, 0), (Math.Round(flat.Up.X, 9), Math.Round(flat.Up.Y, 9), Math.Round(flat.Up.Z, 9)));
+        Assert.Equal(2 + wood.LiftM, flat.Y, 9);
+
+        // On a slope both ends touch the ground.
+        Func<double, double, double> slope = (x, z) => (x * 0.4) - (z * 0.2);
+        var placed = ObjectLooks.Place(log, wood, slope);
+        foreach (var end in new[] { -0.5, 0.5 })
+        {
+            var p = placed.ToWorld(new Point3(end, 0, 0));
+            Assert.Equal(slope(p.X, p.Z) + wood.LiftM, p.Y, 6);
+        }
+
+        // In a small hollow running along z it turns into the hollow instead of bridging it.
+        Func<double, double, double> hollow = (x, _) => Math.Abs(x - 10) * 0.8;
+        var along = ObjectLooks.Place(log with { Id = "obj_9" }, wood, hollow);
+        var (ax, _, _) = along.Axes();
+        Assert.True(Math.Abs(ax.X) < Math.Abs(ax.Z), "the log lies along the hollow");
+    }
+
+    [Theory]
+    [InlineData(7UL)]
+    [InlineData(42UL)]
+    [InlineData(2026UL)]
+    public void EveryObjectOfTheStartIslandRestsOnTheDrawnGround(ulong seed)
+    {
+        // Objects take their height from the drawn mesh (TerrainMesher.GroundHeight); lying ones follow its
+        // slope, so no part of their underside floats above or sinks below it by more than the tolerance.
+        var host = SimulationHost.CreateGeneratedWorld(Content, seed, new MockDecisionPort(), "de", "start_island");
+        var map = host.Map!;
+        var terrain = TerrainLook.From(Read<LookTerrain>("look", "terrain.json"), Read<LookPalette>("look", "palette.json"), map.Map, host.Content.WorldGen.Presets[map.Island.PresetId]);
+        double Ground(double x, double z) => TerrainMesher.GroundHeight(map.Map, terrain, x, z);
+        var looks = Looks();
+        Assert.InRange(looks.GroundToleranceM, 0.0, 0.1);
+        var (lying, worst) = (0, 0.0);
+        foreach (var obj in host.Objects.All)
+        {
+            var look = looks.For(obj.TypeId);
+            if (look.Shape == ObjectLookShape.None)
+            {
+                continue;
+            }
+
+            var placed = ObjectLooks.Place(obj, look, Ground);
+            if (!look.Lies)
+            {
+                Assert.Equal(ObjectLookRest.Centre, look.Rest);
+                Assert.Equal(Ground(obj.Position.X, obj.Position.Z), placed.Y - look.LiftM, 6);
+                continue;
+            }
+
+            lying++;
+            Assert.InRange(Math.Abs(look.LiftM), 0, looks.GroundToleranceM);
+            var (length, width) = (look.FootprintM * placed.Scale, look.HalfWidthM * placed.Scale);
+            for (var k = 0; k < 16; k++)
+            {
+                foreach (var share in new[] { 0.0, 0.5, 1.0 })
+                {
+                    var a = k * Math.PI / 8;
+                    var p = placed.ToWorld(new Point3(Math.Cos(a) * length * share / placed.Scale, 0, Math.Sin(a) * width * share / placed.Scale));
+                    var off = p.Y - look.LiftM - Ground(p.X, p.Z);
+                    worst = Math.Max(worst, Math.Abs(off));
+                    Assert.True(Math.Abs(off) <= looks.GroundToleranceM, $"seed {seed}: {obj.TypeId} {obj.Id} at ({obj.Position.X:0.0}, {obj.Position.Z:0.0}) is {off:0.000} m off the ground");
+                }
+            }
+        }
+
+        Assert.True(lying > 20, $"seed {seed}: only {lying} lying objects");
+        Assert.True(worst > 0, "the check samples real slopes");
     }
 
     [Fact]
