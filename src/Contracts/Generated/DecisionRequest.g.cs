@@ -83,7 +83,7 @@ namespace GlassWorld.Contracts
         public string TimeOfDay { get; set; } = default!;
 
         /// <summary>
-        /// Felt temperature of the inhabitant in degrees Celsius: air temperature plus wind, wetness, sun or shade, reduced by protection (clothing, hut, cave, fire, body warmth of others). The need warmth is derived from it by the core. Rounded to 1 decimal.
+        /// AIR temperature at the inhabitant's place (weather, season, height). What the inhabitant feels personally (clothing, wet, conditions) is InhabitantState.felt_temperature_c (B2540).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("temperature_c")]
         public double TemperatureC { get; set; } = default!;

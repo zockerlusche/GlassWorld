@@ -17,6 +17,12 @@ from fastapi.responses import JSONResponse, Response
 
 from glassworld_ai import SERVICE_VERSION
 from glassworld_ai.benchmark import Benchmark, HandlerProbe, OllamaLanguageProbe
+from glassworld_ai.builder.plan import (
+    MockBuilder,
+    OllamaBuilder,
+    ReplayBuilder,
+    bounds_tolerance,
+)
 from glassworld_ai.calllog import CallLog
 from glassworld_ai.config import Settings
 from glassworld_ai.decider.backends import (
@@ -141,6 +147,7 @@ def create_app(
                 app.state.jobs.register("dream", _ollama_dreams(settings, ollama, app))
                 app.state.jobs.register("process", _ollama_processes(settings, ollama, app))
                 app.state.jobs.register("invention", _ollama_inventions(settings, ollama, app))
+                app.state.jobs.register("build_plan", _ollama_builder(settings, ollama, app))
             warm_task: asyncio.Task[None] | None = None
             if settings.warm_up and settings.decider_backend == "ollama":
                 app.state.warm_up = "starting"
@@ -810,6 +817,7 @@ def _offline_handlers(settings: Settings) -> dict[str, Handler]:
             "dream": MockDreams(),
             "process": MockProcesses(),
             "invention": MockInventions(vocab),
+            "build_plan": MockBuilder(),
         }
     if settings.decider_backend == "replay":
         template = load_prompt(
@@ -826,6 +834,9 @@ def _offline_handlers(settings: Settings) -> dict[str, Handler]:
                 vocab,
                 tech_levels(settings.content_dir),
                 safety_categories(settings.content_dir),
+            ),
+            "build_plan": ReplayBuilder(
+                _builder_log(settings), bounds_tolerance(settings.content_dir)
             ),
         }
     return {}
@@ -901,6 +912,23 @@ def _ollama_dreams(settings: Settings, ollama: OllamaClient, app: FastAPI) -> Ol
         settings=_call_settings(settings),
         log=_dream_log(settings),
         guard=_text_guard(settings),
+    )
+
+
+def _builder_log(settings: Settings) -> CallLog:
+    return CallLog(settings.log_dir / "builder.jsonl")
+
+
+def _ollama_builder(settings: Settings, ollama: OllamaClient, app: FastAPI) -> OllamaBuilder:
+    return OllamaBuilder(
+        client=ollama,
+        queue=app.state.queue,
+        template=load_prompt(
+            settings.prompts_dir, settings.builder_prompt, settings.builder_prompt_version
+        ),
+        settings=_call_settings(settings),
+        log=_builder_log(settings),
+        tolerance=bounds_tolerance(settings.content_dir),
     )
 
 
