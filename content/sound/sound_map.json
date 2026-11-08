@@ -43,7 +43,7 @@
     },
     {
       "action": "talk_to",
-      "sound": "action.talk_to"
+      "sound": null
     },
     {
       "action": "combine",
@@ -317,7 +317,7 @@
       "times_of_day": [
         "night"
       ],
-      "per_hour": 2
+      "per_hour": 0
     },
     {
       "animal": "owl",

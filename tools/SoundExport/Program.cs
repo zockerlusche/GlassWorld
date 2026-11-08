@@ -22,7 +22,8 @@ foreach (var old in Directory.GetFiles(output, "*.wav").Where(f => System.Text.R
 
 var library = ContractSerializer.Deserialize<BaseSoundLibrary>(File.ReadAllText(Path.Combine(soundData, "library.json")));
 var origins = library.Origins.ToDictionary(o => o.Id, o => $"{o.Name}, {o.License}", StringComparer.Ordinal);
-var map = SoundLibrary.FromJson(File.ReadAllText(Path.Combine(soundData, "sound_map.json")), File.ReadAllText(Path.Combine(soundData, "synth_recipes.json")));
+// With the library's loudness target, exactly as the game renders them (RetroAudio): the first folder missed it.
+var map = SoundLibrary.FromJson(File.ReadAllText(Path.Combine(soundData, "sound_map.json")), File.ReadAllText(Path.Combine(soundData, "synth_recipes.json")), loudness: library.Target);
 var used = map.UsedSoundIds().ToHashSet(StringComparer.Ordinal);
 var rows = new List<string>();
 var number = 0;

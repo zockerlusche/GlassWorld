@@ -2,6 +2,7 @@
   "contract_version": "0.2",
   "sample_rate": 22050,
   "peak": 0.35,
+  "loudness_dbfs": -20,
   "fade_s": 10,
   "min_mood_s": 30,
   "piece_s": {

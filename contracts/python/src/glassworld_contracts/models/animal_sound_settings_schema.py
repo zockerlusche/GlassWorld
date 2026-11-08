@@ -51,6 +51,12 @@ class BirdsongSettings(BaseModel):
     trill_chance: float = Field(..., ge=0.0, le=1.0)
     trill_notes: int = Field(..., ge=2, le=12)
     peak: float = Field(..., ge=0.05, le=1.0)
+    loudness_dbfs: float = Field(
+        ...,
+        description='Gated RMS loudness the sound is normalised to: the same target as every other sound (Marcel W1645); peak stays the upper limit.',
+        ge=-40.0,
+        le=-6.0,
+    )
 
 
 class AnimalSoundSettings(BaseModel):

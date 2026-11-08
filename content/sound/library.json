@@ -3,7 +3,7 @@
   "fallback_min_score": 2,
   "target": {
     "one_shot_dbfs": -20,
-    "loop_dbfs": -26,
+    "loop_dbfs": -20,
     "tolerance_db": 1.5,
     "peak_max_dbfs": -1,
     "gate_dbfs": -50,
