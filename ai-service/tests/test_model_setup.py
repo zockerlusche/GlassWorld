@@ -446,3 +446,48 @@ def test_free_space_counts_files_already_on_disk(tmp_path: Path) -> None:
         return await _all(_setup(tmp_path, net, free=just_enough), ["picture"])
 
     assert _by_id(asyncio.run(body()))["picture"].state == "present"
+
+
+def test_the_players_other_version_is_never_replaced_without_asking(tmp_path: Path) -> None:
+    """Review GW1 #125: the player's own model under the same name stays unless agreed."""
+    net = FakeNet()
+    net.models["lm:9b"] = "ee" * 32  # the player's own, another version
+
+    async def body() -> Any:
+        setup = _setup(tmp_path, net)
+        before = await setup.status()
+        after = await _all(setup, ["lm:9b"])
+        return before, after
+
+    before, after = asyncio.run(body())
+    assert _by_id(before)["lm:9b"].state == "other_version"
+    assert _by_id(after)["lm:9b"].error == "other_version"
+    assert net.pulls == 0 and net.models["lm:9b"] == "ee" * 32
+
+
+def test_replacing_the_players_version_needs_consent_and_is_never_deleted(
+    tmp_path: Path,
+) -> None:
+    net = FakeNet()
+    net.models["lm:9b"] = "ee" * 32
+
+    async def agreed() -> Any:
+        setup = _setup(tmp_path, net)
+        assert setup.start(["lm:9b"], replace=["lm:9b"]) == []
+        assert setup._task is not None  # pyright: ignore[reportPrivateUsage]
+        await setup._task  # pyright: ignore[reportPrivateUsage]
+        return await setup.status()
+
+    assert _by_id(asyncio.run(agreed()))["lm:9b"].state == "present"
+    moved = FakeNet(pulled_digest="cd" * 32)
+    moved.models["lm:9b"] = "ee" * 32
+
+    async def tag_moved() -> Any:
+        setup = _setup(tmp_path, moved)
+        assert setup.start(["lm:9b"], replace=["lm:9b"]) == []
+        assert setup._task is not None  # pyright: ignore[reportPrivateUsage]
+        await setup._task  # pyright: ignore[reportPrivateUsage]
+        return await setup.status()
+
+    assert _by_id(asyncio.run(tag_moved()))["lm:9b"].error == "model_moved"
+    assert moved.deleted == []  # it replaced the player's own as agreed: never deleted

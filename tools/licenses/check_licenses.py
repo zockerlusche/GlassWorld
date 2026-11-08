@@ -233,7 +233,8 @@ def model_problems(root: Path, rows: list[Row]) -> list[str]:
         problem = license_problem(Row(model_id, str(model["licence"]), frozenset()))
         if problem:
             problems.append(f"model-downloads.json: {problem}")
-        if not any(model_id.lower() in row.name.lower() for row in rows):
+        # The row names the model id in backticks (review GW1 #125: no loose substring match).
+        if not any(f"`{model_id.lower()}`" in row.name.lower() for row in rows):
             problems.append(f"model-downloads.json: model '{model_id}' has no row in LICENSES.md")
     return problems
 

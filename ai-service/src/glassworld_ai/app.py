@@ -506,7 +506,7 @@ def create_app(
 
     @app.post("/setup/models/download")
     async def model_setup_download(request: Request) -> Response:
-        """Load the models the player agreed to: {"consent": true, "models": [ids]}."""
+        """Load the agreed models: {"consent": true, "models": [ids], "replace": [ids]?}."""
         refused, data = await _consented(request)
         if refused is not None:
             return refused
@@ -519,8 +519,18 @@ def create_app(
             return error_response(
                 "bad_request", 'Name the agreed models: {"models": [ids]}.', retryable=False
             )
+        replace = data.get("replace", [])
+        if not isinstance(replace, list) or not all(
+            isinstance(i, str) for i in cast(list[object], replace)
+        ):
+            return error_response(
+                "bad_request", "replace must be a list of model ids.", retryable=False
+            )
         models: ModelSetup = app.state.model_setup
-        unknown = models.start([str(i) for i in cast(list[object], ids)])
+        unknown = models.start(
+            [str(i) for i in cast(list[object], ids)],
+            [str(i) for i in cast(list[object], replace)],
+        )
         if unknown:
             return error_response(
                 "bad_request", f"Not offered for this tier: {', '.join(unknown)}.", retryable=False

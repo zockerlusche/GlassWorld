@@ -98,11 +98,12 @@
             "pattern": "^ui\\.setup\\.model_[a-z0-9_]+$"
           },
           "state": {
-            "description": "present; missing (offer it); queued; downloading; verifying; waiting_for_runtime (needs Ollama first, see /setup/ollama); failed (error set; downloading again continues).",
+            "description": "present; missing (offer it); other_version (the player's own Ollama holds another version under the same name: ask before replacing it, then send it in replace); queued; downloading; verifying; waiting_for_runtime (needs Ollama first, see /setup/ollama); failed (error set; downloading again continues).",
             "type": "string",
             "enum": [
               "present",
               "missing",
+              "other_version",
               "queued",
               "downloading",
               "verifying",
@@ -111,7 +112,7 @@
             ]
           },
           "error": {
-            "description": "Stable code when failed: network, checksum_mismatch, model_moved (the registry tag now has another digest; the pulled model was removed), runtime_missing, disk_full (checked before writing), disk.",
+            "description": "Stable code when failed: network, checksum_mismatch, model_moved (the registry tag now has another digest; the pulled model was removed), runtime_missing, other_version (not replaced without consent), disk_full (checked before writing), disk.",
             "anyOf": [
               {
                 "type": "string",

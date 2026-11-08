@@ -11,6 +11,11 @@ POST /setup/models/download with the agreed ids. One model at a time is loaded:
   into the model folder; a marker written last makes the model complete.
 
 A cancel stops the running download; what is on disk stays and the next download continues.
+
+If the player's own Ollama already holds a model of the same name in another version, it is
+reported as `other_version` and only replaced when the player agreed (`replace`). The free-space
+check looks at the configured Ollama model folder (or ~/.ollama/models); the folder of a player's
+own Ollama with a custom OLLAMA_MODELS cannot be read over its API.
 """
 
 from __future__ import annotations
@@ -32,7 +37,14 @@ from glassworld_ai.downloads import TooLargeError, fetch_resumable, sha256_of, w
 from glassworld_contracts import CONTRACT_VERSION, ModelSetupStatus
 
 State = Literal[
-    "present", "missing", "queued", "downloading", "verifying", "waiting_for_runtime", "failed"
+    "present",
+    "missing",
+    "other_version",
+    "queued",
+    "downloading",
+    "verifying",
+    "waiting_for_runtime",
+    "failed",
 ]
 MARKER = ".glassworld-model.json"
 _log = logging.getLogger(__name__)
@@ -126,6 +138,7 @@ class ModelSetup:
         self._error: dict[str, str] = {}
         self._done: dict[str, int] = {}
         self._queue: list[str] = []
+        self._replace: set[str] = set()
         self._task: asyncio.Task[None] | None = None
 
     def _client(self) -> httpx.AsyncClient:
@@ -184,8 +197,12 @@ class ModelSetup:
                     state = "waiting_for_runtime"
                 elif _has_digest(local, model):
                     state, done = "present", model.size_bytes
+                elif phase == "failed":
+                    state = "failed"
+                elif _local_name(local, model) is not None:
+                    state = "other_version"  # the player's own, another version (review #125)
                 else:
-                    state = phase if phase == "failed" else "missing"
+                    state = "missing"
             elif self._files_present(model):
                 state, done = "present", model.size_bytes
             else:
@@ -220,12 +237,17 @@ class ModelSetup:
     def busy(self) -> bool:
         return self._task is not None and not self._task.done()
 
-    def start(self, ids: list[str]) -> list[str]:
-        """Queue the models the player agreed to; returns ids that are not offered (refused)."""
+    def start(self, ids: list[str], replace: list[str] | None = None) -> list[str]:
+        """Queue the models the player agreed to; returns ids that are not offered (refused).
+
+        `replace`: models of which the player's Ollama holds another version under the same name
+        and the player agreed to replace it (state other_version, review GW1 #125).
+        """
         offered = {m.id for m in self.offered()}
-        unknown = [i for i in ids if i not in offered]
+        unknown = [i for i in [*ids, *(replace or [])] if i not in offered]
         if unknown:
             return unknown
+        self._replace = set(replace or [])
         for model_id in ids:
             if model_id not in self._queue and self._phase.get(model_id) not in {
                 "downloading",
@@ -293,6 +315,10 @@ class ModelSetup:
             raise ModelError("runtime_missing", "Ollama does not answer")
         if _has_digest(local, model):
             return
+        existed = _local_name(local, model) is not None
+        if existed and model.id not in self._replace:
+            # Never overwrite the player's own model of the same name without asking.
+            raise ModelError("other_version", f"{model.ollama_name} exists in another version")
         layers: dict[str, int] = {}
         timeout = httpx.Timeout(30.0, read=600.0)
         async with (
@@ -322,6 +348,8 @@ class ModelSetup:
         if local is None or not _has_digest(local, model):
             # The registry tag has moved (review GW1 #125): remove what was just pulled so it
             # neither takes space nor is used, and say so; the data needs a new pinned digest.
+            if existed:  # it replaced the player's own, as agreed: keep it, only report
+                raise ModelError("model_moved", f"{model.ollama_name} now has another digest")
             with contextlib.suppress(httpx.HTTPError):
                 async with self._client() as client:
                     await client.request(
@@ -374,3 +402,11 @@ def _free_bytes(path: Path) -> int:
     while not probe.exists() and probe.parent != probe:
         probe = probe.parent
     return shutil.disk_usage(probe).free
+
+
+def _local_name(local: dict[str, str], model: Model) -> str | None:
+    name = model.ollama_name or ""
+    for candidate in (name, f"{name}:latest"):
+        if candidate in local:
+            return candidate
+    return None

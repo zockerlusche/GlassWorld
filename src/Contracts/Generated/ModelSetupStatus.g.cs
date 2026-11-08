@@ -73,14 +73,14 @@ namespace GlassWorld.Contracts
         public string PurposeKey { get; set; } = default!;
 
         /// <summary>
-        /// present; missing (offer it); queued; downloading; verifying; waiting_for_runtime (needs Ollama first, see /setup/ollama); failed (error set; downloading again continues).
+        /// present; missing (offer it); other_version (the player's own Ollama holds another version under the same name: ask before replacing it, then send it in replace); queued; downloading; verifying; waiting_for_runtime (needs Ollama first, see /setup/ollama); failed (error set; downloading again continues).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("state")]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ModelsState>))]
         public ModelsState State { get; set; } = default!;
 
         /// <summary>
-        /// Stable code when failed: network, checksum_mismatch, model_moved (the registry tag now has another digest; the pulled model was removed), runtime_missing, disk_full (checked before writing), disk.
+        /// Stable code when failed: network, checksum_mismatch, model_moved (the registry tag now has another digest; the pulled model was removed), runtime_missing, other_version (not replaced without consent), disk_full (checked before writing), disk.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("error")]
         public string? Error { get; set; } = default!;
@@ -125,24 +125,28 @@ namespace GlassWorld.Contracts
         Missing = 1,
 
 
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("other_version")]
+        Other_version = 2,
+
+
         [System.Text.Json.Serialization.JsonStringEnumMemberName("queued")]
-        Queued = 2,
+        Queued = 3,
 
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("downloading")]
-        Downloading = 3,
+        Downloading = 4,
 
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("verifying")]
-        Verifying = 4,
+        Verifying = 5,
 
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("waiting_for_runtime")]
-        Waiting_for_runtime = 5,
+        Waiting_for_runtime = 6,
 
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("failed")]
-        Failed = 6,
+        Failed = 7,
 
 
     }

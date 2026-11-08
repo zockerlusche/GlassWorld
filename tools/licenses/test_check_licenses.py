@@ -241,3 +241,10 @@ def test_offered_models_need_an_allowed_licence_and_a_row(tmp_path: Path) -> Non
     problems = CHECK.check(root)
     assert any("lm:9b" in p and "not allowed" in p for p in problems)
     assert any("'other:1b' has no row" in p for p in problems)
+
+
+def test_a_model_row_must_name_the_id_in_backticks(tmp_path: Path) -> None:
+    """Review GW1 #125: a short id must not match an unrelated row by substring."""
+    root = make_repo(tmp_path, [("Helm charts", "MIT")])
+    _with_models(root, [{"id": "lm", "licence": "MIT"}])
+    assert any("'lm' has no row" in p for p in CHECK.check(root))

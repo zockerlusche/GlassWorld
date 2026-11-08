@@ -26,6 +26,7 @@ class Role(StrEnum):
 class State(StrEnum):
     present = 'present'
     missing = 'missing'
+    other_version = 'other_version'
     queued = 'queued'
     downloading = 'downloading'
     verifying = 'verifying'
@@ -37,7 +38,7 @@ type Error = Annotated[
     str,
     Field(
         ...,
-        description='Stable code when failed: network, checksum_mismatch, model_moved (the registry tag now has another digest; the pulled model was removed), runtime_missing, disk_full (checked before writing), disk.',
+        description='Stable code when failed: network, checksum_mismatch, model_moved (the registry tag now has another digest; the pulled model was removed), runtime_missing, other_version (not replaced without consent), disk_full (checked before writing), disk.',
         pattern='^[a-z_]{1,32}$',
     ),
 ]
@@ -60,11 +61,11 @@ class Model(BaseModel):
     )
     state: State = Field(
         ...,
-        description='present; missing (offer it); queued; downloading; verifying; waiting_for_runtime (needs Ollama first, see /setup/ollama); failed (error set; downloading again continues).',
+        description="present; missing (offer it); other_version (the player's own Ollama holds another version under the same name: ask before replacing it, then send it in replace); queued; downloading; verifying; waiting_for_runtime (needs Ollama first, see /setup/ollama); failed (error set; downloading again continues).",
     )
     error: Error | None = Field(
         ...,
-        description='Stable code when failed: network, checksum_mismatch, model_moved (the registry tag now has another digest; the pulled model was removed), runtime_missing, disk_full (checked before writing), disk.',
+        description='Stable code when failed: network, checksum_mismatch, model_moved (the registry tag now has another digest; the pulled model was removed), runtime_missing, other_version (not replaced without consent), disk_full (checked before writing), disk.',
     )
 
 
