@@ -17,7 +17,12 @@ from fastapi.responses import JSONResponse, Response
 
 from glassworld_ai import SERVICE_VERSION
 from glassworld_ai.benchmark import Benchmark, HandlerProbe, OllamaLanguageProbe
-from glassworld_ai.builder.plan import MockBuilder, OllamaBuilder, ReplayBuilder
+from glassworld_ai.builder.plan import (
+    MockBuilder,
+    OllamaBuilder,
+    ReplayBuilder,
+    bounds_tolerance,
+)
 from glassworld_ai.calllog import CallLog
 from glassworld_ai.config import Settings
 from glassworld_ai.decider.backends import (
@@ -830,7 +835,9 @@ def _offline_handlers(settings: Settings) -> dict[str, Handler]:
                 tech_levels(settings.content_dir),
                 safety_categories(settings.content_dir),
             ),
-            "build_plan": ReplayBuilder(_builder_log(settings)),
+            "build_plan": ReplayBuilder(
+                _builder_log(settings), bounds_tolerance(settings.content_dir)
+            ),
         }
     return {}
 
@@ -921,6 +928,7 @@ def _ollama_builder(settings: Settings, ollama: OllamaClient, app: FastAPI) -> O
         ),
         settings=_call_settings(settings),
         log=_builder_log(settings),
+        tolerance=bounds_tolerance(settings.content_dir),
     )
 
 

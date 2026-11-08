@@ -18,6 +18,7 @@ from glassworld_ai.builder.plan import (
     MockBuilder,
     OllamaBuilder,
     ReplayBuilder,
+    bounds_tolerance,
     parse_plan,
     plan_schema,
     plan_values,
@@ -34,6 +35,7 @@ from glassworld_ai.validation import ContractValidator
 from glassworld_contracts import GenerationJob
 
 REPO = Path(__file__).resolve().parents[2]
+TOLERANCE = bounds_tolerance(REPO / "content")  # the core's rule (content/build/settings.json)
 JOB_DATA: dict[str, Any] = json.loads(
     (REPO / "contracts/examples/valid/generation-job.build-plan-bowl.json").read_text("utf-8")
 )
@@ -63,6 +65,7 @@ def _handler(settings: Settings, answers: list[str]) -> tuple[OllamaBuilder, Cal
         template=load_prompt(settings.prompts_dir, "builder/plan", 1),
         settings=ModelCallSettings(temperature=0.7, num_ctx=8192, max_retries=1, call_timeout_s=30),
         log=log,
+        tolerance=TOLERANCE,
     )
     return handler, log
 
@@ -109,7 +112,13 @@ def _part(**changes: object) -> dict[str, Any]:
         ([_part(color="neon_pink"), _part(step=2)], "color"),
         ([_part(material="iron_bar"), _part(step=2)], "material"),
         ([_part(), _part()], "steps without a part"),
-        ([_part(position_m={"x": 0.2, "y": 0.05, "z": 0}), _part(step=2)], "outside"),
+        (
+            [
+                _part(position_m={"x": -0.2, "y": 0.05, "z": 0}),
+                _part(step=2, position_m={"x": 0.2, "y": 0.05, "z": 0}),
+            ],
+            "beyond",
+        ),
         ([_part(step=3), _part(step=2)], "step"),
     ],
 )
@@ -118,7 +127,7 @@ def test_plans_outside_the_kit_or_the_invention_are_invalid(
 ) -> None:
     schema = plan_schema(PAYLOAD)
     with pytest.raises(InvalidOutputError, match=problem):
-        parse_plan(json.dumps({"parts": parts}), schema, PAYLOAD)
+        parse_plan(json.dumps({"parts": parts}), schema, PAYLOAD, TOLERANCE)
 
 
 def test_invalid_plan_is_retried_then_fails(settings: Settings) -> None:
@@ -134,11 +143,13 @@ def test_invalid_plan_is_retried_then_fails(settings: Settings) -> None:
 def test_replay_and_mock(settings: Settings) -> None:
     handler, log = _handler(settings, [json.dumps(GOOD)])
     original = asyncio.run(handler(JOB))
-    assert asyncio.run(ReplayBuilder(log)(JOB)).result == original.result
+    assert asyncio.run(ReplayBuilder(log, TOLERANCE)(JOB)).result == original.result
     mock = asyncio.run(MockBuilder()(JOB))
     plan = mock.result["build_plan"]
     assert isinstance(plan, dict)
-    parse_plan(json.dumps(plan), plan_schema(PAYLOAD), PAYLOAD)  # the mock plan passes the checks
+    parse_plan(
+        json.dumps(plan), plan_schema(PAYLOAD), PAYLOAD, TOLERANCE
+    )  # the mock plan passes the checks
     assert ContractValidator(settings.schemas_dir).errors("job-status", _status(plan)) == []  # type: ignore[arg-type]
 
 
@@ -177,3 +188,36 @@ def test_build_plan_job_over_jobs_with_the_mock_backend(settings: Settings) -> N
     status = asyncio.run(scenario())
     assert ContractValidator(settings.schemas_dir).errors("job-status", status) == []
     assert len(status["result"]["build_plan"]["parts"]) >= 2
+
+
+def test_the_extent_rule_matches_the_core_including_rotation() -> None:
+    """Review GW1 #70: box around all parts within size x tolerance; a turned part reaches half
+    its horizontal diagonal (as BuildPlanCheck)."""
+    schema = plan_schema(PAYLOAD)
+    wide = {"x": 0.26, "y": 0.05, "z": 0.26}
+
+    def at(x: float, step: int, turn: float) -> dict[str, Any]:
+        return _part(
+            size_m=wide, step=step, rotation_y_deg=turn, position_m={"x": x, "y": 0.05, "z": 0}
+        )
+
+    straight = [at(-0.05, 1, 0), at(0.05, 2, 0)]  # extent 0.36 <= 0.25 x 1.5
+    parse_plan(json.dumps({"parts": straight}), schema, PAYLOAD, TOLERANCE)
+    turned = [at(-0.05, 1, 45), at(0.05, 2, 45)]  # half diagonal 0.18 each side: 0.47 > 0.375
+    with pytest.raises(InvalidOutputError, match="beyond"):
+        parse_plan(json.dumps({"parts": turned}), schema, PAYLOAD, TOLERANCE)
+
+
+def test_more_steps_than_parts_fails_at_once(settings: Settings) -> None:
+    handler, _ = _handler(settings, [])
+    job = JOB.model_copy(deep=True)
+    job.payload.build_plan.max_parts = 1  # type: ignore[union-attr]
+    with pytest.raises(JobFailedError) as error:
+        asyncio.run(handler(job))
+    assert (error.value.code, error.value.retryable) == ("bad_request", False)
+
+
+def test_replay_without_a_recording_is_not_retryable(settings: Settings) -> None:
+    with pytest.raises(JobFailedError) as error:
+        asyncio.run(ReplayBuilder(CallLog(settings.log_dir / "none.jsonl"), TOLERANCE)(JOB))
+    assert error.value.retryable is False

@@ -12,17 +12,18 @@ lies inside the bounding box. The core checks again (B4b R14) and has the last w
 from __future__ import annotations
 
 import json
+import math
+from pathlib import Path
 from typing import Any, cast
 
 from jsonschema import Draft202012Validator
 
 from glassworld_ai.calllog import CallLog
-from glassworld_ai.jobs import JobOutcome
+from glassworld_ai.jobs import JobFailedError, JobOutcome
 from glassworld_ai.llm.jobcall import (
     InvalidOutputError,
     ModelCallSettings,
     ask_model,
-    fail,
     recorded_answers,
 )
 from glassworld_ai.llm.ollama import OllamaClient
@@ -32,7 +33,13 @@ from glassworld_ai.words import ContextError, humanize, plain_id
 from glassworld_contracts import GenerationJob
 
 ROLE = "builder"
-TOLERANCE = 1.05  # parts may stick out 5 % (rounding of the model)
+SIZE_SLACK = 1.05  # schema bound for a single part size (rounding of the model)
+
+
+def bounds_tolerance(content_dir: Path) -> float:
+    """The core's tolerance for the plan's overall extent (content/build/settings.json)."""
+    data = json.loads((content_dir / "build/settings.json").read_text(encoding="utf-8"))
+    return float(data["bounds_tolerance"])
 
 
 def _payload(job: GenerationJob) -> Any:
@@ -87,7 +94,7 @@ def plan_schema(payload: Any) -> dict[str, Any]:
                     ],
                     "properties": {
                         "shape": {"type": "string", "enum": [plain_id(s) for s in payload.shapes]},
-                        "size_m": vec(0.005, largest * TOLERANCE),
+                        "size_m": vec(0.005, largest * SIZE_SLACK),
                         "position_m": vec(-largest, largest),
                         "rotation_y_deg": {"type": "number", "minimum": -180, "maximum": 180},
                         "material": {
@@ -103,7 +110,7 @@ def plan_schema(payload: Any) -> dict[str, Any]:
     }
 
 
-def parse_plan(raw: str, schema: dict[str, Any], payload: Any) -> dict[str, Any]:
+def parse_plan(raw: str, schema: dict[str, Any], payload: Any, tolerance: float) -> dict[str, Any]:
     try:
         data: Any = json.loads(raw)
     except json.JSONDecodeError as error:
@@ -119,18 +126,31 @@ def parse_plan(raw: str, schema: dict[str, Any], payload: Any) -> dict[str, Any]
     missing = sorted(set(range(1, steps + 1)) - used)
     if missing:
         raise InvalidOutputError(f"steps without a part: {missing}")
-    sx, sy, sz = _box(payload)
-    for i, part in enumerate(plan["parts"]):
-        pos, size = part["position_m"], part["size_m"]
-        inside = (
-            abs(pos["x"]) + size["x"] / 2 <= sx / 2 * TOLERANCE
-            and abs(pos["z"]) + size["z"] / 2 <= sz / 2 * TOLERANCE
-            and pos["y"] - size["y"] / 2 >= -0.01 * sy
-            and pos["y"] + size["y"] / 2 <= sy * TOLERANCE
-        )
-        if not inside:
-            raise InvalidOutputError(f"part {i} lies outside the bounding box")
+    _check_extent(plan["parts"], _box(payload), tolerance)
     return plan
+
+
+def _check_extent(
+    parts: list[dict[str, Any]], box: tuple[float, float, float], tolerance: float
+) -> None:
+    """The same rule as the core's BuildPlanCheck (review GW1 #70): the box around all parts,
+    a part turned about y reaching half its horizontal diagonal, within size x tolerance."""
+    lo = [float("inf")] * 3
+    hi = [float("-inf")] * 3
+    for part in parts:
+        pos, size = part["position_m"], part["size_m"]
+        if float(part["rotation_y_deg"]) % 180 == 0:
+            reach_x, reach_z = size["x"] / 2, size["z"] / 2
+        else:
+            reach_x = reach_z = math.hypot(size["x"], size["z"]) / 2
+        for axis, (centre, reach) in enumerate(
+            [(pos["x"], reach_x), (pos["y"], size["y"] / 2), (pos["z"], reach_z)]
+        ):
+            lo[axis] = min(lo[axis], centre - reach)
+            hi[axis] = max(hi[axis], centre + reach)
+    for axis, name in enumerate("xyz"):
+        if hi[axis] - lo[axis] > box[axis] * tolerance:
+            raise InvalidOutputError(f"the parts reach {name} beyond the invention's size")
 
 
 def plan_values(job: GenerationJob, template: PromptTemplate) -> dict[str, str]:
@@ -162,6 +182,7 @@ class OllamaBuilder:
         template: PromptTemplate,
         settings: ModelCallSettings,
         log: CallLog,
+        tolerance: float,
     ) -> None:
         self._client, self._queue, self._template, self._settings, self._log = (
             client,
@@ -170,9 +191,17 @@ class OllamaBuilder:
             settings,
             log,
         )
+        self._tolerance = tolerance
 
     async def __call__(self, job: GenerationJob) -> JobOutcome:
         payload = _payload(job)
+        if len(payload.invention.steps) > int(payload.max_parts):
+            # No plan can satisfy this (every step needs a part): fail at once (review GW1 #70).
+            raise JobFailedError(
+                "bad_request",
+                f"{len(payload.invention.steps)} steps but at most {payload.max_parts} parts",
+                retryable=False,
+            )
         schema = plan_schema(payload)
         rendered = self._template.render(plan_values(job, self._template))
         answer = await ask_model(
@@ -180,7 +209,7 @@ class OllamaBuilder:
             job=job,
             rendered=rendered,
             schema=schema,
-            parse=lambda raw: parse_plan(raw, schema, payload),
+            parse=lambda raw: parse_plan(raw, schema, payload, self._tolerance),
             client=self._client,
             queue=self._queue,
             settings=self._settings,
@@ -197,8 +226,9 @@ class OllamaBuilder:
 
 
 class ReplayBuilder:
-    def __init__(self, log: CallLog) -> None:
+    def __init__(self, log: CallLog, tolerance: float) -> None:
         self._log = log
+        self._tolerance = tolerance
         self._answers: dict[str, dict[str, object]] | None = None
 
     async def __call__(self, job: GenerationJob) -> JobOutcome:
@@ -207,12 +237,19 @@ class ReplayBuilder:
             self._answers = recorded_answers(self._log, ROLE)
         row = self._answers.get(job_id)
         if row is None:
-            raise fail("model_unavailable", f"no recorded answer for job {job_id}")
+            # A replay never gets the answer later: not retryable (review GW1 #70).
+            raise JobFailedError(
+                "model_unavailable", f"no recorded answer for job {job_id}", retryable=False
+            )
         payload = _payload(job)
         try:
-            plan = parse_plan(str(row["raw_output"]), plan_schema(payload), payload)
+            plan = parse_plan(
+                str(row["raw_output"]), plan_schema(payload), payload, self._tolerance
+            )
         except InvalidOutputError as error:
-            raise fail("model_unavailable", f"recorded answer does not fit job {job_id}") from error
+            raise JobFailedError(
+                "model_unavailable", f"recorded answer does not fit job {job_id}", retryable=False
+            ) from error
         return JobOutcome(
             {"build_plan": plan},
             "replay",
