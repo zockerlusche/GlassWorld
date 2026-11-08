@@ -51,7 +51,9 @@
         "id",
         "mood",
         "mood_strength",
-        "idea"
+        "idea",
+        "idea_strength",
+        "effect_hours"
       ],
       "properties": {
         "id": {
@@ -78,6 +80,18 @@
         "idea": {
           "description": "True: the dream's subject (about) becomes a little more interesting the next day (curiosity, ideas).",
           "type": "boolean"
+        },
+        "idea_strength": {
+          "description": "How much more interesting the dream's subject becomes (0..1; the core's curiosity model decides what it means). 0 when idea is false.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "effect_hours": {
+          "description": "How long the mood and idea last after waking (game hours), then they fade.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 72
         }
       }
     }

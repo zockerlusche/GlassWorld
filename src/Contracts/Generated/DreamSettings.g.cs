@@ -40,6 +40,18 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("idea")]
         public bool Idea { get; set; } = default!;
 
+        /// <summary>
+        /// How much more interesting the dream's subject becomes (0..1; the core's curiosity model decides what it means). 0 when idea is false.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("idea_strength")]
+        public double IdeaStrength { get; set; } = default!;
+
+        /// <summary>
+        /// How long the mood and idea last after waking (game hours), then they fade.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("effect_hours")]
+        public int EffectHours { get; set; } = default!;
+
     }
 
     /// <summary>

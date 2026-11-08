@@ -34,6 +34,18 @@ class Tone(BaseModel):
         ...,
         description="True: the dream's subject (about) becomes a little more interesting the next day (curiosity, ideas).",
     )
+    idea_strength: float = Field(
+        ...,
+        description="How much more interesting the dream's subject becomes (0..1; the core's curiosity model decides what it means). 0 when idea is false.",
+        ge=0.0,
+        le=1.0,
+    )
+    effect_hours: int = Field(
+        ...,
+        description='How long the mood and idea last after waking (game hours), then they fade.',
+        ge=0,
+        le=72,
+    )
 
 
 class DreamSettings(BaseModel):

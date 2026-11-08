@@ -5,25 +5,33 @@
       "id": "calm",
       "mood": null,
       "mood_strength": 0.0,
-      "idea": false
+      "idea": false,
+      "idea_strength": 0.0,
+      "effect_hours": 6
     },
     {
       "id": "joyful",
       "mood": "joy",
       "mood_strength": 0.3,
-      "idea": false
+      "idea": false,
+      "idea_strength": 0.0,
+      "effect_hours": 6
     },
     {
       "id": "curious",
       "mood": null,
       "mood_strength": 0.0,
-      "idea": true
+      "idea": true,
+      "idea_strength": 0.3,
+      "effect_hours": 6
     },
     {
       "id": "uneasy",
       "mood": "fear",
       "mood_strength": 0.2,
-      "idea": false
+      "idea": false,
+      "idea_strength": 0.0,
+      "effect_hours": 6
     }
   ],
   "max_chars": 220,
