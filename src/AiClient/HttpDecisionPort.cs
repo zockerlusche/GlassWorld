@@ -84,13 +84,17 @@ public sealed class HttpDecisionPort : IDecisionPort, IDisposable
     }
 
     /// <summary>Waits until all running requests have an answer (tests and shutdown).</summary>
-    public async Task WhenIdleAsync(TimeSpan timeout)
+    /// <returns>True if the port became idle; false if the timeout ran out first (callers must not
+    /// read on as if every answer had arrived).</returns>
+    public async Task<bool> WhenIdleAsync(TimeSpan timeout)
     {
         var until = DateTime.UtcNow + timeout;
         while (InFlight > 0 && DateTime.UtcNow < until)
         {
             await Task.Delay(10).ConfigureAwait(false);
         }
+
+        return InFlight == 0;
     }
 
     /// <inheritdoc/>

@@ -91,6 +91,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- Flaky `HttpDecisionPortTests` (about one failure in three full-suite runs): the 5 s budget also covered the one-time load of all contract schemas (measured 0.9-1.7 s idle, longer under the parallel suite), which the port triggers when it validates an error body. The tests now load the schemas before the timed part, use an upper bound of 30 s, and `WhenIdleAsync` reports whether the port became idle instead of returning silently.
 - Sound map biomes were not the world's ids (`beach`, `stream`, `rocks` instead of `beach_sea`, `freshwater`, `rocks_hills`; no `field`), so no animal or biome ambience could ever match the real world. Now the world's ids, `field` like `meadow`; C# and Python checks that sound biomes and times are world vocabulary and that every world biome has an ambience. Bee, butterfly, dragonfly and firefly had 0 calls per hour (never audible until B5); now placeholder rates.
 - Observer camera in the placeholder world (follows the group with the latest thought, else switches every 30 s; B0 island placeholder hidden) and timed window screenshots via `GLASSWORLD_SHOTS=dir;seconds,...` for acceptance documents (M1, groundwork for B2 R32).
 - Inhabitant card stays beside the side bar and its open panel and is re-fitted when the UI size changes (found in the 3840x1600 screenshots at 175 %: the card kept its old place, covered the inhabitant list and ran off the screen). The smoke checks the card at the smallest and largest UI size.
