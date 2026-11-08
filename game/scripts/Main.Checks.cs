@@ -389,7 +389,12 @@ public partial class Main
 
             // A close look: no windows, the camera near the first inhabitants.
             _screen!.Visible = false;
-            if (GetViewport().GetCamera3D() is { } camera && _world!.GetNodeOrNull<Node3D>(_world.Host!.Inhabitants.All.First().Id) is { } figure)
+            var first = _world!.Host!.Inhabitants.All.First().Id;
+            if (_world.CloseLook(first, 12))
+            {
+                // Island: the camera rig follows the figure closely.
+            }
+            else if (GetViewport().GetCamera3D() is { } camera && _world.GetNodeOrNull<Node3D>(first) is { } figure)
             {
                 var head = figure.GlobalPosition + new Vector3(0, 1.1f, 0);
                 camera.GlobalPosition = head + new Vector3(0.6f, 0.1f, 1.6f);
@@ -455,6 +460,26 @@ public partial class Main
             {
                 GD.Print("KNOCK_OK");
             }
+
+            // Island mode (TL #19505): figures, objects, camera and the UI anchored to them.
+            if (_world.Mode == WorldLookMode.Island)
+            {
+                var island = _world.IslandSelfCheck();
+                if (island.Length == 0 && _screen is not null)
+                {
+                    island = await _screen.CheckIslandAsync();
+                }
+
+                if (island.Length > 0)
+                {
+                    problems = [.. problems, "island: " + island];
+                }
+                else
+                {
+                    GD.Print($"ISLAND_UI_OK figures={_world.FigureViews} objects_drawn={_world.ObjectsDrawn}");
+                }
+            }
+
             problems = [.. problems, .. await CheckMenusAsync()];
             foreach (var problem in problems)
             {

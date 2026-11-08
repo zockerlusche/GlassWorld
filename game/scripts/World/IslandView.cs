@@ -83,6 +83,20 @@ public partial class IslandView : Node3D
             }
         }
 
+        // Streams as smooth bands along their lines (A1456), one mesh for the whole island.
+        var streams = TerrainMesher.Streams(map, look);
+        if (streams.TriangleCount > 0)
+        {
+            view.AddChild(new MeshInstance3D
+            {
+                Name = "Streams",
+                Mesh = ToMesh(streams),
+                MaterialOverride = fresh,
+                CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
+            });
+            view.WaterTriangles += streams.TriangleCount;
+        }
+
         // Open sea around the map, at sea level, a little below the edge so it never shows through.
         var width = map.WidthCells * look.CellM;
         var depth = map.DepthCells * look.CellM;

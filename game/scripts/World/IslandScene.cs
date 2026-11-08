@@ -85,10 +85,11 @@ public partial class IslandScene : Node3D
 
         _daylight = Look<LookDaylight>("daylight.json");
         _shots = Look<LookShots>("shots.json");
-        _environment = new WorldEnvironment { Environment = new Godot.Environment { TonemapMode = Godot.Environment.ToneMapper.Linear } };
+        _environment = new WorldEnvironment { Environment = new Godot.Environment() };
         AddChild(_environment);
-        _sun = new DirectionalLight3D { Name = "Sun", ShadowEnabled = true, ShadowBlur = 2f };
+        _sun = new DirectionalLight3D { Name = "Sun" };
         AddChild(_sun);
+        DaylightLook.ApplyRendering(_daylight, _sun, _environment.Environment);
         ApplyPhase("day");
 
         // Figures of the inhabitants (B2-4): appearance from the core, clips from the library.
@@ -126,7 +127,7 @@ public partial class IslandScene : Node3D
         // The camera target follows the ground, but never sinks below the sea surface.
         var seaLevel = host.Content.WorldGen.Presets[preset].Terrain.SeaLevel * terrain.UnitM;
         _rig = CameraRig.Create(Look<LookCamera>("camera.json"), _width, _depth, () => _figures.Values.Select(f => (f.InhabitantId, f.Position)), (x, z) => Math.Max(seaLevel, IslandView.GroundHeight(ground, terrain, x, z)));
-        _rig.FigurePosition = id => _figures.TryGetValue(id, out var f) ? f.Position : null;
+        _rig.FindFigure = id => _figures.TryGetValue(id, out var f) ? f.Position : null;
         AddChild(_rig);
         if (Arg("--follow") is { } follow && _shotDirectory is null)
         {
@@ -288,26 +289,5 @@ public partial class IslandScene : Node3D
     }
 
     /// <summary>Light, sky and ambient of a day phase from the daylight data (B2-5 blends them over time).</summary>
-    private void ApplyPhase(string phase)
-    {
-        var data = _daylight.Phases.FirstOrDefault(p => p.Phase.ToString().Equals(phase, StringComparison.OrdinalIgnoreCase))
-            ?? throw new InvalidDataException($"Unknown day phase '{phase}' in shots.json.");
-        _sun.LightColor = Color.FromHtml(data.LightColor);
-        _sun.LightEnergy = (float)data.LightEnergy;
-        _sun.RotationDegrees = new Vector3(-(float)data.SunElevationDeg, (float)_daylight.SunAzimuthDeg, 0);
-        var sky = new ProceduralSkyMaterial
-        {
-            SkyTopColor = Color.FromHtml(data.SkyTop),
-            SkyHorizonColor = Color.FromHtml(data.SkyHorizon),
-            GroundHorizonColor = Color.FromHtml(data.SkyHorizon),
-            GroundBottomColor = Color.FromHtml(data.SkyHorizon),
-            SunAngleMax = 0,
-        };
-        var environment = _environment.Environment;
-        environment.BackgroundMode = Godot.Environment.BGMode.Sky;
-        environment.Sky = new Sky { SkyMaterial = sky };
-        environment.AmbientLightSource = Godot.Environment.AmbientSource.Color;
-        environment.AmbientLightColor = Color.FromHtml(data.AmbientColor);
-        environment.AmbientLightEnergy = (float)data.AmbientEnergy;
-    }
+    private void ApplyPhase(string phase) => DaylightLook.Apply(_daylight, phase, _sun, _environment.Environment);
 }

@@ -234,7 +234,16 @@ public partial class GameScreen : CanvasLayer
         {
             if (WorldPoint(place.Position) is { } point)
             {
-                PlaceGift(_placing, point.X, point.Z);
+                // On the island a spot on water or off the island is refused here, before the core: no
+                // favour is spent and the gift never sinks out of reach (GW3 #113, finding 1).
+                if (_presenter?.GiftRefusal(point) is { } reason)
+                {
+                    ShowHint(new ToastMessage(reason, new Dictionary<string, string>(), null));
+                }
+                else
+                {
+                    PlaceGift(_placing, point.X, point.Z);
+                }
             }
 
             GetViewport().SetInputAsHandled();
@@ -249,13 +258,20 @@ public partial class GameScreen : CanvasLayer
             return;
         }
 
+        // The screen owns the left click (gift placement above, otherwise figure selection), so one click
+        // never does both; on the island it also tells the camera (follow the figure, or stop following).
         if (@event is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } click && _style is not null)
         {
             var id = PickAt(click.Position);
             if (id is not null)
             {
                 Encounter(id);
+                _presenter?.ChooseFigure(id);
                 GetViewport().SetInputAsHandled();
+            }
+            else
+            {
+                _presenter?.ClickedGround();
             }
         }
     }
@@ -384,6 +400,68 @@ public partial class GameScreen : CanvasLayer
     }
 
     /// <summary>
+    /// Smoke, island mode (TL #19505): a click on a figure selects it (the click point sits between feet and
+    /// head), the gift ray under it lands on the drawn ground, and the question marks hang on the head anchor.
+    /// </summary>
+    public async Task<string> CheckIslandAsync()
+    {
+        if (_presenter?.Host is not { } host || _presenter.Mode != WorldLookMode.Island || _style is null)
+        {
+            return "island check not set up";
+        }
+
+        var id = host.Inhabitants.All.First().Id;
+        _presenter.ChooseFigure(id);
+        for (var frame = 0; frame < 120; frame++)
+        {
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        }
+
+        try
+        {
+            if (GetViewport().GetCamera3D() is not { } camera || _presenter.PickPoint(id) is not { } point || camera.IsPositionBehind(point))
+            {
+                return $"{id} is not in view after choosing it";
+            }
+
+            var screen = camera.UnprojectPosition(point);
+            if (PickAt(screen) != id)
+            {
+                return $"a click on {id} at {screen} does not select it";
+            }
+
+            if (WorldPoint(screen) is not { } ground)
+            {
+                return "the gift ray finds no ground behind the figure";
+            }
+
+            // The ray lands on the drawn ground, or on the sea surface above it, which is refused as water.
+            var height = _presenter.GroundHeight(ground.X, ground.Z);
+            var onSea = ground.Y > height + 0.01f;
+            if (ground.Y < height - 0.01f || (onSea && _presenter.GiftRefusal(ground) != GiftSpot.OnWater))
+            {
+                return $"the gift point {ground} is neither on the drawn ground ({height:0.00} m) nor refused as water";
+            }
+
+            if (_presenter.GiftRefusal(new Vector3(-5, 0, -5)) != GiftSpot.OffIsland)
+            {
+                return "a gift off the island is not refused";
+            }
+
+            if (_presenter.MarkAnchor(id, 0) is not { } anchor || anchor.Parent.Name != "HeadAnchor")
+            {
+                return "question marks are not anchored to the head";
+            }
+
+            return string.Empty;
+        }
+        finally
+        {
+            _presenter.ClickedGround();
+        }
+    }
+
+    /// <summary>
     /// Smoke (A1341): a knock trembles at the glass only when motion is allowed. With "reduce motion"
     /// (glass_tremor time 0) nothing is drawn; the mailbox shows open messages and "read" moves one to
     /// the history.
@@ -407,7 +485,7 @@ public partial class GameScreen : CanvasLayer
 
             _style = style.With(style.Settings with { ReduceMotion = false });
             var shown = KnockAt(who);
-            var visible = GetViewport().GetCamera3D() is { } camera && _presenter.GetNodeOrNull<Node3D>(who) is { } figure && !camera.IsPositionBehind(figure.GlobalPosition);
+            var visible = GetViewport().GetCamera3D() is { } camera && _presenter.PickPoint(who) is { } figure && !camera.IsPositionBehind(figure);
             if (visible && !shown)
             {
                 return "no tremor with motion allowed";
@@ -550,18 +628,12 @@ public partial class GameScreen : CanvasLayer
         return result.Accepted;
     }
 
-    /// <summary>Point on the ground (y = 0) under a screen position, or null if the camera looks away.</summary>
-    private Vector3? WorldPoint(Vector2 screen)
-    {
-        if (GetViewport().GetCamera3D() is not { } camera)
-        {
-            return null;
-        }
-
-        var from = camera.ProjectRayOrigin(screen);
-        var direction = camera.ProjectRayNormal(screen);
-        return Math.Abs(direction.Y) < 1e-6f ? null : from + (direction * (-from.Y / direction.Y));
-    }
+    /// <summary>
+    /// Point on the ground under a screen position (placeholder: y = 0, island: the drawn ground), or null
+    /// if the camera looks away.
+    /// </summary>
+    private Vector3? WorldPoint(Vector2 screen) =>
+        GetViewport().GetCamera3D() is { } camera ? _presenter?.GroundPoint(camera, screen) : null;
 
     /// <summary>
     /// The help window (A1340, F5238): one entry per call for help, with up to the data's number of
@@ -691,18 +763,18 @@ public partial class GameScreen : CanvasLayer
     /// </summary>
     public bool KnockAt(string inhabitantId)
     {
-        if (_style is null || _presenter?.GetNodeOrNull<Node3D>(inhabitantId) is not { } figure || GetViewport().GetCamera3D() is not { } camera)
+        if (_style is null || _presenter?.PickPoint(inhabitantId) is not { } figure || GetViewport().GetCamera3D() is not { } camera)
         {
             return false;
         }
 
         var ms = _style.DurationMs("glass_tremor");
-        if (ms <= 0 || camera.IsPositionBehind(figure.GlobalPosition))
+        if (ms <= 0 || camera.IsPositionBehind(figure))
         {
             return false;
         }
 
-        var tremor = new GlassTremor { Name = "GlassTremor", Center = camera.UnprojectPosition(figure.GlobalPosition), Seconds = ms / 1000.0, Color = UiTheme.ToGodot(_style.Color(UiColorId.Accent)), Shape = _style.Tokens.Knock };
+        var tremor = new GlassTremor { Name = "GlassTremor", Center = camera.UnprojectPosition(figure), Seconds = ms / 1000.0, Color = UiTheme.ToGodot(_style.Color(UiColorId.Accent)), Shape = _style.Tokens.Knock };
         _overlay.AddChild(tremor);
         return true;
     }
@@ -868,7 +940,7 @@ public partial class GameScreen : CanvasLayer
             return "card did not open";
         }
 
-        var mark = _presenter.GetNodeOrNull<Node3D>(id)?.GetNodeOrNull<Label3D>(MarkNode);
+        var mark = MarkOf(id);
         var open = _feed.Inhabitants().First(r => r.Id == id).OpenQuestions;
         if (open > 0 && (mark is null || !mark.Visible))
         {
@@ -1107,21 +1179,28 @@ public partial class GameScreen : CanvasLayer
         }
     }
 
+    /// <summary>The question mark of an inhabitant (on the head anchor on the island), or null.</summary>
+    private Label3D? MarkOf(string inhabitantId) =>
+        _style is not null && _presenter?.MarkAnchor(inhabitantId, (float)_style.Tokens.Window.MarkHeightM) is { } anchor
+            ? anchor.Parent.GetNodeOrNull<Label3D>(MarkNode)
+            : null;
+
     private void UpdateMark(InhabitantRow row)
     {
-        var figure = _presenter?.GetNodeOrNull<Node3D>(row.Id);
-        if (figure is null || _style is null)
+        if (_style is null || _presenter?.MarkAnchor(row.Id, (float)_style.Tokens.Window.MarkHeightM) is not { } anchor)
         {
             return;
         }
 
+        var figure = anchor.Parent;
         var mark = figure.GetNodeOrNull<Label3D>(MarkNode);
         if (mark is null)
         {
             mark = new Label3D
             {
                 Name = MarkNode,
-                Position = new Vector3(0, (float)_style.Tokens.Window.MarkHeightM, 0),
+                Position = new Vector3(0, anchor.HeightM, 0),
+                PixelSize = anchor.PixelSizeM ?? 0.005f,
                 Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
                 FontSize = _style.Tokens.Window.MarkFontPx,
                 Modulate = UiTheme.ToGodot(_style.Color(UiColorId.Attention)),
@@ -1145,11 +1224,11 @@ public partial class GameScreen : CanvasLayer
         }
 
         var figures = (_feed?.Inhabitants() ?? [])
-            .Select(i => (i.Id, Node: _presenter.GetNodeOrNull<Node3D>(i.Id)))
-            .Where(f => f.Node is not null && !camera.IsPositionBehind(f.Node!.GlobalPosition))
+            .Select(i => (i.Id, Point: _presenter.PickPoint(i.Id)))
+            .Where(f => f.Point is { } p && !camera.IsPositionBehind(p))
             .Select(f =>
             {
-                var p = camera.UnprojectPosition(f.Node!.GlobalPosition);
+                var p = camera.UnprojectPosition(f.Point!.Value);
                 return (f.Id, (double)p.X, (double)p.Y);
             });
         return ScreenModel.Pick(figures, screen.X, screen.Y, _style.Tokens.Window.PickRadiusPx);

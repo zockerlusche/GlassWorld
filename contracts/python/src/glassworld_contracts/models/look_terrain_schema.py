@@ -67,6 +67,18 @@ class TerrainWater(BaseModel):
         ge=0,
         le=200,
     )
+    stream_width_m: float = Field(
+        ...,
+        description='Width of a stream band in metres: streams are drawn as smooth bands along their centre line (A1456); the generator makes them two cells wide.',
+        gt=0.0,
+        le=10.0,
+    )
+    stream_smoothing: int = Field(
+        ...,
+        description="Rounds of corner cutting (Chaikin) along a stream's centre line; each round doubles the points (0 = the cell-centre polyline).",
+        ge=0,
+        le=6,
+    )
 
 
 class TerrainWaterShader(BaseModel):

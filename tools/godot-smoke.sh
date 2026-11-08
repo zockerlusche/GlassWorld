@@ -28,7 +28,7 @@ timeout "$TIMEOUT_S" "$GODOT" --headless --path "$GAME" --import >/dev/null 2>&1
 
 echo "== godot run ($FRAMES frames) =="
 LOG="$(mktemp)"
-trap 'rm -f "$LOG"' EXIT
+trap 'rm -f "$LOG" "${MAIN_ISLAND_LOG:-}"' EXIT
 set +e
 # --quit-after is a watchdog: if the scene never reaches its marker (e.g. after an exception),
 # Godot still stops after the frame budget instead of running into the timeout. The margin covers
@@ -97,6 +97,35 @@ if [ -z "$DONE_FRAMES" ] || [ "$DONE_FRAMES" -lt "$FRAMES" ]; then
   echo "SMOKE_FAIL: success marker 'SMOKE_OK frames=N' with N >= $FRAMES missing" >&2
   exit 1
 fi
+# Island mode of the main game (TL #19505): the same game and checks with the generated island, the
+# figures and the objects (GLASSWORLD_WORLD=island); the placeholder run above stays the fallback.
+echo "== godot run, island mode ($FRAMES frames) =="
+MAIN_ISLAND_LOG="$(mktemp)"
+set +e
+GLASSWORLD_WORLD=island timeout "$TIMEOUT_S" "$GODOT" --headless --path "$GAME" --quit-after "$((FRAMES + 2000))" -- "--smoke-frames=$FRAMES" >"$MAIN_ISLAND_LOG" 2>&1
+CODE=$?
+set -e
+island_fail() {
+  cat "$MAIN_ISLAND_LOG" >&2
+  echo "SMOKE_FAIL: island mode: $1" >&2
+  exit 1
+}
+if [[ $CODE -ne 0 ]]; then
+  island_fail "Godot exit code $CODE"
+fi
+if grep -Eq '^(ERROR|SCRIPT ERROR|USER ERROR)|Unhandled exception' "$MAIN_ISLAND_LOG"; then
+  island_fail "errors in Godot output"
+fi
+for marker in   '^WORLD_OK seed=[0-9]+ inhabitants=[1-9][0-9]* objects=[1-9][0-9]* hash=[0-9a-f]{12}$'   '^ISLAND_WORLD preset=[a-z_]+ chunks=[1-9][0-9]* figures=[1-9][0-9]* objects_drawn=[1-9][0-9]* layers=[1-9][0-9]*$'   '^AUDIO_SPATIAL_OK$'   '^SYMBOLS_OK$'   '^SCREEN_OK$'   '^ISLAND_UI_OK figures=[1-9][0-9]* objects_drawn=[1-9][0-9]*$'   '^SAVE_OK hash=[0-9a-f]{12} tick=[1-9][0-9]* questions=[1-9][0-9]*$'   '^GIFT_OK$'   '^KNOCK_OK$'   '^MENU_OK screens=[1-9][0-9]*$'   '^UI_OK$'; do
+  if ! grep -Eq "$marker" "$MAIN_ISLAND_LOG"; then
+    island_fail "marker '$marker' missing"
+  fi
+done
+DONE_FRAMES="$(grep -oE '^SMOKE_OK frames=[0-9]+$' "$MAIN_ISLAND_LOG" | head -1 | cut -d= -f2)"
+if [ -z "$DONE_FRAMES" ] || [ "$DONE_FRAMES" -lt "$FRAMES" ]; then
+  island_fail "success marker 'SMOKE_OK frames=N' with N >= $FRAMES missing"
+fi
+grep -E '^(WORLD_OK|ISLAND_WORLD|ISLAND_UI_OK|SAVE_OK|SMOKE_OK)' "$MAIN_ISLAND_LOG"
 # Look prototype (A1435): builds the island piece and figures and checks that the skeletons animate.
 LOOK_LOG="$(mktemp)"
 timeout "$TIMEOUT_S" "$GODOT" --headless --path "$GAME" --quit-after 400 res://prototype/look/look_d355.tscn >"$LOOK_LOG" 2>&1

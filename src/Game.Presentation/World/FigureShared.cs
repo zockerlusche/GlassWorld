@@ -11,12 +11,15 @@ public sealed class FigureShared
 {
     private readonly HashSet<string> _reported = new(StringComparer.Ordinal);
     private readonly HashSet<string> _reportedClips = new(StringComparer.Ordinal);
+    private readonly WorldTimeSettings _time;
 
     /// <summary>Creates the shared state from the data and the world's calendar at a time factor.</summary>
     public FigureShared(AnimationLibrary library, LookFigures figures, WorldTimeSettings time, double speed)
     {
         ArgumentNullException.ThrowIfNull(library);
         ArgumentNullException.ThrowIfNull(figures);
+        ArgumentNullException.ThrowIfNull(time);
+        _time = time;
         Library = library;
         Figures = figures;
         Chooser = new AnimationChooser(library);
@@ -40,7 +43,13 @@ public sealed class FigureShared
     public double GameSecondsPerTick { get; }
 
     /// <summary>Real seconds per tick at the scene's time factor.</summary>
-    public double RealSecondsPerTick { get; }
+    public double RealSecondsPerTick { get; private set; }
+
+    /// <summary>
+    /// The player changed the time factor (pause, normal, fast forward in the main game): the next ticks
+    /// are walked over their new real time, so figures keep up instead of trailing behind.
+    /// </summary>
+    public void UseSpeed(double speed) => RealSecondsPerTick = FigureMotion.RealSecondsPerTick(_time, speed);
 
     /// <summary>True the first time <paramref name="key"/> is reported in this run, false after.</summary>
     public bool FirstReport(string key) => _reported.Add(key);

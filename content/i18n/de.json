@@ -1055,6 +1055,14 @@
       "text": "Zu nah an einem Bewohner – leg es etwas weiter weg."
     },
     {
+      "key": "msg.gift.on_water",
+      "text": "Dort ist Wasser – leg das Geschenk auf festen Boden."
+    },
+    {
+      "key": "msg.gift.off_island",
+      "text": "Dort ist keine Insel – leg das Geschenk auf die Insel."
+    },
+    {
       "key": "msg.command.no_position",
       "text": "Wähle eine Stelle in der Welt."
     },

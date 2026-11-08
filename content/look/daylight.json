@@ -2,6 +2,8 @@
   "contract_version": "0.2",
   "night_min_brightness": 0.22,
   "sun_azimuth_deg": 35,
+  "shadow_blur": 2.0,
+  "tonemap": "linear",
   "phases": [
     {
       "phase": "dawn",

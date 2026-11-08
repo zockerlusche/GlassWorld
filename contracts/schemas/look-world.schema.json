@@ -1,0 +1,187 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/look-world.schema.json",
+  "title": "LookWorld",
+  "description": "Data file content/look/world.json: which world the main game builds for a new world (TL decision #19505): the flat placeholder start with capsules and spheres, or the generated island with the real figures and objects. The placeholder stays as the safe fallback; the environment variable GLASSWORLD_WORLD=island|placeholder overrides the value for tests and start scripts. A loaded world is always drawn the way it was made (a world with an island map as island). Also the presentation values of island mode. Presentation only, not part of the hash.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "world",
+    "island_preset",
+    "day_phase",
+    "labels",
+    "observer",
+    "ground_ray",
+    "pick_height_share",
+    "stand_in"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "world": {
+      "description": "World of a new game: placeholder (flat start, capsules) or island (generated island, figures, objects).",
+      "type": "string",
+      "enum": [
+        "placeholder",
+        "island"
+      ]
+    },
+    "island_preset": {
+      "description": "World preset of content/world/presets used for a new island world.",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$"
+    },
+    "day_phase": {
+      "description": "Day phase of content/look/daylight.json whose light the island shows until B2-5 blends the phases over time.",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$"
+    },
+    "labels": {
+      "$ref": "#/$defs/WorldLookLabels"
+    },
+    "observer": {
+      "$ref": "#/$defs/WorldLookObserver"
+    },
+    "ground_ray": {
+      "$ref": "#/$defs/WorldLookGroundRay"
+    },
+    "pick_height_share": {
+      "description": "Where on a figure a click is measured, as a share of the height from the feet to the head anchor (0 = feet, 1 = head).",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "stand_in": {
+      "$ref": "#/$defs/WorldLookStandIn"
+    }
+  },
+  "$defs": {
+    "WorldLookLabels": {
+      "description": "Thought bubbles and question marks above a figure's head anchor.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "thought_above_head_m",
+        "question_above_head_m",
+        "pixel_size_m",
+        "thought_width_px"
+      ],
+      "properties": {
+        "thought_above_head_m": {
+          "description": "Height of the thought bubble above the head anchor in metres.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 5
+        },
+        "question_above_head_m": {
+          "description": "Height of the question marks above the head anchor in metres.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 5
+        },
+        "pixel_size_m": {
+          "description": "World size of one font pixel of these labels in metres (readable at the follow distance).",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 0.1
+        },
+        "thought_width_px": {
+          "description": "Wrap width of a thought bubble in font pixels (times pixel_size_m gives metres).",
+          "type": "integer",
+          "minimum": 50,
+          "maximum": 4000
+        }
+      }
+    },
+    "WorldLookObserver": {
+      "description": "Observer camera on the island: it follows the group where the last thought appeared, otherwise switches groups; the player takes over by panning or clicking and hands back after a calm pause.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "group_switch_s",
+        "thought_focus_s",
+        "resume_after_idle_s",
+        "distance_m"
+      ],
+      "properties": {
+        "group_switch_s": {
+          "description": "Real seconds before the observer moves on to the next group.",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 3600
+        },
+        "thought_focus_s": {
+          "description": "Real seconds the observer stays with the group of a new thought.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 3600
+        },
+        "resume_after_idle_s": {
+          "description": "Real seconds without camera input (and without a chosen figure) before the observer takes the camera again.",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 3600
+        },
+        "distance_m": {
+          "description": "Camera distance in metres when the observer starts; the player's zoom is kept afterwards (clicking a figure uses the follow distance of content/look/camera.json).",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1000
+        }
+      }
+    },
+    "WorldLookGroundRay": {
+      "description": "Ray from the mouse to the island ground (gift placement): steps along the ray, then refines the crossing.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "step_m",
+        "max_distance_m",
+        "refine_steps"
+      ],
+      "properties": {
+        "step_m": {
+          "description": "Step along the ray in metres.",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 10
+        },
+        "max_distance_m": {
+          "description": "Longest ray in metres.",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 100000
+        },
+        "refine_steps": {
+          "description": "Bisection steps once the ray has passed below the ground.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 64
+        }
+      }
+    },
+    "WorldLookStandIn": {
+      "description": "Calm capsule drawn for an inhabitant whose figure cannot be built (logged once); the world runs on.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "radius_m",
+        "height_m"
+      ],
+      "properties": {
+        "radius_m": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 2
+        },
+        "height_m": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 5
+        }
+      }
+    }
+  }
+}

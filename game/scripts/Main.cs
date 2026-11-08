@@ -234,6 +234,12 @@ public partial class Main : Node3D
 
         _audio = new WorldAudio { Name = "WorldAudio" };
         AddChild(_audio);
+        if (_world.Mode == WorldLookMode.Island)
+        {
+            _audio.GroundHeight = _world.GroundHeight;
+            _audio.Hearing = _world.Hearing;
+        }
+
         var spatialReady = _audio.Setup(host, host.World.Seed, GlassWorld.Presentation.Audio.InventionSounds.DefaultFolder(_contentDirectory, OS.GetEnvironment("GW_AI_SOUND_OUTPUT_DIR"), OS.GetEnvironment("GLASSWORLD_AI_ROOT")));
         if (_mix is not null)
         {

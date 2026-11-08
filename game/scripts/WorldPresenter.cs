@@ -1,4 +1,5 @@
 using GlassWorld.AiClient;
+using GlassWorld.Presentation.World;
 using GlassWorld.Simulation;
 using GlassWorld.Simulation.Content;
 using GlassWorld.Simulation.Data;
@@ -11,8 +12,9 @@ namespace GlassWorld.Game;
 /// <summary>
 /// Shows the core world (R15): builds it from the content folder, advances it with an accumulator at the
 /// speed from content/world/time.json (normal: one game day in the configured real seconds, at most
-/// max_ticks_per_frame ticks per frame) and draws placeholder figures and objects. No game logic here;
-/// the island, look and animation come with B2.
+/// max_ticks_per_frame ticks per frame) and draws it: as the placeholder (capsules and spheres on a flat
+/// ground) or, in island mode (content/look/world.json, GLASSWORLD_WORLD), as the generated island with the
+/// real figures and objects (WorldPresenter.Island.cs). No game logic here.
 /// The decider is the mock by default (deterministic smoke and CI). With the environment variable
 /// <c>GLASSWORLD_AI=live</c> the game starts the local AI service itself (ADR-0006, B3 S7) and stops it
 /// when the scene ends. Thoughts from answers appear as a short bubble above the figure.
@@ -63,8 +65,9 @@ public partial class WorldPresenter : Node3D
     public void Start(string contentDirectory, ulong seed) => CreateWorld(contentDirectory, seed, null, null);
 
     /// <summary>
-    /// Starts a new world. Until B2-2 generates the island, size and climate are only stored by the
-    /// caller; the world is the placeholder start for the seed. With a save path the world is saved at
+    /// Starts a new world: the placeholder start for the seed, or in island mode (content/look/world.json,
+    /// overridden by GLASSWORLD_WORLD) the island generated from the seed and the data's preset. Size and
+    /// climate of the new-world form are only stored by the caller. With a save path the world is saved at
     /// once and then after every game day (B2487, Leitbild: at most one game day lost).
     /// </summary>
     /// <param name="contentDirectory">Content folder.</param>
@@ -73,18 +76,52 @@ public partial class WorldPresenter : Node3D
     /// <param name="savePath">Save game, or null for an unsaved world.</param>
     public void CreateWorld(string contentDirectory, ulong seed, int? startFavor, string? savePath)
     {
-        var port = CreatePort(contentDirectory);
-        var host = SimulationHost.CreatePlaceholderWorld(contentDirectory, seed, port, "de", _jobPort);
-        if (startFavor is { } favor)
+        _contentDirectory = contentDirectory;
+        var look = ReadLook(contentDirectory);
+        var mode = WorldLookChoice.ForNewWorld(look, System.Environment.GetEnvironmentVariable(WorldLookChoice.EnvironmentVariable), out var problem);
+        if (problem is not null)
         {
-            // Part of the start (GW1 review #67 S1/N1): as a command in the log, applied at the first
-            // tick, so a replay from seed and log starts with the same favour.
-            // Applied and logged at once: the world is saved right after creation, before the first tick
-            // (GW1 #73 F1); a replay applies the logged command again at the first tick.
-            host.Decisions.ApplySetup(host.World, new Simulation.Decisions.PlayerCommand(Simulation.Player.PlayerSystem.StartFavorCommand, null) { Amount = favor });
+            GD.PushWarning($"WORLD_LOOK {problem}");
         }
 
-        Begin(host, savePath);
+        var port = CreatePort(contentDirectory);
+        SimulationHost Make(WorldLookMode m)
+        {
+            var made = m == WorldLookMode.Island
+                ? SimulationHost.CreateGeneratedWorld(contentDirectory, seed, port, "de", look.IslandPreset, _jobPort)
+                : SimulationHost.CreatePlaceholderWorld(contentDirectory, seed, port, "de", _jobPort);
+            if (startFavor is { } favor)
+            {
+                // Part of the start (GW1 review #67 S1/N1): as a command in the log, applied at the first
+                // tick, so a replay from seed and log starts with the same favour.
+                // Applied and logged at once: the world is saved right after creation, before the first tick
+                // (GW1 #73 F1); a replay applies the logged command again at the first tick.
+                made.Decisions.ApplySetup(made.World, new Simulation.Decisions.PlayerCommand(Simulation.Player.PlayerSystem.StartFavorCommand, null) { Amount = favor });
+            }
+
+            return made;
+        }
+
+        if (mode == WorldLookMode.Island)
+        {
+            try
+            {
+                Begin(Make(WorldLookMode.Island), savePath);
+            }
+            catch (Exception e) when (e is not OutOfMemoryException)
+            {
+                // A new world must always start (GW3 #113, finding 3): if the island cannot be generated or
+                // drawn, the placeholder world takes its place. A loaded island save still shows its error.
+                GD.PushWarning($"WORLD_LOOK_FALLBACK island failed ({e.GetType().Name}: {e.Message}); building the placeholder world");
+                UndoIsland();
+                Begin(Make(WorldLookMode.Placeholder), savePath);
+            }
+        }
+        else
+        {
+            Begin(Make(WorldLookMode.Placeholder), savePath);
+        }
+
         if (savePath is not null)
         {
             Save();
@@ -101,6 +138,7 @@ public partial class WorldPresenter : Node3D
     public void Load(string contentDirectory, string savePath, IDecisionPort? port = null)
     {
         ArgumentException.ThrowIfNullOrEmpty(savePath);
+        _contentDirectory = contentDirectory;
         var settings = Contracts.Validation.ContractSerializer.Deserialize<Contracts.DeciderSettings>(
             System.IO.File.ReadAllText(System.IO.Path.Combine(contentDirectory, "decider", "settings.json")));
         var decisions = port ?? CreatePort(contentDirectory);
@@ -155,6 +193,12 @@ public partial class WorldPresenter : Node3D
             };
         }
 
+        if (WorldLookChoice.ForWorld(host.Map is not null) == WorldLookMode.Island)
+        {
+            BeginIsland();
+            return;
+        }
+
         foreach (var inhabitant in _host.Inhabitants.All)
         {
             var figure = new MeshInstance3D
@@ -194,6 +238,19 @@ public partial class WorldPresenter : Node3D
         if (ticks > 0)
         {
             _host.World.Run(ticks);
+        }
+
+        if (Mode == WorldLookMode.Island)
+        {
+            ProcessIsland(ticks);
+            _clock += delta;
+            ShowThoughts();
+            IslandCamera();
+            return;
+        }
+
+        if (ticks > 0)
+        {
             UpdateVisuals();
         }
 
@@ -205,6 +262,7 @@ public partial class WorldPresenter : Node3D
     /// <inheritdoc/>
     public override void _ExitTree()
     {
+        RestoreScene();
         _livePort?.Dispose();
         _jobPort?.Dispose();
         _helpPort?.Dispose();
@@ -342,6 +400,7 @@ public partial class WorldPresenter : Node3D
                 _thoughts[e.InhabitantId] = (bubble.Label, _clock + ThoughtSeconds);
                 _focusGroup = _host.Inhabitants.Get(e.InhabitantId).Group;
                 _focusUntil = _clock + 12.0;
+                ObserveThought(e.InhabitantId);
             }
         }
 

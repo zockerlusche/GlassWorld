@@ -1,0 +1,558 @@
+{
+  "contract_version": "0.2",
+  "outline": true,
+  "outline_width_m": 0.03,
+  "fallback": {
+    "shape": "marker",
+    "colors": [
+      "rock"
+    ],
+    "size_m": 1.0
+  },
+  "visuals": [
+    {
+      "id": "broadleaf",
+      "types": [
+        "deciduous_tree"
+      ],
+      "shape": "broadleaf_tree",
+      "colors": [
+        "foliage",
+        "bark",
+        "foliage_dark"
+      ],
+      "size_m": 1.0,
+      "size_jitter": 0.15,
+      "lift_m": 0.0,
+      "rest": "centre",
+      "footprint_m": 0.0
+    },
+    {
+      "id": "conifer",
+      "types": [
+        "conifer_tree"
+      ],
+      "shape": "conifer_tree",
+      "colors": [
+        "foliage_dark",
+        "bark",
+        "foliage"
+      ],
+      "size_m": 1.0,
+      "size_jitter": 0.15,
+      "lift_m": 0.0,
+      "rest": "centre",
+      "footprint_m": 0.0
+    },
+    {
+      "id": "fruit_tree",
+      "types": [
+        "fruit_tree"
+      ],
+      "shape": "fruit_tree",
+      "colors": [
+        "foliage",
+        "bark",
+        "berry"
+      ],
+      "size_m": 0.9,
+      "size_jitter": 0.12,
+      "lift_m": 0.0,
+      "rest": "centre",
+      "footprint_m": 0.0
+    },
+    {
+      "id": "palm",
+      "types": [
+        "palm_tree"
+      ],
+      "shape": "palm_tree",
+      "colors": [
+        "foliage",
+        "bark"
+      ],
+      "size_m": 1.0,
+      "size_jitter": 0.1,
+      "lift_m": 0.0,
+      "rest": "centre",
+      "footprint_m": 0.0
+    },
+    {
+      "id": "berry_bush",
+      "types": [
+        "berry_bush"
+      ],
+      "shape": "berry_bush",
+      "colors": [
+        "bush",
+        "berry"
+      ],
+      "size_m": 1.0,
+      "size_jitter": 0.15,
+      "lift_m": 0.0,
+      "rest": "centre",
+      "footprint_m": 0.0
+    },
+    {
+      "id": "hazel_bush",
+      "types": [
+        "hazel_bush"
+      ],
+      "shape": "berry_bush",
+      "colors": [
+        "bush",
+        "hazel"
+      ],
+      "size_m": 1.1,
+      "size_jitter": 0.15,
+      "lift_m": 0.0,
+      "rest": "centre",
+      "footprint_m": 0.0
+    },
+    {
+      "id": "thorn_bush",
+      "types": [
+        "thorn_bush"
+      ],
+      "shape": "bush",
+      "colors": [
+        "foliage_dark"
+      ],
+      "size_m": 0.9,
+      "size_jitter": 0.15,
+      "lift_m": 0.0,
+      "rest": "centre",
+      "footprint_m": 0.0
+    },
+    {
+      "id": "cave_rock",
+      "types": [
+        "rock_niche"
+      ],
+      "shape": "rock",
+      "colors": [
+        "rock_dark"
+      ],
+      "size_m": 2.4,
+      "size_jitter": 0.1,
+      "lift_m": -0.2,
+      "rest": "centre",
+      "footprint_m": 0.0
+    },
+    {
+      "id": "fieldstone",
+      "types": [
+        "fieldstone"
+      ],
+      "shape": "stone",
+      "colors": [
+        "rock"
+      ],
+      "size_m": 1.0,
+      "size_jitter": 0.25,
+      "lift_m": -0.03,
+      "rest": "centre",
+      "footprint_m": 0.0
+    },
+    {
+      "id": "slate",
+      "types": [
+        "slate"
+      ],
+      "shape": "stone",
+      "colors": [
+        "rock_dark"
+      ],
+      "size_m": 0.9,
+      "size_jitter": 0.2,
+      "lift_m": -0.03,
+      "rest": "centre",
+      "footprint_m": 0.0
+    },
+    {
+      "id": "sandstone",
+      "types": [
+        "sandstone"
+      ],
+      "shape": "stone",
+      "colors": [
+        "sandstone"
+      ],
+      "size_m": 1.0,
+      "size_jitter": 0.2,
+      "lift_m": -0.03,
+      "rest": "centre",
+      "footprint_m": 0.0
+    },
+    {
+      "id": "flint",
+      "types": [
+        "flint"
+      ],
+      "shape": "stone",
+      "colors": [
+        "rock_dark"
+      ],
+      "size_m": 0.55,
+      "size_jitter": 0.15,
+      "lift_m": -0.02,
+      "rest": "centre",
+      "footprint_m": 0.0
+    },
+    {
+      "id": "pyrite",
+      "types": [
+        "pyrite"
+      ],
+      "shape": "stone",
+      "colors": [
+        "pyrite"
+      ],
+      "size_m": 0.5,
+      "size_jitter": 0.15,
+      "lift_m": -0.02,
+      "rest": "centre",
+      "footprint_m": 0.0
+    },
+    {
+      "id": "clay",
+      "types": [
+        "clay"
+      ],
+      "shape": "stone",
+      "colors": [
+        "clay"
+      ],
+      "size_m": 0.7,
+      "size_jitter": 0.2,
+      "lift_m": -0.04,
+      "rest": "centre",
+      "footprint_m": 0.0
+    },
+    {
+      "id": "peat",
+      "types": [
+        "peat"
+      ],
+      "shape": "stone",
+      "colors": [
+        "peat"
+      ],
+      "size_m": 0.8,
+      "size_jitter": 0.2,
+      "lift_m": -0.05,
+      "rest": "centre",
+      "footprint_m": 0.0
+    },
+    {
+      "id": "spring",
+      "types": [
+        "spring_water"
+      ],
+      "shape": "pool",
+      "colors": [
+        "fresh_water",
+        "rock"
+      ],
+      "size_m": 0.8,
+      "size_jitter": 0.1,
+      "lift_m": 0.03,
+      "rest": "highest",
+      "footprint_m": 0.75
+    },
+    {
+      "id": "sea_water",
+      "types": [
+        "sea_water"
+      ],
+      "shape": "none",
+      "colors": [
+        "sea_shallow"
+      ],
+      "size_m": 1.0,
+      "size_jitter": 0.0,
+      "lift_m": 0.0,
+      "rest": "centre",
+      "footprint_m": 0.0
+    },
+    {
+      "id": "dry_wood",
+      "types": [
+        "dry_wood"
+      ],
+      "shape": "log",
+      "colors": [
+        "bark",
+        "ground"
+      ],
+      "size_m": 1.0,
+      "size_jitter": 0.2,
+      "lift_m": 0.0,
+      "rest": "centre",
+      "footprint_m": 0.0
+    },
+    {
+      "id": "bark",
+      "types": [
+        "bark"
+      ],
+      "shape": "log",
+      "colors": [
+        "bark",
+        "ground"
+      ],
+      "size_m": 0.55,
+      "size_jitter": 0.2,
+      "lift_m": 0.0,
+      "rest": "centre",
+      "footprint_m": 0.0
+    },
+    {
+      "id": "driftwood",
+      "types": [
+        "driftwood"
+      ],
+      "shape": "log",
+      "colors": [
+        "driftwood",
+        "sand_wet"
+      ],
+      "size_m": 1.2,
+      "size_jitter": 0.2,
+      "lift_m": 0.0,
+      "rest": "centre",
+      "footprint_m": 0.0
+    },
+    {
+      "id": "dry_grass",
+      "types": [
+        "dry_grass"
+      ],
+      "shape": "tuft",
+      "colors": [
+        "straw"
+      ],
+      "size_m": 1.2,
+      "size_jitter": 0.2,
+      "lift_m": 0.0,
+      "rest": "centre",
+      "footprint_m": 0.0
+    },
+    {
+      "id": "nettle",
+      "types": [
+        "nettle"
+      ],
+      "shape": "tuft",
+      "colors": [
+        "foliage_dark"
+      ],
+      "size_m": 1.5,
+      "size_jitter": 0.2,
+      "lift_m": 0.0,
+      "rest": "centre",
+      "footprint_m": 0.0
+    },
+    {
+      "id": "reed",
+      "types": [
+        "reed"
+      ],
+      "shape": "reeds",
+      "colors": [
+        "reed",
+        "bark"
+      ],
+      "size_m": 1.0,
+      "size_jitter": 0.2,
+      "lift_m": 0.0,
+      "rest": "centre",
+      "footprint_m": 0.0
+    },
+    {
+      "id": "wild_grain",
+      "types": [
+        "wild_grain"
+      ],
+      "shape": "reeds",
+      "colors": [
+        "grass_edge",
+        "straw"
+      ],
+      "size_m": 0.8,
+      "size_jitter": 0.2,
+      "lift_m": 0.0,
+      "rest": "centre",
+      "footprint_m": 0.0
+    },
+    {
+      "id": "flax",
+      "types": [
+        "flax"
+      ],
+      "shape": "flower",
+      "colors": [
+        "grass_edge",
+        "flax"
+      ],
+      "size_m": 1.0,
+      "size_jitter": 0.2,
+      "lift_m": 0.0,
+      "rest": "centre",
+      "footprint_m": 0.0
+    },
+    {
+      "id": "healing_herb",
+      "types": [
+        "healing_herb"
+      ],
+      "shape": "flower",
+      "colors": [
+        "foliage",
+        "flower"
+      ],
+      "size_m": 1.0,
+      "size_jitter": 0.2,
+      "lift_m": 0.0,
+      "rest": "centre",
+      "footprint_m": 0.0
+    },
+    {
+      "id": "brown_mushroom",
+      "types": [
+        "brown_mushroom"
+      ],
+      "shape": "mushroom",
+      "colors": [
+        "mushroom",
+        "flower"
+      ],
+      "size_m": 1.0,
+      "size_jitter": 0.2,
+      "lift_m": 0.0,
+      "rest": "centre",
+      "footprint_m": 0.0
+    },
+    {
+      "id": "red_mushroom",
+      "types": [
+        "red_mushroom"
+      ],
+      "shape": "mushroom",
+      "colors": [
+        "berry",
+        "flower"
+      ],
+      "size_m": 1.0,
+      "size_jitter": 0.2,
+      "lift_m": 0.0,
+      "rest": "centre",
+      "footprint_m": 0.0
+    },
+    {
+      "id": "apple",
+      "types": [
+        "apple"
+      ],
+      "shape": "fruit",
+      "colors": [
+        "berry"
+      ],
+      "size_m": 1.0,
+      "size_jitter": 0.1,
+      "lift_m": 0.0,
+      "rest": "centre",
+      "footprint_m": 0.0
+    },
+    {
+      "id": "red_berry",
+      "types": [
+        "red_berry"
+      ],
+      "shape": "fruit",
+      "colors": [
+        "berry"
+      ],
+      "size_m": 0.7,
+      "size_jitter": 0.1,
+      "lift_m": 0.0,
+      "rest": "centre",
+      "footprint_m": 0.0
+    },
+    {
+      "id": "blue_berry",
+      "types": [
+        "blue_berry"
+      ],
+      "shape": "fruit",
+      "colors": [
+        "berry_blue"
+      ],
+      "size_m": 0.7,
+      "size_jitter": 0.1,
+      "lift_m": 0.0,
+      "rest": "centre",
+      "footprint_m": 0.0
+    },
+    {
+      "id": "hazelnut",
+      "types": [
+        "hazelnut"
+      ],
+      "shape": "fruit",
+      "colors": [
+        "hazel"
+      ],
+      "size_m": 0.6,
+      "size_jitter": 0.1,
+      "lift_m": 0.0,
+      "rest": "centre",
+      "footprint_m": 0.0
+    },
+    {
+      "id": "resin",
+      "types": [
+        "resin"
+      ],
+      "shape": "fruit",
+      "colors": [
+        "resin"
+      ],
+      "size_m": 0.5,
+      "size_jitter": 0.1,
+      "lift_m": 0.0,
+      "rest": "centre",
+      "footprint_m": 0.0
+    },
+    {
+      "id": "spark",
+      "types": [
+        "spark"
+      ],
+      "shape": "fruit",
+      "colors": [
+        "spark"
+      ],
+      "size_m": 0.4,
+      "size_jitter": 0.0,
+      "lift_m": 0.05,
+      "rest": "centre",
+      "footprint_m": 0.0
+    },
+    {
+      "id": "shell",
+      "types": [
+        "shell"
+      ],
+      "shape": "shell",
+      "colors": [
+        "shell"
+      ],
+      "size_m": 1.0,
+      "size_jitter": 0.2,
+      "lift_m": 0.0,
+      "rest": "centre",
+      "footprint_m": 0.0
+    }
+  ]
+}

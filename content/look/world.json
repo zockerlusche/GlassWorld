@@ -1,0 +1,28 @@
+{
+  "contract_version": "0.2",
+  "world": "placeholder",
+  "island_preset": "start_island",
+  "day_phase": "day",
+  "labels": {
+    "thought_above_head_m": 1.9,
+    "question_above_head_m": 1.1,
+    "pixel_size_m": 0.009,
+    "thought_width_px": 900
+  },
+  "observer": {
+    "group_switch_s": 30.0,
+    "thought_focus_s": 12.0,
+    "resume_after_idle_s": 45.0,
+    "distance_m": 40.0
+  },
+  "ground_ray": {
+    "step_m": 0.5,
+    "max_distance_m": 4000.0,
+    "refine_steps": 16
+  },
+  "pick_height_share": 0.55,
+  "stand_in": {
+    "radius_m": 0.35,
+    "height_m": 1.7
+  }
+}

@@ -3,9 +3,18 @@
 
 from __future__ import annotations
 
+from enum import StrEnum
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
+
+
+class Tonemap(StrEnum):
+    linear = 'linear'
+    reinhard = 'reinhard'
+    filmic = 'filmic'
+    aces = 'aces'
+    agx = 'agx'
 
 
 class LookDaylightPhase(BaseModel):
@@ -69,4 +78,14 @@ class LookDaylight(BaseModel):
         description='One entry per time of day (vocabulary kind time_of_day).',
         max_length=8,
         min_length=1,
+    )
+    shadow_blur: float = Field(
+        ...,
+        description="Softness of the sun's shadow edges (Godot shadow blur; island scene and the main game's island mode).",
+        ge=0.0,
+        le=10.0,
+    )
+    tonemap: Tonemap = Field(
+        ...,
+        description="Tone mapping of the island's light (linear keeps the palette colours as written).",
     )

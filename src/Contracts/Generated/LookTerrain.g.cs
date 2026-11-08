@@ -58,6 +58,18 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("stream_shore_lift_mm")]
         public int StreamShoreLiftMm { get; set; } = default!;
 
+        /// <summary>
+        /// Width of a stream band in metres: streams are drawn as smooth bands along their centre line (A1456); the generator makes them two cells wide.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("stream_width_m")]
+        public double StreamWidthM { get; set; } = default!;
+
+        /// <summary>
+        /// Rounds of corner cutting (Chaikin) along a stream's centre line; each round doubles the points (0 = the cell-centre polyline).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("stream_smoothing")]
+        public int StreamSmoothing { get; set; } = default!;
+
     }
 
     /// <summary>

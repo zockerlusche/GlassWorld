@@ -1,0 +1,180 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/look-objects.schema.json",
+  "title": "LookObjects",
+  "description": "Data file content/look/objects.json: how the core's objects (trees, bushes, berries, water sources, stones ...) are drawn on the island in the main game. Each object type maps to one simple shape of the look prototype (D569) in palette colours; size and turn vary per object, derived from its id (same picture at every start). A type without an entry gets the calm neutral fallback marker and is logged once. Presentation only, not part of the hash.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "outline",
+    "outline_width_m",
+    "fallback",
+    "visuals"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "outline": {
+      "description": "Whether objects get the ink outline pass.",
+      "type": "boolean"
+    },
+    "outline_width_m": {
+      "description": "Width of the ink outline hull in metres.",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 0.5
+    },
+    "fallback": {
+      "$ref": "#/$defs/ObjectLookFallback"
+    },
+    "visuals": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 256,
+      "items": {
+        "$ref": "#/$defs/ObjectVisual"
+      }
+    }
+  },
+  "$defs": {
+    "ObjectLookShape": {
+      "description": "Shape builder of the game (simple low-poly meshes of the look prototype); none draws nothing (for example sea water, the sea is drawn already).",
+      "type": "string",
+      "enum": [
+        "conifer_tree",
+        "broadleaf_tree",
+        "fruit_tree",
+        "palm_tree",
+        "bush",
+        "berry_bush",
+        "rock",
+        "stone",
+        "tuft",
+        "flower",
+        "mushroom",
+        "pool",
+        "log",
+        "fruit",
+        "shell",
+        "reeds",
+        "marker",
+        "none"
+      ]
+    },
+    "ObjectLookFallback": {
+      "description": "Calm neutral marker for object types without an entry.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "shape",
+        "colors",
+        "size_m"
+      ],
+      "properties": {
+        "shape": {
+          "$ref": "#/$defs/ObjectLookShape"
+        },
+        "colors": {
+          "description": "Palette colour ids (content/look/palette.json) by role: 0 main (crown, body, stone, water, cap, fruit), 1 second (trunk, berries, rim, stem, bloom, cut end, heads), 2 third (second crown layer, fruit on a tree). A shape with more roles than colours repeats them from the start.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$"
+          }
+        },
+        "size_m": {
+          "description": "Size factor (1 = the shape's base size).",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 10
+        }
+      }
+    },
+    "ObjectVisual": {
+      "description": "Shape and colours for one or more object types.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "types",
+        "shape",
+        "colors",
+        "size_m",
+        "size_jitter",
+        "lift_m",
+        "rest",
+        "footprint_m"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "types": {
+          "description": "Object type ids (content/objects) drawn this way.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$"
+          }
+        },
+        "shape": {
+          "$ref": "#/$defs/ObjectLookShape"
+        },
+        "colors": {
+          "description": "Palette colour ids (content/look/palette.json) by role: 0 main (crown, body, stone, water, cap, fruit), 1 second (trunk, berries, rim, stem, bloom, cut end, heads), 2 third (second crown layer, fruit on a tree). A shape with more roles than colours repeats them from the start.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$"
+          }
+        },
+        "size_m": {
+          "description": "Size factor (1 = the shape's base size).",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 10
+        },
+        "size_jitter": {
+          "description": "Size varies per object by up to this share either way (calm variety).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.5
+        },
+        "lift_m": {
+          "description": "Height above the ground in metres (negative sinks it in a little).",
+          "type": "number",
+          "minimum": -2,
+          "maximum": 2
+        },
+        "rest": {
+          "$ref": "#/$defs/ObjectLookRest"
+        },
+        "footprint_m": {
+          "description": "Radius in metres (at size factor 1) over which rest lowest/highest samples the ground.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10
+        }
+      }
+    },
+    "ObjectLookRest": {
+      "description": "Which ground height the object stands on: centre (the ground under its position), lowest or highest ground within its footprint. A pool rests on the highest point, so its level water shows whole and its stone basin reaches down the slope instead of the slope burying it. Objects are never tilted to the slope.",
+      "type": "string",
+      "enum": [
+        "centre",
+        "lowest",
+        "highest"
+      ]
+    }
+  }
+}
