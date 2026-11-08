@@ -67,6 +67,25 @@ public sealed class AnimationChooser
     public ClipChoice ForSpeed(double speedCmS) => Resolve(GaitFor(speedCmS)?.Clip);
 
     /// <summary>
+    /// The gait the core reports (InhabitantSnapshot.Gait, content/behaviour/gaits.json ids) as a point of the
+    /// gait blend: its clip, the blend position that plays it alone and its ground speed; null if the library
+    /// has no gait with this id (then the presentation falls back to the speed).
+    /// </summary>
+    public (ClipChoice Clip, double Blend, double GroundSpeedCmS)? ForGait(string gaitId)
+    {
+        ArgumentNullException.ThrowIfNull(gaitId);
+        foreach (var gait in _gaits)
+        {
+            if (string.Equals(gait.Id, gaitId, StringComparison.Ordinal))
+            {
+                return (Resolve(gait.Clip), gait.MinSpeedCmS, gait.GroundSpeedCmS);
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
     /// The ground speed of the gait blend at a game-time speed (cm/s at playback 1, scale 1): linear between
     /// the two gait points around it, as the blend space mixes them; the first or last outside.
     /// </summary>

@@ -122,7 +122,15 @@ public partial class FigureView : Node3D
 
         if (clip.Walking)
         {
-            // The gait follows the game-time speed (stroll … run); its playback roughly follows the screen.
+            // The core's gait (stroll … run, #112) plays as it is; without one the gait follows the game-time
+            // speed. Either way the playback roughly follows the speed on screen.
+            if (inhabitant.Gait is { } gaitId && chooser.ForGait(gaitId) is { } core)
+            {
+                Walk(core.Blend, FigureMotion.GaitTimeScale(_motion.ScreenSpeedCmS, core.GroundSpeedCmS, _scale, figures.GaitTimeScale.Min, figures.GaitTimeScale.Max));
+                CurrentClip = core.Clip.ClipId;
+                return;
+            }
+
             var gait = chooser.ForSpeed(_motion.GameSpeedCmS);
             var scale = FigureMotion.GaitTimeScale(_motion.ScreenSpeedCmS, chooser.GroundSpeedCmS(_motion.GameSpeedCmS), _scale, figures.GaitTimeScale.Min, figures.GaitTimeScale.Max);
             Walk(_motion.GameSpeedCmS, scale);

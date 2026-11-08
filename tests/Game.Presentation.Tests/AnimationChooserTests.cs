@@ -39,6 +39,25 @@ public sealed class AnimationChooserTests
     }
 
     [Fact]
+    public void TheCoreGaitPlaysItsOwnClipAndEveryCoreGaitIsInTheLibrary()
+    {
+        var library = Library();
+        var chooser = new AnimationChooser(library);
+        foreach (var gait in library.Gaits)
+        {
+            var core = Assert.NotNull(chooser.ForGait(gait.Id));
+            Assert.Equal((gait.Clip, (double)gait.MinSpeedCmS, (double)gait.GroundSpeedCmS), (core.Clip.ClipId, core.Blend, core.GroundSpeedCmS));
+        }
+
+        Assert.Null(chooser.ForGait("no_such_gait"));
+
+        // Every gait the core can report (content/behaviour/gaits.json) has a clip in the library.
+        var coreGaits = GlassWorld.Contracts.Validation.ContractSerializer.Deserialize<GaitSettings>(
+            File.ReadAllText(Path.Combine(TestPaths.Root, "content", "behaviour", "gaits.json")));
+        Assert.All(coreGaits.Gaits, g => Assert.NotNull(chooser.ForGait(g.Id)));
+    }
+
+    [Fact]
     public void TheGaitFollowsTheSpeed()
     {
         var library = Library();
