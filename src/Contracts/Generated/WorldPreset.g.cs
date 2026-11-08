@@ -259,8 +259,8 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("biome")]
         public string Biome { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("favor")]
-        public StartFavor Favor { get; set; } = new StartFavor();
+        [System.Text.Json.Serialization.JsonPropertyName("supply")]
+        public StartSupply Supply { get; set; } = new StartSupply();
 
     }
 
@@ -412,10 +412,10 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
-    /// Start favour: what every start position finds within sight, so a new world does not fail on water or food out of reach (TL #19280). Missing items are placed near the start from the island's own spawn types.
+    /// Start supply: what every start position finds within sight and within its walkable area, so a new world does not fail on water or food out of reach (TL #19280). Missing items are placed near the start from the island's own spawn rules: only in the biomes of a rule and within its max_total, preferably where the start can walk. (Not the player's start favour.)
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
-    public partial class StartFavor
+    public partial class StartSupply
     {
 
         /// <summary>
@@ -425,12 +425,12 @@ namespace GlassWorld.Contracts
         public int RadiusCells { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("resources")]
-        public System.Collections.Generic.ICollection<StartFavorResource> Resources { get; set; } = new System.Collections.ObjectModel.Collection<StartFavorResource>();
+        public System.Collections.Generic.ICollection<StartSupplyResource> Resources { get; set; } = new System.Collections.ObjectModel.Collection<StartSupplyResource>();
 
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
-    public partial class StartFavorResource
+    public partial class StartSupplyResource
     {
 
         [System.Text.Json.Serialization.JsonPropertyName("id")]

@@ -153,7 +153,7 @@ public static class WorldGenerator
         Caves(preset, map, objects, Stream(attemptSeed, "worldgen/caves"));
         Spawn(content.Spawns, map, objects, Stream(attemptSeed, "worldgen/spawns"));
         var starts = Starts(preset, map, Stream(attemptSeed, "worldgen/start"));
-        StartFavor(preset.Start.Favor, content.Spawns, catalog, map, objects, starts, Stream(attemptSeed, "worldgen/favor"));
+        StartSupply(preset.Start.Supply, content.Spawns, catalog, map, objects, starts, Stream(attemptSeed, "worldgen/supply"));
         var neighbours = Neighbour(preset, w, d, Stream(attemptSeed, "worldgen/neighbours"));
         var check = Check(content.Spawns, catalog, map, objects, starts);
         var present = new bool[biomeIds.Count];
@@ -163,6 +163,10 @@ public static class WorldGenerator
         }
 
         var passed = starts.Count == preset.Start.Pairs * 2 && check.All(c => c.Passed) && Connected(map, starts) && present.All(p => p);
+
+        // The start supply is reported with the check but does not decide it: an island without fresh
+        // water near one start is still a valid island (and failing it would reject most seeds).
+        check.AddRange(SupplyCheck(preset.Start.Supply, catalog, map, objects, starts));
         objects.Sort((a, b) => (a.Z, a.X, string.CompareOrdinal(a.TypeId, b.TypeId)).CompareTo((b.Z, b.X, 0)));
         return new GeneratedIsland(preset.Id, preset.GeneratorVersion, seed, attempt, passed, map, objects, starts, neighbours, check, cliffs);
     }
@@ -675,49 +679,72 @@ public static class WorldGenerator
     // ---------------------------------------------------------------- objects and starts
 
     /// <summary>
-    /// Start favour (TL #19280): every start position finds the listed resources within the radius;
-    /// missing ones are placed there from the island's own spawn types that have the wanted true
-    /// properties (never by type id), on free walkable dry cells chosen by the generator stream.
+    /// Start supply (TL #19280): every start position finds the listed resources within the radius and
+    /// within its walkable area. Missing ones are placed there by the island's own spawn rules whose type
+    /// has the wanted true properties (never by type id): only on the cells where that rule spawns (its
+    /// biome), only while the rule stays within its max_total, preferably on cells the start can walk
+    /// to, chosen by the generator stream. Where nothing fits within the radius it stays missing and the
+    /// mandatory check reports it.
     /// </summary>
-    private static void StartFavor(StartFavor favor, SpawnTable spawns, ObjectCatalog catalog, WorldMap map, List<IslandObject> objects, List<StartPosition> starts, Pcg32 rng)
+    private static void StartSupply(StartSupply supply, SpawnTable spawns, ObjectCatalog catalog, WorldMap map, List<IslandObject> objects, List<StartPosition> starts, Pcg32 rng)
     {
-        var islandTypes = spawns.Spawns.Select(s => s.ObjectType).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToList();
-        var r2 = favor.RadiusCells * favor.RadiusCells;
+        var areas = PathFinder.WalkableAreas(map);
+        var w = map.WidthCells;
+        var cellsOf = SpawnCells(map);
+        var rules = spawns.Spawns.ToList();
+
+        // Room left in each rule: its max_total minus the objects of its type already on its cells.
+        var room = rules.Select(rule =>
+        {
+            var cells = cellsOf.GetValueOrDefault(rule.Biome) ?? [];
+            var on = cells.ToHashSet();
+            return rule.MaxTotal - objects.Count(o => o.TypeId == rule.ObjectType && on.Contains((o.X, o.Z)));
+        }).ToArray();
+        var r2 = supply.RadiusCells * supply.RadiusCells;
         foreach (var start in starts)
         {
-            foreach (var resource in favor.Resources)
+            var area = areas[(start.Z * w) + start.X];
+            bool Near(int x, int z) => ((x - start.X) * (x - start.X)) + ((z - start.Z) * (z - start.Z)) <= r2;
+            bool Reachable(int x, int z) => area != 0 && areas[(z * w) + x] == area;
+            foreach (var resource in supply.Resources)
             {
                 bool Matches(string type) =>
                     resource.PropertiesAll.All(p => catalog.HasProperty(type, p)) && !resource.PropertiesNone.Any(p => catalog.HasProperty(type, p));
-                bool Near(int x, int z) => ((x - start.X) * (x - start.X)) + ((z - start.Z) * (z - start.Z)) <= r2;
 
-                var have = objects.Count(o => Near(o.X, o.Z) && Matches(o.TypeId));
-                var candidates = islandTypes.Where(Matches).ToList();
-                if (have >= resource.Min || candidates.Count == 0)
+                var have = objects.Count(o => Near(o.X, o.Z) && Reachable(o.X, o.Z) && Matches(o.TypeId));
+                if (have >= resource.Min)
                 {
                     continue;
                 }
 
+                // Options: (rule, cell) for every matching rule with room, on its cells within the radius.
                 var taken = objects.Select(o => (o.X, o.Z)).ToHashSet();
-                var cells = new List<(int X, int Z)>();
-                for (var z = Math.Max(0, start.Z - favor.RadiusCells); z <= Math.Min(map.DepthCells - 1, start.Z + favor.RadiusCells); z++)
+                var options = new List<(int Rule, int X, int Z)>();
+                for (var r = 0; r < rules.Count; r++)
                 {
-                    for (var x = Math.Max(0, start.X - favor.RadiusCells); x <= Math.Min(map.WidthCells - 1, start.X + favor.RadiusCells); x++)
+                    if (room[r] <= 0 || !Matches(rules[r].ObjectType) || cellsOf.GetValueOrDefault(rules[r].Biome) is not { } cells)
                     {
-                        var c = map.Cell(x, z);
-                        if (Near(x, z) && c.Water == WaterKind.None && c.WalkCost != MapCell.Blocked && !taken.Contains((x, z)) && (x, z) != (start.X, start.Z))
-                        {
-                            cells.Add((x, z));
-                        }
+                        continue;
                     }
+
+                    options.AddRange(cells
+                        .Where(c => Near(c.X, c.Z) && !taken.Contains(c) && c != (start.X, start.Z))
+                        .Select(c => (r, c.X, c.Z)));
                 }
 
-                for (var k = have; k < resource.Min && cells.Count > 0; k++)
+                // Cells the start can walk to come first; others within sight only if there are none.
+                var pool = options.Where(o => Reachable(o.X, o.Z)).ToList();
+                if (pool.Count == 0)
                 {
-                    var pick = rng.NextInt(0, cells.Count);
-                    var type = candidates[rng.NextInt(0, candidates.Count)];
-                    objects.Add(new IslandObject(type, cells[pick].X, cells[pick].Z));
-                    cells.RemoveAt(pick);
+                    pool = options;
+                }
+
+                for (var k = have; k < resource.Min && pool.Count > 0; k++)
+                {
+                    var (rule, x, z) = pool[rng.NextInt(0, pool.Count)];
+                    objects.Add(new IslandObject(rules[rule].ObjectType, x, z));
+                    room[rule]--;
+                    pool.RemoveAll(o => (o.X == x && o.Z == z) || room[o.Rule] <= 0);
                 }
             }
         }
@@ -764,6 +791,49 @@ public static class WorldGenerator
     /// none, its shallow water (reed in the swamp, clay at the stream).
     /// </summary>
     private static void Spawn(SpawnTable spawns, WorldMap map, List<IslandObject> objects, Pcg32 rng)
+    {
+        var byBiome = SpawnCells(map);
+        var taken = new HashSet<(int, int)>(objects.Select(o => (o.X, o.Z)));
+        foreach (var rule in spawns.Spawns)
+        {
+            if (!byBiome.TryGetValue(rule.Biome, out var cells) || cells.Count == 0)
+            {
+                continue;
+            }
+
+            var allowed = cells.ToHashSet();
+            var target = Math.Min(rule.MaxTotal, Math.Max(rule.Per1000Cells > 0 ? 1 : 0, cells.Count * rule.Per1000Cells / 1000));
+            var placed = 0;
+            for (var guard = 0; placed < target && guard < target * 20; guard++)
+            {
+                var (cx, cz) = cells[rng.NextInt(0, cells.Count)];
+                var size = rng.NextInt(rule.Cluster.Min, rule.Cluster.Max + 1);
+                for (var k = 0; k < size && placed < target; k++)
+                {
+                    int x = cx + rng.NextInt(-2, 3), z = cz + rng.NextInt(-2, 3);
+                    if (!map.Contains(x, z) || taken.Contains((x, z)))
+                    {
+                        continue;
+                    }
+
+                    if (!allowed.Contains((x, z)))
+                    {
+                        continue;
+                    }
+
+                    taken.Add((x, z));
+                    objects.Add(new IslandObject(rule.ObjectType, x, z));
+                    placed++;
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// The cells each biome spawns on: a land biome its dry walkable cells; a water biome (stream, lake,
+    /// swamp) its banks, and if it has none, its shallow water.
+    /// </summary>
+    private static Dictionary<string, List<(int X, int Z)>> SpawnCells(WorldMap map)
     {
         var dry = new Dictionary<string, List<(int X, int Z)>>(StringComparer.Ordinal);
         var bank = new Dictionary<string, List<(int X, int Z)>>(StringComparer.Ordinal);
@@ -818,40 +888,7 @@ public static class WorldGenerator
                 : shallow.GetValueOrDefault(biome) ?? [];
         }
 
-        var taken = new HashSet<(int, int)>(objects.Select(o => (o.X, o.Z)));
-        foreach (var rule in spawns.Spawns)
-        {
-            if (!byBiome.TryGetValue(rule.Biome, out var cells) || cells.Count == 0)
-            {
-                continue;
-            }
-
-            var allowed = cells.ToHashSet();
-            var target = Math.Min(rule.MaxTotal, Math.Max(rule.Per1000Cells > 0 ? 1 : 0, cells.Count * rule.Per1000Cells / 1000));
-            var placed = 0;
-            for (var guard = 0; placed < target && guard < target * 20; guard++)
-            {
-                var (cx, cz) = cells[rng.NextInt(0, cells.Count)];
-                var size = rng.NextInt(rule.Cluster.Min, rule.Cluster.Max + 1);
-                for (var k = 0; k < size && placed < target; k++)
-                {
-                    int x = cx + rng.NextInt(-2, 3), z = cz + rng.NextInt(-2, 3);
-                    if (!map.Contains(x, z) || taken.Contains((x, z)))
-                    {
-                        continue;
-                    }
-
-                    if (!allowed.Contains((x, z)))
-                    {
-                        continue;
-                    }
-
-                    taken.Add((x, z));
-                    objects.Add(new IslandObject(rule.ObjectType, x, z));
-                    placed++;
-                }
-            }
-        }
+        return byBiome;
     }
 
     /// <summary>Pairs (woman and man) on different beaches, far enough apart not to see each other (R9, B2517).</summary>
@@ -968,6 +1005,32 @@ public static class WorldGenerator
         }
 
         return results;
+    }
+
+    /// <summary>
+    /// The start supply as reported check lines (<c>start_supply/&lt;id&gt;</c>): reachable is what the
+    /// poorest start finds within the radius and its walkable area, so a start the supply could not
+    /// serve shows as a failed line instead of passing silently. These lines do not decide whether the
+    /// island passes.
+    /// </summary>
+    private static IEnumerable<MandatoryResult> SupplyCheck(StartSupply supply, ObjectCatalog catalog, WorldMap map, List<IslandObject> objects, List<StartPosition> starts)
+    {
+        var areas = PathFinder.WalkableAreas(map);
+        var w = map.WidthCells;
+        var r2 = supply.RadiusCells * supply.RadiusCells;
+        foreach (var resource in supply.Resources)
+        {
+            var fewest = starts.Count == 0 ? 0 : starts.Min(start =>
+            {
+                var area = areas[(start.Z * w) + start.X];
+                return objects.Count(o =>
+                    ((o.X - start.X) * (o.X - start.X)) + ((o.Z - start.Z) * (o.Z - start.Z)) <= r2
+                    && area != 0 && areas[(o.Z * w) + o.X] == area
+                    && resource.PropertiesAll.All(p => catalog.HasProperty(o.TypeId, p))
+                    && !resource.PropertiesNone.Any(p => catalog.HasProperty(o.TypeId, p)));
+            });
+            yield return new MandatoryResult($"start_supply/{resource.Id}", fewest, fewest, resource.Min, int.MaxValue);
+        }
     }
 
     /// <summary>Cells reachable on foot (no deep water, no steep slopes) from (x, z).</summary>

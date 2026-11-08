@@ -342,7 +342,7 @@
         "max_pair_distance_cells",
         "max_attempts",
         "biome",
-        "favor"
+        "supply"
       ],
       "properties": {
         "pairs": {
@@ -373,8 +373,8 @@
           "description": "Biome of the start cells (by the sea).",
           "$ref": "common.schema.json#/$defs/VocabId"
         },
-        "favor": {
-          "$ref": "#/$defs/StartFavor"
+        "supply": {
+          "$ref": "#/$defs/StartSupply"
         }
       }
     },
@@ -553,8 +553,8 @@
         }
       }
     },
-    "StartFavor": {
-      "description": "Start favour: what every start position finds within sight, so a new world does not fail on water or food out of reach (TL #19280). Missing items are placed near the start from the island's own spawn types.",
+    "StartSupply": {
+      "description": "Start supply: what every start position finds within sight and within its walkable area, so a new world does not fail on water or food out of reach (TL #19280). Missing items are placed near the start from the island's own spawn rules: only in the biomes of a rule and within its max_total, preferably where the start can walk. (Not the player's start favour.)",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -572,12 +572,12 @@
           "type": "array",
           "maxItems": 32,
           "items": {
-            "$ref": "#/$defs/StartFavorResource"
+            "$ref": "#/$defs/StartSupplyResource"
           }
         }
       }
     },
-    "StartFavorResource": {
+    "StartSupplyResource": {
       "type": "object",
       "additionalProperties": false,
       "required": [

@@ -82,16 +82,16 @@ public sealed class WorldGenContent
 
             var p = $"preset '{preset.Id}'";
             var islandTypes = spawns.Spawns.Select(s => s.ObjectType).Distinct(StringComparer.Ordinal).Where(objects.Contains).ToList();
-            foreach (var resource in preset.Start.Favor.Resources)
+            foreach (var resource in preset.Start.Supply.Resources)
             {
                 var unknown = resource.PropertiesAll.Concat(resource.PropertiesNone).Where(pr => !objects.PropertyVocabulary.Contains(pr)).ToList();
                 if (unknown.Count > 0)
                 {
-                    problems.Add($"{p}: start favour '{resource.Id}' uses unknown properties {string.Join(", ", unknown)}");
+                    problems.Add($"{p}: start supply '{resource.Id}' uses unknown properties {string.Join(", ", unknown)}");
                 }
                 else if (!islandTypes.Any(type => resource.PropertiesAll.All(pr => objects.HasProperty(type, pr)) && !resource.PropertiesNone.Any(pr => objects.HasProperty(type, pr))))
                 {
-                    problems.Add($"{p}: start favour '{resource.Id}' matches no spawn type of the island");
+                    problems.Add($"{p}: start supply '{resource.Id}' matches no spawn type of the island");
                 }
             }
 

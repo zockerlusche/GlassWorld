@@ -69,7 +69,7 @@
     "max_pair_distance_cells": 160,
     "max_attempts": 8,
     "biome": "beach_sea",
-    "favor": {
+    "supply": {
       "radius_cells": 30,
       "resources": [
         {

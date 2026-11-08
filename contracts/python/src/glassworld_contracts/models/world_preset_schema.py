@@ -233,7 +233,7 @@ class WorldPresetCaves(BaseModel):
     )
 
 
-class StartFavorResource(BaseModel):
+class StartSupplyResource(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
@@ -321,7 +321,7 @@ class WorldPresetTides(BaseModel):
     )
 
 
-class StartFavor(BaseModel):
+class StartSupply(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
@@ -331,7 +331,7 @@ class StartFavor(BaseModel):
         ge=1,
         le=1000,
     )
-    resources: list[StartFavorResource] = Field(..., max_length=32)
+    resources: list[StartSupplyResource] = Field(..., max_length=32)
 
 
 class WorldPresetStart(BaseModel):
@@ -368,7 +368,7 @@ class WorldPresetStart(BaseModel):
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
-    favor: StartFavor
+    supply: StartSupply
 
 
 class WorldPreset(BaseModel):
