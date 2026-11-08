@@ -19,6 +19,7 @@ public sealed class HttpJobPort : IJobPort, IDisposable
 {
     private readonly HttpClient _http;
     private readonly TimeSpan _pollInterval;
+    private readonly TimeSpan _maxPollInterval;
     private readonly ConcurrentQueue<PortMessage> _ready = new();
     private readonly CancellationTokenSource _stop = new();
     private int _inFlight;
@@ -29,7 +30,8 @@ public sealed class HttpJobPort : IJobPort, IDisposable
     /// <param name="clientTimeout">Safety limit per HTTP call (submitting and polling are short calls).</param>
     /// <param name="pollInterval">Pause between two status queries of the same job.</param>
     /// <param name="handler">Optional message handler (tests).</param>
-    public HttpJobPort(Uri baseAddress, string token, TimeSpan clientTimeout, TimeSpan pollInterval, HttpMessageHandler? handler = null)
+    /// <param name="maxPollInterval">Longest wait between polls while a job is queued or deferred (default 30 s).</param>
+    public HttpJobPort(Uri baseAddress, string token, TimeSpan clientTimeout, TimeSpan pollInterval, HttpMessageHandler? handler = null, TimeSpan? maxPollInterval = null)
     {
         ArgumentNullException.ThrowIfNull(baseAddress);
         ArgumentException.ThrowIfNullOrEmpty(token);
@@ -44,6 +46,7 @@ public sealed class HttpJobPort : IJobPort, IDisposable
         _http.DefaultRequestHeaders.Add(HttpDecisionPort.TokenHeader, token);
         _http.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         _pollInterval = pollInterval;
+        _maxPollInterval = maxPollInterval ?? TimeSpan.FromSeconds(30);
     }
 
     /// <summary>Port for a started service (polls every second).</summary>
@@ -108,6 +111,7 @@ public sealed class HttpJobPort : IJobPort, IDisposable
                 }
             }
 
+            var wait = _pollInterval;
             while (true)
             {
                 using var response = await _http.GetAsync(new Uri("jobs/" + Uri.EscapeDataString(requestId), UriKind.Relative), stop).ConfigureAwait(false);
@@ -118,13 +122,25 @@ public sealed class HttpJobPort : IJobPort, IDisposable
                     return;
                 }
 
-                if (IsFinal(body))
+                switch (StateOf(body))
                 {
-                    _ready.Enqueue(new PortMessage(requestId, body, IsError: false));
-                    return;
+                    case JobState.Done or JobState.Failed:
+                        _ready.Enqueue(new PortMessage(requestId, body, IsError: false));
+                        return;
+                    case null:
+                        // Not a valid job status: an internal error that a new attempt will not fix (review GW2 #75).
+                        _ready.Enqueue(new PortMessage(requestId, Synthesize(jobJson, ServiceErrorCode.Internal, "AI service sent an invalid job status.", retryable: false), IsError: true));
+                        return;
+                    case JobState.Running:
+                        wait = _pollInterval;
+                        break;
+                    default:
+                        // Queued or deferred (night kinds wait for the night): poll less and less often.
+                        wait = TimeSpan.FromTicks(Math.Min(wait.Ticks * 2, _maxPollInterval.Ticks));
+                        break;
                 }
 
-                await Task.Delay(_pollInterval, stop).ConfigureAwait(false);
+                await Task.Delay(wait, stop).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException) when (stop.IsCancellationRequested)
@@ -139,6 +155,10 @@ public sealed class HttpJobPort : IJobPort, IDisposable
         {
             var code = ex is HttpRequestException ? ServiceErrorCode.Model_unavailable : ServiceErrorCode.Timeout;
             _ready.Enqueue(new PortMessage(requestId, Synthesize(jobJson, code, "AI service not reachable (" + ex.GetType().Name + ").", retryable: true), IsError: true));
+
+            // The core gives this id up and retries with a new one; the old job must not keep running
+            // in the service (review GW2 #75). Best effort: the service may be gone.
+            await CancelAsync(requestId).ConfigureAwait(false);
         }
         finally
         {
@@ -150,15 +170,29 @@ public sealed class HttpJobPort : IJobPort, IDisposable
     /// True for a done or failed job. A body that is no valid JobStatus is handed to the core as is, which
     /// logs it as a contract violation (never polled forever).
     /// </summary>
-    private static bool IsFinal(string body)
+    /// <summary>Cancels a job the core no longer waits for (<c>DELETE /jobs/{id}</c>, idempotent, best effort).</summary>
+    public async Task CancelAsync(string requestId)
     {
         try
         {
-            return ContractSerializer.Deserialize<JobStatus>(body).State is JobState.Done or JobState.Failed;
+            using var cancel = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            using var response = await _http.DeleteAsync(new Uri("jobs/" + Uri.EscapeDataString(requestId), UriKind.Relative), cancel.Token).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException or ObjectDisposedException)
+        {
+            // Nothing to do: the service is not reachable or the game is closing.
+        }
+    }
+
+    private static JobState? StateOf(string body)
+    {
+        try
+        {
+            return ContractSerializer.Deserialize<JobStatus>(body).State;
         }
         catch (ContractViolationException)
         {
-            return true;
+            return null;
         }
     }
 
