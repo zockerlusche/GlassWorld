@@ -667,10 +667,6 @@ def _dream_log(settings: Settings) -> CallLog:
     return CallLog(settings.log_dir / "dreams.jsonl")
 
 
-def _text_guard(settings: Settings) -> TextGuard:
-    return TextGuard.from_file(settings.content_dir / "safety" / "rules.json")
-
-
 def _ollama_dreams(settings: Settings, ollama: OllamaClient, app: FastAPI) -> OllamaDreams:
     return OllamaDreams(
         client=ollama,
