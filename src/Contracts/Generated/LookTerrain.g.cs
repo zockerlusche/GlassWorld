@@ -25,6 +25,27 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
+    /// Where the ground is drawn as a vertical rock wall instead of a slope (D576, TL #19553): only between two neighbouring cells whose heights differ by at least min_drop_mm and whose higher cell belongs to one of these biomes. Everywhere else the corner heights blend across the drop, so hills and terraces are smooth slopes. Placeholder values.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class TerrainCliffs
+    {
+
+        /// <summary>
+        /// Biome ids (content/world/biomes.json) whose cells form rock walls where they stand above a neighbour.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("biomes")]
+        public System.Collections.Generic.ICollection<string> Biomes { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// Smallest height difference (millimetres) between neighbouring cells that becomes a rock wall.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("min_drop_mm")]
+        public int MinDropMm { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// Palette colours of the water surfaces and the depth (in height units) from which water counts as deep.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -201,6 +222,9 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("water")]
         public TerrainWater Water { get; set; } = new TerrainWater();
+
+        [System.Text.Json.Serialization.JsonPropertyName("cliffs")]
+        public TerrainCliffs Cliffs { get; set; } = new TerrainCliffs();
 
         /// <summary>
         /// How much steep ground is darkened towards the cliff colour (0 = not at all, 1000 = fully).

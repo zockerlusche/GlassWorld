@@ -104,6 +104,15 @@ public sealed class PlayerSystem : IWorldSystem
     /// <summary>Futile attempts of an inhabitant for a need so far (read only, e.g. for help suggestions).</summary>
     public int AttemptsOf(string inhabitantId, string need) => _attempts.GetValueOrDefault(inhabitantId + "|" + need);
 
+    /// <summary>Whether the favour pays for an intervention now.</summary>
+    public bool CanAfford(string intervention) => Favor + 1e-9 >= CostOf(intervention);
+
+    /// <summary>Takes the cost of an intervention (checked before with <see cref="CanAfford"/>).</summary>
+    public void Spend(string intervention) => Favor = Math.Max(0, Favor - CostOf(intervention));
+
+    /// <summary>Gives the cost of an intervention back (e.g. a conversation without answer), up to the maximum.</summary>
+    public void Refund(string intervention) => Favor = Math.Min(_favor.Maximum, Favor + CostOf(intervention));
+
     /// <summary>Favour cost of an intervention (0 if the data has none).</summary>
     public double CostOf(string intervention) => _favor.Costs.FirstOrDefault(c => c.Intervention == intervention)?.Cost1 ?? 0;
 

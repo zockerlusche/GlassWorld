@@ -90,7 +90,7 @@ public static class BaseSoundCheck
                     continue;
                 }
 
-                var loudness = Pcm.LoudnessDbfs(wav, target.GateDbfs);
+                var loudness = Pcm.Loudness(wav, target.GateDbfs);
                 var peak = Pcm.PeakDbfs(wav);
                 var peakLimited = Math.Abs(peak - target.PeakMaxDbfs) <= 0.1;
                 if (loudness > wanted + target.ToleranceDb || (loudness < wanted - target.ToleranceDb && !peakLimited))

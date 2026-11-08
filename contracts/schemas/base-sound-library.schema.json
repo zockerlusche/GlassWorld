@@ -58,13 +58,13 @@
       ],
       "properties": {
         "one_shot_dbfs": {
-          "description": "Gated RMS loudness of single sounds (dBFS).",
+          "description": "Integrated loudness of single sounds (LUFS, ITU-R BS.1770; the field name keeps dbfs).",
           "type": "number",
           "minimum": -60,
           "maximum": 0
         },
         "loop_dbfs": {
-          "description": "Gated RMS loudness of loops (dBFS); quieter, they run for long.",
+          "description": "Integrated loudness of loops (LUFS, ITU-R BS.1770; the field name keeps dbfs).",
           "type": "number",
           "minimum": -60,
           "maximum": 0

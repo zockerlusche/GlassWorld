@@ -73,7 +73,7 @@ namespace GlassWorld.Contracts
         public string Sha256 { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("size_bytes")]
-        public int SizeBytes { get; set; } = default!;
+        public long SizeBytes { get; set; } = default!;
 
         /// <summary>
         /// Path of the program inside the archive.

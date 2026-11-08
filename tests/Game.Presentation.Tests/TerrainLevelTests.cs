@@ -391,7 +391,7 @@ public sealed class TerrainLevelTests
             (1, 1) => 2,
             _ => 3,
         };
-        return TerrainMesher.CornerHeights(map, x, z, look.CliffDrop)[corner] * look.UnitM;
+        return TerrainMesher.CornerHeights(map, x, z, look)[corner] * look.UnitM;
     }
 
     /// <summary>The base grid corners a top face covers (cell size 1 m), with the face's height over each.</summary>

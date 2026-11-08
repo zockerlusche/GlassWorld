@@ -97,6 +97,30 @@
     {
       "id": "writing_found",
       "description": "An inhabitant sees an old readable text of another author for the first time: writing found again (B8 R15; target = the object, Detail = author)."
+    },
+    {
+      "id": "conversation_started",
+      "description": "The player said something to an inhabitant; the inhabitant thinks about it (Text = the player sentence; thought bubble while waiting)."
+    },
+    {
+      "id": "said",
+      "description": "An inhabitant answers the player (Text = the answer in the player language, checked by the content guard; Detail = expression or empty)."
+    },
+    {
+      "id": "gestured",
+      "description": "An inhabitant answers the player with a gesture only (Detail = expression)."
+    },
+    {
+      "id": "declined",
+      "description": "An inhabitant does not want to answer the player (Text = optional short answer)."
+    },
+    {
+      "id": "not_understood",
+      "description": "An inhabitant did not understand the player (B2511: becomes a question to the AI with a question mark)."
+    },
+    {
+      "id": "no_answer",
+      "description": "No answer came (AI service off or too slow, R16): calm hint, favour given back."
     }
   ]
 }

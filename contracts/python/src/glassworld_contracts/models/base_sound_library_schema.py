@@ -16,11 +16,14 @@ class LibraryTarget(BaseModel):
         extra='forbid',
     )
     one_shot_dbfs: float = Field(
-        ..., description='Gated RMS loudness of single sounds (dBFS).', ge=-60.0, le=0.0
+        ...,
+        description='Integrated loudness of single sounds (LUFS, ITU-R BS.1770; the field name keeps dbfs).',
+        ge=-60.0,
+        le=0.0,
     )
     loop_dbfs: float = Field(
         ...,
-        description='Gated RMS loudness of loops (dBFS); quieter, they run for long.',
+        description='Integrated loudness of loops (LUFS, ITU-R BS.1770; the field name keeps dbfs).',
         ge=-60.0,
         le=0.0,
     )

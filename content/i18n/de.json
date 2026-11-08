@@ -1489,6 +1489,50 @@
     {
       "key": "msg.chronicle.found_writing",
       "text": "{inhabitant} hat alte Zeichen gefunden: {target}."
+    },
+    {
+      "key": "vocab.event.conversation_started",
+      "text": "Angesprochen"
+    },
+    {
+      "key": "vocab.event.said",
+      "text": "Geantwortet"
+    },
+    {
+      "key": "vocab.event.gestured",
+      "text": "Geste"
+    },
+    {
+      "key": "vocab.event.declined",
+      "text": "Will nicht antworten"
+    },
+    {
+      "key": "vocab.event.not_understood",
+      "text": "Nicht verstanden"
+    },
+    {
+      "key": "vocab.event.no_answer",
+      "text": "Keine Antwort"
+    },
+    {
+      "key": "msg.command.text_refused",
+      "text": "So etwas sagen die Bewohner nicht – bitte anders formulieren."
+    },
+    {
+      "key": "msg.command.text_empty",
+      "text": "Schreib erst etwas."
+    },
+    {
+      "key": "msg.command.conversation_open",
+      "text": "Der Bewohner denkt noch über deinen letzten Satz nach."
+    },
+    {
+      "key": "msg.hint.no_answer",
+      "text": "Die Bewohner können gerade nicht antworten. Deine Gunst bekommst du zurück."
+    },
+    {
+      "key": "ui.setup.model_language",
+      "text": "Sprachmodell: Denken, Sprechen und Fragen der Bewohner"
     }
   ]
 }

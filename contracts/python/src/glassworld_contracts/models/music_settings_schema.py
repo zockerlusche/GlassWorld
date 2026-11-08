@@ -154,7 +154,7 @@ class MusicSettings(BaseModel):
     )
     loudness_dbfs: float = Field(
         ...,
-        description='Gated RMS loudness the sound is normalised to: the same target as every other sound (Marcel W1645); peak stays the upper limit.',
+        description='Integrated loudness (LUFS, ITU-R BS.1770) the sound is normalised to: the same target as every other sound (Marcel W1645); peak stays the upper limit.',
         ge=-40.0,
         le=-6.0,
     )

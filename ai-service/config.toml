@@ -7,6 +7,8 @@
 ollama_url = "http://127.0.0.1:11434"
 ollama_runtime_file = "../content/ai/ollama-runtime.json"
 ollama_install_dir = "../.local/ai-service/ollama"   # the game sets GW_AI_OLLAMA_INSTALL_DIR
+model_downloads_file = "../content/ai/model-downloads.json"  # B10 R4: models per tier
+model_store_dir = "../.local/ai-service/model-store"     # the game sets GW_AI_MODEL_STORE_DIR
 comfyui_url = "http://127.0.0.1:8188"
 
 # Decider and rule guard model (ADR-0001, ADR-0005). Pinned by digest prefix because tags can move.

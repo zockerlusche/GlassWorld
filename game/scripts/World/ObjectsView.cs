@@ -7,7 +7,8 @@ namespace GlassWorld.Game.World;
 
 /// <summary>
 /// The core's objects on the island (main game, island mode): one MultiMesh per object look from
-/// <c>content/look/objects.json</c>, each object on the drawn ground under its core position. The view is
+/// <c>content/look/objects.json</c>, each object on the drawn ground under its core position, lying
+/// objects tilted to its slope (<see cref="ObjectLooks.Place"/>). The view is
 /// rebuilt only when the object set changes (<see cref="ObjectLooks.Signature"/>). A type without an entry
 /// is drawn as the calm fallback marker and logged once. Presentation only: it never writes core state.
 /// </summary>
@@ -80,7 +81,9 @@ public partial class ObjectsView : Node3D
             for (var i = 0; i < placed.Count; i++)
             {
                 var p = placed[i];
-                var basis = new Basis(Vector3.Up, (float)p.YawRad).Scaled(Vector3.One * (float)p.Scale);
+                // Turned, sized and (lying objects) tilted to the ground by the Godot-free placement (D576).
+                var (ax, ay, az) = p.Axes();
+                var basis = new Basis(new Vector3((float)ax.X, (float)ax.Y, (float)ax.Z), new Vector3((float)ay.X, (float)ay.Y, (float)ay.Z), new Vector3((float)az.X, (float)az.Y, (float)az.Z));
                 multi.SetInstanceTransform(i, new Transform3D(basis, new Vector3((float)p.X, (float)p.Y, (float)p.Z)));
             }
 

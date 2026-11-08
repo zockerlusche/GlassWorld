@@ -80,6 +80,9 @@ public sealed record SaveState(
 
     /// <summary>The mailbox (B6 R11); null in save games from before.</summary>
     public Player.MailboxState? Mailbox { get; init; }
+
+    /// <summary>Conversations with the player (B6 R13); null when nobody has been spoken to.</summary>
+    public Player.ConversationState? Conversation { get; init; }
 }
 
 /// <summary>Captures and restores the complete state of a <see cref="SimulationHost"/>.</summary>
@@ -130,6 +133,7 @@ public static class StateCodec
             Skills = host.Skills.HasState ? host.Skills.Capture() : null,
             SkillGains = host.SkillLevels.HasState ? host.SkillLevels.Capture() : null,
             Mailbox = host.Mailbox.Capture(),
+            Conversation = host.Conversation.HasState || host.Conversation.Log.Count > 0 ? host.Conversation.Capture() : null,
         };
     }
 
@@ -212,6 +216,7 @@ public static class StateCodec
             state.DecisionLog);
         host.Player.Restore(state.Player);
         host.Mailbox.Restore(state.Mailbox);
+        host.Conversation.Restore(state.Conversation);
         if (state.Weather is not null)
         {
             host.WeatherSystem?.Restore(state.Weather, state.Tick);
