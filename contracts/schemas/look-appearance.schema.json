@@ -12,14 +12,15 @@
     "skin_tones",
     "hair_styles",
     "hair_colors",
-    "clothing_styles",
+    "outfits",
     "clothing_colors",
     "age_stages",
     "shapes",
     "head_scale",
     "elder_hair_colors",
     "start_age_days",
-    "shape_chance_permille"
+    "shape_chance_permille",
+    "sex_shapes"
   ],
   "properties": {
     "contract_version": {
@@ -43,14 +44,13 @@
       "maxItems": 64
     },
     "hair_styles": {
-      "description": "Hair style ids (model variants).",
+      "description": "Hair styles drawn from the seed by weight (F4 hair kit); ids match the figure hair meshes (figures.json), bald has none.",
       "type": "array",
       "minItems": 1,
+      "maxItems": 32,
       "items": {
-        "$ref": "common.schema.json#/$defs/VocabId"
-      },
-      "maxItems": 64,
-      "uniqueItems": true
+        "$ref": "#/$defs/AppearanceHairStyle"
+      }
     },
     "hair_colors": {
       "description": "Hair colours.",
@@ -62,16 +62,6 @@
         "pattern": "^#[0-9a-f]{6}$"
       },
       "maxItems": 64
-    },
-    "clothing_styles": {
-      "description": "Clothing ids (model variants); every style covers the body.",
-      "type": "array",
-      "minItems": 1,
-      "items": {
-        "$ref": "common.schema.json#/$defs/VocabId"
-      },
-      "maxItems": 64,
-      "uniqueItems": true
     },
     "clothing_colors": {
       "description": "Clothing colours.",
@@ -127,6 +117,23 @@
       "type": "integer",
       "minimum": 0,
       "maximum": 1000
+    },
+    "outfits": {
+      "description": "Outfits (sets of clothing parts, F4) the start inhabitants are drawn from by weight among those whose conditions fit the place and time; everyone is always dressed (B2472). At least one outfit has no conditions, so there is always one. Values are placeholders.",
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "items": {
+        "$ref": "#/$defs/AppearanceOutfit"
+      }
+    },
+    "sex_shapes": {
+      "description": "Sex proportions as blend shape weights (F4: bust, waist, hips, shoulders), drawn for every entry in file order and kept for the inhabitant's sex and age stage; ids match the blend shapes of the figure models (body_<id>). Subtle and age-appropriate (B2466).",
+      "type": "array",
+      "maxItems": 16,
+      "items": {
+        "$ref": "#/$defs/AppearanceSexShape"
+      }
     }
   },
   "$defs": {
@@ -225,6 +232,169 @@
           "type": "number",
           "minimum": 0.1,
           "maximum": 3
+        }
+      }
+    },
+    "AppearanceHairStyle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "weight",
+        "length_rank"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "weight": {
+          "description": "Relative chance (placeholder).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "length_rank": {
+          "description": "How long the hair is, 0 (bald) .. 10; a hook for hair that grows later (no logic yet).",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10
+        }
+      }
+    },
+    "AppearanceOutfit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "parts",
+        "weight"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "parts": {
+          "description": "Clothing parts worn together (figures.json clothing_parts).",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          }
+        },
+        "weight": {
+          "description": "Relative chance among the fitting outfits (placeholder).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "when": {
+          "$ref": "#/$defs/AppearanceOutfitCondition"
+        }
+      }
+    },
+    "AppearanceOutfitCondition": {
+      "description": "Where and when an outfit fits; a missing list means any. All given lists must match.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "seasons": {
+          "description": "Seasons (content/world/time.json).",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          }
+        },
+        "climates": {
+          "description": "Climates (content/climate file ids).",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          }
+        },
+        "biomes": {
+          "description": "Biomes at the inhabitant's place (vocabulary biome).",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          }
+        },
+        "tech_levels": {
+          "description": "Tech levels of the world (vocabulary tech_level).",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          }
+        },
+        "sexes": {
+          "description": "Sexes who wear it (placeholder until Marcel's picture question).",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^(female|male)$"
+          }
+        }
+      }
+    },
+    "AppearanceSexShape": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sex",
+        "id",
+        "min",
+        "max",
+        "age_stages"
+      ],
+      "properties": {
+        "sex": {
+          "description": "Sex this proportion belongs to.",
+          "type": "string",
+          "enum": [
+            "female",
+            "male"
+          ]
+        },
+        "id": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "min": {
+          "description": "Smallest weight.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "max": {
+          "description": "Largest weight.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "age_stages": {
+          "description": "Age stages that show it (none for babies and children).",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          }
         }
       }
     }

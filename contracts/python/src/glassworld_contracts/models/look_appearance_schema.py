@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from enum import StrEnum
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -84,6 +85,117 @@ class AppearanceNumberRange(BaseModel):
     max: float = Field(..., description='Largest value.', ge=0.1, le=3.0)
 
 
+class AppearanceHairStyle(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    id: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    weight: int = Field(
+        ..., description='Relative chance (placeholder).', ge=1, le=1000
+    )
+    length_rank: int = Field(
+        ...,
+        description='How long the hair is, 0 (bald) .. 10; a hook for hair that grows later (no logic yet).',
+        ge=0,
+        le=10,
+    )
+
+
+type Sex = Annotated[str, Field(..., pattern='^(female|male)$')]
+
+
+class AppearanceOutfitCondition(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    seasons: list[common_schema.VocabId] | None = Field(
+        None,
+        description='Seasons (content/world/time.json).',
+        max_length=16,
+        min_length=1,
+    )
+    climates: list[common_schema.VocabId] | None = Field(
+        None,
+        description='Climates (content/climate file ids).',
+        max_length=16,
+        min_length=1,
+    )
+    biomes: list[common_schema.VocabId] | None = Field(
+        None,
+        description="Biomes at the inhabitant's place (vocabulary biome).",
+        max_length=32,
+        min_length=1,
+    )
+    tech_levels: list[common_schema.VocabId] | None = Field(
+        None,
+        description='Tech levels of the world (vocabulary tech_level).',
+        max_length=16,
+        min_length=1,
+    )
+    sexes: list[Sex] | None = Field(
+        None,
+        description="Sexes who wear it (placeholder until Marcel's picture question).",
+        max_length=2,
+        min_length=1,
+    )
+
+
+class Sex2(StrEnum):
+    female = 'female'
+    male = 'male'
+
+
+class AppearanceSexShape(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    sex: Sex2 = Field(..., description='Sex this proportion belongs to.')
+    id: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    min: float = Field(..., description='Smallest weight.', ge=0.0, le=1.0)
+    max: float = Field(..., description='Largest weight.', ge=0.0, le=1.0)
+    age_stages: list[common_schema.VocabId] = Field(
+        ...,
+        description='Age stages that show it (none for babies and children).',
+        max_length=16,
+        min_length=1,
+    )
+
+
+class AppearanceOutfit(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    id: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    parts: list[common_schema.VocabId] = Field(
+        ...,
+        description='Clothing parts worn together (figures.json clothing_parts).',
+        max_length=4,
+        min_length=1,
+    )
+    weight: int = Field(
+        ...,
+        description='Relative chance among the fitting outfits (placeholder).',
+        ge=1,
+        le=1000,
+    )
+    when: AppearanceOutfitCondition | None = None
+
+
 class LookAppearance(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -97,17 +209,14 @@ class LookAppearance(BaseModel):
     skin_tones: list[SkinTone] = Field(
         ..., description='Skin tones to choose from.', max_length=64, min_length=1
     )
-    hair_styles: list[common_schema.VocabId] = Field(
-        ..., description='Hair style ids (model variants).', max_length=64, min_length=1
+    hair_styles: list[AppearanceHairStyle] = Field(
+        ...,
+        description='Hair styles drawn from the seed by weight (F4 hair kit); ids match the figure hair meshes (figures.json), bald has none.',
+        max_length=32,
+        min_length=1,
     )
     hair_colors: list[HairColor] = Field(
         ..., description='Hair colours.', max_length=64, min_length=1
-    )
-    clothing_styles: list[common_schema.VocabId] = Field(
-        ...,
-        description='Clothing ids (model variants); every style covers the body.',
-        max_length=64,
-        min_length=1,
     )
     clothing_colors: list[ClothingColor] = Field(
         ..., description='Clothing colours.', max_length=64, min_length=1
@@ -142,4 +251,15 @@ class LookAppearance(BaseModel):
         description="Chance that an inhabitant gets one body shape from shapes (in the shape's range).",
         ge=0,
         le=1000,
+    )
+    outfits: list[AppearanceOutfit] = Field(
+        ...,
+        description='Outfits (sets of clothing parts, F4) the start inhabitants are drawn from by weight among those whose conditions fit the place and time; everyone is always dressed (B2472). At least one outfit has no conditions, so there is always one. Values are placeholders.',
+        max_length=64,
+        min_length=1,
+    )
+    sex_shapes: list[AppearanceSexShape] = Field(
+        ...,
+        description="Sex proportions as blend shape weights (F4: bust, waist, hips, shoulders), drawn for every entry in file order and kept for the inhabitant's sex and age stage; ids match the blend shapes of the figure models (body_<id>). Subtle and age-appropriate (B2466).",
+        max_length=16,
     )

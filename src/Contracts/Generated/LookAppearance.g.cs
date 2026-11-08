@@ -96,6 +96,130 @@ namespace GlassWorld.Contracts
 
     }
 
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class AppearanceHairStyle
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public string Id { get; set; } = default!;
+
+        /// <summary>
+        /// Relative chance (placeholder).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("weight")]
+        public int Weight { get; set; } = default!;
+
+        /// <summary>
+        /// How long the hair is, 0 (bald) .. 10; a hook for hair that grows later (no logic yet).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("length_rank")]
+        public int LengthRank { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class AppearanceOutfit
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public string Id { get; set; } = default!;
+
+        /// <summary>
+        /// Clothing parts worn together (figures.json clothing_parts).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("parts")]
+        public System.Collections.Generic.ICollection<string> Parts { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// Relative chance among the fitting outfits (placeholder).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("weight")]
+        public int Weight { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("when")]
+        public AppearanceOutfitCondition? When { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Where and when an outfit fits; a missing list means any. All given lists must match.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class AppearanceOutfitCondition
+    {
+
+        /// <summary>
+        /// Seasons (content/world/time.json).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("seasons")]
+        public System.Collections.Generic.ICollection<string>? Seasons { get; set; } = default!;
+
+        /// <summary>
+        /// Climates (content/climate file ids).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("climates")]
+        public System.Collections.Generic.ICollection<string>? Climates { get; set; } = default!;
+
+        /// <summary>
+        /// Biomes at the inhabitant's place (vocabulary biome).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("biomes")]
+        public System.Collections.Generic.ICollection<string>? Biomes { get; set; } = default!;
+
+        /// <summary>
+        /// Tech levels of the world (vocabulary tech_level).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("tech_levels")]
+        public System.Collections.Generic.ICollection<string>? TechLevels { get; set; } = default!;
+
+        /// <summary>
+        /// Sexes who wear it (placeholder until Marcel's picture question).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("sexes")]
+        public System.Collections.Generic.ICollection<string>? Sexes { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class AppearanceSexShape
+    {
+
+        /// <summary>
+        /// Sex this proportion belongs to.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("sex")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<AppearanceSexShapeSex>))]
+        public AppearanceSexShapeSex Sex { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public string Id { get; set; } = default!;
+
+        /// <summary>
+        /// Smallest weight.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("min")]
+        public double Min { get; set; } = default!;
+
+        /// <summary>
+        /// Largest weight.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max")]
+        public double Max { get; set; } = default!;
+
+        /// <summary>
+        /// Age stages that show it (none for babies and children).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("age_stages")]
+        public System.Collections.Generic.ICollection<string> AgeStages { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+    }
+
     /// <summary>
     /// Data file content/look/appearance.json: value ranges of the appearance record. The core draws it from the seed (stream inhabitant/&lt;id&gt;/appearance, B2503); inheritance follows in B9. Everyone is always dressed (B2472). Values are placeholders.
     /// </summary>
@@ -119,22 +243,16 @@ namespace GlassWorld.Contracts
         public System.Collections.Generic.ICollection<string> SkinTones { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
         /// <summary>
-        /// Hair style ids (model variants).
+        /// Hair styles drawn from the seed by weight (F4 hair kit); ids match the figure hair meshes (figures.json), bald has none.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("hair_styles")]
-        public System.Collections.Generic.ICollection<string> HairStyles { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+        public System.Collections.Generic.ICollection<AppearanceHairStyle> HairStyles { get; set; } = new System.Collections.ObjectModel.Collection<AppearanceHairStyle>();
 
         /// <summary>
         /// Hair colours.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("hair_colors")]
         public System.Collections.Generic.ICollection<string> HairColors { get; set; } = new System.Collections.ObjectModel.Collection<string>();
-
-        /// <summary>
-        /// Clothing ids (model variants); every style covers the body.
-        /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("clothing_styles")]
-        public System.Collections.Generic.ICollection<string> ClothingStyles { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
         /// <summary>
         /// Clothing colours.
@@ -174,6 +292,32 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("shape_chance_permille")]
         public int ShapeChancePermille { get; set; } = default!;
+
+        /// <summary>
+        /// Outfits (sets of clothing parts, F4) the start inhabitants are drawn from by weight among those whose conditions fit the place and time; everyone is always dressed (B2472). At least one outfit has no conditions, so there is always one. Values are placeholders.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("outfits")]
+        public System.Collections.Generic.ICollection<AppearanceOutfit> Outfits { get; set; } = new System.Collections.ObjectModel.Collection<AppearanceOutfit>();
+
+        /// <summary>
+        /// Sex proportions as blend shape weights (F4: bust, waist, hips, shoulders), drawn for every entry in file order and kept for the inhabitant's sex and age stage; ids match the blend shapes of the figure models (body_&lt;id&gt;). Subtle and age-appropriate (B2466).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("sex_shapes")]
+        public System.Collections.Generic.ICollection<AppearanceSexShape> SexShapes { get; set; } = new System.Collections.ObjectModel.Collection<AppearanceSexShape>();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public enum AppearanceSexShapeSex
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("female")]
+        Female = 0,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("male")]
+        Male = 1,
+
 
     }
 }
