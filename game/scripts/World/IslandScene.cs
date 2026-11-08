@@ -288,26 +288,5 @@ public partial class IslandScene : Node3D
     }
 
     /// <summary>Light, sky and ambient of a day phase from the daylight data (B2-5 blends them over time).</summary>
-    private void ApplyPhase(string phase)
-    {
-        var data = _daylight.Phases.FirstOrDefault(p => p.Phase.ToString().Equals(phase, StringComparison.OrdinalIgnoreCase))
-            ?? throw new InvalidDataException($"Unknown day phase '{phase}' in shots.json.");
-        _sun.LightColor = Color.FromHtml(data.LightColor);
-        _sun.LightEnergy = (float)data.LightEnergy;
-        _sun.RotationDegrees = new Vector3(-(float)data.SunElevationDeg, (float)_daylight.SunAzimuthDeg, 0);
-        var sky = new ProceduralSkyMaterial
-        {
-            SkyTopColor = Color.FromHtml(data.SkyTop),
-            SkyHorizonColor = Color.FromHtml(data.SkyHorizon),
-            GroundHorizonColor = Color.FromHtml(data.SkyHorizon),
-            GroundBottomColor = Color.FromHtml(data.SkyHorizon),
-            SunAngleMax = 0,
-        };
-        var environment = _environment.Environment;
-        environment.BackgroundMode = Godot.Environment.BGMode.Sky;
-        environment.Sky = new Sky { SkyMaterial = sky };
-        environment.AmbientLightSource = Godot.Environment.AmbientSource.Color;
-        environment.AmbientLightColor = Color.FromHtml(data.AmbientColor);
-        environment.AmbientLightEnergy = (float)data.AmbientEnergy;
-    }
+    private void ApplyPhase(string phase) => DaylightLook.Apply(_daylight, phase, _sun, _environment.Environment);
 }

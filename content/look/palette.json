@@ -78,6 +78,62 @@
       "color": "#42764a"
     },
     {
+      "id": "berry_blue",
+      "color": "#5a6aa8"
+    },
+    {
+      "id": "pyrite",
+      "color": "#bca65e"
+    },
+    {
+      "id": "straw",
+      "color": "#dcc67e"
+    },
+    {
+      "id": "spark",
+      "color": "#f7c65a"
+    },
+    {
+      "id": "resin",
+      "color": "#cf9238"
+    },
+    {
+      "id": "hazel",
+      "color": "#a8774a"
+    },
+    {
+      "id": "reed",
+      "color": "#bdb46c"
+    },
+    {
+      "id": "flax",
+      "color": "#94acd8"
+    },
+    {
+      "id": "mushroom",
+      "color": "#b07a52"
+    },
+    {
+      "id": "sandstone",
+      "color": "#dcbf90"
+    },
+    {
+      "id": "clay",
+      "color": "#b9805b"
+    },
+    {
+      "id": "peat",
+      "color": "#76604a"
+    },
+    {
+      "id": "driftwood",
+      "color": "#cbbca4"
+    },
+    {
+      "id": "shell",
+      "color": "#f1e6d4"
+    },
+    {
       "id": "shadow_tint",
       "color": "#d9c7d9"
     }

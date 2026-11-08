@@ -38,6 +38,16 @@ public partial class CameraRig : Node3D
     /// <summary>Raised when a figure is clicked (its inhabitant id).</summary>
     public event Action<string>? FigureClicked;
 
+    /// <summary>Raised in a frame in which the player pans the camera (panning leaves follow mode).</summary>
+    public event Action? Panned;
+
+    /// <summary>
+    /// Whether the rig itself picks figures on a left click (island scene). In the main game the game
+    /// screen owns the left click (gift placement or figure selection) and tells the world, so one click
+    /// never does both; there this is false.
+    /// </summary>
+    public bool SelectOnClick { get; set; } = true;
+
     /// <summary>The camera logic (tested in Game.Presentation).</summary>
     public CameraModel Model { get; private set; } = null!;
 
@@ -88,10 +98,8 @@ public partial class CameraRig : Node3D
     /// <inheritdoc/>
     public override void _UnhandledInput(InputEvent @event)
     {
-        // Integration note (GameScreen): a left click is also the gift placement there. When the rig is
-        // wired into the game screen, left-click selection must be owned by one place (for example the
-        // game screen decides between gift placement and figure selection and calls the rig), so one
-        // click never does both.
+        // A left click is also the gift placement of the game screen: in the main game the screen owns
+        // the left click (SelectOnClick = false) and decides between gift placement and figure selection.
         if (@event.IsActionPressed(ZoomInAction))
         {
             Model.Zoom(1);
@@ -112,7 +120,7 @@ public partial class CameraRig : Node3D
         {
             Model.StopFollowing();
         }
-        else if (@event.IsActionPressed(SelectAction) && @event is InputEventMouseButton click)
+        else if (SelectOnClick && @event.IsActionPressed(SelectAction) && @event is InputEventMouseButton click)
         {
             Select(click.Position);
         }
@@ -132,9 +140,16 @@ public partial class CameraRig : Node3D
             _rotating = false;
         }
 
-        var right = Input.GetAxis(PanActions[0], PanActions[1]);
-        var forward = Input.GetAxis(PanActions[3], PanActions[2]);
+        // Keys typed into a text field (a message to an inhabitant) never move the camera.
+        var typing = GetViewport()?.GuiGetFocusOwner() is LineEdit or TextEdit;
+        var right = typing ? 0 : Input.GetAxis(PanActions[0], PanActions[1]);
+        var forward = typing ? 0 : Input.GetAxis(PanActions[3], PanActions[2]);
         Model.Pan(right, forward, delta);
+        if (right != 0 || forward != 0)
+        {
+            Panned?.Invoke();
+        }
+
         Model.Update(delta);
         Apply();
     }

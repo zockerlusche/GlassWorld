@@ -221,6 +221,14 @@
     {
       "pattern": "look/figures.json",
       "schema": "look-figures"
+    },
+    {
+      "pattern": "look/world.json",
+      "schema": "look-world"
+    },
+    {
+      "pattern": "look/objects.json",
+      "schema": "look-objects"
     }
   ]
 }

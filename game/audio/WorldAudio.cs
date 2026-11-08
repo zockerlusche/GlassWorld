@@ -39,6 +39,12 @@ public partial class WorldAudio : Node3D
     private int _ambienceActive;
     private readonly Dictionary<string, AudioStreamWav> _loopStreams = new(StringComparer.Ordinal);
 
+    /// <summary>
+    /// Ground height in metres at (x, z) for the sound positions (island mode: the drawn ground, so a sound
+    /// comes from the figure's feet, not from below a hill); null = flat at 0 (placeholder).
+    /// </summary>
+    public Func<double, double, float>? GroundHeight { get; set; }
+
     /// <summary>Zoom 0 (fully in) .. 1 (fully out); set by the camera control.</summary>
     public double Zoom { get; set; } = 0.5;
 
@@ -180,7 +186,7 @@ public partial class WorldAudio : Node3D
             }
 
             player.Stream = request.File is { } made ? MadeStream(made) ?? Stream(request.SoundId, request.Variant) : Stream(request.SoundId, request.Variant);
-            player.Position = new Vector3((float)request.Position.X, 0, (float)request.Position.Z);
+            player.Position = At(request.Position);
             ApplyVolume(player, request.Bus, listener);
             player.Play();
         }
@@ -350,7 +356,7 @@ public partial class WorldAudio : Node3D
             }
 
             player.Stream = call.Sung && _birdsong is not null ? Song(call.Seed) : Stream(call.SoundId, call.Variant);
-            player.Position = new Vector3((float)call.Position.X, 0, (float)call.Position.Z);
+            player.Position = At(call.Position);
             ApplyVolume(player, MixBusId.Animals, listener);
             player.Play();
         }
@@ -396,6 +402,10 @@ public partial class WorldAudio : Node3D
         var song = Song(1);
         return song.GetLength() is > 0.1 and < 5 ? string.Empty : $"songbird melody is {song.GetLength():0.00} s";
     }
+
+    /// <summary>A sound position on the ground (the island's height in island mode).</summary>
+    private Vector3 At(Position position) =>
+        new((float)position.X, GroundHeight?.Invoke(position.X, position.Z) ?? 0, (float)position.Z);
 
     /// <summary>Sets a player's volume from its ground distance to the listener.</summary>
     public void ApplyVolume(AudioStreamPlayer3D player, MixBusId bus, Position listener)
