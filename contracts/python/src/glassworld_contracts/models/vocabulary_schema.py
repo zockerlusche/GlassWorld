@@ -27,6 +27,8 @@ class Kind(StrEnum):
     guard_reason = 'guard_reason'
     writing_medium = 'writing_medium'
     skill = 'skill'
+    event = 'event'
+    knowledge_source = 'knowledge_source'
 
 
 class Target(StrEnum):

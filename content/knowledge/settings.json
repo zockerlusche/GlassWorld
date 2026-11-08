@@ -1,0 +1,42 @@
+{
+  "contract_version": "0.2",
+  "experienced_confidence": 1.0,
+  "guessed_cap": 0.6,
+  "relationship_start": {
+    "affection": 0.3,
+    "trust": 0.5,
+    "respect": 0.5
+  },
+  "trust_true_heard_gain": 0.05,
+  "trust_false_heard_loss": 0.2,
+  "min_teller_confidence": 0.5,
+  "passing": [
+    {
+      "action": "warn",
+      "properties": [
+        "poisonous",
+        "salty"
+      ],
+      "value": true
+    },
+    {
+      "action": "show",
+      "properties": [
+        "edible",
+        "drinkable"
+      ],
+      "value": true
+    },
+    {
+      "action": "teach",
+      "properties": [],
+      "value": null
+    }
+  ],
+  "wait_while_question_open": [
+    "eat",
+    "drink"
+  ],
+  "request_max_knowledge": 24,
+  "request_max_inhabitants": 8
+}

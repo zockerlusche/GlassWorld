@@ -167,6 +167,18 @@ public sealed class InventionTests : IDisposable
     {
         var host = SimulationHost.CreatePlaceholderWorld(ContentDirectory, 9, new MockDecisionPort(), "de");
         host.World.Run(120);
+
+        // A B1 build knew beliefs without source or time (B4a-S5): what it saved loads as experienced at tick 0.
+        foreach (var inhabitant in host.Inhabitants.All)
+        {
+            foreach (var (typeId, propertyId, belief) in inhabitant.Beliefs.All.ToList())
+            {
+                inhabitant.Beliefs.Set(typeId, propertyId, belief.Value, belief.Confidence);
+            }
+
+            Assert.Equal(0, inhabitant.Relationships.Count);
+        }
+
         var path = Path.Combine(_directory, "v1.db");
         SaveGameStore.Save(path, StateCodec.Capture(host));
 
@@ -176,7 +188,7 @@ public sealed class InventionTests : IDisposable
             connection.Open();
             using var command = connection.CreateCommand();
             command.CommandText = """
-                DROP TABLE inventions; DROP TABLE wants; DROP TABLE invention_timers; DROP TABLE job_log; DROP TABLE chronicle; DROP TABLE island;
+                DROP TABLE inventions; DROP TABLE wants; DROP TABLE invention_timers; DROP TABLE job_log; DROP TABLE chronicle; DROP TABLE island; DROP TABLE relationships; ALTER TABLE beliefs DROP COLUMN source; ALTER TABLE beliefs DROP COLUMN told_by; ALTER TABLE beliefs DROP COLUMN tick;
                 DELETE FROM meta WHERE key = 'invention_counter';
                 PRAGMA user_version = 1;
                 """;

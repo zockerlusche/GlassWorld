@@ -62,6 +62,9 @@ public sealed class Inhabitant
     /// <summary>What the inhabitant believes about object types.</summary>
     public BeliefSet Beliefs { get; } = new();
 
+    /// <summary>Affection, trust and respect towards others (B4a R7).</summary>
+    public RelationshipSet Relationships { get; } = new();
+
     /// <summary>Current activity, or null when the routine has to choose.</summary>
     public Activity? Activity { get; internal set; }
 
@@ -83,6 +86,12 @@ public sealed class Inhabitant
         WriteRegister(hasher, Moods);
         WriteRegister(hasher, Traits);
         Beliefs.WriteState(hasher);
+
+        // Relationships only once there are any, so worlds without them keep their hashes.
+        if (Relationships.Count > 0)
+        {
+            Relationships.WriteState(hasher);
+        }
         WriteActivity(hasher, Activity);
         WriteActivity(hasher, Planned);
         hasher.Write(Appearance is not null);

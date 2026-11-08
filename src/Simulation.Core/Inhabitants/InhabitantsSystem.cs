@@ -97,6 +97,11 @@ public sealed class InhabitantsSystem : IWorldSystem
     public void Report(WorldEvent worldEvent)
     {
         ArgumentNullException.ThrowIfNull(worldEvent);
+        if (EventKinds.Count > 0 && !EventKinds.Contains(worldEvent.Kind))
+        {
+            throw new InvalidDataException($"Event kind '{worldEvent.Kind}' is not in the event vocabulary (content/vocabulary/events.json).");
+        }
+
         if (worldEvent.Tick != _eventsTick)
         {
             _events.Clear();
@@ -161,6 +166,21 @@ public sealed class InhabitantsSystem : IWorldSystem
 
     /// <summary>Routes on the island map (B2 R10); null on worlds without a map, where walking is straight.</summary>
     public Map.IRouteFinder? Routes { get; init; }
+
+    /// <summary>Knowledge with its source and trust (B4a R3/R4/R7); without it learning works as in B1.</summary>
+    public KnowledgeSettings? Knowledge { get; init; }
+
+    /// <summary>Event kinds from the vocabulary; reporting another kind is a data error (empty = no check).</summary>
+    public IReadOnlySet<string> EventKinds { get; init; } = new HashSet<string>(StringComparer.Ordinal);
+
+    /// <summary>
+    /// Whether an inhabitant has an open question to the AI about a type (W1595); set by the decisions
+    /// system. While it is open the routine leaves the listed actions on that type alone.
+    /// </summary>
+    public Func<string, string, bool>? QuestionOpen { get; set; }
+
+    /// <summary>Event: an inhabitant now knows or believes something new (B4a R3).</summary>
+    public const string KnowledgeGained = "knowledge_gained";
 
     /// <summary>Detail of a cancelled action whose destination cannot be reached on foot.</summary>
     public const string Unreachable = "unreachable";
@@ -268,7 +288,16 @@ public sealed class InhabitantsSystem : IWorldSystem
         }
 
         WorldObject? target = null;
-        if (activity.TargetId is not null && !_objects.TryGet(activity.TargetId, out target))
+        Inhabitant? listener = null;
+        if (activity.TargetId is not null && _inhabitants.TryGetValue(activity.TargetId, out var other))
+        {
+            // Actions towards another inhabitant (warn, show, teach): walk over to them.
+            listener = other;
+            // The listener may move: follow them, and plan the way again when they did.
+            activity = activity.Destination == other.Position ? activity : activity with { Destination = other.Position, Route = null };
+            inhabitant.Activity = activity;
+        }
+        else if (activity.TargetId is not null && !_objects.TryGet(activity.TargetId, out target))
         {
             Report(new WorldEvent(ActionCancelled, world.Tick, inhabitant.Id, activity.Action, activity.TargetId));
             inhabitant.Activity = null;
@@ -297,6 +326,11 @@ public sealed class InhabitantsSystem : IWorldSystem
         }
 
         Finish(world, inhabitant, activity, target);
+        if (listener is not null)
+        {
+            Pass(world, inhabitant, listener, activity.Action);
+        }
+
         inhabitant.Activity = null;
     }
 
@@ -308,6 +342,15 @@ public sealed class InhabitantsSystem : IWorldSystem
             .Where(o => DistanceSquared(inhabitant.Position, o.Position) <= radius * radius && (Routes is null || Routes.Connected(inhabitant.Position, o.Position)))
             .ToList();
         var scored = _brain.Score(inhabitant, perceived);
+        if (Knowledge is { } knowledge && QuestionOpen is { } open && knowledge.WaitWhileQuestionOpen.Count > 0)
+        {
+            // W1595: what the inhabitant asked about is not eaten (or drunk …) before the answer comes.
+            scored = [.. scored.Where(o => o.TargetId is null
+                || !knowledge.WaitWhileQuestionOpen.Contains(o.Action)
+                || !_objects.TryGet(o.TargetId, out var thing)
+                || !open(inhabitant.Id, thing.TypeId))];
+        }
+
         if (scored.Count == 0)
         {
             return null;
@@ -447,7 +490,7 @@ public sealed class InhabitantsSystem : IWorldSystem
 
         if (target is not null)
         {
-            Learn(inhabitant, activity.Action, target.TypeId);
+            Learn(world, inhabitant, activity.Action, target.TypeId);
             if (applying.Any(r => r.ConsumesTarget))
             {
                 _objects.Remove(target.Id);
@@ -459,18 +502,97 @@ public sealed class InhabitantsSystem : IWorldSystem
 
     /// <summary>
     /// Experience: for every rule of the action that depends on a property, the inhabitant now believes
-    /// what really happened (the property was there or not). Confidence grows with repeated experience.
+    /// what really happened (the property was there or not). With knowledge data the belief is
+    /// "experienced" and certain (B4a R3); without it confidence grows with repeated experience (B1).
     /// </summary>
-    private void Learn(Inhabitant inhabitant, string action, string typeId)
+    private void Learn(World world, Inhabitant inhabitant, string action, string typeId)
     {
         var step = _brain.Weights.LearningStep;
         foreach (var property in _actions.Rules(action).Select(r => r.RequiresProperty).OfType<string>().Distinct(StringComparer.Ordinal))
         {
             var truth = _objects.Catalog.HasProperty(typeId, property);
-            var confidence = inhabitant.Beliefs.TryGet(typeId, property, out var old) && old.Value == truth ? old.Confidence + step : step;
-            inhabitant.Beliefs.Set(typeId, property, truth, confidence);
+            var known = inhabitant.Beliefs.TryGet(typeId, property, out var old);
+            if (Knowledge is not { } knowledge)
+            {
+                // B1: confidence grows with repeated experience.
+                inhabitant.Beliefs.Set(typeId, property, truth, known && old.Value == truth ? old.Confidence + step : step);
+                continue;
+            }
+
+            // B4a R3: one's own experience is certain and overrides what one heard; whoever told the
+            // inhabitant something false is trusted less afterwards (and a little more when it was true).
+            if (known && old.Source == KnowledgeSources.Heard && old.ToldBy is { } teller)
+            {
+                var start = Start(knowledge);
+                var relation = inhabitant.Relationships.Get(teller, start);
+                var change = old.Value == truth ? knowledge.TrustTrueHeardGain : -knowledge.TrustFalseHeardLoss;
+                inhabitant.Relationships.Set(teller, relation with { Trust = relation.Trust + change });
+            }
+
+            var confidence = Math.Max(knowledge.ExperiencedConfidence, known && old.Value == truth && old.Source == KnowledgeSources.Experienced ? old.Confidence : 0);
+            inhabitant.Beliefs.Set(typeId, property, truth, confidence, KnowledgeSources.Experienced, null, world.Tick);
+            if (!known || old.Value != truth || old.Source != KnowledgeSources.Experienced)
+            {
+                Report(new WorldEvent(KnowledgeGained, world.Tick, inhabitant.Id, action, typeId) { Detail = property + "/" + KnowledgeSources.Experienced });
+            }
         }
     }
+
+    /// <summary>
+    /// Passing on knowledge (B4a R4): the teller's surest belief that the action carries (data) goes to the
+    /// listener as heard, as sure as the teller is times the listener's trust in the teller. False beliefs
+    /// are passed on just the same; the listener's own experience is never overwritten.
+    /// </summary>
+    private void Pass(World world, Inhabitant teller, Inhabitant listener, string action)
+    {
+        if (Knowledge is not { } knowledge || PassableBelief(knowledge, teller, listener, action) is not { } belief)
+        {
+            return;
+        }
+
+        var trust = listener.Relationships.Get(teller.Id, Start(knowledge)).Trust;
+        listener.Beliefs.Set(belief.TypeId, belief.PropertyId, belief.Belief.Value, belief.Belief.Confidence * trust, KnowledgeSources.Heard, teller.Id, world.Tick);
+        Report(new WorldEvent(KnowledgeGained, world.Tick, listener.Id, action, belief.TypeId) { Detail = belief.PropertyId + "/" + KnowledgeSources.Heard });
+    }
+
+    /// <summary>
+    /// The belief a passing action would carry from teller to listener, or null: matching the action's data
+    /// (properties, value), sure enough, not something the listener experienced itself; surest first, then
+    /// type and property by id.
+    /// </summary>
+    public static (string TypeId, string PropertyId, Belief Belief)? PassableBelief(KnowledgeSettings knowledge, Inhabitant teller, Inhabitant listener, string action)
+    {
+        ArgumentNullException.ThrowIfNull(knowledge);
+        ArgumentNullException.ThrowIfNull(teller);
+        ArgumentNullException.ThrowIfNull(listener);
+        var rule = knowledge.Passing.FirstOrDefault(p => p.Action == action);
+        if (rule is null)
+        {
+            return null;
+        }
+
+        (string TypeId, string PropertyId, Belief Belief)? best = null;
+        foreach (var b in teller.Beliefs.All)
+        {
+            if (b.Belief.Confidence < knowledge.MinTellerConfidence
+                || (rule.Properties.Count > 0 && !rule.Properties.Contains(b.PropertyId))
+                || (rule.Value is { } value && b.Belief.Value != value)
+                || (listener.Beliefs.TryGet(b.TypeId, b.PropertyId, out var own) && own.Source == KnowledgeSources.Experienced))
+            {
+                continue;
+            }
+
+            if (best is null || b.Belief.Confidence > best.Value.Belief.Confidence)
+            {
+                best = b;
+            }
+        }
+
+        return best;
+    }
+
+    private static Relation Start(KnowledgeSettings knowledge) =>
+        new(knowledge.RelationshipStart.Affection, knowledge.RelationshipStart.Trust, knowledge.RelationshipStart.Respect);
 
     private static double DistanceSquared(Position a, Position b)
     {
