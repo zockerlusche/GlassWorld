@@ -83,6 +83,7 @@ public static class UiTheme
         theme.SetConstant("h_separation", "Button", style.Tokens.Window.Gap);
         theme.SetStylebox("focus", "Button", FocusRing(style));
         TreeStyle(theme, style);
+        BarStyle(theme, style);
         theme.SetConstant("separation", "VBoxContainer", style.Tokens.Window.Gap);
         theme.SetConstant("separation", "HBoxContainer", style.Tokens.Window.Gap);
         return theme;
@@ -187,6 +188,31 @@ public static class UiTheme
         theme.SetColor("title_button_color", "Tree", ToGodot(style.Color(UiColorId.Text)));
         theme.SetColor("font_selected_color", "Tree", ToGodot(style.Color(UiColorId.Panel)));
         theme.SetColor("guide_color", "Tree", ToGodot(style.Color(UiColorId.Border)));
+    }
+
+    /// <summary>
+    /// Value bars of the inhabitant card: dark text on light token colours with a thin border, so the
+    /// percentage stays readable (M1 photos: the engine default drew light text on light grey). Follows the
+    /// palette and high contrast.
+    /// </summary>
+    private static void BarStyle(Theme theme, UiStyle style)
+    {
+        // Thin border and small radius derived from the window tokens (half of each).
+        StyleBoxFlat Box(Color fill)
+        {
+            var box = new StyleBoxFlat { BgColor = fill, BorderColor = ToGodot(style.Color(UiColorId.Border)) };
+            box.SetBorderWidthAll(Math.Max(1, style.Tokens.Window.BorderWidth / 2));
+            box.SetCornerRadiusAll(Math.Max(1, style.Tokens.Window.CornerRadius / 2));
+            return box;
+        }
+
+        // The fill leans toward the accent so the level stands out from the track, while dark text stays readable (review #104).
+        var panel = ToGodot(style.Color(UiColorId.Panel));
+        theme.SetStylebox("background", "ProgressBar", Box(panel));
+        theme.SetStylebox("fill", "ProgressBar", Box(panel.Lerp(ToGodot(style.Color(UiColorId.Accent)), 0.35f)));
+        theme.SetColor("font_color", "ProgressBar", ToGodot(style.Color(UiColorId.Text)));
+        theme.SetColor("font_outline_color", "ProgressBar", ToGodot(style.Color(UiColorId.Panel)));
+        theme.SetConstant("outline_size", "ProgressBar", 0);
     }
 
     private static StyleBoxFlat FocusRing(UiStyle style)
