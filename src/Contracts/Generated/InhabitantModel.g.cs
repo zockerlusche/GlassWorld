@@ -148,6 +148,45 @@ namespace GlassWorld.Contracts
 
     }
 
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class SkillModel
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public string Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("start_level_min")]
+        public double StartLevelMin { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("start_level_max")]
+        public double StartLevelMax { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// New skills from inventions (B4b R11, NewAbility): allowed start level, practice gain of their actions, how many per world.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class SkillRules
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("runtime_start_level_min")]
+        public double RuntimeStartLevelMin { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("runtime_start_level_max")]
+        public double RuntimeStartLevelMax { get; set; } = default!;
+
+        /// <summary>
+        /// Practice gain per use of one of the new skill's actions.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("runtime_gain")]
+        public double RuntimeGain { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("max_runtime_skills")]
+        public int MaxRuntimeSkills { get; set; } = default!;
+
+    }
+
     /// <summary>
     /// Data file content/inhabitants/model.json: how needs, moods and the will to live change over time, and the ranges for start inhabitants drawn from the world seed (B2503). All numbers are placeholders until Marcel decides. Rates are per game hour.
     /// </summary>
@@ -172,6 +211,15 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("start")]
         public StartModel Start { get; set; } = new StartModel();
+
+        /// <summary>
+        /// Skill register (B5 R18, B4b R11): every skill of the skill vocabulary with the range of its start level for start inhabitants. B5 adds level tables and decay. Which action practises which skill is the effect skill_practice in content/effects/.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("skills")]
+        public System.Collections.Generic.ICollection<SkillModel> Skills { get; set; } = new System.Collections.ObjectModel.Collection<SkillModel>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("skill_rules")]
+        public SkillRules SkillRules { get; set; } = new SkillRules();
 
     }
 

@@ -30,12 +30,14 @@ public sealed class ContentSet
         GiftRules giftRules,
         FavorSettings favor,
         InventionRules inventions,
-        ChronicleKinds chronicle)
+        ChronicleKinds chronicle,
+        SkillPractice skillPractice)
     {
         GiftRules = giftRules;
         Favor = favor;
         Inventions = inventions;
         Chronicle = chronicle;
+        SkillPractice = skillPractice;
         Calendar = calendar;
         Objects = objects;
         Combinations = combinations;
@@ -81,6 +83,9 @@ public sealed class ContentSet
 
     /// <summary>Which core events become chronicle entries (content/chronicle/kinds.json).</summary>
     public ChronicleKinds Chronicle { get; }
+
+    /// <summary>Which action practises which skill (content/skills/practice.json, B5 R18).</summary>
+    public SkillPractice SkillPractice { get; }
 
     /// <summary>Loads and checks the content folder.</summary>
     public static ContentSet Load(string contentDirectory)
@@ -130,6 +135,8 @@ public sealed class ContentSet
         CheckInventions(inventions, actions, Ids(vocabularies, VocabularyKind.Shape), Ids(vocabularies, VocabularyKind.Time_of_day));
         var chronicle = ContractSerializer.Deserialize<ChronicleKinds>(File.ReadAllText(Path.Combine(contentDirectory, "chronicle", "kinds.json")));
         var player = Path.Combine(contentDirectory, "player");
+        var skillPractice = ContractSerializer.Deserialize<SkillPractice>(File.ReadAllText(Path.Combine(contentDirectory, "skills", "practice.json")));
+        CheckSkills(model, skillPractice, Ids(vocabularies, VocabularyKind.Skill), Ids(vocabularies, VocabularyKind.Action));
         return new ContentSet(
             calendar,
             objects,
@@ -142,7 +149,30 @@ public sealed class ContentSet
             ContractSerializer.Deserialize<GiftRules>(File.ReadAllText(Path.Combine(player, "gift_rules.json"))),
             ContractSerializer.Deserialize<FavorSettings>(File.ReadAllText(Path.Combine(player, "favor.json"))),
             inventions,
-            chronicle);
+            chronicle,
+            skillPractice);
+    }
+
+    /// <summary>The register names every skill of the vocabulary once; practice uses known actions and skills (A1372).</summary>
+    private static void CheckSkills(InhabitantModel model, SkillPractice practice, HashSet<string> skills, HashSet<string> actions)
+    {
+        var problems = new List<string>();
+        var registered = model.Skills.Select(s => s.Id).ToList();
+        problems.AddRange(registered.GroupBy(id => id, StringComparer.Ordinal).Where(g => g.Count() > 1).Select(g => $"skill '{g.Key}' twice"));
+        problems.AddRange(registered.Where(id => !skills.Contains(id)).Select(id => $"unknown skill '{id}'"));
+        problems.AddRange(skills.Where(id => !registered.Contains(id, StringComparer.Ordinal)).Select(id => $"skill '{id}' is not in the register"));
+        problems.AddRange(model.Skills.Where(s => s.StartLevelMin > s.StartLevelMax).Select(s => $"skill '{s.Id}' has min above max"));
+        problems.AddRange(practice.Practice.Where(p => !skills.Contains(p.Skill)).Select(p => $"practice of unknown skill '{p.Skill}'"));
+        problems.AddRange(practice.Practice.Where(p => !actions.Contains(p.Action)).Select(p => $"practice by unknown action '{p.Action}'"));
+        if (model.SkillRules.RuntimeStartLevelMin > model.SkillRules.RuntimeStartLevelMax)
+        {
+            problems.Add("new skills: start level min above max");
+        }
+
+        if (problems.Count > 0)
+        {
+            throw new InvalidDataException("Skills: " + string.Join("; ", problems) + ".");
+        }
     }
 
     private static void CheckInventions(InventionRules rules, ActionRules actions, HashSet<string> shapes, HashSet<string> dayPhases)

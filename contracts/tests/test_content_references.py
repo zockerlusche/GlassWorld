@@ -65,6 +65,9 @@ REFERENCES = [
     ("climate/temperate.json", "weather.seasons[].transitions[].to[].weather", "weather"),
     ("look/epochs.json", "epochs[].id", "epoch"),
     ("look/daylight.json", "phases[].phase", "time_of_day"),
+    ("inhabitants/model.json", "skills[].id", "skill"),
+    ("skills/practice.json", "practice[].skill", "skill"),
+    ("skills/practice.json", "practice[].action", "action"),
 ]
 
 # Tables that define one entry per vocabulary id of their kind.
@@ -73,6 +76,7 @@ DEFINITIONS = [
     ("look/epochs.json", "epochs[].id", "epoch"),
     ("climate/temperate.json", "weather.states[].weather", "weather"),
     ("look/daylight.json", "phases[].phase", "time_of_day"),
+    ("inhabitants/model.json", "skills[].id", "skill"),
 ]
 
 

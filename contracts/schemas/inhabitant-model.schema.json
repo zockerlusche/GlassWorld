@@ -5,94 +5,319 @@
   "description": "Data file content/inhabitants/model.json: how needs, moods and the will to live change over time, and the ranges for start inhabitants drawn from the world seed (B2503). All numbers are placeholders until Marcel decides. Rates are per game hour.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["contract_version", "needs", "moods", "mood_drivers", "will_to_live", "start"],
+  "required": [
+    "contract_version",
+    "needs",
+    "moods",
+    "mood_drivers",
+    "will_to_live",
+    "start",
+    "skills",
+    "skill_rules"
+  ],
   "properties": {
-    "contract_version": { "$ref": "common.schema.json#/$defs/ContractVersion" },
-    "needs": { "type": "array", "minItems": 1, "maxItems": 64, "items": { "$ref": "#/$defs/NeedModel" } },
-    "moods": { "type": "array", "maxItems": 64, "items": { "$ref": "#/$defs/MoodModel" } },
-    "mood_drivers": { "type": "array", "maxItems": 256, "items": { "$ref": "#/$defs/MoodDriver" } },
-    "will_to_live": { "$ref": "#/$defs/WillToLiveModel" },
-    "start": { "$ref": "#/$defs/StartModel" }
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "needs": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "items": {
+        "$ref": "#/$defs/NeedModel"
+      }
+    },
+    "moods": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "$ref": "#/$defs/MoodModel"
+      }
+    },
+    "mood_drivers": {
+      "type": "array",
+      "maxItems": 256,
+      "items": {
+        "$ref": "#/$defs/MoodDriver"
+      }
+    },
+    "will_to_live": {
+      "$ref": "#/$defs/WillToLiveModel"
+    },
+    "start": {
+      "$ref": "#/$defs/StartModel"
+    },
+    "skills": {
+      "description": "Skill register (B5 R18, B4b R11): every skill of the skill vocabulary with the range of its start level for start inhabitants. B5 adds level tables and decay. Which action practises which skill is the effect skill_practice in content/effects/.",
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "items": {
+        "$ref": "#/$defs/SkillModel"
+      }
+    },
+    "skill_rules": {
+      "$ref": "#/$defs/SkillRules"
+    }
   },
   "$defs": {
     "NeedModel": {
       "description": "A need: 1 = fully satisfied, 0 = urgent.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "decay_per_hour", "neglect_below"],
+      "required": [
+        "id",
+        "decay_per_hour",
+        "neglect_below"
+      ],
       "properties": {
-        "id": { "$ref": "common.schema.json#/$defs/VocabId" },
-        "decay_per_hour": { "type": "number", "minimum": 0, "maximum": 1 },
-        "neglect_below": { "description": "Below this value the need counts as neglected (will to live).", "type": "number", "minimum": 0, "maximum": 1 }
+        "id": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "decay_per_hour": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "neglect_below": {
+          "description": "Below this value the need counts as neglected (will to live).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
       }
     },
     "MoodModel": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "baseline", "return_per_hour"],
+      "required": [
+        "id",
+        "baseline",
+        "return_per_hour"
+      ],
       "properties": {
-        "id": { "$ref": "common.schema.json#/$defs/VocabId" },
-        "baseline": { "type": "number", "minimum": 0, "maximum": 1 },
-        "return_per_hour": { "description": "How fast the feeling returns to its baseline.", "type": "number", "minimum": 0, "maximum": 1 }
+        "id": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "baseline": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "return_per_hour": {
+          "description": "How fast the feeling returns to its baseline.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
       }
     },
     "MoodDriver": {
       "description": "While a need is below a threshold, a feeling changes per hour (may be negative).",
       "type": "object",
       "additionalProperties": false,
-      "required": ["need", "below", "mood", "delta_per_hour"],
+      "required": [
+        "need",
+        "below",
+        "mood",
+        "delta_per_hour"
+      ],
       "properties": {
-        "need": { "$ref": "common.schema.json#/$defs/VocabId" },
-        "below": { "type": "number", "minimum": 0, "maximum": 1 },
-        "mood": { "$ref": "common.schema.json#/$defs/VocabId" },
-        "delta_per_hour": { "type": "number", "minimum": -1, "maximum": 1 }
+        "need": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "below": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "mood": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "delta_per_hour": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 1
+        }
       }
     },
     "WillToLiveModel": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["start", "neglect_hours_before_decline", "decline_per_hour", "recover_per_hour", "fading_below"],
+      "required": [
+        "start",
+        "neglect_hours_before_decline",
+        "decline_per_hour",
+        "recover_per_hour",
+        "fading_below"
+      ],
       "properties": {
-        "start": { "type": "number", "minimum": 0, "maximum": 1 },
-        "neglect_hours_before_decline": { "description": "Continuous hours with a neglected need before the will to live sinks (B2484: only after long neglect).", "type": "integer", "minimum": 1, "maximum": 100000 },
-        "decline_per_hour": { "type": "number", "minimum": 0, "maximum": 1 },
-        "recover_per_hour": { "type": "number", "minimum": 0, "maximum": 1 },
-        "fading_below": { "description": "Below this the inhabitant is 'fading' (state only in B1; consequences in B9).", "type": "number", "minimum": 0, "maximum": 1 }
+        "start": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "neglect_hours_before_decline": {
+          "description": "Continuous hours with a neglected need before the will to live sinks (B2484: only after long neglect).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "decline_per_hour": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "recover_per_hour": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "fading_below": {
+          "description": "Below this the inhabitant is 'fading' (state only in B1; consequences in B9).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
       }
     },
     "StartModel": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["inhabitants", "traits", "needs"],
+      "required": [
+        "inhabitants",
+        "traits",
+        "needs"
+      ],
       "properties": {
         "inhabitants": {
           "description": "Start inhabitants (B2517, F5249 = C: two pairs, a woman and a man each, at different beaches). Traits and needs are drawn from the world seed; sex and group come from here.",
           "type": "array",
           "minItems": 1,
           "maxItems": 16,
-          "items": { "$ref": "#/$defs/StartInhabitant" }
+          "items": {
+            "$ref": "#/$defs/StartInhabitant"
+          }
         },
-        "traits": { "type": "array", "maxItems": 64, "items": { "$ref": "#/$defs/ValueRange" } },
-        "needs": { "type": "array", "maxItems": 64, "items": { "$ref": "#/$defs/ValueRange" } }
+        "traits": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "$ref": "#/$defs/ValueRange"
+          }
+        },
+        "needs": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "$ref": "#/$defs/ValueRange"
+          }
+        }
       }
     },
     "StartInhabitant": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["sex", "group"],
+      "required": [
+        "sex",
+        "group"
+      ],
       "properties": {
-        "sex": { "type": "string", "enum": ["female", "male"] },
-        "group": { "description": "Start group; members of a group wake up near each other, groups apart.", "type": "integer", "minimum": 1, "maximum": 8 }
+        "sex": {
+          "type": "string",
+          "enum": [
+            "female",
+            "male"
+          ]
+        },
+        "group": {
+          "description": "Start group; members of a group wake up near each other, groups apart.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
+        }
       }
     },
     "ValueRange": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "min", "max"],
+      "required": [
+        "id",
+        "min",
+        "max"
+      ],
       "properties": {
-        "id": { "$ref": "common.schema.json#/$defs/VocabId" },
-        "min": { "type": "number", "minimum": 0, "maximum": 1 },
-        "max": { "type": "number", "minimum": 0, "maximum": 1 }
+        "id": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "min": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "max": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "SkillModel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "start_level_min",
+        "start_level_max"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "start_level_min": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "start_level_max": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "SkillRules": {
+      "description": "New skills from inventions (B4b R11, NewAbility): allowed start level, practice gain of their actions, how many per world.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "runtime_start_level_min",
+        "runtime_start_level_max",
+        "runtime_gain",
+        "max_runtime_skills"
+      ],
+      "properties": {
+        "runtime_start_level_min": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "runtime_start_level_max": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "runtime_gain": {
+          "description": "Practice gain per use of one of the new skill's actions.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "max_runtime_skills": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 64
+        }
       }
     }
   }

@@ -169,6 +169,10 @@
     {
       "pattern": "jobs/phases.json",
       "schema": "job-phases"
+    },
+    {
+      "pattern": "skills/practice.json",
+      "schema": "skill-practice"
     }
   ]
 }

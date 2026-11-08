@@ -117,6 +117,35 @@ class ValueRange(BaseModel):
     max: float = Field(..., ge=0.0, le=1.0)
 
 
+class SkillModel(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    id: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    start_level_min: float = Field(..., ge=0.0, le=1.0)
+    start_level_max: float = Field(..., ge=0.0, le=1.0)
+
+
+class SkillRules(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    runtime_start_level_min: float = Field(..., ge=0.0, le=1.0)
+    runtime_start_level_max: float = Field(..., ge=0.0, le=1.0)
+    runtime_gain: float = Field(
+        ...,
+        description="Practice gain per use of one of the new skill's actions.",
+        ge=0.0,
+        le=1.0,
+    )
+    max_runtime_skills: int = Field(..., ge=0, le=64)
+
+
 class StartModel(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -144,3 +173,10 @@ class InhabitantModel(BaseModel):
     mood_drivers: list[MoodDriver] = Field(..., max_length=256)
     will_to_live: WillToLiveModel
     start: StartModel
+    skills: list[SkillModel] = Field(
+        ...,
+        description='Skill register (B5 R18, B4b R11): every skill of the skill vocabulary with the range of its start level for start inhabitants. B5 adds level tables and decay. Which action practises which skill is the effect skill_practice in content/effects/.',
+        max_length=64,
+        min_length=1,
+    )
+    skill_rules: SkillRules

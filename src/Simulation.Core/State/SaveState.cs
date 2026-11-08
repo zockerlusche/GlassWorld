@@ -53,6 +53,9 @@ public sealed record SaveState(
 {
     /// <summary>Favour, futile attempts and calls for help (B6); null in save games from before.</summary>
     public Player.PlayerState? Player { get; init; }
+
+    /// <summary>New skills of inventions (A1372); null in save games from before or without any.</summary>
+    public SkillRegisterState? Skills { get; init; }
 }
 
 /// <summary>Captures and restores the complete state of a <see cref="SimulationHost"/>.</summary>
@@ -93,6 +96,7 @@ public static class StateCodec
             [.. host.Chronicle.All])
         {
             Player = host.Player.Capture(),
+            Skills = host.Skills.HasState ? host.Skills.Capture() : null,
         };
     }
 
@@ -119,6 +123,7 @@ public static class StateCodec
         }
 
         host.Chronicle.Restore(state.Chronicle ?? []);
+        host.Skills.Restore(state.Skills);
         foreach (var obj in state.Objects)
         {
             host.Objects.Restore(obj, state.NextObjectNumber);

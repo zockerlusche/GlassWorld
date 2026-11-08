@@ -17,8 +17,9 @@ namespace GlassWorld.Simulation;
 /// </summary>
 public sealed class SimulationHost
 {
-    private SimulationHost(ContentSet content, World world, WorldMapSystem? map, WorldTypeCatalog types, WorldObjects objects, DecisionsSystem decisions, InhabitantsSystem inhabitants, Player.PlayerSystem player, InventionSystem inventions, ChronicleSystem chronicle, DeciderSettings deciderSettings)
+    private SimulationHost(ContentSet content, World world, WorldMapSystem? map, WorldTypeCatalog types, WorldObjects objects, DecisionsSystem decisions, InhabitantsSystem inhabitants, Player.PlayerSystem player, InventionSystem inventions, ChronicleSystem chronicle, DeciderSettings deciderSettings, SkillRegister skills)
     {
+        Skills = skills;
         Map = map;
         Player = player;
         Types = types;
@@ -49,6 +50,9 @@ public sealed class SimulationHost
 
     /// <summary>The chronicle (core state, D471 D8).</summary>
     public ChronicleSystem Chronicle { get; }
+
+    /// <summary>Skills the world knows (B4b R11, B5 R18).</summary>
+    public SkillRegister Skills { get; }
 
     /// <summary>Objects.</summary>
     public WorldObjects Objects { get; }
@@ -125,8 +129,21 @@ public sealed class SimulationHost
         var inventions = new InventionSystem(content.Inventions, inhabitants, objects, types, content.Brain.Weights.PerceptionRadiusM, jobPort, displayLocale);
         var chronicle = new ChronicleSystem(content.Chronicle);
         inhabitants.Reported += chronicle.Observe;
-        world.Add(objects).Add(decisions).Add(inhabitants).Add(player).Add(inventions).Add(chronicle);
-        return new SimulationHost(content, world, map, types, objects, decisions, inhabitants, player, inventions, chronicle, settings);
+        var skills = new SkillRegister(content.InhabitantModel.Skills, content.InhabitantModel.SkillRules, content.SkillPractice);
+
+        // New skills of an approved invention enter the register right away (refused ones are dropped, the invention stays).
+        inhabitants.Reported += e =>
+        {
+            if (e.Kind == InventionSystem.Invented && e.TargetId is { } typeId)
+            {
+                foreach (var ability in inventions.AbilitiesOf(typeId))
+                {
+                    skills.Add(ability, typeId);
+                }
+            }
+        };
+        world.Add(objects).Add(decisions).Add(inhabitants).Add(player).Add(inventions).Add(chronicle).Add(skills);
+        return new SimulationHost(content, world, map, types, objects, decisions, inhabitants, player, inventions, chronicle, settings, skills);
     }
 
     /// <summary>

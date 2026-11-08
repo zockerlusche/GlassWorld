@@ -25,6 +25,7 @@ class Kind(StrEnum):
     tech_level = 'tech_level'
     shape = 'shape'
     guard_reason = 'guard_reason'
+    skill = 'skill'
 
 
 class Target(StrEnum):
