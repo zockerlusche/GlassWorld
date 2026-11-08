@@ -219,6 +219,15 @@ public sealed class InventionTests : IDisposable
         Assert.Contains(InventionCheck.TooLarge, InventionCheck.Check(Mutate(r => r.Invention!.SizeM.X = rules.Settings.Limits.MaxSizeM * 2), perceived, rules));
         Assert.Contains(InventionCheck.NameNotAllowed, InventionCheck.Check(Mutate(r => r.Invention!.Name.En = BlockedWord()), perceived, rules));
 
+        // "downsize" in the last round is an approval of the smaller version.
+        Assert.Empty(InventionCheck.Check(Mutate(r => r.Rounds.Last().Decision = GuardVerdictDecision.Downsize), perceived, rules));
+
+        // New needs and abilities: actions from the vocabulary, names through the content guard.
+        var action = rules.Actions.Order(StringComparer.Ordinal).First();
+        Assert.Empty(InventionCheck.Check(Mutate(r => r.Invention!.IntroducesNeeds = [new NewNeed { Id = "test_need", NameDe = "Ruhe", NameEn = "calm", DecayPerDay = 0.1, Actions = [action] }]), perceived, rules));
+        Assert.Contains(InventionCheck.UnknownAction, InventionCheck.Check(Mutate(r => r.Invention!.IntroducesAbilities = [new NewAbility { Id = "test_ability", NameDe = "Flechten", NameEn = "braiding", StartLevel = 0.1, Actions = ["no_such_action"] }]), perceived, rules));
+        Assert.Contains(InventionCheck.NameNotAllowed, InventionCheck.Check(Mutate(r => r.Invention!.IntroducesNeeds = [new NewNeed { Id = "test_need", NameDe = "Ruhe", NameEn = BlockedWord(), DecayPerDay = 0.1, Actions = [action] }]), perceived, rules));
+
         // B2531: a property the data mark as one of living beings is refused.
         var living = rules with { Settings = Copy(rules.Settings, s => s.LivingProperties = ["container"]) };
         Assert.Contains(InventionCheck.LivingProperty, InventionCheck.Check(Result(["container"]), perceived, living));

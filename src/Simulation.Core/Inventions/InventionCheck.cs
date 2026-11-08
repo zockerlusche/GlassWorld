@@ -62,6 +62,9 @@ public static class InventionCheck
     /// <summary>A name did not pass the content guard.</summary>
     public const string NameNotAllowed = "name_not_allowed";
 
+    /// <summary>A new need or ability names an action that is not in the vocabulary.</summary>
+    public const string UnknownAction = "unknown_action";
+
     /// <summary>Checks a result against the rules and the materials sent with the job.</summary>
     public static IReadOnlyList<string> Check(InventionResult result, IReadOnlySet<string> perceivedTypes, InventionRules rules)
     {
@@ -69,7 +72,9 @@ public static class InventionCheck
         ArgumentNullException.ThrowIfNull(perceivedTypes);
         ArgumentNullException.ThrowIfNull(rules);
         var lastRound = result.Rounds.OrderBy(r => r.Round).LastOrDefault();
-        if (result.Decision == InventionResultDecision.Reject || result.Invention is null || lastRound?.Decision != GuardVerdictDecision.Approve)
+        // "downsize" is an approval of a smaller version (the service ends the discussion with it, #68).
+        if (result.Decision == InventionResultDecision.Reject || result.Invention is null
+            || lastRound?.Decision is not (GuardVerdictDecision.Approve or GuardVerdictDecision.Downsize))
         {
             return [NotApproved];
         }
@@ -128,6 +133,23 @@ public static class InventionCheck
         if (!rules.Guard.Check(invention.Name.De).Allowed || !rules.Guard.Check(invention.Name.En).Allowed)
         {
             reasons.Add(NameNotAllowed);
+        }
+
+        // New needs and abilities (B4b R11): stored now, created in the core later; their actions must be
+        // vocabulary and their names pass the content guard like the invention's name.
+        var additions = (invention.IntroducesNeeds ?? []).Select(n => (n.NameDe, n.NameEn, n.Actions))
+            .Concat((invention.IntroducesAbilities ?? []).Select(a => (a.NameDe, a.NameEn, a.Actions)));
+        foreach (var (nameDe, nameEn, actions) in additions)
+        {
+            if (actions.Any(a => !rules.Actions.Contains(a)))
+            {
+                reasons.Add(UnknownAction);
+            }
+
+            if (!rules.Guard.Check(nameDe).Allowed || !rules.Guard.Check(nameEn).Allowed)
+            {
+                reasons.Add(NameNotAllowed);
+            }
         }
 
         return [.. reasons];
