@@ -390,6 +390,27 @@
           "items": {
             "$ref": "#/$defs/Habit"
           }
+        },
+        "worn": {
+          "description": "What the inhabitant wears (B2540), one part per slot at most. Optional until the core sends it (absent = unknown).",
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/WornItem"
+          }
+        },
+        "felt_temperature_c": {
+          "description": "Temperature as the inhabitant feels it (weather, height, clothing; computed by the core, B2540), or null without weather. Optional until the core sends it.",
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": -80,
+              "maximum": 80
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "description": "Everything the AI may know about the inhabitant it speaks for (shared by decider and questions)."
@@ -934,6 +955,34 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 40
+        }
+      }
+    },
+    "WornItem": {
+      "description": "One worn part (B2540): its slot, its type and what the inhabitant BELIEVES about it (beliefs, not the truth).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "slot",
+        "type_id",
+        "properties"
+      ],
+      "properties": {
+        "slot": {
+          "description": "Slot (vocabulary slot, e.g. body, legs, feet, head, over).",
+          "$ref": "#/$defs/VocabId"
+        },
+        "type_id": {
+          "$ref": "#/$defs/VocabId"
+        },
+        "properties": {
+          "description": "Properties the inhabitant believes the part has (e.g. warming, water_repellent).",
+          "type": "array",
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/VocabId"
+          }
         }
       }
     }
