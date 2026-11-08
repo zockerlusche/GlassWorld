@@ -73,6 +73,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- AI service: `POST /phase` with a lower tick and another phase is applied (loading an older save turns the clock back; only the same phase is ignored); a model larger than the VRAM budget fails its job as not retryable, so the core falls back at once (review #82).
 - The start favour of a new world is a command in the log (`start_favor`, only before the first tick), so a replay from seed and log starts with the same favour (GW1 review #67 N1).
 - The UI theme (frames, fonts, colours, text size, high contrast) reaches the game screen and the main menu: Godot does not pass a theme through a CanvasLayer, so both used the engine default theme; their UI roots are now bound to the current theme (`UiSetup.Bind`). Windows over the game sit in an overlay that stays visible in "watch only". The smoke checks that the card uses the theme's frame.
 - Loading a save game never changes the file: empty or foreign files are refused read-only, older versions are migrated in a temporary copy (review GW3 #50 K2).

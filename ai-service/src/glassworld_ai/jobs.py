@@ -241,8 +241,11 @@ class JobRunner:
                 try:
                     await self._gate.prepare(record.kind)  # make the model resident (B7 S2)
                 except Exception as error:
+                    # A model larger than the budget never fits on this hardware: not retryable.
                     record.error = JobFailedError(
-                        "model_unavailable", f"model not available: {error}", retryable=True
+                        "model_unavailable",
+                        f"model not available: {error}",
+                        retryable=not getattr(error, "permanent", False),
                     )
                     record.state = "failed"
                     continue

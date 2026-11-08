@@ -161,9 +161,9 @@ def test_phase_change_is_idempotent() -> None:
     clock.now = 60
     assert not planner.change("night", 11)  # retry: same phase, budget keeps running
     assert planner.budget_left_s() == 40
-    assert not planner.change("day", 5)  # older tick: ignored
-    assert planner.phase == "night"
-    assert planner.change("day", 20)
+    assert planner.change("day", 5)  # an older save was loaded: its phase counts
+    assert planner.phase == "day"
+    assert not planner.change("day", 20)
 
 
 def test_decisions_wait_while_a_conflicting_night_model_is_resident() -> None:
@@ -189,3 +189,39 @@ def test_decisions_wait_while_a_conflicting_night_model_is_resident() -> None:
     asyncio.run(residency.ensure("snd"))
     assert planner.language_model_blocked()  # /decide answers model_unavailable (routine mode)
     assert planner.affinity("sound") == 0 and planner.affinity("question") == 1
+
+
+def test_a_model_larger_than_the_budget_fails_the_job_for_good() -> None:
+    class Driver:
+        async def load(self, model_id: str) -> None:
+            return None
+
+        async def unload(self, model_id: str) -> None:
+            return None
+
+    residency = Residency(
+        {"snd": Footprint("snd", "sound", "d", 5734, 1.0, frozenset())}, 5120, {"d": Driver()}
+    )
+    planner = Planner(100, {"sound": KindPlan("any", "snd")}, lambda: residency, lambda: "minimum")
+
+    async def handler(job: GenerationJob) -> JobOutcome:
+        raise AssertionError("must not run")
+
+    runner = JobRunner({"sound": handler}, 8, gate=planner)
+
+    class FakeJob:
+        request_id = "s1"
+        kind = type("K", (), {"value": "sound"})()
+        priority = 10
+
+        def model_dump(self, mode: str = "json") -> dict[str, str]:
+            return {"id": "s1"}
+
+    async def scenario() -> None:
+        runner.submit(FakeJob())  # type: ignore[arg-type]
+        await asyncio.sleep(0.02)
+
+    asyncio.run(scenario())
+    assert runner.counts() == {"queued": 0, "running": 0, "deferred": 0}
+    record = runner._records["s1"]  # pyright: ignore[reportPrivateUsage]
+    assert record.error is not None and record.error.retryable is False
