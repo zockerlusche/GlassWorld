@@ -1045,6 +1045,10 @@
     {
       "key": "msg.command.no_position",
       "text": "Wähle eine Stelle in der Welt."
+    },
+    {
+      "key": "msg.command.already_started",
+      "text": "Das geht nur beim Anlegen einer Welt."
     }
   ]
 }
