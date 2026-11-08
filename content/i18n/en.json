@@ -1063,6 +1063,10 @@
       "text": "That is only possible when a world is created."
     },
     {
+      "key": "ui.settings.feeling_symbols",
+      "text": "Feeling symbols above heads"
+    },
+    {
       "key": "vocab.object.apple",
       "text": "Apple"
     },
@@ -1237,6 +1241,30 @@
     {
       "key": "ui.favor.tooltip",
       "text": "Favour grows back slowly. Gifts cost favour."
+    },
+    {
+      "key": "msg.mail.knock",
+      "text": "Inhabitant {number} knocks at the glass: finds nothing for {need}."
+    },
+    {
+      "key": "msg.command.no_message",
+      "text": "This message has already been read."
+    },
+    {
+      "key": "ui.mailbox.empty",
+      "text": "No new messages."
+    },
+    {
+      "key": "ui.mailbox.read",
+      "text": "Mark as read"
+    },
+    {
+      "key": "ui.mailbox.history",
+      "text": "Read earlier"
+    },
+    {
+      "key": "ui.help.answer",
+      "text": "You could say: “{text}”"
     },
     {
       "key": "vocab.skill.building",

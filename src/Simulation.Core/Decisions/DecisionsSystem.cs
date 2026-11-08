@@ -35,6 +35,9 @@ public sealed record PlayerCommand(string Kind, string? InhabitantId)
 
     /// <summary>A whole number for commands that need one (e.g. the start favour).</summary>
     public int? Amount { get; init; }
+
+    /// <summary>Mailbox message a command is about (acknowledge).</summary>
+    public string? MessageId { get; init; }
 }
 
 /// <summary>Result of a player command.</summary>

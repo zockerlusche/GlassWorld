@@ -32,8 +32,10 @@ public sealed class ContentSet
         InventionRules inventions,
         ChronicleKinds chronicle,
         WritingMedia writing,
-        SkillPractice skillPractice)
+        SkillPractice skillPractice,
+        MessageKinds messageKinds)
     {
+        MessageKinds = messageKinds;
         GiftRules = giftRules;
         Favor = favor;
         Inventions = inventions;
@@ -52,6 +54,9 @@ public sealed class ContentSet
 
     /// <summary>Value ranges of the appearance record (content/look/appearance.json, B2 R27).</summary>
     public LookAppearance Appearance { get; private init; } = null!;
+
+    /// <summary>Mailbox message kinds (content/player/message_kinds.json).</summary>
+    public MessageKinds MessageKinds { get; }
 
     /// <summary>Rules for gifts and calls for help (content/player/gift_rules.json).</summary>
     public GiftRules GiftRules { get; }
@@ -161,7 +166,8 @@ public sealed class ContentSet
             inventions,
             chronicle,
             writing,
-            skillPractice)
+            skillPractice,
+            ContractSerializer.Deserialize<MessageKinds>(File.ReadAllText(Path.Combine(player, "message_kinds.json"))))
         {
             Appearance = LoadAppearance(contentDirectory),
         };

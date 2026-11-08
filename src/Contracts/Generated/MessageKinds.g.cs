@@ -49,5 +49,11 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("kinds")]
         public System.Collections.Generic.ICollection<MessageKind> Kinds { get; set; } = new System.Collections.ObjectModel.Collection<MessageKind>();
 
+        /// <summary>
+        /// Read messages kept as history; older ones are dropped (save game and hash stay bounded, review #86).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("history_max")]
+        public int HistoryMax { get; set; } = default!;
+
     }
 }

@@ -17,10 +17,11 @@ namespace GlassWorld.Simulation;
 /// </summary>
 public sealed class SimulationHost
 {
-    private SimulationHost(ContentSet content, World world, WorldMapSystem? map, WorldTypeCatalog types, WorldObjects objects, DecisionsSystem decisions, InhabitantsSystem inhabitants, Player.PlayerSystem player, InventionSystem inventions, ChronicleSystem chronicle, DeciderSettings deciderSettings, Writing.WritingSystem writing, SkillRegister skills)
+    private SimulationHost(ContentSet content, World world, WorldMapSystem? map, WorldTypeCatalog types, WorldObjects objects, DecisionsSystem decisions, InhabitantsSystem inhabitants, Player.PlayerSystem player, InventionSystem inventions, ChronicleSystem chronicle, DeciderSettings deciderSettings, Writing.WritingSystem writing, SkillRegister skills, Player.MailboxSystem mailbox)
     {
         Writing = writing;
         Skills = skills;
+        Mailbox = mailbox;
         Map = map;
         Player = player;
         Types = types;
@@ -66,6 +67,9 @@ public sealed class SimulationHost
 
     /// <summary>Questions to the decider and player commands.</summary>
     public DecisionsSystem Decisions { get; }
+
+    /// <summary>The player's mailbox (B6 R10/R11).</summary>
+    public Player.MailboxSystem Mailbox { get; }
 
     /// <summary>The player's part: favour, calls for help, gifts (B6).</summary>
     public Player.PlayerSystem Player { get; }
@@ -177,8 +181,12 @@ public sealed class SimulationHost
         };
         // Texts wear by the weather (GW1 #95 wires the weather system before writing).
         var writing = new Writing.WritingSystem(content.Writing, objects, weather, world.Calendar.Settings.TicksPerHour, world.Calendar.TicksPerDay);
-        world.Add(objects).Add(decisions).Add(inhabitants).Add(player).Add(inventions).Add(chronicle).Add(writing).Add(skills);
-        return new SimulationHost(content, world, map, types, objects, decisions, inhabitants, player, inventions, chronicle, settings, writing, skills)
+        var mailbox = new Simulation.Player.MailboxSystem(content.MessageKinds, inhabitants, player, world.Calendar.Settings.TicksPerHour);
+        decisions.RegisterCommand(Simulation.Player.MailboxSystem.Acknowledge, mailbox.Check, mailbox.Apply);
+
+        // The mailbox after the chronicle (agreed order): help_needed is reported by the player system earlier in the tick.
+        world.Add(objects).Add(decisions).Add(inhabitants).Add(player).Add(inventions).Add(chronicle).Add(writing).Add(skills).Add(mailbox);
+        return new SimulationHost(content, world, map, types, objects, decisions, inhabitants, player, inventions, chronicle, settings, writing, skills, mailbox)
         {
             WeatherSystem = weather,
             Weather = weather,
