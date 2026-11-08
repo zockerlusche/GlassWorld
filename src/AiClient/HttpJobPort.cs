@@ -22,6 +22,9 @@ public sealed class HttpJobPort : IJobPort, IDisposable
     private readonly TimeSpan _maxPollInterval;
     private readonly ConcurrentQueue<PortMessage> _ready = new();
     private readonly CancellationTokenSource _stop = new();
+    private readonly Lock _phaseLock = new();
+    private string? _phase;
+    private long _phaseTick;
     private int _inFlight;
 
     /// <summary>Creates the port for a running service.</summary>
@@ -170,6 +173,71 @@ public sealed class HttpJobPort : IJobPort, IDisposable
     /// True for a done or failed job. A body that is no valid JobStatus is handed to the core as is, which
     /// logs it as a contract violation (never polled forever).
     /// </summary>
+    /// <summary>
+    /// Tells the service that the compute night begins or ends (<c>POST /phase</c>, contract <c>phase-change</c>);
+    /// only a real change is sent, asynchronously and best effort (a failure only means the service plans
+    /// without it until the next change or <see cref="Resend"/>).
+    /// </summary>
+    public void SetPhase(string phase, long tick)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(phase);
+        lock (_phaseLock)
+        {
+            if (_phase == phase)
+            {
+                return;
+            }
+
+            _phase = phase;
+            _phaseTick = tick;
+        }
+
+        SendPhase(phase, tick);
+    }
+
+    /// <summary>Sends the last phase again, e.g. after the service was started anew (it starts in day).</summary>
+    public void Resend()
+    {
+        string? phase;
+        long tick;
+        lock (_phaseLock)
+        {
+            (phase, tick) = (_phase, _phaseTick);
+        }
+
+        if (phase is not null)
+        {
+            SendPhase(phase, tick);
+        }
+    }
+
+    private void SendPhase(string phase, long tick)
+    {
+        var body = ContractSerializer.Serialize(new PhaseChange
+        {
+            ContractVersion = ContractInfo.Version,
+            Phase = phase == JobPhase.Night ? PhaseChangePhase.Night : PhaseChangePhase.Day,
+            Tick = tick,
+        });
+        Interlocked.Increment(ref _inFlight);
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                using var content = new StringContent(body, Encoding.UTF8, "application/json");
+                using var response = await _http.PostAsync(new Uri("phase", UriKind.Relative), content, _stop.Token).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException or ObjectDisposedException)
+            {
+                // Best effort: the planner works without the signal until the next one.
+            }
+            finally
+            {
+                Interlocked.Decrement(ref _inFlight);
+            }
+        });
+    }
+
     /// <summary>Cancels a job the core no longer waits for (<c>DELETE /jobs/{id}</c>, idempotent, best effort).</summary>
     public async Task CancelAsync(string requestId)
     {

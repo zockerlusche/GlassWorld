@@ -15,7 +15,15 @@ namespace GlassWorld.Simulation.Inventions;
 /// <param name="Kit">content/build/kit.json.</param>
 /// <param name="NeglectableNeeds">Needs with a neglect threshold; the inventor builds only while they are high enough.</param>
 /// <param name="NightPhases">Day phases that are the compute night of the AI service (content/jobs/phases.json).</param>
-public sealed record BuildRules(BuildSettings Settings, BuildKit Kit, FrozenSet<string> NeglectableNeeds, FrozenSet<string> NightPhases);
+/// <param name="Sound">Lengths, steps and priority of sound jobs (content/sound/generation.json).</param>
+public sealed record BuildRules(BuildSettings Settings, BuildKit Kit, FrozenSet<string> NeglectableNeeds, FrozenSet<string> NightPhases, SoundGeneration Sound);
+
+/// <summary>The sound job of a built invention (D471 D7) and its result.</summary>
+/// <param name="TypeId">Runtime type the sound belongs to.</param>
+/// <param name="RequestId">The sound job.</param>
+/// <param name="ResultJson">SoundResult once the sound exists, else null.</param>
+/// <param name="Failed">True when the job failed: the invention keeps no sound of its own (base library by description).</param>
+public sealed record SoundTask(string TypeId, string RequestId, string? ResultJson, bool Failed);
 
 /// <summary>
 /// Building one approved invention: the plan job, the checked plan, the building site and the progress.
@@ -73,6 +81,7 @@ public sealed partial class InventionSystem
 
     private readonly SortedDictionary<string, BuildTask> _builds = new(StringComparer.Ordinal);
     private readonly SortedSet<string> _firstUsed = new(StringComparer.Ordinal);
+    private readonly SortedDictionary<string, SoundTask> _sounds = new(StringComparer.Ordinal);
     private bool? _night;
 
     /// <summary>Building tasks by runtime type.</summary>
@@ -220,6 +229,15 @@ public sealed partial class InventionSystem
             _builds[due.TypeId] = SubmitPlan(world, due);
         }
 
+        // A finished invention that needs a sound gets its sound job (in the tick it was built).
+        foreach (var done in _builds.Values.Where(b => b.BuiltObjectId is not null && !_sounds.ContainsKey(b.TypeId)).ToList())
+        {
+            if (SoundOf(_inventions[done.TypeId]) is { Needed: true } decision)
+            {
+                SubmitSound(world, done, decision);
+            }
+        }
+
         foreach (var task in _builds.Values.Where(b => b.PlanJson is not null && b.BuiltObjectId is null).ToList())
         {
             var inhabitant = _inhabitants.Get(task.InhabitantId);
@@ -327,6 +345,80 @@ public sealed partial class InventionSystem
         _inhabitants.Report(new WorldEvent(Built, e.Tick, task.InhabitantId, null, built.Id));
     }
 
+    private static SoundDecision? SoundOf(InventionRecord record) =>
+        record.SoundJson is null ? null : JsonSerializer.Deserialize<SoundDecision>(record.SoundJson, RecordJson);
+
+    /// <summary>Asks the sound model for the invention's own sound (it runs in the compute night, B7 S4).</summary>
+    private void SubmitSound(World world, BuildTask task, SoundDecision decision)
+    {
+        _counter++;
+        var tick = world.Tick;
+        var requestId = DecisionIds.RequestId(world.Seed, tick, task.InhabitantId + "/sound", _counter);
+        var generation = Build.Sound;
+        var job = new GenerationJob
+        {
+            ContractVersion = ContractInfo.Version,
+            RequestId = requestId,
+            Tick = tick,
+            Seed = SeedOf(requestId),
+            DisplayLocale = Enum.Parse<Locale>(_displayLocale, ignoreCase: true),
+            Kind = JobKind.Sound,
+            Priority = generation.Priority,
+            Inhabitant = task.InhabitantId,
+            Object = task.BuiltObjectId,
+            Payload = new JobPayload
+            {
+                Sound = new SoundPayload
+                {
+                    Description = decision.Description,
+                    Kind = decision.Kind,
+                    Seconds = decision.Kind == SoundKind.Loop ? generation.Seconds.Loop : generation.Seconds.OneShot,
+                    Steps = generation.DefaultSteps,
+                    ObjectType = task.TypeId,
+                },
+            },
+        };
+        var json = ContractSerializer.Serialize(job);
+        Log.Add(new DecisionLogEntry(DecisionLogKind.JobRequest, requestId, tick, json, null));
+        _port!.Submit(requestId, json);
+        _sounds[task.TypeId] = new SoundTask(task.TypeId, requestId, null, false);
+    }
+
+    /// <summary>Routes a job outcome to a sound job; false if it belongs to none.</summary>
+    private bool ApplySound(World world, PortMessage message)
+    {
+        var sound = _sounds.Values.FirstOrDefault(s => s.RequestId == message.RequestId && s.ResultJson is null && !s.Failed);
+        if (sound is null)
+        {
+            return false;
+        }
+
+        JobStatus? status = null;
+        if (!message.IsError)
+        {
+            try
+            {
+                status = ContractSerializer.Deserialize<JobStatus>(message.Json);
+            }
+            catch (ContractViolationException)
+            {
+                status = null;
+            }
+        }
+
+        if (status is { State: JobState.Done, Kind: JobKind.Sound, Result.Sound: { } result } && status.JobId == sound.RequestId)
+        {
+            Log.Add(new DecisionLogEntry(DecisionLogKind.JobResult, message.RequestId, world.Tick, message.Json, null));
+            _sounds[sound.TypeId] = sound with { ResultJson = JsonSerializer.Serialize(result, RecordJson) };
+            return true;
+        }
+
+        // Any failure: the invention keeps no sound of its own; the game takes the base library (D7).
+        Log.Add(new DecisionLogEntry(message.IsError ? DecisionLogKind.JobError : DecisionLogKind.JobDiscarded, message.RequestId, world.Tick, message.Json, message.IsError ? ReplayNotes.ServiceError : "sound_failed"));
+        _sounds[sound.TypeId] = sound with { Failed = true };
+        return true;
+    }
+
     /// <summary>Tells the AI service when the compute night begins and ends (only a signal; nothing in the world depends on it).</summary>
     private void SignalPhase(World world)
     {
@@ -361,6 +453,12 @@ public sealed partial class InventionSystem
         {
             hasher.Write(t);
         }
+
+        hasher.Write(_sounds.Count);
+        foreach (var s in _sounds.Values)
+        {
+            hasher.Write(s.TypeId).Write(s.RequestId).Write(s.ResultJson ?? string.Empty).Write(s.Failed);
+        }
     }
 
     private void RestoreBuilds(InventionState state)
@@ -373,6 +471,11 @@ public sealed partial class InventionSystem
         foreach (var type in state.FirstUsed ?? [])
         {
             _firstUsed.Add(type);
+        }
+
+        foreach (var sound in state.Sounds ?? [])
+        {
+            _sounds[sound.TypeId] = sound;
         }
     }
 }

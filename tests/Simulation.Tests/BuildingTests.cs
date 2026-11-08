@@ -219,9 +219,68 @@ public sealed class BuildingTests : IDisposable
         Assert.Contains(Content.Value.Inventions.Build.Settings.UseAction, Content.Value.Actions.OfferedActions);
     }
 
+    [Fact]
+    public void AFinishedInventionThatNeedsASoundGetsASoundJobAndKeepsTheFile()
+    {
+        var (host, port, typeId) = Invented(29);
+        AnswerPlan(port, Plan());
+        RunUntil(host, () => host.Inventions.Builds.Single().BuiltObjectId is not null, 3000);
+        host.World.Step();
+
+        var job = Assert.Single(port.Submitted, j => j.Kind == JobKind.Sound);
+        var generation = Content.Value.Inventions.Build.Sound;
+        var decision = host.Inventions.Invention(typeId)!;
+        Assert.Equal(generation.Priority, job.Priority);
+        Assert.Equal(host.Inventions.Builds.Single().BuiltObjectId, job.Object);
+        Assert.Equal((decision.SoundDescription, SoundKind.One_shot, generation.Seconds.OneShot, generation.DefaultSteps, typeId), (job.Payload.Sound!.Description, job.Payload.Sound.Kind, job.Payload.Sound.Seconds, job.Payload.Sound.Steps, job.Payload.Sound.ObjectType));
+        Assert.Null(decision.SoundFile);
+
+        var status = ContractSerializer.Deserialize<JobStatus>(File.ReadAllText(Path.Combine(TestData.Root, "contracts", "examples", "valid", "job-status.sound-door.json")));
+        status.JobId = job.RequestId;
+        status.Tick = job.Tick;
+        port.Answer(job, status);
+        host.World.Step();
+        Assert.Equal(status.Result!.Sound!.File, host.Inventions.Invention(typeId)!.SoundFile);
+
+        var path = Path.Combine(_directory, "sound.db");
+        SaveGameStore.Save(path, StateCodec.Capture(host));
+        var loaded = Restore(path, host);
+        Assert.Equal(host.World.StateHash(), loaded.World.StateHash());
+        Assert.Equal(status.Result.Sound.File, loaded.Inventions.Invention(typeId)!.SoundFile);
+    }
+
+    [Fact]
+    public void AFailedSoundJobLeavesTheInventionWithoutItsOwnSound()
+    {
+        var (host, port, typeId) = Invented(30);
+        AnswerPlan(port, Plan());
+        RunUntil(host, () => host.Inventions.Builds.Single().BuiltObjectId is not null, 3000);
+        host.World.Step();
+        var job = Assert.Single(port.Submitted, j => j.Kind == JobKind.Sound);
+        var error = new ServiceError { ContractVersion = ContractInfo.Version, RequestId = job.RequestId, Tick = job.Tick, Code = ServiceErrorCode.Model_unavailable, Message = "no sound model", Retryable = true };
+        port.AnswerError(job.RequestId, ContractSerializer.Serialize(error));
+        host.World.Run(host.World.Calendar.TicksPerDay);
+
+        var info = host.Inventions.Invention(typeId)!;
+        Assert.Null(info.SoundFile);
+        Assert.NotNull(info.SoundDescription);
+        Assert.Single(port.Submitted, j => j.Kind == JobKind.Sound);
+    }
+
+    [Fact]
+    public void AnInventionWithoutSoundGetsNoSoundJob()
+    {
+        var (host, port, typeId) = Invented(31, needsSound: false);
+        AnswerPlan(port, Plan());
+        RunUntil(host, () => host.Inventions.Builds.Single().BuiltObjectId is not null, 3000);
+        host.World.Run(10);
+        Assert.DoesNotContain(port.Submitted, j => j.Kind == JobKind.Sound);
+        Assert.Null(host.Inventions.Invention(typeId)!.SoundDescription);
+    }
+
     // ------------------------------------------------------------------ helpers (test data only)
 
-    private static (SimulationHost Host, ScriptedJobPort Port, string TypeId) Invented(ulong seed)
+    private static (SimulationHost Host, ScriptedJobPort Port, string TypeId) Invented(ulong seed, bool needsSound = true)
     {
         var port = new ScriptedJobPort();
         var host = World(port, seed);
@@ -232,7 +291,9 @@ public sealed class BuildingTests : IDisposable
         }
 
         var job = Assert.Single(port.Submitted);
-        port.Answer(job, Approved(job));
+        var approved = Approved(job);
+        approved.Result!.Invention!.Sound!.Needed = needsSound;
+        port.Answer(job, approved);
         host.World.Step();
         var typeId = InventionSystem.TypeIdFor(job.RequestId);
         Assert.True(host.Types.Contains(typeId));
@@ -368,6 +429,8 @@ public sealed class BuildingTests : IDisposable
         public void Submit(string requestId, string jobJson) => Submitted.Add(ContractSerializer.Deserialize<GenerationJob>(jobJson));
 
         public void Answer(GenerationJob job, JobStatus status) => _ready.Enqueue(new PortMessage(job.RequestId, ContractSerializer.Serialize(status), IsError: false));
+
+        public void AnswerError(string requestId, string json) => _ready.Enqueue(new PortMessage(requestId, json, IsError: true));
 
         public IReadOnlyList<PortMessage> Receive(long tick)
         {

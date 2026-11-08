@@ -262,6 +262,11 @@ public static class SaveGameStore
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("first_used", JsonSerializer.Serialize(firstUsed, Json)));
         }
 
+        if (state.Sounds is { Count: > 0 } sounds)
+        {
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("invention_sounds", JsonSerializer.Serialize(sounds, Json)));
+        }
+
         foreach (var r in state.Inventions)
         {
             Insert(c, tx, "INSERT INTO inventions VALUES($a,$b,$c,$d,$e,$f)", (r.TypeId, r.RequestId, r.InhabitantId, r.Tick, r.InventionJson, r.SoundJson));
@@ -302,7 +307,8 @@ public static class SaveGameStore
             Query(c, "SELECT kind, request_id, tick, json, note FROM job_log ORDER BY seq",
                 r => new DecisionLogEntry(Enum.Parse<DecisionLogKind>(r.GetString(0)), r.GetString(1), r.GetInt64(2), r.GetString(3), r.IsDBNull(4) ? null : r.GetString(4))),
             meta.TryGetValue("builds", out var builds) ? JsonSerializer.Deserialize<List<BuildTask>>(builds, Json) : null,
-            meta.TryGetValue("first_used", out var firstUsed) ? JsonSerializer.Deserialize<List<string>>(firstUsed, Json) : null);
+            meta.TryGetValue("first_used", out var firstUsed) ? JsonSerializer.Deserialize<List<string>>(firstUsed, Json) : null,
+            meta.TryGetValue("invention_sounds", out var sounds) ? JsonSerializer.Deserialize<List<SoundTask>>(sounds, Json) : null);
     }
 
     private static SaveState Read(SqliteConnection c)

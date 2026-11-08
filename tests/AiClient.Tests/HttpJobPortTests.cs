@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using GlassWorld.Contracts;
 using GlassWorld.Contracts.Validation;
+using GlassWorld.Simulation.Decisions;
 
 namespace GlassWorld.AiClient.Tests;
 
@@ -133,6 +134,42 @@ public sealed class HttpJobPortTests
         Assert.False(Assert.Single(port.Receive(0)).IsError);
         var gaps = times.Zip(times.Skip(1), (a, b) => (b - a).TotalMilliseconds).ToList();
         Assert.True(gaps[^1] > gaps[0], $"polls did not slow down: {string.Join(", ", gaps)}");
+    }
+
+    [Fact]
+    public async Task OnlyARealPhaseChangeIsPostedAndResendRepeatsTheLastOne()
+    {
+        var posts = new List<(string Path, string Body, bool Token)>();
+        using var port = NewPort(request =>
+        {
+            posts.Add((request.RequestUri!.AbsolutePath, request.Content!.ReadAsStringAsync().Result, request.Headers.Contains(HttpDecisionPort.TokenHeader)));
+            return Json(HttpStatusCode.OK, "{}");
+        });
+
+        port.SetPhase(JobPhase.Night, 1320);
+        await port.WhenIdleAsync(TimeSpan.FromSeconds(5));
+        port.SetPhase(JobPhase.Night, 1321);
+        await port.WhenIdleAsync(TimeSpan.FromSeconds(5));
+        port.SetPhase(JobPhase.Day, 1800);
+        await port.WhenIdleAsync(TimeSpan.FromSeconds(5));
+        port.Resend();
+        await port.WhenIdleAsync(TimeSpan.FromSeconds(5));
+
+        Assert.Equal(3, posts.Count);
+        Assert.All(posts, p => Assert.Equal(("/phase", true), (p.Path, p.Token)));
+        Assert.All(posts, p => Assert.Empty(ContractValidator.Validate("phase-change", p.Body)));
+        var sent = posts.Select(p => ContractSerializer.Deserialize<PhaseChange>(p.Body)).Select(c => (c.Phase, c.Tick)).ToList();
+        Assert.Equal([(PhaseChangePhase.Night, 1320L), (PhaseChangePhase.Day, 1800L), (PhaseChangePhase.Day, 1800L)], sent);
+    }
+
+    [Fact]
+    public async Task AnUnreachableServiceDoesNotBreakThePhaseSignal()
+    {
+        using var port = NewPort(_ => throw new HttpRequestException("connection refused"));
+        port.SetPhase(JobPhase.Night, 5);
+        await port.WhenIdleAsync(TimeSpan.FromSeconds(5));
+        Assert.Equal(0, port.InFlight);
+        Assert.Empty(port.Receive(0));
     }
 
     private static HttpJobPort NewPort(Func<HttpRequestMessage, HttpResponseMessage> respond) =>
