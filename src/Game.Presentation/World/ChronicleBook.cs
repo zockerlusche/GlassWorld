@@ -39,6 +39,7 @@ public sealed class ChronicleBook(ChronicleKinds kinds, WorldCalendar calendar)
     private readonly Dictionary<string, ChronicleKind> _byId = (kinds ?? throw new ArgumentNullException(nameof(kinds))).Kinds.ToDictionary(k => k.Id, StringComparer.Ordinal);
     private readonly List<ChronicleEntry> _entries = [];
     private long _lastSeq;
+    private IChronicle? _source;
 
     /// <summary>Entries, newest first.</summary>
     public IReadOnlyList<ChronicleEntry> Entries => _entries;
@@ -46,11 +47,27 @@ public sealed class ChronicleBook(ChronicleKinds kinds, WorldCalendar calendar)
     /// <summary>Changes whenever an entry is added (for the window to update only then).</summary>
     public int Version { get; private set; }
 
-    /// <summary>Takes the core's entries that are new since the last call (all of them the first time).</summary>
+    /// <summary>
+    /// Takes the core's entries that are new since the last call (all of them the first time). Another
+    /// chronicle, or one with fewer entries (a different or older world was loaded), starts the book
+    /// over, so no entry is skipped (GW1 review #89 K1).
+    /// </summary>
     /// <returns>Number of new entries.</returns>
     public int Sync(IChronicle chronicle)
     {
         ArgumentNullException.ThrowIfNull(chronicle);
+        if (!ReferenceEquals(chronicle, _source) || chronicle.LastSeq < _lastSeq)
+        {
+            var hadEntries = _entries.Count > 0;
+            _source = chronicle;
+            _entries.Clear();
+            _lastSeq = 0;
+            if (hadEntries)
+            {
+                Version++;
+            }
+        }
+
         return chronicle.LastSeq > _lastSeq ? Add(chronicle.Since(_lastSeq)) : 0;
     }
 

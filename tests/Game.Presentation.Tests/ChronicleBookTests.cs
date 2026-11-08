@@ -69,6 +69,34 @@ public sealed class ChronicleBookTests
     }
 
     [Fact]
+    public void AnotherOrOlderWorldStartsTheBookOver()
+    {
+        // GW1 review #89 K1: loading another world without a new book must not skip its entries.
+        var first = new ChronicleSystem(Kinds);
+        first.Observe(new WorldEvent("invented", 5, "inh-000001", null, "obj-000007"));
+        first.Observe(new WorldEvent("first_use", 6, "inh-000001", "use", "obj-000007"));
+        var book = new ChronicleBook(Kinds, Calendar);
+        Assert.Equal(2, book.Sync(first));
+
+        // Another world with fewer entries.
+        var other = new ChronicleSystem(Kinds);
+        other.Observe(new WorldEvent("invented", 9, "inh-000002", null, "obj-000003"));
+        Assert.Equal(1, book.Sync(other));
+        Assert.Equal("inh-000002", Assert.Single(book.Entries).InhabitantId);
+
+        // The same world after loading an older save of it (same object, fewer entries).
+        var older = new ChronicleSystem(Kinds);
+        older.Observe(new WorldEvent("invented", 5, "inh-000001", null, "obj-000007"));
+        older.Observe(new WorldEvent("first_use", 6, "inh-000001", "use", "obj-000007"));
+        Assert.Equal(2, book.Sync(older));
+        var restored = new ChronicleSystem(Kinds);
+        restored.Restore(older.All.Take(1));
+        older = restored;
+        Assert.Equal(1, book.Sync(older));
+        Assert.Single(book.Entries);
+    }
+
+    [Fact]
     public void InventionsAreNamedInTheDisplayLanguageAlsoThroughAPlacedObject()
     {
         var catalog = new Catalog(new InventionInfo("rt-000001", new LocalizedName { De = "Wasserschale", En = "water bowl" }, default, "drink", "inh-000001", 5));
