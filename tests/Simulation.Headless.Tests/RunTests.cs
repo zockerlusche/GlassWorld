@@ -101,7 +101,7 @@ public sealed class RunTests : IDisposable
 
         var output = new StringWriter();
         Assert.Equal(ExitCodes.Ok, ReplayCommand.Run(["--save", save, "--content", Content], output));
-        Assert.Equal($"REPLAY_OK {final} ticks=1440", output.ToString().Trim());
+        Assert.Equal($"REPLAY_OK {final} ticks=1440 content={ContentFingerprint.Compute(Content)}", output.ToString().Trim());
     }
 
     [Fact]
@@ -112,7 +112,7 @@ public sealed class RunTests : IDisposable
         var final = lines[^1];
         var result = ReplayCommand.Replay(Content, SaveGameStore.Load(save));
         Assert.True(result.Ok, result.Line);
-        Assert.Equal(final.Replace("FINAL", "REPLAY_OK", StringComparison.Ordinal).Replace("tick=", "ticks=", StringComparison.Ordinal), result.Line);
+        Assert.StartsWith(final.Replace("FINAL", "REPLAY_OK", StringComparison.Ordinal).Replace("tick=", "ticks=", StringComparison.Ordinal) + " content=", result.Line, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -131,8 +131,57 @@ public sealed class RunTests : IDisposable
         Assert.NotEqual(original.Json, entries[index].Json);
 
         var result = ReplayCommand.Replay(Content, state with { DecisionLog = entries });
-        Assert.False(result.Ok);
-        Assert.Equal($"REPLAY_DIFF tick={original.Tick}", result.Line);
+        Assert.Equal(ExitCodes.ReplayDiff, result.Code);
+        Assert.Equal($"REPLAY_DIFF tick={original.Tick} content={state.ContentFingerprint}", result.Line);
+    }
+
+    [Fact]
+    public void ASaveMadeWithOtherContentIsNotReplayedUnlessForced()
+    {
+        var save = Path.Combine(_folder, "content.db");
+        Run("--days", "1", "--quiet", "--save", save, "--until", "question_answered:2");
+        var state = SaveGameStore.Load(save);
+        var now = ContentFingerprint.Compute(Content);
+        Assert.Equal(now, state.ContentFingerprint);
+        Assert.StartsWith("sha256:", now, StringComparison.Ordinal);
+
+        var other = state with { ContentFingerprint = "sha256:0000000000000000" };
+        var refused = ReplayCommand.Replay(Content, other);
+        Assert.Equal(ExitCodes.ContentChanged, refused.Code);
+        Assert.Equal($"REPLAY_CONTENT_CHANGED saved=sha256:0000000000000000 now={now}", refused.Line);
+
+        var forced = ReplayCommand.Replay(Content, other, force: true);
+        Assert.True(forced.Ok, forced.Line);
+        Assert.EndsWith($" content={now} saved_content=sha256:0000000000000000", forced.Line, StringComparison.Ordinal);
+
+        // Old saves have no fingerprint and replay as before.
+        Assert.True(ReplayCommand.Replay(Content, state with { ContentFingerprint = null }).Ok);
+    }
+
+    [Fact]
+    public void TheReplayCommandHasItsOwnExitCodes()
+    {
+        var save = Path.Combine(_folder, "codes.db");
+        Run("--days", "1", "--quiet", "--save", save, "--until", "question_answered:2");
+        SaveGameStore.Save(save, SaveGameStore.Load(save) with { ContentFingerprint = "sha256:1111111111111111" });
+        var output = new StringWriter();
+        Assert.Equal(ExitCodes.ContentChanged, ReplayCommand.Run(["--save", save, "--content", Content], output));
+        Assert.Equal(ExitCodes.Ok, ReplayCommand.Run(["--save", save, "--content", Content, "--force"], output));
+        Assert.Equal(5, ExitCodes.ReplayDiff);
+        Assert.Equal(6, ExitCodes.ContentChanged);
+    }
+
+    [Fact]
+    public void ARunningGameServiceIsNotJoinedByASecondOne()
+    {
+        // A fake game lock that names this (living) test process; nothing is started.
+        using var self = Process.GetCurrentProcess();
+        var gameLock = Path.Combine(_folder, "ai-service.lock");
+        File.WriteAllText(gameLock, string.Create(System.Globalization.CultureInfo.InvariantCulture, $$"""{"pid": {{Environment.ProcessId}}, "port": 51234, "started_utc": "x", "start_marker": {{self.StartTime.ToFileTimeUtc()}}}"""));
+        var command = new RunCommand { Connect = (o, w) => LiveConnection.Start(o.ContentDirectory, 1000, w, gameLock) };
+        var (code, lines) = Run(command, "--days", "1", "--ai", "live");
+        Assert.Equal(ExitCodes.AiUnavailable, code);
+        Assert.StartsWith($"AI_SERVICE_UNAVAILABLE {LiveConnection.GameServiceRunning} (pid {Environment.ProcessId}", lines.Single(), StringComparison.Ordinal);
     }
 
     [Fact]

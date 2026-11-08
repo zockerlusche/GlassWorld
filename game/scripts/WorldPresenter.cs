@@ -30,6 +30,7 @@ public partial class WorldPresenter : Node3D
     private HttpDecisionPort? _livePort;
     private HttpJobPort? _jobPort;
     private HttpHelpPort? _helpPort;
+    private string? _contentFingerprint;
     private long _seenEvents;
     private double _clock;
     private SimulationHost? _host;
@@ -157,7 +158,9 @@ public partial class WorldPresenter : Node3D
             return;
         }
 
-        SaveGameStore.Save(SavePath, StateCodec.Capture(_host));
+        // The content fingerprint lets a replay tell changed data from lost determinism (once per world, ~1.5 MB).
+        _contentFingerprint ??= ContentFingerprint.TryCompute(_contentDirectory);
+        SaveGameStore.Save(SavePath, StateCodec.Capture(_host) with { ContentFingerprint = _contentFingerprint });
         Saved?.Invoke(SavePath);
     }
 

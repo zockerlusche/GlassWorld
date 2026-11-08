@@ -68,14 +68,29 @@ internal sealed class LiveConnection : IAiConnection
     /// <summary>Port of the running service.</summary>
     public int Port => _service.Port;
 
+    /// <summary>Message when the game's service is running (exit code 4).</summary>
+    public const string GameServiceRunning = "a game's AI service is running; close the game first";
+
     /// <summary>
     /// Starts the service from the repository (<c>GLASSWORLD_AI_ROOT</c>, else the content folder's
     /// parent). Lock and logs go to <c>GLASSWORLD_HEADLESS_DATA</c> or the local application data folder,
-    /// apart from the game's, so a headless run never ends the game's service as a leftover.
+    /// apart from the game's, so a headless run never ends the game's service as a leftover. If the game's
+    /// lock file names a running service, nothing is started: two services would share one GPU without
+    /// knowing about each other (GW2 review #132).
     /// </summary>
-    public static LiveConnection Start(string contentDirectory, int deadlineMs, TextWriter log)
+    /// <param name="contentDirectory">Content folder.</param>
+    /// <param name="deadlineMs">Decision deadline from the decider settings.</param>
+    /// <param name="log">Where start notes go.</param>
+    /// <param name="gameLockFile">The game's lock file (null = <see cref="LocalAiService.GameLockFile"/>; tests pass a fake).</param>
+    public static LiveConnection Start(string contentDirectory, int deadlineMs, TextWriter log, string? gameLockFile = null)
     {
         ArgumentNullException.ThrowIfNull(log);
+        var gameLock = gameLockFile ?? LocalAiService.GameLockFile();
+        if (LocalAiService.RunningService(gameLock) is { } running)
+        {
+            throw new AiUnavailableException($"{GameServiceRunning} (pid {running}, lock {gameLock})", new InvalidOperationException(gameLock));
+        }
+
         var repository = LocalAiService.RepositoryRoot(contentDirectory, Environment.GetEnvironmentVariable(LocalAiService.RootVariable));
         var data = Environment.GetEnvironmentVariable("GLASSWORLD_HEADLESS_DATA") is { Length: > 0 } configured
             ? configured

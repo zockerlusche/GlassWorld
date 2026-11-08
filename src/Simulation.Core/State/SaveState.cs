@@ -83,6 +83,12 @@ public sealed record SaveState(
 
     /// <summary>Conversations with the player (B6 R13); null when nobody has been spoken to.</summary>
     public Player.ConversationState? Conversation { get; init; }
+
+    /// <summary>
+    /// Fingerprint of the content data the world ran with (set by the saving host, not world state and not in
+    /// the hash); null in older save games and when the host did not set it. Replays compare it first.
+    /// </summary>
+    public string? ContentFingerprint { get; init; }
 }
 
 /// <summary>Captures and restores the complete state of a <see cref="SimulationHost"/>.</summary>

@@ -1,4 +1,6 @@
 using System.ComponentModel;
+using System.Diagnostics;
+using System.Text.Json;
 
 namespace GlassWorld.AiClient;
 
@@ -48,6 +50,77 @@ public static class LocalAiService
                 ["GW_AI_LOCK_DIR"] = Path.Combine(dataDirectory, "lock"),
                 ["GW_AI_LOG_DIR"] = Path.Combine(dataDirectory, "logs"),
             });
+    }
+
+    /// <summary>
+    /// The lock file the game's service writes (<c>GW_AI_LOCK_DIR</c> = Godot's user data folder of the
+    /// project + <c>ai-service/lock</c>, file <c>ai-service.lock</c>): Windows
+    /// <c>%APPDATA%/Godot/app_userdata/GlassWorld</c>, Linux <c>~/.local/share/godot/app_userdata/GlassWorld</c>,
+    /// macOS <c>~/Library/Application Support/Godot/app_userdata/GlassWorld</c>.
+    /// </summary>
+    public static string GameLockFile()
+    {
+        var userData = OperatingSystem.IsLinux()
+            ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "godot", "app_userdata", "GlassWorld")
+            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Godot", "app_userdata", "GlassWorld");
+        return Path.Combine(userData, "ai-service", "lock", "ai-service.lock");
+    }
+
+    /// <summary>
+    /// The pid of a service that is running according to a lock file (JSON <c>pid</c>, <c>port</c>,
+    /// <c>started_utc</c>, <c>start_marker</c>, written by the service once it is ready), or null if there
+    /// is no lock, it cannot be read, or its process is gone. On Windows the start marker (process creation
+    /// time) must match too, so a reused pid does not count; where it cannot be checked, a living pid counts.
+    /// </summary>
+    public static int? RunningService(string lockFile)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(lockFile);
+        int pid;
+        long? marker;
+        try
+        {
+            using var document = JsonDocument.Parse(File.ReadAllText(lockFile));
+            var root = document.RootElement;
+            pid = root.GetProperty("pid").GetInt32();
+            marker = root.TryGetProperty("start_marker", out var m) && m.ValueKind == JsonValueKind.Number ? m.GetInt64() : null;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or KeyNotFoundException or InvalidOperationException or FormatException)
+        {
+            return null;
+        }
+
+        if (pid <= 0)
+        {
+            return null;
+        }
+
+        try
+        {
+            using var process = Process.GetProcessById(pid);
+            if (process.HasExited)
+            {
+                return null;
+            }
+
+            if (marker is { } expected && OperatingSystem.IsWindows())
+            {
+                try
+                {
+                    return process.StartTime.ToFileTimeUtc() == expected ? pid : null;
+                }
+                catch (Exception ex) when (ex is Win32Exception or InvalidOperationException)
+                {
+                    // Not allowed to read its start time: a living pid counts (better refuse than overload the GPU).
+                    return pid;
+                }
+            }
+
+            return pid;
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
+        {
+            return null;
+        }
     }
 
     /// <summary>True for the exceptions <see cref="Start"/> throws when the service is not available.</summary>

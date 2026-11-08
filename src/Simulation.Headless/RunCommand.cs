@@ -15,7 +15,7 @@ internal static class ExitCodes
     /// <summary>Done (condition reached or all days run) and acceptance OK; also REPLAY_OK.</summary>
     public const int Ok = 0;
 
-    /// <summary>Bad arguments; also REPLAY_DIFF.</summary>
+    /// <summary>Bad arguments.</summary>
     public const int Usage = 1;
 
     /// <summary>Acceptance failed.</summary>
@@ -24,8 +24,14 @@ internal static class ExitCodes
     /// <summary><c>--until</c> not reached within <c>--days</c>.</summary>
     public const int UntilNotReached = 3;
 
-    /// <summary>The AI service could not be started (<c>--ai live</c>).</summary>
+    /// <summary>The AI service could not be started, or a game's AI service is running (<c>--ai live</c>).</summary>
     public const int AiUnavailable = 4;
+
+    /// <summary>Replay: REPLAY_DIFF (the replay departed from the saved run).</summary>
+    public const int ReplayDiff = 5;
+
+    /// <summary>Replay: REPLAY_CONTENT_CHANGED (the save was made with other content data; nothing replayed).</summary>
+    public const int ContentChanged = 6;
 
     /// <summary>Stopped with Ctrl+C (the AI service is stopped, FINAL is printed).</summary>
     public const int Interrupted = 130;
@@ -41,8 +47,8 @@ internal sealed class RunCommand
     /// <summary>Opens the AI connection for the options (tests pass a fake).</summary>
     public Func<HeadlessOptions, TextWriter, IAiConnection> Connect { get; init; } = DefaultConnect;
 
-    /// <summary>Sleeps for pacing (tests record instead).</summary>
-    public Action<TimeSpan> Sleep { get; init; } = Thread.Sleep;
+    /// <summary>Sleeps for pacing, rounded up to whole milliseconds (tests record instead).</summary>
+    public Action<TimeSpan> Sleep { get; init; } = wait => Thread.Sleep(TimeSpan.FromMilliseconds(Math.Ceiling(wait.TotalMilliseconds)));
 
     /// <summary>Real time per tick while an AI call is running (null = the game's fastest speed from the data).</summary>
     public TimeSpan? BusyTickInterval { get; init; }
@@ -59,7 +65,7 @@ internal sealed class RunCommand
         }
         catch (AiUnavailableException ex)
         {
-            output.WriteLine($"AI_SERVICE_UNAVAILABLE {EventLines.Escape(ex.Message)}");
+            output.WriteLine($"AI_SERVICE_UNAVAILABLE {ex.Message.ReplaceLineEndings(" ")}");
             return ExitCodes.AiUnavailable;
         }
 
@@ -135,9 +141,10 @@ internal sealed class RunCommand
     {
         var ticksPerDay = host.World.Calendar.TicksPerDay;
         var ticksPerHour = host.World.Calendar.Settings.TicksPerHour;
+        var fingerprint = options.SavePath is null ? null : ContentFingerprint.Compute(options.ContentDirectory);
         if (options.SavePath is not null)
         {
-            _ = new AutoSaver(host, options.SavePath);
+            _ = new AutoSaver(host, options.SavePath, fingerprint);
         }
 
         var calendar = host.World.Calendar;
@@ -239,7 +246,7 @@ internal sealed class RunCommand
             // Save also a partial last day (stopped by --until or Ctrl+C), so a replay covers the whole run.
             if (ticks % ticksPerDay != 0)
             {
-                SaveGameStore.Save(options.SavePath, StateCodec.Capture(host));
+                SaveGameStore.Save(options.SavePath, StateCodec.Capture(host) with { ContentFingerprint = fingerprint });
             }
 
             var loaded = StateCodec.Restore(

@@ -58,7 +58,9 @@ from the answer's `meta` (decisions) or `provenance` (jobs).
 | 1 | Bad arguments. |
 | 2 | Acceptance failed (before this change: 1). |
 | 3 | `--until` not reached within `--days` (acceptance OK). |
-| 4 | `--ai live`: the AI service could not be started (`AI_SERVICE_UNAVAILABLE ..`). |
+| 4 | `--ai live`: the AI service could not be started, or a game's AI service is running (`AI_SERVICE_UNAVAILABLE ..`). |
+| 5 | `replay`: `REPLAY_DIFF`. |
+| 6 | `replay`: `REPLAY_CONTENT_CHANGED` (nothing replayed). |
 | 130 | Stopped with Ctrl+C. |
 
 ## Live AI (`--ai live`)
@@ -72,6 +74,13 @@ missing and inventions stay dormant, as in the game). Lock and logs of the servi
 `GLASSWORLD_HEADLESS_DATA` or `%LOCALAPPDATA%/GlassWorld/headless/ai-service`, apart from the game's, so a
 headless run never ends a running game's service as a leftover. At the end, after Ctrl+C or an exception
 the service is stopped (`POST /shutdown`, then kill after 20 s).
+
+**Live runs go through the AMW GPU queue** (`amw lauf ausfuehren --gpu ...`), never next to other GPU work.
+Before starting, the runner reads the game's lock file (`%APPDATA%/Godot/app_userdata/GlassWorld/ai-service/lock/ai-service.lock`,
+on Linux under `~/.local/share/godot/app_userdata/GlassWorld/`). If it names a running service (pid alive,
+on Windows also the same process start time), the run refuses with exit 4 and
+`AI_SERVICE_UNAVAILABLE a game's AI service is running; close the game first (pid .., lock ..)`: two services
+would share one Ollama and one GPU without knowing about each other (VRAM budget, B7/D564).
 
 ### Pacing: what the game does, and what the runner does
 
@@ -94,22 +103,31 @@ A live run is not reproducible from the seed alone; record it with `--save` and 
 
 ## Replay
 
-`replay --save FILE` rebuilds the world from the save's seed (and preset), plays the saved decision and
+`replay --save FILE [--content DIR] [--force]` rebuilds the world from the save's seed (and preset), plays the saved decision and
 job logs back with `ReplayDecisionPort` / `ReplayJobPort` (answers, job outcomes and player commands at the
 ticks they took effect), runs to the saved tick and compares the state hash with the saved world's hash:
 
-- `REPLAY_OK hash=<hash> ticks=<n>`, exit 0;
-- `REPLAY_DIFF tick=<t>`, exit 1: the replay's own log departed from the saved log at tick t (first entry
-  that differs, is missing or is extra); `tick=end` if the logs agree and only the final hash differs.
+- `REPLAY_OK hash=<hash> ticks=<n> content=<fingerprint>`, exit 0;
+- `REPLAY_DIFF tick=<t> content=<fingerprint>`, exit 5: the replay's own log departed from the saved log at
+  tick t (first entry that differs, is missing or is extra); `tick=end` if the logs agree and only the final
+  hash differs;
+- `REPLAY_CONTENT_CHANGED saved=<x> now=<y>`, exit 6, nothing replayed: the save was made with other content
+  data. `--force` replays anyway; the result line then ends with `saved_content=<x>`.
+
+Content fingerprint: saves from the headless runner and the game carry `content_fingerprint` in their meta
+(`ContentFingerprint` in `Simulation.Data`: SHA-256 over all files of `content/`, sorted by relative path,
+path + length + raw bytes; `sha256:` + 16 hex digits). It is not world state and not in the hash. Saves
+without it (older ones) replay as before, with the current fingerprint printed.
 
 Jobs are replayed only if the saved run had a job port (non-empty invention state).
 
 ## Tests and CI
 
 `tests/Simulation.Headless.Tests` covers the option parser, `--until`, event lines, the JSON log, replay
-(OK and a tampered answer → `REPLAY_DIFF`), exit code 4, Ctrl+C and the live path with a fake connection
+(OK, a tampered answer → `REPLAY_DIFF`, changed content → exit 6 and `--force`), exit code 4 (also with a
+fake game lock), Ctrl+C and the live path with a fake connection
 that answers in real time on another thread. CI never starts the real AI service (no GPU); the live path
-is checked by hand, e.g. through the AMW GPU queue:
+is checked by hand, only through the AMW GPU queue:
 
 ```
 dotnet src/Simulation.Headless/bin/Release/net10.0/GlassWorld.Simulation.Headless.dll --ai live --preset start_island --seed 1 --days 1 --events thought,invented,built,first_use

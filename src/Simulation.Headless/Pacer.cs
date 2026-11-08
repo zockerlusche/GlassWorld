@@ -29,7 +29,8 @@ internal sealed class Pacer(TimeSpan fixedInterval, TimeSpan busyInterval, Func<
         if (interval > TimeSpan.Zero && _last is { } last && last + interval > now)
         {
             sleep(last + interval - now);
-            now = last + interval;
+            // Measured, not assumed: a sleep may end early or late, and the next wait must never exceed one interval.
+            now = clock();
         }
 
         _last = now;
