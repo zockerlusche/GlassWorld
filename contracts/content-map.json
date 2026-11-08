@@ -196,7 +196,7 @@
     },
     {
       "pattern": "skills/levels.json",
-      "schema": "skill-levels"
+      "schema": "skill-level-settings"
     },
     {
       "pattern": "writing/media.json",

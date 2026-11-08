@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://glassworld.local/contracts/v0/skill-levels.schema.json",
+  "$id": "https://glassworld.local/contracts/v0/skill-level-settings.schema.json",
   "title": "SkillLevelSettings",
   "description": "Skill levels per inhabitant (B5 part, TL #19589): every inhabitant has, per skill of the register, a start level (from the register's range) and a talent, both drawn once from the world seed; practice (skills/practice.json) adds gain x talent when an action finishes, up to max_level; unpractised gains fade by forget_per_day. Values are placeholders until Marcel's word.",
   "type": "object",
