@@ -188,7 +188,6 @@ public partial class GameScreen : CanvasLayer
                 _board.Push(hint, fastForward: _presenter.Speed > 1);
             }
 
-            _chronicle?.Add(events);
             foreach (var knock in events.Where(e => e.Kind == Simulation.Player.MailboxSystem.MailArrived && e.Detail == Simulation.Player.MailboxSystem.KnockKind))
             {
                 KnockAt(knock.InhabitantId);
@@ -478,7 +477,9 @@ public partial class GameScreen : CanvasLayer
 
     private ChronicleNames ChronicleNamesNow() => new(
         id => DisplayName(new InhabitantRow(id, WorldFeed.NumberOf(id), 0, false, null, 0)),
-        id => InventionName(id),
+        id => _presenter?.Host is { } host
+            ? ChronicleBook.InventionName(id, host.Inventions, o => host.Objects.TryGet(o, out var obj) ? obj.TypeId : null, TranslationServer.GetLocale())
+            : null,
         VocabKeys.Action);
 
     private void RefreshChronicle()
