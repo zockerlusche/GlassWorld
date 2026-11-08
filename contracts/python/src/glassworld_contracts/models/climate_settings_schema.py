@@ -111,6 +111,18 @@ class ClimateWeather(BaseModel):
         max_length=8,
         min_length=1,
     )
+    snow_weather: str = Field(
+        ...,
+        description='Weather id that precipitation becomes below snow_below_tenth_c.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    drought_weather: str = Field(
+        ...,
+        description='Weather id added to the conditions after drought_after_dry_days without precipitation (a signal for B5).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
 
 
 class ClimateSettings(BaseModel):

@@ -75,6 +75,11 @@ public sealed class WorldGenContent
         foreach (var preset in presets)
         {
             CheckPreset(preset, problems);
+            if (!climates.Any(c => c.Id == preset.Climate.ClimateId))
+            {
+                problems.Add($"preset '{preset.Id}': unknown climate '{preset.Climate.ClimateId}'");
+            }
+
             var p = $"preset '{preset.Id}'";
             if (!objects.Contains(preset.Caves.ObjectType))
             {
@@ -213,6 +218,14 @@ public sealed class WorldGenContent
         var states = weather.States.Select(s => s.Weather).ToHashSet(StringComparer.Ordinal);
         Duplicates(weather.States.Select(s => s.Weather), $"climate '{climate.Id}' weather state", problems);
         problems.AddRange(states.Where(s => !weatherVocabulary.Contains(s)).Select(s => $"climate '{climate.Id}': weather '{s}' not in vocabulary 'weather'"));
+        foreach (var (what, id) in new[] { ("snow", weather.SnowWeather), ("drought", weather.DroughtWeather) })
+        {
+            if (!states.Contains(id))
+            {
+                problems.Add($"climate '{climate.Id}': {what} weather '{id}' has no state values");
+            }
+        }
+
         var seasons = calendar.Settings.Seasons.Select(s => s.Id).ToHashSet(StringComparer.Ordinal);
         var covered = weather.Seasons.Select(s => s.Season).ToList();
         Duplicates(covered, $"climate '{climate.Id}' season", problems);

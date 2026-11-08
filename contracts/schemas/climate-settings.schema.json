@@ -31,7 +31,9 @@
         "snow_below_tenth_c",
         "drought_after_dry_days",
         "states",
-        "seasons"
+        "seasons",
+        "snow_weather",
+        "drought_weather"
       ],
       "properties": {
         "change_every_hours": {
@@ -75,6 +77,14 @@
             "$ref": "#/$defs/ClimateSeasonWeather"
           },
           "maxItems": 8
+        },
+        "snow_weather": {
+          "description": "Weather id that precipitation becomes below snow_below_tenth_c.",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "drought_weather": {
+          "description": "Weather id added to the conditions after drought_after_dry_days without precipitation (a signal for B5).",
+          "$ref": "common.schema.json#/$defs/VocabId"
         }
       }
     },

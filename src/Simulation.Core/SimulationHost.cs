@@ -51,7 +51,7 @@ public sealed class SimulationHost
     public ChronicleSystem Chronicle { get; }
 
     /// <summary>The weather (B2 R13), or null while the world has no weather system.</summary>
-    public Weather.IWeather? Weather { get; private set; }
+    public Weather.IWeather? Weather { get; private init; }
 
     /// <summary>Objects.</summary>
     public WorldObjects Objects { get; }
@@ -106,6 +106,7 @@ public sealed class SimulationHost
         var actions = content.Actions.WithTruth(types);
         var objects = new WorldObjects(types);
         WorldMapSystem? map = null;
+        Weather.WeatherSystem? weather = null;
         if (worldPreset is not null)
         {
             if (!content.WorldGen.Presets.TryGetValue(worldPreset, out var preset))
@@ -127,10 +128,21 @@ public sealed class SimulationHost
                 .ToDictionary(g => g.Key, g => (long)g.First().RegrowHours!.Value * ticksPerHour, StringComparer.Ordinal);
             map = new WorldMapSystem(island, savedIsland?.CellSizeCm ?? preset.Grid.CellSizeCm, objects, regrow) { NodeBudget = preset.Pathfinding.NodeBudget };
             world.Add(map);
+
+            // Weather of the preset's climate (B2 R13); worlds without a preset (placeholder) have none.
+            weather = new Weather.WeatherSystem(
+                content.WorldGen.Climates[preset.Climate.ClimateId],
+                preset.Climate.BaseTemperatureTenthC,
+                world.Calendar.Settings.TicksPerHour,
+                world.Calendar.Settings.HoursPerDay);
+            world.Add(weather);
         }
 
         var inhabitants = new InhabitantsSystem(content.InhabitantModel, actions, content.Brain, objects, world.Calendar.Settings.TicksPerHour) { Looks = content.Appearance, Routes = map };
-        var decisions = new DecisionsSystem(settings, inhabitants, objects, actions, content.Brain, content.Vocabularies[VocabularyKind.Action], port, displayLocale);
+        var decisions = new DecisionsSystem(settings, inhabitants, objects, actions, content.Brain, content.Vocabularies[VocabularyKind.Action], port, displayLocale)
+        {
+            WeatherSource = weather,
+        };
         var player = new Simulation.Player.PlayerSystem(content.GiftRules, content.Favor, content.Brain.Weights, content.Brain, inhabitants, objects, world.Calendar.Settings.TicksPerHour);
         decisions.RegisterCommand(Simulation.Player.PlayerSystem.PlaceGift, player.Check, player.Apply);
         decisions.RegisterCommand(Simulation.Player.PlayerSystem.StartFavorCommand, player.CheckStartFavor, player.ApplyStartFavor);
@@ -138,7 +150,11 @@ public sealed class SimulationHost
         var chronicle = new ChronicleSystem(content.Chronicle);
         inhabitants.Reported += chronicle.Observe;
         world.Add(objects).Add(decisions).Add(inhabitants).Add(player).Add(inventions).Add(chronicle);
-        return new SimulationHost(content, world, map, types, objects, decisions, inhabitants, player, inventions, chronicle, settings);
+        return new SimulationHost(content, world, map, types, objects, decisions, inhabitants, player, inventions, chronicle, settings)
+        {
+            WeatherSystem = weather,
+            Weather = weather,
+        };
     }
 
     /// <summary>
@@ -211,7 +227,10 @@ public sealed class SimulationHost
     }
 
     /// <summary>Read-only snapshot for the UI.</summary>
-    public WorldSnapshot Snapshot() => WorldView.Snapshot(World, Inhabitants, Objects, Decisions);
+    public WorldSnapshot Snapshot() => WorldView.Snapshot(World, Inhabitants, Objects, Decisions) with { Weather = WeatherSystem?.Read(World) };
+
+    /// <summary>The weather system itself (save games, debug jumps, player intervention); null without weather.</summary>
+    public Weather.WeatherSystem? WeatherSystem { get; private init; }
 
     private static Position Scatter(Random.Pcg32 rng, Position centre, double radius) =>
         new(centre.X + (((rng.NextDouble() * 2.0) - 1.0) * radius), centre.Z + (((rng.NextDouble() * 2.0) - 1.0) * radius));

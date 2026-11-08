@@ -6,6 +6,8 @@
     "transition_minutes": 60,
     "snow_below_tenth_c": 10,
     "drought_after_dry_days": 10,
+    "snow_weather": "snow",
+    "drought_weather": "drought",
     "states": [
       {
         "weather": "clear",

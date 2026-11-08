@@ -52,6 +52,18 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("seasons")]
         public System.Collections.Generic.ICollection<ClimateSeasonWeather> Seasons { get; set; } = new System.Collections.ObjectModel.Collection<ClimateSeasonWeather>();
 
+        /// <summary>
+        /// Weather id that precipitation becomes below snow_below_tenth_c.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("snow_weather")]
+        public string SnowWeather { get; set; } = default!;
+
+        /// <summary>
+        /// Weather id added to the conditions after drought_after_dry_days without precipitation (a signal for B5).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("drought_weather")]
+        public string DroughtWeather { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
