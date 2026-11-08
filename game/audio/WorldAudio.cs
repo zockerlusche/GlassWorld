@@ -20,6 +20,8 @@ public partial class WorldAudio : Node3D
     private readonly Dictionary<MixBusId, List<AudioStreamPlayer3D>> _pools = [];
     private readonly Dictionary<string, AudioStreamWav?> _fileStreams = new(StringComparer.Ordinal);
     private BaseSounds? _baseSounds;
+    private InventionSounds? _inventionSounds;
+    private string? _useAction;
     private SoundMixer? _mixer;
     private SoundDirector? _director;
     private WorldFeed? _feed;
@@ -40,7 +42,7 @@ public partial class WorldAudio : Node3D
 
     /// <summary>Loads the mix, creates buses and player pools and binds to a running world.</summary>
     /// <returns>False if the mix or sound data is invalid (logged).</returns>
-    public bool Setup(SimulationHost host, ulong worldSeed)
+    public bool Setup(SimulationHost host, ulong worldSeed, string? madeSounds = null)
     {
         ArgumentNullException.ThrowIfNull(host);
         if (RetroAudio.Library is null && !RetroAudio.Load())
@@ -59,6 +61,8 @@ public partial class WorldAudio : Node3D
         }
 
         _baseSounds = LoadBaseSounds();
+        _inventionSounds = new InventionSounds(host.Inventions, host.Objects, _baseSounds, madeSounds);
+        _useAction = host.Content.Inventions.Build.Settings.UseAction;
         _director = new SoundDirector(RetroAudio.Library!, _mixer, _baseSounds?.Variants);
         _feed = new WorldFeed(host);
         _worldSeed = worldSeed;
@@ -146,7 +150,8 @@ public partial class WorldAudio : Node3D
 
         var positions = _feed.Snapshot.Inhabitants.ToDictionary(i => i.Id, i => i.Position, StringComparer.Ordinal);
         var playing = _pools.ToDictionary(p => p.Key, p => p.Value.Count(x => x.Playing));
-        foreach (var request in _director.Plan(events, positions, listener, Zoom, playing))
+        var inventions = _inventionSounds;
+        foreach (var request in _director.Plan(events, positions, listener, Zoom, playing, e => e.Action == _useAction ? inventions?.For(e.TargetId) : null))
         {
             var player = _pools[request.Bus].FirstOrDefault(p => !p.Playing);
             if (player is null)
@@ -154,7 +159,7 @@ public partial class WorldAudio : Node3D
                 continue;
             }
 
-            player.Stream = Stream(request.SoundId, request.Variant);
+            player.Stream = request.File is { } made ? MadeStream(made) ?? Stream(request.SoundId, request.Variant) : Stream(request.SoundId, request.Variant);
             player.Position = new Vector3((float)request.Position.X, 0, (float)request.Position.Z);
             ApplyVolume(player, request.Bus, listener);
             player.Play();
@@ -348,6 +353,37 @@ public partial class WorldAudio : Node3D
     /// otherwise the retro synth. Event sounds play once; loops of the library repeat only where an
     /// ambience player asks for it (A1350).
     /// </summary>
+    /// <summary>A made invention sound from disk (D471 D7), cached; null (and a warning) if it cannot be read.</summary>
+    private AudioStreamWav? MadeStream(string path)
+    {
+        if (_fileStreams.TryGetValue(path, out var cached))
+        {
+            return cached;
+        }
+
+        AudioStreamWav? stream = null;
+        try
+        {
+            var sound = Pcm.ReadWav(System.IO.File.ReadAllBytes(path));
+            var bytes = new byte[sound.Samples.Length * 2];
+            for (var i = 0; i < sound.Samples.Length; i++)
+            {
+                var value = (short)Math.Round(Math.Clamp(sound.Samples[i], -1f, 1f) * short.MaxValue);
+                bytes[i * 2] = (byte)(value & 0xff);
+                bytes[(i * 2) + 1] = (byte)((value >> 8) & 0xff);
+            }
+
+            stream = new AudioStreamWav { Format = AudioStreamWav.FormatEnum.Format16Bits, MixRate = sound.SampleRate, Stereo = false, Data = bytes };
+        }
+        catch (Exception e) when (e is IOException or InvalidDataException or UnauthorizedAccessException)
+        {
+            GD.PushWarning($"audio: invention sound {System.IO.Path.GetFileName(path)} not readable ({e.Message}); the action sound plays");
+        }
+
+        _fileStreams[path] = stream;
+        return stream;
+    }
+
     private AudioStreamWav Stream(string soundId, int variant)
     {
         var file = _baseSounds?.File(soundId, variant);

@@ -234,7 +234,7 @@ public partial class Main : Node3D
 
         _audio = new WorldAudio { Name = "WorldAudio" };
         AddChild(_audio);
-        var spatialReady = _audio.Setup(host, host.World.Seed);
+        var spatialReady = _audio.Setup(host, host.World.Seed, GlassWorld.Presentation.Audio.InventionSounds.DefaultFolder(_contentDirectory, OS.GetEnvironment("GW_AI_SOUND_OUTPUT_DIR")));
         if (_mix is not null)
         {
             WorldAudio.ApplyVolumes(_mix, _settings.BusVolumesDb);

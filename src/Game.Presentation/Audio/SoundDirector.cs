@@ -10,7 +10,11 @@ namespace GlassWorld.Presentation.Audio;
 /// <param name="Bus">Mixer bus.</param>
 /// <param name="Position">Where it sounds (metres).</param>
 /// <param name="Gain">Gain at the listener when it starts.</param>
-public sealed record PlayRequest(string SoundId, int Variant, MixBusId Bus, Position Position, double Gain);
+public sealed record PlayRequest(string SoundId, int Variant, MixBusId Bus, Position Position, double Gain)
+{
+    /// <summary>A made sound file to play instead of the sound id (invention sound, D471 D7), or null.</summary>
+    public string? File { get; init; }
+}
 
 /// <summary>
 /// Chooses the sounds of one frame from the core's events (B8 R2, R7): an action that starts sounds
@@ -25,12 +29,14 @@ public sealed class SoundDirector(SoundLibrary library, SoundMixer mixer, IReadO
     /// <param name="listener">Listener position (camera, projected on the ground).</param>
     /// <param name="zoom">Zoom 0 (in) .. 1 (out).</param>
     /// <param name="playing">Sounds each bus is already playing.</param>
+    /// <param name="inventionSound">Sound of an invented thing an event uses (D471 D7), or null for the action's sound.</param>
     public IReadOnlyList<PlayRequest> Plan(
         IEnumerable<WorldEvent> events,
         IReadOnlyDictionary<string, Position> positions,
         Position listener,
         double zoom,
-        IReadOnlyDictionary<MixBusId, int> playing)
+        IReadOnlyDictionary<MixBusId, int> playing,
+        Func<WorldEvent, InventionSound?>? inventionSound = null)
     {
         ArgumentNullException.ThrowIfNull(events);
         ArgumentNullException.ThrowIfNull(positions);
@@ -41,6 +47,24 @@ public sealed class SoundDirector(SoundLibrary library, SoundMixer mixer, IReadO
             if (e.Kind != InhabitantsSystem.ActionStarted || e.Action is null || !positions.TryGetValue(e.InhabitantId, out var at))
             {
                 continue;
+            }
+
+            // Using an invented thing sounds like the thing (D471 D7): its made file or a library sound.
+            if (inventionSound?.Invoke(e) is { } own)
+            {
+                var ownGain = mixer.Gain(MixBusId.Effects, Distance(at, listener), zoom);
+                if (ownGain > 0 && own.FilePath is { } path)
+                {
+                    candidates.Add(new PlayRequest("invention", 0, MixBusId.Effects, at, ownGain) { File = path });
+                    continue;
+                }
+
+                if (ownGain > 0 && own.LibrarySoundId is { } id)
+                {
+                    var count = fileVariants is not null && fileVariants.TryGetValue(id, out var n) ? n : 1;
+                    candidates.Add(new PlayRequest(id, VariantOf(e, count), MixBusId.Effects, at, ownGain));
+                    continue;
+                }
             }
 
             var sound = library.ForAction(e.Action);
