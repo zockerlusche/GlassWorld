@@ -147,6 +147,12 @@ class WorldPresetStart(BaseModel):
         ge=1,
         le=1000,
     )
+    biome: str = Field(
+        ...,
+        description='Biome of the start cells (by the sea).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
 
 
 class WorldPresetNeighbours(BaseModel):
@@ -223,6 +229,26 @@ class WorldPresetPathfinding(BaseModel):
     )
     cost_per_slope_unit: int = Field(
         ..., description='Extra cost per height unit climbed.', ge=0, le=100000
+    )
+
+
+class WorldPresetCaves(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    min: int = Field(..., description='Fewest caves.', ge=0, le=1000)
+    max: int = Field(..., description='Most caves.', ge=0, le=1000)
+    object_type: str = Field(
+        ...,
+        description='Catalogue type placed as a cave.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    cliff_biome: str = Field(
+        ...,
+        description='Biome of the cliff above the cave.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
 
 
@@ -326,7 +352,7 @@ class WorldPreset(BaseModel):
     terrain: WorldPresetTerrain
     water: WorldPresetWater
     climate: WorldPresetClimate
-    caves: WorldPresetCountRange
+    caves: WorldPresetCaves
     start: WorldPresetStart
     neighbours: WorldPresetNeighbours
     tides: WorldPresetTides

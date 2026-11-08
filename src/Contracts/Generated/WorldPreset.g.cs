@@ -235,6 +235,12 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("max_attempts")]
         public int MaxAttempts { get; set; } = default!;
 
+        /// <summary>
+        /// Biome of the start cells (by the sea).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("biome")]
+        public string Biome { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -352,6 +358,39 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
+    /// Caves (R6): objects of a catalogue type at the foot of cliffs that rise into the given biome.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class WorldPresetCaves
+    {
+
+        /// <summary>
+        /// Fewest caves.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("min")]
+        public int Min { get; set; } = default!;
+
+        /// <summary>
+        /// Most caves.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max")]
+        public int Max { get; set; } = default!;
+
+        /// <summary>
+        /// Catalogue type placed as a cave.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("object_type")]
+        public string ObjectType { get; set; } = default!;
+
+        /// <summary>
+        /// Biome of the cliff above the cave.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("cliff_biome")]
+        public string CliffBiome { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// Data file content/world/presets/&lt;id&gt;.json: everything the world generator reads besides the seed (B2 R1-R4, R6, R7, R9, R10, R14, R15). Core values are integers (heights in height units, distances in cells, shares in permille) so generation is exact on every platform (ADR-0002). All values are placeholders until Marcel decides; the budgets follow B2514 T6.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -395,7 +434,7 @@ namespace GlassWorld.Contracts
         public WorldPresetClimate Climate { get; set; } = new WorldPresetClimate();
 
         [System.Text.Json.Serialization.JsonPropertyName("caves")]
-        public WorldPresetCountRange Caves { get; set; } = new WorldPresetCountRange();
+        public WorldPresetCaves Caves { get; set; } = new WorldPresetCaves();
 
         [System.Text.Json.Serialization.JsonPropertyName("start")]
         public WorldPresetStart Start { get; set; } = new WorldPresetStart();

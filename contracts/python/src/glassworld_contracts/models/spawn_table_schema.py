@@ -93,6 +93,12 @@ class SpawnRule(BaseModel):
         ge=0,
         le=100000,
     )
+    regrow_hours: int | None = Field(
+        None,
+        description='Game hours after an instance was used up until a new one of the same type appears at the same place (minimal regrowth before B5; placeholder values). Absent = does not regrow.',
+        ge=1,
+        le=100000,
+    )
 
 
 class SpawnTable(BaseModel):

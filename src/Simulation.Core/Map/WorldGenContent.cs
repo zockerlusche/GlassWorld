@@ -71,9 +71,23 @@ public sealed class WorldGenContent
             CheckClimate(climate, weatherVocabulary, calendar, problems);
         }
 
+        var biomeIds = biomes.Biomes.Select(b => b.Id).ToHashSet(StringComparer.Ordinal);
         foreach (var preset in presets)
         {
             CheckPreset(preset, problems);
+            var p = $"preset '{preset.Id}'";
+            if (!objects.Contains(preset.Caves.ObjectType))
+            {
+                problems.Add($"{p}: cave object type '{preset.Caves.ObjectType}' not in the catalogue");
+            }
+
+            foreach (var (what, biome) in new[] { ("cave cliff", preset.Caves.CliffBiome), ("start", preset.Start.Biome) })
+            {
+                if (!biomeIds.Contains(biome))
+                {
+                    problems.Add($"{p}: {what} biome '{biome}' not in the biome list");
+                }
+            }
         }
 
         Duplicates(presets.Select(p => p.Id), "preset", problems);
@@ -142,6 +156,16 @@ public sealed class WorldGenContent
     private static void CheckSpawns(SpawnTable spawns, BiomeTable biomes, ObjectCatalog objects, List<string> problems)
     {
         var defined = biomes.Biomes.Select(b => b.Id).ToHashSet(StringComparer.Ordinal);
+
+        // Regrowth belongs to the type: all rules of one type must agree (or leave it out).
+        foreach (var type in spawns.Spawns.GroupBy(r => r.ObjectType, StringComparer.Ordinal))
+        {
+            if (type.Select(r => r.RegrowHours).Distinct().Count() > 1)
+            {
+                problems.Add($"spawn rules of '{type.Key}' disagree on regrow_hours");
+            }
+        }
+
         foreach (var rule in spawns.Spawns)
         {
             if (!defined.Contains(rule.Biome))

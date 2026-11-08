@@ -72,6 +72,7 @@ public sealed class SimulationHost
     {
         ArgumentNullException.ThrowIfNull(content);
         ArgumentNullException.ThrowIfNull(world);
+        var objects = new WorldObjects(content.Objects);
         WorldMapSystem? map = null;
         if (worldPreset is not null)
         {
@@ -86,11 +87,15 @@ public sealed class SimulationHost
                 throw new InvalidDataException($"World preset '{worldPreset}' with seed {world.Seed} gives no island that passes the check after {island.Attempts} attempts.");
             }
 
-            map = new WorldMapSystem(island, preset.Grid.CellSizeCm);
+            var ticksPerHour = world.Calendar.Settings.TicksPerHour;
+            var regrow = content.WorldGen.Spawns.Spawns
+                .Where(r => r.RegrowHours is not null)
+                .GroupBy(r => r.ObjectType, StringComparer.Ordinal)
+                .ToDictionary(g => g.Key, g => (long)g.First().RegrowHours!.Value * ticksPerHour, StringComparer.Ordinal);
+            map = new WorldMapSystem(island, preset.Grid.CellSizeCm, objects, regrow);
             world.Add(map);
         }
 
-        var objects = new WorldObjects(content.Objects);
         var inhabitants = new InhabitantsSystem(content.InhabitantModel, content.Actions, content.Brain, objects, world.Calendar.Settings.TicksPerHour);
         var decisions = new DecisionsSystem(settings, inhabitants, objects, content.Actions, content.Brain, content.Vocabularies[VocabularyKind.Action], port, displayLocale);
         var player = new Simulation.Player.PlayerSystem(content.GiftRules, content.Favor, content.Brain.Weights, content.Brain, inhabitants, objects, world.Calendar.Settings.TicksPerHour);
@@ -163,7 +168,7 @@ public sealed class SimulationHost
         host.Inhabitants.SpawnStartInhabitants(host.World, positions);
         foreach (var obj in map.Island.Objects)
         {
-            host.Objects.Spawn(obj.TypeId, map.CentreOf(obj.X, obj.Z));
+            map.Track(host.Objects.Spawn(obj.TypeId, map.CentreOf(obj.X, obj.Z)), obj.X, obj.Z);
         }
 
         return host;

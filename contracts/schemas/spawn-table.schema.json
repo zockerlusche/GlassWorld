@@ -65,6 +65,12 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 100000
+        },
+        "regrow_hours": {
+          "description": "Game hours after an instance was used up until a new one of the same type appears at the same place (minimal regrowth before B5; placeholder values). Absent = does not regrow.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
         }
       }
     },
