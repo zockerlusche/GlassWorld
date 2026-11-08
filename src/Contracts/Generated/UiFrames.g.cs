@@ -75,7 +75,7 @@ namespace GlassWorld.Contracts
         public string ContractVersion { get; set; } = default!;
 
         /// <summary>
-        /// Source pictures are drawn at this multiple of the logical size.
+        /// Source pictures are drawn at 1/source_scale of their pixel size, so a 96 px source edge at 8 is a 12 px logical edge (D366: thin frames; A1362 test).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("source_scale")]
         public int SourceScale { get; set; } = default!;

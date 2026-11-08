@@ -55,6 +55,9 @@ public static class UiSetup
     {
         ArgumentNullException.ThrowIfNull(uiRoot);
         uiRoot.Theme = CurrentTheme;
+
+        // The frame pictures are drawn much smaller than their source; use their mipmaps (GW1 #66 F2).
+        uiRoot.TextureFilter = CanvasItem.TextureFilterEnum.LinearWithMipmaps;
         void Update(Theme theme)
         {
             if (GodotObject.IsInstanceValid(uiRoot))

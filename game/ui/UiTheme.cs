@@ -82,6 +82,7 @@ public static class UiTheme
         theme.SetStylebox("disabled", "Button", Frame(style, UiFrameId.Button, UiColorId.Panel, (UiColorId.Text_muted, button.DisabledTint)));
         theme.SetConstant("h_separation", "Button", style.Tokens.Window.Gap);
         theme.SetStylebox("focus", "Button", FocusRing(style));
+        TreeStyle(theme, style);
         theme.SetConstant("separation", "VBoxContainer", style.Tokens.Window.Gap);
         theme.SetConstant("separation", "HBoxContainer", style.Tokens.Window.Gap);
         return theme;
@@ -121,7 +122,12 @@ public static class UiTheme
                 AxisStretchVertical = StyleBoxTexture.AxisStretchMode.TileFit,
                 ModulateColor = tint is { } t ? Colors.White.Lerp(ToGodot(style.Color(t.Color)), (float)t.Strength) : Colors.White,
             };
-            box.SetContentMarginAll(padding);
+            // Never smaller than the corners: a control below left+right (top+bottom) margins would squeeze
+            // the corners into each other (A1362 test with the driftwood frames).
+            box.ContentMarginLeft = Math.Max(padding, box.TextureMarginLeft);
+            box.ContentMarginRight = Math.Max(padding, box.TextureMarginRight);
+            box.ContentMarginTop = Math.Max(padding, box.TextureMarginTop);
+            box.ContentMarginBottom = Math.Max(padding, box.TextureMarginBottom);
             return box;
         }
 
@@ -155,6 +161,32 @@ public static class UiTheme
         var texture = ImageTexture.CreateFromImage(image);
         texture.SetSizeOverride(new Vector2I(frame.Width / sourceScale, frame.Height / sourceScale));
         return texture;
+    }
+
+    /// <summary>
+    /// Tables (GwTable is a Tree): background, header and text in the token colours, so they follow the
+    /// palette and high contrast instead of the engine's dark default (A1362 screenshots).
+    /// </summary>
+    private static void TreeStyle(Theme theme, UiStyle style)
+    {
+        StyleBoxFlat Flat(UiColorId id)
+        {
+            var box = new StyleBoxFlat { BgColor = ToGodot(style.Color(id)) };
+            box.SetContentMarginAll(style.Tokens.Window.Padding / 2f);
+            return box;
+        }
+
+        theme.SetStylebox("panel", "Tree", Flat(UiColorId.Panel));
+        theme.SetStylebox("focus", "Tree", FocusRing(style));
+        theme.SetStylebox("title_button_normal", "Tree", Flat(UiColorId.Panel_strong));
+        theme.SetStylebox("title_button_hover", "Tree", Flat(UiColorId.Panel_strong));
+        theme.SetStylebox("title_button_pressed", "Tree", Flat(UiColorId.Panel_strong));
+        theme.SetStylebox("selected", "Tree", Flat(UiColorId.Accent));
+        theme.SetStylebox("selected_focus", "Tree", Flat(UiColorId.Accent));
+        theme.SetColor("font_color", "Tree", ToGodot(style.Color(UiColorId.Text)));
+        theme.SetColor("title_button_color", "Tree", ToGodot(style.Color(UiColorId.Text)));
+        theme.SetColor("font_selected_color", "Tree", ToGodot(style.Color(UiColorId.Panel)));
+        theme.SetColor("guide_color", "Tree", ToGodot(style.Color(UiColorId.Border)));
     }
 
     private static StyleBoxFlat FocusRing(UiStyle style)

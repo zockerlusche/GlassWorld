@@ -58,8 +58,8 @@ class UiFrames(BaseModel):
     )
     source_scale: int = Field(
         ...,
-        description='Source pictures are drawn at this multiple of the logical size.',
+        description='Source pictures are drawn at 1/source_scale of their pixel size, so a 96 px source edge at 8 is a 12 px logical edge (D366: thin frames; A1362 test).',
         ge=1,
-        le=4,
+        le=8,
     )
     frames: list[UiFrame] = Field(..., min_length=1)

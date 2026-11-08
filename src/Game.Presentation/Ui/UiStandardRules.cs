@@ -61,6 +61,12 @@ public static class UiStandardRules
                 problems.Add($"frame '{frame.Id}': margins leave no centre");
             }
 
+            // Whole logical pixels at UI 100 % (GW1 review #66 F3): no blur, no distortion.
+            if (new[] { frame.Width, frame.Height, m.Left, m.Top, m.Right, m.Bottom }.Any(v => v % frames.SourceScale != 0))
+            {
+                problems.Add($"frame '{frame.Id}': size and margins must be multiples of source_scale {frames.SourceScale}");
+            }
+
             if (frame.NineSlice != (m.Left + m.Top + m.Right + m.Bottom > 0))
             {
                 problems.Add($"frame '{frame.Id}': nine_slice and margins disagree");
@@ -121,6 +127,10 @@ public static class UiStandardRules
 
             if (surface is UiColorId.Panel or UiColorId.Panel_strong)
             {
+                // Selected table rows: panel-coloured text on the accent (GW1 review #66 F1).
+                var accent = colors[UiColorId.Accent].Over(new RgbaColor(1, 1, 1, 1));
+                Require(id, UiColorId.Panel, UiColorId.Accent, RgbaColor.Contrast(colors[UiColorId.Panel].Over(accent), accent), textContrast, problems);
+
                 foreach (var control in ControlColors)
                 {
                     Require(id, control, surface, RgbaColor.Contrast(colors[control].Over(back), back), ControlContrast, problems);
