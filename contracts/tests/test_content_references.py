@@ -80,6 +80,12 @@ DEFINITIONS = [
 def test_every_vocabulary_id_has_a_display_text(locale: str) -> None:
     keys = {entry["key"] for entry in _load(f"i18n/{locale}.json")["entries"]}
     expected = {f"vocab.{kind}.{i}" for kind, ids in VOCABULARY.items() for i in ids}
+    # Object types are named too (help window, A1340); same rule as the C# CatalogTests.
+    expected |= {
+        f"vocab.object.{t['id']}"
+        for path in sorted((CONTENT / "objects").glob("*.json"))
+        for t in json.loads(path.read_text(encoding="utf-8"))["types"]
+    }
     assert sorted(expected - keys) == [], f"{locale}: vocabulary ids without display text"
     stale = {k for k in keys if k.startswith("vocab.")} - expected
     assert sorted(stale) == [], f"{locale}: display texts for unknown vocabulary ids"
