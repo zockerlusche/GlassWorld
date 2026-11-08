@@ -111,6 +111,37 @@ public sealed class InhabitantTests
     }
 
     [Fact]
+    public void ANeedWithNothingHelpfulInSightMakesTheInhabitantLookFurtherAway()
+    {
+        // Headless seed 42 (PR #118): a thirsty inhabitant whose only water in sight was salty sea water
+        // stood idle for days next to it, because a need's urgency only counted for targets in sight.
+        var (world, inhabitants, objects) = NewWorld(1);
+        var thirsty = inhabitants.Get("inh-000001");
+        thirsty.Needs["thirst"] = 0.3;
+        thirsty.Needs["fun"] = 1.0;
+        thirsty.Beliefs.Set("spring_water", "drinkable", true, 1.0);
+        thirsty.Beliefs.Set("sea_water", "drinkable", true, 1.0);
+        thirsty.Beliefs.Set("sea_water", "salty", true, 1.0);
+        objects.Spawn("spring_water", new Position(200, 0));
+        var sea = objects.Spawn("sea_water", new Position(-20, 0));
+
+        var best = Content.Brain.Score(thirsty, [sea])[0];
+        var search = Content.Brain.Weights.Considerations.Single(c => c.Need == "thirst" && c.TargetProperty is not null).SearchAction;
+        Assert.NotNull(search);
+        Assert.Equal((search, (string?)null), (best.Action, best.TargetId));
+
+        // Only what the inhabitant believes counts: knowing nothing that quenches thirst, there is nothing to look for.
+        var unknowing = inhabitants.Get("inh-000002");
+        unknowing.Needs["thirst"] = 0.3;
+        unknowing.Needs["fun"] = 1.0;
+        Assert.DoesNotContain(Content.Brain.Score(unknowing, []), o => o.Action == search && o.Score > 0);
+
+        var start = thirsty.Position;
+        world.Run(2 * world.Calendar.Settings.TicksPerHour);
+        Assert.NotEqual(start, thirsty.Position);
+    }
+
+    [Fact]
     public void SameSeedSameHistory()
     {
         var a = NewWorld(9);

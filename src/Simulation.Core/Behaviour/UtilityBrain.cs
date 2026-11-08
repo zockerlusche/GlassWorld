@@ -29,6 +29,11 @@ public sealed class UtilityBrain
         foreach (var (c, _) in _considerations)
         {
             _ = actions.Timing(c.Action);
+            if (c.SearchAction is { } search)
+            {
+                _ = actions.Timing(search);
+            }
+
             if ((c.Need is not null && !needs.Contains(c.Need))
                 || (c.TargetProperty is not null && !properties.Contains(c.TargetProperty))
                 || c.AvoidProperties.Any(p => !properties.Contains(p)))
@@ -56,13 +61,23 @@ public sealed class UtilityBrain
                 continue;
             }
 
+            var found = false;
             foreach (var obj in perceived)
             {
                 var belief = BeliefFactor(inhabitant, obj.TypeId, c.TargetProperty) * AvoidFactor(inhabitant, obj.TypeId, c.AvoidProperties);
                 if (belief > 0)
                 {
                     options.Add(new ScoredOption(c.Action, obj.Id, urgency * belief * DistanceFactor(inhabitant.Position, obj.Position)));
+                    found = true;
                 }
+            }
+
+            if (!found && c.SearchAction is { } search && urgency > 0 && KnowsSomethingThatHelps(inhabitant, c.TargetProperty, c.AvoidProperties))
+            {
+                // Nothing in sight seems to help, but the inhabitant knows of a kind of thing that would:
+                // the need's urgency drives looking for it further away (the data names the action),
+                // instead of waiting where nothing will turn up.
+                options.Add(new ScoredOption(search, null, urgency));
             }
         }
 
@@ -87,6 +102,10 @@ public sealed class UtilityBrain
             ? (belief.Value ? belief.Confidence : 0.0)
             : Weights.UnknownTargetBelief;
     }
+
+    /// <summary>Whether the inhabitant believes some type has the property and none it would avoid (its own beliefs only).</summary>
+    private static bool KnowsSomethingThatHelps(Inhabitant inhabitant, string property, IEnumerable<string> avoid) =>
+        inhabitant.Beliefs.All.Any(b => b.PropertyId == property && b.Belief.Value && b.Belief.Confidence > 0 && AvoidFactor(inhabitant, b.TypeId, avoid) > 0);
 
     /// <summary>For each avoided property the inhabitant believes the type has: factor 1 - confidence.</summary>
     private static double AvoidFactor(Inhabitant inhabitant, string typeId, IEnumerable<string> avoid)

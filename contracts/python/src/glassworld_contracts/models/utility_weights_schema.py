@@ -31,6 +31,10 @@ class Consideration(BaseModel):
         description='Properties that make the option worse when the inhabitant believes the target has them (factor 1 - confidence each), e.g. salty for drinking.',
         max_length=8,
     )
+    search_action: common_schema.VocabId | None = Field(
+        None,
+        description="Action without a target that takes over the need's urgency when nothing within reach in sight is believed to have target_property, but the inhabitant believes some kind of thing has it (looking for it further away, e.g. wandering). Absent or null = the need waits until something turns up.",
+    )
     need: common_schema.VocabId | None = Field(
         ..., description='Need whose value is the curve input; null = constant input 1.'
     )

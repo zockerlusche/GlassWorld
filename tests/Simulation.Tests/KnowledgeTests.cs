@@ -297,7 +297,6 @@ public sealed class KnowledgeTests : IDisposable
     private static SimulationHost Restore(SaveState state, IDecisionPort port) =>
         StateCodec.Restore(new SimulationHostFactory(Content, Settings, port, "de"), state);
 
-    /// <summary>A decider that never answers.</summary>
     /// <summary>Answers every request of inh-000001 with its warn option towards inh-000002, if it has one.</summary>
     private sealed class WarnPort : IDecisionPort
     {
@@ -333,6 +332,7 @@ public sealed class KnowledgeTests : IDisposable
         }
     }
 
+    /// <summary>A decider that never answers.</summary>
     private sealed class SilentPort : IDecisionPort
     {
         public void Send(string requestId, string requestJson)

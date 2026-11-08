@@ -32,6 +32,13 @@ namespace GlassWorld.Contracts
         public System.Collections.Generic.ICollection<string> AvoidProperties { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
         /// <summary>
+        /// Action without a target that takes over the need's urgency when nothing within reach in sight is believed to have target_property, but the inhabitant believes some kind of thing has it (looking for it further away, e.g. wandering). Absent or null = the need waits until something turns up.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("search_action")]
+        public string? SearchAction { get; set; } = default!;
+
+        /// <summary>
         /// Need whose value is the curve input; null = constant input 1.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("need")]
