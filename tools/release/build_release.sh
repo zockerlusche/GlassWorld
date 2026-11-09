@@ -23,6 +23,10 @@ if [[ "$RELEASE_VERSION" == "unreleased" ]]; then
 else
   LABEL="$RELEASE_VERSION"
   NOTES_ARGS=("$RELEASE_VERSION")
+  # A real release stamps its version into the game's assemblies on purpose (review GW1 #143):
+  # MSBuild reads the environment variable as $(Version); a probe sets nothing (the default
+  # 1.0.0 is valid, while 'unreleased' broke NuGet).
+  export Version="$RELEASE_VERSION"
 fi
 NAME="GlassWorld-$LABEL-windows-x64"
 STAGE="$OUT/$NAME"
