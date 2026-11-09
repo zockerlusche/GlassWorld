@@ -125,6 +125,7 @@ public partial class WorldAudio : Node3D
             }
 
             AudioServer.SetBusVolumeDb(index, (float)bus.VolumeDb);
+            AudioServer.SetBusMute(index, bus.VolumeDb <= _mixer.Mix.PlayerVolumeDb.Min);
             if (bus.Id is MixBusId.Master or MixBusId.Music)
             {
                 continue;
@@ -528,6 +529,9 @@ public partial class WorldAudio : Node3D
             {
                 var db = playerDb.TryGetValue(Ui.Screens.SettingsWindow.BusKey(bus.Id), out var chosen) ? chosen : bus.VolumeDb;
                 AudioServer.SetBusVolumeDb(index, (float)db);
+
+                // The slider at its minimum means off (test feedback F5286: music off by default).
+                AudioServer.SetBusMute(index, db <= mix.PlayerVolumeDb.Min);
             }
         }
     }

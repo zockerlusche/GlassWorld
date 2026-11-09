@@ -51,6 +51,9 @@ public partial class WorldPresenter : Node3D
     /// <summary>Save game of the running world (null = not saved, e.g. smoke runs).</summary>
     public string? SavePath { get; private set; }
 
+    /// <summary>Raised after a successful autosave at the day boundary (a calm notice, test feedback F5287).</summary>
+    public event Action? AutoSaved;
+
     /// <summary>Raised after every save (autosave at the day boundary or explicit), e.g. to update meta data.</summary>
     public event Action<string>? Saved;
 
@@ -193,6 +196,7 @@ public partial class WorldPresenter : Node3D
                 try
                 {
                     Save();
+                    AutoSaved?.Invoke();
                 }
                 catch (Exception e) when (e is not OutOfMemoryException)
                 {

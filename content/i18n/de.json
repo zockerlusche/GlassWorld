@@ -1607,6 +1607,22 @@
       "text": "Sprachmodell: Denken, Sprechen und Fragen der Bewohner"
     },
     {
+      "key": "ui.top.menu",
+      "text": "Menü"
+    },
+    {
+      "key": "ui.top.menu_tooltip",
+      "text": "Speichern, Laden, Einstellungen, Beenden (Esc)"
+    },
+    {
+      "key": "msg.hint.autosaved",
+      "text": "Automatisch gespeichert. Das Spiel speichert jeden Spieltag von selbst."
+    },
+    {
+      "key": "msg.hint.saved",
+      "text": "Gespeichert."
+    },
+    {
       "key": "ui.chronicle.earlier",
       "text": "◀ Früher"
     },

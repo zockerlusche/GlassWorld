@@ -44,6 +44,9 @@ public partial class Main : Node3D
     private GameScreen? _screen;
     private WorldMeta? _meta;
     private GwWindow? _pause;
+
+    /// <summary>Whether the autosave notice was shown in this session (once is enough).</summary>
+    private bool _autosaveNoticeShown;
     private double _speedBeforePause = 1;
     private bool _settingsDirty;
     private MenuData? _menuData;
@@ -276,6 +279,16 @@ public partial class Main : Node3D
             WorldAudio.ApplyVolumes(_mix, _settings.BusVolumesDb);
         }
 
+        // Once per session is enough to know the game saves by itself; every day would be every ~75 s
+        // at the fastest speed (review GW1 #139, calm world).
+        _world.AutoSaved += () =>
+        {
+            if (!_autosaveNoticeShown)
+            {
+                _autosaveNoticeShown = true;
+                _screen?.ShowHint(new ToastMessage("msg.hint.autosaved", new Dictionary<string, string>(), null));
+            }
+        };
         _world.Saved += _ =>
         {
             if (_meta is not null && _library is not null)
@@ -319,7 +332,13 @@ public partial class Main : Node3D
                     _world.Speed = _speedBeforePause;
                 }
             },
-            Save: () => TrySave(),
+            Save: () =>
+            {
+                if (TrySave())
+                {
+                    _screen?.ShowHint(new ToastMessage("msg.hint.saved", new Dictionary<string, string>(), null));
+                }
+            },
             Settings: () => OpenSettings(window => _screen?.ShowWindow(window)),
             MainMenu: () =>
             {
