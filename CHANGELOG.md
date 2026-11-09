@@ -9,7 +9,7 @@ Each release gets its own section (version and date); until then changes collect
 
 ### Fixed
 
-- Decisions (TL F5275 = A + B, review GW3 #134 seed 114): (A) an action with need-based considerations in `content/behaviour/utility.json` is offered to the decider only while one of them gives it some urgency for the asker (`UtilityBrain.NeedSuggests`; no action names in code), so nobody wide awake is offered sleep; (B) a queued answer (`Inhabitant.Planned` with an action the decider may be offered; building steps never are) expires when a need fell below its `neglect_below` while it waited: it is dropped, reported as `question_failed` with detail `need_neglected`, and the routine or the decider decides anew. Queued answers no longer chain 8-hour sleeps while thirsty.
+- Decisions (TL F5275 = A + B, review GW3 #134 seed 114): (A) an action with need-based considerations in `content/behaviour/utility.json` is offered to the decider only while one of them gives it some urgency for the asker (`UtilityBrain.NeedSuggests`; no action names in code), so nobody wide awake is offered sleep; (B) a queued answer (`Inhabitant.Planned` with an action the decider may be offered; building steps never are) expires when a need fell below its `neglect_below` while it waited and the answer serves none of the neglected needs (a thirsty inhabitant keeps a queued drink): it is dropped, reported as the new event `answer_expired` (vocabulary, DE/EN) with detail `need_neglected`, and the routine or the decider decides anew. Sated inhabitants are no longer offered eat or drink, so they no longer taste unknown food out of curiosity. Queued answers no longer chain 8-hour sleeps while thirsty.
 
 ### Added
 

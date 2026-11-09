@@ -81,7 +81,7 @@ public sealed class DecisionTests
 
     /// <summary>
     /// F5275 B: a queued answer expires when a need fell below its neglect threshold while it waited; it is
-    /// dropped and logged (question_failed / need_neglected) and the routine decides anew. A queued answer
+    /// dropped and logged (answer_expired / need_neglected) and the routine decides anew. A queued answer
     /// with every need fine still starts.
     /// </summary>
     [Fact]
@@ -96,9 +96,20 @@ public sealed class DecisionTests
         w.World.Step();
         Assert.Null(inhabitant.Planned);
         Assert.NotEqual("sleep", inhabitant.Activity?.Action);
-        var dropped = Assert.Single(w.Inhabitants.Events, e => e.Kind == InhabitantsSystem.QuestionFailed && e.InhabitantId == inhabitant.Id);
+        var dropped = Assert.Single(w.Inhabitants.Events, e => e.Kind == InhabitantsSystem.AnswerExpired && e.InhabitantId == inhabitant.Id);
         Assert.Equal(InhabitantsSystem.NeedNeglected, dropped.Detail);
         Assert.Equal("sleep", dropped.Action);
+
+        // A queued answer that serves the neglected need stays (review GW3 #137): thirsty with a queued drink.
+        var thirsty = NewWorld(1, new SilentPort(), triggers: false);
+        var drinker = thirsty.Inhabitants.Get("inh-000001");
+        var spring = thirsty.Objects.Spawn("spring_water", drinker.Position);
+        drinker.Needs["thirst"] = thirst / 2;
+        drinker.Activity = null;
+        drinker.Planned = new Activity("drink", spring.Id, spring.Position, null);
+        thirsty.World.Step();
+        Assert.Equal("drink", drinker.Activity?.Action);
+        Assert.DoesNotContain(thirsty.Inhabitants.Events, e => e.Kind == InhabitantsSystem.AnswerExpired);
 
         // Every need above its threshold: the queued answer starts as before.
         var fine = NewWorld(1, new SilentPort(), triggers: false);

@@ -11,16 +11,80 @@
       "text": "{inhabitant} benutzt zum ersten Mal {target}."
     },
     {
+      "key": "msg.chronicle.found_writing",
+      "text": "{inhabitant} hat alte Zeichen gefunden: {target}."
+    },
+    {
       "key": "msg.chronicle.invented",
       "text": "{inhabitant} hat etwas Neues erfunden: {target}."
+    },
+    {
+      "key": "msg.command.already_started",
+      "text": "Das geht nur beim Anlegen einer Welt."
+    },
+    {
+      "key": "msg.command.conversation_open",
+      "text": "Der Bewohner denkt noch über deinen letzten Satz nach."
+    },
+    {
+      "key": "msg.command.no_favor",
+      "text": "Dafür reicht deine Gunst gerade nicht."
     },
     {
       "key": "msg.command.no_inhabitant",
       "text": "Diesen Bewohner gibt es hier nicht mehr."
     },
     {
+      "key": "msg.command.no_message",
+      "text": "Diese Nachricht ist schon gelesen."
+    },
+    {
+      "key": "msg.command.no_position",
+      "text": "Wähle eine Stelle in der Welt."
+    },
+    {
+      "key": "msg.command.text_empty",
+      "text": "Schreib erst etwas."
+    },
+    {
+      "key": "msg.command.text_refused",
+      "text": "So etwas sagen die Bewohner nicht – bitte anders formulieren."
+    },
+    {
+      "key": "msg.command.too_close",
+      "text": "Zu nah an einem Bewohner – leg es etwas weiter weg."
+    },
+    {
       "key": "msg.command.unknown",
       "text": "Das geht gerade nicht."
+    },
+    {
+      "key": "msg.command.unknown_type",
+      "text": "Das gibt es in dieser Welt nicht."
+    },
+    {
+      "key": "msg.gift.off_island",
+      "text": "Dort ist keine Insel – leg das Geschenk auf die Insel."
+    },
+    {
+      "key": "msg.gift.on_water",
+      "text": "Dort ist Wasser – leg das Geschenk auf festen Boden."
+    },
+    {
+      "key": "msg.hint.gift_placed",
+      "text": "Die Gabe liegt jetzt in der Welt. Sie gehört niemandem."
+    },
+    {
+      "key": "msg.hint.help_needed",
+      "text": "Bewohner {number} findet nichts gegen {need}."
+    },
+    {
+      "key": "msg.hint.no_answer",
+      "text": "Die Bewohner können gerade nicht antworten. Deine Gunst bekommst du zurück."
+    },
+    {
+      "key": "msg.hint.place_gift",
+      "text": "Klicke in die Welt, wo die Gabe liegen soll (Esc bricht ab)."
     },
     {
       "key": "msg.hint.question",
@@ -53,6 +117,10 @@
     {
       "key": "msg.mail.kind.thought",
       "text": "Gedanke"
+    },
+    {
+      "key": "msg.mail.knock",
+      "text": "Bewohner {number} klopft an die Scheibe: findet nichts gegen {need}."
     },
     {
       "key": "msg.save.failed",
@@ -151,6 +219,34 @@
       "text": "Kopieren"
     },
     {
+      "key": "ui.favor.tooltip",
+      "text": "Gunst wächst langsam nach. Gaben kosten Gunst."
+    },
+    {
+      "key": "ui.favor.value",
+      "text": "Gunst {value}/{max}"
+    },
+    {
+      "key": "ui.help.answer",
+      "text": "Du könntest sagen: „{text}“"
+    },
+    {
+      "key": "ui.help.call",
+      "text": "Bewohner {number}: {need}"
+    },
+    {
+      "key": "ui.help.empty",
+      "text": "Gerade bittet niemand um Hilfe."
+    },
+    {
+      "key": "ui.help.give",
+      "text": "{thing} hinlegen ({cost} Gunst)"
+    },
+    {
+      "key": "ui.help.title",
+      "text": "Hilfe"
+    },
+    {
       "key": "ui.inhabitant.unnamed",
       "text": "Bewohner {number}"
     },
@@ -173,6 +269,18 @@
     {
       "key": "ui.inhabitants.title",
       "text": "Bewohner"
+    },
+    {
+      "key": "ui.mailbox.empty",
+      "text": "Keine neuen Nachrichten."
+    },
+    {
+      "key": "ui.mailbox.history",
+      "text": "Gelesen"
+    },
+    {
+      "key": "ui.mailbox.read",
+      "text": "Als gelesen markieren"
     },
     {
       "key": "ui.mailbox.title",
@@ -311,6 +419,10 @@
       "text": "Offene Fragen"
     },
     {
+      "key": "ui.settings.feeling_symbols",
+      "text": "Gefühls-Symbole über den Köpfen"
+    },
+    {
       "key": "ui.settings.hide_ui",
       "text": "Nur zuschauen (Bedienelemente ausblenden)"
     },
@@ -423,6 +535,10 @@
       "text": "Stimmen"
     },
     {
+      "key": "ui.setup.model_language",
+      "text": "Sprachmodell: Denken, Sprechen und Fragen der Bewohner"
+    },
+    {
       "key": "ui.time.fast",
       "text": "Schnell ×{factor}"
     },
@@ -527,12 +643,12 @@
       "text": "Beibringen"
     },
     {
-      "key": "vocab.action.wander",
-      "text": "Umherstreifen"
-    },
-    {
       "key": "vocab.action.use",
       "text": "Benutzen"
+    },
+    {
+      "key": "vocab.action.wander",
+      "text": "Umherstreifen"
     },
     {
       "key": "vocab.action.warn",
@@ -587,6 +703,134 @@
       "text": "Werkstatt"
     },
     {
+      "key": "vocab.event.action_cancelled",
+      "text": "Handlung abgebrochen"
+    },
+    {
+      "key": "vocab.event.action_finished",
+      "text": "Handlung beendet"
+    },
+    {
+      "key": "vocab.event.action_started",
+      "text": "Handlung beginnt"
+    },
+    {
+      "key": "vocab.event.answer_expired",
+      "text": "Antwort verfallen"
+    },
+    {
+      "key": "vocab.event.build_failed",
+      "text": "Bau gescheitert"
+    },
+    {
+      "key": "vocab.event.build_plan_rejected",
+      "text": "Bauplan abgelehnt"
+    },
+    {
+      "key": "vocab.event.build_planned",
+      "text": "Bauplan steht"
+    },
+    {
+      "key": "vocab.event.build_step",
+      "text": "Bauschritt fertig"
+    },
+    {
+      "key": "vocab.event.built",
+      "text": "Gebaut"
+    },
+    {
+      "key": "vocab.event.conversation_started",
+      "text": "Angesprochen"
+    },
+    {
+      "key": "vocab.event.declined",
+      "text": "Will nicht antworten"
+    },
+    {
+      "key": "vocab.event.first_use",
+      "text": "Zum ersten Mal benutzt"
+    },
+    {
+      "key": "vocab.event.gestured",
+      "text": "Geste"
+    },
+    {
+      "key": "vocab.event.gift_placed",
+      "text": "Gabe hingelegt"
+    },
+    {
+      "key": "vocab.event.help_needed",
+      "text": "Hilferuf"
+    },
+    {
+      "key": "vocab.event.invented",
+      "text": "Erfunden"
+    },
+    {
+      "key": "vocab.event.invention_failed",
+      "text": "Erfindung gescheitert"
+    },
+    {
+      "key": "vocab.event.invention_rejected",
+      "text": "Erfindung abgelehnt"
+    },
+    {
+      "key": "vocab.event.invention_wanted",
+      "text": "Erfindungswunsch"
+    },
+    {
+      "key": "vocab.event.knowledge_gained",
+      "text": "Neues Wissen"
+    },
+    {
+      "key": "vocab.event.mail_arrived",
+      "text": "Nachricht im Postfach"
+    },
+    {
+      "key": "vocab.event.mail_repeated",
+      "text": "Nachricht klopft erneut"
+    },
+    {
+      "key": "vocab.event.no_answer",
+      "text": "Keine Antwort"
+    },
+    {
+      "key": "vocab.event.not_understood",
+      "text": "Nicht verstanden"
+    },
+    {
+      "key": "vocab.event.question_answered",
+      "text": "Frage beantwortet"
+    },
+    {
+      "key": "vocab.event.question_failed",
+      "text": "Frage unbeantwortet"
+    },
+    {
+      "key": "vocab.event.question_opened",
+      "text": "Frage gestellt"
+    },
+    {
+      "key": "vocab.event.said",
+      "text": "Geantwortet"
+    },
+    {
+      "key": "vocab.event.skill_refused",
+      "text": "Neue Fähigkeit abgelehnt"
+    },
+    {
+      "key": "vocab.event.thought",
+      "text": "Gedanke"
+    },
+    {
+      "key": "vocab.event.writing_found",
+      "text": "Geschriebenes wiedergefunden"
+    },
+    {
+      "key": "vocab.expression.aha",
+      "text": "Hat eine Idee"
+    },
+    {
       "key": "vocab.expression.back_away",
       "text": "Weicht zurück"
     },
@@ -635,8 +879,64 @@
       "text": "Gähnt"
     },
     {
-      "key": "vocab.expression.aha",
-      "text": "Hat eine Idee"
+      "key": "vocab.guard_reason.harmful",
+      "text": "Schädlich"
+    },
+    {
+      "key": "vocab.guard_reason.implausible",
+      "text": "Unplausibel"
+    },
+    {
+      "key": "vocab.guard_reason.living_being",
+      "text": "Lebewesen"
+    },
+    {
+      "key": "vocab.guard_reason.material",
+      "text": "Material"
+    },
+    {
+      "key": "vocab.guard_reason.tech_level",
+      "text": "Technikstufe"
+    },
+    {
+      "key": "vocab.guard_reason.too_large",
+      "text": "Zu groß"
+    },
+    {
+      "key": "vocab.heat_level.embers",
+      "text": "Glut"
+    },
+    {
+      "key": "vocab.heat_level.furnace",
+      "text": "Schmelzofen"
+    },
+    {
+      "key": "vocab.heat_level.kiln",
+      "text": "Brennofen"
+    },
+    {
+      "key": "vocab.heat_level.open_fire",
+      "text": "Offenes Feuer"
+    },
+    {
+      "key": "vocab.heat_level.warm",
+      "text": "Warm"
+    },
+    {
+      "key": "vocab.knowledge_source.experienced",
+      "text": "selbst erlebt"
+    },
+    {
+      "key": "vocab.knowledge_source.guessed",
+      "text": "vermutet"
+    },
+    {
+      "key": "vocab.knowledge_source.heard",
+      "text": "gehört"
+    },
+    {
+      "key": "vocab.knowledge_source.read",
+      "text": "gelesen"
     },
     {
       "key": "vocab.mood.anger",
@@ -711,6 +1011,206 @@
       "text": "Wärme"
     },
     {
+      "key": "vocab.object.apple",
+      "text": "Apfel"
+    },
+    {
+      "key": "vocab.object.bark",
+      "text": "Rinde"
+    },
+    {
+      "key": "vocab.object.berry_bush",
+      "text": "Beerenstrauch"
+    },
+    {
+      "key": "vocab.object.blue_berry",
+      "text": "Blaubeere"
+    },
+    {
+      "key": "vocab.object.brown_mushroom",
+      "text": "Brauner Pilz"
+    },
+    {
+      "key": "vocab.object.clay",
+      "text": "Lehm"
+    },
+    {
+      "key": "vocab.object.conifer_tree",
+      "text": "Nadelbaum"
+    },
+    {
+      "key": "vocab.object.deciduous_tree",
+      "text": "Laubbaum"
+    },
+    {
+      "key": "vocab.object.driftwood",
+      "text": "Treibholz"
+    },
+    {
+      "key": "vocab.object.dry_grass",
+      "text": "Trockenes Gras"
+    },
+    {
+      "key": "vocab.object.dry_wood",
+      "text": "Trockenes Holz"
+    },
+    {
+      "key": "vocab.object.fieldstone",
+      "text": "Feldstein"
+    },
+    {
+      "key": "vocab.object.flax",
+      "text": "Flachs"
+    },
+    {
+      "key": "vocab.object.flint",
+      "text": "Feuerstein"
+    },
+    {
+      "key": "vocab.object.fruit_tree",
+      "text": "Obstbaum"
+    },
+    {
+      "key": "vocab.object.hazel_bush",
+      "text": "Haselstrauch"
+    },
+    {
+      "key": "vocab.object.hazelnut",
+      "text": "Haselnuss"
+    },
+    {
+      "key": "vocab.object.healing_herb",
+      "text": "Heilkraut"
+    },
+    {
+      "key": "vocab.object.nettle",
+      "text": "Brennnessel"
+    },
+    {
+      "key": "vocab.object.palm_tree",
+      "text": "Palme"
+    },
+    {
+      "key": "vocab.object.peat",
+      "text": "Torf"
+    },
+    {
+      "key": "vocab.object.pyrite",
+      "text": "Pyrit"
+    },
+    {
+      "key": "vocab.object.red_berry",
+      "text": "Rote Beere"
+    },
+    {
+      "key": "vocab.object.red_mushroom",
+      "text": "Roter Pilz"
+    },
+    {
+      "key": "vocab.object.reed",
+      "text": "Schilf"
+    },
+    {
+      "key": "vocab.object.resin",
+      "text": "Harz"
+    },
+    {
+      "key": "vocab.object.rock_niche",
+      "text": "Felsnische"
+    },
+    {
+      "key": "vocab.object.sandstone",
+      "text": "Sandstein"
+    },
+    {
+      "key": "vocab.object.sea_water",
+      "text": "Meerwasser"
+    },
+    {
+      "key": "vocab.object.shell",
+      "text": "Muschel"
+    },
+    {
+      "key": "vocab.object.slate",
+      "text": "Schiefer"
+    },
+    {
+      "key": "vocab.object.spark",
+      "text": "Funke"
+    },
+    {
+      "key": "vocab.object.spring_water",
+      "text": "Quellwasser"
+    },
+    {
+      "key": "vocab.object.thorn_bush",
+      "text": "Dornenstrauch"
+    },
+    {
+      "key": "vocab.object.wild_grain",
+      "text": "Wildgetreide"
+    },
+    {
+      "key": "vocab.process.bind",
+      "text": "Binden"
+    },
+    {
+      "key": "vocab.process.braid",
+      "text": "Flechten"
+    },
+    {
+      "key": "vocab.process.char",
+      "text": "Verkohlen"
+    },
+    {
+      "key": "vocab.process.cut",
+      "text": "Schneiden"
+    },
+    {
+      "key": "vocab.process.dry",
+      "text": "Trocknen"
+    },
+    {
+      "key": "vocab.process.fire",
+      "text": "Brennen"
+    },
+    {
+      "key": "vocab.process.grind",
+      "text": "Zerreiben"
+    },
+    {
+      "key": "vocab.process.heat",
+      "text": "Erhitzen"
+    },
+    {
+      "key": "vocab.process.melt",
+      "text": "Schmelzen"
+    },
+    {
+      "key": "vocab.process.mix",
+      "text": "Mischen"
+    },
+    {
+      "key": "vocab.process.shape",
+      "text": "Formen"
+    },
+    {
+      "key": "vocab.process.soak",
+      "text": "Einweichen"
+    },
+    {
+      "key": "vocab.process.split",
+      "text": "Spalten"
+    },
+    {
+      "key": "vocab.process.strike",
+      "text": "Schlagen"
+    },
+    {
+      "key": "vocab.property.alkaline",
+      "text": "Laugig"
+    },
+    {
       "key": "vocab.property.braidable",
       "text": "Flechtbar"
     },
@@ -727,12 +1227,16 @@
       "text": "Behälter"
     },
     {
-      "key": "vocab.property.crafted",
-      "text": "selbst gemacht"
+      "key": "vocab.property.cooked",
+      "text": "Gekocht"
     },
     {
       "key": "vocab.property.cooling",
       "text": "Kühlend"
+    },
+    {
+      "key": "vocab.property.crafted",
+      "text": "selbst gemacht"
     },
     {
       "key": "vocab.property.drinkable",
@@ -743,8 +1247,16 @@
       "text": "Essbar"
     },
     {
+      "key": "vocab.property.fatty",
+      "text": "Fettig"
+    },
+    {
       "key": "vocab.property.fibrous",
       "text": "Faserig"
+    },
+    {
+      "key": "vocab.property.fine_grained",
+      "text": "Feinkörnig"
     },
     {
       "key": "vocab.property.hard",
@@ -775,6 +1287,10 @@
       "text": "Formbar"
     },
     {
+      "key": "vocab.property.milky",
+      "text": "Milchig"
+    },
+    {
       "key": "vocab.property.poisonous",
       "text": "Giftig"
     },
@@ -799,6 +1315,10 @@
       "text": "Schützend"
     },
     {
+      "key": "vocab.property.smoulders",
+      "text": "Glüht lange"
+    },
+    {
       "key": "vocab.property.sparks",
       "text": "Schlägt Funken"
     },
@@ -811,32 +1331,100 @@
       "text": "Klebrig"
     },
     {
-      "key": "vocab.property.fine_grained",
-      "text": "Feinkörnig"
-    },
-    {
-      "key": "vocab.property.alkaline",
-      "text": "Laugig"
-    },
-    {
-      "key": "vocab.property.smoulders",
-      "text": "Glüht lange"
-    },
-    {
       "key": "vocab.property.transparent",
       "text": "Durchsichtig"
     },
     {
-      "key": "vocab.property.cooked",
-      "text": "Gekocht"
+      "key": "vocab.shape.bowl",
+      "text": "Schale"
     },
     {
-      "key": "vocab.property.milky",
-      "text": "Milchig"
+      "key": "vocab.shape.box",
+      "text": "Quader"
     },
     {
-      "key": "vocab.property.fatty",
-      "text": "Fettig"
+      "key": "vocab.shape.cone",
+      "text": "Kegel"
+    },
+    {
+      "key": "vocab.shape.cylinder",
+      "text": "Zylinder"
+    },
+    {
+      "key": "vocab.shape.plank",
+      "text": "Brett"
+    },
+    {
+      "key": "vocab.shape.ring",
+      "text": "Ring"
+    },
+    {
+      "key": "vocab.shape.sphere",
+      "text": "Kugel"
+    },
+    {
+      "key": "vocab.shape.wedge",
+      "text": "Keil"
+    },
+    {
+      "key": "vocab.skill.building",
+      "text": "Bauen"
+    },
+    {
+      "key": "vocab.skill.cooking",
+      "text": "Kochen"
+    },
+    {
+      "key": "vocab.skill.gathering",
+      "text": "Sammeln"
+    },
+    {
+      "key": "vocab.skill.healing",
+      "text": "Heilen"
+    },
+    {
+      "key": "vocab.skill.inventing",
+      "text": "Erfinden"
+    },
+    {
+      "key": "vocab.skill.music",
+      "text": "Musik"
+    },
+    {
+      "key": "vocab.skill.reading",
+      "text": "Lesen"
+    },
+    {
+      "key": "vocab.skill.swimming",
+      "text": "Schwimmen"
+    },
+    {
+      "key": "vocab.skill.teaching",
+      "text": "Lehren"
+    },
+    {
+      "key": "vocab.skill.writing",
+      "text": "Schreiben"
+    },
+    {
+      "key": "vocab.tech_level.hut",
+      "text": "Hütte"
+    },
+    {
+      "key": "vocab.tech_level.metal",
+      "text": "Metall"
+    },
+    {
+      "key": "vocab.tech_level.tool",
+      "text": "Werkzeug"
+    },
+    {
+      "key": "vocab.tech_level.wilderness",
+      "text": "Wildnis"
+    },
+    {
+      "key": "vocab.tech_level.workshop",
+      "text": "Werkstatt"
     },
     {
       "key": "vocab.time_of_day.dawn",
@@ -923,616 +1511,32 @@
       "text": "Sturm"
     },
     {
-      "key": "vocab.process.heat",
-      "text": "Erhitzen"
-    },
-    {
-      "key": "vocab.process.soak",
-      "text": "Einweichen"
-    },
-    {
-      "key": "vocab.process.dry",
-      "text": "Trocknen"
-    },
-    {
-      "key": "vocab.process.grind",
-      "text": "Zerreiben"
-    },
-    {
-      "key": "vocab.process.mix",
-      "text": "Mischen"
-    },
-    {
-      "key": "vocab.process.strike",
-      "text": "Schlagen"
-    },
-    {
-      "key": "vocab.process.cut",
-      "text": "Schneiden"
-    },
-    {
-      "key": "vocab.process.split",
-      "text": "Spalten"
-    },
-    {
-      "key": "vocab.process.bind",
-      "text": "Binden"
-    },
-    {
-      "key": "vocab.process.braid",
-      "text": "Flechten"
-    },
-    {
-      "key": "vocab.process.shape",
-      "text": "Formen"
-    },
-    {
-      "key": "vocab.process.fire",
-      "text": "Brennen"
-    },
-    {
-      "key": "vocab.process.char",
-      "text": "Verkohlen"
-    },
-    {
-      "key": "vocab.process.melt",
-      "text": "Schmelzen"
-    },
-    {
-      "key": "vocab.heat_level.warm",
-      "text": "Warm"
-    },
-    {
-      "key": "vocab.heat_level.embers",
-      "text": "Glut"
-    },
-    {
-      "key": "vocab.heat_level.open_fire",
-      "text": "Offenes Feuer"
-    },
-    {
-      "key": "vocab.heat_level.kiln",
-      "text": "Brennofen"
-    },
-    {
-      "key": "vocab.heat_level.furnace",
-      "text": "Schmelzofen"
-    },
-    {
-      "key": "vocab.tech_level.tool",
-      "text": "Werkzeug"
-    },
-    {
-      "key": "vocab.tech_level.hut",
-      "text": "Hütte"
-    },
-    {
-      "key": "vocab.tech_level.workshop",
-      "text": "Werkstatt"
-    },
-    {
-      "key": "vocab.tech_level.metal",
-      "text": "Metall"
-    },
-    {
-      "key": "vocab.shape.box",
-      "text": "Quader"
-    },
-    {
-      "key": "vocab.shape.cylinder",
-      "text": "Zylinder"
-    },
-    {
-      "key": "vocab.shape.sphere",
-      "text": "Kugel"
-    },
-    {
-      "key": "vocab.shape.cone",
-      "text": "Kegel"
-    },
-    {
-      "key": "vocab.shape.wedge",
-      "text": "Keil"
-    },
-    {
-      "key": "vocab.shape.plank",
-      "text": "Brett"
-    },
-    {
-      "key": "vocab.shape.ring",
-      "text": "Ring"
-    },
-    {
-      "key": "vocab.shape.bowl",
-      "text": "Schale"
-    },
-    {
-      "key": "vocab.tech_level.wilderness",
-      "text": "Wildnis"
-    },
-    {
-      "key": "vocab.guard_reason.living_being",
-      "text": "Lebewesen"
-    },
-    {
-      "key": "vocab.guard_reason.harmful",
-      "text": "Schädlich"
-    },
-    {
-      "key": "vocab.guard_reason.material",
-      "text": "Material"
-    },
-    {
-      "key": "vocab.guard_reason.tech_level",
-      "text": "Technikstufe"
-    },
-    {
-      "key": "vocab.guard_reason.too_large",
-      "text": "Zu groß"
-    },
-    {
-      "key": "vocab.guard_reason.implausible",
-      "text": "Unplausibel"
-    },
-    {
-      "key": "msg.command.no_favor",
-      "text": "Dafür reicht deine Gunst gerade nicht."
-    },
-    {
-      "key": "msg.command.unknown_type",
-      "text": "Das gibt es in dieser Welt nicht."
-    },
-    {
-      "key": "msg.command.too_close",
-      "text": "Zu nah an einem Bewohner – leg es etwas weiter weg."
-    },
-    {
-      "key": "msg.gift.on_water",
-      "text": "Dort ist Wasser – leg das Geschenk auf festen Boden."
-    },
-    {
-      "key": "msg.gift.off_island",
-      "text": "Dort ist keine Insel – leg das Geschenk auf die Insel."
-    },
-    {
-      "key": "msg.command.no_position",
-      "text": "Wähle eine Stelle in der Welt."
-    },
-    {
-      "key": "msg.command.already_started",
-      "text": "Das geht nur beim Anlegen einer Welt."
-    },
-    {
-      "key": "ui.settings.feeling_symbols",
-      "text": "Gefühls-Symbole über den Köpfen"
-    },
-    {
-      "key": "vocab.object.apple",
-      "text": "Apfel"
-    },
-    {
-      "key": "vocab.object.red_berry",
-      "text": "Rote Beere"
-    },
-    {
-      "key": "vocab.object.blue_berry",
-      "text": "Blaubeere"
-    },
-    {
-      "key": "vocab.object.spring_water",
-      "text": "Quellwasser"
-    },
-    {
-      "key": "vocab.object.sea_water",
-      "text": "Meerwasser"
-    },
-    {
-      "key": "vocab.object.flint",
-      "text": "Feuerstein"
-    },
-    {
-      "key": "vocab.object.pyrite",
-      "text": "Pyrit"
-    },
-    {
-      "key": "vocab.object.dry_wood",
-      "text": "Trockenes Holz"
-    },
-    {
-      "key": "vocab.object.dry_grass",
-      "text": "Trockenes Gras"
-    },
-    {
-      "key": "vocab.object.spark",
-      "text": "Funke"
-    },
-    {
-      "key": "vocab.object.rock_niche",
-      "text": "Felsnische"
-    },
-    {
-      "key": "vocab.object.deciduous_tree",
-      "text": "Laubbaum"
-    },
-    {
-      "key": "vocab.object.conifer_tree",
-      "text": "Nadelbaum"
-    },
-    {
-      "key": "vocab.object.fruit_tree",
-      "text": "Obstbaum"
-    },
-    {
-      "key": "vocab.object.palm_tree",
-      "text": "Palme"
-    },
-    {
-      "key": "vocab.object.resin",
-      "text": "Harz"
-    },
-    {
-      "key": "vocab.object.bark",
-      "text": "Rinde"
-    },
-    {
-      "key": "vocab.object.berry_bush",
-      "text": "Beerenstrauch"
-    },
-    {
-      "key": "vocab.object.thorn_bush",
-      "text": "Dornenstrauch"
-    },
-    {
-      "key": "vocab.object.hazel_bush",
-      "text": "Haselstrauch"
-    },
-    {
-      "key": "vocab.object.hazelnut",
-      "text": "Haselnuss"
-    },
-    {
-      "key": "vocab.object.reed",
-      "text": "Schilf"
-    },
-    {
-      "key": "vocab.object.flax",
-      "text": "Flachs"
-    },
-    {
-      "key": "vocab.object.nettle",
-      "text": "Brennnessel"
-    },
-    {
-      "key": "vocab.object.healing_herb",
-      "text": "Heilkraut"
-    },
-    {
-      "key": "vocab.object.brown_mushroom",
-      "text": "Brauner Pilz"
-    },
-    {
-      "key": "vocab.object.red_mushroom",
-      "text": "Roter Pilz"
-    },
-    {
-      "key": "vocab.object.fieldstone",
-      "text": "Feldstein"
-    },
-    {
-      "key": "vocab.object.slate",
-      "text": "Schiefer"
-    },
-    {
-      "key": "vocab.object.sandstone",
-      "text": "Sandstein"
-    },
-    {
-      "key": "vocab.object.clay",
-      "text": "Lehm"
-    },
-    {
-      "key": "vocab.object.peat",
-      "text": "Torf"
-    },
-    {
-      "key": "vocab.object.driftwood",
-      "text": "Treibholz"
-    },
-    {
-      "key": "vocab.object.shell",
-      "text": "Muschel"
-    },
-    {
-      "key": "vocab.object.wild_grain",
-      "text": "Wildgetreide"
-    },
-    {
-      "key": "msg.hint.help_needed",
-      "text": "Bewohner {number} findet nichts gegen {need}."
-    },
-    {
-      "key": "msg.hint.place_gift",
-      "text": "Klicke in die Welt, wo die Gabe liegen soll (Esc bricht ab)."
-    },
-    {
-      "key": "msg.hint.gift_placed",
-      "text": "Die Gabe liegt jetzt in der Welt. Sie gehört niemandem."
-    },
-    {
-      "key": "ui.help.title",
-      "text": "Hilfe"
-    },
-    {
-      "key": "ui.help.empty",
-      "text": "Gerade bittet niemand um Hilfe."
-    },
-    {
-      "key": "ui.help.call",
-      "text": "Bewohner {number}: {need}"
-    },
-    {
-      "key": "ui.help.give",
-      "text": "{thing} hinlegen ({cost} Gunst)"
-    },
-    {
-      "key": "ui.favor.value",
-      "text": "Gunst {value}/{max}"
-    },
-    {
-      "key": "ui.favor.tooltip",
-      "text": "Gunst wächst langsam nach. Gaben kosten Gunst."
-    },
-    {
-      "key": "msg.mail.knock",
-      "text": "Bewohner {number} klopft an die Scheibe: findet nichts gegen {need}."
-    },
-    {
-      "key": "msg.command.no_message",
-      "text": "Diese Nachricht ist schon gelesen."
-    },
-    {
-      "key": "ui.mailbox.empty",
-      "text": "Keine neuen Nachrichten."
-    },
-    {
-      "key": "ui.mailbox.read",
-      "text": "Als gelesen markieren"
-    },
-    {
-      "key": "ui.mailbox.history",
-      "text": "Gelesen"
-    },
-    {
-      "key": "ui.help.answer",
-      "text": "Du könntest sagen: „{text}“"
-    },
-    {
-      "key": "vocab.skill.building",
-      "text": "Bauen"
-    },
-    {
-      "key": "vocab.skill.gathering",
-      "text": "Sammeln"
-    },
-    {
-      "key": "vocab.skill.cooking",
-      "text": "Kochen"
-    },
-    {
-      "key": "vocab.skill.healing",
-      "text": "Heilen"
-    },
-    {
-      "key": "vocab.skill.music",
-      "text": "Musik"
-    },
-    {
-      "key": "vocab.skill.teaching",
-      "text": "Lehren"
-    },
-    {
-      "key": "vocab.skill.inventing",
-      "text": "Erfinden"
-    },
-    {
-      "key": "vocab.skill.swimming",
-      "text": "Schwimmen"
-    },
-    {
-      "key": "vocab.skill.reading",
-      "text": "Lesen"
-    },
-    {
-      "key": "vocab.skill.writing",
-      "text": "Schreiben"
-    },
-    {
-      "key": "vocab.writing_medium.sand_marks",
-      "text": "Zeichen im Sand"
-    },
-    {
-      "key": "vocab.writing_medium.rock_painting",
-      "text": "Felsbild"
-    },
-    {
-      "key": "vocab.writing_medium.carving_wood",
-      "text": "Ritzung in Holz"
+      "key": "vocab.writing_medium.book",
+      "text": "Buch"
     },
     {
       "key": "vocab.writing_medium.carving_stone",
       "text": "Ritzung in Stein"
     },
     {
-      "key": "vocab.writing_medium.tablet",
-      "text": "Tafel"
-    },
-    {
-      "key": "vocab.writing_medium.book",
-      "text": "Buch"
+      "key": "vocab.writing_medium.carving_wood",
+      "text": "Ritzung in Holz"
     },
     {
       "key": "vocab.writing_medium.library",
       "text": "Bibliothek"
     },
     {
-      "key": "vocab.event.action_started",
-      "text": "Handlung beginnt"
+      "key": "vocab.writing_medium.rock_painting",
+      "text": "Felsbild"
     },
     {
-      "key": "vocab.event.action_finished",
-      "text": "Handlung beendet"
+      "key": "vocab.writing_medium.sand_marks",
+      "text": "Zeichen im Sand"
     },
     {
-      "key": "vocab.event.action_cancelled",
-      "text": "Handlung abgebrochen"
-    },
-    {
-      "key": "vocab.event.question_opened",
-      "text": "Frage gestellt"
-    },
-    {
-      "key": "vocab.event.question_answered",
-      "text": "Frage beantwortet"
-    },
-    {
-      "key": "vocab.event.question_failed",
-      "text": "Frage unbeantwortet"
-    },
-    {
-      "key": "vocab.event.thought",
-      "text": "Gedanke"
-    },
-    {
-      "key": "vocab.event.knowledge_gained",
-      "text": "Neues Wissen"
-    },
-    {
-      "key": "vocab.event.invention_wanted",
-      "text": "Erfindungswunsch"
-    },
-    {
-      "key": "vocab.event.invention_rejected",
-      "text": "Erfindung abgelehnt"
-    },
-    {
-      "key": "vocab.event.invention_failed",
-      "text": "Erfindung gescheitert"
-    },
-    {
-      "key": "vocab.event.invented",
-      "text": "Erfunden"
-    },
-    {
-      "key": "vocab.event.build_planned",
-      "text": "Bauplan steht"
-    },
-    {
-      "key": "vocab.event.build_plan_rejected",
-      "text": "Bauplan abgelehnt"
-    },
-    {
-      "key": "vocab.event.build_step",
-      "text": "Bauschritt fertig"
-    },
-    {
-      "key": "vocab.event.build_failed",
-      "text": "Bau gescheitert"
-    },
-    {
-      "key": "vocab.event.built",
-      "text": "Gebaut"
-    },
-    {
-      "key": "vocab.event.first_use",
-      "text": "Zum ersten Mal benutzt"
-    },
-    {
-      "key": "vocab.event.gift_placed",
-      "text": "Gabe hingelegt"
-    },
-    {
-      "key": "vocab.event.help_needed",
-      "text": "Hilferuf"
-    },
-    {
-      "key": "vocab.knowledge_source.experienced",
-      "text": "selbst erlebt"
-    },
-    {
-      "key": "vocab.knowledge_source.heard",
-      "text": "gehört"
-    },
-    {
-      "key": "vocab.knowledge_source.guessed",
-      "text": "vermutet"
-    },
-    {
-      "key": "vocab.knowledge_source.read",
-      "text": "gelesen"
-    },
-    {
-      "key": "vocab.event.skill_refused",
-      "text": "Neue Fähigkeit abgelehnt"
-    },
-    {
-      "key": "vocab.event.mail_arrived",
-      "text": "Nachricht im Postfach"
-    },
-    {
-      "key": "vocab.event.mail_repeated",
-      "text": "Nachricht klopft erneut"
-    },
-    {
-      "key": "vocab.event.writing_found",
-      "text": "Geschriebenes wiedergefunden"
-    },
-    {
-      "key": "msg.chronicle.found_writing",
-      "text": "{inhabitant} hat alte Zeichen gefunden: {target}."
-    },
-    {
-      "key": "vocab.event.conversation_started",
-      "text": "Angesprochen"
-    },
-    {
-      "key": "vocab.event.said",
-      "text": "Geantwortet"
-    },
-    {
-      "key": "vocab.event.gestured",
-      "text": "Geste"
-    },
-    {
-      "key": "vocab.event.declined",
-      "text": "Will nicht antworten"
-    },
-    {
-      "key": "vocab.event.not_understood",
-      "text": "Nicht verstanden"
-    },
-    {
-      "key": "vocab.event.no_answer",
-      "text": "Keine Antwort"
-    },
-    {
-      "key": "msg.command.text_refused",
-      "text": "So etwas sagen die Bewohner nicht – bitte anders formulieren."
-    },
-    {
-      "key": "msg.command.text_empty",
-      "text": "Schreib erst etwas."
-    },
-    {
-      "key": "msg.command.conversation_open",
-      "text": "Der Bewohner denkt noch über deinen letzten Satz nach."
-    },
-    {
-      "key": "msg.hint.no_answer",
-      "text": "Die Bewohner können gerade nicht antworten. Deine Gunst bekommst du zurück."
-    },
-    {
-      "key": "ui.setup.model_language",
-      "text": "Sprachmodell: Denken, Sprechen und Fragen der Bewohner"
+      "key": "vocab.writing_medium.tablet",
+      "text": "Tafel"
     }
   ]
 }

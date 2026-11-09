@@ -90,6 +90,10 @@ public sealed class UtilityBrain
         return !needBased;
     }
 
+    /// <summary>Whether an action serves a need: one of its considerations names that need (data).</summary>
+    public bool Serves(string action, string need) =>
+        _considerations.Any(c => string.Equals(c.Data.Action, action, StringComparison.Ordinal) && string.Equals(c.Data.Need, need, StringComparison.Ordinal));
+
     /// <summary>The key a search is kept under (its need, else its action).</summary>
     public static string SearchKey(Consideration consideration)
     {
