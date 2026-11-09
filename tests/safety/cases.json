@@ -1108,7 +1108,7 @@
     {
       "id": "r27-07",
       "locale": "de",
-      "text": "Sie wollen miteinander schlafen.",
+      "text": "Er will sie verführen.",
       "expect": "block",
       "stage": "prefilter",
       "category": "sexual"
@@ -1192,6 +1192,30 @@
       "expect": "allow",
       "stage": "prefilter",
       "category": null
+    },
+    {
+      "id": "r27-18",
+      "locale": "de",
+      "text": "Das Kind schläft bei seiner Mutter am Feuer.",
+      "expect": "allow",
+      "category": null,
+      "stage": "prefilter"
+    },
+    {
+      "id": "r27-19",
+      "locale": "en",
+      "text": "The child sleeps with its mother by the fire.",
+      "expect": "allow",
+      "category": null,
+      "stage": "prefilter"
+    },
+    {
+      "id": "r27-20",
+      "locale": "de",
+      "text": "Wir schlafen miteinander am Feuer, damit uns warm bleibt.",
+      "expect": "allow",
+      "category": null,
+      "stage": "prefilter"
     }
   ]
 }
