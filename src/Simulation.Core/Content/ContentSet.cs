@@ -163,6 +163,13 @@ public sealed class ContentSet
                 ContractSerializer.Deserialize<SoundGeneration>(File.ReadAllText(Path.Combine(contentDirectory, "sound", "generation.json")))));
         CheckInventions(inventions, actions, Ids(vocabularies, VocabularyKind.Shape), Ids(vocabularies, VocabularyKind.Time_of_day));
         var chronicle = ContractSerializer.Deserialize<ChronicleKinds>(File.ReadAllText(Path.Combine(contentDirectory, "chronicle", "kinds.json")));
+        var events = Ids(vocabularies, VocabularyKind.Event);
+        var unknownEvents = chronicle.Kinds.Where(k => !events.Contains(k.Event)).Select(k => $"kind '{k.Id}' names unknown event '{k.Event}'").ToList();
+        if (unknownEvents.Count > 0)
+        {
+            // The event vocabulary is the contract with the core: a kind for an event nobody can report is a typo.
+            throw new InvalidDataException("Chronicle kinds: " + string.Join("; ", unknownEvents) + ".");
+        }
         var player = Path.Combine(contentDirectory, "player");
         var writing = ContractSerializer.Deserialize<WritingMedia>(File.ReadAllText(Path.Combine(contentDirectory, "writing", "media.json")));
         CheckWriting(writing, Ids(vocabularies, VocabularyKind.Writing_medium), Ids(vocabularies, VocabularyKind.Weather), Ids(vocabularies, VocabularyKind.Property), Ids(vocabularies, VocabularyKind.Trait), Ids(vocabularies, VocabularyKind.Biome));
