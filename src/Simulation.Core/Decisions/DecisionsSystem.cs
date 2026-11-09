@@ -76,6 +76,18 @@ public sealed class DecisionsSystem : IWorldSystem
     /// <summary>Player command: an inhabitant was clicked.</summary>
     public const string InhabitantClicked = "inhabitant_clicked";
 
+    /// <summary>
+    /// Player command: the player switched the language (#20043). Requests from the tick it takes effect
+    /// use it; logged like every command, so a replay switches at the same tick.
+    /// </summary>
+    public const string SetDisplayLocale = "set_display_locale";
+
+    /// <summary>
+    /// The language requests use until a <see cref="SetDisplayLocale"/> is logged: every save from before
+    /// #20043 asked in it, so replays and restores start with it.
+    /// </summary>
+    public const string DefaultDisplayLocale = "de";
+
     /// <summary>Text key: unknown command.</summary>
     public const string ReasonUnknownCommand = "msg.command.unknown";
 
@@ -92,7 +104,7 @@ public sealed class DecisionsSystem : IWorldSystem
     private readonly ActionRules _actions;
     private readonly UtilityBrain _brain;
     private readonly IDecisionPort _port;
-    private readonly string _displayLocale;
+    private string _displayLocale;
     private readonly IReadOnlyDictionary<string, VocabularyEntryTarget> _actionTargets;
     private ILookup<long, PlayerCommand>? _replayCommands;
     private long _counter;
@@ -113,6 +125,13 @@ public sealed class DecisionsSystem : IWorldSystem
 
     /// <inheritdoc/>
     public string Name => "decisions";
+
+    /// <summary>Language of the texts the decider writes (display_locale of the requests).</summary>
+    public string DisplayLocale
+    {
+        get => _displayLocale;
+        internal set => _displayLocale = value;
+    }
 
     /// <summary>The replay log.</summary>
     public DecisionLog Log { get; } = new();
