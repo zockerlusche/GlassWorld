@@ -425,7 +425,10 @@ public partial class Main : Node3D
         SaveSettings();
         if (TrySave())
         {
-            GetTree().Quit(0);
+            // Like the smoke: silence all sounds and quit a moment later, so the audio server lets go of
+            // every playback first (no stream left at exit, #142).
+            _audio?.Silence();
+            GetTree().CreateTimer(0.1).Timeout += () => GetTree().Quit(0);
         }
     }
 

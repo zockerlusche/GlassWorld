@@ -73,6 +73,7 @@ Character:
 - fatty (Rich and greasy, like butter or oil.)
 - fibrous (Can be pulled into fibres.)
 - fine grained (Made of tiny grains or powder (sand, flour, ash).)
+- fruit (Looks like a fruit, nut or berry; seen by looking.)
 - hard (Solid and hard to break.)
 - hardens in fire (Becomes hard when fired.)
 - healing (Eases illness or pain when used.)
@@ -81,6 +82,7 @@ Character:
 - long lasting (Stays good to eat for a long time.)
 - malleable (Can be shaped by hand while moist.)
 - milky (A white, creamy drink from grains, nuts or seeds.)
+- mushroom (Looks like a mushroom; seen by looking.)
 - poisonous (Makes ill whoever eats or drinks it.)
 - portable (Small and light enough to be carried.)
 - salty (Salty; drinking it makes thirstier instead of quenching thirst.)
@@ -91,7 +93,9 @@ Character:
 - sparks (Throws sparks when struck against a suitable stone.)
 - splittable (Splits into flat pieces.)
 - sticky (Sticks things together.)
+- stone (Looks like stone or rock; seen by looking.)
 - transparent (You can see through it (glass).)
+- water (Looks like water: a spring, a pool or the sea; seen by looking.)
 
 ## Things you could do (optional idea)
 approach, build_step, combine, drink, drop, eat, idle, inspect, move_to, pick_up, show, sleep, talk_to, teach, use, wander, warn

@@ -19,6 +19,25 @@ class KnowledgeRelationship(BaseModel):
     respect: float = Field(..., ge=0.0, le=1.0)
 
 
+class KnowledgeGuess(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    seen: str = Field(
+        ...,
+        description='A visible property.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    property: str = Field(
+        ...,
+        description='The guessed property.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    value: bool
+
+
 class KnowledgePassing(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -34,6 +53,47 @@ class KnowledgePassing(BaseModel):
     )
     value: bool | None = Field(
         ..., description='Only beliefs with this value (null = either).'
+    )
+
+
+class KnowledgeLooking(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    action: str = Field(
+        ...,
+        description='The action that looks at a thing (object target).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    visible_properties: list[common_schema.VocabId] = Field(
+        ...,
+        description='Properties one can see by looking (kind, look, material); learned true or false.',
+        max_length=32,
+        min_length=1,
+    )
+    inspect_confidence: float = Field(
+        ...,
+        description='Confidence of what one has seen (below experienced_confidence, checked at load).',
+        ge=0.0,
+        le=1.0,
+    )
+    guessed_confidence: float = Field(
+        ...,
+        description='Confidence of a guess from what one has seen (source guessed; at most guessed_cap, checked at load).',
+        ge=0.0,
+        le=1.0,
+    )
+    guesses: list[KnowledgeGuess] = Field(
+        ...,
+        description='What one guesses from a visible property (e.g. looks like fruit: could be edible). A guess never replaces a belief one already has.',
+        max_length=32,
+    )
+    place_memory_max: int = Field(
+        ...,
+        description='Most remembered places (thing, type, position, tick) per inhabitant; the oldest is forgotten first.',
+        ge=0,
+        le=256,
     )
 
 
@@ -97,3 +157,4 @@ class KnowledgeSettings(BaseModel):
         ge=0,
         le=32,
     )
+    looking: KnowledgeLooking | None = None

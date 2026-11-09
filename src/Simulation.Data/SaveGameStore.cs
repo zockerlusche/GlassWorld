@@ -244,6 +244,12 @@ public static class SaveGameStore
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("search_since", JsonSerializer.Serialize(searches, Json)));
         }
 
+        var places = s.Inhabitants.Where(i => i.Places is { Count: > 0 }).ToDictionary(i => i.Id, i => i.Places!, StringComparer.Ordinal);
+        if (places.Count > 0)
+        {
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("places", JsonSerializer.Serialize(places, Json)));
+        }
+
         if (s.Player is not null)
         {
             // Player part (B6) as one JSON value; doubles round-trip exactly, so the hash survives.
@@ -427,6 +433,9 @@ public static class SaveGameStore
         var searches = meta.TryGetValue("search_since", out var searchJson)
             ? JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, long>>>(searchJson, Json) ?? []
             : [];
+        var places = meta.TryGetValue("places", out var placeJson)
+            ? JsonSerializer.Deserialize<Dictionary<string, List<SavedPlace>>>(placeJson, Json) ?? []
+            : [];
         return new SaveState(
             ulong.Parse(meta["seed"], CultureInfo.InvariantCulture),
             long.Parse(meta["tick"], CultureInfo.InvariantCulture),
@@ -450,7 +459,8 @@ public static class SaveGameStore
                     [.. beliefs[r.GetString(0)]],
                     appearances.GetValueOrDefault(r.GetString(0)),
                     [.. relations[r.GetString(0)]],
-                    searches.GetValueOrDefault(r.GetString(0)))),
+                    searches.GetValueOrDefault(r.GetString(0)),
+                    places.GetValueOrDefault(r.GetString(0)))),
             long.Parse(meta["question_counter"], CultureInfo.InvariantCulture),
             Query(c, "SELECT data FROM questions ORDER BY id", r => JsonSerializer.Deserialize<SavedQuestion>(r.GetString(0))!),
             Query(c, "SELECT key, tick FROM last_asked ORDER BY key", r => new KeyValuePair<string, long>(r.GetString(0), r.GetInt64(1))),

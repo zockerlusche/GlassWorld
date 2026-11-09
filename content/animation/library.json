@@ -322,6 +322,12 @@
     },
     {
       "kind": "action",
+      "id": "show",
+      "target": "inhabitant",
+      "clip": "talk"
+    },
+    {
+      "kind": "action",
       "id": "teach",
       "clip": "talk"
     },
@@ -532,7 +538,7 @@
     },
     {
       "id": "sit_down",
-      "clip": "sit_down",
+      "clip": "sit",
       "weight": 1.0,
       "speed_spread": 0.1,
       "mirror": false,

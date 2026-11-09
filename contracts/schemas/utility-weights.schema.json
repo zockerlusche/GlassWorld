@@ -35,6 +35,14 @@
         "search_action": { "description": "Action without a target (vocabulary target none) for looking further away while the inhabitant believes some kind of thing has target_property and nothing it avoids; scored with search_weight. Needs a target_property. Absent or null = the need waits until something turns up.", "anyOf": [{ "$ref": "common.schema.json#/$defs/VocabId" }, { "type": "null" }] },
         "need": { "description": "Need whose value is the curve input; null = constant input 1.", "anyOf": [{ "$ref": "common.schema.json#/$defs/VocabId" }, { "type": "null" }] },
         "weight": { "type": "number", "minimum": 0, "maximum": 100 },
+        "trait": { "description": "Character trait whose value (0..1) scales the score, e.g. curiosity. Absent or null = no trait.", "anyOf": [{ "$ref": "common.schema.json#/$defs/VocabId" }, { "type": "null" }] },
+        "novelty_curve": {
+          "description": "Exploring (TL #19921): the action is offered on every perceived object, scaled by this curve over the novelty of the object's type (1 - the inhabitant's surest belief about it; 1 = knows nothing). It yields to pressing needs: scaled by 1 - the highest urgency of the needs that can be neglected, and 0 while one is below its neglect threshold. Needs target_property and search_action null. Absent or null = no exploring.",
+          "anyOf": [
+            { "type": "array", "minItems": 2, "maxItems": 16, "items": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "type": "number", "minimum": 0, "maximum": 1 } } },
+            { "type": "null" }
+          ]
+        },
         "curve": {
           "description": "Points [x, y] with ascending x in 0..1.",
           "type": "array",

@@ -28,6 +28,54 @@ namespace GlassWorld.Contracts
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class Spacing
+    {
+
+        /// <summary>
+        /// An action aimed at another inhabitant (show, warn, teach ...) starts no closer than this to the listener: the actor steps back on the line to the listener if needed (placeholder).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("conversation_min_m")]
+        public double ConversationMinM { get; set; } = default!;
+
+        /// <summary>
+        /// Such an action starts once the actor is this close to the listener (replaces the action's reach_m for inhabitant targets; at least conversation_min_m, checked at load).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("conversation_max_m")]
+        public double ConversationMaxM { get; set; } = default!;
+
+        /// <summary>
+        /// No inhabitant ends a move closer than this to another: a walker that would is put on the nearest free spot beside the other (deterministic, no random draw). At most conversation_min_m, checked at load.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("min_separation_m")]
+        public double MinSeparationM { get; set; } = default!;
+
+        /// <summary>
+        /// A walker yields when another inhabitant is ahead within this distance and closer than min_separation_m to its line (B2569).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("yield_lookahead_m")]
+        public double YieldLookaheadM { get; set; } = default!;
+
+        /// <summary>
+        /// How far a yielding walker steps to its RIGHT (relative to its walking direction) per tick, in addition to its step (B2569).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("yield_offset_m")]
+        public double YieldOffsetM { get; set; } = default!;
+
+        /// <summary>
+        /// During such an action actor and listener turn their whole body to each other (B2528); this is the largest angle between facing and the direction to the other that counts as facing (presentation and tests).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("facing_tolerance_deg")]
+        public double FacingToleranceDeg { get; set; } = default!;
+
+        /// <summary>
+        /// One action owns legs and body (TL #20001): the actor of such an action stops and turns to the listener; the listener turns its body to the actor only when it has no action of its own or one of these (action vocabulary) and is not walking. Otherwise its own action keeps the body.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("listener_turns_during")]
+        public System.Collections.Generic.ICollection<string> ListenerTurnsDuring { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class ActionGait
     {
 
@@ -72,6 +120,13 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("action_gaits")]
         public System.Collections.Generic.ICollection<ActionGait> ActionGaits { get; set; } = new System.Collections.ObjectModel.Collection<ActionGait>();
+
+        /// <summary>
+        /// Personal space between inhabitants (Marcel W1687, W1688/B2569, W1691). Missing: no spacing (inhabitants may stand in one spot). Only spacing, no new behaviour (B2460).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("spacing")]
+        public Spacing? Spacing { get; set; } = default!;
 
         /// <summary>
         /// Gait of a walk whose action serves a need (the need of the action's first consideration in content/behaviour/utility.json) that is below the need's neglect_below in content/inhabitants/model.json. null = no such rule.

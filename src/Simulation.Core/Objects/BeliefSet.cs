@@ -16,6 +16,9 @@ public static class KnowledgeSources
 
     /// <summary>Read (writing, B9).</summary>
     public const string Read = "read";
+
+    /// <summary>Seen by looking closely: only what can be seen, never the effect (TL #19921).</summary>
+    public const string Seen = "seen";
 }
 
 /// <summary>

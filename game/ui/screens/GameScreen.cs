@@ -33,6 +33,7 @@ public partial class GameScreen : CanvasLayer
     private readonly List<(Button Button, TimeChoice Choice)> _timeButtons = [];
     private readonly Dictionary<string, ProgressBar> _cardBars = new(StringComparer.Ordinal);
     private Label? _cardAction;
+    private Dictionary<string, string>? _activities;
     private Label? _cardQuestions;
     private LineEdit? _talkInput;
     private string _cardShape = string.Empty;
@@ -46,6 +47,7 @@ public partial class GameScreen : CanvasLayer
     private readonly HashSet<string> _askedHelp = new(StringComparer.Ordinal);
     private readonly ConcurrentQueue<(string Key, IReadOnlyList<HelpCard>? Cards, string? Problem)> _helpAnswers = new();
     private string? _placing;
+    private ClickGate? _click;
     private readonly VBoxContainer _mailList = new() { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
     private string _mailShape = "-";
     private Label? _time;
@@ -86,11 +88,11 @@ public partial class GameScreen : CanvasLayer
         _inhabitants.CustomMinimumSize = new Vector2(0, style.Tokens.Window.TableMinHeight);
         _questions.CustomMinimumSize = new Vector2(0, style.Tokens.Window.TableMinHeight);
         _inhabitants.Setup(
-            [new GwColumn("ui.inhabitants.column.name", false), new GwColumn("ui.inhabitants.column.will_to_live", true), new GwColumn("ui.inhabitants.column.questions", true)],
+            [new GwColumn("ui.inhabitants.column.name", false), new GwColumn("ui.inhabitants.column.activity", false), new GwColumn("ui.inhabitants.column.will_to_live", true), new GwColumn("ui.inhabitants.column.questions", true)],
             "ui.inhabitants.empty");
-        _inhabitants.RowSelected += OpenCard;
+        _inhabitants.RowSelected += ShowInhabitant;
         _questions.Setup([new GwColumn("ui.inhabitants.column.name", false), new GwColumn("ui.questions.column.count", true)], "ui.questions.empty");
-        _questions.RowSelected += OpenCard;
+        _questions.RowSelected += ShowInhabitant;
         _sideBar.Add("inhabitants", "ui.inhabitants.title").Content.AddChild(_inhabitants);
         _sideBar.Add("questions", "ui.questions.title").Content.AddChild(_questions);
         _sideBar.Add("chronicle", "ui.chronicle.title").Content.AddChild(_chronicleList);
@@ -114,6 +116,11 @@ public partial class GameScreen : CanvasLayer
 
         _toasts.Board = _board;
         _root.AddChild(_toasts);
+
+        // Events never move the camera by themselves (TL #19976): a new thought is a hint, and only its
+        // "look" button makes the camera follow that inhabitant (until the player moves it or presses Esc).
+        presenter.Noticed += NoticeThought;
+        _toasts.LookRequested += id => _presenter?.ChooseFigure(id);
         GetViewport().SizeChanged += Layout;
 
         // A new theme (text size, UI size) changes the top bar's height after it has wrapped again;
@@ -237,9 +244,54 @@ public partial class GameScreen : CanvasLayer
             return;
         }
 
-        if (@event is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } place && _placing is not null)
+        if (@event.IsActionPressed("ui_cancel"))
         {
-            if (WorldPoint(place.Position) is { } point)
+            // Open windows close themselves on Esc first (GwWindow); only then the pause menu opens. On the
+            // way Esc lets go of a followed inhabitant, so one Esc always reaches the menu (GW3 #144).
+            _presenter?.StopFollowing();
+            PauseRequested?.Invoke();
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+
+        // A left press into the world only starts a gesture: let go soon and close by it is a click (gift
+        // placement or figure selection), moved farther it is a camera drag (B2567). The press is not
+        // consumed, so the camera sees it as well and both use the same thresholds.
+        if (@event is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } press && _style is not null)
+        {
+            var data = _presenter?.Rig?.Model.Data;
+            _click = new ClickGate(data?.ClickMaxPx ?? double.MaxValue, data?.ClickMaxMs ?? double.MaxValue);
+            _click.Press(press.Position.X, press.Position.Y, Time.GetTicksMsec());
+        }
+    }
+
+    /// <inheritdoc/>
+    public override void _Input(InputEvent @event)
+    {
+        // Moves and the release of a started press are read before the GUI, so a drag across a panel is
+        // still a drag; nothing is consumed here.
+        if (_click is not { Pressed: true } click)
+        {
+            return;
+        }
+
+        if (@event is InputEventMouseMotion motion)
+        {
+            click.Move(motion.Position.X, motion.Position.Y);
+        }
+        else if (@event is InputEventMouseButton { Pressed: false, ButtonIndex: MouseButton.Left } release
+            && click.Release(release.Position.X, release.Position.Y, Time.GetTicksMsec()))
+        {
+            WorldClick(release.Position);
+        }
+    }
+
+    /// <summary>A short left click into the world: places the gift being placed, else selects a figure or stops following.</summary>
+    private void WorldClick(Vector2 position)
+    {
+        if (_placing is not null)
+        {
+            if (WorldPoint(position) is { } point)
             {
                 // On the island a spot on water or off the island is refused here, before the core: no
                 // favour is spent and the gift never sinks out of reach (GW3 #113, finding 1).
@@ -253,33 +305,24 @@ public partial class GameScreen : CanvasLayer
                 }
             }
 
-            GetViewport().SetInputAsHandled();
-            return;
-        }
-
-        if (@event.IsActionPressed("ui_cancel"))
-        {
-            // Open windows close themselves on Esc first (GwWindow); only then the pause menu opens.
-            PauseRequested?.Invoke();
-            GetViewport().SetInputAsHandled();
             return;
         }
 
         // The screen owns the left click (gift placement above, otherwise figure selection), so one click
-        // never does both; on the island it also tells the camera (follow the figure, or stop following).
-        if (@event is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } click && _style is not null)
+        // never does both; it also tells the camera (follow the figure, or stop following).
+        if (_style is null)
         {
-            var id = PickAt(click.Position);
-            if (id is not null)
-            {
-                Encounter(id);
-                _presenter?.ChooseFigure(id);
-                GetViewport().SetInputAsHandled();
-            }
-            else
-            {
-                _presenter?.ClickedGround();
-            }
+            return;
+        }
+
+        if (PickAt(position) is { } id)
+        {
+            Encounter(id);
+            _presenter?.ChooseFigure(id);
+        }
+        else
+        {
+            _presenter?.ClickedGround();
         }
     }
 
@@ -1066,6 +1109,21 @@ public partial class GameScreen : CanvasLayer
     /// <summary>Shows a calm hint (e.g. saving failed).</summary>
     public void ShowHint(ToastMessage message) => _board?.Push(message, fastForward: false);
 
+    /// <summary>
+    /// A new thought: a calm hint with a "look" button, at most one at a time (at high speed thoughts come
+    /// often; the next one shows when the last hint is gone).
+    /// </summary>
+    private void NoticeThought(string inhabitantId)
+    {
+        if (_board is null || _board.Waiting > 0 || _board.Visible.Any(t => t.Message.LookAt is not null))
+        {
+            return;
+        }
+
+        var name = DisplayName(new InhabitantRow(inhabitantId, WorldFeed.NumberOf(inhabitantId), 0, false, null, 0));
+        ShowHint(new ToastMessage("msg.hint.look_thought", new Dictionary<string, string> { ["name"] = name }, null, inhabitantId));
+    }
+
     /// <summary>For screenshots: opens the inhabitants panel and the card of the first inhabitant.</summary>
     public void ShowForShots()
     {
@@ -1097,7 +1155,9 @@ public partial class GameScreen : CanvasLayer
         RefreshMail();
 
         var rows = _feed.Inhabitants();
-        _inhabitants.SetRows([.. rows.Select(r => new GwRow(r.Id, [DisplayName(r), Number(r.WillToLivePercent), Number(r.OpenQuestions)], [r.Number, r.WillToLivePercent, r.OpenQuestions]))]);
+        _activities = Activities(rows);
+        // The activity column is a text column: GwTable sorts it by its text in the game's language (the 0 is never read).
+        _inhabitants.SetRows([.. rows.Select(r => new GwRow(r.Id, [DisplayName(r), _activities[r.Id], Number(r.WillToLivePercent), Number(r.OpenQuestions)], [r.Number, 0, r.WillToLivePercent, r.OpenQuestions]))]);
         _questions.SetRows([.. _feed.OpenQuestions().Select(q => (Row: rows.First(r => r.Id == q.InhabitantId), q.Count)).Select(x => new GwRow(x.Row.Id, [DisplayName(x.Row), Number(x.Count)], [x.Row.Number, x.Count]))]);
 
         var clock = _feed.Clock();
@@ -1293,6 +1353,17 @@ public partial class GameScreen : CanvasLayer
         return new Vector2((float)width, area.Y);
     }
 
+    /// <summary>
+    /// A row of the inhabitant or question list (B2569): the card opens and the camera glides to the
+    /// inhabitant and follows it, as after a click on the figure (until the player moves the camera or
+    /// presses Esc). The selected row stays marked.
+    /// </summary>
+    private void ShowInhabitant(string inhabitantId)
+    {
+        OpenCard(inhabitantId);
+        _presenter?.ChooseFigure(inhabitantId);
+    }
+
     private void OpenCard(string inhabitantId)
     {
         if (_style is null)
@@ -1402,7 +1473,7 @@ public partial class GameScreen : CanvasLayer
             _talkInput.PlaceholderText = Tr("ui.card.talk_hint");
         }
 
-        var action = card.Row.ActionKey ?? "ui.card.idle";
+        var action = (_activities ?? Activities(_feed!.Inhabitants())).GetValueOrDefault(card.Row.Id) ?? Tr(InhabitantActivity.StandingKey);
         if (_cardAction is not null && _cardAction.Text != action)
         {
             _cardAction.Text = action;
@@ -1517,6 +1588,26 @@ public partial class GameScreen : CanvasLayer
                 return (f.Id, (double)p.X, (double)p.Y);
             });
         return ScreenModel.Pick(figures, screen.X, screen.Y, _style.Tokens.Window.PickRadiusPx);
+    }
+
+    /// <summary>
+    /// What each inhabitant does, as a readable line (W1687: never a bare question mark); lookups are built
+    /// once per refresh and the names come from <see cref="DisplayName"/>.
+    /// </summary>
+    private Dictionary<string, string> Activities(IReadOnlyList<InhabitantRow> rows)
+    {
+        if (_feed?.Snapshot is not { } snapshot)
+        {
+            return [];
+        }
+
+        var index = new SnapshotIndex(snapshot);
+        var byId = rows.ToDictionary(r => r.Id, StringComparer.Ordinal);
+        string NameOf(string id) => byId.TryGetValue(id, out var row) ? DisplayName(row) : TextFill.Fill(Tr("ui.inhabitant.unnamed"), new Dictionary<string, string> { ["number"] = Number(WorldFeed.NumberOf(id)) });
+        return rows.ToDictionary(
+            r => r.Id,
+            r => index.Inhabitants.TryGetValue(r.Id, out var inhabitant) ? InhabitantActivity.Describe(inhabitant, index, key => Tr(key), NameOf) : Tr(InhabitantActivity.StandingKey),
+            StringComparer.Ordinal);
     }
 
     private string DisplayName(InhabitantRow row) => TextFill.Fill(Tr("ui.inhabitant.unnamed"), ScreenModel.NameArgs(row));

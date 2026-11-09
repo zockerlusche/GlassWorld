@@ -42,11 +42,33 @@ class WorldLookLabels(BaseModel):
         ge=50,
         le=4000,
     )
+    bubble_min_px: float = Field(
+        ...,
+        description="Least screen height of a bubble's text line in pixels (far away it stays readable, W1688).",
+        ge=4.0,
+        le=200.0,
+    )
+    bubble_max_px: float = Field(
+        ...,
+        description="Greatest screen height of a bubble's text line in pixels (close up it is not huge).",
+        ge=4.0,
+        le=400.0,
+    )
+    speech_s: float = Field(
+        ...,
+        description='Real seconds a spoken answer stays above the head.',
+        ge=1.0,
+        le=120.0,
+    )
 
 
 class WorldLookObserver(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
+    )
+    auto: bool = Field(
+        ...,
+        description="Whether the observer moves the camera by itself (follows thoughts, switches groups, takes the camera back after the idle pause). false = the camera moves only on the player's wish.",
     )
     group_switch_s: float = Field(
         ...,

@@ -66,7 +66,10 @@
         "thought_above_head_m",
         "question_above_head_m",
         "pixel_size_m",
-        "thought_width_px"
+        "thought_width_px",
+        "bubble_min_px",
+        "bubble_max_px",
+        "speech_s"
       ],
       "properties": {
         "thought_above_head_m": {
@@ -92,20 +95,43 @@
           "type": "integer",
           "minimum": 50,
           "maximum": 4000
+        },
+        "bubble_min_px": {
+          "description": "Least screen height of a bubble's text line in pixels (far away it stays readable, W1688).",
+          "type": "number",
+          "minimum": 4,
+          "maximum": 200
+        },
+        "bubble_max_px": {
+          "description": "Greatest screen height of a bubble's text line in pixels (close up it is not huge).",
+          "type": "number",
+          "minimum": 4,
+          "maximum": 400
+        },
+        "speech_s": {
+          "description": "Real seconds a spoken answer stays above the head.",
+          "type": "number",
+          "minimum": 1,
+          "maximum": 120
         }
       }
     },
     "WorldLookObserver": {
-      "description": "Observer camera on the island: it follows the group where the last thought appeared, otherwise switches groups; the player takes over by panning or clicking and hands back after a calm pause.",
+      "description": "Observer camera: with auto on it follows the group where the last thought appeared, otherwise switches groups, and takes the camera back after a calm pause. Off by default (TL #19976): the camera moves only on the player's wish; thoughts show as a hint with a 'look' button.",
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "auto",
         "group_switch_s",
         "thought_focus_s",
         "resume_after_idle_s",
         "distance_m"
       ],
       "properties": {
+        "auto": {
+          "description": "Whether the observer moves the camera by itself (follows thoughts, switches groups, takes the camera back after the idle pause). false = the camera moves only on the player's wish.",
+          "type": "boolean"
+        },
         "group_switch_s": {
           "description": "Real seconds before the observer moves on to the next group.",
           "type": "number",

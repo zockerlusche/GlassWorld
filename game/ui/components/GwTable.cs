@@ -28,9 +28,10 @@ public partial class GwTable : VBoxContainer
     private List<string> _order = [];
     private bool _rebuilding;
     private int _sortColumn;
+    private ulong _emittedFrame = ulong.MaxValue;
     private bool _descending;
 
-    /// <summary>Raised when the player selects a row (row id).</summary>
+    /// <summary>Raised when the player selects a row (row id), also when the player clicks the row that is already selected.</summary>
     [Signal]
     public delegate void RowSelectedEventHandler(string id);
 
@@ -44,6 +45,18 @@ public partial class GwTable : VBoxContainer
         {
             if (!_rebuilding && _tree.GetSelected()?.GetMetadata(0).AsString() is { Length: > 0 } id)
             {
+                _emittedFrame = Engine.GetProcessFrames();
+                EmitSignal(SignalName.RowSelected, id);
+            }
+        };
+
+        // A click on the row that is already selected changes no selection, but the player still wants
+        // it (B2569: every click gives feedback, the camera glides to the inhabitant again).
+        _tree.ItemMouseSelected += (_, _) =>
+        {
+            if (!_rebuilding && _emittedFrame != Engine.GetProcessFrames() && _tree.GetSelected()?.GetMetadata(0).AsString() is { Length: > 0 } id)
+            {
+                _emittedFrame = Engine.GetProcessFrames();
                 EmitSignal(SignalName.RowSelected, id);
             }
         };

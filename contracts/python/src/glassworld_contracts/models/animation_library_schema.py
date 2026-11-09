@@ -23,6 +23,11 @@ class Kind(StrEnum):
     special = 'special'
 
 
+class Target(StrEnum):
+    inhabitant = 'inhabitant'
+    object = 'object'
+
+
 class When(StrEnum):
     low = 'low'
     high = 'high'
@@ -69,6 +74,10 @@ class AnimationMapping(BaseModel):
         description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    target: Target | None = Field(
+        None,
+        description='Only for kind action: this mapping applies when the action is aimed at this kind of target (inhabitant: another inhabitant; object: a thing of the world). A mapping without target applies otherwise. Lets an action bend down only for a thing on the ground, never towards another inhabitant (Marcel W1687).',
     )
 
 

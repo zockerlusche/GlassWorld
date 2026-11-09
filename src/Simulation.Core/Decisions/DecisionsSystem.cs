@@ -125,6 +125,21 @@ public sealed class DecisionsSystem : IWorldSystem
         [.. _open.Values.Where(q => q.InhabitantId == inhabitantId).Select(q => q.Id)];
 
     /// <summary>
+    /// Open questions that still puzzle the inhabitant (TL #19921, for the question mark): a question about
+    /// a type it has looked at since leaves only the effect open, so it no longer counts.
+    /// </summary>
+    public IReadOnlyList<string> PuzzlingQuestionIds(Inhabitant inhabitant)
+    {
+        ArgumentNullException.ThrowIfNull(inhabitant);
+        return [.. _open.Values
+            .Where(q => q.InhabitantId == inhabitant.Id
+                && !(q.Subject.StartsWith(TypeSubject, StringComparison.Ordinal) && InhabitantsSystem.HasLookedAt(Knowledge, inhabitant, q.Subject[TypeSubject.Length..])))
+            .Select(q => q.Id)];
+    }
+
+    private const string TypeSubject = "type:";
+
+    /// <summary>
     /// Replay mode: player commands come from a recorded log at the ticks they took effect (they change the
     /// world, so they belong to the replay like the answers of the decider).
     /// </summary>
@@ -436,7 +451,7 @@ public sealed class DecisionsSystem : IWorldSystem
         {
             // Only what the asker's needs suggest (F5275 A): no sleep offered to someone wide awake, so a
             // queued answer cannot chain sleeps while thirsty.
-            if (!_brain.NeedSuggests(asker, action))
+            if (!_brain.NeedSuggests(asker, action, target?.TypeId))
             {
                 continue;
             }
