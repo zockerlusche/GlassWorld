@@ -6,6 +6,7 @@
   "unknown_target_belief": 0.3,
   "search_weight": 0.2,
   "search_give_up_hours": 48,
+  "repetition": { "max_repeats_without_effect": 2, "rest_hours": 2, "same_place_m": 3, "min_effect": 0.02, "exempt_actions": ["idle"] },
   "considerations": [
     { "action": "eat", "target_property": "edible", "avoid_properties": ["poisonous"], "search_action": "wander", "need": "hunger", "weight": 1.0, "curve": [[0.0, 1.0], [0.5, 0.4], [0.8, 0.0], [1.0, 0.0]] },
     { "action": "drink", "target_property": "drinkable", "avoid_properties": ["salty", "poisonous"], "search_action": "wander", "need": "thirst", "weight": 1.0, "curve": [[0.0, 1.0], [0.5, 0.4], [0.8, 0.0], [1.0, 0.0]] },

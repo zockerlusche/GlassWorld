@@ -13,14 +13,15 @@
     "shoe_color",
     "outline",
     "crossfade_s",
-    "idle_slot_ticks",
     "idle_slot_spread",
+    "pose_cadence",
     "walk_min_step_m",
     "turn_rate_deg_s",
     "gait_time_scale",
     "head_anchor_m",
     "thinking_dots",
     "sitting",
+    "lying",
     "greeting",
     "silhouette",
     "crown_fade"
@@ -59,17 +60,14 @@
       "minimum": 0,
       "maximum": 2
     },
-    "idle_slot_ticks": {
-      "description": "World ticks one idle behaviour lasts before the next is drawn (from the core tick, so pictures repeat at any frame rate).",
-      "type": "integer",
-      "minimum": 1,
-      "maximum": 1000
-    },
     "idle_slot_spread": {
-      "description": "How much an inhabitant's idle slot is longer or shorter than idle_slot_ticks (share, e.g. 0.3 = up to 30 percent either way); with a phase per inhabitant it keeps figures from changing their idle behaviour in lock-step.",
+      "description": "How much an inhabitant's idle slot is longer or shorter than pose_cadence.idle_slot_s (share, e.g. 0.3 = up to 30 percent either way); with a phase per inhabitant it keeps figures from changing their idle behaviour in lock-step.",
       "type": "number",
       "minimum": 0,
       "maximum": 0.9
+    },
+    "pose_cadence": {
+      "$ref": "#/$defs/FigurePoseCadence"
     },
     "walk_min_step_m": {
       "description": "Least ground distance in metres an inhabitant must move in a tick to be shown walking (whatever the action; actions walk to their target first).",
@@ -110,6 +108,10 @@
       "description": "Seated clips only sit on something (W1688): on a seat object near the figure the hips go to its seat height; elsewhere the figure sits on the ground with straightened legs, never in the air.",
       "$ref": "#/$defs/FigureSitting"
     },
+    "lying": {
+      "description": "Lying poses (W1695): sleeping figures lie on their back on the ground instead of standing.",
+      "$ref": "#/$defs/FigureLying"
+    },
     "greeting": {
       "description": "How inhabitants show that they heard the player (W1688): they look up and turn to the voice (the camera), the speaker waves or talks with its answer.",
       "$ref": "#/$defs/FigureGreeting"
@@ -124,6 +126,49 @@
     }
   },
   "$defs": {
+    "FigureLying": {
+      "description": "A lying pose made from a calm standing clip (the figure GLB has no lying clip): the whole figure tips over about its feet by pitch_deg so it lies on its back, and its body rests on the ground under its hips (lift_m above it). It lies down and gets up over settle_s.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["clips", "pitch_deg", "hip_m", "lift_m", "settle_s"],
+      "properties": {
+        "clips": {
+          "description": "Library clip ids played lying (e.g. sleep).",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" }
+        },
+        "pitch_deg": { "description": "Tilt about the figure's left-right axis in degrees; -90 lays it on its back (the figure faces +Z).", "type": "number", "minimum": -90, "maximum": 90 },
+        "hip_m": { "description": "Distance from the feet to the hips in metres at scale 1: where the lying body meets the ground.", "type": "number", "minimum": 0, "maximum": 3 },
+        "lift_m": { "description": "Height of the lying body's axis above the ground in metres at scale 1 (half the body's depth).", "type": "number", "minimum": 0, "maximum": 1 },
+        "settle_s": { "description": "Real seconds to lie down or get up.", "type": "number", "minimum": 0.05, "maximum": 10 }
+      }
+    },
+    "FigurePoseCadence": {
+      "description": "Calm poses (W1697): how often a figure may change what it shows, in real seconds so fast forward does not turn idle variety into squats. An idle behaviour is held at least min_pose_s before the next idle behaviour; walking and core actions show at the next free frame; idle variety starts only after standing idle for idle_variety_after_s (before, the rest idle plays) and then changes every idle_slot_s (with idle_slot_spread and a phase per inhabitant); two figures never change their pose in the same frame, and two idle variety changes lie at least stagger_s apart; in a conversation (the inhabitant speaks to or is spoken to) only the conversation_idle behaviours play, no sitting or bending.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["min_pose_s", "idle_variety_after_s", "idle_slot_s", "rest_idle", "stagger_s", "conversation_idle", "max_changes_per_minute", "max_walk_changes_per_minute"],
+      "properties": {
+        "min_pose_s": { "description": "Real seconds an idle behaviour is held at least before the next idle behaviour (core actions and walking are never held).", "type": "number", "minimum": 0, "maximum": 120 },
+        "idle_variety_after_s": { "description": "Real seconds a figure stands idle before idle variety begins; until then it plays rest_idle.", "type": "number", "minimum": 0, "maximum": 600 },
+        "idle_slot_s": { "description": "Real seconds one idle behaviour lasts before the next is drawn (± idle_slot_spread, phase per inhabitant).", "type": "number", "minimum": 0.5, "maximum": 600 },
+        "rest_idle": { "description": "Idle behaviour id (content/animation/library.json idle) a figure plays while it has stood idle only briefly.", "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+        "stagger_s": { "description": "Least real seconds between the idle variety changes of two figures (other changes only wait for a free frame).", "type": "number", "minimum": 0, "maximum": 10 },
+        "conversation_idle": {
+          "description": "Idle behaviour ids allowed while the inhabitant is in a conversation (no sitting, crouching or bending).",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" }
+        },
+        "max_changes_per_minute": { "description": "Upper limit of idle variety changes per real minute and figure the presentation is tested against, at normal speed and at x16.", "type": "number", "minimum": 1, "maximum": 600 },
+        "max_walk_changes_per_minute": { "description": "Upper limit of changes the core drives (starting and stopping to walk, core actions) per real minute and figure the presentation is tested against. They follow the core without delay (no marching in place, short actions always show), so fast forward shows many more per real minute.", "type": "number", "minimum": 1, "maximum": 600 }
+      }
+    },
     "FigureThinkingDots": {
       "type": "object",
       "additionalProperties": false,

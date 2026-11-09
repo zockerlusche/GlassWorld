@@ -9,6 +9,42 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from . import common_schema
 
+
+class RepetitionLimit(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    max_repeats_without_effect: int = Field(
+        ...,
+        description='Repeats in a row without any effect after which the action rests.',
+        ge=1,
+        le=1000,
+    )
+    rest_hours: float = Field(
+        ...,
+        description='Game hours the action then rests (cooldown).',
+        ge=0.0,
+        le=1000.0,
+    )
+    same_place_m: float = Field(
+        ...,
+        description='Distance in metres from where the run began within which a repeat counts as the same spot.',
+        ge=0.0,
+        le=1000.0,
+    )
+    min_effect: float = Field(
+        ...,
+        description='Smallest change of a need, mood or the will to live that counts as an effect; less (e.g. topping up a need that is nearly full) counts as nothing.',
+        ge=0.0,
+        le=1.0,
+    )
+    exempt_actions: list[common_schema.VocabId] | None = Field(
+        None,
+        description="Actions that never rest (doing nothing, e.g. idle): resting them would only send the inhabitant off on strolls away from water and food; their calm look is the presentation's task (pose_cadence).",
+        max_length=64,
+    )
+
+
 type NoveltyCurveItemItem = Annotated[float, Field(..., ge=0.0, le=1.0)]
 
 
@@ -113,4 +149,5 @@ class UtilityWeights(BaseModel):
         ge=0.0,
         le=10000.0,
     )
+    repetition: RepetitionLimit | None = None
     considerations: list[Consideration] = Field(..., max_length=256, min_length=1)
