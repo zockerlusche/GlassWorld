@@ -53,6 +53,9 @@ internal sealed class RunCommand
     /// <summary>Real time per tick while an AI call is running (null = the game's fastest speed from the data).</summary>
     public TimeSpan? BusyTickInterval { get; init; }
 
+    /// <summary>Monotonic clock for pacing (tests pass a fake that only moves when they sleep).</summary>
+    public Func<TimeSpan> Clock { get; init; } = () => Stopwatch.GetElapsedTime(0);
+
     /// <summary>Runs; returns the exit code (<see cref="ExitCodes"/>).</summary>
     public int Run(HeadlessOptions options, TextWriter output, CancellationToken stop)
     {
@@ -152,7 +155,7 @@ internal sealed class RunCommand
         var pacer = new Pacer(
             TimeSpan.FromMilliseconds(options.TickMs),
             BusyTickInterval ?? TimeSpan.FromSeconds(calendar.RealSecondsPerTickAtNormalSpeed / Math.Max(1, fastest)),
-            () => Stopwatch.GetElapsedTime(0),
+            Clock,
             Sleep);
 
         // Event lines and the stop condition read every reported event in report order (no buffer limit);

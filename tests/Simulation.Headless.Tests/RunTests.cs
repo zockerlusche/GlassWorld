@@ -196,42 +196,47 @@ public sealed class RunTests : IDisposable
     [Fact]
     public void LiveStyleAnswersArriveWhileTheWorldRunsOnAndThePortIsClosedAtTheEnd()
     {
-        // A fake of the live connection: answers come in real time on another thread, like the HTTP port.
-        // Not the real service: CI has no GPU and never starts it (the live path is checked by hand).
-        var fake = new DelayedConnection(TimeSpan.FromMilliseconds(30));
+        // A fake of the live connection: an answer is out for a fixed number of ticks, like an HTTP answer
+        // that arrives later. Clock and sleep are fakes too (the clock only moves when the runner sleeps), so
+        // nothing depends on machine speed. Not the real service: CI has no GPU and never starts it.
+        var fake = new DelayedConnection(delayTicks: 5);
         var sleeps = new List<TimeSpan>();
+        var now = TimeSpan.Zero;
         var command = new RunCommand
         {
             Connect = (_, _) => fake,
             BusyTickInterval = TimeSpan.FromMilliseconds(2),
+            Clock = () => now,
             Sleep = w =>
             {
                 sleeps.Add(w);
-                Thread.Sleep(w);
+                now += w;
             },
         };
         var path = Path.Combine(_folder, "live.jsonl");
         var (code, lines) = Run(command, "--days", "1", "--quiet", "--ai", "live", "--until", "question_answered:2", "--log-json", path);
         Assert.Equal(ExitCodes.Ok, code);
         Assert.True(fake.Disposed);
+        // Paced at the busy interval while an answer was out, and only then (one wait per busy tick).
         Assert.NotEmpty(sleeps);
-        Assert.All(sleeps, s => Assert.True(s <= TimeSpan.FromMilliseconds(2)));
+        Assert.All(sleeps, s => Assert.Equal(TimeSpan.FromMilliseconds(2), s));
+        Assert.Equal(fake.BusyTicks, sleeps.Count);
 
-        // The world ran on while the answer was out: it took effect several ticks after the question.
+        // The world ran on while the answer was out: it took effect exactly when the port handed it over.
         var waits = File.ReadAllLines(path)
             .Select(l => JsonDocument.Parse(l).RootElement)
             .Where(e => e.GetProperty("kind").GetString() == "response")
             .Select(e => e.GetProperty("meta").GetProperty("wait_ticks").GetInt64())
             .ToList();
         Assert.NotEmpty(waits);
-        Assert.All(waits, w => Assert.True(w > 1, $"answer took effect after {w} ticks"));
+        Assert.All(waits, w => Assert.Equal(5, w));
         Assert.StartsWith("FINAL hash=", lines[^1], StringComparison.Ordinal);
     }
 
     [Fact]
     public void AnExceptionStillClosesThePortAndPrintsFinal()
     {
-        var fake = new DelayedConnection(TimeSpan.Zero) { FailAfterReceives = 50 };
+        var fake = new DelayedConnection(delayTicks: 1) { FailAfterReceives = 50 };
         var output = new StringWriter();
         var command = new RunCommand { Connect = (_, _) => fake };
         Assert.Throws<InvalidOperationException>(() => command.Run(HeadlessOptions.Parse(["--days", "1", "--quiet", "--content", Content]), output, CancellationToken.None));
@@ -242,7 +247,7 @@ public sealed class RunTests : IDisposable
     [Fact]
     public void CtrlCStopsTheRunPrintsFinalAndClosesThePort()
     {
-        var fake = new DelayedConnection(TimeSpan.Zero);
+        var fake = new DelayedConnection(delayTicks: 1);
         using var stop = new CancellationTokenSource();
         stop.Cancel();
         var output = new StringWriter();
@@ -252,17 +257,23 @@ public sealed class RunTests : IDisposable
         Assert.EndsWith("tick=0", output.ToString().Trim(), StringComparison.Ordinal);
     }
 
-    /// <summary>Answers like the mock, but only after a real delay and from the pending queue, as the HTTP port does.</summary>
-    private sealed class DelayedConnection(TimeSpan delay) : IAiConnection, IDecisionPort
+    /// <summary>
+    /// Answers like the mock, but only <c>delayTicks</c> ticks after the question, from the pending queue (as the
+    /// HTTP port hands over what has arrived). Busy while an answer is out; counts the busy ticks the runner saw.
+    /// </summary>
+    private sealed class DelayedConnection(int delayTicks) : IAiConnection, IDecisionPort
     {
         private readonly MockDecisionPort _mock = new();
-        private readonly List<(TimeSpan Due, PortMessage Message)> _pending = [];
-        private readonly Lock _lock = new();
+        private readonly List<(long Due, PortMessage Message)> _pending = [];
+        private long _tick;
         private int _receives;
 
         public int FailAfterReceives { get; init; } = int.MaxValue;
 
         public bool Disposed { get; private set; }
+
+        /// <summary>Ticks at which the runner asked and an answer was out.</summary>
+        public int BusyTicks { get; private set; }
 
         public IDecisionPort Decisions => this;
 
@@ -272,22 +283,18 @@ public sealed class RunTests : IDisposable
         {
             get
             {
-                lock (_lock)
-                {
-                    return _pending.Count > 0;
-                }
+                var busy = _pending.Count > 0;
+                BusyTicks += busy ? 1 : 0;
+                return busy;
             }
         }
 
         public void Send(string requestId, string requestJson)
         {
             _mock.Send(requestId, requestJson);
-            lock (_lock)
+            foreach (var message in _mock.Receive(_tick))
             {
-                foreach (var message in _mock.Receive(0))
-                {
-                    _pending.Add((Stopwatch.GetElapsedTime(0) + delay, message));
-                }
+                _pending.Add((_tick + delayTicks, message));
             }
         }
 
@@ -298,13 +305,10 @@ public sealed class RunTests : IDisposable
                 throw new InvalidOperationException("port broke");
             }
 
-            var now = Stopwatch.GetElapsedTime(0);
-            lock (_lock)
-            {
-                var ready = _pending.Where(p => p.Due <= now).Select(p => p.Message).ToList();
-                _pending.RemoveAll(p => p.Due <= now);
-                return ready;
-            }
+            _tick = tick;
+            var ready = _pending.Where(p => p.Due <= tick).Select(p => p.Message).ToList();
+            _pending.RemoveAll(p => p.Due <= tick);
+            return ready;
         }
 
         public void Dispose() => Disposed = true;
