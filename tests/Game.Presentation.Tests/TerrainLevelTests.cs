@@ -372,6 +372,13 @@ public sealed class TerrainLevelTests
                 if (map.Contains(x, z))
                 {
                     var c = look.BiomeColors[map.Cell(x, z).Biome];
+                    if (look.Rock is { } rock && look.CliffBiomes![map.Cell(x, z).Biome])
+                    {
+                        // Rock brightness patches (TL #19984), as the mesher draws them.
+                        var f = rock.Brightness(gx, gz);
+                        c = new Rgb(Math.Clamp(c.R * f, 0f, 1f), Math.Clamp(c.G * f, 0f, 1f), Math.Clamp(c.B * f, 0f, 1f));
+                    }
+
                     (r, g, b, count) = (r + c.R, g + c.G, b + c.B, count + 1);
                 }
             }

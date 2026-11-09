@@ -25,6 +25,39 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
+    /// Natural rock (TL #19984): colour variation on the cliff biomes' ground and walls, darker wall feet, and scree tint on the ground at the foot of a wall, so rock does not read as one flat grey. Absent = plain colours.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class TerrainRock
+    {
+
+        /// <summary>
+        /// Largest brightness change of rock ground and walls (permille, both ways), from a smooth noise over the grid.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("variation_permille")]
+        public int VariationPermille { get; set; } = default!;
+
+        /// <summary>
+        /// Size of the colour patches (noise wavelength in cells).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("variation_cells")]
+        public int VariationCells { get; set; } = default!;
+
+        /// <summary>
+        /// How much darker a wall is at its foot than at its top edge (permille).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("wall_foot_shade_permille")]
+        public int WallFootShadePermille { get; set; } = default!;
+
+        /// <summary>
+        /// How far the ground colour at the foot of a wall leans towards the rock colour (permille), so rock and grass blend.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("scree_permille")]
+        public int ScreePermille { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// Where the ground is drawn as a vertical rock wall instead of a slope (D576, TL #19553): only between two neighbouring cells whose heights differ by at least min_drop_mm and whose higher cell belongs to one of these biomes. Everywhere else the corner heights blend across the drop, so hills and terraces are smooth slopes. Placeholder values.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -249,6 +282,10 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("slope_shade_gain")]
         public double SlopeShadeGain { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("rock")]
+        public TerrainRock? Rock { get; set; } = default!;
 
         /// <summary>
         /// Size of the open sea plane around the map, as a multiple of the map's width and depth.
