@@ -97,6 +97,12 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("stream_source_taper_m")]
         public double StreamSourceTaperM { get; set; } = default!;
 
+        /// <summary>
+        /// Width of a stream at its source as a share of its full width (0..1); it widens over stream_source_taper_m.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("stream_source_width_share")]
+        public double StreamSourceWidthShare { get; set; } = default!;
+
     }
 
     /// <summary>

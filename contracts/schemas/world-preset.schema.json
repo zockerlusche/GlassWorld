@@ -160,7 +160,8 @@
         "cliff_min_drop",
         "noise",
         "rocks",
-        "cliff_min_run_cells"
+        "cliff_min_run_cells",
+        "cliff_smoothing_rounds"
       ],
       "properties": {
         "sea_level": {
@@ -210,6 +211,12 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 10000
+        },
+        "cliff_smoothing_rounds": {
+          "description": "Rounds of smoothing short cliff steps (cliff_min_run_cells).",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 32
         }
       }
     },
@@ -250,7 +257,9 @@
         "shallow_max_depth",
         "lake_min_cells",
         "lake_min_depth",
+        "lake_water_min_depth",
         "lake_area_per_inflow_permille",
+        "lake_rounds",
         "swamp_max_slope",
         "swamp_min_moisture_permille",
         "runoff_per_cell",
@@ -278,11 +287,23 @@
           "minimum": 1,
           "maximum": 100000
         },
+        "lake_water_min_depth": {
+          "description": "Smallest water depth of a pond or lake cell (height units), also at its shallow edge.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
         "lake_area_per_inflow_permille": {
           "description": "Largest pond or lake area (cells) per unit of inflow (permille): rain and evaporation balance. A hollow larger than its inflow can fill rises only to that area and has no outflow (closed lake); otherwise it fills to its spill level and overflows.",
           "type": "integer",
           "minimum": 1,
           "maximum": 1000000
+        },
+        "lake_rounds": {
+          "description": "Rounds of closed lakes (a closed lake becomes an outlet and the flood is repeated); in the last round every fed hollow fills to its spill level.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 32
         },
         "swamp_max_slope": {
           "description": "Largest slope of a flat wet hollow that becomes swamp.",

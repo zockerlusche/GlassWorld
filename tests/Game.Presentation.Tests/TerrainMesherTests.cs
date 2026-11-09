@@ -332,8 +332,8 @@ public sealed class TerrainMesherTests
         }
 
         var widths = TerrainMesher.StreamLines(map, look).SelectMany(l => l).Select(p => p.WidthM).ToList();
-        // A stream starting at its source widens from a fifth of its width (seep, TL #19722 polish).
-        Assert.All(widths, w => Assert.InRange(w, (core.Min() * 0.2) - 1e-9, core.Max() + 1e-9));
+        // A stream starting at its source widens from the look's source share of its width (seep, TL #19722 polish).
+        Assert.All(widths, w => Assert.InRange(w, (core.Min() * look.StreamSourceWidthShare) - 1e-6, core.Max() + 1e-9));
         Assert.True(widths.Max() > widths.Min(), $"seed {seed}: streams widen with their flow");
     }
 

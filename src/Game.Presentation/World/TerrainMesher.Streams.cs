@@ -131,7 +131,7 @@ public static partial class TerrainMesher
 
             if (points.Count >= 2)
             {
-                lines.Add(Taper(Chaikin(points, look.StreamSmoothing), fed[(sz * w) + sx] ? 0 : look.StreamSourceTaperM));
+                lines.Add(Taper(Chaikin(points, look.StreamSmoothing), fed[(sz * w) + sx] ? 0 : look.StreamSourceTaperM, look.StreamSourceWidthShare));
             }
         }
 
@@ -192,11 +192,11 @@ public static partial class TerrainMesher
     }
 
     /// <summary>
-    /// A stream that starts at its source (nothing runs into its first cell) widens from a fifth of its
-    /// width to the full width over <paramref name="lengthM"/> along the line, so it seeps out of the ground
-    /// instead of starting with a blunt edge.
+    /// A stream that starts at its source (nothing runs into its first cell) widens from the look's share
+    /// of its width to the full width over <paramref name="lengthM"/> along the line, so it seeps out of the
+    /// ground instead of starting with a blunt edge.
     /// </summary>
-    private static IReadOnlyList<StreamPoint> Taper(IReadOnlyList<StreamPoint> line, double lengthM)
+    private static IReadOnlyList<StreamPoint> Taper(IReadOnlyList<StreamPoint> line, double lengthM, double startShare)
     {
         if (lengthM <= 0)
         {
@@ -212,7 +212,7 @@ public static partial class TerrainMesher
                 along += Math.Sqrt(Math.Pow(line[i].X - line[i - 1].X, 2) + Math.Pow(line[i].Z - line[i - 1].Z, 2));
             }
 
-            var share = 0.2 + (0.8 * Math.Min(1, along / lengthM));
+            var share = startShare + ((1 - startShare) * Math.Min(1, along / lengthM));
             result.Add(line[i] with { WidthM = line[i].WidthM * share });
         }
 

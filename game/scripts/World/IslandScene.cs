@@ -135,7 +135,7 @@ public partial class IslandScene : Node3D
 
         // The core's objects and the decorative plants (TL #19722), drawn as in the main game.
         var objectLooks = Look<LookObjects>("objects.json");
-        var decor = Decor.Plan(objectLooks.Decor, ground, seed, host.Objects.All, terrain.CellM);
+        var decor = Decor.Plan(objectLooks.Decor, island.Island, terrain.CellM);
         _objects = ObjectsView.Create(objectLooks, Look<LookPalette>("palette.json"), (x, z) => IslandView.GroundHeight(ground, terrain, x, z), decor);
         AddChild(_objects);
         _objects.Refresh(host.Snapshot().Objects);

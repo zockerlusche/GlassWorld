@@ -18,7 +18,18 @@ public static class Decor
     /// <summary>Id prefix of decorative plants (never a core object id).</summary>
     public const string IdPrefix = "decor-";
 
-    /// <summary>The decorative plants of a map as pseudo objects (id, decor type, position in metres).</summary>
+    /// <summary>
+    /// The decorative plants of an island as pseudo objects (id, decor type, position in metres), kept away
+    /// from the island's generated objects (at their cell centres), so a new game and the same world
+    /// reloaded show the same plants (review GW3 #134).
+    /// </summary>
+    public static IReadOnlyList<WorldObject> Plan(IEnumerable<ObjectDecor>? decor, GeneratedIsland island, double cellM)
+    {
+        ArgumentNullException.ThrowIfNull(island);
+        return Plan(decor, island.Map, island.Seed, island.Objects.Select(o => new WorldObject(string.Empty, o.TypeId, new Position((o.X + 0.5) * cellM, (o.Z + 0.5) * cellM))), cellM);
+    }
+
+    /// <summary>The decorative plants of a map as pseudo objects (id, decor type, position in metres), apart from the given objects.</summary>
     public static IReadOnlyList<WorldObject> Plan(IEnumerable<ObjectDecor>? decor, WorldMap map, ulong seed, IEnumerable<WorldObject> objects, double cellM)
     {
         ArgumentNullException.ThrowIfNull(map);

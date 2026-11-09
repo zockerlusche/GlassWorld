@@ -43,6 +43,7 @@ public readonly record struct Rgb(float R, float G, float B)
 /// <param name="StreamWidthM">Width of a stream band in metres (A1456).</param>
 /// <param name="StreamSmoothing">Rounds of corner cutting along a stream's centre line (0 = cell-centre polyline).</param>
 /// <param name="StreamSourceTaperM">Length over which a stream widens from its source to its full width (metres).</param>
+/// <param name="StreamSourceWidthShare">Width of a stream at its source as a share of its full width.</param>
 /// <param name="CliffBiomes">Per biome index of the map: whether its cells form rock walls where they stand at least <paramref name="CliffDrop"/> above a neighbour (null = every biome).</param>
 public sealed record TerrainLook(
     IReadOnlyList<Rgb> BiomeColors,
@@ -63,7 +64,8 @@ public sealed record TerrainLook(
     float StreamWidthM = 1.9f,
     int StreamSmoothing = 3,
     IReadOnlyList<bool>? CliffBiomes = null,
-    float StreamSourceTaperM = 0)
+    float StreamSourceTaperM = 0,
+    float StreamSourceWidthShare = 1)
 {
     /// <summary>Resolves the look data against the palette, the map's biome order and the preset.</summary>
     public static TerrainLook From(LookTerrain terrain, LookPalette palette, WorldMap map, WorldPreset preset)
@@ -115,7 +117,8 @@ public sealed record TerrainLook(
             (float)terrain.Water.StreamWidthM,
             terrain.Water.StreamSmoothing,
             [.. map.BiomeIds.Select(id => terrain.Cliffs.Biomes.Contains(id, StringComparer.Ordinal))],
-            (float)terrain.Water.StreamSourceTaperM);
+            (float)terrain.Water.StreamSourceTaperM,
+            (float)terrain.Water.StreamSourceWidthShare);
     }
 }
 

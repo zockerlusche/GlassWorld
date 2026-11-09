@@ -217,14 +217,19 @@ public sealed class IslandWalkTests : IDisposable
         Assert.Null(IslandCodec.Decode(resaved).Island.Map.Hydrology);
     }
 
-    /// <summary>A save of schema 5 (F4, before the island format column) migrates to schema 6 and keeps its island.</summary>
+    /// <summary>
+    /// A save of schema 5 (F4, before the island format column) holds a format-1 island, as F4 wrote it
+    /// (review GW3 #134): it migrates to schema 6 and keeps that island.
+    /// </summary>
     [Fact]
     public void ASchemaFiveSaveLoadsAndKeepsItsIsland()
     {
         var host = SimulationHost.CreateGeneratedWorld(ContentDirectory, 7, new MockDecisionPort(), "de", Preset);
         var path = Path.Combine(_directory, "v5.db");
-        var state = StateCodec.Capture(host);
-        SaveGameStore.Save(path, state);
+        var island = host.Map!.Island;
+        var bare = new GeneratedIsland(island.PresetId, island.GeneratorVersion, island.Seed, island.Attempts, island.Passed, HydrologyTests.WithoutLayers(island.Map), island.Objects, island.Starts, island.Neighbours, island.Check, island.CliffCells);
+        var formatOne = HydrologyTests.EncodeFormatOne(bare, 100);
+        SaveGameStore.Save(path, StateCodec.Capture(host) with { IslandData = formatOne, IslandHash = bare.Hash() });
         using (var connection = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={path};Pooling=False"))
         {
             connection.Open();
@@ -235,10 +240,11 @@ public sealed class IslandWalkTests : IDisposable
 
         Assert.Equal(5, SaveGameStore.VersionOf(path));
         var older = SaveGameStore.Load(path);
-        Assert.Equal(state.IslandData, older.IslandData);
+        Assert.Equal(formatOne, older.IslandData);
         var loaded = Restore(older, new MockDecisionPort());
-        Assert.Equal(host.Map!.IslandHash, loaded.Map!.IslandHash);
-        Assert.Equal(host.World.StateHash(), loaded.World.StateHash());
+        Assert.Null(loaded.Map!.Island.Map.Hydrology);
+        Assert.Equal(bare.Hash(), loaded.Map.IslandHash);
+        loaded.World.Run(20);
     }
 
     [Fact]

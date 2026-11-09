@@ -18,6 +18,7 @@
     "walkable_slope": 6,
     "cliff_min_drop": 12,
     "cliff_min_run_cells": 6,
+    "cliff_smoothing_rounds": 4,
     "noise": [
       {
         "wavelength_cells": 64,
@@ -53,7 +54,9 @@
     "shallow_max_depth": 8,
     "lake_min_cells": 6,
     "lake_min_depth": 2,
+    "lake_water_min_depth": 2,
     "lake_area_per_inflow_permille": 250,
+    "lake_rounds": 5,
     "swamp_max_slope": 2,
     "swamp_min_moisture_permille": 750,
     "runoff_per_cell": 1,

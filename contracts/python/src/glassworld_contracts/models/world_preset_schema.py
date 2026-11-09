@@ -507,6 +507,12 @@ class WorldPresetTerrain(BaseModel):
         ge=1,
         le=10000,
     )
+    cliff_smoothing_rounds: int = Field(
+        ...,
+        description='Rounds of smoothing short cliff steps (cliff_min_run_cells).',
+        ge=0,
+        le=32,
+    )
 
 
 class WorldPresetWater(BaseModel):
@@ -531,11 +537,23 @@ class WorldPresetWater(BaseModel):
         ge=1,
         le=100000,
     )
+    lake_water_min_depth: int = Field(
+        ...,
+        description='Smallest water depth of a pond or lake cell (height units), also at its shallow edge.',
+        ge=1,
+        le=1000,
+    )
     lake_area_per_inflow_permille: int = Field(
         ...,
         description='Largest pond or lake area (cells) per unit of inflow (permille): rain and evaporation balance. A hollow larger than its inflow can fill rises only to that area and has no outflow (closed lake); otherwise it fills to its spill level and overflows.',
         ge=1,
         le=1000000,
+    )
+    lake_rounds: int = Field(
+        ...,
+        description='Rounds of closed lakes (a closed lake becomes an outlet and the flood is repeated); in the last round every fed hollow fills to its spill level.',
+        ge=1,
+        le=32,
     )
     swamp_max_slope: int = Field(
         ...,

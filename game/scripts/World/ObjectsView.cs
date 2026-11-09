@@ -68,14 +68,17 @@ public partial class ObjectsView : Node3D
     public bool Refresh(IEnumerable<WorldObject> objects)
     {
         ArgumentNullException.ThrowIfNull(objects);
-        IReadOnlyCollection<WorldObject> list = _decor.Count == 0 ? objects as IReadOnlyCollection<WorldObject> ?? [.. objects] : [.. objects, .. _decor];
-        var signature = ObjectLooks.Signature(list);
+        // Only the core's objects are hashed each call; the decorative plants never change, so the combined
+        // list is built only when the objects did (review GW3 #134: no 6-10k list and hash per frame).
+        var core = objects as IReadOnlyCollection<WorldObject> ?? [.. objects];
+        var signature = ObjectLooks.Signature(core);
         if (signature == _signature)
         {
             return false;
         }
 
         _signature = signature;
+        IReadOnlyCollection<WorldObject> list = _decor.Count == 0 ? core : [.. core, .. _decor];
         var layout = _looks.Layout(list, _ground, type => GD.Print($"OBJECT_LOOK_FALLBACK type={type} (no entry in content/look/objects.json, drawn as the neutral marker)"));
         Drawn = 0;
         foreach (var (id, layer) in _layers)

@@ -106,6 +106,12 @@ class TerrainWater(BaseModel):
         ge=0.0,
         le=50.0,
     )
+    stream_source_width_share: float = Field(
+        ...,
+        description='Width of a stream at its source as a share of its full width (0..1); it widens over stream_source_taper_m.',
+        ge=0.0,
+        le=1.0,
+    )
 
 
 class TerrainWaterShader(BaseModel):

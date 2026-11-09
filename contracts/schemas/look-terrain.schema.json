@@ -129,7 +129,8 @@
         "stream_shore_lift_mm",
         "stream_width_m",
         "stream_smoothing",
-        "stream_source_taper_m"
+        "stream_source_taper_m",
+        "stream_source_width_share"
       ],
       "properties": {
         "sea_shallow": {
@@ -178,6 +179,12 @@
           "type": "number",
           "minimum": 0,
           "maximum": 50
+        },
+        "stream_source_width_share": {
+          "description": "Width of a stream at its source as a share of its full width (0..1); it widens over stream_source_taper_m.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
         }
       }
     },

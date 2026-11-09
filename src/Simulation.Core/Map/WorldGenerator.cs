@@ -269,7 +269,7 @@ public static partial class WorldGenerator
             }
         }
 
-        SmoothShortCliffs(heights, w, d, step, preset.Terrain.CliffMinRunCells);
+        SmoothShortCliffs(heights, w, d, step, preset.Terrain.CliffMinRunCells, preset.Terrain.CliffSmoothingRounds);
         var cliffs = 0;
         for (var z = 0; z < d; z++)
         {
@@ -287,12 +287,12 @@ public static partial class WorldGenerator
 
     /// <summary>
     /// Cliff steps shorter than the data run (4-connected cliff-top cells) become walkable slopes: their
-    /// cells come down to one below the cliff drop above their lowest neighbour, a few rounds, so the walls
+    /// cells come down to one below the cliff drop above their lowest neighbour, for the data's rounds, so the walls
     /// that stay follow the terrace edges instead of standing as isolated teeth (TL #19722 polish).
     /// </summary>
-    private static void SmoothShortCliffs(int[] heights, int w, int d, int step, int minRun)
+    private static void SmoothShortCliffs(int[] heights, int w, int d, int step, int minRun, int rounds)
     {
-        for (var round = 0; round < 4; round++)
+        for (var round = 0; round < rounds; round++)
         {
             var top = new bool[w * d];
             for (var z = 0; z < d; z++)

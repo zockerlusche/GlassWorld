@@ -118,6 +118,12 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("cliff_min_run_cells")]
         public int CliffMinRunCells { get; set; } = default!;
 
+        /// <summary>
+        /// Rounds of smoothing short cliff steps (cliff_min_run_cells).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("cliff_smoothing_rounds")]
+        public int CliffSmoothingRounds { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -178,10 +184,22 @@ namespace GlassWorld.Contracts
         public int LakeMinDepth { get; set; } = default!;
 
         /// <summary>
+        /// Smallest water depth of a pond or lake cell (height units), also at its shallow edge.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("lake_water_min_depth")]
+        public int LakeWaterMinDepth { get; set; } = default!;
+
+        /// <summary>
         /// Largest pond or lake area (cells) per unit of inflow (permille): rain and evaporation balance. A hollow larger than its inflow can fill rises only to that area and has no outflow (closed lake); otherwise it fills to its spill level and overflows.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("lake_area_per_inflow_permille")]
         public int LakeAreaPerInflowPermille { get; set; } = default!;
+
+        /// <summary>
+        /// Rounds of closed lakes (a closed lake becomes an outlet and the flood is repeated); in the last round every fed hollow fills to its spill level.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("lake_rounds")]
+        public int LakeRounds { get; set; } = default!;
 
         /// <summary>
         /// Largest slope of a flat wet hollow that becomes swamp.

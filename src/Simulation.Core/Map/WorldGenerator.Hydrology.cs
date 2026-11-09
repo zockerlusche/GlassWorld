@@ -18,8 +18,6 @@ public static partial class WorldGenerator
     /// <summary>Direction from a cell to its neighbour k is k; from the neighbour back it is (k + 4) % 8.</summary>
     private const int Opposite = 4;
 
-    /// <summary>Rounds of closed lakes; in the last one every fed hollow fills to its spill level.</summary>
-    private const int MaxLakeRounds = 4;
 
     /// <summary>The sea: cells below sea level that are connected to the map edge (inland pits are land).</summary>
     private static void Sea(int sea, int[] heights, WaterKind[] water, int[] depth, int w, int d)
@@ -128,7 +126,7 @@ public static partial class WorldGenerator
                 }
 
                 var area = Math.Max(settings.LakeMinCells, (int)Math.Min(int.MaxValue, (long)inflow * settings.LakeAreaPerInflowPermille / 1000));
-                if (hollow.Count <= area || round >= MaxLakeRounds)
+                if (hollow.Count <= area || round >= settings.LakeRounds - 1)
                 {
                     plans.Add((hollow, true));
                     continue;
@@ -156,7 +154,7 @@ public static partial class WorldGenerator
                     if (lake)
                     {
                         water[c] = WaterKind.Fresh;
-                        depth[c] = Math.Max(2, filled[c] - heights[c]);
+                        depth[c] = Math.Max(settings.LakeWaterMinDepth, filled[c] - heights[c]);
                         flow[c] = -1;
                         features[c] = WaterFeature.Lake;
                     }
@@ -175,7 +173,7 @@ public static partial class WorldGenerator
             if (sink[c])
             {
                 water[c] = WaterKind.Fresh;
-                depth[c] = Math.Max(2, sinkLevel[c] - heights[c]);
+                depth[c] = Math.Max(settings.LakeWaterMinDepth, sinkLevel[c] - heights[c]);
                 flow[c] = -1;
                 features[c] = WaterFeature.Lake;
             }

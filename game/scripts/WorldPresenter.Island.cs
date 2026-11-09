@@ -243,7 +243,7 @@ public partial class WorldPresenter
         _cellM = terrain.CellM;
 
         var objectLooks = Read<LookObjects>(content, "look", "objects.json");
-        var decor = Decor.Plan(objectLooks.Decor, map.Map, host.World.Seed, host.Objects.All, terrain.CellM);
+        var decor = Decor.Plan(objectLooks.Decor, map.Island, terrain.CellM);
         _objectsView = ObjectsView.Create(objectLooks, Read<LookPalette>(content, "look", "palette.json"), _ground, decor);
         AddChild(_objectsView);
 
