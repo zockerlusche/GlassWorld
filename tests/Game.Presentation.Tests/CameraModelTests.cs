@@ -378,6 +378,49 @@ public sealed class CameraModelTests
         Assert.False(gate.Release(0, 0, 100));
     }
 
+    [Fact]
+    public void AFollowedFigureStaysFollowedUntilThePlayerMovesTheCameraOrLetsGo()
+    {
+        var camera = new CameraModel(Data(), 0, 0, 192, 192);
+        var position = (X: 30d, Z: 40d);
+        void Again()
+        {
+            camera.Follow(() => position);
+            Settle(camera);
+            Assert.True(camera.Following);
+        }
+
+        // Looking around (orbit, tilt, zoom, turn keys) keeps following; the figure walks on and the camera with it.
+        Again();
+        camera.Drag(200, 40);
+        camera.Zoom(2);
+        camera.ZoomAt(-1, 0.5, 0.5, 16 / 9d);
+        for (var i = 0; i < 60; i++)
+        {
+            camera.Move(0, 0, 1, 1 / 60d);
+            camera.Update(1 / 60d);
+        }
+
+        position = (70, 90);
+        Settle(camera);
+        Assert.True(camera.Following);
+        Assert.Equal(70, camera.Target.X, 3);
+        Assert.Equal(90, camera.Target.Z, 3);
+
+        // Panning with the keys, grabbing the ground or Esc (StopFollowing) lets go.
+        camera.Move(0, 1, 0, 1 / 60d);
+        Assert.False(camera.Following);
+        Again();
+        Assert.True(camera.Grab((0, 0), (0.1, 0), 16 / 9d));
+        Assert.False(camera.Following);
+        Again();
+        camera.StopFollowing();
+        position = (10, 10);
+        Settle(camera);
+        Assert.False(camera.Following);
+        Assert.Equal(70, camera.Target.X, 3);
+    }
+
     private static void Settle(CameraModel camera)
     {
         for (var i = 0; i < 2000; i++)

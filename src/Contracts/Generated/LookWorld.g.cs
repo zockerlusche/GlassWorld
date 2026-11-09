@@ -46,11 +46,17 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
-    /// Observer camera on the island: it follows the group where the last thought appeared, otherwise switches groups; the player takes over by panning or clicking and hands back after a calm pause.
+    /// Observer camera: with auto on it follows the group where the last thought appeared, otherwise switches groups, and takes the camera back after a calm pause. Off by default (TL #19976): the camera moves only on the player's wish; thoughts show as a hint with a 'look' button.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class WorldLookObserver
     {
+
+        /// <summary>
+        /// Whether the observer moves the camera by itself (follows thoughts, switches groups, takes the camera back after the idle pause). false = the camera moves only on the player's wish.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("auto")]
+        public bool Auto { get; set; } = default!;
 
         /// <summary>
         /// Real seconds before the observer moves on to the next group.

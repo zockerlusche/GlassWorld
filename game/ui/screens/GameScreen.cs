@@ -89,9 +89,9 @@ public partial class GameScreen : CanvasLayer
         _inhabitants.Setup(
             [new GwColumn("ui.inhabitants.column.name", false), new GwColumn("ui.inhabitants.column.will_to_live", true), new GwColumn("ui.inhabitants.column.questions", true)],
             "ui.inhabitants.empty");
-        _inhabitants.RowSelected += OpenCard;
+        _inhabitants.RowSelected += ShowInhabitant;
         _questions.Setup([new GwColumn("ui.inhabitants.column.name", false), new GwColumn("ui.questions.column.count", true)], "ui.questions.empty");
-        _questions.RowSelected += OpenCard;
+        _questions.RowSelected += ShowInhabitant;
         _sideBar.Add("inhabitants", "ui.inhabitants.title").Content.AddChild(_inhabitants);
         _sideBar.Add("questions", "ui.questions.title").Content.AddChild(_questions);
         _sideBar.Add("chronicle", "ui.chronicle.title").Content.AddChild(_chronicleList);
@@ -115,6 +115,11 @@ public partial class GameScreen : CanvasLayer
 
         _toasts.Board = _board;
         _root.AddChild(_toasts);
+
+        // Events never move the camera by themselves (TL #19976): a new thought is a hint, and only its
+        // "look" button makes the camera follow that inhabitant (until the player moves it or presses Esc).
+        presenter.Noticed += NoticeThought;
+        _toasts.LookRequested += id => _presenter?.ChooseFigure(id);
         GetViewport().SizeChanged += Layout;
 
         // A new theme (text size, UI size) changes the top bar's height after it has wrapped again;
@@ -234,6 +239,13 @@ public partial class GameScreen : CanvasLayer
         {
             // Esc first ends placing a gift.
             _placing = null;
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+
+        if (@event.IsActionPressed("ui_cancel") && _presenter?.StopFollowing() == true)
+        {
+            // Esc lets go of a followed inhabitant before it opens the pause menu.
             GetViewport().SetInputAsHandled();
             return;
         }
@@ -1100,6 +1112,21 @@ public partial class GameScreen : CanvasLayer
     /// <summary>Shows a calm hint (e.g. saving failed).</summary>
     public void ShowHint(ToastMessage message) => _board?.Push(message, fastForward: false);
 
+    /// <summary>
+    /// A new thought: a calm hint with a "look" button, at most one at a time (at high speed thoughts come
+    /// often; the next one shows when the last hint is gone).
+    /// </summary>
+    private void NoticeThought(string inhabitantId)
+    {
+        if (_board is null || _board.Waiting > 0 || _board.Visible.Any(t => t.Message.LookAt is not null))
+        {
+            return;
+        }
+
+        var name = DisplayName(new InhabitantRow(inhabitantId, WorldFeed.NumberOf(inhabitantId), 0, false, null, 0));
+        ShowHint(new ToastMessage("msg.hint.look_thought", new Dictionary<string, string> { ["name"] = name }, null, inhabitantId));
+    }
+
     /// <summary>For screenshots: opens the inhabitants panel and the card of the first inhabitant.</summary>
     public void ShowForShots()
     {
@@ -1325,6 +1352,17 @@ public partial class GameScreen : CanvasLayer
 
         var width = ScreenModel.CardRoom(area.X, free, _card.GetCombinedMinimumSize().X, _style.Tokens.Window.SafeMargin);
         return new Vector2((float)width, area.Y);
+    }
+
+    /// <summary>
+    /// A row of the inhabitant or question list (B2569): the card opens and the camera glides to the
+    /// inhabitant and follows it, as after a click on the figure (until the player moves the camera or
+    /// presses Esc). The selected row stays marked.
+    /// </summary>
+    private void ShowInhabitant(string inhabitantId)
+    {
+        OpenCard(inhabitantId);
+        _presenter?.ChooseFigure(inhabitantId);
     }
 
     private void OpenCard(string inhabitantId)

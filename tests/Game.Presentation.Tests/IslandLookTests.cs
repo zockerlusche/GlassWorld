@@ -182,9 +182,69 @@ public sealed class IslandLookTests
     }
 
     [Fact]
+    public void WithAutoOffTheObserverNeverTakesTheCamera()
+    {
+        // TL #19976: the camera moves only on the player's wish; the data keeps the observer off.
+        var data = Read<LookWorld>("look", "world.json").Observer;
+        Assert.False(data.Auto);
+        var observer = new ObserverFocus(data);
+        int[] groups = [1, 2];
+        for (var now = 0; now < 2000; now += 5)
+        {
+            observer.Update(now, groups);
+            observer.Thought(groups[now % 2], now);
+            Assert.False(observer.Observing(now), $"the observer took the camera at {now} s");
+        }
+
+        observer.Choose("inh_1");
+        observer.HandBack(2000);
+        Assert.False(observer.Observing(2000));
+        observer.PlayerTookCamera(2001);
+        Assert.False(observer.Observing(5000));
+    }
+
+    [Fact]
+    public void EventsNeverMoveTheCameraWithoutTheLookButton()
+    {
+        // The world presenter's observer step: it follows a group only while the observer has the camera.
+        var observer = new ObserverFocus(Read<LookWorld>("look", "world.json").Observer);
+        var camera = new CameraModel(Read<LookCamera>("look", "camera.json"), 0, 0, 192, 192);
+        camera.Set(40, 50, 0, 30);
+        int[] groups = [1, 2, 3];
+        for (var frame = 0; frame < 60 * 120; frame++)
+        {
+            var now = frame / 60d;
+            if (frame % 90 == 0)
+            {
+                observer.Thought(groups[frame / 90 % 3], now);
+            }
+
+            if (observer.Update(now, groups) is { } group && observer.Observing(now))
+            {
+                camera.Follow(() => (group * 50, group * 40));
+            }
+
+            camera.Update(1 / 60d);
+        }
+
+        Assert.Equal((40d, 50d), camera.Target);
+        Assert.False(camera.Following);
+
+        // The "look" button: the camera follows that inhabitant until the player moves it.
+        camera.Follow(() => (120, 130));
+        for (var i = 0; i < 2000; i++)
+        {
+            camera.Update(1 / 60d);
+        }
+
+        Assert.Equal(120, camera.Target.X, 3);
+        Assert.Equal(130, camera.Target.Z, 3);
+    }
+
+    [Fact]
     public void TheLeaveKeyHandsTheCameraBackToTheObserverAtOnce()
     {
-        var observer = new ObserverFocus(new WorldLookObserver { GroupSwitchS = 30, ThoughtFocusS = 12, ResumeAfterIdleS = 45, DistanceM = 48 });
+        var observer = new ObserverFocus(new WorldLookObserver { Auto = true, GroupSwitchS = 30, ThoughtFocusS = 12, ResumeAfterIdleS = 45, DistanceM = 48 });
         observer.Choose("inh_1");
         Assert.False(observer.Observing(10));
         observer.HandBack(10);
@@ -418,7 +478,7 @@ public sealed class IslandLookTests
     [Fact]
     public void TheObserverMovesOnFollowsThoughtsAndYieldsToThePlayer()
     {
-        var data = new WorldLookObserver { GroupSwitchS = 30, ThoughtFocusS = 12, ResumeAfterIdleS = 45, DistanceM = 48 };
+        var data = new WorldLookObserver { Auto = true, GroupSwitchS = 30, ThoughtFocusS = 12, ResumeAfterIdleS = 45, DistanceM = 48 };
         var observer = new ObserverFocus(data);
         int[] groups = [1, 2, 3];
         Assert.Equal(1, observer.Update(0, groups));
@@ -448,7 +508,7 @@ public sealed class IslandLookTests
     [Fact]
     public void TheObserverSkipsAGroupThatIsGone()
     {
-        var observer = new ObserverFocus(new WorldLookObserver { GroupSwitchS = 30, ThoughtFocusS = 12, ResumeAfterIdleS = 45, DistanceM = 48 });
+        var observer = new ObserverFocus(new WorldLookObserver { Auto = true, GroupSwitchS = 30, ThoughtFocusS = 12, ResumeAfterIdleS = 45, DistanceM = 48 });
         Assert.Equal(2, observer.Update(0, [2, 3]));
         Assert.Equal(3, observer.Update(1, [3]));
         Assert.Null(observer.Update(2, []));

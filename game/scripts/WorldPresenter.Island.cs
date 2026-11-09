@@ -555,9 +555,32 @@ public partial class WorldPresenter
         _wasObserving = observing;
     }
 
-    /// <summary>A thought appeared: the observer turns to that inhabitant's group.</summary>
+    /// <summary>
+    /// Raised when an inhabitant has a new thought: the screen shows a hint with a "look" button; the
+    /// camera itself does not move (TL #19976).
+    /// </summary>
+    public event Action<string>? Noticed;
+
+    /// <summary>
+    /// The player let go of the camera (Esc): a followed figure is no longer followed. True if the
+    /// camera was following.
+    /// </summary>
+    public bool StopFollowing()
+    {
+        if (_rig is null || !_rig.Model.Following)
+        {
+            return false;
+        }
+
+        _rig.Model.StopFollowing();
+        _observer?.Release(_clock);
+        return true;
+    }
+
+    /// <summary>A thought appeared: a hint for the screen; only an observer with auto on turns to that inhabitant's group.</summary>
     private void ObserveThought(string inhabitantId)
     {
+        Noticed?.Invoke(inhabitantId);
         if (_observer is not null && _host is not null)
         {
             _observer.Thought(_host.Inhabitants.Get(inhabitantId).Group, _clock);

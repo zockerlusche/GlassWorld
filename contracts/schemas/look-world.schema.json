@@ -96,16 +96,21 @@
       }
     },
     "WorldLookObserver": {
-      "description": "Observer camera on the island: it follows the group where the last thought appeared, otherwise switches groups; the player takes over by panning or clicking and hands back after a calm pause.",
+      "description": "Observer camera: with auto on it follows the group where the last thought appeared, otherwise switches groups, and takes the camera back after a calm pause. Off by default (TL #19976): the camera moves only on the player's wish; thoughts show as a hint with a 'look' button.",
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "auto",
         "group_switch_s",
         "thought_focus_s",
         "resume_after_idle_s",
         "distance_m"
       ],
       "properties": {
+        "auto": {
+          "description": "Whether the observer moves the camera by itself (follows thoughts, switches groups, takes the camera back after the idle pause). false = the camera moves only on the player's wish.",
+          "type": "boolean"
+        },
         "group_switch_s": {
           "description": "Real seconds before the observer moves on to the next group.",
           "type": "number",
