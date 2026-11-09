@@ -1481,6 +1481,7 @@ public partial class GameScreen : CanvasLayer
             {
                 Name = MarkNode,
                 SizeM = sizeM,
+                BaseHeightM = anchor.HeightM,
                 Style = () => _style,
                 Position = new Vector3(0, anchor.HeightM, 0),
                 PixelSize = (float)(sizeM / _style.Tokens.Window.MarkFontPx),

@@ -56,6 +56,11 @@ public partial class Main
         CheckSpatial(spatialReady);
         CheckSoundLibrary();
         var symbols = _symbols?.SelfCheck() ?? "feeling symbols not set up";
+        if (symbols.Length == 0 && _symbols is not null)
+        {
+            symbols = _symbols.ScreenSizeCheck();
+        }
+
         if (symbols.Length > 0)
         {
             GD.PushError($"SYMBOLS_FAIL {symbols}");

@@ -202,7 +202,16 @@ public partial class FeelingSymbols : Node3D
     {
         var data = _data!;
         var anchor = figure.GetNodeOrNull<Node3D>("HeadAnchor")?.GlobalPosition ?? (figure.GlobalPosition + new Vector3(0, (float)data.FallbackHeadM, 0));
-        var head = anchor + new Vector3(0, (float)data.HeadOffsetM, 0);
+
+        // One factor for symbol and offsets (F5284, review GW1 #141): from afar the layout around the head grows
+        // as a whole, so a bigger symbol does not reach into the head and orbiting ones do not overlap.
+        var f = Style is { } style ? GlassWorld.Game.World.HeadSymbolScale.FactorAt(this, anchor, sprites[0].PixelSize * IconPx, style.Tokens, style.ContentScaleFactor) : 1f;
+        var head = anchor + new Vector3(0, (float)data.HeadOffsetM * f, 0);
+        foreach (var sprite in sprites)
+        {
+            sprite.Scale = new Vector3(f, f, f);
+        }
+
         var still = _reduceMotion();
         var age = _clock - view.StartedAt;
         if (view.Motion == SymbolMotion.Rise)
@@ -210,28 +219,77 @@ public partial class FeelingSymbols : Node3D
             var t = Math.Clamp(age / data.Rise.DurationS, 0, 1);
             var share = data.Rise.FadeInShare;
             var alpha = t < share ? t / share : 1 - ((t - share) / (1 - share));
-            sprites[0].GlobalPosition = head + new Vector3(0, (float)data.Rise.StartM + (still ? 0 : (float)(data.Rise.RiseM * t)), 0);
+            sprites[0].GlobalPosition = head + new Vector3(0, ((float)data.Rise.StartM + (still ? 0 : (float)(data.Rise.RiseM * t))) * f, 0);
             sprites[0].Modulate = new Color(1, 1, 1, (float)alpha);
-            Size(sprites[0]);
+            Refine(sprites);
             return;
         }
 
         for (var k = 0; k < sprites.Count; k++)
         {
             var angle = (still ? 0 : 2 * Math.PI * age / data.Orbit.PeriodS) + (k * 2 * Math.PI / sprites.Count);
-            sprites[k].GlobalPosition = head + new Vector3((float)(data.Orbit.RadiusM * Math.Cos(angle)), 0, (float)(data.Orbit.RadiusM * Math.Sin(angle)));
+            sprites[k].GlobalPosition = head + (new Vector3((float)(data.Orbit.RadiusM * Math.Cos(angle)), 0, (float)(data.Orbit.RadiusM * Math.Sin(angle))) * f);
             sprites[k].Modulate = new Color(1, 1, 1, (float)(data.Orbit.FadeInS <= 0 ? 1 : Math.Clamp(age / data.Orbit.FadeInS, 0, 1)));
-            Size(sprites[k]);
         }
+
+        Refine(sprites);
     }
 
-    /// <summary>Keeps the symbol readable at every zoom (F5284): its screen height within the data's limits.</summary>
-    private void Size(Sprite3D sprite)
+    /// <summary>Close up the symbol is nearer or further than the head: its own size from its own distance (offsets stay).</summary>
+    private void Refine(List<Sprite3D> sprites)
     {
-        if (Style is { } style)
+        if (Style is not { } style)
+        {
+            return;
+        }
+
+        foreach (var sprite in sprites)
         {
             GlassWorld.Game.World.HeadSymbolScale.Apply(sprite, sprite.PixelSize * IconPx, style.Tokens, style.ContentScaleFactor);
         }
+    }
+
+    /// <summary>
+    /// Smoke only (review GW1 #141): every symbol shown, placed for the current camera, has a screen height within
+    /// the data's floor and ceiling. Empty when all do.
+    /// </summary>
+    public string ScreenSizeCheck()
+    {
+        if (_data is null || _host is null || _figures is null || Style is not { } style)
+        {
+            return "feeling symbols not set up";
+        }
+
+        var who = _host.Inhabitants.All.First().Id;
+        if (GetViewport().GetCamera3D() is not { } camera || _figures.GetNodeOrNull<Node3D>(who) is not { } figure)
+        {
+            return "no camera or figure";
+        }
+
+        // Look at the head from the usual distance (floor) and from close up (ceiling), then put the camera back.
+        var kept = camera.GlobalTransform;
+        var problem = string.Empty;
+        foreach (var away in new[] { new Vector3(0, 14, 38), new Vector3(0, 0.5f, 6) })
+        {
+            // Aimed at where the symbol starts: the head anchor (as Place uses it) plus the offsets.
+            var head = (figure.GetNodeOrNull<Node3D>("HeadAnchor")?.GlobalPosition ?? (figure.GlobalPosition + new Vector3(0, (float)_data.FallbackHeadM, 0)))
+                + new Vector3(0, (float)(_data.HeadOffsetM + _data.Rise.StartM), 0);
+            camera.GlobalPosition = head + away;
+            camera.LookAt(head, Vector3.Up);
+            Show([.. _data.Symbols.Select(s => new SymbolView(who, s.Id, SymbolMotion.Rise, _clock))]);
+            problem = _sprites.Values.SelectMany(s => s)
+                .Select(s => GlassWorld.Game.World.HeadSymbolScale.CheckOnScreen(s, s.PixelSize * IconPx, style.Tokens, style.ContentScaleFactor))
+                .FirstOrDefault(p => p.Length > 0) ?? string.Empty;
+            Show([]);
+            if (problem.Length > 0)
+            {
+                problem = $"{away.Length():0} m away: {problem}";
+                break;
+            }
+        }
+
+        camera.GlobalTransform = kept;
+        return problem;
     }
 
     private static string Read(string name)
