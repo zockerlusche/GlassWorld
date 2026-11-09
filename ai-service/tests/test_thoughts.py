@@ -118,3 +118,34 @@ def test_a_good_thought_stays(settings: Settings) -> None:
     assert post(app, "/decide", REQUEST).json()["thought"]["text"] == (
         "Hm, die Beeren sehen lecker aus."
     )
+
+
+def test_the_same_inhabitant_does_not_repeat_itself_soon() -> None:
+    """Marcel W1696: silence instead of the same sentence again within the span."""
+    from glassworld_ai.decider.thoughts import ThoughtMemory
+
+    memory = ThoughtMemory()
+    said = "Ich gehe zu dem vertrauenswürdigen Menschen."
+    assert not memory.repeated("inh-1", 100, said, V4)
+    memory.remember("inh-1", 100, said)
+    assert memory.repeated("inh-1", 200, said, V4)  # within 240 ticks
+    assert memory.repeated("inh-1", 200, "Ich gehe jetzt zu dem vertrauenswürdigen Menschen.", V4)
+    assert not memory.repeated("inh-1", 200, "Boah, hab ich einen Hunger.", V4)
+    assert not memory.repeated("inh-2", 200, said, V4)  # another inhabitant may say it
+    assert not memory.repeated("inh-1", 400, said, V4)  # the span is over
+
+
+def test_a_repeated_thought_is_left_out_but_the_decision_stays(settings: Settings) -> None:
+    answer = json.dumps(
+        {"rationale": "Hungry.", "option_id": "o1", "expression": None,
+         "thought": "Hm, die Beeren sehen lecker aus."}
+    )  # fmt: skip
+    app, log = _decider(settings, answer)
+    first = post(app, "/decide", REQUEST).json()
+    later = dict(
+        REQUEST, request_id="0b7f2d4e-6c1a-4f3b-9d2e-1a2b3c4d5e6f", tick=REQUEST["tick"] + 10
+    )
+    second = post(app, "/decide", later).json()
+    assert first["thought"]["text"] == "Hm, die Beeren sehen lecker aus."
+    assert second["option_id"] == "o1" and second["thought"] is None
+    assert "thought left out (repeat)" in str(list(log.read())[-1]["detail"])
