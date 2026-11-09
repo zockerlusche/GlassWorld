@@ -131,6 +131,9 @@ jobs:
           echo "== export logs (warnings, errors, .NET)"; for f in /tmp/tmp.*; do echo "-- $f"; grep -aiE "warning|error|dotnet|\.net|publish|msbuild|sdk" "$f" | grep -avE "savepack \| Storing" | head -n 80; done 2>/dev/null || true
           echo "== dotnet"; which dotnet; dotnet --list-sdks; echo "DOTNET_ROOT=$DOTNET_ROOT"
           echo "== msbuild logs"; find "$APPDATA/Godot/mono/build_logs" -type f 2>/dev/null | while read -r f; do echo "-- $f"; grep -aiE "error|warn" "$f" | head -n 40; tail -n 15 "$f"; done
+          echo "== msbuild binlogs"; ls -la "$RUNNER_TEMP/msbuild-debug" 2>&1 | head -n 20
+          mkdir -p "$RUNNER_TEMP/diag"; cp -r "$APPDATA/Godot/mono/build_logs" "$RUNNER_TEMP/diag/" 2>/dev/null || true
+          cp -r "$RUNNER_TEMP/msbuild-debug" "$RUNNER_TEMP/diag/" 2>/dev/null || true; cp "$RUNNER_TEMP/restore-detailed.log" "$RUNNER_TEMP/diag/" 2>/dev/null || true
           echo "== verbose start"
           GODOT_SILENCE_ROOT_WARNING=1 timeout 180 "$stage/GlassWorld.exe" --headless --verbose -- --smoke-frames=120 2>&1 | tail -n 120 || true
       - name: Upload Godot and restore logs (only on failure, probe branch)
@@ -138,10 +141,7 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: godot-export-logs
-          path: |
-            ~/AppData/Roaming/Godot/mono/build_logs
-            ${{ runner.temp }}/restore-detailed.log
-            ${{ runner.temp }}/msbuild-debug
+          path: ${{ runner.temp }}/diag
           if-no-files-found: warn
           retention-days: 5
       - name: Keep the archive for the publish job
