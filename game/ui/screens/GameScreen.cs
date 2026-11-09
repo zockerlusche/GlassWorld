@@ -1474,11 +1474,17 @@ public partial class GameScreen : CanvasLayer
         var mark = figure.GetNodeOrNull<Label3D>(MarkNode);
         if (mark is null)
         {
-            mark = new Label3D
+            // One size for all head symbols (F5284): the mark is head_symbol.size_m tall in the world and keeps
+            // its screen height between the data's floor and ceiling at every zoom.
+            var sizeM = _style.Tokens.HeadSymbol.SizeM;
+            mark = new GlassWorld.Game.World.HeadSymbolLabel
             {
                 Name = MarkNode,
+                SizeM = sizeM,
+                BaseHeightM = anchor.HeightM,
+                Style = () => _style,
                 Position = new Vector3(0, anchor.HeightM, 0),
-                PixelSize = anchor.PixelSizeM ?? 0.005f,
+                PixelSize = (float)(sizeM / _style.Tokens.Window.MarkFontPx),
                 Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
                 FontSize = _style.Tokens.Window.MarkFontPx,
                 Modulate = UiTheme.ToGodot(_style.Color(UiColorId.Attention)),

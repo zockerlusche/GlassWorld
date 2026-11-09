@@ -13,6 +13,48 @@ namespace GlassWorld.Contracts
     #pragma warning disable // Disable all warnings
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class FigureThinkingDots
+    {
+
+        /// <summary>
+        /// Height of the dots above the head anchor at scale 1.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("above_head_m")]
+        public double AboveHeadM { get; set; } = default!;
+
+        /// <summary>
+        /// Font size of one dot in pixels.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("font_px")]
+        public int FontPx { get; set; } = default!;
+
+        /// <summary>
+        /// Distance between two dots in pixels (screen-facing).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("spacing_px")]
+        public double SpacingPx { get; set; } = default!;
+
+        /// <summary>
+        /// Real seconds of one calm wave over the three dots.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("period_s")]
+        public double PeriodS { get; set; } = default!;
+
+        /// <summary>
+        /// Least opacity of a dot.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("alpha_min")]
+        public double AlphaMin { get; set; } = default!;
+
+        /// <summary>
+        /// Greatest opacity of a dot.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("alpha_max")]
+        public double AlphaMax { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class FigureBody
     {
 
@@ -138,6 +180,12 @@ namespace GlassWorld.Contracts
         public int IdleSlotTicks { get; set; } = default!;
 
         /// <summary>
+        /// How much an inhabitant's idle slot is longer or shorter than idle_slot_ticks (share, e.g. 0.3 = up to 30 percent either way); with a phase per inhabitant it keeps figures from changing their idle behaviour in lock-step.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("idle_slot_spread")]
+        public double IdleSlotSpread { get; set; } = default!;
+
+        /// <summary>
         /// Least ground distance in metres an inhabitant must move in a tick to be shown walking (whatever the action; actions walk to their target first).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("walk_min_step_m")]
@@ -160,6 +208,12 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("head_anchor_m")]
         public double HeadAnchorM { get; set; } = default!;
+
+        /// <summary>
+        /// Calm thought dots above the head while an inhabitant has an open question (presentation only).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("thinking_dots")]
+        public FigureThinkingDots ThinkingDots { get; set; } = new FigureThinkingDots();
 
         /// <summary>
         /// Clothing parts as meshes on the rig (F4): which mesh, which clothing colour, and which body regions it hides (those take its colour, so the body never shows through; uncovered regions are skin).
