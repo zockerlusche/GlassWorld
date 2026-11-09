@@ -195,7 +195,13 @@ def test_every_knowledge_source_has_words_in_the_prompts_that_name_sources() -> 
         )["entries"]
     }
     sources |= {"seen"}  # added with #142 (curiosity); harmless before it lands
-    for name in ("decider/decide.v2", "decider/decide.v3", "decider/decide.v4", "question/ask.v1"):
+    for name in (
+        "decider/decide.v2",
+        "decider/decide.v3",
+        "decider/decide.v4",
+        "decider/decide.v5",
+        "question/ask.v1",
+    ):
         settings = tomllib.loads((PROMPTS / f"{name}.toml").read_text(encoding="utf-8"))
         words = settings["settings"]["source_words"]
         assert sources <= set(words), (name, sorted(sources - set(words)))
