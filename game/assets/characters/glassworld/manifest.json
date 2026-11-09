@@ -1,13 +1,13 @@
 {
   "tool": "tools/figures/build_figures.py",
-  "tool_sha256": "a511f106dbcdee0252e20adabd95889fcd6f2b696e1bf1b887c067e1f226db71",
+  "tool_sha256": "d107502a1eeb4f1a79717fb03626739381433257f8c0913ca12254ee529d8629",
   "blender": "4.5.15 LTS",
   "source": "game/assets/characters/quaternius-ual1/ual1_standard.glb",
   "source_sha256": "1b7bf67866360665426bb99e4c71bd619f19b408453c24e30f0c3071601eee5c",
   "config_sha256": "a350e2746bd019ae2e2bbe92e5667ff100b9240652b5554d8837a9265842a0a4",
   "bodies": {
-    "adult_female": "3f398752a24979766f149503e14749761fb721292ffd80335d7e478e8944181e",
-    "adult_male": "c761f708e1105d2656bcd025344b2edf6cdbcc94c2ed08821f6dbf0c5b410bb5",
-    "child": "d94a5716a37c2c00acc1d5da8ba3eeffe800a6c3cb4ddf45103c300ac49f722f"
+    "adult_female": "0176823e1fb015384f0edb8ffc3279428fb21427c48f3ba4141f9bc0b184057b",
+    "adult_male": "d359fac96d2fca05a0739bff6c0a750a63c26151185337eec5ab9f69ea83eeb4",
+    "child": "228e4555558611cad4f2cdf615a4acc35442ce102bde751460df02c255180420"
   }
 }

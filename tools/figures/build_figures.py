@@ -16,7 +16,9 @@ game switches by appearance data. Body regions are written into the vertex colou
 the worn clothing parts say (F4). Clothing parts (shirt, tunic, dress, skirts, trousers) are
 separate skinned meshes slightly outside the body with straight hems; they carry the same body
 and form blend shapes as the body, so they follow heavy/thin/strong/belly and the sex
-proportions (bust, waist, hips, shoulders). The mesh is our own work (MIT, like the repository);
+proportions (bust, waist, hips, shoulders). A top and the waistband under it share ring heights
+around the hips, so the top always covers it; skirts, tunic and dress follow the thighs below the
+hips and have an inside lining. The mesh is our own work (MIT, like the repository);
 the clips stay CC0.
 """
 
@@ -73,8 +75,11 @@ def orient_outward(bm, inside=None):
 class Part:
     """One piece of a body: a bmesh plus functions for region and bone weights per vertex."""
 
-    def __init__(self, bm, region, weights, inside=None):
+    def __init__(self, bm, region, weights, inside=None, inward=False):
         self.bm = orient_outward(bm, inside)
+        if inward:  # a lining: its faces look into the garment
+            bmesh.ops.reverse_faces(self.bm, faces=self.bm.faces)
+            self.bm.normal_update()
         self.region = region if callable(region) else (lambda p, r=region: r)
         self.weights = weights if callable(weights) else (lambda p, w=weights: {w: 1.0})
 
@@ -694,38 +699,74 @@ GARMENTS = (
 TOP_OFFSET, BOTTOM_OFFSET = 1.1, 1.07
 
 
-def skirt_weights(rig, top):
-    """Below the hips a skirt follows the hips and, more and more towards the hem, the thighs."""
+def skirt_weights(rig, top, follow=1.0, reach=0.6):
+    """Below the hips a skirt follows the hips and, more and more downwards, the thighs: fully from
+    reach of the way to the knee on (follow is the share there).
+
+    Front and back between the legs follow both thighs (half each at the middle), so a thigh that
+    swings forward takes the cloth in front of it along instead of pushing through it.
+    """
     torso = torso_weights(rig)
     knee = rig.h("DEF-shin.L").z
+    thigh_x = abs(rig.h("DEF-thigh.L").x)
 
     def weights(p):
         if p.z >= top:
             return torso(p)
-        t = max(0.0, min(1.0, (top - p.z) / max(0.05, top - knee)))
-        side = "L" if p.x > 0 else "R"
-        leg = t * 0.7 * smooth(0.0, 0.08, abs(p.x))
-        return {"DEF-hips": 1 - leg, f"DEF-thigh.{side}": leg}
+        leg = smooth(top, top - reach * max(0.05, top - knee), p.z) * follow
+        left = smooth(-0.35 * thigh_x, 0.35 * thigh_x, p.x)
+        return {"DEF-hips": 1 - leg, "DEF-thigh.L": leg * left, "DEF-thigh.R": leg * (1 - left)}
 
     return weights
 
 
-def wrap(rig, spec, top_z, bottom_z, offset, flare, steps, collar=None):
+TOP_ROOM = 1.45  # thigh clearance of a tunic or dress (trouser legs under it)
+UNDER_TOP_REACH = 0.3  # tunic, dress and the trousers' seat under them follow the thighs early
+WAIST_STEP = 0.025  # garments share ring heights around the hips (hips + 0.04 + k * step)
+
+
+def ring_heights(rig, top_z, bottom_z, steps):
+    """Ring heights from top_z down to bottom_z: even steps, but on a common grid around the hips,
+    so a top and the waistband under it have rings at the same heights and the top stays outside
+    between them (no waistband showing through the top's hem)."""
+    hips_z = rig.h("DEF-hips").z
+    lo, hi = hips_z - 0.09, hips_z + 0.21
+    grid = [hips_z + 0.04 + WAIST_STEP * k for k in range(-6, 8)]
+    even = [top_z + (bottom_z - top_z) * k / steps for k in range(1, steps)]
+    inner = [z for z in even if not lo < z < hi] + [z for z in grid if lo <= z <= hi]
+    heights = [top_z]
+    for z in sorted(inner, reverse=True):
+        if heights[-1] - z >= 0.008 and z - bottom_z >= 0.008:
+            heights.append(z)
+    return [*heights, bottom_z]
+
+
+def thigh_clearance(rig, spec, offset, z, room=1.22):
+    """Half width a garment needs at height z to hold the thighs (their round tops included)."""
+    thigh_x = abs(rig.h("DEF-thigh.L").x)
+    r = spec["thigh"][0] * room * offset
+    centre = rig.h("DEF-thigh.L").z + 0.04  # the top of the thigh capsule is a ball here
+    h = max(0.0, z - centre)
+    if h >= r:
+        return 0.0, 0.0
+    half = math.sqrt(r * r - h * h)
+    return thigh_x * offset + half, half
+
+
+def wrap(rig, spec, top_z, bottom_z, offset, flare, steps, collar=None, room=1.22):
     """A garment around the torso from top_z down to bottom_z: the torso shape scaled outwards.
 
-    Below the hips it widens by flare towards the straight hem; collar is the neck opening radius.
+    Below the hips it widens by flare towards the straight hem; collar is the neck opening radius;
+    room is the thigh clearance (as a share of the thigh radius).
     """
     profile = torso_profile(rig, spec)
     hips_z = rig.h("DEF-hips").z
     flare_from = hips_z - 0.03
-    # round D355 hips: the thighs stand out of the torso, so a garment there must clear them
-    thigh_x, thigh_r = abs(rig.h("DEF-thigh.L").x), spec["thigh"][0] * 1.22 * offset
-    clear = thigh_x * offset + thigh_r
+    thigh_x = abs(rig.h("DEF-thigh.L").x)
     rings = []
     if collar is not None:
         rings.append((Vector((0, 0.012, top_z + 0.012)), LEFT, collar, FWD, collar * 0.9))
-    for k in range(steps + 1):
-        z = top_z + (bottom_z - top_z) * k / steps
+    for z in ring_heights(rig, top_z, bottom_z, steps):
         if z >= flare_from:
             rx, ry = profile_at(profile, z)
             rx, ry = rx * offset, ry * offset
@@ -733,7 +774,10 @@ def wrap(rig, spec, top_z, bottom_z, offset, flare, steps, collar=None):
             hx, hy = profile_at(profile, flare_from)
             t = (flare_from - z) / max(0.01, flare_from - bottom_z)
             rx, ry = hx * (offset + flare * t), hy * (offset + flare * 0.8 * t)
-        if z < hips_z + 0.1:
+        # round D355 hips: the thighs stand out of the torso, so a garment there must clear them;
+        # the clearance follows the round top of the thighs, so it grows smoothly (no step)
+        clear, thigh_r = thigh_clearance(rig, spec, offset, z, room)
+        if clear > 0:
             rx = max(rx, clear * (1 + flare * max(0.0, (flare_from - z)) * 2))
             # the ellipse must also hold the thigh circle in depth: ry >= r / sqrt(1 - (x / rx)^2)
             inner = max(0.05, 1 - (thigh_x * offset / rx) ** 2)
@@ -743,6 +787,16 @@ def wrap(rig, spec, top_z, bottom_z, offset, flare, steps, collar=None):
     centre, _, rx, _, ry = rings[-1]
     rings.append((centre + Vector((0, 0, -0.004)), LEFT, rx * 1.03, FWD, ry * 1.03))
     return loft(rings, 20, cap=False)
+
+
+def lining(bm, k=0.985):
+    """The garment's inside: a copy just within it whose faces look inwards, so a look under a hem
+    or into a fold shows cloth instead of the body behind (Godot culls back faces)."""
+    inside = bm.copy()
+    for v in inside.verts:
+        v.co.x *= k
+        v.co.y = 0.012 + (v.co.y - 0.012) * k
+    return inside
 
 
 def tube(points, radii, segments=14):
@@ -818,18 +872,28 @@ def garment_parts(kind, rig, spec):
         bottom = {"shirt": hips_z + 0.04, "tunic": mid_thigh, "dress": knee.z - 0.2}[kind]
         flare = {"shirt": 0.0, "tunic": 0.22, "dress": 0.42}[kind]
         steps = {"shirt": 12, "tunic": 18, "dress": 22}[kind]
-        body = wrap(rig, spec, neck_z + 0.0, bottom, TOP_OFFSET, flare, steps, collar)
-        parts = [Part(displace(body, bust), TOP, skirt_weights(rig, hips_z - 0.02))]
+        # a tunic or dress hangs over trouser legs, so it leaves them more room
+        room = 1.22 if kind == "shirt" else TOP_ROOM
+        body = displace(
+            wrap(rig, spec, neck_z, bottom, TOP_OFFSET, flare, steps, collar, room), bust
+        )
+        weights = skirt_weights(rig, hips_z - 0.02, reach=UNDER_TOP_REACH)
+        parts = [Part(body, TOP, weights)]
+        if kind != "shirt":
+            parts.append(Part(lining(body), TOP, weights, inward=True))
         return parts + sleeves(rig, spec, 0.58)
     if kind in ("skirt_short", "skirt_long"):
         bottom = knee.z + 0.05 if kind == "skirt_short" else ankle.z + 0.1
         flare = 0.38 if kind == "skirt_short" else 0.55
         steps = 10 if kind == "skirt_short" else 16
         body = wrap(rig, spec, hips_z + 0.09, bottom, BOTTOM_OFFSET, flare, steps)
-        return [Part(body, BOTTOM, skirt_weights(rig, hips_z - 0.02))]
+        weights = skirt_weights(rig, hips_z - 0.02)
+        return [Part(body, BOTTOM, weights), Part(lining(body), BOTTOM, weights, inward=True)]
     if kind in ("trousers_short", "trousers_long"):
         pelvis = wrap(rig, spec, hips_z + 0.09, hips_z - 0.08, BOTTOM_OFFSET, 0.0, 5)
-        return [Part(pelvis, BOTTOM, torso_weights(rig)), *legs(rig, spec, kind == "trousers_long")]
+        # the same weights as a tunic or dress over it, so both layers move alike
+        weights = skirt_weights(rig, hips_z - 0.02, reach=UNDER_TOP_REACH)
+        return [Part(pelvis, BOTTOM, weights), *legs(rig, spec, kind == "trousers_long")]
     raise ValueError(f"unknown garment '{kind}'")
 
 
