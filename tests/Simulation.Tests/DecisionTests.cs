@@ -53,6 +53,78 @@ public sealed class DecisionTests
         Assert.Equal(option.Action, decided.Action);
     }
 
+    /// <summary>
+    /// F5275 A: an action with a need-based consideration is offered only while that need suggests it -
+    /// no sleep for someone wide awake, sleep for someone tired (would fail without the check: the
+    /// targetless 'sleep' was always offered).
+    /// </summary>
+    [Fact]
+    public void AnActionIsOfferedOnlyWhileItsNeedSuggestsIt()
+    {
+        string[] Offered(double sleep)
+        {
+            var w = NewWorld(1, new SilentPort());
+            w.Inhabitants.Get("inh-000001").Needs["sleep"] = sleep;
+            w.Objects.Spawn("blue_berry", new Position(2, 0));
+            w.World.Step();
+            var request = ContractSerializer.Deserialize<DecisionRequest>(w.Decisions.Log.Entries.First(e => e.Kind == DecisionLogKind.Request).Json);
+            return [.. request.Options.Select(o => o.Action)];
+        }
+
+        Assert.DoesNotContain("sleep", Offered(1.0));
+        Assert.Contains("sleep", Offered(0.1));
+
+        // Actions without a need-based consideration stay offered either way.
+        var needBased = Content.Brain.Weights.Considerations.Where(c => c.Need is not null).Select(c => c.Action).ToHashSet(StringComparer.Ordinal);
+        Assert.Contains(Offered(1.0), a => !needBased.Contains(a));
+    }
+
+    /// <summary>
+    /// F5275 B: a queued answer expires when a need fell below its neglect threshold while it waited; it is
+    /// dropped and logged (answer_expired / need_neglected) and the routine decides anew. A queued answer
+    /// with every need fine still starts.
+    /// </summary>
+    [Fact]
+    public void AQueuedAnswerExpiresWhenANeedIsNeglected()
+    {
+        var w = NewWorld(1, new SilentPort(), triggers: false);
+        var inhabitant = w.Inhabitants.Get("inh-000001");
+        var thirst = Content.InhabitantModel.Needs.Single(n => n.Id == "thirst").NeglectBelow;
+        inhabitant.Needs["thirst"] = thirst / 2;
+        inhabitant.Activity = null;
+        inhabitant.Planned = new Activity("sleep", null, inhabitant.Position, null);
+        w.World.Step();
+        Assert.Null(inhabitant.Planned);
+        Assert.NotEqual("sleep", inhabitant.Activity?.Action);
+        var dropped = Assert.Single(w.Inhabitants.Events, e => e.Kind == InhabitantsSystem.AnswerExpired && e.InhabitantId == inhabitant.Id);
+        Assert.Equal(InhabitantsSystem.NeedNeglected, dropped.Detail);
+        Assert.Equal("sleep", dropped.Action);
+
+        // A queued answer that serves the neglected need stays (review GW3 #137): thirsty with a queued drink.
+        var thirsty = NewWorld(1, new SilentPort(), triggers: false);
+        var drinker = thirsty.Inhabitants.Get("inh-000001");
+        var spring = thirsty.Objects.Spawn("spring_water", drinker.Position);
+        drinker.Needs["thirst"] = thirst / 2;
+        drinker.Activity = null;
+        drinker.Planned = new Activity("drink", spring.Id, spring.Position, null);
+        thirsty.World.Step();
+        Assert.Equal("drink", drinker.Activity?.Action);
+        Assert.DoesNotContain(thirsty.Inhabitants.Events, e => e.Kind == InhabitantsSystem.AnswerExpired);
+
+        // Every need above its threshold: the queued answer starts as before.
+        var fine = NewWorld(1, new SilentPort(), triggers: false);
+        var rested = fine.Inhabitants.Get("inh-000001");
+        foreach (var need in Content.InhabitantModel.Needs)
+        {
+            rested.Needs[need.Id] = 1.0;
+        }
+
+        rested.Activity = null;
+        rested.Planned = new Activity("sleep", null, rested.Position, null);
+        fine.World.Step();
+        Assert.Equal("sleep", rested.Activity?.Action);
+    }
+
     [Fact]
     public void AnAnswerNeverBreaksOffAnActionInProgress()
     {

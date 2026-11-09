@@ -7,6 +7,10 @@ Each release gets its own section (version and date); until then changes collect
 
 ## [Unreleased]
 
+### Fixed
+
+- Decisions (TL F5275 = A + B, review GW3 #134 seed 114): (A) an action with need-based considerations in `content/behaviour/utility.json` is offered to the decider only while one of them gives it some urgency for the asker (`UtilityBrain.NeedSuggests`; no action names in code), so nobody wide awake is offered sleep; (B) a queued answer (`Inhabitant.Planned` with an action the decider may be offered; building steps never are) expires when a need fell below its `neglect_below` while it waited and the answer serves none of the neglected needs (a thirsty inhabitant keeps a queued drink): it is dropped, reported as the new event `answer_expired` (vocabulary, DE/EN) with detail `need_neglected`, and the routine or the decider decides anew. Sated inhabitants are no longer offered eat or drink, so they no longer taste unknown food out of curiosity. Queued answers no longer chain 8-hour sleeps while thirsty.
+
 ### Added
 
 - Hydrology polish (TL review of #134): springs keep 6 cells from the sea and rise from 1.5 m above it (no comb of short parallel creeks at the start beaches); drinking places also lie one step beside creek banks (`drink_spots` `stream_bank`, off the cut bed). A stream starts at its spring as a soft seep (no trough at the source cell) and widens from a fifth of its width over `stream_source_taper_m` (2.5 m). Where a stream runs into a pond, the pond's bed is scoured to the stream bed, so the bed stays below the banks. Cliff steps shorter than `cliff_min_run_cells` (6) are smoothed, so rock walls follow the terrace edges instead of standing as isolated teeth. Optional quieter start (`quiet_radius_cells`, `quiet_keep_permille`; built, off in the data). Golden world hashes updated deliberately.
