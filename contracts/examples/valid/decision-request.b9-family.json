@@ -1,0 +1,245 @@
+{
+  "contract_version": "0.2",
+  "request_id": "5a0f6a52-1b9e-4c31-9b0e-0b9a9f0c0b90",
+  "tick": 1200,
+  "seed": 424242,
+  "deadline_ms": 8000,
+  "display_locale": "de",
+  "inhabitant": {
+    "id": "inh-0001",
+    "needs": [
+      {
+        "id": "hunger",
+        "value": 0.18
+      },
+      {
+        "id": "sleep",
+        "value": 0.55
+      },
+      {
+        "id": "thirst",
+        "value": 0.7
+      }
+    ],
+    "mood": [
+      {
+        "id": "boredom",
+        "value": 0.3
+      },
+      {
+        "id": "sadness",
+        "value": 0.2
+      }
+    ],
+    "will_to_live": 0.8,
+    "traits": [
+      {
+        "id": "courage",
+        "value": 0.35
+      },
+      {
+        "id": "curiosity",
+        "value": 0.8
+      },
+      {
+        "id": "patience",
+        "value": 0.4
+      }
+    ],
+    "memory": {
+      "summary": "Woke up alone on a beach. Found a stream. Met another person yesterday who seems friendly.",
+      "recent": [
+        {
+          "tick": 1100,
+          "kind": "met_inhabitant",
+          "about": {
+            "kind": "inhabitant",
+            "id": "inh-0002"
+          }
+        },
+        {
+          "tick": 1150,
+          "kind": "drank",
+          "about": {
+            "kind": "type",
+            "id": "spring_water"
+          }
+        }
+      ]
+    },
+    "knowledge": [
+      {
+        "subject": {
+          "kind": "type",
+          "id": "apple_tree"
+        },
+        "property": "edible",
+        "value": true,
+        "confidence": 0.6,
+        "source": "heard",
+        "told_by": "inh-0002",
+        "tick": 1120
+      },
+      {
+        "subject": {
+          "kind": "type",
+          "id": "spring_water"
+        },
+        "property": "drinkable",
+        "value": true,
+        "confidence": 1.0,
+        "source": "experienced",
+        "told_by": null,
+        "tick": 1150
+      }
+    ],
+    "relationships": [
+      {
+        "other": "inh-0002",
+        "affection": 0.4,
+        "trust": 0.6,
+        "respect": 0.5
+      }
+    ],
+    "habits": [
+      {
+        "action": "drink",
+        "time_of_day": "day",
+        "about": {
+          "kind": "type",
+          "id": "spring_water"
+        },
+        "strength": 0.3
+      }
+    ],
+    "life_stage": "adult",
+    "age_years": 31,
+    "family": [
+      {
+        "other": "inh-0002",
+        "relation": "partner",
+        "deceased": false
+      },
+      {
+        "other": "inh-0007",
+        "relation": "child",
+        "deceased": false
+      },
+      {
+        "other": "inh-0003",
+        "relation": "parent",
+        "deceased": true
+      }
+    ],
+    "reputation": 0.6,
+    "settlement": {
+      "id": "set-0001",
+      "sayings": [
+        {
+          "de": "Wer früh sammelt, isst warm.",
+          "en": "Who gathers early eats warm."
+        }
+      ]
+    },
+    "culture": [
+      {
+        "kind": "ritual",
+        "text": {
+          "de": "Steine ans Grab legen",
+          "en": "Laying stones at the grave"
+        },
+        "sure": 1.0
+      },
+      {
+        "kind": "belief",
+        "text": {
+          "de": "Das Klopfen am Himmel bringt Gaben",
+          "en": "Knocking at the sky brings gifts"
+        },
+        "sure": 0.3
+      }
+    ],
+    "grief": [
+      {
+        "about": "inh-0003",
+        "strength": 0.4
+      }
+    ]
+  },
+  "environment": {
+    "time_of_day": "day",
+    "temperature_c": 17.5,
+    "weather": [
+      "cloudy"
+    ]
+  },
+  "perception": {
+    "objects": [
+      {
+        "id": "obj-0042",
+        "type": "red_berry_bush",
+        "distance_m": 4.5,
+        "known_properties": []
+      },
+      {
+        "id": "obj-0007",
+        "type": "apple_tree",
+        "distance_m": 22.0,
+        "known_properties": [
+          {
+            "property": "edible",
+            "value": true,
+            "confidence": 0.9
+          }
+        ]
+      }
+    ],
+    "inhabitants": [
+      {
+        "id": "inh-0002",
+        "distance_m": 15.0,
+        "called": {
+          "name": "Mara",
+          "label": null
+        },
+        "life_stage": "adult"
+      },
+      {
+        "id": "inh-0007",
+        "distance_m": 3.0,
+        "called": {
+          "name": null,
+          "label": "small_one"
+        },
+        "life_stage": "child",
+        "lying_still": false
+      }
+    ]
+  },
+  "options": [
+    {
+      "option_id": "o1",
+      "action": "inspect",
+      "target": "obj-0042",
+      "partners": []
+    },
+    {
+      "option_id": "o2",
+      "action": "eat",
+      "target": "obj-0042",
+      "partners": []
+    },
+    {
+      "option_id": "o3",
+      "action": "move_to",
+      "target": "obj-0007",
+      "partners": []
+    },
+    {
+      "option_id": "o4",
+      "action": "idle",
+      "target": null,
+      "partners": []
+    }
+  ]
+}

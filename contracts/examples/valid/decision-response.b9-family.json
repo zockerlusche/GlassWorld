@@ -1,0 +1,19 @@
+{
+  "contract_version": "0.2",
+  "request_id": "5a0f6a52-1b9e-4c31-9b0e-0b9a9f0c0b90",
+  "tick": 1200,
+  "option_id": "o1",
+  "expression": "ponder",
+  "rationale": "Very hungry, unknown berries are close; checking them first is safer than eating blindly.",
+  "thought": {
+    "locale": "de",
+    "text": "Diese roten Beeren kenne ich nicht. Erst mal genauer ansehen."
+  },
+  "meta": {
+    "source": "mock",
+    "model": "mock",
+    "latency_ms": 3,
+    "attempts": 1
+  },
+  "name_text": "Tavi"
+}

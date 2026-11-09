@@ -208,6 +208,55 @@
           "items": {
             "$ref": "common.schema.json#/$defs/VocabId"
           }
+        },
+        "called": {
+          "description": "B9 R11: how THIS inhabitant calls the other - per-observer state in the core, not a world property. name = a proper name it knows (Latin letters, checked by the core and the guard), label = a feature label (vocabulary, shown via i18n) until a name is known. Optional.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CalledAs"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "life_stage": {
+          "description": "B9: the visible life phase (child or adult), needed for R7/R27. Optional.",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "lying_still": {
+          "description": "B9 R16: lies still and does not answer; the core alone knows why. Optional.",
+          "type": "boolean"
+        }
+      }
+    },
+    "CalledAs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "label"
+      ],
+      "properties": {
+        "name": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/ProperName"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "label": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/VocabId"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
     }

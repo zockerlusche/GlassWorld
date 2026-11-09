@@ -419,6 +419,72 @@ class Place(BaseModel):
     z_m: float = Field(..., ge=-100000.0, le=100000.0)
 
 
+class FamilyTie(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    other: str = Field(
+        ...,
+        description='The relative; may no longer be perceivable when deceased.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_-]*$',
+    )
+    relation: str = Field(
+        ...,
+        description='Vocabulary kinship: partner, parent, child, sibling (data).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    deceased: bool
+
+
+class SettlementContext(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    id: str = Field(
+        ...,
+        description='Id of an object or inhabitant instance in the world, assigned by the core.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_-]*$',
+    )
+    sayings: list[LocalizedName] = Field(..., max_length=8)
+
+
+class CultureEntry(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    kind: str = Field(
+        ...,
+        description='ritual, festival, rule, saying or belief (vocabulary culture_kind).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    text: LocalizedName
+    sure: float = Field(..., ge=0.0, le=1.0)
+
+
+class Grief(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    about: str = Field(
+        ..., description='The one mourned.', max_length=64, pattern='^[a-z][a-z0-9_-]*$'
+    )
+    strength: float = Field(..., ge=0.0, le=1.0)
+
+
+type ProperName = Annotated[
+    str,
+    Field(
+        ...,
+        description='A readable proper name invented by the AI (B9 R11): one word in Latin letters, the same in DE and EN, no translated text; the core and the guard check length, readability and youth protection.',
+        pattern='^[A-Z][a-z]{1,15}$',
+    ),
+]
+
+
 class KnowledgeEntry(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -535,6 +601,43 @@ class InhabitantState(BaseModel):
         None,
         description='What the inhabitant feels (B2543), at most one entry per condition and body part (the core guarantees it). Optional until the core sends it (absent = nothing known).',
         max_length=8,
+    )
+    life_stage: str | None = Field(
+        None,
+        description='B9 R1: life phase from age (vocabulary life_stage, data). Optional: absent = unknown (older cores).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    age_years: int | None = Field(
+        None,
+        description='B9 R1: age in life years (content/life/aging.json days_per_life_year). Optional.',
+        ge=0,
+        le=500,
+    )
+    family: list[FamilyTie] | None = Field(
+        None,
+        description="B9 R4: kinship as this inhabitant knows it; the values (affection, trust) stay in relationships. 'other' may have died and no longer be perceivable (deceased). Optional.",
+        max_length=32,
+    )
+    reputation: float | None = Field(
+        None,
+        description='B9 R6: own reputation in the settlement, 0..1. Optional.',
+        ge=0.0,
+        le=1.0,
+    )
+    settlement: SettlementContext | None = Field(
+        None,
+        description='B9 R21: the settlement and its style context (sayings, DE/EN). Optional.',
+    )
+    culture: list[CultureEntry] | None = Field(
+        None,
+        description='B9 R18/R19: culture entries relevant now (rituals, festivals, rules, sayings, beliefs); beliefs carry low certainty. Optional.',
+        max_length=12,
+    )
+    grief: list[Grief] | None = Field(
+        None,
+        description='B9 R17: mourning, at most three overlapping losses. Optional.',
+        max_length=3,
     )
 
 
