@@ -79,7 +79,7 @@ public sealed class IslandWalkTests : IDisposable
             {
                 var cell = map.CellOf(inhabitant.Position);
                 Assert.NotNull(cell);
-                Assert.NotEqual(MapCell.Blocked, map.Map.Cell(cell!.Value.X, cell.Value.Z).WalkCost);
+                Assert.True(map.Map.Cell(cell!.Value.X, cell.Value.Z).WalkCost != MapCell.Blocked, $"tick {host.World.Tick}: {inhabitant.Id} at {inhabitant.Position} doing {inhabitant.Activity?.Action}");
             }
         }
     }

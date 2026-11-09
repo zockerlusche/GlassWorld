@@ -1196,8 +1196,9 @@ def _build_conversation(
     log = CallLog(settings.log_dir / "conversation.jsonl")
     if settings.decider_backend == "mock":
         return MockConversation()
+    texts = TextCatalog.load(settings.content_dir / "i18n")
     if settings.decider_backend == "replay":
-        return ReplayConversation(log, guard, expressions)
+        return ReplayConversation(log, guard, expressions, texts)
     return OllamaConversation(
         client=ollama,
         queue=queue,
@@ -1208,6 +1209,7 @@ def _build_conversation(
         log=log,
         guard=guard,
         expressions=expressions,
+        texts=texts,
     )
 
 

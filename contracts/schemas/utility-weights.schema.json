@@ -14,9 +14,29 @@
     "unknown_target_belief": { "description": "Belief factor for a target whose property the inhabitant does not know yet (trying unknown things).", "type": "number", "minimum": 0, "maximum": 1 },
     "search_weight": { "description": "Score factor of looking further away (search_action) against a target in sight: the search scores urgency x the surest helpful belief x this value, so a weak or doubtful target in sight still competes. At most unknown_target_belief (checked at load): trying something unknown close by never loses to searching far away.", "type": "number", "minimum": 0, "maximum": 1 },
     "search_give_up_hours": { "description": "Game hours after which an inhabitant stops looking further away for a need, until the need is met or something believed helpful is in sight again (no endless search for what is gone or was heard wrongly).", "type": "number", "minimum": 0, "maximum": 10000 },
+    "repetition": { "$ref": "#/$defs/RepetitionLimit" },
     "considerations": { "type": "array", "minItems": 1, "maxItems": 256, "items": { "$ref": "#/$defs/Consideration" } }
   },
   "$defs": {
+    "RepetitionLimit": {
+      "description": "Ends repeating without effect (W1696): when an inhabitant does the same action on the same target at about the same spot this many times in a row and none of them changed a need, mood, belief or relation by at least min_effect, the action rests for a while; it is neither chosen nor offered to the decider, and an answer still waiting for it is dropped. Optional: without it nothing rests.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max_repeats_without_effect", "rest_hours", "same_place_m", "min_effect"],
+      "properties": {
+        "max_repeats_without_effect": { "description": "Repeats in a row without any effect after which the action rests.", "type": "integer", "minimum": 1, "maximum": 1000 },
+        "rest_hours": { "description": "Game hours the action then rests (cooldown).", "type": "number", "minimum": 0, "maximum": 1000 },
+        "same_place_m": { "description": "Distance in metres from where the run began within which a repeat counts as the same spot.", "type": "number", "minimum": 0, "maximum": 1000 },
+        "min_effect": { "description": "Smallest change of a need, mood or the will to live that counts as an effect; less (e.g. topping up a need that is nearly full) counts as nothing.", "type": "number", "minimum": 0, "maximum": 1 },
+        "exempt_actions": {
+          "description": "Actions that never rest (doing nothing, e.g. idle): resting them would only send the inhabitant off on strolls away from water and food; their calm look is the presentation's task (pose_cadence).",
+          "type": "array",
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": { "$ref": "common.schema.json#/$defs/VocabId" }
+        }
+      }
+    },
     "Consideration": {
       "description": "Scores an action. With target_property the core offers the action on every perceived object; the belief that the object has that property scales the score.",
       "type": "object",

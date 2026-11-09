@@ -169,8 +169,10 @@
     },
     {
       "id": "sleep",
-      "source": "placeholder",
-      "loop": true
+      "source": "asset",
+      "loop": true,
+      "asset": "Idle",
+      "speed": 0.35
     },
     {
       "id": "spin",

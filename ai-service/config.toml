@@ -53,7 +53,7 @@ dream_prompt_version = 1
 help_prompt = "help/suggest"            # B6 R8/R10 help suggestions for the player (F5238)
 help_prompt_version = 1
 conversation_prompt = "conversation/reply"  # B6 R13 talking with an inhabitant (A1342)
-conversation_prompt_version = 1
+conversation_prompt_version = 2  # W1701: every word gets an answer
 builder_prompt = "builder/plan"     # D471 D3: building plan from kit parts
 builder_prompt_version = 1
 question_call_timeout_s = 60.0     # one model call (blocks the model like a decision, so <= the
