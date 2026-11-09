@@ -1264,7 +1264,7 @@
     },
     {
       "key": "ui.help.empty",
-      "text": "Nobody is asking for help right now. When an inhabitant tries something several times in vain, their request appears here and knocks in the mailbox. Until then everything runs by itself."
+      "text": "Nobody needs help right now."
     },
     {
       "key": "ui.help.call",
@@ -1292,7 +1292,7 @@
     },
     {
       "key": "ui.mailbox.empty",
-      "text": "No new messages. Inhabitants knock here when they need help or want to tell you something."
+      "text": "No new messages."
     },
     {
       "key": "ui.mailbox.read",
@@ -1640,7 +1640,7 @@
     },
     {
       "key": "ui.chronicle.export",
-      "text": "Export chronicle"
+      "text": "Save as file"
     },
     {
       "key": "msg.hint.chronicle_exported",
@@ -1981,6 +1981,10 @@
     {
       "key": "msg.thought.warn",
       "text": "Watch out!"
+    },
+    {
+      "key": "ui.settings.volume.off_tip",
+      "text": "Off for now - these sounds are being remade."
     },
     {
       "key": "ui.menu.loading_title",

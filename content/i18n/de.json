@@ -1264,7 +1264,7 @@
     },
     {
       "key": "ui.help.empty",
-      "text": "Gerade bittet niemand um Hilfe. Wenn ein Bewohner etwas mehrmals vergeblich versucht, erscheint seine Bitte hier und klopft im Postfach an. Bis dahin läuft alles von selbst."
+      "text": "Gerade bittet niemand um Hilfe."
     },
     {
       "key": "ui.help.call",
@@ -1292,7 +1292,7 @@
     },
     {
       "key": "ui.mailbox.empty",
-      "text": "Keine neuen Nachrichten. Hier klopfen die Bewohner an, wenn sie Hilfe brauchen oder dir etwas mitteilen möchten."
+      "text": "Keine neuen Nachrichten."
     },
     {
       "key": "ui.mailbox.read",
@@ -1640,7 +1640,7 @@
     },
     {
       "key": "ui.chronicle.export",
-      "text": "Chronik exportieren"
+      "text": "Als Datei speichern"
     },
     {
       "key": "msg.hint.chronicle_exported",
@@ -1981,6 +1981,10 @@
     {
       "key": "msg.thought.warn",
       "text": "Pass auf!"
+    },
+    {
+      "key": "ui.settings.volume.off_tip",
+      "text": "Gerade aus – diese Klänge werden neu gemacht."
     },
     {
       "key": "ui.menu.loading_title",

@@ -57,6 +57,15 @@ public sealed class MixTests
     public void NonSpatialBusesIgnoreDistance(MixBusId bus) => Assert.Equal(1, Mixer.Gain(bus, 10_000, 0.5));
 
     [Fact]
+    public void MusicAmbienceAndAnimalCallsAreOffUntilReplaced()
+    {
+        // W1699: music, ambience and animal calls are off until replaced; voices, effects and the master stay.
+        var buses = JsonNode.Parse(MixJson)!["buses"]!.AsArray();
+        var off = buses.Where(b => (bool?)b!["off"] == true).Select(b => (string)b!["id"]!).ToList();
+        Assert.Equal(["music", "ambience", "animals"], off);
+    }
+
+    [Fact]
     public void BrokenRangeIsRejected()
     {
         var mix = JsonNode.Parse(MixJson)!;
