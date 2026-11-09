@@ -97,6 +97,11 @@ jobs:
           unzip -q "$RUNNER_TEMP/$GODOT_WIN_ZIP" -d ~/godot
           unzip -q "$RUNNER_TEMP/$GODOT_TEMPLATES" -d "$RUNNER_TEMP/templates"
           mv "$RUNNER_TEMP/templates/templates" "$APPDATA/Godot/export_templates/${GODOT_VERSION}.stable.mono"
+      - name: Diagnostics - restore the game project like the Godot export
+        continue-on-error: true
+        run: |
+          dotnet restore game/GlassWorld.Game.csproj -r win-x64 -v n 2>&1 | grep -aiE "error|warn|NU[0-9]{4}|Restored|Failed" | head -n 60
+          echo "exit=${PIPESTATUS[0]}"
       - name: Build the release archive
         id: build
         env:
