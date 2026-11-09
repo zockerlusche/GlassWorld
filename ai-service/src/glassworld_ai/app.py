@@ -87,6 +87,7 @@ from glassworld_ai.residency import (
 from glassworld_ai.safety import TextGuard
 from glassworld_ai.security import make_access_guard
 from glassworld_ai.sound import MockSound, MossSound, MossWorker, load_generation_settings
+from glassworld_ai.texts import TextCatalog
 from glassworld_ai.validation import ContractValidator
 from glassworld_ai.vocabulary import Vocabulary
 from glassworld_contracts import (
@@ -1250,4 +1251,5 @@ def _build_decider(settings: Settings, ollama: OllamaClient, queue: ModelQueue) 
             max_retries=settings.max_retries,
         ),
         log=log,
+        texts=TextCatalog.load(settings.content_dir / "i18n"),
     )

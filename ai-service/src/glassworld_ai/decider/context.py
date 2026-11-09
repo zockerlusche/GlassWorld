@@ -7,10 +7,11 @@ to a character budget; options are never cut.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from typing import Any, cast
 
 from glassworld_ai.prompts import PromptTemplate
+from glassworld_ai.texts import TextCatalog
 from glassworld_ai.vocabulary import Vocabulary
 from glassworld_ai.words import ContextError as ContextError
 from glassworld_ai.words import bands as _bands
@@ -29,8 +30,13 @@ def build_values(
     template: PromptTemplate,
     vocab: Vocabulary,
     char_budget: int,
+    texts: TextCatalog | None = None,
 ) -> dict[str, str]:
-    """Values for every placeholder of the decider prompt."""
+    """Values for every placeholder of the decider prompt.
+
+    From prompt v4 on (W1687) things carry their name in the player's language from the content
+    data, so the thought can say "die rote Beere" instead of an English id or "das Objekt".
+    """
     settings = template.settings
     need_words = _bands(settings, "need_words")
     mood_words = _bands(settings, "mood_words")
@@ -44,6 +50,17 @@ def build_values(
     if not isinstance(language, str):
         raise ContextError(f"no language name for locale {locale}")
     max_objects = int(settings.get("max_objects", 12))
+    unknown_raw: object = settings.get("unknown_thing", {})
+    unknown = (
+        cast(dict[str, str], unknown_raw).get(locale) if isinstance(unknown_raw, dict) else None
+    )
+
+    def called(type_id: str) -> str | None:
+        """v4: the thing's name in the player's language (data), or the data's 'unknown' word."""
+        if template.version < 4 or texts is None:
+            return None
+        return texts.thing(locale, type_id) or unknown
+
     max_moods = int(settings.get("max_moods", 5))
 
     inhabitant = request.inhabitant
@@ -76,7 +93,7 @@ def build_values(
         "traits": "\n".join(trait_lines) or NOTHING,
         "environment": _environment(request, vocab),
         "objects": "",
-        "options": "\n".join(_option_line(request, vocab, o) for o in request.options),
+        "options": "\n".join(_option_line(request, vocab, o, called) for o in request.options),
         "expressions": ", ".join(vocab.ids("expression")) or "(none)",
         "thought_language": language,
     }
@@ -91,7 +108,9 @@ def build_values(
     used = sum(len(v) for k, v in values.items() if k != "objects")
     lines: list[str] = []
     for obj in objects[:max_objects]:
-        line = _object_line(_id(obj.id), _id(obj.type), obj.distance_m, obj.known_properties)
+        line = _object_line(
+            _id(obj.id), _id(obj.type), obj.distance_m, obj.known_properties, called(_id(obj.type))
+        )
         if _id(obj.id) not in targets and used + len(line) > char_budget:
             break
         lines.append(line)
@@ -209,7 +228,9 @@ def _environment(request: DecisionRequest, vocab: Vocabulary, air: bool = False)
     )
 
 
-def _object_line(object_id: str, kind: str, distance: float, known: Sequence[Any]) -> str:
+def _object_line(
+    object_id: str, kind: str, distance: float, known: Sequence[Any], name: str | None = None
+) -> str:
     if known:
         beliefs = "; ".join(
             f"{'is' if k.value else 'is not'} {_humanize(_id(k.property))} "
@@ -219,21 +240,33 @@ def _object_line(object_id: str, kind: str, distance: float, known: Sequence[Any
         knowledge = f"you believe it {beliefs}"
     else:
         knowledge = "you know nothing about it yet"
-    return f"- {_humanize(kind)} [{object_id}], {distance:.1f} m away: {knowledge}"
+    said = f' (you call it "{name}")' if name else ""
+    return f"- {_humanize(kind)} [{object_id}]{said}, {distance:.1f} m away: {knowledge}"
 
 
-def _option_line(request: DecisionRequest, vocab: Vocabulary, option: Any) -> str:
+def _option_line(
+    request: DecisionRequest,
+    vocab: Vocabulary,
+    option: Any,
+    called: Callable[[str], str | None] | None = None,
+) -> str:
     option_id = _id(option.option_id)
     action = _vocab_line(vocab, "action", _id(option.action))
     if option.target is None:
         return f"- {option_id}: {action}"
-    what = _object_name(request, _id(option.target))
+    what = _object_name(request, _id(option.target), called)
     raw_partners: list[object] = list(getattr(option, "partners", None) or [])
-    partners = [_object_name(request, _id(p)) for p in raw_partners]
+    partners = [_object_name(request, _id(p), called) for p in raw_partners]
     together = f" with {', '.join(partners)}" if partners else ""
     return f"- {option_id}: {action} -> {what}{together}"
 
 
-def _object_name(request: DecisionRequest, object_id: str) -> str:
+def _object_name(
+    request: DecisionRequest, object_id: str, called: Callable[[str], str | None] | None = None
+) -> str:
     found = next((o for o in request.perception.objects if _id(o.id) == object_id), None)
-    return f"{_humanize(_id(found.type))} [{object_id}]" if found else f"[{object_id}]"
+    if found is None:
+        return f"[{object_id}]"
+    name = called(_id(found.type)) if called else None
+    said = f' ("{name}")' if name else ""
+    return f"{_humanize(_id(found.type))} [{object_id}]{said}"

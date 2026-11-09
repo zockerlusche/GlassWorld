@@ -16,6 +16,7 @@ import pytest
 
 from glassworld_ai.decider.context import build_values
 from glassworld_ai.prompts import PromptError, load_prompt
+from glassworld_ai.texts import TextCatalog
 from glassworld_ai.vocabulary import Vocabulary
 from glassworld_contracts import DecisionRequest
 
@@ -38,14 +39,15 @@ def _vocab() -> Vocabulary:
 
 def _render(request: DecisionRequest, budget: int = BUDGET, version: int = 1) -> str:
     template = load_prompt(PROMPTS, "decider/decide", version)
-    rendered = template.render(build_values(request, template, _vocab(), budget))
+    texts = TextCatalog.load(REPO / "content" / "i18n")
+    rendered = template.render(build_values(request, template, _vocab(), budget, texts))
     return (
         f"[{rendered.version}]\n\n=== system ===\n{rendered.system}\n\n"
         f"=== user ===\n{rendered.user}\n"
     )
 
 
-@pytest.mark.parametrize("version", [1, 2, 3])
+@pytest.mark.parametrize("version", [1, 2, 3, 4])
 @pytest.mark.parametrize("case", ["hungry-berries", "stormy-dusk"])
 def test_decider_prompt_snapshot(case: str, version: int) -> None:
     text = _render(_request(case), version=version)
@@ -193,7 +195,16 @@ def test_every_knowledge_source_has_words_in_the_prompts_that_name_sources() -> 
         )["entries"]
     }
     sources |= {"seen"}  # added with #142 (curiosity); harmless before it lands
-    for name in ("decider/decide.v2", "decider/decide.v3", "question/ask.v1"):
+    for name in ("decider/decide.v2", "decider/decide.v3", "decider/decide.v4", "question/ask.v1"):
         settings = tomllib.loads((PROMPTS / f"{name}.toml").read_text(encoding="utf-8"))
         words = settings["settings"]["source_words"]
         assert sources <= set(words), (name, sorted(sources - set(words)))
+
+
+def test_v4_names_things_in_the_players_language() -> None:
+    """W1687: the model sees what the inhabitant calls a thing, not only an English id."""
+    text = _render(_request("hungry-berries"), version=4)
+    assert '(you call it "' in text
+    assert "at most 10 words" in text
+    v3 = _render(_request("hungry-berries"), version=3)
+    assert '(you call it "' not in v3  # older versions unchanged

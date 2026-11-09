@@ -1612,7 +1612,7 @@
     },
     {
       "key": "ui.top.menu_tooltip",
-      "text": "Pausenmenü (Esc)"
+      "text": "Speichern, Laden, Einstellungen, Beenden (Esc)"
     },
     {
       "key": "msg.hint.autosaved",
@@ -1913,6 +1913,74 @@
     {
       "key": "ui.activity.build_step.object",
       "text": "baut mit: {thing}"
+    },
+    {
+      "key": "msg.thought.approach",
+      "text": "Ich geh mal hin."
+    },
+    {
+      "key": "msg.thought.build_step",
+      "text": "Weiter bauen."
+    },
+    {
+      "key": "msg.thought.combine",
+      "text": "Mal sehen, ob das zusammenpasst."
+    },
+    {
+      "key": "msg.thought.drink",
+      "text": "Erst mal was trinken."
+    },
+    {
+      "key": "msg.thought.drop",
+      "text": "Das leg ich mal hin."
+    },
+    {
+      "key": "msg.thought.eat",
+      "text": "Jetzt was essen."
+    },
+    {
+      "key": "msg.thought.idle",
+      "text": "Kurz ausruhen."
+    },
+    {
+      "key": "msg.thought.inspect",
+      "text": "Was ist das denn?"
+    },
+    {
+      "key": "msg.thought.move_to",
+      "text": "Da will ich hin."
+    },
+    {
+      "key": "msg.thought.pick_up",
+      "text": "Das nehm ich mit."
+    },
+    {
+      "key": "msg.thought.show",
+      "text": "Guck mal!"
+    },
+    {
+      "key": "msg.thought.sleep",
+      "text": "Ich bin so müde."
+    },
+    {
+      "key": "msg.thought.talk_to",
+      "text": "Ich sag mal was."
+    },
+    {
+      "key": "msg.thought.teach",
+      "text": "Komm, ich zeig's dir."
+    },
+    {
+      "key": "msg.thought.wander",
+      "text": "Mal ein bisschen umschauen."
+    },
+    {
+      "key": "msg.thought.use",
+      "text": "Das probier ich mal."
+    },
+    {
+      "key": "msg.thought.warn",
+      "text": "Pass auf!"
     }
   ]
 }
