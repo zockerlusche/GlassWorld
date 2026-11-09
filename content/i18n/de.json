@@ -1264,7 +1264,7 @@
     },
     {
       "key": "ui.help.empty",
-      "text": "Gerade bittet niemand um Hilfe."
+      "text": "Gerade bittet niemand um Hilfe. Wenn ein Bewohner etwas mehrmals vergeblich versucht, erscheint seine Bitte hier und klopft im Postfach an. Bis dahin läuft alles von selbst."
     },
     {
       "key": "ui.help.call",
@@ -1292,7 +1292,7 @@
     },
     {
       "key": "ui.mailbox.empty",
-      "text": "Keine neuen Nachrichten."
+      "text": "Keine neuen Nachrichten. Hier klopfen die Bewohner an, wenn sie Hilfe brauchen oder dir etwas mitteilen möchten."
     },
     {
       "key": "ui.mailbox.read",
@@ -1640,7 +1640,7 @@
     },
     {
       "key": "ui.chronicle.export",
-      "text": "Als Datei speichern"
+      "text": "Chronik exportieren"
     },
     {
       "key": "msg.hint.chronicle_exported",
@@ -1983,10 +1983,6 @@
       "text": "Pass auf!"
     },
     {
-      "key": "ui.settings.volume.off_tip",
-      "text": "Gerade aus – diese Klänge werden neu gemacht."
-    },
-    {
       "key": "ui.menu.loading_title",
       "text": "Einen Moment"
     },
@@ -1997,6 +1993,82 @@
     {
       "key": "ui.chronicle.export_tip",
       "text": "Speichert die Chronik als Webseite (.html) und als Textdatei (.txt) im Spielordner unter „chronicle“ – zum Lesen oder Weitergeben."
+    },
+    {
+      "key": "ui.log.title",
+      "text": "Verlauf"
+    },
+    {
+      "key": "ui.log.empty",
+      "text": "Noch hat niemand etwas gesagt oder gedacht. Hier steht später, wer was gesagt hat – ein Klick führt zum Bewohner."
+    },
+    {
+      "key": "ui.log.thought",
+      "text": "{name} denkt: „{text}“"
+    },
+    {
+      "key": "ui.log.said",
+      "text": "{name}: „{text}“"
+    },
+    {
+      "key": "ui.log.player",
+      "text": "Du zu {name}: „{text}“"
+    },
+    {
+      "key": "ui.log.not_understood",
+      "text": "{name} versteht dich nicht."
+    },
+    {
+      "key": "ui.log.again",
+      "text": "{line} ({count}×)"
+    },
+    {
+      "key": "ui.questions.empty_text",
+      "text": "Niemand hat gerade eine offene Frage. Wenn ein Bewohner vor etwas Unbekanntem steht, erscheint seine Frage hier."
+    },
+    {
+      "key": "ui.question.ask.unknown_object",
+      "text": "Was ist das?"
+    },
+    {
+      "key": "ui.question.reason.unknown_object",
+      "text": "Vor {name} liegt etwas, das er noch nicht kennt: {thing}."
+    },
+    {
+      "key": "ui.question.ask.noticed_player",
+      "text": "Wer ist da?"
+    },
+    {
+      "key": "ui.question.reason.noticed_player",
+      "text": "{name} hat dich bemerkt – du hast ihn angeklickt oder angesprochen."
+    },
+    {
+      "key": "ui.question.ask.other",
+      "text": "{name} grübelt über etwas."
+    },
+    {
+      "key": "ui.question.reason.other",
+      "text": "Die Antwort findet er selbst – spätestens in der Rechennacht."
+    },
+    {
+      "key": "ui.question.answer_hint",
+      "text": "Antworte ihm …"
+    },
+    {
+      "key": "ui.question.answer",
+      "text": "Antworten"
+    },
+    {
+      "key": "ui.question.later",
+      "text": "Die Antwort findet er auch selbst – spätestens in der Rechennacht."
+    },
+    {
+      "key": "ui.log.not_understood_text",
+      "text": "{name} versteht dich nicht: „{text}“"
+    },
+    {
+      "key": "ui.settings.volume.off_tip",
+      "text": "Gerade aus – diese Klänge werden neu gemacht."
     },
     {
       "key": "msg.converse.reply",

@@ -1,0 +1,90 @@
+using GlassWorld.Simulation.Inhabitants;
+
+namespace GlassWorld.Presentation.World;
+
+/// <summary>What a line of the conversation log is.</summary>
+public enum LogLineKind
+{
+    /// <summary>An inhabitant thought something.</summary>
+    Thought,
+
+    /// <summary>An inhabitant said something (an answer to the player, or declining).</summary>
+    Said,
+
+    /// <summary>The player said something to an inhabitant.</summary>
+    Player,
+
+    /// <summary>An inhabitant did not understand the player.</summary>
+    NotUnderstood,
+}
+
+/// <summary>A line of the conversation log.</summary>
+/// <param name="Seq">Running number (newer lines have higher numbers).</param>
+/// <param name="InhabitantId">The inhabitant who thought or said it, or whom the player spoke to.</param>
+/// <param name="Kind">What the line is.</param>
+/// <param name="Text">The words, in the player's language (empty for <see cref="LogLineKind.NotUnderstood"/>).</param>
+/// <param name="Tick">When it was (last) said.</param>
+/// <param name="Count">How often the same was said in a row (Marcel W1696: "sie wiederholen auch immer dasselbe").</param>
+public sealed record LogLine(long Seq, string InhabitantId, LogLineKind Kind, string Text, long Tick, int Count);
+
+/// <summary>
+/// The conversation log (Marcel W1696): who said or thought what, newest first, the readable source while
+/// the bubbles above the heads stay short. The same line of the same inhabitant again counts up instead of
+/// filling the log. Godot-free.
+/// </summary>
+public sealed class ConversationLog
+{
+    private readonly List<LogLine> _lines = [];
+    private readonly int _capacity;
+    private long _seq;
+
+    /// <summary>Creates a log that keeps the newest <paramref name="capacity"/> lines.</summary>
+    public ConversationLog(int capacity) => _capacity = Math.Max(1, capacity);
+
+    /// <summary>Changes whenever a line is added or counted up.</summary>
+    public long Version { get; private set; }
+
+    /// <summary>The lines, newest first.</summary>
+    public IReadOnlyList<LogLine> Newest() => [.. Enumerable.Reverse(_lines)];
+
+    /// <summary>Takes the conversation events from <paramref name="events"/>; others are ignored.</summary>
+    public void Add(IEnumerable<WorldEvent> events)
+    {
+        ArgumentNullException.ThrowIfNull(events);
+        foreach (var e in events)
+        {
+            LogLineKind? kind = e.Kind switch
+            {
+                "thought" when e.Text is { Length: > 0 } => LogLineKind.Thought,
+                "said" or "declined" when e.Text is { Length: > 0 } => LogLineKind.Said,
+                "conversation_started" when e.Text is { Length: > 0 } => LogLineKind.Player,
+                "not_understood" => LogLineKind.NotUnderstood,
+                _ => null,
+            };
+            if (kind is { } k)
+            {
+                Add(e.InhabitantId, k, e.Text ?? string.Empty, e.Tick);
+            }
+        }
+    }
+
+    private void Add(string inhabitantId, LogLineKind kind, string text, long tick)
+    {
+        Version++;
+        var last = _lines.FindLastIndex(l => l.InhabitantId == inhabitantId);
+        if (last >= 0 && _lines[last].Kind == kind && _lines[last].Text == text)
+        {
+            // Said again: one line with a count, moved to the top.
+            var again = _lines[last] with { Seq = ++_seq, Tick = tick, Count = _lines[last].Count + 1 };
+            _lines.RemoveAt(last);
+            _lines.Add(again);
+            return;
+        }
+
+        _lines.Add(new LogLine(++_seq, inhabitantId, kind, text, tick, 1));
+        if (_lines.Count > _capacity)
+        {
+            _lines.RemoveAt(0);
+        }
+    }
+}

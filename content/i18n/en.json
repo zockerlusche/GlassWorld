@@ -1264,7 +1264,7 @@
     },
     {
       "key": "ui.help.empty",
-      "text": "Nobody needs help right now."
+      "text": "Nobody is asking for help right now. When an inhabitant tries something several times in vain, their request appears here and knocks in the mailbox. Until then everything runs by itself."
     },
     {
       "key": "ui.help.call",
@@ -1292,7 +1292,7 @@
     },
     {
       "key": "ui.mailbox.empty",
-      "text": "No new messages."
+      "text": "No new messages. Inhabitants knock here when they need help or want to tell you something."
     },
     {
       "key": "ui.mailbox.read",
@@ -1640,7 +1640,7 @@
     },
     {
       "key": "ui.chronicle.export",
-      "text": "Save as file"
+      "text": "Export chronicle"
     },
     {
       "key": "msg.hint.chronicle_exported",
@@ -1983,10 +1983,6 @@
       "text": "Watch out!"
     },
     {
-      "key": "ui.settings.volume.off_tip",
-      "text": "Off for now - these sounds are being remade."
-    },
-    {
       "key": "ui.menu.loading_title",
       "text": "One moment"
     },
@@ -1997,6 +1993,82 @@
     {
       "key": "ui.chronicle.export_tip",
       "text": "Saves the chronicle as a web page (.html) and a text file (.txt) in the game folder under \"chronicle\" - to read or pass on."
+    },
+    {
+      "key": "ui.log.title",
+      "text": "Log"
+    },
+    {
+      "key": "ui.log.empty",
+      "text": "Nobody has said or thought anything yet. Later this shows who said what - a click leads to the inhabitant."
+    },
+    {
+      "key": "ui.log.thought",
+      "text": "{name} thinks: \"{text}\""
+    },
+    {
+      "key": "ui.log.said",
+      "text": "{name}: \"{text}\""
+    },
+    {
+      "key": "ui.log.player",
+      "text": "You to {name}: \"{text}\""
+    },
+    {
+      "key": "ui.log.not_understood",
+      "text": "{name} does not understand you."
+    },
+    {
+      "key": "ui.log.again",
+      "text": "{line} ({count}×)"
+    },
+    {
+      "key": "ui.questions.empty_text",
+      "text": "Nobody has an open question right now. When an inhabitant comes across something unknown, the question appears here."
+    },
+    {
+      "key": "ui.question.ask.unknown_object",
+      "text": "What is that?"
+    },
+    {
+      "key": "ui.question.reason.unknown_object",
+      "text": "In front of {name} lies something they do not know yet: {thing}."
+    },
+    {
+      "key": "ui.question.ask.noticed_player",
+      "text": "Who is there?"
+    },
+    {
+      "key": "ui.question.reason.noticed_player",
+      "text": "{name} noticed you - you clicked on them or spoke to them."
+    },
+    {
+      "key": "ui.question.ask.other",
+      "text": "{name} is puzzling over something."
+    },
+    {
+      "key": "ui.question.reason.other",
+      "text": "They will find the answer themselves - in the computing night at the latest."
+    },
+    {
+      "key": "ui.question.answer_hint",
+      "text": "Answer them …"
+    },
+    {
+      "key": "ui.question.answer",
+      "text": "Answer"
+    },
+    {
+      "key": "ui.question.later",
+      "text": "They will also find the answer themselves - in the computing night at the latest."
+    },
+    {
+      "key": "ui.log.not_understood_text",
+      "text": "{name} does not understand you: \"{text}\""
+    },
+    {
+      "key": "ui.settings.volume.off_tip",
+      "text": "Off for now - these sounds are being remade."
     },
     {
       "key": "msg.converse.reply",
