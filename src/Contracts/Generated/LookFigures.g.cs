@@ -52,7 +52,7 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
-    /// Calm poses (W1697): how often a figure may change what it shows, in real seconds so fast forward does not turn idle variety into squats. A standing pose is held at least min_pose_s; idle variety starts only after standing idle for idle_variety_after_s (before, the rest idle plays) and then changes every idle_slot_s (with idle_slot_spread and a phase per inhabitant); two figures never change their pose in the same frame and at least stagger_s apart; in a conversation (the inhabitant speaks to or is spoken to) only the conversation_idle behaviours play, no sitting or bending.
+    /// Calm poses (W1697): how often a figure may change what it shows, in real seconds so fast forward does not turn idle variety into squats. A standing pose is held at least min_pose_s; starting and stopping to walk show at the next free frame; idle variety starts only after standing idle for idle_variety_after_s (before, the rest idle plays) and then changes every idle_slot_s (with idle_slot_spread and a phase per inhabitant); two figures never change their pose in the same frame, and two idle variety changes lie at least stagger_s apart; in a conversation (the inhabitant speaks to or is spoken to) only the conversation_idle behaviours play, no sitting or bending.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class FigurePoseCadence
@@ -63,12 +63,6 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("min_pose_s")]
         public double MinPoseS { get; set; } = default!;
-
-        /// <summary>
-        /// Real seconds the walk is shown at least once it started (a figure starts walking at once, so it never glides).
-        /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("min_walk_s")]
-        public double MinWalkS { get; set; } = default!;
 
         /// <summary>
         /// Real seconds a figure stands idle before idle variety begins; until then it plays rest_idle.
@@ -89,7 +83,7 @@ namespace GlassWorld.Contracts
         public string RestIdle { get; set; } = default!;
 
         /// <summary>
-        /// Least real seconds between the pose changes of two figures (no two in the same frame).
+        /// Least real seconds between the idle variety changes of two figures (other changes only wait for a free frame).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("stagger_s")]
         public double StaggerS { get; set; } = default!;
@@ -107,7 +101,7 @@ namespace GlassWorld.Contracts
         public double MaxChangesPerMinute { get; set; } = default!;
 
         /// <summary>
-        /// Upper limit of starts and stops of walking per real minute and figure the presentation is tested against (fast forward walks more per real minute).
+        /// Upper limit of starts and stops of walking per real minute and figure the presentation is tested against. They follow the core's walks without delay (no marching in place), so fast forward shows many more per real minute.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("max_walk_changes_per_minute")]
         public double MaxWalkChangesPerMinute { get; set; } = default!;

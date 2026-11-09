@@ -21,6 +21,16 @@ public sealed record Activity(string Action, string? TargetId, Position Destinat
 /// <param name="Count">Times in a row without effect.</param>
 public sealed record RepeatRun(string Action, string? TargetId, Position Place, int Count);
 
+/// <summary>
+/// An action that rests after repeats without effect (W1696), for one target: the target id, or for an
+/// action without a target the place where it rested (it counts within the data's same_place_m).
+/// </summary>
+/// <param name="Action">Action id.</param>
+/// <param name="TargetId">Target id, or null for an action without a target.</param>
+/// <param name="Place">Where the run without effect ended.</param>
+/// <param name="Until">First tick at which it may be chosen again.</param>
+public sealed record RestingAction(string Action, string? TargetId, Position Place, long Until);
+
 /// <summary>A remembered place (TL #19921): a thing of a type stood here when the inhabitant looked at it.</summary>
 /// <param name="TypeId">Object type.</param>
 /// <param name="Position">Where it stood.</param>
@@ -100,13 +110,29 @@ public sealed class Inhabitant
     public RepeatRun? Repeat { get; internal set; }
 
     /// <summary>
-    /// Actions that rest after too many repeats without effect (W1696): action id → the tick from which it may
-    /// be chosen again (content/behaviour/utility.json: repetition).
+    /// Actions that rest after too many repeats without effect (W1696), each for its target or, without a
+    /// target, for its place (content/behaviour/utility.json: repetition), in the order they began to rest.
     /// </summary>
-    public SortedDictionary<string, long> RestingUntil { get; } = new(StringComparer.Ordinal);
+    public List<RestingAction> Resting { get; } = [];
 
-    /// <summary>Whether <paramref name="action"/> rests at <paramref name="tick"/> after repeats without effect.</summary>
-    public bool Rests(string action, long tick) => RestingUntil.TryGetValue(action, out var until) && tick < until;
+    /// <summary>
+    /// Whether <paramref name="action"/> on <paramref name="targetId"/> rests at <paramref name="tick"/>; an action
+    /// without a target rests only within <paramref name="samePlaceM"/> of where it began to rest
+    /// (<paramref name="at"/>: where the inhabitant would do it). Resting with one target never blocks another.
+    /// </summary>
+    public bool Rests(string action, string? targetId, Position at, long tick, double samePlaceM)
+    {
+        foreach (var r in Resting)
+        {
+            if (r.Until > tick && r.Action == action && r.TargetId == targetId
+                && (targetId is not null || Math.Sqrt(((r.Place.X - at.X) * (r.Place.X - at.X)) + ((r.Place.Z - at.Z) * (r.Place.Z - at.Z))) <= samePlaceM))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     /// <summary>Remembered places by object id (TL #19921), at most the knowledge data's place_memory_max.</summary>
     public SortedDictionary<string, PlaceMemory> Places { get; } = new(StringComparer.Ordinal);
@@ -177,12 +203,12 @@ public sealed class Inhabitant
             hasher.Write("repeat").Write(run.Action).Write(run.TargetId ?? string.Empty).Write(run.Place.X).Write(run.Place.Z).Write(run.Count);
         }
 
-        if (RestingUntil.Count > 0)
+        if (Resting.Count > 0)
         {
-            hasher.Write("resting").Write(RestingUntil.Count);
-            foreach (var (action, until) in RestingUntil)
+            hasher.Write("resting").Write(Resting.Count);
+            foreach (var r in Resting)
             {
-                hasher.Write(action).Write(until);
+                hasher.Write(r.Action).Write(r.TargetId ?? string.Empty).Write(r.Place.X).Write(r.Place.Z).Write(r.Until);
             }
         }
     }

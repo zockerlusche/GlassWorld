@@ -59,12 +59,6 @@ class FigurePoseCadence(BaseModel):
         ge=0.0,
         le=120.0,
     )
-    min_walk_s: float = Field(
-        ...,
-        description='Real seconds the walk is shown at least once it started (a figure starts walking at once, so it never glides).',
-        ge=0.0,
-        le=60.0,
-    )
     idle_variety_after_s: float = Field(
         ...,
         description='Real seconds a figure stands idle before idle variety begins; until then it plays rest_idle.',
@@ -84,7 +78,7 @@ class FigurePoseCadence(BaseModel):
     )
     stagger_s: float = Field(
         ...,
-        description='Least real seconds between the pose changes of two figures (no two in the same frame).',
+        description='Least real seconds between the idle variety changes of two figures (other changes only wait for a free frame).',
         ge=0.0,
         le=10.0,
     )
@@ -102,7 +96,7 @@ class FigurePoseCadence(BaseModel):
     )
     max_walk_changes_per_minute: float = Field(
         ...,
-        description='Upper limit of starts and stops of walking per real minute and figure the presentation is tested against (fast forward walks more per real minute).',
+        description="Upper limit of starts and stops of walking per real minute and figure the presentation is tested against. They follow the core's walks without delay (no marching in place), so fast forward shows many more per real minute.",
         ge=1.0,
         le=600.0,
     )

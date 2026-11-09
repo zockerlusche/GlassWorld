@@ -477,18 +477,17 @@ public sealed class DecisionsSystem : IWorldSystem
         {
             // Only what the asker's needs suggest (F5275 A): no sleep offered to someone wide awake, so a
             // queued answer cannot chain sleeps while thirsty.
-            // W1696: nor an action that rests after repeats without effect.
-            if (!_brain.NeedSuggests(asker, action, target?.TypeId) || asker.Rests(action, tick))
+            if (!_brain.NeedSuggests(asker, action, target?.TypeId))
             {
                 continue;
             }
 
             switch (_actionTargets.GetValueOrDefault(action, VocabularyEntryTarget.None))
             {
-                case VocabularyEntryTarget.Object when target is not null:
+                case VocabularyEntryTarget.Object when target is not null && !Rests(asker, action, target.Id, tick):
                     raw.Add((action, target.Id));
                     break;
-                case VocabularyEntryTarget.None:
+                case VocabularyEntryTarget.None when !Rests(asker, action, null, tick):
                     raw.Add((action, null));
                     break;
                 case VocabularyEntryTarget.Inhabitant when Knowledge is { } knowledge:
@@ -496,7 +495,7 @@ public sealed class DecisionsSystem : IWorldSystem
                     // something this action carries and the other has not experienced it.
                     foreach (var other in PerceivedInhabitants(asker).Take(knowledge.RequestMaxInhabitants))
                     {
-                        if (InhabitantsSystem.PassableBelief(knowledge, asker, other, action) is not null)
+                        if (InhabitantsSystem.PassableBelief(knowledge, asker, other, action) is not null && !Rests(asker, action, other.Id, tick))
                         {
                             passOn.Add((action, other.Id));
                         }
@@ -515,6 +514,10 @@ public sealed class DecisionsSystem : IWorldSystem
         raw.AddRange(passOn.Take(Math.Min(room, Knowledge?.MaxPassOnOptions ?? 0)));
         return [.. raw.Take(MaxOptions).Select((o, i) => (string.Create(CultureInfo.InvariantCulture, $"o{i + 1}"), o.Action, o.TargetId))];
     }
+
+    /// <summary>W1696: an action that rests after repeats without effect (for this target, or here) is not offered.</summary>
+    private bool Rests(Inhabitant asker, string action, string? targetId, long tick) =>
+        asker.Resting.Count > 0 && asker.Rests(action, targetId, asker.Position, tick, _brain.Weights.Repetition?.SamePlaceM ?? 0);
 
     private DecisionRequest BuildRequest(World world, Inhabitant inhabitant, string requestId, List<(string OptionId, string Action, string? TargetId)> options)
     {

@@ -14,17 +14,18 @@ public sealed class PoseGate(double staggerS)
 
     /// <summary>
     /// Whether a figure may change its pose in <paramref name="frame"/> at real time <paramref name="nowS"/>
-    /// (<paramref name="walk"/>: it starts walking, only the frame counts); if so, the frame is taken.
+    /// (<paramref name="frameOnly"/>: walking, actions, leaving a low pose; only the frame counts, the stagger
+    /// is for idle variety); if so, the frame is taken.
     /// </summary>
-    public bool TryPass(long frame, double nowS, bool walk = false)
+    public bool TryPass(long frame, double nowS, bool frameOnly = false)
     {
-        if (frame == _frame || (!walk && nowS - _at < staggerS))
+        if (frame == _frame || (!frameOnly && nowS - _at < staggerS))
         {
             return false;
         }
 
         _frame = frame;
-        _at = walk ? _at : nowS;
+        _at = frameOnly ? _at : nowS;
         return true;
     }
 }
@@ -50,6 +51,8 @@ public sealed class PoseCadence
     private FigureClip? _shown;
     private FigureClip? _wanted;
     private bool _leaveAtOnce;
+    private bool _wantedIdle;
+    private bool _shownIdle;
     private double _shownSince;
 
     /// <summary>Creates the cadence of one inhabitant's figure.</summary>
@@ -103,6 +106,7 @@ public sealed class PoseCadence
         // A conversation begins while the figure sits or bends: it gets up without waiting out the hold.
         _leaveAtOnce = conversation && _shown is { Walking: false } shown && chooser.IsIdleClip(shown.Clip.ClipId) && !Allowed(chooser, shown);
         _wanted = wanted;
+        _wantedIdle = !wanted.Walking && chooser.IsIdleClip(wanted.Clip.ClipId);
     }
 
     /// <summary>
@@ -129,8 +133,13 @@ public sealed class PoseCadence
             return wanted;
         }
 
-        var hold = wanted.Walking || _leaveAtOnce ? 0 : shown.Walking ? _data.MinWalkS : _data.MinPoseS;
-        return nowS - _shownSince >= hold && gate.TryPass(frame, nowS, wanted.Walking || _leaveAtOnce) ? Show(wanted, nowS) : shown;
+        // Starting or stopping to walk (GW3 review #164: arriving walkers never march in place) and leaving a
+        // low pose for a conversation only wait for a free frame. Only idle variety (idle to idle) keeps the
+        // stagger between figures; every standing pose is held min_pose_s.
+        var free = wanted.Walking || shown.Walking || _leaveAtOnce;
+        var variety = _shownIdle && _wantedIdle;
+        var hold = free ? 0 : _data.MinPoseS;
+        return nowS - _shownSince >= hold && gate.TryPass(frame, nowS, frameOnly: free || !variety) ? Show(wanted, nowS) : shown;
     }
 
     /// <summary>
@@ -147,6 +156,7 @@ public sealed class PoseCadence
     private FigureClip Show(FigureClip clip, double nowS)
     {
         _shown = clip;
+        _shownIdle = _wantedIdle;
         _shownSince = nowS;
         return clip;
     }

@@ -44,7 +44,8 @@ public sealed class SaveGameTests : IDisposable
         var before = host.World.StateHash();
         var inhabitant = host.Inhabitants.Get("inh-000001");
         inhabitant.Repeat = new RepeatRun("inspect", null, new Position(1.5, 2.5), 1);
-        inhabitant.RestingUntil["warn"] = 99;
+        inhabitant.Resting.Add(new RestingAction("warn", "inh-000002", new Position(1, 2), 99));
+        inhabitant.Resting.Add(new RestingAction("inspect", null, new Position(3, 4), 120));
         Assert.NotEqual(before, host.World.StateHash());
 
         var path = Path.Combine(_directory, "repeats.db");
@@ -52,7 +53,7 @@ public sealed class SaveGameTests : IDisposable
         var loaded = Restore(SaveGameStore.Load(path), new MockDecisionPort());
         Assert.Equal(host.World.StateHash(), loaded.World.StateHash());
         Assert.Equal(inhabitant.Repeat, loaded.Inhabitants.Get("inh-000001").Repeat);
-        Assert.Equal(99, loaded.Inhabitants.Get("inh-000001").RestingUntil["warn"]);
+        Assert.Equal(inhabitant.Resting, loaded.Inhabitants.Get("inh-000001").Resting);
     }
 
     [Fact]

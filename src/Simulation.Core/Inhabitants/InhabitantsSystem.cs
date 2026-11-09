@@ -504,7 +504,7 @@ public sealed class InhabitantsSystem : IWorldSystem
             return;
         }
 
-        if (activity.RemainingTicks is null && inhabitant.Rests(activity.Action, world.Tick))
+        if (activity.RemainingTicks is null && Rests(inhabitant, activity.Action, activity.TargetId, world.Tick))
         {
             // W1696: an answer that waited for an action which now rests after repeats without effect is dropped.
             Report(new WorldEvent(ActionCancelled, world.Tick, inhabitant.Id, activity.Action, activity.TargetId) { Detail = Resting });
@@ -589,10 +589,7 @@ public sealed class InhabitantsSystem : IWorldSystem
     /// </summary>
     private bool CountRepeat(World world, Inhabitant inhabitant, Activity activity, bool changed)
     {
-        foreach (var over in inhabitant.RestingUntil.Where(r => r.Value <= world.Tick).Select(r => r.Key).ToList())
-        {
-            inhabitant.RestingUntil.Remove(over);
-        }
+        inhabitant.Resting.RemoveAll(r => r.Until <= world.Tick);
 
         if (_brain.Weights.Repetition is not { } repetition || changed || repetition.ExemptActions?.Contains(activity.Action) == true)
         {
@@ -611,9 +608,15 @@ public sealed class InhabitantsSystem : IWorldSystem
         }
 
         inhabitant.Repeat = null;
-        inhabitant.RestingUntil[activity.Action] = world.Tick + Math.Max(1, (long)Math.Round(repetition.RestHours * _ticksPerHour));
+        inhabitant.Resting.RemoveAll(r => r.Action == activity.Action && r.TargetId == activity.TargetId
+            && (r.TargetId is not null || Distance(r.Place, inhabitant.Position) <= repetition.SamePlaceM));
+        inhabitant.Resting.Add(new RestingAction(activity.Action, activity.TargetId, inhabitant.Position, world.Tick + Math.Max(1, (long)Math.Round(repetition.RestHours * _ticksPerHour))));
         return true;
     }
+
+    /// <summary>Whether the action on that target (or, without one, here) rests for the inhabitant (W1696).</summary>
+    private bool Rests(Inhabitant inhabitant, string action, string? targetId, long tick) =>
+        inhabitant.Resting.Count > 0 && inhabitant.Rests(action, targetId, inhabitant.Position, tick, _brain.Weights.Repetition?.SamePlaceM ?? 0);
 
     /// <summary>Whether a walk to a listener must head for the listener's new position.</summary>
     private bool Following(Activity activity, Inhabitant listener) =>
@@ -809,12 +812,12 @@ public sealed class InhabitantsSystem : IWorldSystem
         var givenUp = inhabitant.SearchSince.Where(s => world.Tick - s.Value >= giveUpTicks).Select(s => s.Key).ToHashSet(StringComparer.Ordinal);
         var searching = new HashSet<string>(StringComparer.Ordinal);
         var scored = _brain.Score(inhabitant, perceived, givenUp, searching);
-        if (inhabitant.RestingUntil.Count > 0 && scored.Any(o => inhabitant.Rests(o.Action, world.Tick)))
+        if (inhabitant.Resting.Count > 0 && scored.Any(o => Rests(inhabitant, o.Action, o.TargetId, world.Tick)))
         {
             // W1696: an action resting after repeats without effect is not chosen, and nothing is done in its
             // place that no need asks for (score 0): the inhabitant then just stands there instead of being
             // sent off on a stroll that leads it away from water and food.
-            scored = [.. scored.Where(o => !inhabitant.Rests(o.Action, world.Tick) && o.Score > 0)];
+            scored = [.. scored.Where(o => !Rests(inhabitant, o.Action, o.TargetId, world.Tick) && o.Score > 0)];
         }
 
         foreach (var over in inhabitant.SearchSince.Keys.Where(k => !searching.Contains(k)).ToList())

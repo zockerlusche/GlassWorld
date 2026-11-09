@@ -245,8 +245,8 @@ public static class SaveGameStore
         }
 
         // Repeats without effect and resting actions (W1696) as one JSON object by inhabitant id; older saves have none.
-        var repeats = s.Inhabitants.Where(i => i.Repeat is not null || i.RestingUntil is { Count: > 0 })
-            .ToDictionary(i => i.Id, i => new SavedRepeats(i.Repeat, i.RestingUntil), StringComparer.Ordinal);
+        var repeats = s.Inhabitants.Where(i => i.Repeat is not null || i.Resting is { Count: > 0 })
+            .ToDictionary(i => i.Id, i => new SavedRepeats(i.Repeat, i.Resting), StringComparer.Ordinal);
         if (repeats.Count > 0)
         {
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("repeats", JsonSerializer.Serialize(repeats, Json)));
@@ -476,7 +476,7 @@ public static class SaveGameStore
                     searches.GetValueOrDefault(r.GetString(0)),
                     places.GetValueOrDefault(r.GetString(0)),
                     repeats.GetValueOrDefault(r.GetString(0))?.Repeat,
-                    repeats.GetValueOrDefault(r.GetString(0))?.RestingUntil)),
+                    repeats.GetValueOrDefault(r.GetString(0))?.Resting)),
             long.Parse(meta["question_counter"], CultureInfo.InvariantCulture),
             Query(c, "SELECT data FROM questions ORDER BY id", r => JsonSerializer.Deserialize<SavedQuestion>(r.GetString(0))!),
             Query(c, "SELECT key, tick FROM last_asked ORDER BY key", r => new KeyValuePair<string, long>(r.GetString(0), r.GetInt64(1))),
@@ -564,8 +564,11 @@ public static class SaveGameStore
         return result;
     }
 
-    /// <summary>An inhabitant's repeats without effect and resting actions as saved (W1696).</summary>
-    private sealed record SavedRepeats(RepeatRun? Repeat, IReadOnlyDictionary<string, long>? RestingUntil);
+    /// <summary>
+    /// An inhabitant's repeats without effect and resting actions as saved (W1696). Optional meta entry: saves
+    /// without it load with nothing resting; unknown fields are ignored on read.
+    /// </summary>
+    private sealed record SavedRepeats(RepeatRun? Repeat, IReadOnlyList<RestingAction>? Resting);
 }
 
 /// <summary>Saves the world after every game day (Leitbild: at most one game day lost after a crash).</summary>

@@ -147,17 +147,16 @@
       }
     },
     "FigurePoseCadence": {
-      "description": "Calm poses (W1697): how often a figure may change what it shows, in real seconds so fast forward does not turn idle variety into squats. A standing pose is held at least min_pose_s; idle variety starts only after standing idle for idle_variety_after_s (before, the rest idle plays) and then changes every idle_slot_s (with idle_slot_spread and a phase per inhabitant); two figures never change their pose in the same frame and at least stagger_s apart; in a conversation (the inhabitant speaks to or is spoken to) only the conversation_idle behaviours play, no sitting or bending.",
+      "description": "Calm poses (W1697): how often a figure may change what it shows, in real seconds so fast forward does not turn idle variety into squats. A standing pose is held at least min_pose_s; starting and stopping to walk show at the next free frame; idle variety starts only after standing idle for idle_variety_after_s (before, the rest idle plays) and then changes every idle_slot_s (with idle_slot_spread and a phase per inhabitant); two figures never change their pose in the same frame, and two idle variety changes lie at least stagger_s apart; in a conversation (the inhabitant speaks to or is spoken to) only the conversation_idle behaviours play, no sitting or bending.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["min_pose_s", "min_walk_s", "idle_variety_after_s", "idle_slot_s", "rest_idle", "stagger_s", "conversation_idle", "max_changes_per_minute", "max_walk_changes_per_minute"],
+      "required": ["min_pose_s", "idle_variety_after_s", "idle_slot_s", "rest_idle", "stagger_s", "conversation_idle", "max_changes_per_minute", "max_walk_changes_per_minute"],
       "properties": {
         "min_pose_s": { "description": "Real seconds a standing pose (action or idle clip) is held at least before the next one.", "type": "number", "minimum": 0, "maximum": 120 },
-        "min_walk_s": { "description": "Real seconds the walk is shown at least once it started (a figure starts walking at once, so it never glides).", "type": "number", "minimum": 0, "maximum": 60 },
         "idle_variety_after_s": { "description": "Real seconds a figure stands idle before idle variety begins; until then it plays rest_idle.", "type": "number", "minimum": 0, "maximum": 600 },
         "idle_slot_s": { "description": "Real seconds one idle behaviour lasts before the next is drawn (± idle_slot_spread, phase per inhabitant).", "type": "number", "minimum": 0.5, "maximum": 600 },
         "rest_idle": { "description": "Idle behaviour id (content/animation/library.json idle) a figure plays while it has stood idle only briefly.", "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
-        "stagger_s": { "description": "Least real seconds between the pose changes of two figures (no two in the same frame).", "type": "number", "minimum": 0, "maximum": 10 },
+        "stagger_s": { "description": "Least real seconds between the idle variety changes of two figures (other changes only wait for a free frame).", "type": "number", "minimum": 0, "maximum": 10 },
         "conversation_idle": {
           "description": "Idle behaviour ids allowed while the inhabitant is in a conversation (no sitting, crouching or bending).",
           "type": "array",
@@ -167,7 +166,7 @@
           "items": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" }
         },
         "max_changes_per_minute": { "description": "Upper limit of standing pose changes (action and idle clips, no walking) per real minute and figure the presentation is tested against, at normal speed and at x16.", "type": "number", "minimum": 1, "maximum": 600 },
-        "max_walk_changes_per_minute": { "description": "Upper limit of starts and stops of walking per real minute and figure the presentation is tested against (fast forward walks more per real minute).", "type": "number", "minimum": 1, "maximum": 600 }
+        "max_walk_changes_per_minute": { "description": "Upper limit of starts and stops of walking per real minute and figure the presentation is tested against. They follow the core's walks without delay (no marching in place), so fast forward shows many more per real minute.", "type": "number", "minimum": 1, "maximum": 600 }
       }
     },
     "FigureThinkingDots": {

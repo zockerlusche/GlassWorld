@@ -34,7 +34,7 @@ public sealed record SavedInhabitant(
     IReadOnlyDictionary<string, long>? SearchSince = null,
     IReadOnlyList<SavedPlace>? Places = null,
     RepeatRun? Repeat = null,
-    IReadOnlyDictionary<string, long>? RestingUntil = null);
+    IReadOnlyList<RestingAction>? Resting = null);
 
 /// <summary>An open question as saved.</summary>
 public sealed record SavedQuestion(string Id, string InhabitantId, string Kind, string Subject, string RequestId, long AskedTick, IReadOnlyList<SavedOption> Options, long? RetryAtTick);
@@ -129,7 +129,7 @@ public static class StateCodec
                 i.SearchSince.Count > 0 ? new Dictionary<string, long>(i.SearchSince, StringComparer.Ordinal) : null,
                 i.Places.Count > 0 ? [.. i.Places.Select(p => new SavedPlace(p.Key, p.Value.TypeId, p.Value.Position, p.Value.Tick))] : null,
                 i.Repeat,
-                i.RestingUntil.Count > 0 ? new Dictionary<string, long>(i.RestingUntil, StringComparer.Ordinal) : null))],
+                i.Resting.Count > 0 ? [.. i.Resting] : null))],
             counter,
             [.. questions.Select(q => new SavedQuestion(q.Id, q.InhabitantId, q.Kind, q.Subject, q.RequestId, q.AskedTick, [.. q.Options.Select(o => new SavedOption(o.OptionId, o.Action, o.TargetId))], q.RetryAtTick))],
             lastAsked,
@@ -223,10 +223,7 @@ public static class StateCodec
             }
 
             inhabitant.Repeat = saved.Repeat;
-            foreach (var (action, until) in saved.RestingUntil ?? new Dictionary<string, long>())
-            {
-                inhabitant.RestingUntil[action] = until;
-            }
+            inhabitant.Resting.AddRange(saved.Resting ?? []);
 
             foreach (var place in saved.Places ?? [])
             {

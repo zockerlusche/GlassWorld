@@ -41,7 +41,7 @@ public sealed class RepetitionTests
         }
 
         var restedAt = world.Tick;
-        Assert.True(idler.Rests("inspect", world.Tick));
+        Assert.True(Rests(idler, "inspect", null, world.Tick));
 
         // An answer that still waits for the resting action is dropped, and the routine never chooses it.
         idler.Activity = new Activity("inspect", null, idler.Position, null);
@@ -55,7 +55,7 @@ public sealed class RepetitionTests
         }
 
         world.Step();
-        Assert.False(idler.Rests("inspect", world.Tick));
+        Assert.False(Rests(idler, "inspect", null, world.Tick));
     }
 
     [Fact]
@@ -69,7 +69,7 @@ public sealed class RepetitionTests
         for (var i = 0; i < repetition.MaxRepeatsWithoutEffect * 3; i++)
         {
             Do(world, idler, "idle");
-            Assert.False(idler.Rests("idle", world.Tick));
+            Assert.False(Rests(idler, "idle", null, world.Tick));
         }
     }
 
@@ -84,7 +84,7 @@ public sealed class RepetitionTests
             // Looking around (no target) is fun while fun is low: an effect every time.
             looker.Needs["fun"] = 0.2;
             Do(world, looker, "inspect");
-            Assert.False(looker.Rests("inspect", world.Tick));
+            Assert.False(Rests(looker, "inspect", null, world.Tick));
             Assert.Null(looker.Repeat);
         }
     }
@@ -102,7 +102,7 @@ public sealed class RepetitionTests
             Do(world, looker, "inspect");
         }
 
-        Assert.True(looker.Rests("inspect", world.Tick));
+        Assert.True(Rests(looker, "inspect", null, world.Tick));
     }
 
     [Fact]
@@ -127,6 +127,42 @@ public sealed class RepetitionTests
         // The listener now holds it as surely as it would hear it again: nothing to pass, nothing offered.
         Assert.Null(InhabitantsSystem.PassableBelief(Content.Knowledge!, teller, listener, "teach"));
     }
+
+    [Fact]
+    public void RestingWithOneTargetDoesNotBlockAnotherTargetAndAPlaceOnlyThere()
+    {
+        // GW2 review #164: after repeats without effect towards A the action rests for A only; an action without
+        // a target rests only at its place.
+        var repetition = Content.Brain.Weights.Repetition!;
+        var (world, inhabitants) = NewWorld();
+        var teller = inhabitants.Get("inh-000001");
+        teller.Needs["company"] = 1.0;
+        teller.Resting.Add(new RestingAction("warn", "inh-000002", teller.Position, world.Tick + 100));
+        teller.Resting.Add(new RestingAction("inspect", null, teller.Position, world.Tick + 100));
+        Assert.True(Rests(teller, "warn", "inh-000002", world.Tick));
+        Assert.False(Rests(teller, "warn", "inh-000003", world.Tick));
+        Assert.True(Rests(teller, "inspect", null, world.Tick));
+        var away = new Position(teller.Position.X + repetition.SamePlaceM + 1, teller.Position.Z);
+        Assert.False(teller.Rests("inspect", null, away, world.Tick, repetition.SamePlaceM));
+
+        // Warning B is still done (A rests); warning A is dropped as resting.
+        var events = new List<WorldEvent>();
+        inhabitants.Reported += events.Add;
+        var b = inhabitants.Get("inh-000003");
+        teller.Activity = new Activity("warn", b.Id, b.Position, null);
+        for (var i = 0; i < 10_000 && teller.Activity is not null; i++)
+        {
+            world.Step();
+        }
+
+        Assert.Contains(events, e => e.Kind == InhabitantsSystem.ActionFinished && e.InhabitantId == teller.Id && e.TargetId == b.Id);
+        teller.Activity = new Activity("warn", "inh-000002", inhabitants.Get("inh-000002").Position, null);
+        world.Step();
+        Assert.Contains(events, e => e.Kind == InhabitantsSystem.ActionCancelled && e.TargetId == "inh-000002" && e.Detail == InhabitantsSystem.Resting);
+    }
+
+    private static bool Rests(Inhabitant inhabitant, string action, string? targetId, long tick) =>
+        inhabitant.Rests(action, targetId, inhabitant.Position, tick, Content.Brain.Weights.Repetition!.SamePlaceM);
 
     private static void Do(World world, Inhabitant inhabitant, string action)
     {

@@ -148,10 +148,51 @@ public sealed class PoseCadenceTests(ITestOutputHelper output)
     {
         var gate = new PoseGate(0.4);
         Assert.True(gate.TryPass(1, 10.0));
-        Assert.False(gate.TryPass(1, 10.0, walk: true));
+        Assert.False(gate.TryPass(1, 10.0, frameOnly: true));
         Assert.False(gate.TryPass(2, 10.2));
-        Assert.True(gate.TryPass(2, 10.2, walk: true));
+        Assert.True(gate.TryPass(2, 10.2, frameOnly: true));
         Assert.True(gate.TryPass(3, 10.4));
+    }
+
+    [Fact]
+    public void ArrivingWalkersStopWalkingWithinAFrameEachEvenWhenManyArriveAtOnce()
+    {
+        // GW3 review #164: stopping to walk is not staggered and not held, so nobody marches in place.
+        const int Figures = 100;
+        var figures = Read<LookFigures>("look", "figures.json");
+        var chooser = new AnimationChooser(Read<AnimationLibrary>("animation", "library.json"));
+        var gate = new PoseGate(figures.PoseCadence.StaggerS);
+        var values = new Dictionary<string, double>();
+        var cadences = Enumerable.Range(1, Figures).Select(i => new PoseCadence(figures.PoseCadence, figures.IdleSlotSpread, $"inh-{i:000000}", figures.Lying)).ToList();
+        long frame = 0;
+        var t = 0.0;
+        foreach (var c in cadences)
+        {
+            c.Want(chooser, "wander", true, values, null, false, t);
+            Assert.True(c.Update(t, frame++, gate).Walking);
+        }
+
+        // All arrive in the same frame (a tick at x16): each stops at the next free frame.
+        var arrived = frame;
+        var stopped = new long[Figures];
+        foreach (var c in cadences)
+        {
+            c.Want(chooser, "eat", false, values, AnimationMappingTarget.Object, false, t);
+        }
+
+        for (; frame < arrived + Figures + 1; frame++, t += 1 / 60.0)
+        {
+            for (var i = 0; i < Figures; i++)
+            {
+                if (stopped[i] == 0 && !cadences[i].Update(t, frame, gate).Walking)
+                {
+                    stopped[i] = frame;
+                }
+            }
+        }
+
+        Assert.All(stopped, s => Assert.InRange(s, arrived, arrived + Figures - 1));
+        Assert.Equal(Figures, stopped.Distinct().Count());
     }
 
     private static HashSet<string> IdleAssets(AnimationLibrary library)
