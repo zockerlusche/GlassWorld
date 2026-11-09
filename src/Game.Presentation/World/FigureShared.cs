@@ -23,6 +23,7 @@ public sealed class FigureShared
         Library = library;
         Figures = figures;
         Chooser = new AnimationChooser(library);
+        Gate = new PoseGate(figures.PoseCadence.StaggerS);
         GameSecondsPerTick = FigureMotion.GameSecondsPerTick(time);
         RealSecondsPerTick = FigureMotion.RealSecondsPerTick(time, speed);
     }
@@ -35,6 +36,9 @@ public sealed class FigureShared
 
     /// <summary>The one chooser of the scene.</summary>
     public AnimationChooser Chooser { get; }
+
+    /// <summary>The scene's pose gate: one figure changes its pose per frame (W1697).</summary>
+    public PoseGate Gate { get; }
 
     /// <summary>Reused buffer for the core values of the figure being updated.</summary>
     public Dictionary<string, double> Values { get; } = new(StringComparer.Ordinal);

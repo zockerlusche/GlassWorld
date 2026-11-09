@@ -11,6 +11,16 @@ namespace GlassWorld.Simulation.Inhabitants;
 /// <param name="Route">Waypoints still to walk on a map (B2 R10), searched once when the walk starts; null without a map.</param>
 public sealed record Activity(string Action, string? TargetId, Position Destination, long? RemainingTicks, IReadOnlyList<Position>? Route = null);
 
+/// <summary>
+/// The same action done again and again at one spot without any effect (W1696): which action on which
+/// target, where the run began and how many times in a row it brought nothing.
+/// </summary>
+/// <param name="Action">Action id.</param>
+/// <param name="TargetId">Target id, or null.</param>
+/// <param name="Place">Where the run began.</param>
+/// <param name="Count">Times in a row without effect.</param>
+public sealed record RepeatRun(string Action, string? TargetId, Position Place, int Count);
+
 /// <summary>A remembered place (TL #19921): a thing of a type stood here when the inhabitant looked at it.</summary>
 /// <param name="TypeId">Object type.</param>
 /// <param name="Position">Where it stood.</param>
@@ -86,6 +96,18 @@ public sealed class Inhabitant
     /// </summary>
     public SortedDictionary<string, long> SearchSince { get; } = new(StringComparer.Ordinal);
 
+    /// <summary>The current run of one action without effect at one spot (W1696), or null.</summary>
+    public RepeatRun? Repeat { get; internal set; }
+
+    /// <summary>
+    /// Actions that rest after too many repeats without effect (W1696): action id → the tick from which it may
+    /// be chosen again (content/behaviour/utility.json: repetition).
+    /// </summary>
+    public SortedDictionary<string, long> RestingUntil { get; } = new(StringComparer.Ordinal);
+
+    /// <summary>Whether <paramref name="action"/> rests at <paramref name="tick"/> after repeats without effect.</summary>
+    public bool Rests(string action, long tick) => RestingUntil.TryGetValue(action, out var until) && tick < until;
+
     /// <summary>Remembered places by object id (TL #19921), at most the knowledge data's place_memory_max.</summary>
     public SortedDictionary<string, PlaceMemory> Places { get; } = new(StringComparer.Ordinal);
 
@@ -146,6 +168,21 @@ public sealed class Inhabitant
             foreach (var (objectId, place) in Places)
             {
                 hasher.Write(objectId).Write(place.TypeId).Write(place.Position.X).Write(place.Position.Z).Write(place.Tick);
+            }
+        }
+
+        // Repeats without effect only while there are any, so states without them keep their hashes.
+        if (Repeat is { } run)
+        {
+            hasher.Write("repeat").Write(run.Action).Write(run.TargetId ?? string.Empty).Write(run.Place.X).Write(run.Place.Z).Write(run.Count);
+        }
+
+        if (RestingUntil.Count > 0)
+        {
+            hasher.Write("resting").Write(RestingUntil.Count);
+            foreach (var (action, until) in RestingUntil)
+            {
+                hasher.Write(action).Write(until);
             }
         }
     }

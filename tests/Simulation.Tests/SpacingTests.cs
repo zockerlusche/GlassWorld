@@ -124,6 +124,50 @@ public sealed class SpacingTests
         Assert.NotNull(walker.Activity?.RemainingTicks);
     }
 
+    [Theory]
+    [InlineData(2.5, 0.1, 8.0)]
+    [InlineData(1.2, 0.0, 2.0)]
+    public void AStandingInhabitantInTheWayIsNeverWalkedThrough(double standX, double standZ, double goalX)
+    {
+        // W1695: the game shows each tick as a straight walk; a goal behind someone must not lead through them
+        // (the second case once jumped to the free spot behind the other when it ended a step too close).
+        var (world, inhabitants) = NewWorld(new Position(0, 0), new Position(standX, standZ));
+        var (walker, stander) = (inhabitants.Get("inh-000001"), inhabitants.Get("inh-000002"));
+        Stand(stander);
+        walker.Activity = new Activity("wander", null, new Position(goalX, 0), null);
+        for (var tick = 0; tick < 40 && walker.Activity?.RemainingTicks is null; tick++)
+        {
+            var (w0, s0) = (walker.Position, stander.Position);
+            world.Step();
+            Assert.True(Closest(w0, walker.Position, s0, stander.Position) >= Space.MinSeparationM - 1e-6, $"tick {tick}: {w0} -> {walker.Position}");
+        }
+
+        Assert.NotNull(walker.Activity?.RemainingTicks);
+        Assert.True(walker.Position.X > stander.Position.X, "it got past");
+    }
+
+    [Theory]
+    [InlineData(0.0)]
+    [InlineData(0.4)]
+    [InlineData(1.1)]
+    public void WalkersCrossingEachOtherNeverPassThrough(double offset)
+    {
+        // W1695: crossing paths (not head-on), both walking at once, at every moment of the shown move.
+        var (world, inhabitants) = NewWorld(new Position(-6, 0), new Position(offset, -6));
+        var (a, b) = (inhabitants.Get("inh-000001"), inhabitants.Get("inh-000002"));
+        a.Activity = new Activity("wander", null, new Position(6, 0), null);
+        b.Activity = new Activity("wander", null, new Position(offset, 6), null);
+        for (var tick = 0; tick < 60 && !(a.Activity?.RemainingTicks is not null && b.Activity?.RemainingTicks is not null); tick++)
+        {
+            var (a0, b0) = (a.Position, b.Position);
+            world.Step();
+            Assert.True(Closest(a0, a.Position, b0, b.Position) >= Space.MinSeparationM - 1e-6, $"tick {tick}: {a0}->{a.Position} {b0}->{b.Position}");
+        }
+
+        Assert.NotNull(a.Activity?.RemainingTicks);
+        Assert.NotNull(b.Activity?.RemainingTicks);
+    }
+
     [Fact]
     public void TwoGoingForTheSameThingStandApart()
     {
@@ -168,6 +212,16 @@ public sealed class SpacingTests
     }
 
     private static void Stand(Inhabitant inhabitant) => inhabitant.Activity = new Activity("idle", null, inhabitant.Position, 10_000);
+
+    /// <summary>Closest distance of two inhabitants that both move straight over the same time.</summary>
+    private static double Closest(Position a0, Position a1, Position b0, Position b1)
+    {
+        var (px, pz) = (a0.X - b0.X, a0.Z - b0.Z);
+        var (vx, vz) = ((a1.X - a0.X) - (b1.X - b0.X), (a1.Z - a0.Z) - (b1.Z - b0.Z));
+        var vv = (vx * vx) + (vz * vz);
+        var t = vv < 1e-12 ? 0 : Math.Clamp(-((px * vx) + (pz * vz)) / vv, 0, 1);
+        return Math.Sqrt(((px + (vx * t)) * (px + (vx * t))) + ((pz + (vz * t)) * (pz + (vz * t))));
+    }
 
     private static double Distance(Position a, Position b) => Math.Sqrt(((a.X - b.X) * (a.X - b.X)) + ((a.Z - b.Z) * (a.Z - b.Z)));
 

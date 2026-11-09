@@ -1,6 +1,8 @@
 using GlassWorld.Simulation.Content;
 using GlassWorld.Simulation.Data;
 using GlassWorld.Simulation.Decisions;
+using GlassWorld.Simulation.Inhabitants;
+using GlassWorld.Simulation.Objects;
 using GlassWorld.Simulation.State;
 using Microsoft.Data.Sqlite;
 
@@ -32,6 +34,25 @@ public sealed class SaveGameTests : IDisposable
         var replay = Restore(SaveGameStore.Load(path), new ReplayDecisionPort(original.Decisions.Log));
         replay.World.Run(original.World.Calendar.TicksPerDay);
         Assert.Equal(original.World.StateHash(), replay.World.StateHash());
+    }
+
+    [Fact]
+    public void RepeatsWithoutEffectAndRestingActionsAreHashedAndSurviveSaveAndLoad()
+    {
+        // W1696: the run without effect and the resting actions are state like any other.
+        var host = SimulationHost.CreatePlaceholderWorld(ContentDirectory, 3, new MockDecisionPort(), "de");
+        var before = host.World.StateHash();
+        var inhabitant = host.Inhabitants.Get("inh-000001");
+        inhabitant.Repeat = new RepeatRun("inspect", null, new Position(1.5, 2.5), 1);
+        inhabitant.RestingUntil["warn"] = 99;
+        Assert.NotEqual(before, host.World.StateHash());
+
+        var path = Path.Combine(_directory, "repeats.db");
+        SaveGameStore.Save(path, StateCodec.Capture(host));
+        var loaded = Restore(SaveGameStore.Load(path), new MockDecisionPort());
+        Assert.Equal(host.World.StateHash(), loaded.World.StateHash());
+        Assert.Equal(inhabitant.Repeat, loaded.Inhabitants.Get("inh-000001").Repeat);
+        Assert.Equal(99, loaded.Inhabitants.Get("inh-000001").RestingUntil["warn"]);
     }
 
     [Fact]

@@ -10,6 +10,103 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from . import common_schema
 
+type Clip = Annotated[str, Field(..., pattern='^[a-z][a-z0-9_]*$')]
+
+
+class FigureLying(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    clips: list[Clip] = Field(
+        ...,
+        description='Library clip ids played lying (e.g. sleep).',
+        max_length=32,
+        min_length=1,
+    )
+    pitch_deg: float = Field(
+        ...,
+        description="Tilt about the figure's left-right axis in degrees; -90 lays it on its back (the figure faces +Z).",
+        ge=-90.0,
+        le=90.0,
+    )
+    hip_m: float = Field(
+        ...,
+        description='Distance from the feet to the hips in metres at scale 1: where the lying body meets the ground.',
+        ge=0.0,
+        le=3.0,
+    )
+    lift_m: float = Field(
+        ...,
+        description="Height of the lying body's axis above the ground in metres at scale 1 (half the body's depth).",
+        ge=0.0,
+        le=1.0,
+    )
+    settle_s: float = Field(
+        ..., description='Real seconds to lie down or get up.', ge=0.05, le=10.0
+    )
+
+
+type ConversationIdleItem = Annotated[str, Field(..., pattern='^[a-z][a-z0-9_]*$')]
+
+
+class FigurePoseCadence(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    min_pose_s: float = Field(
+        ...,
+        description='Real seconds a standing pose (action or idle clip) is held at least before the next one.',
+        ge=0.0,
+        le=120.0,
+    )
+    min_walk_s: float = Field(
+        ...,
+        description='Real seconds the walk is shown at least once it started (a figure starts walking at once, so it never glides).',
+        ge=0.0,
+        le=60.0,
+    )
+    idle_variety_after_s: float = Field(
+        ...,
+        description='Real seconds a figure stands idle before idle variety begins; until then it plays rest_idle.',
+        ge=0.0,
+        le=600.0,
+    )
+    idle_slot_s: float = Field(
+        ...,
+        description='Real seconds one idle behaviour lasts before the next is drawn (± idle_slot_spread, phase per inhabitant).',
+        ge=0.5,
+        le=600.0,
+    )
+    rest_idle: str = Field(
+        ...,
+        description='Idle behaviour id (content/animation/library.json idle) a figure plays while it has stood idle only briefly.',
+        pattern='^[a-z][a-z0-9_]*$',
+    )
+    stagger_s: float = Field(
+        ...,
+        description='Least real seconds between the pose changes of two figures (no two in the same frame).',
+        ge=0.0,
+        le=10.0,
+    )
+    conversation_idle: list[ConversationIdleItem] = Field(
+        ...,
+        description='Idle behaviour ids allowed while the inhabitant is in a conversation (no sitting, crouching or bending).',
+        max_length=64,
+        min_length=1,
+    )
+    max_changes_per_minute: float = Field(
+        ...,
+        description='Upper limit of standing pose changes (action and idle clips, no walking) per real minute and figure the presentation is tested against, at normal speed and at x16.',
+        ge=1.0,
+        le=600.0,
+    )
+    max_walk_changes_per_minute: float = Field(
+        ...,
+        description='Upper limit of starts and stops of walking per real minute and figure the presentation is tested against (fast forward walks more per real minute).',
+        ge=1.0,
+        le=600.0,
+    )
+
 
 class FigureThinkingDots(BaseModel):
     model_config = ConfigDict(
@@ -321,18 +418,13 @@ class LookFigures(BaseModel):
     crossfade_s: float = Field(
         ..., description='Cross-fade between clips in seconds.', ge=0.0, le=2.0
     )
-    idle_slot_ticks: int = Field(
-        ...,
-        description='World ticks one idle behaviour lasts before the next is drawn (from the core tick, so pictures repeat at any frame rate).',
-        ge=1,
-        le=1000,
-    )
     idle_slot_spread: float = Field(
         ...,
-        description="How much an inhabitant's idle slot is longer or shorter than idle_slot_ticks (share, e.g. 0.3 = up to 30 percent either way); with a phase per inhabitant it keeps figures from changing their idle behaviour in lock-step.",
+        description="How much an inhabitant's idle slot is longer or shorter than pose_cadence.idle_slot_s (share, e.g. 0.3 = up to 30 percent either way); with a phase per inhabitant it keeps figures from changing their idle behaviour in lock-step.",
         ge=0.0,
         le=0.9,
     )
+    pose_cadence: FigurePoseCadence
     walk_min_step_m: float = Field(
         ...,
         description='Least ground distance in metres an inhabitant must move in a tick to be shown walking (whatever the action; actions walk to their target first).',
@@ -368,6 +460,10 @@ class LookFigures(BaseModel):
     sitting: FigureSitting = Field(
         ...,
         description='Seated clips only sit on something (W1688): on a seat object near the figure the hips go to its seat height; elsewhere the figure sits on the ground with straightened legs, never in the air.',
+    )
+    lying: FigureLying = Field(
+        ...,
+        description='Lying poses (W1695): sleeping figures lie on their back on the ground instead of standing.',
     )
     greeting: FigureGreeting = Field(
         ...,

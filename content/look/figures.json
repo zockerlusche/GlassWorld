@@ -144,8 +144,24 @@
   "shoe_color": "#3a2a20",
   "outline": false,
   "crossfade_s": 0.25,
-  "idle_slot_ticks": 10,
   "idle_slot_spread": 0.3,
+  "pose_cadence": {
+    "min_pose_s": 6,
+    "min_walk_s": 1.5,
+    "idle_variety_after_s": 20,
+    "idle_slot_s": 14,
+    "rest_idle": "stand",
+    "stagger_s": 0.4,
+    "conversation_idle": [
+      "stand",
+      "shift_weight",
+      "look_around",
+      "ponder",
+      "hum"
+    ],
+    "max_changes_per_minute": 8,
+    "max_walk_changes_per_minute": 40
+  },
   "walk_min_step_m": 0.05,
   "turn_rate_deg_s": 360,
   "gait_time_scale": {
@@ -160,6 +176,15 @@
     "period_s": 2.4,
     "alpha_min": 0.2,
     "alpha_max": 0.85
+  },
+  "lying": {
+    "clips": [
+      "sleep"
+    ],
+    "pitch_deg": -90,
+    "hip_m": 0.95,
+    "lift_m": 0.12,
+    "settle_s": 1.2
   },
   "sitting": {
     "seated_clips": [

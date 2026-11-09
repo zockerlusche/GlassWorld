@@ -439,7 +439,7 @@ public sealed class DecisionsSystem : IWorldSystem
     private OpenQuestion Send(World world, Inhabitant inhabitant, string questionId, string kind, string subject, WorldObject? target)
     {
         var requestId = DecisionIds.RequestId(world.Seed, world.Tick, inhabitant.Id, _counter);
-        var options = BuildOptions(inhabitant, target);
+        var options = BuildOptions(inhabitant, target, world.Tick);
         var json = ContractSerializer.Serialize(BuildRequest(world, inhabitant, requestId, options));
         Log.Add(new DecisionLogEntry(DecisionLogKind.Request, requestId, world.Tick, json, null));
         _port.Send(requestId, json);
@@ -466,9 +466,10 @@ public sealed class DecisionsSystem : IWorldSystem
 
     /// <summary>
     /// Options the core allows: object actions on the subject and every action without a target (target
-    /// kind from the action vocabulary), each only while the asker's needs suggest it (<see cref="Behaviour.UtilityBrain.NeedSuggests"/>).
+    /// kind from the action vocabulary), each only while the asker's needs suggest it (<see cref="Behaviour.UtilityBrain.NeedSuggests"/>)
+    /// and it does not rest after repeats without effect (W1696).
     /// </summary>
-    private List<(string OptionId, string Action, string? TargetId)> BuildOptions(Inhabitant asker, WorldObject? target)
+    private List<(string OptionId, string Action, string? TargetId)> BuildOptions(Inhabitant asker, WorldObject? target, long tick)
     {
         var raw = new List<(string Action, string? TargetId)>();
         var passOn = new List<(string Action, string? TargetId)>();
@@ -476,7 +477,8 @@ public sealed class DecisionsSystem : IWorldSystem
         {
             // Only what the asker's needs suggest (F5275 A): no sleep offered to someone wide awake, so a
             // queued answer cannot chain sleeps while thirsty.
-            if (!_brain.NeedSuggests(asker, action, target?.TypeId))
+            // W1696: nor an action that rests after repeats without effect.
+            if (!_brain.NeedSuggests(asker, action, target?.TypeId) || asker.Rests(action, tick))
             {
                 continue;
             }
