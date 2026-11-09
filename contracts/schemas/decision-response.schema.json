@@ -59,6 +59,45 @@
     },
     "meta": {
       "$ref": "common.schema.json#/$defs/ResponseMeta"
+    },
+    "name_text": {
+      "description": "B9 R11: the proposed name for option name_person (only then); checked by the guard and the core. Optional.",
+      "anyOf": [
+        {
+          "$ref": "common.schema.json#/$defs/ProperName"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "gossip": {
+      "description": "B9 R6: what is passed on about a third person for option gossip (only then): a belief about it, possibly wrong; the core stores it as heard. Optional.",
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "about",
+            "property",
+            "value"
+          ],
+          "properties": {
+            "about": {
+              "$ref": "common.schema.json#/$defs/EntityId"
+            },
+            "property": {
+              "$ref": "common.schema.json#/$defs/VocabId"
+            },
+            "value": {
+              "type": "boolean"
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
     }
   }
 }

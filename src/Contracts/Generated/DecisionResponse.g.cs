@@ -58,5 +58,34 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("meta")]
         public ResponseMeta Meta { get; set; } = new ResponseMeta();
 
+        /// <summary>
+        /// B9 R11: the proposed name for option name_person (only then); checked by the guard and the core. Optional.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("name_text")]
+        public string? NameText { get; set; } = default!;
+
+        /// <summary>
+        /// B9 R6: what is passed on about a third person for option gossip (only then): a belief about it, possibly wrong; the core stores it as heard. Optional.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("gossip")]
+        public Gossip? Gossip { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class Gossip
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("about")]
+        public string About { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("property")]
+        public string Property { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("value")]
+        public bool Value { get; set; } = default!;
+
     }
 }

@@ -1056,6 +1056,166 @@
       "expect": "allow",
       "category": null,
       "stage": "prefilter"
+    },
+    {
+      "id": "r27-01",
+      "locale": "de",
+      "text": "Sie liegt in den Geburtswehen.",
+      "expect": "block",
+      "stage": "prefilter",
+      "category": "birth_explicit"
+    },
+    {
+      "id": "r27-02",
+      "locale": "de",
+      "text": "Da liegt eine Leiche am Strand.",
+      "expect": "block",
+      "stage": "prefilter",
+      "category": "death_drastic"
+    },
+    {
+      "id": "r27-03",
+      "locale": "de",
+      "text": "Die Maden fressen den Körper.",
+      "expect": "block",
+      "stage": "prefilter",
+      "category": "death_drastic"
+    },
+    {
+      "id": "r27-04",
+      "locale": "de",
+      "text": "Das hat uns Jesus geschickt.",
+      "expect": "block",
+      "stage": "prefilter",
+      "category": "real_religion"
+    },
+    {
+      "id": "r27-05",
+      "locale": "de",
+      "text": "Wer nicht klopft, kommt in die Hölle.",
+      "expect": "block",
+      "stage": "prefilter",
+      "category": "fear"
+    },
+    {
+      "id": "r27-06",
+      "locale": "en",
+      "text": "The demons will take you.",
+      "expect": "block",
+      "stage": "prefilter",
+      "category": "fear"
+    },
+    {
+      "id": "r27-07",
+      "locale": "de",
+      "text": "Er will sie verführen.",
+      "expect": "block",
+      "stage": "prefilter",
+      "category": "sexual"
+    },
+    {
+      "id": "r27-08",
+      "locale": "de",
+      "text": "Er will ihn erschlagen.",
+      "expect": "block",
+      "stage": "prefilter",
+      "category": "violence"
+    },
+    {
+      "id": "r27-09",
+      "locale": "en",
+      "text": "She will give birth in the delivery room.",
+      "expect": "block",
+      "stage": "prefilter",
+      "category": "birth_explicit"
+    },
+    {
+      "id": "r27-10",
+      "locale": "en",
+      "text": "Pray to Allah for rain.",
+      "expect": "block",
+      "stage": "prefilter",
+      "category": "real_religion"
+    },
+    {
+      "id": "r27-11",
+      "locale": "de",
+      "text": "Es ist schon hell draußen.",
+      "expect": "allow",
+      "stage": "prefilter",
+      "category": null
+    },
+    {
+      "id": "r27-12",
+      "locale": "de",
+      "text": "Der Wind lässt die Fahnen wehen.",
+      "expect": "allow",
+      "stage": "prefilter",
+      "category": null
+    },
+    {
+      "id": "r27-13",
+      "locale": "de",
+      "text": "Der Hund hält einen Stock im Maul.",
+      "expect": "allow",
+      "stage": "prefilter",
+      "category": null
+    },
+    {
+      "id": "r27-14",
+      "locale": "de",
+      "text": "Oma ist eingeschlafen und wacht nicht mehr auf.",
+      "expect": "allow",
+      "stage": "prefilter",
+      "category": null
+    },
+    {
+      "id": "r27-15",
+      "locale": "de",
+      "text": "Bald kommt ein Baby zu uns.",
+      "expect": "allow",
+      "stage": "prefilter",
+      "category": null
+    },
+    {
+      "id": "r27-16",
+      "locale": "de",
+      "text": "Das Klopfen am Himmel bringt Gaben.",
+      "expect": "allow",
+      "stage": "prefilter",
+      "category": null
+    },
+    {
+      "id": "r27-17",
+      "locale": "en",
+      "text": "It is getting bright outside, hello sun!",
+      "expect": "allow",
+      "stage": "prefilter",
+      "category": null
+    },
+    {
+      "id": "r27-18",
+      "locale": "de",
+      "text": "Das Kind schläft bei seiner Mutter am Feuer.",
+      "expect": "allow",
+      "category": null,
+      "stage": "prefilter"
+    },
+    {
+      "id": "r27-19",
+      "locale": "en",
+      "text": "The child sleeps with its mother by the fire.",
+      "expect": "allow",
+      "category": null,
+      "stage": "prefilter"
+    },
+    {
+      "id": "r27-20",
+      "locale": "de",
+      "text": "Wir schlafen miteinander am Feuer, damit uns warm bleibt.",
+      "expect": "allow",
+      "category": null,
+      "stage": "prefilter"
     }
   ]
 }

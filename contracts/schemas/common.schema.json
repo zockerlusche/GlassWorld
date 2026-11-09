@@ -464,6 +464,57 @@
           "items": {
             "$ref": "#/$defs/FeltCondition"
           }
+        },
+        "life_stage": {
+          "description": "B9 R1: life phase from age (vocabulary life_stage, data). Optional: absent = unknown (older cores).",
+          "$ref": "#/$defs/VocabId"
+        },
+        "age_years": {
+          "description": "B9 R1: age in life years (content/life/aging.json days_per_life_year). Optional.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 500
+        },
+        "family": {
+          "description": "B9 R4: kinship as this inhabitant knows it; the values (affection, trust) stay in relationships. 'other' may have died and no longer be perceivable (deceased). Optional.",
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "$ref": "#/$defs/FamilyTie"
+          }
+        },
+        "reputation": {
+          "description": "B9 R6: own reputation in the settlement, 0..1. Optional.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "settlement": {
+          "description": "B9 R21: the settlement and its style context (sayings, DE/EN). Optional.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SettlementContext"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "culture": {
+          "description": "B9 R18/R19: culture entries relevant now (rituals, festivals, rules, sayings, beliefs); beliefs carry low certainty. Optional.",
+          "type": "array",
+          "maxItems": 12,
+          "items": {
+            "$ref": "#/$defs/CultureEntry"
+          }
+        },
+        "grief": {
+          "description": "B9 R17: mourning, at most three overlapping losses. Optional.",
+          "type": "array",
+          "maxItems": 3,
+          "items": {
+            "$ref": "#/$defs/Grief"
+          }
         }
       },
       "description": "Everything the AI may know about the inhabitant it speaks for (shared by decider and questions)."
@@ -1095,6 +1146,99 @@
           "maximum": 100000
         }
       }
+    },
+    "FamilyTie": {
+      "description": "One kinship tie (B9 R4).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "other",
+        "relation",
+        "deceased"
+      ],
+      "properties": {
+        "other": {
+          "description": "The relative; may no longer be perceivable when deceased.",
+          "$ref": "#/$defs/EntityId"
+        },
+        "relation": {
+          "description": "Vocabulary kinship: partner, parent, child, sibling (data).",
+          "$ref": "#/$defs/VocabId"
+        },
+        "deceased": {
+          "type": "boolean"
+        }
+      }
+    },
+    "SettlementContext": {
+      "description": "Settlement style context for idioms (B9 R21).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "sayings"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/EntityId"
+        },
+        "sayings": {
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/LocalizedName"
+          }
+        }
+      }
+    },
+    "CultureEntry": {
+      "description": "A culture entry the inhabitant knows (B9 R18/R19); text is generated and checked by the guard.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "text",
+        "sure"
+      ],
+      "properties": {
+        "kind": {
+          "description": "ritual, festival, rule, saying or belief (vocabulary culture_kind).",
+          "$ref": "#/$defs/VocabId"
+        },
+        "text": {
+          "$ref": "#/$defs/LocalizedName"
+        },
+        "sure": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "Grief": {
+      "description": "Mourning for one loss (B9 R17).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "about",
+        "strength"
+      ],
+      "properties": {
+        "about": {
+          "description": "The one mourned.",
+          "$ref": "#/$defs/EntityId"
+        },
+        "strength": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "ProperName": {
+      "description": "A readable proper name invented by the AI (B9 R11): one word in Latin letters, the same in DE and EN, no translated text; the core and the guard check length, readability and youth protection.",
+      "type": "string",
+      "pattern": "^[A-Z][a-z]{1,15}$"
     }
   }
 }

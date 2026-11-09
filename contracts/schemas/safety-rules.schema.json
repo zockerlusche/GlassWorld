@@ -88,7 +88,11 @@
             "hate",
             "personal_data",
             "drugs",
-            "injection"
+            "injection",
+            "birth_explicit",
+            "death_drastic",
+            "real_religion",
+            "fear"
           ]
         },
         "terms_de": {

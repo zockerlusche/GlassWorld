@@ -111,5 +111,21 @@ namespace GlassWorld.Contracts
         Injection = 6,
 
 
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("birth_explicit")]
+        Birth_explicit = 7,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("death_drastic")]
+        Death_drastic = 8,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("real_religion")]
+        Real_religion = 9,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("fear")]
+        Fear = 10,
+
+
     }
 }

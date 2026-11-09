@@ -345,6 +345,55 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("conditions")]
         public System.Collections.Generic.ICollection<FeltCondition>? Conditions { get; set; } = default!;
 
+        /// <summary>
+        /// B9 R1: life phase from age (vocabulary life_stage, data). Optional: absent = unknown (older cores).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("life_stage")]
+        public string? LifeStage { get; set; } = default!;
+
+        /// <summary>
+        /// B9 R1: age in life years (content/life/aging.json days_per_life_year). Optional.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("age_years")]
+        public int? AgeYears { get; set; } = default!;
+
+        /// <summary>
+        /// B9 R4: kinship as this inhabitant knows it; the values (affection, trust) stay in relationships. 'other' may have died and no longer be perceivable (deceased). Optional.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("family")]
+        public System.Collections.Generic.ICollection<FamilyTie>? Family { get; set; } = default!;
+
+        /// <summary>
+        /// B9 R6: own reputation in the settlement, 0..1. Optional.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("reputation")]
+        public double? Reputation { get; set; } = default!;
+
+        /// <summary>
+        /// B9 R21: the settlement and its style context (sayings, DE/EN). Optional.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("settlement")]
+        public SettlementContext? Settlement { get; set; } = default!;
+
+        /// <summary>
+        /// B9 R18/R19: culture entries relevant now (rituals, festivals, rules, sayings, beliefs); beliefs carry low certainty. Optional.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("culture")]
+        public System.Collections.Generic.ICollection<CultureEntry>? Culture { get; set; } = default!;
+
+        /// <summary>
+        /// B9 R17: mourning, at most three overlapping losses. Optional.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("grief")]
+        public System.Collections.Generic.ICollection<Grief>? Grief { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -854,6 +903,84 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("z_m")]
         public double ZM { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// One kinship tie (B9 R4).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class FamilyTie
+    {
+
+        /// <summary>
+        /// The relative; may no longer be perceivable when deceased.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("other")]
+        public string Other { get; set; } = default!;
+
+        /// <summary>
+        /// Vocabulary kinship: partner, parent, child, sibling (data).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("relation")]
+        public string Relation { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("deceased")]
+        public bool Deceased { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Settlement style context for idioms (B9 R21).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class SettlementContext
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public string Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("sayings")]
+        public System.Collections.Generic.ICollection<LocalizedName> Sayings { get; set; } = new System.Collections.ObjectModel.Collection<LocalizedName>();
+
+    }
+
+    /// <summary>
+    /// A culture entry the inhabitant knows (B9 R18/R19); text is generated and checked by the guard.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class CultureEntry
+    {
+
+        /// <summary>
+        /// ritual, festival, rule, saying or belief (vocabulary culture_kind).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("kind")]
+        public string Kind { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("text")]
+        public LocalizedName Text { get; set; } = new LocalizedName();
+
+        [System.Text.Json.Serialization.JsonPropertyName("sure")]
+        public double Sure { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Mourning for one loss (B9 R17).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class Grief
+    {
+
+        /// <summary>
+        /// The one mourned.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("about")]
+        public string About { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("strength")]
+        public double Strength { get; set; } = default!;
 
     }
 
