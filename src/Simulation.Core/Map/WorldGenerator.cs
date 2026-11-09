@@ -196,11 +196,11 @@ public static partial class WorldGenerator
         var terrain = preset.Terrain;
         var octaves = terrain.Noise.ToList();
         var heights = new int[w * d];
-        var falloffStart = 1000 - terrain.CoastFalloffPermille;
         for (var z = 0; z < d; z++)
         {
             for (var x = 0; x < w; x++)
             {
+                var falloff = CoastFalloff(terrain, seed, x, z);
                 var raw = 0;
                 for (var o = 0; o < octaves.Count; o++)
                 {
@@ -212,7 +212,7 @@ public static partial class WorldGenerator
                 var dz = Math.Abs((2 * z) + 1 - d) * 1000 / d;
                 var r = Isqrt((dx * dx) + (dz * dz));
                 r += (ValueNoise(seed ^ 0xC0A57, 9, x, z, 40) - 500) * 2 / 5;
-                var fall = terrain.CoastFalloffPermille == 0 ? (r >= 1000 ? 1000 : 0) : Math.Clamp((r - falloffStart) * 1000 / terrain.CoastFalloffPermille, 0, 1000);
+                var fall = falloff == 0 ? (r >= 1000 ? 1000 : 0) : Math.Clamp((r - (1000 - falloff)) * 1000 / falloff, 0, 1000);
                 var h = (raw + terrain.SeaLevel) * (1000 - fall) / 1000;
 
                 // The map edge is always sea, so every stream finds the sea as its outlet.
@@ -222,6 +222,23 @@ public static partial class WorldGenerator
         }
 
         return heights;
+    }
+
+    /// <summary>
+    /// The coast falloff band at a cell (permille of the half width): the preset's, narrowed towards the
+    /// steep coast's where the coast noise lies above its threshold (TL #19990: cliffs at the coast),
+    /// blended over the data range so the coast changes gradually.
+    /// </summary>
+    private static int CoastFalloff(WorldPresetTerrain terrain, ulong seed, int x, int z)
+    {
+        if (terrain.CoastCliffs is not { } cliffs)
+        {
+            return terrain.CoastFalloffPermille;
+        }
+
+        var noise = ValueNoise(seed ^ 0xC11FF5, 10, x, z, cliffs.NoiseWavelengthCells);
+        var steep = Math.Clamp((noise - cliffs.ThresholdPermille) * 1000 / cliffs.BlendPermille, 0, 1000);
+        return terrain.CoastFalloffPermille + ((cliffs.FalloffPermille - terrain.CoastFalloffPermille) * steep / 1000);
     }
 
     /// <summary>
@@ -257,6 +274,8 @@ public static partial class WorldGenerator
     {
         var step = preset.Terrain.CliffMinDrop;
         var from = preset.Terrain.SeaLevel + (rockHeight ?? ((preset.Terrain.MaxHeight - preset.Terrain.SeaLevel) * 2 / 5));
+        var tread = new int[w * d];
+        var terraced = new bool[w * d];
         for (var z = 0; z < d; z++)
         {
             for (var x = 0; x < w; x++)
@@ -264,12 +283,19 @@ public static partial class WorldGenerator
                 var i = (z * w) + x;
                 if (heights[i] > from && ValueNoise(seed ^ 0x7E44AC, 7, x, z, 24) > 600)
                 {
-                    heights[i] = from + ((heights[i] - from) / step * step);
+                    tread[i] = (heights[i] - from) % step;
+                    heights[i] -= tread[i];
+                    terraced[i] = true;
                 }
             }
         }
 
         SmoothShortCliffs(heights, w, d, step, preset.Terrain.CliffMinRunCells, preset.Terrain.CliffSmoothingRounds);
+        if (preset.Terrain.RockSlopes is { } slopes)
+        {
+            NaturalRock(heights, tread, terraced, w, d, step, slopes);
+        }
+
         var cliffs = 0;
         for (var z = 0; z < d; z++)
         {
@@ -320,6 +346,108 @@ public static partial class WorldGenerator
             if (!changed)
             {
                 return;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Natural rock (TL #19984, #19990): the longest terrace walls (cliff-top runs) stay sheer with their foot, so
+    /// caves keep their place; every other terrace tread gets back the data share of its original relief
+    /// (no flat plateau), and every step steeper than the talus settles into a scree slope.
+    /// </summary>
+    private static void NaturalRock(int[] heights, int[] tread, bool[] terraced, int w, int d, int step, WorldPresetRockSlopes slopes)
+    {
+        var top = new bool[w * d];
+        for (var z = 0; z < d; z++)
+        {
+            for (var x = 0; x < w; x++)
+            {
+                top[(z * w) + x] = terraced[(z * w) + x] && IsCliffTop(heights, w, d, x, z, step);
+            }
+        }
+
+        var kept = new bool[w * d];
+        foreach (var run in Components4(top, w, d).OrderByDescending(r => r.Count).ThenBy(r => r[0]).Take(slopes.WallsKept))
+        {
+            foreach (var c in run)
+            {
+                kept[c] = true;
+                foreach (var (dx, dz) in Neighbours4)
+                {
+                    int nx = (c % w) + dx, nz = (c / w) + dz;
+                    if (nx >= 0 && nz >= 0 && nx < w && nz < d && heights[c] - heights[(nz * w) + nx] >= step)
+                    {
+                        kept[(nz * w) + nx] = true;
+                    }
+                }
+            }
+        }
+
+        for (var i = 0; i < heights.Length; i++)
+        {
+            if (!kept[i])
+            {
+                heights[i] += tread[i] * slopes.TreadReliefPermille / 1000;
+            }
+        }
+
+        Settle(heights, kept, w, d, slopes.Talus, slopes.Rounds);
+    }
+
+    /// <summary>
+    /// Scree slopes (thermal erosion, TL #19984): for the given rounds, every pair of 4-neighbours steeper
+    /// than the talus passes a quarter of the excess (at least 1) from the higher to the lower cell, all
+    /// pairs of a round at once (order-free, integer). Fixed cells (the kept walls) and the map edge keep
+    /// their height.
+    /// </summary>
+    private static void Settle(int[] heights, bool[] fixedCells, int w, int d, int talus, int rounds)
+    {
+        var delta = new int[w * d];
+        for (var round = 0; round < rounds; round++)
+        {
+            Array.Clear(delta);
+            var changed = false;
+            for (var z = 1; z < d - 1; z++)
+            {
+                for (var x = 1; x < w - 1; x++)
+                {
+                    var i = (z * w) + x;
+                    if (fixedCells[i])
+                    {
+                        continue;
+                    }
+
+                    foreach (var j in (ReadOnlySpan<int>)[i + 1, i + w])
+                    {
+                        var jx = j % w;
+                        if (fixedCells[j] || jx == w - 1 || j / w == d - 1)
+                        {
+                            continue;
+                        }
+
+                        var excess = Math.Abs(heights[i] - heights[j]) - talus;
+                        if (excess <= 0)
+                        {
+                            continue;
+                        }
+
+                        var move = (excess + 3) / 4;
+                        var (high, low) = heights[i] > heights[j] ? (i, j) : (j, i);
+                        delta[high] -= move;
+                        delta[low] += move;
+                        changed = true;
+                    }
+                }
+            }
+
+            if (!changed)
+            {
+                return;
+            }
+
+            for (var i = 0; i < delta.Length; i++)
+            {
+                heights[i] += delta[i];
             }
         }
     }
@@ -760,11 +888,14 @@ public static partial class WorldGenerator
                     for (var x = 1; x < w - 1; x++)
                     {
                         // A stream bank with a minimum stream distance lies one step beyond it (the pool keeps
-                        // off the cut bed); otherwise right beside the water.
-                        var bank = feature == WaterFeature.Stream && spot.MinStreamDistanceCells > 0
+                        // off the cut bed); otherwise right beside the water. A hollow is any dry cell; the
+                        // depression test below decides.
+                        var bank = spot.At == WorldPresetDrinkSpotAt.Hollow
+                            ? map.Cell(x, z).Water == WaterKind.None
+                            : feature == WaterFeature.Stream && spot.MinStreamDistanceCells > 0
                             ? map.Cell(x, z).Water == WaterKind.None && NearStream(x, z, spot.MinStreamDistanceCells + 1)
                             : Beside(x, z, feature);
-                        if (Walkable(x, z) && bank)
+                        if (Walkable(x, z) && bank && (spot.MinHollowDepth is not { } hollow || InHollow(map, x, z, spot.HollowRadiusCells ?? 1, hollow)))
                         {
                             candidates.Add((x, z));
                         }
@@ -799,6 +930,29 @@ public static partial class WorldGenerator
                 count++;
             }
         }
+    }
+
+    /// <summary>
+    /// Whether a cell lies in a depression (TL #19990): at least the depth below the mean ground of the
+    /// square radius around it (map cells only, water included at its bed).
+    /// </summary>
+    private static bool InHollow(WorldMap map, int x, int z, int radius, int depth)
+    {
+        long sum = 0;
+        var count = 0;
+        for (var dz = -radius; dz <= radius; dz++)
+        {
+            for (var dx = -radius; dx <= radius; dx++)
+            {
+                if (map.Contains(x + dx, z + dz))
+                {
+                    sum += map.Cell(x + dx, z + dz).Height;
+                    count++;
+                }
+            }
+        }
+
+        return (map.Cell(x, z).Height + depth) * (long)count <= sum;
     }
 
     /// <summary>

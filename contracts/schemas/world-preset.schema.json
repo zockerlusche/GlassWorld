@@ -217,6 +217,86 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 32
+        },
+        "coast_cliffs": {
+          "$ref": "#/$defs/WorldPresetCoastCliffs"
+        },
+        "rock_slopes": {
+          "$ref": "#/$defs/WorldPresetRockSlopes"
+        }
+      }
+    },
+    "WorldPresetCoastCliffs": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Steep coasts (TL #19990): where a coarse noise lies above the threshold, the land falls off to the sea over a narrower band, so hills reach the coast as steep rocky slopes; elsewhere the beaches keep the normal falloff. Absent = the normal falloff everywhere.",
+      "required": [
+        "falloff_permille",
+        "noise_wavelength_cells",
+        "threshold_permille",
+        "blend_permille"
+      ],
+      "properties": {
+        "falloff_permille": {
+          "description": "Falloff band of the steep coast (share of the half width), instead of coast_falloff_permille.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "noise_wavelength_cells": {
+          "description": "Wavelength of the noise that chooses the steep stretches of coast (cells).",
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 4096
+        },
+        "threshold_permille": {
+          "description": "Noise value (0..1000) from which the coast turns steep.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "blend_permille": {
+          "description": "Noise range above the threshold over which the falloff blends from normal to steep, so the coast changes gradually.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        }
+      }
+    },
+    "WorldPresetRockSlopes": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Natural rock slopes (TL #19984, #19990): only the longest rock walls of the terraces stay sheer (caves lie at their foot); elsewhere the terrace treads keep part of the original relief and steep steps settle into scree slopes no steeper than the talus (thermal erosion, integer, deterministic). Absent = flat terraces with walls at every terrace edge.",
+      "required": [
+        "walls_kept",
+        "tread_relief_permille",
+        "talus",
+        "rounds"
+      ],
+      "properties": {
+        "walls_kept": {
+          "description": "How many rock walls (4-connected runs of cliff-top cells, longest first) stay sheer, with their foot; every other step settles.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "tread_relief_permille": {
+          "description": "Share of the original relief a terrace tread keeps away from the kept walls (0 = flat tread, 1000 = no terrace).",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "talus": {
+          "description": "Steepest height difference between neighbouring cells that a scree slope keeps (height units); steeper steps away from the kept walls settle until they reach it.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "rounds": {
+          "description": "Rounds of settling.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 64
         }
       }
     },
@@ -328,6 +408,9 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 100000000
+        },
+        "stream_heads": {
+          "$ref": "#/$defs/WorldPresetStreamHeads"
         },
         "channel": {
           "description": "Width, depth and bank height of a stream by its flow accumulation, interpolated linearly between the points (accumulation ascending); beyond the last point the last values hold.",
@@ -820,6 +903,29 @@
         }
       }
     },
+    "WorldPresetStreamHeads": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Where a stream may begin (TL #19990: no stream out of nowhere): at a spring, out of a pond or lake beside it, or at the foot of a slope or rock where the ground within radius_cells rises at least relief above it - that head becomes a spring of its own. Above the first such cell the water seeps through the ground and no stream is drawn. Absent = a stream begins wherever the accumulation reaches stream_min_accumulation.",
+      "required": [
+        "relief",
+        "radius_cells"
+      ],
+      "properties": {
+        "relief": {
+          "description": "Rise of the ground around a stream head (height units) that makes it a visible source.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "radius_cells": {
+          "description": "Radius (square, cells) in which the rise is measured.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        }
+      }
+    },
     "WorldPresetDrinkSpot": {
       "type": "object",
       "additionalProperties": false,
@@ -832,12 +938,13 @@
       ],
       "properties": {
         "at": {
-          "description": "Where the objects lie: spring (exactly on the spring cells), lake_edge (dry walkable cells next to a pond or lake), stream_bank (dry walkable cells next to a running stream).",
+          "description": "Where the objects lie: spring (exactly on the spring cells), lake_edge (dry walkable cells next to a pond or lake), stream_bank (dry walkable cells next to a running stream), hollow (dry walkable cells in a depression, see min_hollow_depth).",
           "type": "string",
           "enum": [
             "spring",
             "lake_edge",
-            "stream_bank"
+            "stream_bank",
+            "hollow"
           ]
         },
         "object_type": {
@@ -861,6 +968,18 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 1000
+        },
+        "min_hollow_depth": {
+          "description": "Only in a depression (TL #19990: pools where water gathers): the cell lies at least this far (height units) below the mean ground within hollow_radius_cells. Absent = no such condition; required for at = hollow.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "hollow_radius_cells": {
+          "description": "Radius (square, cells) of the mean ground for min_hollow_depth; required with it.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
         },
         "regrow_hours": {
           "description": "Game hours until a used-up object of this type is there again (same meaning as in the spawn table; all entries of one type must agree). Absent = does not regrow.",
