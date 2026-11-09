@@ -193,6 +193,12 @@ namespace GlassWorld.Contracts
         public int Talus { get; set; } = default!;
 
         /// <summary>
+        /// Share of a pair's excess over the talus that moves from the higher to the lower cell per round (permille, rounded up, at least 1 unit); 250 = a quarter, so a cell between four lower neighbours never overshoots.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("share_permille")]
+        public int SharePermille { get; set; } = default!;
+
+        /// <summary>
         /// Rounds of settling.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("rounds")]

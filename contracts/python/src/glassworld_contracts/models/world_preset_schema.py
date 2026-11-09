@@ -101,6 +101,12 @@ class WorldPresetRockSlopes(BaseModel):
         ge=1,
         le=100000,
     )
+    share_permille: int = Field(
+        ...,
+        description="Share of a pair's excess over the talus that moves from the higher to the lower cell per round (permille, rounded up, at least 1 unit); 250 = a quarter, so a cell between four lower neighbours never overshoots.",
+        ge=1,
+        le=250,
+    )
     rounds: int = Field(..., description='Rounds of settling.', ge=0, le=64)
 
 

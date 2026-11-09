@@ -391,16 +391,16 @@ public static partial class WorldGenerator
             }
         }
 
-        Settle(heights, kept, w, d, slopes.Talus, slopes.Rounds);
+        Settle(heights, kept, w, d, slopes.Talus, slopes.SharePermille, slopes.Rounds);
     }
 
     /// <summary>
     /// Scree slopes (thermal erosion, TL #19984): for the given rounds, every pair of 4-neighbours steeper
-    /// than the talus passes a quarter of the excess (at least 1) from the higher to the lower cell, all
+    /// than the talus passes the data share of the excess (rounded up, at least 1) from the higher to the lower cell, all
     /// pairs of a round at once (order-free, integer). Fixed cells (the kept walls) and the map edge keep
     /// their height.
     /// </summary>
-    private static void Settle(int[] heights, bool[] fixedCells, int w, int d, int talus, int rounds)
+    private static void Settle(int[] heights, bool[] fixedCells, int w, int d, int talus, int sharePermille, int rounds)
     {
         var delta = new int[w * d];
         for (var round = 0; round < rounds; round++)
@@ -431,7 +431,7 @@ public static partial class WorldGenerator
                             continue;
                         }
 
-                        var move = (excess + 3) / 4;
+                        var move = ((excess * sharePermille) + 999) / 1000;
                         var (high, low) = heights[i] > heights[j] ? (i, j) : (j, i);
                         delta[high] -= move;
                         delta[low] += move;

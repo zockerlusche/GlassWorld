@@ -59,6 +59,7 @@
       "walls_kept": 4,
       "tread_relief_permille": 550,
       "talus": 10,
+      "share_permille": 250,
       "rounds": 48
     }
   },
