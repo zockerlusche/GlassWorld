@@ -98,6 +98,7 @@ experienced = "you tried it yourself"
 heard = "someone told you"
 guessed = "you only guessed"
 read = "you read it"
+seen = "you looked at it"
 
 [settings.subject_kinds]
 type = "thing"
