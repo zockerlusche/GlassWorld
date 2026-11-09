@@ -1981,6 +1981,10 @@
     {
       "key": "msg.thought.warn",
       "text": "Watch out!"
+    },
+    {
+      "key": "msg.converse.no_answer",
+      "text": "Hm ... I have to think about that."
     }
   ]
 }

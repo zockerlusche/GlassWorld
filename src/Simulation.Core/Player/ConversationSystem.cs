@@ -88,6 +88,9 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
     /// <summary>Reason: the inhabitant has not answered the last sentence yet.</summary>
     public const string ReasonOpen = "msg.command.conversation_open";
 
+    /// <summary>Text key of the calm line when no answer came (timeout, error, service stopping); DE/EN in content/i18n.</summary>
+    public const string NoAnswerKey = "msg.converse.no_answer";
+
     /// <summary>Other id of the player in an inhabitant's relationships.</summary>
     public const string PlayerId = "player";
 
@@ -357,7 +360,8 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
                 _inhabitants.Report(new WorldEvent("declined", world.Tick, inhabitant.Id, null, null) { Text = reply?.Text, Detail = expression });
                 break;
             default:
-                _inhabitants.Report(new WorldEvent("not_understood", world.Tick, inhabitant.Id, null, null));
+                // The asking back is said like a decline (W1701): the guarded sentence goes with the event.
+                _inhabitants.Report(new WorldEvent("not_understood", world.Tick, inhabitant.Id, null, null) { Text = reply?.Text, Detail = expression });
                 _decisions.NoticePlayer(world, inhabitant.Id); // B2511: a question with a question mark
                 break;
         }
@@ -376,7 +380,8 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
             Change(inhabitant, OutcomeChangeOutcome.No_answer, null);
         }
 
-        _inhabitants.Report(new WorldEvent("no_answer", world.Tick, open.InhabitantId, null, null));
+        // A calm line instead of nothing (W1701): the text is a key, the game shows it in the player's language.
+        _inhabitants.Report(new WorldEvent("no_answer", world.Tick, open.InhabitantId, null, null) { Text = NoAnswerKey });
     }
 
     /// <summary>Applies the data's changes for an outcome (never numbers from the answer, B2462).</summary>

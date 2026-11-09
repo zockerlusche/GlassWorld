@@ -452,7 +452,7 @@ public partial class WorldAudio : Node3D
 
         foreach (var e in events)
         {
-            if (e.Kind is not ("said" or "declined") || e.Text is not { Length: > 0 } text
+            if (e.Kind is not ("said" or "declined" or "not_understood") || e.Text is not { Length: > 0 } text
                 || _feed!.Snapshot.Inhabitants.FirstOrDefault(i => i.Id == e.InhabitantId) is not { } speaker
                 || pool.FirstOrDefault(p => !p.Playing) is not { } player)
             {
