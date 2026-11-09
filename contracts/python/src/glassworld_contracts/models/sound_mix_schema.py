@@ -71,6 +71,10 @@ class MixBus(BaseModel):
         ...,
         description='How the volume falls between full_volume_m and silent_m: linear in gain, or smooth (squared), gentle for ambience.',
     )
+    off: bool | None = Field(
+        None,
+        description="Switched off until the sounds are replaced (test feedback W1699): the bus stays silent whatever the player's volume; its slider is shown locked with a note. Missing = false.",
+    )
 
 
 class MixPlayerRange(BaseModel):

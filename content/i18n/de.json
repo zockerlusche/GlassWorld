@@ -1981,6 +1981,38 @@
     {
       "key": "msg.thought.warn",
       "text": "Pass auf!"
+    },
+    {
+      "key": "ui.settings.volume.off_tip",
+      "text": "Gerade aus – diese Klänge werden neu gemacht."
+    },
+    {
+      "key": "ui.menu.loading_title",
+      "text": "Einen Moment"
+    },
+    {
+      "key": "ui.menu.loading",
+      "text": "„{name}“ wird geladen …"
+    },
+    {
+      "key": "ui.chronicle.export_tip",
+      "text": "Speichert die Chronik als Webseite (.html) und als Textdatei (.txt) im Spielordner unter „chronicle“ – zum Lesen oder Weitergeben."
+    },
+    {
+      "key": "msg.converse.reply",
+      "text": "Hm, ja."
+    },
+    {
+      "key": "msg.converse.not_understood",
+      "text": "Hm? Das versteh ich nicht."
+    },
+    {
+      "key": "msg.converse.decline",
+      "text": "Nee, lieber nicht."
+    },
+    {
+      "key": "msg.converse.no_answer",
+      "text": "Hm ... da muss ich erst nachdenken."
     }
   ]
 }

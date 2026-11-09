@@ -36,6 +36,7 @@ public partial class GameScreen : CanvasLayer
     private Dictionary<string, string>? _activities;
     private Label? _cardQuestions;
     private LineEdit? _talkInput;
+    private readonly Dictionary<string, bool> _cardFolded = new(StringComparer.Ordinal);
     private string _cardShape = string.Empty;
     private readonly GwToasts _toasts = new();
     private PanelContainer? _topBar;
@@ -66,6 +67,9 @@ public partial class GameScreen : CanvasLayer
     public void Setup(WorldPresenter presenter, UiStyle style)
     {
         _presenter = presenter ?? throw new ArgumentNullException(nameof(presenter));
+
+        // Thoughts and said sentences on screen (W1687): below the top bar, beside the side panel, inside the window.
+        presenter.ShowBubbles(BubbleArea, () => (float)(_style?.ContentScaleFactor ?? 1));
         _style = style ?? throw new ArgumentNullException(nameof(style));
         _feed = new WorldFeed(presenter.Host ?? throw new InvalidOperationException("world not started"));
         _board = new ToastBoard(style.Tokens.Toast, new ToastSettings(1, UntilDismissed: false));
@@ -468,6 +472,46 @@ public partial class GameScreen : CanvasLayer
         return string.Empty;
     }
 
+    /// <summary>
+    /// Smoke run only (W1687): two inhabitants say long sentences at once; the bubbles shown never overlap and
+    /// stay inside the free area (below the top bar, beside the side panel).
+    /// </summary>
+    public async Task<string> CheckBubblesAsync()
+    {
+        if (_presenter is null || _feed?.Inhabitants() is not { Count: >= 2 } rows || BubbleArea() is not { } area)
+        {
+            return "no world, two inhabitants or screen area";
+        }
+
+        const string Long = "Ich zeige dir, wie man das wilde Korn isst, damit wir nicht allein sind und es uns gut geht.";
+        _presenter.SayForCheck(rows[0].Id, Long);
+        _presenter.SayForCheck(rows[1].Id, Long);
+        _presenter.CloseLook(rows[0].Id, 14);
+        for (var i = 0; i < 4; i++)
+        {
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        }
+
+        var shown = _presenter.BubblesShown();
+        _presenter.SayForCheck(rows[0].Id, string.Empty);
+        _presenter.SayForCheck(rows[1].Id, string.Empty);
+        foreach (var (id, box) in shown)
+        {
+            if (!area.Grow(1).Encloses(box))
+            {
+                return $"bubble of {id} at {box} leaves the free area {area}";
+            }
+
+            if (shown.FirstOrDefault(o => o.Id != id && o.Box.Intersects(box)) is { Id: { } other })
+            {
+                return $"bubbles of {id} and {other} overlap";
+            }
+        }
+
+        GD.Print($"BUBBLES_OK shown={shown.Count}");
+        return string.Empty;
+    }
+
     public async Task<string> CheckTalkAsync()
     {
         if (_presenter?.Host is not { } host || _feed?.Inhabitants() is not { Count: > 0 } rows)
@@ -818,7 +862,7 @@ public partial class GameScreen : CanvasLayer
             _chronicleList.AddChild(line);
         }
 
-        var export = new Button { Text = "ui.chronicle.export" };
+        var export = new Button { Text = "ui.chronicle.export", TooltipText = "ui.chronicle.export_tip" };
         export.Pressed += () => ExportChronicle();
         _chronicleList.AddChild(export);
     }
@@ -1291,6 +1335,22 @@ public partial class GameScreen : CanvasLayer
         return problem;
     }
 
+    /// <summary>The free screen area for the bubbles over the heads: below the top bar, left of the side panel.</summary>
+    private Rect2? BubbleArea()
+    {
+        if (_style is null || _topBar is null || !_topBar.IsInsideTree())
+        {
+            return null;
+        }
+
+        var view = GetViewport().GetVisibleRect().Size;
+        var margin = _style.Tokens.Window.SafeMargin;
+        var gap = _style.Tokens.Window.Gap;
+        var top = _topBar.Position.Y + _topBar.Size.Y + gap;
+        var right = _sideBar.Position.X - gap;
+        return new Rect2(margin, top, Math.Max(0, right - margin), Math.Max(0, view.Y - margin - top));
+    }
+
     private void Layout()
     {
         if (_style is null || _topBar is null)
@@ -1332,7 +1392,9 @@ public partial class GameScreen : CanvasLayer
         var window = _style.Tokens.Window;
         var top = Math.Max(0, _topBar.Position.Y + _topBar.Size.Y + window.Gap - window.SafeMargin);
         _card.FitInto(new Vector2(CardArea(area).X, area.Y - top));
-        _card.Position += new Vector2(0, top);
+
+        // At the left edge, not in the middle of the picture (W1695): the world stays free to watch.
+        _card.Position = new Vector2(window.SafeMargin, top + window.SafeMargin);
     }
 
     private Vector2 CardArea(Vector2 area)
@@ -1407,27 +1469,11 @@ public partial class GameScreen : CanvasLayer
             _cardShape = shape;
             _cardBars.Clear();
             _card.ClearContent();
-            Section("ui.card.wellbeing");
-            Bar("ui.card.will_to_live");
-            foreach (var need in card.Needs)
-            {
-                Bar(need.Key);
-            }
 
-            Section("ui.card.feelings");
-            foreach (var feeling in card.Feelings)
-            {
-                Bar(feeling.Key);
-            }
-
-            Section("ui.card.character");
-            foreach (var trait in card.Traits)
-            {
-                Bar(trait.Key);
-            }
-
+            // Order of the card (W1688, TL #19983): first what the inhabitant does and the talk field, well
+            // visible; the values below in sections the player can fold (the choice is kept while playing).
             Section("ui.card.doing");
-            _cardAction = new Label();
+            _cardAction = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
             _cardQuestions = new Label { AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled };
             _card.Content.AddChild(_cardAction);
             _card.Content.AddChild(_cardQuestions);
@@ -1458,6 +1504,25 @@ public partial class GameScreen : CanvasLayer
             talkRow.AddChild(input);
             talkRow.AddChild(send);
             _card.Content.AddChild(talkRow);
+
+            var wellbeing = Fold("ui.card.wellbeing", folded: false);
+            Bar(wellbeing, "ui.card.will_to_live");
+            foreach (var need in card.Needs)
+            {
+                Bar(wellbeing, need.Key);
+            }
+
+            var feelings = Fold("ui.card.feelings", folded: true);
+            foreach (var feeling in card.Feelings)
+            {
+                Bar(feelings, feeling.Key);
+            }
+
+            var character = Fold("ui.card.character", folded: true);
+            foreach (var trait in card.Traits)
+            {
+                Bar(character, trait.Key);
+            }
         }
 
         foreach (var (key, percent) in values)
@@ -1487,13 +1552,28 @@ public partial class GameScreen : CanvasLayer
 
         void Section(string key) => _card!.Content.AddChild(new Label { Text = key, ThemeTypeVariation = UiTheme.SubheaderLabel });
 
-        void Bar(string key)
+        // A foldable section; folded or open as the player last left it (default as given).
+        VBoxContainer Fold(string key, bool folded)
+        {
+            var section = new FoldableContainer { Title = key, Folded = _cardFolded.GetValueOrDefault(key, folded) };
+            section.FoldingChanged += isFolded =>
+            {
+                _cardFolded[key] = isFolded;
+                FitCard(GetViewport().GetVisibleRect().Size);
+            };
+            var rows = new VBoxContainer();
+            section.AddChild(rows);
+            _card!.Content.AddChild(section);
+            return rows;
+        }
+
+        void Bar(VBoxContainer into, string key)
         {
             var row = new HBoxContainer();
             row.AddChild(new Label { Text = key, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
             var bar = new ProgressBar { MinValue = 0, MaxValue = 100, ShowPercentage = true, CustomMinimumSize = new Vector2(_style!.Tokens.Window.CardBarWidth, 0) };
             row.AddChild(bar);
-            _card!.Content.AddChild(row);
+            into.AddChild(row);
             _cardBars[key] = bar;
         }
     }
@@ -1505,8 +1585,6 @@ public partial class GameScreen : CanvasLayer
         {
             _talkInput.Text = sentence;
         }
-
-        _card?.ScrollToEnd();
     }
 
     /// <summary>

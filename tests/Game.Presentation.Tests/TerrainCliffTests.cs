@@ -99,6 +99,46 @@ public sealed class TerrainCliffTests
         AssertClosed(map, look);
     }
 
+    /// <summary>Rock is no flat grey (TL #19984): its brightness varies over the grid, and every wall is darker at its foot than at its top.</summary>
+    [Fact]
+    public void RockVariesAndWallsDarkenTowardsTheirFoot()
+    {
+        var (map, look) = RealIsland(7);
+        var rock = Assert.IsType<RockLook>(look.Rock);
+        var samples = Enumerable.Range(0, 64).SelectMany(z => Enumerable.Range(0, 64).Select(x => rock.Brightness(x, z))).ToList();
+        Assert.True(samples.Max() - samples.Min() > rock.Variation, "rock brightness hardly varies");
+        Assert.All(samples, b => Assert.InRange(b, 1 - rock.Variation - 1e-4f, 1 + rock.Variation + 1e-4f));
+
+        var walls = 0;
+        for (var cz = 0; cz < map.ChunksZ; cz++)
+        {
+            for (var cx = 0; cx < map.ChunksX; cx++)
+            {
+                var mesh = TerrainMesher.Ground(map, cx, cz, look);
+                for (var t = 0; t < mesh.TriangleCount; t++)
+                {
+                    if (MathF.Abs(mesh.Normals[(t * 9) + 1]) >= 0.01f)
+                    {
+                        continue;
+                    }
+
+                    walls++;
+                    var v = Enumerable.Range(0, 3).Select(k => (t * 3) + k)
+                        .Select(i => (X: mesh.Positions[i * 3], Y: mesh.Positions[(i * 3) + 1], Z: mesh.Positions[(i * 3) + 2], Light: mesh.Colors[i * 3] + mesh.Colors[(i * 3) + 1] + mesh.Colors[(i * 3) + 2])).ToList();
+                    foreach (var p in v)
+                    {
+                        foreach (var q in v.Where(q => q.X == p.X && q.Z == p.Z && q.Y < p.Y))
+                        {
+                            Assert.True(q.Light < p.Light, "a wall is not darker towards its foot");
+                        }
+                    }
+                }
+            }
+        }
+
+        Assert.True(walls > 0);
+    }
+
     [Fact]
     public void WalkableGroundHeightIsTheMeshSurfaceOnSlopesAndCliffs()
     {

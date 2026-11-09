@@ -244,6 +244,14 @@ public static class SaveGameStore
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("search_since", JsonSerializer.Serialize(searches, Json)));
         }
 
+        // Repeats without effect and resting actions (W1696) as one JSON object by inhabitant id; older saves have none.
+        var repeats = s.Inhabitants.Where(i => i.Repeat is not null || i.Resting is { Count: > 0 })
+            .ToDictionary(i => i.Id, i => new SavedRepeats(i.Repeat, i.Resting), StringComparer.Ordinal);
+        if (repeats.Count > 0)
+        {
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("repeats", JsonSerializer.Serialize(repeats, Json)));
+        }
+
         var places = s.Inhabitants.Where(i => i.Places is { Count: > 0 }).ToDictionary(i => i.Id, i => i.Places!, StringComparer.Ordinal);
         if (places.Count > 0)
         {
@@ -334,6 +342,9 @@ public static class SaveGameStore
             Insert(c, tx, "INSERT INTO last_asked VALUES($a,$b)", (key, tick));
         }
 
+        // The whole log is saved, never trimmed: replays need every entry, and a restore takes the request
+        // language from the last set_display_locale command in it (SimulationHost.UseLoggedDisplayLocale).
+        // Any future trimming or compaction must keep the set_display_locale commands (#20043).
         var seq = 0;
         foreach (var e in s.DecisionLog)
         {
@@ -433,6 +444,9 @@ public static class SaveGameStore
         var searches = meta.TryGetValue("search_since", out var searchJson)
             ? JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, long>>>(searchJson, Json) ?? []
             : [];
+        var repeats = meta.TryGetValue("repeats", out var repeatJson)
+            ? JsonSerializer.Deserialize<Dictionary<string, SavedRepeats>>(repeatJson, Json) ?? []
+            : [];
         var places = meta.TryGetValue("places", out var placeJson)
             ? JsonSerializer.Deserialize<Dictionary<string, List<SavedPlace>>>(placeJson, Json) ?? []
             : [];
@@ -460,7 +474,9 @@ public static class SaveGameStore
                     appearances.GetValueOrDefault(r.GetString(0)),
                     [.. relations[r.GetString(0)]],
                     searches.GetValueOrDefault(r.GetString(0)),
-                    places.GetValueOrDefault(r.GetString(0)))),
+                    places.GetValueOrDefault(r.GetString(0)),
+                    repeats.GetValueOrDefault(r.GetString(0))?.Repeat,
+                    repeats.GetValueOrDefault(r.GetString(0))?.Resting)),
             long.Parse(meta["question_counter"], CultureInfo.InvariantCulture),
             Query(c, "SELECT data FROM questions ORDER BY id", r => JsonSerializer.Deserialize<SavedQuestion>(r.GetString(0))!),
             Query(c, "SELECT key, tick FROM last_asked ORDER BY key", r => new KeyValuePair<string, long>(r.GetString(0), r.GetInt64(1))),
@@ -547,6 +563,12 @@ public static class SaveGameStore
 
         return result;
     }
+
+    /// <summary>
+    /// An inhabitant's repeats without effect and resting actions as saved (W1696). Optional meta entry: saves
+    /// without it load with nothing resting; unknown fields are ignored on read.
+    /// </summary>
+    private sealed record SavedRepeats(RepeatRun? Repeat, IReadOnlyList<RestingAction>? Resting);
 }
 
 /// <summary>Saves the world after every game day (Leitbild: at most one game day lost after a crash).</summary>

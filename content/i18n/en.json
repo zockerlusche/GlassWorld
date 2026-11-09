@@ -1981,6 +1981,38 @@
     {
       "key": "msg.thought.warn",
       "text": "Watch out!"
+    },
+    {
+      "key": "ui.settings.volume.off_tip",
+      "text": "Off for now - these sounds are being remade."
+    },
+    {
+      "key": "ui.menu.loading_title",
+      "text": "One moment"
+    },
+    {
+      "key": "ui.menu.loading",
+      "text": "Loading “{name}” …"
+    },
+    {
+      "key": "ui.chronicle.export_tip",
+      "text": "Saves the chronicle as a web page (.html) and a text file (.txt) in the game folder under \"chronicle\" - to read or pass on."
+    },
+    {
+      "key": "msg.converse.reply",
+      "text": "Hm, yes."
+    },
+    {
+      "key": "msg.converse.not_understood",
+      "text": "Hm? I don't understand."
+    },
+    {
+      "key": "msg.converse.decline",
+      "text": "No, I'd rather not."
+    },
+    {
+      "key": "msg.converse.no_answer",
+      "text": "Hm ... I have to think about that."
     }
   ]
 }

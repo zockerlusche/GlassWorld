@@ -1,6 +1,8 @@
 using GlassWorld.Simulation.Content;
 using GlassWorld.Simulation.Data;
 using GlassWorld.Simulation.Decisions;
+using GlassWorld.Simulation.Inhabitants;
+using GlassWorld.Simulation.Objects;
 using GlassWorld.Simulation.State;
 using Microsoft.Data.Sqlite;
 
@@ -32,6 +34,26 @@ public sealed class SaveGameTests : IDisposable
         var replay = Restore(SaveGameStore.Load(path), new ReplayDecisionPort(original.Decisions.Log));
         replay.World.Run(original.World.Calendar.TicksPerDay);
         Assert.Equal(original.World.StateHash(), replay.World.StateHash());
+    }
+
+    [Fact]
+    public void RepeatsWithoutEffectAndRestingActionsAreHashedAndSurviveSaveAndLoad()
+    {
+        // W1696: the run without effect and the resting actions are state like any other.
+        var host = SimulationHost.CreatePlaceholderWorld(ContentDirectory, 3, new MockDecisionPort(), "de");
+        var before = host.World.StateHash();
+        var inhabitant = host.Inhabitants.Get("inh-000001");
+        inhabitant.Repeat = new RepeatRun("inspect", null, new Position(1.5, 2.5), 1);
+        inhabitant.Resting.Add(new RestingAction("warn", "inh-000002", new Position(1, 2), 99));
+        inhabitant.Resting.Add(new RestingAction("inspect", null, new Position(3, 4), 120));
+        Assert.NotEqual(before, host.World.StateHash());
+
+        var path = Path.Combine(_directory, "repeats.db");
+        SaveGameStore.Save(path, StateCodec.Capture(host));
+        var loaded = Restore(SaveGameStore.Load(path), new MockDecisionPort());
+        Assert.Equal(host.World.StateHash(), loaded.World.StateHash());
+        Assert.Equal(inhabitant.Repeat, loaded.Inhabitants.Get("inh-000001").Repeat);
+        Assert.Equal(inhabitant.Resting, loaded.Inhabitants.Get("inh-000001").Resting);
     }
 
     [Fact]
@@ -200,6 +222,35 @@ public sealed class SaveGameTests : IDisposable
             var outfit = Assert.Single(look.Outfits, o => o.Id == a.ClothingStyle);
             Assert.All(outfit.Parts, part => Assert.Contains(figures.ClothingParts, p => p.Id == part));
         });
+    }
+
+    /// <summary>
+    /// #20043 (GW3): the request language survives a save file. A switch to 'de' in an 'en' world is asked in
+    /// 'de' after loading, and an 'en' world without a switch stays 'en' (the restore reads the saved command log).
+    /// </summary>
+    [Theory]
+    [InlineData("en", "de", Contracts.Locale.De)]
+    [InlineData("en", null, Contracts.Locale.En)]
+    public void TheRequestLanguageSurvivesSaveAndLoad(string start, string? switched, Contracts.Locale expected)
+    {
+        var host = SimulationHost.CreatePlaceholderWorld(ContentDirectory, 5, new MockDecisionPort(), start);
+        host.World.Run(host.World.Calendar.TicksPerDay / 4);
+        if (switched is not null)
+        {
+            host.Decisions.Submit(new PlayerCommand(DecisionsSystem.SetDisplayLocale, null) { Text = switched });
+            host.World.Run(host.World.Calendar.TicksPerDay / 4);
+        }
+
+        var path = Path.Combine(_directory, "language.db");
+        SaveGameStore.Save(path, StateCodec.Capture(host));
+
+        // The factory's language is the old fixed default on purpose: only the saved log may decide.
+        var loaded = Restore(SaveGameStore.Load(path), new MockDecisionPort());
+        var asked = loaded.Decisions.Log.Entries.Count;
+        loaded.World.Run(loaded.World.Calendar.TicksPerDay / 2);
+
+        var next = loaded.Decisions.Log.Entries.Skip(asked).First(e => e.Kind == DecisionLogKind.Request);
+        Assert.Equal(expected, Contracts.Validation.ContractSerializer.Deserialize<Contracts.DecisionRequest>(next.Json).DisplayLocale);
     }
 
     private static SimulationHost Restore(SaveState state, IDecisionPort port)

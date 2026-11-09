@@ -63,6 +63,12 @@ public sealed class DecisionsSystem : IWorldSystem
     /// <summary>Knowledge data (B4a): passing actions as options, knowledge and relationships in the request.</summary>
     public KnowledgeSettings? Knowledge { get; init; }
 
+    /// <summary>
+    /// The inhabitants' own name of an invented type (null for content types, which the data names); set by
+    /// the host once the invention system exists. Used for the topic of passing options (D625).
+    /// </summary>
+    public Func<string, LocalizedName?>? InventedName { get; set; }
+
     /// <summary>Whether the inhabitant has an open question about a type (W1595; the routine waits for the answer).</summary>
     public bool HasOpenQuestion(string inhabitantId, string typeId) =>
         _open.Values.Any(q => q.InhabitantId == inhabitantId && q.Subject == "type:" + typeId);
@@ -75,6 +81,18 @@ public sealed class DecisionsSystem : IWorldSystem
 
     /// <summary>Player command: an inhabitant was clicked.</summary>
     public const string InhabitantClicked = "inhabitant_clicked";
+
+    /// <summary>
+    /// Player command: the player switched the language (#20043). Requests from the tick it takes effect
+    /// use it; logged like every command, so a replay switches at the same tick.
+    /// </summary>
+    public const string SetDisplayLocale = "set_display_locale";
+
+    /// <summary>
+    /// The language requests use until a <see cref="SetDisplayLocale"/> is logged: every save from before
+    /// #20043 asked in it, so replays and restores start with it.
+    /// </summary>
+    public const string DefaultDisplayLocale = "de";
 
     /// <summary>Text key: unknown command.</summary>
     public const string ReasonUnknownCommand = "msg.command.unknown";
@@ -92,7 +110,7 @@ public sealed class DecisionsSystem : IWorldSystem
     private readonly ActionRules _actions;
     private readonly UtilityBrain _brain;
     private readonly IDecisionPort _port;
-    private readonly string _displayLocale;
+    private string _displayLocale;
     private readonly IReadOnlyDictionary<string, VocabularyEntryTarget> _actionTargets;
     private ILookup<long, PlayerCommand>? _replayCommands;
     private long _counter;
@@ -113,6 +131,13 @@ public sealed class DecisionsSystem : IWorldSystem
 
     /// <inheritdoc/>
     public string Name => "decisions";
+
+    /// <summary>Language of the texts the decider writes (display_locale of the requests).</summary>
+    public string DisplayLocale
+    {
+        get => _displayLocale;
+        internal set => _displayLocale = value;
+    }
 
     /// <summary>The replay log.</summary>
     public DecisionLog Log { get; } = new();
@@ -414,7 +439,7 @@ public sealed class DecisionsSystem : IWorldSystem
     private OpenQuestion Send(World world, Inhabitant inhabitant, string questionId, string kind, string subject, WorldObject? target)
     {
         var requestId = DecisionIds.RequestId(world.Seed, world.Tick, inhabitant.Id, _counter);
-        var options = BuildOptions(inhabitant, target);
+        var options = BuildOptions(inhabitant, target, world.Tick);
         var json = ContractSerializer.Serialize(BuildRequest(world, inhabitant, requestId, options));
         Log.Add(new DecisionLogEntry(DecisionLogKind.Request, requestId, world.Tick, json, null));
         _port.Send(requestId, json);
@@ -441,9 +466,10 @@ public sealed class DecisionsSystem : IWorldSystem
 
     /// <summary>
     /// Options the core allows: object actions on the subject and every action without a target (target
-    /// kind from the action vocabulary), each only while the asker's needs suggest it (<see cref="Behaviour.UtilityBrain.NeedSuggests"/>).
+    /// kind from the action vocabulary), each only while the asker's needs suggest it (<see cref="Behaviour.UtilityBrain.NeedSuggests"/>)
+    /// and it does not rest after repeats without effect (W1696).
     /// </summary>
-    private List<(string OptionId, string Action, string? TargetId)> BuildOptions(Inhabitant asker, WorldObject? target)
+    private List<(string OptionId, string Action, string? TargetId)> BuildOptions(Inhabitant asker, WorldObject? target, long tick)
     {
         var raw = new List<(string Action, string? TargetId)>();
         var passOn = new List<(string Action, string? TargetId)>();
@@ -458,10 +484,10 @@ public sealed class DecisionsSystem : IWorldSystem
 
             switch (_actionTargets.GetValueOrDefault(action, VocabularyEntryTarget.None))
             {
-                case VocabularyEntryTarget.Object when target is not null:
+                case VocabularyEntryTarget.Object when target is not null && !Rests(asker, action, target.Id, tick):
                     raw.Add((action, target.Id));
                     break;
-                case VocabularyEntryTarget.None:
+                case VocabularyEntryTarget.None when !Rests(asker, action, null, tick):
                     raw.Add((action, null));
                     break;
                 case VocabularyEntryTarget.Inhabitant when Knowledge is { } knowledge:
@@ -469,7 +495,7 @@ public sealed class DecisionsSystem : IWorldSystem
                     // something this action carries and the other has not experienced it.
                     foreach (var other in PerceivedInhabitants(asker).Take(knowledge.RequestMaxInhabitants))
                     {
-                        if (InhabitantsSystem.PassableBelief(knowledge, asker, other, action) is not null)
+                        if (InhabitantsSystem.PassableBelief(knowledge, asker, other, action) is not null && !Rests(asker, action, other.Id, tick))
                         {
                             passOn.Add((action, other.Id));
                         }
@@ -488,6 +514,10 @@ public sealed class DecisionsSystem : IWorldSystem
         raw.AddRange(passOn.Take(Math.Min(room, Knowledge?.MaxPassOnOptions ?? 0)));
         return [.. raw.Take(MaxOptions).Select((o, i) => (string.Create(CultureInfo.InvariantCulture, $"o{i + 1}"), o.Action, o.TargetId))];
     }
+
+    /// <summary>W1696: an action that rests after repeats without effect (for this target, or here) is not offered.</summary>
+    private bool Rests(Inhabitant asker, string action, string? targetId, long tick) =>
+        asker.Resting.Count > 0 && asker.Rests(action, targetId, asker.Position, tick, _brain.Weights.Repetition?.SamePlaceM ?? 0);
 
     private DecisionRequest BuildRequest(World world, Inhabitant inhabitant, string requestId, List<(string OptionId, string Action, string? TargetId)> options)
     {
@@ -521,7 +551,32 @@ public sealed class DecisionsSystem : IWorldSystem
                 Inhabitants = [.. PerceivedInhabitants(inhabitant).Take(Knowledge?.RequestMaxInhabitants ?? 0)
                     .Select(i => new PerceivedInhabitant { Id = i.Id, DistanceM = Distance(inhabitant.Position, i.Position) })],
             },
-            Options = [.. options.Select(o => new Option { OptionId = o.OptionId, Action = o.Action, Target = o.TargetId })],
+            Options = [.. options.Select(o => new Option { OptionId = o.OptionId, Action = o.Action, Target = o.TargetId, Topic = TopicOf(inhabitant, o.Action, o.TargetId) })],
+        };
+    }
+
+    /// <summary>
+    /// What a passing option (show, teach, warn) is about (D625): the asker's own belief the core would pass
+    /// to the target (the same one <see cref="InhabitantsSystem.TopicOf"/> shows), so the decider can name the
+    /// thing. Null for every other option. Only in the request, never stored, so hashes stay as they were.
+    /// </summary>
+    private OptionTopic? TopicOf(Inhabitant asker, string action, string? targetId)
+    {
+        if (Knowledge is not { } knowledge
+            || targetId is null
+            || _actionTargets.GetValueOrDefault(action, VocabularyEntryTarget.None) != VocabularyEntryTarget.Inhabitant
+            || _inhabitants.All.FirstOrDefault(i => i.Id == targetId) is not { } listener
+            || InhabitantsSystem.PassableBelief(knowledge, asker, listener, action) is not { } belief)
+        {
+            return null;
+        }
+
+        return new OptionTopic
+        {
+            ObjectType = belief.TypeId,
+            Name = InventedName?.Invoke(belief.TypeId),
+            Property = belief.PropertyId,
+            Value = belief.Belief.Value,
         };
     }
 

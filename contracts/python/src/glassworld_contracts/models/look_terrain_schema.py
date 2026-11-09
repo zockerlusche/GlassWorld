@@ -26,6 +26,36 @@ class TerrainBiomeColor(BaseModel):
     )
 
 
+class TerrainRock(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    variation_permille: int = Field(
+        ...,
+        description='Largest brightness change of rock ground and walls (permille, both ways), from a smooth noise over the grid.',
+        ge=0,
+        le=500,
+    )
+    variation_cells: int = Field(
+        ...,
+        description='Size of the colour patches (noise wavelength in cells).',
+        ge=1,
+        le=256,
+    )
+    wall_foot_shade_permille: int = Field(
+        ...,
+        description='How much darker a wall is at its foot than at its top edge (permille).',
+        ge=0,
+        le=1000,
+    )
+    scree_permille: int = Field(
+        ...,
+        description='How far the ground colour at the foot of a wall leans towards the rock colour (permille), so rock and grass blend.',
+        ge=0,
+        le=1000,
+    )
+
+
 type Biome = Annotated[str, Field(..., pattern='^[a-z][a-z0-9_]*$')]
 
 
@@ -232,6 +262,7 @@ class LookTerrain(BaseModel):
         ge=0.0,
         le=100.0,
     )
+    rock: TerrainRock | None = None
     open_sea_size_factor: float = Field(
         ...,
         description="Size of the open sea plane around the map, as a multiple of the map's width and depth.",

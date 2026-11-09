@@ -53,6 +53,12 @@
   },
   "slope_shade_permille": 350,
   "slope_shade_gain": 3.0,
+  "rock": {
+    "variation_permille": 90,
+    "variation_cells": 7,
+    "wall_foot_shade_permille": 250,
+    "scree_permille": 450
+  },
   "open_sea_size_factor": 8.0,
   "water_shader": {
     "stripe_scale": 1.6,

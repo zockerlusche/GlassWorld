@@ -51,6 +51,19 @@ public static class InhabitantActivity
     }
 
     /// <summary>
+    /// Whether the inhabitant is in a conversation (W1697): its action aims at another inhabitant, another
+    /// inhabitant's action aims at it, or the core turns it to someone. Then it neither sits nor bends.
+    /// </summary>
+    public static bool InConversation(InhabitantSnapshot inhabitant, IReadOnlyList<InhabitantSnapshot> all)
+    {
+        ArgumentNullException.ThrowIfNull(inhabitant);
+        ArgumentNullException.ThrowIfNull(all);
+        return inhabitant.Facing is not null
+            || TargetKind(inhabitant, all) == AnimationMappingTarget.Inhabitant
+            || all.Any(o => o.TargetId == inhabitant.Id);
+    }
+
+    /// <summary>
     /// Where the inhabitant turns its whole body to (B2528, W1691): the position of the inhabitant the core
     /// says it faces (<see cref="InhabitantSnapshot.Facing"/>), or null (the figure faces where it walked).
     /// </summary>

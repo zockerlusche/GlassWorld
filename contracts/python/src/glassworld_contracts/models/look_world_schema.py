@@ -42,17 +42,29 @@ class WorldLookLabels(BaseModel):
         ge=50,
         le=4000,
     )
-    bubble_min_px: float = Field(
+    thought_seconds: float = Field(
         ...,
-        description="Least screen height of a bubble's text line in pixels (far away it stays readable, W1688).",
-        ge=4.0,
-        le=200.0,
+        description='How long a thought stays on screen (real seconds); a spoken answer uses speech_s.',
+        ge=0.5,
+        le=60.0,
     )
-    bubble_max_px: float = Field(
+    thought_seconds_fast: float = Field(
         ...,
-        description="Greatest screen height of a bubble's text line in pixels (close up it is not huge).",
-        ge=4.0,
-        le=400.0,
+        description='Longest time any line (thought or answer) stays at high speed, so lines do not pile up (W1687).',
+        ge=0.5,
+        le=60.0,
+    )
+    fast_from_speed: float = Field(
+        ...,
+        description='From this time speed on the shorter time applies.',
+        ge=1.0,
+        le=1000.0,
+    )
+    bubble_width_px: int = Field(
+        ...,
+        description='Largest width of a bubble on screen (pixels at the reference height, scaled with the UI); longer text wraps.',
+        ge=120,
+        le=2000,
     )
     speech_s: float = Field(
         ...,
