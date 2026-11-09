@@ -128,6 +128,17 @@ public sealed class ChronicleBookTests
     }
 
     [Fact]
+    public void ASecondInhabitantIsNamedLikeTheFirst()
+    {
+        // R9 kinds between two inhabitants (quarrel, partnership, a parent): {other} is the event target by name.
+        var book = new ChronicleBook(Kinds, Calendar);
+        book.Add([new ChronicleRecord(1, 1, "partnership", "inh-000001", "inh-000002", null), new ChronicleRecord(2, 2, "quarrel", "inh-000003", null, null)]);
+        var names = Names with { Inhabitant = id => id == "inh-000002" ? "Ilka" : "Mara" };
+        Assert.Equal("Ilka", ChronicleBook.Line(book.Entries.Single(e => e.Kind.Id == "partnership"), names).Args["other"]);
+        Assert.Equal("ui.chronicle.someone", ChronicleBook.Line(book.Entries.Single(e => e.Kind.Id == "quarrel"), names).Args["other"]);
+    }
+
+    [Fact]
     public void EveryKindHasItsTextWithAllPlaceholdersInBothLanguages()
     {
         foreach (var locale in new[] { "de", "en" })

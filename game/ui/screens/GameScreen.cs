@@ -34,6 +34,7 @@ public partial class GameScreen : CanvasLayer
     private readonly Dictionary<string, ProgressBar> _cardBars = new(StringComparer.Ordinal);
     private Label? _cardAction;
     private Label? _cardQuestions;
+    private LineEdit? _talkInput;
     private string _cardShape = string.Empty;
     private readonly GwToasts _toasts = new();
     private PanelContainer? _topBar;
@@ -363,6 +364,54 @@ public partial class GameScreen : CanvasLayer
     /// Smoke (A1340): a gift placed through the screen is accepted by the core and lies at the spot after
     /// the next tick; the favour shows as text, not as a key.
     /// </summary>
+    /// <summary>
+    /// Smoke run only (review GW1 #131): the talk field of a card takes a sentence, it costs favour and an
+    /// answer from the mock comes back as a reaction event; a refused sentence costs nothing.
+    /// </summary>
+    public async Task<string> CheckTalkAsync()
+    {
+        if (_presenter?.Host is not { } host || _feed?.Inhabitants() is not { Count: > 0 } rows)
+        {
+            return "no world";
+        }
+
+        var id = rows[0].Id;
+        OpenCard(id);
+        await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        if (_talkInput is null)
+        {
+            return "card has no talk field";
+        }
+
+        host.Conversation.Port ??= new Simulation.Player.MockConversationPort();
+        var favor = host.Player.Favor;
+        if (Say(id, "Ich will dich töten"))
+        {
+            return "a refused sentence was taken";
+        }
+
+        _talkInput.Text = Tr("ui.card.talk_send"); // any harmless sentence; a key keeps the code free of visible text
+        _talkInput.EmitSignal(LineEdit.SignalName.TextSubmitted, _talkInput.Text);
+        if (_talkInput.Text.Length > 0)
+        {
+            return "the field did not take the sentence";
+        }
+
+        var seen = host.Inhabitants.EventsSince(0).Count;
+        for (var i = 0; i < 3; i++)
+        {
+            host.World.Step();
+        }
+
+        var reactions = host.Inhabitants.EventsSince(0).Skip(seen).Select(e => e.Event.Kind).ToHashSet(StringComparer.Ordinal);
+        if (!reactions.Contains("conversation_started") || !reactions.Overlaps(["said", "gestured", "declined", "not_understood"]))
+        {
+            return "no reaction (" + string.Join(",", reactions) + ")";
+        }
+
+        return host.Player.Favor < favor ? string.Empty : "the sentence cost no favour";
+    }
+
     public async Task<string> CheckGiftAsync()
     {
         if (_presenter?.Host is not { } host || _favor is null)
@@ -1144,6 +1193,33 @@ public partial class GameScreen : CanvasLayer
             _cardQuestions = new Label { AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled };
             _card.Content.AddChild(_cardAction);
             _card.Content.AddChild(_cardQuestions);
+
+            // Talking (B6 R13): a sentence to this inhabitant; the core checks it and answers later.
+            Section("ui.card.talk");
+            var talkRow = new HBoxContainer();
+            var input = new LineEdit
+            {
+                PlaceholderText = "ui.card.talk_hint",
+                MaxLength = 280,
+                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+                AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled,
+            };
+            input.PlaceholderText = Tr("ui.card.talk_hint");
+            _talkInput = input;
+            var send = new Button { Text = "ui.card.talk_send" };
+            void Submit()
+            {
+                if (Say(inhabitantId, input.Text))
+                {
+                    input.Clear();
+                }
+            }
+
+            input.TextSubmitted += _ => Submit();
+            send.Pressed += Submit;
+            talkRow.AddChild(input);
+            talkRow.AddChild(send);
+            _card.Content.AddChild(talkRow);
         }
 
         foreach (var (key, percent) in values)
@@ -1152,6 +1228,11 @@ public partial class GameScreen : CanvasLayer
             {
                 bar.Value = percent;
             }
+        }
+
+        if (_talkInput is not null && _talkInput.PlaceholderText != Tr("ui.card.talk_hint"))
+        {
+            _talkInput.PlaceholderText = Tr("ui.card.talk_hint");
         }
 
         var action = card.Row.ActionKey ?? "ui.card.idle";
@@ -1177,6 +1258,37 @@ public partial class GameScreen : CanvasLayer
             _card!.Content.AddChild(row);
             _cardBars[key] = bar;
         }
+    }
+
+    /// <summary>Screenshots only: the card scrolled to its talk field with a sentence in it.</summary>
+    public void ShowTalkForShots(string sentence)
+    {
+        if (_talkInput is not null)
+        {
+            _talkInput.Text = sentence;
+        }
+
+        _card?.ScrollToEnd();
+    }
+
+    /// <summary>
+    /// The player says something to an inhabitant (send_text): the core checks it at once; a refusal or
+    /// "no favour" shows its calm reason. Returns true when the sentence was taken.
+    /// </summary>
+    public bool Say(string inhabitantId, string text)
+    {
+        if (_presenter?.Host is not { } host)
+        {
+            return false;
+        }
+
+        var result = host.Decisions.Submit(new PlayerCommand(Simulation.Player.ConversationSystem.SendText, inhabitantId) { Text = text });
+        if (!result.Accepted)
+        {
+            ShowHint(new ToastMessage(result.ReasonKey ?? "msg.command.unknown", new Dictionary<string, string>(), null));
+        }
+
+        return result.Accepted;
     }
 
     /// <summary>The question mark of an inhabitant (on the head anchor on the island), or null.</summary>

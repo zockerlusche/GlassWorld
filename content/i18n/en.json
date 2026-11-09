@@ -1491,6 +1491,66 @@
       "text": "{inhabitant} found old signs: {target}."
     },
     {
+      "key": "vocab.event.born",
+      "text": "Born"
+    },
+    {
+      "key": "vocab.event.died",
+      "text": "Died"
+    },
+    {
+      "key": "vocab.event.quarrelled",
+      "text": "Quarrelled"
+    },
+    {
+      "key": "vocab.event.reconciled",
+      "text": "Made up"
+    },
+    {
+      "key": "vocab.event.partnered",
+      "text": "Became partners"
+    },
+    {
+      "key": "vocab.event.migrated",
+      "text": "Moved away"
+    },
+    {
+      "key": "msg.chronicle.built",
+      "text": "{inhabitant} built something: {target}."
+    },
+    {
+      "key": "msg.chronicle.born",
+      "text": "{inhabitant} was born – a child of {other}."
+    },
+    {
+      "key": "msg.chronicle.died",
+      "text": "{inhabitant} has fallen asleep forever."
+    },
+    {
+      "key": "msg.chronicle.quarrel",
+      "text": "{inhabitant} and {other} had a quarrel."
+    },
+    {
+      "key": "msg.chronicle.reconciliation",
+      "text": "{inhabitant} and {other} made up."
+    },
+    {
+      "key": "msg.chronicle.partnership",
+      "text": "{inhabitant} and {other} belong together now."
+    },
+    {
+      "key": "msg.chronicle.migration",
+      "text": "{inhabitant} moved away to live somewhere else."
+    },
+    {
+      "key": "ui.chronicle.someone",
+      "text": "someone"
+    },
+    {
+      "key": "vocab.event.discovered_process",
+      "text": "Way of working discovered"
+    },
+    {
       "key": "vocab.event.conversation_started",
       "text": "Spoken to"
     },
@@ -1529,6 +1589,18 @@
     {
       "key": "msg.hint.no_answer",
       "text": "The inhabitants cannot answer right now. You get your favour back."
+    },
+    {
+      "key": "ui.card.talk",
+      "text": "Talk"
+    },
+    {
+      "key": "ui.card.talk_hint",
+      "text": "What would you like to say?"
+    },
+    {
+      "key": "ui.card.talk_send",
+      "text": "Say"
     },
     {
       "key": "ui.setup.model_language",
