@@ -104,13 +104,15 @@ public sealed class AnimationChooserTests
         var idleClips = library.Idle.Select(i => i.Clip).ToHashSet(StringComparer.Ordinal);
         for (long slot = 0; slot < 40; slot++)
         {
-            var expected = chooser.ForIdle("inh-000001", slot, values);
-            Assert.Equal(new FigureClip(expected, false, null), chooser.ForInhabitant("idle", false, "inh-000001", slot, values));
-            Assert.Equal(new FigureClip(expected, false, null), chooser.ForInhabitant(null, false, "inh-000001", slot, values));
+            var expected = chooser.Idle("inh-000001", slot, values);
+            Assert.Equal(chooser.ForIdle("inh-000001", slot, values), expected.Clip);
+            Assert.Equal(expected, chooser.ForInhabitant("idle", false, "inh-000001", slot, values));
+            Assert.Equal(expected, chooser.ForInhabitant(null, false, "inh-000001", slot, values));
 
             // Sleep has no clip yet: the idle behaviour stands in and the missing clip is named for the log.
             var sleeping = chooser.ForInhabitant("sleep", false, "inh-000001", slot, values);
-            Assert.Equal(expected, sleeping.Clip);
+            Assert.Equal(expected.Clip, sleeping.Clip);
+            Assert.Equal((expected.Speed, expected.Mirror), (sleeping.Speed, sleeping.Mirror));
             Assert.Equal("sleep", sleeping.Missing?.ClipId);
         }
 
@@ -131,7 +133,8 @@ public sealed class AnimationChooserTests
         var eat = chooser.ForInhabitant("eat", false, "inh-000001", 0, values);
         Assert.Equal((false, "eat"), (eat.Walking, eat.Clip.ClipId));
         var waiting = chooser.ForInhabitant("wander", false, "inh-000001", 3, values);
-        Assert.Equal(new FigureClip(chooser.ForIdle("inh-000001", 3, values), false, null), waiting);
+        Assert.Equal(chooser.Idle("inh-000001", 3, values), waiting);
+        Assert.Equal((eat.Clip.Speed, false), (eat.Speed, eat.Mirror));
     }
 
     [Fact]

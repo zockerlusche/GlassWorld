@@ -137,6 +137,16 @@ class AnimationIdle(BaseModel):
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
     weight: float = Field(..., description='Base weight.', ge=0.0, le=100.0)
+    speed_spread: float | None = Field(
+        None,
+        description='Variety: each time this behaviour is drawn it plays up to this share faster or slower than its clip (e.g. 0.15 = 0.85..1.15 times), deterministic from inhabitant id and idle slot. Missing: 0.',
+        ge=0.0,
+        le=0.5,
+    )
+    mirror: bool | None = Field(
+        None,
+        description='Variety: whether this behaviour may play mirrored (left and right swapped, half of the draws), deterministic from inhabitant id and idle slot. Missing: never.',
+    )
     factors: list[AnimationIdleFactor] = Field(
         ..., description='Weight changes by core values.', max_length=8, min_length=0
     )

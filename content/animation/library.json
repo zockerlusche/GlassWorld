@@ -23,6 +23,13 @@
       "loop": false
     },
     {
+      "id": "crouch_inspect",
+      "source": "asset",
+      "loop": true,
+      "asset": "Crouch_Idle",
+      "speed": 0.9
+    },
+    {
       "id": "drink",
       "source": "asset",
       "loop": true,
@@ -61,8 +68,10 @@
     },
     {
       "id": "hum",
-      "source": "blend",
-      "loop": true
+      "source": "asset",
+      "loop": true,
+      "asset": "Idle",
+      "speed": 1.2
     },
     {
       "id": "hurry",
@@ -92,8 +101,10 @@
     },
     {
       "id": "look_around",
-      "source": "procedural",
-      "loop": false
+      "source": "asset",
+      "loop": true,
+      "asset": "Idle_Talking",
+      "speed": 0.7
     },
     {
       "id": "look_at_camera",
@@ -115,8 +126,10 @@
     },
     {
       "id": "ponder",
-      "source": "procedural",
-      "loop": false
+      "source": "asset",
+      "loop": true,
+      "asset": "Idle_Talking",
+      "speed": 0.5
     },
     {
       "id": "put_down",
@@ -129,6 +142,13 @@
       "source": "asset",
       "loop": true,
       "asset": "Jog_Fwd"
+    },
+    {
+      "id": "shift_weight",
+      "source": "asset",
+      "loop": true,
+      "asset": "Idle",
+      "speed": 0.85
     },
     {
       "id": "sit",
@@ -170,8 +190,10 @@
     },
     {
       "id": "stretch",
-      "source": "placeholder",
-      "loop": false
+      "source": "asset",
+      "loop": false,
+      "asset": "Interact",
+      "speed": 0.6
     },
     {
       "id": "stroll",
@@ -211,8 +233,10 @@
     },
     {
       "id": "yawn",
-      "source": "placeholder",
-      "loop": false
+      "source": "asset",
+      "loop": true,
+      "asset": "Idle",
+      "speed": 0.6
     }
   ],
   "mappings": [
@@ -457,13 +481,25 @@
     {
       "id": "stand",
       "clip": "stand",
-      "weight": 3.0,
+      "weight": 2.0,
+      "speed_spread": 0.12,
+      "mirror": true,
+      "factors": []
+    },
+    {
+      "id": "shift_weight",
+      "clip": "shift_weight",
+      "weight": 1.5,
+      "speed_spread": 0.15,
+      "mirror": true,
       "factors": []
     },
     {
       "id": "look_around",
       "clip": "look_around",
       "weight": 2.0,
+      "speed_spread": 0.15,
+      "mirror": true,
       "factors": [
         {
           "value": "curiosity",
@@ -476,12 +512,16 @@
       "id": "stretch",
       "clip": "stretch",
       "weight": 1.0,
+      "speed_spread": 0.1,
+      "mirror": true,
       "factors": []
     },
     {
       "id": "yawn",
       "clip": "yawn",
       "weight": 0.5,
+      "speed_spread": 0.1,
+      "mirror": true,
       "factors": [
         {
           "value": "sleep",
@@ -494,6 +534,8 @@
       "id": "sit_down",
       "clip": "sit_down",
       "weight": 1.0,
+      "speed_spread": 0.1,
+      "mirror": false,
       "factors": [
         {
           "value": "sleep",
@@ -506,6 +548,8 @@
       "id": "hum",
       "clip": "hum",
       "weight": 0.5,
+      "speed_spread": 0.1,
+      "mirror": true,
       "factors": [
         {
           "value": "joy",
@@ -518,6 +562,8 @@
       "id": "pick_up_inspect",
       "clip": "pick_up_inspect",
       "weight": 1.0,
+      "speed_spread": 0.15,
+      "mirror": true,
       "factors": [
         {
           "value": "curiosity",
@@ -527,9 +573,25 @@
       ]
     },
     {
+      "id": "crouch_inspect",
+      "clip": "crouch_inspect",
+      "weight": 1.0,
+      "speed_spread": 0.15,
+      "mirror": true,
+      "factors": [
+        {
+          "value": "curiosity",
+          "when": "high",
+          "weight": 1.0
+        }
+      ]
+    },
+    {
       "id": "ponder",
       "clip": "ponder",
       "weight": 1.0,
+      "speed_spread": 0.15,
+      "mirror": true,
       "factors": []
     }
   ]
