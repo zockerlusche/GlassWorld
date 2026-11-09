@@ -253,6 +253,10 @@
     {
       "pattern": "ai/model-downloads.json",
       "schema": "model-downloads"
+    },
+    {
+      "pattern": "ai/mock-weights.json",
+      "schema": "mock-weights"
     }
   ]
 }

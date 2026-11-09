@@ -1,0 +1,102 @@
+{
+  "contract_version": "0.2",
+  "default_permille": 1000,
+  "weights": [
+    {
+      "action": "apologize",
+      "permille": 1000
+    },
+    {
+      "action": "bury",
+      "permille": 1000
+    },
+    {
+      "action": "care",
+      "permille": 1000
+    },
+    {
+      "action": "carve",
+      "permille": 1000
+    },
+    {
+      "action": "court",
+      "permille": 1000
+    },
+    {
+      "action": "cover",
+      "permille": 1000
+    },
+    {
+      "action": "dance",
+      "permille": 1000
+    },
+    {
+      "action": "end_partnership",
+      "permille": 1000
+    },
+    {
+      "action": "found_settlement",
+      "permille": 1000
+    },
+    {
+      "action": "gossip",
+      "permille": 1000
+    },
+    {
+      "action": "name_person",
+      "permille": 1000
+    },
+    {
+      "action": "paint",
+      "permille": 1000
+    },
+    {
+      "action": "perform_custom",
+      "permille": 1000
+    },
+    {
+      "action": "play",
+      "permille": 1000
+    },
+    {
+      "action": "propose_partnership",
+      "permille": 1000
+    },
+    {
+      "action": "quarrel",
+      "permille": 1000
+    },
+    {
+      "action": "reconcile",
+      "permille": 1000
+    },
+    {
+      "action": "set_stone",
+      "permille": 1000
+    },
+    {
+      "action": "sing",
+      "permille": 1000
+    },
+    {
+      "action": "teach",
+      "permille": 1000
+    },
+    {
+      "action": "visit_grave",
+      "permille": 1000
+    },
+    {
+      "action": "wake",
+      "permille": 1000
+    },
+    {
+      "action": "warn",
+      "permille": 1000
+    },
+    {
+      "action": "wish_child",
+      "permille": 1000
+    }
+  ]
+}

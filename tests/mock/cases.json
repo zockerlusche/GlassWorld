@@ -1,0 +1,273 @@
+{
+  "description": "Shared test vectors of the generic decision mock (Bogen 34 R26): the AI service (decider/mock.py) and the core (MockDecisionPort) must both give 'expected'. Option ids sort as text (ordinal).",
+  "cases": [
+    {
+      "id": "equal_weights_third",
+      "seed": 2500,
+      "weights": {
+        "default_permille": 1000,
+        "weights": []
+      },
+      "options": [
+        {
+          "option_id": "o1",
+          "action": "eat"
+        },
+        {
+          "option_id": "o2",
+          "action": "drink"
+        },
+        {
+          "option_id": "o3",
+          "action": "idle"
+        }
+      ],
+      "expected": "o3"
+    },
+    {
+      "id": "equal_weights_first_edge",
+      "seed": 999,
+      "weights": {
+        "default_permille": 1000,
+        "weights": []
+      },
+      "options": [
+        {
+          "option_id": "o1",
+          "action": "eat"
+        },
+        {
+          "option_id": "o2",
+          "action": "drink"
+        },
+        {
+          "option_id": "o3",
+          "action": "idle"
+        }
+      ],
+      "expected": "o1"
+    },
+    {
+      "id": "equal_weights_boundary",
+      "seed": 1000,
+      "weights": {
+        "default_permille": 1000,
+        "weights": []
+      },
+      "options": [
+        {
+          "option_id": "o1",
+          "action": "eat"
+        },
+        {
+          "option_id": "o2",
+          "action": "drink"
+        },
+        {
+          "option_id": "o3",
+          "action": "idle"
+        }
+      ],
+      "expected": "o2"
+    },
+    {
+      "id": "seed_wraps",
+      "seed": 7000,
+      "weights": {
+        "default_permille": 1000,
+        "weights": []
+      },
+      "options": [
+        {
+          "option_id": "o1",
+          "action": "eat"
+        },
+        {
+          "option_id": "o2",
+          "action": "drink"
+        },
+        {
+          "option_id": "o3",
+          "action": "idle"
+        }
+      ],
+      "expected": "o2"
+    },
+    {
+      "id": "options_sorted_by_id",
+      "seed": 1500,
+      "weights": {
+        "default_permille": 1000,
+        "weights": []
+      },
+      "options": [
+        {
+          "option_id": "o2",
+          "action": "drink"
+        },
+        {
+          "option_id": "o1",
+          "action": "eat"
+        }
+      ],
+      "expected": "o2"
+    },
+    {
+      "id": "zero_weight_never",
+      "seed": 0,
+      "weights": {
+        "default_permille": 1000,
+        "weights": [
+          {
+            "action": "wish_child",
+            "permille": 0
+          }
+        ]
+      },
+      "options": [
+        {
+          "option_id": "o1",
+          "action": "wish_child"
+        },
+        {
+          "option_id": "o2",
+          "action": "idle"
+        }
+      ],
+      "expected": "o2"
+    },
+    {
+      "id": "zero_weight_never_other_seed",
+      "seed": 123457,
+      "weights": {
+        "default_permille": 1000,
+        "weights": [
+          {
+            "action": "wish_child",
+            "permille": 0
+          }
+        ]
+      },
+      "options": [
+        {
+          "option_id": "o1",
+          "action": "wish_child"
+        },
+        {
+          "option_id": "o2",
+          "action": "idle"
+        }
+      ],
+      "expected": "o2"
+    },
+    {
+      "id": "low_weight_inside",
+      "seed": 249,
+      "weights": {
+        "default_permille": 1000,
+        "weights": [
+          {
+            "action": "court",
+            "permille": 250
+          }
+        ]
+      },
+      "options": [
+        {
+          "option_id": "o1",
+          "action": "court"
+        },
+        {
+          "option_id": "o2",
+          "action": "talk_to"
+        }
+      ],
+      "expected": "o1"
+    },
+    {
+      "id": "low_weight_outside",
+      "seed": 250,
+      "weights": {
+        "default_permille": 1000,
+        "weights": [
+          {
+            "action": "court",
+            "permille": 250
+          }
+        ]
+      },
+      "options": [
+        {
+          "option_id": "o1",
+          "action": "court"
+        },
+        {
+          "option_id": "o2",
+          "action": "talk_to"
+        }
+      ],
+      "expected": "o2"
+    },
+    {
+      "id": "all_zero_takes_idle",
+      "seed": 5,
+      "weights": {
+        "default_permille": 0,
+        "weights": []
+      },
+      "options": [
+        {
+          "option_id": "o1",
+          "action": "eat"
+        },
+        {
+          "option_id": "o2",
+          "action": "drink"
+        },
+        {
+          "option_id": "o3",
+          "action": "idle"
+        }
+      ],
+      "expected": "o3"
+    },
+    {
+      "id": "all_zero_without_idle_first",
+      "seed": 5,
+      "weights": {
+        "default_permille": 0,
+        "weights": []
+      },
+      "options": [
+        {
+          "option_id": "o2",
+          "action": "eat"
+        },
+        {
+          "option_id": "o1",
+          "action": "drink"
+        }
+      ],
+      "expected": "o1"
+    },
+    {
+      "id": "ids_sort_as_text",
+      "seed": 1500,
+      "weights": {
+        "default_permille": 1000,
+        "weights": []
+      },
+      "options": [
+        {
+          "option_id": "o2",
+          "action": "eat"
+        },
+        {
+          "option_id": "o10",
+          "action": "drink"
+        }
+      ],
+      "expected": "o2"
+    }
+  ]
+}
