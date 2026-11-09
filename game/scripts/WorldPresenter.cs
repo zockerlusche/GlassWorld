@@ -28,6 +28,7 @@ public partial class WorldPresenter : Node3D
     private readonly Dictionary<string, (Label3D Label, double Until)> _thoughts = new(StringComparer.Ordinal);
     private AiServiceProcess? _service;
     private HttpDecisionPort? _livePort;
+    private HttpConversationPort? _conversationPort;
     private HttpJobPort? _jobPort;
     private HttpHelpPort? _helpPort;
     private string? _contentFingerprint;
@@ -173,6 +174,11 @@ public partial class WorldPresenter : Node3D
 
         _host = host;
         SavePath = savePath;
+
+        // Talking (B6 R13): only the live service answers. Without it (routine mode, or the service
+        // failed to start) nothing answers and the core gives the calm "no answer" with the favour back
+        // (R16, review GW1 #131) - never made-up mock words in front of the player.
+        host.Conversation.Port = _conversationPort;
         if (savePath is not null)
         {
             // Autosave every game day (B2487). Like AutoSaver, but a failure must not escape into
@@ -267,6 +273,7 @@ public partial class WorldPresenter : Node3D
     {
         RestoreScene();
         _livePort?.Dispose();
+        _conversationPort?.Dispose();
         _jobPort?.Dispose();
         _helpPort?.Dispose();
         if (_service is not null)
@@ -305,6 +312,7 @@ public partial class WorldPresenter : Node3D
             // Generation jobs (inventions, D471): only with the live service; with the mock the system is dormant.
             _jobPort = HttpJobPort.ForService(_service);
             _helpPort = HttpHelpPort.ForService(_service, settings.DeadlineMs);
+            _conversationPort = HttpConversationPort.ForService(_service, settings.DeadlineMs);
             GD.Print($"AI_SERVICE live on port {_service.Port}");
             return _livePort;
         }
@@ -325,6 +333,9 @@ public partial class WorldPresenter : Node3D
     /// appeared, otherwise switches groups every 30 s; smooth, presentation only. On first use the B0
     /// island placeholder is hidden and a plain ground is laid under the placeholder world.
     /// </summary>
+    /// <summary>Picture runs only: the placeholder camera stays where it was put and does not follow the groups.</summary>
+    public bool CameraHeld { get; set; }
+
     private void FollowWithCamera(double delta)
     {
         if (_host is null || GetViewport().GetCamera3D() is not { } camera)
@@ -346,6 +357,11 @@ public partial class WorldPresenter : Node3D
                 Mesh = new PlaneMesh { Size = new Vector2(400, 120) },
                 MaterialOverride = new StandardMaterial3D { AlbedoColor = new Color(0.86f, 0.78f, 0.55f) },
             });
+        }
+
+        if (CameraHeld)
+        {
+            return;
         }
 
         var groups = _host.Inhabitants.All.Select(i => i.Group).Distinct().Order().ToList();
@@ -385,6 +401,15 @@ public partial class WorldPresenter : Node3D
         {
             _seenEvents = sequenced.Seq;
             var e = sequenced.Event;
+            if (Talk(e) is { } talk && _thoughts.TryGetValue(e.InhabitantId, out var said))
+            {
+                // Talking (B6 R13): "..." while it thinks, then the answer or a question mark.
+                said.Label.Text = talk.Text;
+                said.Label.Visible = true;
+                _thoughts[e.InhabitantId] = (said.Label, _clock + talk.Seconds);
+                continue;
+            }
+
             if (e.Kind == "thought" && e.Text is { Length: > 0 } text && _thoughts.TryGetValue(e.InhabitantId, out var bubble))
             {
                 bubble.Label.Text = text;
@@ -404,6 +429,17 @@ public partial class WorldPresenter : Node3D
             }
         }
     }
+
+    /// <summary>The bubble of a conversation event: text and how long it stays (null for other events).</summary>
+    private static (string Text, double Seconds)? Talk(Simulation.Inhabitants.WorldEvent e) => e.Kind switch
+    {
+        "conversation_started" => ("…", 120.0),
+        "said" or "declined" when e.Text is { Length: > 0 } text => (text, ThoughtSeconds + 2),
+        "gestured" or "declined" => ("…", 2.0),
+        "not_understood" => ("?", ThoughtSeconds),
+        "no_answer" => (string.Empty, 0.0),
+        _ => null,
+    };
 
     /// <summary>Decider that never answers (service could not be started): questions stay open (B2487).</summary>
     private sealed class SilentPort : IDecisionPort

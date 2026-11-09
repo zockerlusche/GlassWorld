@@ -82,6 +82,14 @@ public static class UiTheme
         theme.SetStylebox("disabled", "Button", Frame(style, UiFrameId.Button, UiColorId.Panel, (UiColorId.Text_muted, button.DisabledTint)));
         theme.SetConstant("h_separation", "Button", style.Tokens.Window.Gap);
         theme.SetStylebox("focus", "Button", FocusRing(style));
+
+        // Text fields (new world, talk field): light like the windows, not Godot's dark default, so dark
+        // text stays readable; the hint text muted, the focus ring like buttons (B6 R2 UI standard).
+        theme.SetStylebox("normal", "LineEdit", Frame(style, UiFrameId.Button, UiColorId.Panel));
+        theme.SetStylebox("read_only", "LineEdit", Frame(style, UiFrameId.Button, UiColorId.Panel, (UiColorId.Text_muted, button.DisabledTint)));
+        theme.SetStylebox("focus", "LineEdit", FocusRing(style));
+        theme.SetColor("font_placeholder_color", "LineEdit", ToGodot(style.Color(UiColorId.Text_muted)));
+        theme.SetColor("caret_color", "LineEdit", text);
         TreeStyle(theme, style);
         BarStyle(theme, style);
         theme.SetConstant("separation", "VBoxContainer", style.Tokens.Window.Gap);
