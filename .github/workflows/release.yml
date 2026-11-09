@@ -101,15 +101,24 @@ jobs:
         id: build
         env:
           PYTHON_DIR: ${{ steps.python.outputs.dir }}
-          VERSION: ${{ steps.version.outputs.version }}
+          GW_RELEASE_VERSION: ${{ steps.version.outputs.version }}
         run: |
           GODOT="$(find ~/godot -maxdepth 2 -type f -name 'Godot_v*_mono_win64_console.exe' | head -n 1)"
           test -n "$GODOT" || { echo "Godot console executable not found" >&2; exit 1; }
           export GODOT
-          bash tools/release/build_release.sh "$VERSION" "$RUNNER_TEMP/release" | tee "$RUNNER_TEMP/build.log"
+          bash tools/release/build_release.sh "$GW_RELEASE_VERSION" "$RUNNER_TEMP/release" | tee "$RUNNER_TEMP/build.log"
           name="$(sed -n 's/^RELEASE_OK //p' "$RUNNER_TEMP/build.log")"
           test -n "$name" || { echo "release build did not finish" >&2; exit 1; }
           echo "name=$name" >> "$GITHUB_OUTPUT"
+      - name: NuGet messages of the export build (only on failure)
+        # Godot's logger shows only MSBuild errors; NuGet writes its reasons into the assets
+        # files (that is how GW1 found the VERSION clash). Prints them, never fails itself.
+        if: failure()
+        run: |
+          for f in game/.godot/mono/temp/obj/project.assets.json src/*/obj/project.assets.json; do
+            [ -f "$f" ] || continue
+            python -c "import json,sys; d=json.load(open(sys.argv[1],encoding='utf-8')); [print(sys.argv[1], m.get('code'), m.get('message')) for m in d.get('logs',[])]" "$f" || true
+          done
       - name: Keep the archive for the publish job
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -139,13 +148,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          VERSION: ${{ needs.build.outputs.version }}
+          GW_RELEASE_VERSION: ${{ needs.build.outputs.version }}
           NAME: ${{ needs.build.outputs.name }}
         run: |
-          if [ "$VERSION" = "unreleased" ]; then
+          if [ "$GW_RELEASE_VERSION" = "unreleased" ]; then
             tag="probe-${GITHUB_SHA::8}"; title="Probe build $tag"; extra="--prerelease"
           else
-            tag="v$VERSION"; title="GlassWorld $VERSION"; extra=""
+            tag="v$GW_RELEASE_VERSION"; title="GlassWorld $GW_RELEASE_VERSION"; extra=""
           fi
           gh release create "$tag" --draft $extra --target "$GITHUB_SHA" --title "$title" \
             --notes-file release/release-notes.md "release/$NAME.zip" release/SHA256SUMS.txt
