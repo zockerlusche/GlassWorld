@@ -22,6 +22,7 @@ public partial class BubbleOverlay : CanvasLayer
 {
     private readonly Dictionary<string, Label> _labels = new(StringComparer.Ordinal);
     private readonly List<BubbleRequest> _requests = [];
+    private readonly Control _root = new() { Name = "BubbleRoot", MouseFilter = Control.MouseFilterEnum.Ignore };
 
     /// <summary>The bubbles by inhabitant id.</summary>
     public Func<IEnumerable<(string Id, ScreenBubble Bubble)>> Bubbles { get; set; } = () => [];
@@ -40,7 +41,15 @@ public partial class BubbleOverlay : CanvasLayer
         [.. _labels.Where(l => l.Value.Visible).Select(l => (l.Key, new Rect2(l.Value.Position, l.Value.Size)))];
 
     // Below the UI (layer 0): windows and the pause menu cover the bubbles, the world does not.
-    public override void _Ready() => Layer = -1;
+    public override void _Ready()
+    {
+        Layer = -1;
+
+        // The game's UI theme (fonts, sizes) also below this layer.
+        _root.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        AddChild(_root);
+        GlassWorld.Game.Ui.UiSetup.Bind(_root);
+    }
 
     public override void _Process(double delta)
     {
@@ -109,7 +118,7 @@ public partial class BubbleOverlay : CanvasLayer
         label.AddThemeColorOverride("font_color", new Color(1, 1, 1));
         label.AddThemeColorOverride("font_outline_color", new Color(0.1f, 0.1f, 0.14f));
         label.AddThemeConstantOverride("outline_size", 6);
-        AddChild(label);
+        _root.AddChild(label);
         _labels[id] = label;
         return label;
     }
