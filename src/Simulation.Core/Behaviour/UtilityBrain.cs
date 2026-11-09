@@ -64,6 +64,32 @@ public sealed class UtilityBrain
     /// <summary>The data in use.</summary>
     public UtilityWeights Weights { get; }
 
+    /// <summary>
+    /// Whether the inhabitant's needs suggest an action (F5275 A): an action with need-based considerations
+    /// is suggested only while one of them gives it some urgency (weight x the need's curve above 0); an
+    /// action without any is always suggested. Data only - no action names in code.
+    /// </summary>
+    public bool NeedSuggests(Inhabitant inhabitant, string action)
+    {
+        ArgumentNullException.ThrowIfNull(inhabitant);
+        var needBased = false;
+        foreach (var (c, curve) in _considerations)
+        {
+            if (c.Need is null || !string.Equals(c.Action, action, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            needBased = true;
+            if (c.Weight * curve.At(inhabitant.Needs.GetValueOrDefault(c.Need, 1.0)) > 0)
+            {
+                return true;
+            }
+        }
+
+        return !needBased;
+    }
+
     /// <summary>The key a search is kept under (its need, else its action).</summary>
     public static string SearchKey(Consideration consideration)
     {

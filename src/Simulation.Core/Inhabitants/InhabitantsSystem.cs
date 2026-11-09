@@ -313,12 +313,29 @@ public sealed class InhabitantsSystem : IWorldSystem
         }
     }
 
+    /// <summary>Event kind of a question that came to nothing (also used by the decisions system).</summary>
+    public const string QuestionFailed = "question_failed";
+
+    /// <summary>Reason of a queued answer dropped because a need fell below its neglect threshold while it waited.</summary>
+    public const string NeedNeglected = "need_neglected";
+
     private void Act(World world, Inhabitant inhabitant)
     {
-        if (inhabitant.Activity is null && inhabitant.Planned is not null)
+        if (inhabitant.Activity is null && inhabitant.Planned is { } planned)
         {
-            inhabitant.Activity = inhabitant.Planned;
             inhabitant.Planned = null;
+            // A queued answer (an action the decider may be offered; a building step never is, the content
+            // check guarantees it) goes stale when a need fell below its neglect threshold while it waited
+            // (F5275 B): it is dropped and logged, and the routine or the decider decides anew.
+            if (_actions.OfferedActions.Contains(planned.Action, StringComparer.Ordinal)
+                && _model.Needs.Any(n => n.NeglectBelow > 0 && inhabitant.Needs.GetValueOrDefault(n.Id, 1.0) < n.NeglectBelow))
+            {
+                Report(new WorldEvent(QuestionFailed, world.Tick, inhabitant.Id, planned.Action, planned.TargetId) { Detail = NeedNeglected });
+            }
+            else
+            {
+                inhabitant.Activity = planned;
+            }
         }
 
         inhabitant.Activity ??= Choose(world, inhabitant);

@@ -96,6 +96,12 @@ public sealed class BuildingTests : IDisposable
 
         for (var round = 0; round < 2; round++)
         {
+            // Needs fine, so the queued use is not dropped as stale (F5275 B) after the long build.
+            foreach (var need in inhabitant.Needs.Keys.ToList())
+            {
+                inhabitant.Needs[need] = 1.0;
+            }
+
             host.Objects.TryGet(built, out var obj);
             inhabitant.Planned = new Activity(use, built, obj.Position, null);
             var before = host.Chronicle.All.Count;
