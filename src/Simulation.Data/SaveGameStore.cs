@@ -18,7 +18,7 @@ namespace GlassWorld.Simulation.Data;
 public static class SaveGameStore
 {
     /// <summary>Schema version written by this code.</summary>
-    public const int SchemaVersion = 4;
+    public const int SchemaVersion = 5;
 
     private static readonly JsonSerializerOptions Json = new() { IncludeFields = true };
 
@@ -53,6 +53,9 @@ public static class SaveGameStore
         ALTER TABLE beliefs ADD COLUMN tick INTEGER NOT NULL DEFAULT 0;
         CREATE TABLE relationships(inhabitant TEXT NOT NULL, other TEXT NOT NULL, affection REAL NOT NULL, trust REAL NOT NULL, respect REAL NOT NULL,
           PRIMARY KEY(inhabitant, other));
+        """,
+        """
+        ALTER TABLE island ADD COLUMN format INTEGER NOT NULL DEFAULT 1;
         """,
     ];
 
@@ -199,7 +202,9 @@ public static class SaveGameStore
             if (s.IslandData is not null)
             {
                 // The generated island as one blob (B2 R11; GW2 review #94: no base64 in meta).
-                Insert(c, tx, "INSERT INTO island VALUES($a,$b)", (1, s.IslandData));
+                // The blob format (schema 5): 2 adds the hydrology and underground layers; older rows are
+                // format 1 and still decode, as islands without them (IslandCodec).
+                Insert(c, tx, "INSERT INTO island(id, data, format) VALUES($a,$b,$c)", (1, s.IslandData, Map.IslandCodec.FormatOf(s.IslandData)));
             }
         }
 

@@ -14,6 +14,7 @@
     "grid",
     "terrain",
     "water",
+    "underground",
     "climate",
     "caves",
     "start",
@@ -55,6 +56,9 @@
     },
     "water": {
       "$ref": "#/$defs/WorldPresetWater"
+    },
+    "underground": {
+      "$ref": "#/$defs/WorldPresetUnderground"
     },
     "climate": {
       "$ref": "#/$defs/WorldPresetClimate"
@@ -221,6 +225,14 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 100000
+        },
+        "ridged": {
+          "description": "Ridged octave: the noise is folded at its middle and squared, so it adds sharp crests (ridges, hill chains) instead of round bumps. Absent = false.",
+          "type": "boolean"
+        },
+        "signed": {
+          "description": "Signed octave: contributes from -amplitude/2 to +amplitude/2 around zero, so it digs hollows as well as raising hills. Absent = false (0 to amplitude).",
+          "type": "boolean"
         }
       }
     },
@@ -229,11 +241,16 @@
       "additionalProperties": false,
       "required": [
         "shallow_max_depth",
-        "springs",
-        "spring_min_height",
         "lake_min_cells",
+        "lake_min_depth",
+        "lake_area_per_inflow_permille",
         "swamp_max_slope",
-        "swamp_min_moisture_permille"
+        "swamp_min_moisture_permille",
+        "runoff_per_cell",
+        "stream_min_accumulation",
+        "channel",
+        "springs",
+        "drink_spots"
       ],
       "properties": {
         "shallow_max_depth": {
@@ -242,20 +259,23 @@
           "minimum": 1,
           "maximum": 100000
         },
-        "springs": {
-          "$ref": "#/$defs/WorldPresetCountRange"
-        },
-        "spring_min_height": {
-          "description": "Springs lie on slopes at least this far above sea level.",
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 100000
-        },
         "lake_min_cells": {
-          "description": "Smallest hollow that fills into a lake.",
+          "description": "Smallest hollow (cells below its spill level) that holds water as a pond or lake when a stream or spring feeds it; smaller pits on a stream are filled up to their spill level.",
           "type": "integer",
           "minimum": 1,
           "maximum": 100000
+        },
+        "lake_min_depth": {
+          "description": "Smallest depth (spill level minus the deepest ground, height units) of a hollow that holds water; shallower pits on a stream are filled up.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        },
+        "lake_area_per_inflow_permille": {
+          "description": "Largest pond or lake area (cells) per unit of inflow (permille): rain and evaporation balance. A hollow larger than its inflow can fill rises only to that area and has no outflow (closed lake); otherwise it fills to its spill level and overflows.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
         },
         "swamp_max_slope": {
           "description": "Largest slope of a flat wet hollow that becomes swamp.",
@@ -268,8 +288,42 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 1000
+        },
+        "runoff_per_cell": {
+          "description": "Rain water every land cell adds to the flow accumulation (accumulation units); the accumulation of a cell is the water of all cells that drain through it.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "stream_min_accumulation": {
+          "description": "A cell carries a stream where its flow accumulation reaches this value (rain from its catchment plus the springs above it).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000000
+        },
+        "channel": {
+          "description": "Width, depth and bank height of a stream by its flow accumulation, interpolated linearly between the points (accumulation ascending); beyond the last point the last values hold.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": {
+            "$ref": "#/$defs/WorldPresetChannelPoint"
+          }
+        },
+        "springs": {
+          "$ref": "#/$defs/WorldPresetSprings"
+        },
+        "drink_spots": {
+          "description": "Where drinkable water objects lie: at the springs, along lake and pond edges, along stream banks. Each kind is its own entry; a kind without an entry gets no objects.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/WorldPresetDrinkSpot"
+          }
         }
-      }
+      },
+      "description": "Hydrology (B2 R4, TL #19722): depressions are filled from the sea inwards (priority flood), every cell drains to its steepest lower neighbour on the filled surface (D8), the flow accumulation sums rain and springs downstream; streams run where it is large enough, fed hollows become ponds and lakes that overflow towards the sea."
     },
     "WorldPresetClimate": {
       "type": "object",
@@ -617,6 +671,360 @@
         "mandatory": {
           "description": "If true, a start that misses this resource within the radius fails the generation attempt, which is then repeated with the next derived sub-seed (deterministic); the check line is start_supply/<id>. If false or absent, the line only reports (report/start_supply/<id>).",
           "type": "boolean"
+        }
+      }
+    },
+    "WorldPresetChannelPoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "accumulation",
+        "width_cm",
+        "depth",
+        "bank"
+      ],
+      "properties": {
+        "accumulation": {
+          "description": "Flow accumulation of this point.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000000
+        },
+        "width_cm": {
+          "description": "Stream width in centimetres; a stream wider than one cell takes its side cells too.",
+          "type": "integer",
+          "minimum": 10,
+          "maximum": 10000
+        },
+        "depth": {
+          "description": "Water depth in height units.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "bank": {
+          "description": "How far the water surface lies below the banks (height units): the stream bed is cut this much plus the depth into the ground.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        }
+      }
+    },
+    "WorldPresetSprings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "min_height",
+        "max_groundwater_depth",
+        "foot_relief",
+        "foot_radius_cells",
+        "min_spacing_cells",
+        "max_count",
+        "discharge"
+      ],
+      "properties": {
+        "min_height": {
+          "description": "Springs lie at least this far above sea level (height units).",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "max_groundwater_depth": {
+          "description": "Springs rise where the groundwater table lies at most this far below the ground (height units, underground layer).",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "foot_relief": {
+          "description": "A spring cell lies at the foot of a slope or rock edge: the ground within foot_radius_cells rises at least this much above it.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "foot_radius_cells": {
+          "description": "Radius in which the foot relief is measured.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        },
+        "min_spacing_cells": {
+          "description": "Smallest distance between two springs.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "max_count": {
+          "description": "Most springs on the island (the wettest candidates first).",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "discharge": {
+          "description": "Water a spring adds to the flow accumulation of its cell (accumulation units).",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000000
+        }
+      }
+    },
+    "WorldPresetDrinkSpot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "at",
+        "object_type",
+        "spacing_cells",
+        "max_total",
+        "min_stream_distance_cells"
+      ],
+      "properties": {
+        "at": {
+          "description": "Where the objects lie: spring (exactly on the spring cells), lake_edge (dry walkable cells next to a pond or lake), stream_bank (dry walkable cells next to a running stream).",
+          "type": "string",
+          "enum": [
+            "spring",
+            "lake_edge",
+            "stream_bank"
+          ]
+        },
+        "object_type": {
+          "description": "Object type placed there (catalogue id).",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "spacing_cells": {
+          "description": "Smallest distance between two objects of this entry (and from other drink spots).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "max_total": {
+          "description": "Most objects of this entry on the island.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "min_stream_distance_cells": {
+          "description": "Smallest distance from any running stream cell other than a spring's own (keeps pools off stream mouths); 0 = no limit.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "regrow_hours": {
+          "description": "Game hours until a used-up object of this type is there again (same meaning as in the spawn table; all entries of one type must agree). Absent = does not regrow.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        }
+      }
+    },
+    "WorldPresetUnderground": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "groundwater",
+        "fallback_soil",
+        "soil_rules",
+        "stones",
+        "ore"
+      ],
+      "properties": {
+        "groundwater": {
+          "$ref": "#/$defs/WorldPresetGroundwater"
+        },
+        "fallback_soil": {
+          "description": "Soil of a cell no rule matches.",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "soil_rules": {
+          "description": "Soil per cell, first matching rule wins (ids such as clay, sand, loam, stone; placeholders).",
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 32,
+          "items": {
+            "$ref": "#/$defs/WorldPresetSoilRule"
+          }
+        },
+        "stones": {
+          "$ref": "#/$defs/WorldPresetUndergroundStones"
+        },
+        "ore": {
+          "$ref": "#/$defs/WorldPresetUndergroundOre"
+        }
+      },
+      "description": "The underground truth per cell from the seed (TL #19717, W1672): groundwater depth, soil, stones and ore. Generated and saved with the island; not yet used by actions (digging, wells: B5)."
+    },
+    "WorldPresetGroundwater": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "smoothing_radius_cells",
+        "follow_permille",
+        "base_depth",
+        "noise_amplitude",
+        "noise_wavelength_cells"
+      ],
+      "properties": {
+        "smoothing_radius_cells": {
+          "description": "Radius of the mean ground height the groundwater table follows.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        },
+        "follow_permille": {
+          "description": "How strongly the table follows the smoothed ground above sea level (1000 = fully).",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "base_depth": {
+          "description": "Depth of the table below the smoothed, followed ground (height units).",
+          "type": "integer",
+          "minimum": -1000,
+          "maximum": 1000
+        },
+        "noise_amplitude": {
+          "description": "Largest up or down variation of the table (height units).",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "noise_wavelength_cells": {
+          "description": "Wavelength of that variation in cells.",
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 1000
+        }
+      }
+    },
+    "WorldPresetSoilRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "soil",
+        "min_height",
+        "max_height",
+        "min_slope",
+        "min_moisture_permille",
+        "max_moisture_permille"
+      ],
+      "properties": {
+        "soil": {
+          "description": "Soil id.",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "min_height": {
+          "description": "Lowest height above sea level.",
+          "type": "integer",
+          "minimum": -100000,
+          "maximum": 100000
+        },
+        "max_height": {
+          "description": "Highest height above sea level.",
+          "type": "integer",
+          "minimum": -100000,
+          "maximum": 100000
+        },
+        "min_slope": {
+          "description": "Smallest slope (largest height step to a neighbour).",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "min_moisture_permille": {
+          "description": "Smallest moisture.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "max_moisture_permille": {
+          "description": "Largest moisture.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        }
+      }
+    },
+    "WorldPresetUndergroundStones": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "base_permille",
+        "per_slope_permille",
+        "stone_soil_permille",
+        "stone_soil",
+        "noise_permille",
+        "noise_wavelength_cells"
+      ],
+      "properties": {
+        "base_permille": {
+          "description": "Stones in the ground everywhere.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "per_slope_permille": {
+          "description": "More stones per unit of slope.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "stone_soil_permille": {
+          "description": "More stones where the soil is the stone soil.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "stone_soil": {
+          "description": "Soil id that counts as stony.",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "noise_permille": {
+          "description": "Largest up or down variation.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "noise_wavelength_cells": {
+          "description": "Wavelength of that variation in cells.",
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 1000
+        }
+      }
+    },
+    "WorldPresetUndergroundOre": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "min_height",
+        "threshold_permille",
+        "max_permille",
+        "noise_wavelength_cells"
+      ],
+      "properties": {
+        "min_height": {
+          "description": "Ore only at least this far above sea level.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "threshold_permille": {
+          "description": "Ore where the ore noise exceeds this value.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "max_permille": {
+          "description": "Ore amount where the noise is at its highest.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "noise_wavelength_cells": {
+          "description": "Wavelength of the ore noise in cells (veins and pockets).",
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 1000
         }
       }
     }

@@ -1,8 +1,8 @@
 {
   "contract_version": "0.2",
   "id": "start_island",
-  "description": "Placeholder start island: beach, meadow, small forest, stream with spring, rocks and a swamp.",
-  "generator_version": 1,
+  "description": "Placeholder start island: beach, meadow, forest, hills with rock outcrops, streams and ponds from the terrain's own drainage, a swamp.",
+  "generator_version": 2,
   "generation_budget_ms": 10000,
   "grid": {
     "cell_size_cm": 100,
@@ -14,21 +14,33 @@
   "terrain": {
     "sea_level": 20,
     "max_height": 180,
-    "coast_falloff_permille": 180,
+    "coast_falloff_permille": 240,
     "walkable_slope": 6,
     "cliff_min_drop": 12,
     "noise": [
       {
         "wavelength_cells": 64,
-        "amplitude": 90
+        "amplitude": 100
+      },
+      {
+        "wavelength_cells": 40,
+        "amplitude": 50,
+        "ridged": true
       },
       {
         "wavelength_cells": 24,
-        "amplitude": 35
+        "amplitude": 38,
+        "signed": true
       },
       {
-        "wavelength_cells": 8,
-        "amplitude": 8
+        "wavelength_cells": 12,
+        "amplitude": 15,
+        "signed": true
+      },
+      {
+        "wavelength_cells": 6,
+        "amplitude": 5,
+        "signed": true
       }
     ],
     "rocks": {
@@ -38,14 +50,124 @@
   },
   "water": {
     "shallow_max_depth": 8,
-    "springs": {
-      "min": 2,
-      "max": 4
-    },
-    "spring_min_height": 30,
     "lake_min_cells": 6,
+    "lake_min_depth": 2,
+    "lake_area_per_inflow_permille": 250,
     "swamp_max_slope": 2,
-    "swamp_min_moisture_permille": 750
+    "swamp_min_moisture_permille": 750,
+    "runoff_per_cell": 1,
+    "stream_min_accumulation": 500,
+    "channel": [
+      {
+        "accumulation": 500,
+        "width_cm": 90,
+        "depth": 2,
+        "bank": 1
+      },
+      {
+        "accumulation": 1500,
+        "width_cm": 160,
+        "depth": 2,
+        "bank": 1
+      },
+      {
+        "accumulation": 5000,
+        "width_cm": 260,
+        "depth": 3,
+        "bank": 1
+      },
+      {
+        "accumulation": 15000,
+        "width_cm": 380,
+        "depth": 4,
+        "bank": 1
+      }
+    ],
+    "springs": {
+      "min_height": 8,
+      "max_groundwater_depth": 2,
+      "foot_relief": 8,
+      "foot_radius_cells": 5,
+      "min_spacing_cells": 7,
+      "max_count": 24,
+      "discharge": 500
+    },
+    "drink_spots": [
+      {
+        "at": "spring",
+        "object_type": "spring_water",
+        "spacing_cells": 1,
+        "max_total": 30,
+        "min_stream_distance_cells": 0,
+        "regrow_hours": 6
+      },
+      {
+        "at": "lake_edge",
+        "object_type": "spring_water",
+        "spacing_cells": 10,
+        "max_total": 8,
+        "min_stream_distance_cells": 3,
+        "regrow_hours": 6
+      }
+    ]
+  },
+  "underground": {
+    "groundwater": {
+      "smoothing_radius_cells": 6,
+      "follow_permille": 750,
+      "base_depth": 1,
+      "noise_amplitude": 4,
+      "noise_wavelength_cells": 20
+    },
+    "fallback_soil": "loam",
+    "soil_rules": [
+      {
+        "soil": "sand",
+        "min_height": -100000,
+        "max_height": 3,
+        "min_slope": 0,
+        "min_moisture_permille": 0,
+        "max_moisture_permille": 1000
+      },
+      {
+        "soil": "stone",
+        "min_height": -100000,
+        "max_height": 100000,
+        "min_slope": 7,
+        "min_moisture_permille": 0,
+        "max_moisture_permille": 1000
+      },
+      {
+        "soil": "stone",
+        "min_height": 85,
+        "max_height": 100000,
+        "min_slope": 0,
+        "min_moisture_permille": 0,
+        "max_moisture_permille": 1000
+      },
+      {
+        "soil": "clay",
+        "min_height": -100000,
+        "max_height": 100000,
+        "min_slope": 0,
+        "min_moisture_permille": 800,
+        "max_moisture_permille": 1000
+      }
+    ],
+    "stones": {
+      "base_permille": 80,
+      "per_slope_permille": 40,
+      "stone_soil_permille": 400,
+      "stone_soil": "stone",
+      "noise_permille": 80,
+      "noise_wavelength_cells": 9
+    },
+    "ore": {
+      "min_height": 30,
+      "threshold_permille": 760,
+      "max_permille": 600,
+      "noise_wavelength_cells": 11
+    }
   },
   "climate": {
     "climate_id": "temperate",

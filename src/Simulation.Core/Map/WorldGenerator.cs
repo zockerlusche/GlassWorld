@@ -83,7 +83,7 @@ public sealed record GeneratedIsland(
 /// check fails, it retries with derived sub-seeds and reports the attempts; after the last attempt the
 /// failed result is returned (never silently passed).
 /// </summary>
-public static class WorldGenerator
+public static partial class WorldGenerator
 {
     private static readonly (int Dx, int Dz)[] Neighbours8 = [.. FlowDirections.All];
     private static readonly (int Dx, int Dz)[] Neighbours4 = [(1, 0), (0, -1), (-1, 0), (0, 1)];
@@ -125,16 +125,17 @@ public static class WorldGenerator
         var depth = new int[w * d];
         var flow = new sbyte[w * d];
         Array.Fill(flow, (sbyte)-1);
+        Sea(sea, heights, water, depth, w, d);
+
+        // The groundwater table comes first: springs rise where it meets the ground (TL #19717, #19722).
+        var table = GroundwaterTable(preset, heights, water, w, d, attemptSeed);
+        var groundwater = new int[w * d];
         for (var i = 0; i < w * d; i++)
         {
-            if (heights[i] < sea)
-            {
-                water[i] = WaterKind.Salt;
-                depth[i] = sea - heights[i];
-            }
+            groundwater[i] = heights[i] - table[i];
         }
 
-        Streams(preset, heights, water, depth, flow, w, d, Stream(attemptSeed, "worldgen/water"));
+        var drainage = Hydrology(preset, heights, groundwater, water, depth, flow, w, d, attemptSeed);
         var moisture = Moisture(preset, heights, water, w, d, attemptSeed);
         Swamp(preset, heights, water, depth, moisture, w, d);
 
@@ -148,15 +149,18 @@ public static class WorldGenerator
             {
                 var i = (z * w) + x;
                 var temperature = preset.Climate.BaseTemperatureTenthC - (preset.Climate.TemperatureDropPer100Height * Math.Max(0, heights[i] - sea) / 100);
-                biomeOf[i] = Biome(content.Biomes, biomeIds, heights[i] - sea, water[i], depth[i], moisture[i], temperature);
+                biomeOf[i] = Biome(content.Biomes, biomeIds, heights[i] - sea, Slope(heights, w, d, x, z), water[i], depth[i], moisture[i], temperature);
                 walk[i] = WalkCost(preset, content.Biomes, biomeIds[biomeOf[i]], heights, water, depth, w, d, x, z);
                 builder.Set(x, z, new MapCell(heights[i], water[i], depth[i], flow[i], moisture[i], temperature, biomeOf[i], walk[i]));
             }
         }
 
+        builder.Hydrology = new HydrologyLayer(w, d, drainage.Accumulation, drainage.WidthCm, drainage.Features);
+        builder.Underground = Underground(preset, heights, water, moisture, table, w, d, attemptSeed);
         var map = builder.Build();
         var objects = new List<IslandObject>();
         Caves(preset, map, objects, Stream(attemptSeed, "worldgen/caves"));
+        DrinkSpots(preset, map, objects, Stream(attemptSeed, "worldgen/drink"));
         Spawn(content.Spawns, map, objects, Stream(attemptSeed, "worldgen/spawns"));
         var starts = Starts(preset, map, SupplyFeasible(preset.Start.Supply, content.Spawns, catalog, map, objects), Stream(attemptSeed, "worldgen/start"));
         StartSupply(preset.Start.Supply, content.Spawns, catalog, map, objects, starts, Stream(attemptSeed, "worldgen/supply"));
@@ -192,7 +196,7 @@ public static class WorldGenerator
                 var raw = 0;
                 for (var o = 0; o < octaves.Count; o++)
                 {
-                    raw += octaves[o].Amplitude * ValueNoise(seed, o, x, z, octaves[o].WavelengthCells) / 1000;
+                    raw += Octave(octaves[o], ValueNoise(seed, o, x, z, octaves[o].WavelengthCells));
                 }
 
                 // Distance from the centre in permille of the half size (0 centre, 1000 at the edge midpoints).
@@ -202,11 +206,29 @@ public static class WorldGenerator
                 r += (ValueNoise(seed ^ 0xC0A57, 9, x, z, 40) - 500) * 2 / 5;
                 var fall = terrain.CoastFalloffPermille == 0 ? (r >= 1000 ? 1000 : 0) : Math.Clamp((r - falloffStart) * 1000 / terrain.CoastFalloffPermille, 0, 1000);
                 var h = (raw + terrain.SeaLevel) * (1000 - fall) / 1000;
-                heights[(z * w) + x] = Math.Clamp(h, 0, terrain.MaxHeight);
+
+                // The map edge is always sea, so every stream finds the sea as its outlet.
+                var edge = x == 0 || z == 0 || x == w - 1 || z == d - 1;
+                heights[(z * w) + x] = Math.Clamp(edge ? Math.Min(h, terrain.SeaLevel - 1) : h, 0, terrain.MaxHeight);
             }
         }
 
         return heights;
+    }
+
+    /// <summary>
+    /// One octave's contribution: plain 0..amplitude; signed around zero (digs hollows as well as raising
+    /// hills); ridged folds the noise at its middle and squares it, so it adds sharp crests.
+    /// </summary>
+    private static int Octave(WorldPresetNoiseOctave octave, int noise)
+    {
+        if (octave.Ridged == true)
+        {
+            var fold = 1000 - Math.Abs((2 * noise) - 1000);
+            return octave.Amplitude * (fold * fold / 1000) / 1000;
+        }
+
+        return octave.Signed == true ? octave.Amplitude * (noise - 500) / 1000 : octave.Amplitude * noise / 1000;
     }
 
     /// <summary>High ground becomes terraces of cliff height, so the hills get cliffs (R3). Returns cliff cells.</summary>
@@ -281,225 +303,6 @@ public static class WorldGenerator
     }
 
     // ---------------------------------------------------------------- water
-
-    /// <summary>Springs on slopes; streams run down the steepest way; pits fill into lakes (R4).</summary>
-    private static void Streams(WorldPreset preset, int[] heights, WaterKind[] water, int[] depth, sbyte[] flow, int w, int d, Pcg32 rng)
-    {
-        var sea = preset.Terrain.SeaLevel;
-        var candidates = new List<int>();
-        for (var z = 1; z < d - 1; z++)
-        {
-            for (var x = 1; x < w - 1; x++)
-            {
-                var i = (z * w) + x;
-                if (water[i] == WaterKind.None && heights[i] >= sea + preset.Water.SpringMinHeight && Slope(heights, w, d, x, z) >= 2)
-                {
-                    candidates.Add(i);
-                }
-            }
-        }
-
-        var springs = rng.NextInt(preset.Water.Springs.Min, preset.Water.Springs.Max + 1);
-        var sides = new List<(int Side, int Main)>();
-        for (var s = 0; s < springs && candidates.Count > 0; s++)
-        {
-            var start = candidates[rng.NextInt(0, candidates.Count)];
-            Run(preset, heights, water, depth, flow, w, d, start % w, start / w, sides);
-        }
-
-        SideFlow(heights, water, depth, flow, w, d, sides);
-    }
-
-    /// <summary>
-    /// Streams are two cells wide; once all streams and lakes are in place, each side cell runs the way
-    /// its main cell runs, so it belongs to the running stream instead of lying still beside it. Where
-    /// that way would lead uphill or onto dry land, it takes its lowest water neighbour that is not
-    /// higher (ties by direction order); without one it stays still. Side cells a lake took stay still.
-    /// </summary>
-    private static void SideFlow(int[] heights, WaterKind[] water, int[] depth, sbyte[] flow, int w, int d, List<(int Side, int Main)> sides)
-    {
-        foreach (var (side, main) in sides)
-        {
-            if (flow[side] >= 0 || flow[main] < 0 || water[side] != WaterKind.Fresh || depth[side] != 2)
-            {
-                continue;
-            }
-
-            int sx = side % w, sz = side / w;
-            bool Runs(int k)
-            {
-                int nx = sx + Neighbours8[k].Dx, nz = sz + Neighbours8[k].Dz;
-                return nx >= 0 && nz >= 0 && nx < w && nz < d && water[(nz * w) + nx] != WaterKind.None && heights[(nz * w) + nx] <= heights[side];
-            }
-
-            if (Runs(flow[main]))
-            {
-                flow[side] = flow[main];
-                continue;
-            }
-
-            int best = -1, bestHeight = int.MaxValue;
-            for (var k = 0; k < 8; k++)
-            {
-                var n = ((sz + Neighbours8[k].Dz) * w) + sx + Neighbours8[k].Dx;
-                if (Runs(k) && heights[n] < bestHeight)
-                {
-                    best = k;
-                    bestHeight = heights[n];
-                }
-            }
-
-            flow[side] = (sbyte)best;
-        }
-    }
-
-    private static void Run(WorldPreset preset, int[] heights, WaterKind[] water, int[] depth, sbyte[] flow, int w, int d, int x, int z, List<(int Side, int Main)> sides)
-    {
-        var sea = preset.Terrain.SeaLevel;
-        for (var guard = 0; guard < w * d; guard++)
-        {
-            var i = (z * w) + x;
-            if (water[i] == WaterKind.Salt)
-            {
-                return;
-            }
-
-            if (water[i] == WaterKind.None)
-            {
-                // Streams are a little deeper than swamp water (swamp: depth 1), so the biome table tells them apart.
-                water[i] = WaterKind.Fresh;
-                depth[i] = 2;
-            }
-
-            // Steepest descent among the 8 neighbours; ties by direction order (deterministic).
-            int best = -1, bestHeight = heights[i];
-            for (var k = 0; k < 8; k++)
-            {
-                int nx = x + Neighbours8[k].Dx, nz = z + Neighbours8[k].Dz;
-                if (nx < 0 || nz < 0 || nx >= w || nz >= d)
-                {
-                    continue;
-                }
-
-                if (heights[(nz * w) + nx] < bestHeight)
-                {
-                    best = k;
-                    bestHeight = heights[(nz * w) + nx];
-                }
-            }
-
-            if (best < 0)
-            {
-                // A pit: fill it to its spill point as a lake, then continue from the outlet.
-                var outlet = Lake(preset, heights, water, depth, flow, w, d, x, z);
-                if (outlet < 0)
-                {
-                    return;
-                }
-
-                x = outlet % w;
-                z = outlet / w;
-                continue;
-            }
-
-            flow[i] = (sbyte)best;
-
-            // Streams are two cells wide: the lower side neighbour carries water too; it gets its flow once
-            // all streams are in place (SideFlow), so it is drawn as part of the sloped stream.
-            int side = -1, sideHeight = int.MaxValue;
-            foreach (var (dx, dz) in Neighbours4)
-            {
-                int sx = x + dx, sz = z + dz;
-                if (sx < 0 || sz < 0 || sx >= w || sz >= d || (dx == Neighbours8[best].Dx && dz == Neighbours8[best].Dz))
-                {
-                    continue;
-                }
-
-                var s = (sz * w) + sx;
-                if (water[s] == WaterKind.None && heights[s] <= heights[i] + 1 && heights[s] < sideHeight)
-                {
-                    side = s;
-                    sideHeight = heights[s];
-                }
-            }
-
-            if (side >= 0)
-            {
-                water[side] = WaterKind.Fresh;
-                depth[side] = 2;
-                sides.Add((side, i));
-            }
-
-            x += Neighbours8[best].Dx;
-            z += Neighbours8[best].Dz;
-            if (heights[(z * w) + x] < sea)
-            {
-                return;
-            }
-        }
-    }
-
-    /// <summary>
-    /// Fills a pit as a lake (priority flood): cells are taken lowest first from the rim; the water level
-    /// rises to the highest cell taken; the first rim cell lower than the level is the outlet, where the
-    /// stream continues. Returns the outlet cell or -1.
-    /// </summary>
-    private static int Lake(WorldPreset preset, int[] heights, WaterKind[] water, int[] depth, sbyte[] flow, int w, int d, int x, int z)
-    {
-        var start = (z * w) + x;
-        var level = heights[start];
-        var taken = new List<int>();
-        var seen = new HashSet<int> { start };
-        var rim = new PriorityQueue<int, (int Height, int Index)>();
-        rim.Enqueue(start, (heights[start], start));
-        var outlet = -1;
-        while (rim.TryDequeue(out var c, out var key) && taken.Count < 6000)
-        {
-            if (key.Height < level && water[c] != WaterKind.Fresh)
-            {
-                outlet = c;
-                break;
-            }
-
-            level = Math.Max(level, key.Height);
-            taken.Add(c);
-            if (water[c] == WaterKind.Salt)
-            {
-                break;
-            }
-
-            int cx = c % w, cz = c / w;
-            foreach (var (dx, dz) in Neighbours4)
-            {
-                int nx = cx + dx, nz = cz + dz;
-                if (nx < 0 || nz < 0 || nx >= w || nz >= d)
-                {
-                    continue;
-                }
-
-                var n = (nz * w) + nx;
-                if (seen.Add(n))
-                {
-                    rim.Enqueue(n, (heights[n], n));
-                }
-            }
-        }
-
-        foreach (var c in taken)
-        {
-            if (water[c] != WaterKind.Salt && heights[c] <= level)
-            {
-                water[c] = WaterKind.Fresh;
-                depth[c] = Math.Max(depth[c], Math.Max(2, level - heights[c] + 1));
-
-                // A lake lies still, also where an earlier stream ran through it.
-                flow[c] = -1;
-            }
-        }
-
-        _ = preset;
-        return outlet;
-    }
 
     private static int[] Moisture(WorldPreset preset, int[] heights, WaterKind[] water, int w, int d, ulong seed)
     {
@@ -636,7 +439,7 @@ public static class WorldGenerator
 
     // ---------------------------------------------------------------- cells
 
-    private static byte Biome(BiomeTable table, IReadOnlyList<string> ids, int heightAboveSea, WaterKind water, int depth, int moisture, int temperature)
+    private static byte Biome(BiomeTable table, IReadOnlyList<string> ids, int heightAboveSea, int slope, WaterKind water, int depth, int moisture, int temperature)
     {
         foreach (var rule in table.Rules)
         {
@@ -648,7 +451,7 @@ public static class WorldGenerator
                 _ => true,
             };
             if (waterOk && (water == WaterKind.None || depth <= rule.MaxWaterDepth)
-                && heightAboveSea >= rule.MinHeight && heightAboveSea <= rule.MaxHeight
+                && heightAboveSea >= rule.MinHeight && heightAboveSea <= rule.MaxHeight && slope >= (rule.MinSlope ?? 0)
                 && moisture >= rule.MinMoisturePermille && moisture <= rule.MaxMoisturePermille
                 && temperature >= rule.MinTemperatureTenthC && temperature <= rule.MaxTemperatureTenthC)
             {
@@ -787,6 +590,92 @@ public static class WorldGenerator
             var pick = rng.NextInt(0, candidates.Count);
             objects.Add(new IslandObject(preset.Caves.ObjectType, candidates[pick].X, candidates[pick].Z));
             candidates.RemoveAt(pick);
+        }
+    }
+
+    /// <summary>
+    /// Drinkable water where the hydrology put it (TL #19722): an object exactly on every spring cell,
+    /// and as the data says along pond and lake edges and stream banks (dry walkable cells next to that
+    /// water, in an order from the generator stream). Each entry keeps its spacing to every drink spot
+    /// placed before and, if the data asks, a distance from running streams (no pool on a stream mouth).
+    /// </summary>
+    private static void DrinkSpots(WorldPreset preset, WorldMap map, List<IslandObject> objects, Pcg32 rng)
+    {
+        if (map.Hydrology is not { } hydrology)
+        {
+            return;
+        }
+
+        int w = map.WidthCells, d = map.DepthCells;
+        var taken = objects.Select(o => (o.X, o.Z)).ToHashSet();
+        var placed = new List<(int X, int Z)>();
+        bool Walkable(int x, int z) => map.Cell(x, z).WalkCost != MapCell.Blocked;
+        bool Beside(int x, int z, WaterFeature feature) =>
+            map.Cell(x, z).Water == WaterKind.None && Neighbours4.Any(n => map.Contains(x + n.Dx, z + n.Dz) && (hydrology.Feature(x + n.Dx, z + n.Dz) & feature) != 0);
+        bool NearStream(int x, int z, int radius)
+        {
+            for (var dz = -radius; dz <= radius; dz++)
+            {
+                for (var dx = -radius; dx <= radius; dx++)
+                {
+                    if ((dx * dx) + (dz * dz) <= radius * radius && map.Contains(x + dx, z + dz) && hydrology.Feature(x + dx, z + dz) == WaterFeature.Stream)
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        foreach (var spot in preset.Water.DrinkSpots)
+        {
+            var candidates = new List<(int X, int Z)>();
+            if (spot.At == WorldPresetDrinkSpotAt.Spring)
+            {
+                candidates.AddRange(hydrology.Springs().Where(c => Walkable(c.X, c.Z)));
+            }
+            else
+            {
+                var feature = spot.At == WorldPresetDrinkSpotAt.Lake_edge ? WaterFeature.Lake : WaterFeature.Stream;
+                for (var z = 1; z < d - 1; z++)
+                {
+                    for (var x = 1; x < w - 1; x++)
+                    {
+                        if (Walkable(x, z) && Beside(x, z, feature))
+                        {
+                            candidates.Add((x, z));
+                        }
+                    }
+                }
+
+                for (var k = candidates.Count - 1; k > 0; k--)
+                {
+                    var j = rng.NextInt(0, k + 1);
+                    (candidates[k], candidates[j]) = (candidates[j], candidates[k]);
+                }
+            }
+
+            var spacing2 = spot.SpacingCells * spot.SpacingCells;
+            var count = 0;
+            foreach (var (x, z) in candidates)
+            {
+                if (count >= spot.MaxTotal)
+                {
+                    break;
+                }
+
+                if (taken.Contains((x, z)) || placed.Any(p => Sq(p.X - x) + Sq(p.Z - z) < spacing2)
+                    || (spot.MinStreamDistanceCells > 0 && NearStream(x, z, spot.MinStreamDistanceCells)))
+                {
+                    continue;
+                }
+
+                objects.Add(new IslandObject(spot.ObjectType, x, z));
+                taken.Add((x, z));
+                placed.Add((x, z));
+                count++;
+            }
         }
     }
 

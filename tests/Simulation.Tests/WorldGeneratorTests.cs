@@ -98,9 +98,9 @@ public sealed class WorldGeneratorTests
     /// be equal on Windows and Linux (CI). A deliberate change of generator or data updates them here.
     /// </summary>
     [Theory]
-    [InlineData(1UL, "8894214a38873584f665dc6da84aad91cccd945ec529a24d27c641fe91ec41ea")]
-    [InlineData(7UL, "3905642f72ecf91cc3231f32615227a89f9b3461336518754aeda764c0642094")]
-    [InlineData(2026UL, "9055f1b11605ad882cdfc869c8a1bc8490796a1f7d4d37ec5655ed5dfe45a202")]
+    [InlineData(1UL, "2f3838c695bd251f21a6eb0d6bddf438f7eeb0249da6d0f8ff56e367b0290929")]
+    [InlineData(7UL, "84f065533d05d02f421a03b5dff456dbf5bc1062fa6fcc93494778c072d6878d")]
+    [InlineData(2026UL, "84d7a03a570ba5abb85d7a2da9caec0d5b52ff1da6c709d489d0a7ef1577902e")]
     public void GoldenWorldHashesAreStableAcrossMachines(ulong seed, string expected)
     {
         var actual = Generate(seed).Hash();
@@ -199,9 +199,13 @@ public sealed class WorldGeneratorTests
     {
         var island = Generate(seed);
         var spawns = Content.Value.WorldGen.Spawns.Spawns;
-        var cave = Content.Value.WorldGen.Presets["start_island"].Caves.ObjectType;
+        var preset = Content.Value.WorldGen.Presets["start_island"];
+        var cave = preset.Caves.ObjectType;
+        var water = preset.Water.DrinkSpots.Select(d => d.ObjectType).ToHashSet(StringComparer.Ordinal);
         var map = island.Map;
-        foreach (var o in island.Objects.Where(o => o.TypeId != cave))
+
+        // Caves and drink spots come from the terrain and its water, not from the spawn table.
+        foreach (var o in island.Objects.Where(o => o.TypeId != cave && !water.Contains(o.TypeId)))
         {
             var biomes = spawns.Where(r => r.ObjectType == o.TypeId).Select(r => r.Biome).ToHashSet(StringComparer.Ordinal);
             var around = new[] { (0, 0), (1, 0), (-1, 0), (0, 1), (0, -1) }

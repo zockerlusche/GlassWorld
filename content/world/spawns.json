@@ -4,17 +4,91 @@
     {
       "biome": "beach_sea",
       "object_type": "shell",
-      "per_1000_cells": 6,
+      "per_1000_cells": 9,
       "cluster": {
         "min": 1,
         "max": 3
       },
-      "max_total": 30
+      "max_total": 60
     },
     {
       "biome": "beach_sea",
       "object_type": "driftwood",
-      "per_1000_cells": 5,
+      "per_1000_cells": 7,
+      "cluster": {
+        "min": 1,
+        "max": 2
+      },
+      "max_total": 48
+    },
+    {
+      "biome": "beach_sea",
+      "object_type": "palm_tree",
+      "per_1000_cells": 3,
+      "cluster": {
+        "min": 1,
+        "max": 2
+      },
+      "max_total": 20
+    },
+    {
+      "biome": "beach_sea",
+      "object_type": "flint",
+      "per_1000_cells": 1,
+      "cluster": {
+        "min": 1,
+        "max": 1
+      },
+      "max_total": 8
+    },
+    {
+      "biome": "meadow",
+      "object_type": "dry_grass",
+      "per_1000_cells": 15,
+      "cluster": {
+        "min": 2,
+        "max": 6
+      },
+      "max_total": 100,
+      "regrow_hours": 48
+    },
+    {
+      "biome": "meadow",
+      "object_type": "flax",
+      "per_1000_cells": 6,
+      "cluster": {
+        "min": 2,
+        "max": 4
+      },
+      "max_total": 48,
+      "regrow_hours": 120
+    },
+    {
+      "biome": "meadow",
+      "object_type": "nettle",
+      "per_1000_cells": 4,
+      "cluster": {
+        "min": 2,
+        "max": 4
+      },
+      "max_total": 36,
+      "regrow_hours": 72
+    },
+    {
+      "biome": "meadow",
+      "object_type": "red_berry",
+      "per_1000_cells": 6,
+      "cluster": {
+        "min": 2,
+        "max": 5
+      },
+      "max_total": 48,
+      "regrow_hours": 48
+    },
+    {
+      "biome": "meadow",
+      "object_type": "berry_bush",
+      "per_1000_cells": 3,
       "cluster": {
         "min": 1,
         "max": 2
@@ -22,413 +96,306 @@
       "max_total": 24
     },
     {
-      "biome": "beach_sea",
-      "object_type": "palm_tree",
-      "per_1000_cells": 2,
+      "biome": "meadow",
+      "object_type": "healing_herb",
+      "per_1000_cells": 3,
+      "cluster": {
+        "min": 1,
+        "max": 3
+      },
+      "max_total": 24,
+      "regrow_hours": 96
+    },
+    {
+      "biome": "meadow",
+      "object_type": "fieldstone",
+      "per_1000_cells": 4,
       "cluster": {
         "min": 1,
         "max": 2
       },
-      "max_total": 10
+      "max_total": 36
     },
     {
-      "biome": "beach_sea",
+      "biome": "meadow",
+      "object_type": "thorn_bush",
+      "per_1000_cells": 3,
+      "cluster": {
+        "min": 1,
+        "max": 2
+      },
+      "max_total": 20
+    },
+    {
+      "biome": "field",
+      "object_type": "wild_grain",
+      "per_1000_cells": 27,
+      "cluster": {
+        "min": 3,
+        "max": 8
+      },
+      "max_total": 160,
+      "regrow_hours": 96
+    },
+    {
+      "biome": "field",
+      "object_type": "dry_grass",
+      "per_1000_cells": 9,
+      "cluster": {
+        "min": 2,
+        "max": 4
+      },
+      "max_total": 60,
+      "regrow_hours": 48
+    },
+    {
+      "biome": "field",
+      "object_type": "fieldstone",
+      "per_1000_cells": 3,
+      "cluster": {
+        "min": 1,
+        "max": 1
+      },
+      "max_total": 16
+    },
+    {
+      "biome": "forest",
+      "object_type": "deciduous_tree",
+      "per_1000_cells": 21,
+      "cluster": {
+        "min": 1,
+        "max": 4
+      },
+      "max_total": 140
+    },
+    {
+      "biome": "forest",
+      "object_type": "conifer_tree",
+      "per_1000_cells": 18,
+      "cluster": {
+        "min": 1,
+        "max": 4
+      },
+      "max_total": 120
+    },
+    {
+      "biome": "forest",
+      "object_type": "fruit_tree",
+      "per_1000_cells": 4,
+      "cluster": {
+        "min": 1,
+        "max": 2
+      },
+      "max_total": 28
+    },
+    {
+      "biome": "forest",
+      "object_type": "apple",
+      "per_1000_cells": 7,
+      "cluster": {
+        "min": 1,
+        "max": 3
+      },
+      "max_total": 48,
+      "regrow_hours": 72
+    },
+    {
+      "biome": "forest",
+      "object_type": "blue_berry",
+      "per_1000_cells": 7,
+      "cluster": {
+        "min": 2,
+        "max": 5
+      },
+      "max_total": 60,
+      "regrow_hours": 48
+    },
+    {
+      "biome": "forest",
+      "object_type": "hazel_bush",
+      "per_1000_cells": 4,
+      "cluster": {
+        "min": 1,
+        "max": 2
+      },
+      "max_total": 28
+    },
+    {
+      "biome": "forest",
+      "object_type": "hazelnut",
+      "per_1000_cells": 6,
+      "cluster": {
+        "min": 2,
+        "max": 4
+      },
+      "max_total": 48,
+      "regrow_hours": 96
+    },
+    {
+      "biome": "forest",
+      "object_type": "brown_mushroom",
+      "per_1000_cells": 6,
+      "cluster": {
+        "min": 1,
+        "max": 3
+      },
+      "max_total": 40,
+      "regrow_hours": 48
+    },
+    {
+      "biome": "forest",
+      "object_type": "red_mushroom",
+      "per_1000_cells": 4,
+      "cluster": {
+        "min": 1,
+        "max": 3
+      },
+      "max_total": 32,
+      "regrow_hours": 48
+    },
+    {
+      "biome": "forest",
+      "object_type": "resin",
+      "per_1000_cells": 3,
+      "cluster": {
+        "min": 1,
+        "max": 1
+      },
+      "max_total": 20
+    },
+    {
+      "biome": "forest",
+      "object_type": "bark",
+      "per_1000_cells": 4,
+      "cluster": {
+        "min": 1,
+        "max": 2
+      },
+      "max_total": 32
+    },
+    {
+      "biome": "forest",
+      "object_type": "dry_wood",
+      "per_1000_cells": 12,
+      "cluster": {
+        "min": 1,
+        "max": 4
+      },
+      "max_total": 80,
+      "regrow_hours": 120
+    },
+    {
+      "biome": "freshwater",
+      "object_type": "clay",
+      "per_1000_cells": 45,
+      "cluster": {
+        "min": 1,
+        "max": 3
+      },
+      "max_total": 40
+    },
+    {
+      "biome": "freshwater",
+      "object_type": "reed",
+      "per_1000_cells": 30,
+      "cluster": {
+        "min": 2,
+        "max": 5
+      },
+      "max_total": 48,
+      "regrow_hours": 96
+    },
+    {
+      "biome": "rocks_hills",
       "object_type": "flint",
+      "per_1000_cells": 9,
+      "cluster": {
+        "min": 1,
+        "max": 3
+      },
+      "max_total": 32
+    },
+    {
+      "biome": "rocks_hills",
+      "object_type": "pyrite",
+      "per_1000_cells": 4,
+      "cluster": {
+        "min": 1,
+        "max": 2
+      },
+      "max_total": 16
+    },
+    {
+      "biome": "rocks_hills",
+      "object_type": "slate",
+      "per_1000_cells": 7,
+      "cluster": {
+        "min": 1,
+        "max": 3
+      },
+      "max_total": 40
+    },
+    {
+      "biome": "rocks_hills",
+      "object_type": "sandstone",
+      "per_1000_cells": 6,
+      "cluster": {
+        "min": 1,
+        "max": 3
+      },
+      "max_total": 32
+    },
+    {
+      "biome": "rocks_hills",
+      "object_type": "fieldstone",
+      "per_1000_cells": 7,
+      "cluster": {
+        "min": 1,
+        "max": 3
+      },
+      "max_total": 40
+    },
+    {
+      "biome": "swamp",
+      "object_type": "reed",
+      "per_1000_cells": 60,
+      "cluster": {
+        "min": 3,
+        "max": 8
+      },
+      "max_total": 100,
+      "regrow_hours": 96
+    },
+    {
+      "biome": "swamp",
+      "object_type": "peat",
+      "per_1000_cells": 30,
+      "cluster": {
+        "min": 1,
+        "max": 3
+      },
+      "max_total": 48
+    },
+    {
+      "biome": "swamp",
+      "object_type": "healing_herb",
+      "per_1000_cells": 6,
+      "cluster": {
+        "min": 1,
+        "max": 2
+      },
+      "max_total": 16,
+      "regrow_hours": 96
+    },
+    {
+      "biome": "meadow",
+      "object_type": "pyrite",
       "per_1000_cells": 1,
       "cluster": {
         "min": 1,
         "max": 1
       },
       "max_total": 4
-    },
-    {
-      "biome": "meadow",
-      "object_type": "dry_grass",
-      "per_1000_cells": 10,
-      "cluster": {
-        "min": 2,
-        "max": 6
-      },
-      "max_total": 50,
-      "regrow_hours": 48
-    },
-    {
-      "biome": "meadow",
-      "object_type": "flax",
-      "per_1000_cells": 4,
-      "cluster": {
-        "min": 2,
-        "max": 4
-      },
-      "max_total": 24,
-      "regrow_hours": 120
-    },
-    {
-      "biome": "meadow",
-      "object_type": "nettle",
-      "per_1000_cells": 3,
-      "cluster": {
-        "min": 2,
-        "max": 4
-      },
-      "max_total": 18,
-      "regrow_hours": 72
-    },
-    {
-      "biome": "meadow",
-      "object_type": "red_berry",
-      "per_1000_cells": 4,
-      "cluster": {
-        "min": 2,
-        "max": 5
-      },
-      "max_total": 24,
-      "regrow_hours": 48
-    },
-    {
-      "biome": "meadow",
-      "object_type": "berry_bush",
-      "per_1000_cells": 2,
-      "cluster": {
-        "min": 1,
-        "max": 2
-      },
-      "max_total": 12
-    },
-    {
-      "biome": "meadow",
-      "object_type": "healing_herb",
-      "per_1000_cells": 2,
-      "cluster": {
-        "min": 1,
-        "max": 3
-      },
-      "max_total": 12,
-      "regrow_hours": 96
-    },
-    {
-      "biome": "meadow",
-      "object_type": "fieldstone",
-      "per_1000_cells": 3,
-      "cluster": {
-        "min": 1,
-        "max": 2
-      },
-      "max_total": 18
-    },
-    {
-      "biome": "meadow",
-      "object_type": "thorn_bush",
-      "per_1000_cells": 2,
-      "cluster": {
-        "min": 1,
-        "max": 2
-      },
-      "max_total": 10
-    },
-    {
-      "biome": "field",
-      "object_type": "wild_grain",
-      "per_1000_cells": 18,
-      "cluster": {
-        "min": 3,
-        "max": 8
-      },
-      "max_total": 80,
-      "regrow_hours": 96
-    },
-    {
-      "biome": "field",
-      "object_type": "dry_grass",
-      "per_1000_cells": 6,
-      "cluster": {
-        "min": 2,
-        "max": 4
-      },
-      "max_total": 30,
-      "regrow_hours": 48
-    },
-    {
-      "biome": "field",
-      "object_type": "fieldstone",
-      "per_1000_cells": 2,
-      "cluster": {
-        "min": 1,
-        "max": 1
-      },
-      "max_total": 8
-    },
-    {
-      "biome": "forest",
-      "object_type": "deciduous_tree",
-      "per_1000_cells": 14,
-      "cluster": {
-        "min": 1,
-        "max": 4
-      },
-      "max_total": 70
-    },
-    {
-      "biome": "forest",
-      "object_type": "conifer_tree",
-      "per_1000_cells": 12,
-      "cluster": {
-        "min": 1,
-        "max": 4
-      },
-      "max_total": 60
-    },
-    {
-      "biome": "forest",
-      "object_type": "fruit_tree",
-      "per_1000_cells": 3,
-      "cluster": {
-        "min": 1,
-        "max": 2
-      },
-      "max_total": 14
-    },
-    {
-      "biome": "forest",
-      "object_type": "apple",
-      "per_1000_cells": 5,
-      "cluster": {
-        "min": 1,
-        "max": 3
-      },
-      "max_total": 24,
-      "regrow_hours": 72
-    },
-    {
-      "biome": "forest",
-      "object_type": "blue_berry",
-      "per_1000_cells": 5,
-      "cluster": {
-        "min": 2,
-        "max": 5
-      },
-      "max_total": 30,
-      "regrow_hours": 48
-    },
-    {
-      "biome": "forest",
-      "object_type": "hazel_bush",
-      "per_1000_cells": 3,
-      "cluster": {
-        "min": 1,
-        "max": 2
-      },
-      "max_total": 14
-    },
-    {
-      "biome": "forest",
-      "object_type": "hazelnut",
-      "per_1000_cells": 4,
-      "cluster": {
-        "min": 2,
-        "max": 4
-      },
-      "max_total": 24,
-      "regrow_hours": 96
-    },
-    {
-      "biome": "forest",
-      "object_type": "brown_mushroom",
-      "per_1000_cells": 4,
-      "cluster": {
-        "min": 1,
-        "max": 3
-      },
-      "max_total": 20,
-      "regrow_hours": 48
-    },
-    {
-      "biome": "forest",
-      "object_type": "red_mushroom",
-      "per_1000_cells": 3,
-      "cluster": {
-        "min": 1,
-        "max": 3
-      },
-      "max_total": 16,
-      "regrow_hours": 48
-    },
-    {
-      "biome": "forest",
-      "object_type": "resin",
-      "per_1000_cells": 2,
-      "cluster": {
-        "min": 1,
-        "max": 1
-      },
-      "max_total": 10
-    },
-    {
-      "biome": "forest",
-      "object_type": "bark",
-      "per_1000_cells": 3,
-      "cluster": {
-        "min": 1,
-        "max": 2
-      },
-      "max_total": 16
-    },
-    {
-      "biome": "forest",
-      "object_type": "dry_wood",
-      "per_1000_cells": 8,
-      "cluster": {
-        "min": 1,
-        "max": 4
-      },
-      "max_total": 40,
-      "regrow_hours": 120
-    },
-    {
-      "biome": "freshwater",
-      "object_type": "clay",
-      "per_1000_cells": 30,
-      "cluster": {
-        "min": 1,
-        "max": 3
-      },
-      "max_total": 20
-    },
-    {
-      "biome": "freshwater",
-      "object_type": "reed",
-      "per_1000_cells": 20,
-      "cluster": {
-        "min": 2,
-        "max": 5
-      },
-      "max_total": 24,
-      "regrow_hours": 96
-    },
-    {
-      "biome": "rocks_hills",
-      "object_type": "flint",
-      "per_1000_cells": 6,
-      "cluster": {
-        "min": 1,
-        "max": 3
-      },
-      "max_total": 16
-    },
-    {
-      "biome": "rocks_hills",
-      "object_type": "pyrite",
-      "per_1000_cells": 3,
-      "cluster": {
-        "min": 1,
-        "max": 2
-      },
-      "max_total": 8
-    },
-    {
-      "biome": "rocks_hills",
-      "object_type": "slate",
-      "per_1000_cells": 5,
-      "cluster": {
-        "min": 1,
-        "max": 3
-      },
-      "max_total": 20
-    },
-    {
-      "biome": "rocks_hills",
-      "object_type": "sandstone",
-      "per_1000_cells": 4,
-      "cluster": {
-        "min": 1,
-        "max": 3
-      },
-      "max_total": 16
-    },
-    {
-      "biome": "rocks_hills",
-      "object_type": "fieldstone",
-      "per_1000_cells": 5,
-      "cluster": {
-        "min": 1,
-        "max": 3
-      },
-      "max_total": 20
-    },
-    {
-      "biome": "swamp",
-      "object_type": "reed",
-      "per_1000_cells": 40,
-      "cluster": {
-        "min": 3,
-        "max": 8
-      },
-      "max_total": 50,
-      "regrow_hours": 96
-    },
-    {
-      "biome": "swamp",
-      "object_type": "peat",
-      "per_1000_cells": 20,
-      "cluster": {
-        "min": 1,
-        "max": 3
-      },
-      "max_total": 24
-    },
-    {
-      "biome": "swamp",
-      "object_type": "healing_herb",
-      "per_1000_cells": 4,
-      "cluster": {
-        "min": 1,
-        "max": 2
-      },
-      "max_total": 8,
-      "regrow_hours": 96
-    },
-    {
-      "biome": "meadow",
-      "object_type": "pyrite",
-      "per_1000_cells": 1,
-      "cluster": {
-        "min": 1,
-        "max": 1
-      },
-      "max_total": 2
-    },
-    {
-      "biome": "freshwater",
-      "object_type": "spring_water",
-      "per_1000_cells": 10,
-      "cluster": {
-        "min": 1,
-        "max": 1
-      },
-      "max_total": 12,
-      "regrow_hours": 6
-    },
-    {
-      "biome": "meadow",
-      "object_type": "spring_water",
-      "per_1000_cells": 0,
-      "cluster": {
-        "min": 1,
-        "max": 1
-      },
-      "max_total": 8,
-      "regrow_hours": 6
-    },
-    {
-      "biome": "forest",
-      "object_type": "spring_water",
-      "per_1000_cells": 8,
-      "cluster": {
-        "min": 1,
-        "max": 1
-      },
-      "max_total": 24,
-      "regrow_hours": 6
     },
     {
       "biome": "beach_sea",
@@ -453,7 +420,7 @@
         "poisonous"
       ],
       "min": 6,
-      "max": 240
+      "max": 800
     },
     {
       "id": "drinking_water",
@@ -475,7 +442,7 @@
       ],
       "properties_none": [],
       "min": 4,
-      "max": 400
+      "max": 1400
     },
     {
       "id": "spark_maker",
@@ -485,7 +452,7 @@
       ],
       "properties_none": [],
       "min": 1,
-      "max": 12
+      "max": 40
     },
     {
       "id": "spark_striker",
@@ -496,7 +463,7 @@
       ],
       "properties_none": [],
       "min": 1,
-      "max": 40
+      "max": 120
     },
     {
       "id": "fibre",
@@ -506,7 +473,7 @@
       ],
       "properties_none": [],
       "min": 2,
-      "max": 300
+      "max": 1000
     },
     {
       "id": "shelter",

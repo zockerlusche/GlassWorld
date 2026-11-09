@@ -130,8 +130,25 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("amplitude")]
         public int Amplitude { get; set; } = default!;
 
+        /// <summary>
+        /// Ridged octave: the noise is folded at its middle and squared, so it adds sharp crests (ridges, hill chains) instead of round bumps. Absent = false.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("ridged")]
+        public bool? Ridged { get; set; } = default!;
+
+        /// <summary>
+        /// Signed octave: contributes from -amplitude/2 to +amplitude/2 around zero, so it digs hollows as well as raising hills. Absent = false (0 to amplitude).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("signed")]
+        public bool? Signed { get; set; } = default!;
+
     }
 
+    /// <summary>
+    /// Hydrology (B2 R4, TL #19722): depressions are filled from the sea inwards (priority flood), every cell drains to its steepest lower neighbour on the filled surface (D8), the flow accumulation sums rain and springs downstream; streams run where it is large enough, fed hollows become ponds and lakes that overflow towards the sea.
+    /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class WorldPresetWater
     {
@@ -142,20 +159,23 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("shallow_max_depth")]
         public int ShallowMaxDepth { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("springs")]
-        public WorldPresetCountRange Springs { get; set; } = new WorldPresetCountRange();
-
         /// <summary>
-        /// Springs lie on slopes at least this far above sea level.
-        /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("spring_min_height")]
-        public int SpringMinHeight { get; set; } = default!;
-
-        /// <summary>
-        /// Smallest hollow that fills into a lake.
+        /// Smallest hollow (cells below its spill level) that holds water as a pond or lake when a stream or spring feeds it; smaller pits on a stream are filled up to their spill level.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("lake_min_cells")]
         public int LakeMinCells { get; set; } = default!;
+
+        /// <summary>
+        /// Smallest depth (spill level minus the deepest ground, height units) of a hollow that holds water; shallower pits on a stream are filled up.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("lake_min_depth")]
+        public int LakeMinDepth { get; set; } = default!;
+
+        /// <summary>
+        /// Largest pond or lake area (cells) per unit of inflow (permille): rain and evaporation balance. A hollow larger than its inflow can fill rises only to that area and has no outflow (closed lake); otherwise it fills to its spill level and overflows.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("lake_area_per_inflow_permille")]
+        public int LakeAreaPerInflowPermille { get; set; } = default!;
 
         /// <summary>
         /// Largest slope of a flat wet hollow that becomes swamp.
@@ -168,6 +188,33 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("swamp_min_moisture_permille")]
         public int SwampMinMoisturePermille { get; set; } = default!;
+
+        /// <summary>
+        /// Rain water every land cell adds to the flow accumulation (accumulation units); the accumulation of a cell is the water of all cells that drain through it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("runoff_per_cell")]
+        public int RunoffPerCell { get; set; } = default!;
+
+        /// <summary>
+        /// A cell carries a stream where its flow accumulation reaches this value (rain from its catchment plus the springs above it).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("stream_min_accumulation")]
+        public int StreamMinAccumulation { get; set; } = default!;
+
+        /// <summary>
+        /// Width, depth and bank height of a stream by its flow accumulation, interpolated linearly between the points (accumulation ascending); beyond the last point the last values hold.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("channel")]
+        public System.Collections.Generic.ICollection<WorldPresetChannelPoint> Channel { get; set; } = new System.Collections.ObjectModel.Collection<WorldPresetChannelPoint>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("springs")]
+        public WorldPresetSprings Springs { get; set; } = new WorldPresetSprings();
+
+        /// <summary>
+        /// Where drinkable water objects lie: at the springs, along lake and pond edges, along stream banks. Each kind is its own entry; a kind without an entry gets no objects.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("drink_spots")]
+        public System.Collections.Generic.ICollection<WorldPresetDrinkSpot> DrinkSpots { get; set; } = new System.Collections.ObjectModel.Collection<WorldPresetDrinkSpot>();
 
     }
 
@@ -463,6 +510,308 @@ namespace GlassWorld.Contracts
 
     }
 
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class WorldPresetChannelPoint
+    {
+
+        /// <summary>
+        /// Flow accumulation of this point.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("accumulation")]
+        public int Accumulation { get; set; } = default!;
+
+        /// <summary>
+        /// Stream width in centimetres; a stream wider than one cell takes its side cells too.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("width_cm")]
+        public int WidthCm { get; set; } = default!;
+
+        /// <summary>
+        /// Water depth in height units.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("depth")]
+        public int Depth { get; set; } = default!;
+
+        /// <summary>
+        /// How far the water surface lies below the banks (height units): the stream bed is cut this much plus the depth into the ground.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("bank")]
+        public int Bank { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class WorldPresetSprings
+    {
+
+        /// <summary>
+        /// Springs lie at least this far above sea level (height units).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("min_height")]
+        public int MinHeight { get; set; } = default!;
+
+        /// <summary>
+        /// Springs rise where the groundwater table lies at most this far below the ground (height units, underground layer).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max_groundwater_depth")]
+        public int MaxGroundwaterDepth { get; set; } = default!;
+
+        /// <summary>
+        /// A spring cell lies at the foot of a slope or rock edge: the ground within foot_radius_cells rises at least this much above it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("foot_relief")]
+        public int FootRelief { get; set; } = default!;
+
+        /// <summary>
+        /// Radius in which the foot relief is measured.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("foot_radius_cells")]
+        public int FootRadiusCells { get; set; } = default!;
+
+        /// <summary>
+        /// Smallest distance between two springs.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("min_spacing_cells")]
+        public int MinSpacingCells { get; set; } = default!;
+
+        /// <summary>
+        /// Most springs on the island (the wettest candidates first).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max_count")]
+        public int MaxCount { get; set; } = default!;
+
+        /// <summary>
+        /// Water a spring adds to the flow accumulation of its cell (accumulation units).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("discharge")]
+        public int Discharge { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class WorldPresetDrinkSpot
+    {
+
+        /// <summary>
+        /// Where the objects lie: spring (exactly on the spring cells), lake_edge (dry walkable cells next to a pond or lake), stream_bank (dry walkable cells next to a running stream).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("at")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<WorldPresetDrinkSpotAt>))]
+        public WorldPresetDrinkSpotAt At { get; set; } = default!;
+
+        /// <summary>
+        /// Object type placed there (catalogue id).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("object_type")]
+        public string ObjectType { get; set; } = default!;
+
+        /// <summary>
+        /// Smallest distance between two objects of this entry (and from other drink spots).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("spacing_cells")]
+        public int SpacingCells { get; set; } = default!;
+
+        /// <summary>
+        /// Most objects of this entry on the island.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max_total")]
+        public int MaxTotal { get; set; } = default!;
+
+        /// <summary>
+        /// Smallest distance from any running stream cell other than a spring's own (keeps pools off stream mouths); 0 = no limit.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("min_stream_distance_cells")]
+        public int MinStreamDistanceCells { get; set; } = default!;
+
+        /// <summary>
+        /// Game hours until a used-up object of this type is there again (same meaning as in the spawn table; all entries of one type must agree). Absent = does not regrow.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("regrow_hours")]
+        public int? RegrowHours { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// The underground truth per cell from the seed (TL #19717, W1672): groundwater depth, soil, stones and ore. Generated and saved with the island; not yet used by actions (digging, wells: B5).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class WorldPresetUnderground
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("groundwater")]
+        public WorldPresetGroundwater Groundwater { get; set; } = new WorldPresetGroundwater();
+
+        /// <summary>
+        /// Soil of a cell no rule matches.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("fallback_soil")]
+        public string FallbackSoil { get; set; } = default!;
+
+        /// <summary>
+        /// Soil per cell, first matching rule wins (ids such as clay, sand, loam, stone; placeholders).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("soil_rules")]
+        public System.Collections.Generic.ICollection<WorldPresetSoilRule> SoilRules { get; set; } = new System.Collections.ObjectModel.Collection<WorldPresetSoilRule>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("stones")]
+        public WorldPresetUndergroundStones Stones { get; set; } = new WorldPresetUndergroundStones();
+
+        [System.Text.Json.Serialization.JsonPropertyName("ore")]
+        public WorldPresetUndergroundOre Ore { get; set; } = new WorldPresetUndergroundOre();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class WorldPresetGroundwater
+    {
+
+        /// <summary>
+        /// Radius of the mean ground height the groundwater table follows.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("smoothing_radius_cells")]
+        public int SmoothingRadiusCells { get; set; } = default!;
+
+        /// <summary>
+        /// How strongly the table follows the smoothed ground above sea level (1000 = fully).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("follow_permille")]
+        public int FollowPermille { get; set; } = default!;
+
+        /// <summary>
+        /// Depth of the table below the smoothed, followed ground (height units).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("base_depth")]
+        public int BaseDepth { get; set; } = default!;
+
+        /// <summary>
+        /// Largest up or down variation of the table (height units).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("noise_amplitude")]
+        public int NoiseAmplitude { get; set; } = default!;
+
+        /// <summary>
+        /// Wavelength of that variation in cells.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("noise_wavelength_cells")]
+        public int NoiseWavelengthCells { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class WorldPresetSoilRule
+    {
+
+        /// <summary>
+        /// Soil id.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("soil")]
+        public string Soil { get; set; } = default!;
+
+        /// <summary>
+        /// Lowest height above sea level.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("min_height")]
+        public int MinHeight { get; set; } = default!;
+
+        /// <summary>
+        /// Highest height above sea level.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max_height")]
+        public int MaxHeight { get; set; } = default!;
+
+        /// <summary>
+        /// Smallest slope (largest height step to a neighbour).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("min_slope")]
+        public int MinSlope { get; set; } = default!;
+
+        /// <summary>
+        /// Smallest moisture.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("min_moisture_permille")]
+        public int MinMoisturePermille { get; set; } = default!;
+
+        /// <summary>
+        /// Largest moisture.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max_moisture_permille")]
+        public int MaxMoisturePermille { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class WorldPresetUndergroundStones
+    {
+
+        /// <summary>
+        /// Stones in the ground everywhere.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("base_permille")]
+        public int BasePermille { get; set; } = default!;
+
+        /// <summary>
+        /// More stones per unit of slope.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("per_slope_permille")]
+        public int PerSlopePermille { get; set; } = default!;
+
+        /// <summary>
+        /// More stones where the soil is the stone soil.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("stone_soil_permille")]
+        public int StoneSoilPermille { get; set; } = default!;
+
+        /// <summary>
+        /// Soil id that counts as stony.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("stone_soil")]
+        public string StoneSoil { get; set; } = default!;
+
+        /// <summary>
+        /// Largest up or down variation.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("noise_permille")]
+        public int NoisePermille { get; set; } = default!;
+
+        /// <summary>
+        /// Wavelength of that variation in cells.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("noise_wavelength_cells")]
+        public int NoiseWavelengthCells { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class WorldPresetUndergroundOre
+    {
+
+        /// <summary>
+        /// Ore only at least this far above sea level.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("min_height")]
+        public int MinHeight { get; set; } = default!;
+
+        /// <summary>
+        /// Ore where the ore noise exceeds this value.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("threshold_permille")]
+        public int ThresholdPermille { get; set; } = default!;
+
+        /// <summary>
+        /// Ore amount where the noise is at its highest.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max_permille")]
+        public int MaxPermille { get; set; } = default!;
+
+        /// <summary>
+        /// Wavelength of the ore noise in cells (veins and pockets).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("noise_wavelength_cells")]
+        public int NoiseWavelengthCells { get; set; } = default!;
+
+    }
+
     /// <summary>
     /// Data file content/world/presets/&lt;id&gt;.json: everything the world generator reads besides the seed (B2 R1-R4, R6, R7, R9, R10, R14, R15). Core values are integers (heights in height units, distances in cells, shares in permille) so generation is exact on every platform (ADR-0002). All values are placeholders until Marcel decides; the budgets follow B2514 T6.
     /// </summary>
@@ -503,6 +852,9 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("water")]
         public WorldPresetWater Water { get; set; } = new WorldPresetWater();
 
+        [System.Text.Json.Serialization.JsonPropertyName("underground")]
+        public WorldPresetUnderground Underground { get; set; } = new WorldPresetUnderground();
+
         [System.Text.Json.Serialization.JsonPropertyName("climate")]
         public WorldPresetClimate Climate { get; set; } = new WorldPresetClimate();
 
@@ -523,6 +875,24 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("pathfinding")]
         public WorldPresetPathfinding Pathfinding { get; set; } = new WorldPresetPathfinding();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public enum WorldPresetDrinkSpotAt
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("spring")]
+        Spring = 0,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("lake_edge")]
+        Lake_edge = 1,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("stream_bank")]
+        Stream_bank = 2,
+
 
     }
 }

@@ -132,6 +132,12 @@
           "type": "integer",
           "minimum": -500,
           "maximum": 600
+        },
+        "min_slope": {
+          "description": "Smallest slope (largest height step to a neighbour) of a cell this rule takes; rock outcrops at steep spots. Absent = 0.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
         }
       }
     }

@@ -89,6 +89,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("max_temperature_tenth_c")]
         public int MaxTemperatureTenthC { get; set; } = default!;
 
+        /// <summary>
+        /// Smallest slope (largest height step to a neighbour) of a cell this rule takes; rock outcrops at steep spots. Absent = 0.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("min_slope")]
+        public int? MinSlope { get; set; } = default!;
+
     }
 
     /// <summary>

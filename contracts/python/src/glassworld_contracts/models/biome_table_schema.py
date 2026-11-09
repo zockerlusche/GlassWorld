@@ -80,6 +80,12 @@ class BiomeRule(BaseModel):
     max_temperature_tenth_c: int = Field(
         ..., description='Highest base temperature.', ge=-500, le=600
     )
+    min_slope: int | None = Field(
+        None,
+        description='Smallest slope (largest height step to a neighbour) of a cell this rule takes; rock outcrops at steep spots. Absent = 0.',
+        ge=0,
+        le=100000,
+    )
 
 
 class BiomeTable(BaseModel):
