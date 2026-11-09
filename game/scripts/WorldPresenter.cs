@@ -30,6 +30,7 @@ public partial class WorldPresenter : Node3D
     private HttpDecisionPort? _livePort;
     private HttpJobPort? _jobPort;
     private HttpHelpPort? _helpPort;
+    private string? _contentFingerprint;
     private long _seenEvents;
     private double _clock;
     private SimulationHost? _host;
@@ -157,7 +158,9 @@ public partial class WorldPresenter : Node3D
             return;
         }
 
-        SaveGameStore.Save(SavePath, StateCodec.Capture(_host));
+        // The content fingerprint lets a replay tell changed data from lost determinism (once per world, ~1.5 MB).
+        _contentFingerprint ??= ContentFingerprint.TryCompute(_contentDirectory);
+        SaveGameStore.Save(SavePath, StateCodec.Capture(_host) with { ContentFingerprint = _contentFingerprint });
         Saved?.Invoke(SavePath);
     }
 
@@ -270,7 +273,7 @@ public partial class WorldPresenter : Node3D
         {
             // ADR-0006: shutdown endpoint unloads the model (frees VRAM), then the process is killed.
             // At least 20 s: the service unloads the model first (GW2 #30).
-            _service.StopAsync(TimeSpan.FromSeconds(20)).GetAwaiter().GetResult();
+            _service.StopAsync(LocalAiService.StopTimeout).GetAwaiter().GetResult();
             _service.Dispose();
             GD.Print("AI_SERVICE stopped");
             _service = null;
@@ -286,21 +289,10 @@ public partial class WorldPresenter : Node3D
 
         // The AI service runs from the repository (uv project). An exported build sits elsewhere, so
         // GLASSWORLD_AI_ROOT may name the folder that holds it (test package, until B10 packages the service).
-        var root = System.Environment.GetEnvironmentVariable("GLASSWORLD_AI_ROOT");
-        var repository = System.IO.Path.GetFullPath(string.IsNullOrWhiteSpace(root) ? System.IO.Path.Combine(contentDirectory, "..") : root);
+        var repository = LocalAiService.RepositoryRoot(contentDirectory, System.Environment.GetEnvironmentVariable(LocalAiService.RootVariable));
         try
         {
-            var userData = System.IO.Path.Combine(OS.GetUserDataDir(), "ai-service");
-            _service = AiServiceProcess.Start(
-                "uv",
-                ["run", "python", "-m", "glassworld_ai"],
-                repository,
-                TimeSpan.FromSeconds(60),
-                new Dictionary<string, string>(StringComparer.Ordinal)
-                {
-                    ["GW_AI_LOCK_DIR"] = System.IO.Path.Combine(userData, "lock"),
-                    ["GW_AI_LOG_DIR"] = System.IO.Path.Combine(userData, "logs"),
-                });
+            _service = LocalAiService.Start(repository, System.IO.Path.Combine(OS.GetUserDataDir(), "ai-service"));
             if (_service.StaleKilled is { } stale)
             {
                 GD.Print($"AI_SERVICE ended leftover service from an earlier session (pid {stale})");
@@ -316,7 +308,7 @@ public partial class WorldPresenter : Node3D
             GD.Print($"AI_SERVICE live on port {_service.Port}");
             return _livePort;
         }
-        catch (Exception ex) when (ex is TimeoutException or System.ComponentModel.Win32Exception or InvalidOperationException)
+        catch (Exception ex) when (LocalAiService.IsStartFailure(ex))
         {
             // B3 A3: without the service the world runs on in routine mode; questions simply stay open.
             GD.PushWarning($"AI service not started ({ex.Message}); inhabitants live in routine mode.");

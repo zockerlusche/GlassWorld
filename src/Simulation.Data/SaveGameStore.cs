@@ -17,6 +17,9 @@ namespace GlassWorld.Simulation.Data;
 /// </summary>
 public static class SaveGameStore
 {
+    /// <summary>Meta key of the content fingerprint (<see cref="ContentFingerprint"/>), written by headless and game.</summary>
+    public const string ContentFingerprintKey = "content_fingerprint";
+
     /// <summary>Schema version written by this code.</summary>
     public const int SchemaVersion = 4;
 
@@ -258,6 +261,11 @@ public static class SaveGameStore
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("conversation", JsonSerializer.Serialize(s.Conversation, Json)));
         }
 
+        if (s.ContentFingerprint is not null)
+        {
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", (ContentFingerprintKey, s.ContentFingerprint));
+        }
+
         foreach (var (name, state) in s.Streams)
         {
             Insert(c, tx, "INSERT INTO streams VALUES($a,$b,$c)", (name, Str(state.State), Str(state.Increment)));
@@ -441,6 +449,7 @@ public static class SaveGameStore
             Skills = meta.TryGetValue("skills", out var skills) ? JsonSerializer.Deserialize<Simulation.Inhabitants.SkillRegisterState>(skills, Json) : null,
             Mailbox = meta.TryGetValue("mailbox", out var mailbox) ? JsonSerializer.Deserialize<Simulation.Player.MailboxState>(mailbox, Json) : null,
             Conversation = meta.TryGetValue("conversation", out var conversation) ? JsonSerializer.Deserialize<Simulation.Player.ConversationState>(conversation, Json) : null,
+            ContentFingerprint = meta.GetValueOrDefault(ContentFingerprintKey),
         };
     }
 
@@ -510,7 +519,10 @@ public static class SaveGameStore
 public sealed class AutoSaver
 {
     /// <summary>Hooks the autosave onto the day boundary of a simulation.</summary>
-    public AutoSaver(SimulationHost host, string path)
+    /// <param name="host">The simulation.</param>
+    /// <param name="path">Save game.</param>
+    /// <param name="contentFingerprint">Fingerprint of the content folder to store with every save (null = none).</param>
+    public AutoSaver(SimulationHost host, string path, string? contentFingerprint = null)
     {
         ArgumentNullException.ThrowIfNull(host);
         ArgumentException.ThrowIfNullOrEmpty(path);
@@ -518,7 +530,7 @@ public sealed class AutoSaver
         {
             if (boundary == TimeBoundary.Day)
             {
-                SaveGameStore.Save(path, StateCodec.Capture(host));
+                SaveGameStore.Save(path, StateCodec.Capture(host) with { ContentFingerprint = contentFingerprint });
                 SavedTicks.Add(host.World.Tick);
             }
         };
