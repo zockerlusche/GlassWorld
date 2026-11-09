@@ -106,6 +106,9 @@ def build_values(
     if template.version >= 3:
         values["body"] = _body(request, settings)
         values["environment"] = _environment(request, vocab, air=True)
+    if template.version >= 5:
+        values["life"] = _life(request, settings)
+        values["culture"] = _culture(request, settings, locale)
     # Fit the objects into what is left of the character budget; option targets always stay.
     used = sum(len(v) for k, v in values.items() if k != "objects")
     lines: list[str] = []
@@ -174,8 +177,16 @@ def _v2_values(
             )
         seen = [_humanize(_id(c)) for c in other.visible_conditions or []]
         looks = f"; you notice: {', '.join(seen)}" if signs and seen else ""  # signs (B2543)
+        # B9 (v5 fields, optional): the name this inhabitant knows, a child, someone lying still.
+        called = getattr(other, "called", None)
+        name = _proper(getattr(called, "name", None)) if called is not None else None
+        label = f'{who} you call "{name}"' if name else who
+        if _id(getattr(other, "life_stage", None) or "") in {"baby", "toddler", "child"}:
+            label += " (a child)"
+        if getattr(other, "lying_still", None):
+            looks += "; lies still and does not answer"
         people_lines.append(
-            f"- {who} [{other_id}], {other.distance_m:.1f} m away: {feeling}{looks}"
+            f"- {label} [{other_id}], {other.distance_m:.1f} m away: {feeling}{looks}"
         )
     habit_lines = [
         f"- {_word(habit_words, h.strength)}: {_vocab_line(vocab, 'action', _id(h.action))}"
@@ -276,3 +287,77 @@ def _object_name(
     name = called(_id(found.type)) if called else None
     said = f' ("{name}")' if name else ""
     return f"{_humanize(_id(found.type))} [{object_id}]{said}"
+
+
+def _proper(value: object) -> str | None:
+    """A ProperName (pydantic root model or plain string), or None."""
+    if value is None:
+        return None
+    root: object = getattr(value, "root", value)
+    return str(root) if root else None
+
+
+def _names_seen(request: DecisionRequest) -> dict[str, str]:
+    """id -> the proper name this inhabitant knows for people in sight (B9 R11)."""
+    names: dict[str, str] = {}
+    for other in request.perception.inhabitants:
+        name = _proper(other.called.name) if other.called is not None else None
+        if name:
+            names[_id(other.id)] = name
+    return names
+
+
+def _life(request: DecisionRequest, settings: dict[str, Any]) -> str:
+    """Prompt v5 (B9 R1/R4/R6/R17): life stage and age, family, reputation, grief. All optional."""
+    inhabitant = request.inhabitant
+    stages = _table_of(settings, "life_stage_words")
+    kin = _table_of(settings, "kin_words")
+    names = _names_seen(request)
+    lines: list[str] = []
+    stage = _id(inhabitant.life_stage) if inhabitant.life_stage is not None else None
+    if stage is not None or inhabitant.age_years is not None:
+        who = stages.get(stage, _humanize(stage)) if stage is not None else "someone"
+        years = f", {inhabitant.age_years} years old" if inhabitant.age_years is not None else ""
+        lines.append(f"- You are {who}{years}.")
+    for tie in inhabitant.family or []:
+        other, relation = _id(tie.other), _id(tie.relation)
+        name = f'"{names[other]}"' if other in names else f"[{other}]"
+        gone = " - has died" if tie.deceased else ""
+        lines.append(f"- {kin.get(relation, _humanize(relation))}: {name}{gone}")
+    if inhabitant.reputation is not None:
+        how = _word(_bands(settings, "relation_words"), float(inhabitant.reputation))
+        lines.append(f"- Others think {how} well of you.")
+    severity = _bands(settings, "severity_words")
+    for loss in inhabitant.grief or []:
+        other = _id(loss.about)
+        name = f'"{names[other]}"' if other in names else f"[{other}]"
+        lines.append(f"- You miss {name} ({_word(severity, float(loss.strength))} sadness).")
+    return "\n".join(lines) or "- (nothing particular)"
+
+
+def _culture(request: DecisionRequest, settings: dict[str, Any], locale: str) -> str:
+    """Prompt v5 (B9 R18/R19/R21): the settlement's sayings and the customs and beliefs known."""
+    inhabitant = request.inhabitant
+    kinds = _table_of(settings, "culture_words")
+    lines: list[str] = []
+    sayings = inhabitant.settlement.sayings if inhabitant.settlement is not None else []
+    for saying in sayings:
+        lines.append(f'- a saying of your people: "{_in(saying, locale)}"')
+    for entry in inhabitant.culture or []:
+        kind = _id(entry.kind)
+        what = kinds.get(kind, _humanize(kind))
+        lines.append(f'- {what}: "{_in(entry.text, locale)}" (sure {float(entry.sure):.1f})')
+    return "\n".join(lines) or "- (no customs yet)"
+
+
+def _in(text: Any, locale: str) -> str:
+    """A LocalizedName in the player's language (DE/EN), English as the fallback."""
+    value: object = getattr(text, locale, None) or getattr(text, "en", "")
+    return str(value)
+
+
+def _table_of(settings: dict[str, Any], key: str) -> dict[str, str]:
+    raw: object = settings.get(key, {})
+    if not isinstance(raw, dict):
+        return {}
+    return {str(k): str(v) for k, v in cast(dict[object, object], raw).items()}
