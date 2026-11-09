@@ -21,7 +21,7 @@ public static class SaveGameStore
     public const string ContentFingerprintKey = "content_fingerprint";
 
     /// <summary>Schema version written by this code.</summary>
-    public const int SchemaVersion = 4;
+    public const int SchemaVersion = 5;
 
     private static readonly JsonSerializerOptions Json = new() { IncludeFields = true };
 
@@ -56,6 +56,22 @@ public static class SaveGameStore
         ALTER TABLE beliefs ADD COLUMN tick INTEGER NOT NULL DEFAULT 0;
         CREATE TABLE relationships(inhabitant TEXT NOT NULL, other TEXT NOT NULL, affection REAL NOT NULL, trust REAL NOT NULL, respect REAL NOT NULL,
           PRIMARY KEY(inhabitant, other));
+        """,
+
+        // 5 (F4 hair kit and outfits): hair styles and outfits of the first look that were renamed or
+        // dropped get their current ids in the saved appearance records (the frozen copy of
+        // renamed_hair_styles / renamed_outfits in content/look/appearance.json at this version).
+        """
+        UPDATE meta SET value = (
+          SELECT json_group_object(e.key, json(json_set(e.value,
+            '$.HairStyle', CASE json_extract(e.value, '$.HairStyle')
+              WHEN 'curly' THEN 'curls' WHEN 'braided' THEN 'braid' WHEN 'tied' THEN 'bun'
+              ELSE json_extract(e.value, '$.HairStyle') END,
+            '$.ClothingStyle', CASE json_extract(e.value, '$.ClothingStyle')
+              WHEN 'wrap' THEN 'tunic'
+              ELSE json_extract(e.value, '$.ClothingStyle') END)))
+          FROM json_each(meta.value) AS e)
+        WHERE key = 'appearances';
         """,
     ];
 
