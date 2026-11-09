@@ -628,6 +628,12 @@
           "items": {
             "$ref": "#/$defs/StartSupplyResource"
           }
+        },
+        "prefer_radius_cells": {
+          "description": "Optional: beaches whose mandatory resources (drink) lie within this smaller radius come first, so a start lies close to its springs (TL #19722). Absent = only the radius counts.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
         }
       }
     },

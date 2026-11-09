@@ -13,7 +13,7 @@ public readonly record struct SceneSpot(double X, double Z, double? YawDeg, int 
 
 /// <summary>
 /// Finds per seed the spot for comparison shots (TL #19722: the same scene type in every picture): near a
-/// start position, with running water, a spring and a hill within the view radius, as the shot point's
+/// start position, on a running stream, with more running water, a spring and a hill within the view radius, as the shot point's
 /// <see cref="ShotScene"/> asks. Of all fitting cells it takes the one with the most relief plus stream,
 /// then the spring closest to the target; ties by position. Deterministic, Godot-free.
 /// </summary>
@@ -33,7 +33,8 @@ public static class SceneFinder
         {
             for (var x = r; x < map.WidthCells - r; x++)
             {
-                if (map.Cell(x, z).Water == WaterKind.Salt || !island.Starts.Any(s => Sq(s.X - x) + Sq(s.Z - z) <= near * near))
+                // The target is a stream cell, so the creek lies in the middle of the picture.
+                if (map.Cell(x, z) is not { Water: WaterKind.Fresh, Flow: >= 0 } || !island.Starts.Any(s => Sq(s.X - x) + Sq(s.Z - z) <= near * near))
                 {
                     continue;
                 }

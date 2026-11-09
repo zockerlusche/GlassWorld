@@ -596,6 +596,12 @@ class StartSupply(BaseModel):
         le=1000,
     )
     resources: list[StartSupplyResource] = Field(..., max_length=32)
+    prefer_radius_cells: int | None = Field(
+        None,
+        description='Optional: beaches whose mandatory resources (drink) lie within this smaller radius come first, so a start lies close to its springs (TL #19722). Absent = only the radius counts.',
+        ge=1,
+        le=1000,
+    )
 
 
 class WorldPresetUnderground(BaseModel):

@@ -162,7 +162,14 @@ public static partial class WorldGenerator
         Caves(preset, map, objects, Stream(attemptSeed, "worldgen/caves"));
         DrinkSpots(preset, map, objects, Stream(attemptSeed, "worldgen/drink"));
         Spawn(content.Spawns, map, objects, Stream(attemptSeed, "worldgen/spawns"));
-        var starts = Starts(preset, map, SupplyFeasible(preset.Start.Supply, content.Spawns, catalog, map, objects), Stream(attemptSeed, "worldgen/start"));
+        var supply = preset.Start.Supply;
+        var feasible = SupplyFeasible(supply, content.Spawns, catalog, map, objects);
+
+        // Close to the springs first (TL #19722): the mandatory resources within the smaller radius.
+        var near = supply.PreferRadiusCells is { } prefer
+            ? SupplyFeasible(new StartSupply { RadiusCells = prefer, Resources = [.. supply.Resources.Where(r => r.Mandatory == true)] }, content.Spawns, catalog, map, objects)
+            : null;
+        var starts = Starts(preset, map, feasible, near, Stream(attemptSeed, "worldgen/start"));
         StartSupply(preset.Start.Supply, content.Spawns, catalog, map, objects, starts, Stream(attemptSeed, "worldgen/supply"));
         var neighbours = Neighbour(preset, w, d, Stream(attemptSeed, "worldgen/neighbours"));
         var check = Check(content.Spawns, catalog, map, objects, starts);
@@ -797,7 +804,7 @@ public static partial class WorldGenerator
     }
 
     /// <summary>Pairs (woman and man) on different beaches, far enough apart not to see each other (R9, B2517).</summary>
-    private static List<StartPosition> Starts(WorldPreset preset, WorldMap map, Func<(int X, int Z), bool> feasible, Pcg32 rng)
+    private static List<StartPosition> Starts(WorldPreset preset, WorldMap map, Func<(int X, int Z), bool> feasible, Func<(int X, int Z), bool>? near, Pcg32 rng)
     {
         var beach = new List<(int X, int Z)>();
         for (var z = 1; z < map.DepthCells - 1; z++)
@@ -822,7 +829,8 @@ public static partial class WorldGenerator
                 break;
             }
 
-            // Beaches where the start supply is possible come first (TL F5263 A); others only without one.
+            // Beaches where the start supply is possible come first (TL F5263 A), of those the ones with
+            // the mandatory resources within the preferred radius (TL #19722); others only without one.
             options = Feasible(options);
             var anchor = options[rng.NextInt(0, options.Count)];
             var partner = Feasible(beach.Where(b => b != anchor && Math.Abs(b.X - anchor.X) <= 2 && Math.Abs(b.Z - anchor.Z) <= 2).ToList());
@@ -839,7 +847,16 @@ public static partial class WorldGenerator
 
         return starts;
 
-        List<(int X, int Z)> Feasible(List<(int X, int Z)> cells) => cells.Where(feasible).ToList() is { Count: > 0 } good ? good : cells;
+        List<(int X, int Z)> Feasible(List<(int X, int Z)> cells)
+        {
+            var good = cells.Where(feasible).ToList();
+            if (good.Count == 0)
+            {
+                return cells;
+            }
+
+            return near is not null && good.Where(near).ToList() is { Count: > 0 } close ? close : good;
+        }
     }
 
     /// <summary>

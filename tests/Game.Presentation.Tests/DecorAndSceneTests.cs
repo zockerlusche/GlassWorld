@@ -80,6 +80,7 @@ public sealed class DecorAndSceneTests
         Assert.Contains(island.Starts, s => ((s.X - x) * (s.X - x)) + ((s.Z - z) * (s.Z - z)) <= scene.MaxStartDistanceCells * scene.MaxStartDistanceCells);
         Assert.Contains(island.Map.Hydrology!.Springs(), s => ((s.X - x) * (s.X - x)) + ((s.Z - z) * (s.Z - z)) <= scene.RadiusCells * scene.RadiusCells);
         Assert.NotNull(found.YawDeg);
+        Assert.True(island.Map.Cell(x, z) is { Water: WaterKind.Fresh, Flow: >= 0 }, $"seed {seed}: the target is no stream cell");
         Assert.Equal(found, SceneFinder.Find(scene, island, 1.0));
     }
 }

@@ -474,6 +474,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("resources")]
         public System.Collections.Generic.ICollection<StartSupplyResource> Resources { get; set; } = new System.Collections.ObjectModel.Collection<StartSupplyResource>();
 
+        /// <summary>
+        /// Optional: beaches whose mandatory resources (drink) lie within this smaller radius come first, so a start lies close to its springs (TL #19722). Absent = only the radius counts.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("prefer_radius_cells")]
+        public int? PreferRadiusCells { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
