@@ -29,6 +29,7 @@ class Kind(StrEnum):
     skill = 'skill'
     event = 'event'
     knowledge_source = 'knowledge_source'
+    soil = 'soil'
 
 
 class Target(StrEnum):

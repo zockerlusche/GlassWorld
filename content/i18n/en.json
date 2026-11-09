@@ -1693,6 +1693,22 @@
     {
       "key": "vocab.event.answer_expired",
       "text": "Answer expired"
+    },
+    {
+      "key": "vocab.soil.loam",
+      "text": "Loam"
+    },
+    {
+      "key": "vocab.soil.sand",
+      "text": "Sand"
+    },
+    {
+      "key": "vocab.soil.clay",
+      "text": "Clay"
+    },
+    {
+      "key": "vocab.soil.stone",
+      "text": "Rock"
     }
   ]
 }

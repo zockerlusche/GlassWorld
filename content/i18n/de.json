@@ -1693,6 +1693,22 @@
     {
       "key": "vocab.event.answer_expired",
       "text": "Antwort verfallen"
+    },
+    {
+      "key": "vocab.soil.loam",
+      "text": "Lehmerde"
+    },
+    {
+      "key": "vocab.soil.sand",
+      "text": "Sand"
+    },
+    {
+      "key": "vocab.soil.clay",
+      "text": "Ton"
+    },
+    {
+      "key": "vocab.soil.stone",
+      "text": "Fels"
     }
   ]
 }

@@ -42,6 +42,8 @@ public readonly record struct Rgb(float R, float G, float B)
 /// <param name="ShoreLiftM">How far a stream's edge lies above the dry bank (metres), so it never sinks into it.</param>
 /// <param name="StreamWidthM">Width of a stream band in metres (A1456).</param>
 /// <param name="StreamSmoothing">Rounds of corner cutting along a stream's centre line (0 = cell-centre polyline).</param>
+/// <param name="StreamSourceTaperM">Length over which a stream widens from its source to its full width (metres).</param>
+/// <param name="StreamSourceWidthShare">Width of a stream at its source as a share of its full width.</param>
 /// <param name="CliffBiomes">Per biome index of the map: whether its cells form rock walls where they stand at least <paramref name="CliffDrop"/> above a neighbour (null = every biome).</param>
 public sealed record TerrainLook(
     IReadOnlyList<Rgb> BiomeColors,
@@ -61,7 +63,9 @@ public sealed record TerrainLook(
     float ShoreLiftM,
     float StreamWidthM = 1.9f,
     int StreamSmoothing = 3,
-    IReadOnlyList<bool>? CliffBiomes = null)
+    IReadOnlyList<bool>? CliffBiomes = null,
+    float StreamSourceTaperM = 0,
+    float StreamSourceWidthShare = 1)
 {
     /// <summary>Resolves the look data against the palette, the map's biome order and the preset.</summary>
     public static TerrainLook From(LookTerrain terrain, LookPalette palette, WorldMap map, WorldPreset preset)
@@ -112,7 +116,9 @@ public sealed record TerrainLook(
             terrain.Water.StreamShoreLiftMm / 1000f,
             (float)terrain.Water.StreamWidthM,
             terrain.Water.StreamSmoothing,
-            [.. map.BiomeIds.Select(id => terrain.Cliffs.Biomes.Contains(id, StringComparer.Ordinal))]);
+            [.. map.BiomeIds.Select(id => terrain.Cliffs.Biomes.Contains(id, StringComparer.Ordinal))],
+            (float)terrain.Water.StreamSourceTaperM,
+            (float)terrain.Water.StreamSourceWidthShare);
     }
 }
 
@@ -325,8 +331,20 @@ public static partial class TerrainMesher
         // instead of cell stairs.
         var col = CornerColors(map, x, z, look);
 
+        // A running stream cell is a trough (TL #19755): four triangles down to its centre at the cut bed,
+        // so the stream lies below its banks instead of on the slope.
+        if (IsTrough(map, x, z))
+        {
+            var bed = map.Cell(x, z).Height * look.UnitM;
+            var centre = (((x + 0.5f) * look.CellM, bed, (z + 0.5f) * look.CellM), look.Bed.Lerp(Mean(col), 0.5f));
+            for (var k = 0; k < 4; k++)
+            {
+                Top(mesh, (p[k], col[k]), centre, (p[(k + 1) % 4], col[(k + 1) % 4]), look);
+            }
+        }
+
         // Two triangles, split along the flatter diagonal so ridges stay sharp; seen from above (+y).
-        if (SplitsAlong02(h))
+        else if (SplitsAlong02(h))
         {
             Top(mesh, (p[0], col[0]), (p[2], col[2]), (p[1], col[1]), look);
             Top(mesh, (p[0], col[0]), (p[3], col[3]), (p[2], col[2]), look);
@@ -719,7 +737,11 @@ public static partial class TerrainMesher
         Span<int> h = stackalloc int[4];
         CornerHeights(map, cx, cz, look, h);
         double height;
-        if (SplitsAlong02(h))
+        if (IsTrough(map, cx, cz))
+        {
+            height = TroughHeight(h, map.Cell(cx, cz).Height, u, v);
+        }
+        else if (SplitsAlong02(h))
         {
             // Triangles (0, 2, 1) where u >= v and (0, 3, 2) where v >= u.
             height = u >= v
@@ -736,6 +758,54 @@ public static partial class TerrainMesher
 
         return (float)(height * look.UnitM);
     }
+
+    /// <summary>
+    /// Whether a cell is drawn as a trough: running fresh water whose bed the core cut into the ground, with
+    /// running water coming in. A source (a spring) is no trough but a soft seep in the ground, so a
+    /// stream does not start with a pit (TL #19722 polish).
+    /// </summary>
+    public static bool IsTrough(WorldMap map, int x, int z)
+    {
+        ArgumentNullException.ThrowIfNull(map);
+        if (map.Cell(x, z) is not { Water: WaterKind.Fresh, Flow: >= 0 })
+        {
+            return false;
+        }
+
+        for (var k = 0; k < FlowDirections.All.Count; k++)
+        {
+            var (dx, dz) = FlowDirections.All[k];
+            if (map.Contains(x - dx, z - dz) && map.Cell(x - dx, z - dz) is { Water: WaterKind.Fresh, Flow: >= 0 } up && up.Flow == k)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Height (units) in a trough cell at (u, v) within the cell: the fan of four triangles from the cell's
+    /// corners (in <see cref="Corners"/> order) to its centre at the bed, as <see cref="Ground(WorldMap, int, int, TerrainLook)"/> draws it.
+    /// </summary>
+    private static double TroughHeight(ReadOnlySpan<int> h, int bed, double u, double v)
+    {
+        // The triangle with the cell edge k: south (v small), east, north, west; centre at (0.5, 0.5).
+        var k = v <= u && v <= 1 - u ? 0 : u >= v && u >= 1 - v ? 1 : v >= u && v >= 1 - u ? 2 : 3;
+        var (ax, az) = Corners[k];
+        var (bx, bz) = Corners[(k + 1) % 4];
+        double ha = h[k], hb = h[(k + 1) % 4];
+
+        // Barycentric weights of (u, v) in the triangle a, b, centre.
+        double cx = 0.5, cz = 0.5;
+        var det = ((bz - cz) * (ax - cx)) + ((cx - bx) * (az - cz));
+        var wa = (((bz - cz) * (u - cx)) + ((cx - bx) * (v - cz))) / det;
+        var wb = (((cz - az) * (u - cx)) + ((ax - cx) * (v - cz))) / det;
+        return (wa * ha) + (wb * hb) + ((1 - wa - wb) * bed);
+    }
+
+    private static Rgb Mean(Rgb[] colors) =>
+        new(colors.Average(c => c.R), colors.Average(c => c.G), colors.Average(c => c.B));
 
     /// <summary>One fresh water cell (lake, stream, swamp or bank), its corners from <see cref="FreshCorner"/>, split like the ground below.</summary>
     private static void Fresh(WorldMap map, MeshData mesh, int x, int z, Rgb color, (float X, float Z) flow, TerrainLook look)

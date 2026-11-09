@@ -44,6 +44,58 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("inhabitant")]
         public int? Inhabitant { get; set; } = default!;
 
+        /// <summary>
+        /// Optional: the scene finder picks the target near a start instead of the map target (the permille target is the fallback when no spot fits).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("scene")]
+        public ShotScene? Scene { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// What the scene finder looks for per seed (TL #19722 comparison shots): a spot near a start whose view radius holds running water, a spring and a hill.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ShotScene
+    {
+
+        /// <summary>
+        /// Largest distance of the target from a start position in cells.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max_start_distance_cells")]
+        public int MaxStartDistanceCells { get; set; } = default!;
+
+        /// <summary>
+        /// Radius around the target that must hold the scene.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("radius_cells")]
+        public int RadiusCells { get; set; } = default!;
+
+        /// <summary>
+        /// Fewest running stream cells within the radius.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("min_stream_cells")]
+        public int MinStreamCells { get; set; } = default!;
+
+        /// <summary>
+        /// Whether a spring must lie within the radius.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("spring")]
+        public bool Spring { get; set; } = default!;
+
+        /// <summary>
+        /// Smallest height difference (height units) within the radius: a hill.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("min_relief")]
+        public int MinRelief { get; set; } = default!;
+
+        /// <summary>
+        /// Turn the camera so the highest ground within the radius lies behind the target (the shot point's yaw otherwise).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("face_hill")]
+        public bool FaceHill { get; set; } = default!;
+
     }
 
     /// <summary>

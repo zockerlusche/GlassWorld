@@ -228,6 +228,75 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
+    /// One kind of decorative plant.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ObjectDecor
+    {
+
+        /// <summary>
+        /// Decor type id; a visual of this file lists it in its types (it must not be an object type of the catalogue).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        public string Type { get; set; } = default!;
+
+        /// <summary>
+        /// Biome ids whose dry walkable cells carry it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("biomes")]
+        public System.Collections.Generic.ICollection<string> Biomes { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// Groups per 10000 cells of those biomes.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("groups_per_10000_cells")]
+        public int GroupsPer10000Cells { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("group")]
+        public ObjectDecorGroup Group { get; set; } = new ObjectDecorGroup();
+
+        /// <summary>
+        /// Largest distance of a plant from its group centre in metres.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("spread_m")]
+        public double SpreadM { get; set; } = default!;
+
+        /// <summary>
+        /// Smallest distance between two decorative plants in metres.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("min_spacing_m")]
+        public double MinSpacingM { get; set; } = default!;
+
+        /// <summary>
+        /// Smallest distance from any core object at the start in metres.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("min_object_distance_m")]
+        public double MinObjectDistanceM { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Plants per group (min &lt;= max).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ObjectDecorGroup
+    {
+
+        /// <summary>
+        /// Fewest.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("min")]
+        public int Min { get; set; } = default!;
+
+        /// <summary>
+        /// Most.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max")]
+        public int Max { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// Data file content/look/objects.json: how the core's objects (trees, bushes, berries, water sources, stones ...) are drawn on the island in the main game. Each object type maps to one simple shape of the look prototype (D569) in palette colours; size and turn vary per object, derived from its id (same picture at every start). A type without an entry gets the calm neutral fallback marker and is logged once. Presentation only, not part of the hash.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -272,6 +341,13 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("visuals")]
         public System.Collections.Generic.ICollection<ObjectVisual> Visuals { get; set; } = new System.Collections.ObjectModel.Collection<ObjectVisual>();
+
+        /// <summary>
+        /// Decorative plants drawn by the presentation only (TL #19722): grass tufts, flowers, shrubs in groups on the dry walkable ground of named biomes, placed from the world seed. They are no core objects, have no state and are never saved; they keep off the core's objects and off water. Absent = none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("decor")]
+        public System.Collections.Generic.ICollection<ObjectDecor>? Decor { get; set; } = default!;
 
     }
 }

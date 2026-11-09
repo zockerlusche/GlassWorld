@@ -41,7 +41,9 @@
     "swamp_max_units": 1,
     "stream_shore_lift_mm": 30,
     "stream_width_m": 1.9,
-    "stream_smoothing": 3
+    "stream_smoothing": 3,
+    "stream_source_taper_m": 2.5,
+    "stream_source_width_share": 0.2
   },
   "cliffs": {
     "biomes": [
@@ -74,7 +76,7 @@
       {
         "cell_step": 4,
         "max_error_mm": 400,
-        "max_color_delta_permille": 50
+        "max_color_delta_permille": 80
       }
     ],
     "sea_floor_margin_mm": 500,
