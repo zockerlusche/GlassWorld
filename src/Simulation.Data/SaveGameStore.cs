@@ -17,8 +17,11 @@ namespace GlassWorld.Simulation.Data;
 /// </summary>
 public static class SaveGameStore
 {
+    /// <summary>Meta key of the content fingerprint (<see cref="ContentFingerprint"/>), written by headless and game.</summary>
+    public const string ContentFingerprintKey = "content_fingerprint";
+
     /// <summary>Schema version written by this code.</summary>
-    public const int SchemaVersion = 5;
+    public const int SchemaVersion = 6;
 
     private static readonly JsonSerializerOptions Json = new() { IncludeFields = true };
 
@@ -54,6 +57,25 @@ public static class SaveGameStore
         CREATE TABLE relationships(inhabitant TEXT NOT NULL, other TEXT NOT NULL, affection REAL NOT NULL, trust REAL NOT NULL, respect REAL NOT NULL,
           PRIMARY KEY(inhabitant, other));
         """,
+
+        // 5 (F4 hair kit and outfits): hair styles and outfits of the first look that were renamed or
+        // dropped get their current ids in the saved appearance records (the frozen copy of
+        // renamed_hair_styles / renamed_outfits in content/look/appearance.json at this version).
+        """
+        UPDATE meta SET value = (
+          SELECT json_group_object(e.key, json(json_set(e.value,
+            '$.HairStyle', CASE json_extract(e.value, '$.HairStyle')
+              WHEN 'curly' THEN 'curls' WHEN 'braided' THEN 'braid' WHEN 'tied' THEN 'bun'
+              ELSE json_extract(e.value, '$.HairStyle') END,
+            '$.ClothingStyle', CASE json_extract(e.value, '$.ClothingStyle')
+              WHEN 'wrap' THEN 'tunic'
+              ELSE json_extract(e.value, '$.ClothingStyle') END)))
+          FROM json_each(meta.value) AS e)
+        WHERE key = 'appearances';
+        """,
+
+        // 6 (hydrology, #134): the island table notes the blob format (IslandCodec: 2 adds the hydrology and
+        // underground layers; rows from before are format 1 and still decode).
         """
         ALTER TABLE island ADD COLUMN format INTEGER NOT NULL DEFAULT 1;
         """,
@@ -202,7 +224,7 @@ public static class SaveGameStore
             if (s.IslandData is not null)
             {
                 // The generated island as one blob (B2 R11; GW2 review #94: no base64 in meta).
-                // The blob format (schema 5): 2 adds the hydrology and underground layers; older rows are
+                // The blob format (schema 6): 2 adds the hydrology and underground layers; older rows are
                 // format 1 and still decode, as islands without them (IslandCodec).
                 Insert(c, tx, "INSERT INTO island(id, data, format) VALUES($a,$b,$c)", (1, s.IslandData, Map.IslandCodec.FormatOf(s.IslandData)));
             }
@@ -261,6 +283,11 @@ public static class SaveGameStore
         if (s.Conversation is not null)
         {
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("conversation", JsonSerializer.Serialize(s.Conversation, Json)));
+        }
+
+        if (s.ContentFingerprint is not null)
+        {
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", (ContentFingerprintKey, s.ContentFingerprint));
         }
 
         foreach (var (name, state) in s.Streams)
@@ -446,6 +473,7 @@ public static class SaveGameStore
             Skills = meta.TryGetValue("skills", out var skills) ? JsonSerializer.Deserialize<Simulation.Inhabitants.SkillRegisterState>(skills, Json) : null,
             Mailbox = meta.TryGetValue("mailbox", out var mailbox) ? JsonSerializer.Deserialize<Simulation.Player.MailboxState>(mailbox, Json) : null,
             Conversation = meta.TryGetValue("conversation", out var conversation) ? JsonSerializer.Deserialize<Simulation.Player.ConversationState>(conversation, Json) : null,
+            ContentFingerprint = meta.GetValueOrDefault(ContentFingerprintKey),
         };
     }
 
@@ -515,7 +543,10 @@ public static class SaveGameStore
 public sealed class AutoSaver
 {
     /// <summary>Hooks the autosave onto the day boundary of a simulation.</summary>
-    public AutoSaver(SimulationHost host, string path)
+    /// <param name="host">The simulation.</param>
+    /// <param name="path">Save game.</param>
+    /// <param name="contentFingerprint">Fingerprint of the content folder to store with every save (null = none).</param>
+    public AutoSaver(SimulationHost host, string path, string? contentFingerprint = null)
     {
         ArgumentNullException.ThrowIfNull(host);
         ArgumentException.ThrowIfNullOrEmpty(path);
@@ -523,7 +554,7 @@ public sealed class AutoSaver
         {
             if (boundary == TimeBoundary.Day)
             {
-                SaveGameStore.Save(path, StateCodec.Capture(host));
+                SaveGameStore.Save(path, StateCodec.Capture(host) with { ContentFingerprint = contentFingerprint });
                 SavedTicks.Add(host.World.Tick);
             }
         };

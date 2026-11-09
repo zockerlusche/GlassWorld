@@ -9,7 +9,7 @@
     "contract_version",
     "bodies",
     "hair",
-    "clothing",
+    "clothing_parts",
     "shoe_color",
     "outline",
     "crossfade_s",
@@ -37,14 +37,6 @@
       "maxItems": 32,
       "items": {
         "$ref": "#/$defs/FigureHair"
-      }
-    },
-    "clothing": {
-      "type": "array",
-      "minItems": 1,
-      "maxItems": 32,
-      "items": {
-        "$ref": "#/$defs/FigureClothing"
       }
     },
     "shoe_color": {
@@ -88,6 +80,15 @@
       "type": "number",
       "minimum": 0.5,
       "maximum": 3
+    },
+    "clothing_parts": {
+      "description": "Clothing parts as meshes on the rig (F4): which mesh, which clothing colour, and which body regions it hides (those take its colour, so the body never shows through; uncovered regions are skin).",
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "items": {
+        "$ref": "#/$defs/FigureClothingPart"
+      }
     }
   },
   "$defs": {
@@ -133,28 +134,53 @@
           "$ref": "common.schema.json#/$defs/VocabId"
         },
         "mesh": {
-          "description": "Hair mesh in the body model (Hair_<mesh>).",
-          "$ref": "common.schema.json#/$defs/VocabId"
+          "description": "Hair mesh name in the figure models without the Hair_ prefix, or null for no hair (bald).",
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/VocabId"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
     },
-    "FigureClothing": {
+    "FigureClothingPart": {
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "style",
-        "short_sleeves",
-        "shorts"
+        "id",
+        "mesh",
+        "color",
+        "covers"
       ],
       "properties": {
-        "style": {
+        "id": {
           "$ref": "common.schema.json#/$defs/VocabId"
         },
-        "short_sleeves": {
-          "type": "boolean"
+        "mesh": {
+          "description": "Mesh name in the figure models without the Cloth_ prefix.",
+          "$ref": "common.schema.json#/$defs/VocabId"
         },
-        "shorts": {
-          "type": "boolean"
+        "color": {
+          "description": "Which clothing colour of the appearance record it takes.",
+          "type": "string",
+          "enum": [
+            "top",
+            "bottom"
+          ]
+        },
+        "covers": {
+          "description": "Body regions under this part (they take its colour).",
+          "type": "array",
+          "maxItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "description": "Body region: forearm, thigh, lower_thigh or shin.",
+            "type": "string",
+            "pattern": "^(forearm|thigh|lower_thigh|shin)$"
+          }
         }
       }
     },

@@ -47,25 +47,38 @@ namespace GlassWorld.Contracts
         public string Style { get; set; } = default!;
 
         /// <summary>
-        /// Hair mesh in the body model (Hair_&lt;mesh&gt;).
+        /// Hair mesh name in the figure models without the Hair_ prefix, or null for no hair (bald).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("mesh")]
-        public string Mesh { get; set; } = default!;
+        public string? Mesh { get; set; } = default!;
 
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
-    public partial class FigureClothing
+    public partial class FigureClothingPart
     {
 
-        [System.Text.Json.Serialization.JsonPropertyName("style")]
-        public string Style { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public string Id { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("short_sleeves")]
-        public bool ShortSleeves { get; set; } = default!;
+        /// <summary>
+        /// Mesh name in the figure models without the Cloth_ prefix.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("mesh")]
+        public string Mesh { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("shorts")]
-        public bool Shorts { get; set; } = default!;
+        /// <summary>
+        /// Which clothing colour of the appearance record it takes.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("color")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<FigureClothingPartColor>))]
+        public FigureClothingPartColor Color { get; set; } = default!;
+
+        /// <summary>
+        /// Body regions under this part (they take its colour).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("covers")]
+        public System.Collections.Generic.ICollection<string> Covers { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
     }
 
@@ -102,9 +115,6 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("hair")]
         public System.Collections.Generic.ICollection<FigureHair> Hair { get; set; } = new System.Collections.ObjectModel.Collection<FigureHair>();
-
-        [System.Text.Json.Serialization.JsonPropertyName("clothing")]
-        public System.Collections.Generic.ICollection<FigureClothing> Clothing { get; set; } = new System.Collections.ObjectModel.Collection<FigureClothing>();
 
         [System.Text.Json.Serialization.JsonPropertyName("shoe_color")]
         public string ShoeColor { get; set; } = default!;
@@ -150,6 +160,26 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("head_anchor_m")]
         public double HeadAnchorM { get; set; } = default!;
+
+        /// <summary>
+        /// Clothing parts as meshes on the rig (F4): which mesh, which clothing colour, and which body regions it hides (those take its colour, so the body never shows through; uncovered regions are skin).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("clothing_parts")]
+        public System.Collections.Generic.ICollection<FigureClothingPart> ClothingParts { get; set; } = new System.Collections.ObjectModel.Collection<FigureClothingPart>();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public enum FigureClothingPartColor
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("top")]
+        Top = 0,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("bottom")]
+        Bottom = 1,
+
 
     }
 }

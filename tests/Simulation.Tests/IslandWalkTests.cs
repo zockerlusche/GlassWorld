@@ -34,11 +34,11 @@ public sealed class IslandWalkTests : IDisposable
             Assert.InRange(look.HeightCm, data.HeightCm.Min, data.HeightCm.Max);
             Assert.InRange(look.BuildPermille, data.BuildPermille.Min, data.BuildPermille.Max);
             Assert.Contains(look.SkinTone, data.SkinTones);
-            Assert.Contains(look.HairStyle, data.HairStyles);
-            Assert.Contains(look.ClothingStyle, data.ClothingStyles);
+            Assert.Contains(look.HairStyle, data.HairStyles.Select(h => h.Id));
+            Assert.Contains(look.ClothingStyle, data.Outfits.Select(o => o.Id));
             Assert.Contains(look.AgeStage, data.AgeStages.Select(s => s.Id));
             Assert.InRange(look.HeadScale, data.HeadScale.Min, data.HeadScale.Max);
-            Assert.True(look.Shapes.Count <= 1);
+            Assert.True(look.Shapes.Keys.Count(k => data.Shapes.Any(s => s.Id == k)) <= 1);
         }
 
         // Different people in one world, different worlds from different seeds.
@@ -183,8 +183,8 @@ public sealed class IslandWalkTests : IDisposable
     }
 
     /// <summary>
-    /// A save of schema 4 holds a format-1 island (no hydrology, no underground): it migrates to schema 5
-    /// and loads as it was (still without layers); the next save writes schema 5 and the current blob format.
+    /// A save of schema 4 holds a format-1 island (no hydrology, no underground): it migrates through F4's schema 5 to schema 6
+    /// and loads as it was (still without layers); the next save writes the current schema and blob format.
     /// </summary>
     [Fact]
     public void ASchemaFourSaveWithAFormatOneIslandStillLoads()
@@ -215,6 +215,30 @@ public sealed class IslandWalkTests : IDisposable
         var resaved = SaveGameStore.Load(path).IslandData!;
         Assert.Equal(IslandCodec.Format, IslandCodec.FormatOf(resaved));
         Assert.Null(IslandCodec.Decode(resaved).Island.Map.Hydrology);
+    }
+
+    /// <summary>A save of schema 5 (F4, before the island format column) migrates to schema 6 and keeps its island.</summary>
+    [Fact]
+    public void ASchemaFiveSaveLoadsAndKeepsItsIsland()
+    {
+        var host = SimulationHost.CreateGeneratedWorld(ContentDirectory, 7, new MockDecisionPort(), "de", Preset);
+        var path = Path.Combine(_directory, "v5.db");
+        var state = StateCodec.Capture(host);
+        SaveGameStore.Save(path, state);
+        using (var connection = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={path};Pooling=False"))
+        {
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = "ALTER TABLE island DROP COLUMN format; PRAGMA user_version = 5;";
+            command.ExecuteNonQuery();
+        }
+
+        Assert.Equal(5, SaveGameStore.VersionOf(path));
+        var older = SaveGameStore.Load(path);
+        Assert.Equal(state.IslandData, older.IslandData);
+        var loaded = Restore(older, new MockDecisionPort());
+        Assert.Equal(host.Map!.IslandHash, loaded.Map!.IslandHash);
+        Assert.Equal(host.World.StateHash(), loaded.World.StateHash());
     }
 
     [Fact]
