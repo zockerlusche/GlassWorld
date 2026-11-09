@@ -1,4 +1,5 @@
 using GlassWorld.Contracts;
+using GlassWorld.Presentation.World;
 using Godot;
 
 namespace GlassWorld.Game.World;
@@ -27,29 +28,55 @@ public static class DaylightLook
         };
     }
 
+    private static readonly Shader SkyShader = GD.Load<Shader>("res://shaders/island_sky.gdshader");
+
     /// <summary>Applies the phase to the sun and the environment; an unknown phase is a data error.</summary>
-    public static void Apply(LookDaylight daylight, string phase, DirectionalLight3D sun, Godot.Environment environment)
+    public static void Apply(LookDaylight daylight, string phase, DirectionalLight3D sun, Godot.Environment environment) =>
+        Apply(daylight, DaylightMix.Of(daylight, phase), sun, environment);
+
+    /// <summary>
+    /// Applies one moment (a phase or a blend of two, see <see cref="DaylightMix.Lerp"/>): one directional
+    /// light for sun and moon, the sky shader with horizon, stars and moon disc, the ambient light and the
+    /// tint of the unlit water shaders (global <c>water_light</c>).
+    /// </summary>
+    public static void Apply(LookDaylight daylight, DaylightMix mix, DirectionalLight3D sun, Godot.Environment environment)
     {
         ArgumentNullException.ThrowIfNull(daylight);
+        ArgumentNullException.ThrowIfNull(mix);
         ArgumentNullException.ThrowIfNull(sun);
         ArgumentNullException.ThrowIfNull(environment);
-        var data = daylight.Phases.FirstOrDefault(p => p.Phase.ToString().Equals(phase, StringComparison.OrdinalIgnoreCase))
-            ?? throw new InvalidDataException($"Unknown day phase '{phase}' (content/look/daylight.json).");
-        sun.LightColor = Color.FromHtml(data.LightColor);
-        sun.LightEnergy = (float)data.LightEnergy;
-        sun.RotationDegrees = new Vector3(-(float)data.SunElevationDeg, (float)daylight.SunAzimuthDeg, 0);
-        var sky = new ProceduralSkyMaterial
+        sun.LightColor = ToColor(mix.LightColor);
+        sun.LightEnergy = (float)mix.LightEnergy;
+        sun.RotationDegrees = new Vector3(-(float)mix.LightElevationDeg, (float)mix.LightAzimuthDeg, 0);
+        sun.ShadowEnabled = mix.Shadows;
+
+        if (environment.Sky?.SkyMaterial is not ShaderMaterial sky || sky.Shader != SkyShader)
         {
-            SkyTopColor = Color.FromHtml(data.SkyTop),
-            SkyHorizonColor = Color.FromHtml(data.SkyHorizon),
-            GroundHorizonColor = Color.FromHtml(data.SkyHorizon),
-            GroundBottomColor = Color.FromHtml(data.SkyHorizon),
-            SunAngleMax = 0,
-        };
+            sky = new ShaderMaterial { Shader = SkyShader };
+            environment.Sky = new Sky { SkyMaterial = sky };
+        }
+
+        var (look, moon) = (daylight.Sky, daylight.Moon);
+        var towardsMoon = Basis.FromEuler(new Vector3(Mathf.DegToRad(-(float)moon.ElevationDeg), Mathf.DegToRad((float)moon.AzimuthDeg), 0)).Z;
+        sky.SetShaderParameter("top_color", ToColor(mix.SkyTop));
+        sky.SetShaderParameter("horizon_color", ToColor(mix.SkyHorizon));
+        sky.SetShaderParameter("horizon_falloff", (float)look.HorizonFalloff);
+        sky.SetShaderParameter("below_horizon", (float)look.BelowHorizon);
+        sky.SetShaderParameter("stars", (float)mix.Stars);
+        sky.SetShaderParameter("star_density", (float)look.StarDensity);
+        sky.SetShaderParameter("star_brightness", (float)look.StarBrightness);
+        sky.SetShaderParameter("star_horizon_fade", (float)look.StarHorizonFade);
+        sky.SetShaderParameter("moon_direction", towardsMoon);
+        sky.SetShaderParameter("moon_color", Color.FromHtml(moon.DiscColor));
+        sky.SetShaderParameter("moon_size_deg", (float)moon.DiscSizeDeg);
+        sky.SetShaderParameter("moon_glow", (float)moon.Glow);
+        sky.SetShaderParameter("moon", (float)mix.Moon);
         environment.BackgroundMode = Godot.Environment.BGMode.Sky;
-        environment.Sky = new Sky { SkyMaterial = sky };
         environment.AmbientLightSource = Godot.Environment.AmbientSource.Color;
-        environment.AmbientLightColor = Color.FromHtml(data.AmbientColor);
-        environment.AmbientLightEnergy = (float)data.AmbientEnergy;
+        environment.AmbientLightColor = ToColor(mix.Ambient);
+        environment.AmbientLightEnergy = (float)mix.AmbientEnergy;
+        RenderingServer.GlobalShaderParameterSet("water_light", ToColor(mix.WaterLight));
     }
+
+    private static Color ToColor(Rgb rgb) => new((float)rgb.R, (float)rgb.G, (float)rgb.B);
 }

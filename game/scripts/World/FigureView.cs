@@ -30,11 +30,19 @@ public partial class FigureView : Node3D
 
     private FigureShared _shared = null!;
     private FigureMotion _motion = null!;
+    private PoseCadence _cadence = null!;
+    private string? _gait;
+    private Point3 _to;
+    private string _shownPose = string.Empty;
+    private bool _standsIdle;
+    private bool _lying;
+    private double _lieShare;
     private AnimationTree _tree = null!;
     private readonly AnimationNodeAnimation[] _act = new AnimationNodeAnimation[2];
     private readonly Label3D[] _dots = new Label3D[ThinkingDots.Count];
     private Node3D _body = null!;
     private Vector3 _bodyScale = Vector3.One;
+    private Vector3 _bodyRotation;
     private bool _mirrored;
     private Node3D _thinking = null!;
     private double _thinkingPhase;
@@ -79,7 +87,8 @@ public partial class FigureView : Node3D
         ArgumentNullException.ThrowIfNull(spec);
         ArgumentNullException.ThrowIfNull(shared);
         var figures = shared.Figures;
-        var comic = GD.Load<Shader>("res://shaders/warm_comic.gdshader");
+        // Figures mark their pixels in the stencil buffer, so their silhouette shows only behind cover (W1695).
+        var comic = GD.Load<Shader>("res://shaders/figure_comic.gdshader");
         var outline = figures.Outline ? GD.Load<Shader>("res://shaders/outline_hull.gdshader") : null;
         var figure = FigureFactory.Build(FigureLook.From(spec), comic, outline);
 
@@ -92,6 +101,7 @@ public partial class FigureView : Node3D
             _ground = groundHeight,
             _scale = spec.Scale,
             _motion = new FigureMotion(start, figures.TurnRateDegS),
+            _cadence = new PoseCadence(figures.PoseCadence, figures.IdleSlotSpread, inhabitant.Id, figures.Lying),
             _seats = seats ?? (() => []),
             _wave = figure.Wave,
             _lookAt = figure.Look,
@@ -102,6 +112,7 @@ public partial class FigureView : Node3D
         view.AddChild(view.HeadAnchor);
         view._body = figure.Root;
         view._bodyScale = figure.Root.Scale;
+        view._bodyRotation = figure.Root.Rotation;
         view.BuildThinkingDots(figures.ThinkingDots, spec.Scale);
         view._knees = new KneeStraightenModifier { Name = "Knees" };
         figure.Root.FindChildren("*", "Skeleton3D", true, false).OfType<Skeleton3D>().Single().AddChild(view._knees);
@@ -150,34 +161,48 @@ public partial class FigureView : Node3D
         var chooser = _shared.Chooser;
         AnimationChooser.CoreValues(_shared.Values, inhabitant.Needs, inhabitant.Moods, inhabitant.Traits);
         var moving = !place && _motion.StepM >= figures.WalkMinStepM;
-        var slot = AnimationChooser.IdleSlot(InhabitantId, tick, figures.IdleSlotTicks, figures.IdleSlotSpread);
         if (all is not null && InhabitantActivity.FacePoint(inhabitant, all) is { } face)
         {
             _motion.Face(face.X, face.Z, figures.WalkMinStepM);
         }
 
+        // What the core state asks for; the cadence shows it calmly, in real seconds (W1697, pose_cadence).
         var target = all is null ? null : InhabitantActivity.TargetKind(inhabitant, all);
-        var clip = chooser.ForInhabitant(inhabitant.Action, moving, InhabitantId, slot, _shared.Values, target);
+        var conversation = all is not null && InhabitantActivity.InConversation(inhabitant, all);
+        _cadence.Want(chooser, inhabitant.Action, moving, _shared.Values, target, conversation, Time.GetTicksMsec() / 1000.0);
         _thinking.Visible = ThinkingDots.Shown(inhabitant.OpenQuestionIds.Count);
+        _gait = inhabitant.Gait;
+        _to = to;
+        _standsIdle = chooser.StandsIdle(inhabitant.Action);
+        Show(_cadence.Update(Time.GetTicksMsec() / 1000.0, (long)Engine.GetProcessFrames(), _shared.Gate));
+    }
+
+    /// <summary>Plays what the cadence shows now: the walk blend or an action/idle clip, seated where it sits.</summary>
+    private void Show(FigureClip clip)
+    {
+        var chooser = _shared.Chooser;
+        var figures = _shared.Figures;
+        _shownPose = PoseCadence.PoseKey(clip, figures.Lying);
+        _lying = !clip.Walking && LyingPose.IsLying(figures.Lying, clip.Clip.ClipId);
         if (clip.Missing is { } missing)
         {
             Report(missing);
         }
 
-        if (_lookLeft > 0 && !clip.Walking && chooser.StandsIdle(inhabitant.Action))
+        if (_lookLeft > 0 && !clip.Walking && _standsIdle)
         {
             // Hearing the player it stands and looks up instead of its idle behaviour (no ducking, W1688).
             clip = new FigureClip(chooser.ForClip(figures.Greeting.ListenClip), Walking: false, clip.Missing);
         }
 
         _seat = !clip.Walking && SeatChoice.IsSeated(figures.Sitting, clip.Clip.ClipId)
-            ? SeatChoice.Choose(figures.Sitting, to.X, to.Z, _scale, _seats())
+            ? SeatChoice.Choose(figures.Sitting, _to.X, _to.Z, _scale, _seats())
             : null;
         if (clip.Walking)
         {
             // The core's gait (stroll … run, #112) plays as it is; without one the gait follows the game-time
             // speed. Either way the playback roughly follows the speed on screen.
-            if (inhabitant.Gait is { } gaitId && chooser.ForGait(gaitId) is { } core)
+            if (_gait is { } gaitId && chooser.ForGait(gaitId) is { } core)
             {
                 Walk(core.Blend, FigureMotion.GaitTimeScale(_motion.ScreenSpeedCmS, core.GroundSpeedCmS, _scale, figures.GaitTimeScale.Min, figures.GaitTimeScale.Max));
                 CurrentClip = core.Clip.ClipId;
@@ -222,6 +247,16 @@ public partial class FigureView : Node3D
             return;
         }
 
+        // A pose held back by the cadence shows once its time has come (one figure per frame, W1697).
+        if (_shownPose.Length > 0)
+        {
+            var clip = _cadence.Update(Time.GetTicksMsec() / 1000.0, (long)Engine.GetProcessFrames(), _shared.Gate);
+            if (PoseCadence.PoseKey(clip, _shared.Figures.Lying) != _shownPose)
+            {
+                Show(clip);
+            }
+        }
+
         // Even pace from tick to tick (R17); the height follows the ground under the figure.
         _motion.Advance(delta);
         var p = _motion.Position;
@@ -236,7 +271,20 @@ public partial class FigureView : Node3D
         var shareRate = figures.Sitting.SettleMS / Math.Max(0.05, figures.Sitting.ClipSeatHeightM * _scale);
         _seatShare = GreetingReaction.Ease(_seatShare, _seat is null ? 0 : 1, shareRate, delta);
         var (x, z) = _lastSeat.OnSeat ? (p.X + ((_lastSeat.X - p.X) * _seatShare), p.Z + ((_lastSeat.Z - p.Z) * _seatShare)) : (p.X, p.Z);
-        Position = new Vector3((float)x, _ground(x, z) + (float)(_lastSeat.LiftM * _seatShare), (float)z);
+        var y = _ground(x, z) + (float)(_lastSeat.LiftM * _seatShare);
+
+        // Sleeping it lies on its back on the ground (W1695): it tips over about its feet and its body rests
+        // on the ground under its hips; lying down and getting up take the data's seconds.
+        var lying = figures.Lying;
+        _lieShare = GreetingReaction.Ease(_lieShare, _lying ? 1 : 0, 1 / lying.SettleS, delta);
+        if (_lieShare > 0)
+        {
+            var hips = LyingPose.Hips(lying, x, z, _motion.Yaw, _scale);
+            y = (float)LyingPose.Height(lying, y, _ground(hips.X, hips.Z), _scale, _lieShare);
+        }
+
+        _body.Rotation = _bodyRotation + new Vector3((float)LyingPose.Pitch(lying, _lieShare), 0, 0);
+        Position = new Vector3((float)x, y, (float)z);
         _knees.Share = (float)(_lastSeat.KneeShare * _seatShare);
 
         HearAndAnswer(delta, figures.Greeting);

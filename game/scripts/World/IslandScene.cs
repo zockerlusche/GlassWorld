@@ -244,7 +244,8 @@ public partial class IslandScene : Node3D
                 }
             }
 
-            _rig.Model.Set(tx, tz, yawDeg, next.Point.DistanceM);
+            _rig.Model.Set(tx, tz, yawDeg, next.Point.DistanceM, next.Point.PitchDeg);
+            _rig.Model.FovOverride = next.Point.FovDeg;
             if (figure is not null)
             {
                 _rig.FollowFigure(figure.InhabitantId, next.Point.DistanceM);

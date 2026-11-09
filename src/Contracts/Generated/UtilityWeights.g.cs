@@ -13,6 +13,46 @@ namespace GlassWorld.Contracts
     #pragma warning disable // Disable all warnings
 
     /// <summary>
+    /// Ends repeating without effect (W1696): when an inhabitant does the same action on the same target at about the same spot this many times in a row and none of them changed a need, mood, belief or relation by at least min_effect, the action rests for a while; it is neither chosen nor offered to the decider, and an answer still waiting for it is dropped. Optional: without it nothing rests.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class RepetitionLimit
+    {
+
+        /// <summary>
+        /// Repeats in a row without any effect after which the action rests.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max_repeats_without_effect")]
+        public int MaxRepeatsWithoutEffect { get; set; } = default!;
+
+        /// <summary>
+        /// Game hours the action then rests (cooldown).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("rest_hours")]
+        public double RestHours { get; set; } = default!;
+
+        /// <summary>
+        /// Distance in metres from where the run began within which a repeat counts as the same spot.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("same_place_m")]
+        public double SamePlaceM { get; set; } = default!;
+
+        /// <summary>
+        /// Smallest change of a need, mood or the will to live that counts as an effect; less (e.g. topping up a need that is nearly full) counts as nothing.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("min_effect")]
+        public double MinEffect { get; set; } = default!;
+
+        /// <summary>
+        /// Actions that never rest (doing nothing, e.g. idle): resting them would only send the inhabitant off on strolls away from water and food; their calm look is the presentation's task (pose_cadence).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("exempt_actions")]
+        public System.Collections.Generic.ICollection<string>? ExemptActions { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// Scores an action. With target_property the core offers the action on every perceived object; the belief that the object has that property scales the score.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -111,6 +151,10 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("search_give_up_hours")]
         public double SearchGiveUpHours { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("repetition")]
+        public RepetitionLimit? Repetition { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("considerations")]
         public System.Collections.Generic.ICollection<Consideration> Considerations { get; set; } = new System.Collections.ObjectModel.Collection<Consideration>();

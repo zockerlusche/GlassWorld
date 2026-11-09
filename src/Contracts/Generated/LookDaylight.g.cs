@@ -67,6 +67,108 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("stars")]
         public double Stars { get; set; } = default!;
 
+        /// <summary>
+        /// Visibility of the moon and share of moonlight in the main light (0..1).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("moon")]
+        public double Moon { get; set; } = default!;
+
+        /// <summary>
+        /// Tint of the unlit water shaders (sea, fresh water, streams) as lowercase #rrggbb; #ffffff keeps the day colours.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("water_light")]
+        public string WaterLight { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class LookDaylightSky
+    {
+
+        /// <summary>
+        /// Exponent of the gradient from the horizon colour to the top colour (smaller = wider light band at the horizon).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("horizon_falloff")]
+        public double HorizonFalloff { get; set; } = default!;
+
+        /// <summary>
+        /// Brightness of the sky below the horizon relative to the horizon colour (keeps the horizon line readable).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("below_horizon")]
+        public double BelowHorizon { get; set; } = default!;
+
+        /// <summary>
+        /// Share of sky cells that hold a star (0..1).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("star_density")]
+        public double StarDensity { get; set; } = default!;
+
+        /// <summary>
+        /// Brightness of a star at full visibility (the phase's stars value scales it).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("star_brightness")]
+        public double StarBrightness { get; set; } = default!;
+
+        /// <summary>
+        /// Height above the horizon (0..1, sine of the elevation) over which the stars fade out towards the horizon.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("star_horizon_fade")]
+        public double StarHorizonFade { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class LookDaylightMoon
+    {
+
+        /// <summary>
+        /// Elevation of the moon above the horizon.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("elevation_deg")]
+        public double ElevationDeg { get; set; } = default!;
+
+        /// <summary>
+        /// Compass direction of the moon (degrees around the vertical, like sun_azimuth_deg).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("azimuth_deg")]
+        public double AzimuthDeg { get; set; } = default!;
+
+        /// <summary>
+        /// Colour as lowercase #rrggbb.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("disc_color")]
+        public string DiscColor { get; set; } = default!;
+
+        /// <summary>
+        /// Angular radius of the soft moon disc.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("disc_size_deg")]
+        public double DiscSizeDeg { get; set; } = default!;
+
+        /// <summary>
+        /// Strength of the soft halo around the disc.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("glow")]
+        public double Glow { get; set; } = default!;
+
+        /// <summary>
+        /// Colour as lowercase #rrggbb.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("light_color")]
+        public string LightColor { get; set; } = default!;
+
+        /// <summary>
+        /// Strength of the moonlight (it replaces the sunlight as the phase's moon value rises).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("light_energy")]
+        public double LightEnergy { get; set; } = default!;
+
+        /// <summary>
+        /// Whether the moonlight casts shadows (the same single light as the sun, so no extra shadow pass).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("shadows")]
+        public bool Shadows { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -80,7 +182,7 @@ namespace GlassWorld.Contracts
         public string ContractVersion { get; set; } = default!;
 
         /// <summary>
-        /// Lowest overall brightness at night (0..1).
+        /// Lowest ambient light energy in every phase (0..1): the night never turns pitch black.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("night_min_brightness")]
         public double NightMinBrightness { get; set; } = default!;
@@ -109,6 +211,18 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("tonemap")]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<LookDaylightTonemap>))]
         public LookDaylightTonemap Tonemap { get; set; } = default!;
+
+        /// <summary>
+        /// Sky shader shared by all phases (stars and horizon at night, A1367).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("sky")]
+        public LookDaylightSky Sky { get; set; } = new LookDaylightSky();
+
+        /// <summary>
+        /// Moon disc in the sky and the moonlight; the phase's moon value blends it in.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("moon")]
+        public LookDaylightMoon Moon { get; set; } = new LookDaylightMoon();
 
     }
 

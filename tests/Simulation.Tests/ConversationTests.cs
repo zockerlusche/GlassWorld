@@ -123,6 +123,47 @@ public sealed class ConversationTests : IDisposable
         Assert.Contains(events, e => e.Kind == "question_opened" && e.InhabitantId == id); // B2511: a question with a question mark
     }
 
+    /// <summary>W1701: asking back is said like a decline - the guarded sentence and the expression go with the event.</summary>
+    [Theory]
+    [InlineData("not_understood")]
+    [InlineData("declined")]
+    public void NotUnderstoodAndDeclineCarryTheirGuardedSentence(string kind)
+    {
+        var outcome = kind == "declined" ? ConversationResponseOutcome.Decline : ConversationResponseOutcome.Not_understood;
+        foreach (var (text, shown) in new[] { ("Feuer? Was ist das?", "Feuer? Was ist das?"), ("Ich will dich töten", null) })
+        {
+            var (host, id) = Host();
+            host.Conversation.Port = new FixedPort(outcome, text, "wave");
+            var events = Collect(host);
+            Say(host, id, "Kannst du mir das Feuer zeigen?");
+            host.World.Run(2);
+            var e = Assert.Single(events, e => e.Kind == kind);
+            Assert.Equal(shown, e.Text); // a sentence the guard refuses is never shown
+            Assert.Equal("wave", e.Detail);
+        }
+    }
+
+    [Fact]
+    public void AReplayOfALoggedNotUnderstoodGivesTheSameSentenceAndWorld()
+    {
+        var (live, id) = Host();
+        live.Conversation.Port = new FixedPort(ConversationResponseOutcome.Not_understood, "Glas? Welches Glas meinst du?", null);
+        var said = Collect(live);
+        Say(live, id, "Bring mir das Glas.");
+        live.World.Run(3);
+
+        var replay = Host().Host;
+        replay.Conversation.Port = new ReplayConversationPort(live.Conversation.Log);
+        replay.Decisions.LoadReplay(live.Decisions.Log);
+        var replayed = Collect(replay);
+        replay.World.Run(live.World.Tick);
+        Assert.Equal(live.World.StateHash(), replay.World.StateHash());
+        Assert.Equal(
+            said.Where(e => e.Kind == "not_understood").Select(e => e.Text),
+            replayed.Where(e => e.Kind == "not_understood").Select(e => e.Text));
+        Assert.Contains(replayed, e => e.Kind == "not_understood" && e.Text == "Glas? Welches Glas meinst du?");
+    }
+
     [Fact]
     public void WithoutAServiceACalmNoAnswerGivesTheFavourBack()
     {
@@ -132,7 +173,8 @@ public sealed class ConversationTests : IDisposable
         Say(host, id, "Hallo?");
         var hours = (long)Math.Ceiling(host.Content.Conversation.NoAnswerAfterHours * host.World.Calendar.Settings.TicksPerHour);
         host.World.Run(hours + 2);
-        Assert.Contains(events, e => e.Kind == "no_answer" && e.InhabitantId == id);
+        // W1701: a calm line (text key, the game translates it) instead of nothing.
+        Assert.Contains(events, e => e.Kind == "no_answer" && e.InhabitantId == id && e.Text == ConversationSystem.NoAnswerKey);
         Assert.False(host.Conversation.IsWaiting(id));
         Assert.True(host.Player.Favor >= favor - 1e-9, $"favour {host.Player.Favor} back to at least {favor}");
     }
