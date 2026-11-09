@@ -99,6 +99,10 @@ public partial class WorldAudio : Node3D
             _music.QueueFree();
             _music = null;
         }
+        else if (Off(MixBusId.Music))
+        {
+            _music.SetProcess(false); // switched off in the data (W1699): no track is started
+        }
 
         _host = host;
         try
@@ -191,7 +195,7 @@ public partial class WorldAudio : Node3D
         foreach (var request in _director.Plan(events, positions, listener, Zoom, playing, e => e.Action == _useAction ? inventions?.For(e.TargetId) : null))
         {
             var player = _pools[request.Bus].FirstOrDefault(p => !p.Playing);
-            if (player is null)
+            if (player is null || Off(request.Bus))
             {
                 continue;
             }
@@ -234,6 +238,9 @@ public partial class WorldAudio : Node3D
             : "no limiter on the master bus";
     }
 
+    /// <summary>Whether the data switches the bus off until its sounds are replaced (W1699): nothing is started on it.</summary>
+    private bool Off(MixBusId bus) => _mixer?.Mix.Buses.Any(b => b.Id == bus && b.Off == true) == true;
+
     /// <summary>Smoke run only: the background music (B8 R6).</summary>
     public string MusicSelfCheck() => _music?.SelfCheck() ?? "music not set up";
 
@@ -243,7 +250,7 @@ public partial class WorldAudio : Node3D
     /// </summary>
     private void PlayAmbience(Position listener)
     {
-        if (_ambience is null || _ambiencePlayers[0] is null)
+        if (_ambience is null || _ambiencePlayers[0] is null || Off(MixBusId.Ambience))
         {
             return;
         }
@@ -372,6 +379,11 @@ public partial class WorldAudio : Node3D
         }
 
         var calendar = _host.World.Calendar;
+        if (Off(MixBusId.Animals))
+        {
+            return; // switched off in the data (W1699): nothing is decoded or started
+        }
+
         foreach (var call in _animals.Between(from, now, perHour, t => HourTime.Of(calendar.At(t)), BiomeAt(listener), listener, _worldSeed))
         {
             var player = pool.FirstOrDefault(p => !p.Playing);
