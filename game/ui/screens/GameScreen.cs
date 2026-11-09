@@ -46,6 +46,7 @@ public partial class GameScreen : CanvasLayer
     private readonly HashSet<string> _askedHelp = new(StringComparer.Ordinal);
     private readonly ConcurrentQueue<(string Key, IReadOnlyList<HelpCard>? Cards, string? Problem)> _helpAnswers = new();
     private string? _placing;
+    private ClickGate? _click;
     private readonly VBoxContainer _mailList = new() { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
     private string _mailShape = "-";
     private Label? _time;
@@ -237,9 +238,52 @@ public partial class GameScreen : CanvasLayer
             return;
         }
 
-        if (@event is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } place && _placing is not null)
+        if (@event.IsActionPressed("ui_cancel"))
         {
-            if (WorldPoint(place.Position) is { } point)
+            // Open windows close themselves on Esc first (GwWindow); only then the pause menu opens.
+            PauseRequested?.Invoke();
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+
+        // A left press into the world only starts a gesture: let go soon and close by it is a click (gift
+        // placement or figure selection), moved farther it is a camera drag (B2567). The press is not
+        // consumed, so the camera sees it as well and both use the same thresholds.
+        if (@event is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } press && _style is not null)
+        {
+            var data = _presenter?.Rig?.Model.Data;
+            _click = new ClickGate(data?.ClickMaxPx ?? double.MaxValue, data?.ClickMaxMs ?? double.MaxValue);
+            _click.Press(press.Position.X, press.Position.Y, Time.GetTicksMsec());
+        }
+    }
+
+    /// <inheritdoc/>
+    public override void _Input(InputEvent @event)
+    {
+        // Moves and the release of a started press are read before the GUI, so a drag across a panel is
+        // still a drag; nothing is consumed here.
+        if (_click is not { Pressed: true } click)
+        {
+            return;
+        }
+
+        if (@event is InputEventMouseMotion motion)
+        {
+            click.Move(motion.Position.X, motion.Position.Y);
+        }
+        else if (@event is InputEventMouseButton { Pressed: false, ButtonIndex: MouseButton.Left } release
+            && click.Release(release.Position.X, release.Position.Y, Time.GetTicksMsec()))
+        {
+            WorldClick(release.Position);
+        }
+    }
+
+    /// <summary>A short left click into the world: places the gift being placed, else selects a figure or stops following.</summary>
+    private void WorldClick(Vector2 position)
+    {
+        if (_placing is not null)
+        {
+            if (WorldPoint(position) is { } point)
             {
                 // On the island a spot on water or off the island is refused here, before the core: no
                 // favour is spent and the gift never sinks out of reach (GW3 #113, finding 1).
@@ -253,33 +297,24 @@ public partial class GameScreen : CanvasLayer
                 }
             }
 
-            GetViewport().SetInputAsHandled();
-            return;
-        }
-
-        if (@event.IsActionPressed("ui_cancel"))
-        {
-            // Open windows close themselves on Esc first (GwWindow); only then the pause menu opens.
-            PauseRequested?.Invoke();
-            GetViewport().SetInputAsHandled();
             return;
         }
 
         // The screen owns the left click (gift placement above, otherwise figure selection), so one click
-        // never does both; on the island it also tells the camera (follow the figure, or stop following).
-        if (@event is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } click && _style is not null)
+        // never does both; it also tells the camera (follow the figure, or stop following).
+        if (_style is null)
         {
-            var id = PickAt(click.Position);
-            if (id is not null)
-            {
-                Encounter(id);
-                _presenter?.ChooseFigure(id);
-                GetViewport().SetInputAsHandled();
-            }
-            else
-            {
-                _presenter?.ClickedGround();
-            }
+            return;
+        }
+
+        if (PickAt(position) is { } id)
+        {
+            Encounter(id);
+            _presenter?.ChooseFigure(id);
+        }
+        else
+        {
+            _presenter?.ClickedGround();
         }
     }
 

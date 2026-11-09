@@ -23,6 +23,16 @@ class CameraRange(BaseModel):
     start: float = Field(..., description='At start.', ge=0.5, le=5000.0)
 
 
+class PitchRange(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    min: float = Field(..., description='Flattest pitch.', ge=5.0, le=89.0)
+    max: float = Field(
+        ..., description='Steepest pitch (89 is top-down).', ge=5.0, le=89.0
+    )
+
+
 class LookCamera(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -39,7 +49,17 @@ class LookCamera(BaseModel):
         ..., description='Vertical field of view for perspective.', ge=5.0, le=90.0
     )
     pitch_deg: float = Field(
-        ..., description='Downward tilt of the camera.', ge=10.0, le=89.0
+        ...,
+        description='Downward tilt of the camera at start (and after reset), within pitch_range_deg.',
+        ge=10.0,
+        le=89.0,
+    )
+    pitch_range_deg: PitchRange
+    pitch_deg_per_px: float = Field(
+        ...,
+        description='Change of the pitch per pixel of vertical orbit dragging (dragging down looks more from above).',
+        ge=0.01,
+        le=5.0,
     )
     start_yaw_deg: float = Field(..., description='Turn at start.', ge=0.0, le=360.0)
     distance_m: CameraRange
@@ -47,10 +67,34 @@ class LookCamera(BaseModel):
         ..., description='Share of the distance one zoom step changes.', ge=0.01, le=0.9
     )
     rotate_deg_per_px: float = Field(
-        ..., description='Turn per pixel of dragging.', ge=0.01, le=5.0
+        ...,
+        description='Turn (yaw) per pixel of horizontal orbit dragging.',
+        ge=0.01,
+        le=5.0,
     )
     pan_speed_m_s: float = Field(
-        ..., description='Panning speed at the middle distance.', ge=0.1, le=500.0
+        ...,
+        description='Top key panning speed at the start distance (faster when zoomed out).',
+        ge=0.1,
+        le=500.0,
+    )
+    key_turn_deg_s: float = Field(
+        ...,
+        description='Top turning speed of the turn keys (Q/E) in degrees per second.',
+        ge=1.0,
+        le=720.0,
+    )
+    key_ease_in_s: float = Field(
+        ...,
+        description='Time constant of the key moves speeding up (seconds; about 63 % of the top speed after this time, no overshoot).',
+        ge=0.01,
+        le=5.0,
+    )
+    key_ease_out_s: float = Field(
+        ...,
+        description='Time constant of the key moves slowing down after the key is let go (seconds).',
+        ge=0.01,
+        le=5.0,
     )
     smoothing: float = Field(
         ...,
@@ -69,6 +113,18 @@ class LookCamera(BaseModel):
         description='How close (metres, on the ground) a click must land to a figure to pick it.',
         ge=0.1,
         le=20.0,
+    )
+    click_max_px: float = Field(
+        ...,
+        description='A press that moves less than this many pixels stays a click (select a figure, place a gift); farther is a camera drag.',
+        ge=0.0,
+        le=100.0,
+    )
+    click_max_ms: float = Field(
+        ...,
+        description='A press held longer than this (milliseconds) is no click.',
+        ge=50.0,
+        le=5000.0,
     )
     near_m: float = Field(
         ..., description='Near clipping distance of the camera.', ge=0.01, le=10.0
