@@ -8,7 +8,8 @@ namespace GlassWorld.Simulation.Map;
 /// its steepest lower neighbour on the filled surface (D8; on flats and in hollows along the flood path
 /// towards the spill point), and the flow accumulation sums the rain of each cell and the springs
 /// downstream. Springs rise where the groundwater table meets the ground at the foot of a slope or rock
-/// edge. A stream runs where the accumulation reaches the data threshold; its width, depth and bank
+/// edge. A stream runs where the accumulation reaches the data threshold and the water has visibly come
+/// out of the ground - a spring, a pond's overflow or the foot of a slope (TL #19990); its width, depth and bank
 /// height grow with the accumulation (data curve), tributaries merge where their paths meet. A fed hollow
 /// becomes a pond or lake filled to its spill level; its outlet stream runs on to the sea. Pits too small
 /// for a pond are filled up. The stream bed is cut into the ground, always falling downstream.
@@ -180,15 +181,17 @@ public static partial class WorldGenerator
         }
 
         var original = (int[])heights.Clone();
+        var running = Running(settings, heights, water, features, accumulation, down, order, springs, w, d);
 
-        // 4. Streams where the accumulation is large enough, bed cut into the ground and falling
-        // downstream (cells come after the cell they drain to, so that one is already cut).
+        // 4. Streams where the accumulation is large enough and the water has visibly come out of the
+        // ground, bed cut into the ground and falling downstream (cells come after the cell they drain to,
+        // so that one is already cut).
         var widthCm = new int[n];
         var channelDepth = new int[n];
         var centre = new bool[n];
         foreach (var c in order)
         {
-            if (water[c] != WaterKind.None || accumulation[c] < settings.StreamMinAccumulation || down[c] < 0)
+            if (!running[c])
             {
                 continue;
             }
@@ -256,6 +259,85 @@ public static partial class WorldGenerator
         }
 
         return new Drainage(accumulation, widthCm, features);
+    }
+
+    /// <summary>
+    /// The cells that carry a stream (TL #19990: no stream out of nowhere). A cell whose accumulation
+    /// reaches the threshold runs if water runs into it from a running cell above, or if it is a visible
+    /// source: a spring, beside a pond or lake (its overflow), or - with the preset's stream heads - at the
+    /// foot of a slope or rock where the ground within the radius rises by the head relief; such a head
+    /// becomes a spring of its own (added to <paramref name="springs"/>). Above the first source the water
+    /// seeps through the ground. Without stream heads every cell over the threshold runs. Upstream cells
+    /// come first (the flood order backwards), so a cell knows whether a running cell feeds it.
+    /// </summary>
+    private static bool[] Running(WorldPresetWater settings, int[] heights, WaterKind[] water, WaterFeature[] features, int[] accumulation, sbyte[] down, List<int> order, List<int> springs, int w, int d)
+    {
+        var n = w * d;
+        var running = new bool[n];
+        var fed = new bool[n];
+        var spring = new bool[n];
+        foreach (var s in springs)
+        {
+            spring[s] = true;
+        }
+
+        var heads = settings.StreamHeads;
+        for (var k = order.Count - 1; k >= 0; k--)
+        {
+            var c = order[k];
+            if (water[c] != WaterKind.None || accumulation[c] < settings.StreamMinAccumulation || down[c] < 0)
+            {
+                continue;
+            }
+
+            if (heads is not null && !fed[c] && !spring[c] && !BesideLake(features, c, w, d))
+            {
+                if (Rise(heights, c, heads.RadiusCells, w, d) < heads.Relief)
+                {
+                    continue;
+                }
+
+                springs.Add(c);
+                spring[c] = true;
+            }
+
+            running[c] = true;
+            fed[Step(c, down[c], w)] = true;
+        }
+
+        return running;
+    }
+
+    /// <summary>Whether a pond or lake cell lies among the 8 neighbours.</summary>
+    private static bool BesideLake(WaterFeature[] features, int c, int w, int d)
+    {
+        int cx = c % w, cz = c / w;
+        foreach (var (dx, dz) in Neighbours8)
+        {
+            int nx = cx + dx, nz = cz + dz;
+            if (nx >= 0 && nz >= 0 && nx < w && nz < d && (features[(nz * w) + nx] & WaterFeature.Lake) != 0)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>How far the highest ground within the square radius rises above the cell (height units).</summary>
+    private static int Rise(int[] heights, int c, int radius, int w, int d)
+    {
+        int cx = c % w, cz = c / w;
+        var top = heights[c];
+        for (var z = Math.Max(0, cz - radius); z <= Math.Min(d - 1, cz + radius); z++)
+        {
+            for (var x = Math.Max(0, cx - radius); x <= Math.Min(w - 1, cx + radius); x++)
+            {
+                top = Math.Max(top, heights[(z * w) + x]);
+            }
+        }
+
+        return top - heights[c];
     }
 
     /// <summary>

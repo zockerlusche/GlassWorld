@@ -502,6 +502,12 @@ public partial class Main
         GD.Print($"UI_SHOT {path} {GetViewport().GetTexture().GetImage().SavePng(path)}");
     }
 
+    /// <summary>Smoke run only: visible controls that would take the mouse at <paramref name="point"/> (names, comma-separated).</summary>
+    private string MouseCatchersAt(Vector2 point) =>
+        string.Join(", ", GetTree().Root.FindChildren("*", nameof(Control), true, false).OfType<Control>()
+            .Where(c => c.IsVisibleInTree() && c.MouseFilter != Control.MouseFilterEnum.Ignore && c.GetGlobalRect().HasPoint(point))
+            .Select(c => c.GetPath().ToString()));
+
     /// <summary>Smoke run only: the UI standard data is valid and a sample window fits every reference case.</summary>
     private async Task CheckUiAsync(UiStyle? style)
     {
@@ -510,6 +516,15 @@ public partial class Main
             if (style is null)
             {
                 GD.PushError("UI_FAIL ui data not loaded");
+                return;
+            }
+
+            // Open ground takes the mouse (review GW1 #158): the wheel zooms only where no control is hovered, so
+            // nothing visible may catch the mouse in the middle of the picture.
+            var catchers = MouseCatchersAt(GetViewport().GetVisibleRect().GetCenter());
+            if (catchers.Length > 0)
+            {
+                GD.PushError($"UI_FAIL controls catch the mouse over open ground: {catchers}");
                 return;
             }
 
@@ -556,6 +571,12 @@ public partial class Main
             else
             {
                 GD.Print("CHRONICLE_OK");
+            }
+
+            var bubbles = _screen is null ? "game screen missing" : await _screen.CheckBubblesAsync();
+            if (bubbles.Length > 0)
+            {
+                problems = [.. problems, "bubbles: " + bubbles];
             }
 
             var talk = _screen is null ? "game screen missing" : await _screen.CheckTalkAsync();

@@ -224,6 +224,19 @@ public partial class Main : Node3D
     /// <summary>Leaves the menu for a world; if the world cannot be built, the menu stays with a message.</summary>
     private void Enter(Action<WorldPresenter> begin, WorldMeta meta, bool created = false)
     {
+        // Loading takes a moment and blocks the frame: say so first, then load once that has been drawn (W1688).
+        if (_menu is null)
+        {
+            EnterNow(begin, meta, created);
+            return;
+        }
+
+        _menu.ShowLoading(meta.Name);
+        GetTree().CreateTimer(0.05).Timeout += () => EnterNow(begin, meta, created);
+    }
+
+    private void EnterNow(Action<WorldPresenter> begin, WorldMeta meta, bool created)
+    {
         try
         {
             StartWorld(begin, meta);
@@ -246,6 +259,7 @@ public partial class Main : Node3D
                 message.Setup("ui.worlds.title", _style);
                 message.Content.AddChild(new Label { Text = "msg.load.failed", AutowrapMode = TextServer.AutowrapMode.WordSmart });
                 message.AddAction("ui.common.close").Pressed += message.Close;
+                _menu.Rebuild();
                 _menu.ShowWindow(message);
             }
         }

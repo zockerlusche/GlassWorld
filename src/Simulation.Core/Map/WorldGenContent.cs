@@ -92,6 +92,12 @@ public sealed class WorldGenContent
                     problems.Add($"{p}: drink spot object type '{spot.ObjectType}' not in the catalogue");
                 }
 
+                // A hollow needs its depression test; the test needs its radius (TL #19990).
+                if ((spot.At == WorldPresetDrinkSpotAt.Hollow && spot.MinHollowDepth is null) || (spot.MinHollowDepth is null) != (spot.HollowRadiusCells is null))
+                {
+                    problems.Add($"{p}: drink spot '{spot.At}' needs min_hollow_depth and hollow_radius_cells together (hollow: required)");
+                }
+
                 // Regrowth belongs to the type: drink spots and spawn rules of one type must agree.
                 var others = spawns.Spawns.Where(r => r.ObjectType == spot.ObjectType).Select(r => r.RegrowHours)
                     .Concat(preset.Water.DrinkSpots.Where(o => o.ObjectType == spot.ObjectType).Select(o => o.RegrowHours));

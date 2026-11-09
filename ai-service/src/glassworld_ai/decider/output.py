@@ -28,19 +28,23 @@ class ModelChoice:
     option_id: str
     expression: str | None
     thought: str | None
+    name_text: str | None = None  # B9 R11, prompt v5: only with the option name_person
+    gossip: dict[str, Any] | None = None  # B9 R6, prompt v5: only with the option gossip
 
 
 class InvalidModelOutputError(Exception):
     """The model answer does not satisfy the output schema."""
 
 
-def output_schema(option_ids: list[str], expression_ids: list[str]) -> dict[str, Any]:
+def output_schema(
+    option_ids: list[str], expression_ids: list[str], b9: bool = False
+) -> dict[str, Any]:
     expression: dict[str, Any] = (
         {"anyOf": [{"type": "string", "enum": expression_ids}, {"type": "null"}]}
         if expression_ids
         else {"type": "null"}
     )
-    return {
+    schema: dict[str, Any] = {
         "type": "object",
         "additionalProperties": False,
         "required": ["rationale", "option_id", "expression", "thought"],
@@ -56,6 +60,28 @@ def output_schema(option_ids: list[str], expression_ids: list[str]) -> dict[str,
             },
         },
     }
+    if b9:
+        # Prompt v5 (B9): name for name_person, a belief about a third person for gossip.
+        schema["required"] += ["name_text", "gossip"]
+        schema["properties"]["name_text"] = {
+            "anyOf": [{"type": "string", "minLength": 2, "maxLength": 16}, {"type": "null"}]
+        }
+        schema["properties"]["gossip"] = {
+            "anyOf": [
+                {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["about", "property", "value"],
+                    "properties": {
+                        "about": {"type": "string", "maxLength": 64},
+                        "property": {"type": "string", "maxLength": 64},
+                        "value": {"type": "boolean"},
+                    },
+                },
+                {"type": "null"},
+            ]
+        }
+    return schema
 
 
 def parse_choice(
@@ -84,4 +110,16 @@ def parse_choice(
         option_id=str(values["option_id"]),
         expression=values["expression"],
         thought=thought.strip() if isinstance(thought, str) and thought.strip() else None,
+        name_text=values.get("name_text") if isinstance(values.get("name_text"), str) else None,
+        gossip=values.get("gossip") if isinstance(values.get("gossip"), dict) else None,
     )
+
+
+def readable_name(text: str | None) -> str | None:
+    """B9 R11: one word in Latin letters, first letter upper case ("tavi" -> "Tavi"), or None."""
+    if not text:
+        return None
+    word = text.strip()
+    if not word.isascii() or not word.isalpha() or not 2 <= len(word) <= 16:
+        return None
+    return word[0].upper() + word[1:].lower()

@@ -1985,6 +1985,18 @@
     {
       "key": "ui.settings.volume.off_tip",
       "text": "Off for now - these sounds are being remade."
+    },
+    {
+      "key": "ui.menu.loading_title",
+      "text": "One moment"
+    },
+    {
+      "key": "ui.menu.loading",
+      "text": "Loading “{name}” …"
+    },
+    {
+      "key": "ui.chronicle.export_tip",
+      "text": "Saves the chronicle as a web page (.html) and a text file (.txt) in the game folder under \"chronicle\" - to read or pass on."
     }
   ]
 }

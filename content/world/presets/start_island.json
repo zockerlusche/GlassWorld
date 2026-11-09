@@ -2,7 +2,7 @@
   "contract_version": "0.2",
   "id": "start_island",
   "description": "Placeholder start island: beach, meadow, forest, hills with rock outcrops, streams and ponds from the terrain's own drainage, a swamp.",
-  "generator_version": 2,
+  "generator_version": 3,
   "generation_budget_ms": 10000,
   "grid": {
     "cell_size_cm": 100,
@@ -13,8 +13,8 @@
   },
   "terrain": {
     "sea_level": 20,
-    "max_height": 180,
-    "coast_falloff_permille": 240,
+    "max_height": 230,
+    "coast_falloff_permille": 300,
     "walkable_slope": 6,
     "cliff_min_drop": 12,
     "cliff_min_run_cells": 6,
@@ -26,28 +26,41 @@
       },
       {
         "wavelength_cells": 40,
-        "amplitude": 50,
+        "amplitude": 65,
         "ridged": true
       },
       {
         "wavelength_cells": 24,
-        "amplitude": 38,
+        "amplitude": 80,
         "signed": true
       },
       {
         "wavelength_cells": 12,
-        "amplitude": 15,
+        "amplitude": 30,
         "signed": true
       },
       {
         "wavelength_cells": 6,
-        "amplitude": 5,
+        "amplitude": 6,
         "signed": true
       }
     ],
     "rocks": {
       "min": 6,
       "max": 14
+    },
+    "coast_cliffs": {
+      "falloff_permille": 170,
+      "noise_wavelength_cells": 48,
+      "threshold_permille": 600,
+      "blend_permille": 120
+    },
+    "rock_slopes": {
+      "walls_kept": 4,
+      "tread_relief_permille": 550,
+      "talus": 10,
+      "share_permille": 250,
+      "rounds": 48
     }
   },
   "water": {
@@ -61,6 +74,10 @@
     "swamp_min_moisture_permille": 750,
     "runoff_per_cell": 1,
     "stream_min_accumulation": 500,
+    "stream_heads": {
+      "relief": 14,
+      "radius_cells": 4
+    },
     "channel": [
       {
         "accumulation": 500,
@@ -102,15 +119,15 @@
         "at": "spring",
         "object_type": "spring_water",
         "spacing_cells": 1,
-        "max_total": 30,
+        "max_total": 40,
         "min_stream_distance_cells": 0,
         "regrow_hours": 6
       },
       {
         "at": "lake_edge",
         "object_type": "spring_water",
-        "spacing_cells": 10,
-        "max_total": 8,
+        "spacing_cells": 14,
+        "max_total": 6,
         "min_stream_distance_cells": 3,
         "regrow_hours": 6
       },
@@ -118,8 +135,18 @@
         "at": "stream_bank",
         "object_type": "spring_water",
         "spacing_cells": 8,
-        "max_total": 24,
+        "max_total": 0,
         "min_stream_distance_cells": 2,
+        "regrow_hours": 6
+      },
+      {
+        "at": "hollow",
+        "object_type": "spring_water",
+        "spacing_cells": 16,
+        "max_total": 6,
+        "min_stream_distance_cells": 2,
+        "min_hollow_depth": 3,
+        "hollow_radius_cells": 3,
         "regrow_hours": 6
       }
     ]

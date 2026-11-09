@@ -1985,6 +1985,18 @@
     {
       "key": "ui.settings.volume.off_tip",
       "text": "Gerade aus – diese Klänge werden neu gemacht."
+    },
+    {
+      "key": "ui.menu.loading_title",
+      "text": "Einen Moment"
+    },
+    {
+      "key": "ui.menu.loading",
+      "text": "„{name}“ wird geladen …"
+    },
+    {
+      "key": "ui.chronicle.export_tip",
+      "text": "Speichert die Chronik als Webseite (.html) und als Textdatei (.txt) im Spielordner unter „chronicle“ – zum Lesen oder Weitergeben."
     }
   ]
 }
