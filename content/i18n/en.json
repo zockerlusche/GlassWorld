@@ -1605,6 +1605,22 @@
     {
       "key": "ui.setup.model_language",
       "text": "Language model: how the inhabitants think, talk and ask"
+    },
+    {
+      "key": "ui.top.menu",
+      "text": "Menu"
+    },
+    {
+      "key": "ui.top.menu_tooltip",
+      "text": "Save, load, settings, quit (Esc)"
+    },
+    {
+      "key": "msg.hint.autosaved",
+      "text": "Saved automatically."
+    },
+    {
+      "key": "msg.hint.saved",
+      "text": "Saved."
     }
   ]
 }

@@ -1,6 +1,6 @@
 {
   "contract_version": "0.2",
-  "defaults_version": 2,
+  "defaults_version": 3,
   "buses": [
     {
       "id": "master",
@@ -12,7 +12,7 @@
     },
     {
       "id": "music",
-      "volume_db": -14,
+      "volume_db": -60,
       "max_voices": 1,
       "full_volume_m": 0,
       "silent_m": 0,

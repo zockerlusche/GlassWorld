@@ -101,6 +101,11 @@ public partial class GameScreen : CanvasLayer
         // The value is filled in code (no translation), the tooltip is a key: translate it (review #76).
         _favor = new Label { AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled, TooltipText = "ui.favor.tooltip", TooltipAutoTranslateMode = Node.AutoTranslateModeEnum.Always, MouseFilter = Control.MouseFilterEnum.Stop };
         _topBar.GetChild(0).AddChild(_favor);
+
+        // Saving was not found in the test (F5287): a visible menu button, the tooltip names Esc.
+        var menu = new Button { Text = "ui.top.menu", TooltipText = "ui.top.menu_tooltip", Name = "MenuButton" };
+        menu.Pressed += () => PauseRequested?.Invoke();
+        _topBar.GetChild(0).AddChild(menu);
         _root.AddChild(_sideBar);
         foreach (var panel in _sideBar.Panels)
         {

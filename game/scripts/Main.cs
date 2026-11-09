@@ -246,6 +246,7 @@ public partial class Main : Node3D
             WorldAudio.ApplyVolumes(_mix, _settings.BusVolumesDb);
         }
 
+        _world.AutoSaved += () => _screen?.ShowHint(new ToastMessage("msg.hint.autosaved", new Dictionary<string, string>(), null));
         _world.Saved += _ =>
         {
             if (_meta is not null && _library is not null)
@@ -289,7 +290,13 @@ public partial class Main : Node3D
                     _world.Speed = _speedBeforePause;
                 }
             },
-            Save: () => TrySave(),
+            Save: () =>
+            {
+                if (TrySave())
+                {
+                    _screen?.ShowHint(new ToastMessage("msg.hint.saved", new Dictionary<string, string>(), null));
+                }
+            },
             Settings: () => OpenSettings(window => _screen?.ShowWindow(window)),
             MainMenu: () =>
             {

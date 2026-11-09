@@ -1605,6 +1605,22 @@
     {
       "key": "ui.setup.model_language",
       "text": "Sprachmodell: Denken, Sprechen und Fragen der Bewohner"
+    },
+    {
+      "key": "ui.top.menu",
+      "text": "Menü"
+    },
+    {
+      "key": "ui.top.menu_tooltip",
+      "text": "Speichern, Laden, Einstellungen, Beenden (Esc)"
+    },
+    {
+      "key": "msg.hint.autosaved",
+      "text": "Automatisch gespeichert."
+    },
+    {
+      "key": "msg.hint.saved",
+      "text": "Gespeichert."
     }
   ]
 }
