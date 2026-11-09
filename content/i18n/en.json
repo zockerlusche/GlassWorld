@@ -1605,6 +1605,34 @@
     {
       "key": "ui.setup.model_language",
       "text": "Language model: how the inhabitants think, talk and ask"
+    },
+    {
+      "key": "ui.chronicle.earlier",
+      "text": "◀ Earlier"
+    },
+    {
+      "key": "ui.chronicle.later",
+      "text": "Later ▶"
+    },
+    {
+      "key": "ui.chronicle.season_entry",
+      "text": "{season}, year {year} ({count})"
+    },
+    {
+      "key": "ui.chronicle.jump",
+      "text": "Go to the inhabitant"
+    },
+    {
+      "key": "ui.chronicle.export",
+      "text": "Save as file"
+    },
+    {
+      "key": "msg.hint.chronicle_exported",
+      "text": "The chronicle is saved as a web page and a text file in {folder}."
+    },
+    {
+      "key": "msg.hint.chronicle_export_failed",
+      "text": "The chronicle could not be saved just now."
     }
   ]
 }

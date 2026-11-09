@@ -485,6 +485,16 @@ public partial class Main
                 GD.Print("GIFT_OK");
             }
 
+            var chronicle = _screen is null ? "game screen missing" : await _screen.CheckChronicleAsync();
+            if (chronicle.Length > 0)
+            {
+                problems = [.. problems, "chronicle: " + chronicle];
+            }
+            else
+            {
+                GD.Print("CHRONICLE_OK");
+            }
+
             var talk = _screen is null ? "game screen missing" : await _screen.CheckTalkAsync();
             if (talk.Length > 0)
             {
