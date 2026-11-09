@@ -1607,6 +1607,22 @@
       "text": "Language model: how the inhabitants think, talk and ask"
     },
     {
+      "key": "ui.top.menu",
+      "text": "Menu"
+    },
+    {
+      "key": "ui.top.menu_tooltip",
+      "text": "Save, load, settings, quit (Esc)"
+    },
+    {
+      "key": "msg.hint.autosaved",
+      "text": "Saved automatically. The game saves by itself every game day."
+    },
+    {
+      "key": "msg.hint.saved",
+      "text": "Saved."
+    },
+    {
       "key": "ui.chronicle.earlier",
       "text": "◀ Earlier"
     },
