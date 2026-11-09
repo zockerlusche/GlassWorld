@@ -33,6 +33,7 @@ public partial class GameScreen : CanvasLayer
     private readonly List<(Button Button, TimeChoice Choice)> _timeButtons = [];
     private readonly Dictionary<string, ProgressBar> _cardBars = new(StringComparer.Ordinal);
     private Label? _cardAction;
+    private Dictionary<string, string>? _activities;
     private Label? _cardQuestions;
     private LineEdit? _talkInput;
     private string _cardShape = string.Empty;
@@ -87,7 +88,7 @@ public partial class GameScreen : CanvasLayer
         _inhabitants.CustomMinimumSize = new Vector2(0, style.Tokens.Window.TableMinHeight);
         _questions.CustomMinimumSize = new Vector2(0, style.Tokens.Window.TableMinHeight);
         _inhabitants.Setup(
-            [new GwColumn("ui.inhabitants.column.name", false), new GwColumn("ui.inhabitants.column.will_to_live", true), new GwColumn("ui.inhabitants.column.questions", true)],
+            [new GwColumn("ui.inhabitants.column.name", false), new GwColumn("ui.inhabitants.column.activity", false), new GwColumn("ui.inhabitants.column.will_to_live", true), new GwColumn("ui.inhabitants.column.questions", true)],
             "ui.inhabitants.empty");
         _inhabitants.RowSelected += ShowInhabitant;
         _questions.Setup([new GwColumn("ui.inhabitants.column.name", false), new GwColumn("ui.questions.column.count", true)], "ui.questions.empty");
@@ -1153,7 +1154,9 @@ public partial class GameScreen : CanvasLayer
         RefreshMail();
 
         var rows = _feed.Inhabitants();
-        _inhabitants.SetRows([.. rows.Select(r => new GwRow(r.Id, [DisplayName(r), Number(r.WillToLivePercent), Number(r.OpenQuestions)], [r.Number, r.WillToLivePercent, r.OpenQuestions]))]);
+        _activities = Activities(rows);
+        // The activity column is a text column: GwTable sorts it by its text in the game's language (the 0 is never read).
+        _inhabitants.SetRows([.. rows.Select(r => new GwRow(r.Id, [DisplayName(r), _activities[r.Id], Number(r.WillToLivePercent), Number(r.OpenQuestions)], [r.Number, 0, r.WillToLivePercent, r.OpenQuestions]))]);
         _questions.SetRows([.. _feed.OpenQuestions().Select(q => (Row: rows.First(r => r.Id == q.InhabitantId), q.Count)).Select(x => new GwRow(x.Row.Id, [DisplayName(x.Row), Number(x.Count)], [x.Row.Number, x.Count]))]);
 
         var clock = _feed.Clock();
@@ -1469,7 +1472,7 @@ public partial class GameScreen : CanvasLayer
             _talkInput.PlaceholderText = Tr("ui.card.talk_hint");
         }
 
-        var action = card.Row.ActionKey ?? "ui.card.idle";
+        var action = (_activities ?? Activities(_feed!.Inhabitants())).GetValueOrDefault(card.Row.Id) ?? Tr(InhabitantActivity.StandingKey);
         if (_cardAction is not null && _cardAction.Text != action)
         {
             _cardAction.Text = action;
@@ -1584,6 +1587,26 @@ public partial class GameScreen : CanvasLayer
                 return (f.Id, (double)p.X, (double)p.Y);
             });
         return ScreenModel.Pick(figures, screen.X, screen.Y, _style.Tokens.Window.PickRadiusPx);
+    }
+
+    /// <summary>
+    /// What each inhabitant does, as a readable line (W1687: never a bare question mark); lookups are built
+    /// once per refresh and the names come from <see cref="DisplayName"/>.
+    /// </summary>
+    private Dictionary<string, string> Activities(IReadOnlyList<InhabitantRow> rows)
+    {
+        if (_feed?.Snapshot is not { } snapshot)
+        {
+            return [];
+        }
+
+        var index = new SnapshotIndex(snapshot);
+        var byId = rows.ToDictionary(r => r.Id, StringComparer.Ordinal);
+        string NameOf(string id) => byId.TryGetValue(id, out var row) ? DisplayName(row) : TextFill.Fill(Tr("ui.inhabitant.unnamed"), new Dictionary<string, string> { ["number"] = Number(WorldFeed.NumberOf(id)) });
+        return rows.ToDictionary(
+            r => r.Id,
+            r => index.Inhabitants.TryGetValue(r.Id, out var inhabitant) ? InhabitantActivity.Describe(inhabitant, index, key => Tr(key), NameOf) : Tr(InhabitantActivity.StandingKey),
+            StringComparer.Ordinal);
     }
 
     private string DisplayName(InhabitantRow row) => TextFill.Fill(Tr("ui.inhabitant.unnamed"), ScreenModel.NameArgs(row));

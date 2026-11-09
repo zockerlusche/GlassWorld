@@ -1753,6 +1753,150 @@
     {
       "key": "msg.hint.look_thought",
       "text": "{name} is thinking about something."
+    },
+    {
+      "key": "ui.inhabitants.column.activity",
+      "text": "Doing"
+    },
+    {
+      "key": "ui.activity.standing",
+      "text": "is standing"
+    },
+    {
+      "key": "ui.activity.thinking",
+      "text": "is thinking"
+    },
+    {
+      "key": "ui.activity.idle",
+      "text": "is resting"
+    },
+    {
+      "key": "ui.activity.wander",
+      "text": "is wandering about"
+    },
+    {
+      "key": "ui.activity.move_to",
+      "text": "is walking"
+    },
+    {
+      "key": "ui.activity.inspect",
+      "text": "is examining something"
+    },
+    {
+      "key": "ui.activity.inspect.object",
+      "text": "is examining: {thing}"
+    },
+    {
+      "key": "ui.activity.pick_up",
+      "text": "is picking something up"
+    },
+    {
+      "key": "ui.activity.pick_up.object",
+      "text": "is picking up: {thing}"
+    },
+    {
+      "key": "ui.activity.drop",
+      "text": "is putting something down"
+    },
+    {
+      "key": "ui.activity.eat",
+      "text": "is eating"
+    },
+    {
+      "key": "ui.activity.eat.object",
+      "text": "is eating: {thing}"
+    },
+    {
+      "key": "ui.activity.drink",
+      "text": "is drinking"
+    },
+    {
+      "key": "ui.activity.drink.object",
+      "text": "is drinking: {thing}"
+    },
+    {
+      "key": "ui.activity.sleep",
+      "text": "is sleeping"
+    },
+    {
+      "key": "ui.activity.approach",
+      "text": "is approaching someone"
+    },
+    {
+      "key": "ui.activity.approach.inhabitant",
+      "text": "is approaching {name}"
+    },
+    {
+      "key": "ui.activity.talk_to",
+      "text": "is talking to someone"
+    },
+    {
+      "key": "ui.activity.talk_to.inhabitant",
+      "text": "is talking with {name}"
+    },
+    {
+      "key": "ui.activity.combine",
+      "text": "is combining things"
+    },
+    {
+      "key": "ui.activity.combine.object",
+      "text": "is combining: {thing}"
+    },
+    {
+      "key": "ui.activity.warn",
+      "text": "is warning someone"
+    },
+    {
+      "key": "ui.activity.warn.inhabitant",
+      "text": "is warning {name}"
+    },
+    {
+      "key": "ui.activity.warn.inhabitant_topic",
+      "text": "is warning {name} about: {thing}"
+    },
+    {
+      "key": "ui.activity.show",
+      "text": "is showing something"
+    },
+    {
+      "key": "ui.activity.show.object",
+      "text": "is showing: {thing}"
+    },
+    {
+      "key": "ui.activity.show.inhabitant",
+      "text": "is showing {name} something"
+    },
+    {
+      "key": "ui.activity.show.inhabitant_topic",
+      "text": "is showing {name}: {thing}"
+    },
+    {
+      "key": "ui.activity.teach",
+      "text": "is teaching something"
+    },
+    {
+      "key": "ui.activity.teach.inhabitant",
+      "text": "is teaching {name} something"
+    },
+    {
+      "key": "ui.activity.teach.inhabitant_topic",
+      "text": "is teaching {name} about: {thing}"
+    },
+    {
+      "key": "ui.activity.use",
+      "text": "is using something"
+    },
+    {
+      "key": "ui.activity.use.object",
+      "text": "is using: {thing}"
+    },
+    {
+      "key": "ui.activity.build_step",
+      "text": "is building"
+    },
+    {
+      "key": "ui.activity.build_step.object",
+      "text": "is building with: {thing}"
     }
   ]
 }

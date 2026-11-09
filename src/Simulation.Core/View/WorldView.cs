@@ -41,6 +41,15 @@ public sealed record InhabitantSnapshot(
     public string? Gait { get; init; }
 
     /// <summary>
+    /// What an action aimed at another inhabitant is about (object type id of the belief it would pass on),
+    /// null otherwise; the inhabitant list says "shows Toma the spring water" with it (W1687).
+    /// </summary>
+    public string? Topic { get; init; }
+
+    /// <summary>Id of the inhabitant this one turns its whole body to (B2528, W1691), or null; see InhabitantsSystem.FacingOf.</summary>
+    public string? Facing { get; init; }
+
+    /// <summary>
     /// The open questions that still puzzle the inhabitant (TL #19921): after it has looked at a thing, a
     /// question about it leaves only the effect open and no longer counts for the question mark.
     /// </summary>
@@ -89,6 +98,8 @@ public static class WorldView
             {
                 Appearance = i.Appearance,
                 Gait = inhabitants.GaitOf(i),
+                Topic = inhabitants.TopicOf(i),
+                Facing = inhabitants.FacingOf(i),
                 PuzzlingQuestionIds = decisions.PuzzlingQuestionIds(i),
             })],
             [.. objects.All],

@@ -65,6 +65,14 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("clip")]
         public string Clip { get; set; } = default!;
 
+        /// <summary>
+        /// Only for kind action: this mapping applies when the action is aimed at this kind of target (inhabitant: another inhabitant; object: a thing of the world). A mapping without target applies otherwise. Lets an action bend down only for a thing on the ground, never towards another inhabitant (Marcel W1687).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("target")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<AnimationMappingTarget>))]
+        public AnimationMappingTarget? Target { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -233,6 +241,20 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("special")]
         Special = 3,
+
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public enum AnimationMappingTarget
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("inhabitant")]
+        Inhabitant = 0,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("object")]
+        Object = 1,
 
 
     }

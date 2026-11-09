@@ -307,7 +307,7 @@ public partial class IslandScene : Node3D
         {
             if (_figures.TryGetValue(inhabitant.Id, out var figure))
             {
-                figure.Apply(inhabitant, snapshot.Time.Tick, ticks, place);
+                figure.Apply(inhabitant, snapshot.Time.Tick, ticks, place, snapshot.Inhabitants);
             }
         }
     }

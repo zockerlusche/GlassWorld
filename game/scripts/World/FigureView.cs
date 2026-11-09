@@ -129,9 +129,10 @@ public partial class FigureView : Node3D
     /// <summary>
     /// Takes the inhabitant's state after <paramref name="ticks"/> core ticks (now at <paramref name="tick"/>):
     /// the figure walks evenly to the new position over the real time of those ticks, or with
-    /// <paramref name="place"/> stands there at once (after a warm-up).
+    /// <paramref name="place"/> stands there at once (after a warm-up). <paramref name="all"/> (the snapshot's
+    /// inhabitants) lets the clip follow the kind of target and turns two inhabitants of one action to each other.
     /// </summary>
-    public void Apply(InhabitantSnapshot inhabitant, long tick, int ticks, bool place = false)
+    public void Apply(InhabitantSnapshot inhabitant, long tick, int ticks, bool place = false, IReadOnlyList<InhabitantSnapshot>? all = null)
     {
         ArgumentNullException.ThrowIfNull(inhabitant);
         var figures = _shared.Figures;
@@ -150,7 +151,13 @@ public partial class FigureView : Node3D
         AnimationChooser.CoreValues(_shared.Values, inhabitant.Needs, inhabitant.Moods, inhabitant.Traits);
         var moving = !place && _motion.StepM >= figures.WalkMinStepM;
         var slot = AnimationChooser.IdleSlot(InhabitantId, tick, figures.IdleSlotTicks, figures.IdleSlotSpread);
-        var clip = chooser.ForInhabitant(inhabitant.Action, moving, InhabitantId, slot, _shared.Values);
+        if (all is not null && InhabitantActivity.FacePoint(inhabitant, all) is { } face)
+        {
+            _motion.Face(face.X, face.Z, figures.WalkMinStepM);
+        }
+
+        var target = all is null ? null : InhabitantActivity.TargetKind(inhabitant, all);
+        var clip = chooser.ForInhabitant(inhabitant.Action, moving, InhabitantId, slot, _shared.Values, target);
         _thinking.Visible = ThinkingDots.Shown(inhabitant.OpenQuestionIds.Count);
         if (clip.Missing is { } missing)
         {
