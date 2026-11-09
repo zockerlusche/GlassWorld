@@ -175,9 +175,10 @@ public partial class WorldPresenter : Node3D
         _host = host;
         SavePath = savePath;
 
-        // Talking (B6 R13): the live service when it runs, otherwise the deterministic mock; with a
-        // service that failed to start nothing answers and the core gives a calm "no answer" (R16).
-        host.Conversation.Port = _conversationPort is not null ? _conversationPort : _service is null && !_aiFailed ? new Simulation.Player.MockConversationPort() : null;
+        // Talking (B6 R13): only the live service answers. Without it (routine mode, or the service
+        // failed to start) nothing answers and the core gives the calm "no answer" with the favour back
+        // (R16, review GW1 #131) - never made-up mock words in front of the player.
+        host.Conversation.Port = _conversationPort;
         if (savePath is not null)
         {
             // Autosave every game day (B2487). Like AutoSaver, but a failure must not escape into
@@ -319,12 +320,10 @@ public partial class WorldPresenter : Node3D
         {
             // B3 A3: without the service the world runs on in routine mode; questions simply stay open.
             GD.PushWarning($"AI service not started ({ex.Message}); inhabitants live in routine mode.");
-            _aiFailed = true;
             return new SilentPort();
         }
     }
 
-    private bool _aiFailed;
     private int _focusGroup = 1;
     private double _focusUntil;
     private bool _groundReady;

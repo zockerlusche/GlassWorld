@@ -364,6 +364,54 @@ public partial class GameScreen : CanvasLayer
     /// Smoke (A1340): a gift placed through the screen is accepted by the core and lies at the spot after
     /// the next tick; the favour shows as text, not as a key.
     /// </summary>
+    /// <summary>
+    /// Smoke run only (review GW1 #131): the talk field of a card takes a sentence, it costs favour and an
+    /// answer from the mock comes back as a reaction event; a refused sentence costs nothing.
+    /// </summary>
+    public async Task<string> CheckTalkAsync()
+    {
+        if (_presenter?.Host is not { } host || _feed?.Inhabitants() is not { Count: > 0 } rows)
+        {
+            return "no world";
+        }
+
+        var id = rows[0].Id;
+        OpenCard(id);
+        await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        if (_talkInput is null)
+        {
+            return "card has no talk field";
+        }
+
+        host.Conversation.Port ??= new Simulation.Player.MockConversationPort();
+        var favor = host.Player.Favor;
+        if (Say(id, "Ich will dich töten"))
+        {
+            return "a refused sentence was taken";
+        }
+
+        _talkInput.Text = Tr("ui.card.talk_send"); // any harmless sentence; a key keeps the code free of visible text
+        _talkInput.EmitSignal(LineEdit.SignalName.TextSubmitted, _talkInput.Text);
+        if (_talkInput.Text.Length > 0)
+        {
+            return "the field did not take the sentence";
+        }
+
+        var seen = host.Inhabitants.EventsSince(0).Count;
+        for (var i = 0; i < 3; i++)
+        {
+            host.World.Step();
+        }
+
+        var reactions = host.Inhabitants.EventsSince(0).Skip(seen).Select(e => e.Event.Kind).ToHashSet(StringComparer.Ordinal);
+        if (!reactions.Contains("conversation_started") || !reactions.Overlaps(["said", "gestured", "declined", "not_understood"]))
+        {
+            return "no reaction (" + string.Join(",", reactions) + ")";
+        }
+
+        return host.Player.Favor < favor ? string.Empty : "the sentence cost no favour";
+    }
+
     public async Task<string> CheckGiftAsync()
     {
         if (_presenter?.Host is not { } host || _favor is null)
@@ -1180,6 +1228,11 @@ public partial class GameScreen : CanvasLayer
             {
                 bar.Value = percent;
             }
+        }
+
+        if (_talkInput is not null && _talkInput.PlaceholderText != Tr("ui.card.talk_hint"))
+        {
+            _talkInput.PlaceholderText = Tr("ui.card.talk_hint");
         }
 
         var action = card.Row.ActionKey ?? "ui.card.idle";

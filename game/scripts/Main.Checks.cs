@@ -383,6 +383,7 @@ public partial class Main
         // Talking (A1342): the card with its talk field, a sentence and the inhabitant's first reaction
         // (at the start it understands little: a gesture or a question mark, D333).
         var talker = _world!.Host!.Inhabitants.All.OrderBy(i => i.Id, StringComparer.Ordinal).First().Id;
+        _world.Host.Conversation.Port ??= new Simulation.Player.MockConversationPort();
         if (!_world.CloseLook(talker, 8) && GetViewport().GetCamera3D() is { } talkCamera && _world.GetNodeOrNull<Node3D>(talker) is { } talkFigure)
         {
             // Placeholder world: the camera close to the inhabitant's head, the bubble above it.
@@ -482,6 +483,16 @@ public partial class Main
             else
             {
                 GD.Print("GIFT_OK");
+            }
+
+            var talk = _screen is null ? "game screen missing" : await _screen.CheckTalkAsync();
+            if (talk.Length > 0)
+            {
+                problems = [.. problems, "talk: " + talk];
+            }
+            else
+            {
+                GD.Print("TALK_OK");
             }
 
             var knock = _screen is null ? "game screen missing" : await _screen.CheckKnockAsync();
