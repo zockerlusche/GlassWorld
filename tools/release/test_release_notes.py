@@ -180,3 +180,22 @@ def test_files_unchanged_from_their_wheel_are_not_ours(tmp_path: Path) -> None:
     assert PACK.leaked_paths(tmp_path / "stage", forbid) == [
         "python/Lib/site-packages/rpds/rpds.pyd"
     ]
+
+
+def test_our_own_packages_are_always_scanned_even_with_a_matching_record(tmp_path: Path) -> None:
+    """Review GW1 #130: our packages are installed from the repository, their RECORD is ours."""
+    import base64
+    import hashlib
+
+    site = tmp_path / "stage" / "python" / "Lib" / "site-packages"
+    (site / "glassworld_ai").mkdir(parents=True)
+    (site / "glassworld_ai_service-0.1.0.dist-info").mkdir()
+    leaked = b"path = 'F:/Build/GlassWorld/ai-service'"
+    (site / "glassworld_ai" / "x.py").write_bytes(leaked)
+    digest = base64.urlsafe_b64encode(hashlib.sha256(leaked).digest()).rstrip(b"=").decode()
+    (site / "glassworld_ai_service-0.1.0.dist-info" / "RECORD").write_text(
+        f"glassworld_ai/x.py,sha256={digest},{len(leaked)}\n", encoding="utf-8"
+    )
+    assert PACK.leaked_paths(tmp_path / "stage", ["F:/Build/GlassWorld"]) == [
+        "python/Lib/site-packages/glassworld_ai/x.py"
+    ]

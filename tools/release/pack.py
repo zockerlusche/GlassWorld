@@ -15,6 +15,9 @@ import zipfile
 from pathlib import Path
 
 CHUNK = 1 << 20
+# dist-info name prefixes of the packages built from this repository (glassworld_ai_service,
+# glassworld_contracts): never exempt from the path check.
+OWN_PACKAGES = ("glassworld",)
 
 
 class PackError(Exception):
@@ -45,6 +48,10 @@ def unmodified_wheel_files(stage: Path) -> dict[Path, str]:
     """
     known: dict[Path, str] = {}
     for record in stage.rglob("*.dist-info/RECORD"):
+        if record.parent.name.lower().startswith(OWN_PACKAGES):
+            # Our own packages are installed from the repository: their RECORD is written on the
+            # build machine, so a match proves nothing (review GW1 #130). Always scanned.
+            continue
         site = record.parent.parent
         for row in csv.reader(record.read_text(encoding="utf-8").splitlines()):
             if len(row) >= 2 and row[1].startswith("sha256="):
