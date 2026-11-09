@@ -102,7 +102,19 @@ def build_values(
         # v2 parts count against the budget too (review GW1 D2); objects get what is left.
         # v4 (W1687): "someone", not "person" - the model turned "person" into "der Mensch".
         who = "someone" if template.version >= 4 else "person"
-        values.update(_v2_values(request, settings, vocab, signs=template.version >= 3, who=who))
+
+        def nickname(label: str) -> str | None:
+            """v5 (R11): a feature nickname in the player's language (vocab.nickname.<id>)."""
+            if template.version < 5:
+                return None
+            found = texts.get(locale, f"vocab.nickname.{label}") if texts is not None else None
+            return found or _humanize(label)
+
+        values.update(
+            _v2_values(
+                request, settings, vocab, signs=template.version >= 3, who=who, nickname=nickname
+            )
+        )
     if template.version >= 3:
         values["body"] = _body(request, settings)
         values["environment"] = _environment(request, vocab, air=True)
@@ -133,6 +145,7 @@ def _v2_values(
     vocab: Vocabulary,
     signs: bool = False,
     who: str = "person",
+    nickname: Callable[[str], str | None] | None = None,
 ) -> dict[str, str]:
     """Memory, knowledge, habits and people (prompt v2, B4a S3). Only beliefs, never truth."""
     inhabitant = request.inhabitant
@@ -180,7 +193,14 @@ def _v2_values(
         # B9 (v5 fields, optional): the name this inhabitant knows, a child, someone lying still.
         called = getattr(other, "called", None)
         name = _proper(getattr(called, "name", None)) if called is not None else None
-        label = f'{who} you call "{name}"' if name else who
+        feature = getattr(called, "label", None) if called is not None else None
+        nick = nickname(_id(feature)) if nickname is not None and feature is not None else None
+        if name:
+            label = f'{who} you call "{name}"'
+        elif nick:  # Marcel W1694 (R11): strangers keep the nickname this inhabitant gave them
+            label = f'{who} you call "{nick}" (a nickname)'
+        else:
+            label = who
         if _id(getattr(other, "life_stage", None) or "") in {"baby", "toddler", "child"}:
             label += " (a child)"
         if getattr(other, "lying_still", None):

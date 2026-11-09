@@ -123,3 +123,10 @@ def test_a_name_without_the_naming_option_is_dropped(settings: Settings) -> None
     body = post(_app(settings, answer), "/decide", FAMILY).json()
     assert body["option_id"] == "o1"
     assert body.get("name_text") is None and body.get("gossip") is None
+
+
+def test_strangers_keep_their_nickname_named_people_their_name() -> None:
+    """Marcel W1694 (R11): a nickname for someone without a known name; a name beats it."""
+    user = _render(FAMILY).split("=== user ===")[1]
+    assert 'someone you call "small one" (a nickname) (a child) [inh-0007]' in user
+    assert 'someone you call "Mara" [inh-0002]' in user
