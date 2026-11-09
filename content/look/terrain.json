@@ -74,7 +74,7 @@
       {
         "cell_step": 4,
         "max_error_mm": 400,
-        "max_color_delta_permille": 50
+        "max_color_delta_permille": 80
       }
     ],
     "sea_floor_margin_mm": 500,

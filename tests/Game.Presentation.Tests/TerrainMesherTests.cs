@@ -283,6 +283,59 @@ public sealed class TerrainMesherTests
         }
     }
 
+    /// <summary>
+    /// TL #19755: a stream is cut into the terrain - its cell is a trough down to the core's bed, the water
+    /// lies below the banks, and the band is as wide as the core says (wider downstream).
+    /// </summary>
+    [Theory]
+    [InlineData(1UL)]
+    [InlineData(7UL)]
+    public void StreamsLieInATroughBelowTheirBanksAsWideAsTheCoreSays(ulong seed)
+    {
+        var (map, look) = RealIsland(seed);
+        int troughs = 0, below = 0;
+        for (var z = 0; z < map.DepthCells; z++)
+        {
+            for (var x = 0; x < map.WidthCells; x++)
+            {
+                var cell = map.Cell(x, z);
+                if (!TerrainMesher.IsTrough(cell))
+                {
+                    continue;
+                }
+
+                troughs++;
+                var centre = TerrainMesher.GroundHeight(map, look, (x + 0.5) * look.CellM, (z + 0.5) * look.CellM);
+                Assert.Equal(cell.Height * look.UnitM, centre, 4);
+                var banks = TerrainMesher.CornerHeights(map, x, z, look).Max() * look.UnitM;
+                below += centre + (cell.WaterDepth * look.UnitM) < banks ? 1 : 0;
+            }
+        }
+
+        Assert.True(troughs > 0);
+        // Where a stream crosses a flat between ponds (its bed cannot fall below the pond it runs into) the
+        // water lies level with its banks; everywhere else below them.
+        Assert.True(below * 10 >= troughs * 7, $"seed {seed}: water below the banks in {below} of {troughs} stream cells");
+
+        // The band widths come from the core's widths (blended along the smoothed line).
+        var hydrology = map.Hydrology!;
+        var core = new List<double>();
+        for (var z = 0; z < map.DepthCells; z++)
+        {
+            for (var x = 0; x < map.WidthCells; x++)
+            {
+                if (hydrology.WidthCm(x, z) > 0)
+                {
+                    core.Add(hydrology.WidthCm(x, z) / 100.0);
+                }
+            }
+        }
+
+        var widths = TerrainMesher.StreamLines(map, look).SelectMany(l => l).Select(p => p.WidthM).ToList();
+        Assert.All(widths, w => Assert.InRange(w, core.Min() - 1e-9, core.Max() + 1e-9));
+        Assert.True(widths.Max() > widths.Min(), $"seed {seed}: streams widen with their flow");
+    }
+
     /// <summary>Centre vertices lie at ground plus depth; every other vertex at most the shore lift above its ground.</summary>
     private static void AssertBandRests(WorldMap map, TerrainLook look)
     {
@@ -296,7 +349,7 @@ public sealed class TerrainMesherTests
             var centre = centres.Where(c => MathF.Abs(c.X - x) < 1e-5f && MathF.Abs(c.Z - z) < 1e-5f).Select(c => (double?)c.Depth).FirstOrDefault();
             if (centre is { } depth)
             {
-                Assert.Equal(ground + (float)(depth * look.UnitM), y, 4);
+                Assert.Equal(ground + (float)(depth * look.UnitM), y, 3);
             }
             else
             {

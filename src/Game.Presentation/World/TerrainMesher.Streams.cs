@@ -2,11 +2,12 @@ using GlassWorld.Simulation.Map;
 
 namespace GlassWorld.Presentation.World;
 
-/// <summary>One point of a stream's centre line: position in metres and the core's water depth there (height units).</summary>
+/// <summary>One point of a stream's centre line: position in metres, the core's water depth (height units) and stream width (metres) there.</summary>
 /// <param name="X">X in metres.</param>
 /// <param name="Z">Z in metres.</param>
 /// <param name="Depth">Water depth in height units.</param>
-public readonly record struct StreamPoint(double X, double Z, double Depth);
+/// <param name="WidthM">Width of the stream in metres (the core's width by flow accumulation; the look's width for islands without it).</param>
+public readonly record struct StreamPoint(double X, double Z, double Depth, double WidthM);
 
 /// <summary>
 /// Streams as smooth bands (A1456): instead of one square plate per running cell, each stream is a ribbon
@@ -75,7 +76,8 @@ public static partial class TerrainMesher
         var taken = new bool[w * d];
         var lines = new List<IReadOnlyList<StreamPoint>>();
         var cell = look.CellM;
-        StreamPoint Centre(int x, int z, double depth) => new((x + 0.5) * cell, (z + 0.5) * cell, depth);
+        double Width(int x, int z) => map.Hydrology?.WidthCm(x, z) is > 0 and var cm ? cm / 100.0 : look.StreamWidthM;
+        StreamPoint Centre(int x, int z, double depth, double width) => new((x + 0.5) * cell, (z + 0.5) * cell, depth, width);
         foreach (var (sx, sz) in starts)
         {
             if (taken[(sz * w) + sx])
@@ -88,6 +90,7 @@ public static partial class TerrainMesher
             while (true)
             {
                 var depth = map.Cell(x, z).WaterDepth;
+                var width = Width(x, z);
                 taken[(z * w) + x] = true;
 
                 // The line runs between this cell and the running cells beside it that are not drawn yet.
@@ -105,7 +108,7 @@ public static partial class TerrainMesher
                     }
                 }
 
-                points.Add(new StreamPoint(px / count * cell, pz / count * cell, depth));
+                points.Add(new StreamPoint(px / count * cell, pz / count * cell, depth, width));
                 var (nx, nz) = Next(x, z);
                 if (!map.Contains(nx, nz))
                 {
@@ -117,7 +120,7 @@ public static partial class TerrainMesher
                     // Into still water, the sea or a stream drawn already: reach into that cell and end.
                     if (map.Cell(nx, nz).Water != WaterKind.None)
                     {
-                        points.Add(Centre(nx, nz, depth));
+                        points.Add(Centre(nx, nz, depth, width));
                     }
 
                     break;
@@ -137,16 +140,16 @@ public static partial class TerrainMesher
 
     /// <summary>
     /// The stream bands of the whole map as one mesh: per line point a cross-section left, centre, right
-    /// (stream width from the look). The centre lies at the drawn ground plus the core's water depth; an
-    /// edge lies there too, but never higher than the ground under it plus the shore lift, so the band
-    /// closes against its banks. Each face carries the direction the water runs.
+    /// (the core's stream width there, TL #19755). The centre lies at the drawn ground plus the core's water
+    /// depth - in the trough of the cut bed, below the banks; an edge lies there too, but never higher than
+    /// the ground under it plus the shore lift, so the band closes against its banks. Each face carries the
+    /// direction the water runs.
     /// </summary>
     public static MeshData Streams(WorldMap map, TerrainLook look)
     {
         ArgumentNullException.ThrowIfNull(map);
         ArgumentNullException.ThrowIfNull(look);
         var mesh = new MeshData();
-        var half = look.StreamWidthM / 2;
         foreach (var line in StreamLines(map, look))
         {
             var sections = new (float X, float Y, float Z)[line.Count][];
@@ -159,6 +162,7 @@ public static partial class TerrainMesher
                 var length = Math.Sqrt((tx * tx) + (tz * tz));
                 (tx, tz) = length > 1e-9 ? (tx / length, tz / length) : (1, 0);
                 var p = line[i];
+                var half = p.WidthM / 2;
                 var surface = GroundHeight(map, look, p.X, p.Z) + (float)(p.Depth * look.UnitM);
                 (float X, float Y, float Z) Edge(double side)
                 {
@@ -217,7 +221,7 @@ public static partial class TerrainMesher
     }
 
     private static StreamPoint Mix(StreamPoint a, StreamPoint b, double t) =>
-        new(a.X + ((b.X - a.X) * t), a.Z + ((b.Z - a.Z) * t), a.Depth + ((b.Depth - a.Depth) * t));
+        new(a.X + ((b.X - a.X) * t), a.Z + ((b.Z - a.Z) * t), a.Depth + ((b.Depth - a.Depth) * t), a.WidthM + ((b.WidthM - a.WidthM) * t));
 
     /// <summary>A triangle whose face looks up (+y), whatever order its corners come in.</summary>
     private static void Up(MeshData mesh, (float X, float Y, float Z) a, (float X, float Y, float Z) b, (float X, float Y, float Z) c, Rgb color, (float X, float Z) flow)
