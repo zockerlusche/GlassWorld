@@ -298,6 +298,24 @@ public sealed class ContentSet
         return data;
     }
 
+    /// <summary>Renamed ids (F4) point to a current id and are no longer current themselves.</summary>
+    private static IEnumerable<string> Renames(ICollection<AppearanceRename>? renamed, IEnumerable<string> current, string what)
+    {
+        var ids = current.ToHashSet(StringComparer.Ordinal);
+        foreach (var r in renamed ?? [])
+        {
+            if (!ids.Contains(r.NewId))
+            {
+                yield return $"renamed {what} '{r.OldId}' points to unknown '{r.NewId}'";
+            }
+
+            if (ids.Contains(r.OldId))
+            {
+                yield return $"renamed {what} '{r.OldId}' is still a current id";
+            }
+        }
+    }
+
     private static LookAppearance LoadAppearance(string contentDirectory, HashSet<string> seasons, HashSet<string> climates, HashSet<string> biomes, HashSet<string> techLevels)
     {
         var data = ContractSerializer.Deserialize<LookAppearance>(File.ReadAllText(Path.Combine(contentDirectory, "look", "appearance.json")));
@@ -317,6 +335,8 @@ public sealed class ContentSet
         // Outfits (F4): known ids in the conditions, and one outfit fits everywhere, so nobody is undressed.
         problems.AddRange(Twice(data.HairStyles.Select(h => h.Id), "hair style"));
         problems.AddRange(Twice(data.Outfits.Select(o => o.Id), "outfit"));
+        problems.AddRange(Renames(data.RenamedHairStyles, data.HairStyles.Select(h => h.Id), "hair style"));
+        problems.AddRange(Renames(data.RenamedOutfits, data.Outfits.Select(o => o.Id), "outfit"));
         if (!data.Outfits.Any(o => o.When is null))
         {
             problems.Add("no outfit without conditions (someone could find no clothes)");

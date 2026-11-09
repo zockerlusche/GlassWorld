@@ -81,16 +81,54 @@ public sealed class AppearanceTests : IDisposable
         var women = Many(ClothingContext.Unknown, 50, "female", adultAge);
         var men = Many(ClothingContext.Unknown, 50, "male", adultAge);
         var children = Many(ClothingContext.Unknown, 50, "female", childAge);
-        string[] Ids(string sex) => [.. Data.SexShapes.Where(s => s.Sex.ToString().Equals(sex, StringComparison.OrdinalIgnoreCase)).Select(s => s.Id)];
+        string[] Ids(string sex) => [.. Data.SexShapes.Where(s => Appearance.SexId(s.Sex) == sex).Select(s => s.Id)];
         Assert.All(women, a => Assert.Subset(a.Shapes.Keys.ToHashSet(), Ids("female").ToHashSet()));
         Assert.All(women, a => Assert.DoesNotContain(a.Shapes.Keys, k => Ids("male").Contains(k)));
         Assert.All(men, a => Assert.DoesNotContain(a.Shapes.Keys, k => Ids("female").Contains(k)));
         Assert.All(children, a => Assert.DoesNotContain(a.Shapes.Keys, k => Ids("female").Contains(k) || Ids("male").Contains(k)));
-        foreach (var form in Data.SexShapes)
+        foreach (var form in Data.SexShapes.Where(s => s.AgeStages.Contains("adult")))
         {
             var owners = form.Sex == AppearanceSexShapeSex.Female ? women : men;
             Assert.All(owners, a => Assert.InRange(a.Shapes[form.Id], form.Min, form.Max));
         }
+    }
+
+    [Fact]
+    public void YouthHasSofterProportionsThanAdults()
+    {
+        // Review GW3 #108 (12+, B2466): the teenage stage has its own, lower ranges (placeholders).
+        var youthAge = Data.AgeStages.First(s => s.Id == "youth").FromAgeDays + 1;
+        var youth = Many(ClothingContext.Unknown, 200, "female", youthAge);
+        foreach (var id in new[] { "bust", "waist", "hips" })
+        {
+            var young = Assert.Single(Data.SexShapes, s => s.Id == id && s.AgeStages.Contains("youth"));
+            var adult = Assert.Single(Data.SexShapes, s => s.Id == id && s.AgeStages.Contains("adult"));
+            Assert.True(young.Max <= adult.Max / 2 + 1e-9 || (id == "bust" && young.Max <= 0.3), $"{id}: youth max {young.Max}");
+            Assert.All(youth, a => Assert.InRange(a.Shapes[id], young.Min, young.Max));
+        }
+    }
+
+    [Fact]
+    public void WhenNoOutfitFitsTheDrawFailsInsteadOfIgnoringTheConditions()
+    {
+        // Review GW3 #108: never fall back to outfits whose conditions (sex included) do not fit.
+        var womenOnly = GlassWorld.Contracts.Validation.ContractSerializer.Deserialize<LookAppearance>(
+            File.ReadAllText(Path.Combine(ContentDirectory, "look", "appearance.json")));
+        womenOnly.Outfits = [.. womenOnly.Outfits.Where(o => o.When?.Sexes is { Count: > 0 })];
+        var place = new ClothingContext("summer", "temperate", null, "tool");
+        Assert.NotNull(Appearance.Draw(womenOnly, Stream(1), Data.StartAgeDays, "female", place));
+        Assert.Throws<InvalidDataException>(() => Appearance.Draw(womenOnly, Stream(1), Data.StartAgeDays, "male", place));
+    }
+
+    [Fact]
+    public void RenamedIdsOfTheFirstLookGetTheirCurrentIds()
+    {
+        var record = Appearance.Draw(Data, Stream(5), Data.StartAgeDays, "male", ClothingContext.Unknown);
+        Assert.Same(record, record.WithCurrentIds(Data));
+        var old = record with { HairStyle = "curly", ClothingStyle = "wrap" };
+        Assert.Equal(record with { HairStyle = "curls", ClothingStyle = "tunic" }, old.WithCurrentIds(Data));
+        Assert.Equal("braid", (record with { HairStyle = "braided" }).WithCurrentIds(Data).HairStyle);
+        Assert.Equal("bun", (record with { HairStyle = "tied" }).WithCurrentIds(Data).HairStyle);
     }
 
     [Fact]
@@ -126,6 +164,7 @@ public sealed class AppearanceTests : IDisposable
     [InlineData("season", "unknown season 'monsoon'")]
     [InlineData("stage", "unknown age stage 'teen'")]
     [InlineData("clash", "is also a body shape")]
+    [InlineData("rename", "renamed outfit 'wrap' points to unknown 'cape'")]
     public void BrokenAppearanceDataIsRefusedOnLoad(string broken, string message)
     {
         var copy = CopyContent();
@@ -146,6 +185,9 @@ public sealed class AppearanceTests : IDisposable
                 break;
             case "stage":
                 json["sex_shapes"]![0]!["age_stages"] = new JsonArray("teen");
+                break;
+            case "rename":
+                json["renamed_outfits"]![0]!["new_id"] = "cape";
                 break;
             default:
                 json["sex_shapes"]![0]!["id"] = "heavy";

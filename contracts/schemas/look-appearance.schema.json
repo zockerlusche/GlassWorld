@@ -134,6 +134,22 @@
       "items": {
         "$ref": "#/$defs/AppearanceSexShape"
       }
+    },
+    "renamed_hair_styles": {
+      "description": "Hair style ids that were renamed (F4): saves and records with the old id get the new one on load, so older worlds keep their figures.",
+      "type": "array",
+      "maxItems": 32,
+      "items": {
+        "$ref": "#/$defs/AppearanceRename"
+      }
+    },
+    "renamed_outfits": {
+      "description": "Outfit ids that were renamed or dropped (F4), each with the outfit that replaces it: saves and records with the old id get the new one on load.",
+      "type": "array",
+      "maxItems": 32,
+      "items": {
+        "$ref": "#/$defs/AppearanceRename"
+      }
     }
   },
   "$defs": {
@@ -395,6 +411,23 @@
           "items": {
             "$ref": "common.schema.json#/$defs/VocabId"
           }
+        }
+      }
+    },
+    "AppearanceRename": {
+      "description": "An old id and the current id that replaces it.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "old_id",
+        "new_id"
+      ],
+      "properties": {
+        "old_id": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "new_id": {
+          "$ref": "common.schema.json#/$defs/VocabId"
         }
       }
     }

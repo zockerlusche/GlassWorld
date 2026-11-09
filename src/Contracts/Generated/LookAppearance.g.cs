@@ -221,6 +221,21 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
+    /// An old id and the current id that replaces it.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class AppearanceRename
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("old_id")]
+        public string OldId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("new_id")]
+        public string NewId { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// Data file content/look/appearance.json: value ranges of the appearance record. The core draws it from the seed (stream inhabitant/&lt;id&gt;/appearance, B2503); inheritance follows in B9. Everyone is always dressed (B2472). Values are placeholders.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -304,6 +319,20 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("sex_shapes")]
         public System.Collections.Generic.ICollection<AppearanceSexShape> SexShapes { get; set; } = new System.Collections.ObjectModel.Collection<AppearanceSexShape>();
+
+        /// <summary>
+        /// Hair style ids that were renamed (F4): saves and records with the old id get the new one on load, so older worlds keep their figures.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("renamed_hair_styles")]
+        public System.Collections.Generic.ICollection<AppearanceRename>? RenamedHairStyles { get; set; } = default!;
+
+        /// <summary>
+        /// Outfit ids that were renamed or dropped (F4), each with the outfit that replaces it: saves and records with the old id get the new one on load.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("renamed_outfits")]
+        public System.Collections.Generic.ICollection<AppearanceRename>? RenamedOutfits { get; set; } = default!;
 
     }
 

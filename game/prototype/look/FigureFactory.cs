@@ -108,6 +108,8 @@ public static class FigureFactory
             wanted.Add($"Hair_{hair}");
         }
 
+        // Hair and clothing meshes not worn stay as hidden nodes: the clothing change (B2540) switches
+        // parts on a living figure without rebuilding it (one shared material, no extra draw calls).
         foreach (var mesh in root.FindChildren("*", "MeshInstance3D", true, false).OfType<MeshInstance3D>())
         {
             var name = mesh.Name.ToString();

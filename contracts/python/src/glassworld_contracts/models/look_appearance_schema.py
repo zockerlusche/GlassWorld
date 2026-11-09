@@ -171,6 +171,24 @@ class AppearanceSexShape(BaseModel):
     )
 
 
+class AppearanceRename(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    old_id: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    new_id: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+
+
 class AppearanceOutfit(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -262,4 +280,14 @@ class LookAppearance(BaseModel):
         ...,
         description="Sex proportions as blend shape weights (F4: bust, waist, hips, shoulders), drawn for every entry in file order and kept for the inhabitant's sex and age stage; ids match the blend shapes of the figure models (body_<id>). Subtle and age-appropriate (B2466).",
         max_length=16,
+    )
+    renamed_hair_styles: list[AppearanceRename] | None = Field(
+        None,
+        description='Hair style ids that were renamed (F4): saves and records with the old id get the new one on load, so older worlds keep their figures.',
+        max_length=32,
+    )
+    renamed_outfits: list[AppearanceRename] | None = Field(
+        None,
+        description='Outfit ids that were renamed or dropped (F4), each with the outfit that replaces it: saves and records with the old id get the new one on load.',
+        max_length=32,
     )

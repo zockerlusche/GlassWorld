@@ -254,7 +254,6 @@
       "min": 0.3,
       "max": 0.7,
       "age_stages": [
-        "youth",
         "adult",
         "elder"
       ]
@@ -265,7 +264,6 @@
       "min": 0.3,
       "max": 0.8,
       "age_stages": [
-        "youth",
         "adult",
         "elder"
       ]
@@ -276,7 +274,6 @@
       "min": 0.3,
       "max": 0.8,
       "age_stages": [
-        "youth",
         "adult",
         "elder"
       ]
@@ -302,6 +299,53 @@
         "adult",
         "elder"
       ]
+    },
+    {
+      "sex": "female",
+      "id": "bust",
+      "min": 0.1,
+      "max": 0.3,
+      "age_stages": [
+        "youth"
+      ]
+    },
+    {
+      "sex": "female",
+      "id": "waist",
+      "min": 0.15,
+      "max": 0.4,
+      "age_stages": [
+        "youth"
+      ]
+    },
+    {
+      "sex": "female",
+      "id": "hips",
+      "min": 0.15,
+      "max": 0.4,
+      "age_stages": [
+        "youth"
+      ]
+    }
+  ],
+  "renamed_hair_styles": [
+    {
+      "old_id": "curly",
+      "new_id": "curls"
+    },
+    {
+      "old_id": "braided",
+      "new_id": "braid"
+    },
+    {
+      "old_id": "tied",
+      "new_id": "bun"
+    }
+  ],
+  "renamed_outfits": [
+    {
+      "old_id": "wrap",
+      "new_id": "tunic"
     }
   ]
 }

@@ -73,8 +73,15 @@ public sealed record Appearance(
         var hairStyle = Weighted([.. data.HairStyles], h => h.Weight).Id;
         var hair = Pick(data.HairColors);
         var elderHair = data.ElderHairColors.Count > 0 ? Pick(data.ElderHairColors) : hair;
+        // Only outfits whose conditions fit (sex included); the data keep one without conditions, so
+        // an empty list is a data error, never a reason to ignore the conditions.
         var fitting = data.Outfits.Where(o => place.Fits(o.When, sex)).ToList();
-        var clothing = Weighted(fitting.Count > 0 ? fitting : [.. data.Outfits], o => o.Weight).Id;
+        if (fitting.Count == 0)
+        {
+            throw new InvalidDataException($"appearance.json: no outfit fits sex '{sex}' at {place} (one outfit needs no conditions).");
+        }
+
+        var clothing = Weighted(fitting, o => o.Weight).Id;
         var top = Pick(data.ClothingColors);
         var bottom = Pick(data.ClothingColors);
         var shapes = new SortedDictionary<string, double>(StringComparer.Ordinal);
@@ -90,7 +97,7 @@ public sealed record Appearance(
         foreach (var form in data.SexShapes)
         {
             var weight = Math.Round(Range(form.Min, form.Max), 3);
-            if (string.Equals(form.Sex.ToString(), sex, StringComparison.OrdinalIgnoreCase) && form.AgeStages.Contains(stage.Id, StringComparer.Ordinal))
+            if (SexId(form.Sex) == sex && form.AgeStages.Contains(stage.Id, StringComparer.Ordinal))
             {
                 shapes[form.Id] = weight;
             }
@@ -100,6 +107,29 @@ public sealed record Appearance(
         // not shift the other values; the oldest stage wears the elder hair colour.
         return new Appearance(height, build, skin, hairStyle, oldest ? elderHair : hair, clothing, top, bottom, stage.Id, shapes, head);
     }
+
+    /// <summary>
+    /// The record with renamed hair style and outfit ids replaced by their current ids
+    /// (<c>renamed_hair_styles</c>, <c>renamed_outfits</c> in the data), so worlds saved before a rename
+    /// keep their figures (F4: curly, braided, tied and wrap of the first look).
+    /// </summary>
+    public Appearance WithCurrentIds(LookAppearance data)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+        static string Current(string id, ICollection<AppearanceRename>? renamed) =>
+            renamed?.FirstOrDefault(r => r.OldId == id)?.NewId ?? id;
+        var hair = Current(HairStyle, data.RenamedHairStyles);
+        var outfit = Current(ClothingStyle, data.RenamedOutfits);
+        return hair == HairStyle && outfit == ClothingStyle ? this : this with { HairStyle = hair, ClothingStyle = outfit };
+    }
+
+    /// <summary>The sex id of the data (the inhabitant's sex) for a sex proportion entry.</summary>
+    public static string SexId(AppearanceSexShapeSex sex) => sex switch
+    {
+        AppearanceSexShapeSex.Female => "female",
+        AppearanceSexShapeSex.Male => "male",
+        _ => throw new ArgumentOutOfRangeException(nameof(sex), sex, "unknown sex"),
+    };
 
     /// <summary>Writes the record in a fixed order.</summary>
     public void WriteState(StateHasher hasher)
