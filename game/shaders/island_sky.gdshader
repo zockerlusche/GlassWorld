@@ -28,7 +28,7 @@ void sky() {
 	float up = dir.y;
 	vec3 color = mix(horizon_color, top_color, pow(clamp(up, 0.0, 1.0), horizon_falloff));
 	// Below the horizon: a calm, darker version of the horizon colour, so sea and sky part visibly.
-	color = mix(color, horizon_color * below_horizon, smoothstep(0.0, -0.04, up));
+	color = mix(color, horizon_color * below_horizon, 1.0 - smoothstep(-0.04, 0.0, up));
 
 	if (stars > 0.0 && up > 0.0) {
 		// One possible star per cell of a 3D grid around the eye; the hash picks the cells and the spot.
@@ -40,7 +40,7 @@ void sky() {
 			vec3 spot = normalize(cell + 0.25 + 0.5 * vec3(hash(cell + 11.0), hash(cell + 23.0), hash(cell + 37.0))) * 60.0;
 			float d = length(p - spot);
 			float size = 0.08 + 0.1 * hash(cell + 51.0);
-			float star = smoothstep(size, 0.0, d) * (0.4 + 0.6 * hash(cell + 71.0));
+			float star = (1.0 - smoothstep(0.0, size, d)) * (0.4 + 0.6 * hash(cell + 71.0));
 			float fade = star_horizon_fade > 0.0 ? smoothstep(0.0, star_horizon_fade, up) : 1.0;
 			color += vec3(star * star_brightness * stars * fade);
 		}
@@ -48,7 +48,7 @@ void sky() {
 
 	if (moon > 0.0) {
 		float angle = degrees(acos(clamp(dot(dir, normalize(moon_direction)), -1.0, 1.0)));
-		float disc = smoothstep(moon_size_deg, moon_size_deg * 0.8, angle);
+		float disc = 1.0 - smoothstep(moon_size_deg * 0.8, moon_size_deg, angle);
 		float halo = moon_glow * exp(-angle / (moon_size_deg * 3.0));
 		color = mix(color, moon_color, disc * moon);
 		color += moon_color * halo * moon * (1.0 - disc);
