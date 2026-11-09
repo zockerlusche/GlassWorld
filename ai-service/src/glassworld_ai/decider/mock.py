@@ -37,7 +37,7 @@ def pick(options: list[tuple[str, str]], seed: int, weights: MockWeights) -> str
     """The chosen option id among (option_id, action) pairs; seed is a non-negative integer."""
     if not options:
         raise ValueError("no options to choose from")
-    ordered = sorted(options)
+    ordered = sorted(options, key=lambda option: option[0])  # option_id, ordinal by code point
     total = sum(weights.of(action) for _, action in ordered)
     if total == 0:
         return next((oid for oid, action in ordered if action == "idle"), ordered[0][0])

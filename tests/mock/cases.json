@@ -1,5 +1,5 @@
 {
-  "description": "Shared test vectors of the generic decision mock (Bogen 34 R26): the AI service (decider/mock.py) and the core (MockDecisionPort) must both give 'expected'. Option ids sort as text (ordinal).",
+  "description": "Shared test vectors of the generic decision mock (Bogen 34 R26): the AI service (decider/mock.py) and the core (MockDecisionPort) must both give 'expected'. Sort key: option_id only, ordinal by character code (\"O3\" < \"o10\" < \"o2\"); seed up to 2147483647.",
   "cases": [
     {
       "id": "equal_weights_third",
@@ -268,6 +268,52 @@
         }
       ],
       "expected": "o2"
+    },
+    {
+      "id": "ordinal_mixed_case",
+      "seed": 1500,
+      "weights": {
+        "default_permille": 1000,
+        "weights": []
+      },
+      "options": [
+        {
+          "option_id": "o2",
+          "action": "eat"
+        },
+        {
+          "option_id": "O3",
+          "action": "drink"
+        },
+        {
+          "option_id": "o10",
+          "action": "idle"
+        }
+      ],
+      "expected": "o10"
+    },
+    {
+      "id": "largest_seed",
+      "seed": 2147483647,
+      "weights": {
+        "default_permille": 1000,
+        "weights": []
+      },
+      "options": [
+        {
+          "option_id": "o1",
+          "action": "eat"
+        },
+        {
+          "option_id": "o2",
+          "action": "drink"
+        },
+        {
+          "option_id": "o3",
+          "action": "idle"
+        }
+      ],
+      "expected": "o3"
     }
   ]
 }
