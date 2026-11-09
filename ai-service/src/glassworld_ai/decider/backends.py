@@ -20,7 +20,7 @@ from glassworld_ai.decider.output import (
     output_schema,
     parse_choice,
 )
-from glassworld_ai.decider.thoughts import stand_in, thought_problem
+from glassworld_ai.decider.thoughts import ThoughtMemory, stand_in, thought_problem
 from glassworld_ai.llm.ollama import (
     ChatMessage,
     ChatResult,
@@ -125,6 +125,7 @@ class OllamaDecider:
         self._settings = settings
         self._log = log
         self._texts = texts
+        self._shown = ThoughtMemory()
 
     def _natural(self, request: DecisionRequest, choice: ModelChoice) -> tuple[ModelChoice, str]:
         """Prompt v4 (W1687): a thought with foreign words, ids or too many words is replaced
@@ -132,14 +133,25 @@ class OllamaDecider:
         if self._template.version < 4 or not choice.thought:
             return choice, ""
         locale = _plain(request.display_locale)
-        problem = thought_problem(choice.thought, locale, self._template.settings)
-        if problem is None:
-            return choice, ""
-        option = next((o for o in request.options if _plain(o.option_id) == choice.option_id), None)
-        action = _plain(option.action) if option is not None else ""
-        return replace(choice, thought=stand_in(self._texts, locale, action)), (
-            f"thought replaced ({problem}): {choice.thought}"
-        )
+        settings = self._template.settings
+        note = ""
+        problem = thought_problem(choice.thought, locale, settings)
+        if problem is not None:
+            option = next(
+                (o for o in request.options if _plain(o.option_id) == choice.option_id), None
+            )
+            action = _plain(option.action) if option is not None else ""
+            note = f"thought replaced ({problem}): {choice.thought}"
+            choice = replace(choice, thought=stand_in(self._texts, locale, action))
+        if choice.thought:
+            # W1696: the same inhabitant does not say the same thing again soon - silence instead.
+            who = _plain(request.inhabitant.id)
+            if self._shown.repeated(who, request.tick, choice.thought, settings):
+                return replace(choice, thought=None), (
+                    f"{note}; " if note else ""
+                ) + f"thought left out (repeat): {choice.thought}"
+            self._shown.remember(who, request.tick, choice.thought)
+        return choice, note
 
     def _record(
         self,
