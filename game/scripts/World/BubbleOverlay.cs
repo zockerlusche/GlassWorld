@@ -22,6 +22,7 @@ public partial class BubbleOverlay : CanvasLayer
 {
     private readonly Dictionary<string, Label> _labels = new(StringComparer.Ordinal);
     private readonly List<BubbleRequest> _requests = [];
+    private readonly Dictionary<string, (int FontSize, float Width)> _textWidth = new(StringComparer.Ordinal);
     private readonly Control _root = new() { Name = "BubbleRoot", MouseFilter = Control.MouseFilterEnum.Ignore };
 
     /// <summary>The bubbles by inhabitant id.</summary>
@@ -62,20 +63,27 @@ public partial class BubbleOverlay : CanvasLayer
         {
             var label = LabelOf(id);
             seen.Add(id);
-            var show = camera is not null && bubble.IsVisibleInTree() && bubble.Text.Length > 0 && !camera.IsPositionBehind(bubble.GlobalPosition);
+            // An inhabitant outside the view shows no bubble (review GW1 #152): clamped to the edge it would
+            // point at nobody.
+            var show = camera is not null && bubble.IsVisibleInTree() && bubble.Text.Length > 0 && !camera.IsPositionBehind(bubble.GlobalPosition)
+                && view.HasPoint(camera.UnprojectPosition(bubble.GlobalPosition));
             label.Visible = show;
             if (!show)
             {
                 continue;
             }
 
-            if (label.Text != bubble.Text)
+            // The text's natural width, measured once per new text or font size (many figures, review GW1 #152).
+            var fontSize = label.GetThemeFontSize("font_size");
+            if (label.Text != bubble.Text || !_textWidth.TryGetValue(id, out var known) || known.FontSize != fontSize)
             {
                 label.Text = bubble.Text;
+                known = (fontSize, label.GetThemeFont("font").GetStringSize(bubble.Text, HorizontalAlignment.Left, -1, fontSize).X + 8);
+                _textWidth[id] = known;
             }
 
             // Width: as wide as the text needs, at most the data's width; height follows the wrapping.
-            var width = Math.Min(WidthPx(), label.GetThemeFont("font").GetStringSize(bubble.Text, HorizontalAlignment.Left, -1, label.GetThemeFontSize("font_size")).X + 8);
+            var width = Math.Min(WidthPx(), known.Width);
             label.CustomMinimumSize = new Vector2(width, 0);
             label.Size = new Vector2(width, 0);
             var height = label.GetCombinedMinimumSize().Y;
@@ -87,6 +95,7 @@ public partial class BubbleOverlay : CanvasLayer
         {
             _labels[gone].QueueFree();
             _labels.Remove(gone);
+            _textWidth.Remove(gone);
         }
 
         var places = BubbleLayout.Place(_requests, (area.Position.X, area.Position.Y, area.End.X, area.End.Y), GapPx);
