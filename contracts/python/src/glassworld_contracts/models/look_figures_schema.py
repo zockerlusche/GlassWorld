@@ -55,7 +55,7 @@ class FigurePoseCadence(BaseModel):
     )
     min_pose_s: float = Field(
         ...,
-        description='Real seconds a standing pose (action or idle clip) is held at least before the next one.',
+        description='Real seconds an idle behaviour is held at least before the next idle behaviour (core actions and walking are never held).',
         ge=0.0,
         le=120.0,
     )
@@ -90,13 +90,13 @@ class FigurePoseCadence(BaseModel):
     )
     max_changes_per_minute: float = Field(
         ...,
-        description='Upper limit of standing pose changes (action and idle clips, no walking) per real minute and figure the presentation is tested against, at normal speed and at x16.',
+        description='Upper limit of idle variety changes per real minute and figure the presentation is tested against, at normal speed and at x16.',
         ge=1.0,
         le=600.0,
     )
     max_walk_changes_per_minute: float = Field(
         ...,
-        description="Upper limit of starts and stops of walking per real minute and figure the presentation is tested against. They follow the core's walks without delay (no marching in place), so fast forward shows many more per real minute.",
+        description='Upper limit of changes the core drives (starting and stopping to walk, core actions) per real minute and figure the presentation is tested against. They follow the core without delay (no marching in place, short actions always show), so fast forward shows many more per real minute.',
         ge=1.0,
         le=600.0,
     )

@@ -52,14 +52,14 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
-    /// Calm poses (W1697): how often a figure may change what it shows, in real seconds so fast forward does not turn idle variety into squats. A standing pose is held at least min_pose_s; starting and stopping to walk show at the next free frame; idle variety starts only after standing idle for idle_variety_after_s (before, the rest idle plays) and then changes every idle_slot_s (with idle_slot_spread and a phase per inhabitant); two figures never change their pose in the same frame, and two idle variety changes lie at least stagger_s apart; in a conversation (the inhabitant speaks to or is spoken to) only the conversation_idle behaviours play, no sitting or bending.
+    /// Calm poses (W1697): how often a figure may change what it shows, in real seconds so fast forward does not turn idle variety into squats. An idle behaviour is held at least min_pose_s before the next idle behaviour; walking and core actions show at the next free frame; idle variety starts only after standing idle for idle_variety_after_s (before, the rest idle plays) and then changes every idle_slot_s (with idle_slot_spread and a phase per inhabitant); two figures never change their pose in the same frame, and two idle variety changes lie at least stagger_s apart; in a conversation (the inhabitant speaks to or is spoken to) only the conversation_idle behaviours play, no sitting or bending.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class FigurePoseCadence
     {
 
         /// <summary>
-        /// Real seconds a standing pose (action or idle clip) is held at least before the next one.
+        /// Real seconds an idle behaviour is held at least before the next idle behaviour (core actions and walking are never held).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("min_pose_s")]
         public double MinPoseS { get; set; } = default!;
@@ -95,13 +95,13 @@ namespace GlassWorld.Contracts
         public System.Collections.Generic.ICollection<string> ConversationIdle { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
         /// <summary>
-        /// Upper limit of standing pose changes (action and idle clips, no walking) per real minute and figure the presentation is tested against, at normal speed and at x16.
+        /// Upper limit of idle variety changes per real minute and figure the presentation is tested against, at normal speed and at x16.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("max_changes_per_minute")]
         public double MaxChangesPerMinute { get; set; } = default!;
 
         /// <summary>
-        /// Upper limit of starts and stops of walking per real minute and figure the presentation is tested against. They follow the core's walks without delay (no marching in place), so fast forward shows many more per real minute.
+        /// Upper limit of changes the core drives (starting and stopping to walk, core actions) per real minute and figure the presentation is tested against. They follow the core without delay (no marching in place, short actions always show), so fast forward shows many more per real minute.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("max_walk_changes_per_minute")]
         public double MaxWalkChangesPerMinute { get; set; } = default!;

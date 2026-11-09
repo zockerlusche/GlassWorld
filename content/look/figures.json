@@ -158,8 +158,8 @@
       "ponder",
       "hum"
     ],
-    "max_changes_per_minute": 8,
-    "max_walk_changes_per_minute": 120
+    "max_changes_per_minute": 12,
+    "max_walk_changes_per_minute": 240
   },
   "walk_min_step_m": 0.05,
   "turn_rate_deg_s": 360,

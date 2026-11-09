@@ -133,12 +133,12 @@ public sealed class PoseCadence
             return wanted;
         }
 
-        // Starting or stopping to walk (GW3 review #164: arriving walkers never march in place) and leaving a
-        // low pose for a conversation only wait for a free frame. Only idle variety (idle to idle) keeps the
-        // stagger between figures; every standing pose is held min_pose_s.
+        // Walking, core actions (GW3 review #164: arriving walkers never march in place, a short drink always
+        // shows) and leaving a low pose for a conversation only wait for a free frame. Only idle variety (idle to
+        // idle) is held min_pose_s and keeps the stagger between figures.
         var free = wanted.Walking || shown.Walking || _leaveAtOnce;
         var variety = _shownIdle && _wantedIdle;
-        var hold = free ? 0 : _data.MinPoseS;
+        var hold = free || !variety ? 0 : _data.MinPoseS;
         return nowS - _shownSince >= hold && gate.TryPass(frame, nowS, frameOnly: free || !variety) ? Show(wanted, nowS) : shown;
     }
 

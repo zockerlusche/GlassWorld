@@ -71,9 +71,11 @@ public sealed class PoseCadenceTests(ITestOutputHelper output)
         var minutes = result.RealS / 60;
         Assert.All(result.Changes, c =>
         {
-            var standing = c.Value.GetValueOrDefault(PoseSource.Idle) + c.Value.GetValueOrDefault(PoseSource.Action);
-            Assert.True(standing / minutes <= figures.PoseCadence.MaxChangesPerMinute, $"{c.Key}: {standing / minutes:0.0} standing pose changes per minute");
-            Assert.True(c.Value.GetValueOrDefault(PoseSource.Walk) / minutes <= figures.PoseCadence.MaxWalkChangesPerMinute, $"{c.Key}: {c.Value.GetValueOrDefault(PoseSource.Walk) / minutes:0.0} walk starts/stops per minute");
+            // Idle variety is calmed; walking and core actions follow the core without delay (GW3 review #164).
+            var idle = c.Value.GetValueOrDefault(PoseSource.Idle);
+            var core = c.Value.GetValueOrDefault(PoseSource.Walk) + c.Value.GetValueOrDefault(PoseSource.Action);
+            Assert.True(idle / minutes <= figures.PoseCadence.MaxChangesPerMinute, $"{c.Key}: {idle / minutes:0.0} idle changes per minute");
+            Assert.True(core / minutes <= figures.PoseCadence.MaxWalkChangesPerMinute, $"{c.Key}: {core / minutes:0.0} walk and action changes per minute");
         });
         Assert.Equal(0, result.SharedFrames);
         Assert.True(longestLow <= 0.1, $"sat or bent in a conversation for {longestLow:0.00} s");
@@ -108,7 +110,7 @@ public sealed class PoseCadenceTests(ITestOutputHelper output)
             }
 
             // At x16 the old idle slot in core ticks changed poses far beyond the limit the fix is held to.
-            Assert.True(speed < 2 || result.Changes.Values.Max(c => c.GetValueOrDefault(PoseSource.Idle) + c.GetValueOrDefault(PoseSource.Action)) / (result.RealS / 60) > figures.PoseCadence.MaxChangesPerMinute);
+            Assert.True(speed < 2 || result.Changes.Values.Max(c => c.GetValueOrDefault(PoseSource.Idle)) / (result.RealS / 60) > figures.PoseCadence.MaxChangesPerMinute);
         }
     }
 
@@ -193,6 +195,23 @@ public sealed class PoseCadenceTests(ITestOutputHelper output)
 
         Assert.All(stopped, s => Assert.InRange(s, arrived, arrived + Figures - 1));
         Assert.Equal(Figures, stopped.Distinct().Count());
+    }
+
+    [Fact]
+    public void ACoreActionShowsWithinAFrameEvenRightAfterAnIdlePoseBegan()
+    {
+        // GW3 re-check #164: idle -> core action is not held min_pose_s (a short drink at x16 must show).
+        var figures = Read<LookFigures>("look", "figures.json");
+        var chooser = new AnimationChooser(Read<AnimationLibrary>("animation", "library.json"));
+        var gate = new PoseGate(figures.PoseCadence.StaggerS);
+        var cadence = new PoseCadence(figures.PoseCadence, figures.IdleSlotSpread, "inh-000001", figures.Lying);
+        var values = new Dictionary<string, double>();
+        cadence.Want(chooser, null, false, values, null, false, 0);
+        var idle = cadence.Update(0, 0, gate);
+        cadence.Want(chooser, "drink", false, values, AnimationMappingTarget.Object, false, 0.5);
+        Assert.NotEqual(PoseCadence.PoseKey(idle), PoseCadence.PoseKey(cadence.Update(0.5, 1, gate)));
+        Assert.Equal("drink", cadence.Update(0.52, 2, gate).Clip.ClipId);
+        Assert.True(0.5 < figures.PoseCadence.MinPoseS);
     }
 
     private static HashSet<string> IdleAssets(AnimationLibrary library)
