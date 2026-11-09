@@ -42,6 +42,9 @@ public partial class WorldPresenter
     private int? _observedGroup;
     private bool _wasObserving;
     private double _speedSeen = double.NaN;
+    private readonly PlaybackFreeze _freeze = new();
+    private readonly List<Vector3> _fadeFor = [];
+    private List<Seat>? _seats;
     private (Godot.Environment? Environment, DirectionalLight3D? Sun, Color SunColor, float SunEnergy, Vector3 SunRotation, bool SunShadow, List<Node3D> Hidden)? _restore;
 
     /// <summary>How this world is drawn (island when it has an island map).</summary>
@@ -251,6 +254,7 @@ public partial class WorldPresenter
         AddChild(_objectsView);
 
         _figuresLook = Read<LookFigures>(content, "look", "figures.json");
+        _objectsView.SetupCrownFade(_figuresLook.CrownFade);
         _appearanceLook = Read<LookAppearance>(content, "look", "appearance.json");
         var library = Read<AnimationLibrary>(content, "animation", "library.json");
         _figureShared = new FigureShared(library, _figuresLook, host.World.Calendar.Settings, Speed);
@@ -416,6 +420,15 @@ public partial class WorldPresenter
             _speedSeen = Speed;
         }
 
+        if (_freeze.Update(Speed))
+        {
+            // Pause and speed 0 stop the figures' clips and procedural motion too (W1688).
+            foreach (var figure in _islandFigures.Values)
+            {
+                figure.SetFrozen(_freeze.Frozen);
+            }
+        }
+
         if (ticks > 0)
         {
             ApplyIsland((int)Math.Min(ticks, int.MaxValue), place: false);
@@ -431,6 +444,13 @@ public partial class WorldPresenter
         }
 
         var snapshot = _host.Snapshot();
+
+        // Seats (W1688) are taken from the objects only when they changed.
+        if (_objectsView?.Refresh(snapshot.Objects) != false || _seats is null)
+        {
+            _seats = SeatChoice.Seats(_figuresLook!.Sitting, snapshot.Objects);
+        }
+
         HashSet<string>? fresh = null;
         if (!SameRoster(snapshot.Inhabitants))
         {
@@ -462,8 +482,6 @@ public partial class WorldPresenter
                 standIn.Position = new Vector3((float)x, GroundHeight(x, z), (float)z);
             }
         }
-
-        _objectsView?.Refresh(snapshot.Objects);
     }
 
     private void AddFigure(InhabitantSnapshot inhabitant)
@@ -478,7 +496,8 @@ public partial class WorldPresenter
             }
 
             var spec = FigureSpec.From(appearance, inhabitant.Sex, _figuresLook!, _appearanceLook!);
-            var figure = FigureView.Create(inhabitant, spec, _figureShared!, (x, z) => (float)_ground(x, z));
+            var figure = FigureView.Create(inhabitant, spec, _figureShared!, (x, z) => (float)_ground(x, z), () => _seats ?? []);
+            figure.SetFrozen(_freeze.Frozen);
             _islandFigures[inhabitant.Id] = figure;
             node = figure;
             head = figure.HeadAnchor;
@@ -528,6 +547,7 @@ public partial class WorldPresenter
 
         _islandFigures.Remove(id);
         _thoughts.Remove(id);
+        _speechUntil.Remove(id);
         if (_observer?.Chosen == id)
         {
             _observer.Release(_clock);
@@ -553,6 +573,56 @@ public partial class WorldPresenter
         }
 
         _wasObserving = observing;
+    }
+
+    /// <summary>
+    /// A conversation event (W1688): the hearers of the player's sentence look and turn to the voice, the
+    /// speaker shows its answer (wave, talking); the camera follows the one spoken to.
+    /// </summary>
+    private void React(Simulation.Inhabitants.WorldEvent e)
+    {
+        if (_figuresLook is null || GreetingReaction.For(_figuresLook.Greeting, e.Kind, e.Detail, e.Text is { Length: > 0 }) is not { } reaction)
+        {
+            return;
+        }
+
+        var ids = e.Kind == "conversation_started"
+            ? GreetingReaction.Hearers(_figuresLook.Greeting, e.InhabitantId, _islandNodes.Select(n => (n.Key, (double)n.Value.Position.X, (double)n.Value.Position.Z)))
+            : [e.InhabitantId];
+        foreach (var id in ids)
+        {
+            if (_islandFigures.TryGetValue(id, out var figure))
+            {
+                figure.React(reaction);
+            }
+        }
+
+        if (e.Kind == "conversation_started")
+        {
+            // The player spoke to it (maybe from the list, with the camera elsewhere): the camera follows
+            // it, so its reaction and answer are seen.
+            ChooseFigure(e.InhabitantId);
+        }
+    }
+
+    /// <summary>Tree crowns between the camera and the chosen inhabitant (or every one, data) fade (W1689).</summary>
+    private void KeepFiguresVisible()
+    {
+        if (_objectsView is null || _figuresLook is not { CrownFade.Enabled: true } look || _rig is null)
+        {
+            return;
+        }
+
+        _fadeFor.Clear();
+        foreach (var (id, figure) in _islandFigures)
+        {
+            if (look.CrownFade.AllInhabitants || _observer?.Chosen == id)
+            {
+                _fadeFor.Add(figure.HeadAnchor.GlobalPosition);
+            }
+        }
+
+        _objectsView.FadeCrowns(_rig.Camera.GlobalPosition, _fadeFor);
     }
 
     /// <summary>

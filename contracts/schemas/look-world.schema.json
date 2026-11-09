@@ -66,7 +66,10 @@
         "thought_above_head_m",
         "question_above_head_m",
         "pixel_size_m",
-        "thought_width_px"
+        "thought_width_px",
+        "bubble_min_px",
+        "bubble_max_px",
+        "speech_s"
       ],
       "properties": {
         "thought_above_head_m": {
@@ -92,6 +95,24 @@
           "type": "integer",
           "minimum": 50,
           "maximum": 4000
+        },
+        "bubble_min_px": {
+          "description": "Least screen height of a bubble's text line in pixels (far away it stays readable, W1688).",
+          "type": "number",
+          "minimum": 4,
+          "maximum": 200
+        },
+        "bubble_max_px": {
+          "description": "Greatest screen height of a bubble's text line in pixels (close up it is not huge).",
+          "type": "number",
+          "minimum": 4,
+          "maximum": 400
+        },
+        "speech_s": {
+          "description": "Real seconds a spoken answer stays above the head.",
+          "type": "number",
+          "minimum": 1,
+          "maximum": 120
         }
       }
     },
