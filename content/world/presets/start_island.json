@@ -193,7 +193,7 @@
     "biome": "beach_sea",
     "supply": {
       "radius_cells": 12,
-      "prefer_radius_cells": 7,
+      "prefer_radius_cells": 5,
       "resources": [
         {
           "id": "food",
