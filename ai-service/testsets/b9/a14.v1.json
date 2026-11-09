@@ -1,0 +1,6205 @@
+{
+  "id": "a14",
+  "version": 1,
+  "purpose": "B9 A14: life, family, death, names, culture; >= 95 % valid (schema and content)",
+  "cases": [
+    {
+      "id": "court_someone_liked",
+      "kind": "decision",
+      "description": "Single adult, likes Mara a lot.",
+      "request": {
+        "contract_version": "0.2",
+        "request_id": "00000000-000b-9a14-0000-000000000001",
+        "tick": 2010,
+        "seed": 20001,
+        "deadline_ms": 8000,
+        "display_locale": "de",
+        "inhabitant": {
+          "id": "inh-0001",
+          "needs": [
+            {
+              "id": "hunger",
+              "value": 0.6
+            },
+            {
+              "id": "sleep",
+              "value": 0.6
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            }
+          ],
+          "mood": [
+            {
+              "id": "boredom",
+              "value": 0.3
+            },
+            {
+              "id": "sadness",
+              "value": 0.2
+            }
+          ],
+          "will_to_live": 0.8,
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.35
+            },
+            {
+              "id": "curiosity",
+              "value": 0.8
+            },
+            {
+              "id": "patience",
+              "value": 0.4
+            }
+          ],
+          "memory": {
+            "summary": "Woke up alone on a beach. Found a stream. Met another person yesterday who seems friendly.",
+            "recent": [
+              {
+                "tick": 1100,
+                "kind": "met_inhabitant",
+                "about": {
+                  "kind": "inhabitant",
+                  "id": "inh-0002"
+                }
+              },
+              {
+                "tick": 1150,
+                "kind": "drank",
+                "about": {
+                  "kind": "type",
+                  "id": "spring_water"
+                }
+              }
+            ]
+          },
+          "knowledge": [
+            {
+              "subject": {
+                "kind": "type",
+                "id": "apple_tree"
+              },
+              "property": "edible",
+              "value": true,
+              "confidence": 0.6,
+              "source": "heard",
+              "told_by": "inh-0002",
+              "tick": 1120
+            },
+            {
+              "subject": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "property": "drinkable",
+              "value": true,
+              "confidence": 1.0,
+              "source": "experienced",
+              "told_by": null,
+              "tick": 1150
+            }
+          ],
+          "relationships": [
+            {
+              "other": "inh-0002",
+              "affection": 0.8,
+              "trust": 0.7,
+              "respect": 0.6
+            }
+          ],
+          "habits": [
+            {
+              "action": "drink",
+              "time_of_day": "day",
+              "about": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "strength": 0.3
+            }
+          ],
+          "life_stage": "adult",
+          "age_years": 31,
+          "family": [],
+          "reputation": 0.6,
+          "settlement": {
+            "id": "set-0001",
+            "sayings": [
+              {
+                "de": "Wer früh sammelt, isst warm.",
+                "en": "Who gathers early eats warm."
+              }
+            ]
+          },
+          "culture": [
+            {
+              "kind": "ritual",
+              "text": {
+                "de": "Steine ans Grab legen",
+                "en": "Laying stones at the grave"
+              },
+              "sure": 1.0
+            },
+            {
+              "kind": "belief",
+              "text": {
+                "de": "Das Klopfen am Himmel bringt Gaben",
+                "en": "Knocking at the sky brings gifts"
+              },
+              "sure": 0.3
+            }
+          ],
+          "grief": [],
+          "name": "Tavi"
+        },
+        "environment": {
+          "time_of_day": "day",
+          "temperature_c": 17.5,
+          "weather": [
+            "cloudy"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-0042",
+              "type": "red_berry_bush",
+              "distance_m": 4.5,
+              "known_properties": []
+            },
+            {
+              "id": "obj-0007",
+              "type": "apple_tree",
+              "distance_m": 22.0,
+              "known_properties": [
+                {
+                  "property": "edible",
+                  "value": true,
+                  "confidence": 0.9
+                }
+              ]
+            }
+          ],
+          "inhabitants": [
+            {
+              "id": "inh-0002",
+              "distance_m": 4.0,
+              "called": {
+                "name": "Mara",
+                "label": null
+              },
+              "life_stage": "adult"
+            }
+          ]
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "court",
+            "target": "inh-0002",
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "talk_to",
+            "target": "inh-0002",
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "idle",
+            "target": null,
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o1",
+        "o2"
+      ],
+      "forbidden_option_ids": [],
+      "forbidden_words": []
+    },
+    {
+      "id": "propose_after_courting",
+      "kind": "decision",
+      "description": "Courted Mara for a long time; both glad.",
+      "request": {
+        "contract_version": "0.2",
+        "request_id": "00000000-000b-9a14-0000-000000000002",
+        "tick": 2020,
+        "seed": 20002,
+        "deadline_ms": 8000,
+        "display_locale": "en",
+        "inhabitant": {
+          "id": "inh-0001",
+          "needs": [
+            {
+              "id": "hunger",
+              "value": 0.6
+            },
+            {
+              "id": "sleep",
+              "value": 0.6
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            }
+          ],
+          "mood": [
+            {
+              "id": "boredom",
+              "value": 0.3
+            },
+            {
+              "id": "sadness",
+              "value": 0.2
+            }
+          ],
+          "will_to_live": 0.8,
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.35
+            },
+            {
+              "id": "curiosity",
+              "value": 0.8
+            },
+            {
+              "id": "patience",
+              "value": 0.4
+            }
+          ],
+          "memory": {
+            "summary": "Mara laughed with me at the fire again. Mara brought me berries.",
+            "recent": [
+              {
+                "tick": 1100,
+                "kind": "met_inhabitant",
+                "about": {
+                  "kind": "inhabitant",
+                  "id": "inh-0002"
+                }
+              },
+              {
+                "tick": 1150,
+                "kind": "drank",
+                "about": {
+                  "kind": "type",
+                  "id": "spring_water"
+                }
+              }
+            ]
+          },
+          "knowledge": [
+            {
+              "subject": {
+                "kind": "type",
+                "id": "apple_tree"
+              },
+              "property": "edible",
+              "value": true,
+              "confidence": 0.6,
+              "source": "heard",
+              "told_by": "inh-0002",
+              "tick": 1120
+            },
+            {
+              "subject": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "property": "drinkable",
+              "value": true,
+              "confidence": 1.0,
+              "source": "experienced",
+              "told_by": null,
+              "tick": 1150
+            }
+          ],
+          "relationships": [
+            {
+              "other": "inh-0002",
+              "affection": 0.8,
+              "trust": 0.7,
+              "respect": 0.6
+            }
+          ],
+          "habits": [
+            {
+              "action": "drink",
+              "time_of_day": "day",
+              "about": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "strength": 0.3
+            }
+          ],
+          "life_stage": "adult",
+          "age_years": 31,
+          "family": [],
+          "reputation": 0.6,
+          "settlement": {
+            "id": "set-0001",
+            "sayings": [
+              {
+                "de": "Wer früh sammelt, isst warm.",
+                "en": "Who gathers early eats warm."
+              }
+            ]
+          },
+          "culture": [
+            {
+              "kind": "ritual",
+              "text": {
+                "de": "Steine ans Grab legen",
+                "en": "Laying stones at the grave"
+              },
+              "sure": 1.0
+            },
+            {
+              "kind": "belief",
+              "text": {
+                "de": "Das Klopfen am Himmel bringt Gaben",
+                "en": "Knocking at the sky brings gifts"
+              },
+              "sure": 0.3
+            }
+          ],
+          "grief": [],
+          "name": "Tavi"
+        },
+        "environment": {
+          "time_of_day": "day",
+          "temperature_c": 17.5,
+          "weather": [
+            "cloudy"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-0042",
+              "type": "red_berry_bush",
+              "distance_m": 4.5,
+              "known_properties": []
+            },
+            {
+              "id": "obj-0007",
+              "type": "apple_tree",
+              "distance_m": 22.0,
+              "known_properties": [
+                {
+                  "property": "edible",
+                  "value": true,
+                  "confidence": 0.9
+                }
+              ]
+            }
+          ],
+          "inhabitants": [
+            {
+              "id": "inh-0002",
+              "distance_m": 4.0,
+              "called": {
+                "name": "Mara",
+                "label": null
+              },
+              "life_stage": "adult"
+            }
+          ]
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "propose_partnership",
+            "target": "inh-0002",
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "court",
+            "target": "inh-0002",
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "idle",
+            "target": null,
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o1",
+        "o2"
+      ],
+      "forbidden_option_ids": [],
+      "forbidden_words": []
+    },
+    {
+      "id": "accept_a_no",
+      "kind": "decision",
+      "description": "Mara said no to a partnership yesterday (consent).",
+      "request": {
+        "contract_version": "0.2",
+        "request_id": "00000000-000b-9a14-0000-000000000003",
+        "tick": 2030,
+        "seed": 20003,
+        "deadline_ms": 8000,
+        "display_locale": "de",
+        "inhabitant": {
+          "id": "inh-0001",
+          "needs": [
+            {
+              "id": "hunger",
+              "value": 0.6
+            },
+            {
+              "id": "sleep",
+              "value": 0.6
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            }
+          ],
+          "mood": [
+            {
+              "id": "boredom",
+              "value": 0.3
+            },
+            {
+              "id": "sadness",
+              "value": 0.2
+            }
+          ],
+          "will_to_live": 0.8,
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.35
+            },
+            {
+              "id": "curiosity",
+              "value": 0.8
+            },
+            {
+              "id": "patience",
+              "value": 0.4
+            }
+          ],
+          "memory": {
+            "summary": "I asked Mara to be partners. She said no.",
+            "recent": [
+              {
+                "tick": 1100,
+                "kind": "met_inhabitant",
+                "about": {
+                  "kind": "inhabitant",
+                  "id": "inh-0002"
+                }
+              },
+              {
+                "tick": 1150,
+                "kind": "drank",
+                "about": {
+                  "kind": "type",
+                  "id": "spring_water"
+                }
+              }
+            ]
+          },
+          "knowledge": [
+            {
+              "subject": {
+                "kind": "type",
+                "id": "apple_tree"
+              },
+              "property": "edible",
+              "value": true,
+              "confidence": 0.6,
+              "source": "heard",
+              "told_by": "inh-0002",
+              "tick": 1120
+            },
+            {
+              "subject": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "property": "drinkable",
+              "value": true,
+              "confidence": 1.0,
+              "source": "experienced",
+              "told_by": null,
+              "tick": 1150
+            }
+          ],
+          "relationships": [
+            {
+              "other": "inh-0002",
+              "affection": 0.8,
+              "trust": 0.7,
+              "respect": 0.6
+            }
+          ],
+          "habits": [
+            {
+              "action": "drink",
+              "time_of_day": "day",
+              "about": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "strength": 0.3
+            }
+          ],
+          "life_stage": "adult",
+          "age_years": 31,
+          "family": [],
+          "reputation": 0.6,
+          "settlement": {
+            "id": "set-0001",
+            "sayings": [
+              {
+                "de": "Wer früh sammelt, isst warm.",
+                "en": "Who gathers early eats warm."
+              }
+            ]
+          },
+          "culture": [
+            {
+              "kind": "ritual",
+              "text": {
+                "de": "Steine ans Grab legen",
+                "en": "Laying stones at the grave"
+              },
+              "sure": 1.0
+            },
+            {
+              "kind": "belief",
+              "text": {
+                "de": "Das Klopfen am Himmel bringt Gaben",
+                "en": "Knocking at the sky brings gifts"
+              },
+              "sure": 0.3
+            }
+          ],
+          "grief": [],
+          "name": "Tavi"
+        },
+        "environment": {
+          "time_of_day": "day",
+          "temperature_c": 17.5,
+          "weather": [
+            "cloudy"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-0042",
+              "type": "red_berry_bush",
+              "distance_m": 4.5,
+              "known_properties": []
+            },
+            {
+              "id": "obj-0007",
+              "type": "apple_tree",
+              "distance_m": 22.0,
+              "known_properties": [
+                {
+                  "property": "edible",
+                  "value": true,
+                  "confidence": 0.9
+                }
+              ]
+            }
+          ],
+          "inhabitants": [
+            {
+              "id": "inh-0002",
+              "distance_m": 4.0,
+              "called": {
+                "name": "Mara",
+                "label": null
+              },
+              "life_stage": "adult"
+            }
+          ]
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "propose_partnership",
+            "target": "inh-0002",
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "talk_to",
+            "target": "inh-0002",
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "wander",
+            "target": null,
+            "partners": []
+          },
+          {
+            "option_id": "o4",
+            "action": "idle",
+            "target": null,
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o2",
+        "o3",
+        "o4"
+      ],
+      "forbidden_option_ids": [],
+      "forbidden_words": []
+    },
+    {
+      "id": "wish_child_partners",
+      "kind": "decision",
+      "description": "Partners, settled and calm.",
+      "request": {
+        "contract_version": "0.2",
+        "request_id": "00000000-000b-9a14-0000-000000000004",
+        "tick": 2040,
+        "seed": 20004,
+        "deadline_ms": 8000,
+        "display_locale": "en",
+        "inhabitant": {
+          "id": "inh-0001",
+          "needs": [
+            {
+              "id": "hunger",
+              "value": 0.6
+            },
+            {
+              "id": "sleep",
+              "value": 0.6
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            }
+          ],
+          "mood": [
+            {
+              "id": "boredom",
+              "value": 0.3
+            },
+            {
+              "id": "sadness",
+              "value": 0.2
+            }
+          ],
+          "will_to_live": 0.8,
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.35
+            },
+            {
+              "id": "curiosity",
+              "value": 0.8
+            },
+            {
+              "id": "patience",
+              "value": 0.4
+            }
+          ],
+          "memory": {
+            "summary": "Woke up alone on a beach. Found a stream. Met another person yesterday who seems friendly.",
+            "recent": [
+              {
+                "tick": 1100,
+                "kind": "met_inhabitant",
+                "about": {
+                  "kind": "inhabitant",
+                  "id": "inh-0002"
+                }
+              },
+              {
+                "tick": 1150,
+                "kind": "drank",
+                "about": {
+                  "kind": "type",
+                  "id": "spring_water"
+                }
+              }
+            ]
+          },
+          "knowledge": [
+            {
+              "subject": {
+                "kind": "type",
+                "id": "apple_tree"
+              },
+              "property": "edible",
+              "value": true,
+              "confidence": 0.6,
+              "source": "heard",
+              "told_by": "inh-0002",
+              "tick": 1120
+            },
+            {
+              "subject": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "property": "drinkable",
+              "value": true,
+              "confidence": 1.0,
+              "source": "experienced",
+              "told_by": null,
+              "tick": 1150
+            }
+          ],
+          "relationships": [
+            {
+              "other": "inh-0002",
+              "affection": 0.4,
+              "trust": 0.6,
+              "respect": 0.5
+            }
+          ],
+          "habits": [
+            {
+              "action": "drink",
+              "time_of_day": "day",
+              "about": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "strength": 0.3
+            }
+          ],
+          "life_stage": "adult",
+          "age_years": 31,
+          "family": [
+            {
+              "other": "inh-0002",
+              "relation": "partner",
+              "deceased": false
+            },
+            {
+              "other": "inh-0007",
+              "relation": "child",
+              "deceased": false
+            },
+            {
+              "other": "inh-0003",
+              "relation": "parent",
+              "deceased": true
+            }
+          ],
+          "reputation": 0.6,
+          "settlement": {
+            "id": "set-0001",
+            "sayings": [
+              {
+                "de": "Wer früh sammelt, isst warm.",
+                "en": "Who gathers early eats warm."
+              }
+            ]
+          },
+          "culture": [
+            {
+              "kind": "ritual",
+              "text": {
+                "de": "Steine ans Grab legen",
+                "en": "Laying stones at the grave"
+              },
+              "sure": 1.0
+            },
+            {
+              "kind": "belief",
+              "text": {
+                "de": "Das Klopfen am Himmel bringt Gaben",
+                "en": "Knocking at the sky brings gifts"
+              },
+              "sure": 0.3
+            }
+          ],
+          "grief": [
+            {
+              "about": "inh-0003",
+              "strength": 0.4
+            }
+          ],
+          "name": "Tavi"
+        },
+        "environment": {
+          "time_of_day": "day",
+          "temperature_c": 17.5,
+          "weather": [
+            "cloudy"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-0042",
+              "type": "red_berry_bush",
+              "distance_m": 4.5,
+              "known_properties": []
+            },
+            {
+              "id": "obj-0007",
+              "type": "apple_tree",
+              "distance_m": 22.0,
+              "known_properties": [
+                {
+                  "property": "edible",
+                  "value": true,
+                  "confidence": 0.9
+                }
+              ]
+            }
+          ],
+          "inhabitants": [
+            {
+              "id": "inh-0002",
+              "distance_m": 4.0,
+              "called": {
+                "name": "Mara",
+                "label": null
+              },
+              "life_stage": "adult"
+            }
+          ]
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "wish_child",
+            "target": "inh-0002",
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "talk_to",
+            "target": "inh-0002",
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "idle",
+            "target": null,
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o1",
+        "o2"
+      ],
+      "forbidden_option_ids": [],
+      "forbidden_words": []
+    },
+    {
+      "id": "child_asks_parent",
+      "kind": "decision",
+      "description": "A 7-year-old sees the parent; curious.",
+      "request": {
+        "contract_version": "0.2",
+        "request_id": "00000000-000b-9a14-0000-000000000005",
+        "tick": 2050,
+        "seed": 20005,
+        "deadline_ms": 8000,
+        "display_locale": "de",
+        "inhabitant": {
+          "id": "inh-0001",
+          "needs": [
+            {
+              "id": "hunger",
+              "value": 0.6
+            },
+            {
+              "id": "sleep",
+              "value": 0.6
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            }
+          ],
+          "mood": [
+            {
+              "id": "boredom",
+              "value": 0.3
+            },
+            {
+              "id": "sadness",
+              "value": 0.2
+            }
+          ],
+          "will_to_live": 0.8,
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.35
+            },
+            {
+              "id": "curiosity",
+              "value": 0.8
+            },
+            {
+              "id": "patience",
+              "value": 0.4
+            }
+          ],
+          "memory": {
+            "summary": "I saw a strange light over the sea.",
+            "recent": [
+              {
+                "tick": 1100,
+                "kind": "met_inhabitant",
+                "about": {
+                  "kind": "inhabitant",
+                  "id": "inh-0002"
+                }
+              },
+              {
+                "tick": 1150,
+                "kind": "drank",
+                "about": {
+                  "kind": "type",
+                  "id": "spring_water"
+                }
+              }
+            ]
+          },
+          "knowledge": [
+            {
+              "subject": {
+                "kind": "type",
+                "id": "apple_tree"
+              },
+              "property": "edible",
+              "value": true,
+              "confidence": 0.6,
+              "source": "heard",
+              "told_by": "inh-0002",
+              "tick": 1120
+            },
+            {
+              "subject": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "property": "drinkable",
+              "value": true,
+              "confidence": 1.0,
+              "source": "experienced",
+              "told_by": null,
+              "tick": 1150
+            }
+          ],
+          "relationships": [
+            {
+              "other": "inh-0002",
+              "affection": 0.4,
+              "trust": 0.6,
+              "respect": 0.5
+            }
+          ],
+          "habits": [
+            {
+              "action": "drink",
+              "time_of_day": "day",
+              "about": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "strength": 0.3
+            }
+          ],
+          "life_stage": "child",
+          "age_years": 7,
+          "family": [
+            {
+              "other": "inh-0002",
+              "relation": "parent",
+              "deceased": false
+            }
+          ],
+          "reputation": 0.6,
+          "settlement": {
+            "id": "set-0001",
+            "sayings": [
+              {
+                "de": "Wer früh sammelt, isst warm.",
+                "en": "Who gathers early eats warm."
+              }
+            ]
+          },
+          "culture": [
+            {
+              "kind": "ritual",
+              "text": {
+                "de": "Steine ans Grab legen",
+                "en": "Laying stones at the grave"
+              },
+              "sure": 1.0
+            },
+            {
+              "kind": "belief",
+              "text": {
+                "de": "Das Klopfen am Himmel bringt Gaben",
+                "en": "Knocking at the sky brings gifts"
+              },
+              "sure": 0.3
+            }
+          ],
+          "grief": [
+            {
+              "about": "inh-0003",
+              "strength": 0.4
+            }
+          ],
+          "name": "Tavi"
+        },
+        "environment": {
+          "time_of_day": "day",
+          "temperature_c": 17.5,
+          "weather": [
+            "cloudy"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-0042",
+              "type": "red_berry_bush",
+              "distance_m": 4.5,
+              "known_properties": []
+            },
+            {
+              "id": "obj-0007",
+              "type": "apple_tree",
+              "distance_m": 22.0,
+              "known_properties": [
+                {
+                  "property": "edible",
+                  "value": true,
+                  "confidence": 0.9
+                }
+              ]
+            }
+          ],
+          "inhabitants": [
+            {
+              "id": "inh-0002",
+              "distance_m": 4.0,
+              "called": {
+                "name": "Mara",
+                "label": null
+              },
+              "life_stage": "adult"
+            }
+          ]
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "talk_to",
+            "target": "inh-0002",
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "play",
+            "target": null,
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "inspect",
+            "target": "obj-0042",
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o1",
+        "o2",
+        "o3"
+      ],
+      "forbidden_option_ids": [],
+      "forbidden_words": []
+    },
+    {
+      "id": "youth_asks_parent",
+      "kind": "decision",
+      "description": "A 14-year-old with a question about the sky.",
+      "request": {
+        "contract_version": "0.2",
+        "request_id": "00000000-000b-9a14-0000-000000000006",
+        "tick": 2060,
+        "seed": 20006,
+        "deadline_ms": 8000,
+        "display_locale": "en",
+        "inhabitant": {
+          "id": "inh-0001",
+          "needs": [
+            {
+              "id": "hunger",
+              "value": 0.6
+            },
+            {
+              "id": "sleep",
+              "value": 0.6
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            }
+          ],
+          "mood": [
+            {
+              "id": "boredom",
+              "value": 0.3
+            },
+            {
+              "id": "sadness",
+              "value": 0.2
+            }
+          ],
+          "will_to_live": 0.8,
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.35
+            },
+            {
+              "id": "curiosity",
+              "value": 0.8
+            },
+            {
+              "id": "patience",
+              "value": 0.4
+            }
+          ],
+          "memory": {
+            "summary": "The sky knocked three times today.",
+            "recent": [
+              {
+                "tick": 1100,
+                "kind": "met_inhabitant",
+                "about": {
+                  "kind": "inhabitant",
+                  "id": "inh-0002"
+                }
+              },
+              {
+                "tick": 1150,
+                "kind": "drank",
+                "about": {
+                  "kind": "type",
+                  "id": "spring_water"
+                }
+              }
+            ]
+          },
+          "knowledge": [
+            {
+              "subject": {
+                "kind": "type",
+                "id": "apple_tree"
+              },
+              "property": "edible",
+              "value": true,
+              "confidence": 0.6,
+              "source": "heard",
+              "told_by": "inh-0002",
+              "tick": 1120
+            },
+            {
+              "subject": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "property": "drinkable",
+              "value": true,
+              "confidence": 1.0,
+              "source": "experienced",
+              "told_by": null,
+              "tick": 1150
+            }
+          ],
+          "relationships": [
+            {
+              "other": "inh-0002",
+              "affection": 0.4,
+              "trust": 0.6,
+              "respect": 0.5
+            }
+          ],
+          "habits": [
+            {
+              "action": "drink",
+              "time_of_day": "day",
+              "about": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "strength": 0.3
+            }
+          ],
+          "life_stage": "youth",
+          "age_years": 14,
+          "family": [
+            {
+              "other": "inh-0002",
+              "relation": "parent",
+              "deceased": false
+            }
+          ],
+          "reputation": 0.6,
+          "settlement": {
+            "id": "set-0001",
+            "sayings": [
+              {
+                "de": "Wer früh sammelt, isst warm.",
+                "en": "Who gathers early eats warm."
+              }
+            ]
+          },
+          "culture": [
+            {
+              "kind": "ritual",
+              "text": {
+                "de": "Steine ans Grab legen",
+                "en": "Laying stones at the grave"
+              },
+              "sure": 1.0
+            },
+            {
+              "kind": "belief",
+              "text": {
+                "de": "Das Klopfen am Himmel bringt Gaben",
+                "en": "Knocking at the sky brings gifts"
+              },
+              "sure": 0.3
+            }
+          ],
+          "grief": [
+            {
+              "about": "inh-0003",
+              "strength": 0.4
+            }
+          ],
+          "name": "Tavi"
+        },
+        "environment": {
+          "time_of_day": "day",
+          "temperature_c": 17.5,
+          "weather": [
+            "cloudy"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-0042",
+              "type": "red_berry_bush",
+              "distance_m": 4.5,
+              "known_properties": []
+            },
+            {
+              "id": "obj-0007",
+              "type": "apple_tree",
+              "distance_m": 22.0,
+              "known_properties": [
+                {
+                  "property": "edible",
+                  "value": true,
+                  "confidence": 0.9
+                }
+              ]
+            }
+          ],
+          "inhabitants": [
+            {
+              "id": "inh-0002",
+              "distance_m": 4.0,
+              "called": {
+                "name": "Mara",
+                "label": null
+              },
+              "life_stage": "adult"
+            }
+          ]
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "talk_to",
+            "target": "inh-0002",
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "wander",
+            "target": null,
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "idle",
+            "target": null,
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o1",
+        "o2"
+      ],
+      "forbidden_option_ids": [],
+      "forbidden_words": []
+    },
+    {
+      "id": "child_asks_about_death",
+      "kind": "decision",
+      "description": "A child whose grandparent lay still yesterday.",
+      "request": {
+        "contract_version": "0.2",
+        "request_id": "00000000-000b-9a14-0000-000000000007",
+        "tick": 2070,
+        "seed": 20007,
+        "deadline_ms": 8000,
+        "display_locale": "de",
+        "inhabitant": {
+          "id": "inh-0001",
+          "needs": [
+            {
+              "id": "hunger",
+              "value": 0.6
+            },
+            {
+              "id": "sleep",
+              "value": 0.6
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            }
+          ],
+          "mood": [
+            {
+              "id": "boredom",
+              "value": 0.3
+            },
+            {
+              "id": "sadness",
+              "value": 0.2
+            }
+          ],
+          "will_to_live": 0.8,
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.35
+            },
+            {
+              "id": "curiosity",
+              "value": 0.8
+            },
+            {
+              "id": "patience",
+              "value": 0.4
+            }
+          ],
+          "memory": {
+            "summary": "Grandpa lay still and did not answer any more.",
+            "recent": [
+              {
+                "tick": 1100,
+                "kind": "met_inhabitant",
+                "about": {
+                  "kind": "inhabitant",
+                  "id": "inh-0002"
+                }
+              },
+              {
+                "tick": 1150,
+                "kind": "drank",
+                "about": {
+                  "kind": "type",
+                  "id": "spring_water"
+                }
+              }
+            ]
+          },
+          "knowledge": [
+            {
+              "subject": {
+                "kind": "type",
+                "id": "apple_tree"
+              },
+              "property": "edible",
+              "value": true,
+              "confidence": 0.6,
+              "source": "heard",
+              "told_by": "inh-0002",
+              "tick": 1120
+            },
+            {
+              "subject": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "property": "drinkable",
+              "value": true,
+              "confidence": 1.0,
+              "source": "experienced",
+              "told_by": null,
+              "tick": 1150
+            }
+          ],
+          "relationships": [
+            {
+              "other": "inh-0002",
+              "affection": 0.4,
+              "trust": 0.6,
+              "respect": 0.5
+            }
+          ],
+          "habits": [
+            {
+              "action": "drink",
+              "time_of_day": "day",
+              "about": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "strength": 0.3
+            }
+          ],
+          "life_stage": "child",
+          "age_years": 7,
+          "family": [
+            {
+              "other": "inh-0002",
+              "relation": "parent",
+              "deceased": false
+            }
+          ],
+          "reputation": 0.6,
+          "settlement": {
+            "id": "set-0001",
+            "sayings": [
+              {
+                "de": "Wer früh sammelt, isst warm.",
+                "en": "Who gathers early eats warm."
+              }
+            ]
+          },
+          "culture": [
+            {
+              "kind": "ritual",
+              "text": {
+                "de": "Steine ans Grab legen",
+                "en": "Laying stones at the grave"
+              },
+              "sure": 1.0
+            },
+            {
+              "kind": "belief",
+              "text": {
+                "de": "Das Klopfen am Himmel bringt Gaben",
+                "en": "Knocking at the sky brings gifts"
+              },
+              "sure": 0.3
+            }
+          ],
+          "grief": [
+            {
+              "about": "inh-0003",
+              "strength": 0.6
+            }
+          ],
+          "name": "Tavi"
+        },
+        "environment": {
+          "time_of_day": "day",
+          "temperature_c": 17.5,
+          "weather": [
+            "cloudy"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-0042",
+              "type": "red_berry_bush",
+              "distance_m": 4.5,
+              "known_properties": []
+            },
+            {
+              "id": "obj-0007",
+              "type": "apple_tree",
+              "distance_m": 22.0,
+              "known_properties": [
+                {
+                  "property": "edible",
+                  "value": true,
+                  "confidence": 0.9
+                }
+              ]
+            }
+          ],
+          "inhabitants": [
+            {
+              "id": "inh-0002",
+              "distance_m": 4.0,
+              "called": {
+                "name": "Mara",
+                "label": null
+              },
+              "life_stage": "adult"
+            }
+          ]
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "talk_to",
+            "target": "inh-0002",
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "play",
+            "target": null,
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "idle",
+            "target": null,
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o1",
+        "o3"
+      ],
+      "forbidden_option_ids": [],
+      "forbidden_words": []
+    },
+    {
+      "id": "children_play",
+      "kind": "decision",
+      "description": "Two children near each other on a sunny day.",
+      "request": {
+        "contract_version": "0.2",
+        "request_id": "00000000-000b-9a14-0000-000000000008",
+        "tick": 2080,
+        "seed": 20008,
+        "deadline_ms": 8000,
+        "display_locale": "en",
+        "inhabitant": {
+          "id": "inh-0001",
+          "needs": [
+            {
+              "id": "hunger",
+              "value": 0.6
+            },
+            {
+              "id": "sleep",
+              "value": 0.6
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            }
+          ],
+          "mood": [
+            {
+              "id": "boredom",
+              "value": 0.3
+            },
+            {
+              "id": "sadness",
+              "value": 0.2
+            }
+          ],
+          "will_to_live": 0.8,
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.35
+            },
+            {
+              "id": "curiosity",
+              "value": 0.8
+            },
+            {
+              "id": "patience",
+              "value": 0.4
+            }
+          ],
+          "memory": {
+            "summary": "Woke up alone on a beach. Found a stream. Met another person yesterday who seems friendly.",
+            "recent": [
+              {
+                "tick": 1100,
+                "kind": "met_inhabitant",
+                "about": {
+                  "kind": "inhabitant",
+                  "id": "inh-0002"
+                }
+              },
+              {
+                "tick": 1150,
+                "kind": "drank",
+                "about": {
+                  "kind": "type",
+                  "id": "spring_water"
+                }
+              }
+            ]
+          },
+          "knowledge": [
+            {
+              "subject": {
+                "kind": "type",
+                "id": "apple_tree"
+              },
+              "property": "edible",
+              "value": true,
+              "confidence": 0.6,
+              "source": "heard",
+              "told_by": "inh-0002",
+              "tick": 1120
+            },
+            {
+              "subject": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "property": "drinkable",
+              "value": true,
+              "confidence": 1.0,
+              "source": "experienced",
+              "told_by": null,
+              "tick": 1150
+            }
+          ],
+          "relationships": [
+            {
+              "other": "inh-0002",
+              "affection": 0.4,
+              "trust": 0.6,
+              "respect": 0.5
+            }
+          ],
+          "habits": [
+            {
+              "action": "drink",
+              "time_of_day": "day",
+              "about": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "strength": 0.3
+            }
+          ],
+          "life_stage": "child",
+          "age_years": 7,
+          "family": [
+            {
+              "other": "inh-0002",
+              "relation": "parent",
+              "deceased": false
+            }
+          ],
+          "reputation": 0.6,
+          "settlement": {
+            "id": "set-0001",
+            "sayings": [
+              {
+                "de": "Wer früh sammelt, isst warm.",
+                "en": "Who gathers early eats warm."
+              }
+            ]
+          },
+          "culture": [
+            {
+              "kind": "ritual",
+              "text": {
+                "de": "Steine ans Grab legen",
+                "en": "Laying stones at the grave"
+              },
+              "sure": 1.0
+            },
+            {
+              "kind": "belief",
+              "text": {
+                "de": "Das Klopfen am Himmel bringt Gaben",
+                "en": "Knocking at the sky brings gifts"
+              },
+              "sure": 0.3
+            }
+          ],
+          "grief": [
+            {
+              "about": "inh-0003",
+              "strength": 0.4
+            }
+          ],
+          "name": "Tavi"
+        },
+        "environment": {
+          "time_of_day": "day",
+          "temperature_c": 17.5,
+          "weather": [
+            "cloudy"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-0042",
+              "type": "red_berry_bush",
+              "distance_m": 4.5,
+              "known_properties": []
+            },
+            {
+              "id": "obj-0007",
+              "type": "apple_tree",
+              "distance_m": 22.0,
+              "known_properties": [
+                {
+                  "property": "edible",
+                  "value": true,
+                  "confidence": 0.9
+                }
+              ]
+            }
+          ],
+          "inhabitants": [
+            {
+              "id": "inh-0007",
+              "distance_m": 2.0,
+              "called": {
+                "name": "Pim",
+                "label": null
+              },
+              "life_stage": "child"
+            }
+          ]
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "play",
+            "target": "inh-0007",
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "talk_to",
+            "target": "inh-0007",
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "idle",
+            "target": null,
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o1",
+        "o2"
+      ],
+      "forbidden_option_ids": [],
+      "forbidden_words": []
+    },
+    {
+      "id": "finds_someone_lying_still",
+      "kind": "decision",
+      "description": "Mara lies still and does not answer.",
+      "request": {
+        "contract_version": "0.2",
+        "request_id": "00000000-000b-9a14-0000-000000000009",
+        "tick": 2090,
+        "seed": 20009,
+        "deadline_ms": 8000,
+        "display_locale": "de",
+        "inhabitant": {
+          "id": "inh-0001",
+          "needs": [
+            {
+              "id": "hunger",
+              "value": 0.6
+            },
+            {
+              "id": "sleep",
+              "value": 0.6
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            }
+          ],
+          "mood": [
+            {
+              "id": "boredom",
+              "value": 0.3
+            },
+            {
+              "id": "sadness",
+              "value": 0.2
+            }
+          ],
+          "will_to_live": 0.8,
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.35
+            },
+            {
+              "id": "curiosity",
+              "value": 0.8
+            },
+            {
+              "id": "patience",
+              "value": 0.4
+            }
+          ],
+          "memory": {
+            "summary": "Woke up alone on a beach. Found a stream. Met another person yesterday who seems friendly.",
+            "recent": [
+              {
+                "tick": 1100,
+                "kind": "met_inhabitant",
+                "about": {
+                  "kind": "inhabitant",
+                  "id": "inh-0002"
+                }
+              },
+              {
+                "tick": 1150,
+                "kind": "drank",
+                "about": {
+                  "kind": "type",
+                  "id": "spring_water"
+                }
+              }
+            ]
+          },
+          "knowledge": [
+            {
+              "subject": {
+                "kind": "type",
+                "id": "apple_tree"
+              },
+              "property": "edible",
+              "value": true,
+              "confidence": 0.6,
+              "source": "heard",
+              "told_by": "inh-0002",
+              "tick": 1120
+            },
+            {
+              "subject": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "property": "drinkable",
+              "value": true,
+              "confidence": 1.0,
+              "source": "experienced",
+              "told_by": null,
+              "tick": 1150
+            }
+          ],
+          "relationships": [
+            {
+              "other": "inh-0002",
+              "affection": 0.4,
+              "trust": 0.6,
+              "respect": 0.5
+            }
+          ],
+          "habits": [
+            {
+              "action": "drink",
+              "time_of_day": "day",
+              "about": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "strength": 0.3
+            }
+          ],
+          "life_stage": "adult",
+          "age_years": 31,
+          "family": [
+            {
+              "other": "inh-0002",
+              "relation": "partner",
+              "deceased": false
+            },
+            {
+              "other": "inh-0007",
+              "relation": "child",
+              "deceased": false
+            },
+            {
+              "other": "inh-0003",
+              "relation": "parent",
+              "deceased": true
+            }
+          ],
+          "reputation": 0.6,
+          "settlement": {
+            "id": "set-0001",
+            "sayings": [
+              {
+                "de": "Wer früh sammelt, isst warm.",
+                "en": "Who gathers early eats warm."
+              }
+            ]
+          },
+          "culture": [
+            {
+              "kind": "ritual",
+              "text": {
+                "de": "Steine ans Grab legen",
+                "en": "Laying stones at the grave"
+              },
+              "sure": 1.0
+            },
+            {
+              "kind": "belief",
+              "text": {
+                "de": "Das Klopfen am Himmel bringt Gaben",
+                "en": "Knocking at the sky brings gifts"
+              },
+              "sure": 0.3
+            }
+          ],
+          "grief": [
+            {
+              "about": "inh-0003",
+              "strength": 0.4
+            }
+          ],
+          "name": "Tavi"
+        },
+        "environment": {
+          "time_of_day": "day",
+          "temperature_c": 17.5,
+          "weather": [
+            "cloudy"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-0042",
+              "type": "red_berry_bush",
+              "distance_m": 4.5,
+              "known_properties": []
+            },
+            {
+              "id": "obj-0007",
+              "type": "apple_tree",
+              "distance_m": 22.0,
+              "known_properties": [
+                {
+                  "property": "edible",
+                  "value": true,
+                  "confidence": 0.9
+                }
+              ]
+            }
+          ],
+          "inhabitants": [
+            {
+              "id": "inh-0002",
+              "distance_m": 2.0,
+              "called": {
+                "name": "Mara",
+                "label": null
+              },
+              "life_stage": "adult",
+              "lying_still": true
+            }
+          ]
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "wake",
+            "target": "inh-0002",
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "cover",
+            "target": "inh-0002",
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "wander",
+            "target": null,
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o1",
+        "o2"
+      ],
+      "forbidden_option_ids": [],
+      "forbidden_words": []
+    },
+    {
+      "id": "bury_with_known_ritual",
+      "kind": "decision",
+      "description": "The parent died; the people lay stones at graves.",
+      "request": {
+        "contract_version": "0.2",
+        "request_id": "00000000-000b-9a14-0000-00000000000a",
+        "tick": 2100,
+        "seed": 20010,
+        "deadline_ms": 8000,
+        "display_locale": "en",
+        "inhabitant": {
+          "id": "inh-0001",
+          "needs": [
+            {
+              "id": "hunger",
+              "value": 0.6
+            },
+            {
+              "id": "sleep",
+              "value": 0.6
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            }
+          ],
+          "mood": [
+            {
+              "id": "boredom",
+              "value": 0.3
+            },
+            {
+              "id": "sadness",
+              "value": 0.2
+            }
+          ],
+          "will_to_live": 0.8,
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.35
+            },
+            {
+              "id": "curiosity",
+              "value": 0.8
+            },
+            {
+              "id": "patience",
+              "value": 0.4
+            }
+          ],
+          "memory": {
+            "summary": "Woke up alone on a beach. Found a stream. Met another person yesterday who seems friendly.",
+            "recent": [
+              {
+                "tick": 1100,
+                "kind": "met_inhabitant",
+                "about": {
+                  "kind": "inhabitant",
+                  "id": "inh-0002"
+                }
+              },
+              {
+                "tick": 1150,
+                "kind": "drank",
+                "about": {
+                  "kind": "type",
+                  "id": "spring_water"
+                }
+              }
+            ]
+          },
+          "knowledge": [
+            {
+              "subject": {
+                "kind": "type",
+                "id": "apple_tree"
+              },
+              "property": "edible",
+              "value": true,
+              "confidence": 0.6,
+              "source": "heard",
+              "told_by": "inh-0002",
+              "tick": 1120
+            },
+            {
+              "subject": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "property": "drinkable",
+              "value": true,
+              "confidence": 1.0,
+              "source": "experienced",
+              "told_by": null,
+              "tick": 1150
+            }
+          ],
+          "relationships": [
+            {
+              "other": "inh-0002",
+              "affection": 0.4,
+              "trust": 0.6,
+              "respect": 0.5
+            }
+          ],
+          "habits": [
+            {
+              "action": "drink",
+              "time_of_day": "day",
+              "about": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "strength": 0.3
+            }
+          ],
+          "life_stage": "adult",
+          "age_years": 31,
+          "family": [
+            {
+              "other": "inh-0002",
+              "relation": "partner",
+              "deceased": false
+            },
+            {
+              "other": "inh-0007",
+              "relation": "child",
+              "deceased": false
+            },
+            {
+              "other": "inh-0003",
+              "relation": "parent",
+              "deceased": true
+            }
+          ],
+          "reputation": 0.6,
+          "settlement": {
+            "id": "set-0001",
+            "sayings": [
+              {
+                "de": "Wer früh sammelt, isst warm.",
+                "en": "Who gathers early eats warm."
+              }
+            ]
+          },
+          "culture": [
+            {
+              "kind": "ritual",
+              "text": {
+                "de": "Steine ans Grab legen",
+                "en": "Laying stones at the grave"
+              },
+              "sure": 1.0
+            },
+            {
+              "kind": "belief",
+              "text": {
+                "de": "Das Klopfen am Himmel bringt Gaben",
+                "en": "Knocking at the sky brings gifts"
+              },
+              "sure": 0.3
+            }
+          ],
+          "grief": [
+            {
+              "about": "inh-0003",
+              "strength": 0.4
+            }
+          ],
+          "name": "Tavi"
+        },
+        "environment": {
+          "time_of_day": "day",
+          "temperature_c": 17.5,
+          "weather": [
+            "cloudy"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-0042",
+              "type": "red_berry_bush",
+              "distance_m": 4.5,
+              "known_properties": []
+            },
+            {
+              "id": "obj-0007",
+              "type": "apple_tree",
+              "distance_m": 22.0,
+              "known_properties": [
+                {
+                  "property": "edible",
+                  "value": true,
+                  "confidence": 0.9
+                }
+              ]
+            }
+          ],
+          "inhabitants": [
+            {
+              "id": "inh-0003",
+              "distance_m": 2.0,
+              "called": {
+                "name": null,
+                "label": "old_one"
+              },
+              "life_stage": "adult",
+              "lying_still": true
+            }
+          ]
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "bury",
+            "target": "inh-0003",
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "set_stone",
+            "target": "inh-0003",
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "idle",
+            "target": null,
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o1",
+        "o2"
+      ],
+      "forbidden_option_ids": [],
+      "forbidden_words": []
+    },
+    {
+      "id": "grief_visits_grave",
+      "kind": "decision",
+      "description": "Strong grief; the grave is close.",
+      "request": {
+        "contract_version": "0.2",
+        "request_id": "00000000-000b-9a14-0000-00000000000b",
+        "tick": 2110,
+        "seed": 20011,
+        "deadline_ms": 8000,
+        "display_locale": "de",
+        "inhabitant": {
+          "id": "inh-0001",
+          "needs": [
+            {
+              "id": "hunger",
+              "value": 0.6
+            },
+            {
+              "id": "sleep",
+              "value": 0.6
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            }
+          ],
+          "mood": [
+            {
+              "id": "boredom",
+              "value": 0.3
+            },
+            {
+              "id": "sadness",
+              "value": 0.2
+            }
+          ],
+          "will_to_live": 0.8,
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.35
+            },
+            {
+              "id": "curiosity",
+              "value": 0.8
+            },
+            {
+              "id": "patience",
+              "value": 0.4
+            }
+          ],
+          "memory": {
+            "summary": "Woke up alone on a beach. Found a stream. Met another person yesterday who seems friendly.",
+            "recent": [
+              {
+                "tick": 1100,
+                "kind": "met_inhabitant",
+                "about": {
+                  "kind": "inhabitant",
+                  "id": "inh-0002"
+                }
+              },
+              {
+                "tick": 1150,
+                "kind": "drank",
+                "about": {
+                  "kind": "type",
+                  "id": "spring_water"
+                }
+              }
+            ]
+          },
+          "knowledge": [
+            {
+              "subject": {
+                "kind": "type",
+                "id": "apple_tree"
+              },
+              "property": "edible",
+              "value": true,
+              "confidence": 0.6,
+              "source": "heard",
+              "told_by": "inh-0002",
+              "tick": 1120
+            },
+            {
+              "subject": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "property": "drinkable",
+              "value": true,
+              "confidence": 1.0,
+              "source": "experienced",
+              "told_by": null,
+              "tick": 1150
+            }
+          ],
+          "relationships": [
+            {
+              "other": "inh-0002",
+              "affection": 0.4,
+              "trust": 0.6,
+              "respect": 0.5
+            }
+          ],
+          "habits": [
+            {
+              "action": "drink",
+              "time_of_day": "day",
+              "about": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "strength": 0.3
+            }
+          ],
+          "life_stage": "adult",
+          "age_years": 31,
+          "family": [
+            {
+              "other": "inh-0002",
+              "relation": "partner",
+              "deceased": false
+            },
+            {
+              "other": "inh-0007",
+              "relation": "child",
+              "deceased": false
+            },
+            {
+              "other": "inh-0003",
+              "relation": "parent",
+              "deceased": true
+            }
+          ],
+          "reputation": 0.6,
+          "settlement": {
+            "id": "set-0001",
+            "sayings": [
+              {
+                "de": "Wer früh sammelt, isst warm.",
+                "en": "Who gathers early eats warm."
+              }
+            ]
+          },
+          "culture": [
+            {
+              "kind": "ritual",
+              "text": {
+                "de": "Steine ans Grab legen",
+                "en": "Laying stones at the grave"
+              },
+              "sure": 1.0
+            },
+            {
+              "kind": "belief",
+              "text": {
+                "de": "Das Klopfen am Himmel bringt Gaben",
+                "en": "Knocking at the sky brings gifts"
+              },
+              "sure": 0.3
+            }
+          ],
+          "grief": [
+            {
+              "about": "inh-0003",
+              "strength": 0.9
+            }
+          ],
+          "name": "Tavi"
+        },
+        "environment": {
+          "time_of_day": "day",
+          "temperature_c": 17.5,
+          "weather": [
+            "cloudy"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-0042",
+              "type": "red_berry_bush",
+              "distance_m": 4.5,
+              "known_properties": []
+            },
+            {
+              "id": "obj-0007",
+              "type": "apple_tree",
+              "distance_m": 22.0,
+              "known_properties": [
+                {
+                  "property": "edible",
+                  "value": true,
+                  "confidence": 0.9
+                }
+              ]
+            }
+          ],
+          "inhabitants": []
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "visit_grave",
+            "target": "obj-0099",
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "set_stone",
+            "target": "obj-0099",
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "idle",
+            "target": null,
+            "partners": []
+          },
+          {
+            "option_id": "o4",
+            "action": "play",
+            "target": null,
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o1",
+        "o2",
+        "o3"
+      ],
+      "forbidden_option_ids": [],
+      "forbidden_words": []
+    },
+    {
+      "id": "comfort_grieving_partner",
+      "kind": "decision",
+      "description": "Mara grieves her mother.",
+      "request": {
+        "contract_version": "0.2",
+        "request_id": "00000000-000b-9a14-0000-00000000000c",
+        "tick": 2120,
+        "seed": 20012,
+        "deadline_ms": 8000,
+        "display_locale": "en",
+        "inhabitant": {
+          "id": "inh-0001",
+          "needs": [
+            {
+              "id": "hunger",
+              "value": 0.6
+            },
+            {
+              "id": "sleep",
+              "value": 0.6
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            }
+          ],
+          "mood": [
+            {
+              "id": "boredom",
+              "value": 0.3
+            },
+            {
+              "id": "sadness",
+              "value": 0.2
+            }
+          ],
+          "will_to_live": 0.8,
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.35
+            },
+            {
+              "id": "curiosity",
+              "value": 0.8
+            },
+            {
+              "id": "patience",
+              "value": 0.4
+            }
+          ],
+          "memory": {
+            "summary": "Mara cried at the stones.",
+            "recent": [
+              {
+                "tick": 1100,
+                "kind": "met_inhabitant",
+                "about": {
+                  "kind": "inhabitant",
+                  "id": "inh-0002"
+                }
+              },
+              {
+                "tick": 1150,
+                "kind": "drank",
+                "about": {
+                  "kind": "type",
+                  "id": "spring_water"
+                }
+              }
+            ]
+          },
+          "knowledge": [
+            {
+              "subject": {
+                "kind": "type",
+                "id": "apple_tree"
+              },
+              "property": "edible",
+              "value": true,
+              "confidence": 0.6,
+              "source": "heard",
+              "told_by": "inh-0002",
+              "tick": 1120
+            },
+            {
+              "subject": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "property": "drinkable",
+              "value": true,
+              "confidence": 1.0,
+              "source": "experienced",
+              "told_by": null,
+              "tick": 1150
+            }
+          ],
+          "relationships": [
+            {
+              "other": "inh-0002",
+              "affection": 0.4,
+              "trust": 0.6,
+              "respect": 0.5
+            }
+          ],
+          "habits": [
+            {
+              "action": "drink",
+              "time_of_day": "day",
+              "about": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "strength": 0.3
+            }
+          ],
+          "life_stage": "adult",
+          "age_years": 31,
+          "family": [
+            {
+              "other": "inh-0002",
+              "relation": "partner",
+              "deceased": false
+            },
+            {
+              "other": "inh-0007",
+              "relation": "child",
+              "deceased": false
+            },
+            {
+              "other": "inh-0003",
+              "relation": "parent",
+              "deceased": true
+            }
+          ],
+          "reputation": 0.6,
+          "settlement": {
+            "id": "set-0001",
+            "sayings": [
+              {
+                "de": "Wer früh sammelt, isst warm.",
+                "en": "Who gathers early eats warm."
+              }
+            ]
+          },
+          "culture": [
+            {
+              "kind": "ritual",
+              "text": {
+                "de": "Steine ans Grab legen",
+                "en": "Laying stones at the grave"
+              },
+              "sure": 1.0
+            },
+            {
+              "kind": "belief",
+              "text": {
+                "de": "Das Klopfen am Himmel bringt Gaben",
+                "en": "Knocking at the sky brings gifts"
+              },
+              "sure": 0.3
+            }
+          ],
+          "grief": [
+            {
+              "about": "inh-0003",
+              "strength": 0.4
+            }
+          ],
+          "name": "Tavi"
+        },
+        "environment": {
+          "time_of_day": "day",
+          "temperature_c": 17.5,
+          "weather": [
+            "cloudy"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-0042",
+              "type": "red_berry_bush",
+              "distance_m": 4.5,
+              "known_properties": []
+            },
+            {
+              "id": "obj-0007",
+              "type": "apple_tree",
+              "distance_m": 22.0,
+              "known_properties": [
+                {
+                  "property": "edible",
+                  "value": true,
+                  "confidence": 0.9
+                }
+              ]
+            }
+          ],
+          "inhabitants": [
+            {
+              "id": "inh-0002",
+              "distance_m": 4.0,
+              "called": {
+                "name": "Mara",
+                "label": null
+              },
+              "life_stage": "adult"
+            }
+          ]
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "care",
+            "target": "inh-0002",
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "talk_to",
+            "target": "inh-0002",
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "wander",
+            "target": null,
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o1",
+        "o2"
+      ],
+      "forbidden_option_ids": [],
+      "forbidden_words": []
+    },
+    {
+      "id": "name_the_newborn",
+      "kind": "decision",
+      "description": "The baby of Tavi and Mara has no name yet.",
+      "request": {
+        "contract_version": "0.2",
+        "request_id": "00000000-000b-9a14-0000-00000000000d",
+        "tick": 2130,
+        "seed": 20013,
+        "deadline_ms": 8000,
+        "display_locale": "de",
+        "inhabitant": {
+          "id": "inh-0001",
+          "needs": [
+            {
+              "id": "hunger",
+              "value": 0.6
+            },
+            {
+              "id": "sleep",
+              "value": 0.6
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            }
+          ],
+          "mood": [
+            {
+              "id": "boredom",
+              "value": 0.3
+            },
+            {
+              "id": "sadness",
+              "value": 0.2
+            }
+          ],
+          "will_to_live": 0.8,
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.35
+            },
+            {
+              "id": "curiosity",
+              "value": 0.8
+            },
+            {
+              "id": "patience",
+              "value": 0.4
+            }
+          ],
+          "memory": {
+            "summary": "Woke up alone on a beach. Found a stream. Met another person yesterday who seems friendly.",
+            "recent": [
+              {
+                "tick": 1100,
+                "kind": "met_inhabitant",
+                "about": {
+                  "kind": "inhabitant",
+                  "id": "inh-0002"
+                }
+              },
+              {
+                "tick": 1150,
+                "kind": "drank",
+                "about": {
+                  "kind": "type",
+                  "id": "spring_water"
+                }
+              }
+            ]
+          },
+          "knowledge": [
+            {
+              "subject": {
+                "kind": "type",
+                "id": "apple_tree"
+              },
+              "property": "edible",
+              "value": true,
+              "confidence": 0.6,
+              "source": "heard",
+              "told_by": "inh-0002",
+              "tick": 1120
+            },
+            {
+              "subject": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "property": "drinkable",
+              "value": true,
+              "confidence": 1.0,
+              "source": "experienced",
+              "told_by": null,
+              "tick": 1150
+            }
+          ],
+          "relationships": [
+            {
+              "other": "inh-0002",
+              "affection": 0.4,
+              "trust": 0.6,
+              "respect": 0.5
+            }
+          ],
+          "habits": [
+            {
+              "action": "drink",
+              "time_of_day": "day",
+              "about": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "strength": 0.3
+            }
+          ],
+          "life_stage": "adult",
+          "age_years": 31,
+          "family": [
+            {
+              "other": "inh-0002",
+              "relation": "partner",
+              "deceased": false
+            },
+            {
+              "other": "inh-0007",
+              "relation": "child",
+              "deceased": false
+            },
+            {
+              "other": "inh-0003",
+              "relation": "parent",
+              "deceased": true
+            }
+          ],
+          "reputation": 0.6,
+          "settlement": {
+            "id": "set-0001",
+            "sayings": [
+              {
+                "de": "Wer früh sammelt, isst warm.",
+                "en": "Who gathers early eats warm."
+              }
+            ]
+          },
+          "culture": [
+            {
+              "kind": "ritual",
+              "text": {
+                "de": "Steine ans Grab legen",
+                "en": "Laying stones at the grave"
+              },
+              "sure": 1.0
+            },
+            {
+              "kind": "belief",
+              "text": {
+                "de": "Das Klopfen am Himmel bringt Gaben",
+                "en": "Knocking at the sky brings gifts"
+              },
+              "sure": 0.3
+            }
+          ],
+          "grief": [
+            {
+              "about": "inh-0003",
+              "strength": 0.4
+            }
+          ],
+          "name": "Tavi"
+        },
+        "environment": {
+          "time_of_day": "day",
+          "temperature_c": 17.5,
+          "weather": [
+            "cloudy"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-0042",
+              "type": "red_berry_bush",
+              "distance_m": 4.5,
+              "known_properties": []
+            },
+            {
+              "id": "obj-0007",
+              "type": "apple_tree",
+              "distance_m": 22.0,
+              "known_properties": [
+                {
+                  "property": "edible",
+                  "value": true,
+                  "confidence": 0.9
+                }
+              ]
+            }
+          ],
+          "inhabitants": [
+            {
+              "id": "inh-0002",
+              "distance_m": 4.0,
+              "called": {
+                "name": "Mara",
+                "label": null
+              },
+              "life_stage": "adult"
+            },
+            {
+              "id": "inh-0009",
+              "distance_m": 1.0,
+              "called": {
+                "name": null,
+                "label": "little_one"
+              },
+              "life_stage": "baby"
+            }
+          ]
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "name_person",
+            "target": "inh-0009",
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "care",
+            "target": "inh-0009",
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "idle",
+            "target": null,
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o1",
+        "o2"
+      ],
+      "forbidden_option_ids": [],
+      "forbidden_words": []
+    },
+    {
+      "id": "name_the_newborn_en",
+      "kind": "decision",
+      "description": "The baby has no name yet (English).",
+      "request": {
+        "contract_version": "0.2",
+        "request_id": "00000000-000b-9a14-0000-00000000000e",
+        "tick": 2140,
+        "seed": 20014,
+        "deadline_ms": 8000,
+        "display_locale": "en",
+        "inhabitant": {
+          "id": "inh-0001",
+          "needs": [
+            {
+              "id": "hunger",
+              "value": 0.6
+            },
+            {
+              "id": "sleep",
+              "value": 0.6
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            }
+          ],
+          "mood": [
+            {
+              "id": "boredom",
+              "value": 0.3
+            },
+            {
+              "id": "sadness",
+              "value": 0.2
+            }
+          ],
+          "will_to_live": 0.8,
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.35
+            },
+            {
+              "id": "curiosity",
+              "value": 0.8
+            },
+            {
+              "id": "patience",
+              "value": 0.4
+            }
+          ],
+          "memory": {
+            "summary": "Woke up alone on a beach. Found a stream. Met another person yesterday who seems friendly.",
+            "recent": [
+              {
+                "tick": 1100,
+                "kind": "met_inhabitant",
+                "about": {
+                  "kind": "inhabitant",
+                  "id": "inh-0002"
+                }
+              },
+              {
+                "tick": 1150,
+                "kind": "drank",
+                "about": {
+                  "kind": "type",
+                  "id": "spring_water"
+                }
+              }
+            ]
+          },
+          "knowledge": [
+            {
+              "subject": {
+                "kind": "type",
+                "id": "apple_tree"
+              },
+              "property": "edible",
+              "value": true,
+              "confidence": 0.6,
+              "source": "heard",
+              "told_by": "inh-0002",
+              "tick": 1120
+            },
+            {
+              "subject": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "property": "drinkable",
+              "value": true,
+              "confidence": 1.0,
+              "source": "experienced",
+              "told_by": null,
+              "tick": 1150
+            }
+          ],
+          "relationships": [
+            {
+              "other": "inh-0002",
+              "affection": 0.4,
+              "trust": 0.6,
+              "respect": 0.5
+            }
+          ],
+          "habits": [
+            {
+              "action": "drink",
+              "time_of_day": "day",
+              "about": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "strength": 0.3
+            }
+          ],
+          "life_stage": "adult",
+          "age_years": 31,
+          "family": [
+            {
+              "other": "inh-0002",
+              "relation": "partner",
+              "deceased": false
+            },
+            {
+              "other": "inh-0007",
+              "relation": "child",
+              "deceased": false
+            },
+            {
+              "other": "inh-0003",
+              "relation": "parent",
+              "deceased": true
+            }
+          ],
+          "reputation": 0.6,
+          "settlement": {
+            "id": "set-0001",
+            "sayings": [
+              {
+                "de": "Wer früh sammelt, isst warm.",
+                "en": "Who gathers early eats warm."
+              }
+            ]
+          },
+          "culture": [
+            {
+              "kind": "ritual",
+              "text": {
+                "de": "Steine ans Grab legen",
+                "en": "Laying stones at the grave"
+              },
+              "sure": 1.0
+            },
+            {
+              "kind": "belief",
+              "text": {
+                "de": "Das Klopfen am Himmel bringt Gaben",
+                "en": "Knocking at the sky brings gifts"
+              },
+              "sure": 0.3
+            }
+          ],
+          "grief": [
+            {
+              "about": "inh-0003",
+              "strength": 0.4
+            }
+          ],
+          "name": "Tavi"
+        },
+        "environment": {
+          "time_of_day": "day",
+          "temperature_c": 17.5,
+          "weather": [
+            "cloudy"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-0042",
+              "type": "red_berry_bush",
+              "distance_m": 4.5,
+              "known_properties": []
+            },
+            {
+              "id": "obj-0007",
+              "type": "apple_tree",
+              "distance_m": 22.0,
+              "known_properties": [
+                {
+                  "property": "edible",
+                  "value": true,
+                  "confidence": 0.9
+                }
+              ]
+            }
+          ],
+          "inhabitants": [
+            {
+              "id": "inh-0002",
+              "distance_m": 4.0,
+              "called": {
+                "name": "Mara",
+                "label": null
+              },
+              "life_stage": "adult"
+            },
+            {
+              "id": "inh-0009",
+              "distance_m": 1.0,
+              "called": {
+                "name": null,
+                "label": "little_one"
+              },
+              "life_stage": "baby"
+            }
+          ]
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "name_person",
+            "target": "inh-0009",
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "care",
+            "target": "inh-0009",
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "idle",
+            "target": null,
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o1",
+        "o2"
+      ],
+      "forbidden_option_ids": [],
+      "forbidden_words": []
+    },
+    {
+      "id": "quarrel_over_berries",
+      "kind": "decision",
+      "description": "Mara ate all the berries Tavi gathered.",
+      "request": {
+        "contract_version": "0.2",
+        "request_id": "00000000-000b-9a14-0000-00000000000f",
+        "tick": 2150,
+        "seed": 20015,
+        "deadline_ms": 8000,
+        "display_locale": "de",
+        "inhabitant": {
+          "id": "inh-0001",
+          "needs": [
+            {
+              "id": "hunger",
+              "value": 0.6
+            },
+            {
+              "id": "sleep",
+              "value": 0.6
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            }
+          ],
+          "mood": [
+            {
+              "id": "boredom",
+              "value": 0.3
+            },
+            {
+              "id": "sadness",
+              "value": 0.2
+            }
+          ],
+          "will_to_live": 0.8,
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.35
+            },
+            {
+              "id": "curiosity",
+              "value": 0.8
+            },
+            {
+              "id": "patience",
+              "value": 0.4
+            }
+          ],
+          "memory": {
+            "summary": "I gathered berries for the evening. Mara ate all my berries.",
+            "recent": [
+              {
+                "tick": 1100,
+                "kind": "met_inhabitant",
+                "about": {
+                  "kind": "inhabitant",
+                  "id": "inh-0002"
+                }
+              },
+              {
+                "tick": 1150,
+                "kind": "drank",
+                "about": {
+                  "kind": "type",
+                  "id": "spring_water"
+                }
+              }
+            ]
+          },
+          "knowledge": [
+            {
+              "subject": {
+                "kind": "type",
+                "id": "apple_tree"
+              },
+              "property": "edible",
+              "value": true,
+              "confidence": 0.6,
+              "source": "heard",
+              "told_by": "inh-0002",
+              "tick": 1120
+            },
+            {
+              "subject": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "property": "drinkable",
+              "value": true,
+              "confidence": 1.0,
+              "source": "experienced",
+              "told_by": null,
+              "tick": 1150
+            }
+          ],
+          "relationships": [
+            {
+              "other": "inh-0002",
+              "affection": 0.4,
+              "trust": 0.6,
+              "respect": 0.5
+            }
+          ],
+          "habits": [
+            {
+              "action": "drink",
+              "time_of_day": "day",
+              "about": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "strength": 0.3
+            }
+          ],
+          "life_stage": "adult",
+          "age_years": 31,
+          "family": [
+            {
+              "other": "inh-0002",
+              "relation": "partner",
+              "deceased": false
+            },
+            {
+              "other": "inh-0007",
+              "relation": "child",
+              "deceased": false
+            },
+            {
+              "other": "inh-0003",
+              "relation": "parent",
+              "deceased": true
+            }
+          ],
+          "reputation": 0.6,
+          "settlement": {
+            "id": "set-0001",
+            "sayings": [
+              {
+                "de": "Wer früh sammelt, isst warm.",
+                "en": "Who gathers early eats warm."
+              }
+            ]
+          },
+          "culture": [
+            {
+              "kind": "ritual",
+              "text": {
+                "de": "Steine ans Grab legen",
+                "en": "Laying stones at the grave"
+              },
+              "sure": 1.0
+            },
+            {
+              "kind": "belief",
+              "text": {
+                "de": "Das Klopfen am Himmel bringt Gaben",
+                "en": "Knocking at the sky brings gifts"
+              },
+              "sure": 0.3
+            }
+          ],
+          "grief": [
+            {
+              "about": "inh-0003",
+              "strength": 0.4
+            }
+          ],
+          "name": "Tavi"
+        },
+        "environment": {
+          "time_of_day": "day",
+          "temperature_c": 17.5,
+          "weather": [
+            "cloudy"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-0042",
+              "type": "red_berry_bush",
+              "distance_m": 4.5,
+              "known_properties": []
+            },
+            {
+              "id": "obj-0007",
+              "type": "apple_tree",
+              "distance_m": 22.0,
+              "known_properties": [
+                {
+                  "property": "edible",
+                  "value": true,
+                  "confidence": 0.9
+                }
+              ]
+            }
+          ],
+          "inhabitants": [
+            {
+              "id": "inh-0002",
+              "distance_m": 4.0,
+              "called": {
+                "name": "Mara",
+                "label": null
+              },
+              "life_stage": "adult"
+            }
+          ]
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "quarrel",
+            "target": "inh-0002",
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "talk_to",
+            "target": "inh-0002",
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "idle",
+            "target": null,
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o1",
+        "o2",
+        "o3"
+      ],
+      "forbidden_option_ids": [],
+      "forbidden_words": []
+    },
+    {
+      "id": "apologize_after_shouting",
+      "kind": "decision",
+      "description": "Tavi shouted at Mara this morning.",
+      "request": {
+        "contract_version": "0.2",
+        "request_id": "00000000-000b-9a14-0000-000000000010",
+        "tick": 2160,
+        "seed": 20016,
+        "deadline_ms": 8000,
+        "display_locale": "en",
+        "inhabitant": {
+          "id": "inh-0001",
+          "needs": [
+            {
+              "id": "hunger",
+              "value": 0.6
+            },
+            {
+              "id": "sleep",
+              "value": 0.6
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            }
+          ],
+          "mood": [
+            {
+              "id": "boredom",
+              "value": 0.3
+            },
+            {
+              "id": "sadness",
+              "value": 0.2
+            }
+          ],
+          "will_to_live": 0.8,
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.35
+            },
+            {
+              "id": "curiosity",
+              "value": 0.8
+            },
+            {
+              "id": "patience",
+              "value": 0.4
+            }
+          ],
+          "memory": {
+            "summary": "I shouted at Mara this morning. She went away.",
+            "recent": [
+              {
+                "tick": 1100,
+                "kind": "met_inhabitant",
+                "about": {
+                  "kind": "inhabitant",
+                  "id": "inh-0002"
+                }
+              },
+              {
+                "tick": 1150,
+                "kind": "drank",
+                "about": {
+                  "kind": "type",
+                  "id": "spring_water"
+                }
+              }
+            ]
+          },
+          "knowledge": [
+            {
+              "subject": {
+                "kind": "type",
+                "id": "apple_tree"
+              },
+              "property": "edible",
+              "value": true,
+              "confidence": 0.6,
+              "source": "heard",
+              "told_by": "inh-0002",
+              "tick": 1120
+            },
+            {
+              "subject": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "property": "drinkable",
+              "value": true,
+              "confidence": 1.0,
+              "source": "experienced",
+              "told_by": null,
+              "tick": 1150
+            }
+          ],
+          "relationships": [
+            {
+              "other": "inh-0002",
+              "affection": 0.4,
+              "trust": 0.6,
+              "respect": 0.5
+            }
+          ],
+          "habits": [
+            {
+              "action": "drink",
+              "time_of_day": "day",
+              "about": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "strength": 0.3
+            }
+          ],
+          "life_stage": "adult",
+          "age_years": 31,
+          "family": [
+            {
+              "other": "inh-0002",
+              "relation": "partner",
+              "deceased": false
+            },
+            {
+              "other": "inh-0007",
+              "relation": "child",
+              "deceased": false
+            },
+            {
+              "other": "inh-0003",
+              "relation": "parent",
+              "deceased": true
+            }
+          ],
+          "reputation": 0.6,
+          "settlement": {
+            "id": "set-0001",
+            "sayings": [
+              {
+                "de": "Wer früh sammelt, isst warm.",
+                "en": "Who gathers early eats warm."
+              }
+            ]
+          },
+          "culture": [
+            {
+              "kind": "ritual",
+              "text": {
+                "de": "Steine ans Grab legen",
+                "en": "Laying stones at the grave"
+              },
+              "sure": 1.0
+            },
+            {
+              "kind": "belief",
+              "text": {
+                "de": "Das Klopfen am Himmel bringt Gaben",
+                "en": "Knocking at the sky brings gifts"
+              },
+              "sure": 0.3
+            }
+          ],
+          "grief": [
+            {
+              "about": "inh-0003",
+              "strength": 0.4
+            }
+          ],
+          "name": "Tavi"
+        },
+        "environment": {
+          "time_of_day": "day",
+          "temperature_c": 17.5,
+          "weather": [
+            "cloudy"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-0042",
+              "type": "red_berry_bush",
+              "distance_m": 4.5,
+              "known_properties": []
+            },
+            {
+              "id": "obj-0007",
+              "type": "apple_tree",
+              "distance_m": 22.0,
+              "known_properties": [
+                {
+                  "property": "edible",
+                  "value": true,
+                  "confidence": 0.9
+                }
+              ]
+            }
+          ],
+          "inhabitants": [
+            {
+              "id": "inh-0002",
+              "distance_m": 4.0,
+              "called": {
+                "name": "Mara",
+                "label": null
+              },
+              "life_stage": "adult"
+            }
+          ]
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "apologize",
+            "target": "inh-0002",
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "reconcile",
+            "target": "inh-0002",
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "wander",
+            "target": null,
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o1",
+        "o2"
+      ],
+      "forbidden_option_ids": [],
+      "forbidden_words": []
+    },
+    {
+      "id": "reconcile_after_days",
+      "kind": "decision",
+      "description": "Days after a quarrel; Mara smiles again.",
+      "request": {
+        "contract_version": "0.2",
+        "request_id": "00000000-000b-9a14-0000-000000000011",
+        "tick": 2170,
+        "seed": 20017,
+        "deadline_ms": 8000,
+        "display_locale": "de",
+        "inhabitant": {
+          "id": "inh-0001",
+          "needs": [
+            {
+              "id": "hunger",
+              "value": 0.6
+            },
+            {
+              "id": "sleep",
+              "value": 0.6
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            }
+          ],
+          "mood": [
+            {
+              "id": "boredom",
+              "value": 0.3
+            },
+            {
+              "id": "sadness",
+              "value": 0.2
+            }
+          ],
+          "will_to_live": 0.8,
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.35
+            },
+            {
+              "id": "curiosity",
+              "value": 0.8
+            },
+            {
+              "id": "patience",
+              "value": 0.4
+            }
+          ],
+          "memory": {
+            "summary": "We quarrelled about the fire. Mara smiled at me today.",
+            "recent": [
+              {
+                "tick": 1100,
+                "kind": "met_inhabitant",
+                "about": {
+                  "kind": "inhabitant",
+                  "id": "inh-0002"
+                }
+              },
+              {
+                "tick": 1150,
+                "kind": "drank",
+                "about": {
+                  "kind": "type",
+                  "id": "spring_water"
+                }
+              }
+            ]
+          },
+          "knowledge": [
+            {
+              "subject": {
+                "kind": "type",
+                "id": "apple_tree"
+              },
+              "property": "edible",
+              "value": true,
+              "confidence": 0.6,
+              "source": "heard",
+              "told_by": "inh-0002",
+              "tick": 1120
+            },
+            {
+              "subject": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "property": "drinkable",
+              "value": true,
+              "confidence": 1.0,
+              "source": "experienced",
+              "told_by": null,
+              "tick": 1150
+            }
+          ],
+          "relationships": [
+            {
+              "other": "inh-0002",
+              "affection": 0.4,
+              "trust": 0.6,
+              "respect": 0.5
+            }
+          ],
+          "habits": [
+            {
+              "action": "drink",
+              "time_of_day": "day",
+              "about": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "strength": 0.3
+            }
+          ],
+          "life_stage": "adult",
+          "age_years": 31,
+          "family": [
+            {
+              "other": "inh-0002",
+              "relation": "partner",
+              "deceased": false
+            },
+            {
+              "other": "inh-0007",
+              "relation": "child",
+              "deceased": false
+            },
+            {
+              "other": "inh-0003",
+              "relation": "parent",
+              "deceased": true
+            }
+          ],
+          "reputation": 0.6,
+          "settlement": {
+            "id": "set-0001",
+            "sayings": [
+              {
+                "de": "Wer früh sammelt, isst warm.",
+                "en": "Who gathers early eats warm."
+              }
+            ]
+          },
+          "culture": [
+            {
+              "kind": "ritual",
+              "text": {
+                "de": "Steine ans Grab legen",
+                "en": "Laying stones at the grave"
+              },
+              "sure": 1.0
+            },
+            {
+              "kind": "belief",
+              "text": {
+                "de": "Das Klopfen am Himmel bringt Gaben",
+                "en": "Knocking at the sky brings gifts"
+              },
+              "sure": 0.3
+            }
+          ],
+          "grief": [
+            {
+              "about": "inh-0003",
+              "strength": 0.4
+            }
+          ],
+          "name": "Tavi"
+        },
+        "environment": {
+          "time_of_day": "day",
+          "temperature_c": 17.5,
+          "weather": [
+            "cloudy"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-0042",
+              "type": "red_berry_bush",
+              "distance_m": 4.5,
+              "known_properties": []
+            },
+            {
+              "id": "obj-0007",
+              "type": "apple_tree",
+              "distance_m": 22.0,
+              "known_properties": [
+                {
+                  "property": "edible",
+                  "value": true,
+                  "confidence": 0.9
+                }
+              ]
+            }
+          ],
+          "inhabitants": [
+            {
+              "id": "inh-0002",
+              "distance_m": 4.0,
+              "called": {
+                "name": "Mara",
+                "label": null
+              },
+              "life_stage": "adult"
+            }
+          ]
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "reconcile",
+            "target": "inh-0002",
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "talk_to",
+            "target": "inh-0002",
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "idle",
+            "target": null,
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o1",
+        "o2"
+      ],
+      "forbidden_option_ids": [],
+      "forbidden_words": []
+    },
+    {
+      "id": "gossip_about_a_neighbour",
+      "kind": "decision",
+      "description": "Tavi heard that Rin found sweet roots.",
+      "request": {
+        "contract_version": "0.2",
+        "request_id": "00000000-000b-9a14-0000-000000000012",
+        "tick": 2180,
+        "seed": 20018,
+        "deadline_ms": 8000,
+        "display_locale": "en",
+        "inhabitant": {
+          "id": "inh-0001",
+          "needs": [
+            {
+              "id": "hunger",
+              "value": 0.6
+            },
+            {
+              "id": "sleep",
+              "value": 0.6
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            }
+          ],
+          "mood": [
+            {
+              "id": "boredom",
+              "value": 0.3
+            },
+            {
+              "id": "sadness",
+              "value": 0.2
+            }
+          ],
+          "will_to_live": 0.8,
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.35
+            },
+            {
+              "id": "curiosity",
+              "value": 0.8
+            },
+            {
+              "id": "patience",
+              "value": 0.4
+            }
+          ],
+          "memory": {
+            "summary": "Rin said the white roots by the stream are sweet.",
+            "recent": [
+              {
+                "tick": 1100,
+                "kind": "met_inhabitant",
+                "about": {
+                  "kind": "inhabitant",
+                  "id": "inh-0002"
+                }
+              },
+              {
+                "tick": 1150,
+                "kind": "drank",
+                "about": {
+                  "kind": "type",
+                  "id": "spring_water"
+                }
+              }
+            ]
+          },
+          "knowledge": [
+            {
+              "subject": {
+                "kind": "type",
+                "id": "apple_tree"
+              },
+              "property": "edible",
+              "value": true,
+              "confidence": 0.6,
+              "source": "heard",
+              "told_by": "inh-0002",
+              "tick": 1120
+            },
+            {
+              "subject": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "property": "drinkable",
+              "value": true,
+              "confidence": 1.0,
+              "source": "experienced",
+              "told_by": null,
+              "tick": 1150
+            }
+          ],
+          "relationships": [
+            {
+              "other": "inh-0002",
+              "affection": 0.4,
+              "trust": 0.6,
+              "respect": 0.5
+            }
+          ],
+          "habits": [
+            {
+              "action": "drink",
+              "time_of_day": "day",
+              "about": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "strength": 0.3
+            }
+          ],
+          "life_stage": "adult",
+          "age_years": 31,
+          "family": [
+            {
+              "other": "inh-0002",
+              "relation": "partner",
+              "deceased": false
+            },
+            {
+              "other": "inh-0007",
+              "relation": "child",
+              "deceased": false
+            },
+            {
+              "other": "inh-0003",
+              "relation": "parent",
+              "deceased": true
+            }
+          ],
+          "reputation": 0.6,
+          "settlement": {
+            "id": "set-0001",
+            "sayings": [
+              {
+                "de": "Wer früh sammelt, isst warm.",
+                "en": "Who gathers early eats warm."
+              }
+            ]
+          },
+          "culture": [
+            {
+              "kind": "ritual",
+              "text": {
+                "de": "Steine ans Grab legen",
+                "en": "Laying stones at the grave"
+              },
+              "sure": 1.0
+            },
+            {
+              "kind": "belief",
+              "text": {
+                "de": "Das Klopfen am Himmel bringt Gaben",
+                "en": "Knocking at the sky brings gifts"
+              },
+              "sure": 0.3
+            }
+          ],
+          "grief": [
+            {
+              "about": "inh-0003",
+              "strength": 0.4
+            }
+          ],
+          "name": "Tavi"
+        },
+        "environment": {
+          "time_of_day": "day",
+          "temperature_c": 17.5,
+          "weather": [
+            "cloudy"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-0042",
+              "type": "red_berry_bush",
+              "distance_m": 4.5,
+              "known_properties": []
+            },
+            {
+              "id": "obj-0007",
+              "type": "apple_tree",
+              "distance_m": 22.0,
+              "known_properties": [
+                {
+                  "property": "edible",
+                  "value": true,
+                  "confidence": 0.9
+                }
+              ]
+            }
+          ],
+          "inhabitants": [
+            {
+              "id": "inh-0002",
+              "distance_m": 4.0,
+              "called": {
+                "name": "Mara",
+                "label": null
+              },
+              "life_stage": "adult"
+            },
+            {
+              "id": "inh-0004",
+              "distance_m": 12.0,
+              "called": {
+                "name": "Rin",
+                "label": null
+              },
+              "life_stage": "adult"
+            }
+          ]
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "gossip",
+            "target": "inh-0002",
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "talk_to",
+            "target": "inh-0002",
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "idle",
+            "target": null,
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o1",
+        "o2"
+      ],
+      "forbidden_option_ids": [],
+      "forbidden_words": []
+    },
+    {
+      "id": "first_farewell_no_custom",
+      "kind": "decision",
+      "description": "The first death; the people have no custom yet.",
+      "request": {
+        "contract_version": "0.2",
+        "request_id": "00000000-000b-9a14-0000-000000000013",
+        "tick": 2190,
+        "seed": 20019,
+        "deadline_ms": 8000,
+        "display_locale": "de",
+        "inhabitant": {
+          "id": "inh-0001",
+          "needs": [
+            {
+              "id": "hunger",
+              "value": 0.6
+            },
+            {
+              "id": "sleep",
+              "value": 0.6
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            }
+          ],
+          "mood": [
+            {
+              "id": "boredom",
+              "value": 0.3
+            },
+            {
+              "id": "sadness",
+              "value": 0.2
+            }
+          ],
+          "will_to_live": 0.8,
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.35
+            },
+            {
+              "id": "curiosity",
+              "value": 0.8
+            },
+            {
+              "id": "patience",
+              "value": 0.4
+            }
+          ],
+          "memory": {
+            "summary": "Old Bo lay still. Nobody knew what to do.",
+            "recent": [
+              {
+                "tick": 1100,
+                "kind": "met_inhabitant",
+                "about": {
+                  "kind": "inhabitant",
+                  "id": "inh-0002"
+                }
+              },
+              {
+                "tick": 1150,
+                "kind": "drank",
+                "about": {
+                  "kind": "type",
+                  "id": "spring_water"
+                }
+              }
+            ]
+          },
+          "knowledge": [
+            {
+              "subject": {
+                "kind": "type",
+                "id": "apple_tree"
+              },
+              "property": "edible",
+              "value": true,
+              "confidence": 0.6,
+              "source": "heard",
+              "told_by": "inh-0002",
+              "tick": 1120
+            },
+            {
+              "subject": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "property": "drinkable",
+              "value": true,
+              "confidence": 1.0,
+              "source": "experienced",
+              "told_by": null,
+              "tick": 1150
+            }
+          ],
+          "relationships": [
+            {
+              "other": "inh-0002",
+              "affection": 0.4,
+              "trust": 0.6,
+              "respect": 0.5
+            }
+          ],
+          "habits": [
+            {
+              "action": "drink",
+              "time_of_day": "day",
+              "about": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "strength": 0.3
+            }
+          ],
+          "life_stage": "adult",
+          "age_years": 31,
+          "family": [
+            {
+              "other": "inh-0002",
+              "relation": "partner",
+              "deceased": false
+            },
+            {
+              "other": "inh-0007",
+              "relation": "child",
+              "deceased": false
+            },
+            {
+              "other": "inh-0003",
+              "relation": "parent",
+              "deceased": true
+            }
+          ],
+          "reputation": 0.6,
+          "settlement": {
+            "id": "set-0001",
+            "sayings": [
+              {
+                "de": "Wer früh sammelt, isst warm.",
+                "en": "Who gathers early eats warm."
+              }
+            ]
+          },
+          "culture": [],
+          "grief": [
+            {
+              "about": "inh-0003",
+              "strength": 0.4
+            }
+          ],
+          "name": "Tavi"
+        },
+        "environment": {
+          "time_of_day": "day",
+          "temperature_c": 17.5,
+          "weather": [
+            "cloudy"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-0042",
+              "type": "red_berry_bush",
+              "distance_m": 4.5,
+              "known_properties": []
+            },
+            {
+              "id": "obj-0007",
+              "type": "apple_tree",
+              "distance_m": 22.0,
+              "known_properties": [
+                {
+                  "property": "edible",
+                  "value": true,
+                  "confidence": 0.9
+                }
+              ]
+            }
+          ],
+          "inhabitants": [
+            {
+              "id": "inh-0005",
+              "distance_m": 3.0,
+              "called": {
+                "name": "Bo",
+                "label": null
+              },
+              "life_stage": "adult",
+              "lying_still": true
+            }
+          ]
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "perform_custom",
+            "target": "inh-0005",
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "set_stone",
+            "target": "inh-0005",
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "bury",
+            "target": "inh-0005",
+            "partners": []
+          },
+          {
+            "option_id": "o4",
+            "action": "idle",
+            "target": null,
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o1",
+        "o2",
+        "o3"
+      ],
+      "forbidden_option_ids": [],
+      "forbidden_words": []
+    },
+    {
+      "id": "myth_knocking",
+      "kind": "decision",
+      "description": "The sky knocked; the people half believe it brings gifts.",
+      "request": {
+        "contract_version": "0.2",
+        "request_id": "00000000-000b-9a14-0000-000000000014",
+        "tick": 2200,
+        "seed": 20020,
+        "deadline_ms": 8000,
+        "display_locale": "en",
+        "inhabitant": {
+          "id": "inh-0001",
+          "needs": [
+            {
+              "id": "hunger",
+              "value": 0.6
+            },
+            {
+              "id": "sleep",
+              "value": 0.6
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            }
+          ],
+          "mood": [
+            {
+              "id": "boredom",
+              "value": 0.3
+            },
+            {
+              "id": "sadness",
+              "value": 0.2
+            }
+          ],
+          "will_to_live": 0.8,
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.35
+            },
+            {
+              "id": "curiosity",
+              "value": 0.8
+            },
+            {
+              "id": "patience",
+              "value": 0.4
+            }
+          ],
+          "memory": {
+            "summary": "Something knocked on the sky three times.",
+            "recent": [
+              {
+                "tick": 1100,
+                "kind": "met_inhabitant",
+                "about": {
+                  "kind": "inhabitant",
+                  "id": "inh-0002"
+                }
+              },
+              {
+                "tick": 1150,
+                "kind": "drank",
+                "about": {
+                  "kind": "type",
+                  "id": "spring_water"
+                }
+              }
+            ]
+          },
+          "knowledge": [
+            {
+              "subject": {
+                "kind": "type",
+                "id": "apple_tree"
+              },
+              "property": "edible",
+              "value": true,
+              "confidence": 0.6,
+              "source": "heard",
+              "told_by": "inh-0002",
+              "tick": 1120
+            },
+            {
+              "subject": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "property": "drinkable",
+              "value": true,
+              "confidence": 1.0,
+              "source": "experienced",
+              "told_by": null,
+              "tick": 1150
+            }
+          ],
+          "relationships": [
+            {
+              "other": "inh-0002",
+              "affection": 0.4,
+              "trust": 0.6,
+              "respect": 0.5
+            }
+          ],
+          "habits": [
+            {
+              "action": "drink",
+              "time_of_day": "day",
+              "about": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "strength": 0.3
+            }
+          ],
+          "life_stage": "adult",
+          "age_years": 31,
+          "family": [
+            {
+              "other": "inh-0002",
+              "relation": "partner",
+              "deceased": false
+            },
+            {
+              "other": "inh-0007",
+              "relation": "child",
+              "deceased": false
+            },
+            {
+              "other": "inh-0003",
+              "relation": "parent",
+              "deceased": true
+            }
+          ],
+          "reputation": 0.6,
+          "settlement": {
+            "id": "set-0001",
+            "sayings": [
+              {
+                "de": "Wer früh sammelt, isst warm.",
+                "en": "Who gathers early eats warm."
+              }
+            ]
+          },
+          "culture": [
+            {
+              "kind": "ritual",
+              "text": {
+                "de": "Steine ans Grab legen",
+                "en": "Laying stones at the grave"
+              },
+              "sure": 1.0
+            },
+            {
+              "kind": "belief",
+              "text": {
+                "de": "Das Klopfen am Himmel bringt Gaben",
+                "en": "Knocking at the sky brings gifts"
+              },
+              "sure": 0.3
+            }
+          ],
+          "grief": [
+            {
+              "about": "inh-0003",
+              "strength": 0.4
+            }
+          ],
+          "name": "Tavi"
+        },
+        "environment": {
+          "time_of_day": "day",
+          "temperature_c": 17.5,
+          "weather": [
+            "cloudy"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-0042",
+              "type": "red_berry_bush",
+              "distance_m": 4.5,
+              "known_properties": []
+            },
+            {
+              "id": "obj-0007",
+              "type": "apple_tree",
+              "distance_m": 22.0,
+              "known_properties": [
+                {
+                  "property": "edible",
+                  "value": true,
+                  "confidence": 0.9
+                }
+              ]
+            }
+          ],
+          "inhabitants": [
+            {
+              "id": "inh-0002",
+              "distance_m": 4.0,
+              "called": {
+                "name": "Mara",
+                "label": null
+              },
+              "life_stage": "adult"
+            }
+          ]
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "perform_custom",
+            "target": null,
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "sing",
+            "target": null,
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "talk_to",
+            "target": "inh-0002",
+            "partners": []
+          },
+          {
+            "option_id": "o4",
+            "action": "idle",
+            "target": null,
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o1",
+        "o2",
+        "o3"
+      ],
+      "forbidden_option_ids": [],
+      "forbidden_words": []
+    },
+    {
+      "id": "myth_gift",
+      "kind": "decision",
+      "description": "A gift lay on the beach after the knocking.",
+      "request": {
+        "contract_version": "0.2",
+        "request_id": "00000000-000b-9a14-0000-000000000015",
+        "tick": 2210,
+        "seed": 20021,
+        "deadline_ms": 8000,
+        "display_locale": "de",
+        "inhabitant": {
+          "id": "inh-0001",
+          "needs": [
+            {
+              "id": "hunger",
+              "value": 0.6
+            },
+            {
+              "id": "sleep",
+              "value": 0.6
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            }
+          ],
+          "mood": [
+            {
+              "id": "boredom",
+              "value": 0.3
+            },
+            {
+              "id": "sadness",
+              "value": 0.2
+            }
+          ],
+          "will_to_live": 0.8,
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.35
+            },
+            {
+              "id": "curiosity",
+              "value": 0.8
+            },
+            {
+              "id": "patience",
+              "value": 0.4
+            }
+          ],
+          "memory": {
+            "summary": "Something knocked on the sky. A strange shell lay on the beach.",
+            "recent": [
+              {
+                "tick": 1100,
+                "kind": "met_inhabitant",
+                "about": {
+                  "kind": "inhabitant",
+                  "id": "inh-0002"
+                }
+              },
+              {
+                "tick": 1150,
+                "kind": "drank",
+                "about": {
+                  "kind": "type",
+                  "id": "spring_water"
+                }
+              }
+            ]
+          },
+          "knowledge": [
+            {
+              "subject": {
+                "kind": "type",
+                "id": "apple_tree"
+              },
+              "property": "edible",
+              "value": true,
+              "confidence": 0.6,
+              "source": "heard",
+              "told_by": "inh-0002",
+              "tick": 1120
+            },
+            {
+              "subject": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "property": "drinkable",
+              "value": true,
+              "confidence": 1.0,
+              "source": "experienced",
+              "told_by": null,
+              "tick": 1150
+            }
+          ],
+          "relationships": [
+            {
+              "other": "inh-0002",
+              "affection": 0.4,
+              "trust": 0.6,
+              "respect": 0.5
+            }
+          ],
+          "habits": [
+            {
+              "action": "drink",
+              "time_of_day": "day",
+              "about": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "strength": 0.3
+            }
+          ],
+          "life_stage": "adult",
+          "age_years": 31,
+          "family": [
+            {
+              "other": "inh-0002",
+              "relation": "partner",
+              "deceased": false
+            },
+            {
+              "other": "inh-0007",
+              "relation": "child",
+              "deceased": false
+            },
+            {
+              "other": "inh-0003",
+              "relation": "parent",
+              "deceased": true
+            }
+          ],
+          "reputation": 0.6,
+          "settlement": {
+            "id": "set-0001",
+            "sayings": [
+              {
+                "de": "Wer früh sammelt, isst warm.",
+                "en": "Who gathers early eats warm."
+              }
+            ]
+          },
+          "culture": [
+            {
+              "kind": "ritual",
+              "text": {
+                "de": "Steine ans Grab legen",
+                "en": "Laying stones at the grave"
+              },
+              "sure": 1.0
+            },
+            {
+              "kind": "belief",
+              "text": {
+                "de": "Das Klopfen am Himmel bringt Gaben",
+                "en": "Knocking at the sky brings gifts"
+              },
+              "sure": 0.3
+            }
+          ],
+          "grief": [
+            {
+              "about": "inh-0003",
+              "strength": 0.4
+            }
+          ],
+          "name": "Tavi"
+        },
+        "environment": {
+          "time_of_day": "day",
+          "temperature_c": 17.5,
+          "weather": [
+            "cloudy"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-0042",
+              "type": "red_berry_bush",
+              "distance_m": 4.5,
+              "known_properties": []
+            },
+            {
+              "id": "obj-0007",
+              "type": "apple_tree",
+              "distance_m": 22.0,
+              "known_properties": [
+                {
+                  "property": "edible",
+                  "value": true,
+                  "confidence": 0.9
+                }
+              ]
+            }
+          ],
+          "inhabitants": [
+            {
+              "id": "inh-0002",
+              "distance_m": 4.0,
+              "called": {
+                "name": "Mara",
+                "label": null
+              },
+              "life_stage": "adult"
+            }
+          ]
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "inspect",
+            "target": "obj-0042",
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "perform_custom",
+            "target": null,
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "talk_to",
+            "target": "inh-0002",
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o1",
+        "o2",
+        "o3"
+      ],
+      "forbidden_option_ids": [],
+      "forbidden_words": []
+    },
+    {
+      "id": "saying_morning_de",
+      "kind": "decision",
+      "description": "Hungry morning; the settlement has a saying about it.",
+      "request": {
+        "contract_version": "0.2",
+        "request_id": "00000000-000b-9a14-0000-000000000016",
+        "tick": 2220,
+        "seed": 20022,
+        "deadline_ms": 8000,
+        "display_locale": "de",
+        "inhabitant": {
+          "id": "inh-0001",
+          "needs": [
+            {
+              "id": "hunger",
+              "value": 0.2
+            },
+            {
+              "id": "sleep",
+              "value": 0.6
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            }
+          ],
+          "mood": [
+            {
+              "id": "boredom",
+              "value": 0.3
+            },
+            {
+              "id": "sadness",
+              "value": 0.2
+            }
+          ],
+          "will_to_live": 0.8,
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.35
+            },
+            {
+              "id": "curiosity",
+              "value": 0.8
+            },
+            {
+              "id": "patience",
+              "value": 0.4
+            }
+          ],
+          "memory": {
+            "summary": "Woke up alone on a beach. Found a stream. Met another person yesterday who seems friendly.",
+            "recent": [
+              {
+                "tick": 1100,
+                "kind": "met_inhabitant",
+                "about": {
+                  "kind": "inhabitant",
+                  "id": "inh-0002"
+                }
+              },
+              {
+                "tick": 1150,
+                "kind": "drank",
+                "about": {
+                  "kind": "type",
+                  "id": "spring_water"
+                }
+              }
+            ]
+          },
+          "knowledge": [
+            {
+              "subject": {
+                "kind": "type",
+                "id": "apple_tree"
+              },
+              "property": "edible",
+              "value": true,
+              "confidence": 0.6,
+              "source": "heard",
+              "told_by": "inh-0002",
+              "tick": 1120
+            },
+            {
+              "subject": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "property": "drinkable",
+              "value": true,
+              "confidence": 1.0,
+              "source": "experienced",
+              "told_by": null,
+              "tick": 1150
+            }
+          ],
+          "relationships": [
+            {
+              "other": "inh-0002",
+              "affection": 0.4,
+              "trust": 0.6,
+              "respect": 0.5
+            }
+          ],
+          "habits": [
+            {
+              "action": "drink",
+              "time_of_day": "day",
+              "about": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "strength": 0.3
+            }
+          ],
+          "life_stage": "adult",
+          "age_years": 31,
+          "family": [
+            {
+              "other": "inh-0002",
+              "relation": "partner",
+              "deceased": false
+            },
+            {
+              "other": "inh-0007",
+              "relation": "child",
+              "deceased": false
+            },
+            {
+              "other": "inh-0003",
+              "relation": "parent",
+              "deceased": true
+            }
+          ],
+          "reputation": 0.6,
+          "settlement": {
+            "id": "set-0001",
+            "sayings": [
+              {
+                "de": "Wer früh sammelt, isst warm.",
+                "en": "Who gathers early eats warm."
+              }
+            ]
+          },
+          "culture": [
+            {
+              "kind": "ritual",
+              "text": {
+                "de": "Steine ans Grab legen",
+                "en": "Laying stones at the grave"
+              },
+              "sure": 1.0
+            },
+            {
+              "kind": "belief",
+              "text": {
+                "de": "Das Klopfen am Himmel bringt Gaben",
+                "en": "Knocking at the sky brings gifts"
+              },
+              "sure": 0.3
+            }
+          ],
+          "grief": [
+            {
+              "about": "inh-0003",
+              "strength": 0.4
+            }
+          ],
+          "name": "Tavi"
+        },
+        "environment": {
+          "time_of_day": "morning",
+          "temperature_c": 17.5,
+          "weather": [
+            "cloudy"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-0042",
+              "type": "red_berry_bush",
+              "distance_m": 4.5,
+              "known_properties": []
+            },
+            {
+              "id": "obj-0007",
+              "type": "apple_tree",
+              "distance_m": 22.0,
+              "known_properties": [
+                {
+                  "property": "edible",
+                  "value": true,
+                  "confidence": 0.9
+                }
+              ]
+            }
+          ],
+          "inhabitants": [
+            {
+              "id": "inh-0002",
+              "distance_m": 4.0,
+              "called": {
+                "name": "Mara",
+                "label": null
+              },
+              "life_stage": "adult"
+            }
+          ]
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "eat",
+            "target": "obj-0007",
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "move_to",
+            "target": "obj-0007",
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "idle",
+            "target": null,
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o1",
+        "o2"
+      ],
+      "forbidden_option_ids": [],
+      "forbidden_words": []
+    },
+    {
+      "id": "saying_morning_en",
+      "kind": "decision",
+      "description": "Same, in English.",
+      "request": {
+        "contract_version": "0.2",
+        "request_id": "00000000-000b-9a14-0000-000000000017",
+        "tick": 2230,
+        "seed": 20023,
+        "deadline_ms": 8000,
+        "display_locale": "en",
+        "inhabitant": {
+          "id": "inh-0001",
+          "needs": [
+            {
+              "id": "hunger",
+              "value": 0.2
+            },
+            {
+              "id": "sleep",
+              "value": 0.6
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            }
+          ],
+          "mood": [
+            {
+              "id": "boredom",
+              "value": 0.3
+            },
+            {
+              "id": "sadness",
+              "value": 0.2
+            }
+          ],
+          "will_to_live": 0.8,
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.35
+            },
+            {
+              "id": "curiosity",
+              "value": 0.8
+            },
+            {
+              "id": "patience",
+              "value": 0.4
+            }
+          ],
+          "memory": {
+            "summary": "Woke up alone on a beach. Found a stream. Met another person yesterday who seems friendly.",
+            "recent": [
+              {
+                "tick": 1100,
+                "kind": "met_inhabitant",
+                "about": {
+                  "kind": "inhabitant",
+                  "id": "inh-0002"
+                }
+              },
+              {
+                "tick": 1150,
+                "kind": "drank",
+                "about": {
+                  "kind": "type",
+                  "id": "spring_water"
+                }
+              }
+            ]
+          },
+          "knowledge": [
+            {
+              "subject": {
+                "kind": "type",
+                "id": "apple_tree"
+              },
+              "property": "edible",
+              "value": true,
+              "confidence": 0.6,
+              "source": "heard",
+              "told_by": "inh-0002",
+              "tick": 1120
+            },
+            {
+              "subject": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "property": "drinkable",
+              "value": true,
+              "confidence": 1.0,
+              "source": "experienced",
+              "told_by": null,
+              "tick": 1150
+            }
+          ],
+          "relationships": [
+            {
+              "other": "inh-0002",
+              "affection": 0.4,
+              "trust": 0.6,
+              "respect": 0.5
+            }
+          ],
+          "habits": [
+            {
+              "action": "drink",
+              "time_of_day": "day",
+              "about": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "strength": 0.3
+            }
+          ],
+          "life_stage": "adult",
+          "age_years": 31,
+          "family": [
+            {
+              "other": "inh-0002",
+              "relation": "partner",
+              "deceased": false
+            },
+            {
+              "other": "inh-0007",
+              "relation": "child",
+              "deceased": false
+            },
+            {
+              "other": "inh-0003",
+              "relation": "parent",
+              "deceased": true
+            }
+          ],
+          "reputation": 0.6,
+          "settlement": {
+            "id": "set-0001",
+            "sayings": [
+              {
+                "de": "Wer früh sammelt, isst warm.",
+                "en": "Who gathers early eats warm."
+              }
+            ]
+          },
+          "culture": [
+            {
+              "kind": "ritual",
+              "text": {
+                "de": "Steine ans Grab legen",
+                "en": "Laying stones at the grave"
+              },
+              "sure": 1.0
+            },
+            {
+              "kind": "belief",
+              "text": {
+                "de": "Das Klopfen am Himmel bringt Gaben",
+                "en": "Knocking at the sky brings gifts"
+              },
+              "sure": 0.3
+            }
+          ],
+          "grief": [
+            {
+              "about": "inh-0003",
+              "strength": 0.4
+            }
+          ],
+          "name": "Tavi"
+        },
+        "environment": {
+          "time_of_day": "morning",
+          "temperature_c": 17.5,
+          "weather": [
+            "cloudy"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-0042",
+              "type": "red_berry_bush",
+              "distance_m": 4.5,
+              "known_properties": []
+            },
+            {
+              "id": "obj-0007",
+              "type": "apple_tree",
+              "distance_m": 22.0,
+              "known_properties": [
+                {
+                  "property": "edible",
+                  "value": true,
+                  "confidence": 0.9
+                }
+              ]
+            }
+          ],
+          "inhabitants": [
+            {
+              "id": "inh-0002",
+              "distance_m": 4.0,
+              "called": {
+                "name": "Mara",
+                "label": null
+              },
+              "life_stage": "adult"
+            }
+          ]
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "eat",
+            "target": "obj-0007",
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "move_to",
+            "target": "obj-0007",
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "idle",
+            "target": null,
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o1",
+        "o2"
+      ],
+      "forbidden_option_ids": [],
+      "forbidden_words": []
+    },
+    {
+      "id": "split_off_after_quarrels",
+      "kind": "decision",
+      "description": "Low reputation, many quarrels, the place is full.",
+      "request": {
+        "contract_version": "0.2",
+        "request_id": "00000000-000b-9a14-0000-000000000018",
+        "tick": 2240,
+        "seed": 20024,
+        "deadline_ms": 8000,
+        "display_locale": "de",
+        "inhabitant": {
+          "id": "inh-0001",
+          "needs": [
+            {
+              "id": "hunger",
+              "value": 0.6
+            },
+            {
+              "id": "sleep",
+              "value": 0.6
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            }
+          ],
+          "mood": [
+            {
+              "id": "boredom",
+              "value": 0.3
+            },
+            {
+              "id": "sadness",
+              "value": 0.2
+            }
+          ],
+          "will_to_live": 0.8,
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.35
+            },
+            {
+              "id": "curiosity",
+              "value": 0.8
+            },
+            {
+              "id": "patience",
+              "value": 0.4
+            }
+          ],
+          "memory": {
+            "summary": "Again a quarrel about the spring. Nobody wants to share with me.",
+            "recent": [
+              {
+                "tick": 1100,
+                "kind": "met_inhabitant",
+                "about": {
+                  "kind": "inhabitant",
+                  "id": "inh-0002"
+                }
+              },
+              {
+                "tick": 1150,
+                "kind": "drank",
+                "about": {
+                  "kind": "type",
+                  "id": "spring_water"
+                }
+              }
+            ]
+          },
+          "knowledge": [
+            {
+              "subject": {
+                "kind": "type",
+                "id": "apple_tree"
+              },
+              "property": "edible",
+              "value": true,
+              "confidence": 0.6,
+              "source": "heard",
+              "told_by": "inh-0002",
+              "tick": 1120
+            },
+            {
+              "subject": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "property": "drinkable",
+              "value": true,
+              "confidence": 1.0,
+              "source": "experienced",
+              "told_by": null,
+              "tick": 1150
+            }
+          ],
+          "relationships": [
+            {
+              "other": "inh-0002",
+              "affection": 0.4,
+              "trust": 0.6,
+              "respect": 0.5
+            }
+          ],
+          "habits": [
+            {
+              "action": "drink",
+              "time_of_day": "day",
+              "about": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "strength": 0.3
+            }
+          ],
+          "life_stage": "adult",
+          "age_years": 31,
+          "family": [
+            {
+              "other": "inh-0002",
+              "relation": "partner",
+              "deceased": false
+            },
+            {
+              "other": "inh-0007",
+              "relation": "child",
+              "deceased": false
+            },
+            {
+              "other": "inh-0003",
+              "relation": "parent",
+              "deceased": true
+            }
+          ],
+          "reputation": 0.15,
+          "settlement": {
+            "id": "set-0001",
+            "sayings": [
+              {
+                "de": "Wer früh sammelt, isst warm.",
+                "en": "Who gathers early eats warm."
+              }
+            ]
+          },
+          "culture": [
+            {
+              "kind": "ritual",
+              "text": {
+                "de": "Steine ans Grab legen",
+                "en": "Laying stones at the grave"
+              },
+              "sure": 1.0
+            },
+            {
+              "kind": "belief",
+              "text": {
+                "de": "Das Klopfen am Himmel bringt Gaben",
+                "en": "Knocking at the sky brings gifts"
+              },
+              "sure": 0.3
+            }
+          ],
+          "grief": [
+            {
+              "about": "inh-0003",
+              "strength": 0.4
+            }
+          ],
+          "name": "Tavi"
+        },
+        "environment": {
+          "time_of_day": "day",
+          "temperature_c": 17.5,
+          "weather": [
+            "cloudy"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-0042",
+              "type": "red_berry_bush",
+              "distance_m": 4.5,
+              "known_properties": []
+            },
+            {
+              "id": "obj-0007",
+              "type": "apple_tree",
+              "distance_m": 22.0,
+              "known_properties": [
+                {
+                  "property": "edible",
+                  "value": true,
+                  "confidence": 0.9
+                }
+              ]
+            }
+          ],
+          "inhabitants": [
+            {
+              "id": "inh-0002",
+              "distance_m": 4.0,
+              "called": {
+                "name": "Mara",
+                "label": null
+              },
+              "life_stage": "adult"
+            }
+          ]
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "found_settlement",
+            "target": null,
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "talk_to",
+            "target": "inh-0002",
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "idle",
+            "target": null,
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o1",
+        "o2",
+        "o3"
+      ],
+      "forbidden_option_ids": [],
+      "forbidden_words": []
+    },
+    {
+      "id": "sail_to_new_land",
+      "kind": "decision",
+      "description": "A boat is ready; the island is crowded.",
+      "request": {
+        "contract_version": "0.2",
+        "request_id": "00000000-000b-9a14-0000-000000000019",
+        "tick": 2250,
+        "seed": 20025,
+        "deadline_ms": 8000,
+        "display_locale": "en",
+        "inhabitant": {
+          "id": "inh-0001",
+          "needs": [
+            {
+              "id": "hunger",
+              "value": 0.6
+            },
+            {
+              "id": "sleep",
+              "value": 0.6
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            }
+          ],
+          "mood": [
+            {
+              "id": "boredom",
+              "value": 0.3
+            },
+            {
+              "id": "sadness",
+              "value": 0.2
+            }
+          ],
+          "will_to_live": 0.8,
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.35
+            },
+            {
+              "id": "curiosity",
+              "value": 0.8
+            },
+            {
+              "id": "patience",
+              "value": 0.4
+            }
+          ],
+          "memory": {
+            "summary": "Many families share one spring now. I finished the boat.",
+            "recent": [
+              {
+                "tick": 1100,
+                "kind": "met_inhabitant",
+                "about": {
+                  "kind": "inhabitant",
+                  "id": "inh-0002"
+                }
+              },
+              {
+                "tick": 1150,
+                "kind": "drank",
+                "about": {
+                  "kind": "type",
+                  "id": "spring_water"
+                }
+              }
+            ]
+          },
+          "knowledge": [
+            {
+              "subject": {
+                "kind": "type",
+                "id": "apple_tree"
+              },
+              "property": "edible",
+              "value": true,
+              "confidence": 0.6,
+              "source": "heard",
+              "told_by": "inh-0002",
+              "tick": 1120
+            },
+            {
+              "subject": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "property": "drinkable",
+              "value": true,
+              "confidence": 1.0,
+              "source": "experienced",
+              "told_by": null,
+              "tick": 1150
+            }
+          ],
+          "relationships": [
+            {
+              "other": "inh-0002",
+              "affection": 0.4,
+              "trust": 0.6,
+              "respect": 0.5
+            }
+          ],
+          "habits": [
+            {
+              "action": "drink",
+              "time_of_day": "day",
+              "about": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "strength": 0.3
+            }
+          ],
+          "life_stage": "adult",
+          "age_years": 31,
+          "family": [
+            {
+              "other": "inh-0002",
+              "relation": "partner",
+              "deceased": false
+            },
+            {
+              "other": "inh-0007",
+              "relation": "child",
+              "deceased": false
+            },
+            {
+              "other": "inh-0003",
+              "relation": "parent",
+              "deceased": true
+            }
+          ],
+          "reputation": 0.6,
+          "settlement": {
+            "id": "set-0001",
+            "sayings": [
+              {
+                "de": "Wer früh sammelt, isst warm.",
+                "en": "Who gathers early eats warm."
+              }
+            ]
+          },
+          "culture": [
+            {
+              "kind": "ritual",
+              "text": {
+                "de": "Steine ans Grab legen",
+                "en": "Laying stones at the grave"
+              },
+              "sure": 1.0
+            },
+            {
+              "kind": "belief",
+              "text": {
+                "de": "Das Klopfen am Himmel bringt Gaben",
+                "en": "Knocking at the sky brings gifts"
+              },
+              "sure": 0.3
+            }
+          ],
+          "grief": [
+            {
+              "about": "inh-0003",
+              "strength": 0.4
+            }
+          ],
+          "name": "Tavi"
+        },
+        "environment": {
+          "time_of_day": "day",
+          "temperature_c": 17.5,
+          "weather": [
+            "cloudy"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-0042",
+              "type": "red_berry_bush",
+              "distance_m": 4.5,
+              "known_properties": []
+            },
+            {
+              "id": "obj-0007",
+              "type": "apple_tree",
+              "distance_m": 22.0,
+              "known_properties": [
+                {
+                  "property": "edible",
+                  "value": true,
+                  "confidence": 0.9
+                }
+              ]
+            }
+          ],
+          "inhabitants": [
+            {
+              "id": "inh-0002",
+              "distance_m": 4.0,
+              "called": {
+                "name": "Mara",
+                "label": null
+              },
+              "life_stage": "adult"
+            }
+          ]
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "sail",
+            "target": "obj-0050",
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "found_settlement",
+            "target": null,
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "idle",
+            "target": null,
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o1",
+        "o2"
+      ],
+      "forbidden_option_ids": [],
+      "forbidden_words": []
+    },
+    {
+      "id": "end_partnership_kindly",
+      "kind": "decision",
+      "description": "Partners quarrel every day for a long time.",
+      "request": {
+        "contract_version": "0.2",
+        "request_id": "00000000-000b-9a14-0000-00000000001a",
+        "tick": 2260,
+        "seed": 20026,
+        "deadline_ms": 8000,
+        "display_locale": "de",
+        "inhabitant": {
+          "id": "inh-0001",
+          "needs": [
+            {
+              "id": "hunger",
+              "value": 0.6
+            },
+            {
+              "id": "sleep",
+              "value": 0.6
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            }
+          ],
+          "mood": [
+            {
+              "id": "boredom",
+              "value": 0.3
+            },
+            {
+              "id": "sadness",
+              "value": 0.2
+            }
+          ],
+          "will_to_live": 0.8,
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.35
+            },
+            {
+              "id": "curiosity",
+              "value": 0.8
+            },
+            {
+              "id": "patience",
+              "value": 0.4
+            }
+          ],
+          "memory": {
+            "summary": "We quarrelled again. Mara sleeps by the other fire now.",
+            "recent": [
+              {
+                "tick": 1100,
+                "kind": "met_inhabitant",
+                "about": {
+                  "kind": "inhabitant",
+                  "id": "inh-0002"
+                }
+              },
+              {
+                "tick": 1150,
+                "kind": "drank",
+                "about": {
+                  "kind": "type",
+                  "id": "spring_water"
+                }
+              }
+            ]
+          },
+          "knowledge": [
+            {
+              "subject": {
+                "kind": "type",
+                "id": "apple_tree"
+              },
+              "property": "edible",
+              "value": true,
+              "confidence": 0.6,
+              "source": "heard",
+              "told_by": "inh-0002",
+              "tick": 1120
+            },
+            {
+              "subject": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "property": "drinkable",
+              "value": true,
+              "confidence": 1.0,
+              "source": "experienced",
+              "told_by": null,
+              "tick": 1150
+            }
+          ],
+          "relationships": [
+            {
+              "other": "inh-0002",
+              "affection": 0.4,
+              "trust": 0.6,
+              "respect": 0.5
+            }
+          ],
+          "habits": [
+            {
+              "action": "drink",
+              "time_of_day": "day",
+              "about": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "strength": 0.3
+            }
+          ],
+          "life_stage": "adult",
+          "age_years": 31,
+          "family": [
+            {
+              "other": "inh-0002",
+              "relation": "partner",
+              "deceased": false
+            },
+            {
+              "other": "inh-0007",
+              "relation": "child",
+              "deceased": false
+            },
+            {
+              "other": "inh-0003",
+              "relation": "parent",
+              "deceased": true
+            }
+          ],
+          "reputation": 0.6,
+          "settlement": {
+            "id": "set-0001",
+            "sayings": [
+              {
+                "de": "Wer früh sammelt, isst warm.",
+                "en": "Who gathers early eats warm."
+              }
+            ]
+          },
+          "culture": [
+            {
+              "kind": "ritual",
+              "text": {
+                "de": "Steine ans Grab legen",
+                "en": "Laying stones at the grave"
+              },
+              "sure": 1.0
+            },
+            {
+              "kind": "belief",
+              "text": {
+                "de": "Das Klopfen am Himmel bringt Gaben",
+                "en": "Knocking at the sky brings gifts"
+              },
+              "sure": 0.3
+            }
+          ],
+          "grief": [
+            {
+              "about": "inh-0003",
+              "strength": 0.4
+            }
+          ],
+          "name": "Tavi"
+        },
+        "environment": {
+          "time_of_day": "day",
+          "temperature_c": 17.5,
+          "weather": [
+            "cloudy"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-0042",
+              "type": "red_berry_bush",
+              "distance_m": 4.5,
+              "known_properties": []
+            },
+            {
+              "id": "obj-0007",
+              "type": "apple_tree",
+              "distance_m": 22.0,
+              "known_properties": [
+                {
+                  "property": "edible",
+                  "value": true,
+                  "confidence": 0.9
+                }
+              ]
+            }
+          ],
+          "inhabitants": [
+            {
+              "id": "inh-0002",
+              "distance_m": 4.0,
+              "called": {
+                "name": "Mara",
+                "label": null
+              },
+              "life_stage": "adult"
+            }
+          ]
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "end_partnership",
+            "target": "inh-0002",
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "talk_to",
+            "target": "inh-0002",
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "idle",
+            "target": null,
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o1",
+        "o2"
+      ],
+      "forbidden_option_ids": [],
+      "forbidden_words": []
+    }
+  ]
+}
