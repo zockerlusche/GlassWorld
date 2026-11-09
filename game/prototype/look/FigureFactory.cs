@@ -1,35 +1,64 @@
+using GlassWorld.Presentation.World;
 using Godot;
 
 namespace GlassWorld.Game.Prototype.Look;
 
 /// <summary>
-/// What one figure looks like: body model (tools/figures/bodies.json), hair style and colours in sRGB
-/// from content/look/appearance.json.
+/// What one figure looks like: body model (tools/figures/bodies.json), hair mesh (null = bald), the
+/// clothing part meshes (F4), colours in sRGB, and the paint of the body regions clothing may cover.
 /// </summary>
 public sealed record FigureLook(
     string Body,
-    string Hair,
+    string? Hair,
     Color Skin,
     Color Top,
     Color Bottom,
     Color Shoes,
     Color HairColor,
-    bool ShortSleeves,
-    bool Shorts,
+    IReadOnlyList<string> Clothing,
     float Scale,
     float ArmSpread = 0.45f,
     IReadOnlyDictionary<string, float>? Shapes = null,
     float HeadScale = 1f,
-    bool Elder = false);
+    bool Elder = false,
+    RegionPaint Forearm = RegionPaint.Skin,
+    RegionPaint Thigh = RegionPaint.Bottom,
+    RegionPaint LowerThigh = RegionPaint.Bottom,
+    RegionPaint Shin = RegionPaint.Bottom)
+{
+    /// <summary>The look of a resolved figure spec (core appearance record and look data).</summary>
+    public static FigureLook From(FigureSpec spec, float armSpread = 0.45f)
+    {
+        ArgumentNullException.ThrowIfNull(spec);
+        return new FigureLook(
+            spec.Model,
+            spec.HairMesh,
+            Color.FromHtml(spec.Skin),
+            Color.FromHtml(spec.Top),
+            Color.FromHtml(spec.Bottom),
+            Color.FromHtml(spec.Shoes),
+            Color.FromHtml(spec.HairColor),
+            spec.ClothingMeshes,
+            (float)spec.Scale,
+            armSpread,
+            spec.Shapes.ToDictionary(s => s.Key, s => (float)s.Value),
+            (float)spec.HeadScale,
+            spec.Elder,
+            spec.Forearm,
+            spec.Thigh,
+            spec.LowerThigh,
+            spec.Shin);
+    }
+}
 
-/// <summary>A built figure: its root, animation tree, modifiers and the body mesh (blend shapes).</summary>
-public sealed record Figure(Node3D Root, AnimationTree Tree, WaveModifier Wave, LookAtModifier Look, MeshInstance3D Body, FaceDriver Face);
+/// <summary>A built figure: its root, animation tree, modifiers, the body mesh and the visible hair and clothing meshes.</summary>
+public sealed record Figure(Node3D Root, AnimationTree Tree, WaveModifier Wave, LookAtModifier Look, MeshInstance3D Body, FaceDriver Face, IReadOnlyList<MeshInstance3D> Worn);
 
 /// <summary>
 /// Builds a figure from the GlassWorld bodies (A1436, F5257=A): round D355-style bodies modelled in
 /// Blender on the Quaternius CC0 rig, so every Quaternius clip runs on them. Body regions come as
 /// vertex colours and are coloured by the warm comic shader; the hair style is one of the skinned
-/// hair meshes in the model. An AnimationTree blends idle → walk → jog by speed (cross-fades).
+/// hair meshes in the model, the clothing parts (F4) are skinned meshes shown by the outfit. An AnimationTree blends idle → walk → jog by speed (cross-fades).
 /// </summary>
 public static class FigureFactory
 {
@@ -60,8 +89,10 @@ public static class FigureFactory
         material.SetShaderParameter("region_bottom", look.Bottom);
         material.SetShaderParameter("region_shoes", look.Shoes);
         material.SetShaderParameter("region_hair", look.HairColor);
-        material.SetShaderParameter("forearm_skin", look.ShortSleeves);
-        material.SetShaderParameter("shin_skin", look.Shorts);
+        material.SetShaderParameter("forearm_paint", (int)look.Forearm);
+        material.SetShaderParameter("thigh_paint", (int)look.Thigh);
+        material.SetShaderParameter("lower_thigh_paint", (int)look.LowerThigh);
+        material.SetShaderParameter("shin_paint", (int)look.Shin);
         if (outline is not null)
         {
             var ink = new ShaderMaterial { Shader = outline };
@@ -70,12 +101,25 @@ public static class FigureFactory
         }
 
         MeshInstance3D? body = null;
+        var worn = new List<MeshInstance3D>();
+        var wanted = look.Clothing.Select(c => $"Cloth_{c}").ToHashSet(StringComparer.Ordinal);
+        if (look.Hair is { } hair)
+        {
+            wanted.Add($"Hair_{hair}");
+        }
+
+        // Hair and clothing meshes not worn stay as hidden nodes: the clothing change (B2540) switches
+        // parts on a living figure without rebuilding it (one shared material, no extra draw calls).
         foreach (var mesh in root.FindChildren("*", "MeshInstance3D", true, false).OfType<MeshInstance3D>())
         {
             var name = mesh.Name.ToString();
-            mesh.Visible = name == "Body" || name == $"Hair_{look.Hair}";
+            mesh.Visible = name == "Body" || wanted.Remove(name);
             mesh.MaterialOverride = material;
             body = name == "Body" ? mesh : body;
+            if (mesh.Visible && name != "Body")
+            {
+                worn.Add(mesh);
+            }
         }
 
         if (body is null)
@@ -83,13 +127,22 @@ public static class FigureFactory
             throw new InvalidOperationException($"figure model {look.Body} has no Body mesh");
         }
 
-        // Body shapes mix as blend shapes (B2528); weights come from the appearance data and the seed.
+        foreach (var missing in wanted)
+        {
+            GD.PushError($"FIGURE mesh missing in {look.Body}: {missing}");
+        }
+
+        // Body shapes and sex proportions mix as blend shapes (B2528, F4) on the body and on the
+        // clothing (same shapes, so the body never shows through); weights come from the core record.
         foreach (var (shape, weight) in look.Shapes ?? new Dictionary<string, float>())
         {
-            var index = body.FindBlendShapeByName($"body_{shape}");
-            if (index >= 0)
+            foreach (var mesh in worn.Prepend(body))
             {
-                body.SetBlendShapeValue(index, Mathf.Clamp(weight, 0, 1));
+                var index = mesh.FindBlendShapeByName($"body_{shape}");
+                if (index >= 0)
+                {
+                    mesh.SetBlendShapeValue(index, Mathf.Clamp(weight, 0, 1));
+                }
             }
         }
 
@@ -126,7 +179,7 @@ public static class FigureFactory
         tree.Active = true;
         var face = new FaceDriver { Body = body, Seed = (uint)look.GetHashCode() };
         root.AddChild(face);
-        return new Figure(root, tree, wave, lookAt, body, face);
+        return new Figure(root, tree, wave, lookAt, body, face, worn);
     }
 
     /// <summary>Sets the blend between idle (0), walk (1) and jog (2).</summary>

@@ -17,11 +17,41 @@
     "#5a3a28"
   ],
   "hair_styles": [
-    "short",
-    "long",
-    "curly",
-    "braided",
-    "tied"
+    {
+      "id": "short",
+      "weight": 3,
+      "length_rank": 2
+    },
+    {
+      "id": "shoulder_length",
+      "weight": 3,
+      "length_rank": 5
+    },
+    {
+      "id": "long",
+      "weight": 3,
+      "length_rank": 8
+    },
+    {
+      "id": "braid",
+      "weight": 2,
+      "length_rank": 8
+    },
+    {
+      "id": "bun",
+      "weight": 2,
+      "length_rank": 7
+    },
+    {
+      "id": "curls",
+      "weight": 3,
+      "length_rank": 4
+    },
+    {
+      "id": "bald",
+      "weight": 1,
+      "length_rank": 0
+    }
   ],
   "hair_colors": [
     "#682707",
@@ -30,10 +60,123 @@
     "#c79a5b",
     "#3a2416"
   ],
-  "clothing_styles": [
-    "tunic",
-    "wrap",
-    "shirt_trousers"
+  "outfits": [
+    {
+      "id": "shirt_trousers",
+      "parts": [
+        "shirt",
+        "trousers_long"
+      ],
+      "weight": 3
+    },
+    {
+      "id": "tunic_trousers",
+      "parts": [
+        "tunic",
+        "trousers_long"
+      ],
+      "weight": 3,
+      "when": {
+        "seasons": [
+          "autumn",
+          "winter",
+          "spring"
+        ],
+        "tech_levels": [
+          "wilderness",
+          "tool"
+        ]
+      }
+    },
+    {
+      "id": "shirt_shorts",
+      "parts": [
+        "shirt",
+        "trousers_short"
+      ],
+      "weight": 2,
+      "when": {
+        "seasons": [
+          "spring",
+          "summer"
+        ],
+        "tech_levels": [
+          "wilderness",
+          "tool"
+        ]
+      }
+    },
+    {
+      "id": "tunic",
+      "parts": [
+        "tunic"
+      ],
+      "weight": 2,
+      "when": {
+        "seasons": [
+          "spring",
+          "summer"
+        ],
+        "tech_levels": [
+          "wilderness",
+          "tool"
+        ]
+      }
+    },
+    {
+      "id": "shirt_skirt",
+      "parts": [
+        "shirt",
+        "skirt_short"
+      ],
+      "weight": 2,
+      "when": {
+        "seasons": [
+          "spring",
+          "summer"
+        ],
+        "tech_levels": [
+          "wilderness",
+          "tool"
+        ],
+        "sexes": [
+          "female"
+        ]
+      }
+    },
+    {
+      "id": "shirt_long_skirt",
+      "parts": [
+        "shirt",
+        "skirt_long"
+      ],
+      "weight": 2,
+      "when": {
+        "tech_levels": [
+          "wilderness",
+          "tool"
+        ],
+        "sexes": [
+          "female"
+        ]
+      }
+    },
+    {
+      "id": "dress",
+      "parts": [
+        "dress"
+      ],
+      "weight": 2,
+      "when": {
+        "tech_levels": [
+          "wilderness",
+          "tool"
+        ],
+        "sexes": [
+          "female"
+        ]
+      }
+    }
   ],
   "clothing_colors": [
     "#39656b",
@@ -103,5 +246,106 @@
     "#a8a39b"
   ],
   "start_age_days": 300,
-  "shape_chance_permille": 400
+  "shape_chance_permille": 400,
+  "sex_shapes": [
+    {
+      "sex": "female",
+      "id": "bust",
+      "min": 0.3,
+      "max": 0.7,
+      "age_stages": [
+        "adult",
+        "elder"
+      ]
+    },
+    {
+      "sex": "female",
+      "id": "waist",
+      "min": 0.3,
+      "max": 0.8,
+      "age_stages": [
+        "adult",
+        "elder"
+      ]
+    },
+    {
+      "sex": "female",
+      "id": "hips",
+      "min": 0.3,
+      "max": 0.8,
+      "age_stages": [
+        "adult",
+        "elder"
+      ]
+    },
+    {
+      "sex": "female",
+      "id": "shoulders_narrow",
+      "min": 0.2,
+      "max": 0.7,
+      "age_stages": [
+        "youth",
+        "adult",
+        "elder"
+      ]
+    },
+    {
+      "sex": "male",
+      "id": "shoulders_broad",
+      "min": 0.0,
+      "max": 0.7,
+      "age_stages": [
+        "youth",
+        "adult",
+        "elder"
+      ]
+    },
+    {
+      "sex": "female",
+      "id": "bust",
+      "min": 0.1,
+      "max": 0.3,
+      "age_stages": [
+        "youth"
+      ]
+    },
+    {
+      "sex": "female",
+      "id": "waist",
+      "min": 0.15,
+      "max": 0.4,
+      "age_stages": [
+        "youth"
+      ]
+    },
+    {
+      "sex": "female",
+      "id": "hips",
+      "min": 0.15,
+      "max": 0.4,
+      "age_stages": [
+        "youth"
+      ]
+    }
+  ],
+  "renamed_hair_styles": [
+    {
+      "old_id": "curly",
+      "new_id": "curls"
+    },
+    {
+      "old_id": "braided",
+      "new_id": "braid"
+    },
+    {
+      "old_id": "tied",
+      "new_id": "bun"
+    }
+  ],
+  "renamed_outfits": [
+    {
+      "old_id": "wrap",
+      "new_id": "tunic"
+    }
+  ]
 }

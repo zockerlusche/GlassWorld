@@ -195,7 +195,8 @@ public static class StateCodec
                 NeglectTicks = saved.NeglectTicks,
                 Activity = saved.Activity,
                 Planned = saved.Planned,
-                Appearance = saved.Appearance,
+                // Ids renamed since the save get their current ids (F4), so the figure can be drawn.
+                Appearance = saved.Appearance?.WithCurrentIds(factory.Content.Appearance),
             };
             foreach (var belief in saved.Beliefs)
             {

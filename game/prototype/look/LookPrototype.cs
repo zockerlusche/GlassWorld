@@ -1,5 +1,9 @@
 using System.Globalization;
 using GlassWorld.Contracts;
+using GlassWorld.Contracts.Validation;
+using GlassWorld.Presentation.World;
+using GlassWorld.Simulation.Inhabitants;
+using GlassWorld.Simulation.Random;
 using Godot;
 
 namespace GlassWorld.Game.Prototype.Look;
@@ -23,6 +27,7 @@ public partial class LookPrototype : Node3D
 
     private readonly List<Figure> _figures = [];
     private LookData? _look;
+    private string _content = string.Empty;
     private Camera3D? _camera;
     private Figure? _walker;
     private Figure? _waver;
@@ -83,6 +88,7 @@ public partial class LookPrototype : Node3D
         }
 
         var content = ContentLocator.ContentDirectory();
+        _content = content;
         _look = LookData.Load(content);
         var comic = GD.Load<Shader>("res://shaders/warm_comic.gdshader");
         var outline = _variant == "ink" ? GD.Load<Shader>("res://shaders/outline_hull.gdshader") : null;
@@ -339,9 +345,10 @@ public partial class LookPrototype : Node3D
         var a = _look!.Appearance;
         Color Pick(ICollection<string> colors, int index) => new(colors.ElementAt(index % colors.Count));
         var shoes = Pick(a.HairColors, 4);
-        var woman = new FigureLook("adult_female", "long", Pick(a.SkinTones, 1), Pick(a.ClothingColors, 2), Pick(a.ClothingColors, 0), shoes, Pick(a.HairColors, 0), ShortSleeves: true, Shorts: true, Scale: 0.97f);
-        var man = new FigureLook("adult_male", "short", Pick(a.SkinTones, 2), Pick(a.ClothingColors, 1), Pick(a.ClothingColors, 4), shoes, Pick(a.HairColors, 1), ShortSleeves: true, Shorts: false, Scale: 1f);
-        var child = new FigureLook("child", "tousled", Pick(a.SkinTones, 1), Pick(a.ClothingColors, 2), Pick(a.ClothingColors, 3), shoes, Pick(a.HairColors, 2), ShortSleeves: true, Shorts: true, Scale: 0.62f);
+        var forms = new Dictionary<string, float>(StringComparer.Ordinal) { ["bust"] = 0.5f, ["waist"] = 0.55f, ["hips"] = 0.55f, ["shoulders_narrow"] = 0.4f };
+        var woman = new FigureLook("adult_female", "long", Pick(a.SkinTones, 1), Pick(a.ClothingColors, 2), Pick(a.ClothingColors, 0), shoes, Pick(a.HairColors, 0), ["shirt", "skirt_long"], 0.97f, Shapes: forms);
+        var man = new FigureLook("adult_male", "short", Pick(a.SkinTones, 2), Pick(a.ClothingColors, 1), Pick(a.ClothingColors, 4), shoes, Pick(a.HairColors, 1), ["shirt", "trousers_long"], 1f);
+        var child = new FigureLook("child", "curls", Pick(a.SkinTones, 1), Pick(a.ClothingColors, 2), Pick(a.ClothingColors, 3), shoes, Pick(a.HairColors, 2), ["shirt", "trousers_short"], 0.62f, LowerThigh: RegionPaint.Skin, Shin: RegionPaint.Skin);
 
         if (_variety)
         {
@@ -352,7 +359,18 @@ public partial class LookPrototype : Node3D
         if (_showcase)
         {
             // A1436 showcase: every hair style once, standing in a row on the sand.
-            var second = woman with { Hair = "bun", Top = Pick(a.ClothingColors, 5), Bottom = Pick(a.ClothingColors, 0), HairColor = Pick(a.HairColors, 4), Skin = Pick(a.SkinTones, 3) };
+            var second = woman with
+            {
+                Hair = "bun",
+                Clothing = ["dress"],
+                Thigh = RegionPaint.Top,
+                LowerThigh = RegionPaint.Top,
+                Shin = RegionPaint.Skin,
+                Top = Pick(a.ClothingColors, 5),
+                Bottom = Pick(a.ClothingColors, 0),
+                HairColor = Pick(a.HairColors, 4),
+                Skin = Pick(a.SkinTones, 3),
+            };
             var row = new[] { woman, man, child, second };
             for (var i = 0; i < row.Length; i++)
             {
@@ -616,50 +634,61 @@ public partial class LookPrototype : Node3D
     }
 
     /// <summary>
-    /// Variation sheet (B2528): 12 inhabitants drawn from a fixed seed with the ranges of
-    /// content/look/appearance.json (body type, shapes, height, head size, colours, hair), plus a row
-    /// of five faces with the mouth expressions. Presentation prototype; the core draws the appearance
-    /// record from the world seed in B2-4.
+    /// Variation sheet (B2528, F4): 12 inhabitants drawn by the core from content/look/appearance.json
+    /// (sex, age stage, hair style, outfit for season and tech level, body shapes, sex proportions) and
+    /// resolved through figures.json, plus a row of five faces with the mouth expressions. The first
+    /// seed from 20261113 whose 12 inhabitants show every hair style and every clothing part is taken,
+    /// so the sheet covers the whole kit.
     /// </summary>
     private void BuildVariety(Shader comic, Shader? outline)
     {
         var a = _look!.Appearance;
-        var rng = new PrototypeRandom(20261107);
-        Color Pick(ICollection<string> colors) => new(colors.ElementAt(rng.Next(colors.Count)));
-        string[] hairs = ["short", "long", "bun", "tousled"];
-        for (var i = 0; i < 12; i++)
+        var figures = ContractSerializer.Deserialize<LookFigures>(System.IO.File.ReadAllText(System.IO.Path.Combine(_content, "look", "figures.json")));
+        var stages = a.AgeStages.OrderBy(s => s.FromAgeDays).ToList();
+        string[] seasons = ["spring", "summer", "autumn", "winter"];
+        var hairs = a.HairStyles.Select(h => h.Id).ToHashSet(StringComparer.Ordinal);
+        var parts = figures.ClothingParts.Select(c => c.Id).ToHashSet(StringComparer.Ordinal);
+
+        List<(string Sex, Appearance Record)> Draw(ulong seed)
         {
-            var kind = rng.Next(10) switch { < 4 => "adult_female", < 8 => "adult_male", 8 => "child", _ => "elder" };
-            var body = kind == "elder" ? (rng.Next(2) == 0 ? "adult_female" : "adult_male") : kind;
-            var shapes = new Dictionary<string, float>(StringComparer.Ordinal);
-            foreach (var range in a.Shapes)
+            var people = new List<(string, Appearance)>();
+            for (var i = 0; i < 12; i++)
             {
-                // One or two shapes per inhabitant; heavy and thin never together.
-                var clash = (range.Id == "thin" && shapes.ContainsKey("heavy")) || (range.Id == "heavy" && shapes.ContainsKey("thin"));
-                if (rng.Next(100) < 40 && !clash)
+                var sex = i % 2 == 0 ? "female" : "male";
+                var age = i switch
                 {
-                    shapes[range.Id] = (float)(range.Min + (rng.NextUnit() * (range.Max - range.Min)));
-                }
+                    >= 10 => stages.First(s => s.Id == "child").FromAgeDays + 1,
+                    >= 8 => stages[^1].FromAgeDays + 1,
+                    _ => a.StartAgeDays,
+                };
+                var place = new ClothingContext(seasons[i % seasons.Length], "temperate", null, "tool");
+                people.Add((sex, Appearance.Draw(a, new RandomStreams(seed).Get($"inhabitant/{i}/appearance"), age, sex, place)));
             }
 
-            var height = (float)(a.HeightCm.Min + (rng.NextUnit() * (a.HeightCm.Max - a.HeightCm.Min))) / 172f;
-            var skin = Pick(a.SkinTones);
-            var top = Pick(a.ClothingColors);
-            var look = new FigureLook(
-                body,
-                kind == "child" ? hairs[rng.Next(2) == 0 ? 0 : 3] : hairs[rng.Next(hairs.Length)],
-                skin,
-                top,
-                Pick(a.ClothingColors),
-                Pick(a.HairColors),
-                kind == "elder" ? Pick(a.ElderHairColors) : Pick(a.HairColors),
-                ShortSleeves: rng.Next(3) > 0,
-                Shorts: kind == "child" || rng.Next(4) == 0,
-                Scale: kind == "child" ? 0.6f + (float)(rng.NextUnit() * 0.08) : height,
-                ArmSpread: 0.45f + (shapes.GetValueOrDefault("heavy") * 0.35f),
-                Shapes: shapes,
-                HeadScale: (float)(a.HeadScale.Min + (rng.NextUnit() * (a.HeadScale.Max - a.HeadScale.Min))),
-                Elder: kind == "elder");
+            return people;
+        }
+
+        var seed = 20261113UL;
+        var drawn = Draw(seed);
+        for (var tries = 0; tries < 2000; tries++)
+        {
+            var shownHair = drawn.Select(d => d.Record.HairStyle).ToHashSet(StringComparer.Ordinal);
+            var shownParts = drawn.SelectMany(d => a.Outfits.First(o => o.Id == d.Record.ClothingStyle).Parts).ToHashSet(StringComparer.Ordinal);
+            if (hairs.IsSubsetOf(shownHair) && parts.IsSubsetOf(shownParts))
+            {
+                break;
+            }
+
+            drawn = Draw(++seed);
+        }
+
+        GD.Print($"LOOK_VARIETY_SEED {seed}");
+        for (var i = 0; i < drawn.Count; i++)
+        {
+            var (sex, record) = drawn[i];
+            var spec = FigureSpec.From(record, sex, figures, a);
+            var look = FigureLook.From(spec, 0.45f + ((float)record.Shapes.GetValueOrDefault("heavy") * 0.35f));
+            GD.Print($"LOOK_VARIETY {i} {sex} {record.AgeStage} hair={record.HairStyle} outfit={record.ClothingStyle} shapes={string.Join(',', record.Shapes.Select(s => $"{s.Key}:{s.Value:0.00}"))}");
             var at = new Vector3(-3.2f + ((i % 6) * 1.35f), 0, 1.4f + ((i / 6) * 2.6f));
             Place(FigureFactory.Build(look, comic, outline), at, new Vector3(0, 0, 1), out var placed);
             _showRow.Add(placed);
@@ -671,7 +700,7 @@ public partial class LookPrototype : Node3D
             var face = new FigureLook(
                 "adult_female", "bun", new Color(a.SkinTones.ElementAt(1)), new Color(a.ClothingColors.ElementAt(2)),
                 new Color(a.ClothingColors.ElementAt(0)), new Color(a.HairColors.ElementAt(4)), new Color(a.HairColors.ElementAt(0)),
-                ShortSleeves: true, Shorts: true, Scale: 1f);
+                ["shirt", "trousers_long"], 1f);
             Place(FigureFactory.Build(face, comic, outline), new Vector3(-2.4f + (i * 1.2f), 0, 10f), new Vector3(0, 0, 1), out var placed);
             placed.Face.Expression = expressions[i];
             placed.Face.Blinking = false;

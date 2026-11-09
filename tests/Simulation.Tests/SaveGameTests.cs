@@ -154,6 +154,53 @@ public sealed class SaveGameTests : IDisposable
         Assert.Equal(host.World.StateHash(), Restore(SaveGameStore.Load(path), new MockDecisionPort()).World.StateHash());
     }
 
+    /// <summary>
+    /// Review GW3 #108: a save of schema 4 (main before F4) with the first look's hair styles and outfit
+    /// (curly, braided, tied, wrap) is migrated, and every inhabitant gets a figure the tables know:
+    /// hair entry, outfit and its clothing parts (what FigureSpec.From needs; no stand-in capsules).
+    /// </summary>
+    [Fact]
+    public void ASaveFromBeforeTheHairKitKeepsRealFigures()
+    {
+        var host = SimulationHost.CreatePlaceholderWorld(ContentDirectory, 7, new MockDecisionPort(), "de");
+        var path = Path.Combine(_directory, "v4.db");
+        SaveGameStore.Save(path, StateCodec.Capture(host));
+        string[] oldHair = ["curly", "braided", "tied", "short"];
+        using (var c = new SqliteConnection($"Data Source={path};Pooling=False"))
+        {
+            c.Open();
+            var ids = host.Inhabitants.All.Select(i => i.Id).Order(StringComparer.Ordinal).ToList();
+            for (var i = 0; i < ids.Count; i++)
+            {
+                using var set = c.CreateCommand();
+                set.CommandText = "UPDATE meta SET value = json_set(value, $hair, $h, $outfit, 'wrap') WHERE key = 'appearances';";
+                set.Parameters.AddWithValue("$hair", $"$.\"{ids[i]}\".HairStyle");
+                set.Parameters.AddWithValue("$outfit", $"$.\"{ids[i]}\".ClothingStyle");
+                set.Parameters.AddWithValue("$h", oldHair[i % oldHair.Length]);
+                Assert.Equal(1, set.ExecuteNonQuery());
+            }
+
+            using var version = c.CreateCommand();
+            version.CommandText = "PRAGMA user_version = 4;";
+            version.ExecuteNonQuery();
+        }
+
+        var state = SaveGameStore.Load(path);
+        var loaded = Restore(state, new MockDecisionPort());
+        var look = loaded.Content.Appearance;
+        var figures = Contracts.Validation.ContractSerializer.Deserialize<Contracts.LookFigures>(
+            File.ReadAllText(Path.Combine(ContentDirectory, "look", "figures.json")));
+        Assert.All(state.Inhabitants, i => Assert.Equal("tunic", i.Appearance!.ClothingStyle));
+        Assert.Equal(["braid", "bun", "curls", "short"], state.Inhabitants.Select(i => i.Appearance!.HairStyle).Order(StringComparer.Ordinal));
+        Assert.All(loaded.Inhabitants.All, i =>
+        {
+            var a = i.Appearance!;
+            Assert.Contains(figures.Hair, h => h.Style == a.HairStyle);
+            var outfit = Assert.Single(look.Outfits, o => o.Id == a.ClothingStyle);
+            Assert.All(outfit.Parts, part => Assert.Contains(figures.ClothingParts, p => p.Id == part));
+        });
+    }
+
     private static SimulationHost Restore(SaveState state, IDecisionPort port)
     {
         var content = ContentSet.Load(ContentDirectory);

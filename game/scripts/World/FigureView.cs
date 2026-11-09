@@ -52,21 +52,7 @@ public partial class FigureView : Node3D
         var figures = shared.Figures;
         var comic = GD.Load<Shader>("res://shaders/warm_comic.gdshader");
         var outline = figures.Outline ? GD.Load<Shader>("res://shaders/outline_hull.gdshader") : null;
-        var look = new FigureLook(
-            spec.Model,
-            spec.HairMesh,
-            Srgb(spec.Skin),
-            Srgb(spec.Top),
-            Srgb(spec.Bottom),
-            Srgb(spec.Shoes),
-            Srgb(spec.HairColor),
-            spec.ShortSleeves,
-            spec.Shorts,
-            (float)spec.Scale,
-            Shapes: spec.Shapes.ToDictionary(s => s.Key, s => (float)s.Value),
-            HeadScale: (float)spec.HeadScale,
-            Elder: spec.Elder);
-        var figure = FigureFactory.Build(look, comic, outline);
+        var figure = FigureFactory.Build(FigureLook.From(spec), comic, outline);
 
         var start = new Point3(inhabitant.Position.X, groundHeight(inhabitant.Position.X, inhabitant.Position.Z), inhabitant.Position.Z);
         var view = new FigureView
@@ -253,6 +239,4 @@ public partial class FigureView : Node3D
     }
 
     private static Vector3 ToVector(Point3 p) => new((float)p.X, (float)p.Y, (float)p.Z);
-
-    private static Color Srgb(string hex) => Color.FromHtml(hex);
 }
