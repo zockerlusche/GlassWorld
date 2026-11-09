@@ -39,6 +39,7 @@ public partial class WorldPresenter : Node3D
     private MultiMeshInstance3D? _objects;
     private int _objectCount = -1;
     private double _accumulator;
+    private string? _askedLocale;
 
     /// <summary>Help suggestions from the AI (A1341); null without the live service (the window uses the data).</summary>
     public HttpHelpPort? HelpPort => _helpPort;
@@ -94,8 +95,8 @@ public partial class WorldPresenter : Node3D
         SimulationHost Make(WorldLookMode m)
         {
             var made = m == WorldLookMode.Island
-                ? SimulationHost.CreateGeneratedWorld(contentDirectory, seed, port, "de", look.IslandPreset, _jobPort)
-                : SimulationHost.CreatePlaceholderWorld(contentDirectory, seed, port, "de", _jobPort);
+                ? SimulationHost.CreateGeneratedWorld(contentDirectory, seed, port, UiLocale(), look.IslandPreset, _jobPort)
+                : SimulationHost.CreatePlaceholderWorld(contentDirectory, seed, port, UiLocale(), _jobPort);
             if (startFavor is { } favor)
             {
                 // Part of the start (GW1 review #67 S1/N1): as a command in the log, applied at the first
@@ -148,7 +149,7 @@ public partial class WorldPresenter : Node3D
         var settings = Contracts.Validation.ContractSerializer.Deserialize<Contracts.DeciderSettings>(
             System.IO.File.ReadAllText(System.IO.Path.Combine(contentDirectory, "decider", "settings.json")));
         var decisions = port ?? CreatePort(contentDirectory);
-        var factory = new SimulationHostFactory(ContentSet.Load(contentDirectory), settings, decisions, "de", _jobPort);
+        var factory = new SimulationHostFactory(ContentSet.Load(contentDirectory), settings, decisions, UiLocale(), _jobPort);
         var host = StateCodec.Restore(factory, SaveGameStore.Load(savePath));
         HashAtLoad = host.World.StateHash();
         host.Decisions.ResendPendingAfterLoad(host.World);
@@ -178,6 +179,7 @@ public partial class WorldPresenter : Node3D
 
         _host = host;
         SavePath = savePath;
+        _askedLocale = host.DisplayLocale;
 
         // Talking (B6 R13): only the live service answers. Without it (routine mode, or the service
         // failed to start) nothing answers and the core gives the calm "no answer" with the favour back
@@ -237,6 +239,33 @@ public partial class WorldPresenter : Node3D
         BeginPlaceholderCamera();
     }
 
+    /// <summary>
+    /// The language the UI shows (the TranslationServer locale the settings set), as the core knows it;
+    /// another one falls back to the UI's fallback language (#20043: no fixed "de" any more).
+    /// </summary>
+    private static string UiLocale()
+    {
+        var shown = TranslationServer.GetLocale();
+        return Localization.TextCatalogs.SupportedLocales.FirstOrDefault(l => shown.StartsWith(l, StringComparison.Ordinal))
+            ?? Localization.TextCatalogs.SupportedLocales[0];
+    }
+
+    /// <summary>
+    /// If the player switched the language, new requests use it from the next tick (a logged command, so
+    /// replays stay identical); questions already asked are not asked again.
+    /// </summary>
+    private void FollowUiLanguage()
+    {
+        var locale = UiLocale();
+        if (_host is null || locale == _askedLocale)
+        {
+            return;
+        }
+
+        _askedLocale = locale;
+        _host.Decisions.Submit(new PlayerCommand(DecisionsSystem.SetDisplayLocale, null) { Text = locale });
+    }
+
     /// <inheritdoc/>
     public override void _Process(double delta)
     {
@@ -245,6 +274,7 @@ public partial class WorldPresenter : Node3D
             return;
         }
 
+        FollowUiLanguage();
         var calendar = _host.World.Calendar;
         _accumulator += delta * Speed / calendar.RealSecondsPerTickAtNormalSpeed;
         var ticks = Math.Min((long)_accumulator, calendar.Settings.MaxTicksPerFrame);
