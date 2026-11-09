@@ -584,6 +584,10 @@ public sealed class InhabitantsSystem : IWorldSystem
         if (target is not null)
         {
             Learn(world, inhabitant, activity.Action, target.TypeId);
+            if (Knowledge?.Looking is { } looking && string.Equals(activity.Action, looking.Action, StringComparison.Ordinal))
+            {
+                Look(world, inhabitant, looking, target);
+            }
             if (applying.Any(r => r.ConsumesTarget))
             {
                 _objects.Remove(target.Id);
@@ -629,6 +633,49 @@ public sealed class InhabitantsSystem : IWorldSystem
                 Report(new WorldEvent(KnowledgeGained, world.Tick, inhabitant.Id, action, typeId) { Detail = property + "/" + KnowledgeSources.Experienced });
             }
         }
+    }
+
+    /// <summary>
+    /// Looking closely (TL #19921): the inhabitant now sees the thing's visible properties (true or false, as
+    /// sure as the data says, source seen; never over something tried or surer), guesses from them what it might be good for (source guessed, never replacing
+    /// a belief it has) and remembers where the thing stands. Effects are never learned by looking.
+    /// </summary>
+    private void Look(World world, Inhabitant inhabitant, KnowledgeLooking looking, WorldObject target)
+    {
+        var typeId = target.TypeId;
+        foreach (var property in looking.VisibleProperties)
+        {
+            // Looking never overrides what was tried or what the inhabitant is at least as sure of (review GW2 #142).
+            if (inhabitant.Beliefs.TryGet(typeId, property, out var old) && (old.Source == KnowledgeSources.Experienced || old.Confidence >= looking.InspectConfidence))
+            {
+                continue;
+            }
+
+            var truth = _objects.Catalog.HasProperty(typeId, property);
+            inhabitant.Beliefs.Set(typeId, property, truth, looking.InspectConfidence, KnowledgeSources.Seen, null, world.Tick);
+            if (truth)
+            {
+                Report(new WorldEvent(KnowledgeGained, world.Tick, inhabitant.Id, looking.Action, typeId) { Detail = property + "/" + KnowledgeSources.Seen });
+            }
+        }
+
+        foreach (var guess in looking.Guesses)
+        {
+            if (_objects.Catalog.HasProperty(typeId, guess.Seen) && !inhabitant.Beliefs.TryGet(typeId, guess.Property, out _))
+            {
+                inhabitant.Beliefs.Set(typeId, guess.Property, guess.Value, looking.GuessedConfidence, KnowledgeSources.Guessed, null, world.Tick);
+                Report(new WorldEvent(KnowledgeGained, world.Tick, inhabitant.Id, looking.Action, typeId) { Detail = guess.Property + "/" + KnowledgeSources.Guessed });
+            }
+        }
+
+        inhabitant.RememberPlace(target.Id, new PlaceMemory(typeId, target.Position, world.Tick), looking.PlaceMemoryMax);
+    }
+
+    /// <summary>Whether the inhabitant has looked at a type: it believes something about a visible property of it.</summary>
+    public static bool HasLookedAt(KnowledgeSettings? knowledge, Inhabitant inhabitant, string typeId)
+    {
+        ArgumentNullException.ThrowIfNull(inhabitant);
+        return knowledge?.Looking is { } looking && looking.VisibleProperties.Any(p => inhabitant.Beliefs.TryGet(typeId, p, out _));
     }
 
     /// <summary>

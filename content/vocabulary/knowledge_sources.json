@@ -12,11 +12,15 @@
     },
     {
       "id": "guessed",
-      "description": "A guess of the AI; capped confidence."
+      "description": "A guess (of the AI, or from what one has seen); capped confidence."
     },
     {
       "id": "read",
       "description": "Read it (writing, B9)."
+    },
+    {
+      "id": "seen",
+      "description": "Looked at it closely: only what can be seen (kind, look), never the effect."
     }
   ]
 }

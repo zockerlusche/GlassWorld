@@ -89,6 +89,9 @@
       "type": "integer",
       "minimum": 0,
       "maximum": 32
+    },
+    "looking": {
+      "$ref": "#/$defs/KnowledgeLooking"
     }
   },
   "$defs": {
@@ -116,6 +119,84 @@
           "type": "number",
           "minimum": 0,
           "maximum": 1
+        }
+      }
+    },
+    "KnowledgeLooking": {
+      "description": "What looking closely at a thing teaches (TL #19921): the properties one can see, guesses from them, and where the thing stands (place memory). Never the effect: a visible property must not be one an action's effect depends on (checked at load); whether something fills, poisons or quenches thirst is learned by trying, being told or an answered question. Absent = looking teaches nothing.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action",
+        "visible_properties",
+        "inspect_confidence",
+        "guessed_confidence",
+        "guesses",
+        "place_memory_max"
+      ],
+      "properties": {
+        "action": {
+          "description": "The action that looks at a thing (object target).",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "visible_properties": {
+          "description": "Properties one can see by looking (kind, look, material); learned true or false.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          }
+        },
+        "inspect_confidence": {
+          "description": "Confidence of what one has seen (below experienced_confidence, checked at load).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "guessed_confidence": {
+          "description": "Confidence of a guess from what one has seen (source guessed; at most guessed_cap, checked at load).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "guesses": {
+          "description": "What one guesses from a visible property (e.g. looks like fruit: could be edible). A guess never replaces a belief one already has.",
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "$ref": "#/$defs/KnowledgeGuess"
+          }
+        },
+        "place_memory_max": {
+          "description": "Most remembered places (thing, type, position, tick) per inhabitant; the oldest is forgotten first.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 256
+        }
+      }
+    },
+    "KnowledgeGuess": {
+      "description": "A guess from something seen: a thing with the seen property may have the guessed one.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "seen",
+        "property",
+        "value"
+      ],
+      "properties": {
+        "seen": {
+          "description": "A visible property.",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "property": {
+          "description": "The guessed property.",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "value": {
+          "type": "boolean"
         }
       }
     },

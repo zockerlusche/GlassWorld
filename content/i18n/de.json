@@ -839,6 +839,22 @@
       "text": "Fettig"
     },
     {
+      "key": "vocab.property.fruit",
+      "text": "Fruchtartig"
+    },
+    {
+      "key": "vocab.property.mushroom",
+      "text": "Pilz"
+    },
+    {
+      "key": "vocab.property.water",
+      "text": "Wasser"
+    },
+    {
+      "key": "vocab.property.stone",
+      "text": "Stein"
+    },
+    {
       "key": "vocab.time_of_day.dawn",
       "text": "Morgendämmerung"
     },
@@ -1469,6 +1485,10 @@
     {
       "key": "vocab.knowledge_source.read",
       "text": "gelesen"
+    },
+    {
+      "key": "vocab.knowledge_source.seen",
+      "text": "gesehen"
     },
     {
       "key": "vocab.event.skill_refused",

@@ -9,6 +9,25 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from . import common_schema
 
+type NoveltyCurveItemItem = Annotated[float, Field(..., ge=0.0, le=1.0)]
+
+
+type NoveltyCurveItem = Annotated[
+    list[NoveltyCurveItemItem], Field(..., max_length=2, min_length=2)
+]
+
+
+type NoveltyCurve = Annotated[
+    list[NoveltyCurveItem],
+    Field(
+        ...,
+        description="Exploring (TL #19921): the action is offered on every perceived object, scaled by this curve over the novelty of the object's type (1 - the inhabitant's surest belief about it; 1 = knows nothing). It yields to pressing needs: scaled by 1 - the highest urgency of the needs that can be neglected, and 0 while one is below its neglect threshold. Needs target_property and search_action null. Absent or null = no exploring.",
+        max_length=16,
+        min_length=2,
+    ),
+]
+
+
 type CurveItemItem = Annotated[float, Field(..., ge=0.0, le=1.0)]
 
 
@@ -39,6 +58,14 @@ class Consideration(BaseModel):
         ..., description='Need whose value is the curve input; null = constant input 1.'
     )
     weight: float = Field(..., ge=0.0, le=100.0)
+    trait: common_schema.VocabId | None = Field(
+        None,
+        description='Character trait whose value (0..1) scales the score, e.g. curiosity. Absent or null = no trait.',
+    )
+    novelty_curve: NoveltyCurve | None = Field(
+        None,
+        description="Exploring (TL #19921): the action is offered on every perceived object, scaled by this curve over the novelty of the object's type (1 - the inhabitant's surest belief about it; 1 = knows nothing). It yields to pressing needs: scaled by 1 - the highest urgency of the needs that can be neglected, and 0 while one is below its neglect threshold. Needs target_property and search_action null. Absent or null = no exploring.",
+    )
     curve: list[CurveItem] = Field(
         ...,
         description='Points [x, y] with ascending x in 0..1.',

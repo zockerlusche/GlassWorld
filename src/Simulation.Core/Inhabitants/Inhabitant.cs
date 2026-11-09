@@ -11,6 +11,12 @@ namespace GlassWorld.Simulation.Inhabitants;
 /// <param name="Route">Waypoints still to walk on a map (B2 R10), searched once when the walk starts; null without a map.</param>
 public sealed record Activity(string Action, string? TargetId, Position Destination, long? RemainingTicks, IReadOnlyList<Position>? Route = null);
 
+/// <summary>A remembered place (TL #19921): a thing of a type stood here when the inhabitant looked at it.</summary>
+/// <param name="TypeId">Object type.</param>
+/// <param name="Position">Where it stood.</param>
+/// <param name="Tick">When the inhabitant saw it there.</param>
+public readonly record struct PlaceMemory(string TypeId, Position Position, long Tick);
+
 /// <summary>
 /// An inhabitant's state. Needs, moods and traits are registers keyed by vocabulary id (not enums), so
 /// data and later inventions can add new ones without code changes (B4b R11).
@@ -80,6 +86,26 @@ public sealed class Inhabitant
     /// </summary>
     public SortedDictionary<string, long> SearchSince { get; } = new(StringComparer.Ordinal);
 
+    /// <summary>Remembered places by object id (TL #19921), at most the knowledge data's place_memory_max.</summary>
+    public SortedDictionary<string, PlaceMemory> Places { get; } = new(StringComparer.Ordinal);
+
+    /// <summary>Remembers where a thing stands; beyond <paramref name="max"/> places the oldest is forgotten (ties by id).</summary>
+    public void RememberPlace(string objectId, PlaceMemory place, int max)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(objectId);
+        if (max <= 0)
+        {
+            return;
+        }
+
+        Places[objectId] = place;
+        while (Places.Count > max)
+        {
+            var oldest = Places.MinBy(p => (p.Value.Tick, p.Key), PlaceOrder.Instance).Key;
+            Places.Remove(oldest);
+        }
+    }
+
     /// <summary>How the inhabitant looks (B2 R27); null only in worlds built without look data (tests).</summary>
     public Appearance? Appearance { get; set; }
 
@@ -112,6 +138,16 @@ public sealed class Inhabitant
                 hasher.Write(key).Write(tick);
             }
         }
+
+        // Places only once there are any, so states without them keep their hashes.
+        if (Places.Count > 0)
+        {
+            hasher.Write("places").Write(Places.Count);
+            foreach (var (objectId, place) in Places)
+            {
+                hasher.Write(objectId).Write(place.TypeId).Write(place.Position.X).Write(place.Position.Z).Write(place.Tick);
+            }
+        }
     }
 
     private static void WriteActivity(StateHasher hasher, Activity? activity)
@@ -125,6 +161,17 @@ public sealed class Inhabitant
             {
                 hasher.Write(point.X).Write(point.Z);
             }
+        }
+    }
+
+    private sealed class PlaceOrder : IComparer<(long Tick, string Id)>
+    {
+        public static readonly PlaceOrder Instance = new();
+
+        public int Compare((long Tick, string Id) x, (long Tick, string Id) y)
+        {
+            var byTick = x.Tick.CompareTo(y.Tick);
+            return byTick != 0 ? byTick : string.CompareOrdinal(x.Id, y.Id);
         }
     }
 

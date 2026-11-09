@@ -839,6 +839,22 @@
       "text": "Fatty"
     },
     {
+      "key": "vocab.property.fruit",
+      "text": "Fruit-like"
+    },
+    {
+      "key": "vocab.property.mushroom",
+      "text": "Mushroom"
+    },
+    {
+      "key": "vocab.property.water",
+      "text": "Water"
+    },
+    {
+      "key": "vocab.property.stone",
+      "text": "Stone"
+    },
+    {
       "key": "vocab.time_of_day.dawn",
       "text": "Dawn"
     },
@@ -1469,6 +1485,10 @@
     {
       "key": "vocab.knowledge_source.read",
       "text": "read"
+    },
+    {
+      "key": "vocab.knowledge_source.seen",
+      "text": "seen"
     },
     {
       "key": "vocab.event.skill_refused",
