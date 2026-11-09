@@ -31,7 +31,7 @@ env:
   NUGET_SHOW_STACK: "true"
   # Probe (GW1): every MSBuild run - also the one Godot starts - writes a binary log here.
   MSBUILDBINARYLOGGERENABLED: "1"
-  MSBUILDDEBUGPATH: "D:\a\_temp\msbuild-debug"
+  MSBUILDDEBUGPATH: "D:/a/_temp/msbuild-debug"
   GODOT_VERSION: "4.7.2"
   GODOT_WIN_ZIP: "Godot_v4.7.2-stable_mono_win64.zip"
   GODOT_TEMPLATES: "Godot_v4.7.2-stable_mono_export_templates.tpz"
