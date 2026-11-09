@@ -29,6 +29,10 @@ class Id(StrEnum):
     personal_data = 'personal_data'
     drugs = 'drugs'
     injection = 'injection'
+    birth_explicit = 'birth_explicit'
+    death_drastic = 'death_drastic'
+    real_religion = 'real_religion'
+    fear = 'fear'
 
 
 type TermsDeItem = Annotated[

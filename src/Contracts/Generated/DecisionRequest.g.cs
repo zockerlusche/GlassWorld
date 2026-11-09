@@ -113,6 +113,39 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("visible_conditions")]
         public System.Collections.Generic.ICollection<string>? VisibleConditions { get; set; } = default!;
 
+        /// <summary>
+        /// B9 R11: how THIS inhabitant calls the other - per-observer state in the core, not a world property. name = a proper name it knows (Latin letters, checked by the core and the guard), label = a feature label (vocabulary, shown via i18n) until a name is known. Optional.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("called")]
+        public CalledAs? Called { get; set; } = default!;
+
+        /// <summary>
+        /// B9: the visible life phase (child or adult), needed for R7/R27. Optional.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("life_stage")]
+        public string? LifeStage { get; set; } = default!;
+
+        /// <summary>
+        /// B9 R16: lies still and does not answer; the core alone knows why. Optional.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("lying_still")]
+        public bool? LyingStill { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class CalledAs
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        public string? Name { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("label")]
+        public string? Label { get; set; } = default!;
+
     }
 
     /// <summary>

@@ -7,7 +7,7 @@ code. A backend never makes a substitute decision (ADR-0006).
 from __future__ import annotations
 
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import ClassVar, Protocol
 
 import httpx
@@ -20,6 +20,7 @@ from glassworld_ai.decider.output import (
     output_schema,
     parse_choice,
 )
+from glassworld_ai.decider.thoughts import stand_in, thought_problem
 from glassworld_ai.llm.ollama import (
     ChatMessage,
     ChatResult,
@@ -36,6 +37,7 @@ from glassworld_ai.queue import (
     QueueClosedError,
     QueueFullError,
 )
+from glassworld_ai.texts import TextCatalog
 from glassworld_ai.vocabulary import Vocabulary
 from glassworld_contracts import CONTRACT_VERSION, DecisionRequest, DecisionResponse
 
@@ -114,6 +116,7 @@ class OllamaDecider:
         vocab: Vocabulary,
         settings: ModelSettings,
         log: CallLog,
+        texts: TextCatalog | None = None,
     ) -> None:
         self._client = client
         self._queue = queue
@@ -121,6 +124,22 @@ class OllamaDecider:
         self._vocab = vocab
         self._settings = settings
         self._log = log
+        self._texts = texts
+
+    def _natural(self, request: DecisionRequest, choice: ModelChoice) -> tuple[ModelChoice, str]:
+        """Prompt v4 (W1687): a thought with foreign words, ids or too many words is replaced
+        by the data's stand-in for the chosen action (or left out). Returns the note for the log."""
+        if self._template.version < 4 or not choice.thought:
+            return choice, ""
+        locale = _plain(request.display_locale)
+        problem = thought_problem(choice.thought, locale, self._template.settings)
+        if problem is None:
+            return choice, ""
+        option = next((o for o in request.options if _plain(o.option_id) == choice.option_id), None)
+        action = _plain(option.action) if option is not None else ""
+        return replace(choice, thought=stand_in(self._texts, locale, action)), (
+            f"thought replaced ({problem}): {choice.thought}"
+        )
 
     def _record(
         self,
@@ -157,7 +176,9 @@ class OllamaDecider:
     async def decide(self, request: DecisionRequest, deadline: float) -> DecisionResponse:
         started = time.monotonic()
         rendered = self._template.render(
-            build_values(request, self._template, self._vocab, self._settings.char_budget)
+            build_values(
+                request, self._template, self._vocab, self._settings.char_budget, self._texts
+            )
         )
         option_ids = [_plain(o.option_id) for o in request.options]
         schema = output_schema(option_ids, self._vocab.ids("expression"))
@@ -230,7 +251,8 @@ class OllamaDecider:
                 log("invalid", result.content, str(error), usage)
                 last_problem = str(error)
                 continue
-            log("ok", result.content, None, usage)
+            choice, note = self._natural(request, choice)
+            log("ok", result.content, note or None, usage)
             return _response(
                 request,
                 choice,
