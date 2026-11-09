@@ -30,28 +30,29 @@ class PerceivedObject(BaseModel):
     known_properties: list[common_schema.KnownProperty]
 
 
-class Option(BaseModel):
+class OptionTopic(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
-    option_id: str = Field(
+    object_type: str = Field(
         ...,
-        description='Id of an offered option, unique within one request.',
-        pattern='^o[0-9]{1,2}$',
-    )
-    action: str = Field(
-        ...,
-        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        description='Kind of thing the belief is about (object type id; content types are named by the data, i18n key vocab.object.<id>).',
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
-    target: common_schema.EntityId | None = Field(
-        ..., description='Target instance, or null for actions without target.'
-    )
-    partners: list[common_schema.EntityId] = Field(
+    name: common_schema.LocalizedName | None = Field(
         ...,
-        description='Further objects used together with target (e.g. combine flint with pyrite), sorted by id; empty for actions with one object or none.',
-        max_length=3,
+        description="The inhabitants' own name for a thing they invented (runtime type, not in the data), in both languages; null for content types, which the data names.",
+    )
+    property: str = Field(
+        ...,
+        description='The property the asker believes about it (vocabulary property, e.g. poisonous).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    value: bool = Field(
+        ...,
+        description='What the asker believes: the thing has the property (true) or not (false). Its belief, which can be wrong.',
     )
 
 
@@ -85,6 +86,35 @@ class CalledAs(BaseModel):
     )
     name: common_schema.ProperName | None
     label: common_schema.VocabId | None
+
+
+class Option(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    option_id: str = Field(
+        ...,
+        description='Id of an offered option, unique within one request.',
+        pattern='^o[0-9]{1,2}$',
+    )
+    action: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    target: common_schema.EntityId | None = Field(
+        ..., description='Target instance, or null for actions without target.'
+    )
+    partners: list[common_schema.EntityId] = Field(
+        ...,
+        description='Further objects used together with target (e.g. combine flint with pyrite), sorted by id; empty for actions with one object or none.',
+        max_length=3,
+    )
+    topic: OptionTopic | None = Field(
+        None,
+        description="For actions that pass knowledge on to the target inhabitant (show, teach, warn; B4a R4, D625): WHAT the asker would pass on. This is the asker's own belief that the core would pass, never the world's truth. Optional (absent = the action passes nothing on, or an older core).",
+    )
 
 
 class PerceivedInhabitant(BaseModel):

@@ -63,6 +63,12 @@ public sealed class DecisionsSystem : IWorldSystem
     /// <summary>Knowledge data (B4a): passing actions as options, knowledge and relationships in the request.</summary>
     public KnowledgeSettings? Knowledge { get; init; }
 
+    /// <summary>
+    /// The inhabitants' own name of an invented type (null for content types, which the data names); set by
+    /// the host once the invention system exists. Used for the topic of passing options (D625).
+    /// </summary>
+    public Func<string, LocalizedName?>? InventedName { get; set; }
+
     /// <summary>Whether the inhabitant has an open question about a type (W1595; the routine waits for the answer).</summary>
     public bool HasOpenQuestion(string inhabitantId, string typeId) =>
         _open.Values.Any(q => q.InhabitantId == inhabitantId && q.Subject == "type:" + typeId);
@@ -540,7 +546,32 @@ public sealed class DecisionsSystem : IWorldSystem
                 Inhabitants = [.. PerceivedInhabitants(inhabitant).Take(Knowledge?.RequestMaxInhabitants ?? 0)
                     .Select(i => new PerceivedInhabitant { Id = i.Id, DistanceM = Distance(inhabitant.Position, i.Position) })],
             },
-            Options = [.. options.Select(o => new Option { OptionId = o.OptionId, Action = o.Action, Target = o.TargetId })],
+            Options = [.. options.Select(o => new Option { OptionId = o.OptionId, Action = o.Action, Target = o.TargetId, Topic = TopicOf(inhabitant, o.Action, o.TargetId) })],
+        };
+    }
+
+    /// <summary>
+    /// What a passing option (show, teach, warn) is about (D625): the asker's own belief the core would pass
+    /// to the target (the same one <see cref="InhabitantsSystem.TopicOf"/> shows), so the decider can name the
+    /// thing. Null for every other option. Only in the request, never stored, so hashes stay as they were.
+    /// </summary>
+    private OptionTopic? TopicOf(Inhabitant asker, string action, string? targetId)
+    {
+        if (Knowledge is not { } knowledge
+            || targetId is null
+            || _actionTargets.GetValueOrDefault(action, VocabularyEntryTarget.None) != VocabularyEntryTarget.Inhabitant
+            || _inhabitants.All.FirstOrDefault(i => i.Id == targetId) is not { } listener
+            || InhabitantsSystem.PassableBelief(knowledge, asker, listener, action) is not { } belief)
+        {
+            return null;
+        }
+
+        return new OptionTopic
+        {
+            ObjectType = belief.TypeId,
+            Name = InventedName?.Invoke(belief.TypeId),
+            Property = belief.PropertyId,
+            Value = belief.Belief.Value,
         };
     }
 
