@@ -1616,7 +1616,7 @@
     },
     {
       "key": "msg.hint.autosaved",
-      "text": "Saved automatically."
+      "text": "Saved automatically. The game saves by itself every game day."
     },
     {
       "key": "msg.hint.saved",

@@ -1616,7 +1616,7 @@
     },
     {
       "key": "msg.hint.autosaved",
-      "text": "Automatisch gespeichert."
+      "text": "Automatisch gespeichert. Das Spiel speichert jeden Spieltag von selbst."
     },
     {
       "key": "msg.hint.saved",
