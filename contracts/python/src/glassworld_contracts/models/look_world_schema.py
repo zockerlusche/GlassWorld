@@ -66,6 +66,10 @@ class WorldLookObserver(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
+    auto: bool = Field(
+        ...,
+        description="Whether the observer moves the camera by itself (follows thoughts, switches groups, takes the camera back after the idle pause). false = the camera moves only on the player's wish.",
+    )
     group_switch_s: float = Field(
         ...,
         description='Real seconds before the observer moves on to the next group.',

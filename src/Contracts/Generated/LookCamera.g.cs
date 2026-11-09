@@ -37,7 +37,28 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
-    /// Data file content/look/camera.json: isometric overview camera with turning, zoom, panning and follow mode (B2 R26). The projection is a data value until Marcel's picture question T1 is answered (proposal: perspective with a narrow field of view). All moves are smooth.
+    /// Pitch limits in degrees: from flat (min) to top-down (max).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class PitchRange
+    {
+
+        /// <summary>
+        /// Flattest pitch.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("min")]
+        public double Min { get; set; } = default!;
+
+        /// <summary>
+        /// Steepest pitch (89 is top-down).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max")]
+        public double Max { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Data file content/look/camera.json: isometric overview camera, mouse first (B2567): free orbit and pitch with the right or middle button, pan by dragging the ground with the left button (or middle + Shift), wheel zoom towards the mouse cursor, keys that move and turn with eased speed, follow mode (B2 R26). A short click stays a click (select, place a gift). The projection is a data value until Marcel's picture question T1 is answered (proposal: perspective with a narrow field of view). All moves are smooth.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class LookCamera
@@ -60,10 +81,19 @@ namespace GlassWorld.Contracts
         public double FovDeg { get; set; } = default!;
 
         /// <summary>
-        /// Downward tilt of the camera.
+        /// Downward tilt of the camera at start (and after reset), within pitch_range_deg.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("pitch_deg")]
         public double PitchDeg { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("pitch_range_deg")]
+        public PitchRange PitchRangeDeg { get; set; } = new PitchRange();
+
+        /// <summary>
+        /// Change of the pitch per pixel of vertical orbit dragging (dragging down looks more from above).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("pitch_deg_per_px")]
+        public double PitchDegPerPx { get; set; } = default!;
 
         /// <summary>
         /// Turn at start.
@@ -81,16 +111,34 @@ namespace GlassWorld.Contracts
         public double ZoomStep { get; set; } = default!;
 
         /// <summary>
-        /// Turn per pixel of dragging.
+        /// Turn (yaw) per pixel of horizontal orbit dragging.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("rotate_deg_per_px")]
         public double RotateDegPerPx { get; set; } = default!;
 
         /// <summary>
-        /// Panning speed at the middle distance.
+        /// Top key panning speed at the start distance (faster when zoomed out).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("pan_speed_m_s")]
         public double PanSpeedMS { get; set; } = default!;
+
+        /// <summary>
+        /// Top turning speed of the turn keys (Q/E) in degrees per second.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("key_turn_deg_s")]
+        public double KeyTurnDegS { get; set; } = default!;
+
+        /// <summary>
+        /// Time constant of the key moves speeding up (seconds; about 63 % of the top speed after this time, no overshoot).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("key_ease_in_s")]
+        public double KeyEaseInS { get; set; } = default!;
+
+        /// <summary>
+        /// Time constant of the key moves slowing down after the key is let go (seconds).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("key_ease_out_s")]
+        public double KeyEaseOutS { get; set; } = default!;
 
         /// <summary>
         /// Share of the remaining way per 1/60 s (0..1, higher is snappier).
@@ -115,6 +163,18 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("pick_radius_m")]
         public double PickRadiusM { get; set; } = default!;
+
+        /// <summary>
+        /// A press that moves less than this many pixels stays a click (select a figure, place a gift); farther is a camera drag.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("click_max_px")]
+        public double ClickMaxPx { get; set; } = default!;
+
+        /// <summary>
+        /// A press that moved (within click_max_px) and is held longer than this (milliseconds) is no click; a press that never moved is always a click.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("click_max_ms")]
+        public double ClickMaxMs { get; set; } = default!;
 
         /// <summary>
         /// Near clipping distance of the camera.

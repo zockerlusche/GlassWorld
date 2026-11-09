@@ -21,14 +21,17 @@ public sealed record ScoredOption(string Action, string? TargetId, double Score)
 /// </summary>
 public sealed class UtilityBrain
 {
-    private readonly (Consideration Data, Curve Curve)[] _considerations;
+    private readonly (Consideration Data, Curve Curve, Curve? Novelty)[] _considerations;
+    private readonly IReadOnlyDictionary<string, double> _neglectBelow;
 
     /// <summary>
     /// Creates the brain and checks ids against the action rules and needs. A search action must be an
     /// action without a target (<paramref name="targetlessActions"/>, the vocabulary's target none; without
-    /// it: an action no rule needs a target for) on a consideration with a target property.
+    /// it: an action no rule needs a target for) on a consideration with a target property. A trait must be
+    /// one of <paramref name="traits"/> (when given); exploring (novelty_curve) yields to the needs in
+    /// <paramref name="neglectBelow"/> (need id to neglect threshold; without it: to every need).
     /// </summary>
-    public UtilityBrain(UtilityWeights weights, ActionRules actions, IReadOnlySet<string> needs, IReadOnlySet<string> properties, IReadOnlySet<string>? targetlessActions = null)
+    public UtilityBrain(UtilityWeights weights, ActionRules actions, IReadOnlySet<string> needs, IReadOnlySet<string> properties, IReadOnlySet<string>? targetlessActions = null, IReadOnlySet<string>? traits = null, IReadOnlyDictionary<string, double>? neglectBelow = null)
     {
         ArgumentNullException.ThrowIfNull(weights);
         ArgumentNullException.ThrowIfNull(actions);
@@ -39,9 +42,20 @@ public sealed class UtilityBrain
             throw new InvalidDataException("Utility weights: search_weight must not exceed unknown_target_belief.");
         }
 
-        _considerations = [.. weights.Considerations.Select(c => (c, new Curve(c.Curve)))];
-        foreach (var (c, _) in _considerations)
+        _neglectBelow = neglectBelow ?? needs.ToDictionary(n => n, _ => 0.0, StringComparer.Ordinal);
+        _considerations = [.. weights.Considerations.Select(c => (c, new Curve(c.Curve), c.NoveltyCurve is { } novelty ? new Curve(novelty) : null))];
+        foreach (var (c, _, novelty) in _considerations)
         {
+            if (novelty is not null && (c.TargetProperty is not null || c.SearchAction is not null))
+            {
+                throw new InvalidDataException($"Utility consideration for '{c.Action}': novelty_curve needs target_property and search_action null.");
+            }
+
+            if (c.Trait is { } trait && traits is not null && !traits.Contains(trait))
+            {
+                throw new InvalidDataException($"Utility consideration for '{c.Action}' uses an unknown trait '{trait}'.");
+            }
+
             _ = actions.Timing(c.Action);
             if (c.SearchAction is { } search)
             {
@@ -67,21 +81,39 @@ public sealed class UtilityBrain
     /// <summary>
     /// Whether the inhabitant's needs suggest an action (F5275 A): an action with need-based considerations
     /// is suggested only while one of them gives it some urgency (weight x the need's curve above 0); an
-    /// action without any is always suggested. Data only - no action names in code.
+    /// action without any is always suggested. An exploring consideration (novelty_curve) counts the same
+    /// way: it suggests its action on <paramref name="targetTypeId"/> while its score there is above 0
+    /// (curiosity, novelty, no pressing need; TL #19921). Data only - no action names in code.
     /// </summary>
-    public bool NeedSuggests(Inhabitant inhabitant, string action)
+    public bool NeedSuggests(Inhabitant inhabitant, string action, string? targetTypeId = null)
     {
         ArgumentNullException.ThrowIfNull(inhabitant);
         var needBased = false;
-        foreach (var (c, curve) in _considerations)
+        foreach (var (c, curve, novelty) in _considerations)
         {
-            if (c.Need is null || !string.Equals(c.Action, action, StringComparison.Ordinal))
+            if (!string.Equals(c.Action, action, StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            if (novelty is not null)
+            {
+                needBased = true;
+                if (targetTypeId is not null && Exploring(inhabitant, c, curve, novelty, targetTypeId) > 0)
+                {
+                    return true;
+                }
+
+                continue;
+            }
+
+            if (c.Need is null)
             {
                 continue;
             }
 
             needBased = true;
-            if (c.Weight * curve.At(inhabitant.Needs.GetValueOrDefault(c.Need, 1.0)) > 0)
+            if (c.Weight * curve.At(inhabitant.Needs.GetValueOrDefault(c.Need, 1.0)) * TraitFactor(inhabitant, c) > 0)
             {
                 return true;
             }
@@ -118,9 +150,24 @@ public sealed class UtilityBrain
         ArgumentNullException.ThrowIfNull(perceived);
         ArgumentNullException.ThrowIfNull(givenUp);
         var options = new List<ScoredOption>();
-        foreach (var (c, curve) in _considerations)
+        foreach (var (c, curve, novelty) in _considerations)
         {
-            var urgency = c.Weight * curve.At(c.Need is null ? 1.0 : inhabitant.Needs.GetValueOrDefault(c.Need, 1.0));
+            if (novelty is not null)
+            {
+                // Exploring (TL #19921): every thing in sight, by how little the inhabitant knows of its kind.
+                foreach (var obj in perceived)
+                {
+                    var score = Exploring(inhabitant, c, curve, novelty, obj.TypeId) * DistanceFactor(inhabitant.Position, obj.Position);
+                    if (score > 0)
+                    {
+                        options.Add(new ScoredOption(c.Action, obj.Id, score));
+                    }
+                }
+
+                continue;
+            }
+
+            var urgency = c.Weight * curve.At(c.Need is null ? 1.0 : inhabitant.Needs.GetValueOrDefault(c.Need, 1.0)) * TraitFactor(inhabitant, c);
             if (c.TargetProperty is null)
             {
                 options.Add(new ScoredOption(c.Action, null, urgency));
@@ -179,6 +226,58 @@ public sealed class UtilityBrain
             ? (belief.Value ? belief.Confidence : 0.0)
             : Weights.UnknownTargetBelief;
     }
+
+    /// <summary>
+    /// How new a type is to the inhabitant: 1 - its surest belief about the type (any property, any
+    /// source); 1 = it knows nothing about it, 0 = it is sure of something.
+    /// </summary>
+    public static double Novelty(Inhabitant inhabitant, string typeId)
+    {
+        ArgumentNullException.ThrowIfNull(inhabitant);
+        var surest = 0.0;
+        foreach (var (_, belief) in inhabitant.Beliefs.About(typeId))
+        {
+            surest = Math.Max(surest, belief.Confidence);
+        }
+
+        return 1.0 - surest;
+    }
+
+    /// <summary>
+    /// How calm the inhabitant's needs are for exploring: 0 while a need is below its neglect threshold,
+    /// else 1 - the highest urgency (weight x curve) of a consideration for a need that can be neglected.
+    /// </summary>
+    public double Calm(Inhabitant inhabitant)
+    {
+        ArgumentNullException.ThrowIfNull(inhabitant);
+        var pressing = 0.0;
+        foreach (var (c, curve, _) in _considerations)
+        {
+            if (c.Need is not { } need || !_neglectBelow.TryGetValue(need, out var below))
+            {
+                continue;
+            }
+
+            var value = inhabitant.Needs.GetValueOrDefault(need, 1.0);
+            if (value < below)
+            {
+                return 0.0;
+            }
+
+            pressing = Math.Max(pressing, c.Weight * curve.At(value));
+        }
+
+        return Math.Clamp(1.0 - pressing, 0.0, 1.0);
+    }
+
+    /// <summary>Score of an exploring consideration on a type (without distance).</summary>
+    private double Exploring(Inhabitant inhabitant, Consideration c, Curve curve, Curve novelty, string typeId) =>
+        c.Weight * curve.At(c.Need is null ? 1.0 : inhabitant.Needs.GetValueOrDefault(c.Need, 1.0)) * TraitFactor(inhabitant, c)
+            * novelty.At(Novelty(inhabitant, typeId)) * Calm(inhabitant);
+
+    /// <summary>The trait's value (0 if the inhabitant lacks it), or 1 without a trait.</summary>
+    private static double TraitFactor(Inhabitant inhabitant, Consideration c) =>
+        c.Trait is { } trait ? inhabitant.Traits.GetValueOrDefault(trait, 0.0) : 1.0;
 
     /// <summary>
     /// The surest belief that some type has the property, times what the inhabitant would avoid in it

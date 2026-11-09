@@ -123,6 +123,33 @@ public sealed class WorldFeedTests
         Assert.Same(host, new WorldFeed(host).Host);
     }
 
+    [Fact]
+    public void OpenQuestionsCountAllButPuzzlingOnesDropThoseWhereOnlyTheEffectIsOpen()
+    {
+        // TL #19921 / review GW3 #142: list, card and window show every open question; only the head mark
+        // leaves out a question about a thing the inhabitant has looked at since.
+        var host = NewWorld();
+        OpenQuestion? question = null;
+        for (var i = 0; i < 200 && question is null; i++)
+        {
+            host.World.Step();
+            question = host.Decisions.Open.FirstOrDefault(q => q.Subject.StartsWith("type:", StringComparison.Ordinal));
+        }
+
+        Assert.NotNull(question);
+        var id = question.InhabitantId;
+        var open = host.Decisions.OpenQuestionIds(id).Count;
+        var before = new WorldFeed(host).Inhabitants().Single(r => r.Id == id);
+        Assert.Equal((open, open), (before.OpenQuestions, before.PuzzlingQuestions));
+
+        var seen = host.Content.Knowledge.Looking!.VisibleProperties.First();
+        host.Inhabitants.Get(id).Beliefs.Set(question.Subject["type:".Length..], seen, false, 0.8);
+        var feed = new WorldFeed(host);
+        var after = feed.Inhabitants().Single(r => r.Id == id);
+        Assert.Equal((open, open - 1), (after.OpenQuestions, after.PuzzlingQuestions));
+        Assert.Equal(open, feed.OpenQuestions().Single(q => q.InhabitantId == id).Count);
+    }
+
     [Theory]
     [InlineData("inh-000004", 4)]
     [InlineData("inh-000120", 120)]

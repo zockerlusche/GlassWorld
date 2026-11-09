@@ -9,6 +9,9 @@ namespace GlassWorld.Simulation.State;
 /// <summary>A belief as saved.</summary>
 public sealed record SavedBelief(string TypeId, string PropertyId, bool Value, double Confidence, string Source = KnowledgeSources.Experienced, string? ToldBy = null, long Tick = 0);
 
+/// <summary>A remembered place as saved (TL #19921).</summary>
+public sealed record SavedPlace(string ObjectId, string TypeId, Position Position, long Tick);
+
 /// <summary>A relationship as saved (B4a R7).</summary>
 public sealed record SavedRelation(string Other, double Affection, double Trust, double Respect);
 
@@ -28,7 +31,8 @@ public sealed record SavedInhabitant(
     IReadOnlyList<SavedBelief> Beliefs,
     Appearance? Appearance = null,
     IReadOnlyList<SavedRelation>? Relations = null,
-    IReadOnlyDictionary<string, long>? SearchSince = null);
+    IReadOnlyDictionary<string, long>? SearchSince = null,
+    IReadOnlyList<SavedPlace>? Places = null);
 
 /// <summary>An open question as saved.</summary>
 public sealed record SavedQuestion(string Id, string InhabitantId, string Kind, string Subject, string RequestId, long AskedTick, IReadOnlyList<SavedOption> Options, long? RetryAtTick);
@@ -120,7 +124,8 @@ public static class StateCodec
                 [.. i.Beliefs.All.Select(b => new SavedBelief(b.TypeId, b.PropertyId, b.Belief.Value, b.Belief.Confidence, b.Belief.Source, b.Belief.ToldBy, b.Belief.Tick))],
                 i.Appearance,
                 [.. i.Relationships.All.Select(r => new SavedRelation(r.Other, r.Relation.Affection, r.Relation.Trust, r.Relation.Respect))],
-                i.SearchSince.Count > 0 ? new Dictionary<string, long>(i.SearchSince, StringComparer.Ordinal) : null))],
+                i.SearchSince.Count > 0 ? new Dictionary<string, long>(i.SearchSince, StringComparer.Ordinal) : null,
+                i.Places.Count > 0 ? [.. i.Places.Select(p => new SavedPlace(p.Key, p.Value.TypeId, p.Value.Position, p.Value.Tick))] : null))],
             counter,
             [.. questions.Select(q => new SavedQuestion(q.Id, q.InhabitantId, q.Kind, q.Subject, q.RequestId, q.AskedTick, [.. q.Options.Select(o => new SavedOption(o.OptionId, o.Action, o.TargetId))], q.RetryAtTick))],
             lastAsked,
@@ -211,6 +216,11 @@ public static class StateCodec
             foreach (var (key, tick) in saved.SearchSince ?? new Dictionary<string, long>())
             {
                 inhabitant.SearchSince[key] = tick;
+            }
+
+            foreach (var place in saved.Places ?? [])
+            {
+                inhabitant.Places[place.ObjectId] = new PlaceMemory(place.TypeId, place.Position, place.Tick);
             }
 
             host.Inhabitants.Add(inhabitant);

@@ -129,6 +129,22 @@
     {
       "id": "fatty",
       "description": "Rich and greasy, like butter or oil."
+    },
+    {
+      "id": "fruit",
+      "description": "Looks like a fruit, nut or berry; seen by looking."
+    },
+    {
+      "id": "mushroom",
+      "description": "Looks like a mushroom; seen by looking."
+    },
+    {
+      "id": "water",
+      "description": "Looks like water: a spring, a pool or the sea; seen by looking."
+    },
+    {
+      "id": "stone",
+      "description": "Looks like stone or rock; seen by looking."
     }
   ]
 }
