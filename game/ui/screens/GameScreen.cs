@@ -29,7 +29,7 @@ public partial class GameScreen : CanvasLayer
     private ChronicleBook? _chronicle;
     private Contracts.ChronicleKinds? _kinds;
     private int _chronicleShown = -1;
-    private int _chronicleCount;
+    private long? _chronicleDay;
     private readonly List<(Button Button, TimeChoice Choice)> _timeButtons = [];
     private readonly Dictionary<string, ProgressBar> _cardBars = new(StringComparer.Ordinal);
     private Label? _cardAction;
@@ -215,6 +215,7 @@ public partial class GameScreen : CanvasLayer
 
             _cardShape = string.Empty;
             _chronicleShown = -1;
+            _chronicleDay = null;
             _helpShape = "-";
             _mailShape = "-";
             _sinceRefreshMs = double.MaxValue;
@@ -344,26 +345,31 @@ public partial class GameScreen : CanvasLayer
     }
 
     /// <summary>The text of a chronicle entry in the current language (date line and base line).</summary>
-    public string ChronicleText(ChronicleEntry entry)
+    public string ChronicleText(ChronicleEntry entry) => ChronicleDate(entry) + "\n" + ChronicleLine(entry);
+
+    /// <summary>The date of a chronicle entry in the current language.</summary>
+    public string ChronicleDate(ChronicleEntry entry)
     {
         ArgumentNullException.ThrowIfNull(entry);
-        var date = TextFill.Fill(Tr("ui.chronicle.day"), new Dictionary<string, string>
+        return TextFill.Fill(Tr("ui.chronicle.day"), new Dictionary<string, string>
         {
             ["season"] = Tr(entry.SeasonKey),
             ["day"] = Number(entry.Day),
             ["year"] = Number(entry.Year),
         });
+    }
+
+    /// <summary>The base line of a chronicle entry in the current language (names resolved now).</summary>
+    public string ChronicleLine(ChronicleEntry entry)
+    {
+        ArgumentNullException.ThrowIfNull(entry);
 
         // Names are resolved now (GW1 review #64 C2); parameters that are keys are translated now.
         var (key, raw) = ChronicleBook.Line(entry, ChronicleNamesNow());
         var args = raw.ToDictionary(a => a.Key, a => TextKeys.LooksLikeKey(a.Value) ? Tr(a.Value).ToString() : a.Value, StringComparer.Ordinal);
-        return date + "\n" + TextFill.Fill(Tr(key), args);
+        return TextFill.Fill(Tr(key), args);
     }
 
-    /// <summary>
-    /// Smoke (A1340): a gift placed through the screen is accepted by the core and lies at the spot after
-    /// the next tick; the favour shows as text, not as a key.
-    /// </summary>
     /// <summary>
     /// Smoke run only (review GW1 #131): the talk field of a card takes a sentence, it costs favour and an
     /// answer from the mock comes back as a reaction event; a refused sentence costs nothing.
@@ -412,6 +418,10 @@ public partial class GameScreen : CanvasLayer
         return host.Player.Favor < favor ? string.Empty : "the sentence cost no favour";
     }
 
+    /// <summary>
+    /// Smoke (A1340): a gift placed through the screen is accepted by the core and lies at the spot after
+    /// the next tick; the favour shows as text, not as a key.
+    /// </summary>
     public async Task<string> CheckGiftAsync()
     {
         if (_presenter?.Host is not { } host || _favor is null)
@@ -622,42 +632,120 @@ public partial class GameScreen : CanvasLayer
             return;
         }
 
-        // New entries are added on top (GW1 review #64 C3); everything is rebuilt only after a language
-        // switch (_chronicleShown = -1). Paging comes with the core chronicle API of D5.
-        var rebuild = _chronicleShown < 0;
+        // A1354 (B8 R11): one game day per page. On the newest page new entries show up at once; an
+        // older page stays where the player put it.
         _chronicleShown = _chronicle.Version;
-        if (rebuild || _chronicleCount == 0)
-        {
-            foreach (var child in _chronicleList.GetChildren())
-            {
-                _chronicleList.RemoveChild(child);
-                child.QueueFree();
-            }
+        ShowChronicleDay(_chronicleDay);
+    }
 
-            _chronicleCount = 0;
+    /// <summary>Shows the chronicle page of a day (null = the newest day with entries).</summary>
+    private void ShowChronicleDay(long? day)
+    {
+        if (_chronicle is null)
+        {
+            return;
         }
 
-        if (_chronicle.Entries.Count == 0)
+        foreach (var child in _chronicleList.GetChildren())
+        {
+            _chronicleList.RemoveChild(child);
+            child.QueueFree();
+        }
+
+        var days = _chronicle.Days();
+        if (days.Count == 0)
         {
             _chronicleList.AddChild(new Label { Text = "ui.chronicle.empty", AutowrapMode = TextServer.AutowrapMode.WordSmart });
             return;
         }
 
-        var fresh = _chronicle.Entries.Count - _chronicleCount;
-        for (var i = fresh - 1; i >= 0; i--)
+        var shown = day is { } wanted && days.Contains(wanted) ? wanted : days[0];
+        _chronicleDay = shown == days[0] ? null : shown;
+        var entries = _chronicle.On(shown);
+
+        // Paging: earlier / later day with entries, the date in between.
+        var paging = new HBoxContainer();
+        var earlier = new Button { Text = "ui.chronicle.earlier", Disabled = _chronicle.Next(shown, -1) is null };
+        var later = new Button { Text = "ui.chronicle.later", Disabled = _chronicle.Next(shown, +1) is null };
+        earlier.Pressed += () => ShowChronicleDay(_chronicle.Next(shown, -1));
+        later.Pressed += () => ShowChronicleDay(_chronicle.Next(shown, +1));
+        paging.AddChild(earlier);
+        paging.AddChild(new Label
         {
-            var label = new Label
+            Text = ChronicleDate(entries[0]),
+            AutoTranslateMode = AutoTranslateModeEnum.Disabled,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+        });
+        paging.AddChild(later);
+        _chronicleList.AddChild(paging);
+
+        // The time line over seasons and years: a jump to the first day of a season with entries.
+        var timeline = new OptionButton { AutoTranslateMode = AutoTranslateModeEnum.Disabled, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        var seasons = _chronicle.Timeline();
+        for (var i = 0; i < seasons.Count; i++)
+        {
+            var season = seasons[i];
+            timeline.AddItem(TextFill.Fill(Tr("ui.chronicle.season_entry"), new Dictionary<string, string>
             {
-                Text = ChronicleText(_chronicle.Entries[i]),
-                AutoTranslateMode = AutoTranslateModeEnum.Disabled,
-                AutowrapMode = TextServer.AutowrapMode.WordSmart,
-                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-            };
-            _chronicleList.AddChild(label);
-            _chronicleList.MoveChild(label, 0);
+                ["season"] = Tr(season.SeasonKey),
+                ["year"] = Number(season.Year),
+                ["count"] = Number(season.Count),
+            }));
+            if (entries[0].Year == season.Year && entries[0].SeasonKey == season.SeasonKey)
+            {
+                timeline.Selected = i;
+            }
         }
 
-        _chronicleCount = _chronicle.Entries.Count;
+        timeline.ItemSelected += index => ShowChronicleDay(seasons[(int)index].FirstDay);
+        _chronicleList.AddChild(timeline);
+
+        // The entries of the day: a click opens the inhabitant's card (and the camera follows on the island).
+        foreach (var entry in entries)
+        {
+            var line = new Button
+            {
+                Text = ChronicleLine(entry),
+                Flat = true,
+                Alignment = HorizontalAlignment.Left,
+                AutowrapMode = TextServer.AutowrapMode.WordSmart,
+                AutoTranslateMode = AutoTranslateModeEnum.Disabled,
+                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+                TooltipText = "ui.chronicle.jump",
+            };
+            var who = entry.InhabitantId;
+            line.Pressed += () => OpenCard(who);
+            _chronicleList.AddChild(line);
+        }
+
+        var export = new Button { Text = "ui.chronicle.export" };
+        export.Pressed += () => ExportChronicle();
+        _chronicleList.AddChild(export);
+    }
+
+    /// <summary>
+    /// Writes the chronicle as a readable HTML page and a text file into the player's folder (B8 R11,
+    /// F5234; local only) and names the folder in a calm hint. Returns the HTML path, or null.
+    /// </summary>
+    public string? ExportChronicle()
+    {
+        if (_chronicle is null || _chronicle.Days().Count == 0)
+        {
+            ShowHint(new ToastMessage("ui.chronicle.empty", new Dictionary<string, string>(), null));
+            return null;
+        }
+
+        var folder = System.IO.Path.Combine(OS.GetUserDataDir(), "chronicle");
+        System.IO.Directory.CreateDirectory(folder);
+        var title = Tr("ui.chronicle.title").ToString();
+        var stem = ChronicleExport.FileStem(_presenter?.SavePath is { } save ? System.IO.Path.GetFileNameWithoutExtension(save) : title, DateTimeOffset.Now);
+        string Day(long day) => ChronicleDate(_chronicle.On(day)[0]);
+        var html = System.IO.Path.Combine(folder, stem + ".html");
+        System.IO.File.WriteAllText(html, ChronicleExport.Html(_chronicle, title, TranslationServer.GetLocale(), Day, ChronicleLine));
+        System.IO.File.WriteAllText(System.IO.Path.Combine(folder, stem + ".txt"), ChronicleExport.Text(_chronicle, title, Day, ChronicleLine));
+        ShowHint(new ToastMessage("msg.hint.chronicle_exported", new Dictionary<string, string> { ["folder"] = folder }, null));
+        return html;
     }
 
     /// <summary>

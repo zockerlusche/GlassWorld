@@ -1605,6 +1605,30 @@
     {
       "key": "ui.setup.model_language",
       "text": "Sprachmodell: Denken, Sprechen und Fragen der Bewohner"
+    },
+    {
+      "key": "ui.chronicle.earlier",
+      "text": "◀ Früher"
+    },
+    {
+      "key": "ui.chronicle.later",
+      "text": "Später ▶"
+    },
+    {
+      "key": "ui.chronicle.season_entry",
+      "text": "{season}, Jahr {year} ({count})"
+    },
+    {
+      "key": "ui.chronicle.jump",
+      "text": "Zum Bewohner"
+    },
+    {
+      "key": "ui.chronicle.export",
+      "text": "Als Datei speichern"
+    },
+    {
+      "key": "msg.hint.chronicle_exported",
+      "text": "Die Chronik liegt als Webseite und Textdatei in {folder}."
     }
   ]
 }
