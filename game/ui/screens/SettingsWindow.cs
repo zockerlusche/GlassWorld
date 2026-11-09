@@ -103,6 +103,13 @@ public partial class SettingsWindow : GwWindow
                 CustomMinimumSize = new Vector2(style.Tokens.Window.CardBarWidth, 0),
             };
             slider.ValueChanged += v => Apply(_settings with { BusVolumesDb = new Dictionary<string, double>(_settings.BusVolumesDb, StringComparer.Ordinal) { [id] = v } });
+            if (bus.Off == true)
+            {
+                // Switched off in the data until replaced (W1699): locked, the tooltip says why.
+                slider.Editable = false;
+                slider.TooltipText = "ui.settings.volume.off_tip";
+            }
+
             Row("ui.settings.volume." + id, slider);
         }
 
