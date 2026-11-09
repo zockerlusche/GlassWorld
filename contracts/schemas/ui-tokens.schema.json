@@ -20,7 +20,8 @@
     "toast",
     "durations_ms",
     "palettes",
-    "knock"
+    "knock",
+    "head_symbol"
   ],
   "properties": {
     "contract_version": {
@@ -98,6 +99,36 @@
     },
     "knock": {
       "$ref": "#/$defs/UiKnock"
+    },
+    "head_symbol": {
+      "description": "Symbols above inhabitants' heads (question marks, feeling symbols; F5284): one common world size, and on screen never smaller or larger than the given pixel heights, so they are readable at every zoom.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "size_m",
+        "min_px",
+        "max_px"
+      ],
+      "properties": {
+        "size_m": {
+          "description": "Height of a question mark in the world (metres); feeling symbols keep their own size_m of the same order.",
+          "type": "number",
+          "minimum": 0.05,
+          "maximum": 3
+        },
+        "min_px": {
+          "description": "Smallest height on screen (pixels at the reference height, scaled with the UI).",
+          "type": "number",
+          "minimum": 4,
+          "maximum": 400
+        },
+        "max_px": {
+          "description": "Largest height on screen (pixels at the reference height, scaled with the UI).",
+          "type": "number",
+          "minimum": 4,
+          "maximum": 800
+        }
+      }
     }
   },
   "$defs": {

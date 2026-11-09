@@ -387,6 +387,12 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("knock")]
         public UiKnock Knock { get; set; } = new UiKnock();
 
+        /// <summary>
+        /// Symbols above inhabitants' heads (question marks, feeling symbols; F5284): one common world size, and on screen never smaller or larger than the given pixel heights, so they are readable at every zoom.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("head_symbol")]
+        public HeadSymbol HeadSymbol { get; set; } = new HeadSymbol();
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -466,6 +472,30 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonStringEnumMemberName("bubble_player")]
         Bubble_player = 11,
 
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class HeadSymbol
+    {
+
+        /// <summary>
+        /// Height of a question mark in the world (metres); feeling symbols keep their own size_m of the same order.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("size_m")]
+        public double SizeM { get; set; } = default!;
+
+        /// <summary>
+        /// Smallest height on screen (pixels at the reference height, scaled with the UI).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("min_px")]
+        public double MinPx { get; set; } = default!;
+
+        /// <summary>
+        /// Largest height on screen (pixels at the reference height, scaled with the UI).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max_px")]
+        public double MaxPx { get; set; } = default!;
 
     }
 }

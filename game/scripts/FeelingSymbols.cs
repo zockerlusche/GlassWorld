@@ -33,6 +33,9 @@ public partial class FeelingSymbols : Node3D
     private IReadOnlyList<SymbolView>? _frozen;
     private double _clock;
 
+    /// <summary>UI tokens and scale for the screen size of the symbols (F5284); null keeps the world size.</summary>
+    public GlassWorld.Presentation.Ui.UiStyle? Style { get; set; }
+
     /// <summary>Loads the symbol set; false (and an error) if the data is broken.</summary>
     /// <param name="host">The world.</param>
     /// <param name="figures">Node whose children are the figures, named by inhabitant id.</param>
@@ -209,6 +212,7 @@ public partial class FeelingSymbols : Node3D
             var alpha = t < share ? t / share : 1 - ((t - share) / (1 - share));
             sprites[0].GlobalPosition = head + new Vector3(0, (float)data.Rise.StartM + (still ? 0 : (float)(data.Rise.RiseM * t)), 0);
             sprites[0].Modulate = new Color(1, 1, 1, (float)alpha);
+            Size(sprites[0]);
             return;
         }
 
@@ -217,6 +221,16 @@ public partial class FeelingSymbols : Node3D
             var angle = (still ? 0 : 2 * Math.PI * age / data.Orbit.PeriodS) + (k * 2 * Math.PI / sprites.Count);
             sprites[k].GlobalPosition = head + new Vector3((float)(data.Orbit.RadiusM * Math.Cos(angle)), 0, (float)(data.Orbit.RadiusM * Math.Sin(angle)));
             sprites[k].Modulate = new Color(1, 1, 1, (float)(data.Orbit.FadeInS <= 0 ? 1 : Math.Clamp(age / data.Orbit.FadeInS, 0, 1)));
+            Size(sprites[k]);
+        }
+    }
+
+    /// <summary>Keeps the symbol readable at every zoom (F5284): its screen height within the data's limits.</summary>
+    private void Size(Sprite3D sprite)
+    {
+        if (Style is { } style)
+        {
+            GlassWorld.Game.World.HeadSymbolScale.Apply(sprite, sprite.PixelSize * IconPx, style.Tokens, style.ContentScaleFactor);
         }
     }
 
