@@ -818,7 +818,7 @@ public partial class GameScreen : CanvasLayer
             _chronicleList.AddChild(line);
         }
 
-        var export = new Button { Text = "ui.chronicle.export" };
+        var export = new Button { Text = "ui.chronicle.export", TooltipText = "ui.chronicle.export_tip" };
         export.Pressed += () => ExportChronicle();
         _chronicleList.AddChild(export);
     }

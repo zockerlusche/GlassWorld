@@ -1264,7 +1264,7 @@
     },
     {
       "key": "ui.help.empty",
-      "text": "Nobody needs help right now."
+      "text": "Nobody is asking for help right now. When an inhabitant tries something several times in vain, their request appears here and knocks in the mailbox. Until then everything runs by itself."
     },
     {
       "key": "ui.help.call",
@@ -1292,7 +1292,7 @@
     },
     {
       "key": "ui.mailbox.empty",
-      "text": "No new messages."
+      "text": "No new messages. Inhabitants knock here when they need help or want to tell you something."
     },
     {
       "key": "ui.mailbox.read",
@@ -1640,7 +1640,7 @@
     },
     {
       "key": "ui.chronicle.export",
-      "text": "Save as file"
+      "text": "Export chronicle"
     },
     {
       "key": "msg.hint.chronicle_exported",
@@ -1989,6 +1989,10 @@
     {
       "key": "ui.menu.loading",
       "text": "Loading “{name}” …"
+    },
+    {
+      "key": "ui.chronicle.export_tip",
+      "text": "Saves the chronicle as a web page (.html) and a text file (.txt) in the game folder under \"chronicle\" - to read or pass on."
     }
   ]
 }
