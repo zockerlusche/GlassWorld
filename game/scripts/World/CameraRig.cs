@@ -137,6 +137,13 @@ public partial class CameraRig : Node3D
         // A left click is also the gift placement of the game screen: in the main game the screen owns
         // the left click (SelectOnClick = false) and decides between gift placement and figure selection;
         // it uses the same click gate, so a drag never selects or places.
+        // A press into the world (not on a control) takes the focus off the GUI, so the keys move the
+        // camera again.
+        if (@event is InputEventMouseButton { Pressed: true })
+        {
+            GetViewport()?.GuiReleaseFocus();
+        }
+
         if (Held)
         {
             return;
@@ -232,9 +239,10 @@ public partial class CameraRig : Node3D
             _select.Cancel();
         }
 
-        // While a GUI control has the keyboard focus (a text field, slider, list, option button) its keys
-        // belong to it and never move the camera (GW3 review #144).
-        var keys = GetViewport()?.GuiGetFocusOwner() is null;
+        // While a control that uses these keys has the focus (a text field, slider, list, option button)
+        // they belong to it and never move the camera; a plain button that took the focus on a click does
+        // not block them (GW3 review #144).
+        var keys = !BlocksCameraKeys(GetViewport()?.GuiGetFocusOwner());
         var right = keys ? Input.GetAxis(PanActions[0], PanActions[1]) : 0;
         var forward = keys ? Input.GetAxis(PanActions[3], PanActions[2]) : 0;
         var turn = keys ? Input.GetAxis(TurnActions[0], TurnActions[1]) : 0;
@@ -259,6 +267,9 @@ public partial class CameraRig : Node3D
         // The model orbits a point on the ground; its eased height lifts eye and target alike.
         _camera.LookAtFromPosition(new Vector3((float)eye.X, (float)eye.Y, (float)eye.Z), new Vector3((float)tx, (float)Model.TargetHeight, (float)tz), Vector3.Up);
     }
+
+    /// <summary>Whether a focused control uses the pan and turn keys itself (typing, sliding, list navigation).</summary>
+    public static bool BlocksCameraKeys(Control? focus) => focus is LineEdit or TextEdit or Godot.Range or ItemList or Tree or OptionButton;
 
     /// <summary>A screen point in normalised device coordinates (y up) and the aspect of the viewport.</summary>
     private (double X, double Y, double Aspect) Ndc(Vector2 screen)
