@@ -91,6 +91,7 @@ experienced = "you tried it yourself"
 heard = "someone told you"
 guessed = "you only guessed"
 read = "you read it"
+seen = "you looked at it"
 
 [settings.need_words]   # 0 = fully unsatisfied (urgent), 1 = satisfied
 bands = [[0.2, "very urgent"], [0.4, "urgent"], [0.7, "okay"], [1.01, "satisfied"]]
