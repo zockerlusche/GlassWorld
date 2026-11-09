@@ -150,6 +150,45 @@
           "items": {
             "$ref": "common.schema.json#/$defs/EntityId"
           }
+        },
+        "topic": {
+          "description": "For actions that pass knowledge on to the target inhabitant (show, teach, warn; B4a R4, D625): WHAT the asker would pass on. This is the asker's own belief that the core would pass, never the world's truth. Optional (absent = the action passes nothing on, or an older core).",
+          "$ref": "#/$defs/OptionTopic"
+        }
+      }
+    },
+    "OptionTopic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "object_type",
+        "name",
+        "property",
+        "value"
+      ],
+      "properties": {
+        "object_type": {
+          "description": "Kind of thing the belief is about (object type id; content types are named by the data, i18n key vocab.object.<id>).",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "name": {
+          "description": "The inhabitants' own name for a thing they invented (runtime type, not in the data), in both languages; null for content types, which the data names.",
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/LocalizedName"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "property": {
+          "description": "The property the asker believes about it (vocabulary property, e.g. poisonous).",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "value": {
+          "description": "What the asker believes: the thing has the property (true) or not (false). Its belief, which can be wrong.",
+          "type": "boolean"
         }
       }
     },

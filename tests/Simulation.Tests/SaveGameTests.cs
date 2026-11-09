@@ -202,6 +202,35 @@ public sealed class SaveGameTests : IDisposable
         });
     }
 
+    /// <summary>
+    /// #20043 (GW3): the request language survives a save file. A switch to 'de' in an 'en' world is asked in
+    /// 'de' after loading, and an 'en' world without a switch stays 'en' (the restore reads the saved command log).
+    /// </summary>
+    [Theory]
+    [InlineData("en", "de", Contracts.Locale.De)]
+    [InlineData("en", null, Contracts.Locale.En)]
+    public void TheRequestLanguageSurvivesSaveAndLoad(string start, string? switched, Contracts.Locale expected)
+    {
+        var host = SimulationHost.CreatePlaceholderWorld(ContentDirectory, 5, new MockDecisionPort(), start);
+        host.World.Run(host.World.Calendar.TicksPerDay / 4);
+        if (switched is not null)
+        {
+            host.Decisions.Submit(new PlayerCommand(DecisionsSystem.SetDisplayLocale, null) { Text = switched });
+            host.World.Run(host.World.Calendar.TicksPerDay / 4);
+        }
+
+        var path = Path.Combine(_directory, "language.db");
+        SaveGameStore.Save(path, StateCodec.Capture(host));
+
+        // The factory's language is the old fixed default on purpose: only the saved log may decide.
+        var loaded = Restore(SaveGameStore.Load(path), new MockDecisionPort());
+        var asked = loaded.Decisions.Log.Entries.Count;
+        loaded.World.Run(loaded.World.Calendar.TicksPerDay / 2);
+
+        var next = loaded.Decisions.Log.Entries.Skip(asked).First(e => e.Kind == DecisionLogKind.Request);
+        Assert.Equal(expected, Contracts.Validation.ContractSerializer.Deserialize<Contracts.DecisionRequest>(next.Json).DisplayLocale);
+    }
+
     private static SimulationHost Restore(SaveState state, IDecisionPort port)
     {
         var content = ContentSet.Load(ContentDirectory);
