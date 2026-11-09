@@ -143,7 +143,7 @@ class ModelSetup:
         # named it; None = not known yet (image models wait for it).
         self._comfyui_models = comfyui_models_dir
         self._comfyui = comfyui_url.rstrip("/") if comfyui_url else None
-        self._ollama_models_dir = ollama_models_dir or Path.home() / ".ollama" / "models"
+        self._ollama_models_dir = ollama_models_dir or _default_ollama_models(store_dir)
         self._free_bytes = free_bytes or _free_bytes
         self._store = store_dir
         self._ollama = ollama_url.rstrip("/")
@@ -473,3 +473,12 @@ def _local_name(local: dict[str, str], model: Model) -> str | None:
         if candidate in local:
             return candidate
     return None
+
+
+def _default_ollama_models(store_dir: Path) -> Path:
+    """Where Ollama keeps models by default (~/.ollama/models). Without a home folder (service
+    account, review GW1 #130) the free-space check looks at the drive of our store instead."""
+    try:
+        return Path.home() / ".ollama" / "models"
+    except RuntimeError:
+        return store_dir

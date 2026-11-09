@@ -613,3 +613,18 @@ def test_the_data_offers_image_ai_for_standard_and_editing_for_comfort() -> None
             assert any(item.path.rsplit("/", 1)[-1] in text for text in workflows.values()), item
         assert all(f.url.startswith("https://huggingface.co/") and "/resolve/" in f.url
                    for f in model.files)  # fmt: skip
+
+
+def test_no_home_folder_does_not_break_the_service(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Review GW1 #130: Path.home() raises without a home folder (service accounts)."""
+
+    def no_home() -> Path:
+        raise RuntimeError("no home")
+
+    monkeypatch.setattr(Path, "home", staticmethod(no_home))
+    setup = ModelSetup(
+        (LANGUAGE,), store_dir=tmp_path / "store", ollama_url=OLLAMA, tier=lambda: "minimum"
+    )
+    assert setup._ollama_models_dir == tmp_path / "store"  # pyright: ignore[reportPrivateUsage]
