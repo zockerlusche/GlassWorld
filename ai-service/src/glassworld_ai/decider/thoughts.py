@@ -57,9 +57,18 @@ class ThoughtMemory:
 
     def __init__(self) -> None:
         self._seen: dict[str, list[tuple[int, frozenset[str]]]] = {}
+        self._last_tick = -1
+
+    def _follow(self, tick: int) -> None:
+        """Time only runs forward within one world: a tick going backwards means a loaded save or a
+        new world in the same service session, so nothing said before counts (review GW1 #157)."""
+        if tick < self._last_tick:
+            self._seen.clear()
+        self._last_tick = tick
 
     def repeated(self, inhabitant: str, tick: int, text: str, settings: dict[str, Any]) -> bool:
         window, similar = _repeat_rules(settings)
+        self._follow(tick)
         if window <= 0:
             return False
         words = _words(text)
@@ -68,6 +77,7 @@ class ThoughtMemory:
         return any(_similarity(words, earlier) >= similar for _, earlier in recent)
 
     def remember(self, inhabitant: str, tick: int, text: str) -> None:
+        self._follow(tick)
         self._seen.setdefault(inhabitant, []).append((tick, _words(text)))
 
 

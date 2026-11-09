@@ -135,6 +135,17 @@ def test_the_same_inhabitant_does_not_repeat_itself_soon() -> None:
     assert not memory.repeated("inh-1", 400, said, V4)  # the span is over
 
 
+def test_a_loaded_save_or_new_world_forgets_what_was_said() -> None:
+    """Review GW1 #157: the tick going backwards starts a fresh memory."""
+    from glassworld_ai.decider.thoughts import ThoughtMemory
+
+    memory = ThoughtMemory()
+    said = "Puh, bin ich müde."
+    memory.remember("inh-1", 5000, said)
+    assert memory.repeated("inh-1", 5100, said, V4)
+    assert not memory.repeated("inh-1", 4990, said, V4)  # earlier tick: other world or save
+
+
 def test_a_repeated_thought_is_left_out_but_the_decision_stays(settings: Settings) -> None:
     answer = json.dumps(
         {"rationale": "Hungry.", "option_id": "o1", "expression": None,
