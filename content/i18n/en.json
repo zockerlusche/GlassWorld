@@ -1533,6 +1533,22 @@
     {
       "key": "ui.setup.model_language",
       "text": "Language model: how the inhabitants think, talk and ask"
+    },
+    {
+      "key": "vocab.soil.loam",
+      "text": "Loam"
+    },
+    {
+      "key": "vocab.soil.sand",
+      "text": "Sand"
+    },
+    {
+      "key": "vocab.soil.clay",
+      "text": "Clay"
+    },
+    {
+      "key": "vocab.soil.stone",
+      "text": "Rock"
     }
   ]
 }

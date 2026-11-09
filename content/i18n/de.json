@@ -1533,6 +1533,22 @@
     {
       "key": "ui.setup.model_language",
       "text": "Sprachmodell: Denken, Sprechen und Fragen der Bewohner"
+    },
+    {
+      "key": "vocab.soil.loam",
+      "text": "Lehmerde"
+    },
+    {
+      "key": "vocab.soil.sand",
+      "text": "Sand"
+    },
+    {
+      "key": "vocab.soil.clay",
+      "text": "Ton"
+    },
+    {
+      "key": "vocab.soil.stone",
+      "text": "Fels"
     }
   ]
 }

@@ -152,5 +152,9 @@ namespace GlassWorld.Contracts
         Knowledge_source = 18,
 
 
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("soil")]
+        Soil = 19,
+
+
     }
 }

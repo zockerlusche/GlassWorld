@@ -64,6 +64,7 @@ public sealed class WorldGenContent
         var problems = new List<string>();
         var biomeVocabulary = Ids(vocabularies, VocabularyKind.Biome);
         var weatherVocabulary = Ids(vocabularies, VocabularyKind.Weather);
+        var soilVocabulary = Ids(vocabularies, VocabularyKind.Soil);
         CheckBiomes(biomes, biomeVocabulary, problems);
         CheckSpawns(spawns, biomes, objects, problems);
         foreach (var climate in climates)
@@ -112,6 +113,9 @@ public sealed class WorldGenContent
                     problems.Add($"{p}: start supply '{resource.Id}' matches no spawn type of the island");
                 }
             }
+
+            var soils = preset.Underground.SoilRules.Select(r => r.Soil).Append(preset.Underground.FallbackSoil).Append(preset.Underground.Stones.StoneSoil);
+            problems.AddRange(soils.Distinct(StringComparer.Ordinal).Where(id => !soilVocabulary.Contains(id)).Select(id => $"{p}: soil '{id}' not in vocabulary 'soil'"));
 
             if (!objects.Contains(preset.Caves.ObjectType))
             {

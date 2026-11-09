@@ -118,7 +118,7 @@ public static partial class WorldGenerator
         int w = grid.WidthCells, d = grid.DepthCells;
         var sea = preset.Terrain.SeaLevel;
         var heights = Heights(preset, attemptSeed);
-        var cliffs = Terraces(preset, heights, w, d, attemptSeed);
+        var cliffs = Terraces(preset, heights, w, d, attemptSeed, RockHeight(content.Biomes, preset.Caves.CliffBiome));
         Rocks(preset, heights, w, d, Stream(attemptSeed, "worldgen/rocks"));
 
         var water = new WaterKind[w * d];
@@ -231,13 +231,24 @@ public static partial class WorldGenerator
         return octave.Signed == true ? octave.Amplitude * (noise - 500) / 1000 : octave.Amplitude * noise / 1000;
     }
 
-    /// <summary>High ground becomes terraces of cliff height, so the hills get cliffs (R3). Returns cliff cells.</summary>
-    private static int Terraces(WorldPreset preset, int[] heights, int w, int d, ulong seed)
+    /// <summary>
+    /// The height above sea from which the cliff biome takes ground by height alone (its rule without a
+    /// slope condition); null if the table has none.
+    /// </summary>
+    private static int? RockHeight(BiomeTable table, string cliffBiome) =>
+        table.Rules.Where(r => r.Biome == cliffBiome && r.Water == BiomeRuleWater.None && (r.MinSlope ?? 0) == 0)
+            .Select(r => (int?)r.MinHeight).Min();
+
+    /// <summary>
+    /// Rock ground becomes terraces of cliff height, so the rocky hills get cliffs (R3, D576). Only where
+    /// the cliff biome takes the ground by its height (TL #19722: no terrace rings on meadow hills; without
+    /// such a rule, from two fifths of the height range) and where a coarse mask is high; elsewhere the
+    /// hills keep smooth walkable slopes, so every terrace can be reached over a ramp. Returns cliff cells.
+    /// </summary>
+    private static int Terraces(WorldPreset preset, int[] heights, int w, int d, ulong seed, int? rockHeight)
     {
-        // Terraces (and so cliffs) only where a coarse mask is high: elsewhere the hills keep walkable
-        // slopes, so every terrace can be reached over a ramp.
         var step = preset.Terrain.CliffMinDrop;
-        var from = preset.Terrain.SeaLevel + ((preset.Terrain.MaxHeight - preset.Terrain.SeaLevel) * 2 / 5);
+        var from = preset.Terrain.SeaLevel + (rockHeight ?? ((preset.Terrain.MaxHeight - preset.Terrain.SeaLevel) * 2 / 5));
         for (var z = 0; z < d; z++)
         {
             for (var x = 0; x < w; x++)
