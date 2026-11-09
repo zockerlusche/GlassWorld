@@ -56,37 +56,89 @@
       "mesh": "short"
     },
     {
+      "style": "shoulder_length",
+      "mesh": "shoulder_length"
+    },
+    {
       "style": "long",
       "mesh": "long"
     },
     {
-      "style": "curly",
-      "mesh": "tousled"
+      "style": "braid",
+      "mesh": "braid"
     },
     {
-      "style": "braided",
-      "mesh": "long"
-    },
-    {
-      "style": "tied",
+      "style": "bun",
       "mesh": "bun"
+    },
+    {
+      "style": "curls",
+      "mesh": "curls"
+    },
+    {
+      "style": "bald",
+      "mesh": null
     }
   ],
-  "clothing": [
+  "clothing_parts": [
     {
-      "style": "tunic",
-      "short_sleeves": true,
-      "shorts": false
+      "id": "shirt",
+      "mesh": "shirt",
+      "color": "top",
+      "covers": []
     },
     {
-      "style": "wrap",
-      "short_sleeves": true,
-      "shorts": true
+      "id": "tunic",
+      "mesh": "tunic",
+      "color": "top",
+      "covers": [
+        "thigh"
+      ]
     },
     {
-      "style": "shirt_trousers",
-      "short_sleeves": false,
-      "shorts": false
+      "id": "dress",
+      "mesh": "dress",
+      "color": "top",
+      "covers": [
+        "thigh",
+        "lower_thigh"
+      ]
+    },
+    {
+      "id": "skirt_short",
+      "mesh": "skirt_short",
+      "color": "bottom",
+      "covers": [
+        "thigh"
+      ]
+    },
+    {
+      "id": "skirt_long",
+      "mesh": "skirt_long",
+      "color": "bottom",
+      "covers": [
+        "thigh",
+        "lower_thigh",
+        "shin"
+      ]
+    },
+    {
+      "id": "trousers_short",
+      "mesh": "trousers_short",
+      "color": "bottom",
+      "covers": [
+        "thigh"
+      ]
+    },
+    {
+      "id": "trousers_long",
+      "mesh": "trousers_long",
+      "color": "bottom",
+      "covers": [
+        "thigh",
+        "lower_thigh",
+        "shin"
+      ]
     }
   ],
   "shoe_color": "#3a2a20",

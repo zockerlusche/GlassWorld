@@ -8,6 +8,8 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from . import common_schema
+
 
 class SampleRate(IntEnum):
     integer_22050 = 22050
@@ -121,6 +123,29 @@ class MurmurBasePitch(BaseModel):
     hz: float = Field(..., ge=50.0, le=600.0)
 
 
+class MurmurSampleVoice(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    child: bool
+    sex: common_schema.VocabId | None = Field(
+        ..., description='Sex vocabulary id, or null for any (children).'
+    )
+    high: bool
+    calm: str = Field(
+        ...,
+        description='Base library sound id for calm sentences (and exclamations).',
+        max_length=80,
+        pattern='^[a-z0-9_.]+$',
+    )
+    question: str = Field(
+        ...,
+        description='Base library sound id for questions.',
+        max_length=80,
+        pattern='^[a-z0-9_.]+$',
+    )
+
+
 class MurmurVoice(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -132,6 +157,15 @@ class MurmurVoice(BaseModel):
     size_tempo: float = Field(..., ge=0.0, le=2.0)
     age_tempo: float = Field(..., ge=0.0, le=2.0)
     size_formant: float = Field(..., ge=0.0, le=1.0)
+
+
+class MurmurSamples(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    child_age_max: float = Field(..., ge=0.0, le=1.0)
+    high_size_max: float = Field(..., ge=0.0, le=1.0)
+    voices: list[MurmurSampleVoice] = Field(..., max_length=32)
 
 
 class MurmurSettings(BaseModel):
@@ -151,7 +185,7 @@ class MurmurSettings(BaseModel):
     )
     loudness_dbfs: float = Field(
         ...,
-        description='Gated RMS loudness a murmur is normalised to, like the library one-shots (review #90).',
+        description='Integrated loudness (LUFS, ITU-R BS.1770) a murmur is normalised to, like the library one-shots (review #90).',
         ge=-40.0,
         le=-6.0,
     )
@@ -186,3 +220,7 @@ class MurmurSettings(BaseModel):
     exclamation_marks: list[ExclamationMark] = Field(..., max_length=8, min_length=1)
     voice: MurmurVoice
     placeholder_body: MurmurPlaceholderBody
+    samples: MurmurSamples | None = Field(
+        None,
+        description='Recorded murmur voices (listening test 3, W1664): when a voice of the base library fits, it plays instead of the formant murmur. Child below child_age_max (body age), otherwise by sex; high voice below high_size_max (body size). Empty voices = formant murmur only.',
+    )

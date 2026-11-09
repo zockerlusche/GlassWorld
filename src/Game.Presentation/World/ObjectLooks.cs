@@ -3,29 +3,106 @@ using GlassWorld.Simulation.Objects;
 
 namespace GlassWorld.Presentation.World;
 
-/// <summary>How the objects of one visual are drawn: shape, palette colours by role, size, lift.</summary>
+/// <summary>How the objects of one visual are drawn: shape, palette colours by role, size, lift, how they meet the ground.</summary>
 /// <param name="VisualId">Visual id from the data (the fallback has <see cref="ObjectLooks.FallbackId"/>).</param>
 /// <param name="Shape">Shape builder.</param>
 /// <param name="Colors">Palette colour ids by role (main, second, third); never empty.</param>
 /// <param name="SizeM">Size factor.</param>
 /// <param name="SizeJitter">Size variation share either way.</param>
 /// <param name="LiftM">Height above the ground.</param>
-/// <param name="Rest">Which ground height within the footprint the object stands on (never tilted).</param>
-/// <param name="FootprintM">Radius of the footprint at size factor 1.</param>
-public sealed record ObjectLook(string VisualId, ObjectLookShape Shape, IReadOnlyList<string> Colors, double SizeM, double SizeJitter, double LiftM, ObjectLookRest Rest = ObjectLookRest.Centre, double FootprintM = 0)
+/// <param name="Rest">Which ground height within the footprint an upright object stands on.</param>
+/// <param name="FootprintM">Radius of the footprint at size factor 1 (half the length along local x for a long object).</param>
+/// <param name="Align">Upright, or lying on the ground following its slope (D576).</param>
+/// <param name="FootprintWidthM">Half width of an elongated footprint across local x at size factor 1 (null = round).</param>
+public sealed record ObjectLook(
+    string VisualId,
+    ObjectLookShape Shape,
+    IReadOnlyList<string> Colors,
+    double SizeM,
+    double SizeJitter,
+    double LiftM,
+    ObjectLookRest Rest = ObjectLookRest.Centre,
+    double FootprintM = 0,
+    ObjectLookAlign Align = ObjectLookAlign.Upright,
+    double? FootprintWidthM = null)
 {
     /// <summary>The colour of a role; a shape with more roles than colours repeats them from the start.</summary>
     public string Color(int role) => Colors[role % Colors.Count];
+
+    /// <summary>Whether the object lies on the ground and follows its slope.</summary>
+    public bool Lies => Align != ObjectLookAlign.Upright;
+
+    /// <summary>Half width of the footprint across local x at size factor 1.</summary>
+    public double HalfWidthM => FootprintWidthM ?? FootprintM;
+}
+
+/// <summary>How lying objects meet the ground (<c>content/look/objects.json</c>, D576).</summary>
+/// <param name="ToleranceM">Largest float or sink of a lying object's underside; a worse fit stands upright instead.</param>
+/// <param name="TurnTries">Turns a long lying object tries over half a circle when its own turn fits badly.</param>
+/// <param name="MinFootprintM">Smallest footprint radius a lying object samples the ground over.</param>
+public sealed record GroundFit(double ToleranceM, int TurnTries, double MinFootprintM)
+{
+    /// <summary>Defaults for callers without look data (tests): the data's placeholder values.</summary>
+    public static GroundFit Default { get; } = new(0.06, 8, 0.05);
 }
 
 /// <summary>Where one object is drawn: on the ground under its core position, turned and sized from its id.</summary>
 /// <param name="ObjectId">Core object id.</param>
 /// <param name="X">X in metres (core position).</param>
-/// <param name="Y">Height in metres (ground plus lift).</param>
+/// <param name="Y">Height in metres of its origin (ground plus lift).</param>
 /// <param name="Z">Z in metres (core position).</param>
-/// <param name="YawRad">Turn about the up axis.</param>
+/// <param name="YawRad">Turn about the up axis (local x towards (cos, 0, -sin), as Godot's <c>Basis(Vector3.Up, yaw)</c>).</param>
 /// <param name="Scale">Size factor with the per-object variation.</param>
-public readonly record struct ObjectPlacement(string ObjectId, double X, double Y, double Z, double YawRad, double Scale);
+/// <param name="Up">The object's up axis: straight up for upright objects, the ground normal for lying ones (D576).</param>
+public readonly record struct ObjectPlacement(string ObjectId, double X, double Y, double Z, double YawRad, double Scale, Point3 Up)
+{
+    /// <summary>
+    /// The object's local axes in world space, scaled (the columns of its basis): turned by the yaw about
+    /// the vertical, then tilted by the shortest turn that brings the vertical onto <see cref="Up"/>.
+    /// </summary>
+    public (Point3 X, Point3 Y, Point3 Z) Axes()
+    {
+        var (c, s, k) = (Math.Cos(YawRad), Math.Sin(YawRad), Scale);
+        var (x, y, z) = (Tilt(new Point3(c, 0, -s)), Tilt(new Point3(0, 1, 0)), Tilt(new Point3(s, 0, c)));
+        return (new Point3(x.X * k, x.Y * k, x.Z * k), new Point3(y.X * k, y.Y * k, y.Z * k), new Point3(z.X * k, z.Y * k, z.Z * k));
+    }
+
+    /// <summary>A point of the object's shape (local metres at size factor 1) in world space.</summary>
+    public Point3 ToWorld(Point3 local)
+    {
+        var (ax, ay, az) = Axes();
+        return new Point3(
+            X + (ax.X * local.X) + (ay.X * local.Y) + (az.X * local.Z),
+            Y + (ax.Y * local.X) + (ay.Y * local.Y) + (az.Y * local.Z),
+            Z + (ax.Z * local.X) + (ay.Z * local.Y) + (az.Z * local.Z));
+    }
+
+    /// <summary>Rodrigues turn of <paramref name="v"/> about (up x n) by the angle between up and the normal n.</summary>
+    private Point3 Tilt(Point3 v)
+    {
+        var length = Math.Sqrt((Up.X * Up.X) + (Up.Y * Up.Y) + (Up.Z * Up.Z));
+        if (length < 1e-12)
+        {
+            return v;
+        }
+
+        var (nx, ny, nz) = (Up.X / length, Up.Y / length, Up.Z / length);
+        var (kx, kz) = (nz, -nx);
+        var sin2 = (kx * kx) + (kz * kz);
+        if (sin2 < 1e-18)
+        {
+            return ny >= 0 ? v : new Point3(v.X, -v.Y, -v.Z);
+        }
+
+        // R v = v cos + k x v + k (k . v) (1 - cos) / |k|^2 with k = (kx, 0, kz), |k| = sin.
+        var (cos, dot) = (ny, (kx * v.X) + (kz * v.Z));
+        var f = dot * (1 - cos) / sin2;
+        return new Point3(
+            (v.X * cos) + (-kz * v.Y) + (kx * f),
+            (v.Y * cos) + ((kz * v.X) - (kx * v.Z)),
+            (v.Z * cos) + (kx * v.Y) + (kz * f));
+    }
+}
 
 /// <summary>
 /// The object look of the main game's island mode (<c>content/look/objects.json</c>) without Godot: which
@@ -41,6 +118,11 @@ public sealed class ObjectLooks
 
     private readonly Dictionary<string, ObjectLook> _byType = new(StringComparer.Ordinal);
     private readonly HashSet<string> _reported = new(StringComparer.Ordinal);
+
+    // Placements by object id, type and position: the ground never changes at run time, so an object is
+    // placed once and a refresh (an object eaten, one regrown) only places the new ones (GW3 #120).
+    private Dictionary<(string Id, string Type, double X, double Z), ObjectPlacement> _placed = [];
+    private Func<double, double, double>? _placedOn;
 
     /// <summary>Reads the data; every colour must be a palette id and every type may appear only once.</summary>
     public ObjectLooks(LookObjects data, IReadOnlySet<string> paletteIds)
@@ -59,6 +141,7 @@ public sealed class ObjectLooks
         }
 
         CheckColors("the fallback", data.Fallback.Colors);
+        Fit = new GroundFit(data.GroundToleranceM, data.TurnTries, data.MinFootprintM);
         Fallback = new ObjectLook(FallbackId, data.Fallback.Shape, [.. data.Fallback.Colors], data.Fallback.SizeM, 0, 0);
         var visuals = new List<ObjectLook> { Fallback };
         foreach (var visual in data.Visuals)
@@ -69,7 +152,7 @@ public sealed class ObjectLooks
             }
 
             CheckColors($"visual '{visual.Id}'", visual.Colors);
-            var look = new ObjectLook(visual.Id, visual.Shape, [.. visual.Colors], visual.SizeM, visual.SizeJitter, visual.LiftM, visual.Rest, visual.FootprintM);
+            var look = new ObjectLook(visual.Id, visual.Shape, [.. visual.Colors], visual.SizeM, visual.SizeJitter, visual.LiftM, visual.Rest, visual.FootprintM, visual.Align, visual.FootprintWidthM);
             visuals.Add(look);
             foreach (var type in visual.Types)
             {
@@ -86,6 +169,12 @@ public sealed class ObjectLooks
     /// <summary>The fallback marker.</summary>
     public ObjectLook Fallback { get; }
 
+    /// <summary>How far a lying object's underside may float above or sink below the drawn ground (metres).</summary>
+    public double GroundToleranceM => Fit.ToleranceM;
+
+    /// <summary>How lying objects meet the ground, from the data.</summary>
+    public GroundFit Fit { get; }
+
     /// <summary>Every visual, the fallback first.</summary>
     public IReadOnlyList<ObjectLook> Visuals { get; }
 
@@ -100,13 +189,17 @@ public sealed class ObjectLooks
 
     /// <summary>
     /// Groups the objects by visual (none-shapes left out) and places each on the ground; calls
-    /// <paramref name="unknown"/> once per unknown type.
+    /// <paramref name="unknown"/> once per unknown type. Placements are kept for the objects still there
+    /// (by id, type and position), so only new or moved objects are placed again; another ground function
+    /// starts afresh.
     /// </summary>
     public IReadOnlyDictionary<string, List<ObjectPlacement>> Layout(IEnumerable<WorldObject> objects, Func<double, double, double> ground, Action<string>? unknown = null)
     {
         ArgumentNullException.ThrowIfNull(objects);
         ArgumentNullException.ThrowIfNull(ground);
         var layout = new Dictionary<string, List<ObjectPlacement>>(StringComparer.Ordinal);
+        var known = ReferenceEquals(ground, _placedOn) ? _placed : [];
+        var placed = new Dictionary<(string Id, string Type, double X, double Z), ObjectPlacement>(known.Count);
         foreach (var obj in objects)
         {
             if (FirstUnknown(obj.TypeId))
@@ -125,26 +218,125 @@ public sealed class ObjectLooks
                 layout[look.VisualId] = list = [];
             }
 
-            list.Add(Place(obj, look, ground));
+            var key = (obj.Id, obj.TypeId, obj.Position.X, obj.Position.Z);
+            if (!known.TryGetValue(key, out var placement))
+            {
+                placement = Place(obj, look, ground, Fit);
+            }
+
+            placed[key] = placement;
+            list.Add(placement);
         }
 
+        (_placed, _placedOn) = (placed, ground);
         return layout;
     }
 
     /// <summary>
-    /// One object on the ground, upright (never tilted to the slope): turn and size variation from its id
-    /// (deterministic, no RNG state); its height is the ground under its position, or the lowest or highest
-    /// ground within its footprint (<see cref="ObjectLook.Rest"/>), plus the lift.
+    /// One object on the ground, turn and size variation from its id (deterministic, no RNG state). An
+    /// upright object stands straight up on the ground under its position, or the lowest or highest ground
+    /// within its footprint (<see cref="ObjectLook.Rest"/>). A lying object (D576) takes the plane that
+    /// fits the drawn ground under its footprint best: its up axis is that plane's normal and its height
+    /// the plane's, so its underside neither floats nor sinks more than the ground's own bumps; a long one
+    /// tries other turns if its own fits badly and keeps the one that fits best; an uphill one turns its
+    /// local +x side up the slope. A lying object whose best fit is still beyond the tolerance (across a
+    /// rock wall) stands upright on the ground under its position instead. The lift comes on top.
     /// </summary>
-    public static ObjectPlacement Place(WorldObject obj, ObjectLook look, Func<double, double, double> ground)
+    public static ObjectPlacement Place(WorldObject obj, ObjectLook look, Func<double, double, double> ground, GroundFit? fit = null)
     {
         ArgumentNullException.ThrowIfNull(obj);
         ArgumentNullException.ThrowIfNull(look);
         ArgumentNullException.ThrowIfNull(ground);
+        fit ??= GroundFit.Default;
         var (x, z) = (obj.Position.X, obj.Position.Z);
         var yaw = Hash01(obj.Id, 1) * 2 * Math.PI;
         var scale = look.SizeM * (1 + (look.SizeJitter * ((Hash01(obj.Id, 2) * 2) - 1)));
-        return new ObjectPlacement(obj.Id, x, Rest(look, x, z, scale, ground) + look.LiftM, z, yaw, scale);
+        if (!look.Lies)
+        {
+            return new ObjectPlacement(obj.Id, x, Rest(look, x, z, scale, ground) + look.LiftM, z, yaw, scale, new Point3(0, 1, 0));
+        }
+
+        var (length, width) = (Math.Max(look.FootprintM * scale, fit.MinFootprintM), Math.Max(look.HalfWidthM * scale, fit.MinFootprintM));
+        PlaneFit best;
+        if (look.Align == ObjectLookAlign.Ground_uphill)
+        {
+            // Up the slope of the round fit; on flat ground the turn from the id.
+            var probe = FitPlane(x, z, yaw, length, length, ground);
+            var turn = Math.Abs(probe.Gx) + Math.Abs(probe.Gz) > 1e-9 ? Math.Atan2(-probe.Gz, probe.Gx) : yaw;
+            best = FitPlane(x, z, turn, length, width, ground);
+        }
+        else
+        {
+            best = FitPlane(x, z, yaw, length, width, ground);
+            for (var k = 1; k < fit.TurnTries && Math.Abs(length - width) > 1e-9 && best.Error > fit.ToleranceM / 2; k++)
+            {
+                var other = FitPlane(x, z, yaw + (k * Math.PI / fit.TurnTries), length, width, ground);
+                if (other.Error < best.Error - 1e-9)
+                {
+                    best = other;
+                }
+            }
+        }
+
+        if (best.Error > fit.ToleranceM)
+        {
+            return new ObjectPlacement(obj.Id, x, ground(x, z) + look.LiftM, z, yaw, scale, new Point3(0, 1, 0));
+        }
+
+        var up = new Point3(-best.Gx, 1, -best.Gz);
+        var norm = Math.Sqrt((up.X * up.X) + 1 + (up.Z * up.Z));
+        return new ObjectPlacement(obj.Id, x, best.Height + look.LiftM, z, best.Yaw, scale, new Point3(up.X / norm, 1 / norm, up.Z / norm));
+    }
+
+    /// <summary>
+    /// The plane that fits the ground under an elliptic footprint (half axes <paramref name="length"/> along
+    /// the turned local x, <paramref name="width"/> across) best: least squares over its centre and two rings,
+    /// then shifted so the largest float equals the largest sink (<see cref="PlaneFit.Error"/>).
+    /// </summary>
+    private static PlaneFit FitPlane(double x, double z, double yaw, double length, double width, Func<double, double, double> ground)
+    {
+        var (c, s) = (Math.Cos(yaw), Math.Sin(yaw));
+        Span<double> dx = stackalloc double[17], dz = stackalloc double[17], h = stackalloc double[17];
+        var n = 0;
+        foreach (var share in (ReadOnlySpan<double>)[0.0, 0.5, 1.0])
+        {
+            for (var k = 0; k < (share == 0 ? 1 : 8); k++)
+            {
+                var a = k * Math.PI / 4;
+                var (lx, lz) = (Math.Cos(a) * length * share, Math.Sin(a) * width * share);
+                (dx[n], dz[n]) = ((lx * c) + (lz * s), (-lx * s) + (lz * c));
+                h[n] = ground(x + dx[n], z + dz[n]);
+                n++;
+            }
+        }
+
+        // Normal equations of h = c0 + gx dx + gz dz.
+        double sx = 0, sz = 0, sxx = 0, szz = 0, sxz = 0, sh = 0, sxh = 0, szh = 0;
+        for (var i = 0; i < n; i++)
+        {
+            (sx, sz, sxx, szz, sxz) = (sx + dx[i], sz + dz[i], sxx + (dx[i] * dx[i]), szz + (dz[i] * dz[i]), sxz + (dx[i] * dz[i]));
+            (sh, sxh, szh) = (sh + h[i], sxh + (dx[i] * h[i]), szh + (dz[i] * h[i]));
+        }
+
+        static double Det(double a, double b, double c, double d, double e, double f, double g, double h, double i) =>
+            (a * ((e * i) - (f * h))) - (b * ((d * i) - (f * g))) + (c * ((d * h) - (e * g)));
+        var det = Det(n, sx, sz, sx, sxx, sxz, sz, sxz, szz);
+        double c0 = sh / n, gx = 0, gz = 0;
+        if (Math.Abs(det) > 1e-12)
+        {
+            c0 = Det(sh, sx, sz, sxh, sxx, sxz, szh, sxz, szz) / det;
+            gx = Det(n, sh, sz, sx, sxh, sxz, sz, szh, szz) / det;
+            gz = Det(n, sx, sh, sx, sxx, sxh, sz, sxz, szh) / det;
+        }
+
+        double above = double.MinValue, below = double.MaxValue;
+        for (var i = 0; i < n; i++)
+        {
+            var e = h[i] - (c0 + (gx * dx[i]) + (gz * dz[i]));
+            (above, below) = (Math.Max(above, e), Math.Min(below, e));
+        }
+
+        return new PlaneFit(c0 + ((above + below) / 2), gx, gz, (above - below) / 2, yaw);
     }
 
     /// <summary>Samples in the footprint: the centre and two rings of eight points.</summary>
@@ -195,6 +387,9 @@ public sealed class ObjectLooks
             return (sum * 31) + count;
         }
     }
+
+    /// <summary>A plane under a footprint: height at the centre, slope along x and z, the largest float or sink, and the turn it was fitted for.</summary>
+    private readonly record struct PlaneFit(double Height, double Gx, double Gz, double Error, double Yaw);
 
     /// <summary>Deterministic value in [0, 1) from a text and a salt (FNV-1a, stable across runs and platforms).</summary>
     public static double Hash01(string text, int salt) => Fnv(text, salt) / 4294967296.0;

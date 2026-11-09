@@ -11,6 +11,7 @@
     "cliff_color",
     "bed_color",
     "water",
+    "cliffs",
     "slope_shade_permille",
     "slope_shade_gain",
     "open_sea_size_factor",
@@ -40,6 +41,9 @@
     },
     "water": {
       "$ref": "#/$defs/TerrainWater"
+    },
+    "cliffs": {
+      "$ref": "#/$defs/TerrainCliffs"
     },
     "slope_shade_permille": {
       "description": "How much steep ground is darkened towards the cliff colour (0 = not at all, 1000 = fully).",
@@ -80,6 +84,34 @@
         },
         "color": {
           "$ref": "common.schema.json#/$defs/VocabId"
+        }
+      }
+    },
+    "TerrainCliffs": {
+      "description": "Where the ground is drawn as a vertical rock wall instead of a slope (D576, TL #19553): only between two neighbouring cells whose heights differ by at least min_drop_mm and whose higher cell belongs to one of these biomes. Everywhere else the corner heights blend across the drop, so hills and terraces are smooth slopes. Placeholder values.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "biomes",
+        "min_drop_mm"
+      ],
+      "properties": {
+        "biomes": {
+          "description": "Biome ids (content/world/biomes.json) whose cells form rock walls where they stand above a neighbour.",
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$"
+          }
+        },
+        "min_drop_mm": {
+          "description": "Smallest height difference (millimetres) between neighbouring cells that becomes a rock wall.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
         }
       }
     },

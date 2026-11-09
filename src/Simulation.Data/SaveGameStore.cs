@@ -17,8 +17,11 @@ namespace GlassWorld.Simulation.Data;
 /// </summary>
 public static class SaveGameStore
 {
+    /// <summary>Meta key of the content fingerprint (<see cref="ContentFingerprint"/>), written by headless and game.</summary>
+    public const string ContentFingerprintKey = "content_fingerprint";
+
     /// <summary>Schema version written by this code.</summary>
-    public const int SchemaVersion = 4;
+    public const int SchemaVersion = 5;
 
     private static readonly JsonSerializerOptions Json = new() { IncludeFields = true };
 
@@ -53,6 +56,22 @@ public static class SaveGameStore
         ALTER TABLE beliefs ADD COLUMN tick INTEGER NOT NULL DEFAULT 0;
         CREATE TABLE relationships(inhabitant TEXT NOT NULL, other TEXT NOT NULL, affection REAL NOT NULL, trust REAL NOT NULL, respect REAL NOT NULL,
           PRIMARY KEY(inhabitant, other));
+        """,
+
+        // 5 (F4 hair kit and outfits): hair styles and outfits of the first look that were renamed or
+        // dropped get their current ids in the saved appearance records (the frozen copy of
+        // renamed_hair_styles / renamed_outfits in content/look/appearance.json at this version).
+        """
+        UPDATE meta SET value = (
+          SELECT json_group_object(e.key, json(json_set(e.value,
+            '$.HairStyle', CASE json_extract(e.value, '$.HairStyle')
+              WHEN 'curly' THEN 'curls' WHEN 'braided' THEN 'braid' WHEN 'tied' THEN 'bun'
+              ELSE json_extract(e.value, '$.HairStyle') END,
+            '$.ClothingStyle', CASE json_extract(e.value, '$.ClothingStyle')
+              WHEN 'wrap' THEN 'tunic'
+              ELSE json_extract(e.value, '$.ClothingStyle') END)))
+          FROM json_each(meta.value) AS e)
+        WHERE key = 'appearances';
         """,
     ];
 
@@ -228,6 +247,11 @@ public static class SaveGameStore
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("writing", JsonSerializer.Serialize(s.Writing, Json)));
         }
 
+        if (s.SkillGains is not null)
+        {
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("skill_gains", JsonSerializer.Serialize(s.SkillGains, Json)));
+        }
+
         if (s.WritingSeen is not null)
         {
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("writing_seen", JsonSerializer.Serialize(s.WritingSeen, Json)));
@@ -246,6 +270,16 @@ public static class SaveGameStore
         if (s.Mailbox is not null)
         {
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("mailbox", JsonSerializer.Serialize(s.Mailbox, Json)));
+        }
+
+        if (s.Conversation is not null)
+        {
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("conversation", JsonSerializer.Serialize(s.Conversation, Json)));
+        }
+
+        if (s.ContentFingerprint is not null)
+        {
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", (ContentFingerprintKey, s.ContentFingerprint));
         }
 
         foreach (var (name, state) in s.Streams)
@@ -425,10 +459,13 @@ public static class SaveGameStore
             Player = meta.TryGetValue("player", out var player) ? JsonSerializer.Deserialize<Simulation.Player.PlayerState>(player, Json) : null,
             Writing = meta.TryGetValue("writing", out var writing) ? JsonSerializer.Deserialize<List<Simulation.Writing.WrittenText>>(writing, Json) : null,
             WritingSeen = meta.TryGetValue("writing_seen", out var seen) ? JsonSerializer.Deserialize<List<string>>(seen, Json) : null,
+            SkillGains = meta.TryGetValue("skill_gains", out var gains) ? JsonSerializer.Deserialize<List<Simulation.Inhabitants.SkillGain>>(gains, Json) : null,
             IslandData = ReadIsland(c, meta),
             Weather = meta.TryGetValue("weather", out var weather) ? JsonSerializer.Deserialize<Weather.WeatherState>(weather, Json) : null,
             Skills = meta.TryGetValue("skills", out var skills) ? JsonSerializer.Deserialize<Simulation.Inhabitants.SkillRegisterState>(skills, Json) : null,
             Mailbox = meta.TryGetValue("mailbox", out var mailbox) ? JsonSerializer.Deserialize<Simulation.Player.MailboxState>(mailbox, Json) : null,
+            Conversation = meta.TryGetValue("conversation", out var conversation) ? JsonSerializer.Deserialize<Simulation.Player.ConversationState>(conversation, Json) : null,
+            ContentFingerprint = meta.GetValueOrDefault(ContentFingerprintKey),
         };
     }
 
@@ -498,7 +535,10 @@ public static class SaveGameStore
 public sealed class AutoSaver
 {
     /// <summary>Hooks the autosave onto the day boundary of a simulation.</summary>
-    public AutoSaver(SimulationHost host, string path)
+    /// <param name="host">The simulation.</param>
+    /// <param name="path">Save game.</param>
+    /// <param name="contentFingerprint">Fingerprint of the content folder to store with every save (null = none).</param>
+    public AutoSaver(SimulationHost host, string path, string? contentFingerprint = null)
     {
         ArgumentNullException.ThrowIfNull(host);
         ArgumentException.ThrowIfNullOrEmpty(path);
@@ -506,7 +546,7 @@ public sealed class AutoSaver
         {
             if (boundary == TimeBoundary.Day)
             {
-                SaveGameStore.Save(path, StateCodec.Capture(host));
+                SaveGameStore.Save(path, StateCodec.Capture(host) with { ContentFingerprint = contentFingerprint });
                 SavedTicks.Add(host.World.Tick);
             }
         };

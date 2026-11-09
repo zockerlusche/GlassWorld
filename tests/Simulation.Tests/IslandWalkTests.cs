@@ -34,11 +34,11 @@ public sealed class IslandWalkTests : IDisposable
             Assert.InRange(look.HeightCm, data.HeightCm.Min, data.HeightCm.Max);
             Assert.InRange(look.BuildPermille, data.BuildPermille.Min, data.BuildPermille.Max);
             Assert.Contains(look.SkinTone, data.SkinTones);
-            Assert.Contains(look.HairStyle, data.HairStyles);
-            Assert.Contains(look.ClothingStyle, data.ClothingStyles);
+            Assert.Contains(look.HairStyle, data.HairStyles.Select(h => h.Id));
+            Assert.Contains(look.ClothingStyle, data.Outfits.Select(o => o.Id));
             Assert.Contains(look.AgeStage, data.AgeStages.Select(s => s.Id));
             Assert.InRange(look.HeadScale, data.HeadScale.Min, data.HeadScale.Max);
-            Assert.True(look.Shapes.Count <= 1);
+            Assert.True(look.Shapes.Keys.Count(k => data.Shapes.Any(s => s.Id == k)) <= 1);
         }
 
         // Different people in one world, different worlds from different seeds.

@@ -68,7 +68,8 @@
         "trill_chance",
         "trill_notes",
         "peak",
-        "loudness_dbfs"
+        "loudness_dbfs",
+        "recorded_share"
       ],
       "properties": {
         "sound": {
@@ -143,10 +144,16 @@
           "maximum": 1
         },
         "loudness_dbfs": {
-          "description": "Gated RMS loudness the sound is normalised to: the same target as every other sound (Marcel W1645); peak stays the upper limit.",
+          "description": "Integrated loudness (LUFS, ITU-R BS.1770) the sound is normalised to: the same target as every other sound (Marcel W1645); peak stays the upper limit.",
           "type": "number",
           "minimum": -40,
           "maximum": -6
+        },
+        "recorded_share": {
+          "description": "Share of songbird calls that play a recorded song of the base library (animal.songbird.song) instead of a synthesised melody (listening test 2: both as variants, W1651). 0 = melodies only.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
         }
       }
     }

@@ -58,6 +58,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("pad")]
         public MusicPad Pad { get; set; } = new MusicPad();
 
+        /// <summary>
+        /// Other moods that may play instead of this one, one piece at a time, chosen from the piece seed (listening test 2: both as variants, W1651).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("alternates")]
+        public System.Collections.Generic.ICollection<string>? Alternates { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -187,7 +194,7 @@ namespace GlassWorld.Contracts
         public System.Collections.Generic.ICollection<MusicRule> Rules { get; set; } = new System.Collections.ObjectModel.Collection<MusicRule>();
 
         /// <summary>
-        /// Gated RMS loudness the sound is normalised to: the same target as every other sound (Marcel W1645); peak stays the upper limit.
+        /// Integrated loudness (LUFS, ITU-R BS.1770) the sound is normalised to: the same target as every other sound (Marcel W1645); peak stays the upper limit.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("loudness_dbfs")]
         public double LoudnessDbfs { get; set; } = default!;

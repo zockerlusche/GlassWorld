@@ -16,11 +16,14 @@ class LibraryTarget(BaseModel):
         extra='forbid',
     )
     one_shot_dbfs: float = Field(
-        ..., description='Gated RMS loudness of single sounds (dBFS).', ge=-60.0, le=0.0
+        ...,
+        description='Integrated loudness of single sounds (LUFS, ITU-R BS.1770; the field name keeps dbfs).',
+        ge=-60.0,
+        le=0.0,
     )
     loop_dbfs: float = Field(
         ...,
-        description='Gated RMS loudness of loops (dBFS); quieter, they run for long.',
+        description='Integrated loudness of loops (LUFS, ITU-R BS.1770; the field name keeps dbfs).',
         ge=-60.0,
         le=0.0,
     )
@@ -41,6 +44,18 @@ class LibraryTarget(BaseModel):
         ..., description='Longest single sound (B2530: a few seconds).', ge=0.1, le=30.0
     )
     loop_max_s: float = Field(..., description='Longest loop.', ge=0.5, le=120.0)
+    clean_gain_db: float = Field(
+        ...,
+        description='Files raised by more than this when normalising get the gentle noise gate first (TL #19652).',
+        ge=0.0,
+        le=60.0,
+    )
+    clean_floor_dbfs: float = Field(
+        ...,
+        description='Files whose noise floor would end above this after normalising get the gentle noise gate first.',
+        ge=-120.0,
+        le=0.0,
+    )
 
 
 class License(StrEnum):
@@ -78,6 +93,17 @@ type Prompt = Annotated[
 type Seed = Annotated[
     int,
     Field(..., description='Seed for generated files; null for recorded ones.', ge=0),
+]
+
+
+type NoiseFloorDbfs = Annotated[
+    float,
+    Field(
+        ...,
+        description='Noise floor of the file in the repository (10th percentile of 50 ms frames, dBFS); null for files shorter than 1 s, where it would only measure the sound itself (their silent tails are trimmed).',
+        ge=-120.0,
+        le=0.0,
+    ),
 ]
 
 
@@ -128,6 +154,13 @@ class LibraryFile(BaseModel):
         description="Origin of this file when it differs from the sound's origin (A and B chosen as variants). Must be the id of an entry in this file's `origins` list (checked by BaseSoundCheck).",
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    noise_floor_dbfs: NoiseFloorDbfs | None = Field(
+        ...,
+        description='Noise floor of the file in the repository (10th percentile of 50 ms frames, dBFS); null for files shorter than 1 s, where it would only measure the sound itself (their silent tails are trimmed).',
+    )
+    cleaned: bool = Field(
+        ..., description='True if the noise gate ran before normalising.'
     )
 
 

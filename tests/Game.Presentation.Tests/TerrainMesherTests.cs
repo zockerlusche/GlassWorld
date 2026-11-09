@@ -350,7 +350,7 @@ public sealed class TerrainMesherTests
         {
             // At least one corner of the plate lies at or below the ground (within the shore lift), so
             // the ground hides part of it and the dry cell does not look flooded.
-            var ground = TerrainMesher.CornerHeights(map, x, z, look.CliffDrop);
+            var ground = TerrainMesher.CornerHeights(map, x, z, look);
             float Ground((float X, float Y, float Z) v) =>
                 ground[((int)MathF.Round((v.X / look.CellM) - x), (int)MathF.Round((v.Z / look.CellM) - z)) switch
                 {

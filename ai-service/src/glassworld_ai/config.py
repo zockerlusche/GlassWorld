@@ -43,6 +43,29 @@ class Settings(BaseSettings):
         description="VRAM/load time per model (content/hardware/models.json, B7 S2).",
     )
 
+    # Ollama at first start (B10 R3, F5266 = A)
+    ollama_runtime_file: Path = Field(
+        description="Version, source and checksum of Ollama (content/ai/ollama-runtime.json)."
+    )
+    ollama_install_dir: Path = Field(
+        description="Where a downloaded Ollama is kept (the game sets the user data folder)."
+    )
+    ollama_models_dir: Path | None = Field(
+        default=None, description="OLLAMA_MODELS for the Ollama the service starts (optional)."
+    )
+    ollama_autostart: bool = Field(
+        default=True, description="Start an installed Ollama when none answers at service start."
+    )
+    ollama_start_timeout_s: float = Field(default=60, gt=0, le=600)
+
+    # AI models at first start (B10 R4)
+    model_downloads_file: Path = Field(
+        description="Models per tier: licence, size, source (content/ai/model-downloads.json)."
+    )
+    model_store_dir: Path = Field(
+        description="Where downloaded model files go (the game sets the user data folder)."
+    )
+
     # Measurement run (B7 S7)
     benchmark_file: Path = Field(description="Saved result of the measurement run.")
     benchmark_on_first_start: bool = Field(
@@ -89,6 +112,8 @@ class Settings(BaseSettings):
     dream_prompt_version: int = Field(ge=1)
     help_prompt: str = Field(pattern=r"^[a-z][a-z0-9_]*/[a-z][a-z0-9_-]*$")
     help_prompt_version: int = Field(ge=1)
+    conversation_prompt: str = Field(pattern=r"^[a-z][a-z0-9_]*/[a-z][a-z0-9_-]*$")
+    conversation_prompt_version: int = Field(ge=1)
     builder_prompt: str = Field(pattern=r"^[a-z][a-z0-9_]*/[a-z][a-z0-9_-]*$")
     builder_prompt_version: int = Field(ge=1)
     question_call_timeout_s: float = Field(
@@ -173,6 +198,10 @@ def load_settings(config_file: Path | None = None) -> Settings:
         "image_output_dir",
         "benchmark_file",
         "image_workflows_dir",
+        "ollama_runtime_file",
+        "ollama_install_dir",
+        "model_downloads_file",
+        "model_store_dir",
     ):
         value: Path = getattr(settings, name)
         if not value.is_absolute():

@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/conversation-settings.schema.json",
+  "title": "ConversationSettings",
+  "description": "Talking with an inhabitant (B6 R13, A1342): limits of the exchange and how understanding and the relation to the player change by outcome. The core computes every change from these rules; the AI only proposes the answer (B2462). Values are placeholders until Marcel's word.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "deadline_ms",
+    "no_answer_after_hours",
+    "recent_lines_max",
+    "understanding_start",
+    "understanding_max",
+    "fear_start",
+    "refund_on_no_answer",
+    "outcomes",
+    "log_max_entries"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "deadline_ms": {
+      "description": "Deadline of a conversation request for the AI service.",
+      "type": "integer",
+      "minimum": 100,
+      "maximum": 60000
+    },
+    "no_answer_after_hours": {
+      "description": "Game hours after which an unanswered sentence counts as no answer (calm hint, R16).",
+      "type": "number",
+      "minimum": 0.05,
+      "maximum": 48
+    },
+    "recent_lines_max": {
+      "description": "How many recent lines an inhabitant keeps and sends as context.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 8
+    },
+    "understanding_start": {
+      "description": "Understanding of the player at the start (gestures before words, D333).",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "understanding_max": {
+      "description": "Highest understanding.",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "fear_start": {
+      "description": "Fear of the player at the start.",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "refund_on_no_answer": {
+      "description": "Give the favour back when no answer comes (service off, timeout).",
+      "type": "boolean"
+    },
+    "outcomes": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "items": {
+        "$ref": "#/$defs/OutcomeChange"
+      }
+    },
+    "log_max_entries": {
+      "description": "Most conversation log entries kept (newest first stay; those of sentences still waiting are always kept). Older ones leave the save, so a replay reaches back only this far (review GW1 #128).",
+      "type": "integer",
+      "minimum": 10,
+      "maximum": 100000
+    }
+  },
+  "$defs": {
+    "OutcomeChange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "outcome",
+        "understanding",
+        "affection",
+        "trust",
+        "respect",
+        "fear"
+      ],
+      "properties": {
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "reply",
+            "gesture",
+            "not_understood",
+            "decline",
+            "no_answer"
+          ]
+        },
+        "understanding": {
+          "description": "Change of understanding when an exchange ends this way (computed by the core, never taken from the answer, B2462).",
+          "type": "number",
+          "minimum": -1,
+          "maximum": 1
+        },
+        "affection": {
+          "description": "Change of affection towards the player.",
+          "type": "number",
+          "minimum": -1,
+          "maximum": 1
+        },
+        "trust": {
+          "description": "Change of trust towards the player.",
+          "type": "number",
+          "minimum": -1,
+          "maximum": 1
+        },
+        "respect": {
+          "description": "Change of respect (awe) towards the player.",
+          "type": "number",
+          "minimum": -1,
+          "maximum": 1
+        },
+        "fear": {
+          "description": "Change of fear of the player.",
+          "type": "number",
+          "minimum": -1,
+          "maximum": 1
+        }
+      }
+    }
+  }
+}

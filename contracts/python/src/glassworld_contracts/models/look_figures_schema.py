@@ -3,9 +3,12 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from enum import StrEnum
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
+
+from . import common_schema
 
 
 class FigureBody(BaseModel):
@@ -42,26 +45,51 @@ class FigureHair(BaseModel):
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
-    mesh: str = Field(
+    mesh: common_schema.VocabId | None = Field(
         ...,
-        description='Hair mesh in the body model (Hair_<mesh>).',
-        max_length=64,
-        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+        description='Hair mesh name in the figure models without the Hair_ prefix, or null for no hair (bald).',
     )
 
 
-class FigureClothing(BaseModel):
+class Color(StrEnum):
+    top = 'top'
+    bottom = 'bottom'
+
+
+type Cover = Annotated[
+    str,
+    Field(
+        ...,
+        description='Body region: forearm, thigh, lower_thigh or shin.',
+        pattern='^(forearm|thigh|lower_thigh|shin)$',
+    ),
+]
+
+
+class FigureClothingPart(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
-    style: str = Field(
+    id: str = Field(
         ...,
         description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
-    short_sleeves: bool
-    shorts: bool
+    mesh: str = Field(
+        ...,
+        description='Mesh name in the figure models without the Cloth_ prefix.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    color: Color = Field(
+        ..., description='Which clothing colour of the appearance record it takes.'
+    )
+    covers: list[Cover] = Field(
+        ...,
+        description='Body regions under this part (they take its colour).',
+        max_length=4,
+    )
 
 
 class GaitTimeScale(BaseModel):
@@ -82,7 +110,6 @@ class LookFigures(BaseModel):
     )
     bodies: list[FigureBody] = Field(..., max_length=32, min_length=1)
     hair: list[FigureHair] = Field(..., max_length=32, min_length=1)
-    clothing: list[FigureClothing] = Field(..., max_length=32, min_length=1)
     shoe_color: str = Field(..., pattern='^#[0-9a-f]{6}$')
     outline: bool = Field(..., description='Whether figures get the ink outline pass.')
     crossfade_s: float = Field(
@@ -115,4 +142,10 @@ class LookFigures(BaseModel):
         description='Height of the head anchor above the feet at scale 1 (thought bubble, question mark).',
         ge=0.5,
         le=3.0,
+    )
+    clothing_parts: list[FigureClothingPart] = Field(
+        ...,
+        description='Clothing parts as meshes on the rig (F4): which mesh, which clothing colour, and which body regions it hides (those take its colour, so the body never shows through; uncovered regions are skin).',
+        max_length=32,
+        min_length=1,
     )

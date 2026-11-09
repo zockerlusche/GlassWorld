@@ -191,8 +191,16 @@
       "schema": "murmur-settings"
     },
     {
+      "pattern": "player/conversation.json",
+      "schema": "conversation-settings"
+    },
+    {
       "pattern": "skills/practice.json",
       "schema": "skill-practice"
+    },
+    {
+      "pattern": "skills/levels.json",
+      "schema": "skill-level-settings"
     },
     {
       "pattern": "writing/media.json",
@@ -233,6 +241,14 @@
     {
       "pattern": "look/objects.json",
       "schema": "look-objects"
+    },
+    {
+      "pattern": "ai/ollama-runtime.json",
+      "schema": "ollama-runtime"
+    },
+    {
+      "pattern": "ai/model-downloads.json",
+      "schema": "model-downloads"
     }
   ]
 }

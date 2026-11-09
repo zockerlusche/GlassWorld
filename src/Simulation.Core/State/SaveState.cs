@@ -75,8 +75,20 @@ public sealed record SaveState(
     /// <summary>New skills of inventions (A1372); null in save games from before or without any.</summary>
     public SkillRegisterState? Skills { get; init; }
 
+    /// <summary>Practised skill gains per inhabitant (B5 part); null when nobody has practised.</summary>
+    public IReadOnlyList<SkillGain>? SkillGains { get; init; }
+
     /// <summary>The mailbox (B6 R11); null in save games from before.</summary>
     public Player.MailboxState? Mailbox { get; init; }
+
+    /// <summary>Conversations with the player (B6 R13); null when nobody has been spoken to.</summary>
+    public Player.ConversationState? Conversation { get; init; }
+
+    /// <summary>
+    /// Fingerprint of the content data the world ran with (set by the saving host, not world state and not in
+    /// the hash); null in older save games and when the host did not set it. Replays compare it first.
+    /// </summary>
+    public string? ContentFingerprint { get; init; }
 }
 
 /// <summary>Captures and restores the complete state of a <see cref="SimulationHost"/>.</summary>
@@ -125,7 +137,9 @@ public static class StateCodec
             IslandData = host.Map is { } map ? Map.IslandCodec.Encode(map.Island, map.CellSizeCm) : null,
             Weather = host.WeatherSystem?.Capture(),
             Skills = host.Skills.HasState ? host.Skills.Capture() : null,
+            SkillGains = host.SkillLevels.HasState ? host.SkillLevels.Capture() : null,
             Mailbox = host.Mailbox.Capture(),
+            Conversation = host.Conversation.HasState || host.Conversation.Log.Count > 0 ? host.Conversation.Capture() : null,
         };
     }
 
@@ -155,6 +169,7 @@ public static class StateCodec
 
         host.Chronicle.Restore(state.Chronicle ?? []);
         host.Skills.Restore(state.Skills);
+        host.SkillLevels.Restore(state.SkillGains);
         foreach (var obj in state.Objects)
         {
             host.Objects.Restore(obj, state.NextObjectNumber);
@@ -180,7 +195,8 @@ public static class StateCodec
                 NeglectTicks = saved.NeglectTicks,
                 Activity = saved.Activity,
                 Planned = saved.Planned,
-                Appearance = saved.Appearance,
+                // Ids renamed since the save get their current ids (F4), so the figure can be drawn.
+                Appearance = saved.Appearance?.WithCurrentIds(factory.Content.Appearance),
             };
             foreach (var belief in saved.Beliefs)
             {
@@ -207,6 +223,7 @@ public static class StateCodec
             state.DecisionLog);
         host.Player.Restore(state.Player);
         host.Mailbox.Restore(state.Mailbox);
+        host.Conversation.Restore(state.Conversation);
         if (state.Weather is not null)
         {
             host.WeatherSystem?.Restore(state.Weather, state.Tick);

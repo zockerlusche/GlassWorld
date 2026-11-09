@@ -31,7 +31,14 @@ real problem.
      leftovers; a leftover is terminated before a new service starts.
   On shutdown the service unloads the model (Ollama `keep_alive=0`) to free VRAM.
 - **External programs:** Ollama and ComfyUI are external processes; the
-  service detects but does not start them. `/health` reports them separately.
+  service detects them. `/health` reports them separately.
+  *Amendment (B10 R3, F5266 = A, 08.11.2026):* Ollama is not shipped. If no
+  usable Ollama runs or is installed, the game offers the download in its
+  first-start dialog; after the player agreed, the service loads the official
+  release pinned in `content/ai/ollama-runtime.json` (SHA-256 checked) into the
+  user data folder and starts `ollama serve` bound to the configured localhost
+  address. It stops only an Ollama it started itself, never the player's own.
+  ComfyUI is still never started by the service (B2514).
 - **Health:** `GET /health` reports `starting | ready | degraded` (model missing
   or loading), each external dependency and the `contract_version`. The game
   refuses a service with a different contract version. Schema `HealthStatus`

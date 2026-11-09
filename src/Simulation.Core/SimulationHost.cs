@@ -119,6 +119,7 @@ public sealed class SimulationHost
         var objects = new WorldObjects(types);
         WorldMapSystem? map = null;
         Weather.WeatherSystem? weather = null;
+        string? climate = null;
         if (worldPreset is not null)
         {
             if (!content.WorldGen.Presets.TryGetValue(worldPreset, out var preset))
@@ -141,6 +142,8 @@ public sealed class SimulationHost
             map = new WorldMapSystem(island, savedIsland?.CellSizeCm ?? preset.Grid.CellSizeCm, objects, regrow) { NodeBudget = preset.Pathfinding.NodeBudget };
             world.Add(map);
 
+            climate = preset.Climate.ClimateId;
+
             // Weather of the preset's climate (B2 R13); worlds without a preset (placeholder) have none.
             // The weather is island-wide for now; its height drop stands for the mean height of the start cells.
             var startHeight = island.Starts.Count == 0 ? 0 : island.Starts.Sum(s => Math.Max(0, island.Map.Cell(s.X, s.Z).Height - preset.Terrain.SeaLevel)) / island.Starts.Count;
@@ -153,7 +156,20 @@ public sealed class SimulationHost
             world.Add(weather);
         }
 
-        var inhabitants = new InhabitantsSystem(content.InhabitantModel, actions, content.Brain, content.Gaits, objects, world.Calendar.Settings.TicksPerHour) { Looks = content.Appearance, Routes = map, Knowledge = content.Knowledge, EventKinds = content.EventKinds };
+        var inhabitants = new InhabitantsSystem(content.InhabitantModel, actions, content.Brain, content.Gaits, objects, world.Calendar.Settings.TicksPerHour)
+        {
+            Looks = content.Appearance,
+            Routes = map,
+            Knowledge = content.Knowledge,
+            EventKinds = content.EventKinds,
+
+            // Start clothing fits the season, the climate, the biome at the place and the tech level (F4).
+            ClothingAt = (w, at) => new ClothingContext(
+                w.Now.SeasonId,
+                climate,
+                map?.CellOf(at) is { } cell ? map.Map.BiomeAt(cell.X, cell.Z) : null,
+                content.Inventions.Settings.TechLevel),
+        };
         var decisions = new DecisionsSystem(settings, inhabitants, objects, actions, content.Brain, content.Vocabularies[VocabularyKind.Action], port, displayLocale)
         {
             WeatherSource = weather,
@@ -167,6 +183,10 @@ public sealed class SimulationHost
         var chronicle = new ChronicleSystem(content.Chronicle);
         inhabitants.Reported += chronicle.Observe;
         var skills = new SkillRegister(content.InhabitantModel.Skills, content.InhabitantModel.SkillRules, content.SkillPractice);
+
+        // Skill levels per inhabitant (B5 part): finished actions practise their skills.
+        var skillLevels = new SkillLevelsSystem(content.SkillLevels, skills, world.Seed, world.Calendar.TicksPerDay);
+        inhabitants.Reported += skillLevels.Observe;
 
         // New skills of an approved invention enter the register right away (refused ones are dropped, the invention stays).
         inhabitants.Reported += e =>
@@ -191,12 +211,19 @@ public sealed class SimulationHost
         var mailbox = new Simulation.Player.MailboxSystem(content.MessageKinds, inhabitants, player, world.Calendar.Settings.TicksPerHour);
         decisions.RegisterCommand(Simulation.Player.MailboxSystem.Acknowledge, mailbox.Check, mailbox.Apply);
 
+        // Talking with an inhabitant (B6 R13): the AI port is set by the game, the core decides.
+        var expressions = content.Vocabularies[VocabularyKind.Expression].Entries.Select(e => e.Id).ToHashSet(StringComparer.Ordinal);
+        var conversation = new Simulation.Player.ConversationSystem(content.Conversation, content.Knowledge, inhabitants, player, decisions, content.Inventions.Guard, expressions, displayLocale, world.Calendar.Settings.TicksPerHour);
+        decisions.RegisterCommand(Simulation.Player.ConversationSystem.SendText, conversation.Check, conversation.Apply);
+
         // The mailbox after the chronicle (agreed order): help_needed is reported by the player system earlier in the tick.
-        world.Add(objects).Add(decisions).Add(inhabitants).Add(player).Add(inventions).Add(chronicle).Add(writing).Add(skills).Add(mailbox);
+        world.Add(objects).Add(decisions).Add(inhabitants).Add(player).Add(inventions).Add(chronicle).Add(writing).Add(skills).Add(skillLevels).Add(mailbox).Add(conversation);
         return new SimulationHost(content, world, map, types, objects, decisions, inhabitants, player, inventions, chronicle, settings, writing, skills, mailbox)
         {
             WeatherSystem = weather,
             Weather = weather,
+            SkillLevels = skillLevels,
+            Conversation = conversation,
         };
     }
 
@@ -274,6 +301,12 @@ public sealed class SimulationHost
 
     /// <summary>The weather system itself (save games, debug jumps, player intervention); null without weather.</summary>
     public Weather.WeatherSystem? WeatherSystem { get; private init; }
+
+    /// <summary>Talking with inhabitants (B6 R13, A1342).</summary>
+    public Player.ConversationSystem Conversation { get; private init; } = null!;
+
+    /// <summary>Skill levels per inhabitant (start level, talent, practice; B5 part).</summary>
+    public SkillLevelsSystem SkillLevels { get; private init; } = null!;
 
     private static Position Scatter(Random.Pcg32 rng, Position centre, double radius) =>
         new(centre.X + (((rng.NextDouble() * 2.0) - 1.0) * radius), centre.Z + (((rng.NextDouble() * 2.0) - 1.0) * radius));

@@ -48,4 +48,4 @@ exclude = ["**/__pycache__", ".venv"]
 [tool.pytest.ini_options]
 addopts = "-ra --strict-markers --import-mode=importlib"
 pythonpath = ["ai-service/tests"]
-testpaths = ["contracts", "ai-service"]
+testpaths = ["contracts", "ai-service", "tools/licenses"]

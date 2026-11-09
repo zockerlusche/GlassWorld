@@ -12,7 +12,14 @@ skinned to
 the Quaternius bones with smooth weights at the joints. Hair styles are separate skinned meshes the
 game switches by appearance data. Body regions are written into the vertex colour red channel
 (index / 10) for the warm comic shader: 1 skin, 2 top, 3 bottom, 4 shoes, 5 hair, 6 shin, 7 forearm,
-8 thigh, 9 eyes. The mesh is our own work (MIT, like the repository); the clips stay CC0.
+8 thigh, 9 eyes, 10 lower thigh. Forearm, thigh, lower thigh and shin are skin or cloth colour as
+the worn clothing parts say (F4). Clothing parts (shirt, tunic, dress, skirts, trousers) are
+separate skinned meshes slightly outside the body with straight hems; they carry the same body
+and form blend shapes as the body, so they follow heavy/thin/strong/belly and the sex
+proportions (bust, waist, hips, shoulders). A top and the waistband under it share ring heights
+around the hips, so the top always covers it; skirts, tunic and dress follow the thighs below the
+hips and have an inside lining. The mesh is our own work (MIT, like the repository);
+the clips stay CC0.
 """
 
 import contextlib
@@ -26,7 +33,18 @@ import bmesh
 import bpy
 from mathutils import Vector
 
-SKIN, TOP, BOTTOM, SHOES, HAIR, SHIN, FOREARM, THIGH, EYES = 1, 2, 3, 4, 5, 6, 7, 8, 9
+SKIN, TOP, BOTTOM, SHOES, HAIR, SHIN, FOREARM, THIGH, EYES, LOWER_THIGH = (
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+)
 UP = Vector((0, 0, 1))
 FWD = Vector((0, -1, 0))  # the rig faces -Y in Blender
 LEFT = Vector((1, 0, 0))  # .L bones lie on +X
@@ -57,8 +75,11 @@ def orient_outward(bm, inside=None):
 class Part:
     """One piece of a body: a bmesh plus functions for region and bone weights per vertex."""
 
-    def __init__(self, bm, region, weights, inside=None):
+    def __init__(self, bm, region, weights, inside=None, inward=False):
         self.bm = orient_outward(bm, inside)
+        if inward:  # a lining: its faces look into the garment
+            bmesh.ops.reverse_faces(self.bm, faces=self.bm.faces)
+            self.bm.normal_update()
         self.region = region if callable(region) else (lambda p, r=region: r)
         self.weights = weights if callable(weights) else (lambda p, w=weights: {w: 1.0})
 
@@ -290,6 +311,106 @@ def shaped(spec, shape):
     return s
 
 
+FORMS = {
+    # sex proportions as blend shapes (TL #19327, F4): subtle, comic, age 12+ (B2466); weight 0..1
+    "bust": None,  # a soft forward hint on the chest (displacement, see bust_offset)
+    "waist": {"waist": (0.88, 0.92)},
+    "hips": {"hips": (1.1, 1.06)},
+    "shoulders_narrow": {"shoulders": 0.9},
+    "shoulders_broad": {"shoulders": 1.1, "chest": (1.04, 1.02)},
+}
+
+
+def formed(spec, form):
+    """The body spec with one sex proportion at full weight."""
+    s = json.loads(json.dumps(spec))
+    s.setdefault("form", {})[form] = 1.0
+    return s
+
+
+def torso_profile(rig, spec):
+    """Rings (z, rx, ry) of the torso from below the hips to the neck, with the sex proportions."""
+    hips_z = rig.h("DEF-hips").z
+    top_z = rig.h("DEF-neck").z
+    form = spec.get("form", {})
+    waist_k, hips_k, chest_k = [1.0, 1.0], [1.0, 1.0], [1.0, 1.0]
+    shoulders = 1.0
+    for name, weight in form.items():
+        m = FORMS[name]
+        if not m or weight == 0:
+            continue
+        for key, target in (("waist", waist_k), ("hips", hips_k), ("chest", chest_k)):
+            if key in m:
+                target[0] *= 1 + (m[key][0] - 1) * weight
+                target[1] *= 1 + (m[key][1] - 1) * weight
+        if "shoulders" in m:
+            shoulders *= 1 + (m["shoulders"] - 1) * weight
+    profile = [
+        (hips_z - 0.07, 0.6),
+        (hips_z - 0.03, 0.92),
+        (hips_z + 0.02, 1.0),
+        (hips_z + 0.12, 0.0),
+        (hips_z + 0.24, 0.5),
+        (hips_z + 0.36, 1.0),
+        (top_z - 0.08, 1.0),
+        (top_z - 0.03, 0.9),
+        (top_z + 0.0, 0.66),
+        (top_z + 0.02, 0.34),
+    ]
+    hips = [spec["hips"][0] * hips_k[0], spec["hips"][1] * hips_k[1]]
+    waist = [spec["waist"][0] * waist_k[0], spec["waist"][1] * waist_k[1]]
+    chest = [spec["chest"][0] * chest_k[0], spec["chest"][1] * chest_k[1]]
+    rings = []
+    for i, (z, k) in enumerate(profile):
+        if i < 3:
+            rx, ry = hips[0] * k, hips[1] * k
+        elif i == 3:
+            rx, ry = waist
+        else:
+            rx = waist[0] + (chest[0] - waist[0]) * k if i < 7 else chest[0] * k
+            ry = waist[1] + (chest[1] - waist[1]) * k if i < 7 else chest[1] * k
+        if i >= 6:
+            rx *= shoulders
+        rings.append((z, rx, ry))
+    return rings
+
+
+def profile_at(rings, z):
+    """Torso radii at height z (linear between the rings, clamped at the ends)."""
+    if z <= rings[0][0]:
+        return rings[0][1], rings[0][2]
+    for (z0, ax, ay), (z1, bx, by) in itertools.pairwise(rings):
+        if z0 <= z <= z1:
+            t = (z - z0) / (z1 - z0)
+            return ax + (bx - ax) * t, ay + (by - ay) * t
+    return rings[-1][1], rings[-1][2]
+
+
+def bust_offset(rig, spec):
+    """Forward offset of the chest front for the bust form: two soft, low bumps (comic, subtle)."""
+    weight = spec.get("form", {}).get("bust", 0.0)
+    zc = rig.h("DEF-hips").z + 0.39
+    spread = spec["chest"][0] * 0.45
+
+    def offset(p):
+        if weight == 0 or p.y > 0.012:  # only the front half (the rig faces -Y)
+            return Vector()
+        front = smooth(0.012, -0.05, p.y)
+        bump = 0.0
+        for side in (-1, 1):
+            dx, dz = (p.x - side * spread) / 0.075, (p.z - zc) / 0.07
+            bump = max(bump, math.exp(-(dx * dx + dz * dz)))
+        return FWD * (0.024 * weight * bump * front)
+
+    return offset
+
+
+def displace(bm, offset):
+    for v in bm.verts:
+        v.co += offset(v.co)
+    return bm
+
+
 def mouth(centre, r, shape):
     """A drawn-looking mouth on the face: a flat dark ellipse bent by the expression."""
     width, height, curve = MOUTHS[shape]
@@ -307,42 +428,12 @@ def mouth(centre, r, shape):
 def build_body(rig, spec, expression="neutral", blink=False):
     parts = []
     hips_z = rig.h("DEF-hips").z
-    top_z = rig.h("DEF-neck").z
     sh = spec
-    # torso: rings from below the hips to the shoulders, wider at the chest
-    rings = []
-    profile = [
-        (hips_z - 0.07, 0.6),
-        (hips_z - 0.03, 0.92),
-        (hips_z + 0.02, 1.0),
-        (hips_z + 0.12, 0.0),
-        (hips_z + 0.24, 0.5),
-        (hips_z + 0.36, 1.0),
-        (top_z - 0.08, 1.0),
-        (top_z - 0.03, 0.9),
-        (top_z + 0.0, 0.66),
-        (top_z + 0.02, 0.34),
-    ]
-    for i, (z, k) in enumerate(profile):
-        if i < 3:
-            rx, ry = sh["hips"][0] * k, sh["hips"][1] * k
-        elif i == 3:
-            rx, ry = sh["waist"]
-        else:
-            rx = (
-                sh["waist"][0] + (sh["chest"][0] - sh["waist"][0]) * k
-                if i < 7
-                else sh["chest"][0] * k
-            )
-            ry = (
-                sh["waist"][1] + (sh["chest"][1] - sh["waist"][1]) * k
-                if i < 7
-                else sh["chest"][1] * k
-            )
-        rings.append((Vector((0, 0.012, z)), LEFT, rx, FWD, ry))
+    # torso: rings from below the hips to the shoulders, wider at the chest (with the sex forms)
+    rings = [(Vector((0, 0.012, z)), LEFT, rx, FWD, ry) for z, rx, ry in torso_profile(rig, sh)]
     parts.append(
         Part(
-            loft(rings, 20),
+            displace(loft(rings, 20), bust_offset(rig, sh)),
             lambda p, hz=hips_z: BOTTOM if p.z < hz + 0.07 else TOP,
             torso_weights(rig),
         )
@@ -411,23 +502,6 @@ def build_body(rig, spec, expression="neutral", blink=False):
                 along(ua, inner, b, parent=sho, child=fa, parent_share=0.6),
             )
         )
-        if sleeve > 0:
-            hem = a + (b - a) * sleeve
-            parts.append(
-                Part(
-                    capsule(
-                        hem - d_ua * 0.012,
-                        hem + d_ua * 0.012,
-                        sh["upper_arm"][0] * 1.07,
-                        sh["upper_arm"][0] * 1.06,
-                        14,
-                        1,
-                        2,
-                    ),
-                    TOP,
-                    along(ua, inner, b, parent=sho, child=fa, parent_share=0.6),
-                )
-            )
         parts.append(
             Part(
                 capsule(b, c, sh["forearm"][0], sh["forearm"][1]),
@@ -453,16 +527,11 @@ def build_body(rig, spec, expression="neutral", blink=False):
     for s in ("L", "R"):
         th, sn, ft = f"DEF-thigh.{s}", f"DEF-shin.{s}", f"DEF-foot.{s}"
         a, b, c = rig.h(th), rig.h(sn), rig.h(ft)
-        shorts = sh.get("shorts", 0.0)
-        thigh_region = (
-            (
-                lambda p, a=a, b=b, s=shorts: (
-                    BOTTOM if (p - a).dot(b - a) / (b - a).length_squared < s else SHIN
-                )
-            )
-            if shorts > 0
-            else BOTTOM
-        )
+        split = sh.get("thigh_split", 0.5)
+
+        def thigh_region(p, a=a, b=b, s=split):
+            return THIGH if (p - a).dot(b - a) / (b - a).length_squared < s else LOWER_THIGH
+
         parts.append(
             Part(
                 capsule(a + Vector((0, 0, 0.04)), b, sh["thigh"][0], sh["thigh"][1]),
@@ -470,24 +539,6 @@ def build_body(rig, spec, expression="neutral", blink=False):
                 along(th, a, b, parent="DEF-hips", child=sn, parent_share=0.4),
             )
         )
-        if shorts > 0:
-            hem = a + (b - a) * shorts
-            dl = (b - a).normalized()
-            parts.append(
-                Part(
-                    capsule(
-                        hem - dl * 0.015,
-                        hem + dl * 0.015,
-                        sh["thigh"][0] * 1.14,
-                        sh["thigh"][0] * 1.12,
-                        14,
-                        1,
-                        2,
-                    ),
-                    BOTTOM,
-                    along(th, a, b, parent="DEF-hips", child=sn, parent_share=0.4),
-                )
-            )
         parts.append(
             Part(
                 capsule(b, c, sh["shin"][0], sh["shin"][1]),
@@ -512,46 +563,14 @@ def build_body(rig, spec, expression="neutral", blink=False):
             )
         )
 
-    # waistband: the trousers or skirt start with a visible edge
-    band_z = hips_z + 0.07
-    parts.append(
-        Part(
-            capsule(
-                Vector((0, 0.012, band_z - 0.018)),
-                Vector((0, 0.012, band_z + 0.018)),
-                sh["waist"][0] * 1.08,
-                sh["waist"][0] * 1.08,
-                20,
-                1,
-                2,
-            ),
-            BOTTOM,
-            torso_weights(rig),
-        )
-    )
-    if sh.get("skirt"):
-        top = hips_z + 0.06
-        bottom = rig.h("DEF-shin.L").z + 0.1
-        rings = []
-        for k in range(7):
-            t = k / 6
-            z = top + (bottom - top) * t
-            rx = sh["hips"][0] * (1.02 + 0.55 * t)
-            ry = sh["hips"][1] * (1.05 + 0.5 * t)
-            rings.append((Vector((0, 0.012, z)), LEFT, rx, FWD, ry))
-
-        def skirt_weights(p, top=top, bottom=bottom):
-            t = max(0.0, min(1.0, (top - p.z) / (top - bottom)))
-            side = "L" if p.x > 0 else "R"
-            leg = t * 0.55 * smooth(0.0, 0.08, abs(p.x))
-            return {"DEF-hips": 1 - leg, f"DEF-thigh.{side}": leg}
-
-        parts.append(Part(loft(rings, 20, cap=False), BOTTOM, skirt_weights))
     return parts, centre, r
 
 
-def hair_parts(style, centre, r):
-    """Hair as a shell over the top and back of the head, open at the face; plus style volumes."""
+HAIR_STYLES = ("short", "shoulder_length", "long", "braid", "bun", "curls")  # bald: no mesh
+
+
+def hair_shell(style, centre, r):
+    """A shell over the top and back of the head, open at the face."""
     shell = ellipsoid(
         centre + UP * (r * 0.05) - FWD * (r * 0.04), r * 1.06, r * 1.08, r * 1.04, 24, 16
     )
@@ -561,42 +580,54 @@ def hair_parts(style, centre, r):
         fwd = rel.dot(FWD) / r
         up = rel.dot(UP) / r
         side = abs(rel.dot(LEFT)) / r
-        fringe = 0.42 if style != "tousled" else 0.3
+        fringe = 0.3 if style == "curls" else 0.42
         keep = (
             up > fringe
             or (fwd < 0.05 and up > -0.55)
             or (fwd < -0.3 and up > -0.85)
             or (side > 0.72 and up > 0.0 and fwd < 0.55)
         )
-        if style == "long":
+        if style in ("long", "shoulder_length"):
             keep = keep or (fwd < 0.15 and up > -0.75)
         if not keep:
             remove.append(v)
     bmesh.ops.delete(shell, geom=remove, context="VERTS")
-    parts = [Part(shell, HAIR, "DEF-head", inside=centre)]
+    return shell
+
+
+def neck_blend(centre, r):
+    """Weights for hair hanging down the back: head, blending into the neck lower down."""
+
+    def weights(p, z0=centre.z - r):
+        share = smooth(z0, z0 - 0.3, p.z) * 0.6
+        return {"DEF-head": 1.0 - share, "DEF-neck": share}
+
+    return weights
+
+
+def back_volume(centre, r, length):
+    """Hair falling down the back, full width at the head, rounding off at the tips."""
+    back = []
+    steps = 10
+    for k in range(steps + 1):
+        t = k / steps
+        z = centre.z - r * 0.1 - t * (r * length)
+        c = centre - FWD * (r * (0.6 + 0.12 * t))
+        round_off = math.sqrt(max(0.0, 1 - max(0.0, (t - 0.65) / 0.35) ** 2))
+        width = r * (0.92 - 0.2 * t) * max(0.18, round_off)
+        depth = r * (0.45 - 0.12 * t) * max(0.25, round_off)
+        back.append((Vector((c.x, c.y, z)), LEFT, width, FWD, depth))
+    return Part(loft(back, 18), HAIR, neck_blend(centre, r))
+
+
+def hair_parts(style, centre, r):
+    """One hair style as parts: shell plus the volumes of the style (F4 hair kit)."""
+    parts = [Part(hair_shell(style, centre, r), HAIR, "DEF-head", inside=centre)]
     if style == "long":
-        back = []
-        steps = 10
-        for k in range(steps + 1):
-            t = k / steps
-            z = centre.z - r * 0.1 - t * (r * 1.5)
-            c = centre - FWD * (r * (0.6 + 0.12 * t))
-            # full width at the head, then narrowing and rounding off at the tips
-            round_off = math.sqrt(max(0.0, 1 - max(0.0, (t - 0.65) / 0.35) ** 2))
-            width = r * (0.92 - 0.2 * t) * max(0.18, round_off)
-            depth = r * (0.45 - 0.12 * t) * max(0.25, round_off)
-            back.append((Vector((c.x, c.y, z)), LEFT, width, FWD, depth))
-        parts.append(
-            Part(
-                loft(back, 18),
-                HAIR,
-                lambda p, z0=centre.z - r: {
-                    "DEF-head": 1.0 - smooth(z0, z0 - 0.3, p.z) * 0.6,
-                    "DEF-neck": smooth(z0, z0 - 0.3, p.z) * 0.6,
-                },
-            )
-        )
-    if style in ("short", "tousled"):
+        parts.append(back_volume(centre, r, 1.5))
+    elif style == "shoulder_length":
+        parts.append(back_volume(centre, r, 0.95))
+    if style == "short":
         for k, side in enumerate((-0.38, 0.0, 0.38)):
             lobe = (
                 centre - FWD * (r * 0.78) + LEFT * (side * r) + UP * (r * (-0.28 - 0.06 * (k % 2)))
@@ -604,7 +635,7 @@ def hair_parts(style, centre, r):
             parts.append(
                 Part(ellipsoid(lobe, r * 0.34, r * 0.28, r * 0.36, 12, 8), HAIR, "DEF-head")
             )
-    if style == "bun":
+    elif style == "bun":
         parts.append(
             Part(
                 ellipsoid(
@@ -614,13 +645,256 @@ def hair_parts(style, centre, r):
                 "DEF-head",
             )
         )
-    elif style == "tousled":
-        for k, (dx, dz) in enumerate(
-            ((-0.45, 0.85), (0.0, 0.98), (0.45, 0.85), (-0.25, 0.7), (0.3, 0.72))
-        ):
-            tuft = centre + LEFT * (dx * r) + UP * (dz * r) + FWD * (0.15 * r * (k % 2))
-            parts.append(Part(ellipsoid(tuft, r * 0.3, r * 0.3, r * 0.22, 10, 6), HAIR, "DEF-head"))
+    elif style == "braid":
+        # one plait down the back: overlapping, slightly alternating beads, a small tie at the end
+        for k in range(7):
+            t = k / 6
+            bead = (
+                centre
+                - FWD * (r * (0.86 + 0.08 * t))
+                + LEFT * (r * 0.05 * (1 if k % 2 else -1))
+                + UP * (-r * (0.35 + 1.25 * t))
+            )
+            size = r * (0.2 - 0.07 * t)
+            parts.append(
+                Part(
+                    ellipsoid(bead, size, size * 0.85, size * 1.25, 10, 8),
+                    HAIR,
+                    neck_blend(centre, r),
+                )
+            )
+        tie = centre - FWD * (r * 0.95) + UP * (-r * 1.72)
+        parts.append(
+            Part(ellipsoid(tie, r * 0.1, r * 0.1, r * 0.08, 8, 6), HAIR, neck_blend(centre, r))
+        )
+    elif style == "curls":
+        # round curls all over the top, sides and back (not in the face)
+        for row, (up, count) in enumerate(((0.92, 3), (0.62, 6), (0.28, 7), (-0.12, 6))):
+            for k in range(count):
+                ang = (
+                    math.pi * (0.15 + 0.7 * k / max(1, count - 1))
+                    if row
+                    else math.pi * (0.3 + 0.4 * k / max(1, count - 1))
+                )
+                ring = math.sqrt(max(0.0, 1 - up * up))
+                direction = LEFT * (math.cos(ang) * ring) - FWD * (math.sin(ang) * ring) + UP * up
+                if row == 0:
+                    direction = LEFT * ((k - 1) * 0.35) + UP * up - FWD * 0.1
+                curl = centre + direction.normalized() * (r * 1.02)
+                parts.append(
+                    Part(ellipsoid(curl, r * 0.26, r * 0.26, r * 0.24, 10, 6), HAIR, "DEF-head")
+                )
     return parts
+
+
+GARMENTS = (
+    "shirt",
+    "tunic",
+    "dress",
+    "skirt_short",
+    "skirt_long",
+    "trousers_short",
+    "trousers_long",
+)
+TOP_OFFSET, BOTTOM_OFFSET = 1.1, 1.07
+
+
+def skirt_weights(rig, top, follow=1.0, reach=0.6):
+    """Below the hips a skirt follows the hips and, more and more downwards, the thighs: fully from
+    reach of the way to the knee on (follow is the share there).
+
+    Front and back between the legs follow both thighs (half each at the middle), so a thigh that
+    swings forward takes the cloth in front of it along instead of pushing through it.
+    """
+    torso = torso_weights(rig)
+    knee = rig.h("DEF-shin.L").z
+    thigh_x = abs(rig.h("DEF-thigh.L").x)
+
+    def weights(p):
+        if p.z >= top:
+            return torso(p)
+        leg = smooth(top, top - reach * max(0.05, top - knee), p.z) * follow
+        left = smooth(-0.35 * thigh_x, 0.35 * thigh_x, p.x)
+        return {"DEF-hips": 1 - leg, "DEF-thigh.L": leg * left, "DEF-thigh.R": leg * (1 - left)}
+
+    return weights
+
+
+TOP_ROOM = 1.45  # thigh clearance of a tunic or dress (trouser legs under it)
+UNDER_TOP_REACH = 0.3  # tunic, dress and the trousers' seat under them follow the thighs early
+WAIST_STEP = 0.025  # garments share ring heights around the hips (hips + 0.04 + k * step)
+
+
+def ring_heights(rig, top_z, bottom_z, steps):
+    """Ring heights from top_z down to bottom_z: even steps, but on a common grid around the hips,
+    so a top and the waistband under it have rings at the same heights and the top stays outside
+    between them (no waistband showing through the top's hem)."""
+    hips_z = rig.h("DEF-hips").z
+    lo, hi = hips_z - 0.09, hips_z + 0.21
+    grid = [hips_z + 0.04 + WAIST_STEP * k for k in range(-6, 8)]
+    even = [top_z + (bottom_z - top_z) * k / steps for k in range(1, steps)]
+    inner = [z for z in even if not lo < z < hi] + [z for z in grid if lo <= z <= hi]
+    heights = [top_z]
+    for z in sorted(inner, reverse=True):
+        if heights[-1] - z >= 0.008 and z - bottom_z >= 0.008:
+            heights.append(z)
+    return [*heights, bottom_z]
+
+
+def thigh_clearance(rig, spec, offset, z, room=1.22):
+    """Half width a garment needs at height z to hold the thighs (their round tops included)."""
+    thigh_x = abs(rig.h("DEF-thigh.L").x)
+    r = spec["thigh"][0] * room * offset
+    centre = rig.h("DEF-thigh.L").z + 0.04  # the top of the thigh capsule is a ball here
+    h = max(0.0, z - centre)
+    if h >= r:
+        return 0.0, 0.0
+    half = math.sqrt(r * r - h * h)
+    return thigh_x * offset + half, half
+
+
+def wrap(rig, spec, top_z, bottom_z, offset, flare, steps, collar=None, room=1.22):
+    """A garment around the torso from top_z down to bottom_z: the torso shape scaled outwards.
+
+    Below the hips it widens by flare towards the straight hem; collar is the neck opening radius;
+    room is the thigh clearance (as a share of the thigh radius).
+    """
+    profile = torso_profile(rig, spec)
+    hips_z = rig.h("DEF-hips").z
+    flare_from = hips_z - 0.03
+    thigh_x = abs(rig.h("DEF-thigh.L").x)
+    rings = []
+    if collar is not None:
+        rings.append((Vector((0, 0.012, top_z + 0.012)), LEFT, collar, FWD, collar * 0.9))
+    for z in ring_heights(rig, top_z, bottom_z, steps):
+        if z >= flare_from:
+            rx, ry = profile_at(profile, z)
+            rx, ry = rx * offset, ry * offset
+        else:
+            hx, hy = profile_at(profile, flare_from)
+            t = (flare_from - z) / max(0.01, flare_from - bottom_z)
+            rx, ry = hx * (offset + flare * t), hy * (offset + flare * 0.8 * t)
+        # round D355 hips: the thighs stand out of the torso, so a garment there must clear them;
+        # the clearance follows the round top of the thighs, so it grows smoothly (no step)
+        clear, thigh_r = thigh_clearance(rig, spec, offset, z, room)
+        if clear > 0:
+            rx = max(rx, clear * (1 + flare * max(0.0, (flare_from - z)) * 2))
+            # the ellipse must also hold the thigh circle in depth: ry >= r / sqrt(1 - (x / rx)^2)
+            inner = max(0.05, 1 - (thigh_x * offset / rx) ** 2)
+            ry = max(ry, thigh_r / math.sqrt(inner))
+        rings.append((Vector((0, 0.012, z)), LEFT, rx, FWD, ry))
+    # straight hem with a small lip
+    centre, _, rx, _, ry = rings[-1]
+    rings.append((centre + Vector((0, 0, -0.004)), LEFT, rx * 1.03, FWD, ry * 1.03))
+    return loft(rings, 20, cap=False)
+
+
+def lining(bm, k=0.985):
+    """The garment's inside: a copy just within it whose faces look inwards, so a look under a hem
+    or into a fold shows cloth instead of the body behind (Godot culls back faces)."""
+    inside = bm.copy()
+    for v in inside.verts:
+        v.co.x *= k
+        v.co.y = 0.012 + (v.co.y - 0.012) * k
+    return inside
+
+
+def tube(points, radii, segments=14):
+    """An open tube through the points, rings perpendicular to the path, hem lip at the end."""
+    rings = []
+    for i, (pt, r) in enumerate(zip(points, radii, strict=True)):
+        a = points[max(0, i - 1)]
+        b = points[min(len(points) - 1, i + 1)]
+        right, other = frame(b - a)
+        rings.append((pt, right, r, other, r))
+    pt, right, r, other, _ = rings[-1]
+    d = (points[-1] - points[-2]).normalized()
+    rings.append((pt + d * 0.004, right, r * 1.06, other, r * 1.06))
+    return loft(rings, segments, cap=False)
+
+
+def sleeves(rig, spec, length):
+    parts = []
+    for s in ("L", "R"):
+        sho, ua, fa = f"DEF-shoulder.{s}", f"DEF-upper_arm.{s}", f"DEF-forearm.{s}"
+        a, b = rig.h(ua), rig.h(fa)
+        d = (b - a).normalized()
+        inner = a - d * (spec["upper_arm"][0] * 1.2)
+        hem = a + (b - a) * length
+        points = [inner + (hem - inner) * (k / 5) for k in range(6)]
+        radii = [spec["upper_arm"][0] * (1.24 - 0.06 * k / 5) for k in range(6)]
+        parts.append(
+            Part(
+                tube(points, radii),
+                TOP,
+                along(ua, inner, b, parent=sho, child=fa, parent_share=0.6),
+            )
+        )
+    return parts
+
+
+def legs(rig, spec, long):
+    parts = []
+    for s in ("L", "R"):
+        th, sn, ft = f"DEF-thigh.{s}", f"DEF-shin.{s}", f"DEF-foot.{s}"
+        a, b, c = rig.h(th) + Vector((0, 0, -0.03)), rig.h(sn), rig.h(ft)
+        thigh_w = along(th, rig.h(th), b, parent="DEF-hips", child=sn, parent_share=0.4)
+        shin_w = along(sn, b, c, parent=th, child=ft)
+        if long:
+            points = [a + (b - a) * (k / 4) for k in range(5)]
+            points += [b + (c - b) * (k / 4) for k in range(1, 4)]
+            radii = [spec["thigh"][0] * 1.16 - k * 0.002 for k in range(5)]
+            radii += [spec["shin"][0] * (1.2 + 0.05 * k) for k in range(1, 4)]
+        else:
+            hem = a + (b - a) * 0.58
+            points = [a + (hem - a) * (k / 4) for k in range(5)]
+            radii = [spec["thigh"][0] * (1.16 + 0.02 * k / 4) for k in range(5)]
+
+        def weights(p, a=a, b=b, tw=thigh_w, sw=shin_w):
+            t = (p - a).dot(b - a) / (b - a).length_squared
+            return tw(p) if t <= 1.0 else sw(p)
+
+        parts.append(Part(tube(points, radii, 16), BOTTOM, weights))
+    return parts
+
+
+def garment_parts(kind, rig, spec):
+    """One clothing part (F4) as skinned parts around the body; tops in the top colour, skirts and
+    trousers in the bottom colour; hems are straight rings (no slanted painted hems)."""
+    hips_z = rig.h("DEF-hips").z
+    neck_z = rig.h("DEF-neck").z
+    thigh_a, knee = rig.h("DEF-thigh.L"), rig.h("DEF-shin.L")
+    ankle = rig.h("DEF-foot.L")
+    mid_thigh = thigh_a.z + (knee.z - thigh_a.z) * 0.55
+    collar = spec["neck_radius"] * 1.7
+    bust = bust_offset(rig, spec)
+    if kind in ("shirt", "tunic", "dress"):
+        bottom = {"shirt": hips_z + 0.04, "tunic": mid_thigh, "dress": knee.z - 0.2}[kind]
+        flare = {"shirt": 0.0, "tunic": 0.22, "dress": 0.42}[kind]
+        steps = {"shirt": 12, "tunic": 18, "dress": 22}[kind]
+        # a tunic or dress hangs over trouser legs, so it leaves them more room
+        room = 1.22 if kind == "shirt" else TOP_ROOM
+        body = displace(
+            wrap(rig, spec, neck_z, bottom, TOP_OFFSET, flare, steps, collar, room), bust
+        )
+        weights = skirt_weights(rig, hips_z - 0.02, reach=UNDER_TOP_REACH)
+        parts = [Part(body, TOP, weights)]
+        if kind != "shirt":
+            parts.append(Part(lining(body), TOP, weights, inward=True))
+        return parts + sleeves(rig, spec, 0.58)
+    if kind in ("skirt_short", "skirt_long"):
+        bottom = knee.z + 0.05 if kind == "skirt_short" else ankle.z + 0.1
+        flare = 0.38 if kind == "skirt_short" else 0.55
+        steps = 10 if kind == "skirt_short" else 16
+        body = wrap(rig, spec, hips_z + 0.09, bottom, BOTTOM_OFFSET, flare, steps)
+        weights = skirt_weights(rig, hips_z - 0.02)
+        return [Part(body, BOTTOM, weights), Part(lining(body), BOTTOM, weights, inward=True)]
+    if kind in ("trousers_short", "trousers_long"):
+        pelvis = wrap(rig, spec, hips_z + 0.09, hips_z - 0.08, BOTTOM_OFFSET, 0.0, 5)
+        # the same weights as a tunic or dress over it, so both layers move alike
+        weights = skirt_weights(rig, hips_z - 0.02, reach=UNDER_TOP_REACH)
+        return [Part(pelvis, BOTTOM, weights), *legs(rig, spec, kind == "trousers_long")]
+    raise ValueError(f"unknown garment '{kind}'")
 
 
 def make_object(name, parts, armature):
@@ -667,13 +941,38 @@ def make_object(name, parts, armature):
     return obj
 
 
-def add_shape_keys(body, rig, spec):
-    """Blend shapes: body shapes (mixable, B2528), mouth expressions and blink (same topology)."""
+def add_keys(obj, variants, build):
+    """Blend shapes from rebuilt variants of the same parts (same topology, so they mix)."""
+    obj.shape_key_add(name="Basis", from_mix=False)
+    for name, variant in variants:
+        coords = []
+        for part in build(variant):
+            part.bm.verts.ensure_lookup_table()
+            coords.extend(v.co.copy() for v in part.bm.verts)
+            part.bm.free()
+        if len(coords) != len(obj.data.vertices):
+            raise RuntimeError(
+                f"{obj.name}: shape '{name}' changed the topology"
+                f" ({len(coords)} vs {len(obj.data.vertices)})"
+            )
+        key = obj.shape_key_add(name=name, from_mix=False)
+        for i, co in enumerate(coords):
+            key.data[i].co = co
+
+
+def shape_variants(spec, forms):
+    """Body shapes (B2528) and the body's sex proportions (F4), named body_<id> on every mesh."""
+    variants = [(f"body_{name}", shaped(spec, name)) for name in BODY_SHAPES]
+    return variants + [(f"body_{form}", formed(spec, form)) for form in forms]
+
+
+def add_shape_keys(body, rig, spec, forms):
+    """Blend shapes of the body: shapes and forms, mouth expressions and blink."""
+    variants = [((name, s), "neutral", False) for name, s in shape_variants(spec, forms)]
+    variants += [((f"mouth_{m}", spec), m, False) for m in MOUTHS if m != "neutral"]
+    variants.append((("blink", spec), "neutral", True))
     body.shape_key_add(name="Basis", from_mix=False)
-    variants = [(f"body_{name}", shaped(spec, name), "neutral", False) for name in BODY_SHAPES]
-    variants += [(f"mouth_{name}", spec, name, False) for name in MOUTHS if name != "neutral"]
-    variants.append(("blink", spec, "neutral", True))
-    for name, variant_spec, expression, blink in variants:
+    for (name, variant_spec), expression, blink in variants:
         parts, _, _ = build_body(rig, variant_spec, expression, blink)
         coords = []
         for part in parts:
@@ -704,10 +1003,19 @@ def main():
         rig = Rig(armature)
         body_parts, centre, r = build_body(rig, spec)
         body = make_object("Body", body_parts, armature)
-        add_shape_keys(body, rig, spec)
+        forms = spec.get("forms", [])
+        add_shape_keys(body, rig, spec, forms)
         objects = [body]
         for style in config["hair_styles"]:
             objects.append(make_object(f"Hair_{style}", hair_parts(style, centre, r), armature))
+        for kind in config["garments"]:
+            cloth = make_object(f"Cloth_{kind}", garment_parts(kind, rig, spec), armature)
+            add_keys(
+                cloth,
+                shape_variants(spec, forms),
+                lambda s, k=kind, rg=rig: garment_parts(k, rg, s),
+            )
+            objects.append(cloth)
         bpy.ops.object.select_all(action="DESELECT")
         for obj in [*objects, armature]:
             obj.select_set(True)

@@ -90,7 +90,7 @@ public static class BaseSoundCheck
                     continue;
                 }
 
-                var loudness = Pcm.LoudnessDbfs(wav, target.GateDbfs);
+                var loudness = Pcm.Loudness(wav, target.GateDbfs);
                 var peak = Pcm.PeakDbfs(wav);
                 var peakLimited = Math.Abs(peak - target.PeakMaxDbfs) <= 0.1;
                 if (loudness > wanted + target.ToleranceDb || (loudness < wanted - target.ToleranceDb && !peakLimited))
@@ -101,6 +101,13 @@ public static class BaseSoundCheck
                 if (peak > target.PeakMaxDbfs + 0.1)
                 {
                     problems.Add($"{file.File}: peak {peak:0.0} dBFS above {target.PeakMaxDbfs:0.0}");
+                }
+
+                // Noise floor column (TL #19652): recorded for files of at least 1 s, null for shorter ones.
+                double? floor = wav.Seconds >= 1.0 ? Pcm.NoiseFloorDbfs(wav) : null;
+                if (floor is null != file.NoiseFloorDbfs is null || (floor is { } measured && Math.Abs(measured - file.NoiseFloorDbfs!.Value) > 0.5))
+                {
+                    problems.Add($"{file.File}: noise floor {floor?.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) ?? "none"} differs from library.json ({file.NoiseFloorDbfs?.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) ?? "none"})");
                 }
 
                 if (wav.Seconds > maxSeconds + 0.01)

@@ -109,6 +109,12 @@ public sealed class ContentSet
     /// <summary>Which action practises which skill (content/skills/practice.json, B5 R18).</summary>
     public SkillPractice SkillPractice { get; }
 
+    /// <summary>Talking with an inhabitant: limits and changes by outcome (content/player/conversation.json, B6 R13).</summary>
+    public ConversationSettings Conversation { get; init; } = new();
+
+    /// <summary>Talent, forgetting and maximum of skill levels per inhabitant (content/skills/levels.json).</summary>
+    public SkillLevelSettings SkillLevels { get; init; } = new();
+
     /// <summary>Loads and checks the content folder.</summary>
     public static ContentSet Load(string contentDirectory)
     {
@@ -186,7 +192,14 @@ public sealed class ContentSet
             skillPractice,
             ContractSerializer.Deserialize<MessageKinds>(File.ReadAllText(Path.Combine(player, "message_kinds.json"))))
         {
-            Appearance = LoadAppearance(contentDirectory),
+            SkillLevels = LoadSkillLevels(contentDirectory),
+            Conversation = ContractSerializer.Deserialize<ConversationSettings>(File.ReadAllText(Path.Combine(contentDirectory, "player", "conversation.json"))),
+            Appearance = LoadAppearance(
+                contentDirectory,
+                [.. calendar.Settings.Seasons.Select(s => s.Id)],
+                [.. worldGen.Climates.Keys],
+                Ids(vocabularies, VocabularyKind.Biome),
+                [.. inventions.TechLevels]),
             Gaits = GaitTable.Create(
                 ContractSerializer.Deserialize<GaitSettings>(File.ReadAllText(Path.Combine(contentDirectory, "behaviour", "gaits.json"))),
                 Ids(vocabularies, VocabularyKind.Action),
@@ -235,6 +248,17 @@ public sealed class ContentSet
         }
     }
 
+    private static SkillLevelSettings LoadSkillLevels(string contentDirectory)
+    {
+        var levels = ContractSerializer.Deserialize<SkillLevelSettings>(File.ReadAllText(Path.Combine(contentDirectory, "skills", "levels.json")));
+        if (levels.TalentMin > levels.TalentMax)
+        {
+            throw new InvalidDataException($"Skill levels: talent_min {levels.TalentMin} above talent_max {levels.TalentMax}.");
+        }
+
+        return levels;
+    }
+
     /// <summary>The register names every skill of the vocabulary once; practice uses known actions and skills (A1372).</summary>
     private static void CheckSkills(InhabitantModel model, SkillPractice practice, HashSet<string> skills, HashSet<string> actions)
     {
@@ -281,7 +305,25 @@ public sealed class ContentSet
         return data;
     }
 
-    private static LookAppearance LoadAppearance(string contentDirectory)
+    /// <summary>Renamed ids (F4) point to a current id and are no longer current themselves.</summary>
+    private static IEnumerable<string> Renames(ICollection<AppearanceRename>? renamed, IEnumerable<string> current, string what)
+    {
+        var ids = current.ToHashSet(StringComparer.Ordinal);
+        foreach (var r in renamed ?? [])
+        {
+            if (!ids.Contains(r.NewId))
+            {
+                yield return $"renamed {what} '{r.OldId}' points to unknown '{r.NewId}'";
+            }
+
+            if (ids.Contains(r.OldId))
+            {
+                yield return $"renamed {what} '{r.OldId}' is still a current id";
+            }
+        }
+    }
+
+    private static LookAppearance LoadAppearance(string contentDirectory, HashSet<string> seasons, HashSet<string> climates, HashSet<string> biomes, HashSet<string> techLevels)
     {
         var data = ContractSerializer.Deserialize<LookAppearance>(File.ReadAllText(Path.Combine(contentDirectory, "look", "appearance.json")));
         var problems = new List<string>();
@@ -292,13 +334,44 @@ public sealed class ContentSet
 
         problems.AddRange(data.Shapes.Where(s => s.Min > s.Max).Select(s => $"shape '{s.Id}' has min > max"));
         if (data.AgeStages.Count == 0 || data.SkinTones.Count == 0 || data.HairStyles.Count == 0 || data.HairColors.Count == 0
-            || data.ClothingStyles.Count == 0 || data.ClothingColors.Count == 0)
+            || data.Outfits.Count == 0 || data.ClothingColors.Count == 0)
         {
             problems.Add("every list needs at least one value");
         }
 
+        // Outfits (F4): known ids in the conditions, and one outfit fits everywhere, so nobody is undressed.
+        problems.AddRange(Twice(data.HairStyles.Select(h => h.Id), "hair style"));
+        problems.AddRange(Twice(data.Outfits.Select(o => o.Id), "outfit"));
+        problems.AddRange(Renames(data.RenamedHairStyles, data.HairStyles.Select(h => h.Id), "hair style"));
+        problems.AddRange(Renames(data.RenamedOutfits, data.Outfits.Select(o => o.Id), "outfit"));
+        if (!data.Outfits.Any(o => o.When is null))
+        {
+            problems.Add("no outfit without conditions (someone could find no clothes)");
+        }
+
+        foreach (var outfit in data.Outfits.Where(o => o.When is not null))
+        {
+            var when = outfit.When!;
+            problems.AddRange(Unknown(when.Seasons, seasons, outfit.Id, "season"));
+            problems.AddRange(Unknown(when.Climates, climates, outfit.Id, "climate"));
+            problems.AddRange(Unknown(when.Biomes, biomes, outfit.Id, "biome"));
+            problems.AddRange(Unknown(when.TechLevels, techLevels, outfit.Id, "tech level"));
+        }
+
+        // Sex proportions (F4): known stages, sane ranges, no clash with the body shapes.
+        var stages = data.AgeStages.Select(s => s.Id).ToHashSet(StringComparer.Ordinal);
+        problems.AddRange(data.SexShapes.Where(s => s.Min > s.Max).Select(s => $"sex shape '{s.Id}' has min > max"));
+        problems.AddRange(data.SexShapes.SelectMany(s => s.AgeStages).Where(a => !stages.Contains(a)).Distinct().Select(a => $"sex shape names unknown age stage '{a}'"));
+        problems.AddRange(data.SexShapes.Where(s => data.Shapes.Any(b => b.Id == s.Id)).Select(s => $"sex shape '{s.Id}' is also a body shape"));
+
         return problems.Count == 0 ? data : throw new InvalidDataException("Appearance data: " + string.Join("; ", problems) + ".");
     }
+
+    private static IEnumerable<string> Twice(IEnumerable<string> ids, string what) =>
+        ids.GroupBy(id => id, StringComparer.Ordinal).Where(g => g.Count() > 1).Select(g => $"{what} '{g.Key}' twice");
+
+    private static IEnumerable<string> Unknown(ICollection<string>? ids, HashSet<string> known, string outfit, string what) =>
+        (ids ?? []).Where(id => !known.Contains(id)).Select(id => $"outfit '{outfit}' names unknown {what} '{id}'");
 
     private static void CheckInventions(InventionRules rules, ActionRules actions, HashSet<string> shapes, HashSet<string> dayPhases)
     {
