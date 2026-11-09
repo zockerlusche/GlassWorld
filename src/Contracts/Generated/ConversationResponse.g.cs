@@ -36,7 +36,7 @@ namespace GlassWorld.Contracts
         public ConversationResponseOutcome Outcome { get; set; } = default!;
 
         /// <summary>
-        /// Speech bubble in display_locale; set only for outcome reply.
+        /// Speech bubble in display_locale. Set for reply; since conversation prompt v2 (Marcel W1701) also for decline and not_understood (the inhabitant says no or asks back; a stand-in msg.converse.&lt;outcome&gt; when the model gives none). Null for gesture.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("reply")]
         public GeneratedText? Reply { get; set; } = default!;
