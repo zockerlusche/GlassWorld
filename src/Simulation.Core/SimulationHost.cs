@@ -135,10 +135,12 @@ public sealed class SimulationHost
             }
 
             var ticksPerHour = world.Calendar.Settings.TicksPerHour;
-            var regrow = content.WorldGen.Spawns.Spawns
-                .Where(r => r.RegrowHours is not null)
-                .GroupBy(r => r.ObjectType, StringComparer.Ordinal)
-                .ToDictionary(g => g.Key, g => (long)g.First().RegrowHours!.Value * ticksPerHour, StringComparer.Ordinal);
+            // Regrowth by type from the spawn rules and the preset's drink spots (they agree, checked at load).
+            var regrow = content.WorldGen.Spawns.Spawns.Select(r => (Type: r.ObjectType, Hours: r.RegrowHours))
+                .Concat(preset.Water.DrinkSpots.Select(s => (Type: s.ObjectType, Hours: s.RegrowHours)))
+                .Where(r => r.Hours is not null)
+                .GroupBy(r => r.Type, StringComparer.Ordinal)
+                .ToDictionary(g => g.Key, g => (long)g.First().Hours!.Value * ticksPerHour, StringComparer.Ordinal);
             map = new WorldMapSystem(island, savedIsland?.CellSizeCm ?? preset.Grid.CellSizeCm, objects, regrow) { NodeBudget = preset.Pathfinding.NodeBudget };
             world.Add(map);
 

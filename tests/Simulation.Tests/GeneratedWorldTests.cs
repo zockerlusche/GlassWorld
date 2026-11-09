@@ -84,7 +84,10 @@ public sealed class GeneratedWorldTests : IDisposable
         var map = host.Map!;
         Assert.NotEmpty(map.Occurrences);
         var place = map.Occurrences[0];
-        var hours = host.Content.WorldGen.Spawns.Spawns.First(r => r.ObjectType == place.TypeId).RegrowHours!.Value;
+        // Regrowth comes from the spawn rules or, for drinking water, from the preset's drink spots.
+        var hours = host.Content.WorldGen.Spawns.Spawns.Where(r => r.ObjectType == place.TypeId).Select(r => r.RegrowHours)
+            .Concat(host.Content.WorldGen.Presets[Preset].Water.DrinkSpots.Where(d => d.ObjectType == place.TypeId).Select(d => d.RegrowHours))
+            .First(h => h is not null)!.Value;
         var regrowTicks = (long)hours * host.World.Calendar.Settings.TicksPerHour;
         Assert.True(host.Objects.Remove(place.ObjectId));
 

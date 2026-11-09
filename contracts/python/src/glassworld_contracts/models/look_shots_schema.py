@@ -12,6 +12,43 @@ from . import common_schema
 type Projection = Annotated[str, Field(..., pattern='^(perspective|orthographic)$')]
 
 
+class ShotScene(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    max_start_distance_cells: int = Field(
+        ...,
+        description='Largest distance of the target from a start position in cells.',
+        ge=0,
+        le=10000,
+    )
+    radius_cells: int = Field(
+        ...,
+        description='Radius around the target that must hold the scene.',
+        ge=1,
+        le=1000,
+    )
+    min_stream_cells: int = Field(
+        ...,
+        description='Fewest running stream cells within the radius.',
+        ge=0,
+        le=100000,
+    )
+    spring: bool = Field(
+        ..., description='Whether a spring must lie within the radius.'
+    )
+    min_relief: int = Field(
+        ...,
+        description='Smallest height difference (height units) within the radius: a hill.',
+        ge=0,
+        le=100000,
+    )
+    face_hill: bool = Field(
+        ...,
+        description="Turn the camera so the highest ground within the radius lies behind the target (the shot point's yaw otherwise).",
+    )
+
+
 class ShotPoint(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -35,6 +72,10 @@ class ShotPoint(BaseModel):
         description='Optional: look at the inhabitant with this index (ordered by id) instead of the map target.',
         ge=0,
         le=1000,
+    )
+    scene: ShotScene | None = Field(
+        None,
+        description='Optional: the scene finder picks the target near a start instead of the map target (the permille target is the fallback when no spot fits).',
     )
 
 

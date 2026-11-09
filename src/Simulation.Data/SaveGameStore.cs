@@ -21,7 +21,7 @@ public static class SaveGameStore
     public const string ContentFingerprintKey = "content_fingerprint";
 
     /// <summary>Schema version written by this code.</summary>
-    public const int SchemaVersion = 5;
+    public const int SchemaVersion = 6;
 
     private static readonly JsonSerializerOptions Json = new() { IncludeFields = true };
 
@@ -72,6 +72,12 @@ public static class SaveGameStore
               ELSE json_extract(e.value, '$.ClothingStyle') END)))
           FROM json_each(meta.value) AS e)
         WHERE key = 'appearances';
+        """,
+
+        // 6 (hydrology, #134): the island table notes the blob format (IslandCodec: 2 adds the hydrology and
+        // underground layers; rows from before are format 1 and still decode).
+        """
+        ALTER TABLE island ADD COLUMN format INTEGER NOT NULL DEFAULT 1;
         """,
     ];
 
@@ -218,7 +224,9 @@ public static class SaveGameStore
             if (s.IslandData is not null)
             {
                 // The generated island as one blob (B2 R11; GW2 review #94: no base64 in meta).
-                Insert(c, tx, "INSERT INTO island VALUES($a,$b)", (1, s.IslandData));
+                // The blob format (schema 6): 2 adds the hydrology and underground layers; older rows are
+                // format 1 and still decode, as islands without them (IslandCodec).
+                Insert(c, tx, "INSERT INTO island(id, data, format) VALUES($a,$b,$c)", (1, s.IslandData, Map.IslandCodec.FormatOf(s.IslandData)));
             }
         }
 

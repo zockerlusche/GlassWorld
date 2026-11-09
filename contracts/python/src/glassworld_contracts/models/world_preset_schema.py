@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from enum import StrEnum
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -58,39 +59,13 @@ class WorldPresetNoiseOctave(BaseModel):
     amplitude: int = Field(
         ..., description='Largest contribution in height units.', ge=0, le=100000
     )
-
-
-class WorldPresetWater(BaseModel):
-    model_config = ConfigDict(
-        extra='forbid',
+    ridged: bool | None = Field(
+        None,
+        description='Ridged octave: the noise is folded at its middle and squared, so it adds sharp crests (ridges, hill chains) instead of round bumps. Absent = false.',
     )
-    shallow_max_depth: int = Field(
-        ...,
-        description='Water up to this depth (height units) is shallow and walkable slowly; deeper only by swimming (R4, R10).',
-        ge=1,
-        le=100000,
-    )
-    springs: WorldPresetCountRange
-    spring_min_height: int = Field(
-        ...,
-        description='Springs lie on slopes at least this far above sea level.',
-        ge=0,
-        le=100000,
-    )
-    lake_min_cells: int = Field(
-        ..., description='Smallest hollow that fills into a lake.', ge=1, le=100000
-    )
-    swamp_max_slope: int = Field(
-        ...,
-        description='Largest slope of a flat wet hollow that becomes swamp.',
-        ge=0,
-        le=100000,
-    )
-    swamp_min_moisture_permille: int = Field(
-        ...,
-        description='Smallest moisture of a cell that becomes swamp.',
-        ge=0,
-        le=1000,
+    signed: bool | None = Field(
+        None,
+        description='Signed octave: contributes from -amplitude/2 to +amplitude/2 around zero, so it digs hollows as well as raising hills. Absent = false (0 to amplitude).',
     )
 
 
@@ -261,6 +236,230 @@ class StartSupplyResource(BaseModel):
     )
 
 
+class WorldPresetChannelPoint(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    accumulation: int = Field(
+        ..., description='Flow accumulation of this point.', ge=0, le=100000000
+    )
+    width_cm: int = Field(
+        ...,
+        description='Stream width in centimetres; a stream wider than one cell takes its side cells too.',
+        ge=10,
+        le=10000,
+    )
+    depth: int = Field(..., description='Water depth in height units.', ge=1, le=1000)
+    bank: int = Field(
+        ...,
+        description='How far the water surface lies below the banks (height units): the stream bed is cut this much plus the depth into the ground.',
+        ge=0,
+        le=1000,
+    )
+
+
+class WorldPresetSprings(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    min_height: int = Field(
+        ...,
+        description='Springs lie at least this far above sea level (height units).',
+        ge=0,
+        le=100000,
+    )
+    max_groundwater_depth: int = Field(
+        ...,
+        description='Springs rise where the groundwater table lies at most this far below the ground (height units, underground layer).',
+        ge=0,
+        le=100000,
+    )
+    foot_relief: int = Field(
+        ...,
+        description='A spring cell lies at the foot of a slope or rock edge: the ground within foot_radius_cells rises at least this much above it.',
+        ge=0,
+        le=100000,
+    )
+    foot_radius_cells: int = Field(
+        ..., description='Radius in which the foot relief is measured.', ge=1, le=64
+    )
+    min_spacing_cells: int = Field(
+        ..., description='Smallest distance between two springs.', ge=1, le=1000
+    )
+    max_count: int = Field(
+        ...,
+        description='Most springs on the island (the wettest candidates first).',
+        ge=0,
+        le=1000,
+    )
+    discharge: int = Field(
+        ...,
+        description='Water a spring adds to the flow accumulation of its cell (accumulation units).',
+        ge=0,
+        le=100000000,
+    )
+    min_sea_distance_cells: int = Field(
+        ...,
+        description='Springs lie at least this far from the sea (cells), so the coast does not get a comb of short parallel creeks.',
+        ge=0,
+        le=10000,
+    )
+
+
+class At(StrEnum):
+    spring = 'spring'
+    lake_edge = 'lake_edge'
+    stream_bank = 'stream_bank'
+
+
+class WorldPresetDrinkSpot(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    at: At = Field(
+        ...,
+        description='Where the objects lie: spring (exactly on the spring cells), lake_edge (dry walkable cells next to a pond or lake), stream_bank (dry walkable cells next to a running stream).',
+    )
+    object_type: str = Field(
+        ...,
+        description='Object type placed there (catalogue id).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    spacing_cells: int = Field(
+        ...,
+        description='Smallest distance between two objects of this entry (and from other drink spots).',
+        ge=1,
+        le=1000,
+    )
+    max_total: int = Field(
+        ..., description='Most objects of this entry on the island.', ge=0, le=100000
+    )
+    min_stream_distance_cells: int = Field(
+        ...,
+        description="Smallest distance from any running stream cell other than a spring's own (keeps pools off stream mouths); 0 = no limit.",
+        ge=0,
+        le=1000,
+    )
+    regrow_hours: int | None = Field(
+        None,
+        description='Game hours until a used-up object of this type is there again (same meaning as in the spawn table; all entries of one type must agree). Absent = does not regrow.',
+        ge=1,
+        le=100000,
+    )
+
+
+class WorldPresetGroundwater(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    smoothing_radius_cells: int = Field(
+        ...,
+        description='Radius of the mean ground height the groundwater table follows.',
+        ge=1,
+        le=64,
+    )
+    follow_permille: int = Field(
+        ...,
+        description='How strongly the table follows the smoothed ground above sea level (1000 = fully).',
+        ge=0,
+        le=1000,
+    )
+    base_depth: int = Field(
+        ...,
+        description='Depth of the table below the smoothed, followed ground (height units).',
+        ge=-1000,
+        le=1000,
+    )
+    noise_amplitude: int = Field(
+        ...,
+        description='Largest up or down variation of the table (height units).',
+        ge=0,
+        le=1000,
+    )
+    noise_wavelength_cells: int = Field(
+        ..., description='Wavelength of that variation in cells.', ge=2, le=1000
+    )
+
+
+class WorldPresetSoilRule(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    soil: str = Field(
+        ...,
+        description='Soil id.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    min_height: int = Field(
+        ..., description='Lowest height above sea level.', ge=-100000, le=100000
+    )
+    max_height: int = Field(
+        ..., description='Highest height above sea level.', ge=-100000, le=100000
+    )
+    min_slope: int = Field(
+        ...,
+        description='Smallest slope (largest height step to a neighbour).',
+        ge=0,
+        le=100000,
+    )
+    min_moisture_permille: int = Field(
+        ..., description='Smallest moisture.', ge=0, le=1000
+    )
+    max_moisture_permille: int = Field(
+        ..., description='Largest moisture.', ge=0, le=1000
+    )
+
+
+class WorldPresetUndergroundStones(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    base_permille: int = Field(
+        ..., description='Stones in the ground everywhere.', ge=0, le=1000
+    )
+    per_slope_permille: int = Field(
+        ..., description='More stones per unit of slope.', ge=0, le=1000
+    )
+    stone_soil_permille: int = Field(
+        ..., description='More stones where the soil is the stone soil.', ge=0, le=1000
+    )
+    stone_soil: str = Field(
+        ...,
+        description='Soil id that counts as stony.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    noise_permille: int = Field(
+        ..., description='Largest up or down variation.', ge=0, le=1000
+    )
+    noise_wavelength_cells: int = Field(
+        ..., description='Wavelength of that variation in cells.', ge=2, le=1000
+    )
+
+
+class WorldPresetUndergroundOre(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    min_height: int = Field(
+        ..., description='Ore only at least this far above sea level.', ge=0, le=100000
+    )
+    threshold_permille: int = Field(
+        ..., description='Ore where the ore noise exceeds this value.', ge=0, le=1000
+    )
+    max_permille: int = Field(
+        ..., description='Ore amount where the noise is at its highest.', ge=0, le=1000
+    )
+    noise_wavelength_cells: int = Field(
+        ...,
+        description='Wavelength of the ore noise in cells (veins and pockets).',
+        ge=2,
+        le=1000,
+    )
+
+
 class WorldPresetTerrain(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -302,6 +501,97 @@ class WorldPresetTerrain(BaseModel):
         min_length=1,
     )
     rocks: WorldPresetCountRange
+    cliff_min_run_cells: int = Field(
+        ...,
+        description='Shortest run of cliff-top cells (4-connected) that stays a rock wall; shorter steps are smoothed to a walkable slope, so walls follow the terrace edges instead of standing as isolated teeth (TL #19722 polish).',
+        ge=1,
+        le=10000,
+    )
+    cliff_smoothing_rounds: int = Field(
+        ...,
+        description='Rounds of smoothing short cliff steps (cliff_min_run_cells).',
+        ge=0,
+        le=32,
+    )
+
+
+class WorldPresetWater(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    shallow_max_depth: int = Field(
+        ...,
+        description='Water up to this depth (height units) is shallow and walkable slowly; deeper only by swimming (R4, R10).',
+        ge=1,
+        le=100000,
+    )
+    lake_min_cells: int = Field(
+        ...,
+        description='Smallest hollow (cells below its spill level) that holds water as a pond or lake when a stream or spring feeds it; smaller pits on a stream are filled up to their spill level.',
+        ge=1,
+        le=100000,
+    )
+    lake_min_depth: int = Field(
+        ...,
+        description='Smallest depth (spill level minus the deepest ground, height units) of a hollow that holds water; shallower pits on a stream are filled up.',
+        ge=1,
+        le=100000,
+    )
+    lake_water_min_depth: int = Field(
+        ...,
+        description='Smallest water depth of a pond or lake cell (height units), also at its shallow edge.',
+        ge=1,
+        le=1000,
+    )
+    lake_area_per_inflow_permille: int = Field(
+        ...,
+        description='Largest pond or lake area (cells) per unit of inflow (permille): rain and evaporation balance. A hollow larger than its inflow can fill rises only to that area and has no outflow (closed lake); otherwise it fills to its spill level and overflows.',
+        ge=1,
+        le=1000000,
+    )
+    lake_rounds: int = Field(
+        ...,
+        description='Rounds of closed lakes (a closed lake becomes an outlet and the flood is repeated); in the last round every fed hollow fills to its spill level.',
+        ge=1,
+        le=32,
+    )
+    swamp_max_slope: int = Field(
+        ...,
+        description='Largest slope of a flat wet hollow that becomes swamp.',
+        ge=0,
+        le=100000,
+    )
+    swamp_min_moisture_permille: int = Field(
+        ...,
+        description='Smallest moisture of a cell that becomes swamp.',
+        ge=0,
+        le=1000,
+    )
+    runoff_per_cell: int = Field(
+        ...,
+        description='Rain water every land cell adds to the flow accumulation (accumulation units); the accumulation of a cell is the water of all cells that drain through it.',
+        ge=0,
+        le=100000,
+    )
+    stream_min_accumulation: int = Field(
+        ...,
+        description='A cell carries a stream where its flow accumulation reaches this value (rain from its catchment plus the springs above it).',
+        ge=1,
+        le=100000000,
+    )
+    channel: list[WorldPresetChannelPoint] = Field(
+        ...,
+        description='Width, depth and bank height of a stream by its flow accumulation, interpolated linearly between the points (accumulation ascending); beyond the last point the last values hold.',
+        max_length=16,
+        min_length=1,
+    )
+    springs: WorldPresetSprings
+    drink_spots: list[WorldPresetDrinkSpot] = Field(
+        ...,
+        description='Where drinkable water objects lie: at the springs, along lake and pond edges, along stream banks. Each kind is its own entry; a kind without an entry gets no objects.',
+        max_length=8,
+        min_length=1,
+    )
 
 
 class WorldPresetTides(BaseModel):
@@ -336,6 +626,45 @@ class StartSupply(BaseModel):
         le=1000,
     )
     resources: list[StartSupplyResource] = Field(..., max_length=32)
+    prefer_radius_cells: int | None = Field(
+        None,
+        description='Optional: beaches whose mandatory resources (drink) lie within this smaller radius come first, so a start lies close to its springs (TL #19722). Absent = only the radius counts.',
+        ge=1,
+        le=1000,
+    )
+    quiet_radius_cells: int | None = Field(
+        None,
+        description='Optional: around each start the island is a little quieter - within this radius only quiet_keep_permille of the objects that serve no start supply resource stay, so the inhabitants meet fewer unknown things at once before they find their water (the rest of the island keeps the plenty). Absent = no quieter start.',
+        ge=1,
+        le=1000,
+    )
+    quiet_keep_permille: int | None = Field(
+        None,
+        description='Share of those objects that stay within the quiet radius (permille).',
+        ge=0,
+        le=1000,
+    )
+
+
+class WorldPresetUnderground(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    groundwater: WorldPresetGroundwater
+    fallback_soil: str = Field(
+        ...,
+        description='Soil of a cell no rule matches.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    soil_rules: list[WorldPresetSoilRule] = Field(
+        ...,
+        description='Soil per cell, first matching rule wins (ids such as clay, sand, loam, stone; placeholders).',
+        max_length=32,
+        min_length=0,
+    )
+    stones: WorldPresetUndergroundStones
+    ore: WorldPresetUndergroundOre
 
 
 class WorldPresetStart(BaseModel):
@@ -410,6 +739,7 @@ class WorldPreset(BaseModel):
     grid: WorldPresetGrid
     terrain: WorldPresetTerrain
     water: WorldPresetWater
+    underground: WorldPresetUnderground
     climate: WorldPresetClimate
     caves: WorldPresetCaves
     start: WorldPresetStart

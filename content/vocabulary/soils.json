@@ -1,0 +1,22 @@
+{
+  "contract_version": "0.2",
+  "kind": "soil",
+  "entries": [
+    {
+      "id": "loam",
+      "description": "Brown crumbly earth, good for plants."
+    },
+    {
+      "id": "sand",
+      "description": "Loose grains near the sea that let water through."
+    },
+    {
+      "id": "clay",
+      "description": "Heavy sticky earth in wet ground that holds water."
+    },
+    {
+      "id": "stone",
+      "description": "Rock close under a thin layer of earth."
+    }
+  ]
+}

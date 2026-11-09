@@ -137,7 +137,7 @@ public sealed class IslandWalkTests : IDisposable
         var changed = CopyContent();
         var presetFile = Path.Combine(changed, "world", "presets", "start_island.json");
         var text = File.ReadAllText(presetFile);
-        File.WriteAllText(presetFile, text.Replace("\"amplitude\": 90", "\"amplitude\": 60", StringComparison.Ordinal));
+        File.WriteAllText(presetFile, text.Replace("\"amplitude\": 100", "\"amplitude\": 60", StringComparison.Ordinal));
         var changedContent = ContentSet.Load(changed);
         Assert.NotEqual(
             WorldGenerator.Generate(changedContent.WorldGen, changedContent.Objects, Preset, 7).Hash(),
@@ -180,6 +180,71 @@ public sealed class IslandWalkTests : IDisposable
         var older = SaveGameStore.Load(path);
         Assert.Equal(state.IslandData, older.IslandData);
         Assert.Equal(host.World.StateHash(), Restore(older, new MockDecisionPort()).World.StateHash());
+    }
+
+    /// <summary>
+    /// A save of schema 4 holds a format-1 island (no hydrology, no underground): it migrates through F4's schema 5 to schema 6
+    /// and loads as it was (still without layers); the next save writes the current schema and blob format.
+    /// </summary>
+    [Fact]
+    public void ASchemaFourSaveWithAFormatOneIslandStillLoads()
+    {
+        var host = SimulationHost.CreateGeneratedWorld(ContentDirectory, 7, new MockDecisionPort(), "de", Preset);
+        var path = Path.Combine(_directory, "v4.db");
+        var state = StateCodec.Capture(host);
+        var island = host.Map!.Island;
+        var bare = new GeneratedIsland(island.PresetId, island.GeneratorVersion, island.Seed, island.Attempts, island.Passed, HydrologyTests.WithoutLayers(island.Map), island.Objects, island.Starts, island.Neighbours, island.Check, island.CliffCells);
+        SaveGameStore.Save(path, state with { IslandData = HydrologyTests.EncodeFormatOne(bare, 100), IslandHash = bare.Hash() });
+        using (var connection = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={path};Pooling=False"))
+        {
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = "ALTER TABLE island DROP COLUMN format; PRAGMA user_version = 4;";
+            command.ExecuteNonQuery();
+        }
+
+        Assert.Equal(4, SaveGameStore.VersionOf(path));
+        var older = SaveGameStore.Load(path);
+        var loaded = Restore(older, new MockDecisionPort());
+        Assert.Null(loaded.Map!.Island.Map.Hydrology);
+        Assert.Equal(bare.Hash(), loaded.Map.IslandHash);
+        loaded.World.Run(50);
+
+        SaveGameStore.Save(path, StateCodec.Capture(loaded));
+        Assert.Equal(SaveGameStore.SchemaVersion, SaveGameStore.VersionOf(path));
+        var resaved = SaveGameStore.Load(path).IslandData!;
+        Assert.Equal(IslandCodec.Format, IslandCodec.FormatOf(resaved));
+        Assert.Null(IslandCodec.Decode(resaved).Island.Map.Hydrology);
+    }
+
+    /// <summary>
+    /// A save of schema 5 (F4, before the island format column) holds a format-1 island, as F4 wrote it
+    /// (review GW3 #134): it migrates to schema 6 and keeps that island.
+    /// </summary>
+    [Fact]
+    public void ASchemaFiveSaveLoadsAndKeepsItsIsland()
+    {
+        var host = SimulationHost.CreateGeneratedWorld(ContentDirectory, 7, new MockDecisionPort(), "de", Preset);
+        var path = Path.Combine(_directory, "v5.db");
+        var island = host.Map!.Island;
+        var bare = new GeneratedIsland(island.PresetId, island.GeneratorVersion, island.Seed, island.Attempts, island.Passed, HydrologyTests.WithoutLayers(island.Map), island.Objects, island.Starts, island.Neighbours, island.Check, island.CliffCells);
+        var formatOne = HydrologyTests.EncodeFormatOne(bare, 100);
+        SaveGameStore.Save(path, StateCodec.Capture(host) with { IslandData = formatOne, IslandHash = bare.Hash() });
+        using (var connection = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={path};Pooling=False"))
+        {
+            connection.Open();
+            using var command = connection.CreateCommand();
+            command.CommandText = "ALTER TABLE island DROP COLUMN format; PRAGMA user_version = 5;";
+            command.ExecuteNonQuery();
+        }
+
+        Assert.Equal(5, SaveGameStore.VersionOf(path));
+        var older = SaveGameStore.Load(path);
+        Assert.Equal(formatOne, older.IslandData);
+        var loaded = Restore(older, new MockDecisionPort());
+        Assert.Null(loaded.Map!.Island.Map.Hydrology);
+        Assert.Equal(bare.Hash(), loaded.Map.IslandHash);
+        loaded.World.Run(20);
     }
 
     [Fact]

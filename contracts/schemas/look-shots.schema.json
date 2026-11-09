@@ -119,6 +119,57 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 1000
+        },
+        "scene": {
+          "description": "Optional: the scene finder picks the target near a start instead of the map target (the permille target is the fallback when no spot fits).",
+          "$ref": "#/$defs/ShotScene"
+        }
+      }
+    },
+    "ShotScene": {
+      "description": "What the scene finder looks for per seed (TL #19722 comparison shots): a spot near a start whose view radius holds running water, a spring and a hill.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_start_distance_cells",
+        "radius_cells",
+        "min_stream_cells",
+        "spring",
+        "min_relief",
+        "face_hill"
+      ],
+      "properties": {
+        "max_start_distance_cells": {
+          "description": "Largest distance of the target from a start position in cells.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "radius_cells": {
+          "description": "Radius around the target that must hold the scene.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "min_stream_cells": {
+          "description": "Fewest running stream cells within the radius.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "spring": {
+          "description": "Whether a spring must lie within the radius.",
+          "type": "boolean"
+        },
+        "min_relief": {
+          "description": "Smallest height difference (height units) within the radius: a hill.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "face_hill": {
+          "description": "Turn the camera so the highest ground within the radius lies behind the target (the shot point's yaw otherwise).",
+          "type": "boolean"
         }
       }
     }

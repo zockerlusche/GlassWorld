@@ -64,6 +64,7 @@ public sealed class WorldGenContent
         var problems = new List<string>();
         var biomeVocabulary = Ids(vocabularies, VocabularyKind.Biome);
         var weatherVocabulary = Ids(vocabularies, VocabularyKind.Weather);
+        var soilVocabulary = Ids(vocabularies, VocabularyKind.Soil);
         CheckBiomes(biomes, biomeVocabulary, problems);
         CheckSpawns(spawns, biomes, objects, problems);
         foreach (var climate in climates)
@@ -81,7 +82,25 @@ public sealed class WorldGenContent
             }
 
             var p = $"preset '{preset.Id}'";
-            var islandTypes = spawns.Spawns.Select(s => s.ObjectType).Distinct(StringComparer.Ordinal).Where(objects.Contains).ToList();
+            // The island's types: what the spawn rules place and what the hydrology puts at its water.
+            var islandTypes = spawns.Spawns.Select(s => s.ObjectType).Concat(preset.Water.DrinkSpots.Select(s => s.ObjectType))
+                .Distinct(StringComparer.Ordinal).Where(objects.Contains).ToList();
+            foreach (var spot in preset.Water.DrinkSpots)
+            {
+                if (!objects.Contains(spot.ObjectType))
+                {
+                    problems.Add($"{p}: drink spot object type '{spot.ObjectType}' not in the catalogue");
+                }
+
+                // Regrowth belongs to the type: drink spots and spawn rules of one type must agree.
+                var others = spawns.Spawns.Where(r => r.ObjectType == spot.ObjectType).Select(r => r.RegrowHours)
+                    .Concat(preset.Water.DrinkSpots.Where(o => o.ObjectType == spot.ObjectType).Select(o => o.RegrowHours));
+                if (others.Distinct().Count() > 1 && preset.Water.DrinkSpots.First(o => o.ObjectType == spot.ObjectType) == spot)
+                {
+                    problems.Add($"{p}: drink spots and spawn rules of '{spot.ObjectType}' disagree on regrow_hours");
+                }
+            }
+
             foreach (var resource in preset.Start.Supply.Resources)
             {
                 var unknown = resource.PropertiesAll.Concat(resource.PropertiesNone).Where(pr => !objects.PropertyVocabulary.Contains(pr)).ToList();
@@ -94,6 +113,9 @@ public sealed class WorldGenContent
                     problems.Add($"{p}: start supply '{resource.Id}' matches no spawn type of the island");
                 }
             }
+
+            var soils = preset.Underground.SoilRules.Select(r => r.Soil).Append(preset.Underground.FallbackSoil).Append(preset.Underground.Stones.StoneSoil);
+            problems.AddRange(soils.Distinct(StringComparer.Ordinal).Where(id => !soilVocabulary.Contains(id)).Select(id => $"{p}: soil '{id}' not in vocabulary 'soil'"));
 
             if (!objects.Contains(preset.Caves.ObjectType))
             {
@@ -277,7 +299,29 @@ public sealed class WorldGenContent
         }
 
         Range($"{p} rocks", preset.Terrain.Rocks.Min, preset.Terrain.Rocks.Max, problems);
-        Range($"{p} springs", preset.Water.Springs.Min, preset.Water.Springs.Max, problems);
+        var channel = preset.Water.Channel.ToList();
+        if (channel.Zip(channel.Skip(1)).Any(pair => pair.Second.Accumulation <= pair.First.Accumulation))
+        {
+            problems.Add($"{p}: channel points must rise strictly in accumulation");
+        }
+
+        if (preset.Water.Springs.Discharge < preset.Water.StreamMinAccumulation && preset.Water.Springs.MaxCount > 0)
+        {
+            // A spring whose water is too little for a stream would be a puddle without an outflow.
+            problems.Add($"{p}: spring discharge must reach stream_min_accumulation, so a stream runs from every spring");
+        }
+
+        foreach (var rule in preset.Underground.SoilRules)
+        {
+            Range($"{p} soil rule '{rule.Soil}' height", rule.MinHeight, rule.MaxHeight, problems);
+            Range($"{p} soil rule '{rule.Soil}' moisture", rule.MinMoisturePermille, rule.MaxMoisturePermille, problems);
+        }
+
+        if (preset.Underground.Stones.StoneSoil != preset.Underground.FallbackSoil && preset.Underground.SoilRules.All(r => r.Soil != preset.Underground.Stones.StoneSoil))
+        {
+            problems.Add($"{p}: stony soil '{preset.Underground.Stones.StoneSoil}' is no soil of the rules");
+        }
+
         Range($"{p} caves", preset.Caves.Min, preset.Caves.Max, problems);
         Range($"{p} neighbour islands", preset.Neighbours.Islands.Min, preset.Neighbours.Islands.Max, problems);
         Range($"{p} neighbour group size", preset.Neighbours.GroupSize.Min, preset.Neighbours.GroupSize.Max, problems);

@@ -57,6 +57,14 @@
       "items": {
         "$ref": "#/$defs/ObjectVisual"
       }
+    },
+    "decor": {
+      "description": "Decorative plants drawn by the presentation only (TL #19722): grass tufts, flowers, shrubs in groups on the dry walkable ground of named biomes, placed from the world seed. They are no core objects, have no state and are never saved; they keep off the core's objects and off water. Absent = none.",
+      "type": "array",
+      "maxItems": 32,
+      "items": {
+        "$ref": "#/$defs/ObjectDecor"
+      }
     }
   },
   "$defs": {
@@ -215,6 +223,88 @@
         "ground",
         "ground_uphill"
       ]
+    },
+    "ObjectDecor": {
+      "description": "One kind of decorative plant.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "biomes",
+        "groups_per_10000_cells",
+        "group",
+        "spread_m",
+        "min_spacing_m",
+        "min_object_distance_m"
+      ],
+      "properties": {
+        "type": {
+          "description": "Decor type id; a visual of this file lists it in its types (it must not be an object type of the catalogue).",
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "biomes": {
+          "description": "Biome ids whose dry walkable cells carry it.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$"
+          }
+        },
+        "groups_per_10000_cells": {
+          "description": "Groups per 10000 cells of those biomes.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        "group": {
+          "$ref": "#/$defs/ObjectDecorGroup"
+        },
+        "spread_m": {
+          "description": "Largest distance of a plant from its group centre in metres.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 20
+        },
+        "min_spacing_m": {
+          "description": "Smallest distance between two decorative plants in metres.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "min_object_distance_m": {
+          "description": "Smallest distance from any core object at the start in metres.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10
+        }
+      }
+    },
+    "ObjectDecorGroup": {
+      "description": "Plants per group (min <= max).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "min",
+        "max"
+      ],
+      "properties": {
+        "min": {
+          "description": "Fewest.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        },
+        "max": {
+          "description": "Most.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        }
+      }
     }
   }
 }

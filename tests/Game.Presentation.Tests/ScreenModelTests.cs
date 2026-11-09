@@ -37,6 +37,15 @@ public sealed class ScreenModelTests
         Assert.Equal("2", hint.Args["number"]);
     }
 
+    /// <summary>An expired queued answer (F5275) belongs to a question already answered: no question hint.</summary>
+    [Fact]
+    public void AnExpiredAnswerIsNoQuestion()
+    {
+        var rows = new[] { new InhabitantRow("inh-000002", 2, 80, false, null, 0) };
+        var events = new[] { new WorldEvent(InhabitantsSystem.AnswerExpired, 7, "inh-000002", "sleep", null) { Detail = InhabitantsSystem.NeedNeglected } };
+        Assert.Empty(ScreenModel.Hints(events, rows));
+    }
+
     [Fact]
     public void NoAnswerToTalkingGivesOneCalmHint()
     {

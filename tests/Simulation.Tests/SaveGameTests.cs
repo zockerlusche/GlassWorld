@@ -180,8 +180,9 @@ public sealed class SaveGameTests : IDisposable
                 Assert.Equal(1, set.ExecuteNonQuery());
             }
 
+            // A real schema-4 file has no island format column yet (schema 6 adds it).
             using var version = c.CreateCommand();
-            version.CommandText = "PRAGMA user_version = 4;";
+            version.CommandText = "ALTER TABLE island DROP COLUMN format; PRAGMA user_version = 4;";
             version.ExecuteNonQuery();
         }
 

@@ -595,6 +595,230 @@
       "rest": "centre",
       "align": "ground",
       "footprint_m": 0.12
+    },
+    {
+      "id": "decor_grass",
+      "types": [
+        "decor_grass"
+      ],
+      "shape": "tuft",
+      "colors": [
+        "grass_edge"
+      ],
+      "size_m": 0.9,
+      "size_jitter": 0.3,
+      "lift_m": 0.0,
+      "rest": "centre",
+      "align": "upright",
+      "footprint_m": 0.0
+    },
+    {
+      "id": "decor_grass_dry",
+      "types": [
+        "decor_grass_dry"
+      ],
+      "shape": "tuft",
+      "colors": [
+        "straw"
+      ],
+      "size_m": 0.8,
+      "size_jitter": 0.3,
+      "lift_m": 0.0,
+      "rest": "centre",
+      "align": "upright",
+      "footprint_m": 0.0
+    },
+    {
+      "id": "decor_flower",
+      "types": [
+        "decor_flower"
+      ],
+      "shape": "flower",
+      "colors": [
+        "grass_edge",
+        "flower"
+      ],
+      "size_m": 0.7,
+      "size_jitter": 0.25,
+      "lift_m": 0.0,
+      "rest": "centre",
+      "align": "upright",
+      "footprint_m": 0.0
+    },
+    {
+      "id": "decor_flower_blue",
+      "types": [
+        "decor_flower_blue"
+      ],
+      "shape": "flower",
+      "colors": [
+        "grass_edge",
+        "berry_blue"
+      ],
+      "size_m": 0.7,
+      "size_jitter": 0.25,
+      "lift_m": 0.0,
+      "rest": "centre",
+      "align": "upright",
+      "footprint_m": 0.0
+    },
+    {
+      "id": "decor_flower_yellow",
+      "types": [
+        "decor_flower_yellow"
+      ],
+      "shape": "flower",
+      "colors": [
+        "grass_edge",
+        "pyrite"
+      ],
+      "size_m": 0.6,
+      "size_jitter": 0.25,
+      "lift_m": 0.0,
+      "rest": "centre",
+      "align": "upright",
+      "footprint_m": 0.0
+    },
+    {
+      "id": "decor_shrub",
+      "types": [
+        "decor_shrub"
+      ],
+      "shape": "bush",
+      "colors": [
+        "bush"
+      ],
+      "size_m": 0.8,
+      "size_jitter": 0.25,
+      "lift_m": 0.0,
+      "rest": "centre",
+      "align": "upright",
+      "footprint_m": 0.0
+    },
+    {
+      "id": "decor_fern",
+      "types": [
+        "decor_fern"
+      ],
+      "shape": "tuft",
+      "colors": [
+        "foliage_dark"
+      ],
+      "size_m": 1.1,
+      "size_jitter": 0.25,
+      "lift_m": 0.0,
+      "rest": "centre",
+      "align": "upright",
+      "footprint_m": 0.0
+    }
+  ],
+  "decor": [
+    {
+      "type": "decor_grass",
+      "biomes": [
+        "meadow",
+        "field",
+        "forest",
+        "beach_sea"
+      ],
+      "groups_per_10000_cells": 260,
+      "group": {
+        "min": 3,
+        "max": 8
+      },
+      "spread_m": 1.6,
+      "min_spacing_m": 0.35,
+      "min_object_distance_m": 0.6
+    },
+    {
+      "type": "decor_grass_dry",
+      "biomes": [
+        "field",
+        "rocks_hills",
+        "beach_sea"
+      ],
+      "groups_per_10000_cells": 160,
+      "group": {
+        "min": 2,
+        "max": 6
+      },
+      "spread_m": 1.4,
+      "min_spacing_m": 0.35,
+      "min_object_distance_m": 0.6
+    },
+    {
+      "type": "decor_flower",
+      "biomes": [
+        "meadow"
+      ],
+      "groups_per_10000_cells": 110,
+      "group": {
+        "min": 3,
+        "max": 9
+      },
+      "spread_m": 1.8,
+      "min_spacing_m": 0.3,
+      "min_object_distance_m": 0.6
+    },
+    {
+      "type": "decor_flower_blue",
+      "biomes": [
+        "meadow",
+        "forest"
+      ],
+      "groups_per_10000_cells": 60,
+      "group": {
+        "min": 2,
+        "max": 7
+      },
+      "spread_m": 1.5,
+      "min_spacing_m": 0.3,
+      "min_object_distance_m": 0.6
+    },
+    {
+      "type": "decor_flower_yellow",
+      "biomes": [
+        "meadow",
+        "field"
+      ],
+      "groups_per_10000_cells": 70,
+      "group": {
+        "min": 2,
+        "max": 7
+      },
+      "spread_m": 1.5,
+      "min_spacing_m": 0.3,
+      "min_object_distance_m": 0.6
+    },
+    {
+      "type": "decor_shrub",
+      "biomes": [
+        "meadow",
+        "forest",
+        "rocks_hills"
+      ],
+      "groups_per_10000_cells": 70,
+      "group": {
+        "min": 1,
+        "max": 4
+      },
+      "spread_m": 2.0,
+      "min_spacing_m": 0.9,
+      "min_object_distance_m": 1.0
+    },
+    {
+      "type": "decor_fern",
+      "biomes": [
+        "forest"
+      ],
+      "groups_per_10000_cells": 200,
+      "group": {
+        "min": 2,
+        "max": 6
+      },
+      "spread_m": 1.8,
+      "min_spacing_m": 0.5,
+      "min_object_distance_m": 0.7
     }
   ]
 }

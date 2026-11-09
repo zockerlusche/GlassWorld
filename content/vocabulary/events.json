@@ -27,6 +27,10 @@
       "description": "A question could not be answered."
     },
     {
+      "id": "answer_expired",
+      "description": "A queued answer was dropped before it started because a need it does not serve fell below its neglect threshold."
+    },
+    {
       "id": "thought",
       "description": "A thought of an inhabitant (text in the player's language)."
     },

@@ -47,6 +47,9 @@ public partial class IslandScene : Node3D
     private int _maxTicksPerFrame;
     private double _tickDebt;
     private long _warmTicks;
+    private ObjectsView? _objects;
+    private GlassWorld.Simulation.Map.GeneratedIsland? _island;
+    private readonly Dictionary<string, SceneSpot?> _spots = new(StringComparer.Ordinal);
 
     /// <inheritdoc/>
     public override void _Ready()
@@ -130,6 +133,14 @@ public partial class IslandScene : Node3D
         // The figures stand where the warm-up left them (no walk from the start spot).
         ApplySnapshot(1, place: true);
 
+        // The core's objects and the decorative plants (TL #19722), drawn as in the main game.
+        var objectLooks = Look<LookObjects>("objects.json");
+        var decor = Decor.Plan(objectLooks.Decor, island.Island, terrain.CellM);
+        _objects = ObjectsView.Create(objectLooks, Look<LookPalette>("palette.json"), (x, z) => IslandView.GroundHeight(ground, terrain, x, z), decor);
+        AddChild(_objects);
+        _objects.Refresh(host.Snapshot().Objects);
+        _island = island.Island;
+
         // The camera target follows the ground, but never sinks below the sea surface.
         var seaLevel = host.Content.WorldGen.Presets[preset].Terrain.SeaLevel * terrain.UnitM;
         _rig = CameraRig.Create(Look<LookCamera>("camera.json"), _width, _depth, () => _figures.Values.Select(f => (f.InhabitantId, f.Position)), (x, z) => Math.Max(seaLevel, IslandView.GroundHeight(ground, terrain, x, z)));
@@ -148,7 +159,7 @@ public partial class IslandScene : Node3D
 
         if (_check)
         {
-            GD.Print($"ISLAND_OK seed={seed} chunks={view.GroundChunks} ground_triangles={view.GroundTriangles} water_triangles={view.WaterTriangles} figures={_figures.Count}");
+            GD.Print($"ISLAND_OK seed={seed} chunks={view.GroundChunks} ground_triangles={view.GroundTriangles} water_triangles={view.WaterTriangles} figures={_figures.Count} objects={_objects!.Drawn} decor={_objects.DecorCount}");
             GD.Print($"ISLAND_LOD seed={seed} ground={string.Join(",", view.LevelTriangles.Select(l => $"{l.CellStep}:{l.Ground}"))} water={view.WaterTriangles}");
             GetTree().Quit(view.GroundChunks == island.Map.ChunksX * island.Map.ChunksZ && view.GroundTriangles > 0 && view.WaterTriangles > 0 && _figures.Count == host.Inhabitants.All.Count() ? 0 : 1);
             return;
@@ -214,7 +225,26 @@ public partial class IslandScene : Node3D
                 (tx, tz) = (figure.Position.X, figure.Position.Z);
             }
 
-            _rig.Model.Set(tx, tz, next.Point.YawDeg, next.Point.DistanceM);
+            var yawDeg = next.Point.YawDeg;
+            if (figure is null && next.Point.Scene is { } scene)
+            {
+                // The scene finder (TL #19722): a spot with a stream, a spring and a hill near a start.
+                if (!_spots.TryGetValue(next.Point.Id, out var spot))
+                {
+                    _spots[next.Point.Id] = spot = SceneFinder.Find(scene, _island!, _width / _island!.Map.WidthCells);
+                    GD.Print(spot is { } s
+                        ? $"ISLAND_SCENE point={next.Point.Id} x={s.X:0.0} z={s.Z:0.0} yaw={s.YawDeg:0} streams={s.StreamCells} relief={s.Relief}"
+                        : $"ISLAND_SCENE point={next.Point.Id} none (map target)");
+                }
+
+                if (spot is { } found)
+                {
+                    (tx, tz) = (found.X, found.Z);
+                    yawDeg = found.YawDeg ?? yawDeg;
+                }
+            }
+
+            _rig.Model.Set(tx, tz, yawDeg, next.Point.DistanceM);
             if (figure is not null)
             {
                 _rig.FollowFigure(figure.InhabitantId, next.Point.DistanceM);

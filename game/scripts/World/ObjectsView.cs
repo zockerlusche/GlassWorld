@@ -10,7 +10,8 @@ namespace GlassWorld.Game.World;
 /// <c>content/look/objects.json</c>, each object on the drawn ground under its core position, lying
 /// objects tilted to its slope (<see cref="ObjectLooks.Place"/>). The view is
 /// rebuilt only when the object set changes (<see cref="ObjectLooks.Signature"/>). A type without an entry
-/// is drawn as the calm fallback marker and logged once. Presentation only: it never writes core state.
+/// is drawn as the calm fallback marker and logged once. Decorative plants (<see cref="Decor"/>) are drawn
+/// the same way next to the core's objects. Presentation only: it never writes core state.
 /// </summary>
 public partial class ObjectsView : Node3D
 {
@@ -18,6 +19,10 @@ public partial class ObjectsView : Node3D
     private ObjectLooks _looks = null!;
     private Func<double, double, double> _ground = (_, _) => 0;
     private long _signature = long.MinValue;
+    private IReadOnlyList<WorldObject> _decor = [];
+
+    /// <summary>Decorative plants drawn with the objects (presentation only).</summary>
+    public int DecorCount => _decor.Count;
 
     /// <summary>Objects drawn after the last refresh (none-shapes excluded).</summary>
     public int Drawn { get; private set; }
@@ -26,13 +31,13 @@ public partial class ObjectsView : Node3D
     public int Layers => _layers.Count;
 
     /// <summary>Creates the view: one mesh per visual in palette colours, the comic shader and the ink outline.</summary>
-    public static ObjectsView Create(LookObjects data, LookPalette palette, Func<double, double, double> ground)
+    public static ObjectsView Create(LookObjects data, LookPalette palette, Func<double, double, double> ground, IReadOnlyList<WorldObject>? decor = null)
     {
         ArgumentNullException.ThrowIfNull(data);
         ArgumentNullException.ThrowIfNull(palette);
         ArgumentNullException.ThrowIfNull(ground);
         var colors = palette.Colors.ToDictionary(c => c.Id, c => new Color(c.Color), StringComparer.Ordinal);
-        var view = new ObjectsView { Name = "Objects", _looks = new ObjectLooks(data, colors.Keys.ToHashSet(StringComparer.Ordinal)), _ground = ground };
+        var view = new ObjectsView { Name = "Objects", _looks = new ObjectLooks(data, colors.Keys.ToHashSet(StringComparer.Ordinal)), _ground = ground, _decor = decor ?? [] };
         var material = new ShaderMaterial { Shader = GD.Load<Shader>("res://shaders/warm_comic.gdshader") };
         material.SetShaderParameter("use_vertex_color", true);
         material.SetShaderParameter("use_regions", false);
@@ -63,14 +68,17 @@ public partial class ObjectsView : Node3D
     public bool Refresh(IEnumerable<WorldObject> objects)
     {
         ArgumentNullException.ThrowIfNull(objects);
-        var list = objects as IReadOnlyCollection<WorldObject> ?? [.. objects];
-        var signature = ObjectLooks.Signature(list);
+        // Only the core's objects are hashed each call; the decorative plants never change, so the combined
+        // list is built only when the objects did (review GW3 #134: no 6-10k list and hash per frame).
+        var core = objects as IReadOnlyCollection<WorldObject> ?? [.. objects];
+        var signature = ObjectLooks.Signature(core);
         if (signature == _signature)
         {
             return false;
         }
 
         _signature = signature;
+        IReadOnlyCollection<WorldObject> list = _decor.Count == 0 ? core : [.. core, .. _decor];
         var layout = _looks.Layout(list, _ground, type => GD.Print($"OBJECT_LOOK_FALLBACK type={type} (no entry in content/look/objects.json, drawn as the neutral marker)"));
         Drawn = 0;
         foreach (var (id, layer) in _layers)

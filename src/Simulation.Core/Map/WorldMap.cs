@@ -50,13 +50,15 @@ public sealed class WorldMap
 {
     private readonly MapCell[][] _chunks;
 
-    internal WorldMap(int chunkCells, int chunksX, int chunksZ, IReadOnlyList<string> biomeIds, MapCell[][] chunks)
+    internal WorldMap(int chunkCells, int chunksX, int chunksZ, IReadOnlyList<string> biomeIds, MapCell[][] chunks, HydrologyLayer? hydrology = null, UndergroundLayer? underground = null)
     {
         ChunkCells = chunkCells;
         ChunksX = chunksX;
         ChunksZ = chunksZ;
         BiomeIds = biomeIds;
         _chunks = chunks;
+        Hydrology = hydrology;
+        Underground = underground;
     }
 
     /// <summary>Edge length of a chunk in cells.</summary>
@@ -76,6 +78,12 @@ public sealed class WorldMap
 
     /// <summary>Biome ids in table order; <see cref="MapCell.Biome"/> indexes into it.</summary>
     public IReadOnlyList<string> BiomeIds { get; }
+
+    /// <summary>The drainage per cell (accumulation, stream width, springs, lakes); null on islands saved before it existed.</summary>
+    public HydrologyLayer? Hydrology { get; }
+
+    /// <summary>The underground per cell (groundwater, soil, stones, ore); null on islands saved before it existed.</summary>
+    public UndergroundLayer? Underground { get; }
 
     /// <summary>Whether (x, z) lies on the map.</summary>
     public bool Contains(int x, int z) => x >= 0 && z >= 0 && x < WidthCells && z < DepthCells;
@@ -113,6 +121,10 @@ public sealed class WorldMap
                     .Write(c.Moisture).Write(c.Temperature).Write((int)c.Biome).Write(c.WalkCost);
             }
         }
+
+        // The layers only when present, so islands saved before them keep their hash.
+        Hydrology?.WriteTo(hasher);
+        Underground?.WriteTo(hasher);
     }
 
     /// <summary>The world hash of the grid alone (B2 acceptance 1).</summary>
@@ -163,6 +175,12 @@ public sealed class WorldMapBuilder
     /// <summary>Number of chunks along z.</summary>
     public int ChunksZ { get; }
 
+    /// <summary>The drainage layer the built map carries (null = none).</summary>
+    public HydrologyLayer? Hydrology { get; set; }
+
+    /// <summary>The underground layer the built map carries (null = none).</summary>
+    public UndergroundLayer? Underground { get; set; }
+
     /// <summary>Sets the cell at (x, z).</summary>
     public void Set(int x, int z, MapCell cell)
     {
@@ -180,5 +198,16 @@ public sealed class WorldMapBuilder
     }
 
     /// <summary>An immutable map; later changes to the builder do not affect it.</summary>
-    public WorldMap Build() => new(ChunkCells, ChunksX, ChunksZ, _biomeIds, [.. _chunks.Select(c => (MapCell[])c.Clone())]);
+    public WorldMap Build()
+    {
+        foreach (var (layer, w, d) in new[] { (Hydrology is null ? null : "hydrology", Hydrology?.Width ?? 0, Hydrology?.Depth ?? 0), (Underground is null ? null : "underground", Underground?.Width ?? 0, Underground?.Depth ?? 0) })
+        {
+            if (layer is not null && (w != ChunksX * ChunkCells || d != ChunksZ * ChunkCells))
+            {
+                throw new InvalidOperationException($"the {layer} layer does not match the grid");
+            }
+        }
+
+        return new(ChunkCells, ChunksX, ChunksZ, _biomeIds, [.. _chunks.Select(c => (MapCell[])c.Clone())], Hydrology, Underground);
+    }
 }
