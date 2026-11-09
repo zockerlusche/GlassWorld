@@ -171,7 +171,7 @@ namespace GlassWorld.Contracts
         public double ClickMaxPx { get; set; } = default!;
 
         /// <summary>
-        /// A press held longer than this (milliseconds) is no click.
+        /// A press that moved (within click_max_px) and is held longer than this (milliseconds) is no click; a press that never moved is always a click.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("click_max_ms")]
         public double ClickMaxMs { get; set; } = default!;

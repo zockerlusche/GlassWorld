@@ -122,7 +122,7 @@ class LookCamera(BaseModel):
     )
     click_max_ms: float = Field(
         ...,
-        description='A press held longer than this (milliseconds) is no click.',
+        description='A press that moved (within click_max_px) and is held longer than this (milliseconds) is no click; a press that never moved is always a click.',
         ge=50.0,
         le=5000.0,
     )

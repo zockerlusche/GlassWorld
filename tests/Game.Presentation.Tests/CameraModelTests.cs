@@ -351,14 +351,15 @@ public sealed class CameraModelTests
     [InlineData(0, 0, 100, true)]
     [InlineData(5, 3, 300, true)]
     [InlineData(12, 0, 100, false)]
-    [InlineData(0, 0, 900, false)]
+    [InlineData(0, 0, 900, true)]
+    [InlineData(2, 1, 900, false)]
     public void AShortPressIsAClickAndAMoveIsADrag(double dx, double dy, double ms, bool click)
     {
         var data = Data();
         var gate = new ClickGate(data.ClickMaxPx, data.ClickMaxMs);
         gate.Press(400, 300, 1000);
         gate.Move(400 + dx, 300 + dy);
-        Assert.Equal(!click && ms <= data.ClickMaxMs, gate.Dragging);
+        Assert.Equal(Math.Sqrt((dx * dx) + (dy * dy)) > data.ClickMaxPx, gate.Dragging);
         Assert.Equal(click, gate.Release(400 + dx, 300 + dy, 1000 + ms));
         Assert.False(gate.Pressed);
     }

@@ -232,11 +232,12 @@ public partial class CameraRig : Node3D
             _select.Cancel();
         }
 
-        // Keys typed into a text field (a message to an inhabitant) never move the camera.
-        var typing = GetViewport()?.GuiGetFocusOwner() is LineEdit or TextEdit;
-        var right = typing ? 0 : Input.GetAxis(PanActions[0], PanActions[1]);
-        var forward = typing ? 0 : Input.GetAxis(PanActions[3], PanActions[2]);
-        var turn = typing ? 0 : Input.GetAxis(TurnActions[0], TurnActions[1]);
+        // While a GUI control has the keyboard focus (a text field, slider, list, option button) its keys
+        // belong to it and never move the camera (GW3 review #144).
+        var keys = GetViewport()?.GuiGetFocusOwner() is null;
+        var right = keys ? Input.GetAxis(PanActions[0], PanActions[1]) : 0;
+        var forward = keys ? Input.GetAxis(PanActions[3], PanActions[2]) : 0;
+        var turn = keys ? Input.GetAxis(TurnActions[0], TurnActions[1]) : 0;
         Model.Move(right, forward, turn, delta);
         if (right != 0 || forward != 0)
         {
