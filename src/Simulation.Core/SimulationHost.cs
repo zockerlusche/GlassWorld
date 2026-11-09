@@ -182,6 +182,7 @@ public sealed class SimulationHost
         decisions.RegisterCommand(Simulation.Player.PlayerSystem.PlaceGift, player.Check, player.Apply);
         decisions.RegisterCommand(Simulation.Player.PlayerSystem.StartFavorCommand, player.CheckStartFavor, player.ApplyStartFavor);
         var inventions = new InventionSystem(content.Inventions, inhabitants, objects, types, content.Brain.Weights.PerceptionRadiusM, jobPort, displayLocale);
+        decisions.InventedName = typeId => inventions.Invention(typeId)?.Name;
         var chronicle = new ChronicleSystem(content.Chronicle);
         inhabitants.Reported += chronicle.Observe;
         var skills = new SkillRegister(content.InhabitantModel.Skills, content.InhabitantModel.SkillRules, content.SkillPractice);
@@ -220,13 +221,72 @@ public sealed class SimulationHost
 
         // The mailbox after the chronicle (agreed order): help_needed is reported by the player system earlier in the tick.
         world.Add(objects).Add(decisions).Add(inhabitants).Add(player).Add(inventions).Add(chronicle).Add(writing).Add(skills).Add(skillLevels).Add(mailbox).Add(conversation);
-        return new SimulationHost(content, world, map, types, objects, decisions, inhabitants, player, inventions, chronicle, settings, writing, skills, mailbox)
+        var host = new SimulationHost(content, world, map, types, objects, decisions, inhabitants, player, inventions, chronicle, settings, writing, skills, mailbox)
         {
             WeatherSystem = weather,
             Weather = weather,
             SkillLevels = skillLevels,
             Conversation = conversation,
         };
+
+        // The player's language (#20043): a logged command, so replays ask in the same language at the same tick.
+        decisions.RegisterCommand(DecisionsSystem.SetDisplayLocale, CheckDisplayLocale, (_, command) => host.UseDisplayLocale(command.Text!));
+        return host;
+    }
+
+    /// <summary>Language of the texts the AI writes for this world from now on (display_locale of all requests).</summary>
+    public string DisplayLocale => Decisions.DisplayLocale;
+
+    /// <summary>
+    /// After a restore: the language the saved log ends with (the last <see cref="DecisionsSystem.SetDisplayLocale"/>,
+    /// else <see cref="DecisionsSystem.DefaultDisplayLocale"/>), so the world goes on as it was saved. A
+    /// different player language then follows as a logged command.
+    /// </summary>
+    /// <remarks>Relies on the full command log: trimming or compacting the decision log must keep the
+    /// <see cref="DecisionsSystem.SetDisplayLocale"/> commands (SaveGameTests pin this through a save file).</remarks>
+    internal void UseLoggedDisplayLocale()
+    {
+        var locale = DecisionsSystem.DefaultDisplayLocale;
+        foreach (var entry in Decisions.Log.Entries)
+        {
+            if (entry.Kind == DecisionLogKind.Command && entry.Json.Contains(DecisionsSystem.SetDisplayLocale, StringComparison.Ordinal)
+                && System.Text.Json.JsonSerializer.Deserialize<PlayerCommand>(entry.Json) is { Kind: DecisionsSystem.SetDisplayLocale, Text: { } text })
+            {
+                locale = text;
+            }
+        }
+
+        UseDisplayLocale(locale);
+    }
+
+    private static CommandResult CheckDisplayLocale(PlayerCommand command) =>
+        Enum.GetValues<Locale>().Any(l => string.Equals(l.ToString().ToLowerInvariant(), command.Text, StringComparison.Ordinal))
+            ? new CommandResult(true, null)
+            : new CommandResult(false, DecisionsSystem.ReasonUnknownCommand);
+
+    private void UseDisplayLocale(string locale)
+    {
+        Decisions.DisplayLocale = locale;
+        Inventions.DisplayLocale = locale;
+        Conversation.DisplayLocale = locale;
+    }
+
+    /// <summary>
+    /// A new world in another language than <see cref="DecisionsSystem.DefaultDisplayLocale"/> logs its
+    /// language at the start (like the start favour), so the replay, which starts in the default, follows.
+    /// </summary>
+    private static void LogStartLocale(SimulationHost host, string displayLocale)
+    {
+        if (string.Equals(displayLocale, DecisionsSystem.DefaultDisplayLocale, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        var result = host.Decisions.ApplySetup(host.World, new PlayerCommand(DecisionsSystem.SetDisplayLocale, null) { Text = displayLocale });
+        if (!result.Accepted)
+        {
+            throw new ArgumentException($"Unsupported display locale '{displayLocale}'.", nameof(displayLocale));
+        }
     }
 
     /// <summary>
@@ -262,6 +322,7 @@ public sealed class SimulationHost
             }
         }
 
+        LogStartLocale(host, displayLocale);
         return host;
     }
 
@@ -295,6 +356,7 @@ public sealed class SimulationHost
             map.Track(host.Objects.Spawn(obj.TypeId, map.CentreOf(obj.X, obj.Z)), obj.X, obj.Z);
         }
 
+        LogStartLocale(host, displayLocale);
         return host;
     }
 

@@ -30,6 +30,7 @@ from glassworld_ai.llm.ollama import OllamaClient
 from glassworld_ai.prompts import PromptTemplate
 from glassworld_ai.queue import ModelQueue, Priority
 from glassworld_ai.safety import TextGuard
+from glassworld_ai.texts import TextCatalog
 from glassworld_ai.words import ContextError, bands, humanize, plain_id, quote, word
 from glassworld_contracts import CONTRACT_VERSION
 from glassworld_contracts.models.conversation_request_schema import ConversationRequest
@@ -76,7 +77,11 @@ def output_schema(expressions: list[str]) -> dict[str, Any]:
     }
 
 
-def parse(raw: str, schema: dict[str, Any], guard: TextGuard) -> dict[str, Any]:
+def parse(
+    raw: str, schema: dict[str, Any], guard: TextGuard, answer_all: bool = False
+) -> dict[str, Any]:
+    """Validate the model answer. With `answer_all` (prompt v2, Marcel W1701) decline and not
+    understood keep their sentence too; a blocked one is dropped and replaced by a stand-in."""
     try:
         data: Any = json.loads(raw)
     except json.JSONDecodeError as error:
@@ -94,9 +99,20 @@ def parse(raw: str, schema: dict[str, Any], guard: TextGuard) -> dict[str, Any]:
         verdict = guard.check(values["reply"])
         if not verdict.allowed:
             raise InvalidOutputError(f"reply blocked by the content guard ({verdict.category})")
+    elif answer_all and values["outcome"] != "gesture" and values["reply"]:
+        if not guard.check(values["reply"]).allowed:
+            values["reply"] = None
     else:
-        values["reply"] = None  # the contract: a sentence only with outcome reply
+        values["reply"] = None  # v1: a sentence only with outcome reply
     return values
+
+
+def with_words(data: dict[str, Any], texts: TextCatalog | None, locale: str) -> dict[str, Any]:
+    """W1701: the voice always gets an answer - an outcome other than a gesture without a sentence
+    gets the data's stand-in msg.converse.<outcome> (DE/EN)."""
+    if data["outcome"] == "gesture" or data["reply"] or texts is None:
+        return data
+    return {**data, "reply": texts.get(locale, f"msg.converse.{data['outcome']}")}
 
 
 def values(
@@ -194,10 +210,13 @@ class OllamaConversation:
         log: CallLog,
         guard: TextGuard,
         expressions: dict[str, str],
+        texts: TextCatalog | None = None,
     ) -> None:
         self._client, self._queue, self._template = client, queue, template
         self._settings, self._log, self._guard = settings, log, guard
         self._expressions = expressions
+        # Prompt v2 (W1701): every outcome except a gesture carries a sentence.
+        self._texts = texts if template.version >= 2 else None
 
     async def answer(self, request: ConversationRequest, deadline: float) -> ConversationResponse:
         schema = output_schema(sorted(self._expressions))
@@ -207,7 +226,7 @@ class OllamaConversation:
             job=request,
             rendered=rendered,
             schema=schema,
-            parse=lambda raw: parse(raw, schema, self._guard),
+            parse=lambda raw: parse(raw, schema, self._guard, self._texts is not None),
             client=self._client,
             queue=self._queue,
             settings=self._settings,
@@ -215,8 +234,9 @@ class OllamaConversation:
             priority=Priority.PLAYER,
             deadline=deadline,
         )
+        data = with_words(answer.value, self._texts, plain_id(request.display_locale))
         return _response(
-            request, answer.value, "model", self._client.model, answer.latency_ms, answer.attempts
+            request, data, "model", self._client.model, answer.latency_ms, answer.attempts
         )
 
 
@@ -247,8 +267,15 @@ class MockConversation:
 class ReplayConversation:
     """Answers from the call log: the first valid model answer recorded for the request id."""
 
-    def __init__(self, log: CallLog, guard: TextGuard, expressions: dict[str, str]) -> None:
+    def __init__(
+        self,
+        log: CallLog,
+        guard: TextGuard,
+        expressions: dict[str, str],
+        texts: TextCatalog | None = None,
+    ) -> None:
         self._log, self._guard, self._expressions = log, guard, expressions
+        self._texts = texts  # used for rows recorded with prompt v2 or later (W1701)
         self._answers: dict[str, dict[str, object]] | None = None
 
     async def answer(self, request: ConversationRequest, deadline: float) -> ConversationResponse:
@@ -258,10 +285,16 @@ class ReplayConversation:
         row = self._answers.get(request_id)
         if row is None:
             raise fail("model_unavailable", f"no recorded answer for request {request_id}")
+        recorded = str(row.get("prompt_version", "")).rpartition(".v")[2]
+        texts = self._texts if recorded.isdigit() and int(recorded) >= 2 else None
         try:
             data = parse(
-                str(row["raw_output"]), output_schema(sorted(self._expressions)), self._guard
+                str(row["raw_output"]),
+                output_schema(sorted(self._expressions)),
+                self._guard,
+                texts is not None,
             )
+            data = with_words(data, texts, plain_id(request.display_locale))
         except InvalidOutputError as error:
             raise fail(
                 "model_unavailable", f"recorded answer does not fit request {request_id}"

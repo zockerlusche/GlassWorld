@@ -8,8 +8,10 @@
     "question_above_head_m": 1.1,
     "pixel_size_m": 0.009,
     "thought_width_px": 900,
-    "bubble_min_px": 22,
-    "bubble_max_px": 40,
+    "thought_seconds": 6,
+    "thought_seconds_fast": 3,
+    "fast_from_speed": 16,
+    "bubble_width_px": 440,
     "speech_s": 9.0
   },
   "observer": {

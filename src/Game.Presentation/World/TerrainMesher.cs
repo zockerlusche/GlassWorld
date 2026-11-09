@@ -45,6 +45,7 @@ public readonly record struct Rgb(float R, float G, float B)
 /// <param name="StreamSourceTaperM">Length over which a stream widens from its source to its full width (metres).</param>
 /// <param name="StreamSourceWidthShare">Width of a stream at its source as a share of its full width.</param>
 /// <param name="CliffBiomes">Per biome index of the map: whether its cells form rock walls where they stand at least <paramref name="CliffDrop"/> above a neighbour (null = every biome).</param>
+/// <param name="Rock">Natural rock colours (TL #19984), or null for plain colours.</param>
 public sealed record TerrainLook(
     IReadOnlyList<Rgb> BiomeColors,
     Rgb Cliff,
@@ -65,7 +66,8 @@ public sealed record TerrainLook(
     int StreamSmoothing = 3,
     IReadOnlyList<bool>? CliffBiomes = null,
     float StreamSourceTaperM = 0,
-    float StreamSourceWidthShare = 1)
+    float StreamSourceWidthShare = 1,
+    RockLook? Rock = null)
 {
     /// <summary>Resolves the look data against the palette, the map's biome order and the preset.</summary>
     public static TerrainLook From(LookTerrain terrain, LookPalette palette, WorldMap map, WorldPreset preset)
@@ -118,7 +120,49 @@ public sealed record TerrainLook(
             terrain.Water.StreamSmoothing,
             [.. map.BiomeIds.Select(id => terrain.Cliffs.Biomes.Contains(id, StringComparer.Ordinal))],
             (float)terrain.Water.StreamSourceTaperM,
-            (float)terrain.Water.StreamSourceWidthShare);
+            (float)terrain.Water.StreamSourceWidthShare,
+            terrain.Rock is { } rock ? new RockLook(rock.VariationPermille / 1000f, rock.VariationCells, rock.WallFootShadePermille / 1000f, rock.ScreePermille / 1000f) : null);
+    }
+}
+
+/// <summary>Natural rock colours (TL #19984), resolved from the look data.</summary>
+/// <param name="Variation">Largest brightness change of rock ground and walls (share, both ways).</param>
+/// <param name="VariationCells">Size of the colour patches in cells.</param>
+/// <param name="WallFootShade">How much darker a wall is at its foot than at its top (share).</param>
+/// <param name="Scree">How far the ground at the foot of a wall leans towards the rock colour (share).</param>
+public sealed record RockLook(float Variation, int VariationCells, float WallFootShade, float Scree)
+{
+    /// <summary>
+    /// Brightness factor at a grid point: a smooth value noise over the grid (patches of the given size)
+    /// plus a quarter of it as fine grain, between 1 - variation and 1 + variation. Deterministic.
+    /// </summary>
+    public float Brightness(double x, double z)
+    {
+        var coarse = Noise(x / VariationCells, z / VariationCells, 0x5EED);
+        var fine = Noise(x / 2.0, z / 2.0, 0xF1E);
+        return 1f + (Variation * (float)((coarse * 0.8) + (fine * 0.2)));
+    }
+
+    // Value noise in [-1, 1]: smooth interpolation of hashed lattice values.
+    private static double Noise(double x, double z, uint salt)
+    {
+        int ix = (int)Math.Floor(x), iz = (int)Math.Floor(z);
+        double fx = x - ix, fz = z - iz;
+        fx = fx * fx * (3 - (2 * fx));
+        fz = fz * fz * (3 - (2 * fz));
+        double a = Lattice(ix, iz, salt), b = Lattice(ix + 1, iz, salt), c = Lattice(ix, iz + 1, salt), d = Lattice(ix + 1, iz + 1, salt);
+        var top = a + ((b - a) * fx);
+        var bottom = c + ((d - c) * fx);
+        return top + ((bottom - top) * fz);
+    }
+
+    private static double Lattice(int x, int z, uint salt)
+    {
+        var h = unchecked(((uint)x * 0x8DA6B343u) ^ ((uint)z * 0xD8163841u) ^ (salt * 0xCB1AB31Fu));
+        h ^= h >> 13;
+        h = unchecked(h * 0x5BD1E995u);
+        h ^= h >> 15;
+        return ((h & 0xFFFF) / 32767.5) - 1;
     }
 }
 
@@ -1042,7 +1086,14 @@ public static partial class TerrainMesher
         {
             if ((members & (1 << s)) != 0)
             {
-                var c = GroundColor(map.Cell(gx - 1 + (s & 1), gz - 1 + (s >> 1)), look);
+                var cell = map.Cell(gx - 1 + (s & 1), gz - 1 + (s >> 1));
+                var c = GroundColor(cell, look);
+                if (look.Rock is { } rock && cell.Water == WaterKind.None && (look.CliffBiomes?[cell.Biome] ?? true))
+                {
+                    // Rock is no flat grey (TL #19984): brightness patches over the grid.
+                    c = Scale(c, rock.Brightness(gx, gz));
+                }
+
                 (r, g, b, count) = (r + c.R, g + c.G, b + c.B, count + 1);
             }
         }
@@ -1081,10 +1132,32 @@ public static partial class TerrainMesher
         for (var k = 0; k < 4; k++)
         {
             int gx = x + Corners[k].Dx, gz = z + Corners[k].Dz;
-            result[k] = GroupColor(map, look, gx, gz, CornerGroup(map, look, gx, gz, Slot(gx, gz, x, z)).Members);
+            var (members, all) = CornerGroup(map, look, gx, gz, Slot(gx, gz, x, z));
+            result[k] = GroupColor(map, look, gx, gz, members);
+
+            // At the foot of a rock wall the ground takes on scree (TL #19984): the corner of the lower group
+            // leans towards the rock colour, so rock and grass blend instead of meeting at a hard line.
+            if (look.Rock is { Scree: > 0 } rock && members != all && GroupHeight(map, gx, gz, all & ~members) > GroupHeight(map, gx, gz, members))
+            {
+                result[k] = result[k].Lerp(look.Cliff, rock.Scree);
+            }
         }
 
         return result;
+    }
+
+    private static Rgb Scale(Rgb c, float f) => new(Math.Clamp(c.R * f, 0f, 1f), Math.Clamp(c.G * f, 0f, 1f), Math.Clamp(c.B * f, 0f, 1f));
+
+    /// <summary>Wall colour at a point: the cliff colour with the rock's brightness patches, darker towards the foot (TL #19984).</summary>
+    private static Rgb WallColor(TerrainLook look, float x, float z, bool foot)
+    {
+        if (look.Rock is not { } rock)
+        {
+            return look.Cliff;
+        }
+
+        var c = Scale(look.Cliff, rock.Brightness(x / look.CellM, z / look.CellM));
+        return foot ? Scale(c, 1f - rock.WallFootShade) : c;
     }
 
     private static void Top(MeshData mesh, ((float X, float Y, float Z) P, Rgb C) va, ((float X, float Y, float Z) P, Rgb C) vb, ((float X, float Y, float Z) P, Rgb C) vc, TerrainLook look)
@@ -1123,20 +1196,54 @@ public static partial class TerrainMesher
 
         float ax = (x + Corners[a].Dx) * look.CellM, az = (z + Corners[a].Dz) * look.CellM;
         float bx = (x + Corners[b].Dx) * look.CellM, bz = (z + Corners[b].Dz) * look.CellM;
-        (float, float, float) topA = (ax, h[a] * look.UnitM, az), topB = (bx, h[b] * look.UnitM, bz);
-        (float, float, float) lowA = (ax, Math.Min(h[a], other[oa]) * look.UnitM, az), lowB = (bx, Math.Min(h[b], other[ob]) * look.UnitM, bz);
+
+        // Each vertical end of the wall, from its top down to its foot, with a vertex at every corner height
+        // of the cells around that grid corner in between: where three levels meet (a step on a step) the
+        // walls share those vertices, so the ground stays closed (no T-junction).
+        var sideA = Side(map, look, x + Corners[a].Dx, z + Corners[a].Dz, h[a], Math.Min(h[a], other[oa]), ax, az);
+        var sideB = Side(map, look, x + Corners[b].Dx, z + Corners[b].Dz, h[b], Math.Min(h[b], other[ob]), bx, bz);
 
         // Facing the neighbour (outwards); the edges a→b run around the cell in one sense for all four sides.
-        // Where the wall runs out at one end (a slope meets it there) it is one triangle, never a sliver.
-        if (h[a] > other[oa])
+        // The two ends are joined like a ladder, top down; where the wall runs out at one end (a slope meets
+        // it there) that end is one vertex, so no sliver is drawn.
+        int i = 0, j = 0;
+        while (i + 1 < sideA.Count || j + 1 < sideB.Count)
         {
-            mesh.Triangle(topA, lowB, lowA, look.Cliff);
+            if (i + 1 < sideA.Count && (j + 1 >= sideB.Count || sideA[i + 1].P.Item2 >= sideB[j + 1].P.Item2))
+            {
+                mesh.Triangle(sideA[i].P, sideB[j].P, sideA[i + 1].P, sideA[i].C, sideB[j].C, sideA[i + 1].C);
+                i++;
+            }
+            else
+            {
+                mesh.Triangle(sideA[i].P, sideB[j].P, sideB[j + 1].P, sideA[i].C, sideB[j].C, sideB[j + 1].C);
+                j++;
+            }
+        }
+    }
+
+    /// <summary>
+    /// One vertical end of a wall at the grid corner (gx, gz): its top, every corner height of the cells
+    /// around the corner strictly between top and foot (descending), and its foot; colours from the wall top
+    /// to the darker foot (<see cref="WallColor"/>).
+    /// </summary>
+    private static List<((float, float, float) P, Rgb C)> Side(WorldMap map, TerrainLook look, int gx, int gz, int top, int foot, float px, float pz)
+    {
+        var heights = new SortedSet<int>(Comparer<int>.Create((p, q) => q.CompareTo(p))) { top, foot };
+        for (var s = 0; s < 4; s++)
+        {
+            if (map.Contains(gx - 1 + (s & 1), gz - 1 + (s >> 1)))
+            {
+                var hs = GroupHeight(map, gx, gz, CornerGroup(map, look, gx, gz, s).Members);
+                if (hs < top && hs > foot)
+                {
+                    heights.Add(hs);
+                }
+            }
         }
 
-        if (h[b] > other[ob])
-        {
-            mesh.Triangle(topA, topB, lowB, look.Cliff);
-        }
+        Rgb upper = WallColor(look, px, pz, foot: false), lower = WallColor(look, px, pz, foot: true);
+        return [.. heights.Select(hv => ((px, hv * look.UnitM, pz), top == foot ? upper : upper.Lerp(lower, (top - hv) / (float)(top - foot))))];
     }
 
     /// <summary>How a block of a coarser level may be drawn.</summary>

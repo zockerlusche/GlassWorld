@@ -104,7 +104,7 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
     private readonly DecisionsSystem _decisions;
     private readonly TextGuard _guard;
     private readonly IReadOnlySet<string> _expressions;
-    private readonly string _displayLocale;
+    private string _displayLocale;
     private readonly int _ticksPerHour;
     private readonly SortedDictionary<string, ConversationMemory> _memories = new(StringComparer.Ordinal);
     private readonly SortedDictionary<string, OpenConversation> _open = new(StringComparer.Ordinal);
@@ -139,6 +139,13 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
 
     /// <inheritdoc/>
     public string Name => "conversation";
+
+    /// <summary>Language of the player's sentences and the answers (display_locale; set with the player's language).</summary>
+    public string DisplayLocale
+    {
+        get => _displayLocale;
+        internal set => _displayLocale = value;
+    }
 
     /// <inheritdoc/>
     public bool HasState => _memories.Count > 0 || _open.Count > 0;

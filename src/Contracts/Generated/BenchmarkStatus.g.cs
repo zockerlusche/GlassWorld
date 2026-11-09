@@ -394,6 +394,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("grief")]
         public System.Collections.Generic.ICollection<Grief>? Grief { get; set; } = default!;
 
+        /// <summary>
+        /// B9 R11 / Marcel W1698: the inhabitant's own name, so it can introduce itself; absent while it has none. Optional.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        public string? Name { get; set; } = default!;
+
     }
 
     /// <summary>

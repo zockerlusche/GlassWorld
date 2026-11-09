@@ -151,6 +151,10 @@ en = "the strange thing"
 
 [settings.thought_check]   # W1687: a thought that fails is replaced by msg.thought.<action>
 max_words = 12
+# W1696: the same inhabitant does not repeat a (nearly) same thought within this many ticks
+# (240 = four game hours); similarity = share of shared words. Placeholders.
+repeat_window_ticks = 240
+repeat_similarity = 0.6
 # Whole words (lower case) a shown thought must not contain: another language slipped in, or
 # words from the system's view instead of the person's (TL F5289: no "der Mensch", "die Person").
 blocked_words.de = ["the", "and", "to", "of", "with", "is", "this", "that", "you", "hearby", "nearby", "object", "person", "something", "here", "there", "what", "mensch", "menschen", "bewohner", "bewohnerin", "objekt"]

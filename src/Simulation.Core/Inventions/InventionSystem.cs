@@ -106,7 +106,7 @@ public sealed partial class InventionSystem : IWorldSystem, IOptionalWorldState,
     private readonly WorldTypeCatalog _types;
     private readonly double _perceptionRadiusM;
     private readonly IJobPort? _port;
-    private readonly string _displayLocale;
+    private string _displayLocale;
     private long _counter;
 
     /// <summary>Creates the system. <paramref name="port"/> null = dormant (no AI connected).</summary>
@@ -128,6 +128,13 @@ public sealed partial class InventionSystem : IWorldSystem, IOptionalWorldState,
 
     /// <inheritdoc/>
     public string Name => "invention";
+
+    /// <summary>Language of the texts the jobs write (display_locale; set with the player's language).</summary>
+    public string DisplayLocale
+    {
+        get => _displayLocale;
+        internal set => _displayLocale = value;
+    }
 
     /// <inheritdoc/>
     public bool HasState => _counter > 0 || _below.Count > 0 || _cooldowns.Count > 0 || _wants.Count > 0 || _inventions.Count > 0 || _builds.Count > 0 || _firstUsed.Count > 0 || _sounds.Count > 0;

@@ -72,6 +72,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<MixBusCurve>))]
         public MixBusCurve Curve { get; set; } = default!;
 
+        /// <summary>
+        /// Switched off until the sounds are replaced (test feedback W1699): the bus stays silent whatever the player's volume; its slider is shown locked with a note. Missing = false.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("off")]
+        public bool? Off { get; set; } = default!;
+
     }
 
     /// <summary>

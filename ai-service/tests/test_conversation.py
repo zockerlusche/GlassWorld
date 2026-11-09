@@ -31,6 +31,7 @@ from glassworld_ai.llm.ollama import OllamaClient
 from glassworld_ai.prompts import load_prompt
 from glassworld_ai.queue import ModelQueue
 from glassworld_ai.safety import TextGuard
+from glassworld_ai.texts import TextCatalog
 from glassworld_ai.validation import ContractValidator
 from glassworld_ai.vocabulary import Vocabulary
 from glassworld_contracts.models.conversation_request_schema import ConversationRequest
@@ -196,3 +197,83 @@ def test_endpoint(settings: Settings) -> None:
             assert bad.json()["request_id"] == REQUEST_DATA["request_id"]
 
     asyncio.run(scenario())
+
+
+# --- prompt v2 (Marcel W1701): every word of the player gets an answer --------------------------
+
+TEXTS = TextCatalog.load(REPO / "content/i18n")
+
+
+@pytest.mark.parametrize("outcome", ["not_understood", "decline"])
+def test_v2_keeps_the_sentence_of_a_decline_or_not_understood(outcome: str) -> None:
+    said = {**GOOD, "outcome": outcome, "reply": "Fire? What's that?"}
+    assert parse(_raw(said), SCHEMA, GUARD, answer_all=True)["reply"] == "Fire? What's that?"
+    gesture = {**GOOD, "outcome": "gesture"}
+    assert parse(_raw(gesture), SCHEMA, GUARD, answer_all=True)["reply"] is None
+
+
+@pytest.mark.parametrize(
+    ("answer", "expected"),
+    [
+        ({"outcome": "decline", "reply": None}, "No, I'd rather not."),
+        ({"outcome": "not_understood", "reply": None}, "Hm? I don't understand."),
+        ({"outcome": "not_understood", "reply": "Then kill it."}, "Hm? I don't understand."),
+        ({"outcome": "gesture", "reply": None}, None),
+    ],
+)
+def test_v2_without_a_sentence_says_the_datas_stand_in(
+    settings: Settings, answer: dict[str, Any], expected: str | None
+) -> None:
+    log = CallLog(settings.log_dir / "conversation.jsonl")
+    talker = OllamaConversation(
+        client=_client([_raw({**GOOD, **answer})]),
+        queue=ModelQueue(8),
+        template=load_prompt(settings.prompts_dir, "conversation/reply", 2),
+        settings=ModelCallSettings(temperature=0.7, num_ctx=8192, max_retries=0, call_timeout_s=30),
+        log=log,
+        guard=GUARD,
+        expressions=EXPRESSIONS,
+        texts=TEXTS,
+    )
+    dumped = asyncio.run(talker.answer(REQUEST, time.monotonic() + 8)).model_dump(mode="json")
+    assert ContractValidator(settings.schemas_dir).errors("conversation-response", dumped) == []
+    reply: dict[str, str] | None = dumped["reply"]
+    assert (reply["text"] if reply else None) == expected
+    replayed = asyncio.run(
+        ReplayConversation(log, GUARD, EXPRESSIONS, TEXTS).answer(REQUEST, time.monotonic() + 8)
+    )
+    assert replayed.model_dump(mode="json")["reply"] == dumped["reply"]  # the same in a replay
+
+
+def test_replay_of_a_v1_answer_stays_silent(settings: Settings) -> None:
+    """Old logs replay as they were played: v1 had no sentence for a decline."""
+    log = CallLog(settings.log_dir / "conversation.jsonl")
+    talker = OllamaConversation(
+        client=_client([_raw({**GOOD, "outcome": "decline", "reply": None})]),
+        queue=ModelQueue(8),
+        template=load_prompt(settings.prompts_dir, "conversation/reply", 1),
+        settings=ModelCallSettings(temperature=0.7, num_ctx=8192, max_retries=0, call_timeout_s=30),
+        log=log,
+        guard=GUARD,
+        expressions=EXPRESSIONS,
+        texts=TEXTS,
+    )
+    assert asyncio.run(talker.answer(REQUEST, time.monotonic() + 8)).reply is None
+    replayed = asyncio.run(
+        ReplayConversation(log, GUARD, EXPRESSIONS, TEXTS).answer(REQUEST, time.monotonic() + 8)
+    )
+    assert replayed.reply is None
+
+
+def test_v2_snapshot(settings: Settings) -> None:
+    template = load_prompt(settings.prompts_dir, "conversation/reply", 2)
+    rendered = template.render(values(REQUEST, template, EXPRESSIONS))
+    text = (
+        f"[{rendered.version}]\n\n=== system ===\n{rendered.system}\n\n"
+        f"=== user ===\n{rendered.user}\n"
+    )
+    snapshot = SNAPSHOTS / "conversation-reply.v2.greeting.txt"
+    if os.environ.get("GW_UPDATE_SNAPSHOTS") == "1":
+        snapshot.write_text(text, encoding="utf-8", newline="\n")
+    assert text == snapshot.read_text(encoding="utf-8")
+    assert "Fire? What's that?" in text and "Which glass?" in text
