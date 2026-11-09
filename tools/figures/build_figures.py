@@ -425,7 +425,10 @@ def mouth(centre, r, shape):
     return bm
 
 
-def mitten(palm, d, hw, ht, hl, bone, curl=math.radians(30), steps=8, cap_steps=3):
+MITTEN_CURL = math.radians(30)  # relaxed bend of the finger plate towards the palm
+
+
+def mitten(palm, d, hw, ht, hl, bone, curl=MITTEN_CURL, steps=8, cap_steps=3):
     """A relaxed low-poly mitten (W1700): one closed finger plate that curls gently towards the palm
     side, and a thumb resting along the plate. No single fingers, so nothing reads as fork tines.
 
@@ -433,7 +436,10 @@ def mitten(palm, d, hw, ht, hl, bone, curl=math.radians(30), steps=8, cap_steps=
     either, so every clip still applies. In the rest pose the palm faces down (-Z), the thumb
     points forward (-Y).
     """
-    n = (UP - d * UP.dot(d)).normalized()  # back of the hand
+    n = UP - d * UP.dot(d)  # back of the hand
+    if n.length < 1e-4:  # a hand pointing straight up or down: take the side axis instead
+        n = d.cross(FWD)
+    n = n.normalized()
     w = d.cross(n).normalized()
     if w.dot(FWD) < 0:
         w = -w  # across the hand, towards the thumb

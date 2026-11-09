@@ -1,6 +1,6 @@
 {
   "tool": "tools/figures/build_figures.py",
-  "tool_sha256": "89d8a1044a9ba77ea3d81738fe27cce7db35827d243cccd7757b88a5eec827a5",
+  "tool_sha256": "5bdedee330843552dcafa8b66a028b1acf1a2500b844dc840f112850cbd8fb53",
   "blender": "4.5.15 LTS",
   "source": "game/assets/characters/quaternius-ual1/ual1_standard.glb",
   "source_sha256": "1b7bf67866360665426bb99e4c71bd619f19b408453c24e30f0c3071601eee5c",
