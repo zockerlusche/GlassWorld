@@ -191,6 +191,10 @@
       "schema": "murmur-settings"
     },
     {
+      "pattern": "player/sharing.json",
+      "schema": "world-sharing"
+    },
+    {
       "pattern": "player/conversation.json",
       "schema": "conversation-settings"
     },
