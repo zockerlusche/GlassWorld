@@ -147,15 +147,26 @@ public partial class MainMenu : CanvasLayer
             var args = new Dictionary<string, string>();
             try
             {
-                var world = WorldShare.Import(_data.Worlds, path, sharing, DateTimeOffset.UtcNow);
+                var options = new WorldShareOptions(
+                    _data.Options.Sizes.Select(o => o.Id).ToHashSet(StringComparer.Ordinal),
+                    _data.Options.Climates.Select(o => o.Id).ToHashSet(StringComparer.Ordinal),
+                    _data.Favor.StartOptions.ToHashSet());
+                var world = WorldShare.Import(_data.Worlds, path, sharing, options, DateTimeOffset.UtcNow);
                 key = "msg.share.opened";
                 args["name"] = world.Name;
             }
-            catch (InvalidDataException e)
+            catch (WorldShareRefusedException e)
+            {
+                // The reason as a DE/EN text, never text or names from the file (review GW1 #138).
+                key = "msg.share.refused";
+                args["reason"] = Tr(e.ReasonKey);
+                GD.PushWarning($"shared world refused: {e.ReasonKey}");
+            }
+            catch (Exception e) when (e is System.IO.IOException or UnauthorizedAccessException)
             {
                 key = "msg.share.refused";
-                args["reason"] = e.Message;
-                GD.PushWarning($"shared world refused: {e.Message}");
+                args["reason"] = Tr("msg.share.reason.not_zip");
+                GD.PushWarning($"shared world could not be read: {e.Message}");
             }
 
             Rebuild(); // "Continue" and the world list know the new world

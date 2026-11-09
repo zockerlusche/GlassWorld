@@ -11,6 +11,11 @@ public sealed class WorldShareTests : IDisposable
 {
     private static readonly WorldSharing Settings = ContractSerializer.Deserialize<WorldSharing>(File.ReadAllText(Path.Combine(TestPaths.Root, "content", "player", "sharing.json")));
 
+    private static readonly WorldShareOptions Options = new(
+        new HashSet<string>(["small", "medium"], StringComparer.Ordinal),
+        new HashSet<string>(["temperate"], StringComparer.Ordinal),
+        new HashSet<int>([25, 50]));
+
     private static readonly DateTimeOffset Now = new(2026, 11, 9, 8, 0, 0, TimeSpan.Zero);
 
     private readonly string _directory = Path.Combine(Path.GetTempPath(), "gw-share-" + Guid.NewGuid().ToString("N"));
@@ -31,7 +36,7 @@ public sealed class WorldShareTests : IDisposable
         Assert.EndsWith(Settings.Extension, file, StringComparison.Ordinal);
 
         var theirs = new WorldLibrary(Path.Combine(_directory, "their-worlds"));
-        var arrived = WorldShare.Import(theirs, file, Settings, Now);
+        var arrived = WorldShare.Import(theirs, file, Settings, Options, Now);
         Assert.Equal("Meine Insel", arrived.Name);
         Assert.Equal(world.Seed, arrived.Seed);
         Assert.Equal(world.Day, arrived.Day);
@@ -39,18 +44,20 @@ public sealed class WorldShareTests : IDisposable
         Assert.Single(theirs.List());
 
         // Opening the same file again never overwrites: a second world beside the first.
-        var again = WorldShare.Import(theirs, file, Settings, Now);
+        var again = WorldShare.Import(theirs, file, Settings, Options, Now);
         Assert.NotEqual(arrived.Id, again.Id);
         Assert.Equal(2, theirs.List().Count);
     }
 
     [Theory]
-    [InlineData("traversal", "unexpected entry")]
-    [InlineData("folder", "unexpected entry")]
-    [InlineData("format", "unknown format")]
-    [InlineData("not_sqlite", "not an SQLite file")]
-    [InlineData("no_save", "no save game")]
-    [InlineData("no_name", "no valid name")]
+    [InlineData("traversal", "msg.share.reason.unexpected_entry")]
+    [InlineData("folder", "msg.share.reason.unexpected_entry")]
+    [InlineData("format", "msg.share.reason.format")]
+    [InlineData("not_sqlite", "msg.share.reason.not_save")]
+    [InlineData("no_save", "msg.share.reason.no_save")]
+    [InlineData("no_name", "msg.share.reason.manifest")]
+    [InlineData("lava", "msg.share.reason.options")]
+    [InlineData("duplicate", "msg.share.reason.unexpected_entry")]
     public void AFileFromSomeoneElseIsCheckedBeforeItBecomesAWorld(string broken, string reason)
     {
         var (mine, world, _) = SavedWorld("Insel");
@@ -74,6 +81,12 @@ public sealed class WorldShareTests : IDisposable
                 case "no_save":
                     zip.GetEntry(WorldShare.SaveEntry)!.Delete();
                     break;
+                case "lava":
+                    Replace(zip, WorldShare.ManifestEntry, Manifest(format: (int)Settings.Format, name: "Insel").Replace("temperate", "lava", StringComparison.Ordinal));
+                    break;
+                case "duplicate":
+                    Add(zip, WorldShare.SaveEntry, "SQLite format 3\0 second");
+                    break;
                 default:
                     Replace(zip, WorldShare.ManifestEntry, Manifest(format: (int)Settings.Format, name: " "));
                     break;
@@ -81,8 +94,8 @@ public sealed class WorldShareTests : IDisposable
         }
 
         var theirs = new WorldLibrary(Path.Combine(_directory, "their-worlds"));
-        var error = Assert.Throws<InvalidDataException>(() => WorldShare.Import(theirs, file, Settings, Now));
-        Assert.Contains(reason, error.Message, StringComparison.Ordinal);
+        var error = Assert.Throws<WorldShareRefusedException>(() => WorldShare.Import(theirs, file, Settings, Options, Now));
+        Assert.Equal(reason, error.ReasonKey);
         Assert.Empty(theirs.List()); // nothing half-imported
     }
 
@@ -93,11 +106,11 @@ public sealed class WorldShareTests : IDisposable
         var file = WorldShare.Export(mine, world, "<html></html>", Path.Combine(_directory, "shared"), Settings, Now);
         var small = new WorldSharing { ContractVersion = Settings.ContractVersion, Format = Settings.Format, Extension = Settings.Extension, MaxSaveBytes = 8, MaxChronicleBytes = Settings.MaxChronicleBytes, MaxManifestBytes = Settings.MaxManifestBytes };
         var theirs = new WorldLibrary(Path.Combine(_directory, "their-worlds"));
-        Assert.Contains("larger than allowed", Assert.Throws<InvalidDataException>(() => WorldShare.Import(theirs, file, small, Now)).Message, StringComparison.Ordinal);
+        Assert.Equal("msg.share.reason.too_large", Assert.Throws<WorldShareRefusedException>(() => WorldShare.Import(theirs, file, small, Options, Now)).ReasonKey);
 
         var text = Path.Combine(_directory, "not-a-world" + Settings.Extension);
         File.WriteAllText(text, "hello");
-        Assert.Contains("not a shared world file", Assert.Throws<InvalidDataException>(() => WorldShare.Import(theirs, text, Settings, Now)).Message, StringComparison.Ordinal);
+        Assert.Equal("msg.share.reason.not_zip", Assert.Throws<WorldShareRefusedException>(() => WorldShare.Import(theirs, text, Settings, Options, Now)).ReasonKey);
     }
 
     private (WorldLibrary Library, WorldMeta World, byte[] Save) SavedWorld(string name)

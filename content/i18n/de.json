@@ -1657,6 +1657,38 @@
     {
       "key": "msg.share.refused",
       "text": "Diese Datei ist keine geteilte Welt, die das Spiel öffnen kann ({reason})."
+    },
+    {
+      "key": "msg.share.reason.unexpected_entry",
+      "text": "unerwarteter Inhalt"
+    },
+    {
+      "key": "msg.share.reason.too_large",
+      "text": "zu groß"
+    },
+    {
+      "key": "msg.share.reason.no_save",
+      "text": "kein Spielstand darin"
+    },
+    {
+      "key": "msg.share.reason.not_save",
+      "text": "kein gültiger Spielstand"
+    },
+    {
+      "key": "msg.share.reason.manifest",
+      "text": "Angaben zur Welt fehlen oder sind ungültig"
+    },
+    {
+      "key": "msg.share.reason.format",
+      "text": "andere Dateiversion"
+    },
+    {
+      "key": "msg.share.reason.options",
+      "text": "unbekannte Weltgröße, Klima oder Startgunst"
+    },
+    {
+      "key": "msg.share.reason.not_zip",
+      "text": "keine Weltdatei"
     }
   ]
 }

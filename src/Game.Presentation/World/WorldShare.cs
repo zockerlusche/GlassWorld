@@ -6,6 +6,19 @@ using GlassWorld.Contracts;
 
 namespace GlassWorld.Presentation.World;
 
+/// <summary>A shared world file was refused; <see cref="ReasonKey"/> is a DE/EN text key (no file content in it).</summary>
+public sealed class WorldShareRefusedException(string reasonKey, Exception? inner = null) : Exception(reasonKey, inner)
+{
+    /// <summary>Text key of the reason (<c>msg.share.reason.*</c>).</summary>
+    public string ReasonKey { get; } = reasonKey;
+}
+
+/// <summary>The choices a shared world must use (the same as for a new world).</summary>
+/// <param name="Sizes">Size option ids.</param>
+/// <param name="Climates">Climate option ids.</param>
+/// <param name="StartFavors">Start favour options.</param>
+public sealed record WorldShareOptions(IReadOnlySet<string> Sizes, IReadOnlySet<string> Climates, IReadOnlySet<int> StartFavors);
+
 /// <summary>What a shared world file says about itself (manifest.json).</summary>
 /// <param name="Format">Format version (content/player/sharing.json).</param>
 /// <param name="Name">The world's name as the player gave it.</param>
@@ -55,6 +68,21 @@ public static class WorldShare
         var path = Path.Combine(folder, WorldLibrary.Slug(world.Name) + "_" + now.ToString("yyyy-MM-dd_HH-mm", CultureInfo.InvariantCulture) + settings.Extension);
         var manifest = new WorldShareManifest((int)settings.Format, world.Name, world.Seed, world.Size, world.Climate, world.StartFavor, world.Day, now);
         var temp = path + ".tmp";
+        try
+        {
+            WriteZip(temp, save, manifest, chronicleHtml);
+            File.Move(temp, path, overwrite: true);
+        }
+        finally
+        {
+            File.Delete(temp); // nothing left behind when writing failed (already moved otherwise)
+        }
+
+        return path;
+    }
+
+    private static void WriteZip(string temp, string save, WorldShareManifest manifest, string chronicleHtml)
+    {
         using (var zip = ZipFile.Open(temp, ZipArchiveMode.Create))
         {
             Write(zip, ManifestEntry, Encoding.UTF8.GetBytes(JsonSerializer.Serialize(manifest, Json)));
@@ -68,19 +96,17 @@ public static class WorldShare
 
             Write(zip, ChronicleEntry, Encoding.UTF8.GetBytes(chronicleHtml ?? string.Empty));
         }
-
-        File.Move(temp, path, overwrite: true);
-        return path;
     }
 
     /// <summary>
     /// Reads a shared file and adds it as a new world to <paramref name="library"/>. Throws
     /// <see cref="InvalidDataException"/> with a short reason when the file is not a shared world.
     /// </summary>
-    public static WorldMeta Import(WorldLibrary library, string file, WorldSharing settings, DateTimeOffset now)
+    public static WorldMeta Import(WorldLibrary library, string file, WorldSharing settings, WorldShareOptions options, DateTimeOffset now)
     {
         ArgumentNullException.ThrowIfNull(library);
         ArgumentNullException.ThrowIfNull(settings);
+        ArgumentNullException.ThrowIfNull(options);
         ZipArchive zip;
         try
         {
@@ -88,7 +114,7 @@ public static class WorldShare
         }
         catch (Exception e) when (e is InvalidDataException or IOException or UnauthorizedAccessException)
         {
-            throw new InvalidDataException("not a shared world file", e);
+            throw new WorldShareRefusedException("msg.share.reason.not_zip", e);
         }
 
         using (zip)
@@ -99,39 +125,59 @@ public static class WorldShare
                 [SaveEntry] = settings.MaxSaveBytes,
                 [ChronicleEntry] = settings.MaxChronicleBytes,
             };
+            if (zip.Entries.GroupBy(e => e.FullName, StringComparer.Ordinal).Any(g => g.Count() > 1))
+            {
+                throw new WorldShareRefusedException("msg.share.reason.unexpected_entry");
+            }
+
             foreach (var entry in zip.Entries)
             {
                 // Only the known names at the top: no folders, no paths, nothing else.
                 if (!allowed.TryGetValue(entry.FullName, out var max))
                 {
-                    throw new InvalidDataException($"unexpected entry '{entry.FullName}'");
+                    throw new WorldShareRefusedException("msg.share.reason.unexpected_entry");
                 }
 
                 if (entry.Length > max)
                 {
-                    throw new InvalidDataException($"'{entry.FullName}' is larger than allowed");
+                    throw new WorldShareRefusedException("msg.share.reason.too_large");
                 }
             }
 
             var manifest = ReadManifest(zip, settings);
-            var saveEntry = zip.GetEntry(SaveEntry) ?? throw new InvalidDataException("no save game in the file");
+            if (!options.Sizes.Contains(manifest.Size) || !options.Climates.Contains(manifest.Climate) || !options.StartFavors.Contains(manifest.StartFavor))
+            {
+                throw new WorldShareRefusedException("msg.share.reason.options");
+            }
+
+            var saveEntry = zip.GetEntry(SaveEntry) ?? throw new WorldShareRefusedException("msg.share.reason.no_save");
             var save = Read(saveEntry, settings.MaxSaveBytes);
             if (save.Length < SqliteHeader.Length || !save.AsSpan(0, SqliteHeader.Length).SequenceEqual(SqliteHeader))
             {
-                throw new InvalidDataException("the save game is not an SQLite file");
+                throw new WorldShareRefusedException("msg.share.reason.not_save");
             }
 
             var meta = library.Create(new NewWorldChoice(manifest.Name, manifest.Seed, manifest.Size, manifest.Climate, manifest.StartFavor), now);
-            File.WriteAllBytes(library.SavePath(meta.Id), save);
-            meta = meta with { Day = manifest.Day };
-            library.Write(meta);
-            return meta;
+            try
+            {
+                File.WriteAllBytes(library.SavePath(meta.Id), save);
+                meta = meta with { Day = manifest.Day };
+                library.Write(meta);
+                return meta;
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+            {
+                // No half-made world: without its save the folder goes again.
+                File.Delete(library.SavePath(meta.Id));
+                library.Discard(meta.Id);
+                throw;
+            }
         }
     }
 
     private static WorldShareManifest ReadManifest(ZipArchive zip, WorldSharing settings)
     {
-        var entry = zip.GetEntry(ManifestEntry) ?? throw new InvalidDataException("no manifest in the file");
+        var entry = zip.GetEntry(ManifestEntry) ?? throw new WorldShareRefusedException("msg.share.reason.manifest");
         WorldShareManifest? manifest;
         try
         {
@@ -139,17 +185,17 @@ public static class WorldShare
         }
         catch (JsonException e)
         {
-            throw new InvalidDataException("the manifest is not readable", e);
+            throw new WorldShareRefusedException("msg.share.reason.manifest", e);
         }
 
         if (manifest is null || manifest.Format != settings.Format)
         {
-            throw new InvalidDataException($"unknown format {manifest?.Format}");
+            throw new WorldShareRefusedException("msg.share.reason.format");
         }
 
         if (string.IsNullOrWhiteSpace(manifest.Name) || manifest.Name.Length > 64 || manifest.Day < 1)
         {
-            throw new InvalidDataException("the manifest has no valid name or day");
+            throw new WorldShareRefusedException("msg.share.reason.manifest");
         }
 
         return manifest;
@@ -166,7 +212,7 @@ public static class WorldShare
         {
             if (buffer.Length + read > max)
             {
-                throw new InvalidDataException($"'{entry.FullName}' is larger than allowed");
+                throw new WorldShareRefusedException("msg.share.reason.too_large");
             }
 
             buffer.Write(chunk, 0, read);
