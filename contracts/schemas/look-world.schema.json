@@ -66,7 +66,11 @@
         "thought_above_head_m",
         "question_above_head_m",
         "pixel_size_m",
-        "thought_width_px"
+        "thought_width_px",
+        "thought_seconds",
+        "thought_seconds_fast",
+        "fast_from_speed",
+        "bubble_width_px"
       ],
       "properties": {
         "thought_above_head_m": {
@@ -92,6 +96,30 @@
           "type": "integer",
           "minimum": 50,
           "maximum": 4000
+        },
+        "thought_seconds": {
+          "description": "How long a thought or a said sentence stays on screen (real seconds).",
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 60
+        },
+        "thought_seconds_fast": {
+          "description": "The same at high speed, so lines do not pile up (W1687).",
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 60
+        },
+        "fast_from_speed": {
+          "description": "From this time speed on the shorter time applies.",
+          "type": "number",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "bubble_width_px": {
+          "description": "Largest width of a bubble on screen (pixels at the reference height, scaled with the UI); longer text wraps.",
+          "type": "integer",
+          "minimum": 120,
+          "maximum": 2000
         }
       }
     },

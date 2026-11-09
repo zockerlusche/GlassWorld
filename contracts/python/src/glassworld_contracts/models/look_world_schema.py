@@ -42,6 +42,30 @@ class WorldLookLabels(BaseModel):
         ge=50,
         le=4000,
     )
+    thought_seconds: float = Field(
+        ...,
+        description='How long a thought or a said sentence stays on screen (real seconds).',
+        ge=0.5,
+        le=60.0,
+    )
+    thought_seconds_fast: float = Field(
+        ...,
+        description='The same at high speed, so lines do not pile up (W1687).',
+        ge=0.5,
+        le=60.0,
+    )
+    fast_from_speed: float = Field(
+        ...,
+        description='From this time speed on the shorter time applies.',
+        ge=1.0,
+        le=1000.0,
+    )
+    bubble_width_px: int = Field(
+        ...,
+        description='Largest width of a bubble on screen (pixels at the reference height, scaled with the UI); longer text wraps.',
+        ge=120,
+        le=2000,
+    )
 
 
 class WorldLookObserver(BaseModel):

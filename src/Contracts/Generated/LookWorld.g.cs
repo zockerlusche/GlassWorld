@@ -43,6 +43,30 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("thought_width_px")]
         public int ThoughtWidthPx { get; set; } = default!;
 
+        /// <summary>
+        /// How long a thought or a said sentence stays on screen (real seconds).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("thought_seconds")]
+        public double ThoughtSeconds { get; set; } = default!;
+
+        /// <summary>
+        /// The same at high speed, so lines do not pile up (W1687).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("thought_seconds_fast")]
+        public double ThoughtSecondsFast { get; set; } = default!;
+
+        /// <summary>
+        /// From this time speed on the shorter time applies.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("fast_from_speed")]
+        public double FastFromSpeed { get; set; } = default!;
+
+        /// <summary>
+        /// Largest width of a bubble on screen (pixels at the reference height, scaled with the UI); longer text wraps.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("bubble_width_px")]
+        public int BubbleWidthPx { get; set; } = default!;
+
     }
 
     /// <summary>
