@@ -44,13 +44,13 @@ class WorldLookLabels(BaseModel):
     )
     thought_seconds: float = Field(
         ...,
-        description='How long a thought or a said sentence stays on screen (real seconds).',
+        description='How long a thought stays on screen (real seconds); a spoken answer uses speech_s.',
         ge=0.5,
         le=60.0,
     )
     thought_seconds_fast: float = Field(
         ...,
-        description='The same at high speed, so lines do not pile up (W1687).',
+        description='Longest time any line (thought or answer) stays at high speed, so lines do not pile up (W1687).',
         ge=0.5,
         le=60.0,
     )
@@ -66,11 +66,21 @@ class WorldLookLabels(BaseModel):
         ge=120,
         le=2000,
     )
+    speech_s: float = Field(
+        ...,
+        description='Real seconds a spoken answer stays above the head.',
+        ge=1.0,
+        le=120.0,
+    )
 
 
 class WorldLookObserver(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
+    )
+    auto: bool = Field(
+        ...,
+        description="Whether the observer moves the camera by itself (follows thoughts, switches groups, takes the camera back after the idle pause). false = the camera moves only on the player's wish.",
     )
     group_switch_s: float = Field(
         ...,

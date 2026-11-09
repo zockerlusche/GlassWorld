@@ -131,6 +131,181 @@ class GaitTimeScale(BaseModel):
     max: float = Field(..., description='Fastest playback factor.', ge=1.0, le=4.0)
 
 
+type Type = Annotated[str, Field(..., pattern='^[a-z][a-z0-9_]*$')]
+
+
+class FigureSeat(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    types: list[Type] = Field(
+        ...,
+        description='Object type ids of content/objects (the drawn object under the figure).',
+        max_length=64,
+        min_length=1,
+    )
+    seat_height_m: float = Field(
+        ...,
+        description='Height of the seat above the ground in metres.',
+        ge=0.0,
+        le=1.5,
+    )
+
+
+type SeatedClip = Annotated[str, Field(..., pattern='^[a-z][a-z0-9_]*$')]
+
+
+class FigureSitting(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    seated_clips: list[SeatedClip] = Field(
+        ..., description='Library clip ids that show a seated pose.', max_length=64
+    )
+    clip_seat_height_m: float = Field(
+        ...,
+        description='Height of the hips above the feet in the seated clips at scale 1 (the chair height of the clip).',
+        ge=0.05,
+        le=1.5,
+    )
+    seat_search_m: float = Field(
+        ...,
+        description='How far from the figure a seat object may lie (metres).',
+        ge=0.0,
+        le=5.0,
+    )
+    ground_knee_straighten: float = Field(
+        ...,
+        description='Share of straightening the knees when sitting on the ground (0 = clip as is, 1 = legs straight forward).',
+        ge=0.0,
+        le=1.0,
+    )
+    settle_m_s: float = Field(
+        ...,
+        description='How fast the hips move to the seat height (metres per real second).',
+        ge=0.01,
+        le=20.0,
+    )
+    seats: list[FigureSeat] = Field(..., max_length=32)
+
+
+type WaveExpression = Annotated[str, Field(..., pattern='^[a-z][a-z0-9_]*$')]
+
+
+class FigureGreeting(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    hear_radius_m: float = Field(
+        ...,
+        description='Inhabitants this close to the one spoken to hear the player too (metres).',
+        ge=0.0,
+        le=200.0,
+    )
+    react_s: float = Field(
+        ...,
+        description='Real seconds the hearers look and turn to the voice.',
+        ge=0.0,
+        le=120.0,
+    )
+    after_answer_s: float = Field(
+        ...,
+        description='Real seconds the speaker keeps looking at the voice after its answer.',
+        ge=0.0,
+        le=60.0,
+    )
+    ease_per_s: float = Field(
+        ...,
+        description='How fast the look turns in and out (weight per real second).',
+        ge=0.1,
+        le=20.0,
+    )
+    listen_clip: str = Field(
+        ...,
+        description='Library clip a standing hearer plays instead of its idle behaviour (no ducking).',
+        pattern='^[a-z][a-z0-9_]*$',
+    )
+    wave_expressions: list[WaveExpression] = Field(
+        ...,
+        description='Expression ids of an answer that raise the arm to wave (procedural wave).',
+        max_length=64,
+    )
+    wave_s: float = Field(..., description='Real seconds of a wave.', ge=0.0, le=30.0)
+    talk_s: float = Field(
+        ...,
+        description='Real seconds the mouth moves with a spoken answer.',
+        ge=0.0,
+        le=30.0,
+    )
+
+
+class Color1(StrEnum):
+    top = 'top'
+    bottom = 'bottom'
+    hair = 'hair'
+    skin = 'skin'
+
+
+class FigureSilhouette(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    enabled: bool
+    color: Color1 = Field(
+        ...,
+        description="Which colour of the inhabitant's appearance the silhouette takes.",
+    )
+    fill_alpha: float = Field(
+        ..., description="Opacity of the silhouette's inside.", ge=0.0, le=1.0
+    )
+    edge_alpha: float = Field(
+        ..., description="Opacity at the silhouette's edge.", ge=0.0, le=1.0
+    )
+    min_cover_m: float = Field(
+        ...,
+        description='Only occluders at least this far in front of the figure count (its own clothes and arms do not).',
+        ge=0.0,
+        le=2.0,
+    )
+
+
+type Visual = Annotated[str, Field(..., pattern='^[a-z][a-z0-9_]*$')]
+
+
+class FigureCrownFade(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    enabled: bool
+    visuals: list[Visual] = Field(
+        ...,
+        description='Object visual ids of content/look/objects.json whose crowns fade.',
+        max_length=64,
+    )
+    crown_height_m: float = Field(
+        ...,
+        description="Height of the crown's middle above the tree's foot (metres).",
+        ge=0.0,
+        le=30.0,
+    )
+    radius_m: float = Field(
+        ...,
+        description='Crowns closer than this to the camera-figure line fade (metres).',
+        ge=0.0,
+        le=30.0,
+    )
+    alpha: float = Field(
+        ...,
+        description='Opacity of a crown right on the line (it grows to 1 at the radius).',
+        ge=0.0,
+        le=1.0,
+    )
+    all_inhabitants: bool = Field(
+        ...,
+        description='True: crowns fade for every inhabitant; false: only for the chosen (followed) one.',
+    )
+
+
 class LookFigures(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -189,4 +364,20 @@ class LookFigures(BaseModel):
         description='Clothing parts as meshes on the rig (F4): which mesh, which clothing colour, and which body regions it hides (those take its colour, so the body never shows through; uncovered regions are skin).',
         max_length=32,
         min_length=1,
+    )
+    sitting: FigureSitting = Field(
+        ...,
+        description='Seated clips only sit on something (W1688): on a seat object near the figure the hips go to its seat height; elsewhere the figure sits on the ground with straightened legs, never in the air.',
+    )
+    greeting: FigureGreeting = Field(
+        ...,
+        description='How inhabitants show that they heard the player (W1688): they look up and turn to the voice (the camera), the speaker waves or talks with its answer.',
+    )
+    silhouette: FigureSilhouette = Field(
+        ...,
+        description="Inhabitants stay visible (W1689): where a tree, rock or object hides a figure, its silhouette is drawn through in the inhabitant's colour.",
+    )
+    crown_fade: FigureCrownFade = Field(
+        ...,
+        description='Tree crowns between the camera and the followed inhabitant fade semi-transparent (W1689).',
     )

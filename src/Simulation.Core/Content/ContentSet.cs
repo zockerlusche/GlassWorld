@@ -145,7 +145,9 @@ public sealed class ContentSet
             actions,
             needs,
             objects.PropertyVocabulary,
-            Required(vocabularies, VocabularyKind.Action).Entries.Where(e => (e.Target ?? VocabularyEntryTarget.None) == VocabularyEntryTarget.None).Select(e => e.Id).ToFrozenSet(StringComparer.Ordinal));
+            Required(vocabularies, VocabularyKind.Action).Entries.Where(e => (e.Target ?? VocabularyEntryTarget.None) == VocabularyEntryTarget.None).Select(e => e.Id).ToFrozenSet(StringComparer.Ordinal),
+            Ids(vocabularies, VocabularyKind.Trait),
+            model.Needs.Where(n => n.NeglectBelow > 0).ToFrozenDictionary(n => n.Id, n => n.NeglectBelow, StringComparer.Ordinal));
         var worldGen = WorldGenContent.Load(contentDirectory, vocabularies, objects, calendar);
         var inventionSettings = ContractSerializer.Deserialize<InventionSettings>(File.ReadAllText(Path.Combine(contentDirectory, "invention", "settings.json")));
         var inventions = new InventionRules(
@@ -205,7 +207,7 @@ public sealed class ContentSet
                 Ids(vocabularies, VocabularyKind.Action),
                 brain.Weights,
                 model),
-            Knowledge = LoadKnowledge(contentDirectory, vocabularies, objects),
+            Knowledge = LoadKnowledge(contentDirectory, vocabularies, objects, actions),
             EventKinds = Required(vocabularies, VocabularyKind.Event).Entries.Select(e => e.Id).ToFrozenSet(StringComparer.Ordinal),
         };
     }
@@ -281,7 +283,7 @@ public sealed class ContentSet
         }
     }
 
-    private static KnowledgeSettings LoadKnowledge(string contentDirectory, Dictionary<VocabularyKind, Vocabulary> vocabularies, ObjectCatalog objects)
+    private static KnowledgeSettings LoadKnowledge(string contentDirectory, Dictionary<VocabularyKind, Vocabulary> vocabularies, ObjectCatalog objects, ActionRules effects)
     {
         var data = ContractSerializer.Deserialize<KnowledgeSettings>(File.ReadAllText(Path.Combine(contentDirectory, "knowledge", "settings.json")));
         var actions = Required(vocabularies, VocabularyKind.Action).Entries.ToDictionary(e => e.Id, StringComparer.Ordinal);
@@ -297,12 +299,60 @@ public sealed class ContentSet
         }
 
         problems.AddRange(data.WaitWhileQuestionOpen.Where(a => !actions.ContainsKey(a)).Select(a => $"unknown action '{a}' in wait_while_question_open"));
+        if (data.Looking is { } looking)
+        {
+            problems.AddRange(LookingProblems(looking, data, actions, objects, effects));
+        }
+
         if (problems.Count > 0)
         {
             throw new InvalidDataException("Knowledge settings: " + string.Join("; ", problems) + ".");
         }
 
         return data;
+    }
+
+    /// <summary>
+    /// Looking (TL #19921) teaches what can be seen, never an effect: no visible property may be one an
+    /// action's effect depends on; what is seen is less sure than what is tried, a guess at most guessed_cap.
+    /// </summary>
+    private static IEnumerable<string> LookingProblems(KnowledgeLooking looking, KnowledgeSettings data, Dictionary<string, VocabularyEntry> actions, ObjectCatalog objects, ActionRules effects)
+    {
+        if (!actions.TryGetValue(looking.Action, out var action) || action.Target != VocabularyEntryTarget.Object)
+        {
+            yield return $"looking action '{looking.Action}' is not an action with an object target";
+        }
+
+        var effectProperties = effects.Actions.SelectMany(a => effects.Rules(a)).Select(r => r.RequiresProperty).OfType<string>().ToHashSet(StringComparer.Ordinal);
+        foreach (var property in looking.VisibleProperties)
+        {
+            if (!objects.PropertyVocabulary.Contains(property))
+            {
+                yield return $"unknown visible property '{property}'";
+            }
+            else if (effectProperties.Contains(property))
+            {
+                yield return $"visible property '{property}' is an effect (learned only by trying, being told or asking)";
+            }
+        }
+
+        foreach (var guess in looking.Guesses)
+        {
+            if (!looking.VisibleProperties.Contains(guess.Seen) || !objects.PropertyVocabulary.Contains(guess.Property))
+            {
+                yield return $"guess '{guess.Seen}' -> '{guess.Property}' needs a visible property and a known property";
+            }
+        }
+
+        if (looking.InspectConfidence >= data.ExperiencedConfidence)
+        {
+            yield return "inspect_confidence must be below experienced_confidence";
+        }
+
+        if (looking.GuessedConfidence > data.GuessedCap)
+        {
+            yield return "guessed_confidence must not exceed guessed_cap";
+        }
     }
 
     /// <summary>Renamed ids (F4) point to a current id and are no longer current themselves.</summary>

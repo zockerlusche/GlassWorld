@@ -31,6 +31,75 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
+    /// What looking closely at a thing teaches (TL #19921): the properties one can see, guesses from them, and where the thing stands (place memory). Never the effect: a visible property must not be one an action's effect depends on (checked at load); whether something fills, poisons or quenches thirst is learned by trying, being told or an answered question. Absent = looking teaches nothing.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class KnowledgeLooking
+    {
+
+        /// <summary>
+        /// The action that looks at a thing (object target).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("action")]
+        public string Action { get; set; } = default!;
+
+        /// <summary>
+        /// Properties one can see by looking (kind, look, material); learned true or false.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("visible_properties")]
+        public System.Collections.Generic.ICollection<string> VisibleProperties { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// Confidence of what one has seen (below experienced_confidence, checked at load).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("inspect_confidence")]
+        public double InspectConfidence { get; set; } = default!;
+
+        /// <summary>
+        /// Confidence of a guess from what one has seen (source guessed; at most guessed_cap, checked at load).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("guessed_confidence")]
+        public double GuessedConfidence { get; set; } = default!;
+
+        /// <summary>
+        /// What one guesses from a visible property (e.g. looks like fruit: could be edible). A guess never replaces a belief one already has.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("guesses")]
+        public System.Collections.Generic.ICollection<KnowledgeGuess> Guesses { get; set; } = new System.Collections.ObjectModel.Collection<KnowledgeGuess>();
+
+        /// <summary>
+        /// Most remembered places (thing, type, position, tick) per inhabitant; the oldest is forgotten first.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("place_memory_max")]
+        public int PlaceMemoryMax { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A guess from something seen: a thing with the seen property may have the guessed one.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class KnowledgeGuess
+    {
+
+        /// <summary>
+        /// A visible property.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("seen")]
+        public string Seen { get; set; } = default!;
+
+        /// <summary>
+        /// The guessed property.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("property")]
+        public string Property { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("value")]
+        public bool Value { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// An action that passes on knowledge to another inhabitant: which beliefs it carries.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -123,6 +192,10 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("max_pass_on_options")]
         public int MaxPassOnOptions { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("looking")]
+        public KnowledgeLooking? Looking { get; set; } = default!;
 
     }
 }

@@ -183,9 +183,9 @@ public static class UiLayoutCheck
         panel.Setup("ui.inhabitants.title");
         var table = new GwTable();
         table.Setup(
-            [new GwColumn("ui.inhabitants.column.name", false), new GwColumn("ui.inhabitants.column.will_to_live", true), new GwColumn("ui.inhabitants.column.questions", true)],
+            [new GwColumn("ui.inhabitants.column.name", false), new GwColumn("ui.inhabitants.column.activity", false), new GwColumn("ui.inhabitants.column.will_to_live", true), new GwColumn("ui.inhabitants.column.questions", true)],
             "ui.inhabitants.empty");
-        table.SetRows([.. Enumerable.Range(1, 100).Select(i => new GwRow($"inh-{i}", [TextFill.Fill(host.Tr("ui.inhabitant.unnamed"), new Dictionary<string, string> { ["number"] = $"{i}" }), $"{i % 100}", $"{i % 3}"], [i, i % 100, i % 3]))]);
+        table.SetRows([.. Enumerable.Range(1, 100).Select(i => new GwRow($"inh-{i}", [TextFill.Fill(host.Tr("ui.inhabitant.unnamed"), new Dictionary<string, string> { ["number"] = $"{i}" }), host.Tr("ui.activity.show.inhabitant_topic"), $"{i % 100}", $"{i % 3}"], [i, 0, i % 100, i % 3]))]);
         panel.Content.AddChild(table);
         stage.AddChild(panel);
 

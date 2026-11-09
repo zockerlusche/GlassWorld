@@ -6,7 +6,8 @@ namespace GlassWorld.Presentation.Ui;
 /// <param name="TextKey">Translation key, e.g. <c>msg.mail.kind.knock</c>.</param>
 /// <param name="Args">Placeholder values (<c>{name}</c> in the text).</param>
 /// <param name="Group">Hints of the same group are bundled; null = the text key is the group.</param>
-public sealed record ToastMessage(string TextKey, IReadOnlyDictionary<string, string> Args, string? Group);
+/// <param name="LookAt">Inhabitant the hint is about: the hint gets a "look" button, the only way an event moves the camera (TL #19976).</param>
+public sealed record ToastMessage(string TextKey, IReadOnlyDictionary<string, string> Args, string? Group, string? LookAt = null);
 
 /// <summary>A hint on screen.</summary>
 /// <param name="Id">Running number.</param>

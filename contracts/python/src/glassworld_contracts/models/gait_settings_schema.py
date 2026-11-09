@@ -28,6 +28,53 @@ class Gait(BaseModel):
     )
 
 
+class Spacing(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    conversation_min_m: float = Field(
+        ...,
+        description='An action aimed at another inhabitant (show, warn, teach ...) starts no closer than this to the listener: the actor steps back on the line to the listener if needed (placeholder).',
+        ge=0.0,
+        le=10.0,
+    )
+    conversation_max_m: float = Field(
+        ...,
+        description="Such an action starts once the actor is this close to the listener (replaces the action's reach_m for inhabitant targets; at least conversation_min_m, checked at load).",
+        ge=0.1,
+        le=10.0,
+    )
+    min_separation_m: float = Field(
+        ...,
+        description='No inhabitant ends a move closer than this to another: a walker that would is put on the nearest free spot beside the other (deterministic, no random draw). At most conversation_min_m, checked at load.',
+        ge=0.0,
+        le=5.0,
+    )
+    yield_lookahead_m: float = Field(
+        ...,
+        description='A walker yields when another inhabitant is ahead within this distance and closer than min_separation_m to its line (B2569).',
+        ge=0.0,
+        le=50.0,
+    )
+    yield_offset_m: float = Field(
+        ...,
+        description='How far a yielding walker steps to its RIGHT (relative to its walking direction) per tick, in addition to its step (B2569).',
+        ge=0.0,
+        le=5.0,
+    )
+    facing_tolerance_deg: float = Field(
+        ...,
+        description='During such an action actor and listener turn their whole body to each other (B2528); this is the largest angle between facing and the direction to the other that counts as facing (presentation and tests).',
+        ge=0.0,
+        le=90.0,
+    )
+    listener_turns_during: list[common_schema.VocabId] = Field(
+        ...,
+        description='One action owns legs and body (TL #20001): the actor of such an action stops and turns to the listener; the listener turns its body to the actor only when it has no action of its own or one of these (action vocabulary) and is not walking. Otherwise its own action keeps the body.',
+        max_length=64,
+    )
+
+
 class ActionGait(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -76,6 +123,10 @@ class GaitSettings(BaseModel):
         ...,
         description='Gait per action (action vocabulary), each action at most once.',
         max_length=64,
+    )
+    spacing: Spacing | None = Field(
+        None,
+        description='Personal space between inhabitants (Marcel W1687, W1688/B2569, W1691). Missing: no spacing (inhabitants may stand in one spot). Only spacing, no new behaviour (B2460).',
     )
     pressing_need_gait: common_schema.VocabId | None = Field(
         ...,

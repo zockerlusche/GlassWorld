@@ -19,7 +19,11 @@
     "turn_rate_deg_s",
     "gait_time_scale",
     "head_anchor_m",
-    "thinking_dots"
+    "thinking_dots",
+    "sitting",
+    "greeting",
+    "silhouette",
+    "crown_fade"
   ],
   "properties": {
     "contract_version": {
@@ -101,6 +105,22 @@
       "items": {
         "$ref": "#/$defs/FigureClothingPart"
       }
+    },
+    "sitting": {
+      "description": "Seated clips only sit on something (W1688): on a seat object near the figure the hips go to its seat height; elsewhere the figure sits on the ground with straightened legs, never in the air.",
+      "$ref": "#/$defs/FigureSitting"
+    },
+    "greeting": {
+      "description": "How inhabitants show that they heard the player (W1688): they look up and turn to the voice (the camera), the speaker waves or talks with its answer.",
+      "$ref": "#/$defs/FigureGreeting"
+    },
+    "silhouette": {
+      "description": "Inhabitants stay visible (W1689): where a tree, rock or object hides a figure, its silhouette is drawn through in the inhabitant's colour.",
+      "$ref": "#/$defs/FigureSilhouette"
+    },
+    "crown_fade": {
+      "description": "Tree crowns between the camera and the followed inhabitant fade semi-transparent (W1689).",
+      "$ref": "#/$defs/FigureCrownFade"
     }
   },
   "$defs": {
@@ -265,6 +285,253 @@
           "type": "number",
           "minimum": 1,
           "maximum": 4
+        }
+      }
+    },
+    "FigureSeat": {
+      "description": "Object types an inhabitant can sit on and the height of their seat above the ground.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "types",
+        "seat_height_m"
+      ],
+      "properties": {
+        "types": {
+          "type": "array",
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$"
+          },
+          "minItems": 1,
+          "description": "Object type ids of content/objects (the drawn object under the figure)."
+        },
+        "seat_height_m": {
+          "description": "Height of the seat above the ground in metres.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1.5
+        }
+      }
+    },
+    "FigureSitting": {
+      "description": "Seated poses and what they sit on.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "seated_clips",
+        "clip_seat_height_m",
+        "seat_search_m",
+        "ground_knee_straighten",
+        "settle_m_s",
+        "seats"
+      ],
+      "properties": {
+        "seated_clips": {
+          "type": "array",
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$"
+          },
+          "description": "Library clip ids that show a seated pose."
+        },
+        "clip_seat_height_m": {
+          "description": "Height of the hips above the feet in the seated clips at scale 1 (the chair height of the clip).",
+          "type": "number",
+          "minimum": 0.05,
+          "maximum": 1.5
+        },
+        "seat_search_m": {
+          "description": "How far from the figure a seat object may lie (metres).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 5
+        },
+        "ground_knee_straighten": {
+          "description": "Share of straightening the knees when sitting on the ground (0 = clip as is, 1 = legs straight forward).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "settle_m_s": {
+          "description": "How fast the hips move to the seat height (metres per real second).",
+          "type": "number",
+          "minimum": 0.01,
+          "maximum": 20
+        },
+        "seats": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "$ref": "#/$defs/FigureSeat"
+          }
+        }
+      }
+    },
+    "FigureGreeting": {
+      "description": "Reaction to the player's voice (presentation only).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hear_radius_m",
+        "react_s",
+        "after_answer_s",
+        "ease_per_s",
+        "listen_clip",
+        "wave_expressions",
+        "wave_s",
+        "talk_s"
+      ],
+      "properties": {
+        "hear_radius_m": {
+          "description": "Inhabitants this close to the one spoken to hear the player too (metres).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 200
+        },
+        "react_s": {
+          "description": "Real seconds the hearers look and turn to the voice.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 120
+        },
+        "after_answer_s": {
+          "description": "Real seconds the speaker keeps looking at the voice after its answer.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 60
+        },
+        "ease_per_s": {
+          "description": "How fast the look turns in and out (weight per real second).",
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 20
+        },
+        "listen_clip": {
+          "description": "Library clip a standing hearer plays instead of its idle behaviour (no ducking).",
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "wave_expressions": {
+          "type": "array",
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$"
+          },
+          "description": "Expression ids of an answer that raise the arm to wave (procedural wave)."
+        },
+        "wave_s": {
+          "description": "Real seconds of a wave.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 30
+        },
+        "talk_s": {
+          "description": "Real seconds the mouth moves with a spoken answer.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 30
+        }
+      }
+    },
+    "FigureSilhouette": {
+      "description": "The see-through silhouette of hidden figures.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enabled",
+        "color",
+        "fill_alpha",
+        "edge_alpha",
+        "min_cover_m"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "color": {
+          "description": "Which colour of the inhabitant's appearance the silhouette takes.",
+          "type": "string",
+          "enum": [
+            "top",
+            "bottom",
+            "hair",
+            "skin"
+          ]
+        },
+        "fill_alpha": {
+          "description": "Opacity of the silhouette's inside.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "edge_alpha": {
+          "description": "Opacity at the silhouette's edge.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "min_cover_m": {
+          "description": "Only occluders at least this far in front of the figure count (its own clothes and arms do not).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2
+        }
+      }
+    },
+    "FigureCrownFade": {
+      "description": "Fading of tree crowns near the line from the camera to a figure.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enabled",
+        "visuals",
+        "crown_height_m",
+        "radius_m",
+        "alpha",
+        "all_inhabitants"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "visuals": {
+          "type": "array",
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$"
+          },
+          "description": "Object visual ids of content/look/objects.json whose crowns fade."
+        },
+        "crown_height_m": {
+          "description": "Height of the crown's middle above the tree's foot (metres).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 30
+        },
+        "radius_m": {
+          "description": "Crowns closer than this to the camera-figure line fade (metres).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 30
+        },
+        "alpha": {
+          "description": "Opacity of a crown right on the line (it grows to 1 at the radius).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "all_inhabitants": {
+          "description": "True: crowns fade for every inhabitant; false: only for the chosen (followed) one.",
+          "type": "boolean"
         }
       }
     }

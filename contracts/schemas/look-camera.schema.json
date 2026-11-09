@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://glassworld.local/contracts/v0/look-camera.schema.json",
   "title": "LookCamera",
-  "description": "Data file content/look/camera.json: isometric overview camera with turning, zoom, panning and follow mode (B2 R26). The projection is a data value until Marcel's picture question T1 is answered (proposal: perspective with a narrow field of view). All moves are smooth.",
+  "description": "Data file content/look/camera.json: isometric overview camera, mouse first (B2567): free orbit and pitch with the right or middle button, pan by dragging the ground with the left button (or middle + Shift), wheel zoom towards the mouse cursor, keys that move and turn with eased speed, follow mode (B2 R26). A short click stays a click (select, place a gift). The projection is a data value until Marcel's picture question T1 is answered (proposal: perspective with a narrow field of view). All moves are smooth.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -10,15 +10,22 @@
     "projection",
     "fov_deg",
     "pitch_deg",
+    "pitch_range_deg",
+    "pitch_deg_per_px",
     "start_yaw_deg",
     "distance_m",
     "zoom_step",
     "rotate_deg_per_px",
     "pan_speed_m_s",
+    "key_turn_deg_s",
+    "key_ease_in_s",
+    "key_ease_out_s",
     "smoothing",
     "follow_distance_m",
     "bounds_margin_m",
     "pick_radius_m",
+    "click_max_px",
+    "click_max_ms",
     "near_m",
     "far_m"
   ],
@@ -41,10 +48,19 @@
       "maximum": 90
     },
     "pitch_deg": {
-      "description": "Downward tilt of the camera.",
+      "description": "Downward tilt of the camera at start (and after reset), within pitch_range_deg.",
       "type": "number",
       "minimum": 10,
       "maximum": 89
+    },
+    "pitch_range_deg": {
+      "$ref": "#/$defs/PitchRange"
+    },
+    "pitch_deg_per_px": {
+      "description": "Change of the pitch per pixel of vertical orbit dragging (dragging down looks more from above).",
+      "type": "number",
+      "minimum": 0.01,
+      "maximum": 5
     },
     "start_yaw_deg": {
       "description": "Turn at start.",
@@ -62,16 +78,34 @@
       "maximum": 0.9
     },
     "rotate_deg_per_px": {
-      "description": "Turn per pixel of dragging.",
+      "description": "Turn (yaw) per pixel of horizontal orbit dragging.",
       "type": "number",
       "minimum": 0.01,
       "maximum": 5
     },
     "pan_speed_m_s": {
-      "description": "Panning speed at the middle distance.",
+      "description": "Top key panning speed at the start distance (faster when zoomed out).",
       "type": "number",
       "minimum": 0.1,
       "maximum": 500
+    },
+    "key_turn_deg_s": {
+      "description": "Top turning speed of the turn keys (Q/E) in degrees per second.",
+      "type": "number",
+      "minimum": 1,
+      "maximum": 720
+    },
+    "key_ease_in_s": {
+      "description": "Time constant of the key moves speeding up (seconds; about 63 % of the top speed after this time, no overshoot).",
+      "type": "number",
+      "minimum": 0.01,
+      "maximum": 5
+    },
+    "key_ease_out_s": {
+      "description": "Time constant of the key moves slowing down after the key is let go (seconds).",
+      "type": "number",
+      "minimum": 0.01,
+      "maximum": 5
     },
     "smoothing": {
       "description": "Share of the remaining way per 1/60 s (0..1, higher is snappier).",
@@ -96,6 +130,18 @@
       "type": "number",
       "minimum": 0.1,
       "maximum": 20
+    },
+    "click_max_px": {
+      "description": "A press that moves less than this many pixels stays a click (select a figure, place a gift); farther is a camera drag.",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "click_max_ms": {
+      "description": "A press that moved (within click_max_px) and is held longer than this (milliseconds) is no click; a press that never moved is always a click.",
+      "type": "number",
+      "minimum": 50,
+      "maximum": 5000
     },
     "near_m": {
       "description": "Near clipping distance of the camera.",
@@ -137,6 +183,29 @@
           "type": "number",
           "minimum": 0.5,
           "maximum": 5000
+        }
+      }
+    },
+    "PitchRange": {
+      "description": "Pitch limits in degrees: from flat (min) to top-down (max).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "min",
+        "max"
+      ],
+      "properties": {
+        "min": {
+          "description": "Flattest pitch.",
+          "type": "number",
+          "minimum": 5,
+          "maximum": 89
+        },
+        "max": {
+          "description": "Steepest pitch (89 is top-down).",
+          "type": "number",
+          "minimum": 5,
+          "maximum": 89
         }
       }
     }

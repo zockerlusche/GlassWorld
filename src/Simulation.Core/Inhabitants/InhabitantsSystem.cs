@@ -244,8 +244,55 @@ public sealed class InhabitantsSystem : IWorldSystem
             DecayNeeds(inhabitant);
             UpdateMoods(inhabitant);
             UpdateWillToLive(inhabitant);
+            var before = inhabitant.Position;
             Act(world, inhabitant);
+            if (inhabitant.Position != before)
+            {
+                Separate(inhabitant);
+            }
         }
+    }
+
+    /// <summary>
+    /// Whom the inhabitant turns its whole body to (B2528, W1691), or null. One action owns legs and body
+    /// (TL #20001): the actor of a running action aimed at another inhabitant faces its listener; the listener
+    /// faces the first such actor (id order) only when it has no action of its own or one the data lets turn
+    /// (spacing.listener_turns_during). Nobody turns while walking. Derived from the state, never stored.
+    /// </summary>
+    public string? FacingOf(Inhabitant inhabitant)
+    {
+        ArgumentNullException.ThrowIfNull(inhabitant);
+        if (Space is not { } space || inhabitant.Activity is { RemainingTicks: null })
+        {
+            return null;
+        }
+
+        if (inhabitant.Activity is { TargetId: { } id } && _inhabitants.ContainsKey(id))
+        {
+            return id;
+        }
+
+        if (inhabitant.Activity is { } own && !space.ListenerTurnsDuring.Contains(own.Action, StringComparer.Ordinal))
+        {
+            return null;
+        }
+
+        return _inhabitants.Values.FirstOrDefault(o => o.Activity is { RemainingTicks: not null } a && a.TargetId == inhabitant.Id)?.Id;
+    }
+
+    /// <summary>
+    /// What an action aimed at another inhabitant is about: the type id of the belief it would pass on
+    /// (B4a R4), or null (no such action, no knowledge data, nothing to pass). For the UI; never stored.
+    /// </summary>
+    public string? TopicOf(Inhabitant inhabitant)
+    {
+        ArgumentNullException.ThrowIfNull(inhabitant);
+        return inhabitant.Activity is { TargetId: { } id } activity
+            && Knowledge is { } knowledge
+            && _inhabitants.TryGetValue(id, out var listener)
+            && PassableBelief(knowledge, inhabitant, listener, activity.Action) is { } belief
+                ? belief.TypeId
+                : null;
     }
 
     /// <inheritdoc/>
@@ -377,9 +424,20 @@ public sealed class InhabitantsSystem : IWorldSystem
         {
             var timing = _actions.Timing(activity.Action);
             var destination = target?.Position ?? activity.Destination;
-            if (!MoveTowards(world, inhabitant, destination, timing.ReachM))
+            var from = inhabitant.Position;
+            if (!MoveTowards(world, inhabitant, destination, ReachOf(activity.Action, listener)))
             {
+                if (inhabitant.Activity is not null)
+                {
+                    Yield(inhabitant, from, listener);
+                }
+
                 return;
+            }
+
+            if (listener is not null)
+            {
+                KeepConversationDistance(inhabitant, listener);
             }
 
             inhabitant.Activity = activity with { RemainingTicks = timing.DurationTicks, Route = null };
@@ -407,7 +465,169 @@ public sealed class InhabitantsSystem : IWorldSystem
     private bool Following(Activity activity, Inhabitant listener) =>
         Routes is null
             ? activity.Destination != listener.Position
-            : Distance(activity.Destination, listener.Position) > _actions.Timing(activity.Action).ReachM;
+            : Distance(activity.Destination, listener.Position) > ReachOf(activity.Action, listener);
+
+    /// <summary>Personal space between inhabitants (content/behaviour/gaits.json spacing), or null.</summary>
+    private Spacing? Space => _gaits.Data.Spacing;
+
+    /// <summary>
+    /// Distance at which an action can start: towards another inhabitant the upper conversation distance
+    /// (W1691), else the action's reach.
+    /// </summary>
+    private double ReachOf(string action, Inhabitant? listener) =>
+        listener is not null && Space is { } space ? space.ConversationMaxM : _actions.Timing(action).ReachM;
+
+    /// <summary>Whether a step from <paramref name="from"/> to <paramref name="to"/> stays on walkable ground.</summary>
+    private bool Walkable(Position from, Position to) => Routes is null || Routes.Connected(from, to);
+
+    /// <summary>
+    /// W1691: an actor that arrived closer to its listener than the lower conversation distance steps back
+    /// on the line between them (stays where it is when that is not walkable).
+    /// </summary>
+    private void KeepConversationDistance(Inhabitant actor, Inhabitant listener)
+    {
+        if (Space is not { } space)
+        {
+            return;
+        }
+
+        var dx = actor.Position.X - listener.Position.X;
+        var dz = actor.Position.Z - listener.Position.Z;
+        var distance = Math.Sqrt((dx * dx) + (dz * dz));
+        if (distance >= space.ConversationMinM || distance < 1e-9)
+        {
+            return;
+        }
+
+        var back = new Position(listener.Position.X + (dx * space.ConversationMinM / distance), listener.Position.Z + (dz * space.ConversationMinM / distance));
+        if (Walkable(actor.Position, back))
+        {
+            actor.Position = back;
+        }
+    }
+
+    /// <summary>
+    /// B2569 (Marcel W1688): a walker that has another inhabitant ahead within the look-ahead and closer to
+    /// its line than the minimum separation steps to its RIGHT (relative to its walking direction this tick),
+    /// in addition to its step; the one it walks to is no obstacle. Two walkers meeting head-on both step
+    /// to their right and pass each other. Deterministic: no random draw.
+    /// </summary>
+    private void Yield(Inhabitant walker, Position from, Inhabitant? walkingTo)
+    {
+        if (Space is not { } space || space.YieldOffsetM <= 0)
+        {
+            return;
+        }
+
+        var dx = walker.Position.X - from.X;
+        var dz = walker.Position.Z - from.Z;
+        var length = Math.Sqrt((dx * dx) + (dz * dz));
+        if (length < 1e-9)
+        {
+            return;
+        }
+
+        // Map x and z are the ground plane as the game shows it (x to the right, z towards the viewer), so
+        // the right-hand side of the walking direction (ux, uz) is (-uz, ux).
+        var (ux, uz) = (dx / length, dz / length);
+        var (rx, rz) = (-uz, ux);
+        var threatened = false;
+        foreach (var other in _inhabitants.Values)
+        {
+            if (ReferenceEquals(other, walker) || ReferenceEquals(other, walkingTo))
+            {
+                continue;
+            }
+
+            var ox = other.Position.X - from.X;
+            var oz = other.Position.Z - from.Z;
+            var along = (ox * ux) + (oz * uz);
+            var aside = (ox * rx) + (oz * rz);
+            if (along > 0 && along <= space.YieldLookaheadM && Math.Abs(aside) < space.MinSeparationM)
+            {
+                threatened = true;
+                break;
+            }
+        }
+
+        var right = new Position(walker.Position.X + (rx * space.YieldOffsetM), walker.Position.Z + (rz * space.YieldOffsetM));
+        if (threatened && Walkable(walker.Position, right))
+        {
+            walker.Position = right;
+        }
+    }
+
+    /// <summary>
+    /// W1687: no inhabitant ends a move closer than the minimum separation to another. The one that moved
+    /// goes to the free spot at exactly that distance beside the other that lies nearest to where it is
+    /// heading (its target, else its own spot): eight directions around the other, starting with straight
+    /// away from it, all walkable and clear of everyone else. Deterministic, square roots only (no trigonometry).
+    /// </summary>
+    private void Separate(Inhabitant mover)
+    {
+        if (Space is not { } space || space.MinSeparationM <= 0)
+        {
+            return;
+        }
+
+        var limit = space.MinSeparationM - 1e-9;
+        var c = Math.Sqrt(0.5);
+        for (var round = 0; round < 3; round++)
+        {
+            var other = _inhabitants.Values.FirstOrDefault(o => !ReferenceEquals(o, mover) && Distance(o.Position, mover.Position) < limit);
+            if (other is null)
+            {
+                return;
+            }
+
+            var anchor = AnchorOf(mover);
+            var bx = mover.Position.X - other.Position.X;
+            var bz = mover.Position.Z - other.Position.Z;
+            var length = Math.Sqrt((bx * bx) + (bz * bz));
+            (bx, bz) = length < 1e-9 ? (1.0, 0.0) : (bx / length, bz / length);
+            (double X, double Z)[] directions =
+            [
+                (bx, bz),
+                ((bx * c) - (bz * c), (bx * c) + (bz * c)),
+                ((bx * c) + (bz * c), (bz * c) - (bx * c)),
+                (-bz, bx),
+                (bz, -bx),
+                ((-bx * c) - (bz * c), (bx * c) - (bz * c)),
+                ((bz * c) - (bx * c), (-bx * c) - (bz * c)),
+                (-bx, -bz),
+            ];
+            Position? best = null;
+            var bestDistance = double.MaxValue;
+            foreach (var (x, z) in directions)
+            {
+                var spot = new Position(other.Position.X + (x * space.MinSeparationM), other.Position.Z + (z * space.MinSeparationM));
+                if (!Walkable(mover.Position, spot)
+                    || _inhabitants.Values.Any(o => !ReferenceEquals(o, mover) && !ReferenceEquals(o, other) && Distance(o.Position, spot) < limit))
+                {
+                    continue;
+                }
+
+                var d = Distance(spot, anchor);
+                if (d < bestDistance - 1e-9)
+                {
+                    (best, bestDistance) = (spot, d);
+                }
+            }
+
+            if (best is not { } chosen)
+            {
+                return;
+            }
+
+            mover.Position = chosen;
+        }
+    }
+
+    /// <summary>Where an inhabitant is heading: its target's position, its activity's destination, or its own spot.</summary>
+    private Position AnchorOf(Inhabitant inhabitant) =>
+        inhabitant.Activity is not { } activity ? inhabitant.Position
+            : activity.TargetId is { } id && ResolveTarget(id) is { } target ? target.Position
+            : activity.Destination;
 
     private Activity? Choose(World world, Inhabitant inhabitant)
     {
@@ -584,6 +804,10 @@ public sealed class InhabitantsSystem : IWorldSystem
         if (target is not null)
         {
             Learn(world, inhabitant, activity.Action, target.TypeId);
+            if (Knowledge?.Looking is { } looking && string.Equals(activity.Action, looking.Action, StringComparison.Ordinal))
+            {
+                Look(world, inhabitant, looking, target);
+            }
             if (applying.Any(r => r.ConsumesTarget))
             {
                 _objects.Remove(target.Id);
@@ -629,6 +853,49 @@ public sealed class InhabitantsSystem : IWorldSystem
                 Report(new WorldEvent(KnowledgeGained, world.Tick, inhabitant.Id, action, typeId) { Detail = property + "/" + KnowledgeSources.Experienced });
             }
         }
+    }
+
+    /// <summary>
+    /// Looking closely (TL #19921): the inhabitant now sees the thing's visible properties (true or false, as
+    /// sure as the data says, source seen; never over something tried or surer), guesses from them what it might be good for (source guessed, never replacing
+    /// a belief it has) and remembers where the thing stands. Effects are never learned by looking.
+    /// </summary>
+    private void Look(World world, Inhabitant inhabitant, KnowledgeLooking looking, WorldObject target)
+    {
+        var typeId = target.TypeId;
+        foreach (var property in looking.VisibleProperties)
+        {
+            // Looking never overrides what was tried or what the inhabitant is at least as sure of (review GW2 #142).
+            if (inhabitant.Beliefs.TryGet(typeId, property, out var old) && (old.Source == KnowledgeSources.Experienced || old.Confidence >= looking.InspectConfidence))
+            {
+                continue;
+            }
+
+            var truth = _objects.Catalog.HasProperty(typeId, property);
+            inhabitant.Beliefs.Set(typeId, property, truth, looking.InspectConfidence, KnowledgeSources.Seen, null, world.Tick);
+            if (truth)
+            {
+                Report(new WorldEvent(KnowledgeGained, world.Tick, inhabitant.Id, looking.Action, typeId) { Detail = property + "/" + KnowledgeSources.Seen });
+            }
+        }
+
+        foreach (var guess in looking.Guesses)
+        {
+            if (_objects.Catalog.HasProperty(typeId, guess.Seen) && !inhabitant.Beliefs.TryGet(typeId, guess.Property, out _))
+            {
+                inhabitant.Beliefs.Set(typeId, guess.Property, guess.Value, looking.GuessedConfidence, KnowledgeSources.Guessed, null, world.Tick);
+                Report(new WorldEvent(KnowledgeGained, world.Tick, inhabitant.Id, looking.Action, typeId) { Detail = guess.Property + "/" + KnowledgeSources.Guessed });
+            }
+        }
+
+        inhabitant.RememberPlace(target.Id, new PlaceMemory(typeId, target.Position, world.Tick), looking.PlaceMemoryMax);
+    }
+
+    /// <summary>Whether the inhabitant has looked at a type: it believes something about a visible property of it.</summary>
+    public static bool HasLookedAt(KnowledgeSettings? knowledge, Inhabitant inhabitant, string typeId)
+    {
+        ArgumentNullException.ThrowIfNull(inhabitant);
+        return knowledge?.Looking is { } looking && looking.VisibleProperties.Any(p => inhabitant.Beliefs.TryGet(typeId, p, out _));
     }
 
     /// <summary>

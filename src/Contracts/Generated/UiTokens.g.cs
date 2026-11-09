@@ -118,6 +118,12 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("max_screen_fraction")]
         public double MaxScreenFraction { get; set; } = default!;
 
+        /// <summary>
+        /// Darkening of the game behind a modal window such as the pause menu (0 = none, 1 = black; W1687).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("modal_dim")]
+        public double ModalDim { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]

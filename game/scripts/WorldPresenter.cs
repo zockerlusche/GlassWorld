@@ -26,6 +26,7 @@ public partial class WorldPresenter : Node3D
 
     private readonly Dictionary<string, MeshInstance3D> _figures = new(StringComparer.Ordinal);
     private readonly Dictionary<string, (GlassWorld.Game.World.ScreenBubble Label, double Until)> _thoughts = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, double> _speechUntil = new(StringComparer.Ordinal);
     private AiServiceProcess? _service;
     private HttpDecisionPort? _livePort;
     private HttpConversationPort? _conversationPort;
@@ -233,6 +234,7 @@ public partial class WorldPresenter : Node3D
         _objects = new MultiMeshInstance3D { Name = "Objects" };
         AddChild(_objects);
         UpdateVisuals();
+        BeginPlaceholderCamera();
     }
 
     /// <inheritdoc/>
@@ -258,7 +260,8 @@ public partial class WorldPresenter : Node3D
             ProcessIsland(ticks);
             _clock += delta;
             ShowThoughts();
-            IslandCamera();
+            ObserverCamera();
+            KeepFiguresVisible();
             return;
         }
 
@@ -269,7 +272,8 @@ public partial class WorldPresenter : Node3D
 
         _clock += delta;
         ShowThoughts();
-        FollowWithCamera(delta);
+        LayPlaceholderGround();
+        ObserverCamera();
     }
 
     /// <inheritdoc/>
@@ -328,70 +332,43 @@ public partial class WorldPresenter : Node3D
         }
     }
 
-    private int _focusGroup = 1;
-    private double _focusUntil;
     private bool _groundReady;
+    private bool _cameraHeld;
 
-    /// <summary>
-    /// Observer camera until B2-3 brings the real camera: follows the group where the last thought
-    /// appeared, otherwise switches groups every 30 s; smooth, presentation only. On first use the B0
-    /// island placeholder is hidden and a plain ground is laid under the placeholder world.
-    /// </summary>
-    /// <summary>Picture runs only: the placeholder camera stays where it was put and does not follow the groups.</summary>
-    public bool CameraHeld { get; set; }
-
-    private void FollowWithCamera(double delta)
+    /// <summary>Picture runs only: the camera stays where the run puts it (the rig neither moves it nor reads input).</summary>
+    public bool CameraHeld
     {
-        if (_host is null || GetViewport().GetCamera3D() is not { } camera)
+        get => _cameraHeld;
+        set
         {
-            return;
-        }
-
-        if (!_groundReady)
-        {
-            _groundReady = true;
-            if (GetParent()?.GetNodeOrNull<Node3D>("IslandPlaceholder") is { } island)
+            _cameraHeld = value;
+            if (_rig is not null)
             {
-                island.Visible = false;
+                _rig.Held = value;
             }
-
-            AddChild(new MeshInstance3D
-            {
-                Name = "PlaceholderGround",
-                Mesh = new PlaneMesh { Size = new Vector2(400, 120) },
-                MaterialOverride = new StandardMaterial3D { AlbedoColor = new Color(0.86f, 0.78f, 0.55f) },
-            });
         }
+    }
 
-        if (CameraHeld)
+    /// <summary>On first use the B0 island placeholder is hidden and a plain ground is laid under the placeholder world.</summary>
+    private void LayPlaceholderGround()
+    {
+        if (_groundReady || _host is null)
         {
             return;
         }
 
-        var groups = _host.Inhabitants.All.Select(i => i.Group).Distinct().Order().ToList();
-        if (groups.Count == 0)
+        _groundReady = true;
+        if (GetParent()?.GetNodeOrNull<Node3D>("IslandPlaceholder") is { } island)
         {
-            return;
+            island.Visible = false;
         }
 
-        if (_clock > _focusUntil)
+        AddChild(new MeshInstance3D
         {
-            var next = groups.IndexOf(_focusGroup) + 1;
-            _focusGroup = groups[next % groups.Count];
-            _focusUntil = _clock + 30.0;
-        }
-
-        var members = _host.Inhabitants.All.Where(i => i.Group == _focusGroup).ToList();
-        if (members.Count == 0)
-        {
-            return;
-        }
-
-        var centre = new Vector3((float)members.Average(i => i.Position.X), 0.9f, (float)members.Average(i => i.Position.Z));
-        var wanted = centre + new Vector3(0, 9f, 13f);
-        var blend = 1 - Mathf.Exp(-2.5f * (float)delta);
-        camera.GlobalPosition = camera.GlobalPosition.Lerp(wanted, blend);
-        camera.LookAt(centre, Vector3.Up);
+            Name = "PlaceholderGround",
+            Mesh = new PlaneMesh { Size = new Vector2(PlaceholderGroundM.Width, PlaceholderGroundM.Depth) },
+            MaterialOverride = new StandardMaterial3D { AlbedoColor = new Color(0.86f, 0.78f, 0.55f) },
+        });
     }
 
     private void ShowThoughts()
@@ -405,27 +382,34 @@ public partial class WorldPresenter : Node3D
         {
             _seenEvents = sequenced.Seq;
             var e = sequenced.Event;
-            if (Talk(e) is { } talk && _thoughts.TryGetValue(e.InhabitantId, out var said))
+            if (TalkBubble.For(e.Kind, e.Text, _look?.Labels.SpeechS ?? (ThoughtSeconds + 2)) is { } talk)
             {
-                // Talking (B6 R13): "..." while it thinks, then the answer or a question mark.
-                said.Label.Text = talk.Text;
-                said.Label.Visible = true;
-                _thoughts[e.InhabitantId] = (said.Label, _clock + Shorter(talk.Seconds));
+                // Talking (B6 R13): "..." while it thinks, then the answer or a question mark; the figures
+                // show that they heard and the camera follows the one spoken to (W1688).
+                if (_thoughts.TryGetValue(e.InhabitantId, out var said))
+                {
+                    said.Label.Text = talk.Text;
+                    said.Label.Visible = talk.Seconds > 0;
+                    _thoughts[e.InhabitantId] = (said.Label, _clock + Shorter(talk.Seconds));
+                }
+
+                _speechUntil[e.InhabitantId] = TalkBubble.IsSpeech(e.Kind, e.Text) ? _clock + Shorter(talk.Seconds) : 0;
+                React(e);
                 continue;
             }
 
-            if (e.Kind == "thought" && e.Text is { Length: > 0 } text && _thoughts.TryGetValue(e.InhabitantId, out var bubble))
+            if (e.Kind == "thought" && e.Text is { Length: > 0 } text && _thoughts.TryGetValue(e.InhabitantId, out var bubble)
+                && _clock >= _speechUntil.GetValueOrDefault(e.InhabitantId))
             {
+                // A thought never covers a spoken answer still showing (W1688).
                 bubble.Label.Text = text;
                 bubble.Label.Visible = true;
-                _thoughts[e.InhabitantId] = (bubble.Label, _clock + Shorter(ThoughtSeconds));
-                _focusGroup = _host.Inhabitants.Get(e.InhabitantId).Group;
-                _focusUntil = _clock + 12.0;
+                _thoughts[e.InhabitantId] = (bubble.Label, _clock + Shorter(_look?.Labels.ThoughtSeconds ?? ThoughtSeconds));
                 ObserveThought(e.InhabitantId);
             }
         }
 
-        foreach (var (id, bubble) in _thoughts.ToList())
+        foreach (var bubble in _thoughts.Values)
         {
             if (bubble.Label.Visible && _clock > bubble.Until)
             {
@@ -435,18 +419,17 @@ public partial class WorldPresenter : Node3D
     }
 
     /// <summary>
-    /// How long a line stays: the data's time instead of the built-in one, and the shorter time at high
-    /// speed so lines do not pile up (W1687). A waiting "…" (longer than the normal time) is kept.
+    /// How long a line stays: at high speed the data's shorter time, so lines do not pile up (W1687). A waiting
+    /// "…" (much longer than any line) is kept.
     /// </summary>
     private double Shorter(double seconds)
     {
-        if (_look?.Labels is not { } labels || seconds > ThoughtSeconds + 2)
+        if (_look?.Labels is not { } labels || seconds > 60)
         {
             return seconds;
         }
 
-        var normal = seconds * labels.ThoughtSeconds / ThoughtSeconds;
-        return Speed >= labels.FastFromSpeed ? Math.Min(normal, labels.ThoughtSecondsFast) : normal;
+        return Speed >= labels.FastFromSpeed ? Math.Min(seconds, labels.ThoughtSecondsFast) : seconds;
     }
 
     /// <summary>
@@ -484,17 +467,6 @@ public partial class WorldPresenter : Node3D
             _thoughts[inhabitantId] = (bubble.Label, _clock + 60);
         }
     }
-
-    /// <summary>The bubble of a conversation event: text and how long it stays (null for other events).</summary>
-    private static (string Text, double Seconds)? Talk(Simulation.Inhabitants.WorldEvent e) => e.Kind switch
-    {
-        "conversation_started" => ("…", 120.0),
-        "said" or "declined" when e.Text is { Length: > 0 } text => (text, ThoughtSeconds + 2),
-        "gestured" or "declined" => ("…", 2.0),
-        "not_understood" => ("?", ThoughtSeconds),
-        "no_answer" => (string.Empty, 0.0),
-        _ => null,
-    };
 
     /// <summary>Decider that never answers (service could not be started): questions stay open (B2487).</summary>
     private sealed class SilentPort : IDecisionPort

@@ -77,6 +77,26 @@ public sealed class ConversationTests : IDisposable
     }
 
     [Fact]
+    public void TheLiveServiceAnswerOfMarcelsTestBecomesASaidEvent()
+    {
+        // W1688: the exact answer the local service sent in the play test (only id and tick follow the
+        // request) reaches the presentation as "said" with the text and the wave expression.
+        var (host, id) = Host();
+        host.Conversation.Port = new RawPort("""
+            {"contract_version":"0.2","request_id":"{id}","tick":{tick},"outcome":"reply","reply":{"locale":"de","text":"Hallo!"},"expression":"wave","rationale":"I respond to the greeting with a simple wave and return it in German.","meta":{"source":"model","model":"qwen3.5:9b","latency_ms":1453,"attempts":1}}
+            """);
+        var events = Collect(host);
+        Say(host, id, "Hallo");
+        host.World.Run(2);
+
+        var said = Assert.Single(events, e => e.Kind == "said");
+        Assert.Equal(id, said.InhabitantId);
+        Assert.Equal("Hallo!", said.Text);
+        Assert.Equal("wave", said.Detail);
+        Assert.DoesNotContain(events, e => e.Kind == "no_answer");
+    }
+
+    [Fact]
     public void TheAnswerIsOnlyAProposal()
     {
         // A reply the guard refuses becomes a gesture; an unknown expression is dropped (B2462).
@@ -225,6 +245,26 @@ public sealed class ConversationTests : IDisposable
                 Meta = new ResponseMeta { Source = ResponseMetaSource.Mock, Model = "test", LatencyMs = 0, Attempts = 1 },
             };
             _ready.Enqueue(new PortMessage(requestId, ContractSerializer.Serialize(response), IsError: false));
+        }
+
+        public IReadOnlyList<PortMessage> Receive(long tick)
+        {
+            var messages = _ready.ToList();
+            _ready.Clear();
+            return messages;
+        }
+    }
+
+    /// <summary>Answers with a fixed JSON text ({id} and {tick} take the request's values).</summary>
+    private sealed class RawPort(string json) : IConversationPort
+    {
+        private readonly Queue<PortMessage> _ready = new();
+
+        public void Send(string requestId, string requestJson)
+        {
+            var request = ContractSerializer.Deserialize<ConversationRequest>(requestJson);
+            var body = json.Trim().Replace("{id}", request.RequestId, StringComparison.Ordinal).Replace("{tick}", request.Tick.ToString(System.Globalization.CultureInfo.InvariantCulture), StringComparison.Ordinal);
+            _ready.Enqueue(new PortMessage(requestId, body, IsError: false));
         }
 
         public IReadOnlyList<PortMessage> Receive(long tick)

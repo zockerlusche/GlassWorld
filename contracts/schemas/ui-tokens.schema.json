@@ -184,7 +184,8 @@
         "card_bar_width",
         "mark_height_m",
         "mark_font_px",
-        "settings_apply_ms"
+        "settings_apply_ms",
+        "modal_dim"
       ],
       "properties": {
         "settings_apply_ms": {
@@ -277,6 +278,12 @@
           "type": "number",
           "minimum": 0.3,
           "maximum": 1
+        },
+        "modal_dim": {
+          "description": "Darkening of the game behind a modal window such as the pause menu (0 = none, 1 = black; W1687).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.9
         }
       }
     },

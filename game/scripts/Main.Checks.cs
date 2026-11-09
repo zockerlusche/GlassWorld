@@ -385,6 +385,23 @@ public partial class Main
         var files = await UiShots.RunAsync(this, _screen!, style, _shotsFolder!);
         GD.Print($"UI_SHOTS_OK {files.Count}");
 
+        // The pause menu as the player sees it, then after pressing "Save" (W1687, W1689b).
+        OpenPause();
+        if (_pause is { } pause)
+        {
+            await Frames(6);
+            Shot("pause.png");
+            if (pause.FindChildren("*", nameof(Button), true, false).OfType<Button>().FirstOrDefault(b => b.Text == "ui.pause.save") is { } save)
+            {
+                save.EmitSignal(BaseButton.SignalName.Pressed);
+                await Frames(6);
+                Shot("pause_saved.png");
+            }
+
+            pause.Close();
+            await Frames(2);
+        }
+
         // Talking (A1342): the card with its talk field, a sentence and the inhabitant's first reaction
         // (at the start it understands little: a gesture or a question mark, D333).
         var talker = _world!.Host!.Inhabitants.All.OrderBy(i => i.Id, StringComparer.Ordinal).First().Id;
@@ -469,6 +486,22 @@ public partial class Main
         GetTree().Quit(0);
     }
 
+    private async Task Frames(int count)
+    {
+        for (var i = 0; i < count; i++)
+        {
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        }
+
+        await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
+    }
+
+    private void Shot(string name)
+    {
+        var path = System.IO.Path.Combine(_shotsFolder!, name);
+        GD.Print($"UI_SHOT {path} {GetViewport().GetTexture().GetImage().SavePng(path)}");
+    }
+
     /// <summary>Smoke run only: the UI standard data is valid and a sample window fits every reference case.</summary>
     private async Task CheckUiAsync(UiStyle? style)
     {
@@ -493,6 +526,15 @@ public partial class Main
                 GD.Print("SCREEN_OK");
             }
 
+            // Camera keys (GW3 #144): a button that took the focus leaves them to the camera, a slider keeps them.
+            var (button, slider) = (new Button(), new HSlider());
+            if (GlassWorld.Game.World.CameraRig.BlocksCameraKeys(button) || !GlassWorld.Game.World.CameraRig.BlocksCameraKeys(slider))
+            {
+                problems = [.. problems, "camera keys: a focused button blocks them or a focused slider does not"];
+            }
+
+            button.Free();
+            slider.Free();
             CheckSave(_contentDirectory);
 
             // After the save check: placing a gift runs more ticks (A1340).

@@ -44,13 +44,13 @@ namespace GlassWorld.Contracts
         public int ThoughtWidthPx { get; set; } = default!;
 
         /// <summary>
-        /// How long a thought or a said sentence stays on screen (real seconds).
+        /// How long a thought stays on screen (real seconds); a spoken answer uses speech_s.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("thought_seconds")]
         public double ThoughtSeconds { get; set; } = default!;
 
         /// <summary>
-        /// The same at high speed, so lines do not pile up (W1687).
+        /// Longest time any line (thought or answer) stays at high speed, so lines do not pile up (W1687).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("thought_seconds_fast")]
         public double ThoughtSecondsFast { get; set; } = default!;
@@ -67,14 +67,26 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("bubble_width_px")]
         public int BubbleWidthPx { get; set; } = default!;
 
+        /// <summary>
+        /// Real seconds a spoken answer stays above the head.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("speech_s")]
+        public double SpeechS { get; set; } = default!;
+
     }
 
     /// <summary>
-    /// Observer camera on the island: it follows the group where the last thought appeared, otherwise switches groups; the player takes over by panning or clicking and hands back after a calm pause.
+    /// Observer camera: with auto on it follows the group where the last thought appeared, otherwise switches groups, and takes the camera back after a calm pause. Off by default (TL #19976): the camera moves only on the player's wish; thoughts show as a hint with a 'look' button.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class WorldLookObserver
     {
+
+        /// <summary>
+        /// Whether the observer moves the camera by itself (follows thoughts, switches groups, takes the camera back after the idle pause). false = the camera moves only on the player's wish.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("auto")]
+        public bool Auto { get; set; } = default!;
 
         /// <summary>
         /// Real seconds before the observer moves on to the next group.

@@ -104,6 +104,21 @@ public sealed class FigureMotion
         }
     }
 
+    /// <summary>
+    /// Turns the standing figure's whole body towards a point (B2528, W1691: two inhabitants face each other
+    /// while one shows, warns or teaches the other); ignored while it walks or when the point is where it stands.
+    /// </summary>
+    public void Face(double x, double z, double minStepM)
+    {
+        if (StepM < minStepM && ((x - _to.X) * (x - _to.X)) + ((z - _to.Z) * (z - _to.Z)) > 1e-12)
+        {
+            _targetYaw = Math.Atan2(x - _to.X, z - _to.Z);
+        }
+    }
+
+    /// <summary>Turns the standing figure towards a facing (radians, like <see cref="Yaw"/>), e.g. to a voice; the next step turns it to where it walks.</summary>
+    public void Face(double yaw) => _targetYaw = yaw;
+
     /// <summary>Puts the figure at <paramref name="at"/> at once (after a warm-up, a load): no stretch to walk.</summary>
     public void Place(Point3 at)
     {

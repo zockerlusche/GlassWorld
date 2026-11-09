@@ -121,6 +121,14 @@
         },
         "clip": {
           "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "target": {
+          "description": "Only for kind action: this mapping applies when the action is aimed at this kind of target (inhabitant: another inhabitant; object: a thing of the world). A mapping without target applies otherwise. Lets an action bend down only for a thing on the ground, never towards another inhabitant (Marcel W1687).",
+          "type": "string",
+          "enum": [
+            "inhabitant",
+            "object"
+          ]
         }
       }
     },
