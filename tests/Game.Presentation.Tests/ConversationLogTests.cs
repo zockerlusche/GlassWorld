@@ -42,4 +42,12 @@ public sealed class ConversationLogTests
         log.Add([Event("thought", "i-1", ""), Event("said", "i-1", null), Event("not_understood", "i-1", null)]);
         Assert.Equal([LogLineKind.NotUnderstood], log.Newest().Select(l => l.Kind));
     }
+
+    [Fact]
+    public void NotUnderstoodKeepsItsTextWhenTheCoreSendsOne()
+    {
+        var log = new ConversationLog(5);
+        log.Add([Event("not_understood", "i-1", "Was meinst du?")]);
+        Assert.Equal("Was meinst du?", Assert.Single(log.Newest()).Text);
+    }
 }

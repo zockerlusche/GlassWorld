@@ -2061,6 +2061,10 @@
     {
       "key": "ui.question.later",
       "text": "Die Antwort findet er auch selbst – spätestens in der Rechennacht."
+    },
+    {
+      "key": "ui.log.not_understood_text",
+      "text": "{name} versteht dich nicht: „{text}“"
     }
   ]
 }

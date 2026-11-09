@@ -2061,6 +2061,10 @@
     {
       "key": "ui.question.later",
       "text": "They will also find the answer themselves - in the computing night at the latest."
+    },
+    {
+      "key": "ui.log.not_understood_text",
+      "text": "{name} does not understand you: \"{text}\""
     }
   ]
 }
