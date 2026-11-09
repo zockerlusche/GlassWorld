@@ -107,8 +107,8 @@ public sealed class IdleVarietyTests
         {
             for (long tick = 0; tick < 300; tick += 7)
             {
-                var slot = AnimationChooser.IdleSlot(id, tick, figures.IdleSlotTicks, figures.IdleSlotSpread);
-                Assert.Equal(slot, AnimationChooser.IdleSlot(id, tick, figures.IdleSlotTicks, figures.IdleSlotSpread));
+                var slot = AnimationChooser.IdleSlot(id, tick, PoseCadence.SlotUnits(figures.PoseCadence), figures.IdleSlotSpread);
+                Assert.Equal(slot, AnimationChooser.IdleSlot(id, tick, PoseCadence.SlotUnits(figures.PoseCadence), figures.IdleSlotSpread));
                 Assert.Equal(first.Idle(id, slot, values), second.Idle(id, slot, values));
             }
         }
@@ -120,15 +120,15 @@ public sealed class IdleVarietyTests
         var figures = Figures();
         Assert.True(figures.IdleSlotSpread > 0, "the data spreads the slot lengths");
         HashSet<long> Changes(string id) =>
-            [.. Enumerable.Range(1, 2000).Where(t => AnimationChooser.IdleSlot(id, t, figures.IdleSlotTicks, figures.IdleSlotSpread)
-                != AnimationChooser.IdleSlot(id, t - 1, figures.IdleSlotTicks, figures.IdleSlotSpread)).Select(t => (long)t)];
+            [.. Enumerable.Range(1, 2000).Where(t => AnimationChooser.IdleSlot(id, t, PoseCadence.SlotUnits(figures.PoseCadence), figures.IdleSlotSpread)
+                != AnimationChooser.IdleSlot(id, t - 1, PoseCadence.SlotUnits(figures.PoseCadence), figures.IdleSlotSpread)).Select(t => (long)t)];
 
         var changes = Ids.Select(Changes).ToList();
         foreach (var c in changes)
         {
-            // About one change per slot length (idle_slot_ticks ± spread).
+            // About one change per slot length (pose_cadence.idle_slot_s ± spread, in tenths of a second).
             var mean = 2000.0 / c.Count;
-            Assert.InRange(mean, figures.IdleSlotTicks * (1 - figures.IdleSlotSpread) - 1, figures.IdleSlotTicks * (1 + figures.IdleSlotSpread) + 1);
+            Assert.InRange(mean, PoseCadence.SlotUnits(figures.PoseCadence) * (1 - figures.IdleSlotSpread) - 1, PoseCadence.SlotUnits(figures.PoseCadence) * (1 + figures.IdleSlotSpread) + 1);
         }
 
         // No two inhabitants change in lock-step: they share only a small part of their change ticks.
@@ -156,8 +156,8 @@ public sealed class IdleVarietyTests
         const int Ticks = 1000;
         for (long tick = 0; tick < Ticks; tick++)
         {
-            var a = chooser.Idle("inh-000001", AnimationChooser.IdleSlot("inh-000001", tick, figures.IdleSlotTicks, figures.IdleSlotSpread), values);
-            var b = chooser.Idle("inh-000002", AnimationChooser.IdleSlot("inh-000002", tick, figures.IdleSlotTicks, figures.IdleSlotSpread), values);
+            var a = chooser.Idle("inh-000001", AnimationChooser.IdleSlot("inh-000001", tick, PoseCadence.SlotUnits(figures.PoseCadence), figures.IdleSlotSpread), values);
+            var b = chooser.Idle("inh-000002", AnimationChooser.IdleSlot("inh-000002", tick, PoseCadence.SlotUnits(figures.PoseCadence), figures.IdleSlotSpread), values);
             same += a == b ? 1 : 0;
         }
 

@@ -102,6 +102,13 @@ public sealed class AnimationChooserTests
         var chooser = new AnimationChooser(library);
         var values = new Dictionary<string, double> { ["sleep"] = 0.2, ["curiosity"] = 0.8 };
         var idleClips = library.Idle.Select(i => i.Clip).ToHashSet(StringComparer.Ordinal);
+
+        // A clip not made yet (here: sleep as it was before W1695) lets the idle behaviour stand in.
+        var unmade = Library();
+        var sleepClip = unmade.Clips.Single(c => c.Id == "sleep");
+        sleepClip.Source = AnimationClipSource.Placeholder;
+        sleepClip.Asset = null;
+        var withoutSleep = new AnimationChooser(unmade);
         for (long slot = 0; slot < 40; slot++)
         {
             var expected = chooser.Idle("inh-000001", slot, values);
@@ -109,8 +116,8 @@ public sealed class AnimationChooserTests
             Assert.Equal(expected, chooser.ForInhabitant("idle", false, "inh-000001", slot, values));
             Assert.Equal(expected, chooser.ForInhabitant(null, false, "inh-000001", slot, values));
 
-            // Sleep has no clip yet: the idle behaviour stands in and the missing clip is named for the log.
-            var sleeping = chooser.ForInhabitant("sleep", false, "inh-000001", slot, values);
+            // The idle behaviour stands in and the missing clip is named for the log.
+            var sleeping = withoutSleep.ForInhabitant("sleep", false, "inh-000001", slot, values);
             Assert.Equal(expected.Clip, sleeping.Clip);
             Assert.Equal((expected.Speed, expected.Mirror), (sleeping.Speed, sleeping.Mirror));
             Assert.Equal("sleep", sleeping.Missing?.ClipId);

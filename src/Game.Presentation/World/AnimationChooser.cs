@@ -49,6 +49,7 @@ public sealed class AnimationChooser
     private readonly AnimationGait[] _gaits;
     private readonly (string Clip, double Weight, (string Value, bool High, double Weight)[] Factors, double SpeedSpread, bool Mirror)[] _idle;
     private readonly HashSet<string> _idleClips;
+    private readonly string[] _idleIds;
     private readonly HashSet<string> _gaitClips;
     private readonly double[] _weights;
 
@@ -68,6 +69,7 @@ public sealed class AnimationChooser
         _gaits = [.. library.Gaits.OrderBy(g => g.MinSpeedCmS)];
         _idle = [.. library.Idle.Select(i => (i.Clip, i.Weight, i.Factors.Select(x => (x.Value, x.When == AnimationIdleFactorWhen.High, x.Weight)).ToArray(), i.SpeedSpread ?? 0, i.Mirror ?? false))];
         _idleClips = library.Idle.Select(i => i.Clip).ToHashSet(StringComparer.Ordinal);
+        _idleIds = [.. library.Idle.Select(i => i.Id)];
         _gaitClips = library.Gaits.Select(g => g.Clip).ToHashSet(StringComparer.Ordinal);
         _weights = new double[_idle.Length];
     }
@@ -99,6 +101,9 @@ public sealed class AnimationChooser
         var clip = ForAction(action);
         return clip.FellBack || _idleClips.Contains(clip.ClipId) || _gaitClips.Contains(clip.ClipId);
     }
+
+    /// <summary>Whether a library clip id is played by an idle behaviour.</summary>
+    public bool IsIdleClip(string clipId) => _idleClips.Contains(clipId);
 
     /// <summary>The clip for a work activity of the library (carry, hammer, chop …).</summary>
     public ClipChoice ForWork(string work) => Resolve(_mappings.GetValueOrDefault(("work", work)));
@@ -204,14 +209,27 @@ public sealed class AnimationChooser
     /// varies within the behaviour's speed_spread, and it plays mirrored in half of the draws where the data
     /// allows it; all from a hash of id and slot, so the same slot looks the same again.
     /// </summary>
-    public FigureClip Idle(string inhabitantId, long slot, IReadOnlyDictionary<string, double> values)
-    {
-        var index = IdleIndex(inhabitantId, slot, values);
-        if (index < 0)
-        {
-            return new FigureClip(_fallback, Walking: false, null);
-        }
+    public FigureClip Idle(string inhabitantId, long slot, IReadOnlyDictionary<string, double> values) => Idle(inhabitantId, slot, values, null);
 
+    /// <summary>
+    /// The idle behaviour as <see cref="Idle(string, long, IReadOnlyDictionary{string, double})"/>, drawn only
+    /// among the idle ids in <paramref name="only"/> when given (W1697: no sitting or bending in a conversation).
+    /// </summary>
+    public FigureClip Idle(string inhabitantId, long slot, IReadOnlyDictionary<string, double> values, IReadOnlySet<string>? only)
+    {
+        var index = IdleIndex(inhabitantId, slot, values, only);
+        return index < 0 ? new FigureClip(_fallback, Walking: false, null) : Varied(inhabitantId, slot, index);
+    }
+
+    /// <summary>The idle behaviour with a library idle id, played plainly (slot 0 of the inhabitant), or the fallback.</summary>
+    public FigureClip IdleById(string inhabitantId, string idleId)
+    {
+        var index = Array.IndexOf(_idleIds, idleId);
+        return index < 0 ? new FigureClip(_fallback, Walking: false, null) : Varied(inhabitantId, 0, index);
+    }
+
+    private FigureClip Varied(string inhabitantId, long slot, int index)
+    {
         var (clip, _, _, spread, mirror) = _idle[index];
         var choice = Resolve(clip);
         return new FigureClip(choice, Walking: false, null)
@@ -236,13 +254,19 @@ public sealed class AnimationChooser
         return (long)Math.Floor((tick + phase) / (double)length);
     }
 
-    private int IdleIndex(string inhabitantId, long slot, IReadOnlyDictionary<string, double> values)
+    private int IdleIndex(string inhabitantId, long slot, IReadOnlyDictionary<string, double> values, IReadOnlySet<string>? only = null)
     {
         ArgumentNullException.ThrowIfNull(inhabitantId);
         ArgumentNullException.ThrowIfNull(values);
         var total = 0.0;
         for (var i = 0; i < _idle.Length; i++)
         {
+            if (only is not null && !only.Contains(_idleIds[i]))
+            {
+                _weights[i] = 0;
+                continue;
+            }
+
             var weight = _idle[i].Weight;
             foreach (var (value, high, factor) in _idle[i].Factors)
             {
@@ -269,7 +293,7 @@ public sealed class AnimationChooser
             }
         }
 
-        return _idle.Length - 1;
+        return Array.FindLastIndex(_weights, w => w > 0);
     }
 
     /// <summary>

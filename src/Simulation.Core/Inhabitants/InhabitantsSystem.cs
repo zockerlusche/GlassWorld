@@ -53,8 +53,14 @@ public sealed class InhabitantsSystem : IWorldSystem
     /// <summary>Event: an action finished and its effects applied.</summary>
     public const string ActionFinished = "action_finished";
 
-    /// <summary>Event: an action was cancelled (target gone).</summary>
+    /// <summary>Event: an action was cancelled (target gone, or the action rests after repeats without effect).</summary>
     public const string ActionCancelled = "action_cancelled";
+
+    /// <summary>Detail of <see cref="ActionFinished"/> when the run without effect reached the limit and the action now rests (W1696).</summary>
+    public const string RepeatLimit = "repeat_limit";
+
+    /// <summary>Detail of <see cref="ActionCancelled"/> for an action that rests after repeats without effect (W1696).</summary>
+    public const string Resting = "resting";
 
     private readonly SortedDictionary<string, Inhabitant> _inhabitants = new(StringComparer.Ordinal);
     private readonly List<WorldEvent> _events = [];
@@ -66,6 +72,7 @@ public sealed class InhabitantsSystem : IWorldSystem
     private readonly int _ticksPerHour;
     private long _eventsTick = -1;
     private readonly LinkedList<SequencedEvent> _history = new();
+    private readonly Dictionary<string, Position> _tickStart = new(StringComparer.Ordinal);
 
     /// <summary>Creates the system.</summary>
     public InhabitantsSystem(InhabitantModel model, ActionRules actions, UtilityBrain brain, GaitTable gaits, WorldObjects objects, int ticksPerHour)
@@ -242,18 +249,120 @@ public sealed class InhabitantsSystem : IWorldSystem
     public void Advance(World world)
     {
         ArgumentNullException.ThrowIfNull(world);
+        _tickStart.Clear();
+        foreach (var inhabitant in _inhabitants.Values)
+        {
+            _tickStart[inhabitant.Id] = inhabitant.Position;
+        }
+
         foreach (var inhabitant in _inhabitants.Values)
         {
             DecayNeeds(inhabitant);
             UpdateMoods(inhabitant);
             UpdateWillToLive(inhabitant);
             var before = inhabitant.Position;
+            var planned = inhabitant.Activity;
             Act(world, inhabitant);
             if (inhabitant.Position != before)
             {
+                var walked = inhabitant.Position;
+                KeepClearOnTheWay(inhabitant, before);
+                if (inhabitant.Position != walked && inhabitant.Activity is { Route: not null } activity
+                    && planned is not null && planned.Action == activity.Action && planned.TargetId == activity.TargetId)
+                {
+                    // Shortened on a route: the waypoints it did not reach stay ahead (no corner cut over blocked cells).
+                    inhabitant.Activity = activity with { Route = planned.Route };
+                }
+
                 Separate(inhabitant);
             }
         }
+    }
+
+    /// <summary>
+    /// W1695 (walking through each other): the game shows a move as a straight walk over the tick, both
+    /// inhabitants at once. A move that would come closer than the minimum separation to another on the way
+    /// (the other standing, or walking its own straight move of this tick) is shortened to the longest part
+    /// that stays clear; if hardly anything is left, the walker steps aside (right, else left) when that is
+    /// clear, else it waits. Pairs already closer at the start of the tick are left to the separation.
+    /// Deterministic: fixed bisection, no random draw.
+    /// </summary>
+    private void KeepClearOnTheWay(Inhabitant mover, Position from)
+    {
+        if (Space is not { } space || space.MinSeparationM <= 0 || PathClear(mover, from, mover.Position))
+        {
+            return;
+        }
+
+        var to = mover.Position;
+        var (dx, dz) = (to.X - from.X, to.Z - from.Z);
+        var (low, high) = (0.0, 1.0);
+        for (var i = 0; i < 16; i++)
+        {
+            var mid = (low + high) / 2;
+            (low, high) = PathClear(mover, from, new Position(from.X + (dx * mid), from.Z + (dz * mid))) ? (mid, high) : (low, mid);
+        }
+
+        var length = Math.Sqrt((dx * dx) + (dz * dz));
+        var part = new Position(from.X + (dx * low), from.Z + (dz * low));
+
+        // A part of a route that cut a corner may end on a blocked cell: then it waits where it was.
+        part = Walkable(from, part) ? part : from;
+        if ((low * length >= space.YieldOffsetM / 2 && part != from) || length < 1e-9)
+        {
+            mover.Position = part;
+            return;
+        }
+
+        // Blocked straight ahead: a step aside, right first (as when meeting head-on), lets it pass next tick.
+        var (rx, rz) = (-dz / length * space.YieldOffsetM, dx / length * space.YieldOffsetM);
+        foreach (var aside in new[] { new Position(from.X + rx, from.Z + rz), new Position(from.X - rx, from.Z - rz) })
+        {
+            if (Walkable(from, aside) && PathClear(mover, from, aside))
+            {
+                mover.Position = aside;
+                return;
+            }
+        }
+
+        mover.Position = part;
+    }
+
+    /// <summary>
+    /// Whether a straight move of <paramref name="mover"/> from <paramref name="from"/> to <paramref name="to"/>
+    /// over this tick stays at least the minimum separation from every other inhabitant moving straight from
+    /// where it began the tick to where it is now (pairs closer already at the start do not count).
+    /// </summary>
+    private bool PathClear(Inhabitant mover, Position from, Position to)
+    {
+        var limit = Space!.MinSeparationM - 1e-9;
+        foreach (var other in _inhabitants.Values)
+        {
+            if (ReferenceEquals(other, mover))
+            {
+                continue;
+            }
+
+            var start = _tickStart.GetValueOrDefault(other.Id, other.Position);
+
+            // Relative position p + t·v for t in [0, 1]; its closest approach to zero.
+            var (px, pz) = (from.X - start.X, from.Z - start.Z);
+            var (vx, vz) = ((to.X - from.X) - (other.Position.X - start.X), (to.Z - from.Z) - (other.Position.Z - start.Z));
+            if ((px * px) + (pz * pz) < limit * limit)
+            {
+                continue;
+            }
+
+            var vv = (vx * vx) + (vz * vz);
+            var t = vv < 1e-12 ? 0 : Math.Clamp(-((px * vx) + (pz * vz)) / vv, 0, 1);
+            var (cx, cz) = (px + (vx * t), pz + (vz * t));
+            if ((cx * cx) + (cz * cz) < limit * limit)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /// <summary>
@@ -398,6 +507,14 @@ public sealed class InhabitantsSystem : IWorldSystem
             return;
         }
 
+        if (activity.RemainingTicks is null && Rests(inhabitant, activity.Action, activity.TargetId, world.Tick))
+        {
+            // W1696: an answer that waited for an action which now rests after repeats without effect is dropped.
+            Report(new WorldEvent(ActionCancelled, world.Tick, inhabitant.Id, activity.Action, activity.TargetId) { Detail = Resting });
+            inhabitant.Activity = null;
+            return;
+        }
+
         WorldObject? target = null;
         Inhabitant? listener = null;
         if (activity.TargetId is not null)
@@ -455,14 +572,54 @@ public sealed class InhabitantsSystem : IWorldSystem
             return;
         }
 
-        Finish(world, inhabitant, activity, target);
+        var seq = LastEventSeq;
+        var changed = Finish(world, inhabitant, activity, target);
         if (listener is not null)
         {
             Pass(world, inhabitant, listener, activity.Action);
         }
 
+        changed |= _history.Reverse().TakeWhile(e => e.Seq > seq).Any(e => e.Event.Kind == KnowledgeGained);
+        var limit = CountRepeat(world, inhabitant, activity, changed);
+        Report(new WorldEvent(ActionFinished, world.Tick, inhabitant.Id, activity.Action, activity.TargetId) { Detail = limit ? RepeatLimit : null });
         inhabitant.Activity = null;
     }
+
+    /// <summary>
+    /// Counts runs of the same action on the same target at one spot that change nothing (W1696, data:
+    /// repetition): an action with an effect ends the run; at the limit the action rests for the data's hours.
+    /// Returns true when the limit was reached now.
+    /// </summary>
+    private bool CountRepeat(World world, Inhabitant inhabitant, Activity activity, bool changed)
+    {
+        inhabitant.Resting.RemoveAll(r => r.Until <= world.Tick);
+
+        if (_brain.Weights.Repetition is not { } repetition || changed || repetition.ExemptActions?.Contains(activity.Action) == true)
+        {
+            inhabitant.Repeat = null;
+            return false;
+        }
+
+        var run = inhabitant.Repeat is { } r && r.Action == activity.Action && r.TargetId == activity.TargetId
+            && Distance(r.Place, inhabitant.Position) <= repetition.SamePlaceM
+            ? r with { Count = r.Count + 1 }
+            : new RepeatRun(activity.Action, activity.TargetId, inhabitant.Position, 1);
+        if (run.Count < repetition.MaxRepeatsWithoutEffect)
+        {
+            inhabitant.Repeat = run;
+            return false;
+        }
+
+        inhabitant.Repeat = null;
+        inhabitant.Resting.RemoveAll(r => r.Action == activity.Action && r.TargetId == activity.TargetId
+            && (r.TargetId is not null || Distance(r.Place, inhabitant.Position) <= repetition.SamePlaceM));
+        inhabitant.Resting.Add(new RestingAction(activity.Action, activity.TargetId, inhabitant.Position, world.Tick + Math.Max(1, (long)Math.Round(repetition.RestHours * _ticksPerHour))));
+        return true;
+    }
+
+    /// <summary>Whether the action on that target (or, without one, here) rests for the inhabitant (W1696).</summary>
+    private bool Rests(Inhabitant inhabitant, string action, string? targetId, long tick) =>
+        inhabitant.Resting.Count > 0 && inhabitant.Rests(action, targetId, inhabitant.Position, tick, _brain.Weights.Repetition?.SamePlaceM ?? 0);
 
     /// <summary>Whether a walk to a listener must head for the listener's new position.</summary>
     private bool Following(Activity activity, Inhabitant listener) =>
@@ -605,7 +762,8 @@ public sealed class InhabitantsSystem : IWorldSystem
             {
                 var spot = new Position(other.Position.X + (x * space.MinSeparationM), other.Position.Z + (z * space.MinSeparationM));
                 if (!Walkable(mover.Position, spot)
-                    || _inhabitants.Values.Any(o => !ReferenceEquals(o, mover) && !ReferenceEquals(o, other) && Distance(o.Position, spot) < limit))
+                    || _inhabitants.Values.Any(o => !ReferenceEquals(o, mover) && !ReferenceEquals(o, other) && Distance(o.Position, spot) < limit)
+                    || !BesideNotBeyond(mover.Position, other.Position, spot))
                 {
                     continue;
                 }
@@ -624,6 +782,17 @@ public sealed class InhabitantsSystem : IWorldSystem
 
             mover.Position = chosen;
         }
+    }
+
+    /// <summary>
+    /// W1695: a separation spot on the near side of the other (not past it), so the shown move never leads
+    /// through the other: the spot lies no further along the line from the mover through the other than the
+    /// other itself.
+    /// </summary>
+    private static bool BesideNotBeyond(Position mover, Position other, Position spot)
+    {
+        var (ax, az) = (other.X - mover.X, other.Z - mover.Z);
+        return ((spot.X - other.X) * ax) + ((spot.Z - other.Z) * az) <= 1e-9;
     }
 
     /// <summary>Where an inhabitant is heading: its target's position, its activity's destination, or its own spot.</summary>
@@ -646,6 +815,14 @@ public sealed class InhabitantsSystem : IWorldSystem
         var givenUp = inhabitant.SearchSince.Where(s => world.Tick - s.Value >= giveUpTicks).Select(s => s.Key).ToHashSet(StringComparer.Ordinal);
         var searching = new HashSet<string>(StringComparer.Ordinal);
         var scored = _brain.Score(inhabitant, perceived, givenUp, searching);
+        if (inhabitant.Resting.Count > 0 && scored.Any(o => Rests(inhabitant, o.Action, o.TargetId, world.Tick)))
+        {
+            // W1696: an action resting after repeats without effect is not chosen, and nothing is done in its
+            // place that no need asks for (score 0): the inhabitant then just stands there instead of being
+            // sent off on a stroll that leads it away from water and food.
+            scored = [.. scored.Where(o => !Rests(inhabitant, o.Action, o.TargetId, world.Tick) && o.Score > 0)];
+        }
+
         foreach (var over in inhabitant.SearchSince.Keys.Where(k => !searching.Contains(k)).ToList())
         {
             inhabitant.SearchSince.Remove(over);
@@ -783,21 +960,28 @@ public sealed class InhabitantsSystem : IWorldSystem
 
     private static double Distance(Position a, Position b) => Math.Sqrt(((b.X - a.X) * (b.X - a.X)) + ((b.Z - a.Z) * (b.Z - a.Z)));
 
-    private void Finish(World world, Inhabitant inhabitant, Activity activity, WorldObject? target)
+    /// <summary>Applies the action's effects; true if a need, a mood or the will to live changed (by at least the data's min_effect) or the target was used up.</summary>
+    private bool Finish(World world, Inhabitant inhabitant, Activity activity, WorldObject? target)
     {
         var applying = _actions.Applying(activity.Action, target?.TypeId);
+        var changed = false;
+        var least = Math.Max(_brain.Weights.Repetition?.MinEffect ?? 0, double.Epsilon);
         foreach (var effect in applying.SelectMany(r => r.Effects))
         {
             switch (effect.Kind)
             {
                 case EffectKind.Need when inhabitant.Needs.TryGetValue(effect.Id, out var need):
                     inhabitant.Needs[effect.Id] = Math.Clamp(need + effect.Delta, 0.0, 1.0);
+                    changed |= Math.Abs(inhabitant.Needs[effect.Id] - need) >= least;
                     break;
                 case EffectKind.Mood when inhabitant.Moods.TryGetValue(effect.Id, out var mood):
                     inhabitant.Moods[effect.Id] = Math.Clamp(mood + effect.Delta, 0.0, 1.0);
+                    changed |= Math.Abs(inhabitant.Moods[effect.Id] - mood) >= least;
                     break;
                 case EffectKind.Will_to_live:
-                    inhabitant.WillToLive = Math.Clamp(inhabitant.WillToLive + effect.Delta, 0.0, 1.0);
+                    var will = inhabitant.WillToLive;
+                    inhabitant.WillToLive = Math.Clamp(will + effect.Delta, 0.0, 1.0);
+                    changed |= Math.Abs(inhabitant.WillToLive - will) >= least;
                     break;
                 default:
                     break;
@@ -814,10 +998,11 @@ public sealed class InhabitantsSystem : IWorldSystem
             if (applying.Any(r => r.ConsumesTarget))
             {
                 _objects.Remove(target.Id);
+                changed = true;
             }
         }
 
-        Report(new WorldEvent(ActionFinished, world.Tick, inhabitant.Id, activity.Action, activity.TargetId));
+        return changed;
     }
 
     /// <summary>
@@ -921,7 +1106,8 @@ public sealed class InhabitantsSystem : IWorldSystem
     /// <summary>
     /// The belief a passing action would carry from teller to listener, or null: matching the action's data
     /// (properties, value), sure enough, not something the listener experienced itself; surest first, then
-    /// type and property by id.
+    /// type and property by id. A belief the listener already holds the same way and at least as surely as it
+    /// would hear it is not passed again (W1696: telling what the other already knows brings nothing).
     /// </summary>
     public static (string TypeId, string PropertyId, Belief Belief)? PassableBelief(KnowledgeSettings knowledge, Inhabitant teller, Inhabitant listener, string action)
     {
@@ -934,13 +1120,15 @@ public sealed class InhabitantsSystem : IWorldSystem
             return null;
         }
 
+        var trust = listener.Relationships.Get(teller.Id, Start(knowledge)).Trust;
         (string TypeId, string PropertyId, Belief Belief)? best = null;
         foreach (var b in teller.Beliefs.All)
         {
             if (b.Belief.Confidence < knowledge.MinTellerConfidence
                 || (rule.Properties.Count > 0 && !rule.Properties.Contains(b.PropertyId))
                 || (rule.Value is { } value && b.Belief.Value != value)
-                || (listener.Beliefs.TryGet(b.TypeId, b.PropertyId, out var own) && own.Source == KnowledgeSources.Experienced))
+                || (listener.Beliefs.TryGet(b.TypeId, b.PropertyId, out var own)
+                    && (own.Source == KnowledgeSources.Experienced || (own.Value == b.Belief.Value && own.Confidence >= b.Belief.Confidence * trust))))
             {
                 continue;
             }

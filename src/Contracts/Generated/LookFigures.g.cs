@@ -12,6 +12,102 @@ namespace GlassWorld.Contracts
 {
     #pragma warning disable // Disable all warnings
 
+    /// <summary>
+    /// A lying pose made from a calm standing clip (the figure GLB has no lying clip): the whole figure tips over about its feet by pitch_deg so it lies on its back, and its body rests on the ground under its hips (lift_m above it). It lies down and gets up over settle_s.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class FigureLying
+    {
+
+        /// <summary>
+        /// Library clip ids played lying (e.g. sleep).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("clips")]
+        public System.Collections.Generic.ICollection<string> Clips { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// Tilt about the figure's left-right axis in degrees; -90 lays it on its back (the figure faces +Z).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("pitch_deg")]
+        public double PitchDeg { get; set; } = default!;
+
+        /// <summary>
+        /// Distance from the feet to the hips in metres at scale 1: where the lying body meets the ground.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("hip_m")]
+        public double HipM { get; set; } = default!;
+
+        /// <summary>
+        /// Height of the lying body's axis above the ground in metres at scale 1 (half the body's depth).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("lift_m")]
+        public double LiftM { get; set; } = default!;
+
+        /// <summary>
+        /// Real seconds to lie down or get up.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("settle_s")]
+        public double SettleS { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Calm poses (W1697): how often a figure may change what it shows, in real seconds so fast forward does not turn idle variety into squats. An idle behaviour is held at least min_pose_s before the next idle behaviour; walking and core actions show at the next free frame; idle variety starts only after standing idle for idle_variety_after_s (before, the rest idle plays) and then changes every idle_slot_s (with idle_slot_spread and a phase per inhabitant); two figures never change their pose in the same frame, and two idle variety changes lie at least stagger_s apart; in a conversation (the inhabitant speaks to or is spoken to) only the conversation_idle behaviours play, no sitting or bending.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class FigurePoseCadence
+    {
+
+        /// <summary>
+        /// Real seconds an idle behaviour is held at least before the next idle behaviour (core actions and walking are never held).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("min_pose_s")]
+        public double MinPoseS { get; set; } = default!;
+
+        /// <summary>
+        /// Real seconds a figure stands idle before idle variety begins; until then it plays rest_idle.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("idle_variety_after_s")]
+        public double IdleVarietyAfterS { get; set; } = default!;
+
+        /// <summary>
+        /// Real seconds one idle behaviour lasts before the next is drawn (± idle_slot_spread, phase per inhabitant).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("idle_slot_s")]
+        public double IdleSlotS { get; set; } = default!;
+
+        /// <summary>
+        /// Idle behaviour id (content/animation/library.json idle) a figure plays while it has stood idle only briefly.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("rest_idle")]
+        public string RestIdle { get; set; } = default!;
+
+        /// <summary>
+        /// Least real seconds between the idle variety changes of two figures (other changes only wait for a free frame).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("stagger_s")]
+        public double StaggerS { get; set; } = default!;
+
+        /// <summary>
+        /// Idle behaviour ids allowed while the inhabitant is in a conversation (no sitting, crouching or bending).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("conversation_idle")]
+        public System.Collections.Generic.ICollection<string> ConversationIdle { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// Upper limit of idle variety changes per real minute and figure the presentation is tested against, at normal speed and at x16.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max_changes_per_minute")]
+        public double MaxChangesPerMinute { get; set; } = default!;
+
+        /// <summary>
+        /// Upper limit of changes the core drives (starting and stopping to walk, core actions) per real minute and figure the presentation is tested against. They follow the core without delay (no marching in place, short actions always show), so fast forward shows many more per real minute.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max_walk_changes_per_minute")]
+        public double MaxWalkChangesPerMinute { get; set; } = default!;
+
+    }
+
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class FigureThinkingDots
     {
@@ -373,16 +469,13 @@ namespace GlassWorld.Contracts
         public double CrossfadeS { get; set; } = default!;
 
         /// <summary>
-        /// World ticks one idle behaviour lasts before the next is drawn (from the core tick, so pictures repeat at any frame rate).
-        /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("idle_slot_ticks")]
-        public int IdleSlotTicks { get; set; } = default!;
-
-        /// <summary>
-        /// How much an inhabitant's idle slot is longer or shorter than idle_slot_ticks (share, e.g. 0.3 = up to 30 percent either way); with a phase per inhabitant it keeps figures from changing their idle behaviour in lock-step.
+        /// How much an inhabitant's idle slot is longer or shorter than pose_cadence.idle_slot_s (share, e.g. 0.3 = up to 30 percent either way); with a phase per inhabitant it keeps figures from changing their idle behaviour in lock-step.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("idle_slot_spread")]
         public double IdleSlotSpread { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("pose_cadence")]
+        public FigurePoseCadence PoseCadence { get; set; } = new FigurePoseCadence();
 
         /// <summary>
         /// Least ground distance in metres an inhabitant must move in a tick to be shown walking (whatever the action; actions walk to their target first).
@@ -425,6 +518,12 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("sitting")]
         public FigureSitting Sitting { get; set; } = new FigureSitting();
+
+        /// <summary>
+        /// Lying poses (W1695): sleeping figures lie on their back on the ground instead of standing.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("lying")]
+        public FigureLying Lying { get; set; } = new FigureLying();
 
         /// <summary>
         /// How inhabitants show that they heard the player (W1688): they look up and turn to the voice (the camera), the speaker waves or talks with its answer.

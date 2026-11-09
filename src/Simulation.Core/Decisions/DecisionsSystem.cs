@@ -439,7 +439,7 @@ public sealed class DecisionsSystem : IWorldSystem
     private OpenQuestion Send(World world, Inhabitant inhabitant, string questionId, string kind, string subject, WorldObject? target)
     {
         var requestId = DecisionIds.RequestId(world.Seed, world.Tick, inhabitant.Id, _counter);
-        var options = BuildOptions(inhabitant, target);
+        var options = BuildOptions(inhabitant, target, world.Tick);
         var json = ContractSerializer.Serialize(BuildRequest(world, inhabitant, requestId, options));
         Log.Add(new DecisionLogEntry(DecisionLogKind.Request, requestId, world.Tick, json, null));
         _port.Send(requestId, json);
@@ -466,9 +466,10 @@ public sealed class DecisionsSystem : IWorldSystem
 
     /// <summary>
     /// Options the core allows: object actions on the subject and every action without a target (target
-    /// kind from the action vocabulary), each only while the asker's needs suggest it (<see cref="Behaviour.UtilityBrain.NeedSuggests"/>).
+    /// kind from the action vocabulary), each only while the asker's needs suggest it (<see cref="Behaviour.UtilityBrain.NeedSuggests"/>)
+    /// and it does not rest after repeats without effect (W1696).
     /// </summary>
-    private List<(string OptionId, string Action, string? TargetId)> BuildOptions(Inhabitant asker, WorldObject? target)
+    private List<(string OptionId, string Action, string? TargetId)> BuildOptions(Inhabitant asker, WorldObject? target, long tick)
     {
         var raw = new List<(string Action, string? TargetId)>();
         var passOn = new List<(string Action, string? TargetId)>();
@@ -483,10 +484,10 @@ public sealed class DecisionsSystem : IWorldSystem
 
             switch (_actionTargets.GetValueOrDefault(action, VocabularyEntryTarget.None))
             {
-                case VocabularyEntryTarget.Object when target is not null:
+                case VocabularyEntryTarget.Object when target is not null && !Rests(asker, action, target.Id, tick):
                     raw.Add((action, target.Id));
                     break;
-                case VocabularyEntryTarget.None:
+                case VocabularyEntryTarget.None when !Rests(asker, action, null, tick):
                     raw.Add((action, null));
                     break;
                 case VocabularyEntryTarget.Inhabitant when Knowledge is { } knowledge:
@@ -494,7 +495,7 @@ public sealed class DecisionsSystem : IWorldSystem
                     // something this action carries and the other has not experienced it.
                     foreach (var other in PerceivedInhabitants(asker).Take(knowledge.RequestMaxInhabitants))
                     {
-                        if (InhabitantsSystem.PassableBelief(knowledge, asker, other, action) is not null)
+                        if (InhabitantsSystem.PassableBelief(knowledge, asker, other, action) is not null && !Rests(asker, action, other.Id, tick))
                         {
                             passOn.Add((action, other.Id));
                         }
@@ -513,6 +514,10 @@ public sealed class DecisionsSystem : IWorldSystem
         raw.AddRange(passOn.Take(Math.Min(room, Knowledge?.MaxPassOnOptions ?? 0)));
         return [.. raw.Take(MaxOptions).Select((o, i) => (string.Create(CultureInfo.InvariantCulture, $"o{i + 1}"), o.Action, o.TargetId))];
     }
+
+    /// <summary>W1696: an action that rests after repeats without effect (for this target, or here) is not offered.</summary>
+    private bool Rests(Inhabitant asker, string action, string? targetId, long tick) =>
+        asker.Resting.Count > 0 && asker.Rests(action, targetId, asker.Position, tick, _brain.Weights.Repetition?.SamePlaceM ?? 0);
 
     private DecisionRequest BuildRequest(World world, Inhabitant inhabitant, string requestId, List<(string OptionId, string Action, string? TargetId)> options)
     {

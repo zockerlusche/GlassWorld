@@ -7,7 +7,7 @@ CONFIG = tools/figures/bodies.json and OUT = game/assets/characters/glassworld.
 
 The Quaternius Universal Animation Library (CC0) supplies the rig and all clips; its mannequin mesh
 is dropped. Each body is modelled from simple round shapes after D355 (big round head with eyes,
-brows, nose and ears, rounded torso, soft limbs, open mitten hands with a thumb, round shoes) and
+brows, nose and ears, rounded torso, soft limbs, closed mitten hands with a thumb, round shoes) and
 skinned to
 the Quaternius bones with smooth weights at the joints. Hair styles are separate skinned meshes the
 game switches by appearance data. Body regions are written into the vertex colour red channel
@@ -425,6 +425,54 @@ def mouth(centre, r, shape):
     return bm
 
 
+MITTEN_CURL = math.radians(30)  # relaxed bend of the finger plate towards the palm
+
+
+def mitten(palm, d, hw, ht, hl, bone, curl=MITTEN_CURL, steps=8, cap_steps=3):
+    """A relaxed low-poly mitten (W1700): one closed finger plate that curls gently towards the palm
+    side, and a thumb resting along the plate. No single fingers, so nothing reads as fork tines.
+
+    All of it is weighted to the hand bone: the clips' finger bones never moved the old fingers
+    either, so every clip still applies. In the rest pose the palm faces down (-Z), the thumb
+    points forward (-Y).
+    """
+    n = UP - d * UP.dot(d)  # back of the hand
+    if n.length < 1e-4:  # a hand pointing straight up or down: take the side axis instead
+        n = d.cross(FWD)
+    n = n.normalized()
+    w = d.cross(n).normalized()
+    if w.dot(FWD) < 0:
+        w = -w  # across the hand, towards the thumb
+    length = hl * 1.1
+    p = palm + d * (hl * 0.1)  # starts inside the palm, so the seam is hidden
+    rings = []
+    for k in range(steps + 1):
+        t = k / steps
+        bend = curl * smooth(0.25, 1.0, t)  # straight over the knuckles, curled towards the tips
+        axis = d * math.cos(bend) - n * math.sin(bend)
+        thick = n * math.cos(bend) + d * math.sin(bend)
+        if k:
+            p = p + axis * (length / steps)
+        rings.append((p, w, hw * (0.76 - 0.1 * t), thick, ht * (0.88 - 0.14 * t)))
+    tip, rw, rt = p, hw * 0.66, ht * 0.74
+    for k in range(1, cap_steps + 1):  # round fingertip edge
+        ang = (math.pi / 2) * k / (cap_steps + 1)
+        rings.append(
+            (
+                tip + axis * (rt * 1.3 * math.sin(ang)),
+                w,
+                rw * math.cos(ang),
+                thick,
+                rt * math.cos(ang),
+            )
+        )
+    plate = loft(rings, 12)
+    thumb_a = palm - d * (hl * 0.3) + w * (hw * 0.7)
+    thumb_b = thumb_a + d * (hl * 0.55) + w * (hw * 0.35) - n * (ht * 0.4)
+    thumb = capsule(thumb_a, thumb_b, ht * 0.62, ht * 0.5, 8, 3, 2)
+    return [Part(plate, SKIN, bone), Part(thumb, SKIN, bone)]
+
+
 def build_body(rig, spec, expression="neutral", blink=False):
     parts = []
     hips_z = rig.h("DEF-hips").z
@@ -480,7 +528,7 @@ def build_body(rig, spec, expression="neutral", blink=False):
     mouth_centre = centre + FWD * (r * 0.905) + UP * (-r * 0.4)
     parts.append(Part(mouth(mouth_centre, r, expression), EYES, "DEF-head", inside=centre))
 
-    # arms with seamless sleeves, open mitten hands with a thumb
+    # arms with seamless sleeves, relaxed mitten hands with a thumb
     for s in ("L", "R"):
         sho, ua, fa, hand = (
             f"DEF-shoulder.{s}",
@@ -513,15 +561,7 @@ def build_body(rig, spec, expression="neutral", blink=False):
         d = (c - b).normalized()
         palm = c + d * (hl * 0.75)
         parts.append(Part(ellipsoid(palm, hl, hw, ht, 12, 8, right=d, fwd=FWD, up=UP), SKIN, hand))
-        thumb_a = c + d * (hl * 0.35) + FWD * (hw * 0.6)
-        thumb_b = thumb_a + d * (hl * 0.45) + FWD * (hw * 0.55)
-        parts.append(Part(capsule(thumb_a, thumb_b, ht * 0.55, ht * 0.45, 8, 3, 2), SKIN, hand))
-        # open hand: four short fingers lie straight beyond the palm (weighted to the hand bone)
-        for k in range(4):
-            across = (k - 1.5) * hw * 0.5
-            root = palm + d * (hl * 0.8) + FWD * across
-            tip = root + d * (hl * 0.75)
-            parts.append(Part(capsule(root, tip, ht * 0.42, ht * 0.36, 8, 3, 2), SKIN, hand))
+        parts += mitten(palm, d, hw, ht, hl, hand)
 
     # legs, round shoes
     for s in ("L", "R"):
