@@ -7,6 +7,9 @@ uniform vec4 water_color : source_color = vec4(0.52, 0.8, 0.86, 1.0);
 uniform vec4 edge_color : source_color = vec4(0.62, 0.86, 0.9, 1.0);
 uniform vec4 dash_color : source_color = vec4(0.95, 0.98, 1.0, 1.0);
 uniform float flow_speed = 0.6;
+// Tint of the day phase (DaylightLook, content/look/daylight.json water_light): the water is unlit,
+// so the night darkens it here; white by default.
+global uniform vec4 water_light;
 
 float hash(float x) {
 	return fract(sin(x * 91.7) * 43758.5453);
@@ -23,5 +26,5 @@ void fragment() {
 	float dash = on * smoothstep(0.0, 0.08, local) * smoothstep(0.38, 0.3, local);
 	float lane_center = smoothstep(0.12, 0.0, abs(fract(UV.y * 4.0) - 0.5) - 0.05);
 	color = mix(color, dash_color.rgb, dash * lane_center * (1.0 - smoothstep(0.7, 0.9, across)));
-	ALBEDO = color;
+	ALBEDO = color * water_light.rgb;
 }

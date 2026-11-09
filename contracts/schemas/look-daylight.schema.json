@@ -11,14 +11,16 @@
     "sun_azimuth_deg",
     "phases",
     "shadow_blur",
-    "tonemap"
+    "tonemap",
+    "sky",
+    "moon"
   ],
   "properties": {
     "contract_version": {
       "$ref": "common.schema.json#/$defs/ContractVersion"
     },
     "night_min_brightness": {
-      "description": "Lowest overall brightness at night (0..1).",
+      "description": "Lowest ambient light energy in every phase (0..1): the night never turns pitch black.",
       "type": "number",
       "minimum": 0,
       "maximum": 1
@@ -54,6 +56,14 @@
         "aces",
         "agx"
       ]
+    },
+    "sky": {
+      "description": "Sky shader shared by all phases (stars and horizon at night, A1367).",
+      "$ref": "#/$defs/LookDaylightSky"
+    },
+    "moon": {
+      "description": "Moon disc in the sky and the moonlight; the phase's moon value blends it in.",
+      "$ref": "#/$defs/LookDaylightMoon"
     }
   },
   "$defs": {
@@ -69,7 +79,9 @@
         "sky_horizon",
         "ambient_color",
         "ambient_energy",
-        "stars"
+        "stars",
+        "moon",
+        "water_light"
       ],
       "properties": {
         "phase": {
@@ -118,6 +130,120 @@
           "type": "number",
           "minimum": 0,
           "maximum": 1
+        },
+        "moon": {
+          "description": "Visibility of the moon and share of moonlight in the main light (0..1).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "water_light": {
+          "description": "Tint of the unlit water shaders (sea, fresh water, streams) as lowercase #rrggbb; #ffffff keeps the day colours.",
+          "type": "string",
+          "pattern": "^#[0-9a-f]{6}$"
+        }
+      }
+    },
+    "LookDaylightSky": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "horizon_falloff",
+        "below_horizon",
+        "star_density",
+        "star_brightness",
+        "star_horizon_fade"
+      ],
+      "properties": {
+        "horizon_falloff": {
+          "description": "Exponent of the gradient from the horizon colour to the top colour (smaller = wider light band at the horizon).",
+          "type": "number",
+          "minimum": 0.05,
+          "maximum": 4
+        },
+        "below_horizon": {
+          "description": "Brightness of the sky below the horizon relative to the horizon colour (keeps the horizon line readable).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "star_density": {
+          "description": "Share of sky cells that hold a star (0..1).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "star_brightness": {
+          "description": "Brightness of a star at full visibility (the phase's stars value scales it).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 4
+        },
+        "star_horizon_fade": {
+          "description": "Height above the horizon (0..1, sine of the elevation) over which the stars fade out towards the horizon.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "LookDaylightMoon": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "elevation_deg",
+        "azimuth_deg",
+        "disc_color",
+        "disc_size_deg",
+        "glow",
+        "light_color",
+        "light_energy",
+        "shadows"
+      ],
+      "properties": {
+        "elevation_deg": {
+          "description": "Elevation of the moon above the horizon.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 90
+        },
+        "azimuth_deg": {
+          "description": "Compass direction of the moon (degrees around the vertical, like sun_azimuth_deg).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 360
+        },
+        "disc_color": {
+          "description": "Colour as lowercase #rrggbb.",
+          "type": "string",
+          "pattern": "^#[0-9a-f]{6}$"
+        },
+        "disc_size_deg": {
+          "description": "Angular radius of the soft moon disc.",
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 10
+        },
+        "glow": {
+          "description": "Strength of the soft halo around the disc.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "light_color": {
+          "description": "Colour as lowercase #rrggbb.",
+          "type": "string",
+          "pattern": "^#[0-9a-f]{6}$"
+        },
+        "light_energy": {
+          "description": "Strength of the moonlight (it replaces the sunlight as the phase's moon value rises).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 4
+        },
+        "shadows": {
+          "description": "Whether the moonlight casts shadows (the same single light as the sun, so no extra shadow pass).",
+          "type": "boolean"
         }
       }
     }

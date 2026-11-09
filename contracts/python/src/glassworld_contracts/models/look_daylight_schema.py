@@ -54,6 +54,87 @@ class LookDaylightPhase(BaseModel):
     stars: float = Field(
         ..., description='Visibility of the starry sky (0..1).', ge=0.0, le=1.0
     )
+    moon: float = Field(
+        ...,
+        description='Visibility of the moon and share of moonlight in the main light (0..1).',
+        ge=0.0,
+        le=1.0,
+    )
+    water_light: str = Field(
+        ...,
+        description='Tint of the unlit water shaders (sea, fresh water, streams) as lowercase #rrggbb; #ffffff keeps the day colours.',
+        pattern='^#[0-9a-f]{6}$',
+    )
+
+
+class LookDaylightSky(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    horizon_falloff: float = Field(
+        ...,
+        description='Exponent of the gradient from the horizon colour to the top colour (smaller = wider light band at the horizon).',
+        ge=0.05,
+        le=4.0,
+    )
+    below_horizon: float = Field(
+        ...,
+        description='Brightness of the sky below the horizon relative to the horizon colour (keeps the horizon line readable).',
+        ge=0.0,
+        le=1.0,
+    )
+    star_density: float = Field(
+        ..., description='Share of sky cells that hold a star (0..1).', ge=0.0, le=1.0
+    )
+    star_brightness: float = Field(
+        ...,
+        description="Brightness of a star at full visibility (the phase's stars value scales it).",
+        ge=0.0,
+        le=4.0,
+    )
+    star_horizon_fade: float = Field(
+        ...,
+        description='Height above the horizon (0..1, sine of the elevation) over which the stars fade out towards the horizon.',
+        ge=0.0,
+        le=1.0,
+    )
+
+
+class LookDaylightMoon(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    elevation_deg: float = Field(
+        ..., description='Elevation of the moon above the horizon.', ge=0.0, le=90.0
+    )
+    azimuth_deg: float = Field(
+        ...,
+        description='Compass direction of the moon (degrees around the vertical, like sun_azimuth_deg).',
+        ge=0.0,
+        le=360.0,
+    )
+    disc_color: str = Field(
+        ..., description='Colour as lowercase #rrggbb.', pattern='^#[0-9a-f]{6}$'
+    )
+    disc_size_deg: float = Field(
+        ..., description='Angular radius of the soft moon disc.', ge=0.1, le=10.0
+    )
+    glow: float = Field(
+        ..., description='Strength of the soft halo around the disc.', ge=0.0, le=2.0
+    )
+    light_color: str = Field(
+        ..., description='Colour as lowercase #rrggbb.', pattern='^#[0-9a-f]{6}$'
+    )
+    light_energy: float = Field(
+        ...,
+        description="Strength of the moonlight (it replaces the sunlight as the phase's moon value rises).",
+        ge=0.0,
+        le=4.0,
+    )
+    shadows: bool = Field(
+        ...,
+        description='Whether the moonlight casts shadows (the same single light as the sun, so no extra shadow pass).',
+    )
 
 
 class LookDaylight(BaseModel):
@@ -65,7 +146,10 @@ class LookDaylight(BaseModel):
         description='Contract version. Incompatible changes require a new major version and an ADR.',
     )
     night_min_brightness: float = Field(
-        ..., description='Lowest overall brightness at night (0..1).', ge=0.0, le=1.0
+        ...,
+        description='Lowest ambient light energy in every phase (0..1): the night never turns pitch black.',
+        ge=0.0,
+        le=1.0,
     )
     sun_azimuth_deg: float = Field(
         ...,
@@ -88,4 +172,12 @@ class LookDaylight(BaseModel):
     tonemap: Tonemap = Field(
         ...,
         description="Tone mapping of the island's light (linear keeps the palette colours as written).",
+    )
+    sky: LookDaylightSky = Field(
+        ...,
+        description='Sky shader shared by all phases (stars and horizon at night, A1367).',
+    )
+    moon: LookDaylightMoon = Field(
+        ...,
+        description="Moon disc in the sky and the moonlight; the phase's moon value blends it in.",
     )

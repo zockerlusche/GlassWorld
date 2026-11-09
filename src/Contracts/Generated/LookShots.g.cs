@@ -45,6 +45,27 @@ namespace GlassWorld.Contracts
         public int? Inhabitant { get; set; } = default!;
 
         /// <summary>
+        /// Optional: camera pitch of this shot in degrees (may leave the player's range, e.g. to show the sky); default camera.json pitch_deg.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("pitch_deg")]
+        public double? PitchDeg { get; set; } = default!;
+
+        /// <summary>
+        /// Optional: field of view of this shot in degrees (perspective); default camera.json fov_deg.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("fov_deg")]
+        public double? FovDeg { get; set; } = default!;
+
+        /// <summary>
+        /// Optional: this point is shot only in this day phase of the set's phases (e.g. the night set: overview at night, close view at dusk).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("phase")]
+        public string? Phase { get; set; } = default!;
+
+        /// <summary>
         /// Optional: the scene finder picks the target near a start instead of the map target (the permille target is the fallback when no spot fits).
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
