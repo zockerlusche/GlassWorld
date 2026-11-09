@@ -774,6 +774,18 @@ public partial class GameScreen : CanvasLayer
         _chronicleList.AddChild(export);
     }
 
+    /// <summary>The chronicle as one web page in the current language (the shared world file carries it).</summary>
+    public string ChronicleHtml()
+    {
+        if (_chronicle is null || _chronicle.Days().Count == 0)
+        {
+            return string.Empty;
+        }
+
+        string Day(long day) => ChronicleDate(_chronicle.On(day)[0]);
+        return ChronicleExport.Html(_chronicle, Tr("ui.chronicle.title"), TranslationServer.GetLocale(), Day, ChronicleLine);
+    }
+
     /// <summary>
     /// Writes the chronicle as a readable HTML page and a text file into the player's folder (B8 R11,
     /// F5234; local only) and names the folder in a calm hint. Returns the HTML path, or null.
