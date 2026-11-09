@@ -1605,6 +1605,10 @@
     {
       "key": "ui.card.talk_send",
       "text": "Sagen"
+    },
+    {
+      "key": "vocab.writing_medium.tablet",
+      "text": "Tafel"
     }
   ]
 }
