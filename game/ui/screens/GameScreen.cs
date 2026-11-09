@@ -24,7 +24,13 @@ public partial class GameScreen : CanvasLayer
     private int _relayoutFrames;
     private readonly GwSideBar _sideBar = new();
     private readonly GwTable _inhabitants = new() { SizeFlagsVertical = Control.SizeFlags.ExpandFill };
-    private readonly GwTable _questions = new() { SizeFlagsVertical = Control.SizeFlags.ExpandFill };
+    private readonly VBoxContainer _questionList = new() { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+    private readonly VBoxContainer _logList = new() { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+    private readonly HashSet<string> _hintedQuestions = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, string> _answerDrafts = new(StringComparer.Ordinal);
+    private ConversationLog? _log;
+    private long _logShown = -1;
+    private string _questionShape = "-";
     private readonly VBoxContainer _chronicleList = new() { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
     private ChronicleBook? _chronicle;
     private Contracts.ChronicleKinds? _kinds;
@@ -87,15 +93,16 @@ public partial class GameScreen : CanvasLayer
         _root.AddChild(_topBar);
 
         _inhabitants.CustomMinimumSize = new Vector2(0, style.Tokens.Window.TableMinHeight);
-        _questions.CustomMinimumSize = new Vector2(0, style.Tokens.Window.TableMinHeight);
         _inhabitants.Setup(
             [new GwColumn("ui.inhabitants.column.name", false), new GwColumn("ui.inhabitants.column.activity", false), new GwColumn("ui.inhabitants.column.will_to_live", true), new GwColumn("ui.inhabitants.column.questions", true)],
             "ui.inhabitants.empty");
         _inhabitants.RowSelected += ShowInhabitant;
-        _questions.Setup([new GwColumn("ui.inhabitants.column.name", false), new GwColumn("ui.questions.column.count", true)], "ui.questions.empty");
-        _questions.RowSelected += ShowInhabitant;
+        _log = new ConversationLog(style.Tokens.Window.LogLines);
         _sideBar.Add("inhabitants", "ui.inhabitants.title").Content.AddChild(_inhabitants);
-        _sideBar.Add("questions", "ui.questions.title").Content.AddChild(_questions);
+        _sideBar.Add("questions", "ui.questions.title").Content.AddChild(_questionList);
+
+        // Who said or thought what (Marcel W1696): the readable source, while the bubbles stay short.
+        _sideBar.Add("log", "ui.log.title").Content.AddChild(_logList);
         _sideBar.Add("chronicle", "ui.chronicle.title").Content.AddChild(_chronicleList);
         _sideBar.Add("help", "ui.help.title").Content.AddChild(_helpList);
         _sideBar.Add("mailbox", "ui.mailbox.title").Content.AddChild(_mailList);
@@ -197,7 +204,8 @@ public partial class GameScreen : CanvasLayer
         var events = _feed.NewEvents();
         if (events.Count > 0)
         {
-            foreach (var hint in ScreenModel.Hints(events, _feed.Inhabitants()))
+            _log?.Add(events);
+            foreach (var hint in ScreenModel.Hints(events, _feed.Inhabitants(), _feed.QuestionSubject, _hintedQuestions))
             {
                 _board.Push(hint, fastForward: _presenter.Speed > 1);
             }
@@ -1143,6 +1151,162 @@ public partial class GameScreen : CanvasLayer
         Layout();
     }
 
+    /// <summary>
+    /// The open questions (Marcel W1696): per question who asks, the question, what brings the inhabitant to
+    /// it, and a field to answer (a sentence to the inhabitant, checked by the core like every sentence).
+    /// Rebuilt only when the set of questions changes; a half-typed answer is kept.
+    /// </summary>
+    private void RefreshQuestions(IReadOnlyList<InhabitantRow> rows)
+    {
+        if (_feed is null || _style is null)
+        {
+            return;
+        }
+
+        var questions = _feed.Questions().Take(_style.Tokens.Window.QuestionsShown).ToList();
+        var shape = TranslationServer.GetLocale() + ";" + string.Join(";", questions.Select(q => q.Id));
+        if (shape == _questionShape)
+        {
+            return;
+        }
+
+        _questionShape = shape;
+        foreach (var child in _questionList.GetChildren())
+        {
+            _questionList.RemoveChild(child);
+            child.QueueFree();
+        }
+
+        foreach (var gone in _answerDrafts.Keys.Where(id => questions.All(q => q.Id != id)).ToList())
+        {
+            _answerDrafts.Remove(gone);
+        }
+
+        if (questions.Count == 0)
+        {
+            _questionList.AddChild(new Label { Text = "ui.questions.empty_text", AutowrapMode = TextServer.AutowrapMode.WordSmart });
+            return;
+        }
+
+        foreach (var question in questions)
+        {
+            if (rows.FirstOrDefault(r => r.Id == question.InhabitantId) is { } row)
+            {
+                AddQuestion(question, row);
+            }
+        }
+
+        _questionList.AddChild(new Label { Text = "ui.question.later", AutowrapMode = TextServer.AutowrapMode.WordSmart });
+    }
+
+    private void AddQuestion(QuestionRow question, InhabitantRow row)
+    {
+        var args = new Dictionary<string, string>
+        {
+            ["name"] = DisplayName(row),
+            ["thing"] = question.TypeId is { } type ? Tr(VocabKeys.ObjectType(type)) : string.Empty,
+        };
+
+        // A kind without its own text gets the general one.
+        string Text(string key, string other)
+        {
+            var text = Tr(key).ToString();
+            return TextFill.Fill(text == key ? Tr(other) : text, args);
+        }
+
+        var id = row.Id;
+        var who = new Button { Text = DisplayName(row), Flat = true, Alignment = HorizontalAlignment.Left, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled };
+        who.Pressed += () => ShowInhabitant(id);
+        _questionList.AddChild(who);
+        _questionList.AddChild(new Label { Text = Text(QuestionKeys.Ask(question.Kind), QuestionKeys.AskOther), ThemeTypeVariation = UiTheme.SubheaderLabel, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled, AutowrapMode = TextServer.AutowrapMode.WordSmart });
+        _questionList.AddChild(new Label { Text = Text(QuestionKeys.Reason(question.Kind), QuestionKeys.ReasonOther), AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled, AutowrapMode = TextServer.AutowrapMode.WordSmart });
+
+        var qid = question.Id;
+        var input = new LineEdit
+        {
+            PlaceholderText = Tr("ui.question.answer_hint"),
+            MaxLength = 280,
+            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled,
+            Text = _answerDrafts.GetValueOrDefault(qid, string.Empty),
+        };
+        input.TextChanged += t => _answerDrafts[qid] = t;
+        var send = new Button { Text = "ui.question.answer" };
+        void Answer()
+        {
+            if (Say(id, input.Text))
+            {
+                input.Clear();
+                _answerDrafts.Remove(qid);
+            }
+        }
+
+        input.TextSubmitted += _ => Answer();
+        send.Pressed += Answer;
+        var answerRow = new HBoxContainer();
+        answerRow.AddChild(input);
+        answerRow.AddChild(send);
+        _questionList.AddChild(answerRow);
+        _questionList.AddChild(new HSeparator());
+    }
+
+    /// <summary>The conversation log (W1696): newest first, a click leads to the inhabitant.</summary>
+    private void RefreshLog(IReadOnlyList<InhabitantRow> rows)
+    {
+        if (_log is null || _log.Version == _logShown)
+        {
+            return;
+        }
+
+        _logShown = _log.Version;
+        foreach (var child in _logList.GetChildren())
+        {
+            _logList.RemoveChild(child);
+            child.QueueFree();
+        }
+
+        var lines = _log.Newest();
+        if (lines.Count == 0)
+        {
+            _logList.AddChild(new Label { Text = "ui.log.empty", AutowrapMode = TextServer.AutowrapMode.WordSmart });
+            return;
+        }
+
+        foreach (var line in lines)
+        {
+            if (rows.FirstOrDefault(r => r.Id == line.InhabitantId) is not { } row)
+            {
+                continue;
+            }
+
+            var key = line.Kind switch
+            {
+                LogLineKind.Thought => "ui.log.thought",
+                LogLineKind.Said => "ui.log.said",
+                LogLineKind.Player => "ui.log.player",
+                _ => "ui.log.not_understood",
+            };
+            var text = TextFill.Fill(Tr(key), new Dictionary<string, string> { ["name"] = DisplayName(row), ["text"] = line.Text });
+            if (line.Count > 1)
+            {
+                text = TextFill.Fill(Tr("ui.log.again"), new Dictionary<string, string> { ["line"] = text, ["count"] = Number(line.Count) });
+            }
+
+            var button = new Button
+            {
+                Text = text,
+                Flat = true,
+                Alignment = HorizontalAlignment.Left,
+                AutowrapMode = TextServer.AutowrapMode.WordSmart,
+                AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled,
+                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            };
+            var id = row.Id;
+            button.Pressed += () => ShowInhabitant(id);
+            _logList.AddChild(button);
+        }
+    }
+
     /// <summary>Rebuilds lists, clock, card and question marks from the current snapshot.</summary>
     public void Refresh()
     {
@@ -1159,7 +1323,8 @@ public partial class GameScreen : CanvasLayer
         _activities = Activities(rows);
         // The activity column is a text column: GwTable sorts it by its text in the game's language (the 0 is never read).
         _inhabitants.SetRows([.. rows.Select(r => new GwRow(r.Id, [DisplayName(r), _activities[r.Id], Number(r.WillToLivePercent), Number(r.OpenQuestions)], [r.Number, 0, r.WillToLivePercent, r.OpenQuestions]))]);
-        _questions.SetRows([.. _feed.OpenQuestions().Select(q => (Row: rows.First(r => r.Id == q.InhabitantId), q.Count)).Select(x => new GwRow(x.Row.Id, [DisplayName(x.Row), Number(x.Count)], [x.Row.Number, x.Count]))]);
+        RefreshQuestions(rows);
+        RefreshLog(rows);
 
         var clock = _feed.Clock();
         _date.Text = TextFill.Fill(Tr("ui.clock.date"), new Dictionary<string, string>
@@ -1222,6 +1387,13 @@ public partial class GameScreen : CanvasLayer
         if (open > 0 && (mark is null || !mark.Visible))
         {
             return "question mark missing";
+        }
+
+        // W1696: an open question shows its wording and an answer field in the questions panel.
+        Refresh();
+        if (_feed.Questions().Count > 0 && !_questionList.GetChildren().OfType<HBoxContainer>().Any(r => r.GetChildren().OfType<LineEdit>().Any()))
+        {
+            return "questions panel shows no question with an answer field";
         }
 
         var chronicle = CheckChronicle();

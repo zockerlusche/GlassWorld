@@ -47,7 +47,11 @@ public static class ScreenModel
     /// Calm hints for new events (D366 section 9): an inhabitant has a new open question (B2487: that,
     /// not what). Hints of this kind form one group, so many questions bundle.
     /// </summary>
-    public static IEnumerable<ToastMessage> Hints(IEnumerable<WorldEvent> events, IReadOnlyList<InhabitantRow> rows)
+    /// <param name="events">New events.</param>
+    /// <param name="rows">The inhabitants.</param>
+    /// <param name="questionSubject">What a question (by id) is about, so the same question is hinted only once (W1696: "13x"); null: every question.</param>
+    /// <param name="hinted">Questions hinted already (inhabitant and subject), kept by the caller.</param>
+    public static IEnumerable<ToastMessage> Hints(IEnumerable<WorldEvent> events, IReadOnlyList<InhabitantRow> rows, Func<string, string?>? questionSubject = null, ISet<string>? hinted = null)
     {
         ArgumentNullException.ThrowIfNull(events);
         ArgumentNullException.ThrowIfNull(rows);
@@ -56,16 +60,18 @@ public static class ScreenModel
             var row = rows.FirstOrDefault(r => r.Id == e.InhabitantId);
             if (row is not null && e.Detail is not null)
             {
-                yield return new ToastMessage("msg.hint.help_needed", new Dictionary<string, string>(NameArgs(row)) { ["need"] = VocabKeys.Need(e.Detail) }, "help");
+                yield return new ToastMessage("msg.hint.help_needed", new Dictionary<string, string>(NameArgs(row)) { ["need"] = VocabKeys.Need(e.Detail) }, "help", row.Id);
             }
         }
 
         foreach (var e in events.Where(e => e.Kind == "question_opened"))
         {
             var row = rows.FirstOrDefault(r => r.Id == e.InhabitantId);
-            if (row is not null)
+            var subject = e.TargetId is { } id ? questionSubject?.Invoke(id) : null;
+            if (row is not null && (subject is null || hinted is null || hinted.Add(row.Id + "|" + subject)))
             {
-                yield return new ToastMessage("msg.hint.question", NameArgs(row), "question");
+                // A hint leads to the inhabitant (W1695: hints were not clickable).
+                yield return new ToastMessage("msg.hint.question", NameArgs(row), "question", row.Id);
             }
         }
 

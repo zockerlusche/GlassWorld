@@ -115,6 +115,18 @@ class UiWindowTokens(BaseModel):
         ge=0.0,
         le=0.9,
     )
+    log_lines: int = Field(
+        ...,
+        description='Lines the conversation log keeps (W1696: who said or thought what), newest first.',
+        ge=10,
+        le=5000,
+    )
+    questions_shown: int = Field(
+        ...,
+        description='Open questions the questions panel shows at once (newest first; W1696), so 100 inhabitants stay smooth.',
+        ge=1,
+        le=500,
+    )
 
 
 class UiButtonTokens(BaseModel):

@@ -1993,6 +1993,74 @@
     {
       "key": "ui.chronicle.export_tip",
       "text": "Speichert die Chronik als Webseite (.html) und als Textdatei (.txt) im Spielordner unter „chronicle“ – zum Lesen oder Weitergeben."
+    },
+    {
+      "key": "ui.log.title",
+      "text": "Verlauf"
+    },
+    {
+      "key": "ui.log.empty",
+      "text": "Noch hat niemand etwas gesagt oder gedacht. Hier steht später, wer was gesagt hat – ein Klick führt zum Bewohner."
+    },
+    {
+      "key": "ui.log.thought",
+      "text": "{name} denkt: „{text}“"
+    },
+    {
+      "key": "ui.log.said",
+      "text": "{name}: „{text}“"
+    },
+    {
+      "key": "ui.log.player",
+      "text": "Du zu {name}: „{text}“"
+    },
+    {
+      "key": "ui.log.not_understood",
+      "text": "{name} versteht dich nicht."
+    },
+    {
+      "key": "ui.log.again",
+      "text": "{line} ({count}×)"
+    },
+    {
+      "key": "ui.questions.empty_text",
+      "text": "Niemand hat gerade eine offene Frage. Wenn ein Bewohner vor etwas Unbekanntem steht, erscheint seine Frage hier."
+    },
+    {
+      "key": "ui.question.ask.unknown_object",
+      "text": "Was ist das?"
+    },
+    {
+      "key": "ui.question.reason.unknown_object",
+      "text": "Vor {name} liegt etwas, das er noch nicht kennt: {thing}."
+    },
+    {
+      "key": "ui.question.ask.noticed_player",
+      "text": "Wer ist da?"
+    },
+    {
+      "key": "ui.question.reason.noticed_player",
+      "text": "{name} hat dich bemerkt – du hast ihn angeklickt oder angesprochen."
+    },
+    {
+      "key": "ui.question.ask.other",
+      "text": "{name} grübelt über etwas."
+    },
+    {
+      "key": "ui.question.reason.other",
+      "text": "Die Antwort findet er selbst – spätestens in der Rechennacht."
+    },
+    {
+      "key": "ui.question.answer_hint",
+      "text": "Antworte ihm …"
+    },
+    {
+      "key": "ui.question.answer",
+      "text": "Antworten"
+    },
+    {
+      "key": "ui.question.later",
+      "text": "Die Antwort findet er auch selbst – spätestens in der Rechennacht."
     }
   ]
 }

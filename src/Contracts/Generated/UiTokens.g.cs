@@ -124,6 +124,18 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("modal_dim")]
         public double ModalDim { get; set; } = default!;
 
+        /// <summary>
+        /// Lines the conversation log keeps (W1696: who said or thought what), newest first.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("log_lines")]
+        public int LogLines { get; set; } = default!;
+
+        /// <summary>
+        /// Open questions the questions panel shows at once (newest first; W1696), so 100 inhabitants stay smooth.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("questions_shown")]
+        public int QuestionsShown { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]

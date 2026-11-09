@@ -15,6 +15,30 @@ namespace GlassWorld.Presentation.World;
 /// <param name="PuzzlingQuestions">Open questions that still puzzle the inhabitant, for the mark over its head (TL #19921: not those about a thing it has looked at since, where only the effect is open).</param>
 public sealed record InhabitantRow(string Id, int Number, int WillToLivePercent, bool Fading, string? ActionKey, int OpenQuestions, int PuzzlingQuestions = 0);
 
+/// <summary>An open question of an inhabitant, as the questions window shows it (Marcel W1696: which question, and why).</summary>
+/// <param name="Id">Question id.</param>
+/// <param name="InhabitantId">Who asks.</param>
+/// <param name="Kind">What kind of question (<c>unknown_object</c>, <c>noticed_player</c>, ...).</param>
+/// <param name="TypeId">The object type it is about, or null.</param>
+/// <param name="AskedTick">When it was asked.</param>
+public sealed record QuestionRow(string Id, string InhabitantId, string Kind, string? TypeId, long AskedTick);
+
+/// <summary>Text keys of the questions panel (W1696): per question kind its question and its reason; a kind without own texts uses the general ones.</summary>
+public static class QuestionKeys
+{
+    /// <summary>The question itself (e.g. "What is that?").</summary>
+    public static string Ask(string kind) => "ui.question.ask." + kind;
+
+    /// <summary>What brings the inhabitant to it.</summary>
+    public static string Reason(string kind) => "ui.question.reason." + kind;
+
+    /// <summary>The general question for a kind without own text.</summary>
+    public const string AskOther = "ui.question.ask.other";
+
+    /// <summary>The general reason for a kind without own text.</summary>
+    public const string ReasonOther = "ui.question.reason.other";
+}
+
 /// <summary>A named value of the inhabitant card, as text key and percent.</summary>
 /// <param name="Key">Text key, e.g. <c>vocab.need.hunger</c>.</param>
 /// <param name="Percent">0-100.</param>
@@ -141,6 +165,19 @@ public sealed class WorldFeed
         [.. Snapshot.Inhabitants.Where(i => i.OpenQuestionIds.Count > 0)
             .OrderByDescending(i => i.OpenQuestionIds.Count).ThenBy(i => i.Id, StringComparer.Ordinal)
             .Select(i => (i.Id, i.OpenQuestionIds.Count))];
+
+    /// <summary>
+    /// The open questions with what they are about (W1696, replaces "that, not what" of B2487 for the player),
+    /// newest first.
+    /// </summary>
+    public IReadOnlyList<QuestionRow> Questions() =>
+        [.. _host.Decisions.Open
+            .Select(q => new QuestionRow(q.Id, q.InhabitantId, q.Kind, q.Subject.StartsWith("type:", StringComparison.Ordinal) ? q.Subject[5..] : null, q.AskedTick))
+            .OrderByDescending(q => q.AskedTick).ThenBy(q => q.Id, StringComparer.Ordinal)];
+
+    /// <summary>What an open question (by id) is about, or null when it is no longer open.</summary>
+    public string? QuestionSubject(string questionId) =>
+        _host.Decisions.Open.FirstOrDefault(q => q.Id == questionId) is { } q ? q.Kind + ":" + q.Subject : null;
 
     /// <summary>Current favour and its maximum (B6 R9).</summary>
     public (double Value, double Maximum) Favor() => (_host.Player.Favor, _host.Content.Favor.Maximum);

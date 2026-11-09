@@ -185,7 +185,9 @@
         "mark_height_m",
         "mark_font_px",
         "settings_apply_ms",
-        "modal_dim"
+        "modal_dim",
+        "log_lines",
+        "questions_shown"
       ],
       "properties": {
         "settings_apply_ms": {
@@ -284,6 +286,18 @@
           "type": "number",
           "minimum": 0,
           "maximum": 0.9
+        },
+        "log_lines": {
+          "description": "Lines the conversation log keeps (W1696: who said or thought what), newest first.",
+          "type": "integer",
+          "minimum": 10,
+          "maximum": 5000
+        },
+        "questions_shown": {
+          "description": "Open questions the questions panel shows at once (newest first; W1696), so 100 inhabitants stay smooth.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 500
         }
       }
     },
