@@ -254,6 +254,8 @@ def create_app(
         tier=lambda: getattr(app.state, "tier", None),
         transport=transport,
         ollama_models_dir=settings.ollama_models_dir,
+        comfyui_models_dir=settings.comfyui_models_dir,
+        comfyui_url=str(settings.comfyui_url),
     )
     app.state.queue = queue or ModelQueue(settings.queue_size)
     # Job kinds get their handlers in their own steps (question: B4a S2, image: B7 S5, ...).

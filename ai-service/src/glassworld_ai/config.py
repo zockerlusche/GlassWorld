@@ -65,6 +65,11 @@ class Settings(BaseSettings):
     model_store_dir: Path = Field(
         description="Where downloaded model files go (the game sets the user data folder)."
     )
+    comfyui_models_dir: Path | None = Field(
+        default=None,
+        description="Models folder of the player's own ComfyUI (B2514); the game sets it once the "
+        "player named it. Image models are downloaded there.",
+    )
 
     # Measurement run (B7 S7)
     benchmark_file: Path = Field(description="Saved result of the measurement run.")

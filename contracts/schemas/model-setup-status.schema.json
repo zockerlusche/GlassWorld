@@ -98,7 +98,7 @@
             "pattern": "^ui\\.setup\\.model_[a-z0-9_]+$"
           },
           "state": {
-            "description": "present; missing (offer it); other_version (the player's own Ollama holds another version under the same name: ask before replacing it, then send it in replace); queued; downloading; verifying; waiting_for_runtime (needs Ollama first, see /setup/ollama); failed (error set; downloading again continues).",
+            "description": "present; missing (offer it); other_version (the player's own Ollama holds another version under the same name: ask before replacing it, then send it in replace); queued; downloading; verifying; waiting_for_runtime (needs Ollama first, see /setup/ollama, or for image models the folder of the player's ComfyUI); failed (error set; downloading again continues).",
             "type": "string",
             "enum": [
               "present",
@@ -125,6 +125,39 @@
           }
         }
       }
+    },
+    "comfyui": {
+      "description": "Only when the tier offers image models for the player's ComfyUI: whether the game has told the service its models folder, whether ComfyUI answers, and which required nodes are missing (all of them while it does not answer).",
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "models_dir_known",
+            "reachable",
+            "missing_nodes"
+          ],
+          "properties": {
+            "models_dir_known": {
+              "type": "boolean"
+            },
+            "reachable": {
+              "type": "boolean"
+            },
+            "missing_nodes": {
+              "type": "array",
+              "maxItems": 16,
+              "items": {
+                "type": "string",
+                "maxLength": 64
+              }
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
     }
   }
 }

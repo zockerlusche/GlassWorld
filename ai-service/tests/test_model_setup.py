@@ -415,7 +415,12 @@ def test_get_models_answers_with_the_contract(settings: Settings, tmp_path: Path
     assert response.status_code == 200
     validator = ContractValidator(REPO / "contracts/schemas")
     assert validator.errors("model-setup-status", response.json()) == []
-    assert [m["id"] for m in response.json()["models"]] == ["qwen3.5:9b"]
+    body = response.json()
+    # Reference PC = tier standard: the language model and the image AI (in the player's ComfyUI).
+    assert [m["id"] for m in body["models"]] == ["qwen3.5:9b", "z-image-turbo"]
+    image = body["models"][1]
+    assert image["state"] == "waiting_for_runtime"  # the ComfyUI folder is not known yet
+    assert body["comfyui"]["models_dir_known"] is False
 
 
 def test_a_full_disk_is_found_before_writing(tmp_path: Path) -> None:
@@ -491,3 +496,120 @@ def test_replacing_the_players_version_needs_consent_and_is_never_deleted(
 
     assert _by_id(asyncio.run(tag_moved()))["lm:9b"].error == "model_moved"
     assert moved.deleted == []  # it replaced the player's own as agreed: never deleted
+
+
+COMFY = "http://127.0.0.1:18188"
+PICTURE = Model(
+    id="picture-c",
+    kind="files",
+    role="image",
+    tiers=("standard",),
+    licence="Apache-2.0",
+    size_bytes=len(FILE_A) + len(FILE_B),
+    source_page="https://huggingface.co/org/repo",
+    purpose_key="ui.setup.model_image",
+    files=(
+        ModelFile(URL_A, _sha(FILE_A), len(FILE_A), "unet/a.gguf"),
+        ModelFile(URL_B, _sha(FILE_B), len(FILE_B), "vae/b.safetensors"),
+    ),
+    target="comfyui",
+    requires_nodes=("UnetLoaderGGUF",),
+)
+
+
+def _comfy_setup(
+    tmp_path: Path, net: FakeNet, nodes: set[str], models_dir: Path | None
+) -> ModelSetup:
+    def handler(request: httpx.Request) -> httpx.Response:
+        if str(request.url).startswith(COMFY + "/object_info/"):
+            node = request.url.path.rsplit("/", 1)[-1]
+            return httpx.Response(200, json={node: {}} if node in nodes else {})
+        return net.handler(request)
+
+    return ModelSetup(
+        (PICTURE,),
+        store_dir=tmp_path / "store",
+        ollama_url=OLLAMA,
+        tier=lambda: "standard",
+        transport=httpx.MockTransport(handler),
+        free_bytes=_plenty,
+        comfyui_models_dir=models_dir,
+        comfyui_url=COMFY,
+    )
+
+
+def test_image_models_wait_for_the_players_comfyui_folder(tmp_path: Path) -> None:
+    async def body() -> Any:
+        setup = _comfy_setup(tmp_path, FakeNet(), {"UnetLoaderGGUF"}, None)
+        return await _all(setup, ["picture-c"])
+
+    status = asyncio.run(body())
+    assert status.models[0].state == "waiting_for_runtime"
+    assert status.comfyui is not None and status.comfyui.models_dir_known is False
+
+
+def test_image_models_go_into_the_players_comfyui_and_nothing_else(tmp_path: Path) -> None:
+    comfy = tmp_path / "ComfyUI" / "models"
+    comfy.mkdir(parents=True)
+
+    async def body() -> Any:
+        return await _all(
+            _comfy_setup(tmp_path, FakeNet(), {"UnetLoaderGGUF"}, comfy), ["picture-c"]
+        )
+
+    status = asyncio.run(body())
+    assert status.models[0].state == "present"
+    assert (comfy / "unet/a.gguf").read_bytes() == FILE_A
+    assert (comfy / "vae/b.safetensors").read_bytes() == FILE_B
+    assert sorted(p.name for p in comfy.rglob("*") if p.is_file()) == ["a.gguf", "b.safetensors"]
+    assert (tmp_path / "store/picture-c" / MARKER).is_file()  # our marker stays with us
+    assert status.comfyui is not None and status.comfyui.missing_nodes == []
+
+
+def test_files_the_player_already_has_count_and_others_are_never_overwritten(
+    tmp_path: Path,
+) -> None:
+    comfy = tmp_path / "ComfyUI" / "models"
+    (comfy / "unet").mkdir(parents=True)
+    (comfy / "vae").mkdir(parents=True)
+    (comfy / "unet/a.gguf").write_bytes(FILE_A)  # already there, same size
+    (comfy / "vae/b.safetensors").write_bytes(b"the player's own other file")
+    net = FakeNet()
+
+    async def body() -> Any:
+        return await _all(_comfy_setup(tmp_path, net, {"UnetLoaderGGUF"}, comfy), ["picture-c"])
+
+    status = asyncio.run(body())
+    assert status.models[0].error == "other_version"
+    assert (comfy / "vae/b.safetensors").read_bytes() == b"the player's own other file"
+    assert not net.ranges  # nothing downloaded: a.gguf was there, b needs consent
+
+
+def test_missing_custom_nodes_are_named(tmp_path: Path) -> None:
+    comfy = tmp_path / "ComfyUI" / "models"
+    comfy.mkdir(parents=True)
+
+    async def body() -> Any:
+        return await _comfy_setup(tmp_path, FakeNet(), set(), comfy).status()
+
+    status = asyncio.run(body())
+    assert status.comfyui is not None
+    assert status.comfyui.reachable is True
+    assert status.comfyui.missing_nodes == ["UnetLoaderGGUF"]
+
+
+def test_the_data_offers_image_ai_for_standard_and_editing_for_comfort() -> None:
+    catalog = {m.id: m for m in load_catalog(REPO / "content/ai/model-downloads.json")}
+    assert catalog["z-image-turbo"].target == "comfyui"
+    assert set(catalog["z-image-turbo"].tiers) == {"standard", "comfort"}
+    assert catalog["qwen-image-edit-2511"].tiers == ("comfort",)
+    workflows = {
+        p.name: p.read_text(encoding="utf-8")
+        for p in (REPO / "tools/comfyui/workflows").glob("*.json")
+    }
+    for model in (catalog["z-image-turbo"], catalog["qwen-image-edit-2511"]):
+        for item in model.files:
+            # every file the data downloads is one a workflow loads, under the same name
+            assert any(item.path.rsplit("/", 1)[-1] in text for text in workflows.values()), item
+        assert all(f.url.startswith("https://huggingface.co/") and "/resolve/" in f.url
+                   for f in model.files)  # fmt: skip

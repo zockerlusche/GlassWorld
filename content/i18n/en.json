@@ -1264,7 +1264,7 @@
     },
     {
       "key": "ui.help.empty",
-      "text": "Nobody is asking for help right now. When an inhabitant tries something several times in vain, their request appears here and knocks in the mailbox. Until then everything runs by itself."
+      "text": "Nobody needs help right now."
     },
     {
       "key": "ui.help.call",
@@ -1292,7 +1292,7 @@
     },
     {
       "key": "ui.mailbox.empty",
-      "text": "No new messages. Inhabitants knock here when they need help or want to tell you something."
+      "text": "No new messages."
     },
     {
       "key": "ui.mailbox.read",
@@ -2085,6 +2085,14 @@
     {
       "key": "msg.converse.no_answer",
       "text": "Hm ... I have to think about that."
+    },
+    {
+      "key": "ui.setup.model_image",
+      "text": "Image AI: draws pictures of new things in the computing night (in your ComfyUI)"
+    },
+    {
+      "key": "ui.setup.model_image_edit",
+      "text": "Image editing: fits pictures to the look of the world (in your ComfyUI)"
     }
   ]
 }

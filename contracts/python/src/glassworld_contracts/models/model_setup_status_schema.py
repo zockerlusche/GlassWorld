@@ -61,12 +61,24 @@ class Model(BaseModel):
     )
     state: State = Field(
         ...,
-        description="present; missing (offer it); other_version (the player's own Ollama holds another version under the same name: ask before replacing it, then send it in replace); queued; downloading; verifying; waiting_for_runtime (needs Ollama first, see /setup/ollama); failed (error set; downloading again continues).",
+        description="present; missing (offer it); other_version (the player's own Ollama holds another version under the same name: ask before replacing it, then send it in replace); queued; downloading; verifying; waiting_for_runtime (needs Ollama first, see /setup/ollama, or for image models the folder of the player's ComfyUI); failed (error set; downloading again continues).",
     )
     error: Error | None = Field(
         ...,
         description='Stable code when failed: network, checksum_mismatch, model_moved (the registry tag now has another digest; the pulled model was removed), runtime_missing, other_version (not replaced without consent), disk_full (checked before writing), disk.',
     )
+
+
+type MissingNode = Annotated[str, Field(..., max_length=64)]
+
+
+class Comfyui(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    models_dir_known: bool
+    reachable: bool
+    missing_nodes: list[MissingNode] = Field(..., max_length=16)
 
 
 class ModelSetupStatus(BaseModel):
@@ -86,3 +98,7 @@ class ModelSetupStatus(BaseModel):
         ..., description='Still to download (size minus what is on disk).', ge=0
     )
     models: list[Model]
+    comfyui: Comfyui | None = Field(
+        None,
+        description="Only when the tier offers image models for the player's ComfyUI: whether the game has told the service its models folder, whether ComfyUI answers, and which required nodes are missing (all of them while it does not answer).",
+    )
