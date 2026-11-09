@@ -108,16 +108,24 @@ public partial class GwWindow : PanelContainer
         limit = new Vector2(Math.Min(limit.X, safe.X), Math.Min(limit.Y, safe.Y));
         // Measure with the title on one line; wrap it only if it cannot fit the allowed width.
         _title.AutowrapMode = TextServer.AutowrapMode.Off;
-        var wanted = GetCombinedMinimumSize() + new Vector2(0, Content.GetCombinedMinimumSize().Y);
+        var wanted = Wanted();
         if (wanted.X > limit.X)
         {
             _title.AutowrapMode = TextServer.AutowrapMode.WordSmart;
-            wanted = GetCombinedMinimumSize() + new Vector2(0, Content.GetCombinedMinimumSize().Y);
+            wanted = Wanted();
         }
 
         Size = new Vector2(Math.Min(wanted.X, limit.X), Math.Min(wanted.Y, limit.Y));
         Position = ((area - Size) / 2).Floor();
     }
+
+    /// <summary>
+    /// The size the window needs: its frame plus the content at full height. The scroll area's own minimum is
+    /// taken out first, since it may already hold the content; counted twice, the pause menu got half a
+    /// window of empty space below its buttons (W1687).
+    /// </summary>
+    private Vector2 Wanted() =>
+        GetCombinedMinimumSize() + new Vector2(0, Content.GetCombinedMinimumSize().Y - _scroll.GetCombinedMinimumSize().Y);
 
     /// <summary>True if the window lies fully inside the safe area of <paramref name="area"/>.</summary>
     public bool IsInsideSafeArea(Vector2 area)

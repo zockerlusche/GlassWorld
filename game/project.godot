@@ -32,3 +32,7 @@ project/assembly_name="GlassWorld.Game"
 [rendering]
 
 renderer/rendering_method="forward_plus"
+
+[gui]
+
+timers/tooltip_delay_sec=1.0

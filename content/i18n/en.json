@@ -1612,7 +1612,7 @@
     },
     {
       "key": "ui.top.menu_tooltip",
-      "text": "Save, load, settings, quit (Esc)"
+      "text": "Pause menu (Esc)"
     },
     {
       "key": "msg.hint.autosaved",
@@ -1725,6 +1725,22 @@
     {
       "key": "vocab.soil.stone",
       "text": "Rock"
+    },
+    {
+      "key": "ui.pause.saving",
+      "text": "Saving …"
+    },
+    {
+      "key": "ui.pause.saved_at",
+      "text": "Saved at {time}."
+    },
+    {
+      "key": "ui.pause.save_failed",
+      "text": "Saving did not work just now. The world stays open - try again in a moment."
+    },
+    {
+      "key": "ui.pause.load",
+      "text": "Load …"
     }
   ]
 }

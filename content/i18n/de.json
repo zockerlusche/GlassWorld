@@ -1612,7 +1612,7 @@
     },
     {
       "key": "ui.top.menu_tooltip",
-      "text": "Speichern, Laden, Einstellungen, Beenden (Esc)"
+      "text": "Pausenmenü (Esc)"
     },
     {
       "key": "msg.hint.autosaved",
@@ -1725,6 +1725,22 @@
     {
       "key": "vocab.soil.stone",
       "text": "Fels"
+    },
+    {
+      "key": "ui.pause.saving",
+      "text": "Speichert …"
+    },
+    {
+      "key": "ui.pause.saved_at",
+      "text": "Gespeichert um {time} Uhr."
+    },
+    {
+      "key": "ui.pause.save_failed",
+      "text": "Speichern hat gerade nicht geklappt. Die Welt bleibt offen – versuch es gleich noch einmal."
+    },
+    {
+      "key": "ui.pause.load",
+      "text": "Laden …"
     }
   ]
 }
