@@ -95,7 +95,7 @@ public static class ObjectShapes
                 parts.Add(new SphereMesh { Radius = 0.15f, Height = 0.15f, IsHemisphere = true, RadialSegments = 8, Rings = 3 }, At(0, 0.15f, 0), color(0));
                 break;
             case ObjectLookShape.Pool:
-                Pool(parts, color(0), color(1), color(2));
+                Pool(parts, color(0), color(1), color(2), color(3));
                 break;
             case ObjectLookShape.Log:
                 var lying = new Basis(Vector3.Forward, Mathf.Pi / 2);
@@ -140,11 +140,13 @@ public static class ObjectShapes
     private static readonly float[] PoolOutline = [1.0f, 0.86f, 0.95f, 0.8f, 0.92f, 1.0f, 0.84f, 0.9f, 0.97f];
 
     /// <summary>
-    /// A small natural spring pool (D576), drawn on the ground plane y = 0 that the placement tilts to the
-    /// slope: an irregular low-poly water patch lying a little below a low muddy rim, and a few uneven
-    /// stones half sunk at the uphill side (local +x). Nothing reaches below the ground, no ring, no basin.
+    /// A small natural spring pool (D576, TL #20085: recognisable as water), drawn on the ground plane y = 0
+    /// that the placement tilts to the slope: an irregular low-poly water patch lying a little below a low
+    /// muddy rim, uneven stones half sunk around the rim (larger at the uphill side, local +x, where the water
+    /// comes out) and two clumps of reeds at the downhill edge. Nothing reaches below the ground, no basin.
+    /// Colour roles: water, stone, bank, reed.
     /// </summary>
-    private static void Pool(Parts parts, Color water, Color stone, Color bank)
+    private static void Pool(Parts parts, Color water, Color stone, Color bank, Color reed)
     {
         const float Water = 0.022f, Lip = 0.034f, Rim = 0.012f, Inner = 0.5f, Outer = 0.72f;
         var n = PoolOutline.Length;
@@ -165,13 +167,32 @@ public static class ObjectShapes
             parts.Triangle(Edge(i, Inner, Water), Edge(i + 1, Inner, Lip), Edge(i + 1, Inner, Water), bank);
         }
 
-        // A few uneven stones at the uphill side, half sunk into the ground.
-        (float Angle, float Radius, Vector3 Size)[] stones = [(-0.55f, 0.6f, new Vector3(0.2f, 0.12f, 0.16f)), (0.05f, 0.66f, new Vector3(0.26f, 0.16f, 0.2f)), (0.6f, 0.58f, new Vector3(0.15f, 0.1f, 0.13f))];
+        // Uneven stones half sunk around the rim: the larger ones at the uphill side where the water rises.
+        (float Angle, float Radius, Vector3 Size)[] stones =
+        [
+            (-0.55f, 0.6f, new Vector3(0.2f, 0.12f, 0.16f)), (0.05f, 0.66f, new Vector3(0.26f, 0.16f, 0.2f)), (0.6f, 0.58f, new Vector3(0.15f, 0.1f, 0.13f)),
+            (1.35f, 0.66f, new Vector3(0.12f, 0.08f, 0.1f)), (2.2f, 0.64f, new Vector3(0.1f, 0.07f, 0.09f)), (3.6f, 0.66f, new Vector3(0.11f, 0.07f, 0.1f)),
+            (4.5f, 0.62f, new Vector3(0.13f, 0.08f, 0.11f)), (5.2f, 0.64f, new Vector3(0.1f, 0.06f, 0.09f)),
+        ];
         for (var i = 0; i < stones.Length; i++)
         {
             var (angle, radius, size) = stones[i];
             var place = new Vector3(Mathf.Cos(angle) * radius, -size.Y * 0.35f, Mathf.Sin(angle) * radius);
             parts.Add(IslandPiece.Rock(31 + i, size, Colors.White), new Transform3D(new Basis(Vector3.Up, angle * 1.7f), place), stone);
+        }
+
+        // Two clumps of reeds at the downhill edge, so the pool reads as "water here" from afar.
+        foreach (var (angle, count) in new[] { (2.75f, 5), (3.95f, 4) })
+        {
+            var centre = new Vector3(Mathf.Cos(angle) * 0.62f, 0, Mathf.Sin(angle) * 0.7f);
+            for (var i = 0; i < count; i++)
+            {
+                var a = (i * 2.3f) + angle;
+                var tilt = new Basis(new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a)), 0.15f);
+                var foot = centre + new Vector3(Mathf.Cos(a) * 0.07f, 0, Mathf.Sin(a) * 0.07f);
+                var height = 0.45f + (0.1f * (i % 3));
+                parts.Add(new CylinderMesh { TopRadius = 0.008f, BottomRadius = 0.014f, Height = height, RadialSegments = 4 }, new Transform3D(tilt, foot + (tilt * new Vector3(0, height / 2, 0))), reed);
+            }
         }
     }
 
