@@ -1981,6 +1981,14 @@
     {
       "key": "msg.thought.warn",
       "text": "Pass auf!"
+    },
+    {
+      "key": "ui.menu.loading_title",
+      "text": "Einen Moment"
+    },
+    {
+      "key": "ui.menu.loading",
+      "text": "„{name}“ wird geladen …"
     }
   ]
 }
