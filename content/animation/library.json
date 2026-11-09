@@ -483,7 +483,7 @@
       "clip": "stand",
       "weight": 2.0,
       "speed_spread": 0.12,
-      "mirror": true,
+      "mirror": false,
       "factors": []
     },
     {
@@ -491,7 +491,7 @@
       "clip": "shift_weight",
       "weight": 1.5,
       "speed_spread": 0.15,
-      "mirror": true,
+      "mirror": false,
       "factors": []
     },
     {
@@ -499,7 +499,7 @@
       "clip": "look_around",
       "weight": 2.0,
       "speed_spread": 0.15,
-      "mirror": true,
+      "mirror": false,
       "factors": [
         {
           "value": "curiosity",
@@ -513,7 +513,7 @@
       "clip": "stretch",
       "weight": 1.0,
       "speed_spread": 0.1,
-      "mirror": true,
+      "mirror": false,
       "factors": []
     },
     {
@@ -521,7 +521,7 @@
       "clip": "yawn",
       "weight": 0.5,
       "speed_spread": 0.1,
-      "mirror": true,
+      "mirror": false,
       "factors": [
         {
           "value": "sleep",
@@ -549,7 +549,7 @@
       "clip": "hum",
       "weight": 0.5,
       "speed_spread": 0.1,
-      "mirror": true,
+      "mirror": false,
       "factors": [
         {
           "value": "joy",
@@ -563,7 +563,7 @@
       "clip": "pick_up_inspect",
       "weight": 1.0,
       "speed_spread": 0.15,
-      "mirror": true,
+      "mirror": false,
       "factors": [
         {
           "value": "curiosity",
@@ -577,7 +577,7 @@
       "clip": "crouch_inspect",
       "weight": 1.0,
       "speed_spread": 0.15,
-      "mirror": true,
+      "mirror": false,
       "factors": [
         {
           "value": "curiosity",
@@ -591,7 +591,7 @@
       "clip": "ponder",
       "weight": 1.0,
       "speed_spread": 0.15,
-      "mirror": true,
+      "mirror": false,
       "factors": []
     }
   ]

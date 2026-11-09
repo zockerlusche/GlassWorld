@@ -83,8 +83,17 @@ public sealed class IdleVarietyTests
 
         var stand = draws.Where(d => d.Clip.ClipId == "stand").ToList();
         Assert.True(stand.Select(d => d.Speed).Distinct().Count() > 10, "the speed varies from draw to draw");
+        // Mirroring is off in the data until a clip shows it flips cleanly (review GW3 #140); when the
+        // data allows it, about half of the draws mirror.
         var mirrorable = draws.Where(d => idle[d.Clip.ClipId].Mirror == true).ToList();
-        Assert.InRange(mirrorable.Count(d => d.Mirror) / (double)mirrorable.Count, 0.4, 0.6);
+        if (mirrorable.Count > 0)
+        {
+            Assert.InRange(mirrorable.Count(d => d.Mirror) / (double)mirrorable.Count, 0.4, 0.6);
+        }
+        else
+        {
+            Assert.DoesNotContain(draws, d => d.Mirror);
+        }
     }
 
     [Fact]
