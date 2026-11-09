@@ -39,5 +39,27 @@
   ],
   "request_max_knowledge": 24,
   "request_max_inhabitants": 8,
-  "max_pass_on_options": 8
+  "max_pass_on_options": 8,
+  "looking": {
+    "action": "inspect",
+    "visible_properties": [
+      "fruit",
+      "mushroom",
+      "water",
+      "stone",
+      "hard",
+      "sharp",
+      "fibrous",
+      "transparent",
+      "container"
+    ],
+    "inspect_confidence": 0.8,
+    "guessed_confidence": 0.4,
+    "guesses": [
+      { "seen": "fruit", "property": "edible", "value": true },
+      { "seen": "mushroom", "property": "edible", "value": true },
+      { "seen": "water", "property": "drinkable", "value": true }
+    ],
+    "place_memory_max": 32
+  }
 }

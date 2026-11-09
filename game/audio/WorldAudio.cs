@@ -38,6 +38,7 @@ public partial class WorldAudio : Node3D
     private readonly (double From, double To, double Start, double Length)[] _ambienceFades = new (double, double, double, double)[2];
     private int _ambienceActive;
     private readonly Dictionary<string, AudioStreamWav> _loopStreams = new(StringComparer.Ordinal);
+    private bool _silenced;
 
     /// <summary>
     /// Ground height in metres at (x, z) for the sound positions (island mode: the drawn ground, so a sound
@@ -159,7 +160,7 @@ public partial class WorldAudio : Node3D
 
     public override void _Process(double delta)
     {
-        if (_feed is null || _director is null || _mixer is null)
+        if (_silenced || _feed is null || _director is null || _mixer is null)
         {
             return;
         }
@@ -202,8 +203,27 @@ public partial class WorldAudio : Node3D
         }
     }
 
-    /// <summary>Stops the music before the game quits (see <see cref="WorldMusic.Silence"/>).</summary>
-    public void Silence() => _music?.Silence();
+    /// <summary>
+    /// Stops the music and every sound still playing before the game quits and plays nothing new (see
+    /// <see cref="WorldMusic.Silence"/>): the audio server lets go of a stopped playback only in its next
+    /// mix step, so a sound still playing at exit leaks its stream (review #142 smoke).
+    /// </summary>
+    public void Silence()
+    {
+        _silenced = true;
+        _music?.Silence();
+        foreach (var player in _pools.Values.SelectMany(pool => pool))
+        {
+            player.Stop();
+            player.Stream = null;
+        }
+
+        foreach (var player in _ambiencePlayers.Where(p => p is not null))
+        {
+            player.Stop();
+            player.Stream = null;
+        }
+    }
 
     /// <summary>Smoke run only: the master bus has its limiter (B8 R7).</summary>
     public static string LimiterSelfCheck()
