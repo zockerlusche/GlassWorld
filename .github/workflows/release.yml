@@ -27,6 +27,8 @@ concurrency:
 env:
   DOTNET_NOLOGO: "true"
   DOTNET_CLI_TELEMETRY_OPTOUT: "true"
+  # Probe (GW1): NuGet prints the exception behind "RestoreTask returned false" (MSB4181).
+  NUGET_SHOW_STACK: "true"
   GODOT_VERSION: "4.7.2"
   GODOT_WIN_ZIP: "Godot_v4.7.2-stable_mono_win64.zip"
   GODOT_TEMPLATES: "Godot_v4.7.2-stable_mono_export_templates.tpz"
