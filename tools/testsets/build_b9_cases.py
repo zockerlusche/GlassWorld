@@ -383,12 +383,12 @@ a14 = [
     ),
     decision(
         25,
-        "sail_to_new_land",
-        "A boat is ready; the island is crowded.",
+        "crowded_spring_new_place",
+        "The place is crowded; many families share one spring (sailing is not in B9).",
         locale="en",
-        memory=["Many families share one spring now.", "I finished the boat."],
-        options=[("sail", "obj-0050"), ("found_settlement", None), ("idle", None)],
-        plausible={"sail:obj-0050", "found_settlement:None"},
+        memory=["Many families share one spring now.", "There is a quiet valley to the north."],
+        options=[("found_settlement", None), ("talk_to", "inh-0002"), ("idle", None)],
+        plausible={"found_settlement:None", "talk_to:inh-0002"},
         people=[MARA],
     ),
     decision(

@@ -5720,9 +5720,9 @@
       "forbidden_words": []
     },
     {
-      "id": "sail_to_new_land",
+      "id": "crowded_spring_new_place",
       "kind": "decision",
-      "description": "A boat is ready; the island is crowded.",
+      "description": "The place is crowded; many families share one spring (sailing is not in B9).",
       "request": {
         "contract_version": "0.2",
         "request_id": "00000000-000b-9a14-0000-000000000019",
@@ -5772,7 +5772,7 @@
             }
           ],
           "memory": {
-            "summary": "Many families share one spring now. I finished the boat.",
+            "summary": "Many families share one spring now. There is a quiet valley to the north.",
             "recent": [
               {
                 "tick": 1100,
@@ -5935,14 +5935,14 @@
         "options": [
           {
             "option_id": "o1",
-            "action": "sail",
-            "target": "obj-0050",
+            "action": "found_settlement",
+            "target": null,
             "partners": []
           },
           {
             "option_id": "o2",
-            "action": "found_settlement",
-            "target": null,
+            "action": "talk_to",
+            "target": "inh-0002",
             "partners": []
           },
           {
