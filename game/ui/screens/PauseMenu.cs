@@ -9,7 +9,11 @@ namespace GlassWorld.Game.Ui.Screens;
 /// <param name="Settings">Open the settings.</param>
 /// <param name="MainMenu">Save and go back to the main menu.</param>
 /// <param name="Quit">Save and quit.</param>
-public sealed record PauseActions(Action Resume, Action Save, Action Settings, Action MainMenu, Action Quit);
+public sealed record PauseActions(Action Resume, Action Save, Action Settings, Action MainMenu, Action Quit)
+{
+    /// <summary>Share the world as one local file (F5234 C); null hides the button.</summary>
+    public Action? Share { get; init; }
+}
 
 /// <summary>Pause menu on Esc (B6 R5): play on, save, settings, main menu, quit.</summary>
 public static class PauseMenu
@@ -24,6 +28,10 @@ public static class PauseMenu
         var leaving = false;
         Add(window, "ui.pause.resume", window.Close);
         Add(window, "ui.pause.save", actions.Save);
+        if (actions.Share is { } share)
+        {
+            Add(window, "ui.pause.share", share);
+        }
         Add(window, "ui.menu.settings", actions.Settings);
         Add(window, "ui.pause.main_menu", () =>
         {

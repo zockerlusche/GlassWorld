@@ -34,7 +34,7 @@ public sealed record ChronicleNames(Func<string, string> Inhabitant, Func<string
 /// content/chronicle/kinds.json, newest first, also those from before a save game was loaded.
 /// <see cref="Line"/> gives the base line (text key + parameters, DE/EN, no AI).
 /// </summary>
-public sealed class ChronicleBook(ChronicleKinds kinds, WorldCalendar calendar)
+public sealed partial class ChronicleBook(ChronicleKinds kinds, WorldCalendar calendar)
 {
     private readonly Dictionary<string, ChronicleKind> _byId = (kinds ?? throw new ArgumentNullException(nameof(kinds))).Kinds.ToDictionary(k => k.Id, StringComparer.Ordinal);
     private readonly List<ChronicleEntry> _entries = [];
