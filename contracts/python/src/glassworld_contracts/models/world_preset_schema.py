@@ -49,6 +49,67 @@ class WorldPresetGrid(BaseModel):
     )
 
 
+class WorldPresetCoastCliffs(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    falloff_permille: int = Field(
+        ...,
+        description='Falloff band of the steep coast (share of the half width), instead of coast_falloff_permille.',
+        ge=0,
+        le=1000,
+    )
+    noise_wavelength_cells: int = Field(
+        ...,
+        description='Wavelength of the noise that chooses the steep stretches of coast (cells).',
+        ge=2,
+        le=4096,
+    )
+    threshold_permille: int = Field(
+        ...,
+        description='Noise value (0..1000) from which the coast turns steep.',
+        ge=0,
+        le=1000,
+    )
+    blend_permille: int = Field(
+        ...,
+        description='Noise range above the threshold over which the falloff blends from normal to steep, so the coast changes gradually.',
+        ge=1,
+        le=1000,
+    )
+
+
+class WorldPresetRockSlopes(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    walls_kept: int = Field(
+        ...,
+        description='How many rock walls (4-connected runs of cliff-top cells, longest first) stay sheer, with their foot; every other step settles.',
+        ge=0,
+        le=1000,
+    )
+    tread_relief_permille: int = Field(
+        ...,
+        description='Share of the original relief a terrace tread keeps away from the kept walls (0 = flat tread, 1000 = no terrace).',
+        ge=0,
+        le=1000,
+    )
+    talus: int = Field(
+        ...,
+        description='Steepest height difference between neighbouring cells that a scree slope keeps (height units); steeper steps away from the kept walls settle until they reach it.',
+        ge=1,
+        le=100000,
+    )
+    share_permille: int = Field(
+        ...,
+        description="Share of a pair's excess over the talus that moves from the higher to the lower cell per round (permille, rounded up, at least 1 unit); 250 = a quarter, so a cell between four lower neighbours never overshoots.",
+        ge=1,
+        le=250,
+    )
+    rounds: int = Field(..., description='Rounds of settling.', ge=0, le=64)
+
+
 class WorldPresetNoiseOctave(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -306,10 +367,29 @@ class WorldPresetSprings(BaseModel):
     )
 
 
+class WorldPresetStreamHeads(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    relief: int = Field(
+        ...,
+        description='Rise of the ground around a stream head (height units) that makes it a visible source.',
+        ge=1,
+        le=100000,
+    )
+    radius_cells: int = Field(
+        ...,
+        description='Radius (square, cells) in which the rise is measured.',
+        ge=1,
+        le=64,
+    )
+
+
 class At(StrEnum):
     spring = 'spring'
     lake_edge = 'lake_edge'
     stream_bank = 'stream_bank'
+    hollow = 'hollow'
 
 
 class WorldPresetDrinkSpot(BaseModel):
@@ -318,7 +398,7 @@ class WorldPresetDrinkSpot(BaseModel):
     )
     at: At = Field(
         ...,
-        description='Where the objects lie: spring (exactly on the spring cells), lake_edge (dry walkable cells next to a pond or lake), stream_bank (dry walkable cells next to a running stream).',
+        description='Where the objects lie: spring (exactly on the spring cells), lake_edge (dry walkable cells next to a pond or lake), stream_bank (dry walkable cells next to a running stream), hollow (dry walkable cells in a depression, see min_hollow_depth).',
     )
     object_type: str = Field(
         ...,
@@ -340,6 +420,18 @@ class WorldPresetDrinkSpot(BaseModel):
         description="Smallest distance from any running stream cell other than a spring's own (keeps pools off stream mouths); 0 = no limit.",
         ge=0,
         le=1000,
+    )
+    min_hollow_depth: int | None = Field(
+        None,
+        description='Only in a depression (TL #19990: pools where water gathers): the cell lies at least this far (height units) below the mean ground within hollow_radius_cells. Absent = no such condition; required for at = hollow.',
+        ge=1,
+        le=100000,
+    )
+    hollow_radius_cells: int | None = Field(
+        None,
+        description='Radius (square, cells) of the mean ground for min_hollow_depth; required with it.',
+        ge=1,
+        le=64,
     )
     regrow_hours: int | None = Field(
         None,
@@ -513,6 +605,8 @@ class WorldPresetTerrain(BaseModel):
         ge=0,
         le=32,
     )
+    coast_cliffs: WorldPresetCoastCliffs | None = None
+    rock_slopes: WorldPresetRockSlopes | None = None
 
 
 class WorldPresetWater(BaseModel):
@@ -579,6 +673,7 @@ class WorldPresetWater(BaseModel):
         ge=1,
         le=100000000,
     )
+    stream_heads: WorldPresetStreamHeads | None = None
     channel: list[WorldPresetChannelPoint] = Field(
         ...,
         description='Width, depth and bank height of a stream by its flow accumulation, interpolated linearly between the points (accumulation ascending); beyond the last point the last values hold.',
