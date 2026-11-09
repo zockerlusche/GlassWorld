@@ -271,7 +271,8 @@
       "colors": [
         "fresh_water",
         "rock",
-        "ground"
+        "ground",
+        "reed"
       ],
       "size_m": 0.8,
       "size_jitter": 0.1,

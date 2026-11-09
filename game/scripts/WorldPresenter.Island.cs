@@ -523,16 +523,11 @@ public partial class WorldPresenter
         AddChild(node);
         _islandNodes[inhabitant.Id] = node;
         var labels = _look!.Labels;
-        var label = new Label3D
+        var label = new GlassWorld.Game.World.ScreenBubble
         {
             Name = "Thought",
             Position = new Vector3(0, (float)labels.ThoughtAboveHeadM, 0),
-            Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
-            PixelSize = (float)labels.PixelSizeM,
-            NoDepthTest = true,
             Visible = false,
-            AutowrapMode = TextServer.AutowrapMode.WordSmart,
-            Width = labels.ThoughtWidthPx,
         };
         head.AddChild(label);
         _thoughts[inhabitant.Id] = (label, 0);

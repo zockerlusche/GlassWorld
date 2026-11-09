@@ -19,8 +19,9 @@ from glassworld_ai.decider.output import (
     ModelChoice,
     output_schema,
     parse_choice,
+    readable_name,
 )
-from glassworld_ai.decider.thoughts import stand_in, thought_problem
+from glassworld_ai.decider.thoughts import ThoughtMemory, stand_in, thought_problem
 from glassworld_ai.llm.ollama import (
     ChatMessage,
     ChatResult,
@@ -88,6 +89,8 @@ def _response(
             "expression": choice.expression,
             "rationale": choice.rationale[:280],
             "thought": {"locale": locale, "text": choice.thought} if choice.thought else None,
+            **({"name_text": choice.name_text} if choice.name_text else {}),
+            **({"gossip": choice.gossip} if choice.gossip else {}),
             "meta": {
                 "source": source,
                 "model": model[:64],
@@ -125,6 +128,22 @@ class OllamaDecider:
         self._settings = settings
         self._log = log
         self._texts = texts
+        self._shown = ThoughtMemory()
+
+    def _b9_fields(self, request: DecisionRequest, choice: ModelChoice) -> ModelChoice:
+        """Prompt v5 (B9 R6/R11): a name only with name_person (one readable word), gossip only
+        with gossip and only about someone in the request and a known property. The core checks
+        both again (R27, per-observer names)."""
+        option = next((o for o in request.options if _plain(o.option_id) == choice.option_id), None)
+        action = _plain(option.action) if option is not None else ""
+        name = readable_name(choice.name_text) if action == "name_person" else None
+        gossip = choice.gossip if action == "gossip" else None
+        if gossip is not None and (
+            str(gossip.get("about")) not in hidden_ids(request)
+            or str(gossip.get("property")) not in self._vocab.ids("property")
+        ):
+            gossip = None
+        return replace(choice, name_text=name, gossip=gossip)
 
     def _natural(self, request: DecisionRequest, choice: ModelChoice) -> tuple[ModelChoice, str]:
         """Prompt v4 (W1687): a thought with foreign words, ids or too many words is replaced
@@ -132,14 +151,25 @@ class OllamaDecider:
         if self._template.version < 4 or not choice.thought:
             return choice, ""
         locale = _plain(request.display_locale)
-        problem = thought_problem(choice.thought, locale, self._template.settings)
-        if problem is None:
-            return choice, ""
-        option = next((o for o in request.options if _plain(o.option_id) == choice.option_id), None)
-        action = _plain(option.action) if option is not None else ""
-        return replace(choice, thought=stand_in(self._texts, locale, action)), (
-            f"thought replaced ({problem}): {choice.thought}"
-        )
+        settings = self._template.settings
+        note = ""
+        problem = thought_problem(choice.thought, locale, settings)
+        if problem is not None:
+            option = next(
+                (o for o in request.options if _plain(o.option_id) == choice.option_id), None
+            )
+            action = _plain(option.action) if option is not None else ""
+            note = f"thought replaced ({problem}): {choice.thought}"
+            choice = replace(choice, thought=stand_in(self._texts, locale, action))
+        if choice.thought:
+            # W1696: the same inhabitant does not say the same thing again soon - silence instead.
+            who = _plain(request.inhabitant.id)
+            if self._shown.repeated(who, request.tick, choice.thought, settings):
+                return replace(choice, thought=None), (
+                    f"{note}; " if note else ""
+                ) + f"thought left out (repeat): {choice.thought}"
+            self._shown.remember(who, request.tick, choice.thought)
+        return choice, note
 
     def _record(
         self,
@@ -181,7 +211,9 @@ class OllamaDecider:
             )
         )
         option_ids = [_plain(o.option_id) for o in request.options]
-        schema = output_schema(option_ids, self._vocab.ids("expression"))
+        schema = output_schema(
+            option_ids, self._vocab.ids("expression"), b9=self._template.version >= 5
+        )
         messages = [ChatMessage("system", rendered.system), ChatMessage("user", rendered.user)]
         attempts = 1 + self._settings.max_retries
         last_problem = ""
@@ -252,6 +284,7 @@ class OllamaDecider:
                 last_problem = str(error)
                 continue
             choice, note = self._natural(request, choice)
+            choice = self._b9_fields(request, choice)
             log("ok", result.content, note or None, usage)
             return _response(
                 request,

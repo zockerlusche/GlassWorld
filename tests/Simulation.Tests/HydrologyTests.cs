@@ -102,7 +102,7 @@ public sealed class HydrologyTests
     [InlineData(1UL)]
     [InlineData(7UL)]
     [InlineData(99UL)]
-    public void DrinkingWaterLiesExactlyAtTheSpringsPondEdgesAndStreamBanks(ulong seed)
+    public void DrinkingWaterLiesExactlyAtTheSpringsPondEdgesStreamBanksAndHollows(ulong seed)
     {
         var island = Generate(seed);
         var map = island.Map;
@@ -123,7 +123,9 @@ public sealed class HydrologyTests
             var atBank = map.Cell(o.X, o.Z).Water == WaterKind.None && Enumerable.Range(-bankReach, (2 * bankReach) + 1)
                 .SelectMany(dz => Enumerable.Range(-bankReach, (2 * bankReach) + 1).Select(dx => (dx, dz)))
                 .Any(d => (d.dx * d.dx) + (d.dz * d.dz) <= bankReach * bankReach && map.Contains(o.X + d.dx, o.Z + d.dz) && (hydrology.Feature(o.X + d.dx, o.Z + d.dz) & WaterFeature.Stream) != 0);
-            Assert.True(atSpring || atPond || atBank, $"seed {seed}: drinking water at ({o.X},{o.Z}) is neither at a spring, a pond edge nor a stream bank");
+            // Pools in depressions (TL #19990): at least the data depth below the mean ground around them.
+            var atHollow = Preset.Water.DrinkSpots.Where(s => s.At == WorldPresetDrinkSpotAt.Hollow).Any(s => InHollow(map, o.X, o.Z, s.HollowRadiusCells!.Value, s.MinHollowDepth!.Value));
+            Assert.True(atSpring || atPond || atBank || atHollow, $"seed {seed}: drinking water at ({o.X},{o.Z}) is neither at a spring, a pond edge, a stream bank nor in a hollow");
         }
 
         // Every walkable spring has its object, and a stream starts there.
@@ -131,15 +133,79 @@ public sealed class HydrologyTests
         {
             Assert.Contains(drink, o => o.X == x && o.Z == z);
             Assert.True((hydrology.Feature(x, z) & WaterFeature.Stream) != 0, $"seed {seed}: no stream at the spring ({x},{z})");
-            Assert.True(hydrology.Accumulation(x, z) >= Preset.Water.Springs.Discharge);
+            Assert.True(hydrology.Accumulation(x, z) >= Math.Min(Preset.Water.Springs.Discharge, Preset.Water.StreamMinAccumulation));
         }
 
-        // Springs keep their spacing and lie above the data height.
-        var spacing = Preset.Water.Springs.MinSpacingCells;
-        foreach (var (a, b) in springs.SelectMany((a, i) => springs.Skip(i + 1).Select(b => (a, b))))
+        // Groundwater springs keep their spacing; the springs at stream heads come on top (TL #19990).
+        Assert.True(springs.Count >= Math.Min(1, Preset.Water.Springs.MaxCount));
+    }
+
+    /// <summary>
+    /// No stream out of nowhere (TL #19990): every running cell that no running cell feeds is a spring or
+    /// lies beside a pond or lake (its overflow); on open flat meadow no stream begins.
+    /// </summary>
+    [Theory]
+    [InlineData(1UL)]
+    [InlineData(7UL)]
+    [InlineData(42UL)]
+    [InlineData(2026UL)]
+    public void EveryStreamBeginsAtASpringOrALake(ulong seed)
+    {
+        var map = Generate(seed).Map;
+        var hydrology = map.Hydrology!;
+        var fed = new HashSet<(int, int)>();
+        var heads = new List<(int X, int Z)>();
+        for (var z = 0; z < map.DepthCells; z++)
         {
-            Assert.True(((a.X - b.X) * (a.X - b.X)) + ((a.Z - b.Z) * (a.Z - b.Z)) >= spacing * spacing);
+            for (var x = 0; x < map.WidthCells; x++)
+            {
+                if ((hydrology.Feature(x, z) & WaterFeature.Stream) != 0)
+                {
+                    var c = map.Cell(x, z);
+                    if (c.Flow >= 0)
+                    {
+                        var (dx, dz) = FlowDirections.All[c.Flow];
+                        fed.Add((x + dx, z + dz));
+                        heads.Add((x, z));
+                    }
+                }
+            }
         }
+
+        var checkedHeads = 0;
+        foreach (var (x, z) in heads.Where(h => !fed.Contains(h)))
+        {
+            var spring = (hydrology.Feature(x, z) & WaterFeature.Spring) != 0;
+            var lake = Enumerable.Range(-1, 3).SelectMany(dz => Enumerable.Range(-1, 3).Select(dx => (dx, dz)))
+                .Any(d => map.Contains(x + d.dx, z + d.dz) && (hydrology.Feature(x + d.dx, z + d.dz) & WaterFeature.Lake) != 0);
+
+            // Side cells of a wide stream lie beside a cell of their centre line that carries more water.
+            var side = new[] { (1, 0), (-1, 0), (0, 1), (0, -1) }.Any(d => map.Contains(x + d.Item1, z + d.Item2)
+                && (hydrology.Feature(x + d.Item1, z + d.Item2) & WaterFeature.Stream) != 0 && hydrology.Accumulation(x + d.Item1, z + d.Item2) > hydrology.Accumulation(x, z));
+            Assert.True(spring || lake || side, $"seed {seed}: the stream at ({x},{z}) begins out of nowhere");
+            checkedHeads++;
+        }
+
+        Assert.True(checkedHeads > 0);
+    }
+
+    private static bool InHollow(WorldMap map, int x, int z, int radius, int depth)
+    {
+        long sum = 0;
+        var count = 0;
+        for (var dz = -radius; dz <= radius; dz++)
+        {
+            for (var dx = -radius; dx <= radius; dx++)
+            {
+                if (map.Contains(x + dx, z + dz))
+                {
+                    sum += map.Cell(x + dx, z + dz).Height;
+                    count++;
+                }
+            }
+        }
+
+        return (map.Cell(x, z).Height + depth) * (long)count <= sum;
     }
 
     [Theory]

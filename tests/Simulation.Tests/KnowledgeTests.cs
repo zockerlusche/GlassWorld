@@ -155,6 +155,53 @@ public sealed class KnowledgeTests : IDisposable
         Assert.Contains(request.Options, o => o.Action == "warn" && o.Target == "inh-000002");
     }
 
+    /// <summary>
+    /// D625: a passing option names WHAT would be passed on - the asker's own belief (here a wrong one:
+    /// apples are not poisonous), the same one the core passes when the option is taken. Other options
+    /// carry no topic; an invented type also carries the inhabitants' own name.
+    /// </summary>
+    [Fact]
+    public void PassingOptionsNameTheAskersBeliefTheyWouldPassOn()
+    {
+        var w = NewWorld(new SilentPort());
+        w.Decisions.InventedName = id => id == "apple" ? new LocalizedName { De = "Rundling", En = "Roundling" } : null;
+        var asker = w.Inhabitants.Get("inh-000001");
+        asker.Beliefs.Set("apple", "poisonous", true, 0.9, KnowledgeSources.Heard, "inh-000003", 2);
+        asker.Beliefs.Set("blue_berry", "edible", true, 0.8, KnowledgeSources.Experienced, null, 3);
+        w.Objects.Spawn("red_berry", new Position(-2, 2)); // unknown to the asker: it asks about it
+        w.World.Step();
+
+        var json = w.Decisions.Log.Entries.Where(e => e.Kind == DecisionLogKind.Request).Select(e => e.Json)
+            .First(j => ContractSerializer.Deserialize<DecisionRequest>(j).Inhabitant.Id == asker.Id);
+        Assert.Empty(ContractValidator.Validate("decision-request", json));
+        var request = ContractSerializer.Deserialize<DecisionRequest>(json);
+        var expected = new Dictionary<string, (string Type, string Property)>(StringComparer.Ordinal)
+        {
+            ["warn"] = ("apple", "poisonous"),
+            ["show"] = ("blue_berry", "edible"),
+            ["teach"] = ("apple", "poisonous"),
+        };
+        var warn = Assert.Single(request.Options, o => o.Action == "warn" && o.Target == "inh-000002");
+        Assert.Equal("Roundling", warn.Topic?.Name?.En);
+        foreach (var option in request.Options)
+        {
+            if (!expected.TryGetValue(option.Action, out var topic))
+            {
+                Assert.Null(option.Topic);
+                continue;
+            }
+
+            Assert.NotNull(option.Topic);
+            Assert.Equal(topic, (option.Topic.ObjectType, option.Topic.Property));
+            Assert.True(option.Topic.Value);
+            Assert.Equal(option.Topic.ObjectType == "apple", option.Topic.Name is not null);
+        }
+
+        // The same belief the inhabitant shows while warning (TopicOf, PR #146).
+        asker.Activity = new Activity("warn", "inh-000002", asker.Position, null);
+        Assert.Equal(warn.Topic!.ObjectType, w.Inhabitants.TopicOf(asker));
+    }
+
     [Theory]
     [InlineData(32)]
     [InlineData(2)]

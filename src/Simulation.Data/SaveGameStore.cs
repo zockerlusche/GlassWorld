@@ -334,6 +334,9 @@ public static class SaveGameStore
             Insert(c, tx, "INSERT INTO last_asked VALUES($a,$b)", (key, tick));
         }
 
+        // The whole log is saved, never trimmed: replays need every entry, and a restore takes the request
+        // language from the last set_display_locale command in it (SimulationHost.UseLoggedDisplayLocale).
+        // Any future trimming or compaction must keep the set_display_locale commands (#20043).
         var seq = 0;
         foreach (var e in s.DecisionLog)
         {

@@ -25,7 +25,7 @@ public partial class WorldPresenter : Node3D
     private const double ThoughtSeconds = 6.0;
 
     private readonly Dictionary<string, MeshInstance3D> _figures = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, (Label3D Label, double Until)> _thoughts = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, (GlassWorld.Game.World.ScreenBubble Label, double Until)> _thoughts = new(StringComparer.Ordinal);
     private readonly Dictionary<string, double> _speechUntil = new(StringComparer.Ordinal);
     private AiServiceProcess? _service;
     private HttpDecisionPort? _livePort;
@@ -39,6 +39,7 @@ public partial class WorldPresenter : Node3D
     private MultiMeshInstance3D? _objects;
     private int _objectCount = -1;
     private double _accumulator;
+    private string? _askedLocale;
 
     /// <summary>Help suggestions from the AI (A1341); null without the live service (the window uses the data).</summary>
     public HttpHelpPort? HelpPort => _helpPort;
@@ -94,8 +95,8 @@ public partial class WorldPresenter : Node3D
         SimulationHost Make(WorldLookMode m)
         {
             var made = m == WorldLookMode.Island
-                ? SimulationHost.CreateGeneratedWorld(contentDirectory, seed, port, "de", look.IslandPreset, _jobPort)
-                : SimulationHost.CreatePlaceholderWorld(contentDirectory, seed, port, "de", _jobPort);
+                ? SimulationHost.CreateGeneratedWorld(contentDirectory, seed, port, UiLocale(), look.IslandPreset, _jobPort)
+                : SimulationHost.CreatePlaceholderWorld(contentDirectory, seed, port, UiLocale(), _jobPort);
             if (startFavor is { } favor)
             {
                 // Part of the start (GW1 review #67 S1/N1): as a command in the log, applied at the first
@@ -148,7 +149,7 @@ public partial class WorldPresenter : Node3D
         var settings = Contracts.Validation.ContractSerializer.Deserialize<Contracts.DeciderSettings>(
             System.IO.File.ReadAllText(System.IO.Path.Combine(contentDirectory, "decider", "settings.json")));
         var decisions = port ?? CreatePort(contentDirectory);
-        var factory = new SimulationHostFactory(ContentSet.Load(contentDirectory), settings, decisions, "de", _jobPort);
+        var factory = new SimulationHostFactory(ContentSet.Load(contentDirectory), settings, decisions, UiLocale(), _jobPort);
         var host = StateCodec.Restore(factory, SaveGameStore.Load(savePath));
         HashAtLoad = host.World.StateHash();
         host.Decisions.ResendPendingAfterLoad(host.World);
@@ -178,6 +179,7 @@ public partial class WorldPresenter : Node3D
 
         _host = host;
         SavePath = savePath;
+        _askedLocale = host.DisplayLocale;
 
         // Talking (B6 R13): only the live service answers. Without it (routine mode, or the service
         // failed to start) nothing answers and the core gives the calm "no answer" with the favour back
@@ -226,7 +228,7 @@ public partial class WorldPresenter : Node3D
 
         foreach (var (id, figure) in _figures)
         {
-            var label = new Label3D { Name = "Thought", Position = new Vector3(0, 1.6f, 0), Billboard = BaseMaterial3D.BillboardModeEnum.Enabled, Visible = false };
+            var label = new GlassWorld.Game.World.ScreenBubble { Name = "Thought", Position = new Vector3(0, 1.6f, 0), Visible = false };
             figure.AddChild(label);
             _thoughts[id] = (label, 0);
         }
@@ -237,6 +239,33 @@ public partial class WorldPresenter : Node3D
         BeginPlaceholderCamera();
     }
 
+    /// <summary>
+    /// The language the UI shows (the TranslationServer locale the settings set), as the core knows it;
+    /// another one falls back to the UI's fallback language (#20043: no fixed "de" any more).
+    /// </summary>
+    private static string UiLocale()
+    {
+        var shown = TranslationServer.GetLocale();
+        return Localization.TextCatalogs.SupportedLocales.FirstOrDefault(l => shown.StartsWith(l, StringComparison.Ordinal))
+            ?? Localization.TextCatalogs.SupportedLocales[0];
+    }
+
+    /// <summary>
+    /// If the player switched the language, new requests use it from the next tick (a logged command, so
+    /// replays stay identical); questions already asked are not asked again.
+    /// </summary>
+    private void FollowUiLanguage()
+    {
+        var locale = UiLocale();
+        if (_host is null || locale == _askedLocale)
+        {
+            return;
+        }
+
+        _askedLocale = locale;
+        _host.Decisions.Submit(new PlayerCommand(DecisionsSystem.SetDisplayLocale, null) { Text = locale });
+    }
+
     /// <inheritdoc/>
     public override void _Process(double delta)
     {
@@ -245,6 +274,7 @@ public partial class WorldPresenter : Node3D
             return;
         }
 
+        FollowUiLanguage();
         var calendar = _host.World.Calendar;
         _accumulator += delta * Speed / calendar.RealSecondsPerTickAtNormalSpeed;
         var ticks = Math.Min((long)_accumulator, calendar.Settings.MaxTicksPerFrame);
@@ -390,10 +420,10 @@ public partial class WorldPresenter : Node3D
                 {
                     said.Label.Text = talk.Text;
                     said.Label.Visible = talk.Seconds > 0;
-                    _thoughts[e.InhabitantId] = (said.Label, _clock + talk.Seconds);
+                    _thoughts[e.InhabitantId] = (said.Label, _clock + Shorter(talk.Seconds));
                 }
 
-                _speechUntil[e.InhabitantId] = TalkBubble.IsSpeech(e.Kind, e.Text) ? _clock + talk.Seconds : 0;
+                _speechUntil[e.InhabitantId] = TalkBubble.IsSpeech(e.Kind, e.Text) ? _clock + Shorter(talk.Seconds) : 0;
                 React(e);
                 continue;
             }
@@ -404,28 +434,67 @@ public partial class WorldPresenter : Node3D
                 // A thought never covers a spoken answer still showing (W1688).
                 bubble.Label.Text = text;
                 bubble.Label.Visible = true;
-                _thoughts[e.InhabitantId] = (bubble.Label, _clock + ThoughtSeconds);
+                _thoughts[e.InhabitantId] = (bubble.Label, _clock + Shorter(_look?.Labels.ThoughtSeconds ?? ThoughtSeconds));
                 ObserveThought(e.InhabitantId);
             }
         }
 
-        var camera = Mode == WorldLookMode.Island && _look is not null ? GetViewport()?.GetCamera3D() : null;
         foreach (var bubble in _thoughts.Values)
         {
             if (bubble.Label.Visible && _clock > bubble.Until)
             {
                 bubble.Label.Visible = false;
             }
-            else if (bubble.Label.Visible && camera is not null)
-            {
-                // Readable at every zoom (W1688): a line of the bubble keeps its screen height within the data.
-                var label = bubble.Label;
-                var perMetre = camera.Projection == Camera3D.ProjectionType.Orthogonal
-                    ? GetViewport().GetVisibleRect().Size.Y / Math.Max(camera.Size, 0.001)
-                    : Presentation.Ui.HeadSymbolSize.PixelsPerMetre(camera.GlobalPosition.DistanceTo(label.GlobalPosition), camera.Fov, GetViewport().GetVisibleRect().Size.Y);
-                var factor = (float)Presentation.Ui.HeadSymbolSize.Factor(label.FontSize * label.PixelSize, perMetre, _look!.Labels.BubbleMinPx, _look.Labels.BubbleMaxPx);
-                label.Scale = new Vector3(factor, factor, factor);
-            }
+        }
+    }
+
+    /// <summary>
+    /// How long a line stays: at high speed the data's shorter time, so lines do not pile up (W1687). A waiting
+    /// "…" (much longer than any line) is kept.
+    /// </summary>
+    private double Shorter(double seconds)
+    {
+        if (_look?.Labels is not { } labels || seconds > 60)
+        {
+            return seconds;
+        }
+
+        return Speed >= labels.FastFromSpeed ? Math.Min(seconds, labels.ThoughtSecondsFast) : seconds;
+    }
+
+    /// <summary>
+    /// The screen layer for thoughts and said sentences (W1687): one line per inhabitant, never on top of
+    /// another, inside <paramref name="area"/> (below the top bar, beside the side panel).
+    /// </summary>
+    public void ShowBubbles(Func<Rect2?> area, Func<float> uiScale)
+    {
+        if (GetNodeOrNull<GlassWorld.Game.World.BubbleOverlay>("Bubbles") is { } old)
+        {
+            old.QueueFree();
+        }
+
+        var overlay = new GlassWorld.Game.World.BubbleOverlay
+        {
+            Name = "Bubbles",
+            Bubbles = () => _thoughts.Select(t => (t.Key, t.Value.Label)),
+            Area = area,
+            WidthPx = () => (_look?.Labels.BubbleWidthPx ?? 440) * uiScale(),
+        };
+        AddChild(overlay);
+    }
+
+    /// <summary>Smoke only: the bubbles on screen now.</summary>
+    public IReadOnlyList<(string Id, Rect2 Box)> BubblesShown() =>
+        GetNodeOrNull<GlassWorld.Game.World.BubbleOverlay>("Bubbles")?.Shown() ?? [];
+
+    /// <summary>Smoke only: makes an inhabitant say <paramref name="text"/> now.</summary>
+    public void SayForCheck(string inhabitantId, string text)
+    {
+        if (_thoughts.TryGetValue(inhabitantId, out var bubble))
+        {
+            bubble.Label.Text = text;
+            bubble.Label.Visible = true;
+            _thoughts[inhabitantId] = (bubble.Label, _clock + 60);
         }
     }
 
