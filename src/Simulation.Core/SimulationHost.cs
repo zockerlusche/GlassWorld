@@ -119,6 +119,7 @@ public sealed class SimulationHost
         var objects = new WorldObjects(types);
         WorldMapSystem? map = null;
         Weather.WeatherSystem? weather = null;
+        string? climate = null;
         if (worldPreset is not null)
         {
             if (!content.WorldGen.Presets.TryGetValue(worldPreset, out var preset))
@@ -141,6 +142,8 @@ public sealed class SimulationHost
             map = new WorldMapSystem(island, savedIsland?.CellSizeCm ?? preset.Grid.CellSizeCm, objects, regrow) { NodeBudget = preset.Pathfinding.NodeBudget };
             world.Add(map);
 
+            climate = preset.Climate.ClimateId;
+
             // Weather of the preset's climate (B2 R13); worlds without a preset (placeholder) have none.
             // The weather is island-wide for now; its height drop stands for the mean height of the start cells.
             var startHeight = island.Starts.Count == 0 ? 0 : island.Starts.Sum(s => Math.Max(0, island.Map.Cell(s.X, s.Z).Height - preset.Terrain.SeaLevel)) / island.Starts.Count;
@@ -153,7 +156,20 @@ public sealed class SimulationHost
             world.Add(weather);
         }
 
-        var inhabitants = new InhabitantsSystem(content.InhabitantModel, actions, content.Brain, content.Gaits, objects, world.Calendar.Settings.TicksPerHour) { Looks = content.Appearance, Routes = map, Knowledge = content.Knowledge, EventKinds = content.EventKinds };
+        var inhabitants = new InhabitantsSystem(content.InhabitantModel, actions, content.Brain, content.Gaits, objects, world.Calendar.Settings.TicksPerHour)
+        {
+            Looks = content.Appearance,
+            Routes = map,
+            Knowledge = content.Knowledge,
+            EventKinds = content.EventKinds,
+
+            // Start clothing fits the season, the climate, the biome at the place and the tech level (F4).
+            ClothingAt = (w, at) => new ClothingContext(
+                w.Now.SeasonId,
+                climate,
+                map?.CellOf(at) is { } cell ? map.Map.BiomeAt(cell.X, cell.Z) : null,
+                content.Inventions.Settings.TechLevel),
+        };
         var decisions = new DecisionsSystem(settings, inhabitants, objects, actions, content.Brain, content.Vocabularies[VocabularyKind.Action], port, displayLocale)
         {
             WeatherSource = weather,

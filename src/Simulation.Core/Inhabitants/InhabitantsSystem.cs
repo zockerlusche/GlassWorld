@@ -162,12 +162,16 @@ public sealed class InhabitantsSystem : IWorldSystem
             if (Looks is { } looks)
             {
                 // Own stream, not kept among the world's streams: the record is drawn once and saved.
-                inhabitant.Appearance = Appearance.Draw(looks, RandomStreams.Create(world.Seed, $"inhabitant/{id}/appearance"), looks.StartAgeDays);
+                var place = ClothingAt?.Invoke(world, positions[i]) ?? ClothingContext.Unknown;
+                inhabitant.Appearance = Appearance.Draw(looks, RandomStreams.Create(world.Seed, $"inhabitant/{id}/appearance"), looks.StartAgeDays, sex, place);
             }
 
             Add(inhabitant);
         }
     }
+
+    /// <summary>Where and when a start inhabitant is dressed (F4: season, climate, biome, tech level); null = unknown.</summary>
+    public Func<World, Position, ClothingContext>? ClothingAt { get; init; }
 
     /// <summary>Adds an inhabitant (start, tests, save games).</summary>
     public void Add(Inhabitant inhabitant)

@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- Headless runner: advances a world without Godot as fast as possible (tests, long runs, R14). -->
+  <!-- Headless runner: advances a world without Godot as fast as possible (tests, long runs, R14), with
+       the mock or the live AI service (D9 tooling), and replays save games from seed and logs. -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <RootNamespace>GlassWorld.Simulation.Headless</RootNamespace>
@@ -7,7 +8,11 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="..\AiClient\AiClient.csproj" />
     <ProjectReference Include="..\Simulation.Core\Simulation.Core.csproj" />
     <ProjectReference Include="..\Simulation.Data\Simulation.Data.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="GlassWorld.Simulation.Headless.Tests" />
   </ItemGroup>
 </Project>
