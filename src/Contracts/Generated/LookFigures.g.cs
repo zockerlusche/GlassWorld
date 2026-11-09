@@ -143,6 +143,205 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
+    /// Object types an inhabitant can sit on and the height of their seat above the ground.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class FigureSeat
+    {
+
+        /// <summary>
+        /// Object type ids of content/objects (the drawn object under the figure).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("types")]
+        public System.Collections.Generic.ICollection<string> Types { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// Height of the seat above the ground in metres.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("seat_height_m")]
+        public double SeatHeightM { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Seated poses and what they sit on.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class FigureSitting
+    {
+
+        /// <summary>
+        /// Library clip ids that show a seated pose.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("seated_clips")]
+        public System.Collections.Generic.ICollection<string> SeatedClips { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// Height of the hips above the feet in the seated clips at scale 1 (the chair height of the clip).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("clip_seat_height_m")]
+        public double ClipSeatHeightM { get; set; } = default!;
+
+        /// <summary>
+        /// How far from the figure a seat object may lie (metres).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("seat_search_m")]
+        public double SeatSearchM { get; set; } = default!;
+
+        /// <summary>
+        /// Share of straightening the knees when sitting on the ground (0 = clip as is, 1 = legs straight forward).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("ground_knee_straighten")]
+        public double GroundKneeStraighten { get; set; } = default!;
+
+        /// <summary>
+        /// How fast the hips move to the seat height (metres per real second).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("settle_m_s")]
+        public double SettleMS { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("seats")]
+        public System.Collections.Generic.ICollection<FigureSeat> Seats { get; set; } = new System.Collections.ObjectModel.Collection<FigureSeat>();
+
+    }
+
+    /// <summary>
+    /// Reaction to the player's voice (presentation only).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class FigureGreeting
+    {
+
+        /// <summary>
+        /// Inhabitants this close to the one spoken to hear the player too (metres).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("hear_radius_m")]
+        public double HearRadiusM { get; set; } = default!;
+
+        /// <summary>
+        /// Real seconds the hearers look and turn to the voice.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("react_s")]
+        public double ReactS { get; set; } = default!;
+
+        /// <summary>
+        /// Real seconds the speaker keeps looking at the voice after its answer.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("after_answer_s")]
+        public double AfterAnswerS { get; set; } = default!;
+
+        /// <summary>
+        /// How fast the look turns in and out (weight per real second).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("ease_per_s")]
+        public double EasePerS { get; set; } = default!;
+
+        /// <summary>
+        /// Library clip a standing hearer plays instead of its idle behaviour (no ducking).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("listen_clip")]
+        public string ListenClip { get; set; } = default!;
+
+        /// <summary>
+        /// Expression ids of an answer that raise the arm to wave (procedural wave).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("wave_expressions")]
+        public System.Collections.Generic.ICollection<string> WaveExpressions { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// Real seconds of a wave.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("wave_s")]
+        public double WaveS { get; set; } = default!;
+
+        /// <summary>
+        /// Real seconds the mouth moves with a spoken answer.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("talk_s")]
+        public double TalkS { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// The see-through silhouette of hidden figures.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class FigureSilhouette
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("enabled")]
+        public bool Enabled { get; set; } = default!;
+
+        /// <summary>
+        /// Which colour of the inhabitant's appearance the silhouette takes.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("color")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<FigureSilhouetteColor>))]
+        public FigureSilhouetteColor Color { get; set; } = default!;
+
+        /// <summary>
+        /// Opacity of the silhouette's inside.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("fill_alpha")]
+        public double FillAlpha { get; set; } = default!;
+
+        /// <summary>
+        /// Opacity at the silhouette's edge.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("edge_alpha")]
+        public double EdgeAlpha { get; set; } = default!;
+
+        /// <summary>
+        /// Only occluders at least this far in front of the figure count (its own clothes and arms do not).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("min_cover_m")]
+        public double MinCoverM { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Fading of tree crowns near the line from the camera to a figure.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class FigureCrownFade
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("enabled")]
+        public bool Enabled { get; set; } = default!;
+
+        /// <summary>
+        /// Object visual ids of content/look/objects.json whose crowns fade.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("visuals")]
+        public System.Collections.Generic.ICollection<string> Visuals { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// Height of the crown's middle above the tree's foot (metres).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("crown_height_m")]
+        public double CrownHeightM { get; set; } = default!;
+
+        /// <summary>
+        /// Crowns closer than this to the camera-figure line fade (metres).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("radius_m")]
+        public double RadiusM { get; set; } = default!;
+
+        /// <summary>
+        /// Opacity of a crown right on the line (it grows to 1 at the radius).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("alpha")]
+        public double Alpha { get; set; } = default!;
+
+        /// <summary>
+        /// True: crowns fade for every inhabitant; false: only for the chosen (followed) one.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("all_inhabitants")]
+        public bool AllInhabitants { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// Data file content/look/figures.json: how the appearance record of an inhabitant (core, B2 R27) becomes a figure: body model per age stage and sex, hair mesh per hair style, sleeves and leg length per clothing style, shoe colour and the model heights for scaling. Presentation only, not part of the hash. Values are placeholders.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -221,6 +420,30 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("clothing_parts")]
         public System.Collections.Generic.ICollection<FigureClothingPart> ClothingParts { get; set; } = new System.Collections.ObjectModel.Collection<FigureClothingPart>();
 
+        /// <summary>
+        /// Seated clips only sit on something (W1688): on a seat object near the figure the hips go to its seat height; elsewhere the figure sits on the ground with straightened legs, never in the air.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("sitting")]
+        public FigureSitting Sitting { get; set; } = new FigureSitting();
+
+        /// <summary>
+        /// How inhabitants show that they heard the player (W1688): they look up and turn to the voice (the camera), the speaker waves or talks with its answer.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("greeting")]
+        public FigureGreeting Greeting { get; set; } = new FigureGreeting();
+
+        /// <summary>
+        /// Inhabitants stay visible (W1689): where a tree, rock or object hides a figure, its silhouette is drawn through in the inhabitant's colour.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("silhouette")]
+        public FigureSilhouette Silhouette { get; set; } = new FigureSilhouette();
+
+        /// <summary>
+        /// Tree crowns between the camera and the followed inhabitant fade semi-transparent (W1689).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("crown_fade")]
+        public FigureCrownFade CrownFade { get; set; } = new FigureCrownFade();
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -233,6 +456,28 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("bottom")]
         Bottom = 1,
+
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public enum FigureSilhouetteColor
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("top")]
+        Top = 0,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("bottom")]
+        Bottom = 1,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("hair")]
+        Hair = 2,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("skin")]
+        Skin = 3,
 
 
     }

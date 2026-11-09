@@ -493,6 +493,15 @@ public partial class Main
                 GD.Print("SCREEN_OK");
             }
 
+            // Camera keys (GW3 #144): a button that took the focus leaves them to the camera, a slider keeps them.
+            var (button, slider) = (new Button(), new HSlider());
+            if (GlassWorld.Game.World.CameraRig.BlocksCameraKeys(button) || !GlassWorld.Game.World.CameraRig.BlocksCameraKeys(slider))
+            {
+                problems = [.. problems, "camera keys: a focused button blocks them or a focused slider does not"];
+            }
+
+            button.Free();
+            slider.Free();
             CheckSave(_contentDirectory);
 
             // After the save check: placing a gift runs more ticks (A1340).

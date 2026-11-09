@@ -116,6 +116,9 @@ public sealed class FigureMotion
         }
     }
 
+    /// <summary>Turns the standing figure towards a facing (radians, like <see cref="Yaw"/>), e.g. to a voice; the next step turns it to where it walks.</summary>
+    public void Face(double yaw) => _targetYaw = yaw;
+
     /// <summary>Puts the figure at <paramref name="at"/> at once (after a warm-up, a load): no stretch to walk.</summary>
     public void Place(Point3 at)
     {

@@ -160,5 +160,73 @@
     "period_s": 2.4,
     "alpha_min": 0.2,
     "alpha_max": 0.85
+  },
+  "sitting": {
+    "seated_clips": [
+      "sit"
+    ],
+    "clip_seat_height_m": 0.45,
+    "seat_search_m": 0.9,
+    "ground_knee_straighten": 1.0,
+    "settle_m_s": 1.5,
+    "seats": [
+      {
+        "types": [
+          "fieldstone",
+          "sandstone"
+        ],
+        "seat_height_m": 0.22
+      },
+      {
+        "types": [
+          "slate"
+        ],
+        "seat_height_m": 0.18
+      },
+      {
+        "types": [
+          "driftwood"
+        ],
+        "seat_height_m": 0.28
+      },
+      {
+        "types": [
+          "dry_wood"
+        ],
+        "seat_height_m": 0.24
+      }
+    ]
+  },
+  "greeting": {
+    "hear_radius_m": 15.0,
+    "react_s": 6.0,
+    "after_answer_s": 4.0,
+    "ease_per_s": 2.5,
+    "listen_clip": "stand",
+    "wave_expressions": [
+      "wave"
+    ],
+    "wave_s": 2.5,
+    "talk_s": 2.0
+  },
+  "silhouette": {
+    "enabled": true,
+    "color": "top",
+    "fill_alpha": 0.22,
+    "edge_alpha": 0.75,
+    "min_cover_m": 0.3
+  },
+  "crown_fade": {
+    "enabled": true,
+    "visuals": [
+      "broadleaf",
+      "conifer",
+      "fruit_tree",
+      "palm"
+    ],
+    "crown_height_m": 3.2,
+    "radius_m": 3.0,
+    "alpha": 0.3,
+    "all_inhabitants": false
   }
 }

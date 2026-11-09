@@ -15,7 +15,10 @@ namespace GlassWorld.Game.World;
 /// action slots to the clip of its action or to an idle behaviour from core values (deterministic from id
 /// and core tick, each figure on its own idle slots, with a little speed variety and sometimes mirrored).
 /// While the inhabitant has an open question, calm thought dots pulse above its head. Unknown or
-/// not-yet-made clips are logged once. Presentation only.
+/// not-yet-made clips are logged once. Seated clips sit on a seat object near the figure or on the ground,
+/// never in the air; a figure that heard the player looks and turns to the camera, waves or talks with its
+/// answer (W1688); its silhouette shows through whatever hides it (W1689); pause freezes all of its motion.
+/// Presentation only.
 /// </summary>
 public partial class FigureView : Node3D
 {
@@ -42,6 +45,18 @@ public partial class FigureView : Node3D
     private int _slot = 1;
     private string? _actAsset;
     private double _actSpeed = 1;
+    private WaveModifier _wave = null!;
+    private LookAtModifier _lookAt = null!;
+    private FaceDriver _face = null!;
+    private KneeStraightenModifier _knees = null!;
+    private Func<IReadOnlyList<Seat>> _seats = () => [];
+    private SeatPose? _seat;
+    private SeatPose _lastSeat;
+    private double _seatShare;
+    private bool _frozen;
+    private double _lookLeft;
+    private double _waveLeft;
+    private double _talkLeft;
 
     /// <summary>Inhabitant id.</summary>
     public string InhabitantId { get; private set; } = string.Empty;
@@ -53,7 +68,12 @@ public partial class FigureView : Node3D
     public string CurrentClip { get; private set; } = string.Empty;
 
     /// <summary>Builds the figure of an inhabitant.</summary>
-    public static FigureView Create(InhabitantSnapshot inhabitant, FigureSpec spec, FigureShared shared, Func<double, double, float> groundHeight)
+    /// <param name="inhabitant">The inhabitant's snapshot.</param>
+    /// <param name="spec">How it is drawn.</param>
+    /// <param name="shared">What all figures share.</param>
+    /// <param name="groundHeight">Drawn ground height at (x, z).</param>
+    /// <param name="seats">The seat objects of the world now (null: none, every seated clip sits on the ground).</param>
+    public static FigureView Create(InhabitantSnapshot inhabitant, FigureSpec spec, FigureShared shared, Func<double, double, float> groundHeight, Func<IReadOnlyList<Seat>>? seats = null)
     {
         ArgumentNullException.ThrowIfNull(inhabitant);
         ArgumentNullException.ThrowIfNull(spec);
@@ -72,6 +92,10 @@ public partial class FigureView : Node3D
             _ground = groundHeight,
             _scale = spec.Scale,
             _motion = new FigureMotion(start, figures.TurnRateDegS),
+            _seats = seats ?? (() => []),
+            _wave = figure.Wave,
+            _lookAt = figure.Look,
+            _face = figure.Face,
         };
         view.AddChild(figure.Root);
         view.HeadAnchor = new Node3D { Name = "HeadAnchor", Position = new Vector3(0, (float)(figures.HeadAnchorM * spec.Scale), 0) };
@@ -79,6 +103,19 @@ public partial class FigureView : Node3D
         view._body = figure.Root;
         view._bodyScale = figure.Root.Scale;
         view.BuildThinkingDots(figures.ThinkingDots, spec.Scale);
+        view._knees = new KneeStraightenModifier { Name = "Knees" };
+        figure.Root.FindChildren("*", "Skeleton3D", true, false).OfType<Skeleton3D>().Single().AddChild(view._knees);
+        if (figures.Silhouette.Enabled && figure.Body.MaterialOverride is { } material)
+        {
+            // Behind a tree, rock or object the figure shows as a calm silhouette in its colour (W1689).
+            var last = material;
+            while (last.NextPass is { } next)
+            {
+                last = next;
+            }
+
+            last.NextPass = Silhouette(figures.Silhouette, spec);
+        }
 
         // Replace the prototype's idle/walk/jog tree by the library's gaits and two action slots.
         figure.Tree.Active = false;
@@ -127,6 +164,15 @@ public partial class FigureView : Node3D
             Report(missing);
         }
 
+        if (_lookLeft > 0 && !clip.Walking && chooser.StandsIdle(inhabitant.Action))
+        {
+            // Hearing the player it stands and looks up instead of its idle behaviour (no ducking, W1688).
+            clip = new FigureClip(chooser.ForClip(figures.Greeting.ListenClip), Walking: false, clip.Missing);
+        }
+
+        _seat = !clip.Walking && SeatChoice.IsSeated(figures.Sitting, clip.Clip.ClipId)
+            ? SeatChoice.Choose(figures.Sitting, to.X, to.Z, _scale, _seats())
+            : null;
         if (clip.Walking)
         {
             // The core's gait (stroll … run, #112) plays as it is; without one the gait follows the game-time
@@ -150,13 +196,50 @@ public partial class FigureView : Node3D
         CurrentClip = clip.Clip.ClipId;
     }
 
+    /// <summary>
+    /// Pause and speed 0 (W1688): a frozen figure stops everything that moves it, clips, cross-fades, the
+    /// procedural wave, look and face, its walk and the thought dots; unfrozen it goes on where it stopped.
+    /// </summary>
+    public void SetFrozen(bool frozen)
+    {
+        _frozen = frozen;
+        _body.ProcessMode = frozen ? ProcessModeEnum.Disabled : ProcessModeEnum.Inherit;
+    }
+
+    /// <summary>The figure heard the player or answers (W1688): it looks and turns to the voice, waves, talks.</summary>
+    public void React(Reaction reaction)
+    {
+        _lookLeft = Math.Max(_lookLeft, reaction.LookS);
+        _waveLeft = Math.Max(_waveLeft, reaction.WaveS);
+        _talkLeft = Math.Max(_talkLeft, reaction.TalkS);
+    }
+
     /// <inheritdoc/>
     public override void _Process(double delta)
     {
+        if (_frozen)
+        {
+            return;
+        }
+
         // Even pace from tick to tick (R17); the height follows the ground under the figure.
         _motion.Advance(delta);
         var p = _motion.Position;
-        Position = new Vector3((float)p.X, _ground(p.X, p.Z), (float)p.Z);
+        var figures = _shared.Figures;
+
+        // Seated: the hips move to the seat (or down to the ground) at the data's pace, never in the air.
+        if (_seat is { } seat)
+        {
+            _lastSeat = seat;
+        }
+
+        var shareRate = figures.Sitting.SettleMS / Math.Max(0.05, figures.Sitting.ClipSeatHeightM * _scale);
+        _seatShare = GreetingReaction.Ease(_seatShare, _seat is null ? 0 : 1, shareRate, delta);
+        var (x, z) = _lastSeat.OnSeat ? (p.X + ((_lastSeat.X - p.X) * _seatShare), p.Z + ((_lastSeat.Z - p.Z) * _seatShare)) : (p.X, p.Z);
+        Position = new Vector3((float)x, _ground(x, z) + (float)(_lastSeat.LiftM * _seatShare), (float)z);
+        _knees.Share = (float)(_lastSeat.KneeShare * _seatShare);
+
+        HearAndAnswer(delta, figures.Greeting);
         Rotation = new Vector3(0, (float)_motion.Yaw, 0);
         if (_thinking.Visible)
         {
@@ -169,6 +252,48 @@ public partial class FigureView : Node3D
                 _dots[i].OutlineModulate = new Color(0.12f, 0.12f, 0.16f, alpha * 0.8f);
             }
         }
+    }
+
+    /// <summary>Looks and turns to the voice (the camera) while it hears, waves and talks for their seconds.</summary>
+    private void HearAndAnswer(double delta, FigureGreeting greeting)
+    {
+        _lookLeft = Math.Max(0, _lookLeft - delta);
+        _waveLeft = Math.Max(0, _waveLeft - delta);
+        _talkLeft = Math.Max(0, _talkLeft - delta);
+        var ease = greeting.EasePerS;
+        var looking = _lookLeft > 0 && GetViewport()?.GetCamera3D() is not null;
+        if (looking)
+        {
+            var voice = GetViewport().GetCamera3D().GlobalPosition;
+            _lookAt.Target = voice;
+            if (!_walking)
+            {
+                // Standing, the whole body turns to the voice; walking, only the head and upper body do.
+                _motion.Face(GreetingReaction.YawTowards(Position.X, Position.Z, voice.X, voice.Z));
+            }
+        }
+
+        _lookAt.Weight = (float)GreetingReaction.Ease(_lookAt.Weight, looking ? 1 : 0, ease, delta);
+        _wave.Weight = (float)GreetingReaction.Ease(_wave.Weight, _waveLeft > 0 ? 1 : 0, ease, delta);
+        _face.Expression = _talkLeft > 0 ? "talk" : "neutral";
+    }
+
+    /// <summary>The see-through pass: drawn only where something in front hides the figure (W1689).</summary>
+    private static ShaderMaterial Silhouette(FigureSilhouette look, FigureSpec spec)
+    {
+        var color = look.Color switch
+        {
+            FigureSilhouetteColor.Bottom => spec.Bottom,
+            FigureSilhouetteColor.Hair => spec.HairColor,
+            FigureSilhouetteColor.Skin => spec.Skin,
+            _ => spec.Top,
+        };
+        var material = new ShaderMaterial { Shader = GD.Load<Shader>("res://shaders/figure_silhouette.gdshader") };
+        material.SetShaderParameter("color", new Color(color));
+        material.SetShaderParameter("fill_alpha", (float)look.FillAlpha);
+        material.SetShaderParameter("edge_alpha", (float)look.EdgeAlpha);
+        material.SetShaderParameter("min_cover_m", (float)(look.MinCoverM * spec.Scale));
+        return material;
     }
 
     private void Report(ClipChoice choice)

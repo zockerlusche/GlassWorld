@@ -82,6 +82,24 @@ public sealed class AnimationChooser
     /// <summary>The clip for an expression id from the vocabulary.</summary>
     public ClipChoice ForExpression(string expression) => Resolve(_mappings.GetValueOrDefault(("expression", expression)));
 
+    /// <summary>The clip with a library id (the fallback clip, marked, if it is not made yet).</summary>
+    public ClipChoice ForClip(string clipId) => Resolve(clipId);
+
+    /// <summary>
+    /// Whether a standing inhabitant with this action shows an idle behaviour (no action, an action whose clip
+    /// is an idle behaviour or a gait, or one whose clip is not made yet), as <see cref="ForInhabitant"/> decides.
+    /// </summary>
+    public bool StandsIdle(string? action)
+    {
+        if (action is null)
+        {
+            return true;
+        }
+
+        var clip = ForAction(action);
+        return clip.FellBack || _idleClips.Contains(clip.ClipId) || _gaitClips.Contains(clip.ClipId);
+    }
+
     /// <summary>The clip for a work activity of the library (carry, hammer, chop …).</summary>
     public ClipChoice ForWork(string work) => Resolve(_mappings.GetValueOrDefault(("work", work)));
 

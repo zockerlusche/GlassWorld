@@ -7,9 +7,13 @@
     "thought_above_head_m": 1.9,
     "question_above_head_m": 1.1,
     "pixel_size_m": 0.009,
-    "thought_width_px": 900
+    "thought_width_px": 900,
+    "bubble_min_px": 22,
+    "bubble_max_px": 40,
+    "speech_s": 9.0
   },
   "observer": {
+    "auto": false,
     "group_switch_s": 30.0,
     "thought_focus_s": 12.0,
     "resume_after_idle_s": 45.0,

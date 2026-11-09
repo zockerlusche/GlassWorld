@@ -180,3 +180,20 @@ def test_v2_parts_count_against_the_budget() -> None:
     # Same budget: v2 has memory, knowledge, habits and people, so fewer far objects fit.
     assert v2.count("pebble [") < v1.count("pebble [")
     assert "red berry bush [obj-0042]" in v2  # option targets always stay
+
+
+def test_every_knowledge_source_has_words_in_the_prompts_that_name_sources() -> None:
+    """A source without words would reach the model as a raw id (review GW2 #142: 'seen')."""
+    import tomllib
+
+    sources = {
+        e["id"]
+        for e in json.loads(
+            (REPO / "content/vocabulary/knowledge_sources.json").read_text(encoding="utf-8")
+        )["entries"]
+    }
+    sources |= {"seen"}  # added with #142 (curiosity); harmless before it lands
+    for name in ("decider/decide.v2", "decider/decide.v3", "question/ask.v1"):
+        settings = tomllib.loads((PROMPTS / f"{name}.toml").read_text(encoding="utf-8"))
+        words = settings["settings"]["source_words"]
+        assert sources <= set(words), (name, sorted(sources - set(words)))
