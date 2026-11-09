@@ -43,6 +43,24 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("thought_width_px")]
         public int ThoughtWidthPx { get; set; } = default!;
 
+        /// <summary>
+        /// Least screen height of a bubble's text line in pixels (far away it stays readable, W1688).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("bubble_min_px")]
+        public double BubbleMinPx { get; set; } = default!;
+
+        /// <summary>
+        /// Greatest screen height of a bubble's text line in pixels (close up it is not huge).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("bubble_max_px")]
+        public double BubbleMaxPx { get; set; } = default!;
+
+        /// <summary>
+        /// Real seconds a spoken answer stays above the head.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("speech_s")]
+        public double SpeechS { get; set; } = default!;
+
     }
 
     /// <summary>

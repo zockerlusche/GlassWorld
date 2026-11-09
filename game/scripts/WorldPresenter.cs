@@ -26,6 +26,7 @@ public partial class WorldPresenter : Node3D
 
     private readonly Dictionary<string, MeshInstance3D> _figures = new(StringComparer.Ordinal);
     private readonly Dictionary<string, (Label3D Label, double Until)> _thoughts = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, double> _speechUntil = new(StringComparer.Ordinal);
     private AiServiceProcess? _service;
     private HttpDecisionPort? _livePort;
     private HttpConversationPort? _conversationPort;
@@ -259,6 +260,7 @@ public partial class WorldPresenter : Node3D
             _clock += delta;
             ShowThoughts();
             IslandCamera();
+            KeepFiguresVisible();
             return;
         }
 
@@ -405,17 +407,26 @@ public partial class WorldPresenter : Node3D
         {
             _seenEvents = sequenced.Seq;
             var e = sequenced.Event;
-            if (Talk(e) is { } talk && _thoughts.TryGetValue(e.InhabitantId, out var said))
+            if (TalkBubble.For(e.Kind, e.Text, _look?.Labels.SpeechS ?? (ThoughtSeconds + 2)) is { } talk)
             {
-                // Talking (B6 R13): "..." while it thinks, then the answer or a question mark.
-                said.Label.Text = talk.Text;
-                said.Label.Visible = true;
-                _thoughts[e.InhabitantId] = (said.Label, _clock + talk.Seconds);
+                // Talking (B6 R13): "..." while it thinks, then the answer or a question mark; the figures
+                // show that they heard and the camera follows the one spoken to (W1688).
+                if (_thoughts.TryGetValue(e.InhabitantId, out var said))
+                {
+                    said.Label.Text = talk.Text;
+                    said.Label.Visible = talk.Seconds > 0;
+                    _thoughts[e.InhabitantId] = (said.Label, _clock + talk.Seconds);
+                }
+
+                _speechUntil[e.InhabitantId] = TalkBubble.IsSpeech(e.Kind, e.Text) ? _clock + talk.Seconds : 0;
+                React(e);
                 continue;
             }
 
-            if (e.Kind == "thought" && e.Text is { Length: > 0 } text && _thoughts.TryGetValue(e.InhabitantId, out var bubble))
+            if (e.Kind == "thought" && e.Text is { Length: > 0 } text && _thoughts.TryGetValue(e.InhabitantId, out var bubble)
+                && _clock >= _speechUntil.GetValueOrDefault(e.InhabitantId))
             {
+                // A thought never covers a spoken answer still showing (W1688).
                 bubble.Label.Text = text;
                 bubble.Label.Visible = true;
                 _thoughts[e.InhabitantId] = (bubble.Label, _clock + ThoughtSeconds);
@@ -425,25 +436,25 @@ public partial class WorldPresenter : Node3D
             }
         }
 
-        foreach (var (id, bubble) in _thoughts.ToList())
+        var camera = Mode == WorldLookMode.Island && _look is not null ? GetViewport()?.GetCamera3D() : null;
+        foreach (var bubble in _thoughts.Values)
         {
             if (bubble.Label.Visible && _clock > bubble.Until)
             {
                 bubble.Label.Visible = false;
             }
+            else if (bubble.Label.Visible && camera is not null)
+            {
+                // Readable at every zoom (W1688): a line of the bubble keeps its screen height within the data.
+                var label = bubble.Label;
+                var perMetre = camera.Projection == Camera3D.ProjectionType.Orthogonal
+                    ? GetViewport().GetVisibleRect().Size.Y / Math.Max(camera.Size, 0.001)
+                    : Presentation.Ui.HeadSymbolSize.PixelsPerMetre(camera.GlobalPosition.DistanceTo(label.GlobalPosition), camera.Fov, GetViewport().GetVisibleRect().Size.Y);
+                var factor = (float)Presentation.Ui.HeadSymbolSize.Factor(label.FontSize * label.PixelSize, perMetre, _look!.Labels.BubbleMinPx, _look.Labels.BubbleMaxPx);
+                label.Scale = new Vector3(factor, factor, factor);
+            }
         }
     }
-
-    /// <summary>The bubble of a conversation event: text and how long it stays (null for other events).</summary>
-    private static (string Text, double Seconds)? Talk(Simulation.Inhabitants.WorldEvent e) => e.Kind switch
-    {
-        "conversation_started" => ("…", 120.0),
-        "said" or "declined" when e.Text is { Length: > 0 } text => (text, ThoughtSeconds + 2),
-        "gestured" or "declined" => ("…", 2.0),
-        "not_understood" => ("?", ThoughtSeconds),
-        "no_answer" => (string.Empty, 0.0),
-        _ => null,
-    };
 
     /// <summary>Decider that never answers (service could not be started): questions stay open (B2487).</summary>
     private sealed class SilentPort : IDecisionPort
