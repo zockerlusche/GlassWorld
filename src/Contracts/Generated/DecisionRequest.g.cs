@@ -67,6 +67,43 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("partners")]
         public System.Collections.Generic.ICollection<string> Partners { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
+        /// <summary>
+        /// For actions that pass knowledge on to the target inhabitant (show, teach, warn; B4a R4, D625): WHAT the asker would pass on. This is the asker's own belief that the core would pass, never the world's truth. Optional (absent = the action passes nothing on, or an older core).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("topic")]
+        public OptionTopic? Topic { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class OptionTopic
+    {
+
+        /// <summary>
+        /// Kind of thing the belief is about (object type id; content types are named by the data, i18n key vocab.object.&lt;id&gt;).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("object_type")]
+        public string ObjectType { get; set; } = default!;
+
+        /// <summary>
+        /// The inhabitants' own name for a thing they invented (runtime type, not in the data), in both languages; null for content types, which the data names.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        public LocalizedName? Name { get; set; } = default!;
+
+        /// <summary>
+        /// The property the asker believes about it (vocabulary property, e.g. poisonous).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("property")]
+        public string Property { get; set; } = default!;
+
+        /// <summary>
+        /// What the asker believes: the thing has the property (true) or not (false). Its belief, which can be wrong.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("value")]
+        public bool Value { get; set; } = default!;
+
     }
 
     /// <summary>
