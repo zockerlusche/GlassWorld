@@ -1333,7 +1333,9 @@ public partial class GameScreen : CanvasLayer
         var window = _style.Tokens.Window;
         var top = Math.Max(0, _topBar.Position.Y + _topBar.Size.Y + window.Gap - window.SafeMargin);
         _card.FitInto(new Vector2(CardArea(area).X, area.Y - top));
-        _card.Position += new Vector2(0, top);
+
+        // At the left edge, not in the middle of the picture (W1695): the world stays free to watch.
+        _card.Position = new Vector2(window.SafeMargin, top + window.SafeMargin);
     }
 
     private Vector2 CardArea(Vector2 area)
