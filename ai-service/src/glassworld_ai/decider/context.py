@@ -334,6 +334,9 @@ def _life(request: DecisionRequest, settings: dict[str, Any]) -> str:
     kin = _table_of(settings, "kin_words")
     names = _names_seen(request)
     lines: list[str] = []
+    own = _proper(inhabitant.name)
+    if own:  # W1698: so the inhabitant can introduce itself
+        lines.append(f'- Your name is "{own}".')
     stage = _id(inhabitant.life_stage) if inhabitant.life_stage is not None else None
     if stage is not None or inhabitant.age_years is not None:
         who = stages.get(stage, _humanize(stage)) if stage is not None else "someone"
