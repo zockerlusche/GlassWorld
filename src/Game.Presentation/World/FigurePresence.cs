@@ -162,7 +162,8 @@ public static class GreetingReaction
             "conversation_started" => new Reaction(data.ReactS, 0, 0),
             "said" => new Reaction(data.AfterAnswerS, wave, hasText ? data.TalkS : 0),
             "gestured" or "declined" => new Reaction(data.AfterAnswerS, wave, 0),
-            "not_understood" => new Reaction(data.AfterAnswerS, 0, 0),
+            "not_understood" => new Reaction(data.AfterAnswerS, wave, hasText ? data.TalkS : 0),
+            "no_answer" when hasText => new Reaction(data.AfterAnswerS, 0, data.TalkS),
             _ => null,
         };
     }
@@ -225,25 +226,34 @@ public static class CrownFade
 
 /// <summary>
 /// The bubble above a figure for a conversation event (B6 R13), without Godot: "…" while it thinks about
-/// the player's sentence, the answer for the data's speech time, a question mark when it did not understand,
-/// nothing after no answer. Null for other events.
+/// the player's sentence, the answer for the data's speech time, the asking back when it did not understand
+/// (a question mark without a sentence), the calm line of the data after no answer (W1701; nothing without
+/// one). Null for other events.
 /// </summary>
 public static class TalkBubble
 {
     /// <summary>How long the thinking dots of a sentence stay at most (the answer replaces them).</summary>
     public const double WaitingS = 120;
 
+    /// <summary>
+    /// Turns the text key of the no-answer line into the player's language; the game sets it to its translation
+    /// at start (the key itself until then, e.g. in tests). An empty result (key not in the catalogs) shows no
+    /// bubble, never a raw key.
+    /// </summary>
+    public static Func<string, string> Translate { get; set; } = key => key;
+
     /// <summary>Text and real seconds of the bubble for an event, or null.</summary>
     public static (string Text, double Seconds)? For(string kind, string? text, double speechS) => kind switch
     {
         "conversation_started" => ("…", WaitingS),
-        "said" or "declined" when text is { Length: > 0 } => (text, speechS),
+        "said" or "declined" or "not_understood" when text is { Length: > 0 } => (text, speechS),
         "gestured" or "declined" => ("…", 2.0),
         "not_understood" => ("?", speechS),
+        "no_answer" when text is { Length: > 0 } && Translate(text) is { Length: > 0 } line => (line, speechS),
         "no_answer" => (string.Empty, 0.0),
         _ => null,
     };
 
     /// <summary>Whether a spoken answer must stay (a thought of the same figure does not replace it).</summary>
-    public static bool IsSpeech(string kind, string? text) => kind is "said" or "declined" && text is { Length: > 0 };
+    public static bool IsSpeech(string kind, string? text) => kind is "said" or "declined" or "not_understood" or "no_answer" && text is { Length: > 0 };
 }

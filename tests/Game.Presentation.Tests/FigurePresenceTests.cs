@@ -112,6 +112,9 @@ public sealed class FigurePresenceTests
         Assert.True(answer.LookS > 0 && answer.WaveS > 0 && answer.TalkS > 0);
         Assert.Equal(0, GreetingReaction.For(greeting, "gestured", "ponder", hasText: false)!.Value.WaveS);
         Assert.Null(GreetingReaction.For(greeting, "thought", null, hasText: true));
+        Assert.Equal(greeting.TalkS, GreetingReaction.For(greeting, "not_understood", null, hasText: true)!.Value.TalkS); // W1701: asks back aloud
+        Assert.Equal(0, GreetingReaction.For(greeting, "not_understood", null, hasText: false)!.Value.TalkS);
+        Assert.Null(GreetingReaction.For(greeting, "no_answer", null, hasText: false));
 
         // Listening is a standing clip that exists, not the crouch or a placeholder.
         var chooser = new AnimationChooser(Library);
@@ -132,6 +135,22 @@ public sealed class FigurePresenceTests
         Assert.Equal("…", TalkBubble.For("conversation_started", "Hallo", 9.0)!.Value.Text);
         Assert.Equal("?", TalkBubble.For("not_understood", null, 9.0)!.Value.Text);
         Assert.Equal(0.0, TalkBubble.For("no_answer", null, 9.0)!.Value.Seconds);
+        // W1701: asking back shows its sentence, no answer shows the data's calm line (translated by the game).
+        Assert.Equal(("Feuer? Was ist das?", 9.0), TalkBubble.For("not_understood", "Feuer? Was ist das?", 9.0));
+        Assert.Equal(("msg.converse.no_answer", 9.0), TalkBubble.For("no_answer", "msg.converse.no_answer", 9.0));
+        Assert.True(TalkBubble.IsSpeech("not_understood", "Feuer? Was ist das?"));
+        Assert.True(TalkBubble.IsSpeech("no_answer", "msg.converse.no_answer"));
+        Assert.False(TalkBubble.IsSpeech("not_understood", null));
+        var translate = TalkBubble.Translate;
+        try
+        {
+            TalkBubble.Translate = _ => string.Empty; // key missing in the catalogs: no bubble rather than a raw key
+            Assert.Equal((string.Empty, 0.0), TalkBubble.For("no_answer", "msg.converse.no_answer", 9.0));
+        }
+        finally
+        {
+            TalkBubble.Translate = translate;
+        }
         Assert.Null(TalkBubble.For("thought", "Ich habe Hunger.", 9.0));
         Assert.True(TalkBubble.IsSpeech("said", "Hallo!"));
         Assert.False(TalkBubble.IsSpeech("gestured", null));
