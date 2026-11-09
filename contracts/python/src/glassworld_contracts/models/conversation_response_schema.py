@@ -38,7 +38,8 @@ class ConversationResponse(BaseModel):
     )
     outcome: Outcome
     reply: common_schema.GeneratedText | None = Field(
-        ..., description='Speech bubble in display_locale; set only for outcome reply.'
+        ...,
+        description='Speech bubble in display_locale. Set for reply; since conversation prompt v2 (Marcel W1701) also for decline and not_understood (the inhabitant says no or asks back; a stand-in msg.converse.<outcome> when the model gives none). Null for gesture.',
     )
     expression: common_schema.VocabId | None = Field(
         ...,
