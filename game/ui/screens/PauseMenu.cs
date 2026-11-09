@@ -63,6 +63,13 @@ public static class PauseMenu
             window.GetTree().CreateTimer(0.05).Timeout += () =>
             {
                 var ok = saveNow();
+
+                // The window may have closed meanwhile (Esc within the moment): it saved, nothing left to show.
+                if (!GodotObject.IsInstanceValid(status) || !GodotObject.IsInstanceValid(save))
+                {
+                    return;
+                }
+
                 status.Text = ok
                     ? TextFill.Fill(window.Tr("ui.pause.saved_at"), new Dictionary<string, string> { ["time"] = DateTime.Now.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture) })
                     : window.Tr("ui.pause.save_failed");
