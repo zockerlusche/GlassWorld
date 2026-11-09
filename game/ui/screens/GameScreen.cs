@@ -36,6 +36,7 @@ public partial class GameScreen : CanvasLayer
     private Dictionary<string, string>? _activities;
     private Label? _cardQuestions;
     private LineEdit? _talkInput;
+    private readonly Dictionary<string, bool> _cardFolded = new(StringComparer.Ordinal);
     private string _cardShape = string.Empty;
     private readonly GwToasts _toasts = new();
     private PanelContainer? _topBar;
@@ -861,7 +862,7 @@ public partial class GameScreen : CanvasLayer
             _chronicleList.AddChild(line);
         }
 
-        var export = new Button { Text = "ui.chronicle.export" };
+        var export = new Button { Text = "ui.chronicle.export", TooltipText = "ui.chronicle.export_tip" };
         export.Pressed += () => ExportChronicle();
         _chronicleList.AddChild(export);
     }
@@ -1391,7 +1392,9 @@ public partial class GameScreen : CanvasLayer
         var window = _style.Tokens.Window;
         var top = Math.Max(0, _topBar.Position.Y + _topBar.Size.Y + window.Gap - window.SafeMargin);
         _card.FitInto(new Vector2(CardArea(area).X, area.Y - top));
-        _card.Position += new Vector2(0, top);
+
+        // At the left edge, not in the middle of the picture (W1695): the world stays free to watch.
+        _card.Position = new Vector2(window.SafeMargin, top + window.SafeMargin);
     }
 
     private Vector2 CardArea(Vector2 area)
@@ -1466,27 +1469,11 @@ public partial class GameScreen : CanvasLayer
             _cardShape = shape;
             _cardBars.Clear();
             _card.ClearContent();
-            Section("ui.card.wellbeing");
-            Bar("ui.card.will_to_live");
-            foreach (var need in card.Needs)
-            {
-                Bar(need.Key);
-            }
 
-            Section("ui.card.feelings");
-            foreach (var feeling in card.Feelings)
-            {
-                Bar(feeling.Key);
-            }
-
-            Section("ui.card.character");
-            foreach (var trait in card.Traits)
-            {
-                Bar(trait.Key);
-            }
-
+            // Order of the card (W1688, TL #19983): first what the inhabitant does and the talk field, well
+            // visible; the values below in sections the player can fold (the choice is kept while playing).
             Section("ui.card.doing");
-            _cardAction = new Label();
+            _cardAction = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
             _cardQuestions = new Label { AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled };
             _card.Content.AddChild(_cardAction);
             _card.Content.AddChild(_cardQuestions);
@@ -1517,6 +1504,25 @@ public partial class GameScreen : CanvasLayer
             talkRow.AddChild(input);
             talkRow.AddChild(send);
             _card.Content.AddChild(talkRow);
+
+            var wellbeing = Fold("ui.card.wellbeing", folded: false);
+            Bar(wellbeing, "ui.card.will_to_live");
+            foreach (var need in card.Needs)
+            {
+                Bar(wellbeing, need.Key);
+            }
+
+            var feelings = Fold("ui.card.feelings", folded: true);
+            foreach (var feeling in card.Feelings)
+            {
+                Bar(feelings, feeling.Key);
+            }
+
+            var character = Fold("ui.card.character", folded: true);
+            foreach (var trait in card.Traits)
+            {
+                Bar(character, trait.Key);
+            }
         }
 
         foreach (var (key, percent) in values)
@@ -1546,13 +1552,28 @@ public partial class GameScreen : CanvasLayer
 
         void Section(string key) => _card!.Content.AddChild(new Label { Text = key, ThemeTypeVariation = UiTheme.SubheaderLabel });
 
-        void Bar(string key)
+        // A foldable section; folded or open as the player last left it (default as given).
+        VBoxContainer Fold(string key, bool folded)
+        {
+            var section = new FoldableContainer { Title = key, Folded = _cardFolded.GetValueOrDefault(key, folded) };
+            section.FoldingChanged += isFolded =>
+            {
+                _cardFolded[key] = isFolded;
+                FitCard(GetViewport().GetVisibleRect().Size);
+            };
+            var rows = new VBoxContainer();
+            section.AddChild(rows);
+            _card!.Content.AddChild(section);
+            return rows;
+        }
+
+        void Bar(VBoxContainer into, string key)
         {
             var row = new HBoxContainer();
             row.AddChild(new Label { Text = key, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
             var bar = new ProgressBar { MinValue = 0, MaxValue = 100, ShowPercentage = true, CustomMinimumSize = new Vector2(_style!.Tokens.Window.CardBarWidth, 0) };
             row.AddChild(bar);
-            _card!.Content.AddChild(row);
+            into.AddChild(row);
             _cardBars[key] = bar;
         }
     }
@@ -1564,8 +1585,6 @@ public partial class GameScreen : CanvasLayer
         {
             _talkInput.Text = sentence;
         }
-
-        _card?.ScrollToEnd();
     }
 
     /// <summary>

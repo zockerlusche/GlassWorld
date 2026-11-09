@@ -99,6 +99,35 @@ public partial class MainMenu : CanvasLayer
         _buttons.GetChild<Button>(1).CallDeferred(Control.MethodName.GrabFocus);
     }
 
+    /// <summary>
+    /// Answers a click on a world at once (W1688: "dass zumindest, wenn man irgendwo geklickt hat, dass eine
+    /// Rückmeldung kommt"): a calm "loading" window over the menu, the buttons locked until the world is open
+    /// or loading failed (then <see cref="Rebuild"/> frees them).
+    /// </summary>
+    public void ShowLoading(string worldName)
+    {
+        if (_style is null)
+        {
+            return;
+        }
+
+        foreach (var button in _buttons.GetChildren().OfType<Button>())
+        {
+            button.Disabled = true;
+        }
+
+        var window = new GwWindow();
+        window.Setup("ui.menu.loading_title", _style);
+        window.Content.AddChild(new Label
+        {
+            Text = TextFill.Fill(Tr("ui.menu.loading"), new Dictionary<string, string> { ["name"] = worldName }),
+            AutoTranslateMode = AutoTranslateModeEnum.Disabled,
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            HorizontalAlignment = HorizontalAlignment.Center,
+        });
+        ShowWindow(window);
+    }
+
     /// <summary>Shows a window over the menu (also used for the settings).</summary>
     public void ShowWindow(GwWindow window)
     {

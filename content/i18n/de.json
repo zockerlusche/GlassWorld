@@ -1264,7 +1264,7 @@
     },
     {
       "key": "ui.help.empty",
-      "text": "Gerade bittet niemand um Hilfe."
+      "text": "Gerade bittet niemand um Hilfe. Wenn ein Bewohner etwas mehrmals vergeblich versucht, erscheint seine Bitte hier und klopft im Postfach an. Bis dahin läuft alles von selbst."
     },
     {
       "key": "ui.help.call",
@@ -1292,7 +1292,7 @@
     },
     {
       "key": "ui.mailbox.empty",
-      "text": "Keine neuen Nachrichten."
+      "text": "Keine neuen Nachrichten. Hier klopfen die Bewohner an, wenn sie Hilfe brauchen oder dir etwas mitteilen möchten."
     },
     {
       "key": "ui.mailbox.read",
@@ -1640,7 +1640,7 @@
     },
     {
       "key": "ui.chronicle.export",
-      "text": "Als Datei speichern"
+      "text": "Chronik exportieren"
     },
     {
       "key": "msg.hint.chronicle_exported",
@@ -1981,6 +1981,18 @@
     {
       "key": "msg.thought.warn",
       "text": "Pass auf!"
+    },
+    {
+      "key": "ui.menu.loading_title",
+      "text": "Einen Moment"
+    },
+    {
+      "key": "ui.menu.loading",
+      "text": "„{name}“ wird geladen …"
+    },
+    {
+      "key": "ui.chronicle.export_tip",
+      "text": "Speichert die Chronik als Webseite (.html) und als Textdatei (.txt) im Spielordner unter „chronicle“ – zum Lesen oder Weitergeben."
     }
   ]
 }

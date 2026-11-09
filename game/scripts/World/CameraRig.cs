@@ -149,6 +149,14 @@ public partial class CameraRig : Node3D
             return;
         }
 
+        // The wheel over a window, menu or list belongs to it, never to the map (TL #19986), also where the
+        // control itself does not scroll.
+        if (@event is InputEventMouseButton { ButtonIndex: MouseButton.WheelUp or MouseButton.WheelDown or MouseButton.WheelLeft or MouseButton.WheelRight }
+            && GetViewport()?.GuiGetHoveredControl() is not null)
+        {
+            return;
+        }
+
         if (@event.IsActionPressed(ZoomInAction))
         {
             ZoomBy(@event, 1);
