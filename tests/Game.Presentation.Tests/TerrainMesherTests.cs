@@ -349,7 +349,8 @@ public sealed class TerrainMesherTests
             var centre = centres.Where(c => MathF.Abs(c.X - x) < 1e-5f && MathF.Abs(c.Z - z) < 1e-5f).Select(c => (double?)c.Depth).FirstOrDefault();
             if (centre is { } depth)
             {
-                Assert.Equal(ground + (float)(depth * look.UnitM), y, 3);
+                // Float rounding only (the heights are single precision): a tolerance, not decimal places.
+                Assert.InRange(y, ground + (float)(depth * look.UnitM) - 1e-4f, ground + (float)(depth * look.UnitM) + 1e-4f);
             }
             else
             {
