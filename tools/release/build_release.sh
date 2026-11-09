@@ -7,18 +7,22 @@
 # Needs Windows (the exported build is started once) and the Godot 4.7.2 .NET export templates.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && (pwd -W 2>/dev/null || pwd))"
-VERSION="${1:?usage: build_release.sh <version|unreleased> [OUT_DIR]}"
+RELEASE_VERSION="${1:?usage: build_release.sh <version|unreleased> [OUT_DIR]}"
 # Default next to the repository: the AI service packaging never writes inside it (review #115).
 OUT="${2:-$(dirname "$ROOT")/GlassWorld-release}"
 : "${GODOT:?environment variable GODOT is not set}"
 : "${PYTHON_DIR:?environment variable PYTHON_DIR is not set (python-build-standalone 3.12)}"
+# MSBuild takes every environment variable as a property. Generic names would change the game's
+# build inside the Godot export: VERSION=unreleased became $(Version) and broke NuGet's restore
+# silently (NU1105, found by GW1). Keep them out of the export's environment.
+unset VERSION CONFIGURATION PLATFORM OUTPUTPATH OUTDIR TARGETFRAMEWORK RUNTIMEIDENTIFIER
 
-if [[ "$VERSION" == "unreleased" ]]; then
+if [[ "$RELEASE_VERSION" == "unreleased" ]]; then
   LABEL="probe-$(git -C "$ROOT" rev-parse --short=8 HEAD)"
   NOTES_ARGS=(--unreleased)
 else
-  LABEL="$VERSION"
-  NOTES_ARGS=("$VERSION")
+  LABEL="$RELEASE_VERSION"
+  NOTES_ARGS=("$RELEASE_VERSION")
 fi
 NAME="GlassWorld-$LABEL-windows-x64"
 STAGE="$OUT/$NAME"
