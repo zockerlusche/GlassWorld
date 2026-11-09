@@ -63,3 +63,56 @@ def test_runner_measures_validity_plausibility_and_latency(tmp_path: Path) -> No
     )
     assert "Content-valid" in (tmp_path / "report.md").read_text(encoding="utf-8")
     assert (tmp_path / "report.json").exists()
+
+
+# --- B9 test sets A14/A15 (Bogen 34, A1389) ------------------------------------------------------
+
+B9 = Path(__file__).resolve().parents[1] / "testsets" / "b9"
+REPO = Path(__file__).resolve().parents[2]
+
+
+def test_b9_sets_are_big_enough_and_valid_by_contract() -> None:
+    from glassworld_ai.validation import ContractValidator
+
+    validator = ContractValidator(REPO / "contracts" / "schemas")
+    a14, a15 = load_testset(B9 / "a14.v1.json"), load_testset(B9 / "a15.v1.json")
+    assert len(a14.cases) >= 25 and len(a15.cases) >= 30  # Bogen 34 A14/A15
+    for case in [*a14.cases, *a15.cases]:
+        schema = "decision-request" if case.kind == "decision" else "conversation-request"
+        assert validator.errors(schema, case.request) == [], case.id
+    assert {c.kind for c in a15.cases} == {"decision", "conversation"}
+
+
+def test_forbidden_words_match_only_at_a_word_start() -> None:
+    from glassworld_ai.safety import TextGuard
+    from glassworld_ai.testsets import TestCase, text_problems
+
+    case = TestCase(
+        id="x",
+        description="x",
+        request={},
+        plausible_option_ids=[],
+        forbidden_words=["hit", "küss", "blut"],
+    )
+    guard = TextGuard.from_file(REPO / "content" / "safety" / "rules.json")
+    assert text_problems("Das mache ich nicht.", case, guard) == []
+    assert text_problems("Komm, wir spielen!", case, guard) == []
+    assert text_problems("Ich küsse sie.", case, guard) == ["word:küss"]
+    assert text_problems("Da war Blut.", case, guard) == ["word:blut"]
+
+
+def test_b9_runner_checks_content_with_the_mocks(tmp_path: Path) -> None:
+    from glassworld_ai.conversation import MockConversation
+    from glassworld_ai.safety import TextGuard
+
+    guard = TextGuard.from_file(REPO / "content" / "safety" / "rules.json")
+    testset = load_testset(B9 / "a15.v1.json")
+    results = asyncio.run(run_cases(MockDecider(), testset, 1, MockConversation(), guard))
+    assert len(results) == len(testset.cases)
+    summary = summarize(results, 1.0)
+    assert set(summary["problems"]) <= {"silent", "no_readable_name"}  # the mocks say little
+    write_report(tmp_path, summary, results, {
+        "testset": testset.id, "version": 1, "cases": len(testset.cases), "runs": 1,
+        "model": "mock", "prompt": "decider/decide.v5", "temperature": 0.0,
+    })  # fmt: skip
+    assert "Valid incl. content checks" in (tmp_path / "report.md").read_text(encoding="utf-8")
