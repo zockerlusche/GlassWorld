@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/mock-weights.schema.json",
+  "title": "MockWeights",
+  "description": "Weights of the generic decision mock (Bogen 34 R26): the mock in the AI service and in the core picks among the offered options by these weights, the same integer rule on both sides (tests/mock/cases.json). No branch for any single option: changing only these data changes the result (A3); weight 0 means the mock never picks that action while another option has weight.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "default_permille",
+    "weights"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "default_permille": {
+      "description": "Weight of an action without its own entry, in permille.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000
+    },
+    "weights": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/MockWeight"
+      }
+    }
+  },
+  "$defs": {
+    "MockWeight": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action",
+        "permille"
+      ],
+      "properties": {
+        "action": {
+          "description": "Action id from the action vocabulary.",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "permille": {
+          "description": "Weight of this action, in permille (0 = never while another option has weight).",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        }
+      }
+    }
+  }
+}

@@ -14,6 +14,7 @@ import httpx
 
 from glassworld_ai.calllog import CallLog, CallRecord
 from glassworld_ai.decider.context import build_values
+from glassworld_ai.decider.mock import MockWeights, pick
 from glassworld_ai.decider.output import (
     InvalidModelOutputError,
     ModelChoice,
@@ -300,18 +301,22 @@ class OllamaDecider:
 
 
 class MockDecider:
-    """Deterministic stand-in for CI and core tests: the seed picks one of the options."""
+    """Deterministic generic stand-in for CI and core tests (Bogen 34 R26): the seed picks one of
+    the options by the data's weights (decider/mock.py, the same rule as the core's mock)."""
 
     THOUGHTS: ClassVar[dict[str, str]] = {
         "de": "Ich schaue mal, was ich tun kann.",
         "en": "Let me see what I can do.",
     }
 
+    def __init__(self, weights: MockWeights | None = None) -> None:
+        self._weights = weights or MockWeights()
+
     async def decide(self, request: DecisionRequest, deadline: float) -> DecisionResponse:
-        options = sorted(_plain(o.option_id) for o in request.options)
-        option_id = options[request.seed % len(options)]
+        options = [(_plain(o.option_id), _plain(o.action)) for o in request.options]
+        option_id = pick(options, int(request.seed), self._weights)
         choice = ModelChoice(
-            rationale="Mock decider: option chosen by seed.",
+            rationale="Mock decider: option chosen by seed and the data's weights.",
             option_id=option_id,
             expression=None,
             thought=self.THOUGHTS.get(_plain(request.display_locale)),

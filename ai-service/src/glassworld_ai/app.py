@@ -39,6 +39,7 @@ from glassworld_ai.decider.backends import (
     OllamaDecider,
     ReplayDecider,
 )
+from glassworld_ai.decider.mock import MockWeights
 from glassworld_ai.dream import MockDreams, OllamaDreams, ReplayDreams
 from glassworld_ai.errors import error_response, install_error_handlers
 from glassworld_ai.hardware import HardwareInfo, detect_hardware, load_tiers, select_tier
@@ -1236,7 +1237,8 @@ def _build_decider(settings: Settings, ollama: OllamaClient, queue: ModelQueue) 
     vocab = Vocabulary.load(settings.content_dir / "vocabulary")
     log = CallLog(settings.log_dir / "decider.jsonl")
     if settings.decider_backend == "mock":
-        return MockDecider()
+        weights = settings.content_dir / "ai" / "mock-weights.json"
+        return MockDecider(MockWeights.load(weights) if weights.exists() else None)
     if settings.decider_backend == "replay":
         return ReplayDecider(log, vocab)
     return OllamaDecider(
