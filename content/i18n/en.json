@@ -1629,6 +1629,10 @@
     {
       "key": "msg.hint.chronicle_exported",
       "text": "The chronicle is saved as a web page and a text file in {folder}."
+    },
+    {
+      "key": "msg.hint.chronicle_export_failed",
+      "text": "The chronicle could not be saved just now."
     }
   ]
 }

@@ -374,6 +374,51 @@ public partial class GameScreen : CanvasLayer
     /// Smoke run only (review GW1 #131): the talk field of a card takes a sentence, it costs favour and an
     /// answer from the mock comes back as a reaction event; a refused sentence costs nothing.
     /// </summary>
+    /// <summary>
+    /// Smoke run only (review GW1 #136): two chronicle entries on two days make two pages; earlier/later
+    /// page between them; the export writes a web page and a text file (removed again afterwards).
+    /// </summary>
+    public async Task<string> CheckChronicleAsync()
+    {
+        if (_presenter?.Host is not { } host || _chronicle is null || _feed?.Inhabitants() is not { Count: > 0 } rows)
+        {
+            return "no world or chronicle";
+        }
+
+        var kind = host.Content.Chronicle.Kinds.First();
+        var day = host.World.Calendar.TicksPerDay;
+        host.Inhabitants.Report(new Simulation.Inhabitants.WorldEvent(kind.Event, host.World.Tick, rows[0].Id, null, null));
+        host.Inhabitants.Report(new Simulation.Inhabitants.WorldEvent(kind.Event, host.World.Tick + day, rows[0].Id, null, null));
+        RefreshChronicle();
+        await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        if (_chronicle.Days().Count < 2)
+        {
+            return "two days did not make two pages";
+        }
+
+        var newest = _chronicle.Days()[0];
+        ShowChronicleDay(_chronicle.Next(newest, -1));
+        if (_chronicleDay is null)
+        {
+            return "earlier did not page back";
+        }
+
+        ShowChronicleDay(_chronicle.Next(_chronicleDay.Value, +1));
+        if (_chronicleDay is not null)
+        {
+            return "later did not page to the newest day";
+        }
+
+        if (ExportChronicle() is not { } html || !System.IO.File.Exists(html) || !System.IO.File.Exists(System.IO.Path.ChangeExtension(html, ".txt")))
+        {
+            return "export wrote no files";
+        }
+
+        System.IO.File.Delete(html);
+        System.IO.File.Delete(System.IO.Path.ChangeExtension(html, ".txt"));
+        return string.Empty;
+    }
+
     public async Task<string> CheckTalkAsync()
     {
         if (_presenter?.Host is not { } host || _feed?.Inhabitants() is not { Count: > 0 } rows)
@@ -715,7 +760,12 @@ public partial class GameScreen : CanvasLayer
                 TooltipText = "ui.chronicle.jump",
             };
             var who = entry.InhabitantId;
-            line.Pressed += () => OpenCard(who);
+            line.Pressed += () =>
+            {
+                // Jump to the inhabitant: its card, and on the island the camera follows it.
+                OpenCard(who);
+                _presenter?.ChooseFigure(who);
+            };
             _chronicleList.AddChild(line);
         }
 
@@ -742,8 +792,19 @@ public partial class GameScreen : CanvasLayer
         var stem = ChronicleExport.FileStem(_presenter?.SavePath is { } save ? System.IO.Path.GetFileNameWithoutExtension(save) : title, DateTimeOffset.Now);
         string Day(long day) => ChronicleDate(_chronicle.On(day)[0]);
         var html = System.IO.Path.Combine(folder, stem + ".html");
-        System.IO.File.WriteAllText(html, ChronicleExport.Html(_chronicle, title, TranslationServer.GetLocale(), Day, ChronicleLine));
-        System.IO.File.WriteAllText(System.IO.Path.Combine(folder, stem + ".txt"), ChronicleExport.Text(_chronicle, title, Day, ChronicleLine));
+        try
+        {
+            System.IO.File.WriteAllText(html, ChronicleExport.Html(_chronicle, title, TranslationServer.GetLocale(), Day, ChronicleLine));
+            System.IO.File.WriteAllText(System.IO.Path.Combine(folder, stem + ".txt"), ChronicleExport.Text(_chronicle, title, Day, ChronicleLine));
+        }
+        catch (Exception e) when (e is System.IO.IOException or UnauthorizedAccessException)
+        {
+            // Disk full, folder locked: a calm hint instead of a crash (review GW1 #136).
+            GD.PushWarning($"chronicle export failed: {e.Message}");
+            ShowHint(new ToastMessage("msg.hint.chronicle_export_failed", new Dictionary<string, string>(), null));
+            return null;
+        }
+
         ShowHint(new ToastMessage("msg.hint.chronicle_exported", new Dictionary<string, string> { ["folder"] = folder }, null));
         return html;
     }

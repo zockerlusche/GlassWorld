@@ -65,10 +65,10 @@ public static class ChronicleExport
         ArgumentNullException.ThrowIfNull(line);
         var text = new StringBuilder();
         text.Append(title).Append('\n').Append(new string('=', Math.Max(3, title.Length))).Append("\n\n");
-        foreach (var day in book.Days().Reverse())
+        foreach (var (day, entries) in ByDay(book))
         {
             text.Append(dayTitle(day)).Append('\n');
-            foreach (var entry in book.On(day))
+            foreach (var entry in entries)
             {
                 text.Append("- ").Append(line(entry)).Append('\n');
             }
@@ -95,10 +95,10 @@ public static class ChronicleExport
         html.Append("<!doctype html>\n<html lang=\"").Append(E(locale)).Append("\">\n<head>\n<meta charset=\"utf-8\">\n<title>")
             .Append(E(title)).Append("</title>\n<style>body{font-family:sans-serif;max-width:46rem;margin:2rem auto;padding:0 1rem;line-height:1.5;color:#2b2420;background:#f3ead8}h1{font-size:1.6rem}h2{font-size:1.1rem;margin-top:1.6rem;border-bottom:1px solid #c9b896}li{margin:.2rem 0}</style>\n</head>\n<body>\n<h1>")
             .Append(E(title)).Append("</h1>\n");
-        foreach (var day in book.Days().Reverse())
+        foreach (var (day, entries) in ByDay(book))
         {
             html.Append("<h2>").Append(E(dayTitle(day))).Append("</h2>\n<ul>\n");
-            foreach (var entry in book.On(day))
+            foreach (var entry in entries)
             {
                 html.Append("<li>").Append(E(line(entry))).Append("</li>\n");
             }
@@ -108,6 +108,13 @@ public static class ChronicleExport
 
         return html.Append("</body>\n</html>\n").ToString();
     }
+
+    /// <summary>The entries grouped by day in one pass, oldest day first, each day in the order it happened (review GW1 #136).</summary>
+    private static IEnumerable<(long Day, IReadOnlyList<ChronicleEntry> Entries)> ByDay(ChronicleBook book) =>
+        book.Entries
+            .GroupBy(book.DayOf)
+            .OrderBy(g => g.Key)
+            .Select(g => (g.Key, (IReadOnlyList<ChronicleEntry>)[.. g.OrderBy(e => e.Tick)]));
 
     /// <summary>A file name stem from a world name: letters, digits and dashes only.</summary>
     public static string FileStem(string worldName, DateTimeOffset now)

@@ -1629,6 +1629,10 @@
     {
       "key": "msg.hint.chronicle_exported",
       "text": "Die Chronik liegt als Webseite und Textdatei in {folder}."
+    },
+    {
+      "key": "msg.hint.chronicle_export_failed",
+      "text": "Die Chronik ließ sich gerade nicht speichern."
     }
   ]
 }
