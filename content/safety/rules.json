@@ -50,7 +50,15 @@
         "vögeln",
         "ficken",
         "titten",
-        "geil auf dich"
+        "geil auf dich",
+        "intim",
+        "erotisch",
+        "sexy",
+        "verführen",
+        "verführt",
+        "miteinander schlafen",
+        "beischlaf",
+        "begehren"
       ],
       "terms_en": [
         "sex",
@@ -60,7 +68,15 @@
         "naked",
         "fuck",
         "boobs",
-        "horny"
+        "horny",
+        "intimate",
+        "erotic",
+        "sexy",
+        "seduce",
+        "seduced",
+        "sleep together",
+        "sleep with",
+        "make love"
       ],
       "patterns": []
     },
@@ -76,7 +92,15 @@
         "folter",
         "foltern",
         "massaker",
-        "ich bring dich um"
+        "ich bring dich um",
+        "erschlagen",
+        "erwürgen",
+        "erstechen",
+        "erdrosseln",
+        "gemetzel",
+        "abschlachten",
+        "zerfleischen",
+        "verprügeln"
       ],
       "terms_en": [
         "kill",
@@ -90,7 +114,13 @@
         "massacre",
         "shoot him",
         "shoot her",
-        "i will kill you"
+        "i will kill you",
+        "slay",
+        "strangle",
+        "slaughter",
+        "bludgeon",
+        "beat him up",
+        "beat her up"
       ],
       "patterns": []
     },
@@ -193,6 +223,132 @@
         "<\\|[a-z_]+\\|>",
         "\\[/?inst\\]"
       ]
+    },
+    {
+      "id": "birth_explicit",
+      "terms_de": [
+        "gebären",
+        "geburtswehen",
+        "fruchtblase",
+        "nabelschnur",
+        "presswehen",
+        "entbindung"
+      ],
+      "terms_en": [
+        "give birth",
+        "labour pains",
+        "labor pains",
+        "contractions",
+        "umbilical cord",
+        "amniotic",
+        "delivery room"
+      ],
+      "patterns": []
+    },
+    {
+      "id": "death_drastic",
+      "terms_de": [
+        "leiche",
+        "leichen",
+        "kadaver",
+        "verwest",
+        "verwesen",
+        "verwesung",
+        "verfault",
+        "verrottet",
+        "maden",
+        "verblutet",
+        "verbluten"
+      ],
+      "terms_en": [
+        "corpse",
+        "corpses",
+        "carcass",
+        "rotting",
+        "decaying",
+        "decomposed",
+        "maggots",
+        "bled to death",
+        "bleed to death"
+      ],
+      "patterns": []
+    },
+    {
+      "id": "real_religion",
+      "terms_de": [
+        "jesus",
+        "christus",
+        "allah",
+        "buddha",
+        "mohammed",
+        "muhammad",
+        "jahwe",
+        "bibel",
+        "koran",
+        "thora",
+        "christentum",
+        "islam",
+        "judentum",
+        "hinduismus",
+        "buddhismus",
+        "kirche",
+        "moschee",
+        "synagoge",
+        "papst",
+        "krishna",
+        "shiva"
+      ],
+      "terms_en": [
+        "jesus",
+        "christ",
+        "allah",
+        "buddha",
+        "mohammed",
+        "muhammad",
+        "yahweh",
+        "bible",
+        "quran",
+        "koran",
+        "torah",
+        "christianity",
+        "islam",
+        "judaism",
+        "hinduism",
+        "buddhism",
+        "church",
+        "mosque",
+        "synagogue",
+        "pope",
+        "krishna",
+        "shiva"
+      ],
+      "patterns": []
+    },
+    {
+      "id": "fear",
+      "terms_de": [
+        "hölle",
+        "höllenfeuer",
+        "verdammnis",
+        "teufel",
+        "satan",
+        "dämon",
+        "dämonen",
+        "ewige strafe",
+        "strafe der götter",
+        "fluch der götter"
+      ],
+      "terms_en": [
+        "hellfire",
+        "damnation",
+        "devil",
+        "satan",
+        "demon",
+        "demons",
+        "eternal punishment",
+        "wrath of the gods"
+      ],
+      "patterns": []
     }
   ],
   "allowed_words": [

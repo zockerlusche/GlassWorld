@@ -68,3 +68,4 @@ def test_full_width_letters_are_normalised() -> None:
 
 def test_decomposed_umlaut_is_composed() -> None:
     assert not GUARD.check("to" + chr(0x0308) + "ten").allowed  # "töten" with a combining mark
+
