@@ -116,7 +116,8 @@ jobs:
           stage="$(ls -d "$RUNNER_TEMP"/release/GlassWorld-*-windows-x64 2>/dev/null | head -n 1)"
           echo "stage: $stage"; ls -la "$stage" || true
           echo "== data folder"; ls "$stage"/data_* 2>/dev/null | grep -iE "GlassWorld|Godot|hostfxr|coreclr" || true
-          echo "== export logs"; for f in /tmp/tmp.*; do echo "-- $f"; tail -n 60 "$f"; done 2>/dev/null || true
+          echo "== export logs (warnings, errors, .NET)"; for f in /tmp/tmp.*; do echo "-- $f"; grep -aiE "warning|error|dotnet|\.net|publish|msbuild|sdk" "$f" | grep -avE "savepack \| Storing" | head -n 80; done 2>/dev/null || true
+          echo "== dotnet"; which dotnet; dotnet --list-sdks; echo "DOTNET_ROOT=$DOTNET_ROOT"
           echo "== verbose start"
           GODOT_SILENCE_ROOT_WARNING=1 timeout 180 "$stage/GlassWorld.exe" --headless --verbose -- --smoke-frames=120 2>&1 | tail -n 120 || true
       - name: Keep the archive for the publish job
