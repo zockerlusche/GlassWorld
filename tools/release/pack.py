@@ -7,6 +7,8 @@ Usage: python tools/release/pack.py <stage_dir> <out_dir> --forbid <path> [--for
 from __future__ import annotations
 
 import argparse
+import base64
+import csv
 import hashlib
 import sys
 import zipfile
@@ -30,15 +32,42 @@ def _needles(forbidden: list[str]) -> set[bytes]:
     return {v.encode(enc) for v in variants for enc in ("utf-8", "utf-16-le")}
 
 
+def _record_hash(data: bytes) -> str:
+    """The hash form of a wheel's RECORD file (PEP 376/427): sha256, urlsafe base64, no padding."""
+    return "sha256=" + base64.urlsafe_b64encode(hashlib.sha256(data).digest()).rstrip(b"=").decode()
+
+
+def unmodified_wheel_files(stage: Path) -> dict[Path, str]:
+    """Files that installed packages list in their RECORD with a hash: path -> expected hash.
+
+    A file whose bytes still match its RECORD hash is exactly what the package's own maintainers
+    built (e.g. a Rust extension that names *their* build folder, review GW1 #130), not ours.
+    """
+    known: dict[Path, str] = {}
+    for record in stage.rglob("*.dist-info/RECORD"):
+        site = record.parent.parent
+        for row in csv.reader(record.read_text(encoding="utf-8").splitlines()):
+            if len(row) >= 2 and row[1].startswith("sha256="):
+                known[(site / row[0]).resolve()] = row[1]
+    return known
+
+
 def leaked_paths(stage: Path, forbidden: list[str]) -> list[str]:
     """Files of any kind (text, byte code, executables) that contain a forbidden path, any case
-    (review GW1 #130: .pyc and launchers carried the build machine's user folder)."""
+    (review GW1 #130: .pyc and launchers carried the build machine's user folder). Files that are
+    byte for byte what an installed wheel shipped (RECORD hash) are skipped: a path in them is the
+    upstream builder's (on CI it can look like ours, e.g. C:/Users/runneradmin)."""
     needles = _needles(forbidden)
+    upstream = unmodified_wheel_files(stage)
     found: list[str] = []
     for file in sorted(stage.rglob("*")):
         if not file.is_file():
             continue
-        data = file.read_bytes().lower()
+        raw = file.read_bytes()
+        expected = upstream.get(file.resolve())
+        if expected is not None and _record_hash(raw) == expected:
+            continue
+        data = raw.lower()
         if any(needle in data for needle in needles):
             found.append(file.relative_to(stage).as_posix())
     return found

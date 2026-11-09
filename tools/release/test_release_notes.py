@@ -156,3 +156,27 @@ def test_pack_finds_paths_in_binary_files(tmp_path: Path) -> None:
     (stage / "clean.bin").write_bytes(b"MZ nothing here")
     leaks = PACK.leaked_paths(stage, [r"c:\users\someone"])
     assert sorted(leaks) == ["python/Scripts/tool.exe", "python/mod.cpython-312.pyc"]
+
+
+def test_files_unchanged_from_their_wheel_are_not_ours(tmp_path: Path) -> None:
+    """Review GW1 #130: pydantic_core/rpds ship their builder's cargo path; on CI it looks like
+    the runner's home. A file that still matches its RECORD hash is upstream's, not a leak."""
+    import base64
+    import hashlib
+
+    site = tmp_path / "stage" / "python" / "Lib" / "site-packages"
+    (site / "rpds").mkdir(parents=True)
+    (site / "rpds-0.1.dist-info").mkdir()
+    upstream = b"MZ C:/Users/runneradmin/.cargo/registry/src/x.rs"
+    (site / "rpds" / "rpds.pyd").write_bytes(upstream)
+    digest = base64.urlsafe_b64encode(hashlib.sha256(upstream).digest()).rstrip(b"=").decode()
+    (site / "rpds-0.1.dist-info" / "RECORD").write_text(
+        f"rpds/rpds.pyd,sha256={digest},{len(upstream)}\nrpds-0.1.dist-info/RECORD,,\n",
+        encoding="utf-8",
+    )
+    forbid = ["C:/Users/runneradmin"]
+    assert PACK.leaked_paths(tmp_path / "stage", forbid) == []
+    (site / "rpds" / "rpds.pyd").write_bytes(upstream + b" changed")  # no longer upstream's
+    assert PACK.leaked_paths(tmp_path / "stage", forbid) == [
+        "python/Lib/site-packages/rpds/rpds.pyd"
+    ]
