@@ -550,8 +550,9 @@ public partial class WorldAudio : Node3D
                 var db = playerDb.TryGetValue(Ui.Screens.SettingsWindow.BusKey(bus.Id), out var chosen) ? chosen : bus.VolumeDb;
                 AudioServer.SetBusVolumeDb(index, (float)db);
 
-                // The slider at its minimum means off (test feedback F5286: music off by default).
-                AudioServer.SetBusMute(index, db <= mix.PlayerVolumeDb.Min);
+                // The slider at its minimum means off (test feedback F5286: music off by default); a bus the
+                // data switches off stays silent until its sounds are replaced (W1699: music, noise, phantom animals).
+                AudioServer.SetBusMute(index, bus.Off == true || db <= mix.PlayerVolumeDb.Min);
             }
         }
     }

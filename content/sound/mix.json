@@ -12,6 +12,7 @@
     },
     {
       "id": "music",
+      "off": true,
       "volume_db": -60,
       "max_voices": 1,
       "full_volume_m": 0,
@@ -20,6 +21,7 @@
     },
     {
       "id": "ambience",
+      "off": true,
       "volume_db": -60,
       "max_voices": 2,
       "full_volume_m": 20,
@@ -28,6 +30,7 @@
     },
     {
       "id": "animals",
+      "off": true,
       "volume_db": -60,
       "max_voices": 2,
       "full_volume_m": 4,

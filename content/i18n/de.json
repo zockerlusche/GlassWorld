@@ -1981,6 +1981,10 @@
     {
       "key": "msg.thought.warn",
       "text": "Pass auf!"
+    },
+    {
+      "key": "ui.settings.volume.off_tip",
+      "text": "Gerade aus – diese Klänge werden neu gemacht."
     }
   ]
 }
