@@ -56,6 +56,7 @@ def test_v5_snapshot_of_a_family() -> None:
 
 def test_v5_shows_life_family_customs_and_names() -> None:
     user = _render(FAMILY).split("=== user ===")[1]
+    assert 'Your name is "Tavi".' in user  # W1698: to introduce itself
     assert "You are an adult, 31 years old." in user
     assert 'your partner: "Mara"' in user  # the name this inhabitant knows
     assert "[inh-0003] - has died" in user

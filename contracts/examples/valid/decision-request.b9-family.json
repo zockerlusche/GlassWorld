@@ -164,7 +164,8 @@
         "about": "inh-0003",
         "strength": 0.4
       }
-    ]
+    ],
+    "name": "Tavi"
   },
   "environment": {
     "time_of_day": "day",
