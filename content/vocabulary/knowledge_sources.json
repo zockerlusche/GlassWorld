@@ -12,7 +12,7 @@
     },
     {
       "id": "guessed",
-      "description": "A guess of the AI; capped confidence."
+      "description": "A guess (of the AI, or from what one has seen); capped confidence."
     },
     {
       "id": "read",

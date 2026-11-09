@@ -11,7 +11,7 @@ namespace GlassWorld.Presentation.World;
 /// <param name="WillToLivePercent">Will to live 0-100.</param>
 /// <param name="Fading">True while the inhabitant is fading (long neglect).</param>
 /// <param name="ActionKey">Text key of the current action or null.</param>
-/// <param name="OpenQuestions">Number of open questions (B2487: that, not what).</param>
+/// <param name="OpenQuestions">Number of open questions that still puzzle the inhabitant (B2487: that, not what; TL #19921: not those about a thing it has looked at since).</param>
 public sealed record InhabitantRow(string Id, int Number, int WillToLivePercent, bool Fading, string? ActionKey, int OpenQuestions);
 
 /// <summary>A named value of the inhabitant card, as text key and percent.</summary>
@@ -137,9 +137,9 @@ public sealed class WorldFeed
     /// The open-questions window (B2487): who has how many questions, never the wording; most first.
     /// </summary>
     public IReadOnlyList<(string InhabitantId, int Count)> OpenQuestions() =>
-        [.. Snapshot.Inhabitants.Where(i => i.OpenQuestionIds.Count > 0)
-            .OrderByDescending(i => i.OpenQuestionIds.Count).ThenBy(i => i.Id, StringComparer.Ordinal)
-            .Select(i => (i.Id, i.OpenQuestionIds.Count))];
+        [.. Snapshot.Inhabitants.Where(i => i.PuzzlingQuestionIds.Count > 0)
+            .OrderByDescending(i => i.PuzzlingQuestionIds.Count).ThenBy(i => i.Id, StringComparer.Ordinal)
+            .Select(i => (i.Id, i.PuzzlingQuestionIds.Count))];
 
     /// <summary>Current favour and its maximum (B6 R9).</summary>
     public (double Value, double Maximum) Favor() => (_host.Player.Favor, _host.Content.Favor.Maximum);
@@ -177,7 +177,7 @@ public sealed class WorldFeed
     }
 
     private static InhabitantRow Row(InhabitantSnapshot i) =>
-        new(i.Id, NumberOf(i.Id), Percent(i.WillToLive), i.Fading, i.Action is null ? null : $"vocab.action.{i.Action}", i.OpenQuestionIds.Count);
+        new(i.Id, NumberOf(i.Id), Percent(i.WillToLive), i.Fading, i.Action is null ? null : $"vocab.action.{i.Action}", i.PuzzlingQuestionIds.Count);
 
     private static List<CardValue> Values(string kind, IReadOnlyDictionary<string, double> values) =>
         [.. values.OrderBy(v => v.Key, StringComparer.Ordinal).Select(v => new CardValue($"vocab.{kind}.{v.Key}", Percent(v.Value)))];

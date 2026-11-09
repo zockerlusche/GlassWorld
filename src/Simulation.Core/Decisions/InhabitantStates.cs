@@ -25,19 +25,13 @@ public static class InhabitantStates
         }
 
         var types = perceivedTypes.Distinct(StringComparer.Ordinal).ToList();
+        var visible = knowledge.Looking?.VisibleProperties.ToHashSet(StringComparer.Ordinal) ?? [];
         state.Knowledge = [.. types
-            .SelectMany(type => inhabitant.Beliefs.About(type).Select(b => (Type: type, b.PropertyId, b.Belief)))
+
+            // What a thing is not by its look (not a stone ...) says little and would crowd out the rest.
+            .SelectMany(type => inhabitant.Beliefs.About(type).Where(b => b.Belief.Value || !visible.Contains(b.PropertyId)).Select(b => (Type: type, b.PropertyId, b.Belief)))
             .Take(knowledge.RequestMaxKnowledge)
-            .Select(b => new KnowledgeEntry
-            {
-                Subject = new Subject { Kind = SubjectKind.Type, Id = b.Type },
-                Property = b.PropertyId,
-                Value = b.Belief.Value,
-                Confidence = b.Belief.Confidence,
-                Source = Enum.Parse<KnowledgeSource>(b.Belief.Source, ignoreCase: true),
-                ToldBy = b.Belief.ToldBy,
-                Tick = b.Belief.Tick,
-            })];
+            .Select(b => Entry(inhabitant, b.Type, b.PropertyId, b.Belief))];
         var start = new Objects.Relation(knowledge.RelationshipStart.Affection, knowledge.RelationshipStart.Trust, knowledge.RelationshipStart.Respect);
         state.Relationships = [.. perceivedInhabitants.Take(knowledge.RequestMaxInhabitants).Select(other =>
         {
@@ -45,6 +39,40 @@ public static class InhabitantStates
             return new Relationship { Other = other, Affection = r.Affection, Trust = r.Trust, Respect = r.Respect };
         })];
         return state;
+    }
+
+    private static KnowledgeEntry Entry(Inhabitant inhabitant, string type, string property, Objects.Belief belief)
+    {
+        var seen = LatestPlace(inhabitant, type);
+        return new KnowledgeEntry
+        {
+            Subject = new Subject { Kind = SubjectKind.Type, Id = type },
+            Property = property,
+            Value = belief.Value,
+            Confidence = belief.Confidence,
+            Source = Enum.Parse<KnowledgeSource>(belief.Source, ignoreCase: true),
+            ToldBy = belief.ToldBy,
+            Tick = belief.Tick,
+
+            // Where the inhabitant last saw a thing of this type (place memory, B2533); absent if never.
+            Place = seen is { } s ? new Place { XM = s.Place.Position.X, ZM = s.Place.Position.Z } : null,
+            Object = seen?.ObjectId,
+        };
+    }
+
+    /// <summary>The most recent remembered place of a type (ties by object id), or null.</summary>
+    private static (string ObjectId, PlaceMemory Place)? LatestPlace(Inhabitant inhabitant, string typeId)
+    {
+        (string ObjectId, PlaceMemory Place)? latest = null;
+        foreach (var (objectId, place) in inhabitant.Places)
+        {
+            if (place.TypeId == typeId && (latest is null || place.Tick > latest.Value.Place.Tick))
+            {
+                latest = (objectId, place);
+            }
+        }
+
+        return latest;
     }
 
     private static InhabitantState Basic(Inhabitant inhabitant)
