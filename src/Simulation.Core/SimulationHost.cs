@@ -241,6 +241,8 @@ public sealed class SimulationHost
     /// else <see cref="DecisionsSystem.DefaultDisplayLocale"/>), so the world goes on as it was saved. A
     /// different player language then follows as a logged command.
     /// </summary>
+    /// <remarks>Relies on the full command log: trimming or compacting the decision log must keep the
+    /// <see cref="DecisionsSystem.SetDisplayLocale"/> commands (SaveGameTests pin this through a save file).</remarks>
     internal void UseLoggedDisplayLocale()
     {
         var locale = DecisionsSystem.DefaultDisplayLocale;
