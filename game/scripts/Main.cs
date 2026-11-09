@@ -336,13 +336,7 @@ public partial class Main : Node3D
                     _world.Speed = _speedBeforePause;
                 }
             },
-            Save: () =>
-            {
-                if (TrySave())
-                {
-                    _screen?.ShowHint(new ToastMessage("msg.hint.saved", new Dictionary<string, string>(), null));
-                }
-            },
+            Save: () => TrySave(),
             Settings: () => OpenSettings(window => _screen?.ShowWindow(window)),
             MainMenu: () =>
             {
@@ -356,6 +350,18 @@ public partial class Main : Node3D
             })
         {
             Share = _meta is null || _library is null ? null : ShareWorld,
+
+            // A world without a save place (screenshot runs) never claims "saved" (W1689b).
+            SaveNow = () => _world?.SavePath is not null && TrySave(),
+            Load = _library is null ? null : () =>
+            {
+                _pause = null;
+                LeaveWorld();
+                if (_world is null)
+                {
+                    _menu?.OpenWorlds();
+                }
+            },
         });
         _screen.ShowWindow(_pause, modal: true);
     }

@@ -369,7 +369,8 @@ public partial class GameScreen : CanvasLayer
         ArgumentNullException.ThrowIfNull(window);
         if (modal)
         {
-            var blocker = new Control { MouseFilter = Control.MouseFilterEnum.Stop };
+            // The game behind a modal window (pause menu) is darkened a little (W1687, data: window.modal_dim).
+            var blocker = new ColorRect { MouseFilter = Control.MouseFilterEnum.Stop, Color = new Color(0, 0, 0, (float)(_style?.Tokens.Window.ModalDim ?? 0)) };
             blocker.SetAnchorsPreset(Control.LayoutPreset.FullRect);
             _overlay.AddChild(blocker);
             window.Closed += blocker.QueueFree;

@@ -109,6 +109,12 @@ class UiWindowTokens(BaseModel):
         ge=0.3,
         le=1.0,
     )
+    modal_dim: float = Field(
+        ...,
+        description='Darkening of the game behind a modal window such as the pause menu (0 = none, 1 = black; W1687).',
+        ge=0.0,
+        le=0.9,
+    )
 
 
 class UiButtonTokens(BaseModel):

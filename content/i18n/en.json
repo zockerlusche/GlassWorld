@@ -839,22 +839,6 @@
       "text": "Fatty"
     },
     {
-      "key": "vocab.property.fruit",
-      "text": "Fruit-like"
-    },
-    {
-      "key": "vocab.property.mushroom",
-      "text": "Mushroom"
-    },
-    {
-      "key": "vocab.property.water",
-      "text": "Water"
-    },
-    {
-      "key": "vocab.property.stone",
-      "text": "Stone"
-    },
-    {
       "key": "vocab.time_of_day.dawn",
       "text": "Dawn"
     },
@@ -1487,10 +1471,6 @@
       "text": "read"
     },
     {
-      "key": "vocab.knowledge_source.seen",
-      "text": "seen"
-    },
-    {
       "key": "vocab.event.skill_refused",
       "text": "New skill refused"
     },
@@ -1632,7 +1612,7 @@
     },
     {
       "key": "ui.top.menu_tooltip",
-      "text": "Save, load, settings, quit (Esc)"
+      "text": "Pause menu (Esc)"
     },
     {
       "key": "msg.hint.autosaved",
@@ -1745,6 +1725,42 @@
     {
       "key": "vocab.soil.stone",
       "text": "Rock"
+    },
+    {
+      "key": "ui.pause.saving",
+      "text": "Saving …"
+    },
+    {
+      "key": "ui.pause.saved_at",
+      "text": "Saved at {time}."
+    },
+    {
+      "key": "ui.pause.save_failed",
+      "text": "Saving did not work just now. The world stays open - try again in a moment."
+    },
+    {
+      "key": "ui.pause.load",
+      "text": "Load …"
+    },
+    {
+      "key": "vocab.property.fruit",
+      "text": "Fruit-like"
+    },
+    {
+      "key": "vocab.property.mushroom",
+      "text": "Mushroom"
+    },
+    {
+      "key": "vocab.property.water",
+      "text": "Water"
+    },
+    {
+      "key": "vocab.property.stone",
+      "text": "Stone"
+    },
+    {
+      "key": "vocab.knowledge_source.seen",
+      "text": "seen"
     },
     {
       "key": "ui.toast.look",
