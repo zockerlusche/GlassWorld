@@ -42,7 +42,8 @@ V4 = load_prompt(REPO / "prompts", "decider/decide", 4).settings
         ("Puh, bin ich müde.", None),
         ("Ich zeige dem Menschen die Beeren.", "blocked_word"),  # TL F5289
         ("Ob die Person das kennt?", "blocked_word"),
-        ("Ob die andere am Bach das kennt?", None),
+        ("Ob die andere am Bach das kennt?", None),  # W1693: only the prompt forbids descriptions
+        # ("andere" stays allowed in the check: "die anderen Beeren" is plain German)
     ],
 )
 def test_the_check_finds_what_a_player_must_not_read(text: str, reason: str | None) -> None:

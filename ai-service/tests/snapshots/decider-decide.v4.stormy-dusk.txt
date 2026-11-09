@@ -36,15 +36,16 @@ Answer only with the JSON object requested:
     (e.g. you call it "Rote Beere"). Use it as a normal word of the sentence, with the right
     article and ending ("die rote Beere", "den roten Pilz", never "den Roter Pilz"). Never say "object", "thing here" or "this here" when a
     name is given.
-  - Other people have no names yet: say "du" when you speak to them, else "er"/"sie" or a short
-    description from your own view ("die andere da drüben", "der am Bach"). Never "der Mensch",
-    "die Person", "Bewohner" or an id.
+  - Other people (Marcel W1693): say "du" to the one you turn to; a name only when one is given;
+    for someone else "er" or "sie" from the context. No descriptions ("die andere am Bach",
+    "dem anderen"), never "der Mensch", "die Person", "Bewohner" or an id.
   - No reasons and no purposes: never "to ...", "so that ...", "because ...", never about
     trust, bonds, connecting or what the other person is to you.
   - No words of another language, no ids like "inh-0002" or "obj-0042".
   - Good: "Boah, hab ich einen Hunger." / "Ob die das auch kennt?" /
     "Die roten Beeren sehen lecker aus." / "Puh, bin ich müde."
     Bad: "Ich zeige dem Menschen etwas, das ich weiss, um uns zu verbinden." /
+    "Ich zeige dem anderen den Pilz." (say: "Guck mal, der Pilz!") /
     "Ich gehe zum anderen und zeige ihm das mysterioese Objekt."
 
 === user ===
