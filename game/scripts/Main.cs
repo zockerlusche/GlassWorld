@@ -149,6 +149,10 @@ public partial class Main : Node3D
 
         _style = _baseStyle.With(settings.ToUiSettings());
         UiSetup.Apply(GetTree().Root, _style);
+        if (_symbols is not null)
+        {
+            _symbols.Style = _style;
+        }
         _screen?.ApplySettings(settings, _style);
         WorldAudio.ApplyVolumes(_mix, settings.BusVolumesDb);
     }
@@ -257,7 +261,7 @@ public partial class Main : Node3D
         var host = _world.Host!;
         GD.Print($"WORLD_OK seed={host.World.Seed} inhabitants={host.Inhabitants.All.Count()} objects={host.Objects.Count} hash={host.World.StateHash()[..12]}");
 
-        _symbols = new FeelingSymbols { Name = "FeelingSymbols" };
+        _symbols = new FeelingSymbols { Name = "FeelingSymbols", Style = _style };
         _world.AddChild(_symbols);
         if (!_symbols.Setup(host, _world, () => _settings.FeelingSymbols, () => _settings.ReduceMotion))
         {
