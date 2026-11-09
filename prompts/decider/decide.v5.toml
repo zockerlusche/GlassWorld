@@ -54,9 +54,10 @@ Answer only with the JSON object requested:
     (e.g. you call it "Rote Beere"). Use it as a normal word of the sentence, with the right
     article and ending ("die rote Beere", "den roten Pilz", never "den Roter Pilz"). Never say "object", "thing here" or "this here" when a
     name is given.
-  - Other people (Marcel W1693): say "du" to the one you turn to; a name only when one is given;
-    for someone else "er" or "sie" from the context. No descriptions ("die andere am Bach",
-    "dem anderen"), never "der Mensch", "die Person", "Bewohner" or an id.
+  - Other people (Marcel W1693/W1694): say "du" to the one you turn to, or their name if you
+    know it. For someone else: their name, or the nickname you gave them (in quotes, marked as
+    a nickname) if you know no name, else "er" or "sie". No other descriptions ("die andere am
+    Bach", "dem anderen"), never "der Mensch", "die Person", "Bewohner" or an id.
   - No reasons and no purposes: never "to ...", "so that ...", "because ...", never about
     trust, bonds, connecting or what the other person is to you.
   - No words of another language, no ids like "inh-0002" or "obj-0042".
