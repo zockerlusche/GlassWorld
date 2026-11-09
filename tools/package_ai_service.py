@@ -127,6 +127,47 @@ def prepare_target(out_dir: Path) -> Path:
     return target
 
 
+def strip_build_paths(python_dir: Path) -> None:
+    """pip records where a local package came from (PEP 610 direct_url.json, a file:// URL of the
+    build machine). That path must not ship (privacy, B10 R8): remove the file and its RECORD
+    line. Packages from the index have no such file."""
+    for direct in python_dir.rglob("*.dist-info/direct_url.json"):
+        if "file:" not in direct.read_text(encoding="utf-8", errors="ignore"):
+            continue
+        record = direct.parent / "RECORD"
+        if record.is_file():
+            lines = record.read_text(encoding="utf-8").splitlines(keepends=True)
+            kept = [line for line in lines if not line.split(",", 1)[0].endswith("direct_url.json")]
+            record.write_text("".join(kept), encoding="utf-8", newline="")
+        direct.unlink()
+
+
+def finish_python(python_dir: Path) -> None:
+    """Release hygiene (review GW1 #130): nothing in the package may name the build machine.
+
+    - Scripts/*.exe launchers embed the absolute path of the python.exe they were made for; they
+      would not work on the player's PC anyway (the game runs `python.exe -m glassworld_ai`).
+    - Test folders of the installed packages are not needed.
+    - Byte code stores the source path it was compiled from: compile everything again with paths
+      relative to the Python folder (`-d Lib`).
+    """
+    scripts = python_dir / "Scripts"
+    if scripts.is_dir():
+        shutil.rmtree(scripts)
+    for tests in sorted((python_dir / "Lib" / "site-packages").glob("*/tests")):
+        if tests.is_dir():
+            shutil.rmtree(tests)
+    for cache in sorted(python_dir.rglob("__pycache__"), reverse=True):
+        shutil.rmtree(cache)
+    python = python_dir / "python.exe"
+    if python.is_file():  # Windows build machine (the release runs on Windows)
+        # unchecked-hash: a ZIP keeps file times only to 2 s, so timestamp byte code would look
+        # stale on the player's PC and be rewritten into the program folder (with its path).
+        run(str(python), "-m", "compileall", "-q", "-f", "-d", "Lib",
+            "--invalidation-mode", "unchecked-hash",
+            "-x", r"[\\/]tests?[\\/]", str(python_dir / "Lib"))  # fmt: skip
+
+
 def check_inventory(python_dir: Path) -> None:
     """Every DLL and extension module must map to a LICENSES.md row (review GW1 #51): a new
     library in a newer Python build fails the packaging instead of slipping through."""
@@ -183,6 +224,8 @@ def main() -> None:
     ]
     run(*common, "-r", str(requirements))
     run(*common, "--no-deps", str(ROOT / "contracts/python"), str(ROOT / "ai-service"))
+    strip_build_paths(python_dir)
+    finish_python(python_dir)
     shutil.copytree(ROOT / "prompts", target / "prompts")
     shutil.copytree(ROOT / "contracts/schemas", target / "schemas")
     shutil.copytree(ROOT / "tools/comfyui/workflows", target / "workflows")

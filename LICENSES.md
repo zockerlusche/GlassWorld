@@ -81,6 +81,7 @@ Distributions must ship the license notices of all listed components.
 | Microsoft.Extensions.FileProviders.Abstractions / .Primitives | 9.0.0 | NuGet package (via Fluid) | MIT | https://github.com/dotnet/runtime | tools/ContractGen |
 | Microsoft.CodeAnalysis.CSharp / .Common | 5.6.0 | NuGet package (test only, CI text check) | MIT | https://github.com/dotnet/roslyn | tests/Localization.Tests |
 | GodotSharp, GodotSharpEditor, Godot.SourceGenerators | 4.7.2 | NuGet package (Godot .NET SDK) | MIT | https://github.com/godotengine/godot | game/ |
+| Godot Engine runtime (export templates, inside `GlassWorld.exe`) | 4.7.2-stable | Game engine runtime shipped in the exported game | MIT; bundled third-party code under Expat, BSD-2/3, Apache-2.0, Zlib, OFL-1.1, MPL-2.0, CC0, FTL, IJG, BSL-1.0, HarfBuzz, Unicode, X11, glslang, WOL, CC-BY-4.0, Unlicense, MIT-0 (approved F5271) | https://github.com/godotengine/godot/blob/4.7.2-stable/COPYRIGHT.txt | release package; texts in `docs/licenses/godot/` |
 | SQLitePCLRaw.lib.e_sqlite3, SQLitePCLRaw.provider.e_sqlite3 | 2.1.13 (via Microsoft.Data.Sqlite) | NuGet package (runtime, native SQLite) | Apache-2.0 | https://github.com/ericsink/SQLitePCL.raw | src/Simulation.Data |
 | Microsoft.Data.Sqlite.Core | 10.0.14 (via Microsoft.Data.Sqlite) | NuGet package (runtime, save games) | MIT | https://github.com/dotnet/efcore | src/Simulation.Data |
 | NJsonSchema.Annotations | 11.6.1 (via NJsonSchema) | NuGet package (runtime) | MIT | https://github.com/RicoSuter/NJsonSchema | src/Contracts, tests/, tools/ |
