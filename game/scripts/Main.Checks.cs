@@ -56,6 +56,11 @@ public partial class Main
         CheckSpatial(spatialReady);
         CheckSoundLibrary();
         var symbols = _symbols?.SelfCheck() ?? "feeling symbols not set up";
+        if (symbols.Length == 0 && _symbols is not null)
+        {
+            symbols = _symbols.ScreenSizeCheck();
+        }
+
         if (symbols.Length > 0)
         {
             GD.PushError($"SYMBOLS_FAIL {symbols}");
@@ -443,6 +448,22 @@ public partial class Main
             await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
             var world = System.IO.Path.Combine(_shotsFolder!, "symbols_world.png");
             GD.Print($"UI_SHOT {world} {GetViewport().GetTexture().GetImage().SavePng(world)}");
+
+            // From the usual distance (F5284): the symbols stay readable, not only close up.
+            if (GetViewport().GetCamera3D() is { } far && _world!.GetNodeOrNull<Node3D>(_world.Host!.Inhabitants.All.First().Id) is { } seen)
+            {
+                var head = seen.GlobalPosition + new Vector3(0, 1.1f, 0);
+                far.GlobalPosition = head + new Vector3(0, 14, 38);
+                far.LookAt(head, Vector3.Up);
+                for (var i = 0; i < 10; i++)
+                {
+                    await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+                }
+
+                await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
+                var farShot = System.IO.Path.Combine(_shotsFolder!, "symbols_far.png");
+                GD.Print($"UI_SHOT {farShot} {GetViewport().GetTexture().GetImage().SavePng(farShot)}");
+            }
         }
 
         GetTree().Quit(0);

@@ -9,6 +9,30 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class HeadSymbol(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    size_m: float = Field(
+        ...,
+        description='Height of a question mark in the world (metres); feeling symbols keep their own size_m of the same order.',
+        ge=0.05,
+        le=3.0,
+    )
+    min_px: float = Field(
+        ...,
+        description='Smallest height on screen (pixels at the reference height, scaled with the UI).',
+        ge=4.0,
+        le=400.0,
+    )
+    max_px: float = Field(
+        ...,
+        description='Largest height on screen (pixels at the reference height, scaled with the UI).',
+        ge=4.0,
+        le=800.0,
+    )
+
+
 class UiScaleRange(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -303,3 +327,7 @@ class UiTokens(BaseModel):
         min_length=1,
     )
     knock: UiKnock
+    head_symbol: HeadSymbol = Field(
+        ...,
+        description="Symbols above inhabitants' heads (question marks, feeling symbols; F5284): one common world size, and on screen never smaller or larger than the given pixel heights, so they are readable at every zoom.",
+    )
