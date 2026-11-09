@@ -10,6 +10,7 @@
     "thought_width_px": 900
   },
   "observer": {
+    "auto": false,
     "group_switch_s": 30.0,
     "thought_focus_s": 12.0,
     "resume_after_idle_s": 45.0,

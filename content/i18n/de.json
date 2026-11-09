@@ -1745,6 +1745,14 @@
     {
       "key": "vocab.soil.stone",
       "text": "Fels"
+    },
+    {
+      "key": "ui.toast.look",
+      "text": "Hinsehen"
+    },
+    {
+      "key": "msg.hint.look_thought",
+      "text": "{name} denkt über etwas nach."
     }
   ]
 }

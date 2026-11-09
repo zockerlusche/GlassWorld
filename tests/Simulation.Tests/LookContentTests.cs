@@ -157,6 +157,8 @@ public sealed class LookContentTests
 
         var camera = Read<LookCamera>("look", "camera.json");
         Assert.InRange(camera.DistanceM.Start, camera.DistanceM.Min, camera.DistanceM.Max);
+        Assert.InRange(camera.PitchDeg, camera.PitchRangeDeg.Min, camera.PitchRangeDeg.Max);
+        Assert.True(camera.PitchRangeDeg.Min < camera.PitchRangeDeg.Max, "the pitch range goes from flat to steep");
     }
 
     [Fact]

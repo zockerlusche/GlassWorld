@@ -19,6 +19,9 @@ public partial class WorldPresenter
 {
     private const string HeadAnchorName = "HeadAnchor";
 
+    /// <summary>Size of the plain ground under the placeholder world (centred at the origin); the camera stays over it.</summary>
+    private static readonly (float Width, float Depth) PlaceholderGroundM = (400, 120);
+
     private readonly Dictionary<string, Node3D> _islandNodes = new(StringComparer.Ordinal);
     private readonly Dictionary<string, FigureView> _islandFigures = new(StringComparer.Ordinal);
     private readonly HashSet<string> _islandReported = new(StringComparer.Ordinal);
@@ -134,10 +137,10 @@ public partial class WorldPresenter
         return hit is { } p ? new Vector3((float)p.X, (float)p.Y, (float)p.Z) : null;
     }
 
-    /// <summary>The player clicked a figure in the world: on the island the camera follows it.</summary>
+    /// <summary>The player clicked a figure in the world: the camera follows it.</summary>
     public void ChooseFigure(string inhabitantId)
     {
-        if (_rig is null || _observer is null || !_islandNodes.ContainsKey(inhabitantId))
+        if (_rig is null || _observer is null || (!_islandNodes.ContainsKey(inhabitantId) && !_figures.ContainsKey(inhabitantId)))
         {
             return;
         }
@@ -146,7 +149,7 @@ public partial class WorldPresenter
         _rig.FollowFigure(inhabitantId);
     }
 
-    /// <summary>The player clicked into empty ground: on the island the camera stops following and stays.</summary>
+    /// <summary>The player clicked into empty ground: the camera stops following and stays.</summary>
     public void ClickedGround()
     {
         if (_rig is null || _observer is null)
@@ -258,24 +261,52 @@ public partial class WorldPresenter
         var depth = map.Map.DepthCells * terrain.CellM;
         var seaLevel = (float)_seaLevelM;
         var camera = Read<LookCamera>(content, "look", "camera.json");
-        _rig = CameraRig.Create(camera, width, depth, () => _islandNodes.Select(f => (f.Key, f.Value.Position)), (x, z) => Math.Max(seaLevel, IslandView.GroundHeight(ground, terrain, x, z)));
-        _rig.SelectOnClick = false;
-        _rig.FindFigure = id => _islandNodes.TryGetValue(id, out var node) ? node.Position : (Vector3?)null;
-        _rig.Panned += () => _observer?.PlayerTookCamera(_clock);
-
-        // The leave key hands the camera back to the observer at once (GW3 #113, finding 4).
-        _rig.Left += () => _observer?.HandBack(_clock);
-        AddChild(_rig);
-        _observer = new ObserverFocus(_look.Observer);
-        if (_observer.Update(_clock, _groups) is { } first && Centre(first) is { } start)
-        {
-            // Start right above the first group, then follow it smoothly.
-            _rig.Model.Set(start.X, start.Z, camera.StartYawDeg, _look.Observer.DistanceM);
-            _rig.Apply();
-        }
+        AttachRig(
+            camera,
+            CameraRig.Create(camera, width, depth, () => _islandNodes.Select(f => (f.Key, f.Value.Position)), (x, z) => Math.Max(seaLevel, IslandView.GroundHeight(ground, terrain, x, z))),
+            id => _islandNodes.TryGetValue(id, out var node) ? node.Position : (Vector3?)null,
+            _look.Observer);
 
         LightTheIsland(content);
         GD.Print($"ISLAND_WORLD preset={map.Island.PresetId} chunks={_islandView.GroundChunks} figures={_islandFigures.Count} objects_drawn={_objectsView.Drawn} layers={_objectsView.Layers}");
+    }
+
+    /// <summary>
+    /// The placeholder world gets the same camera as the island (B2567): the rig over the plain ground,
+    /// the observer showing the groups until the player takes the camera.
+    /// </summary>
+    private void BeginPlaceholderCamera()
+    {
+        RebuildGroups();
+        var camera = Read<LookCamera>(_contentDirectory, "look", "camera.json");
+        var (w, d) = (PlaceholderGroundM.Width / 2, PlaceholderGroundM.Depth / 2);
+        AttachRig(
+            camera,
+            CameraRig.Create(camera, -w, -d, w, d, () => _figures.Select(f => (f.Key, f.Value.Position))),
+            id => _figures.TryGetValue(id, out var node) ? node.Position : (Vector3?)null,
+            ReadLook(_contentDirectory).Observer);
+    }
+
+    /// <summary>Wires the rig to the observer and the game screen (the screen owns the left click) and starts it above the first group.</summary>
+    private void AttachRig(LookCamera camera, CameraRig rig, Func<string, Vector3?> findFigure, WorldLookObserver observer)
+    {
+        _rig = rig;
+        _rig.SelectOnClick = false;
+        _rig.Held = CameraHeld;
+        _rig.FindFigure = findFigure;
+        _rig.Panned += () => _observer?.PlayerTookCamera(_clock);
+
+        // The leave key (and the reset key) hand the camera back to the observer at once (GW3 #113, finding 4).
+        _rig.Left += () => _observer?.HandBack(_clock);
+        _rig.ResetPressed += () => _observer?.HandBack(_clock);
+        AddChild(_rig);
+        _observer = new ObserverFocus(observer);
+        if (_observer.Update(_clock, _groups) is { } first && Centre(first) is { } start)
+        {
+            // Start right above the first group, then follow it smoothly.
+            _rig.Model.Set(start.X, start.Z, camera.StartYawDeg, observer.DistanceM);
+            _rig.Apply();
+        }
     }
 
     /// <summary>Takes back a half-built island (nodes, scene light, state), so the placeholder world can start.</summary>
@@ -504,8 +535,8 @@ public partial class WorldPresenter
         }
     }
 
-    /// <summary>The observer camera on the island: follows the shown group while the player leaves the camera to it.</summary>
-    private void IslandCamera()
+    /// <summary>The observer camera: follows the shown group while the player leaves the camera to it.</summary>
+    private void ObserverCamera()
     {
         if (_rig is null || _observer is null)
         {
@@ -517,16 +548,39 @@ public partial class WorldPresenter
         if (observing && group is { } g && (g != _observedGroup || !_wasObserving))
         {
             // Keep the player's zoom; the observer only moves the target.
-            _rig.Model.Follow(() => Centre(g) is { } c ? (c.X, c.Z) : _rig.Model.Target, _rig.Model.Distance);
+            _rig.Model.Follow(() => Centre(g) is { } c ? (c.X, c.Z) : _rig.Model.Target, _rig.Model.GoalDistance);
             _observedGroup = g;
         }
 
         _wasObserving = observing;
     }
 
-    /// <summary>A thought appeared: the observer turns to that inhabitant's group.</summary>
+    /// <summary>
+    /// Raised when an inhabitant has a new thought: the screen shows a hint with a "look" button; the
+    /// camera itself does not move (TL #19976).
+    /// </summary>
+    public event Action<string>? Noticed;
+
+    /// <summary>
+    /// The player let go of the camera (Esc): a followed figure is no longer followed. True if the
+    /// camera was following.
+    /// </summary>
+    public bool StopFollowing()
+    {
+        if (_rig is null || !_rig.Model.Following)
+        {
+            return false;
+        }
+
+        _rig.Model.StopFollowing();
+        _observer?.Release(_clock);
+        return true;
+    }
+
+    /// <summary>A thought appeared: a hint for the screen; only an observer with auto on turns to that inhabitant's group.</summary>
     private void ObserveThought(string inhabitantId)
     {
+        Noticed?.Invoke(inhabitantId);
         if (_observer is not null && _host is not null)
         {
             _observer.Thought(_host.Inhabitants.Get(inhabitantId).Group, _clock);
@@ -564,7 +618,9 @@ public partial class WorldPresenter
 
         foreach (var inhabitant in _host.Inhabitants.All)
         {
-            if (!_islandNodes.TryGetValue(inhabitant.Id, out var node))
+            // Island figures, or the stand-ins of the placeholder world.
+            Node3D? node = _islandNodes.TryGetValue(inhabitant.Id, out var figure) ? figure : _figures.GetValueOrDefault(inhabitant.Id);
+            if (node is null)
             {
                 continue;
             }

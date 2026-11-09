@@ -15,6 +15,9 @@ public partial class GwToasts : VBoxContainer
     private long? _hovered;
     private long _version = -1;
 
+    /// <summary>Raised when the player presses the "look" button of a hint (its inhabitant id).</summary>
+    public event Action<string>? LookRequested;
+
     /// <summary>The board this area shows.</summary>
     public ToastBoard? Board { get; set; }
 
@@ -101,6 +104,18 @@ public partial class GwToasts : VBoxContainer
             var close = new Button { Text = CloseSymbol, TooltipText = "ui.common.close", FocusMode = FocusModeEnum.All };
             close.Pressed += () => Board.Dismiss(id);
             row.AddChild(label);
+            if (toast.Message.LookAt is { } look)
+            {
+                // Only this button moves the camera to an event (TL #19976).
+                var see = new Button { Text = "ui.toast.look", Name = "Look", FocusMode = FocusModeEnum.All };
+                see.Pressed += () =>
+                {
+                    LookRequested?.Invoke(look);
+                    Board.Dismiss(id);
+                };
+                row.AddChild(see);
+            }
+
             row.AddChild(close);
             panel.AddChild(row);
             panel.MouseEntered += () => _hovered = id;

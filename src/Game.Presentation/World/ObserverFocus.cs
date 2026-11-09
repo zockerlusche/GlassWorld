@@ -6,7 +6,9 @@ namespace GlassWorld.Presentation.World;
 /// The observer camera of the island mode without Godot (#63 for the island): it shows the group where
 /// the last thought appeared, otherwise moves on to the next group after a while. The player takes the
 /// camera by panning or by choosing a figure; after a calm pause without camera input, and only when no
-/// figure is chosen, the observer takes it back. Zoom and turn never take it away. Presentation only.
+/// figure is chosen, the observer takes it back. Zoom and turn never take it away. With <c>auto</c> off
+/// (the default, TL #19976) the observer never has the camera: it only moves on the player's wish (a
+/// click on a figure, or the "look" button of a hint). Presentation only.
 /// </summary>
 public sealed class ObserverFocus
 {
@@ -28,7 +30,7 @@ public sealed class ObserverFocus
     public string? Chosen { get; private set; }
 
     /// <summary>Whether the observer has the camera at <paramref name="now"/> (real seconds).</summary>
-    public bool Observing(double now) => Chosen is null && now >= _manualUntil;
+    public bool Observing(double now) => _data.Auto && Chosen is null && now >= _manualUntil;
 
     /// <summary>A thought appeared in a group: the observer stays with that group for a while.</summary>
     public void Thought(int group, double now)

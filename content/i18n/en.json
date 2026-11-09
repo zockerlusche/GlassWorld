@@ -1745,6 +1745,14 @@
     {
       "key": "vocab.soil.stone",
       "text": "Rock"
+    },
+    {
+      "key": "ui.toast.look",
+      "text": "Look"
+    },
+    {
+      "key": "msg.hint.look_thought",
+      "text": "{name} is thinking about something."
     }
   ]
 }
