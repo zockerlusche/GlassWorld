@@ -11,8 +11,8 @@ type ChronicleParam = Annotated[
     str,
     Field(
         ...,
-        description='inhabitant = who (name or neutral number), target = the thing (its name), action = the action or process (vocabulary text). A pattern, not an enum: generated C# cannot read arrays of enums.',
-        pattern='^(inhabitant|target|action)$',
+        description='inhabitant = who (name or neutral number), target = the thing (its name), action = the action or process (vocabulary text), other = a second inhabitant (the event target, by name). A pattern, not an enum: generated C# cannot read arrays of enums.',
+        pattern='^(inhabitant|target|action|other)$',
     ),
 ]
 
