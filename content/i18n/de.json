@@ -1689,6 +1689,10 @@
     {
       "key": "msg.share.reason.not_zip",
       "text": "keine Weltdatei"
+    },
+    {
+      "key": "vocab.event.answer_expired",
+      "text": "Antwort verfallen"
     }
   ]
 }

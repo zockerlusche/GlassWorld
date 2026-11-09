@@ -313,12 +313,32 @@ public sealed class InhabitantsSystem : IWorldSystem
         }
     }
 
+    /// <summary>Event kind of an answered question whose queued answer was dropped before it started (vocabulary event).</summary>
+    public const string AnswerExpired = "answer_expired";
+
+    /// <summary>Reason of a queued answer dropped because a need fell below its neglect threshold while it waited.</summary>
+    public const string NeedNeglected = "need_neglected";
+
     private void Act(World world, Inhabitant inhabitant)
     {
-        if (inhabitant.Activity is null && inhabitant.Planned is not null)
+        if (inhabitant.Activity is null && inhabitant.Planned is { } planned)
         {
-            inhabitant.Activity = inhabitant.Planned;
             inhabitant.Planned = null;
+            // A queued answer (an action the decider may be offered; a building step never is, the content
+            // check guarantees it) goes stale when a need fell below its neglect threshold while it waited
+            // and the answer serves none of the neglected needs (F5275 B, review GW3 #137): it is dropped
+            // and logged, and the routine or the decider decides anew. A thirsty inhabitant keeps a queued
+            // drink.
+            var neglected = _model.Needs.Where(n => n.NeglectBelow > 0 && inhabitant.Needs.GetValueOrDefault(n.Id, 1.0) < n.NeglectBelow).Select(n => n.Id).ToList();
+            if (_actions.OfferedActions.Contains(planned.Action, StringComparer.Ordinal)
+                && neglected.Count > 0 && !neglected.Any(need => _brain.Serves(planned.Action, need)))
+            {
+                Report(new WorldEvent(AnswerExpired, world.Tick, inhabitant.Id, planned.Action, planned.TargetId) { Detail = NeedNeglected });
+            }
+            else
+            {
+                inhabitant.Activity = planned;
+            }
         }
 
         inhabitant.Activity ??= Choose(world, inhabitant);

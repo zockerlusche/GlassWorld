@@ -421,16 +421,26 @@ public sealed class DecisionsSystem : IWorldSystem
         _open[question.Id] = resent with { AskedTick = question.AskedTick };
     }
 
-    /// <summary>Options the core allows: object actions on the subject and every action without a target (target kind from the action vocabulary).</summary>
     /// <summary>Most options a decision request may hold (contract decision-request: options maxItems).</summary>
     public const int MaxOptions = 32;
 
+    /// <summary>
+    /// Options the core allows: object actions on the subject and every action without a target (target
+    /// kind from the action vocabulary), each only while the asker's needs suggest it (<see cref="Behaviour.UtilityBrain.NeedSuggests"/>).
+    /// </summary>
     private List<(string OptionId, string Action, string? TargetId)> BuildOptions(Inhabitant asker, WorldObject? target)
     {
         var raw = new List<(string Action, string? TargetId)>();
         var passOn = new List<(string Action, string? TargetId)>();
         foreach (var action in _actions.OfferedActions)
         {
+            // Only what the asker's needs suggest (F5275 A): no sleep offered to someone wide awake, so a
+            // queued answer cannot chain sleeps while thirsty.
+            if (!_brain.NeedSuggests(asker, action))
+            {
+                continue;
+            }
+
             switch (_actionTargets.GetValueOrDefault(action, VocabularyEntryTarget.None))
             {
                 case VocabularyEntryTarget.Object when target is not null:

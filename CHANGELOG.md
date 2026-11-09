@@ -7,6 +7,10 @@ Each release gets its own section (version and date); until then changes collect
 
 ## [Unreleased]
 
+### Fixed
+
+- Decisions (TL F5275 = A + B, review GW3 #134 seed 114): (A) an action with need-based considerations in `content/behaviour/utility.json` is offered to the decider only while one of them gives it some urgency for the asker (`UtilityBrain.NeedSuggests`; no action names in code), so nobody wide awake is offered sleep; (B) a queued answer (`Inhabitant.Planned` with an action the decider may be offered; building steps never are) expires when a need fell below its `neglect_below` while it waited and the answer serves none of the neglected needs (a thirsty inhabitant keeps a queued drink): it is dropped, reported as the new event `answer_expired` (vocabulary, DE/EN) with detail `need_neglected`, and the routine or the decider decides anew. Sated inhabitants are no longer offered eat or drink, so they no longer taste unknown food out of curiosity. Queued answers no longer chain 8-hour sleeps while thirsty.
+
 ### Added
 
 - Shareable world file (A1354, F5234 C): "Share world" in the pause menu saves and writes the world as one local file (`user://shared/<world>_<date>.glassworld`: the save game, the chronicle as a web page and a manifest); the hint says it holds the whole world with all conversations and names. "Open a shared world …" in the main menu adds such a file as a new world to the list (never replaces one). Files from others are untrusted (`WorldShare.Import`): only the three known entries (no folders, no paths), sizes within `content/player/sharing.json` (schema `world-sharing`), counted while reading, a known format, an SQLite save; a refused file adds nothing and names the reason. The save game itself is checked by the core when the world is opened. Nothing is sent anywhere.
