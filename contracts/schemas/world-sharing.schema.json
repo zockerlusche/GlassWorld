@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/world-sharing.schema.json",
+  "title": "WorldSharing",
+  "description": "Sharing a world as one local file (F5234 C, A1354): the save game, the chronicle as a web page and a manifest in one zip. Nothing is sent anywhere; the player passes the file on. Files from others are untrusted: only the listed entries, size limits, a known format.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "format",
+    "extension",
+    "max_save_bytes",
+    "max_chronicle_bytes",
+    "max_manifest_bytes"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "format": {
+      "description": "Format version written into the manifest; files of other formats are refused.",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100
+    },
+    "extension": {
+      "description": "File extension of a shared world.",
+      "type": "string",
+      "pattern": "^\\.[a-z]{2,16}$"
+    },
+    "max_save_bytes": {
+      "description": "Largest save game accepted from a shared file.",
+      "type": "integer",
+      "minimum": 1048576,
+      "maximum": 2147483647
+    },
+    "max_chronicle_bytes": {
+      "description": "Largest chronicle page accepted from a shared file.",
+      "type": "integer",
+      "minimum": 1024,
+      "maximum": 268435456
+    },
+    "max_manifest_bytes": {
+      "description": "Largest manifest accepted.",
+      "type": "integer",
+      "minimum": 256,
+      "maximum": 1048576
+    }
+  }
+}

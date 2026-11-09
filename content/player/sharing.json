@@ -1,0 +1,8 @@
+{
+  "contract_version": "0.2",
+  "format": 1,
+  "extension": ".glassworld",
+  "max_save_bytes": 268435456,
+  "max_chronicle_bytes": 33554432,
+  "max_manifest_bytes": 16384
+}

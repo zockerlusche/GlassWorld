@@ -13,7 +13,11 @@ namespace GlassWorld.Game.Ui.Screens;
 /// <param name="Options">Size, climate and name limit (content/player/world_options.json).</param>
 /// <param name="Favor">Start favour options (content/player/favor.json).</param>
 /// <param name="Guard">Content guard for the world name (R13).</param>
-public sealed record MenuData(WorldLibrary Worlds, WorldOptions Options, FavorSettings Favor, TextGuard Guard);
+public sealed record MenuData(WorldLibrary Worlds, WorldOptions Options, FavorSettings Favor, TextGuard Guard)
+{
+    /// <summary>Sharing a world as one file (content/player/sharing.json); null hides "Open a world".</summary>
+    public WorldSharing? Sharing { get; init; }
+}
 
 /// <summary>
 /// Main menu (B6 R3): continue the last world, new world (name, seed, size, climate, start favour;
@@ -86,6 +90,10 @@ public partial class MainMenu : CanvasLayer
 
         Add("ui.menu.new_world", OpenNewWorld);
         Add("ui.menu.worlds", OpenWorlds).Disabled = worlds.Count == 0;
+        if (_data.Sharing is not null)
+        {
+            Add("ui.menu.open_shared", OpenShared);
+        }
         Add("ui.menu.settings", () => SettingsRequested?.Invoke());
         Add("ui.menu.quit", () => QuitRequested?.Invoke());
         _buttons.GetChild<Button>(1).CallDeferred(Control.MethodName.GrabFocus);
@@ -115,6 +123,77 @@ public partial class MainMenu : CanvasLayer
         {
             ShowWindow(NewWorldWindow(_data, _style, choice => NewWorldRequested?.Invoke(choice)));
         }
+    }
+
+    /// <summary>
+    /// Opens a world someone shared (F5234 C): a file dialog for the shared world file; the file is
+    /// checked (untrusted) and becomes a new world in the list, never replacing one.
+    /// </summary>
+    private void OpenShared()
+    {
+        var sharing = _data!.Sharing!;
+        var dialog = new FileDialog
+        {
+            FileMode = FileDialog.FileModeEnum.OpenFile,
+            Access = FileDialog.AccessEnum.Filesystem,
+            UseNativeDialog = true,
+            Filters = ["*" + sharing.Extension],
+            Title = Tr("ui.menu.open_shared"),
+        };
+        dialog.FileSelected += path =>
+        {
+            dialog.QueueFree();
+            string key;
+            var args = new Dictionary<string, string>();
+            try
+            {
+                var options = new WorldShareOptions(
+                    _data.Options.Sizes.Select(o => o.Id).ToHashSet(StringComparer.Ordinal),
+                    _data.Options.Climates.Select(o => o.Id).ToHashSet(StringComparer.Ordinal),
+                    _data.Favor.StartOptions.ToHashSet());
+                var world = WorldShare.Import(_data.Worlds, path, sharing, options, DateTimeOffset.UtcNow);
+                key = "msg.share.opened";
+                args["name"] = world.Name;
+            }
+            catch (WorldShareRefusedException e)
+            {
+                // The reason as a DE/EN text, never text or names from the file (review GW1 #138).
+                key = "msg.share.refused";
+                args["reason"] = Tr(e.ReasonKey);
+                GD.PushWarning($"shared world refused: {e.ReasonKey}");
+            }
+            catch (Exception e) when (e is System.IO.IOException or UnauthorizedAccessException)
+            {
+                key = "msg.share.refused";
+                args["reason"] = Tr("msg.share.reason.not_zip");
+                GD.PushWarning($"shared world could not be read: {e.Message}");
+            }
+
+            Rebuild(); // "Continue" and the world list know the new world
+            Notice(key, args);
+        };
+        dialog.Canceled += dialog.QueueFree;
+        AddChild(dialog);
+        dialog.PopupCentered(new Vector2I(900, 600));
+    }
+
+    private void Notice(string key, IReadOnlyDictionary<string, string> args)
+    {
+        if (_style is null)
+        {
+            return;
+        }
+
+        var message = new GwWindow();
+        message.Setup("ui.menu.open_shared", _style);
+        message.Content.AddChild(new Label
+        {
+            Text = TextFill.Fill(Tr(key), args),
+            AutoTranslateMode = AutoTranslateModeEnum.Disabled,
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+        });
+        message.AddAction("ui.common.close").Pressed += message.Close;
+        ShowWindow(message);
     }
 
     /// <summary>Opens the list of saved worlds.</summary>

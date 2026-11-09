@@ -1633,6 +1633,62 @@
     {
       "key": "msg.hint.chronicle_export_failed",
       "text": "The chronicle could not be saved just now."
+    },
+    {
+      "key": "ui.pause.share",
+      "text": "Share world"
+    },
+    {
+      "key": "ui.menu.open_shared",
+      "text": "Open a shared world …"
+    },
+    {
+      "key": "msg.share.saved",
+      "text": "Your world is saved as {file} in {folder}. It holds the whole world with all conversations and names - only pass it on if you want to."
+    },
+    {
+      "key": "msg.share.failed",
+      "text": "The world could not be saved as a file just now."
+    },
+    {
+      "key": "msg.share.opened",
+      "text": "The world \"{name}\" is now in your list of worlds."
+    },
+    {
+      "key": "msg.share.refused",
+      "text": "This file is not a shared world the game can open ({reason})."
+    },
+    {
+      "key": "msg.share.reason.unexpected_entry",
+      "text": "unexpected content"
+    },
+    {
+      "key": "msg.share.reason.too_large",
+      "text": "too large"
+    },
+    {
+      "key": "msg.share.reason.no_save",
+      "text": "no save game in it"
+    },
+    {
+      "key": "msg.share.reason.not_save",
+      "text": "not a valid save game"
+    },
+    {
+      "key": "msg.share.reason.manifest",
+      "text": "world details missing or invalid"
+    },
+    {
+      "key": "msg.share.reason.format",
+      "text": "another file version"
+    },
+    {
+      "key": "msg.share.reason.options",
+      "text": "unknown world size, climate or start favour"
+    },
+    {
+      "key": "msg.share.reason.not_zip",
+      "text": "not a world file"
     }
   ]
 }

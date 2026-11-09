@@ -174,6 +174,33 @@ public partial class Main : Node3D
         };
     }
 
+    /// <summary>
+    /// Saves and writes the world as one shareable local file (F5234 C) into user://shared; the hint names
+    /// the folder and says the file holds the whole world, conversations and names included.
+    /// </summary>
+    private void ShareWorld()
+    {
+        if (_meta is null || _library is null || _screen is null)
+        {
+            return;
+        }
+
+        TrySave();
+        try
+        {
+            var sharing = ContractSerializer.Deserialize<WorldSharing>(System.IO.File.ReadAllText(System.IO.Path.Combine(_contentDirectory, "player", "sharing.json")));
+            var meta = _library.List().FirstOrDefault(w => w.Id == _meta.Id) ?? _meta;
+            var folder = ProjectSettings.GlobalizePath("user://shared");
+            var file = WorldShare.Export(_library, meta, _screen.ChronicleHtml(), folder, sharing, DateTimeOffset.UtcNow);
+            _screen.ShowHint(new ToastMessage("msg.share.saved", new Dictionary<string, string> { ["folder"] = folder, ["file"] = System.IO.Path.GetFileName(file) }, null));
+        }
+        catch (Exception e) when (e is System.IO.IOException or UnauthorizedAccessException or InvalidOperationException)
+        {
+            GD.PushWarning($"sharing the world failed: {e.Message}");
+            _screen.ShowHint(new ToastMessage("msg.share.failed", new Dictionary<string, string>(), null));
+        }
+    }
+
     private MenuData LoadMenuData(WorldLibrary library)
     {
         var player = System.IO.Path.Combine(_contentDirectory, "player");
@@ -181,7 +208,10 @@ public partial class Main : Node3D
             library,
             ContractSerializer.Deserialize<WorldOptions>(System.IO.File.ReadAllText(System.IO.Path.Combine(player, "world_options.json"))),
             ContractSerializer.Deserialize<FavorSettings>(System.IO.File.ReadAllText(System.IO.Path.Combine(player, "favor.json"))),
-            TextGuard.FromJson(System.IO.File.ReadAllText(System.IO.Path.Combine(_contentDirectory, "safety", "rules.json"))));
+            TextGuard.FromJson(System.IO.File.ReadAllText(System.IO.Path.Combine(_contentDirectory, "safety", "rules.json"))))
+        {
+            Sharing = ContractSerializer.Deserialize<WorldSharing>(System.IO.File.ReadAllText(System.IO.Path.Combine(player, "sharing.json"))),
+        };
     }
 
     /// <summary>Leaves the menu for a world; if the world cannot be built, the menu stays with a message.</summary>
@@ -300,7 +330,10 @@ public partial class Main : Node3D
             {
                 _pause = null;
                 SaveAndQuit();
-            }));
+            })
+        {
+            Share = _meta is null || _library is null ? null : ShareWorld,
+        });
         _screen.ShowWindow(_pause, modal: true);
     }
 
