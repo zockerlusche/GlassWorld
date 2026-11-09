@@ -104,6 +104,19 @@ jobs:
           which -a dotnet
           dotnet restore game/GlassWorld.Game.csproj -r win-x64 -p:Configuration=ExportRelease -v:detailed > "$RUNNER_TEMP/restore-detailed.log" 2>&1; echo "exit=$?"
           grep -aiE "error|warn|NU[0-9]{4}|Restored|Failed" "$RUNNER_TEMP/restore-detailed.log" | head -n 60
+      - name: Probe 1 - Godot's publish outside Godot, with a binary log
+        continue-on-error: true
+        run: |
+          dotnet publish game/GlassWorld.Game.csproj -c ExportRelease -r win-x64 --self-contained true -p:GodotTargetPlatform=windows -bl:"$RUNNER_TEMP/publish.binlog" > "$RUNNER_TEMP/publish.log" 2>&1; echo "publish exit=$?"
+          grep -aiE "error|NU[0-9]{4}|Failed|Restored" "$RUNNER_TEMP/publish.log" | head -n 40
+      - name: Upload the publish binlog
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: publish-binlog
+          path: ${{ runner.temp }}/publish.*
+          if-no-files-found: error
+          retention-days: 5
       - name: Build the release archive
         id: build
         env:
@@ -113,7 +126,8 @@ jobs:
           GODOT="$(find ~/godot -maxdepth 2 -type f -name 'Godot_v*_mono_win64_console.exe' | head -n 1)"
           test -n "$GODOT" || { echo "Godot console executable not found" >&2; exit 1; }
           export GODOT
-          bash tools/release/build_release.sh "$VERSION" "$RUNNER_TEMP/release" | tee "$RUNNER_TEMP/build.log"
+          # Probe 2 (A/B): the export with CI unset (Directory.Build.props: ContinuousIntegrationBuild)
+          env -u CI bash tools/release/build_release.sh "$VERSION" "$RUNNER_TEMP/release" | tee "$RUNNER_TEMP/build.log"
           name="$(sed -n 's/^RELEASE_OK //p' "$RUNNER_TEMP/build.log")"
           test -n "$name" || { echo "release build did not finish" >&2; exit 1; }
           echo "name=$name" >> "$GITHUB_OUTPUT"
