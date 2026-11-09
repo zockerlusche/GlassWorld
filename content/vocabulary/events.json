@@ -125,6 +125,34 @@
     {
       "id": "no_answer",
       "description": "No answer came (AI service off or too slow, R16): calm hint, favour given back."
+    },
+    {
+      "id": "born",
+      "description": "An inhabitant is born (B8 R9 chronicle; reported by the core once families exist, B9; target = a parent)."
+    },
+    {
+      "id": "died",
+      "description": "An inhabitant has died, gently after long neglect (B8 R9; reported by the core, B9). Stays in the chronicle."
+    },
+    {
+      "id": "quarrelled",
+      "description": "Two inhabitants quarrelled (B8 R9; target = the other inhabitant; reported by the core once relationships change through conflict)."
+    },
+    {
+      "id": "reconciled",
+      "description": "Two inhabitants made up after a quarrel (B8 R9; target = the other inhabitant)."
+    },
+    {
+      "id": "partnered",
+      "description": "Two inhabitants became partners (B8 R9; target = the other inhabitant)."
+    },
+    {
+      "id": "migrated",
+      "description": "An inhabitant moved to live somewhere else (B8 R9; reported by the core once settlements exist)."
+    },
+    {
+      "id": "discovered_process",
+      "description": "An inhabitant discovered a new way of working, a process (B4b; action = the process; reported by the core once processes are discovered). The chronicle kind of the same name waited for it."
     }
   ]
 }

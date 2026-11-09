@@ -181,6 +181,8 @@ public partial class WorldAudio : Node3D
             return;
         }
 
+        Speak(events, listener);
+
         var positions = _feed.Snapshot.Inhabitants.ToDictionary(i => i.Id, i => i.Position, StringComparer.Ordinal);
         var playing = _pools.ToDictionary(p => p.Key, p => p.Value.Count(x => x.Playing));
         var inventions = _inventionSounds;
@@ -415,6 +417,33 @@ public partial class WorldAudio : Node3D
     /// <summary>A sound position on the ground (the island's height in island mode).</summary>
     private Vector3 At(Position position) =>
         new((float)position.X, GroundHeight?.Invoke(position.X, position.Z) ?? 0, (float)position.Z);
+
+    /// <summary>
+    /// The murmur of what an inhabitant says to the player (B6 R13, B8 R5): words are only in the speech
+    /// bubble, the ear hears a murmur without words in the inhabitant's voice.
+    /// </summary>
+    private void Speak(IReadOnlyList<Simulation.Inhabitants.WorldEvent> events, Position listener)
+    {
+        if (MurmurAudio.Voice is null || !_pools.TryGetValue(MixBusId.Voices, out var pool))
+        {
+            return;
+        }
+
+        foreach (var e in events)
+        {
+            if (e.Kind is not ("said" or "declined") || e.Text is not { Length: > 0 } text
+                || _feed!.Snapshot.Inhabitants.FirstOrDefault(i => i.Id == e.InhabitantId) is not { } speaker
+                || pool.FirstOrDefault(p => !p.Playing) is not { } player)
+            {
+                continue;
+            }
+
+            player.Stream = MurmurAudio.Stream(speaker.Id, speaker.Sex, text);
+            player.Position = At(speaker.Position);
+            ApplyVolume(player, MixBusId.Voices, listener);
+            player.Play();
+        }
+    }
 
     /// <summary>Sets a player's volume from its ground distance to the listener.</summary>
     public void ApplyVolume(AudioStreamPlayer3D player, MixBusId bus, Position listener)

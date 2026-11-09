@@ -36,6 +36,67 @@
         "inhabitant",
         "target"
       ]
+    },
+    {
+      "id": "built",
+      "event": "built",
+      "text_key": "msg.chronicle.built",
+      "params": [
+        "inhabitant",
+        "target"
+      ]
+    },
+    {
+      "id": "born",
+      "event": "born",
+      "text_key": "msg.chronicle.born",
+      "params": [
+        "inhabitant",
+        "other"
+      ]
+    },
+    {
+      "id": "died",
+      "event": "died",
+      "text_key": "msg.chronicle.died",
+      "params": [
+        "inhabitant"
+      ]
+    },
+    {
+      "id": "quarrel",
+      "event": "quarrelled",
+      "text_key": "msg.chronicle.quarrel",
+      "params": [
+        "inhabitant",
+        "other"
+      ]
+    },
+    {
+      "id": "reconciliation",
+      "event": "reconciled",
+      "text_key": "msg.chronicle.reconciliation",
+      "params": [
+        "inhabitant",
+        "other"
+      ]
+    },
+    {
+      "id": "partnership",
+      "event": "partnered",
+      "text_key": "msg.chronicle.partnership",
+      "params": [
+        "inhabitant",
+        "other"
+      ]
+    },
+    {
+      "id": "migration",
+      "event": "migrated",
+      "text_key": "msg.chronicle.migration",
+      "params": [
+        "inhabitant"
+      ]
     }
   ]
 }

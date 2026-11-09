@@ -47,6 +47,16 @@ public sealed class ScreenModelTests
     }
 
     [Fact]
+    public void NoAnswerToTalkingGivesOneCalmHint()
+    {
+        // B6 R16: the service is off or too slow; several unanswered sentences bundle into one hint.
+        var rows = new[] { new InhabitantRow("inh-000001", 1, 80, false, null, 0) };
+        var events = new[] { new WorldEvent("no_answer", 9, "inh-000001", null, null), new WorldEvent("no_answer", 9, "inh-000002", null, null) };
+        var hint = Assert.Single(ScreenModel.Hints(events, rows));
+        Assert.Equal("msg.hint.no_answer", hint.TextKey);
+    }
+
+    [Fact]
     public void ACallForHelpBecomesAHintNamingTheNeed()
     {
         var rows = new[] { new InhabitantRow("inh-000003", 3, 80, false, null, 0) };

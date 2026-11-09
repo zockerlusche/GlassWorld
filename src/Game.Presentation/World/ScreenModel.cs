@@ -68,6 +68,12 @@ public static class ScreenModel
                 yield return new ToastMessage("msg.hint.question", NameArgs(row), "question");
             }
         }
+
+        // Talking without an answer (service off or too slow, R16): one calm hint, the favour is back.
+        if (events.Any(e => e.Kind == "no_answer"))
+        {
+            yield return new ToastMessage("msg.hint.no_answer", new Dictionary<string, string>(), "no_answer");
+        }
     }
 
     /// <summary>The figure nearest to a click within the pick radius, or null (screen positions in logical px).</summary>

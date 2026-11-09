@@ -1535,8 +1535,76 @@
       "text": "Zeichen im Sand"
     },
     {
-      "key": "vocab.writing_medium.tablet",
-      "text": "Tafel"
+      "key": "vocab.event.born",
+      "text": "Geboren"
+    },
+    {
+      "key": "vocab.event.died",
+      "text": "Gestorben"
+    },
+    {
+      "key": "vocab.event.quarrelled",
+      "text": "Gestritten"
+    },
+    {
+      "key": "vocab.event.reconciled",
+      "text": "Versöhnt"
+    },
+    {
+      "key": "vocab.event.partnered",
+      "text": "Partner geworden"
+    },
+    {
+      "key": "vocab.event.migrated",
+      "text": "Fortgezogen"
+    },
+    {
+      "key": "msg.chronicle.built",
+      "text": "{inhabitant} hat etwas gebaut: {target}."
+    },
+    {
+      "key": "msg.chronicle.born",
+      "text": "{inhabitant} ist geboren – ein Kind von {other}."
+    },
+    {
+      "key": "msg.chronicle.died",
+      "text": "{inhabitant} ist für immer eingeschlafen."
+    },
+    {
+      "key": "msg.chronicle.quarrel",
+      "text": "{inhabitant} und {other} haben sich gestritten."
+    },
+    {
+      "key": "msg.chronicle.reconciliation",
+      "text": "{inhabitant} und {other} haben sich versöhnt."
+    },
+    {
+      "key": "msg.chronicle.partnership",
+      "text": "{inhabitant} und {other} gehören jetzt zusammen."
+    },
+    {
+      "key": "msg.chronicle.migration",
+      "text": "{inhabitant} ist fortgezogen, um anderswo zu leben."
+    },
+    {
+      "key": "ui.chronicle.someone",
+      "text": "jemand"
+    },
+    {
+      "key": "vocab.event.discovered_process",
+      "text": "Arbeitsschritt entdeckt"
+    },
+    {
+      "key": "ui.card.talk",
+      "text": "Ansprechen"
+    },
+    {
+      "key": "ui.card.talk_hint",
+      "text": "Was möchtest du sagen?"
+    },
+    {
+      "key": "ui.card.talk_send",
+      "text": "Sagen"
     }
   ]
 }

@@ -144,6 +144,10 @@ public sealed class ChronicleBook(ChronicleKinds kinds, WorldCalendar calendar)
                 case "target":
                     args["target"] = (entry.TargetId is null ? null : names.Target(entry.TargetId)) ?? "ui.chronicle.something";
                     break;
+                case "other":
+                    // A second inhabitant (quarrel, partnership, a parent): the event target by name.
+                    args["other"] = entry.TargetId is null ? "ui.chronicle.someone" : names.Inhabitant(entry.TargetId);
+                    break;
                 case "action":
                     args["action"] = entry.Action is null ? "ui.chronicle.something" : names.Action(entry.Action);
                     break;
