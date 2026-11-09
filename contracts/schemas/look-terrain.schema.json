@@ -57,6 +57,9 @@
       "minimum": 0,
       "maximum": 100
     },
+    "rock": {
+      "$ref": "#/$defs/TerrainRock"
+    },
     "open_sea_size_factor": {
       "description": "Size of the open sea plane around the map, as a multiple of the map's width and depth.",
       "type": "number",
@@ -84,6 +87,43 @@
         },
         "color": {
           "$ref": "common.schema.json#/$defs/VocabId"
+        }
+      }
+    },
+    "TerrainRock": {
+      "description": "Natural rock (TL #19984): colour variation on the cliff biomes' ground and walls, darker wall feet, and scree tint on the ground at the foot of a wall, so rock does not read as one flat grey. Absent = plain colours.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "variation_permille",
+        "variation_cells",
+        "wall_foot_shade_permille",
+        "scree_permille"
+      ],
+      "properties": {
+        "variation_permille": {
+          "description": "Largest brightness change of rock ground and walls (permille, both ways), from a smooth noise over the grid.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 500
+        },
+        "variation_cells": {
+          "description": "Size of the colour patches (noise wavelength in cells).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 256
+        },
+        "wall_foot_shade_permille": {
+          "description": "How much darker a wall is at its foot than at its top edge (permille).",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "scree_permille": {
+          "description": "How far the ground colour at the foot of a wall leans towards the rock colour (permille), so rock and grass blend.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
         }
       }
     },

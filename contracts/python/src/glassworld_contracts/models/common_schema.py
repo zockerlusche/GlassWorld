@@ -639,6 +639,10 @@ class InhabitantState(BaseModel):
         description='B9 R17: mourning, at most three overlapping losses. Optional.',
         max_length=3,
     )
+    name: ProperName | None = Field(
+        None,
+        description="B9 R11 / Marcel W1698: the inhabitant's own name, so it can introduce itself; absent while it has none. Optional.",
+    )
 
 
 class Invention(BaseModel):

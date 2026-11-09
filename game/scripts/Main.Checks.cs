@@ -573,6 +573,12 @@ public partial class Main
                 GD.Print("CHRONICLE_OK");
             }
 
+            var bubbles = _screen is null ? "game screen missing" : await _screen.CheckBubblesAsync();
+            if (bubbles.Length > 0)
+            {
+                problems = [.. problems, "bubbles: " + bubbles];
+            }
+
             var talk = _screen is null ? "game screen missing" : await _screen.CheckTalkAsync();
             if (talk.Length > 0)
             {

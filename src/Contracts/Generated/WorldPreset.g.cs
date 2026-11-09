@@ -124,6 +124,86 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("cliff_smoothing_rounds")]
         public int CliffSmoothingRounds { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("coast_cliffs")]
+        public WorldPresetCoastCliffs? CoastCliffs { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("rock_slopes")]
+        public WorldPresetRockSlopes? RockSlopes { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Steep coasts (TL #19990): where a coarse noise lies above the threshold, the land falls off to the sea over a narrower band, so hills reach the coast as steep rocky slopes; elsewhere the beaches keep the normal falloff. Absent = the normal falloff everywhere.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class WorldPresetCoastCliffs
+    {
+
+        /// <summary>
+        /// Falloff band of the steep coast (share of the half width), instead of coast_falloff_permille.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("falloff_permille")]
+        public int FalloffPermille { get; set; } = default!;
+
+        /// <summary>
+        /// Wavelength of the noise that chooses the steep stretches of coast (cells).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("noise_wavelength_cells")]
+        public int NoiseWavelengthCells { get; set; } = default!;
+
+        /// <summary>
+        /// Noise value (0..1000) from which the coast turns steep.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("threshold_permille")]
+        public int ThresholdPermille { get; set; } = default!;
+
+        /// <summary>
+        /// Noise range above the threshold over which the falloff blends from normal to steep, so the coast changes gradually.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("blend_permille")]
+        public int BlendPermille { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Natural rock slopes (TL #19984, #19990): only the longest rock walls of the terraces stay sheer (caves lie at their foot); elsewhere the terrace treads keep part of the original relief and steep steps settle into scree slopes no steeper than the talus (thermal erosion, integer, deterministic). Absent = flat terraces with walls at every terrace edge.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class WorldPresetRockSlopes
+    {
+
+        /// <summary>
+        /// How many rock walls (4-connected runs of cliff-top cells, longest first) stay sheer, with their foot; every other step settles.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("walls_kept")]
+        public int WallsKept { get; set; } = default!;
+
+        /// <summary>
+        /// Share of the original relief a terrace tread keeps away from the kept walls (0 = flat tread, 1000 = no terrace).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("tread_relief_permille")]
+        public int TreadReliefPermille { get; set; } = default!;
+
+        /// <summary>
+        /// Steepest height difference between neighbouring cells that a scree slope keeps (height units); steeper steps away from the kept walls settle until they reach it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("talus")]
+        public int Talus { get; set; } = default!;
+
+        /// <summary>
+        /// Share of a pair's excess over the talus that moves from the higher to the lower cell per round (permille, rounded up, at least 1 unit); 250 = a quarter, so a cell between four lower neighbours never overshoots.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("share_permille")]
+        public int SharePermille { get; set; } = default!;
+
+        /// <summary>
+        /// Rounds of settling.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("rounds")]
+        public int Rounds { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -224,6 +304,10 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("stream_min_accumulation")]
         public int StreamMinAccumulation { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("stream_heads")]
+        public WorldPresetStreamHeads? StreamHeads { get; set; } = default!;
 
         /// <summary>
         /// Width, depth and bank height of a stream by its flow accumulation, interpolated linearly between the points (accumulation ascending); beyond the last point the last values hold.
@@ -639,12 +723,33 @@ namespace GlassWorld.Contracts
 
     }
 
+    /// <summary>
+    /// Where a stream may begin (TL #19990: no stream out of nowhere): at a spring, out of a pond or lake beside it, or at the foot of a slope or rock where the ground within radius_cells rises at least relief above it - that head becomes a spring of its own. Above the first such cell the water seeps through the ground and no stream is drawn. Absent = a stream begins wherever the accumulation reaches stream_min_accumulation.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class WorldPresetStreamHeads
+    {
+
+        /// <summary>
+        /// Rise of the ground around a stream head (height units) that makes it a visible source.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("relief")]
+        public int Relief { get; set; } = default!;
+
+        /// <summary>
+        /// Radius (square, cells) in which the rise is measured.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("radius_cells")]
+        public int RadiusCells { get; set; } = default!;
+
+    }
+
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class WorldPresetDrinkSpot
     {
 
         /// <summary>
-        /// Where the objects lie: spring (exactly on the spring cells), lake_edge (dry walkable cells next to a pond or lake), stream_bank (dry walkable cells next to a running stream).
+        /// Where the objects lie: spring (exactly on the spring cells), lake_edge (dry walkable cells next to a pond or lake), stream_bank (dry walkable cells next to a running stream), hollow (dry walkable cells in a depression, see min_hollow_depth).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("at")]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<WorldPresetDrinkSpotAt>))]
@@ -673,6 +778,20 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("min_stream_distance_cells")]
         public int MinStreamDistanceCells { get; set; } = default!;
+
+        /// <summary>
+        /// Only in a depression (TL #19990: pools where water gathers): the cell lies at least this far (height units) below the mean ground within hollow_radius_cells. Absent = no such condition; required for at = hollow.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("min_hollow_depth")]
+        public int? MinHollowDepth { get; set; } = default!;
+
+        /// <summary>
+        /// Radius (square, cells) of the mean ground for min_hollow_depth; required with it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("hollow_radius_cells")]
+        public int? HollowRadiusCells { get; set; } = default!;
 
         /// <summary>
         /// Game hours until a used-up object of this type is there again (same meaning as in the spawn table; all entries of one type must agree). Absent = does not regrow.
@@ -943,6 +1062,10 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("stream_bank")]
         Stream_bank = 2,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("hollow")]
+        Hollow = 3,
 
 
     }

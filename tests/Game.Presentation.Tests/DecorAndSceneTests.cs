@@ -83,4 +83,22 @@ public sealed class DecorAndSceneTests
         Assert.True(island.Map.Cell(x, z) is { Water: WaterKind.Fresh, Flow: >= 0 }, $"seed {seed}: the target is no stream cell");
         Assert.Equal(found, SceneFinder.Find(scene, island, 1.0));
     }
+
+    /// <summary>The relief preview (TL #19990): the close-up finds a stream source on a slope on every tried island.</summary>
+    [Theory]
+    [InlineData(1UL)]
+    [InlineData(7UL)]
+    [InlineData(42UL)]
+    [InlineData(2026UL)]
+    public void TheReliefShotFindsAStreamSourceOnASlope(ulong seed)
+    {
+        var shots = Read<LookShots>("look", "shots_relief.json");
+        Assert.Equal(2, shots.Points.Count);
+        var scene = shots.Points.Single(p => p.Scene is not null).Scene!;
+        var island = Island(seed);
+        var spot = SceneFinder.Find(scene, island, 1.0);
+        Assert.True(spot is { } s && s.Relief >= scene.MinRelief, $"seed {seed}: no stream source on a slope");
+        int x = (int)spot!.Value.X, z = (int)spot.Value.Z;
+        Assert.Contains(island.Map.Hydrology!.Springs(), p => ((p.X - x) * (p.X - x)) + ((p.Z - z) * (p.Z - z)) <= scene.RadiusCells * scene.RadiusCells);
+    }
 }

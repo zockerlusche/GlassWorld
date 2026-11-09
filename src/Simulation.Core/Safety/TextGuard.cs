@@ -251,6 +251,10 @@ public sealed class TextGuard
         SafetyCategoryId.Personal_data => "personal_data",
         SafetyCategoryId.Drugs => "drugs",
         SafetyCategoryId.Injection => "injection",
+        SafetyCategoryId.Birth_explicit => "birth_explicit",
+        SafetyCategoryId.Death_drastic => "death_drastic",
+        SafetyCategoryId.Real_religion => "real_religion",
+        SafetyCategoryId.Fear => "fear",
         _ => throw new ArgumentOutOfRangeException(nameof(id), id, "unknown safety category"),
     };
 }

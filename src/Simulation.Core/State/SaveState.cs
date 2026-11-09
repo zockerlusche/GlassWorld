@@ -238,6 +238,8 @@ public static class StateCodec
         {
             host.WeatherSystem?.Restore(state.Weather, state.Tick);
         }
+
+        host.UseLoggedDisplayLocale();
         return host;
     }
 }

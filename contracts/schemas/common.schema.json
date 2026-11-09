@@ -515,6 +515,17 @@
           "items": {
             "$ref": "#/$defs/Grief"
           }
+        },
+        "name": {
+          "description": "B9 R11 / Marcel W1698: the inhabitant's own name, so it can introduce itself; absent while it has none. Optional.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ProperName"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "description": "Everything the AI may know about the inhabitant it speaks for (shared by decider and questions)."

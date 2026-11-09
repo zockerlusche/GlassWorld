@@ -73,6 +73,9 @@ public partial class GameScreen : CanvasLayer
     public void Setup(WorldPresenter presenter, UiStyle style)
     {
         _presenter = presenter ?? throw new ArgumentNullException(nameof(presenter));
+
+        // Thoughts and said sentences on screen (W1687): below the top bar, beside the side panel, inside the window.
+        presenter.ShowBubbles(BubbleArea, () => (float)(_style?.ContentScaleFactor ?? 1));
         _style = style ?? throw new ArgumentNullException(nameof(style));
         _feed = new WorldFeed(presenter.Host ?? throw new InvalidOperationException("world not started"));
         _board = new ToastBoard(style.Tokens.Toast, new ToastSettings(1, UntilDismissed: false));
@@ -474,6 +477,46 @@ public partial class GameScreen : CanvasLayer
 
         System.IO.File.Delete(html);
         System.IO.File.Delete(System.IO.Path.ChangeExtension(html, ".txt"));
+        return string.Empty;
+    }
+
+    /// <summary>
+    /// Smoke run only (W1687): two inhabitants say long sentences at once; the bubbles shown never overlap and
+    /// stay inside the free area (below the top bar, beside the side panel).
+    /// </summary>
+    public async Task<string> CheckBubblesAsync()
+    {
+        if (_presenter is null || _feed?.Inhabitants() is not { Count: >= 2 } rows || BubbleArea() is not { } area)
+        {
+            return "no world, two inhabitants or screen area";
+        }
+
+        const string Long = "Ich zeige dir, wie man das wilde Korn isst, damit wir nicht allein sind und es uns gut geht.";
+        _presenter.SayForCheck(rows[0].Id, Long);
+        _presenter.SayForCheck(rows[1].Id, Long);
+        _presenter.CloseLook(rows[0].Id, 14);
+        for (var i = 0; i < 4; i++)
+        {
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        }
+
+        var shown = _presenter.BubblesShown();
+        _presenter.SayForCheck(rows[0].Id, string.Empty);
+        _presenter.SayForCheck(rows[1].Id, string.Empty);
+        foreach (var (id, box) in shown)
+        {
+            if (!area.Grow(1).Encloses(box))
+            {
+                return $"bubble of {id} at {box} leaves the free area {area}";
+            }
+
+            if (shown.FirstOrDefault(o => o.Id != id && o.Box.Intersects(box)) is { Id: { } other })
+            {
+                return $"bubbles of {id} and {other} overlap";
+            }
+        }
+
+        GD.Print($"BUBBLES_OK shown={shown.Count}");
         return string.Empty;
     }
 
@@ -1463,6 +1506,22 @@ public partial class GameScreen : CanvasLayer
 
         UiSetup.Apply(GetTree().Root, original);
         return problem;
+    }
+
+    /// <summary>The free screen area for the bubbles over the heads: below the top bar, left of the side panel.</summary>
+    private Rect2? BubbleArea()
+    {
+        if (_style is null || _topBar is null || !_topBar.IsInsideTree())
+        {
+            return null;
+        }
+
+        var view = GetViewport().GetVisibleRect().Size;
+        var margin = _style.Tokens.Window.SafeMargin;
+        var gap = _style.Tokens.Window.Gap;
+        var top = _topBar.Position.Y + _topBar.Size.Y + gap;
+        var right = _sideBar.Position.X - gap;
+        return new Rect2(margin, top, Math.Max(0, right - margin), Math.Max(0, view.Y - margin - top));
     }
 
     private void Layout()

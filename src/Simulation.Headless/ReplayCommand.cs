@@ -81,7 +81,7 @@ internal static class ReplayCommand
         var settings = ContractSerializer.Deserialize<DeciderSettings>(File.ReadAllText(Path.Combine(contentDirectory, "decider", "settings.json")));
 
         // The saved world's hash: restoring gives exactly the state that was saved (ADR-0003).
-        var savedHash = StateCodec.Restore(new SimulationHostFactory(content, settings, new MockDecisionPort(), "de"), saved).World.StateHash();
+        var savedHash = StateCodec.Restore(new SimulationHostFactory(content, settings, new MockDecisionPort(), DecisionsSystem.DefaultDisplayLocale), saved).World.StateHash();
 
         var decisionLog = new DecisionLog();
         foreach (var entry in saved.DecisionLog)
@@ -98,8 +98,8 @@ internal static class ReplayCommand
         var jobs = HadJobs(saved.Inventions) ? new ReplayJobPort(jobLog) : null;
         var port = new ReplayDecisionPort(decisionLog);
         var host = saved.WorldPreset is null
-            ? SimulationHost.CreatePlaceholderWorld(contentDirectory, saved.Seed, port, "de", jobs)
-            : SimulationHost.CreateGeneratedWorld(contentDirectory, saved.Seed, port, "de", saved.WorldPreset, jobs);
+            ? SimulationHost.CreatePlaceholderWorld(contentDirectory, saved.Seed, port, DecisionsSystem.DefaultDisplayLocale, jobs)
+            : SimulationHost.CreateGeneratedWorld(contentDirectory, saved.Seed, port, DecisionsSystem.DefaultDisplayLocale, saved.WorldPreset, jobs);
         if (saved.IslandHash is not null && host.Map?.IslandHash != saved.IslandHash)
         {
             // The data generate another island than the saved one: the replay cannot start alike.
