@@ -242,7 +242,9 @@ public partial class WorldPresenter
         _seaLevelM = preset.Terrain.SeaLevel * terrain.UnitM;
         _cellM = terrain.CellM;
 
-        _objectsView = ObjectsView.Create(Read<LookObjects>(content, "look", "objects.json"), Read<LookPalette>(content, "look", "palette.json"), _ground);
+        var objectLooks = Read<LookObjects>(content, "look", "objects.json");
+        var decor = Decor.Plan(objectLooks.Decor, map.Map, host.World.Seed, host.Objects.All, terrain.CellM);
+        _objectsView = ObjectsView.Create(objectLooks, Read<LookPalette>(content, "look", "palette.json"), _ground, decor);
         AddChild(_objectsView);
 
         _figuresLook = Read<LookFigures>(content, "look", "figures.json");

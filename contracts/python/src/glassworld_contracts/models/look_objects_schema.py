@@ -64,6 +64,17 @@ class ObjectLookAlign(StrEnum):
     ground_uphill = 'ground_uphill'
 
 
+type Biome = Annotated[str, Field(..., pattern='^[a-z][a-z0-9_]*$')]
+
+
+class ObjectDecorGroup(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    min: int = Field(..., description='Fewest.', ge=1, le=64)
+    max: int = Field(..., description='Most.', ge=1, le=64)
+
+
 class ObjectVisual(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -113,6 +124,45 @@ class ObjectVisual(BaseModel):
     )
 
 
+class ObjectDecor(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    type: str = Field(
+        ...,
+        description='Decor type id; a visual of this file lists it in its types (it must not be an object type of the catalogue).',
+        pattern='^[a-z][a-z0-9_]*$',
+    )
+    biomes: list[Biome] = Field(
+        ...,
+        description='Biome ids whose dry walkable cells carry it.',
+        max_length=16,
+        min_length=1,
+    )
+    groups_per_10000_cells: int = Field(
+        ..., description='Groups per 10000 cells of those biomes.', ge=0, le=10000
+    )
+    group: ObjectDecorGroup
+    spread_m: float = Field(
+        ...,
+        description='Largest distance of a plant from its group centre in metres.',
+        ge=0.0,
+        le=20.0,
+    )
+    min_spacing_m: float = Field(
+        ...,
+        description='Smallest distance between two decorative plants in metres.',
+        ge=0.0,
+        le=10.0,
+    )
+    min_object_distance_m: float = Field(
+        ...,
+        description='Smallest distance from any core object at the start in metres.',
+        ge=0.0,
+        le=10.0,
+    )
+
+
 class LookObjects(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -145,3 +195,8 @@ class LookObjects(BaseModel):
     )
     fallback: ObjectLookFallback
     visuals: list[ObjectVisual] = Field(..., max_length=256, min_length=1)
+    decor: list[ObjectDecor] | None = Field(
+        None,
+        description="Decorative plants drawn by the presentation only (TL #19722): grass tufts, flowers, shrubs in groups on the dry walkable ground of named biomes, placed from the world seed. They are no core objects, have no state and are never saved; they keep off the core's objects and off water. Absent = none.",
+        max_length=32,
+    )

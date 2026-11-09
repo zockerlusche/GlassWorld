@@ -37,6 +37,36 @@
       "yaw_deg": 60,
       "distance_m": 40,
       "inhabitant": 1
+    },
+    {
+      "id": "creek_scene",
+      "target_x_permille": 500,
+      "target_z_permille": 500,
+      "yaw_deg": 30,
+      "distance_m": 45,
+      "scene": {
+        "max_start_distance_cells": 40,
+        "radius_cells": 12,
+        "min_stream_cells": 8,
+        "spring": true,
+        "min_relief": 15,
+        "face_hill": true
+      }
+    },
+    {
+      "id": "creek_close",
+      "target_x_permille": 500,
+      "target_z_permille": 500,
+      "yaw_deg": 30,
+      "distance_m": 24,
+      "scene": {
+        "max_start_distance_cells": 40,
+        "radius_cells": 12,
+        "min_stream_cells": 8,
+        "spring": true,
+        "min_relief": 15,
+        "face_hill": true
+      }
     }
   ],
   "projections": [
