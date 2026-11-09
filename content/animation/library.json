@@ -322,6 +322,12 @@
     },
     {
       "kind": "action",
+      "id": "show",
+      "target": "inhabitant",
+      "clip": "talk"
+    },
+    {
+      "kind": "action",
       "id": "teach",
       "clip": "talk"
     },

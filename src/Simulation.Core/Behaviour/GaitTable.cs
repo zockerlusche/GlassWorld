@@ -53,6 +53,21 @@ public sealed class GaitTable
         problems.AddRange(named.Where(g => !ids.Contains(g, StringComparer.Ordinal)).Distinct(StringComparer.Ordinal).Select(g => $"unknown gait '{g}'"));
         problems.AddRange(data.ActionGaits.Where(a => !actions.Contains(a.Action)).Select(a => $"unknown action '{a.Action}'"));
         problems.AddRange(data.ActionGaits.GroupBy(a => a.Action, StringComparer.Ordinal).Where(g => g.Count() > 1).Select(g => $"action '{g.Key}' named twice"));
+        if (data.Spacing is { } spacing)
+        {
+            if (spacing.ConversationMaxM < spacing.ConversationMinM)
+            {
+                problems.Add("spacing: conversation_max_m below conversation_min_m");
+            }
+
+            if (spacing.MinSeparationM > spacing.ConversationMinM)
+            {
+                problems.Add("spacing: min_separation_m above conversation_min_m");
+            }
+
+            problems.AddRange(spacing.ListenerTurnsDuring.Where(a => !actions.Contains(a)).Select(a => $"spacing: unknown action '{a}'"));
+        }
+
         if (problems.Count > 0)
         {
             throw new InvalidDataException("Gaits: " + string.Join("; ", problems) + ".");

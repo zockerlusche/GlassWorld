@@ -39,6 +39,15 @@ public sealed record InhabitantSnapshot(
     /// it stands or performs its action; the presentation plays the animation gait of the same id (F5264).
     /// </summary>
     public string? Gait { get; init; }
+
+    /// <summary>
+    /// What an action aimed at another inhabitant is about (object type id of the belief it would pass on),
+    /// null otherwise; the inhabitant list says "shows Toma the spring water" with it (W1687).
+    /// </summary>
+    public string? Topic { get; init; }
+
+    /// <summary>Id of the inhabitant this one turns its whole body to (B2528, W1691), or null; see InhabitantsSystem.FacingOf.</summary>
+    public string? Facing { get; init; }
 }
 
 /// <summary>Read-only picture of the world at one tick.</summary>
@@ -83,6 +92,8 @@ public static class WorldView
             {
                 Appearance = i.Appearance,
                 Gait = inhabitants.GaitOf(i),
+                Topic = inhabitants.TopicOf(i),
+                Facing = inhabitants.FacingOf(i),
             })],
             [.. objects.All],
             [.. inhabitants.Events]);

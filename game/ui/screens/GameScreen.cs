@@ -86,7 +86,7 @@ public partial class GameScreen : CanvasLayer
         _inhabitants.CustomMinimumSize = new Vector2(0, style.Tokens.Window.TableMinHeight);
         _questions.CustomMinimumSize = new Vector2(0, style.Tokens.Window.TableMinHeight);
         _inhabitants.Setup(
-            [new GwColumn("ui.inhabitants.column.name", false), new GwColumn("ui.inhabitants.column.will_to_live", true), new GwColumn("ui.inhabitants.column.questions", true)],
+            [new GwColumn("ui.inhabitants.column.name", false), new GwColumn("ui.inhabitants.column.activity", false), new GwColumn("ui.inhabitants.column.will_to_live", true), new GwColumn("ui.inhabitants.column.questions", true)],
             "ui.inhabitants.empty");
         _inhabitants.RowSelected += OpenCard;
         _questions.Setup([new GwColumn("ui.inhabitants.column.name", false), new GwColumn("ui.questions.column.count", true)], "ui.questions.empty");
@@ -1096,7 +1096,7 @@ public partial class GameScreen : CanvasLayer
         RefreshMail();
 
         var rows = _feed.Inhabitants();
-        _inhabitants.SetRows([.. rows.Select(r => new GwRow(r.Id, [DisplayName(r), Number(r.WillToLivePercent), Number(r.OpenQuestions)], [r.Number, r.WillToLivePercent, r.OpenQuestions]))]);
+        _inhabitants.SetRows([.. rows.Select(r => new GwRow(r.Id, [DisplayName(r), Activity(r.Id), Number(r.WillToLivePercent), Number(r.OpenQuestions)], [r.Number, 0, r.WillToLivePercent, r.OpenQuestions]))]);
         _questions.SetRows([.. _feed.OpenQuestions().Select(q => (Row: rows.First(r => r.Id == q.InhabitantId), q.Count)).Select(x => new GwRow(x.Row.Id, [DisplayName(x.Row), Number(x.Count)], [x.Row.Number, x.Count]))]);
 
         var clock = _feed.Clock();
@@ -1401,7 +1401,7 @@ public partial class GameScreen : CanvasLayer
             _talkInput.PlaceholderText = Tr("ui.card.talk_hint");
         }
 
-        var action = card.Row.ActionKey ?? "ui.card.idle";
+        var action = Activity(card.Row.Id);
         if (_cardAction is not null && _cardAction.Text != action)
         {
             _cardAction.Text = action;
@@ -1517,6 +1517,12 @@ public partial class GameScreen : CanvasLayer
             });
         return ScreenModel.Pick(figures, screen.X, screen.Y, _style.Tokens.Window.PickRadiusPx);
     }
+
+    /// <summary>What the inhabitant does, as a readable line (W1687: never a bare "?").</summary>
+    private string Activity(string inhabitantId) =>
+        _feed?.Snapshot is { } snapshot && snapshot.Inhabitants.FirstOrDefault(i => i.Id == inhabitantId) is { } inhabitant
+            ? InhabitantActivity.Describe(inhabitant, snapshot, key => Tr(key))
+            : Tr(InhabitantActivity.StandingKey);
 
     private string DisplayName(InhabitantRow row) => TextFill.Fill(Tr("ui.inhabitant.unnamed"), ScreenModel.NameArgs(row));
 

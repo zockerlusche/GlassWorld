@@ -1725,6 +1725,150 @@
     {
       "key": "vocab.soil.stone",
       "text": "Fels"
+    },
+    {
+      "key": "ui.inhabitants.column.activity",
+      "text": "Tut gerade"
+    },
+    {
+      "key": "ui.activity.standing",
+      "text": "steht da"
+    },
+    {
+      "key": "ui.activity.thinking",
+      "text": "denkt nach"
+    },
+    {
+      "key": "ui.activity.idle",
+      "text": "ruht sich aus"
+    },
+    {
+      "key": "ui.activity.wander",
+      "text": "streift umher"
+    },
+    {
+      "key": "ui.activity.move_to",
+      "text": "geht los"
+    },
+    {
+      "key": "ui.activity.inspect",
+      "text": "untersucht etwas"
+    },
+    {
+      "key": "ui.activity.inspect.object",
+      "text": "untersucht: {thing}"
+    },
+    {
+      "key": "ui.activity.pick_up",
+      "text": "hebt etwas auf"
+    },
+    {
+      "key": "ui.activity.pick_up.object",
+      "text": "hebt auf: {thing}"
+    },
+    {
+      "key": "ui.activity.drop",
+      "text": "legt etwas ab"
+    },
+    {
+      "key": "ui.activity.eat",
+      "text": "isst"
+    },
+    {
+      "key": "ui.activity.eat.object",
+      "text": "isst: {thing}"
+    },
+    {
+      "key": "ui.activity.drink",
+      "text": "trinkt"
+    },
+    {
+      "key": "ui.activity.drink.object",
+      "text": "trinkt: {thing}"
+    },
+    {
+      "key": "ui.activity.sleep",
+      "text": "schläft"
+    },
+    {
+      "key": "ui.activity.approach",
+      "text": "geht auf jemanden zu"
+    },
+    {
+      "key": "ui.activity.approach.inhabitant",
+      "text": "geht auf {name} zu"
+    },
+    {
+      "key": "ui.activity.talk_to",
+      "text": "spricht jemanden an"
+    },
+    {
+      "key": "ui.activity.talk_to.inhabitant",
+      "text": "spricht mit {name}"
+    },
+    {
+      "key": "ui.activity.combine",
+      "text": "kombiniert etwas"
+    },
+    {
+      "key": "ui.activity.combine.object",
+      "text": "kombiniert: {thing}"
+    },
+    {
+      "key": "ui.activity.warn",
+      "text": "warnt jemanden"
+    },
+    {
+      "key": "ui.activity.warn.inhabitant",
+      "text": "warnt {name}"
+    },
+    {
+      "key": "ui.activity.warn.inhabitant_topic",
+      "text": "warnt {name} vor: {thing}"
+    },
+    {
+      "key": "ui.activity.show",
+      "text": "zeigt etwas"
+    },
+    {
+      "key": "ui.activity.show.object",
+      "text": "zeigt: {thing}"
+    },
+    {
+      "key": "ui.activity.show.inhabitant",
+      "text": "zeigt {name} etwas"
+    },
+    {
+      "key": "ui.activity.show.inhabitant_topic",
+      "text": "zeigt {name}: {thing}"
+    },
+    {
+      "key": "ui.activity.teach",
+      "text": "bringt etwas bei"
+    },
+    {
+      "key": "ui.activity.teach.inhabitant",
+      "text": "bringt {name} etwas bei"
+    },
+    {
+      "key": "ui.activity.teach.inhabitant_topic",
+      "text": "bringt {name} etwas bei: {thing}"
+    },
+    {
+      "key": "ui.activity.use",
+      "text": "benutzt etwas"
+    },
+    {
+      "key": "ui.activity.use.object",
+      "text": "benutzt: {thing}"
+    },
+    {
+      "key": "ui.activity.build_step",
+      "text": "baut"
+    },
+    {
+      "key": "ui.activity.build_step.object",
+      "text": "baut mit: {thing}"
     }
   ]
 }

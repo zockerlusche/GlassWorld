@@ -11,5 +11,14 @@
   "action_gaits": [
     { "action": "wander", "gait": "stroll" }
   ],
-  "pressing_need_gait": "hurry"
+  "pressing_need_gait": "hurry",
+  "spacing": {
+    "conversation_min_m": 1.0,
+    "conversation_max_m": 1.5,
+    "min_separation_m": 0.8,
+    "yield_lookahead_m": 5.0,
+    "yield_offset_m": 0.6,
+    "facing_tolerance_deg": 15,
+    "listener_turns_during": ["idle"]
+  }
 }
