@@ -40,6 +40,23 @@ CHAIN_DE = {
     "first_use": "benutzt",
 }
 ASSET_SUFFIXES = (".png", ".webp", ".jpg", ".wav", ".ogg", ".flac", ".glb")
+# Exit codes of Simulation.Headless (src/Simulation.Headless/README.md).
+RUNNER_EXIT = {
+    0: "fertig, Abnahme ok",
+    1: "falsche Argumente",
+    2: "Kern-Abnahme fehlgeschlagen",
+    3: "--until nicht erreicht",
+    4: "KI-Dienst nicht verfuegbar oder ein Spiel laeuft",
+    130: "abgebrochen",
+}
+REPLAY_EXIT = {
+    0: "REPLAY_OK",
+    5: "REPLAY_DIFF",
+    6: "REPLAY_CONTENT_CHANGED",
+    1: "falsche Argumente",
+}
+# Without these the run never got going: no save to replay, no chain to judge.
+RUNNER_NOT_STARTED = {1, 4}
 
 
 @dataclass
@@ -141,6 +158,12 @@ def chain_check(run: RunResult) -> list[tuple[str, str, bool]]:
     return rows
 
 
+def build_headless() -> int:
+    return subprocess.run(
+        ["dotnet", "build", str(PROJECT), "-c", "Release", "-v", "q", "-nologo"], cwd=ROOT
+    ).returncode
+
+
 def run_cmd(args: list[str], log: Path, env: dict[str, str]) -> tuple[int, list[str]]:
     with log.open("w", encoding="utf-8", newline="\n") as out:
         done = subprocess.run(
@@ -175,14 +198,22 @@ def report(
         if e["kind"] in {"job_result", "job_error", "job_discarded"}:
             outcome[e["request_id"]] = e["kind"]
     sound = [r for r, e in requests.items() if job_kind(e) == "sound"]
+    counts = Counter(e.get("kind", "-") for e in run.events if e.get("kind") in CHAIN)
+    chronicle_counts = Counter(c.get("kind", "-") for c in run.chronicle)
     lines = [
         f"# Durchstich D9 - Lauf seed {options.seed} ({options.ai})",
         "",
         f"- Lauf: `--preset start_island --seed {options.seed} --ai {options.ai} "
-        f"--days {options.days} --until {options.until}`, Exit-Code {run.exit_code}",
+        f"--days {options.days} --until {options.until}`, Exit-Code {run.exit_code} "
+        f"({RUNNER_EXIT.get(run.exit_code, 'unbekannt')})",
         f"- {run.until or 'UNTIL: -'}",
         f"- Endstand: Tick {run.final_tick}, Hash `{run.final_hash}`",
-        f"- Replay: `{replay_line or '-'}` (Exit-Code {replay_code})",
+        f"- Replay: `{replay_line or '-'}` (Exit-Code {replay_code}: "
+        f"{REPLAY_EXIT.get(replay_code, 'unbekannt')})",
+        "- Anzahl je Art: "
+        + (", ".join(f"{k} {counts[k]}" for k in CHAIN if counts[k]) or "-")
+        + "; Chronik: "
+        + (", ".join(f"{k} {v}" for k, v in sorted(chronicle_counts.items())) or "-"),
         f"- **Replay-Hash gleich Lauf-Hash: {'ja' if same_hash else 'NEIN'}** (Abnahme M2 Punkt 2)",
         f"- **Kette vollstaendig: {'ja' if chain_ok else 'NEIN'}** (Abnahme M2 Punkt 1)",
         "",
@@ -224,9 +255,9 @@ def report(
         "",
         f"Entscheidungen: {len(decisions)}, Jobs: {len(requests)}. Vollstaendig in `log.jsonl`.",
         "",
-        "| Log | Art | request_id | Tick | Wartezeit (Ticks) | Quelle | Modell | Prompt "
+        "| Log | Art | request_id | Tick | Wartezeit (Ticks) | Seed | Quelle | Modell | Prompt "
         "| Latenz ms |",
-        "|---|---|---|---|---|---|---|---|---|",
+        "|---|---|---|---|---|---|---|---|---|---|",
     ]
     for e in log:
         if e["kind"] in {"request", "job_request", "command"}:
@@ -235,7 +266,8 @@ def report(
         art = job_kind(requests.get(e["request_id"], {})) if e["log"] == "job" else e["kind"]
         lines.append(
             f"| {e['log']} | {art} ({e['kind']}) | `{e['request_id']}` | {e['tick']} | "
-            f"{meta.get('wait_ticks', '-')} | {meta.get('source', '-')} | "
+            f"{meta.get('wait_ticks', '-')} | {meta.get('request_seed', meta.get('seed', '-'))} | "
+            f"{meta.get('source', '-')} | "
             f"{meta.get('model', '-')} | "
             f"{meta.get('prompt_version', '-')} | {meta.get('latency_ms', '-')} |"
         )
@@ -245,7 +277,7 @@ def report(
     ]
     text = "\n".join(lines) + "\n"
     (out / "bericht.md").write_text(text, encoding="utf-8", newline="\n")
-    return text, chain_ok and same_hash
+    return text, chain_ok and same_hash and run.exit_code == 0
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -257,7 +289,16 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--out", type=Path, required=True, help="output folder outside the repository"
     )
+    parser.add_argument(
+        "--gpu-queue",
+        action="store_true",
+        help="required with --ai live: say that this runs as an AMW GPU-queue run",
+    )
     options = parser.parse_args(argv)
+    if options.ai == "live" and not options.gpu_queue:
+        # Live runs share the GPU: only through `amw lauf ausfuehren --gpu ... -- ... --gpu-queue`.
+        print("D9_FAIL: --ai live only as an AMW GPU-queue run (pass --gpu-queue)", file=sys.stderr)
+        return 1
     out = options.out.resolve()
     if out == ROOT or ROOT in out.parents:
         print(f"D9_FAIL: output folder {out} is inside the repository", file=sys.stderr)
@@ -271,10 +312,7 @@ def main(argv: list[str] | None = None) -> int:
     (out / ".glassworld-d9").write_text("made by tools/durchstich/run_d9.py", encoding="utf-8")
 
     env = dict(os.environ, GLASSWORLD_HEADLESS_DATA=str(out / "service"))
-    build = subprocess.run(
-        ["dotnet", "build", str(PROJECT), "-c", "Release", "-v", "q", "-nologo"], cwd=ROOT
-    )
-    if build.returncode != 0:
+    if build_headless() != 0:
         print("D9_FAIL: build of Simulation.Headless failed", file=sys.stderr)
         return 1
     headless = ["dotnet", "run", "--project", str(PROJECT), "-c", "Release", "--no-build", "--"]
@@ -304,6 +342,20 @@ def main(argv: list[str] | None = None) -> int:
         env,
     )
     run = parse_run(lines, code)
+    if code in RUNNER_NOT_STARTED or not save.is_file():
+        # Nothing ran (AI service unavailable, a game's service running, bad arguments): say so
+        # instead of replaying a missing save and reporting a "failed chain" (review GW1 #133).
+        reason = next((x for x in lines if x.startswith("AI_SERVICE_UNAVAILABLE")), "")
+        text = (
+            f"# Durchstich D9 - Lauf seed {options.seed} ({options.ai}): NICHT GELAUFEN\n\n"
+            f"- Exit-Code {code}: {RUNNER_EXIT.get(code, 'unbekannt')}\n"
+            f"- {reason or 'kein Spielstand geschrieben'}\n"
+            "- Kein Replay und keine Kettenbewertung: der Lauf hat nicht stattgefunden.\n"
+        )
+        (out / "bericht.md").write_text(text, encoding="utf-8", newline="\n")
+        sys.stdout.buffer.write(text.encode("utf-8"))
+        print(f"D9_FAIL: runner exit {code} ({RUNNER_EXIT.get(code, 'unknown')})")
+        return 3
     replay_code, replay_lines = run_cmd(
         [*headless, "replay", "--save", str(save)], out / "replay.log", env
     )
