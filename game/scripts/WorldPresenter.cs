@@ -25,7 +25,7 @@ public partial class WorldPresenter : Node3D
     private const double ThoughtSeconds = 6.0;
 
     private readonly Dictionary<string, MeshInstance3D> _figures = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, (Label3D Label, double Until)> _thoughts = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, (GlassWorld.Game.World.ScreenBubble Label, double Until)> _thoughts = new(StringComparer.Ordinal);
     private readonly Dictionary<string, double> _speechUntil = new(StringComparer.Ordinal);
     private AiServiceProcess? _service;
     private HttpDecisionPort? _livePort;
@@ -228,7 +228,7 @@ public partial class WorldPresenter : Node3D
 
         foreach (var (id, figure) in _figures)
         {
-            var label = new Label3D { Name = "Thought", Position = new Vector3(0, 1.6f, 0), Billboard = BaseMaterial3D.BillboardModeEnum.Enabled, Visible = false };
+            var label = new GlassWorld.Game.World.ScreenBubble { Name = "Thought", Position = new Vector3(0, 1.6f, 0), Visible = false };
             figure.AddChild(label);
             _thoughts[id] = (label, 0);
         }
@@ -420,10 +420,10 @@ public partial class WorldPresenter : Node3D
                 {
                     said.Label.Text = talk.Text;
                     said.Label.Visible = talk.Seconds > 0;
-                    _thoughts[e.InhabitantId] = (said.Label, _clock + talk.Seconds);
+                    _thoughts[e.InhabitantId] = (said.Label, _clock + Shorter(talk.Seconds));
                 }
 
-                _speechUntil[e.InhabitantId] = TalkBubble.IsSpeech(e.Kind, e.Text) ? _clock + talk.Seconds : 0;
+                _speechUntil[e.InhabitantId] = TalkBubble.IsSpeech(e.Kind, e.Text) ? _clock + Shorter(talk.Seconds) : 0;
                 React(e);
                 continue;
             }
@@ -434,28 +434,67 @@ public partial class WorldPresenter : Node3D
                 // A thought never covers a spoken answer still showing (W1688).
                 bubble.Label.Text = text;
                 bubble.Label.Visible = true;
-                _thoughts[e.InhabitantId] = (bubble.Label, _clock + ThoughtSeconds);
+                _thoughts[e.InhabitantId] = (bubble.Label, _clock + Shorter(_look?.Labels.ThoughtSeconds ?? ThoughtSeconds));
                 ObserveThought(e.InhabitantId);
             }
         }
 
-        var camera = Mode == WorldLookMode.Island && _look is not null ? GetViewport()?.GetCamera3D() : null;
         foreach (var bubble in _thoughts.Values)
         {
             if (bubble.Label.Visible && _clock > bubble.Until)
             {
                 bubble.Label.Visible = false;
             }
-            else if (bubble.Label.Visible && camera is not null)
-            {
-                // Readable at every zoom (W1688): a line of the bubble keeps its screen height within the data.
-                var label = bubble.Label;
-                var perMetre = camera.Projection == Camera3D.ProjectionType.Orthogonal
-                    ? GetViewport().GetVisibleRect().Size.Y / Math.Max(camera.Size, 0.001)
-                    : Presentation.Ui.HeadSymbolSize.PixelsPerMetre(camera.GlobalPosition.DistanceTo(label.GlobalPosition), camera.Fov, GetViewport().GetVisibleRect().Size.Y);
-                var factor = (float)Presentation.Ui.HeadSymbolSize.Factor(label.FontSize * label.PixelSize, perMetre, _look!.Labels.BubbleMinPx, _look.Labels.BubbleMaxPx);
-                label.Scale = new Vector3(factor, factor, factor);
-            }
+        }
+    }
+
+    /// <summary>
+    /// How long a line stays: at high speed the data's shorter time, so lines do not pile up (W1687). A waiting
+    /// "…" (much longer than any line) is kept.
+    /// </summary>
+    private double Shorter(double seconds)
+    {
+        if (_look?.Labels is not { } labels || seconds > 60)
+        {
+            return seconds;
+        }
+
+        return Speed >= labels.FastFromSpeed ? Math.Min(seconds, labels.ThoughtSecondsFast) : seconds;
+    }
+
+    /// <summary>
+    /// The screen layer for thoughts and said sentences (W1687): one line per inhabitant, never on top of
+    /// another, inside <paramref name="area"/> (below the top bar, beside the side panel).
+    /// </summary>
+    public void ShowBubbles(Func<Rect2?> area, Func<float> uiScale)
+    {
+        if (GetNodeOrNull<GlassWorld.Game.World.BubbleOverlay>("Bubbles") is { } old)
+        {
+            old.QueueFree();
+        }
+
+        var overlay = new GlassWorld.Game.World.BubbleOverlay
+        {
+            Name = "Bubbles",
+            Bubbles = () => _thoughts.Select(t => (t.Key, t.Value.Label)),
+            Area = area,
+            WidthPx = () => (_look?.Labels.BubbleWidthPx ?? 440) * uiScale(),
+        };
+        AddChild(overlay);
+    }
+
+    /// <summary>Smoke only: the bubbles on screen now.</summary>
+    public IReadOnlyList<(string Id, Rect2 Box)> BubblesShown() =>
+        GetNodeOrNull<GlassWorld.Game.World.BubbleOverlay>("Bubbles")?.Shown() ?? [];
+
+    /// <summary>Smoke only: makes an inhabitant say <paramref name="text"/> now.</summary>
+    public void SayForCheck(string inhabitantId, string text)
+    {
+        if (_thoughts.TryGetValue(inhabitantId, out var bubble))
+        {
+            bubble.Label.Text = text;
+            bubble.Label.Visible = true;
+            _thoughts[inhabitantId] = (bubble.Label, _clock + 60);
         }
     }
 

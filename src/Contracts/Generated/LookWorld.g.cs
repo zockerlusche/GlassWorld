@@ -44,16 +44,28 @@ namespace GlassWorld.Contracts
         public int ThoughtWidthPx { get; set; } = default!;
 
         /// <summary>
-        /// Least screen height of a bubble's text line in pixels (far away it stays readable, W1688).
+        /// How long a thought stays on screen (real seconds); a spoken answer uses speech_s.
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("bubble_min_px")]
-        public double BubbleMinPx { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("thought_seconds")]
+        public double ThoughtSeconds { get; set; } = default!;
 
         /// <summary>
-        /// Greatest screen height of a bubble's text line in pixels (close up it is not huge).
+        /// Longest time any line (thought or answer) stays at high speed, so lines do not pile up (W1687).
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("bubble_max_px")]
-        public double BubbleMaxPx { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("thought_seconds_fast")]
+        public double ThoughtSecondsFast { get; set; } = default!;
+
+        /// <summary>
+        /// From this time speed on the shorter time applies.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("fast_from_speed")]
+        public double FastFromSpeed { get; set; } = default!;
+
+        /// <summary>
+        /// Largest width of a bubble on screen (pixels at the reference height, scaled with the UI); longer text wraps.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("bubble_width_px")]
+        public int BubbleWidthPx { get; set; } = default!;
 
         /// <summary>
         /// Real seconds a spoken answer stays above the head.
