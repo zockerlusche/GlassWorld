@@ -100,7 +100,9 @@ def build_values(
 
     if template.version >= 2:
         # v2 parts count against the budget too (review GW1 D2); objects get what is left.
-        values.update(_v2_values(request, settings, vocab, signs=template.version >= 3))
+        # v4 (W1687): "someone", not "person" - the model turned "person" into "der Mensch".
+        who = "someone" if template.version >= 4 else "person"
+        values.update(_v2_values(request, settings, vocab, signs=template.version >= 3, who=who))
     if template.version >= 3:
         values["body"] = _body(request, settings)
         values["environment"] = _environment(request, vocab, air=True)
@@ -123,7 +125,11 @@ def build_values(
 
 
 def _v2_values(
-    request: DecisionRequest, settings: dict[str, Any], vocab: Vocabulary, signs: bool = False
+    request: DecisionRequest,
+    settings: dict[str, Any],
+    vocab: Vocabulary,
+    signs: bool = False,
+    who: str = "person",
 ) -> dict[str, str]:
     """Memory, knowledge, habits and people (prompt v2, B4a S3). Only beliefs, never truth."""
     inhabitant = request.inhabitant
@@ -169,7 +175,7 @@ def _v2_values(
         seen = [_humanize(_id(c)) for c in other.visible_conditions or []]
         looks = f"; you notice: {', '.join(seen)}" if signs and seen else ""  # signs (B2543)
         people_lines.append(
-            f"- person [{other_id}], {other.distance_m:.1f} m away: {feeling}{looks}"
+            f"- {who} [{other_id}], {other.distance_m:.1f} m away: {feeling}{looks}"
         )
     habit_lines = [
         f"- {_word(habit_words, h.strength)}: {_vocab_line(vocab, 'action', _id(h.action))}"
