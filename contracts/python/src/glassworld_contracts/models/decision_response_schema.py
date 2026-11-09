@@ -10,6 +10,25 @@ from pydantic import BaseModel, ConfigDict, Field
 from . import common_schema
 
 
+class Gossip(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    about: str = Field(
+        ...,
+        description='Id of an object or inhabitant instance in the world, assigned by the core.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_-]*$',
+    )
+    property: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    value: bool
+
+
 class DecisionResponse(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -47,3 +66,11 @@ class DecisionResponse(BaseModel):
         description="Optional thought bubble in the player's language; null if none.",
     )
     meta: common_schema.ResponseMeta
+    name_text: common_schema.ProperName | None = Field(
+        None,
+        description='B9 R11: the proposed name for option name_person (only then); checked by the guard and the core. Optional.',
+    )
+    gossip: Gossip | None = Field(
+        None,
+        description='B9 R6: what is passed on about a third person for option gossip (only then): a belief about it, possibly wrong; the core stores it as heard. Optional.',
+    )

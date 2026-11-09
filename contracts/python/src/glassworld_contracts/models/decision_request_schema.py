@@ -79,6 +79,14 @@ class EnvironmentState(BaseModel):
     )
 
 
+class CalledAs(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    name: common_schema.ProperName | None
+    label: common_schema.VocabId | None
+
+
 class PerceivedInhabitant(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -94,6 +102,20 @@ class PerceivedInhabitant(BaseModel):
         None,
         description='Signs others can SEE (vocabulary sign: limping, lying down, pale; which felt condition shows which sign is core data), never the cause (B2543). Optional until the core sends it.',
         max_length=8,
+    )
+    called: CalledAs | None = Field(
+        None,
+        description='B9 R11: how THIS inhabitant calls the other - per-observer state in the core, not a world property. name = a proper name it knows (Latin letters, checked by the core and the guard), label = a feature label (vocabulary, shown via i18n) until a name is known. Optional.',
+    )
+    life_stage: str | None = Field(
+        None,
+        description='B9: the visible life phase (child or adult), needed for R7/R27. Optional.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    lying_still: bool | None = Field(
+        None,
+        description='B9 R16: lies still and does not answer; the core alone knows why. Optional.',
     )
 
 
