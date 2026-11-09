@@ -243,16 +243,11 @@ public partial class GameScreen : CanvasLayer
             return;
         }
 
-        if (@event.IsActionPressed("ui_cancel") && _presenter?.StopFollowing() == true)
-        {
-            // Esc lets go of a followed inhabitant before it opens the pause menu.
-            GetViewport().SetInputAsHandled();
-            return;
-        }
-
         if (@event.IsActionPressed("ui_cancel"))
         {
-            // Open windows close themselves on Esc first (GwWindow); only then the pause menu opens.
+            // Open windows close themselves on Esc first (GwWindow); only then the pause menu opens. On the
+            // way Esc lets go of a followed inhabitant, so one Esc always reaches the menu (GW3 #144).
+            _presenter?.StopFollowing();
             PauseRequested?.Invoke();
             GetViewport().SetInputAsHandled();
             return;

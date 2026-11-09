@@ -407,7 +407,7 @@ public sealed class CameraModelTests
         Assert.Equal(70, camera.Target.X, 3);
         Assert.Equal(90, camera.Target.Z, 3);
 
-        // Panning with the keys, grabbing the ground or Esc (StopFollowing) lets go.
+        // Panning with the keys, grabbing the ground or Esc (StopFollowing, on the way to the pause menu) lets go.
         camera.Move(0, 1, 0, 1 / 60d);
         Assert.False(camera.Following);
         Again();
