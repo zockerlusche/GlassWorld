@@ -11,6 +11,37 @@ from pydantic import BaseModel, ConfigDict, Field
 from . import common_schema
 
 
+class FigureThinkingDots(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    above_head_m: float = Field(
+        ...,
+        description='Height of the dots above the head anchor at scale 1.',
+        ge=0.0,
+        le=3.0,
+    )
+    font_px: int = Field(
+        ..., description='Font size of one dot in pixels.', ge=4, le=256
+    )
+    spacing_px: float = Field(
+        ...,
+        description='Distance between two dots in pixels (screen-facing).',
+        ge=0.0,
+        le=200.0,
+    )
+    period_s: float = Field(
+        ...,
+        description='Real seconds of one calm wave over the three dots.',
+        ge=0.5,
+        le=30.0,
+    )
+    alpha_min: float = Field(..., description='Least opacity of a dot.', ge=0.0, le=1.0)
+    alpha_max: float = Field(
+        ..., description='Greatest opacity of a dot.', ge=0.0, le=1.0
+    )
+
+
 class FigureBody(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -121,6 +152,12 @@ class LookFigures(BaseModel):
         ge=1,
         le=1000,
     )
+    idle_slot_spread: float = Field(
+        ...,
+        description="How much an inhabitant's idle slot is longer or shorter than idle_slot_ticks (share, e.g. 0.3 = up to 30 percent either way); with a phase per inhabitant it keeps figures from changing their idle behaviour in lock-step.",
+        ge=0.0,
+        le=0.9,
+    )
     walk_min_step_m: float = Field(
         ...,
         description='Least ground distance in metres an inhabitant must move in a tick to be shown walking (whatever the action; actions walk to their target first).',
@@ -142,6 +179,10 @@ class LookFigures(BaseModel):
         description='Height of the head anchor above the feet at scale 1 (thought bubble, question mark).',
         ge=0.5,
         le=3.0,
+    )
+    thinking_dots: FigureThinkingDots = Field(
+        ...,
+        description='Calm thought dots above the head while an inhabitant has an open question (presentation only).',
     )
     clothing_parts: list[FigureClothingPart] = Field(
         ...,

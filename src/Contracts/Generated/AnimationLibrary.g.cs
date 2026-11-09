@@ -108,6 +108,20 @@ namespace GlassWorld.Contracts
         public double Weight { get; set; } = default!;
 
         /// <summary>
+        /// Variety: each time this behaviour is drawn it plays up to this share faster or slower than its clip (e.g. 0.15 = 0.85..1.15 times), deterministic from inhabitant id and idle slot. Missing: 0.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("speed_spread")]
+        public double? SpeedSpread { get; set; } = default!;
+
+        /// <summary>
+        /// Variety: whether this behaviour may play mirrored (left and right swapped, half of the draws), deterministic from inhabitant id and idle slot. Missing: never.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("mirror")]
+        public bool? Mirror { get; set; } = default!;
+
+        /// <summary>
         /// Weight changes by core values.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("factors")]

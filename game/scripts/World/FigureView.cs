@@ -13,7 +13,9 @@ namespace GlassWorld.Game.World;
 /// while the core moves it, its AnimationTree plays the gait blend by game-time speed, played faster or
 /// slower within the data range so the feet roughly match the screen; standing, it cross-fades between two
 /// action slots to the clip of its action or to an idle behaviour from core values (deterministic from id
-/// and core tick). Unknown or not-yet-made clips are logged once. Presentation only.
+/// and core tick, each figure on its own idle slots, with a little speed variety and sometimes mirrored).
+/// While the inhabitant has an open question, calm thought dots pulse above its head. Unknown or
+/// not-yet-made clips are logged once. Presentation only.
 /// </summary>
 public partial class FigureView : Node3D
 {
@@ -27,6 +29,13 @@ public partial class FigureView : Node3D
     private FigureMotion _motion = null!;
     private AnimationTree _tree = null!;
     private readonly AnimationNodeAnimation[] _act = new AnimationNodeAnimation[2];
+    private readonly Label3D[] _dots = new Label3D[ThinkingDots.Count];
+    private Node3D _body = null!;
+    private Vector3 _bodyScale = Vector3.One;
+    private bool _mirrored;
+    private Node3D _thinking = null!;
+    private double _thinkingPhase;
+    private double _seconds;
     private Func<double, double, float> _ground = (_, _) => 0f;
     private double _scale = 1;
     private bool _walking = true;
@@ -67,6 +76,9 @@ public partial class FigureView : Node3D
         view.AddChild(figure.Root);
         view.HeadAnchor = new Node3D { Name = "HeadAnchor", Position = new Vector3(0, (float)(figures.HeadAnchorM * spec.Scale), 0) };
         view.AddChild(view.HeadAnchor);
+        view._body = figure.Root;
+        view._bodyScale = figure.Root.Scale;
+        view.BuildThinkingDots(figures.ThinkingDots, spec.Scale);
 
         // Replace the prototype's idle/walk/jog tree by the library's gaits and two action slots.
         figure.Tree.Active = false;
@@ -100,7 +112,9 @@ public partial class FigureView : Node3D
         var chooser = _shared.Chooser;
         AnimationChooser.CoreValues(_shared.Values, inhabitant.Needs, inhabitant.Moods, inhabitant.Traits);
         var moving = !place && _motion.StepM >= figures.WalkMinStepM;
-        var clip = chooser.ForInhabitant(inhabitant.Action, moving, InhabitantId, tick / figures.IdleSlotTicks, _shared.Values);
+        var slot = AnimationChooser.IdleSlot(InhabitantId, tick, figures.IdleSlotTicks, figures.IdleSlotSpread);
+        var clip = chooser.ForInhabitant(inhabitant.Action, moving, InhabitantId, slot, _shared.Values);
+        _thinking.Visible = ThinkingDots.Shown(inhabitant.OpenQuestionIds.Count);
         if (clip.Missing is { } missing)
         {
             Report(missing);
@@ -125,7 +139,7 @@ public partial class FigureView : Node3D
         }
 
         Report(clip.Clip);
-        Act(clip.Clip);
+        Act(clip);
         CurrentClip = clip.Clip.ClipId;
     }
 
@@ -137,6 +151,17 @@ public partial class FigureView : Node3D
         var p = _motion.Position;
         Position = new Vector3((float)p.X, _ground(p.X, p.Z), (float)p.Z);
         Rotation = new Vector3(0, (float)_motion.Yaw, 0);
+        if (_thinking.Visible)
+        {
+            _seconds += delta;
+            var look = _shared.Figures.ThinkingDots;
+            for (var i = 0; i < _dots.Length; i++)
+            {
+                var alpha = (float)ThinkingDots.Alpha(look, i, _seconds, _thinkingPhase);
+                _dots[i].Modulate = new Color(1, 1, 1, alpha);
+                _dots[i].OutlineModulate = new Color(0.12f, 0.12f, 0.16f, alpha * 0.8f);
+            }
+        }
     }
 
     private void Report(ClipChoice choice)
@@ -158,28 +183,59 @@ public partial class FigureView : Node3D
         }
     }
 
-    private void Act(ClipChoice choice)
+    private void Act(FigureClip clip)
     {
-        if (!_walking && choice.Asset == _actAsset)
+        var (asset, speed) = (clip.Clip.Asset, clip.Speed);
+        if (!_walking && asset == _actAsset && clip.Mirror == _mirrored)
         {
-            if (choice.Speed != _actSpeed)
+            if (speed != _actSpeed)
             {
-                _tree.Set(ActScale[_slot], choice.Speed);
-                _actSpeed = choice.Speed;
+                _tree.Set(ActScale[_slot], speed);
+                _actSpeed = speed;
             }
 
             return;
         }
 
         // A new clip goes into the other slot, so the transition cross-fades from the one playing and
-        // restarts the new one from its first frame (input reset).
+        // restarts the new one from its first frame (input reset). Mirroring swaps left and right of the
+        // whole body (idle variety); it changes only with a new clip and stays while walking.
         _slot = 1 - _slot;
-        _act[_slot].Animation = choice.Asset;
-        _tree.Set(ActScale[_slot], choice.Speed);
+        _act[_slot].Animation = asset;
+        _tree.Set(ActScale[_slot], speed);
         _tree.Set(ModeRequest, ActSlots[_slot]);
-        _actAsset = choice.Asset;
-        _actSpeed = choice.Speed;
+        _actAsset = asset;
+        _actSpeed = speed;
         _walking = false;
+        if (clip.Mirror != _mirrored)
+        {
+            _mirrored = clip.Mirror;
+            _body.Scale = new Vector3(_mirrored ? -_bodyScale.X : _bodyScale.X, _bodyScale.Y, _bodyScale.Z);
+        }
+    }
+
+    /// <summary>Three dots above the head (hidden until the core reports an open question), facing the camera.</summary>
+    private void BuildThinkingDots(FigureThinkingDots look, double scale)
+    {
+        _thinking = new Node3D { Name = "ThinkingDots", Position = new Vector3(0, (float)(look.AboveHeadM * scale), 0), Visible = false };
+        HeadAnchor.AddChild(_thinking);
+        _thinkingPhase = ThinkingDots.Phase(InhabitantId);
+        for (var i = 0; i < _dots.Length; i++)
+        {
+            _dots[i] = new Label3D
+            {
+                Name = "Dot" + i,
+                Text = ThinkingDots.Glyph,
+                FontSize = look.FontPx,
+                OutlineSize = Math.Max(1, look.FontPx / 8),
+                Offset = new Vector2((float)ThinkingDots.OffsetPx(look, i), 0),
+                Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
+                AutoTranslateMode = AutoTranslateModeEnum.Disabled,
+                NoDepthTest = true,
+                Modulate = new Color(1, 1, 1, (float)look.AlphaMin),
+            };
+            _thinking.AddChild(_dots[i]);
+        }
     }
 
     private void BuildTree(Node3D root, AnimationPlayer player, AnimationLibrary library, double crossfade)
