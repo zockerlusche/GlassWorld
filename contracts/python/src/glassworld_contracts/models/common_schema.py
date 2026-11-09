@@ -116,6 +116,7 @@ class KnowledgeSource(StrEnum):
     heard = 'heard'
     guessed = 'guessed'
     read = 'read'
+    seen = 'seen'
 
 
 class Kind(StrEnum):

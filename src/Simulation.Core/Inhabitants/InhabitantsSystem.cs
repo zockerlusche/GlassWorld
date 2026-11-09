@@ -637,7 +637,7 @@ public sealed class InhabitantsSystem : IWorldSystem
 
     /// <summary>
     /// Looking closely (TL #19921): the inhabitant now sees the thing's visible properties (true or false, as
-    /// sure as the data says), guesses from them what it might be good for (source guessed, never replacing
+    /// sure as the data says, source seen; never over something tried or surer), guesses from them what it might be good for (source guessed, never replacing
     /// a belief it has) and remembers where the thing stands. Effects are never learned by looking.
     /// </summary>
     private void Look(World world, Inhabitant inhabitant, KnowledgeLooking looking, WorldObject target)
@@ -645,16 +645,17 @@ public sealed class InhabitantsSystem : IWorldSystem
         var typeId = target.TypeId;
         foreach (var property in looking.VisibleProperties)
         {
-            var truth = _objects.Catalog.HasProperty(typeId, property);
-            if (inhabitant.Beliefs.TryGet(typeId, property, out var old) && old.Value == truth && old.Confidence >= looking.InspectConfidence)
+            // Looking never overrides what was tried or what the inhabitant is at least as sure of (review GW2 #142).
+            if (inhabitant.Beliefs.TryGet(typeId, property, out var old) && (old.Source == KnowledgeSources.Experienced || old.Confidence >= looking.InspectConfidence))
             {
                 continue;
             }
 
-            inhabitant.Beliefs.Set(typeId, property, truth, looking.InspectConfidence, KnowledgeSources.Experienced, null, world.Tick);
+            var truth = _objects.Catalog.HasProperty(typeId, property);
+            inhabitant.Beliefs.Set(typeId, property, truth, looking.InspectConfidence, KnowledgeSources.Seen, null, world.Tick);
             if (truth)
             {
-                Report(new WorldEvent(KnowledgeGained, world.Tick, inhabitant.Id, looking.Action, typeId) { Detail = property + "/" + KnowledgeSources.Experienced });
+                Report(new WorldEvent(KnowledgeGained, world.Tick, inhabitant.Id, looking.Action, typeId) { Detail = property + "/" + KnowledgeSources.Seen });
             }
         }
 

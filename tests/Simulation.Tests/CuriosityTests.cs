@@ -75,7 +75,7 @@ public sealed class CuriosityTests : IDisposable
         }
 
         // Looks like fruit, so it might be edible - a guess; that it is poisonous is not seen.
-        Assert.True(looker.Beliefs.TryGet("red_berry", "fruit", out var fruit) && fruit.Value && fruit.Source == KnowledgeSources.Experienced);
+        Assert.True(looker.Beliefs.TryGet("red_berry", "fruit", out var fruit) && fruit.Value && fruit.Source == KnowledgeSources.Seen);
         Assert.True(looker.Beliefs.TryGet("red_berry", "edible", out var edible) && edible.Value);
         Assert.Equal((KnowledgeSources.Guessed, Looking.GuessedConfidence), (edible.Source, edible.Confidence));
         Assert.False(looker.Beliefs.TryGet("red_berry", "poisonous", out _));
@@ -101,6 +101,28 @@ public sealed class CuriosityTests : IDisposable
 
         Assert.True(looker.Beliefs.TryGet("apple", "edible", out var edible));
         Assert.Equal((false, KnowledgeSources.Heard), (edible.Value, edible.Source));
+    }
+
+    [Fact]
+    public void LookingNeverOverridesWhatWasTriedOrIsSurer()
+    {
+        var w = NewWorld();
+        var looker = Sated(w.Inhabitants.Get("inh-000001"), 0.9);
+        looker.Beliefs.Set("flint", "stone", false, 0.5, KnowledgeSources.Experienced, null, 1);
+        looker.Beliefs.Set("flint", "sharp", false, 0.9, KnowledgeSources.Heard, "inh-000002", 1);
+        looker.Beliefs.Set("flint", "hard", false, 0.3, KnowledgeSources.Heard, "inh-000002", 1);
+        var flint = w.Objects.Spawn("flint", new Position(1, 0));
+        looker.Activity = new Activity(Looking.Action, flint.Id, flint.Position, null);
+        RunUntil(w.World, () => looker.Activity is null);
+
+        Assert.True(looker.Beliefs.TryGet("flint", "stone", out var stone) && stone.Source == KnowledgeSources.Experienced && !stone.Value);
+        Assert.True(looker.Beliefs.TryGet("flint", "sharp", out var sharp) && sharp.Source == KnowledgeSources.Heard && !sharp.Value);
+        Assert.True(looker.Beliefs.TryGet("flint", "hard", out var hard) && hard.Value);
+        Assert.Equal((KnowledgeSources.Seen, Looking.InspectConfidence), (hard.Source, hard.Confidence));
+
+        // What was seen goes to the decider as seen, not as tried.
+        var state = InhabitantStates.Of(looker, Content.Knowledge, ["flint"], []);
+        Assert.Equal(KnowledgeSource.Seen, Assert.Single(state.Knowledge, k => k.Property == "hard").Source);
     }
 
     [Fact]

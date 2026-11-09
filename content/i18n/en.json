@@ -1487,6 +1487,10 @@
       "text": "read"
     },
     {
+      "key": "vocab.knowledge_source.seen",
+      "text": "seen"
+    },
+    {
       "key": "vocab.event.skill_refused",
       "text": "New skill refused"
     },

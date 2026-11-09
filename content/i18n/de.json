@@ -1487,6 +1487,10 @@
       "text": "gelesen"
     },
     {
+      "key": "vocab.knowledge_source.seen",
+      "text": "gesehen"
+    },
+    {
       "key": "vocab.event.skill_refused",
       "text": "Neue Fähigkeit abgelehnt"
     },
