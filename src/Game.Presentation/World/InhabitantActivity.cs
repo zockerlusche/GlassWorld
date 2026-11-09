@@ -1,10 +1,27 @@
-using System.Globalization;
 using GlassWorld.Contracts;
 using GlassWorld.Presentation.Ui;
 using GlassWorld.Simulation.Objects;
 using GlassWorld.Simulation.View;
 
 namespace GlassWorld.Presentation.World;
+
+/// <summary>Inhabitants and objects of one snapshot by id, built once per screen refresh (review GW3 #146).</summary>
+public sealed class SnapshotIndex
+{
+    /// <summary>Indexes <paramref name="snapshot"/>.</summary>
+    public SnapshotIndex(WorldSnapshot snapshot)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        Inhabitants = snapshot.Inhabitants.ToDictionary(i => i.Id, StringComparer.Ordinal);
+        Objects = snapshot.Objects.ToDictionary(o => o.Id, StringComparer.Ordinal);
+    }
+
+    /// <summary>Inhabitants by id.</summary>
+    public IReadOnlyDictionary<string, InhabitantSnapshot> Inhabitants { get; }
+
+    /// <summary>Objects by id.</summary>
+    public IReadOnlyDictionary<string, WorldObject> Objects { get; }
+}
 
 /// <summary>
 /// What an inhabitant is doing, as the screen shows it, without Godot (Marcel W1687, W1691): what kind of
@@ -48,13 +65,15 @@ public static class InhabitantActivity
     /// A readable line for what the inhabitant does (W1687): the most specific text the catalog has for its
     /// action and target (with the other inhabitant's name and what it is about, or the thing's name), then
     /// the action alone, then the action's name; without an action "is thinking" while a question is open,
-    /// else "is standing". <paramref name="tr"/> translates a key and returns the key itself when it is unknown.
+    /// else "is standing". <paramref name="tr"/> translates a key and returns the key itself when it is unknown;
+    /// <paramref name="nameOf"/> gives the shown name of an inhabitant id (the screen's own, names come with B9).
     /// </summary>
-    public static string Describe(InhabitantSnapshot inhabitant, WorldSnapshot snapshot, Func<string, string> tr)
+    public static string Describe(InhabitantSnapshot inhabitant, SnapshotIndex index, Func<string, string> tr, Func<string, string> nameOf)
     {
         ArgumentNullException.ThrowIfNull(inhabitant);
-        ArgumentNullException.ThrowIfNull(snapshot);
+        ArgumentNullException.ThrowIfNull(index);
         ArgumentNullException.ThrowIfNull(tr);
+        ArgumentNullException.ThrowIfNull(nameOf);
         if (inhabitant.Action is not { } action)
         {
             return tr(inhabitant.OpenQuestionIds.Count > 0 ? ThinkingKey : StandingKey);
@@ -64,9 +83,9 @@ public static class InhabitantActivity
         var keys = new List<string>();
         if (inhabitant.TargetId is { } id)
         {
-            if (snapshot.Inhabitants.Any(o => o.Id == id))
+            if (index.Inhabitants.ContainsKey(id))
             {
-                args["name"] = TextFill.Fill(tr("ui.inhabitant.unnamed"), new Dictionary<string, string> { ["number"] = WorldFeed.NumberOf(id).ToString(CultureInfo.InvariantCulture) });
+                args["name"] = nameOf(id);
                 if (inhabitant.Topic is { } topic)
                 {
                     args["thing"] = tr(VocabKeys.ObjectType(topic));
@@ -75,7 +94,7 @@ public static class InhabitantActivity
 
                 keys.Add(Prefix + action + ".inhabitant");
             }
-            else if (snapshot.Objects.FirstOrDefault(o => o.Id == id) is { } thing)
+            else if (index.Objects.TryGetValue(id, out var thing))
             {
                 args["thing"] = tr(VocabKeys.ObjectType(thing.TypeId));
                 keys.Add(Prefix + action + ".object");

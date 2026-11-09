@@ -1,4 +1,5 @@
 using System.Collections.Frozen;
+using System.Globalization;
 using System.Text.Json;
 using GlassWorld.Contracts;
 using GlassWorld.Contracts.Validation;
@@ -29,7 +30,7 @@ public sealed class InhabitantActivityTests
     public void ShowingAnotherInhabitantNamesWhomAndWhat(string locale, string expected)
     {
         var snapshot = Snapshot(Inhabitant("inh-000001", "show", "inh-000002") with { Topic = "spring_water" }, Inhabitant("inh-000002", null, null));
-        Assert.Equal(expected, InhabitantActivity.Describe(snapshot.Inhabitants[0], snapshot, Tr(locale)), ignoreCase: true);
+        Assert.Equal(expected, Describe(snapshot.Inhabitants[0], snapshot, locale), ignoreCase: true);
     }
 
     [Theory]
@@ -41,9 +42,9 @@ public sealed class InhabitantActivityTests
         var idle = Inhabitant("inh-000002", null, null);
         var waiting = Inhabitant("inh-000003", null, null) with { OpenQuestionIds = ["q-1"] };
         var snapshot = Snapshot(talker, idle, waiting);
-        Assert.Equal(talking, InhabitantActivity.Describe(talker, snapshot, Tr(locale)));
-        Assert.Equal(standing, InhabitantActivity.Describe(idle, snapshot, Tr(locale)));
-        Assert.Equal(thinking, InhabitantActivity.Describe(waiting, snapshot, Tr(locale)));
+        Assert.Equal(talking, Describe(talker, snapshot, locale));
+        Assert.Equal(standing, Describe(idle, snapshot, locale));
+        Assert.Equal(thinking, Describe(waiting, snapshot, locale));
     }
 
     [Fact]
@@ -59,7 +60,7 @@ public sealed class InhabitantActivityTests
                 foreach (var target in new string?[] { null, "inh-000002", water.Id, "gone" })
                 {
                     var snapshot = Snapshot([Inhabitant("inh-000001", action, target), Inhabitant("inh-000002", null, null)], [water]);
-                    var text = InhabitantActivity.Describe(snapshot.Inhabitants[0], snapshot, Tr(locale));
+                    var text = Describe(snapshot.Inhabitants[0], snapshot, locale);
                     Assert.False(Ui.TextKeys.LooksLikeKey(text), $"{locale} {action} {target}: {text}");
                     Assert.DoesNotContain("{", text, StringComparison.Ordinal);
                     Assert.True(text.Count(char.IsLetter) >= 3, $"{locale} {action} {target}: '{text}'");
@@ -123,6 +124,19 @@ public sealed class InhabitantActivityTests
         motion.Advance(2);
         Assert.InRange(motion.Yaw, -1e-9, 1e-9);
     }
+
+    [Fact]
+    public void TheNameComesFromTheScreen()
+    {
+        var snapshot = Snapshot(Inhabitant("inh-000001", "talk_to", "inh-000002"), Inhabitant("inh-000002", null, null));
+        var text = InhabitantActivity.Describe(snapshot.Inhabitants[0], new SnapshotIndex(snapshot), Tr("en"), id => id == "inh-000002" ? "Toma" : "nobody");
+        Assert.Equal("is talking with Toma", text);
+    }
+
+    /// <summary>Describes with the unnamed-inhabitant name the screen shows until names exist (B9).</summary>
+    private static string Describe(InhabitantSnapshot inhabitant, WorldSnapshot snapshot, string locale) =>
+        InhabitantActivity.Describe(inhabitant, new SnapshotIndex(snapshot), Tr(locale), id =>
+            Ui.TextFill.Fill(Tr(locale)("ui.inhabitant.unnamed"), new Dictionary<string, string> { ["number"] = WorldFeed.NumberOf(id).ToString(CultureInfo.InvariantCulture) }));
 
     private static Func<string, string> Tr(string locale) => key => Catalogs.Value[locale].GetValueOrDefault(key, key);
 
