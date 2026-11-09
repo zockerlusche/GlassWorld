@@ -104,6 +104,16 @@ public sealed class ShotPlanTests
         Assert.Equal(["rock"], epochs.Epochs.SelectMany(e => e.Colors).Select(c => c.Id).Where(used.Contains).Distinct());
     }
 
+    [Fact]
+    public void APointWithItsOwnPhaseIsShotOnlyInThatPhase()
+    {
+        var shots = Read<LookShots>("shots_night.json");
+        var plan = ShotPlan.Build(shots, Seasons(), None);
+
+        // The night set: the overview at night and the close view at dusk, two pictures.
+        Assert.Equal(shots.Points.Select(p => (p.Id, p.Phase!)), plan.Select(s => (s.Point.Id, s.Phase)));
+    }
+
     private static LookShots Shots() => new()
     {
         ContractVersion = "0.2",

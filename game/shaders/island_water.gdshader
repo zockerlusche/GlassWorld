@@ -12,6 +12,9 @@ uniform float stripe_speed = 0.6;
 uniform float stripe_strength = 0.12;
 uniform float shimmer_speed = 0.7;
 uniform float shimmer_strength = 0.04;
+// Tint of the day phase (DaylightLook, content/look/daylight.json water_light): the water is unlit,
+// so the night darkens it here; white by default.
+global uniform vec4 water_light;
 
 float hash(vec2 p) {
 	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
@@ -33,5 +36,5 @@ void fragment() {
 	// Still water: a slow, soft shimmer.
 	float shimmer = 0.5 + 0.5 * sin(TIME * shimmer_speed + world_pos.x * 0.9 + world_pos.z * 0.6);
 	color += vec3(1.0) * (stripes * stripe_strength * moving + shimmer * shimmer_strength * (1.0 - moving));
-	ALBEDO = color;
+	ALBEDO = color * water_light.rgb;
 }

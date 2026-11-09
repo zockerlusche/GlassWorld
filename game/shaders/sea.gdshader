@@ -14,6 +14,9 @@ uniform float middle_depth = 1.8;
 uniform float band_softness = 0.08;
 uniform float wave_speed = 0.35;
 uniform float glint_amount = 0.6;
+// Tint of the day phase (DaylightLook, content/look/daylight.json water_light): the water is unlit,
+// so the night darkens it here; white by default.
+global uniform vec4 water_light;
 
 float hash(vec2 p) {
 	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
@@ -59,5 +62,5 @@ void fragment() {
 		color = mix(near_shore, color, smoothstep(2.2, 3.4, seaward));
 	}
 
-	ALBEDO = color;
+	ALBEDO = color * water_light.rgb;
 }

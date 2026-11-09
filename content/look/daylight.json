@@ -1,9 +1,26 @@
 {
   "contract_version": "0.2",
-  "night_min_brightness": 0.22,
+  "night_min_brightness": 0.3,
   "sun_azimuth_deg": 35,
   "shadow_blur": 2.0,
   "tonemap": "linear",
+  "sky": {
+    "horizon_falloff": 0.45,
+    "below_horizon": 0.55,
+    "star_density": 0.035,
+    "star_brightness": 1.4,
+    "star_horizon_fade": 0.25
+  },
+  "moon": {
+    "elevation_deg": 18,
+    "azimuth_deg": 200,
+    "disc_color": "#eef1f8",
+    "disc_size_deg": 1.6,
+    "glow": 0.35,
+    "light_color": "#9fb3e6",
+    "light_energy": 0.6,
+    "shadows": false
+  },
   "phases": [
     {
       "phase": "dawn",
@@ -14,7 +31,9 @@
       "sky_horizon": "#f6b98c",
       "ambient_color": "#c9b4b0",
       "ambient_energy": 0.5,
-      "stars": 0.1
+      "stars": 0.1,
+      "moon": 0.1,
+      "water_light": "#e6d6d0"
     },
     {
       "phase": "day",
@@ -25,7 +44,9 @@
       "sky_horizon": "#cfe6f2",
       "ambient_color": "#d8e2e6",
       "ambient_energy": 0.6,
-      "stars": 0.0
+      "stars": 0.0,
+      "moon": 0.0,
+      "water_light": "#ffffff"
     },
     {
       "phase": "dusk",
@@ -36,18 +57,22 @@
       "sky_horizon": "#f29a6b",
       "ambient_color": "#b9a2a8",
       "ambient_energy": 0.45,
-      "stars": 0.2
+      "stars": 0.2,
+      "moon": 0.3,
+      "water_light": "#d9c2c4"
     },
     {
       "phase": "night",
       "sun_elevation_deg": -30,
       "light_color": "#a9b9e6",
       "light_energy": 0.35,
-      "sky_top": "#1d2547",
-      "sky_horizon": "#36406b",
-      "ambient_color": "#5d6a94",
-      "ambient_energy": 0.35,
-      "stars": 1.0
+      "sky_top": "#18203f",
+      "sky_horizon": "#3e4a78",
+      "ambient_color": "#6573a0",
+      "ambient_energy": 0.4,
+      "stars": 1.0,
+      "moon": 1.0,
+      "water_light": "#6f7fae"
     }
   ]
 }

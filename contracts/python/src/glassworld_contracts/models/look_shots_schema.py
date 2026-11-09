@@ -73,6 +73,24 @@ class ShotPoint(BaseModel):
         ge=0,
         le=1000,
     )
+    pitch_deg: float | None = Field(
+        None,
+        description="Optional: camera pitch of this shot in degrees (may leave the player's range, e.g. to show the sky); default camera.json pitch_deg.",
+        ge=-30.0,
+        le=89.0,
+    )
+    fov_deg: float | None = Field(
+        None,
+        description='Optional: field of view of this shot in degrees (perspective); default camera.json fov_deg.',
+        ge=5.0,
+        le=120.0,
+    )
+    phase: str | None = Field(
+        None,
+        description="Optional: this point is shot only in this day phase of the set's phases (e.g. the night set: overview at night, close view at dusk).",
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
     scene: ShotScene | None = Field(
         None,
         description='Optional: the scene finder picks the target near a start instead of the map target (the permille target is the fallback when no spot fits).',

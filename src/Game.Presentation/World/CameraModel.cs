@@ -55,8 +55,11 @@ public sealed class CameraModel
     /// <summary>Projection set by the screenshot tool (null = data value).</summary>
     public bool? OrthographicOverride { get; set; }
 
+    /// <summary>Field of view set by the screenshot tool (null = data value), e.g. the night shots that show the sky.</summary>
+    public double? FovOverride { get; set; }
+
     /// <summary>Field of view in degrees (perspective).</summary>
-    public double FovDeg => _data.FovDeg;
+    public double FovDeg => FovOverride ?? _data.FovDeg;
 
     /// <summary>Visible height in metres at the target (orthographic size; same framing as perspective).</summary>
     public double OrthoSize => 2 * _distance * Math.Tan(_data.FovDeg * Math.PI / 360);
@@ -224,15 +227,18 @@ public sealed class CameraModel
         Clamp();
     }
 
-    /// <summary>Jumps to a fixed view without easing (screenshot tool, R32); the pitch goes back to its start value.</summary>
-    public void Set(double targetX, double targetZ, double yawDeg, double distance)
+    /// <summary>
+    /// Jumps to a fixed view without easing (screenshot tool, R32); the pitch goes back to its start value
+    /// unless the shot names one (outside the player's range, so a shot can show the sky).
+    /// </summary>
+    public void Set(double targetX, double targetZ, double yawDeg, double distance, double? pitchDeg = null)
     {
         _follow = null;
         _moveRight = _moveForward = _turn = 0;
         _targetX = _wantX = targetX;
         _targetZ = _wantZ = targetZ;
         _yaw = _wantYaw = yawDeg;
-        _pitch = _wantPitch = ClampPitch(_data.PitchDeg);
+        _pitch = _wantPitch = pitchDeg ?? ClampPitch(_data.PitchDeg);
         _distance = _wantDistance = Math.Clamp(distance, _data.DistanceM.Min, _data.DistanceM.Max);
         Clamp();
         (_targetX, _targetZ) = (_wantX, _wantZ);

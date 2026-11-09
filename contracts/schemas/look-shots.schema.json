@@ -120,6 +120,22 @@
           "minimum": 0,
           "maximum": 1000
         },
+        "pitch_deg": {
+          "description": "Optional: camera pitch of this shot in degrees (may leave the player's range, e.g. to show the sky); default camera.json pitch_deg.",
+          "type": "number",
+          "minimum": -30,
+          "maximum": 89
+        },
+        "fov_deg": {
+          "description": "Optional: field of view of this shot in degrees (perspective); default camera.json fov_deg.",
+          "type": "number",
+          "minimum": 5,
+          "maximum": 120
+        },
+        "phase": {
+          "description": "Optional: this point is shot only in this day phase of the set's phases (e.g. the night set: overview at night, close view at dusk).",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
         "scene": {
           "description": "Optional: the scene finder picks the target near a start instead of the map target (the permille target is the fallback when no spot fits).",
           "$ref": "#/$defs/ShotScene"

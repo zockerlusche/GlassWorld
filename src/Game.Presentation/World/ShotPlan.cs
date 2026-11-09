@@ -66,7 +66,8 @@ public static class ShotPlan
                     {
                         foreach (var projection in shots.Projections)
                         {
-                            foreach (var phase in shots.Phases)
+                            // A point may name its one phase (e.g. the night set: overview at night, close view at dusk).
+                            foreach (var phase in shots.Phases.Where(h => point.Phase is null || h == point.Phase))
                             {
                                 plan.Add(new Shot(
                                     point,
