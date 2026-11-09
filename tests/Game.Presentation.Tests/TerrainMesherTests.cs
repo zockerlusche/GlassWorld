@@ -299,7 +299,7 @@ public sealed class TerrainMesherTests
             for (var x = 0; x < map.WidthCells; x++)
             {
                 var cell = map.Cell(x, z);
-                if (!TerrainMesher.IsTrough(cell))
+                if (!TerrainMesher.IsTrough(map, x, z))
                 {
                     continue;
                 }
@@ -332,7 +332,8 @@ public sealed class TerrainMesherTests
         }
 
         var widths = TerrainMesher.StreamLines(map, look).SelectMany(l => l).Select(p => p.WidthM).ToList();
-        Assert.All(widths, w => Assert.InRange(w, core.Min() - 1e-9, core.Max() + 1e-9));
+        // A stream starting at its source widens from a fifth of its width (seep, TL #19722 polish).
+        Assert.All(widths, w => Assert.InRange(w, (core.Min() * 0.2) - 1e-9, core.Max() + 1e-9));
         Assert.True(widths.Max() > widths.Min(), $"seed {seed}: streams widen with their flow");
     }
 

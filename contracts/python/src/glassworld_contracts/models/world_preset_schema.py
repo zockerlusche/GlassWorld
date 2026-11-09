@@ -298,6 +298,12 @@ class WorldPresetSprings(BaseModel):
         ge=0,
         le=100000000,
     )
+    min_sea_distance_cells: int = Field(
+        ...,
+        description='Springs lie at least this far from the sea (cells), so the coast does not get a comb of short parallel creeks.',
+        ge=0,
+        le=10000,
+    )
 
 
 class At(StrEnum):
@@ -495,6 +501,12 @@ class WorldPresetTerrain(BaseModel):
         min_length=1,
     )
     rocks: WorldPresetCountRange
+    cliff_min_run_cells: int = Field(
+        ...,
+        description='Shortest run of cliff-top cells (4-connected) that stays a rock wall; shorter steps are smoothed to a walkable slope, so walls follow the terrace edges instead of standing as isolated teeth (TL #19722 polish).',
+        ge=1,
+        le=10000,
+    )
 
 
 class WorldPresetWater(BaseModel):
@@ -600,6 +612,18 @@ class StartSupply(BaseModel):
         None,
         description='Optional: beaches whose mandatory resources (drink) lie within this smaller radius come first, so a start lies close to its springs (TL #19722). Absent = only the radius counts.',
         ge=1,
+        le=1000,
+    )
+    quiet_radius_cells: int | None = Field(
+        None,
+        description='Optional: around each start the island is a little quieter - within this radius only quiet_keep_permille of the objects that serve no start supply resource stay, so the inhabitants meet fewer unknown things at once before they find their water (the rest of the island keeps the plenty). Absent = no quieter start.',
+        ge=1,
+        le=1000,
+    )
+    quiet_keep_permille: int | None = Field(
+        None,
+        description='Share of those objects that stay within the quiet radius (permille).',
+        ge=0,
         le=1000,
     )
 

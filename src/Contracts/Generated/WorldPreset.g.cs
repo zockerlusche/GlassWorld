@@ -112,6 +112,12 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("rocks")]
         public WorldPresetCountRange Rocks { get; set; } = new WorldPresetCountRange();
 
+        /// <summary>
+        /// Shortest run of cliff-top cells (4-connected) that stays a rock wall; shorter steps are smoothed to a walkable slope, so walls follow the terrace edges instead of standing as isolated teeth (TL #19722 polish).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("cliff_min_run_cells")]
+        public int CliffMinRunCells { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -481,6 +487,20 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("prefer_radius_cells")]
         public int? PreferRadiusCells { get; set; } = default!;
 
+        /// <summary>
+        /// Optional: around each start the island is a little quieter - within this radius only quiet_keep_permille of the objects that serve no start supply resource stay, so the inhabitants meet fewer unknown things at once before they find their water (the rest of the island keeps the plenty). Absent = no quieter start.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("quiet_radius_cells")]
+        public int? QuietRadiusCells { get; set; } = default!;
+
+        /// <summary>
+        /// Share of those objects that stay within the quiet radius (permille).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("quiet_keep_permille")]
+        public int? QuietKeepPermille { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -592,6 +612,12 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("discharge")]
         public int Discharge { get; set; } = default!;
+
+        /// <summary>
+        /// Springs lie at least this far from the sea (cells), so the coast does not get a comb of short parallel creeks.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("min_sea_distance_cells")]
+        public int MinSeaDistanceCells { get; set; } = default!;
 
     }
 

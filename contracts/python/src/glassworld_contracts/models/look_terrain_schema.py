@@ -100,6 +100,12 @@ class TerrainWater(BaseModel):
         ge=0,
         le=6,
     )
+    stream_source_taper_m: float = Field(
+        ...,
+        description='Length over which a stream widens from its source (a spring seep) to its full width, in metres.',
+        ge=0.0,
+        le=50.0,
+    )
 
 
 class TerrainWaterShader(BaseModel):

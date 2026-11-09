@@ -131,7 +131,7 @@ public static partial class TerrainMesher
 
             if (points.Count >= 2)
             {
-                lines.Add(Chaikin(points, look.StreamSmoothing));
+                lines.Add(Taper(Chaikin(points, look.StreamSmoothing), fed[(sz * w) + sx] ? 0 : look.StreamSourceTaperM));
             }
         }
 
@@ -189,6 +189,34 @@ public static partial class TerrainMesher
         }
 
         return mesh;
+    }
+
+    /// <summary>
+    /// A stream that starts at its source (nothing runs into its first cell) widens from a fifth of its
+    /// width to the full width over <paramref name="lengthM"/> along the line, so it seeps out of the ground
+    /// instead of starting with a blunt edge.
+    /// </summary>
+    private static IReadOnlyList<StreamPoint> Taper(IReadOnlyList<StreamPoint> line, double lengthM)
+    {
+        if (lengthM <= 0)
+        {
+            return line;
+        }
+
+        var result = new List<StreamPoint>(line.Count);
+        var along = 0.0;
+        for (var i = 0; i < line.Count; i++)
+        {
+            if (i > 0)
+            {
+                along += Math.Sqrt(Math.Pow(line[i].X - line[i - 1].X, 2) + Math.Pow(line[i].Z - line[i - 1].Z, 2));
+            }
+
+            var share = 0.2 + (0.8 * Math.Min(1, along / lengthM));
+            result.Add(line[i] with { WidthM = line[i].WidthM * share });
+        }
+
+        return result;
     }
 
     /// <summary>Chaikin's corner cutting, <paramref name="rounds"/> times; the ends stay where they are.</summary>

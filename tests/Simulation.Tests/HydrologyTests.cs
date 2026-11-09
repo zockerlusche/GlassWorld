@@ -102,7 +102,7 @@ public sealed class HydrologyTests
     [InlineData(1UL)]
     [InlineData(7UL)]
     [InlineData(99UL)]
-    public void DrinkingWaterLiesExactlyAtTheSpringsAndPondEdges(ulong seed)
+    public void DrinkingWaterLiesExactlyAtTheSpringsPondEdgesAndStreamBanks(ulong seed)
     {
         var island = Generate(seed);
         var map = island.Map;
@@ -119,7 +119,11 @@ public sealed class HydrologyTests
             var atSpring = (hydrology.Feature(o.X, o.Z) & WaterFeature.Spring) != 0;
             var atPond = map.Cell(o.X, o.Z).Water == WaterKind.None
                 && new[] { (1, 0), (-1, 0), (0, 1), (0, -1) }.Any(d => (hydrology.Feature(o.X + d.Item1, o.Z + d.Item2) & WaterFeature.Lake) != 0);
-            Assert.True(atSpring || atPond, $"seed {seed}: drinking water at ({o.X},{o.Z}) is neither at a spring nor at a pond edge");
+            var bankReach = Preset.Water.DrinkSpots.Where(s => s.At == WorldPresetDrinkSpotAt.Stream_bank).Select(s => s.MinStreamDistanceCells + 1).DefaultIfEmpty(0).Max();
+            var atBank = map.Cell(o.X, o.Z).Water == WaterKind.None && Enumerable.Range(-bankReach, (2 * bankReach) + 1)
+                .SelectMany(dz => Enumerable.Range(-bankReach, (2 * bankReach) + 1).Select(dx => (dx, dz)))
+                .Any(d => (d.dx * d.dx) + (d.dz * d.dz) <= bankReach * bankReach && map.Contains(o.X + d.dx, o.Z + d.dz) && (hydrology.Feature(o.X + d.dx, o.Z + d.dz) & WaterFeature.Stream) != 0);
+            Assert.True(atSpring || atPond || atBank, $"seed {seed}: drinking water at ({o.X},{o.Z}) is neither at a spring, a pond edge nor a stream bank");
         }
 
         // Every walkable spring has its object, and a stream starts there.

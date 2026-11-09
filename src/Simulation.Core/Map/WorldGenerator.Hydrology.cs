@@ -203,7 +203,16 @@ public static partial class WorldGenerator
             features[c] = WaterFeature.Stream;
             widthCm[c] = width;
             channelDepth[c] = waterDepth;
-            heights[c] = Math.Max(heights[c] - waterDepth - bank, heights[t]);
+            var bed = heights[c] - waterDepth - bank;
+            if ((features[t] & WaterFeature.Lake) != 0 && heights[t] > bed)
+            {
+                // Where a stream runs into a pond its bed stays below the banks: the pond's bed at the
+                // inflow is scoured to the stream bed, its surface stays (TL #19722 polish).
+                depth[t] += heights[t] - bed;
+                heights[t] = bed;
+            }
+
+            heights[c] = Math.Max(bed, heights[t]);
             centre[c] = true;
         }
 
@@ -361,7 +370,7 @@ public static partial class WorldGenerator
     }
 
     /// <summary>
-    /// Springs: dry land high enough above the sea where the groundwater table lies at most the data depth
+    /// Springs: dry land high enough above and far enough from the sea where the groundwater table lies at most the data depth
     /// below the ground, at the foot of a slope or rock edge (the ground around rises by the foot relief),
     /// walkable, not in a hollow and not already on a rain-fed stream. The wettest candidates come first (then the higher
     /// relief, then an order from the seed); springs keep the minimum spacing, up to the most allowed.
@@ -371,13 +380,41 @@ public static partial class WorldGenerator
         var settings = preset.Water.Springs;
         var sea = preset.Terrain.SeaLevel;
         var r = settings.FootRadiusCells;
+
+        // Distance from the sea (4 neighbours), for the springs' minimum distance from the coast.
+        var seaDistance = new int[w * d];
+        Array.Fill(seaDistance, int.MaxValue);
+        var queue = new Queue<int>();
+        for (var i = 0; i < w * d; i++)
+        {
+            if (water[i] == WaterKind.Salt)
+            {
+                seaDistance[i] = 0;
+                queue.Enqueue(i);
+            }
+        }
+
+        while (queue.Count > 0)
+        {
+            var c = queue.Dequeue();
+            foreach (var (dx, dz) in Neighbours4)
+            {
+                int nx = (c % w) + dx, nz = (c / w) + dz;
+                if (nx >= 0 && nz >= 0 && nx < w && nz < d && seaDistance[(nz * w) + nx] == int.MaxValue)
+                {
+                    seaDistance[(nz * w) + nx] = seaDistance[c] + 1;
+                    queue.Enqueue((nz * w) + nx);
+                }
+            }
+        }
+
         var candidates = new List<(int Wet, int Relief, ulong Tie, int Index)>();
         for (var z = r; z < d - r; z++)
         {
             for (var x = r; x < w - r; x++)
             {
                 var i = (z * w) + x;
-                if (water[i] != WaterKind.None || filled[i] > heights[i] || heights[i] - sea < settings.MinHeight || groundwater[i] > settings.MaxGroundwaterDepth
+                if (water[i] != WaterKind.None || filled[i] > heights[i] || heights[i] - sea < settings.MinHeight || seaDistance[i] < settings.MinSeaDistanceCells || groundwater[i] > settings.MaxGroundwaterDepth
                     || rain[i] >= preset.Water.StreamMinAccumulation || heights[i] - LowestNeighbour(heights, w, d, x, z) > preset.Terrain.WalkableSlope)
                 {
                     continue;

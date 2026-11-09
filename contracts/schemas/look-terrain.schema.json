@@ -128,7 +128,8 @@
         "swamp_max_units",
         "stream_shore_lift_mm",
         "stream_width_m",
-        "stream_smoothing"
+        "stream_smoothing",
+        "stream_source_taper_m"
       ],
       "properties": {
         "sea_shallow": {
@@ -171,6 +172,12 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 6
+        },
+        "stream_source_taper_m": {
+          "description": "Length over which a stream widens from its source (a spring seep) to its full width, in metres.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 50
         }
       }
     },

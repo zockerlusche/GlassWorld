@@ -98,9 +98,9 @@ public sealed class WorldGeneratorTests
     /// be equal on Windows and Linux (CI). A deliberate change of generator or data updates them here.
     /// </summary>
     [Theory]
-    [InlineData(1UL, "e059e68b13ab2c113c3d40dd3f4370e1cc55e5fdadd0fd99e54ef31e5236986c")]
-    [InlineData(7UL, "1b044794058d4a4a96d6ccaa07bd408e17baacaa67fae3b5da8dc296bae2c505")]
-    [InlineData(2026UL, "779b3749817b01dba0f8cc894b898fbaa3cd0a9713bdb71c463b195bd4b9e5ae")]
+    [InlineData(1UL, "230e7690086bc263a2e5fe40f81e75d80bdf7fb9354f85196bd4a40fec954256")]
+    [InlineData(7UL, "9b85135309f9e71a4b692bb073d349c8e390b92c6fb56d57fce5cd000bdfb948")]
+    [InlineData(2026UL, "2b19ba5a4892e501a9c5aa792119bc4280f62c89f9b014eb65ea908a7d65ae00")]
     public void GoldenWorldHashesAreStableAcrossMachines(ulong seed, string expected)
     {
         var actual = Generate(seed).Hash();

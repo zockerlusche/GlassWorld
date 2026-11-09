@@ -171,6 +171,7 @@ public static partial class WorldGenerator
             : null;
         var starts = Starts(preset, map, feasible, near, Stream(attemptSeed, "worldgen/start"));
         StartSupply(preset.Start.Supply, content.Spawns, catalog, map, objects, starts, Stream(attemptSeed, "worldgen/supply"));
+        QuietStarts(preset, catalog, objects, starts, Stream(attemptSeed, "worldgen/quiet"));
         var neighbours = Neighbour(preset, w, d, Stream(attemptSeed, "worldgen/neighbours"));
         var check = Check(content.Spawns, catalog, map, objects, starts);
         var present = new bool[biomeIds.Count];
@@ -268,6 +269,7 @@ public static partial class WorldGenerator
             }
         }
 
+        SmoothShortCliffs(heights, w, d, step, preset.Terrain.CliffMinRunCells);
         var cliffs = 0;
         for (var z = 0; z < d; z++)
         {
@@ -281,6 +283,81 @@ public static partial class WorldGenerator
         }
 
         return cliffs;
+    }
+
+    /// <summary>
+    /// Cliff steps shorter than the data run (4-connected cliff-top cells) become walkable slopes: their
+    /// cells come down to one below the cliff drop above their lowest neighbour, a few rounds, so the walls
+    /// that stay follow the terrace edges instead of standing as isolated teeth (TL #19722 polish).
+    /// </summary>
+    private static void SmoothShortCliffs(int[] heights, int w, int d, int step, int minRun)
+    {
+        for (var round = 0; round < 4; round++)
+        {
+            var top = new bool[w * d];
+            for (var z = 0; z < d; z++)
+            {
+                for (var x = 0; x < w; x++)
+                {
+                    top[(z * w) + x] = IsCliffTop(heights, w, d, x, z, step);
+                }
+            }
+
+            var changed = false;
+            foreach (var run in Components4(top, w, d).Where(r => r.Count < minRun))
+            {
+                foreach (var c in run)
+                {
+                    var lowest = LowestNeighbour(heights, w, d, c % w, c / w);
+                    if (heights[c] - lowest >= step)
+                    {
+                        heights[c] = lowest + step - 1;
+                        changed = true;
+                    }
+                }
+            }
+
+            if (!changed)
+            {
+                return;
+            }
+        }
+    }
+
+    /// <summary>Connected groups (4 neighbours) of marked cells.</summary>
+    private static List<List<int>> Components4(bool[] marked, int w, int d)
+    {
+        var seen = new bool[marked.Length];
+        var groups = new List<List<int>>();
+        for (var i = 0; i < marked.Length; i++)
+        {
+            if (!marked[i] || seen[i])
+            {
+                continue;
+            }
+
+            var group = new List<int>();
+            var queue = new Queue<int>([i]);
+            seen[i] = true;
+            while (queue.Count > 0)
+            {
+                var c = queue.Dequeue();
+                group.Add(c);
+                foreach (var (dx, dz) in Neighbours4)
+                {
+                    int nx = (c % w) + dx, nz = (c / w) + dz;
+                    if (nx >= 0 && nz >= 0 && nx < w && nz < d && marked[(nz * w) + nx] && !seen[(nz * w) + nx])
+                    {
+                        seen[(nz * w) + nx] = true;
+                        queue.Enqueue((nz * w) + nx);
+                    }
+                }
+            }
+
+            groups.Add(group);
+        }
+
+        return groups;
     }
 
     private static bool IsCliffTop(int[] heights, int w, int d, int x, int z, int drop)
@@ -576,6 +653,28 @@ public static partial class WorldGenerator
         }
     }
 
+    /// <summary>
+    /// A quieter start (data, TL #19722 polish): within the quiet radius of a start only the data share of
+    /// the objects that serve no start supply resource stays (chosen by the generator stream); caves and
+    /// drinking water stay. The inhabitants meet fewer unknown things at once; the rest keeps the plenty.
+    /// </summary>
+    private static void QuietStarts(WorldPreset preset, ObjectCatalog catalog, List<IslandObject> objects, List<StartPosition> starts, Pcg32 rng)
+    {
+        var supply = preset.Start.Supply;
+        if (supply.QuietRadiusCells is not { } radius || starts.Count == 0)
+        {
+            return;
+        }
+
+        var keep = supply.QuietKeepPermille ?? 1000;
+        var kept = preset.Water.DrinkSpots.Select(s => s.ObjectType).Append(preset.Caves.ObjectType).ToHashSet(StringComparer.Ordinal);
+        bool Serves(string type) => supply.Resources.Any(r => r.PropertiesAll.All(p => catalog.HasProperty(type, p)) && !r.PropertiesNone.Any(p => catalog.HasProperty(type, p)));
+        objects.RemoveAll(o =>
+            !kept.Contains(o.TypeId) && !Serves(o.TypeId)
+            && starts.Any(s => Sq(s.X - o.X) + Sq(s.Z - o.Z) <= radius * radius)
+            && rng.NextInt(0, 1000) >= keep);
+    }
+
     /// <summary>Caves: rock niches at the foot of cliffs in rocky hills (R6, B2514 T3).</summary>
     private static void Caves(WorldPreset preset, WorldMap map, List<IslandObject> objects, Pcg32 rng)
     {
@@ -660,7 +759,12 @@ public static partial class WorldGenerator
                 {
                     for (var x = 1; x < w - 1; x++)
                     {
-                        if (Walkable(x, z) && Beside(x, z, feature))
+                        // A stream bank with a minimum stream distance lies one step beyond it (the pool keeps
+                        // off the cut bed); otherwise right beside the water.
+                        var bank = feature == WaterFeature.Stream && spot.MinStreamDistanceCells > 0
+                            ? map.Cell(x, z).Water == WaterKind.None && NearStream(x, z, spot.MinStreamDistanceCells + 1)
+                            : Beside(x, z, feature);
+                        if (Walkable(x, z) && bank)
                         {
                             candidates.Add((x, z));
                         }

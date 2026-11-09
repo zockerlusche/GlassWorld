@@ -17,6 +17,7 @@
     "coast_falloff_permille": 240,
     "walkable_slope": 6,
     "cliff_min_drop": 12,
+    "cliff_min_run_cells": 6,
     "noise": [
       {
         "wavelength_cells": 64,
@@ -84,13 +85,14 @@
       }
     ],
     "springs": {
-      "min_height": 8,
-      "max_groundwater_depth": 2,
-      "foot_relief": 8,
+      "min_height": 15,
+      "max_groundwater_depth": 4,
+      "foot_relief": 6,
       "foot_radius_cells": 5,
       "min_spacing_cells": 7,
       "max_count": 24,
-      "discharge": 500
+      "discharge": 500,
+      "min_sea_distance_cells": 6
     },
     "drink_spots": [
       {
@@ -107,6 +109,14 @@
         "spacing_cells": 10,
         "max_total": 8,
         "min_stream_distance_cells": 3,
+        "regrow_hours": 6
+      },
+      {
+        "at": "stream_bank",
+        "object_type": "spring_water",
+        "spacing_cells": 8,
+        "max_total": 24,
+        "min_stream_distance_cells": 2,
         "regrow_hours": 6
       }
     ]

@@ -41,7 +41,8 @@
     "swamp_max_units": 1,
     "stream_shore_lift_mm": 30,
     "stream_width_m": 1.9,
-    "stream_smoothing": 3
+    "stream_smoothing": 3,
+    "stream_source_taper_m": 2.5
   },
   "cliffs": {
     "biomes": [

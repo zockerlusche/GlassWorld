@@ -91,6 +91,12 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("stream_smoothing")]
         public int StreamSmoothing { get; set; } = default!;
 
+        /// <summary>
+        /// Length over which a stream widens from its source (a spring seep) to its full width, in metres.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("stream_source_taper_m")]
+        public double StreamSourceTaperM { get; set; } = default!;
+
     }
 
     /// <summary>

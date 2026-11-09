@@ -159,7 +159,8 @@
         "walkable_slope",
         "cliff_min_drop",
         "noise",
-        "rocks"
+        "rocks",
+        "cliff_min_run_cells"
       ],
       "properties": {
         "sea_level": {
@@ -203,6 +204,12 @@
         },
         "rocks": {
           "$ref": "#/$defs/WorldPresetCountRange"
+        },
+        "cliff_min_run_cells": {
+          "description": "Shortest run of cliff-top cells (4-connected) that stays a rock wall; shorter steps are smoothed to a walkable slope, so walls follow the terrace edges instead of standing as isolated teeth (TL #19722 polish).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
         }
       }
     },
@@ -634,6 +641,18 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 1000
+        },
+        "quiet_radius_cells": {
+          "description": "Optional: around each start the island is a little quieter - within this radius only quiet_keep_permille of the objects that serve no start supply resource stay, so the inhabitants meet fewer unknown things at once before they find their water (the rest of the island keeps the plenty). Absent = no quieter start.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "quiet_keep_permille": {
+          "description": "Share of those objects that stay within the quiet radius (permille).",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
         }
       }
     },
@@ -726,7 +745,8 @@
         "foot_radius_cells",
         "min_spacing_cells",
         "max_count",
-        "discharge"
+        "discharge",
+        "min_sea_distance_cells"
       ],
       "properties": {
         "min_height": {
@@ -770,6 +790,12 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 100000000
+        },
+        "min_sea_distance_cells": {
+          "description": "Springs lie at least this far from the sea (cells), so the coast does not get a comb of short parallel creeks.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
         }
       }
     },
