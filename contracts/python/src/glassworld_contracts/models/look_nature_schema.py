@@ -30,6 +30,12 @@ class NatureCover(BaseModel):
         gt=0.0,
         le=500.0,
     )
+    layer_height_m: float = Field(
+        ...,
+        description='Height above the island base of the flat layer the billow pattern lies on (metres). The pattern is read where the view ray meets this layer, so terrace steps and things under the cover never break it.',
+        ge=0.0,
+        le=100.0,
+    )
     drift_m_per_s: float = Field(
         ...,
         description='How fast the cloud pattern drifts with the wind direction of this file (metres per real second; calm world: keep it slow). The cover itself never moves, only its pattern.',

@@ -33,6 +33,7 @@ public partial class CloudCover : MeshInstance3D
     private byte[] _texels = [];
     private Vector2 _size;
     private Vector2 _driftPerSecond;
+    private float _layerHeight;
     private Vector2 _drift;
 
     /// <summary>The reveal map.</summary>
@@ -66,6 +67,7 @@ public partial class CloudCover : MeshInstance3D
             _texels = new byte[width * depth],
             _size = new Vector2(width * cellM, depth * cellM),
             _driftPerSecond = new Vector2((float)(windX * data.DriftMPerS), (float)(windZ * data.DriftMPerS)),
+            _layerHeight = (float)data.LayerHeightM,
         };
         cover.Map.Follow(exploration.Version, exploration.RevealedSince);
         cover.Map.Advance(0);
@@ -94,6 +96,7 @@ public partial class CloudCover : MeshInstance3D
         // The map corner in the world (the island may hang under a moved node).
         var centre = GlobalPosition;
         _material.SetShaderParameter("map_origin", new Vector2(centre.X - (_size.X / 2), centre.Z - (_size.Y / 2)));
+        _material.SetShaderParameter("layer_y", centre.Y + _layerHeight);
     }
 
     /// <summary>
