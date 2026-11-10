@@ -12,9 +12,9 @@
     },
     {
       "id": "cliffs_cave",
-      "target_x_permille": 412,
-      "target_z_permille": 684,
-      "yaw_deg": -143,
+      "target_x_permille": 539,
+      "target_z_permille": 768,
+      "yaw_deg": 99,
       "distance_m": 16,
       "pitch_deg": 20,
       "phase": "day"

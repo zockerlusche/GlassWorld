@@ -364,15 +364,21 @@ public static partial class WorldGenerator
     /// Natural rock (TL #19984, #19990): the longest terrace walls (cliff-top runs) stay sheer with their foot, so
     /// caves keep their place; every other terrace tread gets back the data share of its original relief
     /// (no flat plateau), and every step steeper than the talus settles into a scree slope. With rock faces
-    /// (version 4) the walls kept are those that touch the cells chosen before the stacks sank, and the foot
+    /// (version 4) the walls kept are those that touch the cells chosen before the stacks sank (filled up with
+    /// the longest others to the data's number), and the foot
     /// level stays level for the data distance in front of them.
     /// </summary>
     private static void NaturalRock(int[] heights, int[] tread, bool[] terraced, int w, int d, int step, WorldPresetRockSlopes slopes, WorldPresetRockFaces? faces, bool[]? chosen, int sea)
     {
         var runs = Components4(WallTops(heights, terraced, w, d, step), w, d);
-        var keptRuns = chosen is null
-            ? runs.OrderByDescending(r => r.Count).ThenBy(r => r[0]).Take(slopes.WallsKept)
-            : runs.Where(r => r.Exists(c => chosen[c]));
+        var keptRuns = runs.OrderByDescending(r => r.Count).ThenBy(r => r[0]).Take(slopes.WallsKept);
+        if (chosen is not null)
+        {
+            // Version 4: the walls that touch the chosen cells; where stacks sank away entirely, the longest
+            // others fill up to the data's number, so an island keeps its rock walls (and caves).
+            var touching = runs.Where(r => r.Exists(c => chosen[c])).ToList();
+            keptRuns = [.. touching, .. runs.Except(touching).OrderByDescending(r => r.Count).ThenBy(r => r[0]).Take(Math.Max(0, slopes.WallsKept - touching.Count))];
+        }
         var kept = new bool[w * d];
         var feet = new List<int>();
         foreach (var run in keptRuns)
