@@ -1,15 +1,12 @@
 // Stream in the D355 look: light blue ribbon with white dashes that drift downstream.
 // UV.x runs along the stream (metres), UV.y across (0..1). The dashes move by the water clock
-// (water_time.gdshaderinc), not by TIME: they stand still in a pause, and their pattern repeats after
-// DASH_PERIOD dashes, which they drift in a whole number of rounds per period of the clock, so its wrap
-// does not show. Presentation only.
+// (water_time.gdshaderinc), not by TIME: they stand still in a pause, they drift a whole number of
+// dashes per period of the clock, and the pattern of a lane repeats after as many, so no dash is picked
+// anew when the clock wraps. Presentation only.
 shader_type spatial;
 render_mode unshaded, cull_disabled;
 
 #include "res://shaders/water_time.gdshaderinc"
-
-// Dashes after which the pattern of a lane repeats.
-const float DASH_PERIOD = 64.0;
 
 uniform vec4 water_color : source_color = vec4(0.52, 0.8, 0.86, 1.0);
 uniform vec4 edge_color : source_color = vec4(0.62, 0.86, 0.9, 1.0);
@@ -27,8 +24,10 @@ void fragment() {
 	float across = abs(UV.y - 0.5) * 2.0;
 	vec3 color = mix(water_color.rgb, edge_color.rgb, smoothstep(0.65, 1.0, across));
 	float lane = floor(UV.y * 4.0);
-	float along = UV.x * 0.8 - DASH_PERIOD * water_cycle(flow_speed * 0.8 / DASH_PERIOD) + hash(lane) * 7.0;
-	float seg = mod(floor(along), DASH_PERIOD);
+	// Dashes drifted per period of the clock (a whole number), and the repeat of the pattern.
+	float steps = max(water_rounds(flow_speed * 0.8), 1.0);
+	float along = UV.x * 0.8 - water_run(flow_speed * 0.8) + hash(lane) * 7.0;
+	float seg = mod(floor(along), steps);
 	float local = fract(along);
 	float on = step(0.55, hash(seg + lane * 13.0));
 	float dash = on * smoothstep(0.0, 0.08, local) * (1.0 - smoothstep(0.3, 0.38, local));

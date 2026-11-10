@@ -18,6 +18,21 @@ public sealed class WaterLookTests
 
     private static readonly string[] WaterGlobals = ["water_time", "water_wave_shift", "water_waves"];
 
+    /// <summary>The lines of island_water.gdshader the wrap test mirrors.</summary>
+    private static readonly string[] ShaderLinesMirrored =
+    [
+        "vec2 i0 = mod(i, period);",
+        "vec2 i1 = mod(i + vec2(1.0), period);",
+        "float wander_rounds = max(water_rounds(0.07 * rate), 1.0);",
+        "flow_noise(vec2(band.x * 0.4 + seed, water_run(0.07 * rate)), vec2(FLOW_OPEN, wander_rounds))",
+        "float speed = flow_speed * rate * (1.0 + flow_speed_spread * (pace - 0.5));",
+        "float rounds = water_rounds(speed / (line_m * 2.0));",
+        "float s = band.x / line_m - 2.0 * rounds * water_progress() + pace * 31.0;",
+        "flow_noise(vec2(s, lane * 3.7 + seed), vec2(steps, FLOW_OPEN))",
+        "flow_noise(vec2(s * 0.5 + 5.0, lane * 1.9 + seed), vec2(half_steps, FLOW_OPEN))",
+        "flow_noise(vec2(s * 2.0 + 9.0, lane * 2.3 + seed), vec2(2.0 * steps, FLOW_OPEN))",
+    ];
+
     private static readonly Lazy<ContentSet> Content = new(() => ContentSet.Load(Path.Combine(TestPaths.Root, "content")));
 
     private static readonly TerrainLook Plain = new(
@@ -543,7 +558,7 @@ public sealed class WaterLookTests
 
         // The cycles the shaders run (foam, glints, crest life, shimmer, lane wander, lane drift, dashes):
         // each is rounded to whole rounds per period, a rate very near the one asked for.
-        double[] rates = [0.35, 0.095, 0.07, 0.7 / Math.Tau, 0.07 * 1.31, 0.7 / (1.8 * 60), 0.6 * 0.8 / 64];
+        double[] rates = [0.35, 0.095, 0.07, 0.7 / Math.Tau, 0.07 * 1.31, 0.7 / (1.8 * 2), 0.6 * 0.8];
         Assert.All(rates, hz =>
         {
             var rounds = clock.Rounds(hz);
@@ -552,6 +567,10 @@ public sealed class WaterLookTests
         });
         Assert.Equal(0, clock.Rounds(0));
         Assert.Equal(0, clock.Rounds(-1));
+
+        // A cycle too slow for the period still runs: once per period, never not at all.
+        Assert.Equal(1, clock.Rounds(1e-9));
+        Assert.Equal(1, new WaterClock(1).Rounds(0.07));
 
         // Frame by frame across the wrap: the clock starts again, but the phase of every cycle moves on by
         // its rate times the frame time - no jump, whatever the cycle.
@@ -666,6 +685,147 @@ public sealed class WaterLookTests
         Assert.Empty(new WaveDrift(0).Shifts);
     }
 
+    /// <summary>
+    /// Review GW3 #199: whatever a water shader picks by a hash - which flow line shows, which dash, which
+    /// crest - hangs on a whole-numbered index taken from a coordinate that scrolls with the water clock.
+    /// The shaders' maths, mirrored here formula by formula: with the clock wrapped (seconds a little past
+    /// 0) every index, every weight between two indices and every phase is the same as with the clock
+    /// running on (seconds a little past the period), and from just before the wrap to just after it
+    /// everything moves by no more than its speed allows. Also with a period of ten seconds or one.
+    /// </summary>
+    [Theory]
+    [InlineData(3600.0)]
+    [InlineData(10.0)]
+    [InlineData(1.0)]
+    public void NothingIsPickedAnewWhenTheWaterClockWraps(double period)
+    {
+        // The mirror stands for these lines of the shaders.
+        string Shader(string file) => File.ReadAllText(Path.Combine(TestPaths.Root, "game", "shaders", file));
+        Assert.Contains("return max(floor(hz * max(water_time.y, 1.0) + 0.5), 1.0);", Shader("water_time.gdshaderinc"), StringComparison.Ordinal);
+        Assert.Contains("return water_rounds(hz) * water_progress();", Shader("water_time.gdshaderinc"), StringComparison.Ordinal);
+        var fresh = Shader("island_water.gdshader");
+        Assert.All(ShaderLinesMirrored, line => Assert.Contains(line, fresh, StringComparison.Ordinal));
+        Assert.Contains("float seg = mod(floor(along), steps);", Shader("stream.gdshader"), StringComparison.Ordinal);
+        Assert.Contains("float along = UV.x * 0.8 - water_run(flow_speed * 0.8) + hash(lane) * 7.0;", Shader("stream.gdshader"), StringComparison.Ordinal);
+
+        var shader = Read<LookTerrain>("look", "terrain.json").WaterShader;
+        const double After = 0.37, Tiny = 1e-4;
+        double Rounds(double hz) => hz <= 0 ? 0 : Math.Max(Math.Floor((hz * Math.Max(period, 1)) + 0.5), 1);
+        double Run(double hz, double seconds) => Rounds(hz) * (seconds / Math.Max(period, 1));
+
+        // Everything a shader hashes or blends at a time, as a list of whole numbers (indices) and a list
+        // of places on a circle (value, length of the circle): the lattice of a noise, a phase, a dash.
+        (List<double> Picks, List<(double Value, double Circle)> Places) State(double seconds)
+        {
+            var picks = new List<double>();
+            var places = new List<(double Value, double Circle)>();
+            void Lattice(double at, double repeat)
+            {
+                // flow_noise: the two lattice points it hashes along an axis and the weight between them.
+                picks.Add(Mod(Math.Floor(at), repeat));
+                picks.Add(Mod(Math.Floor(at) + 1, repeat));
+                places.Add((Mod(at, repeat), repeat));
+            }
+
+            // Cycles (sea: foam and glints; crests: life; lakes: shimmer): water_cycle.
+            foreach (var hz in new[] { 0.35, 0.095, 0.07, shader.ShimmerSpeed / Math.Tau })
+            {
+                var run = Run(hz, seconds);
+                places.Add((run - Math.Floor(run), 1));
+            }
+
+            // island_water.gdshader flow_lines, for both sets of lines, some places on a band and some lanes.
+            foreach (var (rate, seed) in new[] { (1.0, 0.0), (1.31, 23.0) })
+            {
+                foreach (var along in new[] { 0.3, 7.77, 41.2, 133.9 })
+                {
+                    // The wander of the lanes decides which lane a pixel lies in: its noise runs in time.
+                    Lattice(Run(0.07 * rate, seconds), Math.Max(Rounds(0.07 * rate), 1));
+                    foreach (var pace in new[] { 0.0, 0.31, 0.5, 0.86, 1.0 })
+                    {
+                        var lineM = Math.Max(shader.FlowLineLengthM, 0.01);
+                        var speed = shader.FlowSpeedMPerS * rate * (1 + (shader.FlowSpeedSpread * (pace - 0.5)));
+                        var rounds = Rounds(speed / (lineM * 2));
+                        var halfSteps = Math.Max(rounds, 1);
+                        var steps = 2 * halfSteps;
+                        var s = (along / lineM) - (2 * rounds * (seconds / Math.Max(period, 1))) + (pace * 31);
+                        Lattice(s, steps);
+                        Lattice((s * 0.5) + 5, halfSteps);
+                        Lattice((s * 2) + 9, 2 * steps);
+                        Assert.True(rounds >= 1, "every lane drifts, however short the period");
+                    }
+                }
+            }
+
+            // stream.gdshader: the dash a pixel lies in and where in it.
+            foreach (var u in new[] { 0.2, 3.3, 18.6 })
+            {
+                foreach (var laneShift in new[] { 0.0, 2.9, 6.1 })
+                {
+                    const double FlowSpeed = 0.6;
+                    var steps = Math.Max(Rounds(FlowSpeed * 0.8), 1);
+                    var along = (u * 0.8) - Run(FlowSpeed * 0.8, seconds) + laneShift;
+                    picks.Add(Mod(Math.Floor(along), steps));
+                    places.Add((Mod(along, steps), steps));
+                }
+            }
+
+            return (picks, places);
+        }
+
+        // Wrapped against running on: the same picks, the same places.
+        var (wrappedPicks, wrappedPlaces) = State(After);
+        var (onPicks, onPlaces) = State(period + After);
+        Assert.Equal(onPicks, wrappedPicks);
+        Assert.Equal(onPlaces.Count, wrappedPlaces.Count);
+        Assert.True(wrappedPicks.Count > 250 && wrappedPlaces.Count > 100);
+        for (var i = 0; i < onPlaces.Count; i++)
+        {
+            Assert.Equal(onPlaces[i].Circle, wrappedPlaces[i].Circle);
+            Assert.True(Around(onPlaces[i].Value - wrappedPlaces[i].Value, onPlaces[i].Circle) < 1e-7, $"place {i} differs by {onPlaces[i].Value - wrappedPlaces[i].Value}");
+        }
+
+        // The clock itself agrees with the mirror, and wraps where the mirror says.
+        var clock = new WaterClock(period);
+        clock.Update(period + After);
+        Assert.Equal(After, clock.Seconds, 9);
+        Assert.Equal(Rounds(0.07), clock.Rounds(0.07));
+        Assert.Equal(Run(0.35, After) - Math.Floor(Run(0.35, After)), clock.Phase(0.35), 9);
+
+        // Just before the wrap and just after it: no place moves further than the fastest scroll allows
+        // in that time (a re-pick would throw a place anywhere on its circle).
+        var before = State(period - Tiny).Places;
+        var after = State(Tiny).Places;
+        const double Fastest = 8;
+        for (var i = 0; i < before.Count; i++)
+        {
+            Assert.True(Around(after[i].Value - before[i].Value, before[i].Circle) <= (Fastest * 2 * Tiny) + 1e-9, $"place {i} jumps by {Around(after[i].Value - before[i].Value, before[i].Circle)}");
+        }
+
+        // The crests: their grids are shifted by the wind, and that shift wraps on its own (WaveDrift).
+        // water_waves.gdshaderinc picks a crest by mod(floor((xz - shift) / cell), WAVE_PERIOD).
+        Assert.Contains("vec2 id = mod(floor(p), WAVE_PERIOD) + vec2(seed);", Shader("water_waves.gdshaderinc"), StringComparison.Ordinal);
+        const double Cell = 3.2, CrestSpeed = 0.45, Frame = 0.25;
+        var drift = new WaveDrift(0, (Cell, CrestSpeed));
+        drift.Update(1, 0, 0);
+        var way = 0.0;
+        var wraps = 0;
+        var last = 0.0;
+        while (wraps < 2)
+        {
+            drift.Update(1, 0, Frame);
+            way += CrestSpeed * Frame;
+            wraps += drift.Shifts[0].X < last ? 1 : 0;
+            last = drift.Shifts[0].X;
+            foreach (var x in new[] { -51.3, 0.4, 96.6, 191.7 })
+            {
+                var (shifted, running) = ((x - drift.Shifts[0].X) / Cell, (x - way) / Cell);
+                Assert.Equal(Mod(Math.Floor(running + 1e-9), WaveDrift.PeriodCells), Mod(Math.Floor(shifted + 1e-9), WaveDrift.PeriodCells));
+                Assert.True(Around(running - shifted, 1) < 1e-6);
+            }
+        }
+    }
+
     [Fact]
     public void NoWaterShaderMovesByTheEngineTimeAndTheGlobalsAreRegistered()
     {
@@ -714,6 +874,16 @@ public sealed class WaterLookTests
     }
 
     private static double IslandGround(WorldMap map, TerrainLook look, double x, double z) => TerrainMesher.GroundHeight(map, look, x, z);
+
+    /// <summary>The shader's mod: the rest in [0, n), also for a value below 0.</summary>
+    private static double Mod(double value, double n) => value - (n * Math.Floor(value / n));
+
+    /// <summary>How far apart two places on a circle of a given length are, given their difference.</summary>
+    private static double Around(double difference, double circle)
+    {
+        var rest = Mod(difference, circle);
+        return Math.Min(rest, circle - rest);
+    }
 
     private static bool Near(Rgb a, Rgb b, float tolerance) =>
         MathF.Abs(a.R - b.R) <= tolerance && MathF.Abs(a.G - b.G) <= tolerance && MathF.Abs(a.B - b.B) <= tolerance;

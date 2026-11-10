@@ -28,11 +28,6 @@ uniform float wave_share = 0.6;
 // so the night darkens it here; white by default.
 global uniform vec4 water_light;
 
-// Line lengths after which the pattern of a lane repeats. The three noises of a lane read the place
-// along it at 1, 0.6 and 1.7 times its scale, so they repeat after 60, 36 and 102 of their own steps.
-const float FLOW_PERIOD = 60.0;
-const float FLOW_PERIOD_WIDTH = 36.0;
-const float FLOW_PERIOD_WIGGLE = 102.0;
 // No repeat wanted along this axis (far more steps than any band is long).
 const float FLOW_OPEN = 4096.0;
 
@@ -66,13 +61,19 @@ float flow_lines(vec2 band, float rate, float lanes, float seed) {
 	float pace = wave_hash(vec2(lane, seed + 1.0));
 	float line_m = max(flow_line_length, 0.01);
 	float speed = flow_speed * rate * (1.0 + flow_speed_spread * (pace - 0.5));
-	// How far the lane has drifted, in line lengths: once round its pattern in a whole number of rounds.
-	float drift = FLOW_PERIOD * water_cycle(speed / (line_m * FLOW_PERIOD));
-	float s = band.x / line_m - drift + pace * 31.0;
-	// Where along the lane a line lies, how wide it is there and how it sways within the lane.
-	float there = smoothstep(0.5, 0.72, flow_noise(vec2(s, lane * 3.7 + seed), vec2(FLOW_PERIOD, FLOW_OPEN)));
-	float width = 0.1 + 0.2 * flow_noise(vec2(s * 0.6 + 5.0, lane * 1.9 + seed), vec2(FLOW_PERIOD_WIDTH, FLOW_OPEN));
-	float wiggle = (flow_noise(vec2(s * 1.7 + 9.0, lane * 2.3 + seed), vec2(FLOW_PERIOD_WIGGLE, FLOW_OPEN)) - 0.5) * 0.3;
+	// How far the lane drifts in one period of the water clock, in line lengths: a whole, even number
+	// (steps), and the pattern of the lane repeats after as many. So when the clock wraps the lane is
+	// back on its own pattern: no line is picked anew, whatever the period is.
+	float rounds = water_rounds(speed / (line_m * 2.0));
+	float half_steps = max(rounds, 1.0);
+	float steps = 2.0 * half_steps;
+	float s = band.x / line_m - 2.0 * rounds * water_progress() + pace * 31.0;
+	// Where along the lane a line lies, how wide it is there and how it sways within the lane. The three
+	// noises read the place at 1, 0.5 and 2 times its scale, so they repeat after steps, half as many and
+	// twice as many of their own steps.
+	float there = smoothstep(0.5, 0.72, flow_noise(vec2(s, lane * 3.7 + seed), vec2(steps, FLOW_OPEN)));
+	float width = 0.1 + 0.2 * flow_noise(vec2(s * 0.5 + 5.0, lane * 1.9 + seed), vec2(half_steps, FLOW_OPEN));
+	float wiggle = (flow_noise(vec2(s * 2.0 + 9.0, lane * 2.3 + seed), vec2(2.0 * steps, FLOW_OPEN)) - 0.5) * 0.3;
 	float body = 1.0 - smoothstep(width * 0.5, width, abs(fv + wiggle));
 	return there * body;
 }

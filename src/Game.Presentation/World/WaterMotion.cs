@@ -4,8 +4,8 @@ namespace GlassWorld.Presentation.World;
 /// The clock of the water (W1724): the time the water shaders move by. It runs in real time and stands
 /// still while the game is paused (so flow lines, shimmer and waves stand still with the figures), and it
 /// wraps at its period. The shaders never use the seconds raw: every cycle is rounded to a whole number of
-/// rounds per period (<see cref="Phase"/>, <c>water_cycle</c> in <c>water_time.gdshaderinc</c>), so the
-/// wrap does not show. Handed to the shaders as the global parameter <c>water_time</c>. Presentation only.
+/// rounds per period (<see cref="Phase"/>, <c>water_cycle</c> in <c>water_time.gdshaderinc</c>), and every
+/// scrolling pattern repeats after the steps it scrolls per period, so the wrap does not show. Handed to the shaders as the global parameter <c>water_time</c>. Presentation only.
 /// </summary>
 public sealed class WaterClock
 {
@@ -38,8 +38,15 @@ public sealed class WaterClock
         }
     }
 
-    /// <summary>Whole rounds per period of a cycle with about <paramref name="hz"/> rounds per second (as the shader rounds it).</summary>
-    public double Rounds(double hz) => Math.Max(Math.Floor((hz * PeriodSeconds) + 0.5), 0);
+    /// <summary>Share of the period that has passed, 0..1 (<c>water_progress</c> of the shaders).</summary>
+    public double Progress => Seconds / PeriodSeconds;
+
+    /// <summary>
+    /// Whole rounds per period of a cycle with about <paramref name="hz"/> rounds per second, as the
+    /// shaders round it (<c>water_rounds</c>): at least one for any rate above 0, so nothing stands still
+    /// under a short period; none without a rate.
+    /// </summary>
+    public double Rounds(double hz) => hz > 0 ? Math.Max(Math.Floor((hz * PeriodSeconds) + 0.5), 1) : 0;
 
     /// <summary>
     /// Phase 0..1 of a cycle with about <paramref name="hz"/> rounds per second, exactly as the shaders
@@ -47,7 +54,7 @@ public sealed class WaterClock
     /// </summary>
     public double Phase(double hz)
     {
-        var turns = Rounds(hz) * (Seconds / PeriodSeconds);
+        var turns = Rounds(hz) * Progress;
         return turns - Math.Floor(turns);
     }
 }
