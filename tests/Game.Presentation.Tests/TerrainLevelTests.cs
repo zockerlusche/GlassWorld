@@ -116,14 +116,14 @@ public sealed class TerrainLevelTests
                 // Every cell at the coast, a bank, a stream or a lake (dry land and water in or next to each other)
                 // is drawn as on level 0, so the coarse level leaves no water hole and no flooded land; only the
                 // bed of the open sea (sea all around) may merge.
-                bool OpenSea((float X, float Z, bool Vertical, (float X, float Y, float Z)[] Vertices, string Key) f) => Around(map, f).All(c => map.Cell(c.X, c.Z).Water == WaterKind.Salt);
+                bool OpenSea((float X, float Z, bool Wall, (float X, float Y, float Z)[] Vertices, string Key) f) => Around(map, f).All(c => map.Cell(c.X, c.Z).Water == WaterKind.Salt);
                 Assert.All(fine.Where(f => NearWater(map, f) && !OpenSea(f)), f => Assert.True(coarseKeys.Contains(f.Key), $"seed {seed} step {level.CellStep}: a face at the water at ({f.X:0.0}, {f.Z:0.0}) differs from level 0"));
 
                 // Every other face is either a level-0 face or part of a fan over plain dry land or open sea bed
                 // (wholly below the sea); there are no skirts and no walls a level-0 view would not show.
                 foreach (var f in coarse.Where(f => !fineKeys.Contains(f.Key)))
                 {
-                    Assert.False(f.Vertical, $"seed {seed} step {level.CellStep}: a wall at ({f.X:0.0}, {f.Z:0.0}) that level 0 does not have (skirt)");
+                    Assert.False(f.Wall, $"seed {seed} step {level.CellStep}: a wall at ({f.X:0.0}, {f.Z:0.0}) that level 0 does not have (skirt)");
                     if (NearWater(map, f))
                     {
                         Assert.True(f.Vertices.All(v => v.Y <= seaLevel - level.SeaFloorMarginM + Eps), $"seed {seed} step {level.CellStep}: a merged face at the water at ({f.X:0.0}, {f.Z:0.0}) above the sea floor margin");
@@ -202,7 +202,7 @@ public sealed class TerrainLevelTests
         // vertex of any other top face inside one of its edges, within a chunk or across a chunk border.
         var levels = RealLevels(seed);
         var map = levels[0].Base;
-        var meshes = levels.Select(l => Chunks(map).ToDictionary(c => c, c => Faces(TerrainMesher.Ground(l, c.X, c.Z)).Where(f => !f.Vertical).ToList())).ToList();
+        var meshes = levels.Select(l => Chunks(map).ToDictionary(c => c, c => Faces(TerrainMesher.Ground(l, c.X, c.Z)).Where(f => !f.Wall).ToList())).ToList();
         for (var a = 0; a < levels.Count; a++)
         {
             for (var b = a + 1; b < levels.Count; b++)
@@ -402,7 +402,7 @@ public sealed class TerrainLevelTests
     }
 
     /// <summary>The base grid corners a top face covers (cell size 1 m), with the face's height over each.</summary>
-    private static IEnumerable<(int X, int Z, float Surface)> CornersUnder((float X, float Z, bool Vertical, (float X, float Y, float Z)[] Vertices, string Key) f)
+    private static IEnumerable<(int X, int Z, float Surface)> CornersUnder((float X, float Z, bool Wall, (float X, float Y, float Z)[] Vertices, string Key) f)
     {
         var (a, b, c) = (f.Vertices[0], f.Vertices[1], f.Vertices[2]);
         var det = ((b.Z - c.Z) * (a.X - c.X)) + ((c.X - b.X) * (a.Z - c.Z));
@@ -420,11 +420,11 @@ public sealed class TerrainLevelTests
         }
     }
 
-    private static bool NearWater(WorldMap map, (float X, float Z, bool Vertical, (float X, float Y, float Z)[] Vertices, string Key) f) =>
+    private static bool NearWater(WorldMap map, (float X, float Z, bool Wall, (float X, float Y, float Z)[] Vertices, string Key) f) =>
         Around(map, f).Any(c => map.Cell(c.X, c.Z).Water != WaterKind.None);
 
     /// <summary>The cells a face covers (both sides for a wall on a cell edge) and their eight neighbours.</summary>
-    private static IEnumerable<(int X, int Z)> Around(WorldMap map, (float X, float Z, bool Vertical, (float X, float Y, float Z)[] Vertices, string Key) f)
+    private static IEnumerable<(int X, int Z)> Around(WorldMap map, (float X, float Z, bool Wall, (float X, float Y, float Z)[] Vertices, string Key) f)
     {
         static (int From, int To) Span(float min, float max) => max - min < Eps
             ? ((int)MathF.Round(min) - 1, (int)MathF.Round(min))
@@ -459,13 +459,17 @@ public sealed class TerrainLevelTests
     private static IEnumerable<(float X, float Y, float Z, float Ny)> Vertices(MeshData mesh) =>
         Enumerable.Range(0, mesh.VertexCount).Select(i => (mesh.Positions[i * 3], mesh.Positions[(i * 3) + 1], mesh.Positions[(i * 3) + 2], mesh.Normals[(i * 3) + 1]));
 
-    private static List<(float X, float Z, bool Vertical, (float X, float Y, float Z)[] Vertices, string Key)> Faces(MeshData mesh) =>
-        [.. Vertices(mesh).Chunk(3).Select(t =>
+    /// <summary>The triangles of a mesh; Wall = a cliff wall (vertical, or a rock face of the real look, TL #20449), all others are top faces.</summary>
+    private static List<(float X, float Z, bool Wall, (float X, float Y, float Z)[] Vertices, string Key)> Faces(MeshData mesh)
+    {
+        var rock = mesh.RockFaces.ToHashSet();
+        return [.. Vertices(mesh).Chunk(3).Select((t, index) =>
         {
             var vertices = t.Select(v => (v.X, v.Y, v.Z)).ToArray();
             var key = string.Join(";", vertices.Select(v => FormattableString.Invariant($"{v.X:0.000},{v.Y:0.000},{v.Z:0.000}")).Order(StringComparer.Ordinal));
-            return (vertices.Average(v => v.X), vertices.Average(v => v.Z), MathF.Abs(t[0].Ny) < 0.01f, vertices, key);
+            return (vertices.Average(v => v.X), vertices.Average(v => v.Z), rock.Contains(index) || MathF.Abs(t[0].Ny) < 0.01f, vertices, key);
         })];
+    }
 
     private static HashSet<string> Keys(MeshData mesh) => Faces(mesh).Select(f => f.Key).ToHashSet(StringComparer.Ordinal);
 

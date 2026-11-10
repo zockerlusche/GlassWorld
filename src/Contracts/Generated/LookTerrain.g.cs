@@ -55,6 +55,55 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("scree_permille")]
         public int ScreePermille { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("face")]
+        public TerrainRockFace? Face { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Rock walls as natural rock faces (TL #20449): a wall leans out from its top edge to a foot on the ground below, with a broken top edge and vertices moved by a fixed hash of their grid corner, so terraces do not read as stacked blocks. Mesh only: the ground, its heights and the core's cliffs are unchanged, and the face stays steep. Absent = plain vertical walls. Placeholder values.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class TerrainRockFace
+    {
+
+        /// <summary>
+        /// How far the foot of a face stands out from its top edge (mm); below half a cell, so the middle of the cell at the foot stays free.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("lean_mm")]
+        public int LeanMm { get; set; } = default!;
+
+        /// <summary>
+        /// The same where the foot stands on a ledge one cell wide with the next drop right behind it (mm), so stacked steps close up towards one face; below half a cell.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("ledge_lean_mm")]
+        public int LedgeLeanMm { get; set; } = default!;
+
+        /// <summary>
+        /// Size of the broken top edge: how far the face steps out and down right below its top edge (mm); at most lean_mm.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("bevel_mm")]
+        public int BevelMm { get; set; } = default!;
+
+        /// <summary>
+        /// Largest displacement of a face vertex by the hash of its grid corner (mm); at most half of lean_mm.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("jitter_mm")]
+        public int JitterMm { get; set; } = default!;
+
+        /// <summary>
+        /// Height of one row of facets (mm): a taller face bends more often on its way down (at most four times). 0 = one bend.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("row_mm")]
+        public int RowMm { get; set; } = default!;
+
+        /// <summary>
+        /// How far the colour of a face takes on the colour of the ground it meets, at its top edge and at its foot (permille), so rock meets rock and grass softly.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("blend_permille")]
+        public int BlendPermille { get; set; } = default!;
+
     }
 
     /// <summary>

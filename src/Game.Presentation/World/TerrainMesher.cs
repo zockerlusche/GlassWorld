@@ -172,7 +172,9 @@ public sealed record TerrainLook(
             [.. map.BiomeIds.Select(id => terrain.Cliffs.Biomes.Contains(id, StringComparer.Ordinal))],
             (float)terrain.Water.StreamSourceTaperM,
             (float)terrain.Water.StreamSourceWidthShare,
-            terrain.Rock is { } rock ? new RockLook(rock.VariationPermille / 1000f, rock.VariationCells, rock.WallFootShadePermille / 1000f, rock.ScreePermille / 1000f) : null);
+            terrain.Rock is { } rock
+                ? new RockLook(rock.VariationPermille / 1000f, rock.VariationCells, rock.WallFootShadePermille / 1000f, rock.ScreePermille / 1000f, rock.Face is { } face ? RockFaceLook.From(face, preset.Grid.CellSizeCm / 100f) : null)
+                : null);
     }
 }
 
@@ -181,7 +183,8 @@ public sealed record TerrainLook(
 /// <param name="VariationCells">Size of the colour patches in cells.</param>
 /// <param name="WallFootShade">How much darker a wall is at its foot than at its top (share).</param>
 /// <param name="Scree">How far the ground at the foot of a wall leans towards the rock colour (share).</param>
-public sealed record RockLook(float Variation, int VariationCells, float WallFootShade, float Scree)
+/// <param name="Face">Walls as natural rock faces (TL #20449), or null for plain vertical walls.</param>
+public sealed record RockLook(float Variation, int VariationCells, float WallFootShade, float Scree, RockFaceLook? Face = null)
 {
     /// <summary>
     /// Brightness factor at a grid point: a smooth value noise over the grid (patches of the given size)
@@ -207,7 +210,7 @@ public sealed record RockLook(float Variation, int VariationCells, float WallFoo
         return top + ((bottom - top) * fz);
     }
 
-    private static double Lattice(int x, int z, uint salt)
+    internal static double Lattice(int x, int z, uint salt)
     {
         var h = unchecked(((uint)x * 0x8DA6B343u) ^ ((uint)z * 0xD8163841u) ^ (salt * 0xCB1AB31Fu));
         h ^= h >> 13;
@@ -234,6 +237,9 @@ public sealed class MeshData
 
     /// <summary>Per vertex flow direction x, z for water (0, 0 for still water and ground).</summary>
     public List<float> Flow { get; } = [];
+
+    /// <summary>Indices of the triangles that are rock faces (cliff walls), ascending; all others are ground or water.</summary>
+    public List<int> RockFaces { get; } = [];
 
     /// <summary>Number of vertices.</summary>
     public int VertexCount => Positions.Count / 3;
@@ -273,8 +279,9 @@ public sealed class MeshData
 /// <summary>
 /// Builds low-poly meshes of the island grid per chunk (B2 R18, R20), without Godot. Neighbours meet in
 /// smooth slopes (shared corner heights, colours blended across the drop); only real rock cliffs - a
-/// step of at least the cliff drop below a cell of a cliff biome (D576) - become vertical walls, whose
-/// top edge is the terrace edge itself. Water surfaces are flat quads at bed height plus depth, coloured by kind and depth, with
+/// step of at least the cliff drop below a cell of a cliff biome (D576) - become walls, whose
+/// top edge is the terrace edge itself: vertical ones, or with <see cref="RockLook.Face"/> rock faces that
+/// lean out to a foot on the ground below (TL #20449). Water surfaces are flat quads at bed height plus depth, coloured by kind and depth, with
 /// the flow direction the core gave the stream. Deterministic: same map, same meshes. The base grid never
 /// changes at run time, so a chunk's meshes are built once per detail level (<see cref="TerrainLevel"/>).
 /// </summary>
@@ -455,10 +462,12 @@ public static partial class TerrainMesher
         }
 
         // Cliff walls: this cell owns the wall on each edge where its edge lies above the neighbour's.
+        var walls = mesh.TriangleCount;
         Wall(map, look, mesh, x, z, h, dx: 1, dz: 0);
         Wall(map, look, mesh, x, z, h, dx: -1, dz: 0);
         Wall(map, look, mesh, x, z, h, dx: 0, dz: 1);
         Wall(map, look, mesh, x, z, h, dx: 0, dz: -1);
+        mesh.RockFaces.AddRange(Enumerable.Range(walls, mesh.TriangleCount - walls));
     }
 
     /// <summary>
@@ -1372,6 +1381,18 @@ public static partial class TerrainMesher
 
         float ax = (x + Corners[a].Dx) * look.CellM, az = (z + Corners[a].Dz) * look.CellM;
         float bx = (x + Corners[b].Dx) * look.CellM, bz = (z + Corners[b].Dz) * look.CellM;
+
+        // A natural rock face instead of the vertical wall (TL #20449, TerrainMesher.Cliffs.cs).
+        if (look.Rock?.Face is { } face)
+        {
+            Face(
+                map,
+                look,
+                mesh,
+                FaceSide(map, look, face, x + Corners[a].Dx, z + Corners[a].Dz, (x, z), (nx, nz), h[a], Math.Min(h[a], other[oa]), ax, az),
+                FaceSide(map, look, face, x + Corners[b].Dx, z + Corners[b].Dz, (x, z), (nx, nz), h[b], Math.Min(h[b], other[ob]), bx, bz));
+            return;
+        }
 
         // Each vertical end of the wall, from its top down to its foot, with a vertex at every corner height
         // of the cells around that grid corner in between: where three levels meet (a step on a step) the

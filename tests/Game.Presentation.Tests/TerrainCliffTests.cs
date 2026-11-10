@@ -91,7 +91,7 @@ public sealed class TerrainCliffTests
     [InlineData(2026UL)]
     public void TheRealIslandHasWallsOnlyAtRockCliffsAndIsClosed(ulong seed)
     {
-        var (map, look) = RealIsland(seed);
+        var (map, look) = PlainWalls(RealIsland(seed));
         var preset = Content.Value.WorldGen.Presets["start_island"];
         Assert.InRange(look.CliffDrop, preset.Terrain.WalkableSlope + 1, preset.Terrain.CliffMinDrop);
         AssertWallsOnlyAtRockCliffs(map, look);
@@ -103,7 +103,7 @@ public sealed class TerrainCliffTests
     [Fact]
     public void RockVariesAndWallsDarkenTowardsTheirFoot()
     {
-        var (map, look) = RealIsland(7);
+        var (map, look) = PlainWalls(RealIsland(7));
         var rock = Assert.IsType<RockLook>(look.Rock);
         var samples = Enumerable.Range(0, 64).SelectMany(z => Enumerable.Range(0, 64).Select(x => rock.Brightness(x, z))).ToList();
         Assert.True(samples.Max() - samples.Min() > rock.Variation, "rock brightness hardly varies");
@@ -317,6 +317,13 @@ public sealed class TerrainCliffTests
     }
 
     private static readonly Lazy<ContentSet> Content = new(() => ContentSet.Load(Path.Combine(TestPaths.Root, "content")));
+
+    /// <summary>
+    /// The island with plain vertical walls, which these tests measure: where the walls stand and that the
+    /// ground is closed. The rock faces drawn instead (TL #20449) leave the ground as it is, see <see cref="RockFaceTests"/>.
+    /// </summary>
+    private static (WorldMap Map, TerrainLook Look) PlainWalls((WorldMap Map, TerrainLook Look) island) =>
+        (island.Map, island.Look with { Rock = island.Look.Rock! with { Face = null } });
 
     private static (WorldMap Map, TerrainLook Look) RealIsland(ulong seed)
     {

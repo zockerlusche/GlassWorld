@@ -1,0 +1,48 @@
+{
+  "contract_version": "0.2",
+  "points": [
+    {
+      "id": "rocks_stack",
+      "target_x_permille": 856,
+      "target_z_permille": 741,
+      "yaw_deg": 35,
+      "distance_m": 34,
+      "pitch_deg": 38,
+      "phase": "day"
+    },
+    {
+      "id": "rocks_stack_close",
+      "target_x_permille": 856,
+      "target_z_permille": 741,
+      "yaw_deg": 120,
+      "distance_m": 18,
+      "pitch_deg": 22,
+      "phase": "day"
+    },
+    {
+      "id": "rocks_cave_wall",
+      "target_x_permille": 401,
+      "target_z_permille": 674,
+      "yaw_deg": 195,
+      "distance_m": 26,
+      "pitch_deg": 30,
+      "phase": "day"
+    },
+    {
+      "id": "rocks_stack_night",
+      "target_x_permille": 856,
+      "target_z_permille": 741,
+      "yaw_deg": 35,
+      "distance_m": 48,
+      "phase": "night"
+    }
+  ],
+  "projections": [
+    "perspective"
+  ],
+  "phases": [
+    "day",
+    "night"
+  ],
+  "settle_frames": 12
+}

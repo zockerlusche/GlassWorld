@@ -57,7 +57,15 @@
     "variation_permille": 90,
     "variation_cells": 7,
     "wall_foot_shade_permille": 250,
-    "scree_permille": 450
+    "scree_permille": 450,
+    "face": {
+      "lean_mm": 340,
+      "ledge_lean_mm": 420,
+      "bevel_mm": 140,
+      "jitter_mm": 70,
+      "row_mm": 900,
+      "blend_permille": 600
+    }
   },
   "open_sea_size_factor": 8.0,
   "tide_follow_real_seconds": 2.0,

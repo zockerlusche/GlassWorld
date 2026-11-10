@@ -26,31 +26,43 @@ class TerrainBiomeColor(BaseModel):
     )
 
 
-class TerrainRock(BaseModel):
+class TerrainRockFace(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
-    variation_permille: int = Field(
+    lean_mm: int = Field(
         ...,
-        description='Largest brightness change of rock ground and walls (permille, both ways), from a smooth noise over the grid.',
+        description='How far the foot of a face stands out from its top edge (mm); below half a cell, so the middle of the cell at the foot stays free.',
         ge=0,
-        le=500,
+        le=2000,
     )
-    variation_cells: int = Field(
+    ledge_lean_mm: int = Field(
         ...,
-        description='Size of the colour patches (noise wavelength in cells).',
-        ge=1,
-        le=256,
+        description='The same where the foot stands on a ledge one cell wide with the next drop right behind it (mm), so stacked steps close up towards one face; below half a cell.',
+        ge=0,
+        le=2000,
     )
-    wall_foot_shade_permille: int = Field(
+    bevel_mm: int = Field(
         ...,
-        description='How much darker a wall is at its foot than at its top edge (permille).',
+        description='Size of the broken top edge: how far the face steps out and down right below its top edge (mm); at most lean_mm.',
+        ge=0,
+        le=2000,
+    )
+    jitter_mm: int = Field(
+        ...,
+        description='Largest displacement of a face vertex by the hash of its grid corner (mm); at most half of lean_mm.',
         ge=0,
         le=1000,
     )
-    scree_permille: int = Field(
+    row_mm: int = Field(
         ...,
-        description='How far the ground colour at the foot of a wall leans towards the rock colour (permille), so rock and grass blend.',
+        description='Height of one row of facets (mm): a taller face bends more often on its way down (at most four times). 0 = one bend.',
+        ge=0,
+        le=20000,
+    )
+    blend_permille: int = Field(
+        ...,
+        description='How far the colour of a face takes on the colour of the ground it meets, at its top edge and at its foot (permille), so rock meets rock and grass softly.',
         ge=0,
         le=1000,
     )
@@ -196,6 +208,37 @@ class TerrainDetailLevel(BaseModel):
         ge=0,
         le=1000,
     )
+
+
+class TerrainRock(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    variation_permille: int = Field(
+        ...,
+        description='Largest brightness change of rock ground and walls (permille, both ways), from a smooth noise over the grid.',
+        ge=0,
+        le=500,
+    )
+    variation_cells: int = Field(
+        ...,
+        description='Size of the colour patches (noise wavelength in cells).',
+        ge=1,
+        le=256,
+    )
+    wall_foot_shade_permille: int = Field(
+        ...,
+        description='How much darker a wall is at its foot than at its top edge (permille).',
+        ge=0,
+        le=1000,
+    )
+    scree_permille: int = Field(
+        ...,
+        description='How far the ground colour at the foot of a wall leans towards the rock colour (permille), so rock and grass blend.',
+        ge=0,
+        le=1000,
+    )
+    face: TerrainRockFace | None = None
 
 
 class TerrainDetail(BaseModel):

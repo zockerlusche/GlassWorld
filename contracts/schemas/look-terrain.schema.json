@@ -130,6 +130,60 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 1000
+        },
+        "face": {
+          "$ref": "#/$defs/TerrainRockFace"
+        }
+      }
+    },
+    "TerrainRockFace": {
+      "description": "Rock walls as natural rock faces (TL #20449): a wall leans out from its top edge to a foot on the ground below, with a broken top edge and vertices moved by a fixed hash of their grid corner, so terraces do not read as stacked blocks. Mesh only: the ground, its heights and the core's cliffs are unchanged, and the face stays steep. Absent = plain vertical walls. Placeholder values.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "lean_mm",
+        "ledge_lean_mm",
+        "bevel_mm",
+        "jitter_mm",
+        "row_mm",
+        "blend_permille"
+      ],
+      "properties": {
+        "lean_mm": {
+          "description": "How far the foot of a face stands out from its top edge (mm); below half a cell, so the middle of the cell at the foot stays free.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2000
+        },
+        "ledge_lean_mm": {
+          "description": "The same where the foot stands on a ledge one cell wide with the next drop right behind it (mm), so stacked steps close up towards one face; below half a cell.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2000
+        },
+        "bevel_mm": {
+          "description": "Size of the broken top edge: how far the face steps out and down right below its top edge (mm); at most lean_mm.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2000
+        },
+        "jitter_mm": {
+          "description": "Largest displacement of a face vertex by the hash of its grid corner (mm); at most half of lean_mm.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "row_mm": {
+          "description": "Height of one row of facets (mm): a taller face bends more often on its way down (at most four times). 0 = one bend.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 20000
+        },
+        "blend_permille": {
+          "description": "How far the colour of a face takes on the colour of the ground it meets, at its top edge and at its foot (permille), so rock meets rock and grass softly.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
         }
       }
     },
