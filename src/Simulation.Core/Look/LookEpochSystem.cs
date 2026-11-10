@@ -23,7 +23,11 @@ namespace GlassWorld.Simulation.Look;
 /// </summary>
 public sealed class LookEpochSystem : IWorldSystem, IOptionalWorldState
 {
-    /// <summary>Command kind: set the look epoch (TypeId = epoch id), checked against the reached tech level.</summary>
+    /// <summary>
+    /// Command kind: set the look epoch (TypeId = epoch id), checked against the reached tech level. Any
+    /// reached epoch is accepted, also an earlier one than the current, and it costs nothing. Who may send
+    /// it and whether the look may go back is decided with the trigger from the tech level (B4b R12).
+    /// </summary>
     public const string SetLookEpoch = "set_look_epoch";
 
     /// <summary>Command kind: set the look epoch without the tech level check (TypeId = epoch id); debug mode only.</summary>

@@ -321,6 +321,83 @@ public sealed class WeatherCommandTests : IDisposable
         Assert.Equal(original.World.StateHash(), loaded.World.StateHash());
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public void ASaveFromBeforeTheSignalsTakenDuringADroughtGetsTheTickTheRunningWorldTracked(bool droughtWeatherBefore, bool droughtWeatherAfter)
+    {
+        // Review GW2 #179: the drought by dry days begins at the advance that reaches the limit, one tick
+        // before the world tick a save taken right after it carries.
+        var (_, drought) = Signals();
+
+        // The dry climate, and once the drought weather is the main weather it stays (a row in every season).
+        var climate = DryClimate();
+        foreach (var season in climate.Weather.Seasons)
+        {
+            season.Transitions = [.. season.Transitions.Where(t => t.FromWeather != drought.Condition),
+                new ClimateTransition { FromWeather = drought.Condition, To = [new ClimateTransitionTarget { Weather = drought.Condition, Weight = 1 }] }];
+        }
+
+        var (world, weather, events) = Bare(4, climate);
+        var ticksPerDay = world.Calendar.TicksPerDay;
+        var expected = ticksPerDay - 1;
+        if (droughtWeatherBefore)
+        {
+            // The drought weather itself sets in first: the signal counts from there, the dry days change nothing.
+            world.Run((ticksPerDay / 2) + 1);
+            weather.Force(drought.Condition, world.Tick);
+            expected = world.Tick;
+        }
+
+        world.Run(ticksPerDay + 7 - world.Tick);
+        if (droughtWeatherAfter)
+        {
+            // The dry days came first: the drought weather on top does not move the start.
+            weather.Force(drought.Condition, world.Tick);
+            world.Run(5);
+        }
+
+        Assert.Equal([new KeyValuePair<string, long>(drought.Condition, expected)], weather.Signals);
+        Assert.Equal(drought.StartEvent, Assert.Single(events).Kind);
+
+        foreach (var at in new[] { world.Tick, world.Tick + 40 })
+        {
+            world.Run(at - world.Tick);
+            var old = weather.Capture() with { Signals = null };
+            var loadedWorld = World.Restore(world.Seed, world.Calendar, world.Tick, world.Random.Snapshot());
+            var settings = world.Calendar.Settings;
+            var loadedEvents = new List<WorldEvent>();
+            var loaded = new WeatherSystem(climate, 0, settings.TicksPerHour, settings.HoursPerDay, world.Seed) { Report = loadedEvents.Add };
+            loadedWorld.Add(loaded);
+            loaded.Restore(old, world.Tick);
+
+            Assert.Equal(weather.Signals, loaded.Signals);
+            Assert.Equal(world.StateHash(), loadedWorld.StateHash());
+            Assert.Empty(loadedEvents);
+
+            // Both go on alike.
+            loadedWorld.Run(10);
+            world.Run(10);
+            Assert.Equal(world.StateHash(), loadedWorld.StateHash());
+        }
+    }
+
+    [Fact]
+    public void ASaveTakenAtTheVeryTickTheDroughtBeganRestoresToThatTick()
+    {
+        var (_, drought) = Signals();
+        var climate = DryClimate();
+        var (world, weather, _) = Bare(4, climate);
+        world.Run(world.Calendar.TicksPerDay);
+        Assert.Equal(world.Tick - 1, Assert.Single(weather.Signals).Value);
+
+        var settings = world.Calendar.Settings;
+        var loaded = new WeatherSystem(climate, 0, settings.TicksPerHour, settings.HoursPerDay, world.Seed);
+        loaded.Restore(weather.Capture() with { Signals = null }, world.Tick);
+        Assert.Equal([new KeyValuePair<string, long>(drought.Condition, world.Tick - 1)], loaded.Signals);
+    }
+
     private static SimulationHost Restore(SaveState state)
     {
         var settings = ContractSerializer.Deserialize<DeciderSettings>(File.ReadAllText(Path.Combine(ContentDirectory, "decider", "settings.json")));

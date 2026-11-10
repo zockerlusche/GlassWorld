@@ -202,6 +202,8 @@ public sealed class WeatherSystem : IWorldSystem, IWeather
     /// <summary>
     /// Sets the main weather now (debug jumps, R23; the player's intervention goes through the logged command
     /// <c>set_weather</c>, see Player.WeatherIntervention, so replays follow). Unknown ids are refused.
+    /// Forcing does not touch the count of dry ticks: forced rain during a drought ends the drought at the
+    /// next advance (the count starts again there), forced dry weather keeps the dry count running.
     /// </summary>
     public void Force(string weather, long tick)
     {
@@ -293,7 +295,17 @@ public sealed class WeatherSystem : IWorldSystem, IWeather
         // saved weather counts as on, without an event; its end is then reported as usual.
         foreach (var rule in _signalRules.Where(r => !_signals.ContainsKey(r.Condition) && IsOn(r.Condition)))
         {
-            _signals[rule.Condition] = rule.Condition == Current || _droughtTicks <= 0 ? SinceTick : Math.Max(0, tick - (_dryTicks - _droughtTicks));
+            // On as the main weather: since that phase began. On by the dry days: since the advance at which
+            // the dry ticks reached the limit. The world stands at the given tick, one after the last
+            // advance, and every advance since added one dry tick, hence the "- 1" (review GW2 #179). Both at
+            // once: the earlier one, as a running world would have tracked it.
+            var since = rule.Condition == Current ? SinceTick : long.MaxValue;
+            if (rule.Condition == _data.DroughtWeather && _droughtTicks > 0 && _dryTicks >= _droughtTicks)
+            {
+                since = Math.Min(since, Math.Max(0, tick - 1 - (_dryTicks - _droughtTicks)));
+            }
+
+            _signals[rule.Condition] = since == long.MaxValue ? SinceTick : since;
         }
 
         foreach (var gone in _signals.Keys.Where(c => !IsOn(c)).ToList())
