@@ -9,11 +9,18 @@ namespace GlassWorld.Presentation.World;
 /// glides at every game speed, also when several ticks fall into one frame (x16) or a frame brings none.
 /// The level is in height units against the mean sea level: 0 without tides (amplitude 0) and without an
 /// island, so the sea then lies exactly where it always did. The first reading (start of a world, a load)
-/// is shown at once; while the game is paused (0 real seconds) the water stands still. Presentation only:
+/// is shown at once; while the game is paused (0 real seconds) the water stands still; once the level is
+/// within <see cref="ArriveUnits"/> of a reading it equals it exactly and rests. Presentation only:
 /// it reads the tide reading, never core state.
 /// </summary>
 public sealed class TideFollower
 {
+    /// <summary>
+    /// Distance to the reading, in height units, below which the level counts as arrived: far below
+    /// anything visible (a height unit is a fraction of a metre), a numeric tolerance and not a look value.
+    /// </summary>
+    public const double ArriveUnits = 1e-4;
+
     private readonly double _followSeconds;
     private bool _started;
 
@@ -61,6 +68,13 @@ public sealed class TideFollower
         // The share of the way covered in this frame; it depends on the real time alone, so the result is
         // the same whether the time comes in many short frames or a few long ones.
         Units = _followSeconds <= 0 ? target : Units + ((target - Units) * (1 - Math.Exp(-realSeconds / _followSeconds)));
+        if (Math.Abs(target - Units) < ArriveUnits)
+        {
+            // An exponential approach never arrives by itself: the last invisible rest is taken at once, so
+            // the level then equals the reading exactly and nothing moves any more until the reading changes.
+            Units = target;
+        }
+
         return Units;
     }
 }

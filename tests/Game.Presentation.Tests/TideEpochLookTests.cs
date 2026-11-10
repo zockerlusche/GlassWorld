@@ -41,6 +41,16 @@ public sealed class TideEpochLookTests
             Assert.Equal(0.0, follower.Update(off.Read(tick), 1 / 60.0));
         }
 
+        // Also when the sea was shown elsewhere (a shot with a forced level): it arrives at exactly 0 and rests.
+        follower.Jump(1.5);
+        for (var i = 0; i < 60 * 60; i++)
+        {
+            follower.Update(off.Read(i), 1 / 60.0);
+        }
+
+        Assert.Equal(0.0, follower.Units);
+        Assert.Equal(0.0, follower.Update(off.Read(0), 1 / 60.0));
+
         // No island, no tide reading: the same.
         Assert.Equal(0.0, new TideFollower(FollowSeconds).Update(null, 1 / 60.0));
         Assert.Equal(0.0, TideFollower.Level(null));
@@ -75,16 +85,30 @@ public sealed class TideEpochLookTests
         var held = follower.Update(quarter, 0);
         Assert.Equal(TideFollower.Level(tides.Read(0)), held);
 
-        // With time the water moves towards the reading, without overshooting, and ends there.
+        // With time the water moves towards the reading, without overshooting, and arrives: an exponential
+        // approach alone never would, so the last invisible rest is taken at once. From then on the level
+        // equals the reading exactly and no longer changes (the sea node is not written any more).
         var before = held;
+        var (arrivedAt, lastStep) = (-1, 0.0);
         for (var i = 0; i < 60 * 60; i++)
         {
             var now = follower.Update(quarter, 1 / 60.0);
             Assert.InRange(now, TideFollower.Level(quarter), before);
+            if (arrivedAt < 0 && now.Equals(TideFollower.Level(quarter)))
+            {
+                (arrivedAt, lastStep) = (i, before - now);
+            }
+            else if (arrivedAt >= 0)
+            {
+                Assert.Equal(before, now);
+            }
+
             before = now;
         }
 
-        Assert.Equal(TideFollower.Level(quarter), before, 6);
+        Assert.Equal(TideFollower.Level(quarter), before);
+        Assert.InRange(arrivedAt, 60, 60 * 60 - 60);
+        Assert.InRange(lastStep, 0, 2 * TideFollower.ArriveUnits);
 
         // The screenshot tool sets a level at once; time constant 0 follows at once too.
         Assert.Equal(-1.5, follower.Jump(-1.5));
