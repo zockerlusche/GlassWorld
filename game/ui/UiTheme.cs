@@ -221,6 +221,36 @@ public static class UiTheme
         theme.SetColor("font_color", "ProgressBar", ToGodot(style.Color(UiColorId.Text)));
         theme.SetColor("font_outline_color", "ProgressBar", ToGodot(style.Color(UiColorId.Panel)));
         theme.SetConstant("outline_size", "ProgressBar", 0);
+
+        // Foldable sections of the card (W1688): the engine default drew a dark grey box behind them (seen in
+        // the first window shots of the zones preview); title and body now use the palette like everything else.
+        StyleBoxFlat Title(Color fill)
+        {
+            var box = Box(fill);
+            box.SetContentMarginAll(style.Tokens.Window.Padding / 4f);
+            return box;
+        }
+
+        var strong = ToGodot(style.Color(UiColorId.Panel_strong));
+        var hover = strong.Lerp(ToGodot(style.Color(UiColorId.Accent)), (float)style.Tokens.Button.HoverTint);
+        foreach (var name in new[] { "title_panel", "title_collapsed_panel" })
+        {
+            theme.SetStylebox(name, "FoldableContainer", Title(strong));
+        }
+
+        foreach (var name in new[] { "title_hover_panel", "title_collapsed_hover_panel" })
+        {
+            theme.SetStylebox(name, "FoldableContainer", Title(hover));
+        }
+
+        var body = new StyleBoxFlat { BgColor = new Color(0, 0, 0, 0) };
+        body.SetContentMarginAll(style.Tokens.Window.Padding / 4f);
+        theme.SetStylebox("panel", "FoldableContainer", body);
+        theme.SetStylebox("focus", "FoldableContainer", FocusRing(style));
+        foreach (var name in new[] { "font_color", "hover_font_color", "collapsed_font_color" })
+        {
+            theme.SetColor(name, "FoldableContainer", ToGodot(style.Color(UiColorId.Text)));
+        }
     }
 
     private static StyleBoxFlat FocusRing(UiStyle style)
