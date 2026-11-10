@@ -2517,6 +2517,14 @@
     {
       "key": "ui.night.zzz",
       "text": "Zzz"
+    },
+    {
+      "key": "ui.question.ask.unknown_inhabitant",
+      "text": "{name} wonders: Who is that?"
+    },
+    {
+      "key": "ui.question.reason.unknown_inhabitant",
+      "text": "{name} sees someone whose name they do not know yet."
     }
   ]
 }
