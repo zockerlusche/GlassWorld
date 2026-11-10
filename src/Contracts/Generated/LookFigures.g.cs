@@ -13,41 +13,128 @@ namespace GlassWorld.Contracts
     #pragma warning disable // Disable all warnings
 
     /// <summary>
-    /// A lying pose made from a calm standing clip (the figure GLB has no lying clip): the whole figure tips over about its feet by pitch_deg so it lies on its back, and its body rests on the ground under its hips (lift_m above it). It lies down and gets up over settle_s.
+    /// Lying down to sleep (W1695, W1729), a placeholder until the figures have a lying clip: the figure sits down on the ground with the library's sit transition (sit_clip over sit_s), then rolls from sitting onto its side about its hips (roll_deg over roll_s, eased) while the hips slide to the lying spot and the legs open a little; the lying clips play their seated loop laid on its side. The lying body follows the ground: tilted to the slope under it (at most max_tilt_deg) and lifted so that no sampled body point is below the ground. Getting up is the same in reverse and ends with rise_clip. A lying figure never turns its body to a voice or to another inhabitant.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class FigureLying
     {
 
         /// <summary>
-        /// Library clip ids played lying (e.g. sleep).
+        /// Library clip ids played lying (e.g. sleep); their asset is a seated loop.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("clips")]
         public System.Collections.Generic.ICollection<string> Clips { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
         /// <summary>
-        /// Tilt about the figure's left-right axis in degrees; -90 lays it on its back (the figure faces +Z).
+        /// Library clip id of the transition from standing to sitting, played first when lying down.
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("pitch_deg")]
-        public double PitchDeg { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("sit_clip")]
+        public string SitClip { get; set; } = default!;
 
         /// <summary>
-        /// Distance from the feet to the hips in metres at scale 1: where the lying body meets the ground.
+        /// Library clip id of the transition from sitting to standing, played last when getting up.
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("hip_m")]
-        public double HipM { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("rise_clip")]
+        public string RiseClip { get; set; } = default!;
 
         /// <summary>
-        /// Height of the lying body's axis above the ground in metres at scale 1 (half the body's depth).
+        /// Real seconds of sitting down and of standing up; the transition clips are played at the speed that fits them into it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("sit_s")]
+        public double SitS { get; set; } = default!;
+
+        /// <summary>
+        /// Share of sit_s at which the hips begin to sink to the ground (as in the sit transition clip).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("sink_from")]
+        public double SinkFrom { get; set; } = default!;
+
+        /// <summary>
+        /// Share of sit_s at which the hips have reached the ground; greater than sink_from.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("sink_to")]
+        public double SinkTo { get; set; } = default!;
+
+        /// <summary>
+        /// Real seconds of the eased roll from sitting onto the side, and back.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("roll_s")]
+        public double RollS { get; set; } = default!;
+
+        /// <summary>
+        /// Roll about the figure's facing axis through its hips in degrees: -90 lays it on its left side with the head to its left, 90 on its right side.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("roll_deg")]
+        public double RollDeg { get; set; } = default!;
+
+        /// <summary>
+        /// How far the hips of the seated pose are behind the figure's origin in metres at scale 1.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("hip_back_m")]
+        public double HipBackM { get; set; } = default!;
+
+        /// <summary>
+        /// How far the hips slide away from the side the head goes down to while rolling, in metres at scale 1, so the lying body is centred on its spot.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("hip_slide_m")]
+        public double HipSlideM { get; set; } = default!;
+
+        /// <summary>
+        /// Share of the roll after which the legs leave the seated pose (thighs open, knees bend): late, while the body is nearly down, so the legs do not dip into the ground.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("legs_from")]
+        public double LegsFrom { get; set; } = default!;
+
+        /// <summary>
+        /// How far the thighs open from the seated pose towards straight legs while lying (0 = seated, 1 = straight); less than 1 keeps the body slightly curled.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("hip_open")]
+        public double HipOpen { get; set; } = default!;
+
+        /// <summary>
+        /// How far the knees straighten while lying (0 = bent as seated, 1 = straight).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("knee_straighten")]
+        public double KneeStraighten { get; set; } = default!;
+
+        /// <summary>
+        /// Height of the hips above the ground in metres at scale 1 while the body points are not known yet (the first frame of a figure).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("lift_m")]
         public double LiftM { get; set; } = default!;
 
         /// <summary>
-        /// Real seconds to lie down or get up.
+        /// Largest tilt of the lying body towards the slope under it in degrees; on steeper ground it is lifted instead.
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("settle_s")]
-        public double SettleS { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("max_tilt_deg")]
+        public double MaxTiltDeg { get; set; } = default!;
+
+        /// <summary>
+        /// The sampled points of the lying body: bones of the figure rig and how thick the body is around them. The ground is read under each of them.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("body_points")]
+        public System.Collections.Generic.ICollection<FigureBodyPoint> BodyPoints { get; set; } = new System.Collections.ObjectModel.Collection<FigureBodyPoint>();
+
+    }
+
+    /// <summary>
+    /// One sampled point of a lying body.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class FigureBodyPoint
+    {
+
+        /// <summary>
+        /// Bone of the figure rig (its joint is the point).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("bone")]
+        public string Bone { get; set; } = default!;
+
+        /// <summary>
+        /// Thickness of the body around the point in metres at scale 1: the point stays at least this far above the ground.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("radius_m")]
+        public double RadiusM { get; set; } = default!;
 
     }
 
@@ -520,7 +607,7 @@ namespace GlassWorld.Contracts
         public FigureSitting Sitting { get; set; } = new FigureSitting();
 
         /// <summary>
-        /// Lying poses (W1695): sleeping figures lie on their back on the ground instead of standing.
+        /// Lying poses (W1695, W1729): sleeping figures sit down and lie on their side on the ground, fitted to it.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("lying")]
         public FigureLying Lying { get; set; } = new FigureLying();

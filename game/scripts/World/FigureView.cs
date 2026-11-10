@@ -18,6 +18,8 @@ namespace GlassWorld.Game.World;
 /// not-yet-made clips are logged once. Seated clips sit on a seat object near the figure or on the ground,
 /// never in the air; a figure that heard the player looks and turns to the camera, waves or talks with its
 /// answer (W1688); its silhouette shows through whatever hides it (W1689); pause freezes all of its motion.
+/// To sleep it sits down, rolls onto its side and lies fitted to the ground, and gets up the same way in
+/// reverse; lying or sitting it never turns its body, only its head looks to the voice (W1729).
 /// Presentation only.
 /// </summary>
 public partial class FigureView : Node3D
@@ -28,6 +30,9 @@ public partial class FigureView : Node3D
     private static readonly string[] ActSlots = ["act_a", "act_b"];
     private static readonly StringName[] ActScale = ["parameters/act_a_speed/scale", "parameters/act_b_speed/scale"];
 
+    /// <summary>The pose key while a figure gets up: no clip has it, so the cadence's pose shows once it stands.</summary>
+    private const string GettingUp = "/getting-up";
+
     private FigureShared _shared = null!;
     private FigureMotion _motion = null!;
     private PoseCadence _cadence = null!;
@@ -36,7 +41,15 @@ public partial class FigureView : Node3D
     private string _shownPose = string.Empty;
     private bool _standsIdle;
     private bool _lying;
-    private double _lieShare;
+    private double _lieSeconds;
+    private FigureClip _lieClip;
+    private LieClip? _lieStage;
+    private bool _laid;
+    private readonly List<BodyPoint> _bodyPoints = [];
+    private Func<double, double, double> _groundM = (_, _) => 0;
+    private AnimationPlayer _player = null!;
+    private Transform3D _skeletonInBody = Transform3D.Identity;
+    private Vector3 _bodyPosition;
     private AnimationTree _tree = null!;
     private readonly AnimationNodeAnimation[] _act = new AnimationNodeAnimation[2];
     private readonly Label3D[] _dots = new Label3D[ThinkingDots.Count];
@@ -99,6 +112,7 @@ public partial class FigureView : Node3D
             InhabitantId = inhabitant.Id,
             _shared = shared,
             _ground = groundHeight,
+            _groundM = (x, z) => groundHeight(x, z),
             _scale = spec.Scale,
             _motion = new FigureMotion(start, figures.TurnRateDegS),
             _cadence = new PoseCadence(figures.PoseCadence, figures.IdleSlotSpread, inhabitant.Id, figures.Lying),
@@ -113,9 +127,17 @@ public partial class FigureView : Node3D
         view._body = figure.Root;
         view._bodyScale = figure.Root.Scale;
         view._bodyRotation = figure.Root.Rotation;
+        view._bodyPosition = figure.Root.Position;
         view.BuildThinkingDots(figures.ThinkingDots, spec.Scale);
         view._knees = new KneeStraightenModifier { Name = "Knees" };
-        figure.Root.FindChildren("*", "Skeleton3D", true, false).OfType<Skeleton3D>().Single().AddChild(view._knees);
+        view._knees.Watch(figures.Lying.BodyPoints.Select(p => p.Bone));
+        var skeleton = figure.Root.FindChildren("*", "Skeleton3D", true, false).OfType<Skeleton3D>().Single();
+        skeleton.AddChild(view._knees);
+        for (Node node = skeleton; node != figure.Root; node = node.GetParent())
+        {
+            // Where the skeleton is in the figure: the watched bones are read in the skeleton's space.
+            view._skeletonInBody = node is Node3D spatial ? spatial.Transform * view._skeletonInBody : view._skeletonInBody;
+        }
         if (figures.Silhouette.Enabled && figure.Body.MaterialOverride is { } material)
         {
             // Behind a tree, rock or object the figure shows as a calm silhouette in its colour (W1689).
@@ -132,6 +154,7 @@ public partial class FigureView : Node3D
         figure.Tree.Active = false;
         figure.Tree.QueueFree();
         var player = figure.Root.FindChildren("*", "AnimationPlayer", true, false).OfType<AnimationPlayer>().Single();
+        view._player = player;
         view.BuildTree(figure.Root, player, shared.Library, figures.CrossfadeS);
         view.Position = ToVector(start);
         return view;
@@ -161,8 +184,9 @@ public partial class FigureView : Node3D
         var chooser = _shared.Chooser;
         AnimationChooser.CoreValues(_shared.Values, inhabitant.Needs, inhabitant.Moods, inhabitant.Traits);
         var moving = !place && _motion.StepM >= figures.WalkMinStepM;
-        if (all is not null && InhabitantActivity.FacePoint(inhabitant, all) is { } face)
+        if (all is not null && MayTurn && InhabitantActivity.FacePoint(inhabitant, all) is { } face)
         {
+            // Only an upright figure turns to the other inhabitant; lying or sitting it does not swivel (W1729).
             _motion.Face(face.X, face.Z, figures.WalkMinStepM);
         }
 
@@ -175,7 +199,15 @@ public partial class FigureView : Node3D
         _to = to;
         _standsIdle = chooser.StandsIdle(inhabitant.Action);
         Show(_cadence.Update(Time.GetTicksMsec() / 1000.0, (long)Engine.GetProcessFrames(), _shared.Gate));
+        if (place)
+        {
+            // Placed (after a warm-up, a load) it lies or stands at once, without the way there.
+            _lieSeconds = _lying ? LyingPose.TotalS(figures.Lying) : 0;
+        }
     }
+
+    /// <summary>Whether the figure may turn its whole body: upright only (W1729).</summary>
+    private bool MayTurn => LyingPose.MayTurn(_lying, _lieSeconds, _seat is not null, _seatShare);
 
     /// <summary>Plays what the cadence shows now: the walk blend or an action/idle clip, seated where it sits.</summary>
     private void Show(FigureClip clip)
@@ -183,10 +215,34 @@ public partial class FigureView : Node3D
         var chooser = _shared.Chooser;
         var figures = _shared.Figures;
         _shownPose = PoseCadence.PoseKey(clip, figures.Lying);
-        _lying = !clip.Walking && LyingPose.IsLying(figures.Lying, clip.Clip.ClipId);
+        var lying = !clip.Walking && LyingPose.IsLying(figures.Lying, clip.Clip.ClipId);
         if (clip.Missing is { } missing)
         {
             Report(missing);
+        }
+
+        if (lying)
+        {
+            // Lying down belongs to the action (W1729): it sits down, then rolls onto its side (see _Process);
+            // already seated on the ground it rolls over at once.
+            if (!_lying && !_lastSeat.OnSeat && _seatShare >= 0.5)
+            {
+                _lieSeconds = Math.Max(_lieSeconds, figures.Lying.SitS);
+            }
+
+            _lying = true;
+            _lieClip = clip;
+            _seat = null;
+            Report(clip.Clip);
+            return;
+        }
+
+        _lying = false;
+        if (_lieSeconds > 0)
+        {
+            // It gets up first, in reverse; what the cadence shows plays once it stands.
+            _shownPose = GettingUp;
+            return;
         }
 
         if (_lookLeft > 0 && !clip.Walking && _standsIdle)
@@ -217,8 +273,35 @@ public partial class FigureView : Node3D
         }
 
         Report(clip.Clip);
-        Act(clip);
+        Act(clip.Clip.Asset, clip.Speed, clip.Mirror);
         CurrentClip = clip.Clip.ClipId;
+    }
+
+    /// <summary>
+    /// Plays the clip of the stage between standing and lying: the sit transition, the lying clip, the rise
+    /// transition; the transitions at the speed that fits them into the data's sitting time.
+    /// </summary>
+    private void ShowLieStage(LieClip stage)
+    {
+        if (stage == _lieStage)
+        {
+            return;
+        }
+
+        _lieStage = stage;
+        var lying = _shared.Figures.Lying;
+        if (stage == LieClip.Lie)
+        {
+            Act(_lieClip.Clip.Asset, _lieClip.Speed, _lieClip.Mirror);
+            CurrentClip = _lieClip.Clip.ClipId;
+            return;
+        }
+
+        var choice = _shared.Chooser.ForClip(stage == LieClip.Sit ? lying.SitClip : lying.RiseClip);
+        Report(choice);
+        var fits = !choice.FellBack && _player.HasAnimation(choice.Asset);
+        Act(choice.Asset, fits ? LyingPose.ClipSpeed(lying, _player.GetAnimation(choice.Asset).Length) : choice.Speed, _mirrored);
+        CurrentClip = choice.ClipId;
     }
 
     /// <summary>
@@ -257,10 +340,16 @@ public partial class FigureView : Node3D
             }
         }
 
-        // Even pace from tick to tick (R17); the height follows the ground under the figure.
-        _motion.Advance(delta);
-        var p = _motion.Position;
+        // Even pace from tick to tick (R17); the height follows the ground under the figure. A figure that
+        // gets up stays where it lay until it stands.
         var figures = _shared.Figures;
+        var lying = figures.Lying;
+        if (_lying || _lieSeconds <= 0)
+        {
+            _motion.Advance(delta);
+        }
+
+        var p = _motion.Position;
 
         // Seated: the hips move to the seat (or down to the ground) at the data's pace, never in the air.
         if (_seat is { } seat)
@@ -272,20 +361,43 @@ public partial class FigureView : Node3D
         _seatShare = GreetingReaction.Ease(_seatShare, _seat is null ? 0 : 1, shareRate, delta);
         var (x, z) = _lastSeat.OnSeat ? (p.X + ((_lastSeat.X - p.X) * _seatShare), p.Z + ((_lastSeat.Z - p.Z) * _seatShare)) : (p.X, p.Z);
         var y = _ground(x, z) + (float)(_lastSeat.LiftM * _seatShare);
+        var (knees, hips) = (_lastSeat.KneeShare * _seatShare, 0.0);
 
-        // Sleeping it lies on its back on the ground (W1695): it tips over about its feet and its body rests
-        // on the ground under its hips; lying down and getting up take the data's seconds.
-        var lying = figures.Lying;
-        _lieShare = GreetingReaction.Ease(_lieShare, _lying ? 1 : 0, 1 / lying.SettleS, delta);
-        if (_lieShare > 0)
+        // Sleeping it lies on its side on the ground (W1695, W1729): it sits down on the ground where it
+        // stands (off a seat object first), rolls about its hips onto its side and lies fitted to the ground;
+        // getting up runs the same seconds back.
+        if (!_lying || _lieSeconds > 0 || !_lastSeat.OnSeat || _seatShare <= 0)
         {
-            var hips = LyingPose.Hips(lying, x, z, _motion.Yaw, _scale);
-            y = (float)LyingPose.Height(lying, y, _ground(hips.X, hips.Z), _scale, _lieShare);
+            _lieSeconds = LyingPose.Advance(lying, _lieSeconds, _lying, delta);
         }
 
-        _body.Rotation = _bodyRotation + new Vector3((float)LyingPose.Pitch(lying, _lieShare), 0, 0);
+        _knees.Watching = _lying || _lieSeconds > 0;
+        if (_lieSeconds > 0)
+        {
+            var stage = LyingPose.Stage(lying, _lieSeconds, _lying);
+            ShowLieStage(stage.Clip);
+            var onGround = SeatChoice.Choose(figures.Sitting, p.X, p.Z, _scale, []);
+            _seatShare = 0;
+            (x, z) = (p.X, p.Z);
+            y = _ground(x, z) + (float)(onGround.LiftM * stage.Sit);
+            var legs = LyingPose.Legs(lying, stage.Roll);
+            knees = (onGround.KneeShare * stage.Sit) + ((lying.KneeStraighten - onGround.KneeShare) * legs);
+            hips = lying.HipOpen * legs;
+            Lay(lying, stage.Roll, x, y, z);
+        }
+        else
+        {
+            _lieStage = null;
+            if (_laid)
+            {
+                _body.Transform = new Transform3D(BodyBasis(), _bodyPosition);
+                _laid = false;
+            }
+        }
+
         Position = new Vector3((float)x, y, (float)z);
-        _knees.Share = (float)(_lastSeat.KneeShare * _seatShare);
+        _knees.Share = (float)knees;
+        _knees.HipShare = (float)hips;
 
         HearAndAnswer(delta, figures.Greeting);
         Rotation = new Vector3(0, (float)_motion.Yaw, 0);
@@ -302,6 +414,58 @@ public partial class FigureView : Node3D
         }
     }
 
+    /// <summary>The figure's own turn and size in its node, mirrored while its clip plays mirrored.</summary>
+    private Basis BodyBasis() =>
+        Basis.FromEuler(_bodyRotation) * Basis.FromScale(new Vector3(_mirrored ? -_bodyScale.X : _bodyScale.X, _bodyScale.Y, _bodyScale.Z));
+
+    /// <summary>
+    /// Rolls the seated figure about its hips onto its side by <paramref name="roll"/> (0 seated, 1 lying),
+    /// slides the hips to the lying spot and fits the body to the ground there (<see cref="LyingPose.Fit"/>
+    /// over the watched bones of the final pose): tilted to the slope and lifted so nothing is below the
+    /// ground. On the way (sitting down, rolling, getting up) it is lifted as far as its lowest bone needs.
+    /// </summary>
+    private void Lay(FigureLying lying, double roll, double x, double y, double z)
+    {
+        var body = BodyBasis();
+        var yaw = new Basis(Vector3.Up, (float)_motion.Yaw);
+        var laid = new Transform3D(body, _bodyPosition);
+        _laid = true;
+        if (roll > 0)
+        {
+            var pivot = LyingPose.Pivot(lying, _shared.Figures.Sitting, _scale);
+            var hips = new Vector3(0, (float)pivot.Y, (float)pivot.Z);
+            var full = new Basis(Vector3.Back, (float)LyingPose.RollRad(lying, 1));
+            WatchedPoints(lying, new Transform3D(yaw * full * body, yaw * (full * (_bodyPosition - hips))));
+            var spot = yaw * (hips + new Vector3((float)LyingPose.Slide(lying, _scale, 1), 0, 0));
+            var fit = LyingPose.Fit(lying, _bodyPoints, x + spot.X, z + spot.Z, _scale, _groundM);
+            var up = (yaw.Inverse() * new Vector3((float)fit.Up.X, (float)fit.Up.Y, (float)fit.Up.Z)).Normalized();
+            var tilt = Quaternion.Identity.Slerp(new Quaternion(Vector3.Up, up), (float)roll);
+            var turn = new Basis(tilt) * new Basis(Vector3.Back, (float)LyingPose.RollRad(lying, roll));
+            var lifted = hips + new Vector3((float)LyingPose.Slide(lying, _scale, roll), (float)((fit.HipY - (y + hips.Y)) * roll), 0);
+            laid = new Transform3D(turn * body, lifted + (turn * (_bodyPosition - hips)));
+        }
+
+        // Where the watched bones are with this turn, about the figure's spot: none may be below the ground.
+        WatchedPoints(lying, new Transform3D(yaw * laid.Basis, yaw * laid.Origin));
+        laid.Origin += new Vector3(0, (float)LyingPose.Lift(_bodyPoints, x, y, z, _groundM), 0);
+        _body.Transform = laid;
+    }
+
+    /// <summary>Fills the body points from the watched bones of the final pose, moved by <paramref name="place"/> (from the figure's model to world axes).</summary>
+    private void WatchedPoints(FigureLying lying, Transform3D place)
+    {
+        _bodyPoints.Clear();
+        var index = 0;
+        foreach (var point in lying.BodyPoints)
+        {
+            if (_knees.TryPoint(index++, out var bone))
+            {
+                var at = place * (_skeletonInBody * bone);
+                _bodyPoints.Add(new BodyPoint(at.X, at.Y, at.Z, point.RadiusM * _scale));
+            }
+        }
+    }
+
     /// <summary>Looks and turns to the voice (the camera) while it hears, waves and talks for their seconds.</summary>
     private void HearAndAnswer(double delta, FigureGreeting greeting)
     {
@@ -314,15 +478,17 @@ public partial class FigureView : Node3D
         {
             var voice = GetViewport().GetCamera3D().GlobalPosition;
             _lookAt.Target = voice;
-            if (!_walking)
+            if (!_walking && MayTurn)
             {
-                // Standing, the whole body turns to the voice; walking, only the head and upper body do.
+                // Standing, the whole body turns to the voice; walking, lying or sitting only the head and
+                // upper body do (W1729: a lying body does not turn on the ground).
                 _motion.Face(GreetingReaction.YawTowards(Position.X, Position.Z, voice.X, voice.Z));
             }
         }
 
+        // Lying it keeps its arms down: no wave from the ground.
         _lookAt.Weight = (float)GreetingReaction.Ease(_lookAt.Weight, looking ? 1 : 0, ease, delta);
-        _wave.Weight = (float)GreetingReaction.Ease(_wave.Weight, _waveLeft > 0 ? 1 : 0, ease, delta);
+        _wave.Weight = (float)GreetingReaction.Ease(_wave.Weight, _waveLeft > 0 && _lieSeconds <= 0 ? 1 : 0, ease, delta);
         _face.Expression = _talkLeft > 0 ? "talk" : "neutral";
     }
 
@@ -363,10 +529,9 @@ public partial class FigureView : Node3D
         }
     }
 
-    private void Act(FigureClip clip)
+    private void Act(string asset, double speed, bool mirror)
     {
-        var (asset, speed) = (clip.Clip.Asset, clip.Speed);
-        if (!_walking && asset == _actAsset && clip.Mirror == _mirrored)
+        if (!_walking && asset == _actAsset && mirror == _mirrored)
         {
             if (speed != _actSpeed)
             {
@@ -387,9 +552,9 @@ public partial class FigureView : Node3D
         _actAsset = asset;
         _actSpeed = speed;
         _walking = false;
-        if (clip.Mirror != _mirrored)
+        if (mirror != _mirrored)
         {
-            _mirrored = clip.Mirror;
+            _mirrored = mirror;
             _body.Scale = new Vector3(_mirrored ? -_bodyScale.X : _bodyScale.X, _bodyScale.Y, _bodyScale.Z);
         }
     }
