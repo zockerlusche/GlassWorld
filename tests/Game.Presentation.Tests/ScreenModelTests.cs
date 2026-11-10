@@ -37,6 +37,19 @@ public sealed class ScreenModelTests
         Assert.Equal("2", hint.Args["number"]);
     }
 
+    [Theory]
+    [InlineData("Toma", "Toma")]
+    [InlineData(null, "Bewohner 2")]
+    [InlineData("  ", "Bewohner 2")]
+    public void TheScreenShowsTheOwnNameAndTheNumberOnlyWithoutOne(string? name, string expected)
+    {
+        // W1698: the list, card, logs and hints show the real name; "Inhabitant N" is the fallback only.
+        var row = new InhabitantRow("inh-000002", 2, 80, false, null, 1, Name: name);
+        Assert.Equal(expected, ScreenModel.DisplayName(row, "Bewohner {number}"));
+        var hint = Assert.Single(ScreenModel.Hints([new WorldEvent("question_opened", 5, "inh-000002", null, "q-1")], [row], displayName: r => ScreenModel.DisplayName(r, "Bewohner {number}")));
+        Assert.Equal(expected, hint.Args["name"]);
+    }
+
     [Fact]
     public void TheSameQuestionIsHintedOnceAndLeadsToTheInhabitant()
     {

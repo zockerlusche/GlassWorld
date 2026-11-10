@@ -54,6 +54,12 @@ public sealed record InhabitantSnapshot(
     /// question about it leaves only the effect open and no longer counts for the question mark.
     /// </summary>
     public IReadOnlyList<string> PuzzlingQuestionIds { get; init; } = [];
+
+    /// <summary>
+    /// The inhabitant's own name (content/inhabitants/names.json, PR #171), shown by the list, card and logs
+    /// (W1698); null only if it has none. Read-only copy for the presentation, not part of the state hash.
+    /// </summary>
+    public string? Name { get; init; }
 }
 
 /// <summary>Read-only picture of the world at one tick.</summary>
@@ -101,6 +107,7 @@ public static class WorldView
                 Topic = inhabitants.TopicOf(i),
                 Facing = inhabitants.FacingOf(i),
                 PuzzlingQuestionIds = decisions.PuzzlingQuestionIds(i),
+                Name = i.Name,
             })],
             [.. objects.All],
             [.. inhabitants.Events]);

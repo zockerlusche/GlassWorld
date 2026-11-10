@@ -36,12 +36,31 @@ public static class ScreenModel
         ];
     }
 
-    /// <summary>Placeholder values for <c>ui.inhabitant.unnamed</c> (names come with B9).</summary>
+    /// <summary>
+    /// Placeholder values for texts about an inhabitant: <c>number</c> for <c>ui.inhabitant.unnamed</c> and
+    /// <c>name</c>, its own name (W1698), or the number while it has none.
+    /// </summary>
     public static IReadOnlyDictionary<string, string> NameArgs(InhabitantRow row)
     {
         ArgumentNullException.ThrowIfNull(row);
-        return new Dictionary<string, string> { ["number"] = row.Number.ToString(CultureInfo.InvariantCulture) };
+        var number = row.Number.ToString(CultureInfo.InvariantCulture);
+        return new Dictionary<string, string> { ["number"] = number, ["name"] = HasName(row) ? row.Name! : number };
     }
+
+    /// <summary>
+    /// The name the screen shows for an inhabitant (W1698): its own name, or "Inhabitant N" from the
+    /// <c>ui.inhabitant.unnamed</c> text only while it has none (cannot happen after #171, saves get names on load).
+    /// </summary>
+    /// <param name="row">The inhabitant.</param>
+    /// <param name="unnamedText">The translated text of <c>ui.inhabitant.unnamed</c>.</param>
+    public static string DisplayName(InhabitantRow row, string unnamedText)
+    {
+        ArgumentNullException.ThrowIfNull(row);
+        ArgumentNullException.ThrowIfNull(unnamedText);
+        return HasName(row) ? row.Name! : TextFill.Fill(unnamedText, NameArgs(row));
+    }
+
+    private static bool HasName(InhabitantRow row) => !string.IsNullOrWhiteSpace(row.Name);
 
     /// <summary>
     /// Calm hints for new events (D366 section 9): an inhabitant has a new open question (B2487: that,
@@ -51,8 +70,20 @@ public static class ScreenModel
     /// <param name="rows">The inhabitants.</param>
     /// <param name="questionSubject">What a question (by id) is about, so the same question is hinted only once (W1696: "13x"); null: every question.</param>
     /// <param name="hinted">Questions hinted already (inhabitant and subject), kept by the caller.</param>
-    public static IEnumerable<ToastMessage> Hints(IEnumerable<WorldEvent> events, IReadOnlyList<InhabitantRow> rows, Func<string, string?>? questionSubject = null, ISet<string>? hinted = null)
+    /// <param name="displayName">The shown name of an inhabitant for <c>{name}</c> (the screen's <see cref="DisplayName"/>); null: <see cref="NameArgs"/>.</param>
+    public static IEnumerable<ToastMessage> Hints(IEnumerable<WorldEvent> events, IReadOnlyList<InhabitantRow> rows, Func<string, string?>? questionSubject = null, ISet<string>? hinted = null, Func<InhabitantRow, string>? displayName = null)
     {
+        Dictionary<string, string> Args(InhabitantRow row)
+        {
+            var args = new Dictionary<string, string>(NameArgs(row));
+            if (displayName is not null)
+            {
+                args["name"] = displayName(row);
+            }
+
+            return args;
+        }
+
         ArgumentNullException.ThrowIfNull(events);
         ArgumentNullException.ThrowIfNull(rows);
         foreach (var e in events.Where(e => e.Kind == Simulation.Player.PlayerSystem.HelpNeeded))
@@ -60,7 +91,7 @@ public static class ScreenModel
             var row = rows.FirstOrDefault(r => r.Id == e.InhabitantId);
             if (row is not null && e.Detail is not null)
             {
-                yield return new ToastMessage("msg.hint.help_needed", new Dictionary<string, string>(NameArgs(row)) { ["need"] = VocabKeys.Need(e.Detail) }, "help", row.Id);
+                yield return new ToastMessage("msg.hint.help_needed", new Dictionary<string, string>(Args(row)) { ["need"] = VocabKeys.Need(e.Detail) }, "help", row.Id);
             }
         }
 
@@ -71,7 +102,7 @@ public static class ScreenModel
             if (row is not null && (subject is null || hinted is null || hinted.Add(row.Id + "|" + subject)))
             {
                 // A hint leads to the inhabitant (W1695: hints were not clickable).
-                yield return new ToastMessage("msg.hint.question", NameArgs(row), "question", row.Id);
+                yield return new ToastMessage("msg.hint.question", Args(row), "question", row.Id);
             }
         }
 

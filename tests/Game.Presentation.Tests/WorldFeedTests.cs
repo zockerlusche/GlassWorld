@@ -29,6 +29,19 @@ public sealed class WorldFeedTests
     }
 
     [Fact]
+    public void ListCarriesTheOwnNames()
+    {
+        // W1698: every inhabitant has its own name (#171), the list shows it instead of the number.
+        var host = NewWorld();
+        var feed = new WorldFeed(host);
+        var rows = feed.Inhabitants();
+        Assert.All(rows, r => Assert.Equal(host.Inhabitants.All.Single(i => i.Id == r.Id).Name, r.Name));
+        Assert.All(rows, r => Assert.False(string.IsNullOrWhiteSpace(r.Name)));
+        Assert.All(rows, r => Assert.Equal(r.Name, feed.OwnName(r.Id)));
+        Assert.Null(feed.OwnName("inh-999999"));
+    }
+
+    [Fact]
     public void CardGroupsValuesAsTextKeys()
     {
         var host = NewWorld();

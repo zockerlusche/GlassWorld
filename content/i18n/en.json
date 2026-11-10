@@ -24,7 +24,7 @@
     },
     {
       "key": "msg.hint.question",
-      "text": "Inhabitant {number} has a question."
+      "text": "{name} has a question."
     },
     {
       "key": "msg.load.failed",
@@ -1252,7 +1252,7 @@
     },
     {
       "key": "msg.hint.help_needed",
-      "text": "Inhabitant {number} finds nothing for {need}."
+      "text": "{name} finds nothing for {need}."
     },
     {
       "key": "msg.hint.place_gift",
@@ -1272,7 +1272,7 @@
     },
     {
       "key": "ui.help.call",
-      "text": "Inhabitant {number}: {need}"
+      "text": "{name}: {need}"
     },
     {
       "key": "ui.help.give",
@@ -1288,7 +1288,7 @@
     },
     {
       "key": "msg.mail.knock",
-      "text": "Inhabitant {number} knocks at the glass: finds nothing for {need}."
+      "text": "{name} knocks at the glass: finds nothing for {need}."
     },
     {
       "key": "msg.command.no_message",
