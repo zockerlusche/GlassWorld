@@ -103,6 +103,7 @@ from glassworld_contracts import (
     HelpSuggestionsRequest,
     JobAccepted,
     JobList,
+    NightItems,
     PhaseChange,
     PhaseStatus,
 )
@@ -465,12 +466,31 @@ def create_app(
                 app.state.morning = asyncio.get_running_loop().create_task(
                     _quietly(residency.ensure(model))
                 )
+        # B7 R10: a new night starts the list of night items with the jobs still open.
+        app.state.jobs.start_night(phase == "night")
         app.state.jobs.reschedule()
         return JSONResponse(_phase_status().model_dump(mode="json"))
 
     @app.get("/phase")
     async def phase_status() -> Response:
         return JSONResponse(_phase_status().model_dump(mode="json"))
+
+    @app.get("/night/items")
+    async def night_items(since: int = 0) -> Response:
+        """B7 R10 (D637): what the queue has to do tonight and what got done, numbered, for the
+        dream scene; only the job's own references (inhabitant, object type, picture file),
+        never the wording of a question, dream or memory."""
+        if since < 0:
+            return error_response("bad_request", "since must not be negative.")
+        runner: JobRunner = app.state.jobs
+        items = NightItems.model_validate(
+            {
+                "contract_version": CONTRACT_VERSION,
+                "phase": _phase_status().phase,
+                "items": runner.night_items(since),
+            }
+        )
+        return JSONResponse(items.model_dump(mode="json"))
 
     @app.get("/setup/ollama")
     async def ollama_setup_status() -> Response:
