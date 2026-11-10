@@ -19,9 +19,9 @@ model samples. The report (bericht.md) is German because Marcel reads it.
 from __future__ import annotations
 
 import argparse
+import itertools
 import json
 import os
-import shutil
 import subprocess
 import sys
 from dataclasses import dataclass, field
@@ -133,6 +133,15 @@ def report(seed: int, days: int, ai: str, runs: list[tuple[int, int, Finding]]) 
     return "\n".join(lines) + "\n"
 
 
+def archive_name(folder: Path) -> Path:
+    """A free name next to `folder` for keeping an earlier run: <name>.alt-1, .alt-2, ..."""
+    for n in itertools.count(1):
+        candidate = folder.with_name(f"{folder.name}.alt-{n}")
+        if not candidate.exists():
+            return candidate
+    raise AssertionError("unreachable")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=(__doc__ or "").splitlines()[0])
     parser.add_argument("--ai", choices=["live", "mock"], default="live")
@@ -154,7 +163,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"A1_FAIL: {out} exists, is not empty and is not an A1 folder", file=sys.stderr)
         return 1
     if out.exists():
-        shutil.rmtree(out)
+        # Rule PR4: nothing is deleted - an earlier run's folder is kept under a new name.
+        out.rename(archive_name(out))
     out.mkdir(parents=True)
     (out / MARKER).write_text("made by tools/b4a/run_a1.py", encoding="utf-8")
     build = ["dotnet", "build", str(PROJECT), "-c", "Release", "-v", "q", "-nologo"]

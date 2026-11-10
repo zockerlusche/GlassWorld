@@ -85,3 +85,11 @@ def test_the_report_counts_runs_and_states_the_goal() -> None:
     text = A1.report(1, 3, "live", [(1, 0, ok), (2, 0, empty), (3, 4, ok)])
     assert "1 von 3 Laeufen" in text  # run 3 never ran (exit 4) and does not count
     assert "nicht erfuellt" in text
+
+
+def test_an_earlier_output_folder_is_kept_under_a_new_name(tmp_path: Path) -> None:
+    """Rule PR4: nothing is deleted."""
+    out = tmp_path / "a1"
+    out.mkdir()
+    (out.with_name("a1.alt-1")).mkdir()
+    assert A1.archive_name(out) == tmp_path / "a1.alt-2"
