@@ -249,7 +249,7 @@ class WorldPresetPathfinding(BaseModel):
     )
     cost_flooded_water: int | None = Field(
         None,
-        description="Optional (B2-5 R15): extra cost of one step through a shallow sea cell while the tide lifts its water above water.shallow_max_depth, on top of the cell's cost, in the unit of cost_shallow_water. The cell stays walkable, so nobody is trapped by the tide. Missing = no extra cost. Placeholder.",
+        description="Optional (B2-5 R15): extra cost of one step through a shallow sea cell while the tide lifts its water above water.shallow_max_depth, on top of the cell's cost, in the unit of cost_shallow_water. The cell stays walkable, so nobody is trapped by the tide. Missing = no extra cost. PLACEHOLDER: the value in the presets (60) is not balanced and stays a placeholder until Marcel decides it.",
         ge=0,
         le=100000,
     )

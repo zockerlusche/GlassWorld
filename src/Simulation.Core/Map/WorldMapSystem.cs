@@ -106,7 +106,11 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
     /// <summary>The tide at a tick, or null without tides data.</summary>
     public TideReading? TideAt(long tick) => Tides?.Read(tick);
 
-    /// <summary>Walk costs with the tide at the current tick, or null where the base grid counts.</summary>
+    /// <summary>
+    /// Walk costs with the tide at the current tick, or null where the base grid counts. The array is the
+    /// layer's shared one (<see cref="TideWalkLayer.CostsAt"/>): valid on the simulation thread only and
+    /// until the tide level changes, so it is read right away and never kept (one-thread assumption).
+    /// </summary>
     private int[]? TideCosts() => TideWalk is { } layer && Clock is { } clock ? layer.CostsAt(clock()) : null;
 
     private int? _minWalkCost;

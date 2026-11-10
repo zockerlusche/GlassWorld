@@ -344,5 +344,11 @@ public sealed class WorldGenContent
         {
             problems.Add($"{p}: tide curve phases must rise strictly from 0 to 1000");
         }
+
+        if (curve[0].LevelPermille != curve[^1].LevelPermille)
+        {
+            // Phase 1000 is phase 0 of the next cycle: otherwise the water jumps once every cycle (review GW2 #182).
+            problems.Add($"{p}: tide curve must end at the level it starts with (phase 0: {curve[0].LevelPermille}, phase 1000: {curve[^1].LevelPermille})");
+        }
     }
 }

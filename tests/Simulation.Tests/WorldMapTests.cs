@@ -96,6 +96,7 @@ public sealed class WorldMapTests
         { "climate/temperate.json", "\"season\": \"winter\"", "\"season\": \"monsoon\"", "unknown season 'monsoon'" },
         { "climate/temperate.json", "\"weather\": \"heat\",\n        \"wind_permille\"", "\"weather\": \"heatwave\",\n        \"wind_permille\"", "'heatwave' not in vocabulary 'weather'" },
         { "world/presets/start_island.json", "\"min_pair_distance_cells\": 40", "\"min_pair_distance_cells\": 20", "must exceed view_range_cells" },
+        { "world/presets/start_island.json", "\"phase_permille\": 1000,\n        \"level_permille\": 1000", "\"phase_permille\": 1000,\n        \"level_permille\": 400", "tide curve must end at the level it starts with" },
         { "world/presets/start_island.json", "\"climate_id\": \"temperate\"", "\"climate_id\": \"tropical\"", "unknown climate 'tropical'" },
         { "climate/temperate.json", "\"snow_weather\": \"snow\"", "\"snow_weather\": \"hail\"", "snow weather 'hail' has no state values" },
         { "climate/temperate.json", "\"drought_weather\": \"drought\"", "\"drought_weather\": \"dust\"", "drought weather 'dust' has no state values" },

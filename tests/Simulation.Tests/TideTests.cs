@@ -54,9 +54,10 @@ public sealed class TideTests : IDisposable
         Assert.Equal(996, tides.LevelPermilleAt(1));
         Assert.Equal(-996, tides.LevelPermilleAt(499));
 
-        // A straight line from low to high over the whole cycle.
-        var ramp = new Tides(new WorldPresetTides { Amplitude = 10, PeriodTicks = 2000, Curve = [Point(0, -1000), Point(1000, 1000)] });
-        Assert.All(Enumerable.Range(0, 2000), t => Assert.Equal(-1000 + t, ramp.LevelPermilleAt(t)));
+        // Two straight lines: from low to high over the first half of the cycle and back over the second.
+        var ramp = new Tides(new WorldPresetTides { Amplitude = 10, PeriodTicks = 2000, Curve = [Point(0, -1000), Point(500, 1000), Point(1000, -1000)] });
+        Assert.All(Enumerable.Range(0, 1001), t => Assert.Equal(-1000 + (2 * t), ramp.LevelPermilleAt(t)));
+        Assert.All(Enumerable.Range(1000, 1000), t => Assert.Equal(1000 - (2 * (t - 1000)), ramp.LevelPermilleAt(t)));
     }
 
     [Fact]
@@ -103,6 +104,22 @@ public sealed class TideTests : IDisposable
     {
         Assert.Throws<InvalidDataException>(() => new Tides(new WorldPresetTides { Amplitude = 1, PeriodTicks = 10, Curve = [Point(0, 0), Point(900, 0)] }));
         Assert.Throws<InvalidDataException>(() => new Tides(new WorldPresetTides { Amplitude = 1, PeriodTicks = 10, Curve = [Point(0, 0), Point(600, 5), Point(600, 9), Point(1000, 0)] }));
+    }
+
+    [Fact]
+    public void ACurveThatDoesNotEndWhereItStartsIsRefusedSoTheWaterNeverJumps()
+    {
+        // Review GW2 #182: phase 1000 is phase 0 of the next cycle.
+        var open = Assert.Throws<InvalidDataException>(() => new Tides(new WorldPresetTides { Amplitude = 3, PeriodTicks = 100, Curve = [Point(0, 1000), Point(500, -1000), Point(1000, 500)] }));
+        Assert.Contains("end at the level it starts with", open.Message, StringComparison.Ordinal);
+
+        // The curve of the data closes, and from the last tick of a cycle to the first of the next the
+        // level moves no more than between any other two ticks.
+        var data = PresetTides();
+        Assert.Equal(data.Curve.First().LevelPermille, data.Curve.Last().LevelPermille);
+        var tides = new Tides(data);
+        var steps = Enumerable.Range(0, data.PeriodTicks * 2).Select(t => Math.Abs(tides.LevelPermilleAt(t + 1) - tides.LevelPermilleAt(t))).ToList();
+        Assert.Equal(steps.Take(data.PeriodTicks - 1).Max(), steps.Max());
     }
 
     [Fact]

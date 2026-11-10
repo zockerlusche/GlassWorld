@@ -21,7 +21,8 @@ public sealed class Tides
 {
     private const long Thousand = 1000;
 
-    // Curve points as (phase permille, level permille), phases rising strictly from 0 to 1000 (checked at load).
+    // Curve points as (phase permille, level permille), phases rising strictly from 0 to 1000 and the last
+    // level equal to the first, so the cycles join without a jump (checked at load and here).
     private readonly (long Phase, long Level)[] _curve;
 
     /// <summary>Creates the tides of a preset.</summary>
@@ -34,6 +35,12 @@ public sealed class Tides
         if (_curve.Length < 2 || _curve[0].Phase != 0 || _curve[^1].Phase != Thousand || _curve.Zip(_curve.Skip(1)).Any(pair => pair.Second.Phase <= pair.First.Phase))
         {
             throw new InvalidDataException("Tide curve phases must rise strictly from 0 to 1000.");
+        }
+
+        if (_curve[0].Level != _curve[^1].Level)
+        {
+            // Phase 1000 is phase 0 of the next cycle: a curve that does not close would jump every cycle.
+            throw new InvalidDataException("Tide curve must end at the level it starts with.");
         }
 
         Amplitude = data.Amplitude;
@@ -174,6 +181,11 @@ public sealed class TideWalkLayer
     /// <summary>
     /// Walk costs of all cells at a tick (index z × width + x, <see cref="MapCell.Blocked"/> for obstacles).
     /// The array is kept until the tide level changes by a whole unit; callers must not change or keep it.
+    /// <para>
+    /// One array is shared and rewritten in place when the level changes: it is only valid on the
+    /// simulation thread and only until the next call (the core runs on one thread; a reader on another
+    /// thread, e.g. the presentation, must take the level from <see cref="Tides"/> and not this array).
+    /// </para>
     /// </summary>
     public int[] CostsAt(long tick)
     {
