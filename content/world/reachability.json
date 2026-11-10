@@ -1,0 +1,44 @@
+{
+  "contract_version": "0.2",
+  "goals": [
+    { "id": "food", "any_of": [ { "properties_all": ["edible"], "properties_none": ["poisonous"] } ] },
+    { "id": "water", "any_of": [ { "properties_all": ["drinkable"], "properties_none": ["salty"] } ] },
+    { "id": "shelter", "any_of": [ { "properties_all": ["sheltering"], "properties_none": [] } ] },
+    { "id": "cooling", "any_of": [ { "properties_all": ["cooling"], "properties_none": [] } ] },
+    { "id": "warmth", "any_of": [ { "properties_all": ["hot"], "properties_none": [] }, { "properties_all": ["insulating"], "properties_none": [] } ] },
+    { "id": "light", "any_of": [] }
+  ],
+  "known_gaps": [
+    { "gap": "goal:light", "reason": "The vocabulary has no property for light yet (B2587, B5 draft D634 R44)." },
+
+    { "gap": "heat:warm", "reason": "No data says which thing gives which heat level. Fire exists as an object but is not linked to heat (B5 draft D634 R44-R46)." },
+    { "gap": "heat:embers", "reason": "No data says which thing gives which heat level (see heat:warm)." },
+    { "gap": "heat:open_fire", "reason": "No data says which thing gives which heat level (see heat:warm)." },
+    { "gap": "heat:kiln", "reason": "No data says which thing gives which heat level (see heat:warm); a kiln is no object yet." },
+    { "gap": "heat:furnace", "reason": "No data says which thing gives which heat level (see heat:warm); a furnace is no object yet." },
+
+    { "gap": "process:roast_food", "reason": "Needs heat level embers (see heat:embers)." },
+    { "gap": "process:bake_dough_to_bread", "reason": "Needs heat level embers (see heat:embers)." },
+    { "gap": "process:char_wood", "reason": "Needs heat level embers (see heat:embers)." },
+    { "gap": "process:burn_to_ash", "reason": "Needs heat level open_fire (see heat:open_fire)." },
+    { "gap": "process:cook_food", "reason": "Needs heat level open_fire (see heat:open_fire)." },
+    { "gap": "process:heat_water_container", "reason": "Needs heat level open_fire (see heat:open_fire)." },
+    { "gap": "process:fire_shaped_clay", "reason": "Needs heat level kiln (see heat:kiln)." },
+    { "gap": "process:melt_sand_with_ash", "reason": "Needs heat level furnace, ash (burn_to_ash) and a thing that is fine_grained and hard: sand is only a soil, not an object (D643 question 4)." },
+    { "gap": "process:melt_with_furnace", "reason": "Needs heat level furnace and charcoal (char_wood). The rule melts sandstone or slate; there is no ore object (D643 question 2)." },
+    { "gap": "process:grind_nuts_with_water_to_milk", "reason": "No thing is fatty: the hazelnut does not carry the property (D643)." },
+    { "gap": "process:churn_milk_to_butter", "reason": "No thing is milky: nut milk is blocked (see process:grind_nuts_with_water_to_milk) and animals with milk are not in the catalogue (B5)." },
+    { "gap": "process:curdle_milk_to_cheese", "reason": "Needs heat level warm and a milky thing (see process:churn_milk_to_butter)." },
+
+    { "gap": "property:cooked", "reason": "Only made by processes that need heat (see heat:embers)." },
+    { "gap": "property:smoulders", "reason": "Only made by char_wood, which needs heat (see heat:embers)." },
+    { "gap": "property:alkaline", "reason": "Only made by burn_to_ash, which needs heat (see heat:open_fire)." },
+    { "gap": "property:transparent", "reason": "Only made by melt_sand_with_ash (see there)." },
+    { "gap": "property:fatty", "reason": "No object type carries it and only churn_milk_to_butter makes it (D643)." },
+    { "gap": "property:milky", "reason": "Only made by grind_nuts_with_water_to_milk (see there)." },
+    { "gap": "property:insulating", "reason": "No object type carries it and no rule makes it: no clothing rule, no wool (D643 question 1)." },
+
+    { "gap": "tech:workshop", "reason": "Its only rule is melt_sand_with_ash (see there)." },
+    { "gap": "tech:metal", "reason": "Follows workshop; its only rule is melt_with_furnace (see there)." }
+  ]
+}
