@@ -24,7 +24,10 @@ public sealed record OpenQuestion(string Id, string InhabitantId, string Kind, s
 /// <param name="InhabitantId">Inhabitant concerned, or null for commands without one (weather, gifts in B6).</param>
 public sealed record PlayerCommand(string Kind, string? InhabitantId)
 {
-    /// <summary>Object type of a gift (vocabulary id).</summary>
+    /// <summary>
+    /// The id a command is about: object type of a gift, weather of <c>set_weather</c>, epoch of
+    /// <c>set_look_epoch</c> (vocabulary ids).
+    /// </summary>
     public string? TypeId { get; init; }
 
     /// <summary>World position X of a gift (metres).</summary>

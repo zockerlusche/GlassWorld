@@ -567,6 +567,17 @@ public partial class Main
                 GD.Print("SCREEN_OK");
             }
 
+            // The zones preview of the UI concept (W1717): switched on, checked, switched back.
+            var zones = _screen is null ? "game screen missing" : await _screen.CheckZonesAsync(_settings);
+            if (zones.Length > 0)
+            {
+                problems = [.. problems, "zones preview: " + zones];
+            }
+            else
+            {
+                GD.Print("ZONES_OK");
+            }
+
             // Camera keys (GW3 #144): a button that took the focus leaves them to the camera, a slider keeps them.
             var (button, slider) = (new Button(), new HSlider());
             if (GlassWorld.Game.World.CameraRig.BlocksCameraKeys(button) || !GlassWorld.Game.World.CameraRig.BlocksCameraKeys(slider))

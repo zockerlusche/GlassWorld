@@ -91,11 +91,42 @@
         "temperature": {
           "$ref": "#/$defs/ClimateTemperature"
         },
+        "signals": {
+          "description": "Optional: weather conditions whose start and end the core reports as world events (B2-5 R13, signals for B5). A condition is a weather id of the states; it counts as on while it is among the current conditions (the main weather, or the drought weather after the dry days). Missing = no signals.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ClimateSignal"
+          }
+        },
         "gust_period_minutes": {
           "description": "Game minutes between two gust key values (GW3): the wind swings smoothly between values drawn from the world seed and the tick, so the same seed gives the same wind. Placeholder.",
           "type": "integer",
           "minimum": 1,
           "maximum": 1440
+        }
+      }
+    },
+    "ClimateSignal": {
+      "description": "One tracked weather condition: the core reports start_event when it begins and end_event when it ends (ids of the vocabulary 'event').",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "condition",
+        "start_event",
+        "end_event"
+      ],
+      "properties": {
+        "condition": {
+          "description": "Weather id (one of the states of this climate).",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "start_event": {
+          "description": "Event id reported when the condition begins.",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "end_event": {
+          "description": "Event id reported when the condition ends.",
+          "$ref": "common.schema.json#/$defs/VocabId"
         }
       }
     },
