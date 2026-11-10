@@ -18,6 +18,8 @@ public sealed record Occurrence(string ObjectId, string TypeId, int X, int Z, lo
 /// The generated start island as a world system (B2 R1): the base grid never changes after generation,
 /// so the system does nothing per tick and writes the island data into the state hash. It is rebuilt
 /// from seed and preset when a save game is loaded (the generator is deterministic).
+/// The tides (B2-5 R15) lie over it as a run-time layer: they change the walk costs of the shallow sea
+/// with the tick, never the walkable areas (<see cref="Connected"/> reads the base grid).
 /// </summary>
 public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
 {
@@ -86,6 +88,27 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
     /// <summary>Most nodes one path search may expand (preset pathfinding, B2 R10).</summary>
     public int NodeBudget { get; init; } = 20000;
 
+    /// <summary>
+    /// The tides of the island (B2-5 R15), or null on islands built without them (tests). The level follows
+    /// from the tick alone, so nothing of it is saved or hashed.
+    /// </summary>
+    public Tides? Tides { get; init; }
+
+    /// <summary>
+    /// Walk costs that follow the tide; null without tides (amplitude 0): then routes and speed read the base
+    /// grid exactly as before.
+    /// </summary>
+    public TideWalkLayer? TideWalk { get; init; }
+
+    /// <summary>The world tick the routes are asked at (set by the host); without it the tide layer is not used.</summary>
+    public Func<long>? Clock { get; init; }
+
+    /// <summary>The tide at a tick, or null without tides data.</summary>
+    public TideReading? TideAt(long tick) => Tides?.Read(tick);
+
+    /// <summary>Walk costs with the tide at the current tick, or null where the base grid counts.</summary>
+    private int[]? TideCosts() => TideWalk is { } layer && Clock is { } clock ? layer.CostsAt(clock()) : null;
+
     private int? _minWalkCost;
     private PathFinder.Scratch? _scratch;
 
@@ -111,7 +134,10 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
             .DefaultIfEmpty(1000)
             .Min();
         _scratch ??= new PathFinder.Scratch(Map.WidthCells * Map.DepthCells);
-        var path = PathFinder.Find(Map, from, goal, NodeBudget, _minWalkCost.Value, _scratch);
+
+        // With tides the shallow sea costs what the water level makes of it (never blocked, see TideWalkLayer).
+        var costs = TideCosts();
+        var path = PathFinder.Find(Map, from, goal, NodeBudget, costs is null ? _minWalkCost.Value : Math.Min(_minWalkCost.Value, TideWalk!.MinCost), _scratch, costs);
         if (path.Status != PathStatus.Found)
         {
             return new Route(path.Status, []);
@@ -146,7 +172,7 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
             return 1.0;
         }
 
-        var cost = Map.Cell(cell.X, cell.Z).WalkCost;
+        var cost = TideCosts() is { } costs ? costs[(cell.Z * Map.WidthCells) + cell.X] : Map.Cell(cell.X, cell.Z).WalkCost;
         return cost == MapCell.Blocked ? 0.25 : Math.Min(1.0, 1000.0 / Math.Max(1, cost));
     }
 
