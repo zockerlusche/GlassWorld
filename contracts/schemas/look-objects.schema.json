@@ -203,6 +203,12 @@
           "type": "number",
           "minimum": 0,
           "maximum": 10
+        },
+        "sway_m": {
+          "description": "How far the top moves in full wind, in metres at size factor 1 (content/look/nature.json wind); absent = it stands still.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2
         }
       }
     },

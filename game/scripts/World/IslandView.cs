@@ -58,6 +58,7 @@ public partial class IslandView : Node3D
         view._groundMaterial = new ShaderMaterial { Shader = Comic };
         view._groundMaterial.SetShaderParameter("use_vertex_color", true);
         view._groundMaterial.SetShaderParameter("use_regions", false);
+        view._groundMaterial.SetShaderParameter("use_nature", true);
         view._seaMaterial = new ShaderMaterial { Shader = Sea };
         view._seaMaterial.SetShaderParameter("use_shore_line", false);
         var fresh = view._freshMaterial = new ShaderMaterial { Shader = Fresh };
@@ -104,9 +105,10 @@ public partial class IslandView : Node3D
     /// Colours the island with a palette (base, or with season and epoch overrides, B2 R19): resolves the
     /// look and builds the chunk meshes of every detail level and the water, replacing earlier ones (about
     /// 160k triangles on the start island). Models and shaders stay; the grids of the levels are made once.
-    /// Meant for building the view and for the screenshot tool, which switches palettes between pictures;
-    /// a run-time season or epoch blend (B2-5) should recolour the vertex colours (or move the colours into
-    /// the shader) instead of rebuilding.
+    /// Meant for building the view and for the screenshot tool, which switches epoch palettes between
+    /// pictures. Seasons never rebuild (B2-5 R24): the ground carries per vertex the shares of the seasonal
+    /// palette colours (<see cref="SeasonSlots"/>, CUSTOM0), and the shader moves them to the colour of the
+    /// season from global parameters (<see cref="NatureLook"/>).
     /// </summary>
     public void ApplyPalette(LookPalette palette)
     {
@@ -140,7 +142,7 @@ public partial class IslandView : Node3D
                 for (var i = 0; i < _levels.Count; i++)
                 {
                     var level = _levels[i];
-                    _chunks.AddChild(Ranged(new MeshInstance3D { Name = $"Ground_{level.CellStep}_{cx}_{cz}", Mesh = ToMesh(meshes[i]), MaterialOverride = _groundMaterial, CustomAabb = bounds }, level));
+                    _chunks.AddChild(Ranged(new MeshInstance3D { Name = $"Ground_{level.CellStep}_{cx}_{cz}", Mesh = ToMesh(meshes[i], tints: true), MaterialOverride = _groundMaterial, CustomAabb = bounds }, level));
                     ground[i] += meshes[i].TriangleCount;
                 }
 
@@ -220,11 +222,13 @@ public partial class IslandView : Node3D
 
     /// <summary>
     /// Converts mesher output to an ArrayMesh. Godot treats clockwise triangles as front faces, so each
-    /// triangle is reversed; vertex colours go from sRGB palette values to linear for the shader.
+    /// triangle is reversed; vertex colours go from sRGB palette values to linear for the shader. With
+    /// <paramref name="tints"/> the shares of the seasonal colours go into CUSTOM0 (four bytes per vertex).
     /// </summary>
-    private static ArrayMesh ToMesh(MeshData data)
+    private static ArrayMesh ToMesh(MeshData data, bool tints = false)
     {
         var count = data.VertexCount;
+        var weights = new byte[tints ? count * 4 : 0];
         var vertices = new Vector3[count];
         var normals = new Vector3[count];
         var colors = new Color[count];
@@ -241,6 +245,10 @@ public partial class IslandView : Node3D
                 normals[o] = new Vector3(data.Normals[i * 3], data.Normals[(i * 3) + 1], data.Normals[(i * 3) + 2]);
                 colors[o] = new Color(data.Colors[i * 3], data.Colors[(i * 3) + 1], data.Colors[(i * 3) + 2]).SrgbToLinear();
                 flow[o] = new Vector2(data.Flow[i * 2], data.Flow[(i * 2) + 1]);
+                for (var s = 0; tints && s < 4; s++)
+                {
+                    weights[(o * 4) + s] = (byte)Math.Clamp((int)MathF.Round(data.Tints[(i * 4) + s] * 255), 0, 255);
+                }
             }
         }
 
@@ -250,6 +258,12 @@ public partial class IslandView : Node3D
         arrays[(int)Mesh.ArrayType.Normal] = normals;
         arrays[(int)Mesh.ArrayType.Color] = colors;
         arrays[(int)Mesh.ArrayType.TexUV] = flow;
+        if (tints)
+        {
+            // The default custom format is four unsigned bytes (RGBA8), read as 0..1 in the shader.
+            arrays[(int)Mesh.ArrayType.Custom0] = weights;
+        }
+
         var mesh = new ArrayMesh();
         if (count > 0)
         {

@@ -183,6 +183,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("footprint_width_m")]
         public double? FootprintWidthM { get; set; } = default!;
 
+        /// <summary>
+        /// How far the top moves in full wind, in metres at size factor 1 (content/look/nature.json wind); absent = it stands still.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("sway_m")]
+        public double? SwayM { get; set; } = default!;
+
     }
 
     /// <summary>

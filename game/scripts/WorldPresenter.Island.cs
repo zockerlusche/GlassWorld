@@ -29,6 +29,10 @@ public partial class WorldPresenter
     private LookWorld? _look;
     private IslandView? _islandView;
     private ObjectsView? _objectsView;
+    private GrassView? _grassView;
+    private NatureLook? _nature;
+    private string _seasonSeen = string.Empty;
+    private Simulation.Weather.WeatherReading? _weatherSeen;
     private CameraRig? _rig;
     private FigureShared? _figureShared;
     private LookFigures? _figuresLook;
@@ -60,6 +64,9 @@ public partial class WorldPresenter
 
     /// <summary>Island mode: number of figures with the real figure model.</summary>
     public int FigureViews => _islandFigures.Count;
+
+    /// <summary>Island mode: grass and small plants drawn in detail levels (0 in placeholder mode).</summary>
+    public int GrassPlants => _grassView?.Plants ?? 0;
 
     /// <summary>Island mode: ground chunks of the island view.</summary>
     public int GroundChunks => _islandView?.GroundChunks ?? 0;
@@ -250,10 +257,17 @@ public partial class WorldPresenter
         _seaLevelM = preset.Terrain.SeaLevel * terrain.UnitM;
         _cellM = terrain.CellM;
 
+        // Living nature (B2-5 R21, R24): season colours, snow and wind as shader parameters; grass and
+        // small plants in detail levels (density and distance from the quality level).
         var objectLooks = Read<LookObjects>(content, "look", "objects.json");
-        var decor = Decor.Plan(objectLooks.Decor, map.Island, terrain.CellM);
-        _objectsView = ObjectsView.Create(objectLooks, Read<LookPalette>(content, "look", "palette.json"), _ground, decor);
+        var palette = Read<LookPalette>(content, "look", "palette.json");
+        _nature = NatureLook.Create(content, palette);
+        var (grass, otherDecor) = GrassPlan.Split(Decor.Plan(objectLooks.Decor, map.Island, terrain.CellM), _nature.Data.Grass);
+        _objectsView = ObjectsView.Create(objectLooks, palette, _ground, otherDecor);
         AddChild(_objectsView);
+        _grassView = GrassView.Create(_objectsView, grass, _ground, _nature.Data.Grass, GrassPlan.Level(Read<LookQuality>(content, "look", "quality.json")));
+        AddChild(_grassView);
+        AddChild(_nature);
 
         _figuresLook = Read<LookFigures>(content, "look", "figures.json");
         _objectsView.SetupCrownFade(_figuresLook.CrownFade);
@@ -275,6 +289,7 @@ public partial class WorldPresenter
 
         LightTheScene(content, _look, "IslandPlaceholder", "WaterPlaceholder");
         GD.Print($"ISLAND_WORLD preset={map.Island.PresetId} chunks={_islandView.GroundChunks} figures={_islandFigures.Count} objects_drawn={_objectsView.Drawn} layers={_objectsView.Layers}");
+        GD.Print($"ISLAND_NATURE grass_plants={_grassView.Plants} grass_layers={_grassView.Layers} season={_seasonSeen} season_colors={_nature.Season.Slots.Ids.Count}");
     }
 
     /// <summary>
@@ -330,6 +345,8 @@ public partial class WorldPresenter
         _look = null;
         _islandView = null;
         _objectsView = null;
+        _grassView = null;
+        _nature = null;
         _rig = null;
         _figureShared = null;
         _observer = null;
@@ -393,6 +410,7 @@ public partial class WorldPresenter
         else
         {
             DaylightLook.Apply(daylight, look.DayPhase, sun, environment);
+            _nature?.Light(DaylightMix.Of(daylight, look.DayPhase).WaterLight);
         }
     }
 
@@ -410,7 +428,25 @@ public partial class WorldPresenter
         {
             _daylightShown = mix;
             DaylightLook.Apply(d.Data, mix, d.Sun, d.Environment);
+            _nature?.Light(mix.WaterLight);
         }
+    }
+
+    /// <summary>
+    /// Each frame of island mode: the season and the weather of the last snapshot move the season colours,
+    /// the snow, the plants in the wind and the falling leaves (B2-5 R21, R24). Real time, so fast forward
+    /// stays calm; pause and speed 0 hold everything still, like the figures (W1688).
+    /// </summary>
+    private void FollowNature(double delta)
+    {
+        if (_nature is null || _rig is null || _seasonSeen.Length == 0)
+        {
+            return;
+        }
+
+        var (x, z) = _rig.Model.Target;
+        var focus = new Vector3((float)x, Math.Max(GroundHeight(x, z), (float)_seaLevelM), (float)z);
+        _nature.Follow(_seasonSeen, _weatherSeen, _freeze.Frozen ? 0 : delta, focus);
     }
 
     /// <summary>Puts back what <see cref="LightTheScene"/> changed in the scene (back to the menu).</summary>
@@ -477,6 +513,7 @@ public partial class WorldPresenter
         }
 
         var snapshot = _host.Snapshot();
+        (_seasonSeen, _weatherSeen) = (snapshot.Time.SeasonId, snapshot.Weather);
 
         // Seats (W1688) are taken from the objects only when they changed.
         if (_objectsView?.Refresh(snapshot.Objects) != false || _seats is null)

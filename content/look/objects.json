@@ -29,7 +29,8 @@
       "lift_m": 0.0,
       "rest": "centre",
       "align": "upright",
-      "footprint_m": 0.0
+      "footprint_m": 0.0,
+      "sway_m": 0.22
     },
     {
       "id": "conifer",
@@ -47,7 +48,8 @@
       "lift_m": 0.0,
       "rest": "centre",
       "align": "upright",
-      "footprint_m": 0.0
+      "footprint_m": 0.0,
+      "sway_m": 0.16
     },
     {
       "id": "fruit_tree",
@@ -65,7 +67,8 @@
       "lift_m": 0.0,
       "rest": "centre",
       "align": "upright",
-      "footprint_m": 0.0
+      "footprint_m": 0.0,
+      "sway_m": 0.18
     },
     {
       "id": "palm",
@@ -82,7 +85,8 @@
       "lift_m": 0.0,
       "rest": "centre",
       "align": "upright",
-      "footprint_m": 0.0
+      "footprint_m": 0.0,
+      "sway_m": 0.3
     },
     {
       "id": "berry_bush",
@@ -99,7 +103,8 @@
       "lift_m": 0.0,
       "rest": "centre",
       "align": "upright",
-      "footprint_m": 0.0
+      "footprint_m": 0.0,
+      "sway_m": 0.05
     },
     {
       "id": "hazel_bush",
@@ -116,7 +121,8 @@
       "lift_m": 0.0,
       "rest": "centre",
       "align": "upright",
-      "footprint_m": 0.0
+      "footprint_m": 0.0,
+      "sway_m": 0.05
     },
     {
       "id": "thorn_bush",
@@ -132,7 +138,8 @@
       "lift_m": 0.0,
       "rest": "centre",
       "align": "upright",
-      "footprint_m": 0.0
+      "footprint_m": 0.0,
+      "sway_m": 0.05
     },
     {
       "id": "cave_rock",
@@ -365,7 +372,8 @@
       "lift_m": 0.0,
       "rest": "centre",
       "align": "upright",
-      "footprint_m": 0.0
+      "footprint_m": 0.0,
+      "sway_m": 0.07
     },
     {
       "id": "nettle",
@@ -381,7 +389,8 @@
       "lift_m": 0.0,
       "rest": "centre",
       "align": "upright",
-      "footprint_m": 0.0
+      "footprint_m": 0.0,
+      "sway_m": 0.07
     },
     {
       "id": "reed",
@@ -398,7 +407,8 @@
       "lift_m": 0.0,
       "rest": "centre",
       "align": "upright",
-      "footprint_m": 0.0
+      "footprint_m": 0.0,
+      "sway_m": 0.16
     },
     {
       "id": "wild_grain",
@@ -415,7 +425,8 @@
       "lift_m": 0.0,
       "rest": "centre",
       "align": "upright",
-      "footprint_m": 0.0
+      "footprint_m": 0.0,
+      "sway_m": 0.16
     },
     {
       "id": "flax",
@@ -432,7 +443,8 @@
       "lift_m": 0.0,
       "rest": "centre",
       "align": "upright",
-      "footprint_m": 0.0
+      "footprint_m": 0.0,
+      "sway_m": 0.06
     },
     {
       "id": "healing_herb",
@@ -449,7 +461,8 @@
       "lift_m": 0.0,
       "rest": "centre",
       "align": "upright",
-      "footprint_m": 0.0
+      "footprint_m": 0.0,
+      "sway_m": 0.06
     },
     {
       "id": "brown_mushroom",
@@ -612,7 +625,8 @@
       "lift_m": 0.0,
       "rest": "centre",
       "align": "upright",
-      "footprint_m": 0.0
+      "footprint_m": 0.0,
+      "sway_m": 0.07
     },
     {
       "id": "decor_grass_dry",
@@ -628,7 +642,8 @@
       "lift_m": 0.0,
       "rest": "centre",
       "align": "upright",
-      "footprint_m": 0.0
+      "footprint_m": 0.0,
+      "sway_m": 0.07
     },
     {
       "id": "decor_flower",
@@ -645,7 +660,8 @@
       "lift_m": 0.0,
       "rest": "centre",
       "align": "upright",
-      "footprint_m": 0.0
+      "footprint_m": 0.0,
+      "sway_m": 0.06
     },
     {
       "id": "decor_flower_blue",
@@ -662,7 +678,8 @@
       "lift_m": 0.0,
       "rest": "centre",
       "align": "upright",
-      "footprint_m": 0.0
+      "footprint_m": 0.0,
+      "sway_m": 0.06
     },
     {
       "id": "decor_flower_yellow",
@@ -679,7 +696,8 @@
       "lift_m": 0.0,
       "rest": "centre",
       "align": "upright",
-      "footprint_m": 0.0
+      "footprint_m": 0.0,
+      "sway_m": 0.06
     },
     {
       "id": "decor_shrub",
@@ -695,7 +713,8 @@
       "lift_m": 0.0,
       "rest": "centre",
       "align": "upright",
-      "footprint_m": 0.0
+      "footprint_m": 0.0,
+      "sway_m": 0.05
     },
     {
       "id": "decor_fern",
@@ -711,7 +730,8 @@
       "lift_m": 0.0,
       "rest": "centre",
       "align": "upright",
-      "footprint_m": 0.0
+      "footprint_m": 0.0,
+      "sway_m": 0.07
     }
   ],
   "decor": [

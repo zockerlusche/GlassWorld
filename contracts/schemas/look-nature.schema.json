@@ -1,0 +1,252 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/look-nature.schema.json",
+  "title": "LookNature",
+  "description": "Data file content/look/nature.json: living nature (B2-5 R21, R24): how plants sway in the wind of the core, how snow lies, how grass and small plants are drawn in detail levels and how leaves fall. All of it is set as shader parameters or drawn near the camera; presentation only, not part of the hash. Values are placeholders.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "wind",
+    "snow",
+    "grass",
+    "leaf_fall"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "wind": {
+      "$ref": "#/$defs/NatureWind"
+    },
+    "snow": {
+      "$ref": "#/$defs/NatureSnow"
+    },
+    "grass": {
+      "$ref": "#/$defs/NatureGrass"
+    },
+    "leaf_fall": {
+      "$ref": "#/$defs/FallParticles"
+    }
+  },
+  "$defs": {
+    "NatureWind": {
+      "description": "How the wind strength of the core (0..1) moves plants. The strength is smoothed in real time, so fast forward stays calm; a visual sways by its sway_m (content/look/objects.json).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "direction_deg",
+        "smooth_real_seconds",
+        "swings_per_second_calm",
+        "swings_per_second_full",
+        "lean_share",
+        "wave_length_m"
+      ],
+      "properties": {
+        "direction_deg": {
+          "description": "Direction the wind blows to on the ground (degrees, 0 = +z, 90 = +x).",
+          "type": "number",
+          "minimum": -360,
+          "maximum": 360
+        },
+        "smooth_real_seconds": {
+          "description": "Time over which the shown wind follows the wind of the core (real seconds).",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 60
+        },
+        "swings_per_second_calm": {
+          "description": "Swings per real second in still air (calm world: keep it slow).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1.5
+        },
+        "swings_per_second_full": {
+          "description": "Swings per real second at full wind.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1.5
+        },
+        "lean_share": {
+          "description": "Share of the bend that is a steady lean with the wind; the rest swings.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "wave_length_m": {
+          "description": "Length of the wind wave running over the land (metres), so neighbours do not swing in step.",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 500
+        }
+      }
+    },
+    "NatureSnow": {
+      "description": "How the snow cover of a season or weather (0..1) lies on ground and plants: patches on faces that look up.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "color",
+        "patch_m",
+        "edge",
+        "min_up"
+      ],
+      "properties": {
+        "color": {
+          "description": "Palette colour id of the snow.",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "patch_m": {
+          "description": "Size of the snow patches (metres).",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 200
+        },
+        "edge": {
+          "description": "Softness of a patch edge (share of the patch noise, 0 = hard).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.5
+        },
+        "min_up": {
+          "description": "How far a face must look up to hold snow (y of its normal, 0..1).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "NatureGrass": {
+      "description": "Grass and small plants (decorative plants of content/look/objects.json) in chunks with two detail levels; density and distance come from the quality level (content/look/quality.json).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "types",
+        "chunk_m",
+        "near_share",
+        "far_density_share",
+        "switch_margin_m"
+      ],
+      "properties": {
+        "types": {
+          "description": "Decor types drawn as grass; other decor is drawn with the objects.",
+          "type": "array",
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$"
+          }
+        },
+        "chunk_m": {
+          "description": "Edge of a grass chunk (metres); the distance is measured to its centre.",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 500
+        },
+        "near_share": {
+          "description": "Share of the grass distance of the quality level up to which every plant of its density is drawn.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "far_density_share": {
+          "description": "Share of those plants still drawn beyond that, up to the grass distance.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "switch_margin_m": {
+          "description": "Hysteresis of the switch between the levels (metres).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 50
+        }
+      }
+    },
+    "FallParticles": {
+      "description": "Small things falling near the camera (leaves; rain and snow in the weather look): drawn as particles in a box that follows the camera target, never part of the world state.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "color",
+        "max_count",
+        "box_m",
+        "height_m",
+        "lifetime_s",
+        "fall_m_per_s",
+        "drift_m_per_s",
+        "size_m",
+        "length_m",
+        "spin_deg_per_s",
+        "opacity"
+      ],
+      "properties": {
+        "color": {
+          "description": "Palette colour id (content/look/palette.json); a seasonal colour shows its colour of the season.",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "max_count": {
+          "description": "Particles at full amount.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4000
+        },
+        "box_m": {
+          "description": "Edge of the square around the camera target in which they appear (metres).",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 200
+        },
+        "height_m": {
+          "description": "Height above the camera target at which they appear (metres).",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 100
+        },
+        "lifetime_s": {
+          "description": "How long one falls (real seconds).",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 60
+        },
+        "fall_m_per_s": {
+          "description": "Falling speed (metres per real second).",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 40
+        },
+        "drift_m_per_s": {
+          "description": "Sideways speed along the wind at full wind (metres per real second).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 40
+        },
+        "size_m": {
+          "description": "Width of one particle (metres).",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 2
+        },
+        "length_m": {
+          "description": "Length of one particle (metres): equal to size_m for a leaf or flake, longer for a rain streak.",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 4
+        },
+        "spin_deg_per_s": {
+          "description": "Largest tumbling speed (degrees per real second); 0 keeps them aligned with their fall.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 720
+        },
+        "opacity": {
+          "description": "Opacity of one particle (0..1; 1 = solid).",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        }
+      }
+    }
+  }
+}
