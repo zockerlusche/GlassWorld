@@ -44,6 +44,7 @@ from glassworld_ai.decider.mock import MockWeights
 from glassworld_ai.diagnostics import report
 from glassworld_ai.dream import MockDreams, OllamaDreams, ReplayDreams
 from glassworld_ai.errors import error_response, install_error_handlers
+from glassworld_ai.grounding import load_names
 from glassworld_ai.hardware import HardwareInfo, detect_hardware, load_tiers, select_tier
 from glassworld_ai.health import health_status
 from glassworld_ai.help import HelpSuggester, MockHelp, OllamaHelp, ReplayHelp
@@ -1229,7 +1230,14 @@ def _build_conversation(
         return MockConversation()
     texts = TextCatalog.load(settings.content_dir / "i18n")
     if settings.decider_backend == "replay":
-        return ReplayConversation(log, guard, expressions, texts)
+        return ReplayConversation(
+            log,
+            guard,
+            expressions,
+            texts,
+            prompts_dir=settings.prompts_dir,
+            names=load_names(settings.content_dir),
+        )
     return OllamaConversation(
         client=ollama,
         queue=queue,
@@ -1241,6 +1249,7 @@ def _build_conversation(
         guard=guard,
         expressions=expressions,
         texts=texts,
+        names=load_names(settings.content_dir),  # W1737: names are no invented things
     )
 
 

@@ -47,6 +47,41 @@ class ConversationLine(BaseModel):
     text: common_schema.GeneratedText
 
 
+class ConversationStep(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    action: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    target: common_schema.Subject | None
+
+
+class ConversationDoing(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    action: str = Field(
+        ...,
+        description='Action id (vocabulary action).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    target: common_schema.Subject | None = Field(
+        ...,
+        description='What the action is about, as the speaker knows it (type, object or inhabitant); null if none.',
+    )
+    since_tick: int = Field(
+        ..., description='Simulation tick the message refers to.', ge=0
+    )
+    planned: ConversationStep | None = Field(
+        ..., description='The next step it has planned, or null.'
+    )
+
+
 class Speaker(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -72,6 +107,20 @@ class Speaker(BaseModel):
         le=1.0,
     )
     relation_to_player: RelationToPlayer
+    doing: ConversationDoing | None = Field(
+        None,
+        description='What the speaker is doing right now (Marcel W1737): its current action, and the next planned step. Null while it does nothing. The service tells the model, so the answer fits what the inhabitant really does. Optional: absent = not sent (older cores).',
+    )
+    knowledge: list[common_schema.KnowledgeEntry] | None = Field(
+        None,
+        description='What the speaker believes (W1737), the same selection as in the decision request: about what it sees first, then the newest. Only beliefs, never the truth. Optional.',
+        max_length=24,
+    )
+    sees: list[common_schema.VocabId] | None = Field(
+        None,
+        description='Object types the speaker sees right now (W1737), sorted, each once. Optional.',
+        max_length=16,
+    )
 
 
 class ConversationRequest(BaseModel):
