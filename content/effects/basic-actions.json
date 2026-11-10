@@ -11,7 +11,8 @@
     { "action": "wander", "destination": "random_nearby", "duration_minutes": 30, "reach_m": 0 },
     { "action": "warn", "destination": "here", "duration_minutes": 5, "reach_m": 2 },
     { "action": "show", "destination": "here", "duration_minutes": 5, "reach_m": 2 },
-    { "action": "teach", "destination": "here", "duration_minutes": 5, "reach_m": 2 }
+    { "action": "teach", "destination": "here", "duration_minutes": 5, "reach_m": 2 },
+    { "action": "introduce", "destination": "here", "duration_minutes": 2, "reach_m": 2 }
   ],
   "rules": [
     { "action": "eat", "requires_property": "edible", "consumes_target": true, "effects": [
@@ -57,6 +58,9 @@
     { "action": "teach", "requires_property": null, "consumes_target": false, "effects": [
       { "kind": "need", "id": "company", "delta": 0.05, "listener_share": 0.5 },
       { "kind": "need", "id": "purpose", "delta": 0.03 }
+    ] },
+    { "action": "introduce", "requires_property": null, "consumes_target": false, "effects": [
+      { "kind": "need", "id": "company", "delta": 0.03, "listener_share": 1 }
     ] }
   ]
 }

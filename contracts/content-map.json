@@ -23,6 +23,10 @@
       "schema": "i18n"
     },
     {
+      "pattern": "inhabitants/names.json",
+      "schema": "proper-names"
+    },
+    {
       "pattern": "inhabitants/model.json",
       "schema": "inhabitant-model"
     },

@@ -178,6 +178,38 @@ public sealed class InhabitantsSystem : IWorldSystem
 
             Add(inhabitant);
         }
+
+        GiveNames(world.Seed);
+    }
+
+    /// <summary>Own names to pick from (content/inhabitants/names.json, W1698); empty = nobody gets a name.</summary>
+    public IReadOnlyList<string> Names { get; init; } = [];
+
+    /// <summary>
+    /// Gives every inhabitant without a name one from <see cref="Names"/> (W1698): in id order, drawn from the
+    /// world seed with an own stream (not kept among the world's streams), distinct while the list allows.
+    /// Also used when a save game from before names is loaded.
+    /// </summary>
+    public void GiveNames(ulong seed)
+    {
+        if (Names.Count == 0)
+        {
+            return;
+        }
+
+        var rng = RandomStreams.Create(seed, "inhabitant/names");
+        var pool = Names.Where(n => !_inhabitants.Values.Any(i => i.Name == n)).ToList();
+        foreach (var inhabitant in _inhabitants.Values.Where(i => i.Name is null))
+        {
+            if (pool.Count == 0)
+            {
+                pool.AddRange(Names);
+            }
+
+            var index = rng.NextInt(0, pool.Count);
+            inhabitant.Name = pool[index];
+            pool.RemoveAt(index);
+        }
     }
 
     /// <summary>Where and when a start inhabitant is dressed (F4: season, climate, biome, tech level); null = unknown.</summary>
@@ -207,6 +239,9 @@ public sealed class InhabitantsSystem : IWorldSystem
 
     /// <summary>Event: an inhabitant now knows or believes something new (B4a R3).</summary>
     public const string KnowledgeGained = "knowledge_gained";
+
+    /// <summary>Event: an inhabitant now knows another's own name (W1698); target = whose name.</summary>
+    public const string NameLearned = "name_learned";
 
     /// <summary>Detail of a cancelled action whose destination cannot be reached on foot.</summary>
     public const string Unreachable = "unreachable";
@@ -625,9 +660,10 @@ public sealed class InhabitantsSystem : IWorldSystem
         {
             Share(listener, activity.Action);
             Pass(world, inhabitant, listener, activity.Action);
+            Introduce(world, inhabitant, listener, activity.Action);
         }
 
-        changed |= _history.Reverse().TakeWhile(e => e.Seq > seq).Any(e => e.Event.Kind == KnowledgeGained);
+        changed |= _history.Reverse().TakeWhile(e => e.Seq > seq).Any(e => e.Event.Kind is KnowledgeGained or NameLearned);
         var limit = CountRepeat(world, inhabitant, activity, changed);
         Report(new WorldEvent(ActionFinished, world.Tick, inhabitant.Id, activity.Action, activity.TargetId) { Detail = limit ? RepeatLimit : null });
         inhabitant.Activity = null;
@@ -1166,6 +1202,47 @@ public sealed class InhabitantsSystem : IWorldSystem
         var trust = listener.Relationships.Get(teller.Id, Start(knowledge)).Trust;
         listener.Beliefs.Set(belief.TypeId, belief.PropertyId, belief.Belief.Value, belief.Belief.Confidence * trust, KnowledgeSources.Heard, teller.Id, world.Tick);
         Report(new WorldEvent(KnowledgeGained, world.Tick, listener.Id, action, belief.TypeId) { Detail = belief.PropertyId + "/" + KnowledgeSources.Heard });
+    }
+
+    /// <summary>
+    /// Learning names on a first meeting (W1698, data: knowledge.naming): the listener learns the asker's
+    /// name; the asker learns the listener's unless the listener is busy with an urgent need (a need below
+    /// busy_need_below). One name_learned event per learner.
+    /// </summary>
+    private void Introduce(World world, Inhabitant asker, Inhabitant listener, string action)
+    {
+        if (Knowledge?.Naming is not { } naming || !string.Equals(naming.Action, action, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        Learn(world, listener, asker, action);
+        if (!listener.Needs.Values.Any(v => v < naming.BusyNeedBelow))
+        {
+            Learn(world, asker, listener, action);
+        }
+    }
+
+    private void Learn(World world, Inhabitant learner, Inhabitant other, string action)
+    {
+        if (other.Name is not null && learner.KnownNames.Add(other.Id))
+        {
+            Report(new WorldEvent(NameLearned, world.Tick, learner.Id, action, other.Id));
+        }
+    }
+
+    /// <summary>
+    /// Whether an action aimed at another inhabitant still has something to bring (an option the decider may
+    /// take): knowledge to pass on (B4a R4) or, for the naming action, a name the asker does not know yet (W1698).
+    /// </summary>
+    public static bool HasPurpose(KnowledgeSettings knowledge, Inhabitant asker, Inhabitant other, string action)
+    {
+        ArgumentNullException.ThrowIfNull(knowledge);
+        ArgumentNullException.ThrowIfNull(asker);
+        ArgumentNullException.ThrowIfNull(other);
+        return knowledge.Naming is { } naming && string.Equals(naming.Action, action, StringComparison.Ordinal)
+            ? other.Name is not null && !asker.KnownNames.Contains(other.Id)
+            : PassableBelief(knowledge, asker, other, action) is not null;
     }
 
     /// <summary>

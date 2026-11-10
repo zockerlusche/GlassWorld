@@ -92,6 +92,9 @@
     },
     "looking": {
       "$ref": "#/$defs/KnowledgeLooking"
+    },
+    "naming": {
+      "$ref": "#/$defs/KnowledgeNaming"
     }
   },
   "$defs": {
@@ -116,6 +119,27 @@
           "maximum": 1
         },
         "respect": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "KnowledgeNaming": {
+      "description": "Learning names on a first meeting (Marcel W1698): the action (inhabitant target) is offered only while the asker does not know the other's name; when it ends the other learns the asker's name, and the asker learns the other's unless the other is busy with an urgent need (a need below busy_need_below). Each learner gets the event name_learned. Absent = nobody learns names.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action",
+        "busy_need_below"
+      ],
+      "properties": {
+        "action": {
+          "description": "The action that introduces oneself (inhabitant target).",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "busy_need_below": {
+          "description": "The other answers with its own name only while none of its needs is below this level (0 = always answers).",
           "type": "number",
           "minimum": 0,
           "maximum": 1

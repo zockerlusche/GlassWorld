@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/proper-names.schema.json",
+  "title": "ProperNames",
+  "description": "Own names of the inhabitants (Marcel W1698): the core picks one per inhabitant from this list, deterministically by the world seed, distinct while the list allows. Placeholder list; where the names come from is decided later. Each name is a ProperName (one word in Latin letters, the same in DE and EN).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "names"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "names": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 512,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "common.schema.json#/$defs/ProperName"
+      }
+    }
+  }
+}

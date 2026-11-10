@@ -31,6 +31,27 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
+    /// Learning names on a first meeting (Marcel W1698): the action (inhabitant target) is offered only while the asker does not know the other's name; when it ends the other learns the asker's name, and the asker learns the other's unless the other is busy with an urgent need (a need below busy_need_below). Each learner gets the event name_learned. Absent = nobody learns names.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class KnowledgeNaming
+    {
+
+        /// <summary>
+        /// The action that introduces oneself (inhabitant target).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("action")]
+        public string Action { get; set; } = default!;
+
+        /// <summary>
+        /// The other answers with its own name only while none of its needs is below this level (0 = always answers).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("busy_need_below")]
+        public double BusyNeedBelow { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// What looking closely at a thing teaches (TL #19921): the properties one can see, guesses from them, and where the thing stands (place memory). Never the effect: a visible property must not be one an action's effect depends on (checked at load); whether something fills, poisons or quenches thirst is learned by trying, being told or an answered question. Absent = looking teaches nothing.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -196,6 +217,10 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("looking")]
         public KnowledgeLooking? Looking { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("naming")]
+        public KnowledgeNaming? Naming { get; set; } = default!;
 
     }
 }

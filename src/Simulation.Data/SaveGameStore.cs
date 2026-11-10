@@ -258,6 +258,15 @@ public static class SaveGameStore
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("places", JsonSerializer.Serialize(places, Json)));
         }
 
+        // Own names and known names (W1698) by inhabitant id; older saves have no entry (the core names them on load).
+        var names = s.Inhabitants.Where(i => i.Name is not null || i.KnownNames is { Count: > 0 })
+            .ToDictionary(i => i.Id, i => new SavedNames(i.Name, i.KnownNames), StringComparer.Ordinal);
+        if (s.NamesSaved)
+        {
+            // Written even when empty: its presence marks a save game that knows names.
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("names", JsonSerializer.Serialize(names, Json)));
+        }
+
         if (s.Player is not null)
         {
             // Player part (B6) as one JSON value; doubles round-trip exactly, so the hash survives.
@@ -450,6 +459,9 @@ public static class SaveGameStore
         var places = meta.TryGetValue("places", out var placeJson)
             ? JsonSerializer.Deserialize<Dictionary<string, List<SavedPlace>>>(placeJson, Json) ?? []
             : [];
+        var names = meta.TryGetValue("names", out var nameJson)
+            ? JsonSerializer.Deserialize<Dictionary<string, SavedNames>>(nameJson, Json) ?? []
+            : [];
         return new SaveState(
             ulong.Parse(meta["seed"], CultureInfo.InvariantCulture),
             long.Parse(meta["tick"], CultureInfo.InvariantCulture),
@@ -476,7 +488,9 @@ public static class SaveGameStore
                     searches.GetValueOrDefault(r.GetString(0)),
                     places.GetValueOrDefault(r.GetString(0)),
                     repeats.GetValueOrDefault(r.GetString(0))?.Repeat,
-                    repeats.GetValueOrDefault(r.GetString(0))?.Resting)),
+                    repeats.GetValueOrDefault(r.GetString(0))?.Resting,
+                    names.GetValueOrDefault(r.GetString(0))?.Name,
+                    names.GetValueOrDefault(r.GetString(0))?.KnownNames)),
             long.Parse(meta["question_counter"], CultureInfo.InvariantCulture),
             Query(c, "SELECT data FROM questions ORDER BY id", r => JsonSerializer.Deserialize<SavedQuestion>(r.GetString(0))!),
             Query(c, "SELECT key, tick FROM last_asked ORDER BY key", r => new KeyValuePair<string, long>(r.GetString(0), r.GetInt64(1))),
@@ -498,6 +512,7 @@ public static class SaveGameStore
             Weather = meta.TryGetValue("weather", out var weather) ? JsonSerializer.Deserialize<Weather.WeatherState>(weather, Json) : null,
             Skills = meta.TryGetValue("skills", out var skills) ? JsonSerializer.Deserialize<Simulation.Inhabitants.SkillRegisterState>(skills, Json) : null,
             Mailbox = meta.TryGetValue("mailbox", out var mailbox) ? JsonSerializer.Deserialize<Simulation.Player.MailboxState>(mailbox, Json) : null,
+            NamesSaved = meta.ContainsKey("names"),
             Conversation = meta.TryGetValue("conversation", out var conversation) ? JsonSerializer.Deserialize<Simulation.Player.ConversationState>(conversation, Json) : null,
             ContentFingerprint = meta.GetValueOrDefault(ContentFingerprintKey),
         };
@@ -569,6 +584,8 @@ public static class SaveGameStore
     /// without it load with nothing resting; unknown fields are ignored on read.
     /// </summary>
     private sealed record SavedRepeats(RepeatRun? Repeat, IReadOnlyList<RestingAction>? Resting);
+
+    private sealed record SavedNames(string? Name, IReadOnlyList<string>? KnownNames);
 }
 
 /// <summary>Saves the world after every game day (Leitbild: at most one game day lost after a crash).</summary>

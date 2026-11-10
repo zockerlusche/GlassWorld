@@ -209,8 +209,34 @@ public sealed class ContentSet
                 model),
             Knowledge = LoadKnowledge(contentDirectory, vocabularies, objects, actions),
             EventKinds = Required(vocabularies, VocabularyKind.Event).Entries.Select(e => e.Id).ToFrozenSet(StringComparer.Ordinal),
+            InhabitantNames = LoadNames(contentDirectory),
         };
     }
+
+    /// <summary>Own names of the inhabitants (content/inhabitants/names.json, W1698); empty without the file.</summary>
+    public IReadOnlyList<string> InhabitantNames { get; private init; } = [];
+
+    /// <summary>Reads the name list; every name must be a ProperName (^[A-Z][a-z]{1,15}$), each only once.</summary>
+    private static List<string> LoadNames(string contentDirectory)
+    {
+        var path = Path.Combine(contentDirectory, "inhabitants", "names.json");
+        if (!File.Exists(path))
+        {
+            return [];
+        }
+
+        var names = ContractSerializer.Deserialize<ProperNames>(File.ReadAllText(path)).Names.ToList();
+        var bad = names.Where(n => !IsProperName(n)).ToList();
+        if (bad.Count > 0 || names.Distinct(StringComparer.Ordinal).Count() != names.Count)
+        {
+            throw new InvalidDataException("Inhabitant names: every name must match ^[A-Z][a-z]{1,15}$ and appear once" + (bad.Count > 0 ? " ('" + string.Join("', '", bad) + "')." : "."));
+        }
+
+        return names;
+    }
+
+    private static bool IsProperName(string name) =>
+        name.Length is >= 2 and <= 16 && name[0] is >= 'A' and <= 'Z' && name.Skip(1).All(c => c is >= 'a' and <= 'z');
 
     /// <summary>Every carrier of the vocabulary has exactly one entry; all ids it uses are known (B8 R13).</summary>
     private static void CheckWriting(WritingMedia writing, HashSet<string> media, HashSet<string> weather, HashSet<string> properties, HashSet<string> traits, HashSet<string> biomes)
@@ -299,6 +325,11 @@ public sealed class ContentSet
         }
 
         problems.AddRange(data.WaitWhileQuestionOpen.Where(a => !actions.ContainsKey(a)).Select(a => $"unknown action '{a}' in wait_while_question_open"));
+        if (data.Naming is { } naming && (!actions.TryGetValue(naming.Action, out var namingAction) || namingAction.Target != VocabularyEntryTarget.Inhabitant || data.Passing.Any(p => p.Action == naming.Action)))
+        {
+            problems.Add($"naming action '{naming.Action}' is not an action with an inhabitant target, or is also a passing action");
+        }
+
         if (data.Looking is { } looking)
         {
             problems.AddRange(LookingProblems(looking, data, actions, objects, effects));

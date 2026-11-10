@@ -86,6 +86,9 @@ public static class InhabitantStates
             Traits = [.. inhabitant.Traits.Select(t => new LevelEntry { Id = t.Key, Value = t.Value })],
             WillToLive = inhabitant.WillToLive,
 
+            // W1698: its own name, so it can introduce itself; absent while it has none.
+            Name = inhabitant.Name,
+
             // Contract 0.2 (B4a): filled with real memory, knowledge, relationships and habits in B4a-S5.
             Memory = new Memory { Summary = string.Empty, Recent = [] },
             Knowledge = [],
