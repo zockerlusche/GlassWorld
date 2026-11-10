@@ -489,6 +489,7 @@ public partial class WorldPresenter : Node3D
             Bubbles = () => _thoughts.Select(t => (t.Key, t.Value.Label)),
             Area = area,
             WidthPx = () => (_look?.Labels.BubbleWidthPx ?? 440) * uiScale(),
+            OrderHysteresisPx = () => (float)(_look?.Labels.BubbleOrderHysteresisPx ?? 0) * uiScale(),
         };
         AddChild(overlay);
     }
