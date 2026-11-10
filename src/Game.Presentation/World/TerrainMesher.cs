@@ -5,23 +5,28 @@ using GlassWorld.Simulation.Map;
 namespace GlassWorld.Presentation.World;
 
 /// <summary>
-/// Shares of the seasonal palette colours in a colour (B2-5 R24), one per tint slot (<see cref="SeasonSlots"/>):
+/// Shares of the movable palette colours in a colour (B2-5 R24, R16), one per tint slot (<see cref="SeasonSlots"/>):
 /// 1 where the colour is that palette colour, a part where it is blended with others. They follow every
-/// blend of the colour, so the shader can move the seasonal part of a vertex colour without a mesh rebuild.
+/// blend of the colour, so the shader can move that part of a vertex colour (to the season, the weather,
+/// the look epoch) without a mesh rebuild. Eight slots: A–D travel in the vertex attribute CUSTOM0, E–H in CUSTOM1.
 /// </summary>
-public readonly record struct TintWeights(float A, float B, float C, float D)
+public readonly record struct TintWeights(float A, float B, float C, float D, float E = 0, float F = 0, float G = 0, float H = 0)
 {
-    /// <summary>The weights with 1 in one slot (0..3) and 0 in the others.</summary>
-    public static TintWeights Slot(int slot) => new(slot == 0 ? 1 : 0, slot == 1 ? 1 : 0, slot == 2 ? 1 : 0, slot == 3 ? 1 : 0);
+    /// <summary>The weights with 1 in one slot (0..7) and 0 in the others.</summary>
+    public static TintWeights Slot(int slot) =>
+        new(slot == 0 ? 1 : 0, slot == 1 ? 1 : 0, slot == 2 ? 1 : 0, slot == 3 ? 1 : 0, slot == 4 ? 1 : 0, slot == 5 ? 1 : 0, slot == 6 ? 1 : 0, slot == 7 ? 1 : 0);
 
-    /// <summary>Weight of a slot (0..3).</summary>
-    public float this[int slot] => slot switch { 0 => A, 1 => B, 2 => C, _ => D };
+    /// <summary>Weight of a slot (0..7).</summary>
+    public float this[int slot] => slot switch { 0 => A, 1 => B, 2 => C, 3 => D, 4 => E, 5 => F, 6 => G, _ => H };
 
     /// <summary>The weights times a factor.</summary>
-    public TintWeights Times(float f) => new(A * f, B * f, C * f, D * f);
+    public TintWeights Times(float f) => new(A * f, B * f, C * f, D * f, E * f, F * f, G * f, H * f);
 
     /// <summary>The sum of two weights.</summary>
-    public TintWeights Plus(TintWeights other) => new(A + other.A, B + other.B, C + other.C, D + other.D);
+    public TintWeights Plus(TintWeights other) => new(A + other.A, B + other.B, C + other.C, D + other.D, E + other.E, F + other.F, G + other.G, H + other.H);
+
+    /// <summary>The sum of all weights (0 for a colour nothing moves).</summary>
+    public float Sum => A + B + C + D + E + F + G + H;
 }
 
 /// <summary>A colour with components 0..1 and the shares of the seasonal palette colours in it.</summary>
@@ -110,13 +115,18 @@ public sealed record TerrainLook(
     RockLook? Rock = null)
 {
     /// <summary>Resolves the look data against the palette, the map's biome order and the preset.</summary>
-    public static TerrainLook From(LookTerrain terrain, LookPalette palette, WorldMap map, WorldPreset preset)
+    /// <param name="terrain">The terrain look data.</param>
+    /// <param name="palette">The palette the meshes are built with.</param>
+    /// <param name="map">The base grid.</param>
+    /// <param name="preset">The preset of the island.</param>
+    /// <param name="epochs">The look epochs, whose colours get tint slots too (B2-5 R16); null = seasons only.</param>
+    public static TerrainLook From(LookTerrain terrain, LookPalette palette, WorldMap map, WorldPreset preset, LookEpochs? epochs = null)
     {
         ArgumentNullException.ThrowIfNull(terrain);
         ArgumentNullException.ThrowIfNull(palette);
         ArgumentNullException.ThrowIfNull(map);
         ArgumentNullException.ThrowIfNull(preset);
-        var slots = SeasonSlots.From(palette);
+        var slots = SeasonSlots.From(palette, epochs);
         var colors = palette.Colors.ToDictionary(c => c.Id, c => slots.Tinted(c.Id, Rgb.Parse(c.Color)), StringComparer.Ordinal);
         Rgb Color(string id) => colors.TryGetValue(id, out var c) ? c : throw new InvalidDataException($"Terrain look names unknown palette colour '{id}'.");
         var byBiome = terrain.BiomeColors.ToDictionary(b => b.Biome, b => Color(b.Color), StringComparer.Ordinal);
@@ -219,7 +229,7 @@ public sealed class MeshData
     /// <summary>Vertex colours r, g, b.</summary>
     public List<float> Colors { get; } = [];
 
-    /// <summary>Per vertex the shares of the seasonal palette colours (four tint slots, see <see cref="TintWeights"/>).</summary>
+    /// <summary>Per vertex the shares of the movable palette colours (<see cref="SeasonSlots.Max"/> tint slots, see <see cref="TintWeights"/>).</summary>
     public List<float> Tints { get; } = [];
 
     /// <summary>Per vertex flow direction x, z for water (0, 0 for still water and ground).</summary>
@@ -254,7 +264,7 @@ public sealed class MeshData
             Positions.AddRange([x, y, z]);
             Normals.AddRange([nx, ny, nz]);
             Colors.AddRange([color.R, color.G, color.B]);
-            Tints.AddRange([color.Tint.A, color.Tint.B, color.Tint.C, color.Tint.D]);
+            Tints.AddRange([color.Tint.A, color.Tint.B, color.Tint.C, color.Tint.D, color.Tint.E, color.Tint.F, color.Tint.G, color.Tint.H]);
             Flow.AddRange([flow.X, flow.Z]);
         }
     }
@@ -973,7 +983,15 @@ public static partial class TerrainMesher
     private static Rgb Mean(Rgb[] colors) =>
         new(colors.Average(c => c.R), colors.Average(c => c.G), colors.Average(c => c.B))
         {
-            Tint = new TintWeights(colors.Average(c => c.Tint.A), colors.Average(c => c.Tint.B), colors.Average(c => c.Tint.C), colors.Average(c => c.Tint.D)),
+            Tint = new TintWeights(
+                colors.Average(c => c.Tint.A),
+                colors.Average(c => c.Tint.B),
+                colors.Average(c => c.Tint.C),
+                colors.Average(c => c.Tint.D),
+                colors.Average(c => c.Tint.E),
+                colors.Average(c => c.Tint.F),
+                colors.Average(c => c.Tint.G),
+                colors.Average(c => c.Tint.H)),
         };
 
     /// <summary>One fresh water cell (lake, stream, swamp or bank), its corners from <see cref="FreshCorner"/>, split like the ground below.</summary>

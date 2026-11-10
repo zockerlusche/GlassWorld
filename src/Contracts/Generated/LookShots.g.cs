@@ -80,6 +80,20 @@ namespace GlassWorld.Contracts
         public string? Weather { get; set; } = default!;
 
         /// <summary>
+        /// Optional: this point is shot in this look epoch (content/look/epochs.json), once, instead of once per epoch of the set.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("epoch")]
+        public string? Epoch { get; set; } = default!;
+
+        /// <summary>
+        /// Optional: this point is shot at this tide level, as a position on the tide curve of the preset (-1000 lowest water, 0 mean sea level, 1000 highest water), instead of the level of the world tick. No effect on an island without tides (amplitude 0).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("tide_permille")]
+        public int? TidePermille { get; set; } = default!;
+
+        /// <summary>
         /// Optional: the scene finder picks the target near a start instead of the map target (the permille target is the fallback when no spot fits).
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]

@@ -60,6 +60,7 @@
     "scree_permille": 450
   },
   "open_sea_size_factor": 8.0,
+  "tide_follow_real_seconds": 2.0,
   "water_shader": {
     "stripe_scale": 1.6,
     "stripe_speed": 0.6,

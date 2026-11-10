@@ -14,16 +14,17 @@ public static class ObjectShapes
 {
     /// <summary>
     /// Builds the mesh of a shape; <paramref name="paint"/> gives the linear colour of a role and
-    /// <paramref name="tint"/> the shares of the seasonal palette colours in it (the four tint slots as
-    /// r, g, b, a; B2-5 R24), stored per vertex in CUSTOM0 for the warm comic shader.
+    /// <paramref name="tint"/> the shares of the movable palette colours in it (tint slots 0..3 and 4..7,
+    /// each as r, g, b, a; B2-5 R24, R16), stored per vertex in CUSTOM0 and CUSTOM1 for the warm comic shader.
     /// </summary>
-    public static ArrayMesh Build(ObjectLookShape shape, Func<int, Color> paint, Func<int, Color>? tint = null)
+    public static ArrayMesh Build(ObjectLookShape shape, Func<int, Color> paint, Func<int, (Color First, Color More)>? tint = null)
     {
         ArgumentNullException.ThrowIfNull(paint);
         var tool = new SurfaceTool();
         tool.Begin(Mesh.PrimitiveType.Triangles);
         tool.SetCustomFormat(0, SurfaceTool.CustomFormat.Rgba8Unorm);
-        var parts = new Parts(tool, paint, tint ?? (_ => new Color(0, 0, 0, 0)));
+        tool.SetCustomFormat(1, SurfaceTool.CustomFormat.Rgba8Unorm);
+        var parts = new Parts(tool, paint, tint ?? (_ => (new Color(0, 0, 0, 0), new Color(0, 0, 0, 0))));
 
         // The shapes below name a part by its colour role; Parts turns the role into colour and weights.
         Func<int, Color> color = role => new Color(role, 0, 0);
@@ -228,7 +229,7 @@ public static class ObjectShapes
     /// Appends meshes with one colour each into one surface. The colour argument carries the colour role in
     /// its red channel; every vertex gets the role's colour and its seasonal weights.
     /// </summary>
-    private sealed class Parts(SurfaceTool tool, Func<int, Color> paint, Func<int, Color> tint)
+    private sealed class Parts(SurfaceTool tool, Func<int, Color> paint, Func<int, (Color First, Color More)> tint)
     {
         public void Add(Mesh mesh, Transform3D transform, Color role)
         {
@@ -242,7 +243,8 @@ public static class ObjectShapes
             void Vertex(int i)
             {
                 tool.SetColor(color);
-                tool.SetCustom(0, weights);
+                tool.SetCustom(0, weights.First);
+                tool.SetCustom(1, weights.More);
                 tool.SetNormal(normals.Length > i ? (normalBasis * normals[i]).Normalized() : Vector3.Up);
                 tool.AddVertex(transform * vertices[i]);
             }
@@ -270,13 +272,14 @@ public static class ObjectShapes
             foreach (var p in new[] { a, b, c })
             {
                 tool.SetColor(color);
-                tool.SetCustom(0, weights);
+                tool.SetCustom(0, weights.First);
+                tool.SetCustom(1, weights.More);
                 tool.SetNormal(normal);
                 tool.AddVertex(p);
             }
         }
 
-        private (Color Color, Color Weights) Role(Color role)
+        private (Color Color, (Color First, Color More) Weights) Role(Color role)
         {
             var index = (int)MathF.Round(role.R);
             return (paint(index), tint(index));

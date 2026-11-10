@@ -7,7 +7,9 @@ using Godot;
 namespace GlassWorld.Game.World;
 
 /// <summary>
-/// Living nature and weather of the island (B2-5 R21, R23, R24; island scene and main game): the season of
+/// Living nature and weather of the island (B2-5 R16, R21, R23, R24; island scene and main game): the
+/// look epoch of the snapshot as the base palette (its colours blend in softly when the epoch changes,
+/// <see cref="EpochBlender"/>; the season works on that base), the season of
 /// the world clock as shader parameters (the seasonal colours of ground and plants, the snow cover), the
 /// wind of the core as plant sway, falling leaves near the camera, and the weather of the snapshot: rain
 /// and snow near the camera, the colours and snow cover it lays over the season's, stronger sway in a
@@ -21,16 +23,16 @@ namespace GlassWorld.Game.World;
 /// </summary>
 public partial class NatureLook : Node3D
 {
-    private static readonly string[] TintParameters = ["season_tint_0", "season_tint_1", "season_tint_2", "season_tint_3"];
+    private static readonly string[] TintParameters =
+        ["season_tint_0", "season_tint_1", "season_tint_2", "season_tint_3", "season_tint_4", "season_tint_5", "season_tint_6", "season_tint_7"];
 
-    private LookPalette _palette = null!;
     private Dictionary<string, Rgb> _colors = [];
     private FallView _leaves = null!;
     private FallView _rain = null!;
     private FallView _snow = null!;
     private StormGlow _glow = null!;
     private SeasonMix? _seasonShown;
-    private (SeasonMix? Season, WeatherMix? Weather) _laid;
+    private (SeasonMix? Season, WeatherMix? Weather, EpochMix? Epoch) _laid;
     private Vector4 _windShown = new(float.NaN, 0, 0, 0);
     private Color _light = Colors.White;
 
@@ -39,6 +41,9 @@ public partial class NatureLook : Node3D
 
     /// <summary>The season blend.</summary>
     public SeasonBlender Season { get; private set; } = null!;
+
+    /// <summary>The look epoch blend (palette and details, B2-5 R16).</summary>
+    public EpochBlender Epoch { get; private set; } = null!;
 
     /// <summary>The shown wind.</summary>
     public WindSway Wind { get; private set; } = null!;
@@ -58,14 +63,17 @@ public partial class NatureLook : Node3D
         ArgumentNullException.ThrowIfNull(palette);
         var data = ContractSerializer.Deserialize<LookNature>(File.ReadAllText(Path.Combine(contentDirectory, "look", "nature.json")));
         var weather = ContractSerializer.Deserialize<LookWeather>(File.ReadAllText(Path.Combine(contentDirectory, "look", "weather.json")));
-        var slots = SeasonSlots.From(palette);
+        var epochs = ContractSerializer.Deserialize<LookEpochs>(File.ReadAllText(Path.Combine(contentDirectory, "look", "epochs.json")));
+
+        // One tint slot per colour a season or an epoch changes; the meshes of ground and objects are built with the same slots.
+        var slots = SeasonSlots.From(palette, epochs);
         var look = new NatureLook
         {
             Name = "Nature",
             Data = data,
-            _palette = palette,
             _colors = palette.Colors.ToDictionary(c => c.Id, c => Rgb.Parse(c.Color), StringComparer.Ordinal),
             Season = new SeasonBlender(palette, slots),
+            Epoch = new EpochBlender(epochs, slots),
             Wind = new WindSway(data.Wind),
             WeatherData = weather,
             Weather = new WeatherBlender(weather, slots),
@@ -91,27 +99,30 @@ public partial class NatureLook : Node3D
         var snow = data.Snow;
         RenderingServer.GlobalShaderParameterSet("nature_snow_shape", new Vector4((float)snow.PatchM, (float)snow.Edge, (float)snow.MinUp, 0));
         RenderingServer.GlobalShaderParameterSet("nature_wind_shape", new Vector4((float)look.Wind.WaveNumber, (float)look.Wind.LeanShare, 0, 0));
-        look.Apply(look.Weather.Shown.Over(look.Season.Shown));
+        look.Apply(look.Weather.Shown.Over(look.Epoch.Shown.Over(look.Season.Shown)));
         look.ApplyWind();
         return look;
     }
 
     /// <summary>
-    /// One frame of a running world: the season id and the weather of the snapshot, the real seconds since
-    /// the last frame (0 while paused), the camera target on the ground, the speed factor and the real
-    /// seconds one game minute lasts at normal speed (for the weather's transition time).
+    /// One frame of a running world: the season id, the look epoch and the weather of the snapshot, the
+    /// real seconds since the last frame (0 while paused), the camera target on the ground, the speed
+    /// factor and the real seconds one game minute lasts at normal speed (for the weather's transition time).
     /// </summary>
-    public void Follow(string season, WeatherReading? weather, double realSeconds, Vector3 focus, double speed, double realSecondsPerGameMinute)
+    public void Follow(string season, string? epoch, WeatherReading? weather, double realSeconds, Vector3 focus, double speed, double realSecondsPerGameMinute)
     {
         var mix = Weather.Update(weather?.Weather, weather?.Conditions, weather?.TransitionMinutes ?? 0, realSecondsPerGameMinute, speed, realSeconds);
         _glow.Update(mix.Glow, realSeconds);
 
-        // Outside a blend both blenders hand out the same mix every frame: nothing is composed or written then.
+        // Outside a blend the blenders hand out the same mix every frame: nothing is composed or written then.
+        // The epoch palette is the base the season works on (where both name a colour the epoch's wins);
+        // the weather lies over both.
         var seasonMix = Season.Update(season, realSeconds);
-        if (!ReferenceEquals(seasonMix, _laid.Season) || !ReferenceEquals(mix, _laid.Weather))
+        var epochMix = Epoch.Update(epoch, realSeconds);
+        if (!ReferenceEquals(seasonMix, _laid.Season) || !ReferenceEquals(mix, _laid.Weather) || !ReferenceEquals(epochMix, _laid.Epoch))
         {
-            _laid = (seasonMix, mix);
-            Apply(mix.Over(seasonMix));
+            _laid = (seasonMix, mix, epochMix);
+            Apply(mix.Over(epochMix.Over(seasonMix)));
         }
 
         Wind.Update(weather?.Wind, realSeconds);
@@ -120,16 +131,15 @@ public partial class NatureLook : Node3D
     }
 
     /// <summary>
-    /// Screenshot tool: shows a season and a weather at once (null = the base colours, no weather), at the
-    /// camera target <paramref name="focus"/>. Colours in <paramref name="keep"/> stay as the meshes have
-    /// them (an epoch palette wins over the season).
+    /// Screenshot tool: shows a season, a weather and a look epoch at once (null = the base colours, no
+    /// weather, the base palette), at the camera target <paramref name="focus"/>; the same shader
+    /// parameters as in the running game.
     /// </summary>
-    public void Show(string? season, string? weather, Vector3 focus, IReadOnlySet<string>? keep = null)
+    public void Show(string? season, string? weather, Vector3 focus, string? epoch = null)
     {
-        Season = new SeasonBlender(_palette, Season.Slots, keep);
         var mix = Weather.Jump(weather, weather is null ? null : [weather]);
-        _laid = (null, null);
-        Apply(mix.Over(Season.Jump(season)));
+        _laid = (null, null, null);
+        Apply(mix.Over(Epoch.Jump(epoch).Over(Season.Jump(season))));
         ApplyWind();
         Fall(focus);
         _leaves.Settle();
