@@ -356,7 +356,8 @@ public sealed partial class InventionSystem : IWorldSystem, IOptionalWorldState,
     /// <summary>Perceived things as the inhabitant sees them: one per type, nearest first, with believed-true properties only.</summary>
     private List<ObservedThing> Materials(Inhabitant inhabitant)
     {
-        var radiusSquared = _perceptionRadiusM * _perceptionRadiusM;
+        var radius = _inhabitants.Sight.Metres(_perceptionRadiusM);
+        var radiusSquared = radius * radius;
         return [.. _objects.All
             .Select(o => (o, d: Square(o.Position.X - inhabitant.Position.X) + Square(o.Position.Z - inhabitant.Position.Z)))
             .Where(x => x.d <= radiusSquared)

@@ -192,6 +192,9 @@ public sealed class SimulationHost
             Looks = content.Appearance,
             Names = content.InhabitantNames,
             Routes = map,
+
+            // B2594: the weather lowers how far the inhabitants see (exploring and perceiving alike).
+            Sight = new Sight(weather),
             Knowledge = content.Knowledge,
             EventKinds = content.EventKinds,
 

@@ -379,7 +379,7 @@ public sealed class DecisionsSystem : IWorldSystem
     /// </summary>
     private WorldObject? NearestUnknown(Inhabitant inhabitant)
     {
-        var radiusSquared = _brain.Weights.PerceptionRadiusM * _brain.Weights.PerceptionRadiusM;
+        var radiusSquared = _inhabitants.SightRadiusM * _inhabitants.SightRadiusM;
         WorldObject? best = null;
         var bestDistance = double.MaxValue;
         var known = new Dictionary<string, bool>(StringComparer.Ordinal);
@@ -411,7 +411,7 @@ public sealed class DecisionsSystem : IWorldSystem
 
     private List<WorldObject> Perceived(Inhabitant inhabitant)
     {
-        var radius = _brain.Weights.PerceptionRadiusM;
+        var radius = _inhabitants.SightRadiusM;
         return [.. _objects.All
             .Select(o => (o, d: Distance(inhabitant.Position, o.Position)))
             .Where(x => x.d <= radius)
@@ -542,6 +542,9 @@ public sealed class DecisionsSystem : IWorldSystem
                 TimeOfDay = world.Now.Phase.ToString().ToLowerInvariant(),
                 TemperatureC = WeatherSource is { } w ? Math.Round(w.Read(world).TemperatureTenthC / 10.0, 1) : _settings.FallbackEnvironment.TemperatureC,
                 Weather = WeatherSource is { } source ? [.. source.Conditions] : [.. _settings.FallbackEnvironment.Weather],
+
+                // B2594: how far it sees right now; what lies beyond is not in the perception lists.
+                VisibilityM = Math.Round(_inhabitants.SightRadiusM, 1),
             },
             Perception = new Perception
             {
@@ -702,10 +705,10 @@ public sealed class DecisionsSystem : IWorldSystem
         _inhabitants.Report(new WorldEvent(eventKind, world.Tick, question.InhabitantId, null, question.Id) { Detail = reason });
     }
 
-    /// <summary>Other inhabitants within the perception radius, nearest first, ties by id.</summary>
+    /// <summary>Other inhabitants within the perception radius as it is right now (B2594), nearest first, ties by id.</summary>
     private List<Inhabitant> PerceivedInhabitants(Inhabitant inhabitant)
     {
-        var radius = _brain.Weights.PerceptionRadiusM;
+        var radius = _inhabitants.SightRadiusM;
         return [.. _inhabitants.All
             .Where(i => i.Id != inhabitant.Id)
             .Select(i => (i, d: Distance(inhabitant.Position, i.Position)))
