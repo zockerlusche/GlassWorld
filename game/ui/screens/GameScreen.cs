@@ -208,7 +208,7 @@ public partial class GameScreen : CanvasLayer
         if (events.Count > 0)
         {
             _log?.Add(events);
-            foreach (var hint in ScreenModel.Hints(events, _feed.Inhabitants(), _feed.QuestionSubject, _hintedQuestions, DisplayName))
+            foreach (var hint in ScreenModel.Hints(events, _feed.Inhabitants(), Tr("ui.inhabitant.unnamed"), _feed.QuestionSubject, _hintedQuestions))
             {
                 _board.Push(hint, fastForward: _presenter.Speed > 1);
             }
