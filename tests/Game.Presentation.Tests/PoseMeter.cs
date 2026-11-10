@@ -13,7 +13,7 @@ public enum PoseSource
     /// <summary>The core's action (or its target) changed.</summary>
     Action,
 
-    /// <summary>Same action, another idle behaviour (idle variety).</summary>
+    /// <summary>Same action, from an idle clip to another idle clip (idle variety, as PoseCadence holds it).</summary>
     Idle,
 }
 
@@ -35,7 +35,11 @@ public static class PoseMeter
     public sealed record Result(Dictionary<string, Dictionary<PoseSource, int>> Changes, double RealS, int SharedFrames, Dictionary<string, int> PeakPerMinute);
 
     /// <summary>Runs <paramref name="ticks"/> core ticks at <paramref name="speed"/>; each figure's pose comes from <paramref name="factory"/>.</summary>
-    public static Result Run(SimulationHost host, double speed, long ticks, double walkMinStepM, IReadOnlySet<string> idleClips, Func<string, Pose> factory)
+    /// <remarks>
+    /// <paramref name="shownIdle"/> tells by clip (not by asset, which idle and action clips may share) whether a
+    /// figure's clip after the frame is an idle clip; without it the asset is looked up in <paramref name="idleClips"/>.
+    /// </remarks>
+    public static Result Run(SimulationHost host, double speed, long ticks, double walkMinStepM, IReadOnlySet<string> idleClips, Func<string, Pose> factory, Func<string, bool>? shownIdle = null)
     {
         ArgumentNullException.ThrowIfNull(idleClips);
         ArgumentNullException.ThrowIfNull(host);
@@ -51,6 +55,7 @@ public static class PoseMeter
         var accumulator = 0.0;
         var start = host.World.Tick;
         var moving = new Dictionary<string, bool>(StringComparer.Ordinal);
+        var wasIdle = new Dictionary<string, bool>(StringComparer.Ordinal);
         GlassWorld.Simulation.View.WorldSnapshot? snapshot = null;
         for (long frame = 0; host.World.Tick - start < ticks; frame++)
         {
@@ -85,10 +90,11 @@ public static class PoseMeter
                 }
 
                 var now = pose(inhabitant, snapshot.Inhabitants, snapshot.Time.Tick, moving.GetValueOrDefault(inhabitant.Id), realS, frame, applied);
+                var idleNow = shownIdle?.Invoke(inhabitant.Id) ?? idleClips.Contains(now);
                 if (before.Pose is not null && now != before.Pose)
                 {
                     var source = now == "walk" || before.Pose == "walk" ? PoseSource.Walk
-                        : before.Action != inhabitant.Action || before.Target != inhabitant.TargetId || !idleClips.Contains(now) ? PoseSource.Action
+                        : before.Action != inhabitant.Action || before.Target != inhabitant.TargetId || !idleNow || !wasIdle.GetValueOrDefault(inhabitant.Id) ? PoseSource.Action
                         : PoseSource.Idle;
                     var counts = changes.TryGetValue(inhabitant.Id, out var c) ? c : changes[inhabitant.Id] = [];
                     counts[source] = counts.GetValueOrDefault(source) + 1;
@@ -98,6 +104,7 @@ public static class PoseMeter
                 }
 
                 last[inhabitant.Id] = (now, inhabitant.Action, inhabitant.TargetId, inhabitant.Position);
+                wasIdle[inhabitant.Id] = idleNow;
             }
 
             if (changed > 1)

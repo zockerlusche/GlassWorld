@@ -20,10 +20,10 @@ internal interface IAiConnection : IDisposable
 internal sealed class AiUnavailableException(string message, Exception inner) : Exception(message, inner);
 
 /// <summary>The mock decider, no job port: the deterministic run CI uses.</summary>
-internal sealed class MockConnection : IAiConnection
+internal sealed class MockConnection(string contentDirectory) : IAiConnection
 {
     /// <inheritdoc/>
-    public IDecisionPort Decisions { get; } = new MockDecisionPort();
+    public IDecisionPort Decisions { get; } = MockDecisionPort.FromContent(contentDirectory);
 
     /// <inheritdoc/>
     public IJobPort? Jobs => null;

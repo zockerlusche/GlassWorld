@@ -113,7 +113,7 @@ internal sealed class RunCommand
     {
         if (options.Ai == AiMode.Mock)
         {
-            return new MockConnection();
+            return new MockConnection(options.ContentDirectory);
         }
 
         var settings = ContractSerializer.Deserialize<DeciderSettings>(File.ReadAllText(Path.Combine(options.ContentDirectory, "decider", "settings.json")));
@@ -253,7 +253,7 @@ internal sealed class RunCommand
             }
 
             var loaded = StateCodec.Restore(
-                new SimulationHostFactory(host.Content, host.DeciderSettings, new MockDecisionPort(), "de"),
+                new SimulationHostFactory(host.Content, host.DeciderSettings, MockDecisionPort.FromContent(options.ContentDirectory), "de"),
                 SaveGameStore.Load(options.SavePath));
             var same = loaded.World.StateHash() == host.World.StateHash();
             output.WriteLine($"save  {options.SavePath}  hash after load {(same ? "identical" : "DIFFERENT")}");
