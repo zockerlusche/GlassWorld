@@ -37,6 +37,27 @@ public static class ScreenModel
     }
 
     /// <summary>
+    /// InputMap action of the time choice at a position of <see cref="TimeChoices"/> (B2-6 R31): pause,
+    /// normal, then one action per fast-forward factor of the data (<c>gw_time_fast_1</c> is the slowest).
+    /// </summary>
+    public static string TimeAction(int index) => index switch
+    {
+        0 => "gw_time_pause",
+        1 => "gw_time_normal",
+        _ => "gw_time_fast_" + (index - 1).ToString(CultureInfo.InvariantCulture),
+    };
+
+    /// <summary>
+    /// The time choice a time key leads to: the key's own choice, except that the pause key pressed while
+    /// paused goes back to the choice before the pause (the pause key toggles).
+    /// </summary>
+    /// <param name="key">Position of the pressed key's choice (0 = pause).</param>
+    /// <param name="current">Position of the choice that is on.</param>
+    /// <param name="beforePause">Position of the last choice that was not the pause.</param>
+    public static int TimeKeyTarget(int key, int current, int beforePause) =>
+        key == 0 && current == 0 ? Math.Max(1, beforePause) : key;
+
+    /// <summary>
     /// Placeholder values for texts about an inhabitant: <c>number</c> and <c>name</c>, the name the screen
     /// shows (<see cref="DisplayName"/>, the one rule, W1698).
     /// </summary>
