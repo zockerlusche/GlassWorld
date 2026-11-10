@@ -2513,6 +2513,10 @@
     {
       "key": "ui.night.progress_unknown",
       "text": "The inhabitants are asleep."
+    },
+    {
+      "key": "ui.night.zzz",
+      "text": "Zzz"
     }
   ]
 }

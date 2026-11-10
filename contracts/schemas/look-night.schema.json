@@ -11,7 +11,10 @@
     "fade_in_s",
     "min_scene_s",
     "darkness",
-    "poll_s"
+    "poll_s",
+    "sleep_actions",
+    "zzz_above_head_m",
+    "zzz_sway_s"
   ],
   "properties": {
     "contract_version": {
@@ -46,6 +49,26 @@
       "type": "number",
       "minimum": 0.5,
       "maximum": 60
+    },
+    "sleep_actions": {
+      "description": "Actions during which an inhabitant counts as asleep and shows 'Zzz' in the dream scene (vocabulary ids).",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "common.schema.json#/$defs/VocabId"
+      }
+    },
+    "zzz_above_head_m": {
+      "description": "How far above the head anchor the 'Zzz' floats (metres).",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 3
+    },
+    "zzz_sway_s": {
+      "description": "Real seconds of one slow rise-and-fade of the 'Zzz' (0 = still; 'reduce motion' keeps it still).",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 30
     }
   }
 }

@@ -52,5 +52,23 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("poll_s")]
         public double PollS { get; set; } = default!;
 
+        /// <summary>
+        /// Actions during which an inhabitant counts as asleep and shows 'Zzz' in the dream scene (vocabulary ids).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("sleep_actions")]
+        public System.Collections.Generic.ICollection<string> SleepActions { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// How far above the head anchor the 'Zzz' floats (metres).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("zzz_above_head_m")]
+        public double ZzzAboveHeadM { get; set; } = default!;
+
+        /// <summary>
+        /// Real seconds of one slow rise-and-fade of the 'Zzz' (0 = still; 'reduce motion' keeps it still).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("zzz_sway_s")]
+        public double ZzzSwayS { get; set; } = default!;
+
     }
 }

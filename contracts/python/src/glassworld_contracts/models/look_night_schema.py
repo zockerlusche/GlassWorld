@@ -7,6 +7,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from . import common_schema
+
 
 class LookNight(BaseModel):
     model_config = ConfigDict(
@@ -42,4 +44,21 @@ class LookNight(BaseModel):
         description='Real seconds between two questions to the service how far the night is (GET /phase).',
         ge=0.5,
         le=60.0,
+    )
+    sleep_actions: list[common_schema.VocabId] = Field(
+        ...,
+        description="Actions during which an inhabitant counts as asleep and shows 'Zzz' in the dream scene (vocabulary ids).",
+        min_length=1,
+    )
+    zzz_above_head_m: float = Field(
+        ...,
+        description="How far above the head anchor the 'Zzz' floats (metres).",
+        ge=0.0,
+        le=3.0,
+    )
+    zzz_sway_s: float = Field(
+        ...,
+        description="Real seconds of one slow rise-and-fade of the 'Zzz' (0 = still; 'reduce motion' keeps it still).",
+        ge=0.0,
+        le=30.0,
     )

@@ -29,6 +29,9 @@ public partial class GameScreen : CanvasLayer
     private readonly VBoxContainer _nightText = new() { Name = "NightText", Visible = false, MouseFilter = Control.MouseFilterEnum.Ignore };
     private readonly Label _nightProgress = new() { AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled, HorizontalAlignment = HorizontalAlignment.Center, MouseFilter = Control.MouseFilterEnum.Ignore };
     private NightScene? _night;
+    private LookNight? _nightLook;
+    private readonly Dictionary<string, Label> _zzz = new(StringComparer.Ordinal);
+    private double _nightClock;
     private FrozenSet<string> _nightPhases = FrozenSet<string>.Empty;
     private PhaseStatus? _nightStatus;
     private double _nightPoll;
@@ -112,6 +115,7 @@ public partial class GameScreen : CanvasLayer
         // dream scene's words in the middle. Both let the mouse through.
         var nightLook = GlassWorld.Contracts.Validation.ContractSerializer.Deserialize<LookNight>(System.IO.File.ReadAllText(System.IO.Path.Combine(presenter.ContentDirectory, "look", "night.json")));
         _night = new NightScene(nightLook);
+        _nightLook = nightLook;
         (_nightPollS, _nightDarkness) = (nightLook.PollS, nightLook.Darkness);
         _nightPhases = presenter.Host.Content.Inventions.Build.NightPhases;
         _root.AddChild(_nightShade);
@@ -1688,6 +1692,7 @@ public partial class GameScreen : CanvasLayer
         _nightShade.Color = new Color(0, 0, 0, (float)_night.Darkness);
         _nightText.Visible = _night.SceneShown;
         _nightText.Modulate = new Color(1, 1, 1, (float)Math.Clamp(_night.Darkness / Math.Max(_nightDarkness, 0.01), 0, 1));
+        ShowSleepers(_presenter.Speed > 0 ? delta : 0);
         if (_nightText.Visible)
         {
             _nightProgress.Text = _nightStatus is { } s
@@ -1703,6 +1708,61 @@ public partial class GameScreen : CanvasLayer
         if (IsInstanceValid(this) && answer.Status is { } status)
         {
             _nightStatus = status;
+        }
+    }
+
+    /// <summary>
+    /// 'Zzz' above every sleeping inhabitant while the dream scene shows (D637 R12): screen text at the head,
+    /// rising and fading slowly (still with 'reduce motion'); it fades in and out with the scene.
+    /// </summary>
+    private void ShowSleepers(double delta)
+    {
+        if (_night is null || _nightLook is null || _feed is null || _style is null)
+        {
+            return;
+        }
+
+        var camera = GetViewport().GetCamera3D();
+        var shown = new HashSet<string>(StringComparer.Ordinal);
+        if (_night.SceneShown && camera is not null)
+        {
+            _nightClock += delta;
+            var still = _style.Settings.ReduceMotion || _nightLook.ZzzSwayS <= 0;
+            var cycle = still ? 0 : (_nightClock % _nightLook.ZzzSwayS) / _nightLook.ZzzSwayS;
+            var alpha = (float)Math.Clamp(_night.Darkness / Math.Max(_nightDarkness, 0.01), 0, 1);
+            foreach (var who in _feed.Snapshot.Inhabitants.Where(i => i.Action is { } a && _nightLook.SleepActions.Contains(a)))
+            {
+                if (_presenter?.MarkAnchor(who.Id, (float)_style.Tokens.Window.MarkHeightM) is not { } anchor)
+                {
+                    continue;
+                }
+
+                var head = anchor.Parent.GlobalPosition + new Vector3(0, anchor.HeightM + (float)_nightLook.ZzzAboveHeadM, 0);
+                if (camera.IsPositionBehind(head))
+                {
+                    continue;
+                }
+
+                if (!_zzz.TryGetValue(who.Id, out var label))
+                {
+                    label = new Label { Text = "ui.night.zzz", ThemeTypeVariation = UiTheme.HeaderLabel, MouseFilter = Control.MouseFilterEnum.Ignore };
+                    _root.AddChild(label);
+                    _root.MoveChild(label, _nightShade.GetIndex() + 1);
+                    _zzz[who.Id] = label;
+                }
+
+                var rise = (float)(cycle * 24 * (_style.ContentScaleFactor));
+                label.Position = (camera.UnprojectPosition(head) - new Vector2(label.Size.X / 2, label.Size.Y + rise)).Floor();
+                label.Modulate = new Color(1, 1, 1, alpha * (float)(still ? 1 : 1 - (0.6 * cycle)));
+                label.Visible = true;
+                shown.Add(who.Id);
+            }
+        }
+
+        foreach (var (id, label) in _zzz.Where(z => !shown.Contains(z.Key)).ToList())
+        {
+            label.QueueFree();
+            _zzz.Remove(id);
         }
     }
 
