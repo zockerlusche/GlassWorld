@@ -34,10 +34,9 @@ public partial class IslandScene : Node3D
     private int _wait;
     private Shot? _current;
     private IslandView? _view;
-    private LookPalette? _palette;
-    private LookEpochs? _epochs;
-    private string? _epochShown;
     private NatureLook? _nature;
+    private string? _epoch;
+    private GlassWorld.Simulation.Map.TideReading? _tide;
     private GrassView? _grass;
     private string _season = string.Empty;
     private Func<double, double, double> _heightAt = (_, _) => 0;
@@ -97,6 +96,7 @@ public partial class IslandScene : Node3D
         var island = host.Map!;
         var view = IslandView.Create(island, host.Content.WorldGen.Presets[preset], content);
         AddChild(view);
+        _view = view;
         _width = island.Map.WidthCells * view.Look!.CellM;
         _depth = island.Map.DepthCells * view.Look.CellM;
 
@@ -151,7 +151,7 @@ public partial class IslandScene : Node3D
         _nature = NatureLook.Create(content, palette);
         var (grass, otherDecor) = GrassPlan.Split(decor, _nature.Data.Grass);
         Func<double, double, double> groundAt = (x, z) => IslandView.GroundHeight(ground, terrain, x, z);
-        _objects = ObjectsView.Create(objectLooks, palette, groundAt, otherDecor);
+        _objects = ObjectsView.Create(objectLooks, palette, groundAt, otherDecor, _nature.Season.Slots);
         AddChild(_objects);
         _objects.Refresh(host.Snapshot().Objects);
         _grass = GrassView.Create(_objects, grass, groundAt, _nature.Data.Grass, GrassPlan.Level(Look<LookQuality>("quality.json")));
@@ -188,10 +188,7 @@ public partial class IslandScene : Node3D
 
         if (_shotDirectory is not null)
         {
-            _view = view;
-            _palette = palette;
-            _epochs = Look<LookEpochs>("epochs.json");
-            var seasons = _palette.Seasons.Select(s => s.Season).ToHashSet(StringComparer.Ordinal);
+            var seasons = palette.Seasons.Select(s => s.Season).ToHashSet(StringComparer.Ordinal);
 
             // A weather without an entry in content/look/weather.json is rendered unchanged and noted in the file name.
             foreach (var shot in ShotPlan.Build(_shots, seasons, _nature.WeatherWithLook))
@@ -211,9 +208,10 @@ public partial class IslandScene : Node3D
             StepWorld(delta);
             if (!_check && _nature is not null && _rig is not null && _season.Length > 0)
             {
-                // The season and the wind of the running world (the weather reading of the snapshot).
+                // The season, the look epoch, the wind and the tide of the running world (from the snapshot).
                 var time = _host.World.Calendar;
-                _nature.Follow(_season, _weather, delta, Focus(_rig.Model.Target.X, _rig.Model.Target.Z), _ticksPerSecond * time.RealSecondsPerTickAtNormalSpeed, time.RealSecondsPerTickAtNormalSpeed * time.Settings.TicksPerHour / 60.0);
+                _view?.FollowTide(_tide, delta);
+                _nature.Follow(_season, _epoch, _weather, delta, Focus(_rig.Model.Target.X, _rig.Model.Target.Z), _ticksPerSecond * time.RealSecondsPerTickAtNormalSpeed, time.RealSecondsPerTickAtNormalSpeed * time.Settings.TicksPerHour / 60.0);
                 ApplyPhase(_phase);
             }
 
@@ -275,17 +273,14 @@ public partial class IslandScene : Node3D
             }
 
             _rig.Apply();
-            if (next.Epoch != _epochShown)
-            {
-                // An epoch changes the palette the ground is built with (B2 R19); without that list this never runs.
-                _epochShown = next.Epoch;
-                _view!.ApplyPalette(ShotPlan.PaletteFor(_palette!, _epochs!, next.Epoch, null));
-            }
 
-            // The season is a set of shader parameters (B2-5 R24); colours the epoch sets stay the epoch's.
-            var epochColors = next.Epoch is null ? null : _epochs!.Epochs.First(e => e.Id == next.Epoch).Colors.Select(c => c.Id).ToHashSet(StringComparer.Ordinal);
-            // The weather (B2-5 R23) is shown at once: clouds, fog, rain or snow, light and snow cover.
-            _nature!.Show(next.Season, next.WeatherHasLook ? next.Weather : null, Focus(tx, tz), epochColors);
+            // The look epoch and the season are shader parameters, as in the running game (B2-5 R16, R24;
+            // colours the epoch sets stay the epoch's). The weather (B2-5 R23) is shown at once: clouds,
+            // fog, rain or snow, light and snow cover.
+            _nature!.Show(next.Season, next.WeatherHasLook ? next.Weather : null, Focus(tx, tz), next.Epoch);
+
+            // The sea at the tide level the point asks for (B2-5 R15), else at the level of the world tick.
+            _view!.ShowTide(next.Point.TidePermille is { } permille && _tide is { } tide ? TideFollower.AtPermille(tide.Amplitude, permille) : TideFollower.Level(_tide));
             ApplyPhase(next.Phase);
 
             _wait = _shots.SettleFrames;
@@ -335,7 +330,7 @@ public partial class IslandScene : Node3D
     private void ApplySnapshot(int ticks, bool place = false)
     {
         var snapshot = _host.Snapshot();
-        (_season, _weather) = (snapshot.Time.SeasonId, snapshot.Weather);
+        (_season, _weather, _epoch, _tide) = (snapshot.Time.SeasonId, snapshot.Weather, snapshot.LookEpoch, snapshot.Tide);
         foreach (var inhabitant in snapshot.Inhabitants)
         {
             if (_figures.TryGetValue(inhabitant.Id, out var figure))

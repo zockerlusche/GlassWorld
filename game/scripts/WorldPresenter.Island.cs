@@ -33,6 +33,8 @@ public partial class WorldPresenter
     private NatureLook? _nature;
     private string _seasonSeen = string.Empty;
     private Simulation.Weather.WeatherReading? _weatherSeen;
+    private string? _epochSeen;
+    private Simulation.Map.TideReading? _tideSeen;
     private CameraRig? _rig;
     private FigureShared? _figureShared;
     private LookFigures? _figuresLook;
@@ -264,7 +266,7 @@ public partial class WorldPresenter
         var palette = Read<LookPalette>(content, "look", "palette.json");
         _nature = NatureLook.Create(content, palette);
         var (grass, otherDecor) = GrassPlan.Split(Decor.Plan(objectLooks.Decor, map.Island, terrain.CellM), _nature.Data.Grass);
-        _objectsView = ObjectsView.Create(objectLooks, palette, _ground, otherDecor);
+        _objectsView = ObjectsView.Create(objectLooks, palette, _ground, otherDecor, _nature.Season.Slots);
         AddChild(_objectsView);
         _grassView = GrassView.Create(_objectsView, grass, _ground, _nature.Data.Grass, GrassPlan.Level(Read<LookQuality>(content, "look", "quality.json")));
         AddChild(_grassView);
@@ -437,8 +439,8 @@ public partial class WorldPresenter
     /// <summary>
     /// Each frame of island mode: the season and the weather of the last snapshot move the season colours,
     /// the snow, the plants in the wind, the falling leaves, rain and snow and the weather blend (B2-5 R21,
-    /// R23, R24). Real time, so fast forward stays calm; pause and speed 0 hold everything still, like the
-    /// figures (W1688).
+    /// R23, R24); its look epoch blends the palette (R16) and its tide moves the sea surface (R15). Real
+    /// time, so fast forward stays calm; pause and speed 0 hold everything still, like the figures (W1688).
     /// </summary>
     private void FollowNature(double delta)
     {
@@ -450,7 +452,8 @@ public partial class WorldPresenter
         var (x, z) = _rig.Model.Target;
         var focus = new Vector3((float)x, Math.Max(GroundHeight(x, z), (float)_seaLevelM), (float)z);
         var calendar = _host!.World.Calendar;
-        _nature.Follow(_seasonSeen, _weatherSeen, _freeze.Frozen ? 0 : delta, focus, Speed, calendar.RealSecondsPerTickAtNormalSpeed * calendar.Settings.TicksPerHour / 60.0);
+        _islandView?.FollowTide(_tideSeen, _freeze.Frozen ? 0 : delta);
+        _nature.Follow(_seasonSeen, _epochSeen, _weatherSeen, _freeze.Frozen ? 0 : delta, focus, Speed, calendar.RealSecondsPerTickAtNormalSpeed * calendar.Settings.TicksPerHour / 60.0);
     }
 
     /// <summary>Puts back what <see cref="LightTheScene"/> changed in the scene (back to the menu).</summary>
@@ -518,7 +521,7 @@ public partial class WorldPresenter
         }
 
         var snapshot = _host.Snapshot();
-        (_seasonSeen, _weatherSeen) = (snapshot.Time.SeasonId, snapshot.Weather);
+        (_seasonSeen, _weatherSeen, _epochSeen, _tideSeen) = (snapshot.Time.SeasonId, snapshot.Weather, snapshot.LookEpoch, snapshot.Tide);
 
         // Seats (W1688) are taken from the objects only when they changed.
         if (_objectsView?.Refresh(snapshot.Objects) != false || _seats is null)

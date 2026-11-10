@@ -3,16 +3,17 @@ using GlassWorld.Contracts;
 namespace GlassWorld.Presentation.World;
 
 /// <summary>
-/// The palette colours a season changes (B2-5 R24), each in one tint slot of the shader: the meshes carry
-/// per vertex how much of each such colour is in them (<see cref="TintWeights"/>), and the shader moves
-/// that part to the colour of the season, so a season change needs no mesh rebuild. The slots are the
-/// colours overridden by any season in <c>content/look/palette.json</c>, in palette order; there are at
-/// most <see cref="Max"/> (one vertex attribute).
+/// The palette colours a season or a look epoch changes (B2-5 R24, R16), each in one tint slot of the
+/// shader: the meshes carry per vertex how much of each such colour is in them (<see cref="TintWeights"/>),
+/// and the shader moves that part to the colour shown now, so neither a season nor an epoch change needs a
+/// mesh rebuild. The slots are the colours overridden by any season in <c>content/look/palette.json</c> or
+/// by any epoch in <c>content/look/epochs.json</c>, in palette order; there are at most <see cref="Max"/>
+/// (two vertex attributes of four channels).
 /// </summary>
 public sealed class SeasonSlots
 {
-    /// <summary>Largest number of seasonal colours (the four channels of one vertex attribute).</summary>
-    public const int Max = 4;
+    /// <summary>Largest number of movable colours (the four channels of the vertex attributes CUSTOM0 and CUSTOM1).</summary>
+    public const int Max = 8;
 
     private SeasonSlots(IReadOnlyList<string> ids, IReadOnlyList<Rgb> baseColors)
     {
@@ -26,21 +27,35 @@ public sealed class SeasonSlots
     /// <summary>Base colour per slot (the colour the meshes are built with).</summary>
     public IReadOnlyList<Rgb> BaseColors { get; }
 
-    /// <summary>The slots of a palette; more than <see cref="Max"/> seasonal colours are a data error.</summary>
-    public static SeasonSlots From(LookPalette palette)
+    /// <summary>
+    /// The slots of a palette and, if given, of the look epochs; more than <see cref="Max"/> movable
+    /// colours are a data error, and so is an epoch colour the palette does not have. Meshes and shader
+    /// parameters must be made with the same slots (the views share those of the nature look).
+    /// </summary>
+    public static SeasonSlots From(LookPalette palette, LookEpochs? epochs = null)
     {
         ArgumentNullException.ThrowIfNull(palette);
-        var seasonal = palette.Seasons.SelectMany(s => s.Colors).Select(c => c.Id).ToHashSet(StringComparer.Ordinal);
-        var slots = palette.Colors.Where(c => seasonal.Contains(c.Id)).ToList();
+        var movable = palette.Seasons.SelectMany(s => s.Colors).Select(c => c.Id).ToHashSet(StringComparer.Ordinal);
+        foreach (var id in (epochs?.Epochs ?? []).SelectMany(e => e.Colors).Select(c => c.Id))
+        {
+            if (palette.Colors.All(c => c.Id != id))
+            {
+                throw new InvalidDataException($"content/look/epochs.json overrides unknown palette colour '{id}'.");
+            }
+
+            movable.Add(id);
+        }
+
+        var slots = palette.Colors.Where(c => movable.Contains(c.Id)).ToList();
         if (slots.Count > Max)
         {
-            throw new InvalidDataException($"The seasons of content/look/palette.json change {slots.Count} colours; the shader has {Max} tint slots.");
+            throw new InvalidDataException($"The seasons of content/look/palette.json and the epochs of content/look/epochs.json change {slots.Count} colours; the shader has {Max} tint slots.");
         }
 
         return new SeasonSlots([.. slots.Select(c => c.Id)], [.. slots.Select(c => Rgb.Parse(c.Color))]);
     }
 
-    /// <summary>Slot of a palette colour, or -1 if no season changes it.</summary>
+    /// <summary>Slot of a palette colour, or -1 if no season and no epoch changes it.</summary>
     public int IndexOf(string id)
     {
         for (var i = 0; i < Ids.Count; i++)
@@ -54,7 +69,7 @@ public sealed class SeasonSlots
         return -1;
     }
 
-    /// <summary>The weights of a palette colour: 1 in its slot, or all 0 if no season changes it.</summary>
+    /// <summary>The weights of a palette colour: 1 in its slot, or all 0 if nothing changes it.</summary>
     public TintWeights WeightsOf(string id) => IndexOf(id) is >= 0 and var slot ? TintWeights.Slot(slot) : default;
 
     /// <summary>A palette colour with its weights, as the meshers blend it.</summary>

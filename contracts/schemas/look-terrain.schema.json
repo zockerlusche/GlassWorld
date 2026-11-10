@@ -66,6 +66,12 @@
       "minimum": 1,
       "maximum": 100
     },
+    "tide_follow_real_seconds": {
+      "description": "Optional: time constant in real seconds with which the drawn sea surface follows the tide level of the core (B2-5 R15), so the water glides at every game speed. Missing or 0 = the surface shows every level at once.",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 60
+    },
     "water_shader": {
       "$ref": "#/$defs/TerrainWaterShader"
     },

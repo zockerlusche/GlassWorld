@@ -293,6 +293,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("open_sea_size_factor")]
         public double OpenSeaSizeFactor { get; set; } = default!;
 
+        /// <summary>
+        /// Optional: time constant in real seconds with which the drawn sea surface follows the tide level of the core (B2-5 R15), so the water glides at every game speed. Missing or 0 = the surface shows every level at once.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("tide_follow_real_seconds")]
+        public double? TideFollowRealSeconds { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("water_shader")]
         public TerrainWaterShader WaterShader { get; set; } = new TerrainWaterShader();
 

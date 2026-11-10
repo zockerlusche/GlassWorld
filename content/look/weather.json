@@ -214,6 +214,10 @@
         {
           "id": "foliage",
           "color": "#8f9a58"
+        },
+        {
+          "id": "forest_floor",
+          "color": "#8f9a58"
         }
       ]
     }

@@ -103,6 +103,18 @@ class ShotPoint(BaseModel):
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
+    epoch: str | None = Field(
+        None,
+        description='Optional: this point is shot in this look epoch (content/look/epochs.json), once, instead of once per epoch of the set.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    tide_permille: int | None = Field(
+        None,
+        description='Optional: this point is shot at this tide level, as a position on the tide curve of the preset (-1000 lowest water, 0 mean sea level, 1000 highest water), instead of the level of the world tick. No effect on an island without tides (amplitude 0).',
+        ge=-1000,
+        le=1000,
+    )
     scene: ShotScene | None = Field(
         None,
         description='Optional: the scene finder picks the target near a start instead of the map target (the permille target is the fallback when no spot fits).',

@@ -269,5 +269,11 @@ class LookTerrain(BaseModel):
         ge=1.0,
         le=100.0,
     )
+    tide_follow_real_seconds: float | None = Field(
+        None,
+        description='Optional: time constant in real seconds with which the drawn sea surface follows the tide level of the core (B2-5 R15), so the water glides at every game speed. Missing or 0 = the surface shows every level at once.',
+        ge=0.0,
+        le=60.0,
+    )
     water_shader: TerrainWaterShader
     detail: TerrainDetail
