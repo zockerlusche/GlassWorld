@@ -22,8 +22,19 @@ public readonly record struct BubblePlace(string Id, double Left, double Top);
 /// </summary>
 public static class BubbleLayout
 {
-    /// <summary>Places the bubbles inside the area (left, top, right, bottom) with <paramref name="gap"/> pixels between them.</summary>
-    public static IReadOnlyList<BubblePlace> Place(IReadOnlyList<BubbleRequest> bubbles, (double Left, double Top, double Right, double Bottom) area, double gap)
+    /// <summary>
+    /// Places the bubbles inside the area (left, top, right, bottom) with <paramref name="gap"/> pixels between
+    /// them. The result is in the order the bubbles were placed; passing it back as
+    /// <paramref name="previousOrder"/> keeps two bubbles in their order while their heads are within
+    /// <paramref name="hysteresis"/> pixels of the same height, so a stack does not flip back and forth
+    /// when two walkers swap depth by a pixel (review GW1 #152).
+    /// </summary>
+    public static IReadOnlyList<BubblePlace> Place(
+        IReadOnlyList<BubbleRequest> bubbles,
+        (double Left, double Top, double Right, double Bottom) area,
+        double gap,
+        IReadOnlyList<string>? previousOrder = null,
+        double hysteresis = 0)
     {
         ArgumentNullException.ThrowIfNull(bubbles);
 
@@ -32,6 +43,27 @@ public static class BubbleLayout
             .OrderByDescending(b => b.AnchorY)
             .ThenBy(b => b.Id, StringComparer.Ordinal)
             .ToList();
+        if (previousOrder is { Count: > 0 } && hysteresis > 0)
+        {
+            // Neighbours that are nearly level go back to the order they had; a plain insertion pass, since
+            // "nearly level" is no strict order.
+            var rank = previousOrder.Select((id, i) => (id, i)).ToDictionary(x => x.id, x => x.i, StringComparer.Ordinal);
+            for (var i = 1; i < order.Count; i++)
+            {
+                for (var j = i; j > 0; j--)
+                {
+                    var (above, below) = (order[j - 1], order[j]);
+                    if (Math.Abs(above.AnchorY - below.AnchorY) > hysteresis
+                        || !rank.TryGetValue(above.Id, out var was) || !rank.TryGetValue(below.Id, out var wasBelow) || was < wasBelow)
+                    {
+                        break;
+                    }
+
+                    (order[j - 1], order[j]) = (below, above);
+                }
+            }
+        }
+
         var placed = new List<(string Id, double L, double T, double W, double H)>(order.Count);
         foreach (var b in order)
         {

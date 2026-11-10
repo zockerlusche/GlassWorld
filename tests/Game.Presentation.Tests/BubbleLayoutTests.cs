@@ -5,6 +5,26 @@ namespace GlassWorld.Presentation.Tests;
 /// <summary>Bubbles over heads never lie on top of each other and stay in the free area (W1687).</summary>
 public sealed class BubbleLayoutTests
 {
+    [Fact]
+    public void NearlyLevelBubblesKeepTheirOrderUntilTheDifferenceIsClear()
+    {
+        var area = (0.0, 0.0, 1000.0, 1000.0);
+        BubbleRequest A(double y) => new("a", 500, y, 200, 40);
+        BubbleRequest B(double y) => new("b", 520, y, 200, 40);
+
+        var first = BubbleLayout.Place([A(400), B(396)], area, 6);
+        Assert.Equal(["a", "b"], first.Select(p => p.Id));
+
+        // b comes 3 px in front: without memory the stack flips, with it the order stays.
+        Assert.Equal(["b", "a"], BubbleLayout.Place([A(400), B(403)], area, 6).Select(p => p.Id));
+        var kept = BubbleLayout.Place([A(400), B(403)], area, 6, [.. first.Select(p => p.Id)], 12);
+        Assert.Equal(["a", "b"], kept.Select(p => p.Id));
+
+        // Clearly in front: the order changes.
+        var changed = BubbleLayout.Place([A(400), B(430)], area, 6, [.. kept.Select(p => p.Id)], 12);
+        Assert.Equal(["b", "a"], changed.Select(p => p.Id));
+    }
+
     private static readonly (double, double, double, double) Area = (0, 180, 1700, 1080);
 
     [Fact]
