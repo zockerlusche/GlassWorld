@@ -45,7 +45,9 @@ public partial class WorldPresenter
     private readonly PlaybackFreeze _freeze = new();
     private readonly List<Vector3> _fadeFor = [];
     private List<Seat>? _seats;
-    private (Godot.Environment? Environment, DirectionalLight3D? Sun, Color SunColor, float SunEnergy, Vector3 SunRotation, bool SunShadow, List<Node3D> Hidden)? _restore;
+    private (Godot.Environment? Environment, DirectionalLight3D? Sun, Color SunColor, float SunEnergy, Vector3 SunRotation, bool SunShadow, float SunShadowOpacity, List<Node3D> Hidden)? _restore;
+    private (LookDaylight Data, DirectionalLight3D Sun, Godot.Environment Environment)? _daylight;
+    private DaylightMix? _daylightShown;
 
     /// <summary>How this world is drawn (island when it has an island map).</summary>
     public WorldLookMode Mode { get; private set; } = WorldLookMode.Placeholder;
@@ -271,7 +273,7 @@ public partial class WorldPresenter
             id => _islandNodes.TryGetValue(id, out var node) ? node.Position : (Vector3?)null,
             _look.Observer);
 
-        LightTheIsland(content);
+        LightTheScene(content, _look, "IslandPlaceholder", "WaterPlaceholder");
         GD.Print($"ISLAND_WORLD preset={map.Island.PresetId} chunks={_islandView.GroundChunks} figures={_islandFigures.Count} objects_drawn={_objectsView.Drawn} layers={_objectsView.Layers}");
     }
 
@@ -340,17 +342,20 @@ public partial class WorldPresenter
         _seaLevelM = double.NegativeInfinity;
     }
 
-    /// <summary>The day light of the data on the scene's sun and environment; the placeholder island and sea are hidden (restored on exit).</summary>
-    private void LightTheIsland(string content)
+    /// <summary>
+    /// The day light of the data on the scene's sun and environment (island and placeholder world); the named
+    /// scene nodes are hidden (restored on exit). It follows the world clock unless <c>day_phase</c> fixes a phase.
+    /// </summary>
+    private void LightTheScene(string content, LookWorld look, params string[] hide)
     {
-        if (GetParent() is not { } scene || _look is null)
+        if (GetParent() is not { } scene)
         {
             // Not in a scene (the smoke's load check): nothing to light.
             return;
         }
 
         var hidden = new List<Node3D>();
-        foreach (var name in new[] { "IslandPlaceholder", "WaterPlaceholder" })
+        foreach (var name in hide)
         {
             if (scene.GetNodeOrNull<Node3D>(name) is { Visible: true } node)
             {
@@ -361,7 +366,7 @@ public partial class WorldPresenter
 
         var worldEnvironment = scene.GetChildren().OfType<WorldEnvironment>().FirstOrDefault();
         var sun = scene.GetChildren().OfType<DirectionalLight3D>().FirstOrDefault();
-        _restore = (worldEnvironment?.Environment, sun, sun?.LightColor ?? Colors.White, sun?.LightEnergy ?? 1, sun?.RotationDegrees ?? Vector3.Zero, sun?.ShadowEnabled ?? false, hidden);
+        _restore = (worldEnvironment?.Environment, sun, sun?.LightColor ?? Colors.White, sun?.LightEnergy ?? 1, sun?.RotationDegrees ?? Vector3.Zero, sun?.ShadowEnabled ?? false, sun?.ShadowOpacity ?? 1, hidden);
         if (sun is null)
         {
             sun = new DirectionalLight3D { Name = "IslandSun" };
@@ -380,10 +385,35 @@ public partial class WorldPresenter
         }
 
         DaylightLook.ApplyRendering(daylight, sun, environment);
-        DaylightLook.Apply(daylight, _look.DayPhase, sun, environment);
+        if (look.DayPhase == DaylightClock.FollowClock)
+        {
+            _daylight = (daylight, sun, environment);
+            FollowTheClock();
+        }
+        else
+        {
+            DaylightLook.Apply(daylight, look.DayPhase, sun, environment);
+        }
     }
 
-    /// <summary>Puts back what <see cref="LightTheIsland"/> changed in the scene (back to the menu).</summary>
+    /// <summary>Each frame: the light of the current world time, with the fraction of the running tick (smooth at x16).</summary>
+    private void FollowTheClock()
+    {
+        if (_daylight is not { } d || _host is null || !IsInstanceValid(d.Sun))
+        {
+            return;
+        }
+
+        var calendar = _host.World.Calendar;
+        var mix = DaylightClock.At(d.Data, calendar, _host.World.Tick, _accumulator);
+        if (mix != _daylightShown)
+        {
+            _daylightShown = mix;
+            DaylightLook.Apply(d.Data, mix, d.Sun, d.Environment);
+        }
+    }
+
+    /// <summary>Puts back what <see cref="LightTheScene"/> changed in the scene (back to the menu).</summary>
     private void RestoreScene()
     {
         if (_restore is not { } r)
@@ -392,6 +422,8 @@ public partial class WorldPresenter
         }
 
         _restore = null;
+        _daylight = null;
+        _daylightShown = null;
         foreach (var node in r.Hidden.Where(IsInstanceValid))
         {
             node.Visible = true;
@@ -408,6 +440,7 @@ public partial class WorldPresenter
             sun.LightEnergy = r.SunEnergy;
             sun.RotationDegrees = r.SunRotation;
             sun.ShadowEnabled = r.SunShadow;
+            sun.ShadowOpacity = r.SunShadowOpacity;
         }
     }
 

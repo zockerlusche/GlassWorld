@@ -237,6 +237,7 @@ public partial class WorldPresenter : Node3D
         AddChild(_objects);
         UpdateVisuals();
         BeginPlaceholderCamera();
+        LightTheScene(_contentDirectory, ReadLook(_contentDirectory));
     }
 
     /// <summary>
@@ -288,6 +289,7 @@ public partial class WorldPresenter : Node3D
         if (Mode == WorldLookMode.Island)
         {
             ProcessIsland(ticks);
+            FollowTheClock();
             _clock += delta;
             ShowThoughts();
             ObserverCamera();
@@ -300,6 +302,7 @@ public partial class WorldPresenter : Node3D
             UpdateVisuals();
         }
 
+        FollowTheClock();
         _clock += delta;
         ShowThoughts();
         LayPlaceholderGround();

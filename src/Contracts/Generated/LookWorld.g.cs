@@ -180,7 +180,7 @@ namespace GlassWorld.Contracts
         public string IslandPreset { get; set; } = default!;
 
         /// <summary>
-        /// Day phase of content/look/daylight.json whose light the island shows until B2-5 blends the phases over time.
+        /// Light of the world: clock = follow the world clock and blend the phases of content/look/daylight.json by time of day (B2-5); a phase id of daylight.json shows that phase fixed (screenshots, tests).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("day_phase")]
         public string DayPhase { get; set; } = default!;

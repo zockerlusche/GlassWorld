@@ -157,6 +157,12 @@ class LookDaylight(BaseModel):
         ge=0.0,
         le=360.0,
     )
+    blend_minutes: float = Field(
+        ...,
+        description='Game minutes on each side of a phase change (sunrise, end of dawn, sunset, end of dusk) over which the look blends into the next phase; shorter for a phase shorter than twice this, so a short twilight still passes through its own look.',
+        ge=0.0,
+        le=720.0,
+    )
     phases: list[LookDaylightPhase] = Field(
         ...,
         description='One entry per time of day (vocabulary kind time_of_day).',

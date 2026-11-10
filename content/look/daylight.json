@@ -2,6 +2,7 @@
   "contract_version": "0.2",
   "night_min_brightness": 0.3,
   "sun_azimuth_deg": 35,
+  "blend_minutes": 40,
   "shadow_blur": 2.0,
   "tonemap": "linear",
   "sky": {

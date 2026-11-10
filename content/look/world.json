@@ -2,7 +2,7 @@
   "contract_version": "0.2",
   "world": "placeholder",
   "island_preset": "start_island",
-  "day_phase": "day",
+  "day_phase": "clock",
   "labels": {
     "thought_above_head_m": 1.9,
     "question_above_head_m": 1.1,

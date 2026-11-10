@@ -7,14 +7,17 @@ namespace GlassWorld.Presentation.World;
 /// the phase's sunlight blended with the moonlight by the phase's moon value, the ambient light
 /// never below <c>night_min_brightness</c>. <see cref="Lerp"/> blends two moments for calm
 /// transitions at dusk and dawn. The main light is one directional light for sun and moon, so the
-/// night costs no extra shadow pass. Presentation only.
+/// night costs no extra shadow pass. Sun and moon stand far apart in the sky, so the light never swings
+/// across from one to the other (that would pass the zenith): at the hand-over (moon value 0.5) the light
+/// and its shadow fade to 0, the direction switches there and fades back in (GW3 #166, #173). The ambient
+/// light keeps its floor, so the world never turns black. Presentation only.
 /// </summary>
 public sealed record DaylightMix(
     Rgb LightColor,
     double LightEnergy,
     double LightElevationDeg,
     double LightAzimuthDeg,
-    bool Shadows,
+    double ShadowOpacity,
     Rgb SkyTop,
     Rgb SkyHorizon,
     Rgb Ambient,
@@ -23,6 +26,9 @@ public sealed record DaylightMix(
     double Moon,
     Rgb WaterLight)
 {
+    /// <summary>Whether the main light casts a shadow at all (no shadow pass when it is fully faded).</summary>
+    public bool Shadows => ShadowOpacity > 0;
+
     /// <summary>The moment of a day phase; an unknown phase is a data error.</summary>
     public static DaylightMix Of(LookDaylight daylight, string phase)
     {
@@ -31,13 +37,13 @@ public sealed record DaylightMix(
             ?? throw new InvalidDataException($"Unknown day phase '{phase}' (content/look/daylight.json).");
         var moon = daylight.Moon;
         var w = data.Moon;
-        var (elevation, azimuth) = Blend(data.SunElevationDeg, daylight.SunAzimuthDeg, moon.ElevationDeg, moon.AzimuthDeg, w);
+        var (elevation, azimuth) = w < 0.5 ? (data.SunElevationDeg, daylight.SunAzimuthDeg) : (moon.ElevationDeg, moon.AzimuthDeg);
         return new DaylightMix(
             Rgb.Parse(data.LightColor).Lerp(Rgb.Parse(moon.LightColor), (float)w),
             (data.LightEnergy * (1 - w)) + (moon.LightEnergy * w),
             elevation,
             azimuth,
-            w < 0.5 || moon.Shadows,
+            w < 0.5 || moon.Shadows ? 1 : 0,
             Rgb.Parse(data.SkyTop),
             Rgb.Parse(data.SkyHorizon),
             Rgb.Parse(data.AmbientColor),
@@ -47,7 +53,13 @@ public sealed record DaylightMix(
             Rgb.Parse(data.WaterLight));
     }
 
-    /// <summary>Blends towards <paramref name="other"/> (t = 0: this moment, 1: the other).</summary>
+    /// <summary>Whether the moon gives the main light (else the sun).</summary>
+    public bool MoonLit => Moon >= 0.5;
+
+    /// <summary>
+    /// Blends towards <paramref name="other"/> (t = 0: this moment, 1: the other). Between sun and moon the
+    /// main light fades out to the hand-over, jumps to the other direction there and fades in again.
+    /// </summary>
     public DaylightMix Lerp(DaylightMix other, double t)
     {
         ArgumentNullException.ThrowIfNull(other);
@@ -57,13 +69,26 @@ public sealed record DaylightMix(
         }
 
         double Mix(double a, double b) => a + ((b - a) * t);
-        var (elevation, azimuth) = Blend(LightElevationDeg, LightAzimuthDeg, other.LightElevationDeg, other.LightAzimuthDeg, t);
+        double energy, shadow, elevation, azimuth;
+        if (MoonLit == other.MoonLit)
+        {
+            (energy, shadow) = (Mix(LightEnergy, other.LightEnergy), Mix(ShadowOpacity, other.ShadowOpacity));
+            (elevation, azimuth) = Blend(LightElevationDeg, LightAzimuthDeg, other.LightElevationDeg, other.LightAzimuthDeg, t);
+        }
+        else
+        {
+            // The hand-over where the moon value passes 0.5; the light is 0 there.
+            var handOver = Math.Clamp((0.5 - Moon) / (other.Moon - Moon), 1e-3, 1 - 1e-3);
+            var (light, fade) = t < handOver ? (this, 1 - (t / handOver)) : (other, (t - handOver) / (1 - handOver));
+            (energy, shadow, elevation, azimuth) = (light.LightEnergy * fade, light.ShadowOpacity * fade, light.LightElevationDeg, light.LightAzimuthDeg);
+        }
+
         return new DaylightMix(
             LightColor.Lerp(other.LightColor, (float)t),
-            Mix(LightEnergy, other.LightEnergy),
+            energy,
             elevation,
             azimuth,
-            t < 0.5 ? Shadows : other.Shadows,
+            shadow,
             SkyTop.Lerp(other.SkyTop, (float)t),
             SkyHorizon.Lerp(other.SkyHorizon, (float)t),
             Ambient.Lerp(other.Ambient, (float)t),
