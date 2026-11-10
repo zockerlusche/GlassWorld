@@ -418,7 +418,7 @@ class LookTerrain(BaseModel):
     waves: TerrainWaves | None = None
     water_time_wrap_seconds: float | None = Field(
         None,
-        description='Period of the water clock in real seconds (W1724): the time flow lines, shimmer, foam and wave crests move by runs only while the game is not paused and starts again after this long; every cycle of the water shaders is rounded to a whole number of rounds per period, so the wrap does not show. Absent = 3600.',
-        ge=60.0,
+        description='Period of the water clock in real seconds (W1724): the time flow lines, shimmer, foam and wave crests move by runs only while the game is not paused and starts again after this long. Every cycle of the water shaders is rounded to a whole number of rounds per period (at least one) and every scrolling pattern repeats after the steps it scrolls per period, so the wrap does not show - with any period; a short one (10) is the quick way to look for a jump, it only makes slow cycles run faster. Absent = 3600.',
+        ge=1.0,
         le=86400.0,
     )
