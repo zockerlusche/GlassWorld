@@ -114,9 +114,10 @@ public sealed class TerrainMesherTests
         var map = builder.Build();
         var water = TerrainMesher.Water(map, 0, 0, Look);
 
-        // Eight sea plates and the swamp plate; the running cell (2, 0) is drawn as a stream band (Streams),
-        // not here. The dry cells (2, 1) and (3, 1) next to the swamp lie at its surface and dip below it
-        // towards the water, so they carry the swamp only in that dip (cut on the shore line, A1455).
+        // Nine water plates: the running cell (2, 0) is drawn as a stream band (Streams), not here. The dry
+        // cells next to the swamp lie no higher than its surface, so they carry no bank plate (they would
+        // look flooded); the swamp comes down to them instead.
+        Assert.Equal((4 + 4 + 1) * 2, water.TriangleCount);
         var faces = Faces(water);
         (float Y, Rgb Color, (float, float) Flow) Cell(int x, int z) =>
             faces.Where(f => (int)f.X == x && (int)f.Z == z).Select(f => (f.Y, f.Color, f.Flow)).First();
@@ -126,20 +127,9 @@ public sealed class TerrainMesherTests
         Assert.DoesNotContain(faces, f => (int)f.X == 2 && (int)f.Z == 0);
         Assert.Equal(Look.Swamp, Cell(3, 0).Color);
         Assert.Equal((0f, 0f), Cell(3, 0).Flow);
-        var banks = faces.Where(f => (int)f.Z >= 1 && (int)f.X >= 2).ToList();
-        Assert.NotEmpty(banks);
-        Assert.All(banks, f => Assert.True(f.Z < 2 && f.Color == Look.Swamp, $"bank piece at ({f.X:0.00}, {f.Z:0.00})"));
-
-        // Water lies on or above the ground and never above the still surface (3.0 m), except at a corner
-        // shared with the running cell (2, 0): there every plate rides on the stream (ground + its depth,
-        // 0.2 m), so the surfaces around the corner meet.
-        Assert.All(banks.SelectMany(f => f.Vertices), v =>
-        {
-            var ground = TerrainMesher.GroundHeight(map, Look, v.X, v.Z);
-            Assert.True(v.Y >= ground - 1e-3f && v.Y <= MathF.Max(3f, ground + 0.2f) + 1e-4f, $"bank vertex ({v.X:0.00}, {v.Y:0.00}, {v.Z:0.00}) over ground {ground:0.00}");
-        });
+        Assert.DoesNotContain(faces, f => (int)f.Z >= 1 && (int)f.X >= 2);
         Assert.Equal(8 * 2, TerrainMesher.Water(map, 0, 0, Look, WaterKind.Salt).TriangleCount);
-        Assert.Equal(2 + banks.Count, TerrainMesher.Water(map, 0, 0, Look, WaterKind.Fresh).TriangleCount);
+        Assert.Equal(1 * 2, TerrainMesher.Water(map, 0, 0, Look, WaterKind.Fresh).TriangleCount);
     }
 
     [Fact]

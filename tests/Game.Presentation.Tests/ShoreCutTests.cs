@@ -82,10 +82,11 @@ public sealed class ShoreCutTests
     }
 
     [Fact]
-    public void AShoreIsACellTheSurfaceCrossesOrTouchesFromBelow()
+    public void AShoreIsACellTheSurfaceCrosses()
     {
         Assert.True(TerrainMesher.IsShore([0, 0, 4, 4], 2));
-        Assert.True(TerrainMesher.IsShore([2, 2, 2, 1], 2)); // dips below the surface in one corner
+        Assert.True(TerrainMesher.IsShore([1, 2, 3, 2], 2)); // a corner exactly at the surface lies on the line
+        Assert.False(TerrainMesher.IsShore([2, 2, 2, 1], 2)); // nowhere above the surface: would look flooded
         Assert.False(TerrainMesher.IsShore([2, 2, 2, 2], 2)); // level with the water: nothing below it
         Assert.False(TerrainMesher.IsShore([3, 4, 5, 3], 2)); // wholly above
         Assert.False(TerrainMesher.IsShore([0, 1, 1, 0], 2)); // wholly below: would look flooded

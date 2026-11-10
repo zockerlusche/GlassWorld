@@ -754,14 +754,14 @@ public static partial class TerrainMesher
 
     /// <summary>
     /// Shore test of a dry cell next to still water at <paramref name="surface"/>: the shore line crosses
-    /// the cell only where the surface lies between its lowest and highest ground corner (a corner exactly
-    /// at the surface lies on the line). A bank wholly above the water stays dry, and one wholly below
-    /// would look flooded, so neither carries a plate.
+    /// the cell only where the surface lies between its lowest and highest ground corner. A bank wholly
+    /// above the water stays dry, and one at or below it everywhere would look flooded, so neither carries
+    /// a plate.
     /// </summary>
     public static bool IsShore(int[] ground, int surface)
     {
         ArgumentNullException.ThrowIfNull(ground);
-        return ground.Min() < surface && ground.Max() >= surface;
+        return ground.Min() < surface && ground.Max() > surface;
     }
 
     /// <summary>
@@ -967,6 +967,9 @@ public static partial class TerrainMesher
             for (var i = 0; i < part.Length; i++)
             {
                 var (u, v) = part[i];
+                // A point of the part is a cell corner exactly when both coordinates are 0 or 1: corners
+                // are copied from Corners unchanged and a cut point that reaches a corner (t = 1) is
+                // computed as w + 1 * (d - w), which is exact for 0 and 1. So the comparison is exact.
                 var corner = Array.FindIndex(Corners, c => c.Dx == u && c.Dz == v);
                 var y = corner >= 0 ? FreshCorner(map, x + Corners[corner].Dx, z + Corners[corner].Dz, h[corner], look) : surface * look.UnitM;
                 p[i] = ((x + u) * look.CellM, y, (z + v) * look.CellM);
