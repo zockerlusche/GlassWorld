@@ -1,3 +1,4 @@
+using GlassWorld.Contracts;
 using GlassWorld.Game.Audio;
 using GlassWorld.Game.Localization;
 using GlassWorld.Game.Ui;
@@ -208,6 +209,15 @@ public partial class Main
         {
             var settings = new SettingsWindow();
             settings.Build(_settings, _limits, _mix, style, data.Guard);
+
+            // The AI self-check with one of each kind of line (W1703), so the layout check covers its long texts.
+            var check = new SelfCheck { ContractVersion = ContractInfo.Version };
+            check.Checks.Add(new AiCheck { Ai = AiCheckAi.Language, State = AiCheckState.Ok, Reason = "ready", MessageKey = "msg.selfcheck.language.ready" });
+            var nodes = new AiCheck { Ai = AiCheckAi.Image, State = AiCheckState.Problem, Reason = "nodes_missing", MessageKey = "msg.selfcheck.image.nodes_missing", FixKey = "msg.selfcheck.image.nodes_missing.fix" };
+            nodes.Detail.Add("UnetLoaderGGUF");
+            check.Checks.Add(nodes);
+            check.Checks.Add(new AiCheck { Ai = AiCheckAi.Sound, State = AiCheckState.Not_planned, Reason = "not_planned", MessageKey = "msg.selfcheck.sound.not_planned" });
+            settings.AddAi(() => Task.FromResult(new GlassWorld.AiClient.SelfCheckAnswer(check, null)), null, ProjectSettings.GlobalizePath("user://smoke/diagnostics"));
             return
             [
                 ("new world", MainMenu.NewWorldWindow(data, style, _ => { })),
