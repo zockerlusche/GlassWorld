@@ -2341,6 +2341,22 @@
     {
       "key": "ui.log.no_answer",
       "text": "{name} hat nicht geantwortet."
+    },
+    {
+      "key": "ui.settings.zones_preview",
+      "text": "Neuer Bildschirmaufbau (Vorschau)"
+    },
+    {
+      "key": "ui.zone.people",
+      "text": "Bewohner"
+    },
+    {
+      "key": "ui.zone.world",
+      "text": "Welt"
+    },
+    {
+      "key": "ui.zone.contact",
+      "text": "Kontakt"
     }
   ]
 }
