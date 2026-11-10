@@ -29,7 +29,8 @@
       "lift_m": 0.0,
       "rest": "centre",
       "align": "upright",
-      "footprint_m": 0.0
+      "footprint_m": 0.0,
+      "sway_m": 0.22
     },
     {
       "id": "conifer",
@@ -47,7 +48,8 @@
       "lift_m": 0.0,
       "rest": "centre",
       "align": "upright",
-      "footprint_m": 0.0
+      "footprint_m": 0.0,
+      "sway_m": 0.16
     },
     {
       "id": "fruit_tree",
@@ -65,7 +67,8 @@
       "lift_m": 0.0,
       "rest": "centre",
       "align": "upright",
-      "footprint_m": 0.0
+      "footprint_m": 0.0,
+      "sway_m": 0.18
     },
     {
       "id": "palm",
@@ -82,7 +85,8 @@
       "lift_m": 0.0,
       "rest": "centre",
       "align": "upright",
-      "footprint_m": 0.0
+      "footprint_m": 0.0,
+      "sway_m": 0.3
     },
     {
       "id": "berry_bush",
@@ -99,7 +103,8 @@
       "lift_m": 0.0,
       "rest": "centre",
       "align": "upright",
-      "footprint_m": 0.0
+      "footprint_m": 0.0,
+      "sway_m": 0.05
     },
     {
       "id": "hazel_bush",
@@ -116,7 +121,8 @@
       "lift_m": 0.0,
       "rest": "centre",
       "align": "upright",
-      "footprint_m": 0.0
+      "footprint_m": 0.0,
+      "sway_m": 0.05
     },
     {
       "id": "thorn_bush",
@@ -132,7 +138,8 @@
       "lift_m": 0.0,
       "rest": "centre",
       "align": "upright",
-      "footprint_m": 0.0
+      "footprint_m": 0.0,
+      "sway_m": 0.05
     },
     {
       "id": "cave_rock",
@@ -271,7 +278,7 @@
       "colors": [
         "fresh_water",
         "rock",
-        "ground",
+        "grass_edge",
         "reed"
       ],
       "size_m": 0.8,
@@ -280,6 +287,24 @@
       "rest": "centre",
       "align": "ground_uphill",
       "footprint_m": 0.75
+    },
+    {
+      "id": "spring_source",
+      "types": [
+        "spring_source"
+      ],
+      "shape": "spring",
+      "colors": [
+        "rock",
+        "rock_dark",
+        "fresh_water"
+      ],
+      "size_m": 1.0,
+      "size_jitter": 0.12,
+      "lift_m": 0.0,
+      "rest": "centre",
+      "align": "ground",
+      "footprint_m": 0.6
     },
     {
       "id": "sea_water",
@@ -365,7 +390,8 @@
       "lift_m": 0.0,
       "rest": "centre",
       "align": "upright",
-      "footprint_m": 0.0
+      "footprint_m": 0.0,
+      "sway_m": 0.07
     },
     {
       "id": "nettle",
@@ -381,7 +407,8 @@
       "lift_m": 0.0,
       "rest": "centre",
       "align": "upright",
-      "footprint_m": 0.0
+      "footprint_m": 0.0,
+      "sway_m": 0.07
     },
     {
       "id": "reed",
@@ -398,7 +425,8 @@
       "lift_m": 0.0,
       "rest": "centre",
       "align": "upright",
-      "footprint_m": 0.0
+      "footprint_m": 0.0,
+      "sway_m": 0.16
     },
     {
       "id": "wild_grain",
@@ -415,7 +443,8 @@
       "lift_m": 0.0,
       "rest": "centre",
       "align": "upright",
-      "footprint_m": 0.0
+      "footprint_m": 0.0,
+      "sway_m": 0.16
     },
     {
       "id": "flax",
@@ -432,7 +461,8 @@
       "lift_m": 0.0,
       "rest": "centre",
       "align": "upright",
-      "footprint_m": 0.0
+      "footprint_m": 0.0,
+      "sway_m": 0.06
     },
     {
       "id": "healing_herb",
@@ -449,7 +479,8 @@
       "lift_m": 0.0,
       "rest": "centre",
       "align": "upright",
-      "footprint_m": 0.0
+      "footprint_m": 0.0,
+      "sway_m": 0.06
     },
     {
       "id": "brown_mushroom",
@@ -612,7 +643,8 @@
       "lift_m": 0.0,
       "rest": "centre",
       "align": "upright",
-      "footprint_m": 0.0
+      "footprint_m": 0.0,
+      "sway_m": 0.07
     },
     {
       "id": "decor_grass_dry",
@@ -628,7 +660,8 @@
       "lift_m": 0.0,
       "rest": "centre",
       "align": "upright",
-      "footprint_m": 0.0
+      "footprint_m": 0.0,
+      "sway_m": 0.07
     },
     {
       "id": "decor_flower",
@@ -645,7 +678,8 @@
       "lift_m": 0.0,
       "rest": "centre",
       "align": "upright",
-      "footprint_m": 0.0
+      "footprint_m": 0.0,
+      "sway_m": 0.06
     },
     {
       "id": "decor_flower_blue",
@@ -662,7 +696,8 @@
       "lift_m": 0.0,
       "rest": "centre",
       "align": "upright",
-      "footprint_m": 0.0
+      "footprint_m": 0.0,
+      "sway_m": 0.06
     },
     {
       "id": "decor_flower_yellow",
@@ -679,7 +714,8 @@
       "lift_m": 0.0,
       "rest": "centre",
       "align": "upright",
-      "footprint_m": 0.0
+      "footprint_m": 0.0,
+      "sway_m": 0.06
     },
     {
       "id": "decor_shrub",
@@ -695,7 +731,8 @@
       "lift_m": 0.0,
       "rest": "centre",
       "align": "upright",
-      "footprint_m": 0.0
+      "footprint_m": 0.0,
+      "sway_m": 0.05
     },
     {
       "id": "decor_fern",
@@ -711,9 +748,70 @@
       "lift_m": 0.0,
       "rest": "centre",
       "align": "upright",
-      "footprint_m": 0.0
+      "footprint_m": 0.0,
+      "sway_m": 0.07
+    },
+    {
+      "id": "decor_reed",
+      "types": [
+        "decor_reed"
+      ],
+      "shape": "reeds",
+      "colors": [
+        "reed",
+        "bark"
+      ],
+      "size_m": 0.7,
+      "size_jitter": 0.3,
+      "lift_m": 0.0,
+      "rest": "centre",
+      "align": "upright",
+      "footprint_m": 0.0,
+      "sway_m": 0.16
+    },
+    {
+      "id": "decor_rush",
+      "types": [
+        "decor_rush"
+      ],
+      "shape": "tuft",
+      "colors": [
+        "reed"
+      ],
+      "size_m": 1.5,
+      "size_jitter": 0.3,
+      "lift_m": 0.0,
+      "rest": "centre",
+      "align": "upright",
+      "footprint_m": 0.0,
+      "sway_m": 0.1
+    },
+    {
+      "id": "decor_bank_flower",
+      "types": [
+        "decor_bank_flower"
+      ],
+      "shape": "flower",
+      "colors": [
+        "reed",
+        "sea_foam"
+      ],
+      "size_m": 0.8,
+      "size_jitter": 0.25,
+      "lift_m": 0.0,
+      "rest": "centre",
+      "align": "upright",
+      "footprint_m": 0.0,
+      "sway_m": 0.06
     }
   ],
+  "stream_sources": {
+    "object_types": [
+      "spring_water"
+    ],
+    "as_type": "spring_source",
+    "max_distance_m": 1.6
+  },
   "decor": [
     {
       "type": "decor_grass",
@@ -821,6 +919,64 @@
       "spread_m": 1.8,
       "min_spacing_m": 0.5,
       "min_object_distance_m": 0.7
+    },
+    {
+      "type": "decor_reed",
+      "biomes": [
+        "meadow",
+        "field",
+        "forest",
+        "beach_sea",
+        "freshwater",
+        "swamp"
+      ],
+      "groups_per_10000_cells": 900,
+      "group": {
+        "min": 2,
+        "max": 4
+      },
+      "spread_m": 1.1,
+      "min_spacing_m": 0.45,
+      "min_object_distance_m": 0.9,
+      "fresh_water_within_cells": 1
+    },
+    {
+      "type": "decor_rush",
+      "biomes": [
+        "meadow",
+        "field",
+        "forest",
+        "beach_sea",
+        "freshwater",
+        "swamp"
+      ],
+      "groups_per_10000_cells": 1800,
+      "group": {
+        "min": 3,
+        "max": 6
+      },
+      "spread_m": 1.3,
+      "min_spacing_m": 0.3,
+      "min_object_distance_m": 0.8,
+      "fresh_water_within_cells": 2
+    },
+    {
+      "type": "decor_bank_flower",
+      "biomes": [
+        "meadow",
+        "field",
+        "forest",
+        "freshwater"
+      ],
+      "groups_per_10000_cells": 500,
+      "group": {
+        "min": 2,
+        "max": 5
+      },
+      "spread_m": 1.4,
+      "min_spacing_m": 0.3,
+      "min_object_distance_m": 0.8,
+      "fresh_water_within_cells": 2
     }
   ]
 }

@@ -1,6 +1,8 @@
 // Island sky (B2-5, A1367): gradient from the horizon colour to the top colour, a darker band below
 // the horizon so the sea line stays readable, procedural stars and a soft moon disc. All values come
 // from content/look/daylight.json (DaylightLook); no time-based change, so the radiance stays cached.
+// Weather (B2-5 R23, content/look/weather.json): a cloud cover of calm, fixed shapes in the given colour;
+// only the cover changes, blended softly by WeatherBlender.
 shader_type sky;
 
 uniform vec3 top_color : source_color = vec3(0.48, 0.72, 0.91);
@@ -16,11 +18,26 @@ uniform vec3 moon_color : source_color = vec3(0.93, 0.95, 0.97);
 uniform float moon_size_deg = 1.6;
 uniform float moon_glow = 0.35;
 uniform float moon = 0.0;
+uniform float clouds = 0.0;
+uniform vec3 cloud_color : source_color = vec3(0.92, 0.9, 0.86);
+uniform float cloud_scale = 1.4;
+uniform float cloud_softness = 0.3;
 
 float hash(vec3 p) {
 	p = fract(p * vec3(0.1031, 0.1030, 0.0973));
 	p += dot(p, p.yxz + 33.33);
 	return fract((p.x + p.y) * p.z);
+}
+
+float cloud_noise(vec2 p) {
+	vec2 i = floor(p);
+	vec2 f = fract(p);
+	f = f * f * (3.0 - 2.0 * f);
+	float a = hash(vec3(i.x, i.y, 7.0));
+	float b = hash(vec3(i.x + 1.0, i.y, 7.0));
+	float c = hash(vec3(i.x, i.y + 1.0, 7.0));
+	float d = hash(vec3(i.x + 1.0, i.y + 1.0, 7.0));
+	return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
 }
 
 void sky() {
@@ -52,6 +69,18 @@ void sky() {
 		float halo = moon_glow * exp(-angle / (moon_size_deg * 3.0));
 		color = mix(color, moon_color, disc * moon);
 		color += moon_color * halo * moon * (1.0 - disc);
+	}
+
+	if (clouds > 0.0 && up > 0.0) {
+		// A flat cloud layer above the eye, so the shapes get smaller and denser towards the horizon.
+		vec2 p = dir.xz / (up + 0.25) * cloud_scale;
+		float n = 0.6 * cloud_noise(p) + 0.3 * cloud_noise(p * 2.1 + vec2(13.0, 7.0)) + 0.1 * cloud_noise(p * 4.3 + vec2(3.0, 29.0));
+		// No cover shows no cloud at all, a full cover hides the whole sky.
+		// The edges of the step must differ (review GW3 #183), whatever softness is set.
+		float soft = max(cloud_softness, 0.01);
+		float limit = 1.0 - clouds * (1.0 + soft);
+		float cover = smoothstep(limit, limit + soft, n);
+		color = mix(color, cloud_color, cover);
 	}
 
 	COLOR = color;

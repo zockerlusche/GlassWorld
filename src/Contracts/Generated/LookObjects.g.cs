@@ -13,7 +13,7 @@ namespace GlassWorld.Contracts
     #pragma warning disable // Disable all warnings
 
     /// <summary>
-    /// Shape builder of the game (simple low-poly meshes of the look prototype); none draws nothing (for example sea water, the sea is drawn already).
+    /// Shape builder of the game (simple low-poly meshes of the look prototype); none draws nothing (for example sea water, the sea is drawn already); spring is a small heap of stones a stream comes out of (W1724), pool a small pond.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public enum ObjectLookShape
@@ -67,28 +67,32 @@ namespace GlassWorld.Contracts
         Pool = 11,
 
 
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("spring")]
+        Spring = 12,
+
+
         [System.Text.Json.Serialization.JsonStringEnumMemberName("log")]
-        Log = 12,
+        Log = 13,
 
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("fruit")]
-        Fruit = 13,
+        Fruit = 14,
 
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("shell")]
-        Shell = 14,
+        Shell = 15,
 
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("reeds")]
-        Reeds = 15,
+        Reeds = 16,
 
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("marker")]
-        Marker = 16,
+        Marker = 17,
 
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("none")]
-        None = 17,
+        None = 18,
 
 
     }
@@ -183,6 +187,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("footprint_width_m")]
         public double? FootprintWidthM { get; set; } = default!;
 
+        /// <summary>
+        /// How far the top moves in full wind, in metres at size factor 1 (content/look/nature.json wind); absent = it stands still.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("sway_m")]
+        public double? SwayM { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -273,6 +284,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("min_object_distance_m")]
         public double MinObjectDistanceM { get; set; } = default!;
 
+        /// <summary>
+        /// Bank plants (W1724): only a cell with fresh water (a stream, a spring, a lake, a swamp) within this many cells may hold a group centre, so groups_per_10000_cells is the density along the water. Absent = anywhere in the biomes.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("fresh_water_within_cells")]
+        public int? FreshWaterWithinCells { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -293,6 +311,30 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("max")]
         public int Max { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Objects at the source of a stream (W1724): an object of one of object_types that lies within max_distance_m of the point where a stream band starts at a spring is drawn as the visual of as_type instead, at that point and turned against the flow (its local +x side uphill), so the water comes out of it and runs straight into the band. Objects of those types elsewhere (a pond in a hollow, at a lake) keep their own visual. Absent = none.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ObjectStreamSources
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("object_types")]
+        public System.Collections.Generic.ICollection<string> ObjectTypes { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// Type id a visual of this file lists in its types (it must not be an object type of the catalogue).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("as_type")]
+        public string AsType { get; set; } = default!;
+
+        /// <summary>
+        /// Largest distance between the object and the start of the stream band in metres.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max_distance_m")]
+        public double MaxDistanceM { get; set; } = default!;
 
     }
 
@@ -348,6 +390,10 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("decor")]
         public System.Collections.Generic.ICollection<ObjectDecor>? Decor { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("stream_sources")]
+        public ObjectStreamSources? StreamSources { get; set; } = default!;
 
     }
 }
