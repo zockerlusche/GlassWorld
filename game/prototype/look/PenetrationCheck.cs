@@ -4,9 +4,12 @@ namespace GlassWorld.Game.Prototype.Look;
 
 /// <summary>
 /// Headless check for B2528 (A1436 F2): with the strongest body shape (<c>body_heavy</c> = 1) and the arm
-/// rest modifier as used for heavy bodies, every clip is sampled at three times; the skinned mesh is baked
+/// rest modifier as used for heavy bodies, every clip is sampled at three fixed times (the players do not
+/// run with the frame time, so every run measures the same poses: the clip at exactly that time, with
+/// the modifiers applied once); the skinned mesh is baked
 /// and every forearm vertex is tested against the torso surface (radius per height slab and angle sector,
-/// from the torso's own vertices). Reports the deepest penetration; fails above the tolerance.
+/// from the torso's own vertices). Reports the deepest penetration; fails above the tolerance and when
+/// a sample could not be measured.
 /// Run: <c>godot --headless --path game res://prototype/look/penetration_check.tscn</c> → <c>PENETRATION_OK …</c>.
 /// </summary>
 public partial class PenetrationCheck : Node3D
@@ -21,12 +24,14 @@ public partial class PenetrationCheck : Node3D
     private readonly Dictionary<MeshInstance3D, Skinning> _skinning = [];
     private readonly Dictionary<MeshInstance3D, (float Depth, string Where)> _measured = [];
     private readonly List<string> _worst = [];
+    private readonly List<string> _usedSamples = [];
     private int _clip;
     private int _time;
     private int _frame;
     private float _deepest;
     private string _deepestAt = "-";
     private int _samples;
+    private int _missing;
 
     /// <inheritdoc/>
     public override void _Ready()
@@ -41,13 +46,20 @@ public partial class PenetrationCheck : Node3D
             skeleton.AddChild(new ArmRestModifier { Spread = 0.8f });
             skeleton.AddChild(new ArmClearanceModifier { Profile = TorsoProfile.Of(mesh, skeleton), ArmRadius = FigureFactory.ArmRadiusFor(1.3f) });
             var player = root.FindChildren("*", "AnimationPlayer", true, false).OfType<AnimationPlayer>().Single();
+
+            // Fixed sample times: a playing clip would run on with the frame time between the seek and the
+            // measurement, so a slow frame measured a later pose (flaky 3.3 cm in Jog_Fwd). The player only
+            // moves when this check seeks.
+            player.CallbackModeProcess = AnimationMixer.AnimationCallbackModeProcess.Manual;
             _skinning[mesh] = Skinning.Of(mesh, skeleton, "body_heavy");
 
-            // Measure the final pose (after the modifiers), which Godot reports with this signal.
+            // Measure the final pose (after the modifiers), which Godot reports with this signal: the first
+            // update after the seek. Later updates of the same pose only come while a modifier moves a bone,
+            // and give the same result.
             var measured = mesh;
             skeleton.SkeletonUpdated += () =>
             {
-                if (_frame >= 2)
+                if (_frame >= 1 && !_measured.ContainsKey(measured))
                 {
                     _measured[measured] = Measure(_skinning[measured].Pose());
                 }
@@ -70,7 +82,12 @@ public partial class PenetrationCheck : Node3D
             }
 
             // Clips the figures actually play must be clean (TL #19090); the rest are reported only.
-            var used = _worst.Where(w => FigureFactory.Clips.Any(c => w.Split('/')[1].Split('@')[0] == c.Replace("_Loop", string.Empty, StringComparison.Ordinal))).ToList();
+            var used = _worst.Where(w => IsUsed(w.Split('/')[1].Split('@')[0])).ToList();
+            foreach (var sample in _usedSamples)
+            {
+                GD.Print($"PENETRATION_SAMPLE {sample}");
+            }
+
             foreach (var sample in used)
             {
                 GD.Print($"PENETRATION_USED {sample}");
@@ -81,7 +98,12 @@ public partial class PenetrationCheck : Node3D
                 GD.PushError("PENETRATION_FAIL used clips: " + string.Join("; ", used));
             }
 
-            GD.Print(line + $" used_clips={string.Join(',', FigureFactory.Clips)} used_over={used.Count}");
+            if (_missing > 0)
+            {
+                GD.PushError($"PENETRATION_FAIL {_missing} samples without a measured pose");
+            }
+
+            GD.Print(line + $" missing={_missing} used_clips={string.Join(',', FigureFactory.Clips)} used_over={used.Count}");
             GetTree().Quit();
             _clip = int.MaxValue - 1;
             return;
@@ -93,7 +115,7 @@ public partial class PenetrationCheck : Node3D
             {
                 if (player.HasAnimation(clips[_clip]))
                 {
-                    player.Play(clips[_clip]);
+                    player.Play(clips[_clip], customBlend: 0);
                     player.Seek(player.CurrentAnimationLength * Times[_time], true);
                 }
             }
@@ -113,6 +135,7 @@ public partial class PenetrationCheck : Node3D
 
             if (!_measured.TryGetValue(mesh, out var found))
             {
+                _missing++;
                 continue;
             }
 
@@ -122,6 +145,11 @@ public partial class PenetrationCheck : Node3D
             {
                 _deepest = depth;
                 _deepestAt = $"{body}/{clips[_clip]}@{Times[_time]}";
+            }
+
+            if (IsUsed(clips[_clip]))
+            {
+                _usedSamples.Add(string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{body}/{clips[_clip]}@{Times[_time]} {depth * 100:F2} cm ({where})"));
             }
 
             if (depth > ToleranceM)
@@ -138,6 +166,10 @@ public partial class PenetrationCheck : Node3D
             _clip++;
         }
     }
+
+    /// <summary>True for a clip the figures play (<see cref="FigureFactory.Clips"/>, without the loop suffix).</summary>
+    private static bool IsUsed(string clip) =>
+        FigureFactory.Clips.Any(c => clip == c.Replace("_Loop", string.Empty, StringComparison.Ordinal));
 
     /// <summary>Deepest forearm vertex inside the torso surface, in metres (0 if none).</summary>
     private static (float Depth, string Where) Measure((Vector3[] Positions, string[] Dominant) posed)
