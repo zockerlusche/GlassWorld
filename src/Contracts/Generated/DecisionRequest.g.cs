@@ -131,6 +131,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("weather")]
         public System.Collections.Generic.ICollection<string> Weather { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
+        /// <summary>
+        /// How far the inhabitant sees right now, in metres (B2594): the core's perception radius scaled by the weather (fog, rain, snow; light follows with B5). Things and inhabitants beyond it are not in the perception lists. Optional; absent = not stated.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("visibility_m")]
+        public double? VisibilityM { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]

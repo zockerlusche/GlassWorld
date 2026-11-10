@@ -26,6 +26,9 @@ public partial class ClipCheck : Node3D
             var root = GD.Load<PackedScene>($"{FigureFactory.ModelFolder}/{body}.glb").Instantiate<Node3D>();
             AddChild(root);
             var player = root.FindChildren("*", "AnimationPlayer", true, false).OfType<AnimationPlayer>().Single();
+
+            // Fixed sample time: the player only moves when this check seeks, not with the frame time.
+            player.CallbackModeProcess = AnimationMixer.AnimationCallbackModeProcess.Manual;
             var skeleton = root.FindChildren("*", "Skeleton3D", true, false).OfType<Skeleton3D>().Single();
             var clips = player.GetAnimationList().Where(c => c != "A_TPose").Order(StringComparer.Ordinal).ToArray();
             _subjects.Add((body, player, skeleton, clips));

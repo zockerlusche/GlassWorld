@@ -11,7 +11,20 @@ namespace GlassWorld.Simulation.Exploration;
 /// <param name="Depth">Depth of the grid in cells.</param>
 /// <param name="Player">The player's view (<see cref="CellSet.ToBytes"/>).</param>
 /// <param name="Seen">The cells each inhabitant has seen, by inhabitant id in ordinal order.</param>
-public sealed record ExplorationState(int Width, int Depth, byte[] Player, IReadOnlyList<KeyValuePair<string, byte[]>> Seen);
+public sealed record ExplorationState(int Width, int Depth, byte[] Player, IReadOnlyList<KeyValuePair<string, byte[]>> Seen)
+{
+    /// <summary>
+    /// The last look of each inhabitant, by inhabitant id in ordinal order (B2594). Null or without an
+    /// inhabitant in save games from before the sight range could change: whoever has no last look looks
+    /// again when the world goes on.
+    /// </summary>
+    public IReadOnlyList<KeyValuePair<string, LastLook>>? Looks { get; init; }
+}
+
+/// <summary>Where an inhabitant last looked around from and how far it saw then (B2594).</summary>
+/// <param name="Cell">The cell it stood in (index <c>z × Width + x</c>).</param>
+/// <param name="RangeCells">Its sight range at that look, in cells.</param>
+public readonly record struct LastLook(int Cell, int RangeCells);
 
 /// <summary>
 /// Cloud cover and exploring (B2-6 R14, name "exploration"): which cells of the island have been seen.
@@ -20,14 +33,18 @@ public sealed record ExplorationState(int Width, int Depth, byte[] Player, IRead
 /// <item>The player's view is the union of everything any inhabitant has ever seen. Cells are only added:
 /// new land stays new land, whoever saw it.</item>
 /// <item>Seeing is a radius over the grid (the preset's <c>exploration</c> section), wider where the inhabitant
-/// stands higher than its surroundings. Nothing blocks the view; no rays are cast. An inhabitant looks
-/// around only when it has entered another cell, in whole cells (integer maths).</item>
+/// stands higher than its surroundings and shorter in weather that lowers the sight (<see cref="Sight"/>,
+/// B2594). Nothing blocks the view; no rays are cast. An inhabitant looks around when it has entered
+/// another cell and when its sight range has changed (the weather changed), in whole cells (integer maths).
+/// What was seen stays seen: fog reveals less, and when it clears everyone looks again from where it stands.</item>
 /// <item>For the routine: <see cref="Frontier"/> names the nearest seen dry cell an inhabitant can walk to
 /// that lies next to an unseen one. Whether and how much inhabitants explore is data (action destination
 /// <c>frontier</c>, weights in content/behaviour/utility.json).</item>
 /// </list>
-/// State (hashed and saved): the player's view and the sets per inhabitant. Everything else here is a
-/// cache that follows from the state, the immutable map and the data. The code names no action.
+/// State (hashed and saved): the player's view, the sets per inhabitant and each inhabitant's last look
+/// (cell and range: whether it looks again depends on it, so a loaded world goes on exactly like the one
+/// that was never saved). Everything else here is a cache that follows from the state, the immutable map
+/// and the data. The code names no action.
 /// </summary>
 public sealed class ExplorationSystem : IWorldSystem, IOptionalWorldState
 {
@@ -49,14 +66,19 @@ public sealed class ExplorationSystem : IWorldSystem, IOptionalWorldState
     private readonly SortedDictionary<string, CellSet> _seen = new(StringComparer.Ordinal);
     private CellSet _player;
 
-    // Caches (not state): the cell each inhabitant last looked from, the sight range per cell, the rows of
-    // a circle per radius, the cells in the order they were revealed, where nothing is left to explore.
-    private readonly Dictionary<string, int> _lookedFrom = new(StringComparer.Ordinal);
+    // State: the cell each inhabitant last looked from and its sight range then.
+    private readonly SortedDictionary<string, LastLook> _lookedFrom = new(StringComparer.Ordinal);
+
+    // Caches (not state): the sight range per cell in full sight (data and height, never the weather), the
+    // rows of a circle per radius, the cells in the order they were revealed, where nothing is left to explore.
     private readonly Dictionary<string, (int Seen, int Area)> _nothingLeft = new(StringComparer.Ordinal);
     private readonly Dictionary<int, int[]> _circles = [];
     private readonly List<int> _revealed = [];
     private readonly short[] _rangeAt;
     private int[]? _stamp;
+
+    /// <summary>What lowers the sight range right now: the inhabitants' sight (the weather; B5 adds the light).</summary>
+    private Sight Sight => _inhabitants.Sight;
     private int[]? _queue;
     private int _search;
 
@@ -119,10 +141,14 @@ public sealed class ExplorationSystem : IWorldSystem, IOptionalWorldState
     public bool HasSeen(string inhabitantId, int x, int z) => _seen.TryGetValue(inhabitantId, out var seen) && seen.Contains(x, z);
 
     /// <summary>
-    /// How far one sees from the cell (x, z), in cells: the range of the data plus the height bonus there.
-    /// The one place the range comes from (B5 will make it depend on the light).
+    /// How far one sees from the cell (x, z) right now, in cells: the range of the data plus the height
+    /// bonus there, as far as the weather lets one see (<see cref="Sight"/>; B5 adds the light there), at
+    /// least one cell. The one place the range comes from.
     /// </summary>
-    public int SightRangeCells(int x, int z)
+    public int SightRangeCells(int x, int z) => Sight.Cells(FullRangeCells(x, z));
+
+    /// <summary>The range from the cell (x, z) in full sight: the data plus the height bonus there (kept per cell).</summary>
+    private int FullRangeCells(int x, int z)
     {
         var index = (z * _width) + x;
         if (_rangeAt[index] == 0)
@@ -137,8 +163,9 @@ public sealed class ExplorationSystem : IWorldSystem, IOptionalWorldState
     public void Advance(World world) => Look();
 
     /// <summary>
-    /// Everyone who stands in another cell than at its last look sees the cells around it. Called every tick
-    /// after the inhabitants have moved, and once when a world starts or a save game from before is loaded.
+    /// Everyone who stands in another cell than at its last look, or sees another distance than then (the
+    /// weather changed), sees the cells around it. Called every tick after the weather and after the
+    /// inhabitants have moved, and once when a world starts or a save game from before is loaded.
     /// </summary>
     public void Look()
     {
@@ -149,20 +176,27 @@ public sealed class ExplorationSystem : IWorldSystem, IOptionalWorldState
                 continue;
             }
 
-            var index = (cell.Z * _width) + cell.X;
-            if (_lookedFrom.TryGetValue(inhabitant.Id, out var last) && last == index)
+            var look = new LastLook((cell.Z * _width) + cell.X, SightRangeCells(cell.X, cell.Z));
+            var looked = _lookedFrom.TryGetValue(inhabitant.Id, out var last);
+            if (looked && last == look)
             {
                 continue;
             }
 
-            _lookedFrom[inhabitant.Id] = index;
+            _lookedFrom[inhabitant.Id] = look;
             if (!_seen.TryGetValue(inhabitant.Id, out var own))
             {
                 own = new CellSet(_width, _depth);
                 _seen.Add(inhabitant.Id, own);
             }
 
-            var range = SightRangeCells(cell.X, cell.Z);
+            var range = look.RangeCells;
+            if (looked && last.Cell == look.Cell && range < last.RangeCells)
+            {
+                // The sight got shorter where it stands: nothing new to see, the look is only noted.
+                continue;
+            }
+
             var half = Circle(range);
             for (var dz = -range; dz <= range; dz++)
             {
@@ -255,6 +289,12 @@ public sealed class ExplorationSystem : IWorldSystem, IOptionalWorldState
             hasher.Write(id);
             seen.WriteTo(hasher);
         }
+
+        hasher.Write(_lookedFrom.Count);
+        foreach (var (id, look) in _lookedFrom)
+        {
+            hasher.Write(id).Write(look.Cell).Write(look.RangeCells);
+        }
     }
 
     /// <summary>
@@ -262,7 +302,10 @@ public sealed class ExplorationSystem : IWorldSystem, IOptionalWorldState
     /// from before the cloud cover.
     /// </summary>
     public ExplorationState Capture() =>
-        new(_width, _depth, _player.ToBytes(), [.. _seen.Select(s => new KeyValuePair<string, byte[]>(s.Key, s.Value.ToBytes()))]);
+        new(_width, _depth, _player.ToBytes(), [.. _seen.Select(s => new KeyValuePair<string, byte[]>(s.Key, s.Value.ToBytes()))])
+        {
+            Looks = [.. _lookedFrom],
+        };
 
     /// <summary>Restores saved state; it must fit the grid of this island.</summary>
     public void Restore(ExplorationState state)
@@ -280,8 +323,20 @@ public sealed class ExplorationSystem : IWorldSystem, IOptionalWorldState
             _seen.Add(id, CellSet.FromBytes(_width, _depth, bytes));
         }
 
-        // The caches follow the state: the reveal order is not saved, a loaded view counts in grid order.
+        // The last looks as saved, so nobody looks again who would not have in the world that was never
+        // saved. A save game from before has none: there everyone looks again at the next tick.
         _lookedFrom.Clear();
+        foreach (var (id, look) in state.Looks ?? [])
+        {
+            if (look.Cell < 0 || look.Cell >= _width * _depth || look.RangeCells < 1)
+            {
+                throw new InvalidDataException($"Save game last look of '{id}' (cell {look.Cell}, range {look.RangeCells}) does not fit the island.");
+            }
+
+            _lookedFrom.Add(id, look);
+        }
+
+        // The caches follow the state: the reveal order is not saved, a loaded view counts in grid order.
         _nothingLeft.Clear();
         _revealed.Clear();
         _player.CopyTo(_revealed);

@@ -292,11 +292,9 @@ public static class StateCodec
                 exploration.Look();
             }
 
-            // Where each inhabitant last looked from is not saved: the first tick after a load looks again
-            // from where everyone stands, which adds nothing as long as the sight range of a cell never
-            // changes. Once B5 makes the range depend on the light this no longer holds (a look at night
-            // repeated by day would reveal more than the world that was never saved), and the range kept
-            // per cell is wrong too: then the last look must be saved, or the look made independent of the load.
+            // Where each inhabitant last looked from and how far it saw then is saved with the seen cells
+            // (B2594: the sight range changes with the weather), so the first tick after a load looks again
+            // exactly where the world that was never saved would. The weather is restored above, before this.
         }
 
         host.UseLoggedDisplayLocale();

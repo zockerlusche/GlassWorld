@@ -180,10 +180,66 @@
     "clips": [
       "sleep"
     ],
-    "pitch_deg": -90,
-    "hip_m": 0.95,
-    "lift_m": 0.12,
-    "settle_s": 1.2
+    "sit_clip": "sit_down",
+    "rise_clip": "wake_up",
+    "sit_s": 1.3,
+    "sink_from": 0.25,
+    "sink_to": 0.8,
+    "roll_s": 1.6,
+    "roll_deg": -90,
+    "hip_back_m": 0.34,
+    "hip_slide_m": 0.12,
+    "legs_from": 0.7,
+    "hip_open": 0.55,
+    "knee_straighten": 0.45,
+    "lift_m": 0.16,
+    "max_tilt_deg": 35,
+    "body_points": [
+      {
+        "bone": "DEF-hips",
+        "radius_m": 0.15
+      },
+      {
+        "bone": "DEF-spine.003",
+        "radius_m": 0.14
+      },
+      {
+        "bone": "DEF-head",
+        "radius_m": 0.11
+      },
+      {
+        "bone": "DEF-upper_arm.L",
+        "radius_m": 0.06
+      },
+      {
+        "bone": "DEF-upper_arm.R",
+        "radius_m": 0.06
+      },
+      {
+        "bone": "DEF-hand.L",
+        "radius_m": 0.04
+      },
+      {
+        "bone": "DEF-hand.R",
+        "radius_m": 0.04
+      },
+      {
+        "bone": "DEF-shin.L",
+        "radius_m": 0.06
+      },
+      {
+        "bone": "DEF-shin.R",
+        "radius_m": 0.06
+      },
+      {
+        "bone": "DEF-foot.L",
+        "radius_m": 0.05
+      },
+      {
+        "bone": "DEF-foot.R",
+        "radius_m": 0.05
+      }
+    ]
   },
   "sitting": {
     "seated_clips": [
