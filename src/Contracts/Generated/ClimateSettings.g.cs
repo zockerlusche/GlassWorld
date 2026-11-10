@@ -68,10 +68,44 @@ namespace GlassWorld.Contracts
         public ClimateTemperature Temperature { get; set; } = new ClimateTemperature();
 
         /// <summary>
+        /// Optional: weather conditions whose start and end the core reports as world events (B2-5 R13, signals for B5). A condition is a weather id of the states; it counts as on while it is among the current conditions (the main weather, or the drought weather after the dry days). Missing = no signals.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("signals")]
+        public System.Collections.Generic.ICollection<ClimateSignal>? Signals { get; set; } = default!;
+
+        /// <summary>
         /// Game minutes between two gust key values (GW3): the wind swings smoothly between values drawn from the world seed and the tick, so the same seed gives the same wind. Placeholder.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("gust_period_minutes")]
         public int GustPeriodMinutes { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// One tracked weather condition: the core reports start_event when it begins and end_event when it ends (ids of the vocabulary 'event').
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ClimateSignal
+    {
+
+        /// <summary>
+        /// Weather id (one of the states of this climate).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("condition")]
+        public string Condition { get; set; } = default!;
+
+        /// <summary>
+        /// Event id reported when the condition begins.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("start_event")]
+        public string StartEvent { get; set; } = default!;
+
+        /// <summary>
+        /// Event id reported when the condition ends.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("end_event")]
+        public string EndEvent { get; set; } = default!;
 
     }
 

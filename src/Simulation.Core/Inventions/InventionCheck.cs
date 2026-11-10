@@ -22,7 +22,28 @@ public sealed record InventionRules(
     FrozenSet<string> Processes,
     IReadOnlyList<string> TechLevels,
     TextGuard Guard,
-    BuildRules Build);
+    BuildRules Build)
+{
+    /// <summary>
+    /// The world's tech level as a number: the position of <c>Settings.TechLevel</c> in the vocabulary
+    /// <c>tech_level</c> (first = 0; checked at load). Data that count tech levels (look epochs) compare with it.
+    /// </summary>
+    public int ReachedTechLevel
+    {
+        get
+        {
+            for (var i = 0; i < TechLevels.Count; i++)
+            {
+                if (string.Equals(TechLevels[i], Settings.TechLevel, StringComparison.Ordinal))
+                {
+                    return i;
+                }
+            }
+
+            return 0;
+        }
+    }
+}
 
 /// <summary>
 /// The core's final, deterministic check of an AI invention (ADR-0005: the AI proposes, the core decides).

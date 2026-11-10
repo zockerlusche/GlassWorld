@@ -55,6 +55,9 @@ public sealed class ContentSet
     /// <summary>Value ranges of the appearance record (content/look/appearance.json, B2 R27).</summary>
     public LookAppearance Appearance { get; private init; } = null!;
 
+    /// <summary>Look epochs (content/look/epochs.json, B2-5 R16): the core checks epoch commands against them.</summary>
+    public LookEpochs LookEpochs { get; private init; } = null!;
+
     /// <summary>Mailbox message kinds (content/player/message_kinds.json).</summary>
     public MessageKinds MessageKinds { get; }
 
@@ -210,7 +213,32 @@ public sealed class ContentSet
             Knowledge = LoadKnowledge(contentDirectory, vocabularies, objects, actions),
             EventKinds = Required(vocabularies, VocabularyKind.Event).Entries.Select(e => e.Id).ToFrozenSet(StringComparer.Ordinal),
             InhabitantNames = LoadNames(contentDirectory),
+            LookEpochs = LoadLookEpochs(contentDirectory, Ids(vocabularies, VocabularyKind.Epoch), inventions.TechLevels.Count),
         };
+    }
+
+    /// <summary>
+    /// Reads the look epochs: at least one, every id once and in the vocabulary <c>epoch</c>, and a
+    /// <c>tech_level</c> that is a position in the vocabulary <c>tech_level</c> (first = 0).
+    /// </summary>
+    private static LookEpochs LoadLookEpochs(string contentDirectory, HashSet<string> epochs, int techLevels)
+    {
+        var data = ContractSerializer.Deserialize<LookEpochs>(File.ReadAllText(Path.Combine(contentDirectory, "look", "epochs.json")));
+        var problems = new List<string>();
+        if (data.Epochs.Count == 0)
+        {
+            problems.Add("at least one epoch is needed");
+        }
+
+        problems.AddRange(data.Epochs.GroupBy(e => e.Id, StringComparer.Ordinal).Where(g => g.Count() > 1).Select(g => $"epoch '{g.Key}' twice"));
+        problems.AddRange(data.Epochs.Where(e => !epochs.Contains(e.Id)).Select(e => $"epoch '{e.Id}' not in vocabulary 'epoch'"));
+        problems.AddRange(data.Epochs.Where(e => e.TechLevel < 0 || e.TechLevel >= techLevels).Select(e => $"epoch '{e.Id}' names tech level {e.TechLevel}, the vocabulary 'tech_level' has {techLevels}"));
+        if (problems.Count > 0)
+        {
+            throw new InvalidDataException("Look epochs: " + string.Join("; ", problems) + ".");
+        }
+
+        return data;
     }
 
     /// <summary>Own names of the inhabitants (content/inhabitants/names.json, W1698); empty without the file.</summary>

@@ -1107,6 +1107,30 @@
       "text": "That is only possible when a world is created."
     },
     {
+      "key": "msg.command.no_weather",
+      "text": "This world has no weather."
+    },
+    {
+      "key": "msg.command.unknown_weather",
+      "text": "This weather does not exist here."
+    },
+    {
+      "key": "msg.command.weather_unchanged",
+      "text": "The weather is already like that."
+    },
+    {
+      "key": "msg.command.unknown_epoch",
+      "text": "This look does not exist."
+    },
+    {
+      "key": "msg.command.epoch_not_reached",
+      "text": "The inhabitants are not that far yet."
+    },
+    {
+      "key": "msg.command.debug_off",
+      "text": "This is only possible in debug mode."
+    },
+    {
       "key": "ui.settings.feeling_symbols",
       "text": "Feeling symbols above heads"
     },
@@ -1461,6 +1485,30 @@
     {
       "key": "vocab.event.help_needed",
       "text": "Call for help"
+    },
+    {
+      "key": "vocab.event.storm_started",
+      "text": "Storm begins"
+    },
+    {
+      "key": "vocab.event.storm_ended",
+      "text": "Storm is over"
+    },
+    {
+      "key": "vocab.event.drought_started",
+      "text": "Drought begins"
+    },
+    {
+      "key": "vocab.event.drought_ended",
+      "text": "Drought is over"
+    },
+    {
+      "key": "vocab.event.weather_set",
+      "text": "Weather changed by you"
+    },
+    {
+      "key": "vocab.event.look_epoch_changed",
+      "text": "The world looks different"
     },
     {
       "key": "vocab.knowledge_source.experienced",

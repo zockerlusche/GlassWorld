@@ -100,6 +100,8 @@ public sealed class WorldMapTests
         { "world/presets/start_island.json", "\"climate_id\": \"temperate\"", "\"climate_id\": \"tropical\"", "unknown climate 'tropical'" },
         { "climate/temperate.json", "\"snow_weather\": \"snow\"", "\"snow_weather\": \"hail\"", "snow weather 'hail' has no state values" },
         { "climate/temperate.json", "\"drought_weather\": \"drought\"", "\"drought_weather\": \"dust\"", "drought weather 'dust' has no state values" },
+        { "climate/temperate.json", "\"start_event\": \"storm_started\"", "\"start_event\": \"storm_brewing\"", "signal event 'storm_brewing' not in vocabulary 'event'" },
+        { "climate/temperate.json", "\"condition\": \"storm\"", "\"condition\": \"hail\"", "signal condition 'hail' has no state values" },
         { "climate/temperate.json", "\"time_of_day\": \"night\"", "\"time_of_day\": \"midnight\"", "no temperature offset for time of day 'night'" },
         { "world/presets/start_island.json", "\"object_type\": \"rock_niche\"", "\"object_type\": \"dragon_lair\"", "cave object type 'dragon_lair'" },
         { "world/presets/start_island.json", "\"cliff_biome\": \"rocks_hills\"", "\"cliff_biome\": \"glacier\"", "cave cliff biome 'glacier'" },

@@ -77,6 +77,12 @@ public sealed record WorldSnapshot(WorldTime Time, IReadOnlyList<InhabitantSnaps
     /// null on worlds without an island. With amplitude 0 the level is always 0.
     /// </summary>
     public Map.TideReading? Tide { get; init; }
+
+    /// <summary>
+    /// The look epoch of the world (id of content/look/epochs.json, B2-5 R16); the presentation blends palette
+    /// and details to it. Null only in snapshots taken without a host.
+    /// </summary>
+    public string? LookEpoch { get; init; }
 }
 
 /// <summary>
