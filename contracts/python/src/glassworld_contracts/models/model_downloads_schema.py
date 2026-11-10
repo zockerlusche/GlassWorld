@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from enum import StrEnum
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -55,6 +55,14 @@ class File(BaseModel):
     )
 
 
+class Target(StrEnum):
+    store = 'store'
+    comfyui = 'comfyui'
+
+
+type RequiresNode = Annotated[str, Field(..., pattern='^[A-Za-z][A-Za-z0-9_]{0,63}$')]
+
+
 class Model(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -79,6 +87,15 @@ class Model(BaseModel):
         None,
         description='kind files: each file with its official URL, SHA-256, size and place in the model folder.',
         min_length=1,
+    )
+    target: Target | None = Field(
+        None,
+        description="kind files: store = our model folder (default); comfyui = the models folder of the player's own ComfyUI (B2514), path then relative to it (e.g. unet/...).",
+    )
+    requires_nodes: list[RequiresNode] | None = Field(
+        None,
+        description='ComfyUI node classes the workflows of this model need (custom nodes the player has to install, e.g. UnetLoaderGGUF from ComfyUI-GGUF).',
+        max_length=16,
     )
 
 

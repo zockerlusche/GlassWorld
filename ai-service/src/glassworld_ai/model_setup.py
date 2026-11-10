@@ -12,6 +12,11 @@ POST /setup/models/download with the agreed ids. One model at a time is loaded:
 
 A cancel stops the running download; what is on disk stays and the next download continues.
 
+Image models go into the models folder of the player's own ComfyUI (B2514, target `comfyui`),
+once the game knows it; files already there with the same name and size count as present, other
+files of the same name are never overwritten without consent. The status says whether ComfyUI
+answers and which custom nodes the workflows need are missing (e.g. ComfyUI-GGUF).
+
 If the player's own Ollama already holds a model of the same name in another version, it is
 reported as `other_version` and only replaced when the player agreed (`replace`). The free-space
 check looks at the configured Ollama model folder (or ~/.ollama/models); the folder of a player's
@@ -77,6 +82,8 @@ class Model:
     ollama_name: str | None = None
     ollama_digest: str | None = None
     files: tuple[ModelFile, ...] = ()
+    target: Literal["store", "comfyui"] = "store"
+    requires_nodes: tuple[str, ...] = ()
 
 
 def load_catalog(path: Path) -> tuple[Model, ...]:
@@ -98,6 +105,8 @@ def load_catalog(path: Path) -> tuple[Model, ...]:
             ollama_name=ollama["name"] if ollama else None,
             ollama_digest=ollama["digest"] if ollama else None,
             files=files,
+            target=raw.get("target", "store"),
+            requires_nodes=tuple(raw.get("requires_nodes", [])),
         )
         if model.kind == "ollama" and (ollama is None or files):
             raise ValueError(f"{model.id}: kind ollama needs 'ollama' and no 'files'")
@@ -126,9 +135,15 @@ class ModelSetup:
         transport: httpx.AsyncBaseTransport | None = None,
         ollama_models_dir: Path | None = None,
         free_bytes: Callable[[Path], int] | None = None,
+        comfyui_models_dir: Path | None = None,
+        comfyui_url: str | None = None,
     ) -> None:
         self._catalog = catalog
-        self._ollama_models_dir = ollama_models_dir or Path.home() / ".ollama" / "models"
+        # The player's own ComfyUI (B2514): its models folder, set by the game after the player
+        # named it; None = not known yet (image models wait for it).
+        self._comfyui_models = comfyui_models_dir
+        self._comfyui = comfyui_url.rstrip("/") if comfyui_url else None
+        self._ollama_models_dir = ollama_models_dir or _default_ollama_models(store_dir)
         self._free_bytes = free_bytes or _free_bytes
         self._store = store_dir
         self._ollama = ollama_url.rstrip("/")
@@ -160,12 +175,23 @@ class ModelSetup:
             return None
         return {str(m.get("name")): str(m.get("digest", "")) for m in listed}
 
-    def _folder(self, model: Model) -> Path:
+    def _own(self, model: Model) -> Path:
+        """Our folder for a model: its files (target store) or only its marker (target comfyui)."""
         return self._store / model.id.replace(":", "_")
 
+    def _folder(self, model: Model) -> Path:
+        if model.target == "comfyui":
+            if self._comfyui_models is None:
+                raise ModelError("runtime_missing", "the ComfyUI models folder is not known yet")
+            return self._comfyui_models
+        return self._own(model)
+
     def _files_present(self, model: Model) -> bool:
+        if model.target == "comfyui" and self._comfyui_models is None:
+            return False
         folder = self._folder(model)
-        if not (folder / MARKER).is_file():
+        # In the player's ComfyUI the files may already be there from before (same name and size).
+        if model.target == "store" and not (folder / MARKER).is_file():
             return False
         return all(
             (folder / f.path).is_file() and (folder / f.path).stat().st_size == f.size_bytes
@@ -173,6 +199,8 @@ class ModelSetup:
         )
 
     def _files_on_disk(self, model: Model) -> int:
+        if model.target == "comfyui" and self._comfyui_models is None:
+            return 0
         folder, done = self._folder(model), 0
         for f in model.files:
             final, part = folder / f.path, folder / f"{f.path}.part"
@@ -203,6 +231,8 @@ class ModelSetup:
                     state = "other_version"  # the player's own, another version (review #125)
                 else:
                     state = "missing"
+            elif model.target == "comfyui" and self._comfyui_models is None:
+                state = "waiting_for_runtime"  # the game asks the player for the ComfyUI folder
             elif self._files_present(model):
                 state, done = "present", model.size_bytes
             else:
@@ -230,8 +260,35 @@ class ModelSetup:
                 "total_bytes": total,
                 "missing_bytes": missing,
                 "models": rows,
+                "comfyui": await self._comfyui_status(offered),
             }
         )
+
+    async def _comfyui_status(self, offered: tuple[Model, ...]) -> dict[str, Any] | None:
+        """Image models in the player's ComfyUI: folder known, ComfyUI answers, nodes present."""
+        needed = sorted({n for m in offered if m.target == "comfyui" for n in m.requires_nodes})
+        if not any(m.target == "comfyui" for m in offered):
+            return None
+        missing: list[str] = []
+        reachable = False
+        if self._comfyui is not None:
+            try:
+                async with self._client() as client:
+                    for node in needed:
+                        response = await client.get(
+                            f"{self._comfyui}/object_info/{node}", timeout=5
+                        )
+                        response.raise_for_status()
+                        reachable = True
+                        if node not in response.json():
+                            missing.append(node)
+            except (httpx.HTTPError, ValueError, AttributeError):
+                reachable, missing = False, []
+        return {
+            "models_dir_known": self._comfyui_models is not None,
+            "reachable": reachable,
+            "missing_nodes": missing if reachable else needed,
+        }
 
     # --- download -----------------------------------------------------------------------
     def busy(self) -> bool:
@@ -304,7 +361,7 @@ class ModelSetup:
 
     def _check_space(self, model: Model) -> None:
         """Refuse before writing when the disk cannot hold the rest (review GW1 #125)."""
-        where = self._ollama_models_dir if model.kind == "ollama" else self._store
+        where = self._ollama_models_dir if model.kind == "ollama" else self._folder(model)
         need = model.size_bytes - (0 if model.kind == "ollama" else self._files_on_disk(model))
         if self._free_bytes(where) < need:
             raise ModelError("disk_full", f"{need} bytes needed in {where}")
@@ -363,8 +420,12 @@ class ModelSetup:
         for item in model.files:
             final, part = folder / item.path, folder / f"{item.path}.part"
             if final.is_file() and final.stat().st_size == item.size_bytes:
-                finished += item.size_bytes
+                finished += item.size_bytes  # also a file the player's ComfyUI already had
                 continue
+            if model.target == "comfyui" and final.exists() and model.id not in self._replace:
+                # Another file of the same name in the player's ComfyUI: never overwrite it
+                # without asking (like the player's own Ollama model, review GW1 #125).
+                raise ModelError("other_version", f"{item.path} exists with another size")
 
             def seen(done: int, base: int = finished) -> None:
                 self._done[model.id] = base + done
@@ -383,7 +444,9 @@ class ModelSetup:
             self._phase[model.id] = "downloading"
             finished += item.size_bytes
         marker = {"id": model.id, "files": {f.path: f.sha256 for f in model.files}}
-        (folder / MARKER).write_text(json.dumps(marker), encoding="utf-8")
+        own = self._own(model)  # in the player's ComfyUI we write nothing but the model files
+        own.mkdir(parents=True, exist_ok=True)
+        (own / MARKER).write_text(json.dumps(marker), encoding="utf-8")
 
 
 def _has_digest(local: dict[str, str], model: Model) -> bool:
@@ -410,3 +473,12 @@ def _local_name(local: dict[str, str], model: Model) -> str | None:
         if candidate in local:
             return candidate
     return None
+
+
+def _default_ollama_models(store_dir: Path) -> Path:
+    """Where Ollama keeps models by default (~/.ollama/models). Without a home folder (service
+    account, review GW1 #130) the free-space check looks at the drive of our store instead."""
+    try:
+        return Path.home() / ".ollama" / "models"
+    except RuntimeError:
+        return store_dir

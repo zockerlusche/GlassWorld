@@ -18,6 +18,7 @@ from glassworld_contracts import (
     ConversationResponse,
     DecisionRequest,
     DecisionResponse,
+    DiagnosticsReport,
     GenerationJob,
     HealthStatus,
     HelpSuggestionsRequest,
@@ -30,6 +31,7 @@ from glassworld_contracts import (
     PhaseChange,
     PhaseStatus,
     PlayerMessage,
+    SelfCheck,
     ServiceError,
     Vocabulary,
 )
@@ -57,6 +59,8 @@ MODELS: dict[str, type[BaseModel]] = {
     "benchmark-status": BenchmarkStatus,
     "ollama-setup-status": OllamaSetupStatus,
     "model-setup-status": ModelSetupStatus,
+    "self-check": SelfCheck,
+    "diagnostics-report": DiagnosticsReport,
 }
 
 # Schema rules the generated pydantic models do not enforce. JSON Schema validation

@@ -91,4 +91,18 @@ namespace GlassWorld.Contracts
         public string Path { get; set; } = default!;
 
     }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public enum ModelsTarget
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("store")]
+        Store = 0,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("comfyui")]
+        Comfyui = 1,
+
+
+    }
 }

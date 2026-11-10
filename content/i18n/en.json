@@ -1264,7 +1264,7 @@
     },
     {
       "key": "ui.help.empty",
-      "text": "Nobody is asking for help right now. When an inhabitant tries something several times in vain, their request appears here and knocks in the mailbox. Until then everything runs by itself."
+      "text": "Nobody needs help right now."
     },
     {
       "key": "ui.help.call",
@@ -1292,7 +1292,7 @@
     },
     {
       "key": "ui.mailbox.empty",
-      "text": "No new messages. Inhabitants knock here when they need help or want to tell you something."
+      "text": "No new messages."
     },
     {
       "key": "ui.mailbox.read",
@@ -2085,6 +2085,158 @@
     {
       "key": "msg.converse.no_answer",
       "text": "Hm ... I have to think about that."
+    },
+    {
+      "key": "ui.setup.model_image",
+      "text": "Image AI: draws pictures of new things in the computing night (in your ComfyUI)"
+    },
+    {
+      "key": "ui.setup.model_image_edit",
+      "text": "Image editing: fits pictures to the look of the world (in your ComfyUI)"
+    },
+    {
+      "key": "msg.selfcheck.image.comfyui_down",
+      "text": "ComfyUI does not answer."
+    },
+    {
+      "key": "msg.selfcheck.image.comfyui_down.fix",
+      "text": "Start ComfyUI and keep it running in the background."
+    },
+    {
+      "key": "msg.selfcheck.image.folder_unknown",
+      "text": "The image AI needs your own ComfyUI installation."
+    },
+    {
+      "key": "msg.selfcheck.image.folder_unknown.fix",
+      "text": "Name the folder of your ComfyUI installation in the setup window. Without it the world shows simple pictures."
+    },
+    {
+      "key": "msg.selfcheck.image.models_failed",
+      "text": "The image models could not be downloaded."
+    },
+    {
+      "key": "msg.selfcheck.image.models_failed.fix",
+      "text": "Start the download again; it continues where it stopped."
+    },
+    {
+      "key": "msg.selfcheck.image.models_missing",
+      "text": "The image models are missing."
+    },
+    {
+      "key": "msg.selfcheck.image.models_missing.fix",
+      "text": "Download them in the setup window."
+    },
+    {
+      "key": "msg.selfcheck.image.models_preparing",
+      "text": "The image models are being downloaded."
+    },
+    {
+      "key": "msg.selfcheck.image.nodes_missing",
+      "text": "An extension is missing in your ComfyUI."
+    },
+    {
+      "key": "msg.selfcheck.image.nodes_missing.fix",
+      "text": "Install the named extension (for example ComfyUI-GGUF) with the ComfyUI Manager. The guide shows how."
+    },
+    {
+      "key": "msg.selfcheck.image.not_offered",
+      "text": "No image AI is planned for your hardware tier. The world shows simple pictures."
+    },
+    {
+      "key": "msg.selfcheck.image.ready",
+      "text": "The image AI is ready."
+    },
+    {
+      "key": "msg.selfcheck.language.model_failed",
+      "text": "The language model could not be downloaded."
+    },
+    {
+      "key": "msg.selfcheck.language.model_failed.fix",
+      "text": "Start the download again; it continues where it stopped."
+    },
+    {
+      "key": "msg.selfcheck.language.model_loading",
+      "text": "The language model is starting."
+    },
+    {
+      "key": "msg.selfcheck.language.model_missing",
+      "text": "The language model is missing."
+    },
+    {
+      "key": "msg.selfcheck.language.model_missing.fix",
+      "text": "Download it in the setup window."
+    },
+    {
+      "key": "msg.selfcheck.language.model_not_loaded",
+      "text": "The language model could not start. The service keeps trying."
+    },
+    {
+      "key": "msg.selfcheck.language.model_not_loaded.fix",
+      "text": "Close other programs that use a lot of graphics memory."
+    },
+    {
+      "key": "msg.selfcheck.language.model_other_version",
+      "text": "Your Ollama holds another version of the language model."
+    },
+    {
+      "key": "msg.selfcheck.language.model_other_version.fix",
+      "text": "Allow the tested version to be downloaded in the setup window."
+    },
+    {
+      "key": "msg.selfcheck.language.model_preparing",
+      "text": "The language model is being downloaded."
+    },
+    {
+      "key": "msg.selfcheck.language.ready",
+      "text": "The language AI is ready."
+    },
+    {
+      "key": "msg.selfcheck.language.runtime_failed",
+      "text": "Ollama could not be set up."
+    },
+    {
+      "key": "msg.selfcheck.language.runtime_failed.fix",
+      "text": "Start the download in the setup window again. If that does not help, create a diagnostics report."
+    },
+    {
+      "key": "msg.selfcheck.language.runtime_missing",
+      "text": "Ollama is not installed yet. Without it the inhabitants think by simple rules."
+    },
+    {
+      "key": "msg.selfcheck.language.runtime_missing.fix",
+      "text": "Download Ollama in the setup window."
+    },
+    {
+      "key": "msg.selfcheck.language.runtime_outdated",
+      "text": "Your Ollama is too old for this game."
+    },
+    {
+      "key": "msg.selfcheck.language.runtime_outdated.fix",
+      "text": "Update Ollama or close it, then the game uses its own."
+    },
+    {
+      "key": "msg.selfcheck.language.runtime_preparing",
+      "text": "Ollama is being set up."
+    },
+    {
+      "key": "msg.selfcheck.language.runtime_stopped",
+      "text": "Ollama is installed but not running."
+    },
+    {
+      "key": "msg.selfcheck.language.runtime_stopped.fix",
+      "text": "Allow the game to start Ollama in the setup window."
+    },
+    {
+      "key": "msg.selfcheck.language.tier_below",
+      "text": "Your computer is too weak for the language AI. The inhabitants still live, by simple rules."
+    },
+    {
+      "key": "msg.selfcheck.language.tier_below.fix",
+      "text": "A graphics card with more memory helps. The guide lists the tiers."
+    },
+    {
+      "key": "msg.selfcheck.sound.not_planned",
+      "text": "Sound AI is not part of this version. The world uses its basic sounds."
     }
   ]
 }

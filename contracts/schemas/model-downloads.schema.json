@@ -138,6 +138,23 @@
                 }
               }
             }
+          },
+          "target": {
+            "description": "kind files: store = our model folder (default); comfyui = the models folder of the player's own ComfyUI (B2514), path then relative to it (e.g. unet/...).",
+            "type": "string",
+            "enum": [
+              "store",
+              "comfyui"
+            ]
+          },
+          "requires_nodes": {
+            "description": "ComfyUI node classes the workflows of this model need (custom nodes the player has to install, e.g. UnetLoaderGGUF from ComfyUI-GGUF).",
+            "type": "array",
+            "maxItems": 16,
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9_]{0,63}$"
+            }
           }
         }
       }

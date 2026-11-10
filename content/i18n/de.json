@@ -1264,7 +1264,7 @@
     },
     {
       "key": "ui.help.empty",
-      "text": "Gerade bittet niemand um Hilfe. Wenn ein Bewohner etwas mehrmals vergeblich versucht, erscheint seine Bitte hier und klopft im Postfach an. Bis dahin läuft alles von selbst."
+      "text": "Gerade bittet niemand um Hilfe."
     },
     {
       "key": "ui.help.call",
@@ -1292,7 +1292,7 @@
     },
     {
       "key": "ui.mailbox.empty",
-      "text": "Keine neuen Nachrichten. Hier klopfen die Bewohner an, wenn sie Hilfe brauchen oder dir etwas mitteilen möchten."
+      "text": "Keine neuen Nachrichten."
     },
     {
       "key": "ui.mailbox.read",
@@ -2085,6 +2085,158 @@
     {
       "key": "msg.converse.no_answer",
       "text": "Hm ... da muss ich erst nachdenken."
+    },
+    {
+      "key": "ui.setup.model_image",
+      "text": "Bild-KI: zeichnet Bilder neuer Dinge in der Rechennacht (in deinem ComfyUI)"
+    },
+    {
+      "key": "ui.setup.model_image_edit",
+      "text": "Bild-Bearbeitung: passt Bilder an den Stil der Welt an (in deinem ComfyUI)"
+    },
+    {
+      "key": "msg.selfcheck.image.comfyui_down",
+      "text": "ComfyUI antwortet nicht."
+    },
+    {
+      "key": "msg.selfcheck.image.comfyui_down.fix",
+      "text": "Starte ComfyUI und lass es im Hintergrund laufen."
+    },
+    {
+      "key": "msg.selfcheck.image.folder_unknown",
+      "text": "Die Bild-KI braucht deine eigene ComfyUI-Installation."
+    },
+    {
+      "key": "msg.selfcheck.image.folder_unknown.fix",
+      "text": "Nenne im Einrichtungsfenster den Ordner deiner ComfyUI-Installation. Ohne sie zeigt die Welt einfache Bilder."
+    },
+    {
+      "key": "msg.selfcheck.image.models_failed",
+      "text": "Die Bildmodelle konnten nicht geladen werden."
+    },
+    {
+      "key": "msg.selfcheck.image.models_failed.fix",
+      "text": "Starte den Download noch einmal, er macht dort weiter, wo er aufgehört hat."
+    },
+    {
+      "key": "msg.selfcheck.image.models_missing",
+      "text": "Die Bildmodelle fehlen noch."
+    },
+    {
+      "key": "msg.selfcheck.image.models_missing.fix",
+      "text": "Lade sie im Einrichtungsfenster herunter."
+    },
+    {
+      "key": "msg.selfcheck.image.models_preparing",
+      "text": "Die Bildmodelle werden gerade geladen."
+    },
+    {
+      "key": "msg.selfcheck.image.nodes_missing",
+      "text": "In deinem ComfyUI fehlt eine Erweiterung."
+    },
+    {
+      "key": "msg.selfcheck.image.nodes_missing.fix",
+      "text": "Installiere die genannte Erweiterung (zum Beispiel ComfyUI-GGUF) über den ComfyUI-Manager. Die Anleitung zeigt, wie."
+    },
+    {
+      "key": "msg.selfcheck.image.not_offered",
+      "text": "Für deine Hardware-Stufe ist keine Bild-KI vorgesehen. Die Welt zeigt einfache Bilder."
+    },
+    {
+      "key": "msg.selfcheck.image.ready",
+      "text": "Die Bild-KI ist bereit."
+    },
+    {
+      "key": "msg.selfcheck.language.model_failed",
+      "text": "Das Sprachmodell konnte nicht geladen werden."
+    },
+    {
+      "key": "msg.selfcheck.language.model_failed.fix",
+      "text": "Starte den Download noch einmal, er macht dort weiter, wo er aufgehört hat."
+    },
+    {
+      "key": "msg.selfcheck.language.model_loading",
+      "text": "Das Sprachmodell wird gestartet."
+    },
+    {
+      "key": "msg.selfcheck.language.model_missing",
+      "text": "Das Sprachmodell fehlt noch."
+    },
+    {
+      "key": "msg.selfcheck.language.model_missing.fix",
+      "text": "Lade es im Einrichtungsfenster herunter."
+    },
+    {
+      "key": "msg.selfcheck.language.model_not_loaded",
+      "text": "Das Sprachmodell ließ sich nicht starten. Der Dienst versucht es weiter."
+    },
+    {
+      "key": "msg.selfcheck.language.model_not_loaded.fix",
+      "text": "Schließe andere Programme, die viel Grafikspeicher brauchen."
+    },
+    {
+      "key": "msg.selfcheck.language.model_other_version",
+      "text": "In deinem Ollama liegt eine andere Fassung des Sprachmodells."
+    },
+    {
+      "key": "msg.selfcheck.language.model_other_version.fix",
+      "text": "Erlaube im Einrichtungsfenster, die getestete Fassung zu laden."
+    },
+    {
+      "key": "msg.selfcheck.language.model_preparing",
+      "text": "Das Sprachmodell wird gerade geladen."
+    },
+    {
+      "key": "msg.selfcheck.language.ready",
+      "text": "Die Sprach-KI ist bereit."
+    },
+    {
+      "key": "msg.selfcheck.language.runtime_failed",
+      "text": "Ollama konnte nicht eingerichtet werden."
+    },
+    {
+      "key": "msg.selfcheck.language.runtime_failed.fix",
+      "text": "Starte den Download im Einrichtungsfenster noch einmal. Hilft das nicht, erstelle einen Diagnosebericht."
+    },
+    {
+      "key": "msg.selfcheck.language.runtime_missing",
+      "text": "Ollama fehlt noch. Ohne Ollama denken die Bewohner nach einfachen Regeln."
+    },
+    {
+      "key": "msg.selfcheck.language.runtime_missing.fix",
+      "text": "Lade Ollama im Einrichtungsfenster herunter."
+    },
+    {
+      "key": "msg.selfcheck.language.runtime_outdated",
+      "text": "Dein Ollama ist zu alt für dieses Spiel."
+    },
+    {
+      "key": "msg.selfcheck.language.runtime_outdated.fix",
+      "text": "Aktualisiere Ollama oder beende es, dann nimmt das Spiel sein eigenes."
+    },
+    {
+      "key": "msg.selfcheck.language.runtime_preparing",
+      "text": "Ollama wird gerade eingerichtet."
+    },
+    {
+      "key": "msg.selfcheck.language.runtime_stopped",
+      "text": "Ollama ist installiert, läuft aber nicht."
+    },
+    {
+      "key": "msg.selfcheck.language.runtime_stopped.fix",
+      "text": "Erlaube dem Spiel im Einrichtungsfenster, Ollama zu starten."
+    },
+    {
+      "key": "msg.selfcheck.language.tier_below",
+      "text": "Dein Rechner ist für die Sprach-KI zu schwach. Die Bewohner leben trotzdem, nach einfachen Regeln."
+    },
+    {
+      "key": "msg.selfcheck.language.tier_below.fix",
+      "text": "Eine Grafikkarte mit mehr Speicher hilft. Die Anleitung nennt die Stufen."
+    },
+    {
+      "key": "msg.selfcheck.sound.not_planned",
+      "text": "Klang-KI ist in dieser Version nicht dabei. Die Welt klingt mit ihren Grundklängen."
     }
   ]
 }

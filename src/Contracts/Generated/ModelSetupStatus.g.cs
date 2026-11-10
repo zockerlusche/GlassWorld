@@ -41,6 +41,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("models")]
         public System.Collections.Generic.ICollection<Models> Models { get; set; } = new System.Collections.ObjectModel.Collection<Models>();
 
+        /// <summary>
+        /// Only when the tier offers image models for the player's ComfyUI: whether the game has told the service its models folder, whether ComfyUI answers, and which required nodes are missing (all of them while it does not answer).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("comfyui")]
+        public Comfyui? Comfyui { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -73,7 +80,7 @@ namespace GlassWorld.Contracts
         public string PurposeKey { get; set; } = default!;
 
         /// <summary>
-        /// present; missing (offer it); other_version (the player's own Ollama holds another version under the same name: ask before replacing it, then send it in replace); queued; downloading; verifying; waiting_for_runtime (needs Ollama first, see /setup/ollama); failed (error set; downloading again continues).
+        /// present; missing (offer it); other_version (the player's own Ollama holds another version under the same name: ask before replacing it, then send it in replace); queued; downloading; verifying; waiting_for_runtime (needs Ollama first, see /setup/ollama, or for image models the folder of the player's ComfyUI); failed (error set; downloading again continues).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("state")]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ModelsState>))]
@@ -84,6 +91,21 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("error")]
         public string? Error { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class Comfyui
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("models_dir_known")]
+        public bool ModelsDirKnown { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("reachable")]
+        public bool Reachable { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("missing_nodes")]
+        public System.Collections.Generic.ICollection<string> MissingNodes { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
     }
 

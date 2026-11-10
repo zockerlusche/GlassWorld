@@ -1,0 +1,5 @@
+{
+  "contract_version": "0.2",
+  "file_name": "C:/Users/someone/logs/report.md",
+  "text": "# GlassWorld diagnostics\n\n- AI service 0.2.0, contract 0.2\n\n## Self-check\n\n| AI | State | Reason | Detail |\n|---|---|---|---|\n| image | problem | comfyui_down | - |\n"
+}
