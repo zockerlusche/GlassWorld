@@ -107,6 +107,7 @@ def test_a_bad_thought_is_replaced_without_asking_again(settings: Settings) -> N
     assert body["thought"]["text"] == stand_in(texts, "de", action)
     rows = list(log.read())
     assert len(rows) == 1 and "thought replaced (blocked_word)" in str(rows[0]["detail"])
+    assert rows[0]["prompt_digest"] == load_prompt(settings.prompts_dir, "decider/decide", 4).digest
 
 
 def test_a_good_thought_stays(settings: Settings) -> None:

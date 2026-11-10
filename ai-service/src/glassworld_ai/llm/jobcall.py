@@ -119,6 +119,7 @@ async def ask_model[T](
                     request_id=plain_id(job.request_id),
                     tick=job.tick,
                     prompt_version=rendered.version,
+                    prompt_digest=rendered.digest or None,
                     model=client.model,
                     seed=seed,
                     temperature=settings.temperature,

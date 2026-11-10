@@ -30,6 +30,7 @@ class CallRecord:
     detail: str | None = None
     prompt_tokens: int | None = None
     output_tokens: int | None = None
+    prompt_digest: str | None = None  # the prompt file's content, so in-place edits stay visible
 
 
 class CallLog:

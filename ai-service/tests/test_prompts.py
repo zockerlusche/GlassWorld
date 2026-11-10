@@ -214,3 +214,29 @@ def test_v4_names_things_in_the_players_language() -> None:
     assert "at most 10 words" in text
     v3 = _render(_request("hungry-berries"), version=3)
     assert '(you call it "' not in v3  # older versions unchanged
+
+
+def test_v4_options_say_what_is_shown_taught_or_warned_about() -> None:
+    """#156/D625: the topic of show/teach/warn reaches the model with the thing's own name."""
+    text = _render(_request("passing-topics"), version=4)
+    assert "you believe it is drinkable" in text
+    assert '"Steinschale" (inv 3fa2c19b7e04) - you believe it is not edible' in text
+    assert "about:" not in _render(_request("passing-topics"), version=3)  # older ones unchanged
+    assert "Careful, the red berries are poisonous!" in text
+
+
+def test_the_prompt_digest_tells_in_place_edits_apart(tmp_path: Path) -> None:
+    """Review GW1 #169: an edited prompt gets another digest in the logs; line ends do not count."""
+    (tmp_path / "decider").mkdir()
+    file = tmp_path / "decider" / "x.v1.toml"
+    file.write_bytes(b'name = "decider/x"\nversion = 1\nsystem = "s"\nuser = "u"\n')
+    first = load_prompt(tmp_path, "decider/x", 1).digest
+    file.write_bytes(b'name = "decider/x"\r\nversion = 1\r\nsystem = "s"\r\nuser = "u"\r\n')
+    assert load_prompt(tmp_path, "decider/x", 1).digest == first
+    file.write_bytes(b'name = "decider/x"\nversion = 1\nsystem = "s2"\nuser = "u"\n')
+    assert load_prompt(tmp_path, "decider/x", 1).digest != first
+    assert len(first) == 12
+    template = load_prompt(PROMPTS, "decider/decide", 4)
+    texts = TextCatalog.load(REPO / "content/i18n")
+    values = build_values(_request("hungry-berries"), template, _vocab(), BUDGET, texts)
+    assert template.render(values).digest == template.digest

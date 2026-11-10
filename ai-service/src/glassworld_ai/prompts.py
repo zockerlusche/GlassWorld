@@ -7,6 +7,7 @@ never silently lose context.
 
 from __future__ import annotations
 
+import hashlib
 import re
 import tomllib
 from dataclasses import dataclass, field
@@ -26,6 +27,7 @@ class RenderedPrompt:
     version: str  # e.g. "decider/decide.v1"
     system: str
     user: str
+    digest: str = ""  # first 12 hex of the file's SHA-256 (tells in-place edits apart in logs)
 
 
 @dataclass(frozen=True)
@@ -35,6 +37,7 @@ class PromptTemplate:
     system: str
     user: str
     settings: dict[str, Any] = field(default_factory=dict[str, Any])
+    digest: str = ""  # first 12 hex of the file's SHA-256 (review GW1 #169)
 
     @property
     def version_id(self) -> str:
@@ -46,7 +49,9 @@ class PromptTemplate:
             user = Template(self.user).substitute(values)
         except (KeyError, ValueError) as error:
             raise PromptError(f"{self.version_id}: placeholder without value: {error}") from error
-        return RenderedPrompt(version=self.version_id, system=system.strip(), user=user.strip())
+        return RenderedPrompt(
+            version=self.version_id, system=system.strip(), user=user.strip(), digest=self.digest
+        )
 
 
 def load_prompt(prompts_dir: Path, name: str, version: int) -> PromptTemplate:
@@ -55,7 +60,8 @@ def load_prompt(prompts_dir: Path, name: str, version: int) -> PromptTemplate:
         raise PromptError(f"invalid prompt name {name!r}")
     path = prompts_dir / f"{name}.v{version}.toml"
     try:
-        data = tomllib.loads(path.read_text(encoding="utf-8"))
+        raw = path.read_bytes()
+        data = tomllib.loads(raw.decode("utf-8"))
     except FileNotFoundError as error:
         raise PromptError(f"prompt file not found: {path}") from error
     except tomllib.TOMLDecodeError as error:
@@ -74,4 +80,5 @@ def load_prompt(prompts_dir: Path, name: str, version: int) -> PromptTemplate:
         system=system,
         user=user,
         settings=settings,  # pyright: ignore[reportUnknownArgumentType]
+        digest=hashlib.sha256(raw.replace(b"\r\n", b"\n")).hexdigest()[:12],
     )
