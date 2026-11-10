@@ -51,7 +51,9 @@ public sealed class IslandLookTests
     {
         var look = Read<LookWorld>("look", "world.json");
         Assert.True(File.Exists(Path.Combine(Content, "world", "presets", look.IslandPreset + ".json")));
-        Assert.Contains(Read<LookDaylight>("look", "daylight.json").Phases, p => p.Phase.ToString().Equals(look.DayPhase, StringComparison.OrdinalIgnoreCase));
+        Assert.True(
+            look.DayPhase == DaylightClock.FollowClock
+            || Read<LookDaylight>("look", "daylight.json").Phases.Any(p => p.Phase.Equals(look.DayPhase, StringComparison.OrdinalIgnoreCase)));
     }
 
     [Fact]

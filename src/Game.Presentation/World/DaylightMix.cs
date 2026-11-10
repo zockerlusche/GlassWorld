@@ -7,14 +7,15 @@ namespace GlassWorld.Presentation.World;
 /// the phase's sunlight blended with the moonlight by the phase's moon value, the ambient light
 /// never below <c>night_min_brightness</c>. <see cref="Lerp"/> blends two moments for calm
 /// transitions at dusk and dawn. The main light is one directional light for sun and moon, so the
-/// night costs no extra shadow pass. Presentation only.
+/// night costs no extra shadow pass. Its shadow fades (<see cref="ShadowOpacity"/>) instead of switching
+/// when the sun hands over to a moon without shadows (GW3 #166). Presentation only.
 /// </summary>
 public sealed record DaylightMix(
     Rgb LightColor,
     double LightEnergy,
     double LightElevationDeg,
     double LightAzimuthDeg,
-    bool Shadows,
+    double ShadowOpacity,
     Rgb SkyTop,
     Rgb SkyHorizon,
     Rgb Ambient,
@@ -23,6 +24,9 @@ public sealed record DaylightMix(
     double Moon,
     Rgb WaterLight)
 {
+    /// <summary>Whether the main light casts a shadow at all (no shadow pass when it is fully faded).</summary>
+    public bool Shadows => ShadowOpacity > 0;
+
     /// <summary>The moment of a day phase; an unknown phase is a data error.</summary>
     public static DaylightMix Of(LookDaylight daylight, string phase)
     {
@@ -37,7 +41,7 @@ public sealed record DaylightMix(
             (data.LightEnergy * (1 - w)) + (moon.LightEnergy * w),
             elevation,
             azimuth,
-            w < 0.5 || moon.Shadows,
+            w < 0.5 || moon.Shadows ? 1 : 0,
             Rgb.Parse(data.SkyTop),
             Rgb.Parse(data.SkyHorizon),
             Rgb.Parse(data.AmbientColor),
@@ -63,7 +67,7 @@ public sealed record DaylightMix(
             Mix(LightEnergy, other.LightEnergy),
             elevation,
             azimuth,
-            t < 0.5 ? Shadows : other.Shadows,
+            Mix(ShadowOpacity, other.ShadowOpacity),
             SkyTop.Lerp(other.SkyTop, (float)t),
             SkyHorizon.Lerp(other.SkyHorizon, (float)t),
             Ambient.Lerp(other.Ambient, (float)t),

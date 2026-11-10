@@ -6,7 +6,7 @@ namespace GlassWorld.Game.World;
 
 /// <summary>
 /// Light, sky and ambient of one day phase from <c>content/look/daylight.json</c> (island scene and the
-/// main game's island mode; B2-5 blends the phases over time). Presentation only.
+/// main game, which blends the phases by the world clock, see DaylightClock). Presentation only.
 /// </summary>
 public static class DaylightLook
 {
@@ -49,6 +49,7 @@ public static class DaylightLook
         sun.LightEnergy = (float)mix.LightEnergy;
         sun.RotationDegrees = new Vector3(-(float)mix.LightElevationDeg, (float)mix.LightAzimuthDeg, 0);
         sun.ShadowEnabled = mix.Shadows;
+        sun.ShadowOpacity = (float)mix.ShadowOpacity;
 
         if (environment.Sky?.SkyMaterial is not ShaderMaterial sky || sky.Shader != SkyShader)
         {
