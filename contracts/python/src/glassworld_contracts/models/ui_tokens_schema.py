@@ -33,6 +33,33 @@ class HeadSymbol(BaseModel):
     )
 
 
+class Zones(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    side_panel_width: int = Field(
+        ...,
+        description='Width of the side window on the right (pixels at the reference size; grows with the text size).',
+        ge=200,
+        le=1200,
+    )
+    log_width: int = Field(
+        ..., description='Width of the pinned log on the left.', ge=160, le=1200
+    )
+    log_height_share: float = Field(
+        ...,
+        description='Share of the free height below the top bar the log takes.',
+        ge=0.1,
+        le=1.0,
+    )
+    panel_padding: int = Field(
+        ...,
+        description='Inner padding of the top bar and the zone panels (the windows of the layout so far keep window.padding).',
+        ge=0,
+        le=64,
+    )
+
+
 class UiScaleRange(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -348,4 +375,8 @@ class UiTokens(BaseModel):
     head_symbol: HeadSymbol = Field(
         ...,
         description="Symbols above inhabitants' heads (question marks, feeling symbols; F5284): one common world size, and on screen never smaller or larger than the given pixel heights, so they are readable at every zoom.",
+    )
+    zones: Zones = Field(
+        ...,
+        description='Sizes of the zones layout (UI concept W1717, D642; preview behind a player setting): compact so the middle of the picture stays free.',
     )
