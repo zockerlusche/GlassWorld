@@ -492,10 +492,11 @@ public sealed class DecisionsSystem : IWorldSystem
                     break;
                 case VocabularyEntryTarget.Inhabitant when Knowledge is { } knowledge:
                     // Passing on knowledge (B4a R4): offered towards someone in sight when the asker knows
-                    // something this action carries and the other has not experienced it.
+                    // something this action carries and the other has not experienced it. The naming action
+                    // (W1698) only while the asker does not know the other's name.
                     foreach (var other in PerceivedInhabitants(asker).Take(knowledge.RequestMaxInhabitants))
                     {
-                        if (InhabitantsSystem.PassableBelief(knowledge, asker, other, action) is not null && !Rests(asker, action, other.Id, tick))
+                        if (InhabitantsSystem.HasPurpose(knowledge, asker, other, action) && !Rests(asker, action, other.Id, tick))
                         {
                             passOn.Add((action, other.Id));
                         }
@@ -548,8 +549,14 @@ public sealed class DecisionsSystem : IWorldSystem
                 })],
 
                 // Contract 0.2 (B4a-S5): other inhabitants in sight, nearest first.
+                // W1698: how the asker calls the other - its own name once the asker knows it.
                 Inhabitants = [.. PerceivedInhabitants(inhabitant).Take(Knowledge?.RequestMaxInhabitants ?? 0)
-                    .Select(i => new PerceivedInhabitant { Id = i.Id, DistanceM = Distance(inhabitant.Position, i.Position) })],
+                    .Select(i => new PerceivedInhabitant
+                    {
+                        Id = i.Id,
+                        DistanceM = Distance(inhabitant.Position, i.Position),
+                        Called = i.Name is { } name && inhabitant.KnownNames.Contains(i.Id) ? new CalledAs { Name = name, Label = null } : null,
+                    })],
             },
             Options = [.. options.Select(o => new Option { OptionId = o.OptionId, Action = o.Action, Target = o.TargetId, Topic = TopicOf(inhabitant, o.Action, o.TargetId) })],
         };
@@ -626,9 +633,10 @@ public sealed class DecisionsSystem : IWorldSystem
 
         var inhabitant = _inhabitants.Get(question.InhabitantId);
         var (_, action, targetId) = chosen[0];
-        if (resolved?.Inhabitant is { } listener && (Knowledge is not { } knowledge || InhabitantsSystem.PassableBelief(knowledge, inhabitant, listener, action) is null))
+        if (resolved?.Inhabitant is { } listener && (Knowledge is not { } knowledge || !InhabitantsSystem.HasPurpose(knowledge, inhabitant, listener, action)))
         {
-            // Between offer and answer the listener may have learned it themselves: no walk over for nothing.
+            // Between offer and answer the listener may have learned it themselves (or the asker the name):
+            // no walk over for nothing.
             Log.Add(new DecisionLogEntry(DecisionLogKind.Discarded, message.RequestId, world.Tick, message.Json, ReplayNotes.NothingToPass));
             Close(world, question, "question_failed", ReplayNotes.NothingToPass);
             return;

@@ -539,6 +539,10 @@
       "text": "Warnen"
     },
     {
+      "key": "vocab.action.introduce",
+      "text": "Vorstellen"
+    },
+    {
       "key": "vocab.biome.beach_sea",
       "text": "Strand und Meer"
     },
@@ -1407,6 +1411,10 @@
       "text": "Neues Wissen"
     },
     {
+      "key": "vocab.event.name_learned",
+      "text": "Name gelernt"
+    },
+    {
       "key": "vocab.event.invention_wanted",
       "text": "Erfindungswunsch"
     },
@@ -1863,8 +1871,16 @@
       "text": "warnt jemanden"
     },
     {
+      "key": "ui.activity.introduce",
+      "text": "stellt sich jemandem vor"
+    },
+    {
       "key": "ui.activity.warn.inhabitant",
       "text": "warnt {name}"
+    },
+    {
+      "key": "ui.activity.introduce.inhabitant",
+      "text": "stellt sich {name} vor"
     },
     {
       "key": "ui.activity.warn.inhabitant_topic",
@@ -1981,6 +1997,10 @@
     {
       "key": "msg.thought.warn",
       "text": "Pass auf!"
+    },
+    {
+      "key": "msg.thought.introduce",
+      "text": "Wie heißt du?"
     },
     {
       "key": "ui.menu.loading_title",

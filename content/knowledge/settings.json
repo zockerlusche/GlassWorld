@@ -61,5 +61,9 @@
       { "seen": "water", "property": "drinkable", "value": true }
     ],
     "place_memory_max": 32
+  },
+  "naming": {
+    "action": "introduce",
+    "busy_need_below": 0.2
   }
 }

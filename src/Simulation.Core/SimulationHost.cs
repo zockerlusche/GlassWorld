@@ -161,6 +161,7 @@ public sealed class SimulationHost
         var inhabitants = new InhabitantsSystem(content.InhabitantModel, actions, content.Brain, content.Gaits, objects, world.Calendar.Settings.TicksPerHour)
         {
             Looks = content.Appearance,
+            Names = content.InhabitantNames,
             Routes = map,
             Knowledge = content.Knowledge,
             EventKinds = content.EventKinds,

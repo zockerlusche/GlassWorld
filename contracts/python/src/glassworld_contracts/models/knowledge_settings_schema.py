@@ -19,6 +19,24 @@ class KnowledgeRelationship(BaseModel):
     respect: float = Field(..., ge=0.0, le=1.0)
 
 
+class KnowledgeNaming(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    action: str = Field(
+        ...,
+        description='The action that introduces oneself (inhabitant target).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    busy_need_below: float = Field(
+        ...,
+        description='The other answers with its own name only while none of its needs is below this level (0 = always answers).',
+        ge=0.0,
+        le=1.0,
+    )
+
+
 class KnowledgeGuess(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -158,3 +176,4 @@ class KnowledgeSettings(BaseModel):
         le=32,
     )
     looking: KnowledgeLooking | None = None
+    naming: KnowledgeNaming | None = None
