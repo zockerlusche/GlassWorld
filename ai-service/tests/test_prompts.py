@@ -214,3 +214,12 @@ def test_v4_names_things_in_the_players_language() -> None:
     assert "at most 10 words" in text
     v3 = _render(_request("hungry-berries"), version=3)
     assert '(you call it "' not in v3  # older versions unchanged
+
+
+def test_v4_options_say_what_is_shown_taught_or_warned_about() -> None:
+    """#156/D625: the topic of show/teach/warn reaches the model with the thing's own name."""
+    text = _render(_request("passing-topics"), version=4)
+    assert "you believe it is drinkable" in text
+    assert '"Steinschale" (inv 3fa2c19b7e04) - you believe it is not edible' in text
+    assert "about:" not in _render(_request("passing-topics"), version=3)  # older ones unchanged
+    assert "Careful, the red berries are poisonous!" in text

@@ -93,7 +93,10 @@ def build_values(
         "traits": "\n".join(trait_lines) or NOTHING,
         "environment": _environment(request, vocab),
         "objects": "",
-        "options": "\n".join(_option_line(request, vocab, o, called) for o in request.options),
+        "options": "\n".join(
+            _option_line(request, vocab, o, called, locale if template.version >= 4 else None)
+            for o in request.options
+        ),
         "expressions": ", ".join(vocab.ids("expression")) or "(none)",
         "thought_language": language,
     }
@@ -286,6 +289,7 @@ def _option_line(
     vocab: Vocabulary,
     option: Any,
     called: Callable[[str], str | None] | None = None,
+    locale: str | None = None,
 ) -> str:
     option_id = _id(option.option_id)
     action = _vocab_line(vocab, "action", _id(option.action))
@@ -295,7 +299,21 @@ def _option_line(
     raw_partners: list[object] = list(getattr(option, "partners", None) or [])
     partners = [_object_name(request, _id(p), called) for p in raw_partners]
     together = f" with {', '.join(partners)}" if partners else ""
-    return f"- {option_id}: {action} -> {what}{together}"
+    about = _topic(getattr(option, "topic", None), called, locale) if locale else ""
+    return f"- {option_id}: {action} -> {what}{together}{about}"
+
+
+def _topic(topic: Any, called: Callable[[str], str | None] | None, locale: str) -> str:
+    """v4+ (#156, D625): what a show/teach/warn option passes on - the inhabitant's own belief,
+    with the thing's name in the player's language, so the thought can name it."""
+    if topic is None:
+        return ""
+    kind = _id(topic.object_type)
+    own: object = getattr(topic.name, locale, None) if topic.name is not None else None
+    name = str(own) if own else (called(kind) if called else None)
+    thing = f'"{name}" ({_humanize(kind)})' if name else _humanize(kind)
+    belief = "is" if topic.value else "is not"
+    return f"; about: {thing} - you believe it {belief} {_humanize(_id(topic.property))}"
 
 
 def _object_name(

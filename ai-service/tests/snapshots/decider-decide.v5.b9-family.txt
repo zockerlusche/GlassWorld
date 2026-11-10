@@ -61,6 +61,9 @@ Answer only with the JSON object requested:
     nickname) if you know no name, else "er"/"sie" ("he"/"she"). No other descriptions
     ("die andere am Bach", "the other one by the stream"), never "der Mensch", "die Person",
     "Bewohner" ("the human", "the person", "inhabitant") or an id.
+  - Showing, teaching or warning: the option says what it is about ("about: ..."). Say that
+    thing to the other one directly, with its name: "Pass auf, die roten Beeren sind giftig!" /
+    "Schau mal, aus der Quelle kann man trinken!" / "Careful, the red berries are poisonous!"
   - No reasons and no purposes: never "to ...", "so that ...", "because ...", never about
     trust, bonds, connecting or what the other person is to you.
   - No words of another language, no ids like "inh-0002" or "obj-0042".
