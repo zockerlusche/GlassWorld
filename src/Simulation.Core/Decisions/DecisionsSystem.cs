@@ -490,7 +490,9 @@ public sealed class DecisionsSystem : IWorldSystem
                 case VocabularyEntryTarget.Object when target is not null && !Rests(asker, action, target.Id, tick):
                     raw.Add((action, target.Id));
                     break;
-                case VocabularyEntryTarget.None when !Rests(asker, action, null, tick):
+                case VocabularyEntryTarget.None when !Rests(asker, action, null, tick)
+                    && (!_inhabitants.AtFrontier(action) || _inhabitants.FrontierOf?.Invoke(asker) is not null):
+                    // An action at the frontier (B2-6 R14) only while unseen land can be reached on foot.
                     raw.Add((action, null));
                     break;
                 case VocabularyEntryTarget.Inhabitant when Knowledge is { } knowledge:
@@ -645,8 +647,19 @@ public sealed class DecisionsSystem : IWorldSystem
             return;
         }
 
+        // An action at the frontier (B2-6 R14) goes where unseen land begins now. If none is left since the
+        // offer, the answer is dropped like one whose target is gone: nobody is paid for standing around.
+        var atFrontier = _inhabitants.AtFrontier(action);
+        var frontier = atFrontier ? _inhabitants.FrontierOf?.Invoke(inhabitant) : null;
+        if (atFrontier && frontier is null)
+        {
+            Log.Add(new DecisionLogEntry(DecisionLogKind.Discarded, message.RequestId, world.Tick, message.Json, ReplayNotes.NothingToExplore));
+            Close(world, question, "question_failed", ReplayNotes.NothingToExplore);
+            return;
+        }
+
         Log.Add(new DecisionLogEntry(DecisionLogKind.Response, message.RequestId, world.Tick, message.Json, null));
-        var destination = resolved?.Position ?? inhabitant.Position;
+        var destination = resolved?.Position ?? frontier ?? inhabitant.Position;
         var decided = new Activity(action, targetId, destination, null);
         if (inhabitant.Activity?.RemainingTicks is not null)
         {

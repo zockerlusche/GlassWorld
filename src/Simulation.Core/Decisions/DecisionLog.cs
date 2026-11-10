@@ -99,4 +99,7 @@ public static class ReplayNotes
 
     /// <summary>A passing option (warn, show, teach) no longer had anything to pass on when the answer came.</summary>
     public const string NothingToPass = "nothing_to_pass";
+
+    /// <summary>An action at the frontier (B2-6 R14) had no unseen land left to walk to when the answer came.</summary>
+    public const string NothingToExplore = "nothing_to_explore";
 }

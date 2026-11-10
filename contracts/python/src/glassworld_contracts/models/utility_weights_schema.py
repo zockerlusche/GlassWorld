@@ -98,6 +98,10 @@ class Consideration(BaseModel):
         None,
         description='Character trait whose value (0..1) scales the score, e.g. curiosity. Absent or null = no trait.',
     )
+    yields_to_needs: bool | None = Field(
+        None,
+        description='The score yields to pressing needs, as exploring with a novelty_curve does (B2-6 R14): scaled by 1 - the highest urgency of the needs that can be neglected, and 0 while one is below its neglect threshold. Absent or false = no scaling.',
+    )
     novelty_curve: NoveltyCurve | None = Field(
         None,
         description="Exploring (TL #19921): the action is offered on every perceived object, scaled by this curve over the novelty of the object's type (1 - the inhabitant's surest belief about it; 1 = knows nothing). It yields to pressing needs: scaled by 1 - the highest urgency of the needs that can be neglected, and 0 while one is below its neglect threshold. Needs target_property and search_action null. Absent or null = no exploring.",

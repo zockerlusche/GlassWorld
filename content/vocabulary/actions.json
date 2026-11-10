@@ -4,6 +4,7 @@
   "entries": [
     { "id": "idle", "description": "Stay where you are and rest briefly.", "target": "none" },
     { "id": "wander", "description": "Walk around without a fixed goal and look at the surroundings.", "target": "none" },
+    { "id": "explore", "description": "Walk to the nearest place not seen yet and look at the land there.", "target": "none" },
     { "id": "move_to", "description": "Walk to a specific object.", "target": "object" },
     { "id": "inspect", "description": "Look closely at an object to learn about its properties.", "target": "object" },
     { "id": "pick_up", "description": "Pick up a small object and carry it.", "target": "object" },
