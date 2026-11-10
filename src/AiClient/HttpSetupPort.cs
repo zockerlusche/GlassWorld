@@ -9,6 +9,11 @@ namespace GlassWorld.AiClient;
 /// <param name="Problem">Why there is none (for the log, never shown as such); null when there is one.</param>
 public sealed record SelfCheckAnswer(SelfCheck? Check, string? Problem);
 
+/// <summary>An answer of <c>GET /phase</c>: how far the compute night is, or why there is no answer.</summary>
+/// <param name="Status">Valid status; null on any problem.</param>
+/// <param name="Problem">Why there is none (for the log); null when there is one.</param>
+public sealed record PhaseAnswer(PhaseStatus? Status, string? Problem);
+
 /// <summary>An answer of the diagnostics endpoint: the report, or why there is none.</summary>
 /// <param name="Report">Valid report (file name in the service's log folder and its text); null on any problem.</param>
 /// <param name="Problem">Why there is none (for the log); null when there is one.</param>
@@ -68,6 +73,21 @@ public sealed class HttpSetupPort : IDisposable
         return problems.Count > 0
             ? new SelfCheckAnswer(null, "invalid self-check: " + string.Join("; ", problems.Take(3)))
             : new SelfCheckAnswer(ContractSerializer.Deserialize<SelfCheck>(body), null);
+    }
+
+    /// <summary>Asks how far the compute night is (B7, D637 R14: the morning fades in when nothing is left); never throws.</summary>
+    public async Task<PhaseAnswer> PhaseAsync(CancellationToken cancellation = default)
+    {
+        var (body, problem) = await SendAsync(HttpMethod.Get, "phase", cancellation).ConfigureAwait(false);
+        if (body is null)
+        {
+            return new PhaseAnswer(null, problem);
+        }
+
+        var problems = ContractValidator.Validate("phase-status", body);
+        return problems.Count > 0
+            ? new PhaseAnswer(null, "invalid phase status: " + string.Join("; ", problems.Take(3)))
+            : new PhaseAnswer(ContractSerializer.Deserialize<PhaseStatus>(body), null);
     }
 
     /// <summary>Asks for a diagnostics report; never throws for service problems.</summary>

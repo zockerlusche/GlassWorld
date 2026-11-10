@@ -2501,6 +2501,18 @@
     {
       "key": "ui.timeline.empty",
       "text": "Nothing has happened yet. Later this lists the seasons with their events - a click turns the chronicle to that page."
+    },
+    {
+      "key": "ui.night.title",
+      "text": "The world is dreaming …"
+    },
+    {
+      "key": "ui.night.progress",
+      "text": "{done} thoughts sorted, {open} still open"
+    },
+    {
+      "key": "ui.night.progress_unknown",
+      "text": "The inhabitants are asleep."
     }
   ]
 }

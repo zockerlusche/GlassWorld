@@ -2501,6 +2501,18 @@
     {
       "key": "ui.timeline.empty",
       "text": "Noch ist nichts geschehen. Hier stehen später die Jahreszeiten mit ihren Ereignissen – ein Klick blättert die Chronik dorthin."
+    },
+    {
+      "key": "ui.night.title",
+      "text": "Die Welt träumt …"
+    },
+    {
+      "key": "ui.night.progress",
+      "text": "{done} Gedanken geordnet, {open} noch offen"
+    },
+    {
+      "key": "ui.night.progress_unknown",
+      "text": "Die Bewohner schlafen."
     }
   ]
 }

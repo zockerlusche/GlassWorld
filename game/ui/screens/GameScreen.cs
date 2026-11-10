@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Collections.Frozen;
 using System.Globalization;
 using GlassWorld.Contracts;
 using GlassWorld.Game.Ui.Components;
@@ -24,6 +25,16 @@ public partial class GameScreen : CanvasLayer
     private int _relayoutFrames;
     private readonly GwSideBar _sideBar = new();
     private readonly VBoxContainer _themeBar = new() { Name = "ThemeBar", Visible = false };
+    private readonly ColorRect _nightShade = new() { Name = "NightShade", Color = new Color(0, 0, 0, 0), MouseFilter = Control.MouseFilterEnum.Ignore };
+    private readonly VBoxContainer _nightText = new() { Name = "NightText", Visible = false, MouseFilter = Control.MouseFilterEnum.Ignore };
+    private readonly Label _nightProgress = new() { AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled, HorizontalAlignment = HorizontalAlignment.Center, MouseFilter = Control.MouseFilterEnum.Ignore };
+    private NightScene? _night;
+    private FrozenSet<string> _nightPhases = FrozenSet<string>.Empty;
+    private PhaseStatus? _nightStatus;
+    private double _nightPoll;
+    private double _nightPollS = 2;
+    private double _nightDarkness = 1;
+    private bool _nightAsking;
     private readonly VBoxContainer _timelineList = new() { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
     private readonly Dictionary<string, Button> _themeButtons = new(StringComparer.Ordinal);
     private readonly Dictionary<string, string> _lastOfTheme = new(StringComparer.Ordinal);
@@ -96,6 +107,21 @@ public partial class GameScreen : CanvasLayer
 
         AddChild(_root);
         _root.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+
+        // The compute night (B7, B2579/B2580): a shade over the world, behind every bar and window, and the
+        // dream scene's words in the middle. Both let the mouse through.
+        var nightLook = GlassWorld.Contracts.Validation.ContractSerializer.Deserialize<LookNight>(System.IO.File.ReadAllText(System.IO.Path.Combine(presenter.ContentDirectory, "look", "night.json")));
+        _night = new NightScene(nightLook);
+        (_nightPollS, _nightDarkness) = (nightLook.PollS, nightLook.Darkness);
+        _nightPhases = presenter.Host.Content.Inventions.Build.NightPhases;
+        _root.AddChild(_nightShade);
+        _nightShade.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        _nightText.AddChild(new Label { Text = "ui.night.title", ThemeTypeVariation = UiTheme.HeaderLabel, HorizontalAlignment = HorizontalAlignment.Center, MouseFilter = Control.MouseFilterEnum.Ignore });
+        _nightText.AddChild(_nightProgress);
+        _root.AddChild(_nightText);
+        _nightText.SetAnchorsPreset(Control.LayoutPreset.Center);
+        _nightText.GrowHorizontal = Control.GrowDirection.Both;
+        _nightText.GrowVertical = Control.GrowDirection.Both;
 
         // Windows over the game (pause, settings) stay visible when the UI is hidden ("watch only").
         AddChild(_overlay);
@@ -401,6 +427,8 @@ public partial class GameScreen : CanvasLayer
                 KnockAt(knock.InhabitantId);
             }
         }
+
+        UpdateNight(delta);
 
         _sinceRefreshMs += delta * 1000;
         if (_sinceRefreshMs >= _style.Tokens.Window.ListRefreshMs)
@@ -1628,6 +1656,58 @@ public partial class GameScreen : CanvasLayer
             _logList.AddChild(button);
         }
     }
+
+    /// <summary>
+    /// The compute night's picture (B7, B2579/B2580, D637 R12/R14): darkens into the dream scene when the world's
+    /// day phase turns to night, shows how far the service is, and lets the morning fade in once it is done.
+    /// Real time only: a paused game holds the fade.
+    /// </summary>
+    private void UpdateNight(double delta)
+    {
+        if (_night is null || _feed is null || _presenter is null)
+        {
+            return;
+        }
+
+        var night = _nightPhases.Contains(WorldFeed.Phase(_feed.Snapshot.Time.Phase));
+        var setup = _presenter.SetupPort;
+        if (_night.SceneShown && setup is not null && !_nightAsking && (_nightPoll -= delta) <= 0)
+        {
+            _nightPoll = _nightPollS;
+            _nightAsking = true;
+            AskNight(setup);
+        }
+
+        if (!_night.SceneShown)
+        {
+            _nightStatus = null;
+        }
+
+        var done = setup is null ? (bool?)null : _nightStatus is { } status ? NightScene.Done(status) : false;
+        _night.Update(night, done, _presenter.Speed > 0 ? delta : 0);
+        _nightShade.Color = new Color(0, 0, 0, (float)_night.Darkness);
+        _nightText.Visible = _night.SceneShown;
+        _nightText.Modulate = new Color(1, 1, 1, (float)Math.Clamp(_night.Darkness / Math.Max(_nightDarkness, 0.01), 0, 1));
+        if (_nightText.Visible)
+        {
+            _nightProgress.Text = _nightStatus is { } s
+                ? TextFill.Fill(Tr("ui.night.progress"), new Dictionary<string, string> { ["done"] = Number(s.DoneTonight), ["open"] = Number(s.Queued + s.Running) })
+                : Tr("ui.night.progress_unknown");
+        }
+    }
+
+    private async void AskNight(GlassWorld.AiClient.HttpSetupPort setup)
+    {
+        var answer = await setup.PhaseAsync();
+        _nightAsking = false;
+        if (IsInstanceValid(this) && answer.Status is { } status)
+        {
+            _nightStatus = status;
+        }
+    }
+
+    /// <summary>Smoke only: the night's stage and darkness now.</summary>
+    public (NightStage Stage, double Darkness) NightNow => _night is null ? (NightStage.Day, 0) : (_night.Stage, _night.Darkness);
 
     /// <summary>Rebuilds lists, clock, card and question marks from the current snapshot.</summary>
     public void Refresh()

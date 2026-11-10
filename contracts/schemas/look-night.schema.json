@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/look-night.schema.json",
+  "title": "LookNight",
+  "description": "How the game shows the compute night (B7, B2579/B2580, D637 R12-R14): the picture darkens into the dream scene when the night begins and the morning fades in once the AI service is done. Presentation only; all values are placeholders until Marcel's word.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "fade_out_s",
+    "fade_in_s",
+    "min_scene_s",
+    "darkness",
+    "poll_s"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "fade_out_s": {
+      "description": "Real seconds the picture takes to darken into the dream scene.",
+      "type": "number",
+      "minimum": 0.5,
+      "maximum": 60
+    },
+    "fade_in_s": {
+      "description": "Real seconds the morning takes to fade in.",
+      "type": "number",
+      "minimum": 0.5,
+      "maximum": 60
+    },
+    "min_scene_s": {
+      "description": "The dream scene stays at least this long (real seconds), also when the service has nothing to do - short, but without a jolt.",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 600
+    },
+    "darkness": {
+      "description": "How dark the dream scene is at most (0 = the world as it is, 1 = black). Below 1 the sleeping world stays faintly visible.",
+      "type": "number",
+      "minimum": 0.1,
+      "maximum": 1
+    },
+    "poll_s": {
+      "description": "Real seconds between two questions to the service how far the night is (GET /phase).",
+      "type": "number",
+      "minimum": 0.5,
+      "maximum": 60
+    }
+  }
+}
