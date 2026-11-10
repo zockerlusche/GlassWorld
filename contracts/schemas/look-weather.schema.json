@@ -1,0 +1,370 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/look-weather.schema.json",
+  "title": "LookWeather",
+  "description": "Data file content/look/weather.json: how each weather id looks (B2-5 R23): clouds, fog, rain and snow near the camera, light, snow cover, sway, colours. A weather that is only a condition next to the main weather (drought after the dry days) lays its colours and tint over the look of the main weather. Changes blend over the transition_minutes of the climate data, at least min_transition_real_seconds. Calm world (B2466): no camera shake, no flashing. Presentation only, not part of the hash. Values are placeholders.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "min_transition_real_seconds",
+    "clouds",
+    "rain",
+    "snow",
+    "glow",
+    "looks"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "min_transition_real_seconds": {
+      "description": "Shortest blend between two weathers in real seconds (fast forward shortens the game-time transition; the look still changes softly).",
+      "type": "number",
+      "minimum": 1,
+      "maximum": 600
+    },
+    "clouds": {
+      "$ref": "#/$defs/WeatherClouds"
+    },
+    "rain": {
+      "$ref": "#/$defs/FallParticles"
+    },
+    "snow": {
+      "$ref": "#/$defs/FallParticles"
+    },
+    "glow": {
+      "$ref": "#/$defs/WeatherGlow"
+    },
+    "looks": {
+      "description": "One look per weather id.",
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "items": {
+        "$ref": "#/$defs/WeatherLook"
+      }
+    }
+  },
+  "$defs": {
+    "WeatherClouds": {
+      "description": "The cloud layer of the sky shader: calm, fixed shapes; only the cover changes.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "color",
+        "scale",
+        "softness"
+      ],
+      "properties": {
+        "color": {
+          "description": "Palette colour id of the clouds (content/look/palette.json).",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "scale": {
+          "description": "Size of the cloud pattern (larger = smaller clouds).",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 50
+        },
+        "softness": {
+          "description": "Softness of the cloud edges (share of the pattern).",
+          "type": "number",
+          "minimum": 0.01,
+          "maximum": 1
+        }
+      }
+    },
+    "WeatherGlow": {
+      "description": "The storm glow: instead of lightning flashes a soft, slow brightening of the clouds (B2466: no flashing, at most three light-dark changes per second; the game caps max_changes_per_second at 3 whatever is written here).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_changes_per_second",
+        "rise_s",
+        "hold_s",
+        "fall_s",
+        "interval_s",
+        "ambient_boost",
+        "sky_boost"
+      ],
+      "properties": {
+        "max_changes_per_second": {
+          "description": "Most changes between brighter and darker per real second.",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 3
+        },
+        "rise_s": {
+          "description": "Real seconds a glow takes to brighten fully.",
+          "type": "number",
+          "minimum": 0.2,
+          "maximum": 30
+        },
+        "hold_s": {
+          "description": "Real seconds a glow stays bright.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 30
+        },
+        "fall_s": {
+          "description": "Real seconds a glow takes to fade.",
+          "type": "number",
+          "minimum": 0.2,
+          "maximum": 30
+        },
+        "interval_s": {
+          "$ref": "#/$defs/GlowInterval"
+        },
+        "ambient_boost": {
+          "description": "Ambient light energy added at full glow.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "sky_boost": {
+          "description": "Share by which the clouds brighten at full glow.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "GlowInterval": {
+      "description": "Real seconds between two glows.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "min",
+        "max"
+      ],
+      "properties": {
+        "min": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 600
+        },
+        "max": {
+          "type": "number",
+          "minimum": 1,
+          "maximum": 600
+        }
+      }
+    },
+    "WeatherLook": {
+      "description": "How one weather id looks. Every value is blended softly when the weather changes.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "weather",
+        "overcast",
+        "cloud_shade",
+        "fog_density",
+        "fog_sky",
+        "rain",
+        "snow",
+        "light",
+        "ambient",
+        "tint",
+        "shadow",
+        "snow_cover",
+        "sway",
+        "glow",
+        "colors"
+      ],
+      "properties": {
+        "weather": {
+          "description": "Weather id (content/vocabulary/weather.json).",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "overcast": {
+          "description": "Share of the sky covered by clouds (0..1).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "cloud_shade": {
+          "description": "Brightness of the clouds (1 = bright, lower = dark rain clouds).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "fog_density": {
+          "description": "Density of the fog (0 = none; 0.02 hides most things beyond 100 m).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.2
+        },
+        "fog_sky": {
+          "description": "How much the fog hides the sky (0..1).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "rain": {
+          "description": "Amount of rain near the camera (0..1 of the rain particles).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "snow": {
+          "description": "Amount of falling snow near the camera (0..1 of the snow particles).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "light": {
+          "description": "Factor on the energy of the sun or moon light.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "ambient": {
+          "description": "Factor on the ambient light and the unlit water (never below the night floor of daylight.json).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "tint": {
+          "description": "Tint of the light as lowercase #rrggbb (multiplied; #ffffff = none).",
+          "type": "string",
+          "pattern": "^#[0-9a-f]{6}$"
+        },
+        "shadow": {
+          "description": "Factor on the opacity of the shadows (0 = none under thick clouds).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "snow_cover": {
+          "description": "Least share of the ground covered by snow while this weather holds (0..1); the season may show more.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "sway": {
+          "description": "Factor on the sway of the plants in the wind.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "glow": {
+          "description": "Amount of the soft storm glow (0..1); no flashes, see glow.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "colors": {
+          "description": "Colours laid over the colours of the season (dry grass in heat and drought). Only palette colours that a season changes too can move without a rebuild.",
+          "type": "array",
+          "maxItems": 4,
+          "items": {
+            "$ref": "#/$defs/LookColor"
+          }
+        }
+      }
+    },
+    "LookColor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "color"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "color": {
+          "description": "Colour as lowercase #rrggbb.",
+          "type": "string",
+          "pattern": "^#[0-9a-f]{6}$"
+        }
+      }
+    },
+    "FallParticles": {
+      "description": "Small things falling near the camera (leaves; rain and snow in the weather look): drawn as particles in a box that follows the camera target, never part of the world state.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "color",
+        "max_count",
+        "box_m",
+        "height_m",
+        "lifetime_s",
+        "fall_m_per_s",
+        "drift_m_per_s",
+        "size_m",
+        "length_m",
+        "spin_deg_per_s",
+        "opacity"
+      ],
+      "properties": {
+        "color": {
+          "description": "Palette colour id (content/look/palette.json); a seasonal colour shows its colour of the season.",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "max_count": {
+          "description": "Particles at full amount.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4000
+        },
+        "box_m": {
+          "description": "Edge of the square around the camera target in which they appear (metres).",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 200
+        },
+        "height_m": {
+          "description": "Height above the camera target at which they appear (metres).",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 100
+        },
+        "lifetime_s": {
+          "description": "How long one falls (real seconds).",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 60
+        },
+        "fall_m_per_s": {
+          "description": "Falling speed (metres per real second).",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 40
+        },
+        "drift_m_per_s": {
+          "description": "Sideways speed along the wind at full wind (metres per real second).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 40
+        },
+        "size_m": {
+          "description": "Width of one particle (metres).",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 2
+        },
+        "length_m": {
+          "description": "Length of one particle (metres): equal to size_m for a leaf or flake, longer for a rain streak.",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 4
+        },
+        "spin_deg_per_s": {
+          "description": "Largest tumbling speed (degrees per real second); 0 keeps them aligned with their fall.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 720
+        },
+        "opacity": {
+          "description": "Opacity of one particle (0..1; 1 = solid).",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
+        }
+      }
+    }
+  }
+}

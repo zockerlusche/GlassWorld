@@ -1,0 +1,75 @@
+{
+  "contract_version": "0.2",
+  "points": [
+    {
+      "id": "weather_view",
+      "target_x_permille": 500,
+      "target_z_permille": 500,
+      "yaw_deg": 215,
+      "distance_m": 60,
+      "pitch_deg": 8,
+      "fov_deg": 40
+    },
+    {
+      "id": "frost_view",
+      "target_x_permille": 500,
+      "target_z_permille": 500,
+      "yaw_deg": 215,
+      "distance_m": 60,
+      "pitch_deg": 8,
+      "fov_deg": 40,
+      "season": "winter",
+      "weather": "frost"
+    },
+    {
+      "id": "snow_cover_view",
+      "target_x_permille": 500,
+      "target_z_permille": 500,
+      "yaw_deg": 215,
+      "distance_m": 60,
+      "pitch_deg": 8,
+      "fov_deg": 40,
+      "season": "winter",
+      "weather": "snow"
+    },
+    {
+      "id": "heat_view",
+      "target_x_permille": 500,
+      "target_z_permille": 500,
+      "yaw_deg": 215,
+      "distance_m": 60,
+      "pitch_deg": 8,
+      "fov_deg": 40,
+      "season": "summer",
+      "weather": "heat"
+    },
+    {
+      "id": "drought_view",
+      "target_x_permille": 500,
+      "target_z_permille": 500,
+      "yaw_deg": 215,
+      "distance_m": 60,
+      "pitch_deg": 8,
+      "fov_deg": 40,
+      "season": "summer",
+      "weather": "drought"
+    }
+  ],
+  "projections": [
+    "perspective"
+  ],
+  "phases": [
+    "day"
+  ],
+  "settle_frames": 12,
+  "seasons": [
+    "summer"
+  ],
+  "weather": [
+    "clear",
+    "cloudy",
+    "rain",
+    "storm",
+    "fog"
+  ]
+}

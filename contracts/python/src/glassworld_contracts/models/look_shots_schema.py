@@ -97,6 +97,12 @@ class ShotPoint(BaseModel):
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
+    weather: str | None = Field(
+        None,
+        description='Optional: this point is shot in this weather (content/vocabulary/weather.json), once, instead of once per weather of the set.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
     scene: ShotScene | None = Field(
         None,
         description='Optional: the scene finder picks the target near a start instead of the map target (the permille target is the fallback when no spot fits).',
@@ -136,6 +142,6 @@ class LookShots(BaseModel):
     )
     weather: list[common_schema.VocabId] | None = Field(
         None,
-        description='Optional: weather ids from content/vocabulary/weather.json. Weather without a look yet is rendered unchanged with a note in the file name.',
+        description='Optional: weather ids from content/vocabulary/weather.json; each picture then shows the look of that weather (content/look/weather.json). A weather without a look is rendered unchanged with a note in the file name.',
         min_length=1,
     )

@@ -38,12 +38,13 @@ public sealed record Shot(
 /// The screenshot plan from <c>content/look/shots.json</c> (B2 R32): every point × projection × day phase,
 /// and with the optional lists also × epoch × season × weather. Without those lists the plan and the file
 /// names are exactly those of the tool before them. Pictures of one epoch come one after the other, so
-/// the island is recoloured only when it changes. A point may force its season (<c>season</c>): it is then
-/// shot once with it instead of once per season of the set. Presentation only.
+/// the island is recoloured only when it changes. A point may force its season and its weather
+/// (<c>season</c>, <c>weather</c>): it is then shot once with it instead of once per season or weather of
+/// the set. Presentation only.
 /// </summary>
 public static class ShotPlan
 {
-    /// <summary>File name note of a season or weather that has no look yet (B2-5 brings them).</summary>
+    /// <summary>File name note of a season or weather that has no look in the data.</summary>
     public const string NoLookNote = "nolook";
 
     /// <summary>
@@ -58,21 +59,23 @@ public static class ShotPlan
         IEnumerable<string?> Optional(ICollection<string>? ids) => ids is { Count: > 0 } ? ids.Select(id => (string?)id) : [null];
         var plan = new List<Shot>();
         var firstSeason = Optional(shots.Seasons).First();
+        var firstWeather = Optional(shots.Weather).First();
         foreach (var epoch in Optional(shots.Epochs))
         {
             foreach (var listedSeason in Optional(shots.Seasons))
             {
-                foreach (var weather in Optional(shots.Weather))
+                foreach (var listedWeather in Optional(shots.Weather))
                 {
                     foreach (var point in shots.Points)
                     {
-                        // A point that forces its season is shot once (in the round of the first listed one).
-                        if (point.Season is not null && listedSeason != firstSeason)
+                        // A point that forces its season or weather is shot once (in the round of the first listed one).
+                        if ((point.Season is not null && listedSeason != firstSeason) || (point.Weather is not null && listedWeather != firstWeather))
                         {
                             continue;
                         }
 
                         var season = point.Season ?? listedSeason;
+                        var weather = point.Weather ?? listedWeather;
                         foreach (var projection in shots.Projections)
                         {
                             // A point may name its one phase (e.g. the night set: overview at night, close view at dusk).

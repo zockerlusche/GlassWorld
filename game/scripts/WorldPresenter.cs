@@ -289,8 +289,8 @@ public partial class WorldPresenter : Node3D
         if (Mode == WorldLookMode.Island)
         {
             ProcessIsland(ticks);
-            FollowTheClock();
             FollowNature(delta);
+            FollowTheClock();
             _clock += delta;
             ShowThoughts();
             ObserverCamera();

@@ -151,6 +151,10 @@
       "schema": "look-nature"
     },
     {
+      "pattern": "look/weather.json",
+      "schema": "look-weather"
+    },
+    {
       "pattern": "sound/mix.json",
       "schema": "sound-mix"
     },
