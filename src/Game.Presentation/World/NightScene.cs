@@ -44,16 +44,22 @@ public sealed class NightScene(LookNight data)
     public bool SceneShown => Stage is NightStage.FadingOut or NightStage.Dream or NightStage.FadingIn;
 
     /// <summary>
-    /// One frame. <paramref name="night"/>: the world's day phase is a compute-night phase.
+    /// One frame. <paramref name="night"/>: the core's compute night runs (null: not decided yet for a new or
+    /// loaded world - neither a start nor an end; the first known value is never taken as a change).
     /// <paramref name="serviceDone"/>: the service has nothing left this night (null: unknown - no service or no
     /// answer yet; then the scene ends after its minimum time). <paramref name="realSeconds"/>: real time since
     /// the last frame, 0 while paused.
     /// </summary>
-    public void Update(bool night, bool? serviceDone, double realSeconds)
+    public void Update(bool? known, bool? serviceDone, double realSeconds)
     {
         var dt = Math.Max(0, realSeconds);
+        var night = known == true;
         var began = _wasNight == false && night;
-        _wasNight = night;
+        if (known is not null)
+        {
+            _wasNight = known;
+        }
+
         if (!night && Stage is NightStage.Awake)
         {
             Stage = NightStage.Day;

@@ -64,6 +64,15 @@ public sealed class NightSceneTests
     }
 
     [Fact]
+    public void UnknownBeforeTheFirstTickIsNoStartOfTheNight()
+    {
+        var scene = new NightScene(Data());
+        scene.Update(null, null, 0.1);
+        Run(scene, true, false, 10);
+        Assert.Equal(NightStage.Day, scene.Stage);
+    }
+
+    [Fact]
     public void PauseHoldsTheFadeAndMorningEndsTheScene()
     {
         var scene = new NightScene(Data());
