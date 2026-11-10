@@ -64,6 +64,7 @@ public sealed class SelfCheckViewTests
             Assert.False(DiagnosticsFile.Save(folder, "../outside.md", "x"));
             Assert.False(DiagnosticsFile.Save(folder, "sub/inside.md", "x"));
             Assert.False(DiagnosticsFile.Save(folder, ".hidden", "x"));
+            Assert.False(DiagnosticsFile.Save(folder, "diagnostics.bat", "x"));
             Assert.False(DiagnosticsFile.Save(folder, string.Empty, "x"));
             Assert.Single(Directory.GetFiles(folder));
         }

@@ -7,7 +7,7 @@ namespace GlassWorld.Presentation.Ui;
 /// <param name="StateKey">Short state (<c>ui.selfcheck.state.*</c>).</param>
 /// <param name="MessageKey">The clear text from the service (<c>msg.selfcheck.*</c>).</param>
 /// <param name="FixKey">What the player can do, or null.</param>
-/// <param name="Detail">Names that belong into the text (e.g. a missing ComfyUI extension), comma-separated; empty if none.</param>
+/// <param name="Detail">Identifiers only (never sentences: raw text would bypass DE/EN, review GW1 #176). Names that belong into the text (e.g. a missing ComfyUI extension), comma-separated; empty if none.</param>
 /// <param name="Problem">True when the player can fix something (state problem).</param>
 public sealed record SelfCheckLine(string AiKey, string StateKey, string MessageKey, string? FixKey, string Detail, bool Problem);
 

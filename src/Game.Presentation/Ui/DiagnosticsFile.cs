@@ -2,7 +2,7 @@ namespace GlassWorld.Presentation.Ui;
 
 /// <summary>
 /// The player's copy of a diagnostics report (W1703 rule 4): written into a folder the game can open for the
-/// player. The name comes from the AI service and is treated as untrusted: only a plain file name is taken.
+/// player. The name comes from the AI service and is treated as untrusted: only a plain file name ending in .md is taken (review GW1 #176: nothing a double click would run lands in a folder the game opens).
 /// </summary>
 public static class DiagnosticsFile
 {
@@ -12,7 +12,8 @@ public static class DiagnosticsFile
         ArgumentNullException.ThrowIfNull(folder);
         ArgumentNullException.ThrowIfNull(fileName);
         ArgumentNullException.ThrowIfNull(text);
-        if (fileName.Length == 0 || fileName != Path.GetFileName(fileName) || fileName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 || fileName.StartsWith('.'))
+        if (fileName.Length == 0 || fileName != Path.GetFileName(fileName) || fileName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 || fileName.StartsWith('.')
+            || !fileName.EndsWith(".md", StringComparison.Ordinal))
         {
             return false;
         }
