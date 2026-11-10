@@ -24,7 +24,7 @@
     },
     {
       "key": "msg.hint.question",
-      "text": "{name} has a question."
+      "text": "{name} is wondering about something."
     },
     {
       "key": "msg.load.failed",
@@ -108,7 +108,7 @@
     },
     {
       "key": "ui.card.questions",
-      "text": "Open questions: {count}"
+      "text": "On their mind right now: {count}"
     },
     {
       "key": "ui.card.wellbeing",
@@ -308,7 +308,7 @@
     },
     {
       "key": "ui.questions.title",
-      "text": "Open questions"
+      "text": "What occupies them"
     },
     {
       "key": "ui.settings.hide_ui",
@@ -1177,6 +1177,10 @@
     {
       "key": "vocab.object.spark",
       "text": "Spark"
+    },
+    {
+      "key": "vocab.object.fire",
+      "text": "Fire"
     },
     {
       "key": "vocab.object.rock_niche",
@@ -2104,11 +2108,11 @@
     },
     {
       "key": "ui.questions.empty_text",
-      "text": "Nobody has an open question right now. When an inhabitant comes across something unknown, the question appears here."
+      "text": "Nobody is puzzling right now. When an inhabitant comes across something unknown, this shows what occupies them."
     },
     {
       "key": "ui.question.ask.unknown_object",
-      "text": "What is that?"
+      "text": "{name} wonders: What is that?"
     },
     {
       "key": "ui.question.reason.unknown_object",
@@ -2116,7 +2120,7 @@
     },
     {
       "key": "ui.question.ask.noticed_player",
-      "text": "Who is there?"
+      "text": "{name} wonders: Who is there?"
     },
     {
       "key": "ui.question.reason.noticed_player",
@@ -2132,15 +2136,15 @@
     },
     {
       "key": "ui.question.answer_hint",
-      "text": "Answer them …"
+      "text": "Whisper something to them …"
     },
     {
       "key": "ui.question.answer",
-      "text": "Answer"
+      "text": "Whisper"
     },
     {
       "key": "ui.question.later",
-      "text": "They will also find the answer themselves - in the computing night at the latest."
+      "text": "You need not do anything: the inhabitants find their answers themselves - in the computing night at the latest."
     },
     {
       "key": "ui.log.not_understood_text",
@@ -2419,6 +2423,14 @@
       "text": "Contact"
     },
     {
+      "key": "ui.card.title",
+      "text": "Card"
+    },
+    {
+      "key": "ui.card.none",
+      "text": "Choose an inhabitant - in the list, in the log or with a click on the figure. This then shows what they are doing, and you can talk to them."
+    },
+    {
       "key": "ui.debug.seed",
       "text": "Seed: {seed}"
     },
@@ -2461,6 +2473,34 @@
     {
       "key": "ui.debug.jumps",
       "text": "Debug jumps: {back} and {forward} change the epoch"
+    },
+    {
+      "key": "ui.question.settled",
+      "text": "That has been settled."
+    },
+    {
+      "key": "ui.card.musing",
+      "text": "What occupies them"
+    },
+    {
+      "key": "ui.card.diary",
+      "text": "Diary"
+    },
+    {
+      "key": "ui.card.diary_empty",
+      "text": "Nothing noted yet. This fills up with what the inhabitant has done."
+    },
+    {
+      "key": "ui.card.diary_line",
+      "text": "Day {day}, {time} - {text}"
+    },
+    {
+      "key": "ui.timeline.title",
+      "text": "Timeline"
+    },
+    {
+      "key": "ui.timeline.empty",
+      "text": "Nothing has happened yet. Later this lists the seasons with their events - a click turns the chronicle to that page."
     }
   ]
 }

@@ -109,7 +109,7 @@
       "$ref": "#/$defs/FigureSitting"
     },
     "lying": {
-      "description": "Lying poses (W1695): sleeping figures lie on their back on the ground instead of standing.",
+      "description": "Lying poses (W1695, W1729): sleeping figures sit down and lie on their side on the ground, fitted to it.",
       "$ref": "#/$defs/FigureLying"
     },
     "greeting": {
@@ -127,23 +127,50 @@
   },
   "$defs": {
     "FigureLying": {
-      "description": "A lying pose made from a calm standing clip (the figure GLB has no lying clip): the whole figure tips over about its feet by pitch_deg so it lies on its back, and its body rests on the ground under its hips (lift_m above it). It lies down and gets up over settle_s.",
+      "description": "Lying down to sleep (W1695, W1729), a placeholder until the figures have a lying clip: the figure sits down on the ground with the library's sit transition (sit_clip over sit_s), then rolls from sitting onto its side about its hips (roll_deg over roll_s, eased) while the hips slide to the lying spot and the legs open a little; the lying clips play their seated loop laid on its side. The lying body follows the ground: tilted to the slope under it (at most max_tilt_deg) and lifted so that no sampled body point is below the ground. Getting up is the same in reverse and ends with rise_clip. A lying figure never turns its body to a voice or to another inhabitant.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["clips", "pitch_deg", "hip_m", "lift_m", "settle_s"],
+      "required": ["clips", "sit_clip", "rise_clip", "sit_s", "sink_from", "sink_to", "roll_s", "roll_deg", "hip_back_m", "hip_slide_m", "legs_from", "hip_open", "knee_straighten", "lift_m", "max_tilt_deg", "body_points"],
       "properties": {
         "clips": {
-          "description": "Library clip ids played lying (e.g. sleep).",
+          "description": "Library clip ids played lying (e.g. sleep); their asset is a seated loop.",
           "type": "array",
           "minItems": 1,
           "maxItems": 32,
           "uniqueItems": true,
           "items": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" }
         },
-        "pitch_deg": { "description": "Tilt about the figure's left-right axis in degrees; -90 lays it on its back (the figure faces +Z).", "type": "number", "minimum": -90, "maximum": 90 },
-        "hip_m": { "description": "Distance from the feet to the hips in metres at scale 1: where the lying body meets the ground.", "type": "number", "minimum": 0, "maximum": 3 },
-        "lift_m": { "description": "Height of the lying body's axis above the ground in metres at scale 1 (half the body's depth).", "type": "number", "minimum": 0, "maximum": 1 },
-        "settle_s": { "description": "Real seconds to lie down or get up.", "type": "number", "minimum": 0.05, "maximum": 10 }
+        "sit_clip": { "description": "Library clip id of the transition from standing to sitting, played first when lying down.", "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+        "rise_clip": { "description": "Library clip id of the transition from sitting to standing, played last when getting up.", "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+        "sit_s": { "description": "Real seconds of sitting down and of standing up; the transition clips are played at the speed that fits them into it.", "type": "number", "minimum": 0.05, "maximum": 10 },
+        "sink_from": { "description": "Share of sit_s at which the hips begin to sink to the ground (as in the sit transition clip).", "type": "number", "minimum": 0, "maximum": 0.95 },
+        "sink_to": { "description": "Share of sit_s at which the hips have reached the ground; greater than sink_from.", "type": "number", "minimum": 0.05, "maximum": 1 },
+        "roll_s": { "description": "Real seconds of the eased roll from sitting onto the side, and back.", "type": "number", "minimum": 0.05, "maximum": 10 },
+        "roll_deg": { "description": "Roll about the figure's facing axis through its hips in degrees: -90 lays it on its left side with the head to its left, 90 on its right side.", "type": "number", "minimum": -90, "maximum": 90 },
+        "hip_back_m": { "description": "How far the hips of the seated pose are behind the figure's origin in metres at scale 1.", "type": "number", "minimum": 0, "maximum": 1 },
+        "hip_slide_m": { "description": "How far the hips slide away from the side the head goes down to while rolling, in metres at scale 1, so the lying body is centred on its spot.", "type": "number", "minimum": 0, "maximum": 1 },
+        "legs_from": { "description": "Share of the roll after which the legs leave the seated pose (thighs open, knees bend): late, while the body is nearly down, so the legs do not dip into the ground.", "type": "number", "minimum": 0, "maximum": 0.95 },
+        "hip_open": { "description": "How far the thighs open from the seated pose towards straight legs while lying (0 = seated, 1 = straight); less than 1 keeps the body slightly curled.", "type": "number", "minimum": 0, "maximum": 1 },
+        "knee_straighten": { "description": "How far the knees straighten while lying (0 = bent as seated, 1 = straight).", "type": "number", "minimum": 0, "maximum": 1 },
+        "lift_m": { "description": "Height of the hips above the ground in metres at scale 1 while the body points are not known yet (the first frame of a figure).", "type": "number", "minimum": 0, "maximum": 1 },
+        "max_tilt_deg": { "description": "Largest tilt of the lying body towards the slope under it in degrees; on steeper ground it is lifted instead.", "type": "number", "minimum": 0, "maximum": 60 },
+        "body_points": {
+          "description": "The sampled points of the lying body: bones of the figure rig and how thick the body is around them. The ground is read under each of them.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 24,
+          "items": { "$ref": "#/$defs/FigureBodyPoint" }
+        }
+      }
+    },
+    "FigureBodyPoint": {
+      "description": "One sampled point of a lying body.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bone", "radius_m"],
+      "properties": {
+        "bone": { "description": "Bone of the figure rig (its joint is the point).", "type": "string", "minLength": 1, "maxLength": 64 },
+        "radius_m": { "description": "Thickness of the body around the point in metres at scale 1: the point stays at least this far above the ground.", "type": "number", "minimum": 0, "maximum": 1 }
       }
     },
     "FigurePoseCadence": {

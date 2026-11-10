@@ -11,6 +11,10 @@
       "schema": "world-time-settings"
     },
     {
+      "pattern": "world/reachability.json",
+      "schema": "reachability-settings"
+    },
+    {
       "pattern": "objects/*.json",
       "schema": "object-types"
     },

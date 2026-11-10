@@ -44,7 +44,7 @@ public sealed partial class WritingSystem : IWorldSystem, IOptionalWorldState
     /// <summary>The inhabitants who notice writing; null = nobody notices (unit tests of wear alone).</summary>
     public InhabitantsSystem? Inhabitants { get; init; }
 
-    /// <summary>How far an inhabitant notices writing (the perception radius of the behaviour data).</summary>
+    /// <summary>How far an inhabitant notices writing in full sight (the perception radius of the behaviour data; the inhabitants' sight shortens it, B2594).</summary>
     public double PerceptionRadiusM { get; init; }
 
     /// <summary>Creates the system; <paramref name="weather"/> is null while the world has no weather.</summary>
@@ -158,7 +158,8 @@ public sealed partial class WritingSystem : IWorldSystem, IOptionalWorldState
             return;
         }
 
-        var radius2 = PerceptionRadiusM * PerceptionRadiusM;
+        var radius = Inhabitants.Sight.Metres(PerceptionRadiusM);
+        var radius2 = radius * radius;
         var oldTicks = (long)(_rules.Found.AfterDays * _ticksPerDay);
         foreach (var text in _texts.Values.Where(Readable).ToList())
         {

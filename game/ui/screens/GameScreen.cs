@@ -24,6 +24,7 @@ public partial class GameScreen : CanvasLayer
     private int _relayoutFrames;
     private readonly GwSideBar _sideBar = new();
     private readonly VBoxContainer _themeBar = new() { Name = "ThemeBar", Visible = false };
+    private readonly VBoxContainer _timelineList = new() { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
     private readonly Dictionary<string, Button> _themeButtons = new(StringComparer.Ordinal);
     private readonly Dictionary<string, string> _lastOfTheme = new(StringComparer.Ordinal);
     private readonly List<(bool Own, Button Tab)> _zoneTabs = [];
@@ -32,7 +33,14 @@ public partial class GameScreen : CanvasLayer
     private readonly VBoxContainer _questionList = new() { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
     private readonly VBoxContainer _logList = new() { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
     private readonly HashSet<string> _hintedQuestions = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, string> _answerDrafts = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, QuestionEntry> _questionEntries = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, QuestionEntry> _cardQuestionEntries = new(StringComparer.Ordinal);
+    private Label? _questionsEmpty;
+    private Label? _questionsLater;
+    private VBoxContainer? _cardQuestionBox;
+    private VBoxContainer? _cardDiaryBox;
+    private (string Id, long Version) _cardDiaryShown;
+    private ActivityDiary? _diary;
     private ConversationLog? _log;
     private long _logShown = -1;
     private string _questionShape = "-";
@@ -69,6 +77,7 @@ public partial class GameScreen : CanvasLayer
     private ToastBoard? _board;
     private GwWindow? _card;
     private string? _cardId;
+    private string? _lastCardId;
     private double _sinceRefreshMs = double.MaxValue;
 
     /// <summary>Id of the inhabitant whose card is open, or null.</summary>
@@ -106,6 +115,7 @@ public partial class GameScreen : CanvasLayer
             "ui.inhabitants.empty");
         _inhabitants.RowSelected += ShowInhabitant;
         _log = new ConversationLog(style.Tokens.Window.LogLines);
+        _diary = new ActivityDiary(style.Tokens.Window.DiaryLines);
         _sideBar.Add("inhabitants", "ui.inhabitants.title").Content.AddChild(_inhabitants);
         _sideBar.Add("questions", "ui.questions.title").Content.AddChild(_questionList);
 
@@ -130,6 +140,15 @@ public partial class GameScreen : CanvasLayer
             _root.AddChild(panel);
         }
 
+        _sideBar.Add(ScreenZones.Card, ScreenZones.TitleKey(ScreenZones.Card));
+        _sideBar.ButtonOf(ScreenZones.Card).Visible = false;
+        _root.AddChild(_sideBar.PanelOf(ScreenZones.Card));
+
+        // The timeline over seasons and years as its own tab of the world theme (D642 step 3); the layout so
+        // far keeps it as the drop-down inside the chronicle.
+        _sideBar.Add(ScreenZones.Timeline, ScreenZones.TitleKey(ScreenZones.Timeline)).Content.AddChild(_timelineList);
+        _sideBar.ButtonOf(ScreenZones.Timeline).Visible = false;
+        _root.AddChild(_sideBar.PanelOf(ScreenZones.Timeline));
         BuildZones();
 
         _toasts.Board = _board;
@@ -193,12 +212,29 @@ public partial class GameScreen : CanvasLayer
         _zones = on;
         _sideBar.Visible = !_zones;
         _themeBar.Visible = _zones;
-        if (_zones && (_sideBar.OpenKey == ScreenZones.Pinned || (_card is not null && _sideBar.OpenKey is not null)))
+
+        // Compact frames in the zones layout (feedback on D646: panels too wide, top bar too high).
+        var frame = _zones ? UiTheme.CompactPanel : UiTheme.WindowPanel;
+        if (_topBar is not null)
+        {
+            _topBar.ThemeTypeVariation = frame;
+        }
+
+        foreach (var panel in _sideBar.Panels)
+        {
+            panel.ThemeTypeVariation = frame;
+        }
+
+        // The card changes its home with the layout: close it, the next click opens it in the right place.
+        _card?.Close();
+        _cardId = null;
+        if (_sideBar.OpenKey is ScreenZones.Pinned or ScreenZones.Card)
         {
             _sideBar.Open(null);
         }
 
         ShowZoneState();
+        ShowChronicleDay(_chronicleDay);
     }
 
     /// <summary>
@@ -234,13 +270,28 @@ public partial class GameScreen : CanvasLayer
                 return;
             }
 
-            if (_sideBar.OpenKey is { } open)
+            if (_sideBar.OpenKey is { } open && ScreenZones.ThemeOf(open) is { } theme)
             {
-                // One place on the right: a side window replaces the card.
-                _card?.Close();
-                if (ScreenZones.ThemeOf(open) is { } theme)
+                _lastOfTheme[theme.Id] = open;
+            }
+
+            if (_sideBar.OpenKey != ScreenZones.Card)
+            {
+                // Another window took the place (or none): the card is closed.
+                _cardId = null;
+            }
+            else if (_cardId is null)
+            {
+                // The card tab opened by its tab or theme button: the inhabitant last shown, else how to choose one.
+                if (_lastCardId is { } last && _feed?.Card(last) is not null)
                 {
-                    _lastOfTheme[theme.Id] = open;
+                    _cardId = last;
+                    _cardShape = string.Empty;
+                    FillCard(last);
+                }
+                else
+                {
+                    ShowNoCard();
                 }
             }
 
@@ -936,10 +987,17 @@ public partial class GameScreen : CanvasLayer
             child.QueueFree();
         }
 
+        foreach (var child in _timelineList.GetChildren())
+        {
+            _timelineList.RemoveChild(child);
+            child.QueueFree();
+        }
+
         var days = _chronicle.Days();
         if (days.Count == 0)
         {
             _chronicleList.AddChild(new Label { Text = "ui.chronicle.empty", AutowrapMode = TextServer.AutowrapMode.WordSmart });
+            _timelineList.AddChild(new Label { Text = "ui.timeline.empty", AutowrapMode = TextServer.AutowrapMode.WordSmart });
             return;
         }
 
@@ -983,7 +1041,30 @@ public partial class GameScreen : CanvasLayer
         }
 
         timeline.ItemSelected += index => ShowChronicleDay(seasons[(int)index].FirstDay);
+        timeline.Visible = !_zones;
         _chronicleList.AddChild(timeline);
+
+        // The same seasons as a list for the timeline tab of the zones layout: a click shows that season's
+        // first day in the chronicle tab; the season of the page shown is marked.
+        for (var i = 0; i < seasons.Count; i++)
+        {
+            var season = seasons[i];
+            var jump = new Button
+            {
+                Text = timeline.GetItemText(i),
+                ToggleMode = true,
+                ButtonPressed = timeline.Selected == i,
+                Alignment = HorizontalAlignment.Left,
+                AutoTranslateMode = AutoTranslateModeEnum.Disabled,
+                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            };
+            jump.Pressed += () =>
+            {
+                ShowChronicleDay(season.FirstDay);
+                _sideBar.Open("chronicle");
+            };
+            _timelineList.AddChild(jump);
+        }
 
         // The entries of the day: a click opens the inhabitant's card (and the camera follows on the island).
         foreach (var entry in entries)
@@ -1345,43 +1426,85 @@ public partial class GameScreen : CanvasLayer
             return;
         }
 
-        var questions = _feed.Questions().Take(_style.Tokens.Window.QuestionsShown).ToList();
-        var shape = TranslationServer.GetLocale() + ";" + string.Join(";", questions.Select(q => q.Id));
-        if (shape == _questionShape)
+        var locale = TranslationServer.GetLocale();
+        if (locale != _questionShape)
         {
-            return;
-        }
-
-        _questionShape = shape;
-        foreach (var child in _questionList.GetChildren())
-        {
-            _questionList.RemoveChild(child);
-            child.QueueFree();
-        }
-
-        foreach (var gone in _answerDrafts.Keys.Where(id => questions.All(q => q.Id != id)).ToList())
-        {
-            _answerDrafts.Remove(gone);
-        }
-
-        if (questions.Count == 0)
-        {
-            _questionList.AddChild(new Label { Text = "ui.questions.empty_text", AutowrapMode = TextServer.AutowrapMode.WordSmart });
-            return;
-        }
-
-        foreach (var question in questions)
-        {
-            if (rows.FirstOrDefault(r => r.Id == question.InhabitantId) is { } row)
+            // First build or a new language: start again (the texts are filled in).
+            _questionShape = locale;
+            foreach (var child in _questionList.GetChildren())
             {
-                AddQuestion(question, row);
+                _questionList.RemoveChild(child);
+                child.QueueFree();
+            }
+
+            _questionEntries.Clear();
+            _questionsEmpty = new Label { Text = "ui.questions.empty_text", AutowrapMode = TextServer.AutowrapMode.WordSmart };
+            _questionsLater = new Label { Text = "ui.question.later", AutowrapMode = TextServer.AutowrapMode.WordSmart };
+            _questionList.AddChild(_questionsEmpty);
+            _questionList.AddChild(_questionsLater);
+        }
+
+        var open = _feed.Questions().OrderBy(q => q.AskedTick).ThenBy(q => q.Id, StringComparer.Ordinal).ToList();
+        SyncQuestions(_questionEntries, _questionList, open, rows, _style.Tokens.Window.QuestionsShown, withName: true, _sideBar.PanelOf("questions"));
+        _questionList.MoveChild(_questionsLater!, -1);
+        _questionsEmpty!.Visible = _questionEntries.Count == 0;
+        _questionsLater!.Visible = _questionEntries.Count > 0;
+    }
+
+    /// <summary>
+    /// Keeps a list of question entries in step with the open questions without ever moving what the player
+    /// reads (Marcel W1726: "dann lese ich mir das durch ... dann ist das schon wieder weg"): new questions are
+    /// appended at the end; a question that is over stays, marked as settled, and leaves only once the player
+    /// is no longer at <paramref name="place"/> (mouse outside, no field of it focused). The oldest stay on top.
+    /// </summary>
+    private void SyncQuestions(Dictionary<string, QuestionEntry> entries, VBoxContainer list, IReadOnlyList<QuestionRow> open, IReadOnlyList<InhabitantRow> rows, int most, bool withName, Control place)
+    {
+        var busy = InUse(place);
+        foreach (var (id, entry) in entries.Where(e => open.All(q => q.Id != e.Key)).ToList())
+        {
+            if (!entry.Settled)
+            {
+                entry.Settled = true;
+                entry.Input.Editable = false;
+                entry.Send.Disabled = true;
+                entry.Box.AddChild(new Label { Text = "ui.question.settled", AutowrapMode = TextServer.AutowrapMode.WordSmart });
+            }
+
+            if (!busy)
+            {
+                list.RemoveChild(entry.Box);
+                entry.Box.QueueFree();
+                entries.Remove(id);
             }
         }
 
-        _questionList.AddChild(new Label { Text = "ui.question.later", AutowrapMode = TextServer.AutowrapMode.WordSmart });
+        foreach (var question in open)
+        {
+            if (entries.Count >= most)
+            {
+                break;
+            }
+
+            if (!entries.ContainsKey(question.Id) && rows.FirstOrDefault(r => r.Id == question.InhabitantId) is { } row)
+            {
+                var entry = BuildQuestion(question, row, withName);
+                list.AddChild(entry.Box);
+                entries[question.Id] = entry;
+            }
+        }
     }
 
-    private void AddQuestion(QuestionRow question, InhabitantRow row)
+    /// <summary>Whether the player is at a control: the mouse is over it or one of its fields has the focus.</summary>
+    private bool InUse(Control place) =>
+        place.IsVisibleInTree()
+        && (place.GetGlobalRect().HasPoint(place.GetGlobalMousePosition()) || (GetViewport().GuiGetFocusOwner() is { } focus && place.IsAncestorOf(focus)));
+
+    /// <summary>
+    /// One question as the inhabitant's own musing (Marcel W1727: "Hanno fragt sich"): who (clickable, when
+    /// <paramref name="withName"/>), what it wonders about, what brought it there, and a field to whisper
+    /// something to it - the player may step in but is not asked to.
+    /// </summary>
+    private QuestionEntry BuildQuestion(QuestionRow question, InhabitantRow row, bool withName)
     {
         var args = new Dictionary<string, string>
         {
@@ -1396,30 +1519,31 @@ public partial class GameScreen : CanvasLayer
             return TextFill.Fill(text == key ? Tr(other) : text, args);
         }
 
+        var box = new VBoxContainer();
         var id = row.Id;
-        var who = new Button { Text = DisplayName(row), Flat = true, Alignment = HorizontalAlignment.Left, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled };
-        who.Pressed += () => ShowInhabitant(id);
-        _questionList.AddChild(who);
-        _questionList.AddChild(new Label { Text = Text(QuestionKeys.Ask(question.Kind), QuestionKeys.AskOther), ThemeTypeVariation = UiTheme.SubheaderLabel, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled, AutowrapMode = TextServer.AutowrapMode.WordSmart });
-        _questionList.AddChild(new Label { Text = Text(QuestionKeys.Reason(question.Kind), QuestionKeys.ReasonOther), AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled, AutowrapMode = TextServer.AutowrapMode.WordSmart });
+        if (withName)
+        {
+            var who = new Button { Text = DisplayName(row), Flat = true, Alignment = HorizontalAlignment.Left, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled };
+            who.Pressed += () => ShowInhabitant(id);
+            box.AddChild(who);
+        }
 
-        var qid = question.Id;
+        box.AddChild(new Label { Text = Text(QuestionKeys.Ask(question.Kind), QuestionKeys.AskOther), ThemeTypeVariation = UiTheme.SubheaderLabel, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled, AutowrapMode = TextServer.AutowrapMode.WordSmart });
+        box.AddChild(new Label { Text = Text(QuestionKeys.Reason(question.Kind), QuestionKeys.ReasonOther), AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled, AutowrapMode = TextServer.AutowrapMode.WordSmart });
+
         var input = new LineEdit
         {
             PlaceholderText = Tr("ui.question.answer_hint"),
             MaxLength = 280,
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
             AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled,
-            Text = _answerDrafts.GetValueOrDefault(qid, string.Empty),
         };
-        input.TextChanged += t => _answerDrafts[qid] = t;
         var send = new Button { Text = "ui.question.answer" };
         void Answer()
         {
             if (Say(id, input.Text))
             {
                 input.Clear();
-                _answerDrafts.Remove(qid);
             }
         }
 
@@ -1428,8 +1552,22 @@ public partial class GameScreen : CanvasLayer
         var answerRow = new HBoxContainer();
         answerRow.AddChild(input);
         answerRow.AddChild(send);
-        _questionList.AddChild(answerRow);
-        _questionList.AddChild(new HSeparator());
+        box.AddChild(answerRow);
+        box.AddChild(new HSeparator());
+        return new QuestionEntry(box, input, send);
+    }
+
+    /// <summary>The controls of one question in a list.</summary>
+    private sealed class QuestionEntry(VBoxContainer box, LineEdit input, Button send)
+    {
+        public VBoxContainer Box { get; } = box;
+
+        public LineEdit Input { get; } = input;
+
+        public Button Send { get; } = send;
+
+        /// <summary>The question is over (answered by the AI or solved by the inhabitant); the entry waits to leave.</summary>
+        public bool Settled { get; set; }
     }
 
     /// <summary>The conversation log (W1696): newest first, a click leads to the inhabitant.</summary>
@@ -1519,6 +1657,13 @@ public partial class GameScreen : CanvasLayer
         });
         _time.Text = clock.Time;
 
+        // Each inhabitant's diary (W1726): what it does now, noted when it changes.
+        var standing = Tr(InhabitantActivity.StandingKey).ToString();
+        foreach (var row in rows)
+        {
+            _diary?.Note(row.Id, _activities[row.Id], _activities[row.Id] == standing, clock.Day, clock.Time);
+        }
+
         foreach (var row in rows)
         {
             UpdateMark(row);
@@ -1580,7 +1725,7 @@ public partial class GameScreen : CanvasLayer
 
         // W1696: an open question shows its wording and an answer field in the questions panel.
         Refresh();
-        if (_feed.Questions().Count > 0 && !_questionList.GetChildren().OfType<HBoxContainer>().Any(r => r.GetChildren().OfType<LineEdit>().Any()))
+        if (_feed.Questions().Count > 0 && _questionEntries.Count == 0)
         {
             return "questions panel shows no question with an answer field";
         }
@@ -1685,28 +1830,55 @@ public partial class GameScreen : CanvasLayer
                 return "the middle of the picture is not free";
             }
 
-            OpenCard(_feed.Inhabitants()[0].Id);
+            // Step 3: the world theme holds the chronicle and the timeline as tabs.
+            _themeButtons["world"].EmitSignal(BaseButton.SignalName.Pressed);
             await Frames();
-            if (_card is null || _sideBar.OpenKey is not null || _sideBar.Panels.Any(p => p.Visible && p != log))
+            var worldTabs = _sideBar.PanelOf("chronicle").Tabs.GetChildren().OfType<Button>().ToList();
+            if (_sideBar.OpenKey != "chronicle" || worldTabs.Count != 2)
             {
-                return "card and side window show together";
+                return $"the world theme opened '{_sideBar.OpenKey}' with {worldTabs.Count} tabs";
             }
 
-            var card = Box(_card);
-            if (card.Intersects(Box(log)) || card.Intersects(Box(_topBar)) || card.HasPoint(middle))
+            worldTabs[1].EmitSignal(BaseButton.SignalName.Pressed);
+            await Frames();
+            if (_sideBar.OpenKey != ScreenZones.Timeline || _timelineList.GetChildCount() == 0)
             {
-                return $"the card {card} is not in the side window's place";
+                return "the timeline tab did not open or is empty";
             }
 
-            _themeButtons["people"].EmitSignal(BaseButton.SignalName.Pressed);
+            // Step 2: the card is a tab of the people theme, in the side window's place, with the talk field.
+            var who = _feed.Inhabitants()[0].Id;
+            OpenCard(who);
             await Frames();
-            return _card is null && _sideBar.OpenKey == "inhabitants" ? string.Empty : "a theme button did not replace the card";
+            var cardPanel = _sideBar.PanelOf(ScreenZones.Card);
+            if (_card is not null || _sideBar.OpenKey != ScreenZones.Card || _cardId != who || _talkInput is null || !cardPanel.IsAncestorOf(_talkInput))
+            {
+                return "the card did not open as a tab of the people theme";
+            }
+
+            var card = Box(cardPanel);
+            if (card.Intersects(Box(log)) || card.Intersects(Box(_topBar)) || card.HasPoint(middle) || _sideBar.Panels.Count(p => p.Visible && p != log) != 1)
+            {
+                return $"the card tab {card} is not alone in the side window's place";
+            }
+
+            cardPanel.Tabs.GetChildren().OfType<Button>().First().EmitSignal(BaseButton.SignalName.Pressed);
+            await Frames();
+            if (_sideBar.OpenKey != "inhabitants" || _cardId is not null)
+            {
+                return "the list tab did not replace the card";
+            }
+
+            // Back on the card tab: the inhabitant last shown is there again.
+            _sideBar.PanelOf("inhabitants").Tabs.GetChildren().OfType<Button>().Last().EmitSignal(BaseButton.SignalName.Pressed);
+            await Frames();
+            return _sideBar.OpenKey == ScreenZones.Card && _cardId == who ? string.Empty : "the card tab did not bring back the inhabitant last shown";
         }
         finally
         {
-            _card?.Close();
             _sideBar.Open(null);
             ApplySettings(settings, _style);
+            _lastCardId = null;
         }
     }
 
@@ -1771,11 +1943,6 @@ public partial class GameScreen : CanvasLayer
                 to = Math.Min(to, panel.Position.X - gap);
             }
 
-            if (_card is not null)
-            {
-                to = Math.Min(to, _card.Position.X - gap);
-            }
-
             return new Rect2(from, top, Math.Max(0, to - from), Math.Max(0, view.Y - margin - top));
         }
 
@@ -1832,11 +1999,11 @@ public partial class GameScreen : CanvasLayer
         {
             if (panel == log)
             {
-                panel.Dock(area, _style!, 0, top, left: true, heightShare: (float)_style!.Tokens.Window.MaxScreenFraction * 0.6f);
+                panel.Dock(area, _style!, 0, top, left: true, heightShare: (float)_style!.Tokens.Zones.LogHeightShare, widthPx: _style.Tokens.Zones.LogWidth);
             }
             else
             {
-                panel.Dock(area, _style!, themes.X + gap, top);
+                panel.Dock(area, _style!, themes.X + gap, top, widthPx: _style!.Tokens.Zones.SidePanelWidth);
             }
         }
 
@@ -1861,15 +2028,6 @@ public partial class GameScreen : CanvasLayer
         var window = _style.Tokens.Window;
         var top = Math.Max(0, _topBar.Position.Y + _topBar.Size.Y + window.Gap - window.SafeMargin);
         _card.FitInto(new Vector2(CardArea(area).X, area.Y - top));
-
-        if (_zones)
-        {
-            // The card takes the side window's place on the right, below the top bar.
-            var y = _topBar.Position.Y + _topBar.GetCombinedMinimumSize().Y + window.Gap;
-            _card.FitInto(new Vector2(area.X, area.Y - y));
-            _card.Position = new Vector2(_themeBar.Position.X - window.Gap - _card.Size.X, y);
-            return;
-        }
 
         // At the left edge, not in the middle of the picture (W1695): the world stays free to watch.
         _card.Position = new Vector2(window.SafeMargin, top + window.SafeMargin);
@@ -1912,10 +2070,16 @@ public partial class GameScreen : CanvasLayer
         }
 
         _card?.Close();
-        if (_zones && _sideBar.OpenKey is not null)
+        if (_zones)
         {
-            // One place on the right: the card replaces the open side window.
-            _sideBar.Open(null);
+            // One place on the right (D642 step 2): the card is a tab of the people theme, no window of its own.
+            _cardId = inhabitantId;
+            _lastCardId = inhabitantId;
+            _cardShape = string.Empty;
+            _sideBar.Open(ScreenZones.Card);
+            FillCard(inhabitantId);
+            Layout();
+            return;
         }
 
         _card = new GwWindow();
@@ -1932,16 +2096,57 @@ public partial class GameScreen : CanvasLayer
         FitCard(GetViewport().GetVisibleRect().Size);
     }
 
+    /// <summary>Where the card's rows go: its own window, or in the zones layout its tab of the people theme; null while no card shows.</summary>
+    private VBoxContainer? CardContent =>
+        _card is not null ? _card.Content
+        : _zones && _cardId is not null && _sideBar.OpenKey == ScreenZones.Card ? _sideBar.PanelOf(ScreenZones.Card).Content
+        : null;
+
+    /// <summary>Closes the card, wherever it lives.</summary>
+    private void CloseCard()
+    {
+        _card?.Close();
+        _cardId = null;
+        if (_zones && _sideBar.OpenKey == ScreenZones.Card)
+        {
+            ShowNoCard();
+        }
+    }
+
+    /// <summary>The card tab without an inhabitant: one sentence that says how to choose one.</summary>
+    private void ShowNoCard()
+    {
+        var panel = _sideBar.PanelOf(ScreenZones.Card);
+        panel.Setup(ScreenZones.TitleKey(ScreenZones.Card));
+        foreach (var child in panel.Content.GetChildren())
+        {
+            panel.Content.RemoveChild(child);
+            child.QueueFree();
+        }
+
+        _cardShape = string.Empty;
+        panel.Content.AddChild(new Label { Text = "ui.card.none", AutowrapMode = TextServer.AutowrapMode.WordSmart });
+    }
+
     private void FillCard(string inhabitantId)
     {
         var card = _feed?.Card(inhabitantId);
-        if (_card is null || card is null || _style is null)
+        var content = CardContent;
+        if (content is null || card is null || _style is null)
         {
-            _card?.Close();
+            CloseCard();
             return;
         }
 
-        _card.SetTitleText(DisplayName(card.Row));
+        if (_card is not null)
+        {
+            _card.SetTitleText(DisplayName(card.Row));
+        }
+        else
+        {
+            _sideBar.PanelOf(ScreenZones.Card).SetTitleText(DisplayName(card.Row));
+        }
+
         var values = new List<(string Key, int Percent)> { ("ui.card.will_to_live", card.Row.WillToLivePercent) };
         values.AddRange(card.Needs.Select(v => (v.Key, v.Percent)));
         values.AddRange(card.Feelings.Select(v => (v.Key, v.Percent)));
@@ -1952,15 +2157,19 @@ public partial class GameScreen : CanvasLayer
             // Build only when the set of values changes (other inhabitant, a feeling appears/fades).
             _cardShape = shape;
             _cardBars.Clear();
-            _card.ClearContent();
+            foreach (var child in content.GetChildren())
+            {
+                content.RemoveChild(child);
+                child.QueueFree();
+            }
 
             // Order of the card (W1688, TL #19983): first what the inhabitant does and the talk field, well
             // visible; the values below in sections the player can fold (the choice is kept while playing).
             Section("ui.card.doing");
             _cardAction = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
             _cardQuestions = new Label { AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled };
-            _card.Content.AddChild(_cardAction);
-            _card.Content.AddChild(_cardQuestions);
+            content.AddChild(_cardAction);
+            content.AddChild(_cardQuestions);
 
             // Talking (B6 R13): a sentence to this inhabitant; the core checks it and answers later.
             Section("ui.card.talk");
@@ -1987,7 +2196,13 @@ public partial class GameScreen : CanvasLayer
             send.Pressed += Submit;
             talkRow.AddChild(input);
             talkRow.AddChild(send);
-            _card.Content.AddChild(talkRow);
+            content.AddChild(talkRow);
+
+            // What occupies this inhabitant (W1726): its open questions, here too, with the whisper field.
+            _cardQuestionEntries.Clear();
+            _cardQuestionBox = new VBoxContainer { Visible = false };
+            _cardQuestionBox.AddChild(new Label { Text = "ui.card.musing", ThemeTypeVariation = UiTheme.SubheaderLabel });
+            content.AddChild(_cardQuestionBox);
 
             var wellbeing = Fold("ui.card.wellbeing", folded: false);
             Bar(wellbeing, "ui.card.will_to_live");
@@ -2007,6 +2222,10 @@ public partial class GameScreen : CanvasLayer
             {
                 Bar(character, trait.Key);
             }
+
+            // What it did, one after the other (W1726); folded until the player wants to read it.
+            _cardDiaryBox = Fold("ui.card.diary", folded: true);
+            _cardDiaryShown = default;
         }
 
         foreach (var (key, percent) in values)
@@ -2028,13 +2247,46 @@ public partial class GameScreen : CanvasLayer
             _cardAction.Text = action;
         }
 
+        if (_cardQuestionBox is not null && _feed is not null)
+        {
+            var own = _feed.Questions().Where(q => q.InhabitantId == inhabitantId).OrderBy(q => q.AskedTick).ThenBy(q => q.Id, StringComparer.Ordinal).ToList();
+            SyncQuestions(_cardQuestionEntries, _cardQuestionBox, own, [card.Row], _style.Tokens.Window.QuestionsShown, withName: false, _cardQuestionBox);
+            _cardQuestionBox.Visible = _cardQuestionEntries.Count > 0;
+        }
+
+        if (_cardDiaryBox is not null && _diary is not null && _cardDiaryShown != (inhabitantId, _diary.Version))
+        {
+            _cardDiaryShown = (inhabitantId, _diary.Version);
+            foreach (var child in _cardDiaryBox.GetChildren())
+            {
+                _cardDiaryBox.RemoveChild(child);
+                child.QueueFree();
+            }
+
+            var lines = _diary.Of(inhabitantId);
+            if (lines.Count == 0)
+            {
+                _cardDiaryBox.AddChild(new Label { Text = "ui.card.diary_empty", AutowrapMode = TextServer.AutowrapMode.WordSmart });
+            }
+
+            foreach (var line in lines)
+            {
+                _cardDiaryBox.AddChild(new Label
+                {
+                    Text = TextFill.Fill(Tr("ui.card.diary_line"), new Dictionary<string, string> { ["day"] = Number(line.Day), ["time"] = line.Time, ["text"] = line.Text }),
+                    AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled,
+                    AutowrapMode = TextServer.AutowrapMode.WordSmart,
+                });
+            }
+        }
+
         var questions = TextFill.Fill(Tr("ui.card.questions"), new Dictionary<string, string> { ["count"] = Number(card.Row.OpenQuestions) });
         if (_cardQuestions is not null && _cardQuestions.Text != questions)
         {
             _cardQuestions.Text = questions;
         }
 
-        void Section(string key) => _card!.Content.AddChild(new Label { Text = key, ThemeTypeVariation = UiTheme.SubheaderLabel });
+        void Section(string key) => content.AddChild(new Label { Text = key, ThemeTypeVariation = UiTheme.SubheaderLabel });
 
         // A foldable section; folded or open as the player last left it (default as given).
         VBoxContainer Fold(string key, bool folded)
@@ -2047,7 +2299,7 @@ public partial class GameScreen : CanvasLayer
             };
             var rows = new VBoxContainer();
             section.AddChild(rows);
-            _card!.Content.AddChild(section);
+            content.AddChild(section);
             return rows;
         }
 
