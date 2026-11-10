@@ -60,6 +60,35 @@ public sealed class SeasonLookTests
         Assert.NotEqual(Slots.BaseColors[Slots.IndexOf("grass")], kept.Colors[Slots.IndexOf("grass")]);
     }
 
+    [Fact]
+    public void MixesAreEqualByValueSoTheShaderParametersAreWrittenOnlyWhenSomethingChanged()
+    {
+        // The view compares the mix of this frame with the one it applied (review GW3 #181): two mixes
+        // with the same values in different lists must be equal, any changed value must not.
+        var autumn = SeasonMix.Of(Palette, Slots, "autumn");
+        var same = new SeasonMix([.. autumn.Colors], autumn.SnowCover, autumn.LeafFall);
+        Assert.NotSame(autumn.Colors, same.Colors);
+        Assert.True(autumn.Equals(same) && autumn == same && Equals(autumn, same));
+        Assert.Equal(autumn.GetHashCode(), same.GetHashCode());
+        Assert.NotEqual(autumn, same with { SnowCover = autumn.SnowCover + 0.01 });
+        Assert.NotEqual(autumn, same with { LeafFall = autumn.LeafFall + 0.01 });
+        Assert.NotEqual(autumn, same with { Colors = [.. autumn.Colors.Select((c, i) => i == 0 ? c with { G = c.G + 0.01f } : c)] });
+        Assert.False(autumn.Equals(null));
+
+        // Frame after frame of the same season: the blender hands out an equal mix, during a blend a different one.
+        var blender = new SeasonBlender(Palette, Slots);
+        var first = blender.Update("autumn", 0.016);
+        Assert.Equal(first, blender.Update("autumn", 0.016));
+        Assert.Equal(first, blender.Update("autumn", 5));
+        var blending = blender.Update("winter", 0.016);
+        Assert.NotEqual(first, blending);
+        var next = blender.Update("winter", 0.016);
+        Assert.NotEqual(blending, next);
+
+        // A paused frame in the middle of the blend: equal again, nothing to write.
+        Assert.Equal(next, blender.Update("winter", 0));
+    }
+
     [Theory]
     [InlineData("spring")]
     [InlineData("autumn")]
