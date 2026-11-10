@@ -531,6 +531,10 @@
       "text": "Umherstreifen"
     },
     {
+      "key": "vocab.action.explore",
+      "text": "Erkunden"
+    },
+    {
       "key": "vocab.action.use",
       "text": "Benutzen"
     },
@@ -1847,6 +1851,10 @@
       "text": "streift umher"
     },
     {
+      "key": "ui.activity.explore",
+      "text": "erkundet die Gegend"
+    },
+    {
       "key": "ui.activity.move_to",
       "text": "geht los"
     },
@@ -2037,6 +2045,10 @@
     {
       "key": "msg.thought.wander",
       "text": "Mal ein bisschen umschauen."
+    },
+    {
+      "key": "msg.thought.explore",
+      "text": "Was wohl dahinter liegt?"
     },
     {
       "key": "msg.thought.use",
@@ -2405,6 +2417,50 @@
     {
       "key": "ui.zone.contact",
       "text": "Kontakt"
+    },
+    {
+      "key": "ui.debug.seed",
+      "text": "Seed: {seed}"
+    },
+    {
+      "key": "ui.debug.world_hash",
+      "text": "Welt-Hash: {hash}"
+    },
+    {
+      "key": "ui.debug.state_hash",
+      "text": "Zustands-Hash: {hash}"
+    },
+    {
+      "key": "ui.debug.time",
+      "text": "Weltzeit: {time} ({phase}), Tag {day}, Jahr {year}, Tick {tick}"
+    },
+    {
+      "key": "ui.debug.season",
+      "text": "Jahreszeit: {season}"
+    },
+    {
+      "key": "ui.debug.weather",
+      "text": "Wetter: {weather}, Lage: {conditions}"
+    },
+    {
+      "key": "ui.debug.epoch",
+      "text": "Epoche des Aussehens: {epoch}"
+    },
+    {
+      "key": "ui.debug.fps",
+      "text": "Bilder pro Sekunde: {fps}"
+    },
+    {
+      "key": "ui.debug.figures",
+      "text": "Figuren: {count}"
+    },
+    {
+      "key": "ui.debug.biome",
+      "text": "Biom unter dem Mauszeiger: {biome}"
+    },
+    {
+      "key": "ui.debug.jumps",
+      "text": "Debug-Sprünge: {back} und {forward} wechseln die Epoche"
     }
   ]
 }

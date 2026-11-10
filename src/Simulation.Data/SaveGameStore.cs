@@ -21,7 +21,7 @@ public static class SaveGameStore
     public const string ContentFingerprintKey = "content_fingerprint";
 
     /// <summary>Schema version written by this code.</summary>
-    public const int SchemaVersion = 6;
+    public const int SchemaVersion = 7;
 
     private static readonly JsonSerializerOptions Json = new() { IncludeFields = true };
 
@@ -78,6 +78,13 @@ public static class SaveGameStore
         // underground layers; rows from before are format 1 and still decode).
         """
         ALTER TABLE island ADD COLUMN format INTEGER NOT NULL DEFAULT 1;
+        """,
+
+        // 7 (cloud cover, B2-6 R14): the seen cells, one row per owner ('' = the player's view, else an
+        // inhabitant id), one bit per cell of the grid (CellSet). Files from before have no rows: such a
+        // world starts with what its inhabitants see when it is loaded.
+        """
+        CREATE TABLE exploration(owner TEXT PRIMARY KEY, width INTEGER NOT NULL, depth INTEGER NOT NULL, cells BLOB NOT NULL);
         """,
     ];
 
@@ -291,6 +298,16 @@ public static class SaveGameStore
         if (s.Weather is not null)
         {
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("weather", JsonSerializer.Serialize(s.Weather, Json)));
+        }
+
+        if (s.Exploration is { } explored)
+        {
+            // Seen cells (B2-6 R14): the player's view under the empty owner, then one row per inhabitant.
+            Insert(c, tx, "INSERT INTO exploration(owner, width, depth, cells) VALUES($a,$b,$c,$d)", (string.Empty, explored.Width, explored.Depth, explored.Player));
+            foreach (var (owner, cells) in explored.Seen)
+            {
+                Insert(c, tx, "INSERT INTO exploration(owner, width, depth, cells) VALUES($a,$b,$c,$d)", (owner, explored.Width, explored.Depth, cells));
+            }
         }
 
         if (s.LookEpoch is not null)
@@ -517,6 +534,7 @@ public static class SaveGameStore
             IslandData = ReadIsland(c, meta),
             Weather = meta.TryGetValue("weather", out var weather) ? JsonSerializer.Deserialize<Weather.WeatherState>(weather, Json) : null,
             LookEpoch = meta.GetValueOrDefault("look_epoch"),
+            Exploration = ReadExploration(c),
             Skills = meta.TryGetValue("skills", out var skills) ? JsonSerializer.Deserialize<Simulation.Inhabitants.SkillRegisterState>(skills, Json) : null,
             Mailbox = meta.TryGetValue("mailbox", out var mailbox) ? JsonSerializer.Deserialize<Simulation.Player.MailboxState>(mailbox, Json) : null,
             NamesSaved = meta.ContainsKey("names"),
@@ -570,6 +588,20 @@ public static class SaveGameStore
         }
 
         return meta.TryGetValue("island_data", out var base64) ? Convert.FromBase64String(base64) : null;
+    }
+
+    /// <summary>The seen cells (schema 7); null when the file has no row for the player's view (worlds without an island, files from before).</summary>
+    private static Simulation.Exploration.ExplorationState? ReadExploration(SqliteConnection c)
+    {
+        var rows = Query(c, "SELECT owner, width, depth, cells FROM exploration", r => (Owner: r.GetString(0), Width: r.GetInt32(1), Depth: r.GetInt32(2), Cells: (byte[])r.GetValue(3)));
+        var player = rows.Where(r => r.Owner.Length == 0).ToList();
+        return player.Count == 0
+            ? null
+            : new Simulation.Exploration.ExplorationState(
+                player[0].Width,
+                player[0].Depth,
+                player[0].Cells,
+                [.. rows.Where(r => r.Owner.Length > 0).OrderBy(r => r.Owner, StringComparer.Ordinal).Select(r => new KeyValuePair<string, byte[]>(r.Owner, r.Cells))]);
     }
 
     private static List<T> Query<T>(SqliteConnection c, string sql, Func<SqliteDataReader, T> map)

@@ -23,6 +23,20 @@ public sealed class ScreenModelTests
         Assert.All(choices, c => Assert.DoesNotContain(c.Symbol, char.IsLetter));
     }
 
+    /// <summary>B2-6 R31: one key action per time choice; the pause key toggles.</summary>
+    [Fact]
+    public void TimeKeysFollowTheChoicesAndThePauseKeyToggles()
+    {
+        var actions = Enumerable.Range(0, ScreenModel.TimeChoices(Time).Count).Select(ScreenModel.TimeAction).ToList();
+        Assert.Equal(["gw_time_pause", "gw_time_normal", "gw_time_fast_1", "gw_time_fast_2"], actions.Take(4));
+        Assert.Equal(actions.Count, actions.Distinct().Count());
+
+        Assert.Equal(0, ScreenModel.TimeKeyTarget(key: 0, current: 3, beforePause: 1));
+        Assert.Equal(3, ScreenModel.TimeKeyTarget(key: 0, current: 0, beforePause: 3));
+        Assert.Equal(1, ScreenModel.TimeKeyTarget(key: 0, current: 0, beforePause: 0));
+        Assert.Equal(2, ScreenModel.TimeKeyTarget(key: 2, current: 0, beforePause: 3));
+    }
+
     [Fact]
     public void OnlyNewQuestionsBecomeHintsInOneGroup()
     {

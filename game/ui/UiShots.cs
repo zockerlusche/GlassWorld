@@ -48,7 +48,27 @@ public static class UiShots
             }
         }
 
+        // The zones preview of the UI concept (W1717, D642): the bare zones, a theme with tabs, the card in the
+        // side window's place - in the first language at 100 %, enough to judge the layout.
         UiSetup.Apply(host.GetTree().Root, style);
+        TextCatalogs.SetLanguage(TextCatalogs.SupportedLocales[0]);
+        foreach (var (name, theme, card) in new[] { ("zones", (string?)null, false), ("zones_contact", "contact", false), ("zones_card", null, true) })
+        {
+            screen.ShowZonesForShots(true, theme, card);
+            for (var i = 0; i < 20; i++)
+            {
+                await host.ToSignal(host.GetTree(), SceneTree.SignalName.ProcessFrame);
+            }
+
+            screen.Refresh();
+            await host.ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
+            var path = System.IO.Path.Combine(folder, $"ui_{size.X}x{size.Y}_{name}.png");
+            var error = host.GetViewport().GetTexture().GetImage().SavePng(path);
+            GD.Print($"UI_SHOT {path} {error}");
+            files.Add(path);
+        }
+
+        screen.ShowZonesForShots(false);
         return files;
     }
 }

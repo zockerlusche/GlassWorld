@@ -18,11 +18,14 @@ namespace GlassWorld.Game;
 /// the player settings (R4). Development and check runs skip the menu and start the placeholder world
 /// at once: <c>--smoke-frames=N</c> (headless smoke, prints marker lines and quits after N frames),
 /// <c>--ui-shots=&lt;dir&gt;</c> (screenshots) and <c>--seed=N</c> (world seed, default 1).
+/// <c>--debug</c> lets the core accept debug commands (the debug jumps of the debug view, B2-6 R31);
+/// without it they are refused.
 /// </summary>
 public partial class Main : Node3D
 {
     private const string SmokeArgument = "--smoke-frames=";
     private const string SeedArgument = "--seed=";
+    private const string DebugArgument = "--debug";
 
     private string? _shotsFolder;
     private string _contentDirectory = string.Empty;
@@ -30,6 +33,9 @@ public partial class Main : Node3D
     private int _frame;
     private ulong _seed = 1;
     private bool _seedGiven;
+
+    /// <summary>Debug commands of the core (debug jumps, B2-6 R31): only with <c>--debug</c>, off otherwise.</summary>
+    private bool _debugCommands;
     private UiStyle? _baseStyle;
     private UiStyle? _style;
     private SoundMix? _mix;
@@ -130,6 +136,11 @@ public partial class Main : Node3D
             {
                 _seed = seed;
                 _seedGiven = true;
+            }
+
+            if (arg == DebugArgument)
+            {
+                _debugCommands = true;
             }
         }
     }
@@ -269,7 +280,7 @@ public partial class Main : Node3D
     private bool StartWorld(Action<WorldPresenter> begin, WorldMeta? meta)
     {
         _meta = meta;
-        _world = new WorldPresenter { Name = "World" };
+        _world = new WorldPresenter { Name = "World", DebugCommands = _debugCommands };
         AddChild(_world);
         begin(_world);
         var host = _world.Host!;
@@ -321,6 +332,11 @@ public partial class Main : Node3D
             _screen = new GameScreen { Name = "GameScreen" };
             AddChild(_screen);
             _screen.Setup(_world, _style);
+
+            // The debug view (B2-6 R31): its own control on the screen's layer, hidden until F12.
+            var debug = new GwDebugOverlay { Name = DebugOverlayName };
+            _screen.AddChild(debug);
+            debug.Setup(_world, _style);
             HintIfAnAiNeedsThePlayer();
             _screen.ApplySettings(_settings, _style);
             _screen.SetupChronicle(ContractSerializer.Deserialize<ChronicleKinds>(System.IO.File.ReadAllText(System.IO.Path.Combine(_contentDirectory, "chronicle", "kinds.json"))));

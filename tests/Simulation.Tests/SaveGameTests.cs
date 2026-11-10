@@ -204,7 +204,7 @@ public sealed class SaveGameTests : IDisposable
 
             // A real schema-4 file has no island format column yet (schema 6 adds it).
             using var version = c.CreateCommand();
-            version.CommandText = "ALTER TABLE island DROP COLUMN format; PRAGMA user_version = 4;";
+            version.CommandText = "ALTER TABLE island DROP COLUMN format; DROP TABLE exploration; PRAGMA user_version = 4;";
             version.ExecuteNonQuery();
         }
 

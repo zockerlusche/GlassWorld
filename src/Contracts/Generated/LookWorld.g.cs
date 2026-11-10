@@ -73,6 +73,12 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("speech_s")]
         public double SpeechS { get; set; } = default!;
 
+        /// <summary>
+        /// Two heads within this many pixels of the same screen height keep the stacking order of their bubbles (no flipping when walkers swap depth; pixels at the reference height, scaled with the UI).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("bubble_order_hysteresis_px")]
+        public double BubbleOrderHysteresisPx { get; set; } = default!;
+
     }
 
     /// <summary>
