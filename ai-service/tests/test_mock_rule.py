@@ -61,3 +61,16 @@ def test_the_service_mock_follows_the_rule() -> None:
     answer = asyncio.run(MockDecider(weights).decide(request, time.monotonic() + 5))
     options = [(plain_id(o.option_id), plain_id(o.action)) for o in request.options]
     assert plain_id(answer.option_id) == pick(options, int(request.seed), weights)
+
+
+def test_a_duplicate_action_is_rejected_like_in_the_core(tmp_path: Path) -> None:
+    """Review #170: C# throws on a duplicate action; Python must not silently take the last."""
+    data = {
+        "contract_version": "0.2",
+        "default_permille": 1000,
+        "weights": [{"action": "eat", "permille": 0}, {"action": "eat", "permille": 500}],
+    }
+    file = tmp_path / "mock-weights.json"
+    file.write_text(json.dumps(data), encoding="utf-8")
+    with pytest.raises(ValueError, match="twice"):
+        MockWeights.load(file)

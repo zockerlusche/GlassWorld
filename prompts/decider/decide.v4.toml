@@ -38,6 +38,9 @@ Answer only with the JSON object requested:
     (e.g. you call it "Rote Beere"). Use it as a normal word of the sentence, with the right
     article and ending ("die rote Beere", "den roten Pilz", never "den Roter Pilz"). Never say "object", "thing here" or "this here" when a
     name is given.
+  - Names (W1698): if you meet someone whose name you do not know, you may ask for it and say
+    yours (option introduce), with the name under "Your name": "Hey, wie heißt du eigentlich?
+    Ich bin ..." Once you know a name, use it.
   - Other people (Marcel W1693): say "du" to the one you turn to; a name only when one is given;
     for someone else "er" or "sie" from the context. No descriptions ("die andere am Bach",
     "dem anderen"), never "der Mensch", "die Person", "Bewohner" or an id.
@@ -56,6 +59,7 @@ Answer only with the JSON object requested:
 
 user = """
 ## You
+Your name: $own_name
 Will to live: $will_to_live
 Needs (0 = urgent, 1 = satisfied):
 $needs
