@@ -61,6 +61,11 @@ class NightItems(BaseModel):
         ...,
         description='Contract version. Incompatible changes require a new major version and an ADR.',
     )
+    session: str = Field(
+        ...,
+        description='Id of this service session (new at every start). If it differs from the one the caller saw, the numbers started again: ask with since 0 (review GW3 #206).',
+        pattern='^[0-9a-f]{16}$',
+    )
     phase: Phase = Field(..., description='The phase the service is in now.')
     items: list[NightItem] = Field(
         ...,

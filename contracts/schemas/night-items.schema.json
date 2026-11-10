@@ -2,12 +2,17 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://glassworld.local/contracts/v0/night-items.schema.json",
   "title": "NightItems",
-  "description": "AI service -> game (GET /night/items?since=<seq>, B7 R10, D637): what the job queue has to do tonight and what got done, for the dream scene (B2579). One item per job and state change, numbered from 1 and never reused within a service session; a since larger than the newest number means the service restarted and gives the items from the start. The service invents nothing: inhabitant and object_type come unchanged from the core's job. No wording of questions, dreams or memories (like the question window, B6 R12). Kept only for the current night and only in memory, like the queue (R4).",
+  "description": "AI service -> game (GET /night/items?since=<seq>, B7 R10, D637): what the job queue has to do tonight and what got done, for the dream scene (B2579). One item per job and state change, numbered from 1 and never reused within a service session; the numbers start again in a new service session (session changes): then the caller asks with since 0. A since larger than the newest number also gives the items from the start. The service invents nothing: inhabitant and object_type come unchanged from the core's job. No wording of questions, dreams or memories (like the question window, B6 R12). Kept only for the current night and only in memory, like the queue (R4).",
   "type": "object",
   "additionalProperties": false,
-  "required": ["contract_version", "phase", "items"],
+  "required": ["contract_version", "session", "phase", "items"],
   "properties": {
     "contract_version": { "$ref": "common.schema.json#/$defs/ContractVersion" },
+    "session": {
+      "description": "Id of this service session (new at every start). If it differs from the one the caller saw, the numbers started again: ask with since 0 (review GW3 #206).",
+      "type": "string",
+      "pattern": "^[0-9a-f]{16}$"
+    },
     "phase": { "description": "The phase the service is in now.", "type": "string", "enum": ["day", "night"] },
     "items": {
       "description": "Items with a number greater than since, oldest first.",

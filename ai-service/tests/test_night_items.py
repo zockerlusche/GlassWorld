@@ -96,6 +96,8 @@ def test_a_since_beyond_the_newest_number_gives_everything() -> None:
 
     asyncio.run(scenario())
     assert runner.night_items(999) == runner.night_items(0) != []
+    other, _, _ = _runner()
+    assert len(runner.session) == 16 and other.session != runner.session  # new at every start
 
 
 def test_the_endpoint_answers_by_the_contract(settings: Settings) -> None:

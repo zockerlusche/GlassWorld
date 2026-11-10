@@ -14,6 +14,7 @@ import contextlib
 import hashlib
 import itertools
 import json
+import secrets
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
 from typing import Protocol, cast
@@ -124,6 +125,8 @@ class JobRunner:
         self._night = False
         self._night_items: list[dict[str, object]] = []
         self._night_seq = 0
+        # A new id at every start: the caller sees that the numbers began again (review GW3 #206).
+        self.session = secrets.token_hex(8)
 
     def register(self, kind: str, handler: Handler) -> None:
         """Add the handler of a kind that needs resources from the app start (model client)."""

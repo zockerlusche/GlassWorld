@@ -486,6 +486,7 @@ def create_app(
         items = NightItems.model_validate(
             {
                 "contract_version": CONTRACT_VERSION,
+                "session": runner.session,
                 "phase": _phase_status().phase,
                 "items": runner.night_items(since),
             }

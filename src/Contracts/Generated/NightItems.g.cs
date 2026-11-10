@@ -54,7 +54,7 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
-    /// AI service -&gt; game (GET /night/items?since=&lt;seq&gt;, B7 R10, D637): what the job queue has to do tonight and what got done, for the dream scene (B2579). One item per job and state change, numbered from 1 and never reused within a service session; a since larger than the newest number means the service restarted and gives the items from the start. The service invents nothing: inhabitant and object_type come unchanged from the core's job. No wording of questions, dreams or memories (like the question window, B6 R12). Kept only for the current night and only in memory, like the queue (R4).
+    /// AI service -&gt; game (GET /night/items?since=&lt;seq&gt;, B7 R10, D637): what the job queue has to do tonight and what got done, for the dream scene (B2579). One item per job and state change, numbered from 1 and never reused within a service session; the numbers start again in a new service session (session changes): then the caller asks with since 0. A since larger than the newest number also gives the items from the start. The service invents nothing: inhabitant and object_type come unchanged from the core's job. No wording of questions, dreams or memories (like the question window, B6 R12). Kept only for the current night and only in memory, like the queue (R4).
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class NightItems
@@ -62,6 +62,12 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("contract_version")]
         public string ContractVersion { get; set; } = default!;
+
+        /// <summary>
+        /// Id of this service session (new at every start). If it differs from the one the caller saw, the numbers started again: ask with since 0 (review GW3 #206).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("session")]
+        public string Session { get; set; } = default!;
 
         /// <summary>
         /// The phase the service is in now.
