@@ -136,6 +136,12 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("questions_shown")]
         public int QuestionsShown { get; set; } = default!;
 
+        /// <summary>
+        /// Lines the diary of one inhabitant keeps (what it did, newest first; W1726).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("diary_lines")]
+        public int DiaryLines { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]

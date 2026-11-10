@@ -127,6 +127,12 @@ class UiWindowTokens(BaseModel):
         ge=1,
         le=500,
     )
+    diary_lines: int = Field(
+        ...,
+        description='Lines the diary of one inhabitant keeps (what it did, newest first; W1726).',
+        ge=5,
+        le=1000,
+    )
 
 
 class UiButtonTokens(BaseModel):

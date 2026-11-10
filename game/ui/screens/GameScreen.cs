@@ -32,7 +32,14 @@ public partial class GameScreen : CanvasLayer
     private readonly VBoxContainer _questionList = new() { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
     private readonly VBoxContainer _logList = new() { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
     private readonly HashSet<string> _hintedQuestions = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, string> _answerDrafts = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, QuestionEntry> _questionEntries = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, QuestionEntry> _cardQuestionEntries = new(StringComparer.Ordinal);
+    private Label? _questionsEmpty;
+    private Label? _questionsLater;
+    private VBoxContainer? _cardQuestionBox;
+    private VBoxContainer? _cardDiaryBox;
+    private (string Id, long Version) _cardDiaryShown;
+    private ActivityDiary? _diary;
     private ConversationLog? _log;
     private long _logShown = -1;
     private string _questionShape = "-";
@@ -107,6 +114,7 @@ public partial class GameScreen : CanvasLayer
             "ui.inhabitants.empty");
         _inhabitants.RowSelected += ShowInhabitant;
         _log = new ConversationLog(style.Tokens.Window.LogLines);
+        _diary = new ActivityDiary(style.Tokens.Window.DiaryLines);
         _sideBar.Add("inhabitants", "ui.inhabitants.title").Content.AddChild(_inhabitants);
         _sideBar.Add("questions", "ui.questions.title").Content.AddChild(_questionList);
 
@@ -1367,43 +1375,85 @@ public partial class GameScreen : CanvasLayer
             return;
         }
 
-        var questions = _feed.Questions().Take(_style.Tokens.Window.QuestionsShown).ToList();
-        var shape = TranslationServer.GetLocale() + ";" + string.Join(";", questions.Select(q => q.Id));
-        if (shape == _questionShape)
+        var locale = TranslationServer.GetLocale();
+        if (locale != _questionShape)
         {
-            return;
-        }
-
-        _questionShape = shape;
-        foreach (var child in _questionList.GetChildren())
-        {
-            _questionList.RemoveChild(child);
-            child.QueueFree();
-        }
-
-        foreach (var gone in _answerDrafts.Keys.Where(id => questions.All(q => q.Id != id)).ToList())
-        {
-            _answerDrafts.Remove(gone);
-        }
-
-        if (questions.Count == 0)
-        {
-            _questionList.AddChild(new Label { Text = "ui.questions.empty_text", AutowrapMode = TextServer.AutowrapMode.WordSmart });
-            return;
-        }
-
-        foreach (var question in questions)
-        {
-            if (rows.FirstOrDefault(r => r.Id == question.InhabitantId) is { } row)
+            // First build or a new language: start again (the texts are filled in).
+            _questionShape = locale;
+            foreach (var child in _questionList.GetChildren())
             {
-                AddQuestion(question, row);
+                _questionList.RemoveChild(child);
+                child.QueueFree();
+            }
+
+            _questionEntries.Clear();
+            _questionsEmpty = new Label { Text = "ui.questions.empty_text", AutowrapMode = TextServer.AutowrapMode.WordSmart };
+            _questionsLater = new Label { Text = "ui.question.later", AutowrapMode = TextServer.AutowrapMode.WordSmart };
+            _questionList.AddChild(_questionsEmpty);
+            _questionList.AddChild(_questionsLater);
+        }
+
+        var open = _feed.Questions().OrderBy(q => q.AskedTick).ThenBy(q => q.Id, StringComparer.Ordinal).ToList();
+        SyncQuestions(_questionEntries, _questionList, open, rows, _style.Tokens.Window.QuestionsShown, withName: true, _sideBar.PanelOf("questions"));
+        _questionList.MoveChild(_questionsLater!, -1);
+        _questionsEmpty!.Visible = _questionEntries.Count == 0;
+        _questionsLater!.Visible = _questionEntries.Count > 0;
+    }
+
+    /// <summary>
+    /// Keeps a list of question entries in step with the open questions without ever moving what the player
+    /// reads (Marcel W1726: "dann lese ich mir das durch ... dann ist das schon wieder weg"): new questions are
+    /// appended at the end; a question that is over stays, marked as settled, and leaves only once the player
+    /// is no longer at <paramref name="place"/> (mouse outside, no field of it focused). The oldest stay on top.
+    /// </summary>
+    private void SyncQuestions(Dictionary<string, QuestionEntry> entries, VBoxContainer list, IReadOnlyList<QuestionRow> open, IReadOnlyList<InhabitantRow> rows, int most, bool withName, Control place)
+    {
+        var busy = InUse(place);
+        foreach (var (id, entry) in entries.Where(e => open.All(q => q.Id != e.Key)).ToList())
+        {
+            if (!entry.Settled)
+            {
+                entry.Settled = true;
+                entry.Input.Editable = false;
+                entry.Send.Disabled = true;
+                entry.Box.AddChild(new Label { Text = "ui.question.settled", AutowrapMode = TextServer.AutowrapMode.WordSmart });
+            }
+
+            if (!busy)
+            {
+                list.RemoveChild(entry.Box);
+                entry.Box.QueueFree();
+                entries.Remove(id);
             }
         }
 
-        _questionList.AddChild(new Label { Text = "ui.question.later", AutowrapMode = TextServer.AutowrapMode.WordSmart });
+        foreach (var question in open)
+        {
+            if (entries.Count >= most)
+            {
+                break;
+            }
+
+            if (!entries.ContainsKey(question.Id) && rows.FirstOrDefault(r => r.Id == question.InhabitantId) is { } row)
+            {
+                var entry = BuildQuestion(question, row, withName);
+                list.AddChild(entry.Box);
+                entries[question.Id] = entry;
+            }
+        }
     }
 
-    private void AddQuestion(QuestionRow question, InhabitantRow row)
+    /// <summary>Whether the player is at a control: the mouse is over it or one of its fields has the focus.</summary>
+    private bool InUse(Control place) =>
+        place.IsVisibleInTree()
+        && (place.GetGlobalRect().HasPoint(place.GetGlobalMousePosition()) || (GetViewport().GuiGetFocusOwner() is { } focus && place.IsAncestorOf(focus)));
+
+    /// <summary>
+    /// One question as the inhabitant's own musing (Marcel W1727: "Hanno fragt sich"): who (clickable, when
+    /// <paramref name="withName"/>), what it wonders about, what brought it there, and a field to whisper
+    /// something to it - the player may step in but is not asked to.
+    /// </summary>
+    private QuestionEntry BuildQuestion(QuestionRow question, InhabitantRow row, bool withName)
     {
         var args = new Dictionary<string, string>
         {
@@ -1418,30 +1468,31 @@ public partial class GameScreen : CanvasLayer
             return TextFill.Fill(text == key ? Tr(other) : text, args);
         }
 
+        var box = new VBoxContainer();
         var id = row.Id;
-        var who = new Button { Text = DisplayName(row), Flat = true, Alignment = HorizontalAlignment.Left, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled };
-        who.Pressed += () => ShowInhabitant(id);
-        _questionList.AddChild(who);
-        _questionList.AddChild(new Label { Text = Text(QuestionKeys.Ask(question.Kind), QuestionKeys.AskOther), ThemeTypeVariation = UiTheme.SubheaderLabel, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled, AutowrapMode = TextServer.AutowrapMode.WordSmart });
-        _questionList.AddChild(new Label { Text = Text(QuestionKeys.Reason(question.Kind), QuestionKeys.ReasonOther), AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled, AutowrapMode = TextServer.AutowrapMode.WordSmart });
+        if (withName)
+        {
+            var who = new Button { Text = DisplayName(row), Flat = true, Alignment = HorizontalAlignment.Left, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled };
+            who.Pressed += () => ShowInhabitant(id);
+            box.AddChild(who);
+        }
 
-        var qid = question.Id;
+        box.AddChild(new Label { Text = Text(QuestionKeys.Ask(question.Kind), QuestionKeys.AskOther), ThemeTypeVariation = UiTheme.SubheaderLabel, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled, AutowrapMode = TextServer.AutowrapMode.WordSmart });
+        box.AddChild(new Label { Text = Text(QuestionKeys.Reason(question.Kind), QuestionKeys.ReasonOther), AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled, AutowrapMode = TextServer.AutowrapMode.WordSmart });
+
         var input = new LineEdit
         {
             PlaceholderText = Tr("ui.question.answer_hint"),
             MaxLength = 280,
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
             AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled,
-            Text = _answerDrafts.GetValueOrDefault(qid, string.Empty),
         };
-        input.TextChanged += t => _answerDrafts[qid] = t;
         var send = new Button { Text = "ui.question.answer" };
         void Answer()
         {
             if (Say(id, input.Text))
             {
                 input.Clear();
-                _answerDrafts.Remove(qid);
             }
         }
 
@@ -1450,8 +1501,22 @@ public partial class GameScreen : CanvasLayer
         var answerRow = new HBoxContainer();
         answerRow.AddChild(input);
         answerRow.AddChild(send);
-        _questionList.AddChild(answerRow);
-        _questionList.AddChild(new HSeparator());
+        box.AddChild(answerRow);
+        box.AddChild(new HSeparator());
+        return new QuestionEntry(box, input, send);
+    }
+
+    /// <summary>The controls of one question in a list.</summary>
+    private sealed class QuestionEntry(VBoxContainer box, LineEdit input, Button send)
+    {
+        public VBoxContainer Box { get; } = box;
+
+        public LineEdit Input { get; } = input;
+
+        public Button Send { get; } = send;
+
+        /// <summary>The question is over (answered by the AI or solved by the inhabitant); the entry waits to leave.</summary>
+        public bool Settled { get; set; }
     }
 
     /// <summary>The conversation log (W1696): newest first, a click leads to the inhabitant.</summary>
@@ -1541,6 +1606,13 @@ public partial class GameScreen : CanvasLayer
         });
         _time.Text = clock.Time;
 
+        // Each inhabitant's diary (W1726): what it does now, noted when it changes.
+        var standing = Tr(InhabitantActivity.StandingKey).ToString();
+        foreach (var row in rows)
+        {
+            _diary?.Note(row.Id, _activities[row.Id], _activities[row.Id] == standing, clock.Day, clock.Time);
+        }
+
         foreach (var row in rows)
         {
             UpdateMark(row);
@@ -1602,7 +1674,7 @@ public partial class GameScreen : CanvasLayer
 
         // W1696: an open question shows its wording and an answer field in the questions panel.
         Refresh();
-        if (_feed.Questions().Count > 0 && !_questionList.GetChildren().OfType<HBoxContainer>().Any(r => r.GetChildren().OfType<LineEdit>().Any()))
+        if (_feed.Questions().Count > 0 && _questionEntries.Count == 0)
         {
             return "questions panel shows no question with an answer field";
         }
@@ -2059,6 +2131,12 @@ public partial class GameScreen : CanvasLayer
             talkRow.AddChild(send);
             content.AddChild(talkRow);
 
+            // What occupies this inhabitant (W1726): its open questions, here too, with the whisper field.
+            _cardQuestionEntries.Clear();
+            _cardQuestionBox = new VBoxContainer { Visible = false };
+            _cardQuestionBox.AddChild(new Label { Text = "ui.card.musing", ThemeTypeVariation = UiTheme.SubheaderLabel });
+            content.AddChild(_cardQuestionBox);
+
             var wellbeing = Fold("ui.card.wellbeing", folded: false);
             Bar(wellbeing, "ui.card.will_to_live");
             foreach (var need in card.Needs)
@@ -2077,6 +2155,10 @@ public partial class GameScreen : CanvasLayer
             {
                 Bar(character, trait.Key);
             }
+
+            // What it did, one after the other (W1726); folded until the player wants to read it.
+            _cardDiaryBox = Fold("ui.card.diary", folded: true);
+            _cardDiaryShown = default;
         }
 
         foreach (var (key, percent) in values)
@@ -2096,6 +2178,39 @@ public partial class GameScreen : CanvasLayer
         if (_cardAction is not null && _cardAction.Text != action)
         {
             _cardAction.Text = action;
+        }
+
+        if (_cardQuestionBox is not null && _feed is not null)
+        {
+            var own = _feed.Questions().Where(q => q.InhabitantId == inhabitantId).OrderBy(q => q.AskedTick).ThenBy(q => q.Id, StringComparer.Ordinal).ToList();
+            SyncQuestions(_cardQuestionEntries, _cardQuestionBox, own, [card.Row], _style.Tokens.Window.QuestionsShown, withName: false, _cardQuestionBox);
+            _cardQuestionBox.Visible = _cardQuestionEntries.Count > 0;
+        }
+
+        if (_cardDiaryBox is not null && _diary is not null && _cardDiaryShown != (inhabitantId, _diary.Version))
+        {
+            _cardDiaryShown = (inhabitantId, _diary.Version);
+            foreach (var child in _cardDiaryBox.GetChildren())
+            {
+                _cardDiaryBox.RemoveChild(child);
+                child.QueueFree();
+            }
+
+            var lines = _diary.Of(inhabitantId);
+            if (lines.Count == 0)
+            {
+                _cardDiaryBox.AddChild(new Label { Text = "ui.card.diary_empty", AutowrapMode = TextServer.AutowrapMode.WordSmart });
+            }
+
+            foreach (var line in lines)
+            {
+                _cardDiaryBox.AddChild(new Label
+                {
+                    Text = TextFill.Fill(Tr("ui.card.diary_line"), new Dictionary<string, string> { ["day"] = Number(line.Day), ["time"] = line.Time, ["text"] = line.Text }),
+                    AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled,
+                    AutowrapMode = TextServer.AutowrapMode.WordSmart,
+                });
+            }
         }
 
         var questions = TextFill.Fill(Tr("ui.card.questions"), new Dictionary<string, string> { ["count"] = Number(card.Row.OpenQuestions) });
