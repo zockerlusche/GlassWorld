@@ -107,13 +107,16 @@ public sealed class UtilityBrain
                 continue;
             }
 
-            if (c.Need is null)
+            // A consideration that yields to the needs (yields_to_needs, B2-6 R14) counts like a need-based
+            // one: it suggests its action only while the needs leave room for it.
+            var yields = c.YieldsToNeeds ?? false;
+            if (c.Need is null && !yields)
             {
                 continue;
             }
 
             needBased = true;
-            if (c.Weight * curve.At(inhabitant.Needs.GetValueOrDefault(c.Need, 1.0)) * TraitFactor(inhabitant, c) > 0)
+            if (c.Weight * curve.At(c.Need is null ? 1.0 : inhabitant.Needs.GetValueOrDefault(c.Need, 1.0)) * TraitFactor(inhabitant, c) * (yields ? Calm(inhabitant) : 1.0) > 0)
             {
                 return true;
             }
@@ -168,6 +171,12 @@ public sealed class UtilityBrain
             }
 
             var urgency = c.Weight * curve.At(c.Need is null ? 1.0 : inhabitant.Needs.GetValueOrDefault(c.Need, 1.0)) * TraitFactor(inhabitant, c);
+            if (c.YieldsToNeeds ?? false)
+            {
+                // B2-6 R14: gives way to pressing needs, like exploring by novelty.
+                urgency *= Calm(inhabitant);
+            }
+
             if (c.TargetProperty is null)
             {
                 options.Add(new ScoredOption(c.Action, null, urgency));

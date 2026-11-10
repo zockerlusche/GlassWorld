@@ -9,7 +9,8 @@ namespace GlassWorld.Simulation.Behaviour;
 /// <param name="ReachM">Distance to the target at which it can start.</param>
 /// <param name="RandomNearby">True if an action without a target happens at a random spot nearby.</param>
 /// <param name="Offered">False for actions the decider may not offer (the core plans them itself).</param>
-public readonly record struct ActionTimingInfo(long DurationTicks, double ReachM, bool RandomNearby, bool Offered = true);
+/// <param name="Frontier">True if an action without a target happens where the land the inhabitant has not seen yet begins (B2-6 R14).</param>
+public readonly record struct ActionTimingInfo(long DurationTicks, double ReachM, bool RandomNearby, bool Offered = true, bool Frontier = false);
 
 /// <summary>
 /// What actions do (content/effects/*.json). The effect of an action on a target is decided only by the
@@ -47,7 +48,10 @@ public sealed class ActionRules
         foreach (var t in all.SelectMany(f => f.Actions))
         {
             Require(actionIds.Contains(t.Action), $"timing for unknown action '{t.Action}'");
-            Require(timing.TryAdd(t.Action, new ActionTimingInfo(Math.Max(1, (long)t.DurationMinutes * ticksPerHour / 60), t.ReachM, t.Destination == ActionTimingDestination.Random_nearby, t.DeciderOption ?? true)), $"timing for '{t.Action}' defined twice");
+            Require(
+                t.Destination != ActionTimingDestination.Frontier || actions.Entries.First(e => e.Id == t.Action).Target is null or VocabularyEntryTarget.None,
+                $"action '{t.Action}' has a target, so it cannot happen at the frontier");
+            Require(timing.TryAdd(t.Action, new ActionTimingInfo(Math.Max(1, (long)t.DurationMinutes * ticksPerHour / 60), t.ReachM, t.Destination == ActionTimingDestination.Random_nearby, t.DeciderOption ?? true, t.Destination == ActionTimingDestination.Frontier)), $"timing for '{t.Action}' defined twice");
         }
 
         foreach (var rule in all.SelectMany(f => f.Rules))

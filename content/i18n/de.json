@@ -531,6 +531,10 @@
       "text": "Umherstreifen"
     },
     {
+      "key": "vocab.action.explore",
+      "text": "Erkunden"
+    },
+    {
       "key": "vocab.action.use",
       "text": "Benutzen"
     },
@@ -1847,6 +1851,10 @@
       "text": "streift umher"
     },
     {
+      "key": "ui.activity.explore",
+      "text": "erkundet die Gegend"
+    },
+    {
       "key": "ui.activity.move_to",
       "text": "geht los"
     },
@@ -2037,6 +2045,10 @@
     {
       "key": "msg.thought.wander",
       "text": "Mal ein bisschen umschauen."
+    },
+    {
+      "key": "msg.thought.explore",
+      "text": "Was wohl dahinter liegt?"
     },
     {
       "key": "msg.thought.use",

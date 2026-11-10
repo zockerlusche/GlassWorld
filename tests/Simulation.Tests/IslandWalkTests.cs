@@ -199,7 +199,7 @@ public sealed class IslandWalkTests : IDisposable
         {
             connection.Open();
             using var command = connection.CreateCommand();
-            command.CommandText = "ALTER TABLE island DROP COLUMN format; PRAGMA user_version = 4;";
+            command.CommandText = "ALTER TABLE island DROP COLUMN format; DROP TABLE exploration; PRAGMA user_version = 4;";
             command.ExecuteNonQuery();
         }
 
@@ -234,7 +234,7 @@ public sealed class IslandWalkTests : IDisposable
         {
             connection.Open();
             using var command = connection.CreateCommand();
-            command.CommandText = "ALTER TABLE island DROP COLUMN format; PRAGMA user_version = 5;";
+            command.CommandText = "ALTER TABLE island DROP COLUMN format; DROP TABLE exploration; PRAGMA user_version = 5;";
             command.ExecuteNonQuery();
         }
 

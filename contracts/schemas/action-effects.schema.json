@@ -20,7 +20,7 @@
         "action": { "$ref": "common.schema.json#/$defs/VocabId" },
         "duration_minutes": { "type": "integer", "minimum": 1, "maximum": 1440 },
         "reach_m": { "description": "Distance to the target at which the action can start.", "type": "number", "minimum": 0, "maximum": 100 },
-        "destination": { "description": "Where an action without a target happens: here, or at a random spot within the perception radius (own seed stream).", "type": "string", "enum": ["here", "random_nearby"] },
+        "destination": { "description": "Where an action without a target happens: here, at a random spot within the perception radius (own seed stream), or at the frontier: the nearest walkable cell the inhabitant has seen that lies next to one it has not seen yet (B2-6 R14). A frontier action is only offered while such a cell can be reached on foot.", "type": "string", "enum": ["here", "random_nearby", "frontier"] },
         "decider_option": { "description": "Whether the decider may offer this action as an option (default true). Actions the core plans itself, such as building steps, are false.", "type": "boolean" }
       }
     },

@@ -237,6 +237,25 @@ internal sealed class RunCommand
         var fading = host.Inhabitants.All.Count(host.Inhabitants.IsFading);
         output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"done  seed {options.Seed}  days {options.Days}  inhabitants {host.Inhabitants.All.Count()}  ticks {ticks}  hash {host.World.StateHash()}"));
         output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"neglect  longest {worstHours} h (limit {limitHours} h)  fading {fading}"));
+        if (host.Exploration is { } exploration && host.Map is { } island)
+        {
+            // Cloud cover (B2-6 R14): how much of the land (cells without water) the player's view shows.
+            var (land, shown) = (0, 0);
+            for (var z = 0; z < exploration.Depth; z++)
+            {
+                for (var x = 0; x < exploration.Width; x++)
+                {
+                    if (island.Map.Cell(x, z).Water == Simulation.Map.WaterKind.None)
+                    {
+                        land++;
+                        shown += exploration.IsRevealed(x, z) ? 1 : 0;
+                    }
+                }
+            }
+
+            output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"explored  land {shown}/{land} cells ({100.0 * shown / Math.Max(1, land):F1} %)  view {exploration.Version}/{exploration.Width * exploration.Depth} cells"));
+        }
+
         output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"time  {stopwatch.Elapsed.TotalSeconds:F2} s  ({stopwatch.Elapsed.TotalMicroseconds / Math.Max(1, ticks):F1} us/tick)"));
         if (options.Until is { } wanted)
         {

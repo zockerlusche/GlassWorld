@@ -83,6 +83,13 @@ public sealed record WorldSnapshot(WorldTime Time, IReadOnlyList<InhabitantSnaps
     /// and details to it. Null only in snapshots taken without a host.
     /// </summary>
     public string? LookEpoch { get; init; }
+
+    /// <summary>
+    /// Version of the player's view (B2-6 R14): the number of cells any inhabitant has seen so far. It only
+    /// grows; the presentation compares it with the version it has drawn and reads the cells that came
+    /// after from <see cref="Exploration.ExplorationSystem.RevealedSince"/>. Null on worlds without an island.
+    /// </summary>
+    public int? ExploredVersion { get; init; }
 }
 
 /// <summary>
