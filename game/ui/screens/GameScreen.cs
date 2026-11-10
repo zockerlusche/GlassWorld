@@ -205,6 +205,19 @@ public partial class GameScreen : CanvasLayer
         _zones = on;
         _sideBar.Visible = !_zones;
         _themeBar.Visible = _zones;
+
+        // Compact frames in the zones layout (feedback on D646: panels too wide, top bar too high).
+        var frame = _zones ? UiTheme.CompactPanel : UiTheme.WindowPanel;
+        if (_topBar is not null)
+        {
+            _topBar.ThemeTypeVariation = frame;
+        }
+
+        foreach (var panel in _sideBar.Panels)
+        {
+            panel.ThemeTypeVariation = frame;
+        }
+
         // The card changes its home with the layout: close it, the next click opens it in the right place.
         _card?.Close();
         _cardId = null;
@@ -1932,11 +1945,11 @@ public partial class GameScreen : CanvasLayer
         {
             if (panel == log)
             {
-                panel.Dock(area, _style!, 0, top, left: true, heightShare: (float)_style!.Tokens.Window.MaxScreenFraction * 0.6f);
+                panel.Dock(area, _style!, 0, top, left: true, heightShare: (float)_style!.Tokens.Zones.LogHeightShare, widthPx: _style.Tokens.Zones.LogWidth);
             }
             else
             {
-                panel.Dock(area, _style!, themes.X + gap, top);
+                panel.Dock(area, _style!, themes.X + gap, top, widthPx: _style!.Tokens.Zones.SidePanelWidth);
             }
         }
 

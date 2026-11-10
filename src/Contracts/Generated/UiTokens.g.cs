@@ -417,6 +417,12 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("head_symbol")]
         public HeadSymbol HeadSymbol { get; set; } = new HeadSymbol();
 
+        /// <summary>
+        /// Sizes of the zones layout (UI concept W1717, D642; preview behind a player setting): compact so the middle of the picture stays free.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("zones")]
+        public Zones Zones { get; set; } = new Zones();
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -520,6 +526,36 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("max_px")]
         public double MaxPx { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class Zones
+    {
+
+        /// <summary>
+        /// Width of the side window on the right (pixels at the reference size; grows with the text size).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("side_panel_width")]
+        public int SidePanelWidth { get; set; } = default!;
+
+        /// <summary>
+        /// Width of the pinned log on the left.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("log_width")]
+        public int LogWidth { get; set; } = default!;
+
+        /// <summary>
+        /// Share of the free height below the top bar the log takes.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("log_height_share")]
+        public double LogHeightShare { get; set; } = default!;
+
+        /// <summary>
+        /// Inner padding of the top bar and the zone panels (the windows of the layout so far keep window.padding).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("panel_padding")]
+        public int PanelPadding { get; set; } = default!;
 
     }
 }
