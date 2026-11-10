@@ -10,7 +10,7 @@ namespace GlassWorld.Game.Ui.Components;
 /// The debug view (B2-6 R31, until B6): a small panel at the bottom left with seed, world hash, state
 /// hash, world time, season, weather, look epoch, frames per second, number of figures and the biome
 /// under the mouse pointer. Off by default, shown and hidden with the action <c>gw_debug_overlay</c>
-/// (F3). It never takes the mouse, so the wheel still zooms over it. The lines come from
+/// (F12; F1 to F3 are kept free for the theme buttons of the UI concept D642). It never takes the mouse, so the wheel still zooms over it. The lines come from
 /// <see cref="DebugOverlayModel"/>; the panel and the label use the UI theme (KR6).
 /// With debug commands on (<c>--debug</c>) and the view open, two more actions step the look epoch back
 /// and forward through the data with the core command <c>debug_set_look_epoch</c>.
@@ -165,7 +165,7 @@ public partial class GwDebugOverlay : PanelContainer
             }
         }
 
-        Add(DebugOverlayModel.ToggleAction, Key.F3);
+        Add(DebugOverlayModel.ToggleAction, Key.F12);
         Add(DebugOverlayModel.EpochBackAction, Key.Pagedown);
         Add(DebugOverlayModel.EpochForwardAction, Key.Pageup);
     }

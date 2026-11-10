@@ -333,7 +333,7 @@ public partial class Main : Node3D
             AddChild(_screen);
             _screen.Setup(_world, _style);
 
-            // The debug view (B2-6 R31): its own control on the screen's layer, hidden until F3.
+            // The debug view (B2-6 R31): its own control on the screen's layer, hidden until F12.
             var debug = new GwDebugOverlay { Name = DebugOverlayName };
             _screen.AddChild(debug);
             debug.Setup(_world, _style);
