@@ -72,6 +72,46 @@ namespace GlassWorld.Contracts
 
     }
 
+    /// <summary>
+    /// Being together (TL #20190): an inhabitant within the distance of a familiar other (its own relationship to the other at least min_trust and min_affection; start values count when they have not met), both not sleeping, slowly fills a need per hour, never above the cap. Only a need effect, no behaviour. Omitted = no togetherness.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class Togetherness
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("need")]
+        public string Need { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("per_hour")]
+        public double PerHour { get; set; } = default!;
+
+        /// <summary>
+        /// Togetherness fills the need up to this value, not above.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("cap")]
+        public double Cap { get; set; } = default!;
+
+        /// <summary>
+        /// Distance in metres; omitted = spacing.conversation_max_m of content/behaviour/gaits.json.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("distance_m")]
+        public double? DistanceM { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("min_trust")]
+        public double MinTrust { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("min_affection")]
+        public double MinAffection { get; set; } = default!;
+
+        /// <summary>
+        /// Action during which an inhabitant counts as asleep (once it has started).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("sleep_action")]
+        public string SleepAction { get; set; } = default!;
+
+    }
+
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class WillToLiveModel
     {
@@ -220,6 +260,10 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("skill_rules")]
         public SkillRules SkillRules { get; set; } = new SkillRules();
+
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("togetherness")]
+        public Togetherness? Togetherness { get; set; } = default!;
 
     }
 
