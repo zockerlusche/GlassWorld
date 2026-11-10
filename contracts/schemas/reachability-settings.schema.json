@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/reachability-settings.schema.json",
+  "title": "ReachabilitySettings",
+  "description": "Data file content/world/reachability.json (A1464, D643): what the reachability check of the data expects. The check builds a graph from the things that occur on an island (spawn table, drink spots, caves) through the combination rules and the processing rules to heat levels, tech levels and basic goals, and compares what cannot be reached with known_gaps. It runs in the CI (contracts/tests/test_reachability.py); the game does not read this file. The check only says what is possible, never how: no recipe is named here.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contract_version", "goals", "known_gaps"],
+  "properties": {
+    "contract_version": { "$ref": "common.schema.json#/$defs/ContractVersion" },
+    "goals": {
+      "description": "Basic goals that must be reachable on an island: each is met when a reachable thing fits one of its conditions.",
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "items": { "$ref": "#/$defs/ReachabilityGoal" }
+    },
+    "known_gaps": {
+      "description": "Gaps that are known and accepted for now, each with its reason. The check fails on every gap that is not listed here, and on every entry here that is no gap any more, so the list always shows the real state.",
+      "type": "array",
+      "maxItems": 256,
+      "items": { "$ref": "#/$defs/ReachabilityGap" }
+    }
+  },
+  "$defs": {
+    "ReachabilityGoal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "any_of"],
+      "properties": {
+        "id": { "description": "Name of the goal (gap id goal:<id>).", "allOf": [{ "$ref": "common.schema.json#/$defs/VocabId" }] },
+        "any_of": {
+          "description": "The goal is met when a reachable thing fits one of these conditions. An empty list means the vocabulary cannot express the goal yet; the goal is then a gap.",
+          "type": "array",
+          "maxItems": 8,
+          "items": { "$ref": "#/$defs/ReachabilityCondition" }
+        }
+      }
+    },
+    "ReachabilityCondition": {
+      "description": "A thing fits when it has all properties of properties_all and none of properties_none (true properties, ids from content/vocabulary/properties.json).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["properties_all", "properties_none"],
+      "properties": {
+        "properties_all": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "maxItems": 8,
+          "items": { "$ref": "common.schema.json#/$defs/VocabId" }
+        },
+        "properties_none": {
+          "type": "array",
+          "uniqueItems": true,
+          "maxItems": 8,
+          "items": { "$ref": "common.schema.json#/$defs/VocabId" }
+        }
+      }
+    },
+    "ReachabilityGap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["gap", "reason"],
+      "properties": {
+        "gap": {
+          "description": "What cannot be reached: type:<object type>, combination:<rule id>, process:<rule id>, property:<property>, heat:<heat level>, tech:<tech level> or goal:<goal id>.",
+          "type": "string",
+          "pattern": "^(type|combination|process|property|heat|tech|goal):[a-z][a-z0-9_]{0,63}$"
+        },
+        "reason": {
+          "description": "Why it is a gap and where the decision lies (English, for developers).",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        }
+      }
+    }
+  }
+}

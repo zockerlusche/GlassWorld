@@ -27,63 +27,72 @@
         "wind_permille": 150,
         "gust_permille": 100,
         "precipitation_permille": 0,
-        "cloud_permille": 100
+        "cloud_permille": 100,
+        "sight_permille": 1000
       },
       {
         "weather": "cloudy",
         "wind_permille": 250,
         "gust_permille": 150,
         "precipitation_permille": 0,
-        "cloud_permille": 700
+        "cloud_permille": 700,
+        "sight_permille": 1000
       },
       {
         "weather": "rain",
         "wind_permille": 300,
         "gust_permille": 150,
         "precipitation_permille": 500,
-        "cloud_permille": 900
+        "cloud_permille": 900,
+        "sight_permille": 700
       },
       {
         "weather": "storm",
         "wind_permille": 850,
         "gust_permille": 150,
         "precipitation_permille": 850,
-        "cloud_permille": 1000
+        "cloud_permille": 1000,
+        "sight_permille": 500
       },
       {
         "weather": "fog",
         "wind_permille": 50,
         "gust_permille": 30,
         "precipitation_permille": 0,
-        "cloud_permille": 600
+        "cloud_permille": 600,
+        "sight_permille": 300
       },
       {
         "weather": "frost",
         "wind_permille": 100,
         "gust_permille": 50,
         "precipitation_permille": 0,
-        "cloud_permille": 200
+        "cloud_permille": 200,
+        "sight_permille": 1000
       },
       {
         "weather": "snow",
         "wind_permille": 250,
         "gust_permille": 150,
         "precipitation_permille": 450,
-        "cloud_permille": 900
+        "cloud_permille": 900,
+        "sight_permille": 600
       },
       {
         "weather": "heat",
         "wind_permille": 50,
         "gust_permille": 30,
         "precipitation_permille": 0,
-        "cloud_permille": 0
+        "cloud_permille": 0,
+        "sight_permille": 1000
       },
       {
         "weather": "drought",
         "wind_permille": 100,
         "gust_permille": 80,
         "precipitation_permille": 0,
-        "cloud_permille": 50
+        "cloud_permille": 50,
+        "sight_permille": 1000
       }
     ],
     "seasons": [

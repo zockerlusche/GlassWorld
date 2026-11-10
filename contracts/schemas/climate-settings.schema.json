@@ -167,6 +167,12 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 1000
+        },
+        "sight_permille": {
+          "description": "How far the inhabitants see in this weather, in permille of their sight range (B2594): the core scales the exploration range (cells) and the perception radius (metres) with it; of several conditions at once the lowest counts. Absent = 1000 (full sight). Placeholder.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
         }
       }
     },

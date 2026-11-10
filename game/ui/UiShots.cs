@@ -49,9 +49,10 @@ public static class UiShots
         }
 
         // The zones preview of the UI concept (W1717, D642): the bare zones, a theme with tabs, the card in the
-        // side window's place - in the first language at 100 %, enough to judge the layout.
+        // side window's place - in German at 100 %, enough to judge the layout.
         UiSetup.Apply(host.GetTree().Root, style);
-        TextCatalogs.SetLanguage(TextCatalogs.SupportedLocales[0]);
+        // German is the language Marcel reads; a build without it falls back to the first language.
+        TextCatalogs.SetLanguage(TextCatalogs.SupportedLocales.Contains("de", StringComparer.Ordinal) ? "de" : TextCatalogs.SupportedLocales[0]);
         foreach (var (name, theme, card) in new[] { ("zones", (string?)null, false), ("zones_contact", "contact", false), ("zones_card", null, true) })
         {
             screen.ShowZonesForShots(true, theme, card);

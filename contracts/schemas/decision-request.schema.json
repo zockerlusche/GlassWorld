@@ -221,6 +221,12 @@
           "items": {
             "$ref": "common.schema.json#/$defs/VocabId"
           }
+        },
+        "visibility_m": {
+          "description": "How far the inhabitant sees right now, in metres (B2594): the core's perception radius scaled by the weather (fog, rain, snow; light follows with B5). Things and inhabitants beyond it are not in the perception lists. Optional; absent = not stated.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10000
         }
       }
     },

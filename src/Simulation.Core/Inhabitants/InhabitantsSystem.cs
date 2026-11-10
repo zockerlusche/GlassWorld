@@ -226,6 +226,54 @@ public sealed class InhabitantsSystem : IWorldSystem
     public Map.IRouteFinder? Routes { get; init; }
 
     /// <summary>
+    /// How far the inhabitants see right now (B2594: the weather lowers it; B5 adds the light); full sight
+    /// when the host sets none. Every system that asks what an inhabitant perceives reads it here.
+    /// </summary>
+    public Sight Sight { get; init; } = Sight.Clear;
+
+    /// <summary>
+    /// The perception radius right now in metres: the data's <c>perception_radius_m</c> as far as
+    /// <see cref="Sight"/> lets the inhabitants see.
+    /// </summary>
+    public double SightRadiusM => Sight.Metres(_brain.Weights.PerceptionRadiusM);
+
+    /// <summary>
+    /// What an inhabitant can aim at right now (B2594), the one answer for the routine's goals and for the
+    /// check whether it sees anything that helps: every thing it sees (within <see cref="SightRadiusM"/>)
+    /// and, while the sight is shorter than the radius of the data, every thing it remembers (place memory,
+    /// #142) within that usual radius. So the weather hides what the inhabitant does not know, and nobody
+    /// goes thirsty in the fog next to the water it knows. Seen things first, in the order of the objects,
+    /// then remembered ones in the order of their ids; whether a thing can be walked to is the caller's question.
+    /// <para>
+    /// A remembered place counts only while its thing still stands there. That is a small piece of the
+    /// world's truth in the routine: in the fog the inhabitant cannot see that the thing is gone. It is
+    /// chosen on purpose, so nobody walks to nothing; B5 "last seen" (D634 R35) must pick this up and let
+    /// the inhabitant find out for itself.
+    /// </para>
+    /// </summary>
+    public List<WorldObject> InAim(Inhabitant inhabitant)
+    {
+        ArgumentNullException.ThrowIfNull(inhabitant);
+        var radius = _brain.Weights.PerceptionRadiusM;
+        var sight = Sight.Metres(radius);
+        var aim = _objects.All.Where(o => DistanceSquared(inhabitant.Position, o.Position) <= sight * sight).ToList();
+        if (sight < radius)
+        {
+            foreach (var (objectId, place) in inhabitant.Places)
+            {
+                var distance = DistanceSquared(inhabitant.Position, place.Position);
+                if (distance > sight * sight && distance <= radius * radius
+                    && _objects.TryGet(objectId, out var known) && known.TypeId == place.TypeId && known.Position == place.Position)
+                {
+                    aim.Add(known);
+                }
+            }
+        }
+
+        return aim;
+    }
+
+    /// <summary>
     /// Where the land an inhabitant has not seen yet begins (B2-6 R14, set by the host on worlds with an
     /// island); null from it = nothing left to explore on foot. Without it no action happens at the frontier.
     /// </summary>
@@ -896,10 +944,12 @@ public sealed class InhabitantsSystem : IWorldSystem
 
     private Activity? Choose(World world, Inhabitant inhabitant)
     {
+        // The radius of the data stays the measure for walking (distance falloff, a random spot nearby);
+        // what the inhabitant can aim at ends where the weather lets it see, known places aside (B2594, InAim).
         var radius = _brain.Weights.PerceptionRadiusM;
         // On a map only what can be walked to counts (B2 R10): things beyond deep water or cliffs are no goals.
-        var perceived = _objects.All
-            .Where(o => DistanceSquared(inhabitant.Position, o.Position) <= radius * radius && (Routes is null || Routes.Connected(inhabitant.Position, o.Position)))
+        var perceived = InAim(inhabitant)
+            .Where(o => Routes is null || Routes.Connected(inhabitant.Position, o.Position))
             .ToList();
 
         // Looking further away gives up after the data's hours, until the need is met or something that
@@ -1094,6 +1144,12 @@ public sealed class InhabitantsSystem : IWorldSystem
             {
                 _objects.Remove(target.Id);
                 changed = true;
+            }
+            else if (applying.Count > 0 && Knowledge?.Looking is { } memory)
+            {
+                // B2594: a thing the inhabitant has used and that is still there is a place it knows, like
+                // one it has looked at: it finds its way back to it when the weather hides it.
+                inhabitant.RememberPlace(target.Id, new PlaceMemory(target.TypeId, target.Position, world.Tick), memory.PlaceMemoryMax);
             }
         }
 

@@ -21,7 +21,7 @@ public static class SaveGameStore
     public const string ContentFingerprintKey = "content_fingerprint";
 
     /// <summary>Schema version written by this code.</summary>
-    public const int SchemaVersion = 7;
+    public const int SchemaVersion = 8;
 
     private static readonly JsonSerializerOptions Json = new() { IncludeFields = true };
 
@@ -85,6 +85,14 @@ public static class SaveGameStore
         // world starts with what its inhabitants see when it is loaded.
         """
         CREATE TABLE exploration(owner TEXT PRIMARY KEY, width INTEGER NOT NULL, depth INTEGER NOT NULL, cells BLOB NOT NULL);
+        """,
+
+        // 8 (sight in the weather, B2594): the last look of each inhabitant (the cell it looked from and its
+        // sight range then, in cells) on its row of seen cells. Rows from before and the player's view have
+        // none: such inhabitants look again when the world goes on.
+        """
+        ALTER TABLE exploration ADD COLUMN looked_cell INTEGER;
+        ALTER TABLE exploration ADD COLUMN looked_range INTEGER;
         """,
     ];
 
@@ -304,9 +312,11 @@ public static class SaveGameStore
         {
             // Seen cells (B2-6 R14): the player's view under the empty owner, then one row per inhabitant.
             Insert(c, tx, "INSERT INTO exploration(owner, width, depth, cells) VALUES($a,$b,$c,$d)", (string.Empty, explored.Width, explored.Depth, explored.Player));
+            var looks = (explored.Looks ?? []).ToDictionary(l => l.Key, l => l.Value, StringComparer.Ordinal);
             foreach (var (owner, cells) in explored.Seen)
             {
-                Insert(c, tx, "INSERT INTO exploration(owner, width, depth, cells) VALUES($a,$b,$c,$d)", (owner, explored.Width, explored.Depth, cells));
+                Simulation.Exploration.LastLook? look = looks.TryGetValue(owner, out var last) ? last : null;
+                Insert(c, tx, "INSERT INTO exploration(owner, width, depth, cells, looked_cell, looked_range) VALUES($a,$b,$c,$d,$e,$f)", (owner, explored.Width, explored.Depth, cells, look?.Cell, look?.RangeCells));
             }
         }
 
@@ -593,15 +603,23 @@ public static class SaveGameStore
     /// <summary>The seen cells (schema 7); null when the file has no row for the player's view (worlds without an island, files from before).</summary>
     private static Simulation.Exploration.ExplorationState? ReadExploration(SqliteConnection c)
     {
-        var rows = Query(c, "SELECT owner, width, depth, cells FROM exploration", r => (Owner: r.GetString(0), Width: r.GetInt32(1), Depth: r.GetInt32(2), Cells: (byte[])r.GetValue(3)));
+        var rows = Query(
+            c,
+            "SELECT owner, width, depth, cells, looked_cell, looked_range FROM exploration",
+            r => (Owner: r.GetString(0), Width: r.GetInt32(1), Depth: r.GetInt32(2), Cells: (byte[])r.GetValue(3), Look: r.IsDBNull(4) || r.IsDBNull(5) ? (Simulation.Exploration.LastLook?)null : new Simulation.Exploration.LastLook(r.GetInt32(4), r.GetInt32(5))));
         var player = rows.Where(r => r.Owner.Length == 0).ToList();
+        var seen = rows.Where(r => r.Owner.Length > 0).OrderBy(r => r.Owner, StringComparer.Ordinal).ToList();
         return player.Count == 0
             ? null
             : new Simulation.Exploration.ExplorationState(
                 player[0].Width,
                 player[0].Depth,
                 player[0].Cells,
-                [.. rows.Where(r => r.Owner.Length > 0).OrderBy(r => r.Owner, StringComparer.Ordinal).Select(r => new KeyValuePair<string, byte[]>(r.Owner, r.Cells))]);
+                [.. seen.Select(r => new KeyValuePair<string, byte[]>(r.Owner, r.Cells))])
+            {
+                // The last looks (schema 8); rows from before have none.
+                Looks = [.. seen.Where(r => r.Look is not null).Select(r => new KeyValuePair<string, Simulation.Exploration.LastLook>(r.Owner, r.Look!.Value))],
+            };
     }
 
     private static List<T> Query<T>(SqliteConnection c, string sql, Func<SqliteDataReader, T> map)

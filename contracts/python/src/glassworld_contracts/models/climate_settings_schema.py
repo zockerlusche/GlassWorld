@@ -58,6 +58,12 @@ class ClimateWeatherState(BaseModel):
         ..., description='Rain or snow strength.', ge=0, le=1000
     )
     cloud_permille: int = Field(..., description='Cloud cover.', ge=0, le=1000)
+    sight_permille: int | None = Field(
+        None,
+        description='How far the inhabitants see in this weather, in permille of their sight range (B2594): the core scales the exploration range (cells) and the perception radius (metres) with it; of several conditions at once the lowest counts. Absent = 1000 (full sight). Placeholder.',
+        ge=1,
+        le=1000,
+    )
 
 
 class ClimateTransitionTarget(BaseModel):
