@@ -453,23 +453,6 @@ public partial class WorldPresenter
         _nature.Follow(_seasonSeen, _weatherSeen, _freeze.Frozen ? 0 : delta, focus, Speed, calendar.RealSecondsPerTickAtNormalSpeed * calendar.Settings.TicksPerHour / 60.0);
     }
 
-    /// <summary>
-    /// Each frame of island mode: the season and the weather of the last snapshot move the season colours,
-    /// the snow, the plants in the wind and the falling leaves (B2-5 R21, R24). Real time, so fast forward
-    /// stays calm; pause and speed 0 hold everything still, like the figures (W1688).
-    /// </summary>
-    private void FollowNature(double delta)
-    {
-        if (_nature is null || _rig is null || _seasonSeen.Length == 0)
-        {
-            return;
-        }
-
-        var (x, z) = _rig.Model.Target;
-        var focus = new Vector3((float)x, Math.Max(GroundHeight(x, z), (float)_seaLevelM), (float)z);
-        _nature.Follow(_seasonSeen, _weatherSeen, _freeze.Frozen ? 0 : delta, focus);
-    }
-
     /// <summary>Puts back what <see cref="LightTheScene"/> changed in the scene (back to the menu).</summary>
     private void RestoreScene()
     {
