@@ -208,7 +208,7 @@ public partial class GameScreen : CanvasLayer
         if (events.Count > 0)
         {
             _log?.Add(events);
-            foreach (var hint in ScreenModel.Hints(events, _feed.Inhabitants(), _feed.QuestionSubject, _hintedQuestions))
+            foreach (var hint in ScreenModel.Hints(events, _feed.Inhabitants(), Tr("ui.inhabitant.unnamed"), _feed.QuestionSubject, _hintedQuestions))
             {
                 _board.Push(hint, fastForward: _presenter.Speed > 1);
             }
@@ -759,7 +759,7 @@ public partial class GameScreen : CanvasLayer
     }
 
     private ChronicleNames ChronicleNamesNow() => new(
-        id => DisplayName(new InhabitantRow(id, WorldFeed.NumberOf(id), 0, false, null, 0)),
+        NameOfId,
         id => _presenter?.Host is { } host
             ? ChronicleBook.InventionName(id, host.Inventions, o => host.Objects.TryGet(o, out var obj) ? obj.TypeId : null, TranslationServer.GetLocale())
             : null,
@@ -992,7 +992,7 @@ public partial class GameScreen : CanvasLayer
         {
             _helpList.AddChild(new Label
             {
-                Text = TextFill.Fill(Tr("ui.help.call"), new Dictionary<string, string> { ["number"] = Number(call.Number), ["need"] = Tr(VocabKeys.Need(call.Need)) }),
+                Text = TextFill.Fill(Tr("ui.help.call"), new Dictionary<string, string> { ["number"] = Number(call.Number), ["name"] = NameOfId(call.InhabitantId), ["need"] = Tr(VocabKeys.Need(call.Need)) }),
                 AutoTranslateMode = AutoTranslateModeEnum.Disabled,
                 AutowrapMode = TextServer.AutowrapMode.WordSmart,
             });
@@ -1155,6 +1155,7 @@ public partial class GameScreen : CanvasLayer
     private string MailText(MailRow message) => TextFill.Fill(Tr(message.TextKey), new Dictionary<string, string>
     {
         ["number"] = Number(message.Number),
+        ["name"] = message.InhabitantId is { } sender ? NameOfId(sender) : string.Empty,
         ["need"] = message.Detail is null ? string.Empty : Tr(VocabKeys.Need(message.Detail)),
     });
 
@@ -1172,7 +1173,7 @@ public partial class GameScreen : CanvasLayer
             return;
         }
 
-        var name = DisplayName(new InhabitantRow(inhabitantId, WorldFeed.NumberOf(inhabitantId), 0, false, null, 0));
+        var name = NameOfId(inhabitantId);
         ShowHint(new ToastMessage("msg.hint.look_thought", new Dictionary<string, string> { ["name"] = name }, null, inhabitantId));
     }
 
@@ -1854,14 +1855,19 @@ public partial class GameScreen : CanvasLayer
 
         var index = new SnapshotIndex(snapshot);
         var byId = rows.ToDictionary(r => r.Id, StringComparer.Ordinal);
-        string NameOf(string id) => byId.TryGetValue(id, out var row) ? DisplayName(row) : TextFill.Fill(Tr("ui.inhabitant.unnamed"), new Dictionary<string, string> { ["number"] = Number(WorldFeed.NumberOf(id)) });
+        string NameOf(string id) => byId.TryGetValue(id, out var row) ? DisplayName(row) : NameOfId(id);
         return rows.ToDictionary(
             r => r.Id,
             r => index.Inhabitants.TryGetValue(r.Id, out var inhabitant) ? InhabitantActivity.Describe(inhabitant, index, key => Tr(key), NameOf) : Tr(InhabitantActivity.StandingKey),
             StringComparer.Ordinal);
     }
 
-    private string DisplayName(InhabitantRow row) => TextFill.Fill(Tr("ui.inhabitant.unnamed"), ScreenModel.NameArgs(row));
+    /// <summary>The one name function of the screen (W1698): the inhabitant's own name, "Inhabitant N" only while it has none.</summary>
+    private string DisplayName(InhabitantRow row) => ScreenModel.DisplayName(row, Tr("ui.inhabitant.unnamed"));
+
+    /// <summary>The shown name of an inhabitant known only by id (chronicle, hints, help calls, mail).</summary>
+    private string NameOfId(string inhabitantId) =>
+        DisplayName(new InhabitantRow(inhabitantId, WorldFeed.NumberOf(inhabitantId), 0, false, null, 0, Name: _feed?.OwnName(inhabitantId)));
 
     /// <summary>Whole numbers as shown (no digit grouping; identical in DE and EN, independent of the OS).</summary>
     private static string Number(long value) => value.ToString(CultureInfo.InvariantCulture);

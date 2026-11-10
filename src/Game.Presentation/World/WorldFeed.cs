@@ -7,13 +7,14 @@ namespace GlassWorld.Presentation.World;
 
 /// <summary>A row of the inhabitant list (B6 R5/R6).</summary>
 /// <param name="Id">Inhabitant id (never shown).</param>
-/// <param name="Number">Neutral number until names exist (B9); shown via <c>ui.inhabitant.unnamed</c>.</param>
+/// <param name="Number">Neutral number from the id; shown via <c>ui.inhabitant.unnamed</c> only while the inhabitant has no name.</param>
 /// <param name="WillToLivePercent">Will to live 0-100.</param>
 /// <param name="Fading">True while the inhabitant is fading (long neglect).</param>
 /// <param name="ActionKey">Text key of the current action or null.</param>
 /// <param name="OpenQuestions">Number of open questions (B2487: that, not what).</param>
 /// <param name="PuzzlingQuestions">Open questions that still puzzle the inhabitant, for the mark over its head (TL #19921: not those about a thing it has looked at since, where only the effect is open).</param>
-public sealed record InhabitantRow(string Id, int Number, int WillToLivePercent, bool Fading, string? ActionKey, int OpenQuestions, int PuzzlingQuestions = 0);
+/// <param name="Name">The inhabitant's own name (W1698), or null while it has none.</param>
+public sealed record InhabitantRow(string Id, int Number, int WillToLivePercent, bool Fading, string? ActionKey, int OpenQuestions, int PuzzlingQuestions = 0, string? Name = null);
 
 /// <summary>An open question of an inhabitant, as the questions window shows it (Marcel W1696: which question, and why).</summary>
 /// <param name="Id">Question id.</param>
@@ -145,6 +146,9 @@ public sealed class WorldFeed
     /// <summary>Rows of the inhabitant list in id order.</summary>
     public IReadOnlyList<InhabitantRow> Inhabitants() => [.. Snapshot.Inhabitants.Select(Row)];
 
+    /// <summary>The own name of an inhabitant (W1698), or null if it has none or is no longer there.</summary>
+    public string? OwnName(string inhabitantId) => Snapshot.Inhabitants.FirstOrDefault(i => i.Id == inhabitantId)?.Name;
+
     /// <summary>The card of one inhabitant, or null if it is no longer there.</summary>
     public InhabitantCard? Card(string inhabitantId)
     {
@@ -215,7 +219,7 @@ public sealed class WorldFeed
     }
 
     private static InhabitantRow Row(InhabitantSnapshot i) =>
-        new(i.Id, NumberOf(i.Id), Percent(i.WillToLive), i.Fading, i.Action is null ? null : $"vocab.action.{i.Action}", i.OpenQuestionIds.Count, i.PuzzlingQuestionIds.Count);
+        new(i.Id, NumberOf(i.Id), Percent(i.WillToLive), i.Fading, i.Action is null ? null : $"vocab.action.{i.Action}", i.OpenQuestionIds.Count, i.PuzzlingQuestionIds.Count, i.Name);
 
     private static List<CardValue> Values(string kind, IReadOnlyDictionary<string, double> values) =>
         [.. values.OrderBy(v => v.Key, StringComparer.Ordinal).Select(v => new CardValue($"vocab.{kind}.{v.Key}", Percent(v.Value)))];
