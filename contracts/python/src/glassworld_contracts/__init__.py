@@ -9,6 +9,7 @@ from glassworld_contracts.models.conversation_request_schema import Conversation
 from glassworld_contracts.models.conversation_response_schema import ConversationResponse
 from glassworld_contracts.models.decision_request_schema import DecisionRequest
 from glassworld_contracts.models.decision_response_schema import DecisionResponse
+from glassworld_contracts.models.diagnostics_report_schema import DiagnosticsReport
 from glassworld_contracts.models.generation_job_schema import GenerationJob
 from glassworld_contracts.models.hardware_tiers_schema import HardwareTiers
 from glassworld_contracts.models.health_status_schema import HealthStatus
@@ -22,6 +23,7 @@ from glassworld_contracts.models.ollama_setup_status_schema import OllamaSetupSt
 from glassworld_contracts.models.phase_change_schema import PhaseChange
 from glassworld_contracts.models.phase_status_schema import PhaseStatus
 from glassworld_contracts.models.player_message_schema import PlayerMessage
+from glassworld_contracts.models.self_check_schema import SelfCheck
 from glassworld_contracts.models.service_error_schema import ServiceError
 from glassworld_contracts.models.vocabulary_schema import Vocabulary
 
@@ -34,6 +36,7 @@ __all__ = [
     "ConversationResponse",
     "DecisionRequest",
     "DecisionResponse",
+    "DiagnosticsReport",
     "GenerationJob",
     "HardwareTiers",
     "HealthStatus",
@@ -47,6 +50,7 @@ __all__ = [
     "PhaseChange",
     "PhaseStatus",
     "PlayerMessage",
+    "SelfCheck",
     "ServiceError",
     "Vocabulary",
 ]

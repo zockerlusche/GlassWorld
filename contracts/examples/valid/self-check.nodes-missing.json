@@ -1,0 +1,31 @@
+{
+  "contract_version": "0.2",
+  "checks": [
+    {
+      "ai": "language",
+      "state": "ok",
+      "reason": "ready",
+      "message_key": "msg.selfcheck.language.ready",
+      "fix_key": null,
+      "detail": []
+    },
+    {
+      "ai": "image",
+      "state": "problem",
+      "reason": "nodes_missing",
+      "message_key": "msg.selfcheck.image.nodes_missing",
+      "fix_key": "msg.selfcheck.image.nodes_missing.fix",
+      "detail": [
+        "UnetLoaderGGUF"
+      ]
+    },
+    {
+      "ai": "sound",
+      "state": "not_planned",
+      "reason": "not_planned",
+      "message_key": "msg.selfcheck.sound.not_planned",
+      "fix_key": null,
+      "detail": []
+    }
+  ]
+}

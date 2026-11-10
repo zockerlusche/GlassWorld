@@ -9,6 +9,7 @@ import re
 import time
 from collections.abc import AsyncGenerator, Awaitable, Callable, Mapping
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import cast
 
 import httpx
@@ -40,6 +41,7 @@ from glassworld_ai.decider.backends import (
     ReplayDecider,
 )
 from glassworld_ai.decider.mock import MockWeights
+from glassworld_ai.diagnostics import report
 from glassworld_ai.dream import MockDreams, OllamaDreams, ReplayDreams
 from glassworld_ai.errors import error_response, install_error_handlers
 from glassworld_ai.hardware import HardwareInfo, detect_hardware, load_tiers, select_tier
@@ -87,6 +89,7 @@ from glassworld_ai.residency import (
 )
 from glassworld_ai.safety import TextGuard
 from glassworld_ai.security import make_access_guard
+from glassworld_ai.selfcheck import self_check
 from glassworld_ai.sound import MockSound, MossSound, MossWorker, load_generation_settings
 from glassworld_ai.texts import TextCatalog
 from glassworld_ai.validation import ContractValidator
@@ -513,6 +516,31 @@ def create_app(
         if app.state.stopping:
             return error_response("model_unavailable", "Service is stopping."), {}
         return None, cast(dict[str, object], data)
+
+    @app.get("/setup/check")
+    async def setup_check() -> Response:
+        """W1703 rule 2: per AI a state with text and fix hint (keys); answers at once."""
+        ollama = (await app.state.ollama_setup.status()).model_dump(mode="json")
+        models = (await app.state.model_setup.status()).model_dump(mode="json")
+        return JSONResponse(self_check(ollama, models, app.state.tier, app.state.warm_up))
+
+    @app.post("/diagnostics")
+    async def diagnostics_report() -> Response:
+        """W1703 rule 4: a report without tokens or user paths, written into the log folder."""
+        ollama = (await app.state.ollama_setup.status()).model_dump(mode="json")
+        models = (await app.state.model_setup.status()).model_dump(mode="json")
+        current = await health()
+        fields = [getattr(settings, name) for name in type(settings).model_fields]
+        known = [v for v in fields if isinstance(v, Path)]
+        result = report(
+            check=self_check(ollama, models, app.state.tier, app.state.warm_up),
+            health=current.model_dump(mode="json"),
+            ollama=ollama,
+            models=models,
+            log_dir=settings.log_dir,
+            known_dirs=[*known, Path.home()],
+        )
+        return JSONResponse(result)
 
     @app.get("/setup/models")
     async def model_setup_status() -> Response:

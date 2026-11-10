@@ -54,9 +54,14 @@ after unpacking. Higher tiers need more space for their image and sound models.
 
    Downloads come only from the official sources and are checked against a pinned checksum or
    digest. You can cancel at any time; the next start continues where it stopped.
-4. **Image and sound AI (tiers standard and comfort)** use [ComfyUI](https://github.com/Comfy-Org/ComfyUI)
-   (GPL-3.0), which you install yourself; it is not part of the game. Without it the game runs with the
-   language model only.
+4. **Image AI (tiers standard and comfort)** uses your own [ComfyUI](https://github.com/Comfy-Org/ComfyUI)
+   (GPL-3.0) with the extension ComfyUI-GGUF; it is not part of the game. You name its folder, and after
+   your consent the game downloads the image models there. Without it the world shows simple pictures.
+   There is no sound AI for players in the first release; the world uses its basic sounds.
+
+The full guide, with the chapter on what to do when something does not work and the
+diagnostics report, is in [docs/install/INSTALL.en.md](docs/install/INSTALL.en.md)
+(German: [INSTALL.de.md](docs/install/INSTALL.de.md)).
 
 ## Privacy
 

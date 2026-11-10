@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://glassworld.local/contracts/v0/self-check.schema.json",
+  "title": "SelfCheck",
+  "description": "Self-check of the AI parts at start (W1703 rule 2, Bogen 35 R11): per AI one state with a clear text and a fix hint as i18n keys. The game shows it calmly and always keeps running (rule 3). GET /setup/check.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "checks"
+  ],
+  "properties": {
+    "contract_version": {
+      "$ref": "common.schema.json#/$defs/ContractVersion"
+    },
+    "checks": {
+      "type": "array",
+      "maxItems": 8,
+      "items": {
+        "$ref": "#/$defs/AiCheck"
+      }
+    }
+  },
+  "$defs": {
+    "AiCheck": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ai",
+        "state",
+        "reason",
+        "message_key",
+        "fix_key",
+        "detail"
+      ],
+      "properties": {
+        "ai": {
+          "description": "Which AI: language (decider, talking), image (pictures in the night), sound (not planned for players in the first release, W1703).",
+          "type": "string",
+          "enum": [
+            "language",
+            "image",
+            "sound"
+          ]
+        },
+        "state": {
+          "description": "ok; preparing (download, start or loading under way); problem (the player can fix it, see fix_key); not_offered (this hardware tier offers no such model); not_planned (not part of this release).",
+          "type": "string",
+          "enum": [
+            "ok",
+            "preparing",
+            "problem",
+            "not_offered",
+            "not_planned"
+          ]
+        },
+        "reason": {
+          "description": "Machine-readable cause, e.g. runtime_missing, model_missing, folder_unknown, comfyui_down, nodes_missing.",
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{0,39}$"
+        },
+        "message_key": {
+          "description": "i18n key of the clear text (msg.selfcheck.<ai>.<reason>).",
+          "type": "string",
+          "maxLength": 96
+        },
+        "fix_key": {
+          "description": "i18n key of the fix hint (msg.selfcheck.<ai>.<reason>.fix); null when there is nothing to do.",
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 96
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "detail": {
+          "description": "Names that belong into the text, e.g. the missing ComfyUI nodes; empty if none.",
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "type": "string",
+            "maxLength": 64
+          }
+        }
+      }
+    }
+  }
+}
