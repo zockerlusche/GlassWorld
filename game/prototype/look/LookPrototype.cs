@@ -113,11 +113,17 @@ public partial class LookPrototype : Node3D
         GD.Print($"LOOK_READY variant={_variant} figures={_figures.Count} clips={string.Join(',', FigureFactory.Clips)}");
     }
 
+    private readonly WaterClock _water = new();
+
     /// <inheritdoc/>
     public override void _Process(double delta)
     {
         _time += delta;
         _frame++;
+
+        // The sea and the stream move by the water clock (not by TIME); here nothing else drives it.
+        _water.Update(delta);
+        RenderingServer.GlobalShaderParameterSet("water_time", new Vector2((float)_water.Seconds, (float)_water.PeriodSeconds));
         AnimateWalker((float)delta);
         AnimateWaver();
         if (_follow && _camera is not null && _walker is not null)

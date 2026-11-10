@@ -199,6 +199,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("colors")]
         public System.Collections.Generic.ICollection<LookColor> Colors { get; set; } = new System.Collections.ObjectModel.Collection<LookColor>();
 
+        /// <summary>
+        /// Waves on the sea and on lakes in this weather (W1724): 0 = none, about 0.3 = small, 1 = large; the crest layers of content/look/terrain.json (waves) say what that looks like. Absent = 0.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("waves")]
+        public double? Waves { get; set; } = default!;
+
     }
 
     /// <summary>

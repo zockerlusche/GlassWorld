@@ -1,0 +1,78 @@
+{
+  "contract_version": "0.2",
+  "points": [
+    {
+      "id": "water_view",
+      "target_x_permille": 500,
+      "target_z_permille": 500,
+      "yaw_deg": 30,
+      "distance_m": 45,
+      "scene": {
+        "max_start_distance_cells": 40,
+        "radius_cells": 12,
+        "min_stream_cells": 8,
+        "spring": true,
+        "min_relief": 15,
+        "face_hill": true
+      }
+    },
+    {
+      "id": "spring_close",
+      "target_x_permille": 300,
+      "target_z_permille": 154,
+      "yaw_deg": 210,
+      "distance_m": 9
+    },
+    {
+      "id": "stream_bend",
+      "target_x_permille": 372,
+      "target_z_permille": 161,
+      "yaw_deg": 30,
+      "distance_m": 14
+    },
+    {
+      "id": "sea_clear",
+      "target_x_permille": 844,
+      "target_z_permille": 177,
+      "yaw_deg": 30,
+      "distance_m": 35,
+      "tide_permille": 0,
+      "weather": "clear"
+    },
+    {
+      "id": "sea_storm",
+      "target_x_permille": 844,
+      "target_z_permille": 177,
+      "yaw_deg": 30,
+      "distance_m": 35,
+      "tide_permille": 0,
+      "weather": "storm"
+    },
+    {
+      "id": "lake_clear",
+      "target_x_permille": 396,
+      "target_z_permille": 365,
+      "yaw_deg": 30,
+      "distance_m": 40,
+      "weather": "clear"
+    },
+    {
+      "id": "lake_storm",
+      "target_x_permille": 396,
+      "target_z_permille": 365,
+      "yaw_deg": 30,
+      "distance_m": 40,
+      "weather": "storm"
+    }
+  ],
+  "projections": [
+    "perspective"
+  ],
+  "phases": [
+    "day"
+  ],
+  "settle_frames": 12,
+  "seasons": [
+    "summer"
+  ]
+}

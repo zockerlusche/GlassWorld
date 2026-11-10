@@ -261,6 +261,12 @@
           "items": {
             "$ref": "#/$defs/LookColor"
           }
+        },
+        "waves": {
+          "description": "Waves on the sea and on lakes in this weather (W1724): 0 = none, about 0.3 = small, 1 = large; the crest layers of content/look/terrain.json (waves) say what that looks like. Absent = 0.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
         }
       }
     },

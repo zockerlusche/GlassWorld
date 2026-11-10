@@ -126,7 +126,7 @@ class TerrainWater(BaseModel):
     )
     stream_smoothing: int = Field(
         ...,
-        description="Rounds of corner cutting (Chaikin) along a stream's centre line; each round doubles the points (0 = the cell-centre polyline).",
+        description="Rounds of corner cutting (Chaikin) along a stream's centre line, after the relaxing; each round doubles the points (0 = the relaxed cell-centre polyline).",
         ge=0,
         le=6,
     )
@@ -142,23 +142,81 @@ class TerrainWater(BaseModel):
         ge=0.0,
         le=1.0,
     )
+    stream_relax_passes: int | None = Field(
+        None,
+        description="Most smoothing passes over a stream's centre line before the corner cutting (W1724): each pass moves every point halfway to the middle of its neighbours, the ends stay. The relaxing stops earlier once the line turns no more than stream_turn_goal_deg_per_m. Absent or 0 = none.",
+        ge=0,
+        le=500,
+    )
+    stream_turn_goal_deg_per_m: float | None = Field(
+        None,
+        description="Turn of a stream's centre line in degrees per metre (the angle between the metre before a place and the metre after it) the relaxing aims at: it goes on until the line is this smooth or the passes are used up. Absent = every pass is used.",
+        gt=0.0,
+        le=180.0,
+    )
+    stream_max_turn_deg_per_m: float | None = Field(
+        None,
+        description='Largest turn of a drawn stream line in degrees per metre: where the cells of a stream do not let the relaxing reach its goal (a hairpin), the line may turn up to this. The tests hold the streams of the real islands to it. Absent = no promise.',
+        gt=0.0,
+        le=180.0,
+    )
+    stream_cell_tolerance_m: float | None = Field(
+        None,
+        description="How far the smoothed centre line may leave the stream's own cells, in metres; a point that would go further is held back. Absent = 0.25.",
+        ge=0.0,
+        le=5.0,
+    )
+    stream_max_shift_m: float | None = Field(
+        None,
+        description='How far the relaxing may move a point of the centre line from where the cells put it, in metres. Absent = 0.5.',
+        ge=0.0,
+        le=5.0,
+    )
+    stream_cover_m: float | None = Field(
+        None,
+        description='Every cell of a stream keeps the relaxed centre line within this distance of its centre, in metres: where a stream is several cells wide a point may move less, so no cut bed is left without its band. Absent = 1.2.',
+        ge=0.0,
+        le=5.0,
+    )
+    swamp_as_ground: bool | None = Field(
+        None,
+        description='Swamp water (fresh water no deeper than swamp_max_units) is drawn as wet ground in the swamp colour, blended into the ground around it like a biome border, instead of as a water plate with a hard edge along the cells (W1724). Absent = false.',
+    )
 
 
 class TerrainWaterShader(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
-    stripe_scale: float = Field(
-        ..., description='Stripes per metre along the flow.', ge=0.0, le=100.0
+    flow_lanes: float = Field(
+        ..., description='Lanes of flow lines across a stream band.', ge=1.0, le=32.0
     )
-    stripe_speed: float = Field(
+    flow_line_length_m: float = Field(
         ...,
-        description='How fast the stripes travel (stripes per second).',
-        ge=0.0,
+        description='Typical length of a flow line along the stream in metres.',
+        gt=0.0,
         le=100.0,
     )
-    stripe_strength: float = Field(
-        ..., description='Brightness the stripes add (0..1).', ge=0.0, le=1.0
+    flow_speed_m_per_s: float = Field(
+        ...,
+        description='Mean speed the flow lines drift downstream, metres per second.',
+        ge=0.0,
+        le=20.0,
+    )
+    flow_speed_spread: float = Field(
+        ...,
+        description='How much the speed differs from lane to lane (0 = all the same, 1 = from half to one and a half times the mean).',
+        ge=0.0,
+        le=1.0,
+    )
+    flow_bend: float = Field(
+        ...,
+        description='How far the lanes wander sideways along the stream, in lane widths.',
+        ge=0.0,
+        le=2.0,
+    )
+    flow_strength: float = Field(
+        ..., description='Brightness the flow lines add (0..1).', ge=0.0, le=1.0
     )
     shimmer_speed: float = Field(
         ..., description='Speed of the shimmer on still water.', ge=0.0, le=100.0
@@ -198,6 +256,54 @@ class TerrainDetailLevel(BaseModel):
     )
 
 
+class TerrainWaveLayer(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    spacing_m: float = Field(
+        ...,
+        description='Size of one place of the crest grid in metres (the distance between two crests).',
+        gt=0.0,
+        le=200.0,
+    )
+    length_m: float = Field(
+        ...,
+        description='Longest crest in metres (at most two thirds of spacing_m is drawn, so a crest fits its place whichever way the wind turns it).',
+        gt=0.0,
+        le=200.0,
+    )
+    thickness_m: float = Field(
+        ...,
+        description='Thickness of a crest stroke in metres (at most 8 percent of spacing_m is drawn).',
+        gt=0.0,
+        le=20.0,
+    )
+    speed_m_per_s: float = Field(
+        ...,
+        description='Speed the crests travel with the wind, metres per second.',
+        ge=0.0,
+        le=20.0,
+    )
+    density: float = Field(
+        ...,
+        description='Share of the places that carry a crest when the layer is full (0..1).',
+        ge=0.0,
+        le=1.0,
+    )
+    starts_at: float = Field(
+        ...,
+        description='Waves value (0..1) at which the first crests of this layer appear.',
+        ge=0.0,
+        le=1.0,
+    )
+    full_at: float = Field(
+        ...,
+        description='Waves value (0..1) from which the layer is full; must lie above starts_at.',
+        gt=0.0,
+        le=1.0,
+    )
+
+
 class TerrainDetail(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -219,6 +325,38 @@ class TerrainDetail(BaseModel):
         description='Hysteresis of the switch between two levels (metres): a shown level stays up to twice this beyond until_m, so chunks do not pop back and forth while the camera eases; a hidden one appears exactly at until_m. Levels must lie more than four margins apart.',
         ge=0.0,
         le=100.0,
+    )
+
+
+class TerrainWaves(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    small: TerrainWaveLayer
+    large: TerrainWaveLayer
+    strength: float = Field(
+        ...,
+        description='How strongly a crest lightens the water (0..1).',
+        ge=0.0,
+        le=1.0,
+    )
+    lake_share: float = Field(
+        ...,
+        description="Share of the weather's waves a lake shows (lakes are calmer than the sea).",
+        ge=0.0,
+        le=1.0,
+    )
+    shore_foam_gain: float = Field(
+        ...,
+        description='How much wider the foam line at the shore breathes in full waves (0 = unchanged, 1 = twice).',
+        ge=0.0,
+        le=4.0,
+    )
+    turn_real_seconds: float | None = Field(
+        None,
+        description='Real seconds over which the crests follow a turned wind: their strokes turn in place and their path bends, nothing slides or reshuffles. Absent = 4.',
+        ge=0.0,
+        le=600.0,
     )
 
 
@@ -277,3 +415,10 @@ class LookTerrain(BaseModel):
     )
     water_shader: TerrainWaterShader
     detail: TerrainDetail
+    waves: TerrainWaves | None = None
+    water_time_wrap_seconds: float | None = Field(
+        None,
+        description='Period of the water clock in real seconds (W1724): the time flow lines, shimmer, foam and wave crests move by runs only while the game is not paused and starts again after this long. Every cycle of the water shaders is rounded to a whole number of rounds per period (at least one) and every scrolling pattern repeats after the steps it scrolls per period, so the wrap does not show - with any period; a short one (10) is the quick way to look for a jump, it only makes slow cycles run faster. Absent = 3600.',
+        ge=1.0,
+        le=86400.0,
+    )

@@ -266,7 +266,7 @@ public partial class WorldPresenter
         var palette = Read<LookPalette>(content, "look", "palette.json");
         _nature = NatureLook.Create(content, palette);
         var (grass, otherDecor) = GrassPlan.Split(Decor.Plan(objectLooks.Decor, map.Island, terrain.CellM), _nature.Data.Grass);
-        _objectsView = ObjectsView.Create(objectLooks, palette, _ground, otherDecor, _nature.Season.Slots);
+        _objectsView = ObjectsView.Create(objectLooks, palette, _ground, otherDecor, _nature.Season.Slots, TerrainMesher.StreamSources(ground, terrain));
         AddChild(_objectsView);
         _grassView = GrassView.Create(_objectsView, grass, _ground, _nature.Data.Grass, GrassPlan.Level(Read<LookQuality>(content, "look", "quality.json")));
         AddChild(_grassView);

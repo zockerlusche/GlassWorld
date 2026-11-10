@@ -21,7 +21,10 @@
       "decor_flower",
       "decor_flower_blue",
       "decor_flower_yellow",
-      "decor_fern"
+      "decor_fern",
+      "decor_reed",
+      "decor_rush",
+      "decor_bank_flower"
     ],
     "chunk_m": 32.0,
     "near_share": 0.5,

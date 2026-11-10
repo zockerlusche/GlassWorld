@@ -38,6 +38,9 @@ public sealed record WeatherMix(
     double Glow,
     IReadOnlyList<(Rgb Color, double Weight)> Colors)
 {
+    /// <summary>Waves on the sea and on lakes (W1724): 0 = none, about 0.3 = small, 1 = large.</summary>
+    public double Waves { get; init; }
+
     /// <summary>No weather (a world without a weather system, an unknown weather id): the plain day.</summary>
     public static WeatherMix Neutral(SeasonSlots slots)
     {
@@ -72,6 +75,7 @@ public sealed record WeatherMix(
                 SnowCover = main.SnowCover,
                 Sway = main.Sway,
                 Glow = main.Glow,
+                Waves = main.Waves ?? 0,
             };
         }
 
@@ -123,7 +127,10 @@ public sealed record WeatherMix(
             Mix(SnowCover, other.SnowCover),
             Mix(Sway, other.Sway),
             Mix(Glow, other.Glow),
-            [.. Colors.Select((c, i) => Color(c, other.Colors[i]))]);
+            [.. Colors.Select((c, i) => Color(c, other.Colors[i]))])
+        {
+            Waves = Mix(Waves, other.Waves),
+        };
     }
 
     /// <summary>
@@ -178,7 +185,7 @@ public sealed record WeatherMix(
     public bool Equals(WeatherMix? other) =>
         other is not null
         && (Overcast, CloudShade, FogDensity, FogSky, Rain, Snow, Light).Equals((other.Overcast, other.CloudShade, other.FogDensity, other.FogSky, other.Rain, other.Snow, other.Light))
-        && (Ambient, Tint, Shadow, SnowCover, Sway, Glow).Equals((other.Ambient, other.Tint, other.Shadow, other.SnowCover, other.Sway, other.Glow))
+        && (Ambient, Tint, Shadow, SnowCover, Sway, Glow, Waves).Equals((other.Ambient, other.Tint, other.Shadow, other.SnowCover, other.Sway, other.Glow, other.Waves))
         && Colors.SequenceEqual(other.Colors);
 
     /// <inheritdoc/>
