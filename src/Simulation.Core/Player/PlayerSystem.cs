@@ -285,7 +285,7 @@ public sealed class PlayerSystem : IWorldSystem
     /// <summary>By its own beliefs: does the inhabitant see anything that might help with the need?</summary>
     private bool SeemsHelpful(Inhabitant inhabitant, string need)
     {
-        var radius = _weights.PerceptionRadiusM;
+        var radius = _inhabitants.SightRadiusM;
         var seen = _objects.All.Where(o => DistanceSquared(inhabitant.Position, o.Position) <= radius * radius).ToList();
         return _weights.Considerations
             .Where(c => c.Need == need && c.TargetProperty is not null)

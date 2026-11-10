@@ -226,6 +226,18 @@ public sealed class InhabitantsSystem : IWorldSystem
     public Map.IRouteFinder? Routes { get; init; }
 
     /// <summary>
+    /// How far the inhabitants see right now (B2594: the weather lowers it; B5 adds the light); full sight
+    /// when the host sets none. Every system that asks what an inhabitant perceives reads it here.
+    /// </summary>
+    public Sight Sight { get; init; } = Sight.Clear;
+
+    /// <summary>
+    /// The perception radius right now in metres: the data's <c>perception_radius_m</c> as far as
+    /// <see cref="Sight"/> lets the inhabitants see.
+    /// </summary>
+    public double SightRadiusM => Sight.Metres(_brain.Weights.PerceptionRadiusM);
+
+    /// <summary>
     /// Where the land an inhabitant has not seen yet begins (B2-6 R14, set by the host on worlds with an
     /// island); null from it = nothing left to explore on foot. Without it no action happens at the frontier.
     /// </summary>
@@ -896,11 +908,30 @@ public sealed class InhabitantsSystem : IWorldSystem
 
     private Activity? Choose(World world, Inhabitant inhabitant)
     {
+        // The radius of the data stays the measure for walking (distance falloff, a random spot nearby);
+        // what the inhabitant sees ends where the weather lets it see (B2594).
         var radius = _brain.Weights.PerceptionRadiusM;
+        var sight = Sight.Metres(radius);
         // On a map only what can be walked to counts (B2 R10): things beyond deep water or cliffs are no goals.
         var perceived = _objects.All
-            .Where(o => DistanceSquared(inhabitant.Position, o.Position) <= radius * radius && (Routes is null || Routes.Connected(inhabitant.Position, o.Position)))
+            .Where(o => DistanceSquared(inhabitant.Position, o.Position) <= sight * sight && (Routes is null || Routes.Connected(inhabitant.Position, o.Position)))
             .ToList();
+        if (sight < radius)
+        {
+            // The weather hides what the inhabitant does not know. A thing it remembers (place memory, #142)
+            // and that still stands where it remembers it stays a goal within the usual radius, so nobody
+            // goes thirsty in the fog next to the water it knows.
+            foreach (var (objectId, place) in inhabitant.Places)
+            {
+                var distance = DistanceSquared(inhabitant.Position, place.Position);
+                if (distance > sight * sight && distance <= radius * radius
+                    && _objects.TryGet(objectId, out var known) && known.TypeId == place.TypeId && known.Position == place.Position
+                    && (Routes is null || Routes.Connected(inhabitant.Position, known.Position)))
+                {
+                    perceived.Add(known);
+                }
+            }
+        }
 
         // Looking further away gives up after the data's hours, until the need is met or something that
         // seems as good is in sight again (review GW3 #118: no endless search for what is gone).
@@ -1094,6 +1125,12 @@ public sealed class InhabitantsSystem : IWorldSystem
             {
                 _objects.Remove(target.Id);
                 changed = true;
+            }
+            else if (applying.Count > 0 && Knowledge?.Looking is { } memory)
+            {
+                // B2594: a thing the inhabitant has used and that is still there is a place it knows, like
+                // one it has looked at: it finds its way back to it when the weather hides it.
+                inhabitant.RememberPlace(target.Id, new PlaceMemory(target.TypeId, target.Position, world.Tick), memory.PlaceMemoryMax);
             }
         }
 

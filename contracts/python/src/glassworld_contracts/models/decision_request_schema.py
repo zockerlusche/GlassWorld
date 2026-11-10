@@ -78,6 +78,12 @@ class EnvironmentState(BaseModel):
         max_length=4,
         min_length=1,
     )
+    visibility_m: float | None = Field(
+        None,
+        description="How far the inhabitant sees right now, in metres (B2594): the core's perception radius scaled by the weather (fog, rain, snow; light follows with B5). Things and inhabitants beyond it are not in the perception lists. Optional; absent = not stated.",
+        ge=0.0,
+        le=10000.0,
+    )
 
 
 class CalledAs(BaseModel):
