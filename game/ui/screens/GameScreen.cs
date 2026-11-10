@@ -1428,10 +1428,15 @@ public partial class GameScreen : CanvasLayer
         }
 
         var mark = MarkOf(id);
-        var open = _feed.Inhabitants().First(r => r.Id == id).OpenQuestions;
-        if (open > 0 && (mark is null || !mark.Visible))
+        var puzzling = _feed.Inhabitants().First(r => r.Id == id).PuzzlingQuestions;
+        if (puzzling > 0 && (mark is null || !mark.Visible))
         {
             return "question mark missing";
+        }
+
+        if (puzzling == 0 && mark is { Visible: true })
+        {
+            return "question mark shown although nothing puzzles the inhabitant";
         }
 
         // W1696: an open question shows its wording and an answer field in the questions panel.
@@ -1819,8 +1824,10 @@ public partial class GameScreen : CanvasLayer
             figure.AddChild(mark);
         }
 
-        mark.Text = ScreenModel.QuestionMarks(row.OpenQuestions);
-        mark.Visible = row.OpenQuestions > 0;
+        // Only questions that still puzzle the inhabitant show above the head (TL #19921): one about a thing it
+        // has looked at since leaves only the effect open; the questions panel still lists every open question.
+        mark.Text = ScreenModel.QuestionMarks(row.PuzzlingQuestions);
+        mark.Visible = row.PuzzlingQuestions > 0;
     }
 
     private string? PickAt(Vector2 screen)
