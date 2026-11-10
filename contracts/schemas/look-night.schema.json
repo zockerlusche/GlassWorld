@@ -14,7 +14,8 @@
     "poll_s",
     "sleep_actions",
     "zzz_above_head_m",
-    "zzz_sway_s"
+    "zzz_sway_s",
+    "zzz_rise_px"
   ],
   "properties": {
     "contract_version": {
@@ -69,6 +70,12 @@
       "type": "number",
       "minimum": 0,
       "maximum": 30
+    },
+    "zzz_rise_px": {
+      "description": "How far the 'Zzz' rises during one sway (pixels at the reference height, scaled with the UI).",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 200
     }
   }
 }

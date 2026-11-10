@@ -1749,7 +1749,7 @@ public partial class GameScreen : CanvasLayer
                     _zzz[who.Id] = label;
                 }
 
-                var rise = (float)(cycle * 24 * (_style.ContentScaleFactor));
+                var rise = (float)(cycle * _nightLook.ZzzRisePx * _style.ContentScaleFactor);
                 label.Position = (camera.UnprojectPosition(head) - new Vector2(label.Size.X / 2, label.Size.Y + rise)).Floor();
                 label.Modulate = new Color(1, 1, 1, alpha * (float)(still ? 1 : 1 - (0.6 * cycle)));
                 label.Visible = true;

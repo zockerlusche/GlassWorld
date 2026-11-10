@@ -70,5 +70,11 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("zzz_sway_s")]
         public double ZzzSwayS { get; set; } = default!;
 
+        /// <summary>
+        /// How far the 'Zzz' rises during one sway (pixels at the reference height, scaled with the UI).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("zzz_rise_px")]
+        public double ZzzRisePx { get; set; } = default!;
+
     }
 }

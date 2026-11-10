@@ -62,3 +62,9 @@ class LookNight(BaseModel):
         ge=0.0,
         le=30.0,
     )
+    zzz_rise_px: float = Field(
+        ...,
+        description="How far the 'Zzz' rises during one sway (pixels at the reference height, scaled with the UI).",
+        ge=0.0,
+        le=200.0,
+    )
