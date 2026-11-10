@@ -7,7 +7,7 @@ public sealed class ScreenZonesTests
     [Fact]
     public void EverySideWindowButTheLogBelongsToExactlyOneTheme()
     {
-        string[] windows = ["inhabitants", "card", "questions", "log", "chronicle", "help", "mailbox"];
+        string[] windows = ["inhabitants", "card", "questions", "log", "chronicle", "timeline", "help", "mailbox"];
         foreach (var window in windows.Where(w => w != ScreenZones.Pinned))
         {
             Assert.Single(ScreenZones.Themes, t => t.Panels.Contains(window));

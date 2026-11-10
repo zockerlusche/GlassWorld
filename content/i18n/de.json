@@ -2489,6 +2489,14 @@
     {
       "key": "ui.card.diary_line",
       "text": "Tag {day}, {time} – {text}"
+    },
+    {
+      "key": "ui.timeline.title",
+      "text": "Zeitleiste"
+    },
+    {
+      "key": "ui.timeline.empty",
+      "text": "Noch ist nichts geschehen. Hier stehen später die Jahreszeiten mit ihren Ereignissen – ein Klick blättert die Chronik dorthin."
     }
   ]
 }

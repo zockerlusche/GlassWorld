@@ -20,11 +20,14 @@ public static class ScreenZones
     /// <summary>The side window that holds the inhabitant card in the zones layout (a tab of the people theme).</summary>
     public const string Card = "card";
 
+    /// <summary>The side window with the timeline over seasons and years in the zones layout (a tab of the world theme).</summary>
+    public const string Timeline = "timeline";
+
     /// <summary>The themes in the order of their buttons.</summary>
     public static IReadOnlyList<ScreenTheme> Themes { get; } =
     [
         new("people", "ui.zone.people", ["inhabitants", Card]),
-        new("world", "ui.zone.world", ["chronicle"]),
+        new("world", "ui.zone.world", ["chronicle", Timeline]),
         new("contact", "ui.zone.contact", ["questions", "help", "mailbox"]),
     ];
 
