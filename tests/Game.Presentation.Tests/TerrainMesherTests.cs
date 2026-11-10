@@ -114,10 +114,9 @@ public sealed class TerrainMesherTests
         var map = builder.Build();
         var water = TerrainMesher.Water(map, 0, 0, Look);
 
-        // Nine water plates: the running cell (2, 0) is drawn as a stream band (Streams), not here. The dry
-        // cells next to the swamp lie no higher than its surface, so they carry no bank plate (they would
-        // look flooded); the swamp comes down to them instead.
-        Assert.Equal((4 + 4 + 1) * 2, water.TriangleCount);
+        // Eight sea plates and the swamp plate; the running cell (2, 0) is drawn as a stream band (Streams),
+        // not here. The dry cells (2, 1) and (3, 1) next to the swamp lie at its surface and dip below it
+        // towards the water, so they carry the swamp only in that dip (cut on the shore line, A1455).
         var faces = Faces(water);
         (float Y, Rgb Color, (float, float) Flow) Cell(int x, int z) =>
             faces.Where(f => (int)f.X == x && (int)f.Z == z).Select(f => (f.Y, f.Color, f.Flow)).First();
@@ -127,19 +126,41 @@ public sealed class TerrainMesherTests
         Assert.DoesNotContain(faces, f => (int)f.X == 2 && (int)f.Z == 0);
         Assert.Equal(Look.Swamp, Cell(3, 0).Color);
         Assert.Equal((0f, 0f), Cell(3, 0).Flow);
-        Assert.DoesNotContain(faces, f => (int)f.Z >= 1 && (int)f.X >= 2);
+        var banks = faces.Where(f => (int)f.Z >= 1 && (int)f.X >= 2).ToList();
+        Assert.NotEmpty(banks);
+        Assert.All(banks, f => Assert.True(f.Z < 2 && f.Color == Look.Swamp, $"bank piece at ({f.X:0.00}, {f.Z:0.00})"));
+
+        // Water lies on or above the ground and never above the still surface (3.0 m), except at a corner
+        // shared with the running cell (2, 0): there every plate rides on the stream (ground + its depth,
+        // 0.2 m), so the surfaces around the corner meet.
+        Assert.All(banks.SelectMany(f => f.Vertices), v =>
+        {
+            var ground = TerrainMesher.GroundHeight(map, Look, v.X, v.Z);
+            Assert.True(v.Y >= ground - 1e-3f && v.Y <= MathF.Max(3f, ground + 0.2f) + 1e-4f, $"bank vertex ({v.X:0.00}, {v.Y:0.00}, {v.Z:0.00}) over ground {ground:0.00}");
+        });
         Assert.Equal(8 * 2, TerrainMesher.Water(map, 0, 0, Look, WaterKind.Salt).TriangleCount);
-        Assert.Equal(1 * 2, TerrainMesher.Water(map, 0, 0, Look, WaterKind.Fresh).TriangleCount);
+        Assert.Equal(2 + banks.Count, TerrainMesher.Water(map, 0, 0, Look, WaterKind.Fresh).TriangleCount);
     }
 
     [Fact]
     public void ABankCarriesAPlateOnlyWhereTheShoreLineCrossesIt()
     {
         // A lake along x = 0 (surface 30); the bank cells at x = 1 rise from below to above the surface.
-        var shore = TerrainMesher.Water(LakeBeside(31, 40), 0, 0, Look);
-        Assert.Equal((4 + 4) * 2, shore.TriangleCount);
-        Assert.Contains(Faces(shore), f => (int)f.X == 1);
-        Assert.DoesNotContain(Faces(shore), f => (int)f.X >= 2);
+        var beside = LakeBeside(31, 40);
+        var shore = TerrainMesher.Water(beside, 0, 0, Look);
+        var faces = Faces(shore);
+        Assert.Equal(4 * 2, faces.Count(f => f.X < 1f));
+        var banks = faces.Where(f => f.X >= 1f).ToList();
+        Assert.NotEmpty(banks);
+
+        // The bank's water is cut on the shore line (A1455): it ends inside the cell, where the ground
+        // reaches the surface (3.0 m), lies on or above the ground and never reaches the cell's far edge.
+        Assert.All(banks.SelectMany(f => f.Vertices), v =>
+        {
+            var ground = TerrainMesher.GroundHeight(beside, Look, v.X, v.Z);
+            Assert.True(v.X < 2f - 1e-3f && v.Y >= ground - 1e-3f && v.Y <= 3f + 1e-4f, $"bank vertex ({v.X:0.00}, {v.Y:0.00}, {v.Z:0.00}) over ground {ground:0.00}");
+        });
+        Assert.Contains(banks.SelectMany(f => f.Vertices), v => v.X > 1f + 1e-3f && MathF.Abs(v.Y - 3f) < 1e-4f);
 
         // A bank wholly above the water stays dry.
         var high = TerrainMesher.Water(LakeBeside(36, 36), 0, 0, Look);
@@ -403,17 +424,9 @@ public sealed class TerrainMesherTests
         Assert.NotEmpty(cells);
         foreach (var ((x, z), vertices) in cells)
         {
-            // At least one corner of the plate lies at or below the ground (within the shore lift), so
-            // the ground hides part of it and the dry cell does not look flooded.
-            var ground = TerrainMesher.CornerHeights(map, x, z, look);
-            float Ground((float X, float Y, float Z) v) =>
-                ground[((int)MathF.Round((v.X / look.CellM) - x), (int)MathF.Round((v.Z / look.CellM) - z)) switch
-                {
-                    (0, 0) => 0,
-                    (1, 0) => 1,
-                    (1, 1) => 2,
-                    _ => 3,
-                }] * look.UnitM;
+            // At least one point of the plate lies at the ground (within the shore lift): the plate ends
+            // on the shore line, where ground and surface meet (A1455), so the dry cell never looks flooded.
+            float Ground((float X, float Y, float Z) v) => TerrainMesher.GroundHeight(map, look, v.X, v.Z);
             var lowest = vertices.Min(v => v.Y - Ground(v));
             Assert.True(lowest <= look.ShoreLiftM + 1e-4f, $"seed {seed}: bank plate at ({x},{z}) lies {lowest:0.00} m above its whole cell");
         }
