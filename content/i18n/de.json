@@ -2419,6 +2419,14 @@
       "text": "Kontakt"
     },
     {
+      "key": "ui.card.title",
+      "text": "Karte"
+    },
+    {
+      "key": "ui.card.none",
+      "text": "Wähle einen Bewohner – in der Liste, im Verlauf oder mit einem Klick auf die Figur. Hier steht dann, was er gerade tut, und du kannst ihn ansprechen."
+    },
+    {
       "key": "ui.debug.seed",
       "text": "Seed: {seed}"
     },

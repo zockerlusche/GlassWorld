@@ -69,6 +69,7 @@ public partial class GameScreen : CanvasLayer
     private ToastBoard? _board;
     private GwWindow? _card;
     private string? _cardId;
+    private string? _lastCardId;
     private double _sinceRefreshMs = double.MaxValue;
 
     /// <summary>Id of the inhabitant whose card is open, or null.</summary>
@@ -130,6 +131,9 @@ public partial class GameScreen : CanvasLayer
             _root.AddChild(panel);
         }
 
+        _sideBar.Add(ScreenZones.Card, ScreenZones.TitleKey(ScreenZones.Card));
+        _sideBar.ButtonOf(ScreenZones.Card).Visible = false;
+        _root.AddChild(_sideBar.PanelOf(ScreenZones.Card));
         BuildZones();
 
         _toasts.Board = _board;
@@ -193,7 +197,10 @@ public partial class GameScreen : CanvasLayer
         _zones = on;
         _sideBar.Visible = !_zones;
         _themeBar.Visible = _zones;
-        if (_zones && (_sideBar.OpenKey == ScreenZones.Pinned || (_card is not null && _sideBar.OpenKey is not null)))
+        // The card changes its home with the layout: close it, the next click opens it in the right place.
+        _card?.Close();
+        _cardId = null;
+        if (_sideBar.OpenKey is ScreenZones.Pinned or ScreenZones.Card)
         {
             _sideBar.Open(null);
         }
@@ -234,13 +241,28 @@ public partial class GameScreen : CanvasLayer
                 return;
             }
 
-            if (_sideBar.OpenKey is { } open)
+            if (_sideBar.OpenKey is { } open && ScreenZones.ThemeOf(open) is { } theme)
             {
-                // One place on the right: a side window replaces the card.
-                _card?.Close();
-                if (ScreenZones.ThemeOf(open) is { } theme)
+                _lastOfTheme[theme.Id] = open;
+            }
+
+            if (_sideBar.OpenKey != ScreenZones.Card)
+            {
+                // Another window took the place (or none): the card is closed.
+                _cardId = null;
+            }
+            else if (_cardId is null)
+            {
+                // The card tab opened by its tab or theme button: the inhabitant last shown, else how to choose one.
+                if (_lastCardId is { } last && _feed?.Card(last) is not null)
                 {
-                    _lastOfTheme[theme.Id] = open;
+                    _cardId = last;
+                    _cardShape = string.Empty;
+                    FillCard(last);
+                }
+                else
+                {
+                    ShowNoCard();
                 }
             }
 
@@ -1685,28 +1707,39 @@ public partial class GameScreen : CanvasLayer
                 return "the middle of the picture is not free";
             }
 
-            OpenCard(_feed.Inhabitants()[0].Id);
+            // Step 2: the card is a tab of the people theme, in the side window's place, with the talk field.
+            var who = _feed.Inhabitants()[0].Id;
+            OpenCard(who);
             await Frames();
-            if (_card is null || _sideBar.OpenKey is not null || _sideBar.Panels.Any(p => p.Visible && p != log))
+            var cardPanel = _sideBar.PanelOf(ScreenZones.Card);
+            if (_card is not null || _sideBar.OpenKey != ScreenZones.Card || _cardId != who || _talkInput is null || !cardPanel.IsAncestorOf(_talkInput))
             {
-                return "card and side window show together";
+                return "the card did not open as a tab of the people theme";
             }
 
-            var card = Box(_card);
-            if (card.Intersects(Box(log)) || card.Intersects(Box(_topBar)) || card.HasPoint(middle))
+            var card = Box(cardPanel);
+            if (card.Intersects(Box(log)) || card.Intersects(Box(_topBar)) || card.HasPoint(middle) || _sideBar.Panels.Count(p => p.Visible && p != log) != 1)
             {
-                return $"the card {card} is not in the side window's place";
+                return $"the card tab {card} is not alone in the side window's place";
             }
 
-            _themeButtons["people"].EmitSignal(BaseButton.SignalName.Pressed);
+            cardPanel.Tabs.GetChildren().OfType<Button>().First().EmitSignal(BaseButton.SignalName.Pressed);
             await Frames();
-            return _card is null && _sideBar.OpenKey == "inhabitants" ? string.Empty : "a theme button did not replace the card";
+            if (_sideBar.OpenKey != "inhabitants" || _cardId is not null)
+            {
+                return "the list tab did not replace the card";
+            }
+
+            // Back on the card tab: the inhabitant last shown is there again.
+            _sideBar.PanelOf("inhabitants").Tabs.GetChildren().OfType<Button>().Last().EmitSignal(BaseButton.SignalName.Pressed);
+            await Frames();
+            return _sideBar.OpenKey == ScreenZones.Card && _cardId == who ? string.Empty : "the card tab did not bring back the inhabitant last shown";
         }
         finally
         {
-            _card?.Close();
             _sideBar.Open(null);
             ApplySettings(settings, _style);
+            _lastCardId = null;
         }
     }
 
@@ -1769,11 +1802,6 @@ public partial class GameScreen : CanvasLayer
             foreach (var panel in _sideBar.Panels.Where(p => p.Visible && p != log))
             {
                 to = Math.Min(to, panel.Position.X - gap);
-            }
-
-            if (_card is not null)
-            {
-                to = Math.Min(to, _card.Position.X - gap);
             }
 
             return new Rect2(from, top, Math.Max(0, to - from), Math.Max(0, view.Y - margin - top));
@@ -1862,15 +1890,6 @@ public partial class GameScreen : CanvasLayer
         var top = Math.Max(0, _topBar.Position.Y + _topBar.Size.Y + window.Gap - window.SafeMargin);
         _card.FitInto(new Vector2(CardArea(area).X, area.Y - top));
 
-        if (_zones)
-        {
-            // The card takes the side window's place on the right, below the top bar.
-            var y = _topBar.Position.Y + _topBar.GetCombinedMinimumSize().Y + window.Gap;
-            _card.FitInto(new Vector2(area.X, area.Y - y));
-            _card.Position = new Vector2(_themeBar.Position.X - window.Gap - _card.Size.X, y);
-            return;
-        }
-
         // At the left edge, not in the middle of the picture (W1695): the world stays free to watch.
         _card.Position = new Vector2(window.SafeMargin, top + window.SafeMargin);
     }
@@ -1912,10 +1931,16 @@ public partial class GameScreen : CanvasLayer
         }
 
         _card?.Close();
-        if (_zones && _sideBar.OpenKey is not null)
+        if (_zones)
         {
-            // One place on the right: the card replaces the open side window.
-            _sideBar.Open(null);
+            // One place on the right (D642 step 2): the card is a tab of the people theme, no window of its own.
+            _cardId = inhabitantId;
+            _lastCardId = inhabitantId;
+            _cardShape = string.Empty;
+            _sideBar.Open(ScreenZones.Card);
+            FillCard(inhabitantId);
+            Layout();
+            return;
         }
 
         _card = new GwWindow();
@@ -1932,16 +1957,57 @@ public partial class GameScreen : CanvasLayer
         FitCard(GetViewport().GetVisibleRect().Size);
     }
 
+    /// <summary>Where the card's rows go: its own window, or in the zones layout its tab of the people theme; null while no card shows.</summary>
+    private VBoxContainer? CardContent =>
+        _card is not null ? _card.Content
+        : _zones && _cardId is not null && _sideBar.OpenKey == ScreenZones.Card ? _sideBar.PanelOf(ScreenZones.Card).Content
+        : null;
+
+    /// <summary>Closes the card, wherever it lives.</summary>
+    private void CloseCard()
+    {
+        _card?.Close();
+        _cardId = null;
+        if (_zones && _sideBar.OpenKey == ScreenZones.Card)
+        {
+            ShowNoCard();
+        }
+    }
+
+    /// <summary>The card tab without an inhabitant: one sentence that says how to choose one.</summary>
+    private void ShowNoCard()
+    {
+        var panel = _sideBar.PanelOf(ScreenZones.Card);
+        panel.Setup(ScreenZones.TitleKey(ScreenZones.Card));
+        foreach (var child in panel.Content.GetChildren())
+        {
+            panel.Content.RemoveChild(child);
+            child.QueueFree();
+        }
+
+        _cardShape = string.Empty;
+        panel.Content.AddChild(new Label { Text = "ui.card.none", AutowrapMode = TextServer.AutowrapMode.WordSmart });
+    }
+
     private void FillCard(string inhabitantId)
     {
         var card = _feed?.Card(inhabitantId);
-        if (_card is null || card is null || _style is null)
+        var content = CardContent;
+        if (content is null || card is null || _style is null)
         {
-            _card?.Close();
+            CloseCard();
             return;
         }
 
-        _card.SetTitleText(DisplayName(card.Row));
+        if (_card is not null)
+        {
+            _card.SetTitleText(DisplayName(card.Row));
+        }
+        else
+        {
+            _sideBar.PanelOf(ScreenZones.Card).SetTitleText(DisplayName(card.Row));
+        }
+
         var values = new List<(string Key, int Percent)> { ("ui.card.will_to_live", card.Row.WillToLivePercent) };
         values.AddRange(card.Needs.Select(v => (v.Key, v.Percent)));
         values.AddRange(card.Feelings.Select(v => (v.Key, v.Percent)));
@@ -1952,15 +2018,19 @@ public partial class GameScreen : CanvasLayer
             // Build only when the set of values changes (other inhabitant, a feeling appears/fades).
             _cardShape = shape;
             _cardBars.Clear();
-            _card.ClearContent();
+            foreach (var child in content.GetChildren())
+            {
+                content.RemoveChild(child);
+                child.QueueFree();
+            }
 
             // Order of the card (W1688, TL #19983): first what the inhabitant does and the talk field, well
             // visible; the values below in sections the player can fold (the choice is kept while playing).
             Section("ui.card.doing");
             _cardAction = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
             _cardQuestions = new Label { AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled };
-            _card.Content.AddChild(_cardAction);
-            _card.Content.AddChild(_cardQuestions);
+            content.AddChild(_cardAction);
+            content.AddChild(_cardQuestions);
 
             // Talking (B6 R13): a sentence to this inhabitant; the core checks it and answers later.
             Section("ui.card.talk");
@@ -1987,7 +2057,7 @@ public partial class GameScreen : CanvasLayer
             send.Pressed += Submit;
             talkRow.AddChild(input);
             talkRow.AddChild(send);
-            _card.Content.AddChild(talkRow);
+            content.AddChild(talkRow);
 
             var wellbeing = Fold("ui.card.wellbeing", folded: false);
             Bar(wellbeing, "ui.card.will_to_live");
@@ -2034,7 +2104,7 @@ public partial class GameScreen : CanvasLayer
             _cardQuestions.Text = questions;
         }
 
-        void Section(string key) => _card!.Content.AddChild(new Label { Text = key, ThemeTypeVariation = UiTheme.SubheaderLabel });
+        void Section(string key) => content.AddChild(new Label { Text = key, ThemeTypeVariation = UiTheme.SubheaderLabel });
 
         // A foldable section; folded or open as the player last left it (default as given).
         VBoxContainer Fold(string key, bool folded)
@@ -2047,7 +2117,7 @@ public partial class GameScreen : CanvasLayer
             };
             var rows = new VBoxContainer();
             section.AddChild(rows);
-            _card!.Content.AddChild(section);
+            content.AddChild(section);
             return rows;
         }
 

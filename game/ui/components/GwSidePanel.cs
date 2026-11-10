@@ -32,7 +32,18 @@ public partial class GwSidePanel : PanelContainer
     }
 
     /// <summary>Sets the title key.</summary>
-    public void Setup(string titleKey) => _title.Text = titleKey;
+    public void Setup(string titleKey)
+    {
+        _title.AutoTranslateMode = AutoTranslateModeEnum.Inherit;
+        _title.Text = titleKey;
+    }
+
+    /// <summary>Sets the title to finished text (e.g. an inhabitant's name) that is never translated.</summary>
+    public void SetTitleText(string text)
+    {
+        _title.AutoTranslateMode = AutoTranslateModeEnum.Disabled;
+        _title.Text = text;
+    }
 
     /// <summary>Places the panel at the right edge of <paramref name="area"/> (logical pixels).</summary>
     /// <param name="area">The screen (logical pixels).</param>
@@ -93,6 +104,9 @@ public partial class GwSideBar : VBoxContainer
         _entries[key] = (button, panel);
         return panel;
     }
+
+    /// <summary>The side button of a key (hidden for windows that only the zones layout opens).</summary>
+    public Button ButtonOf(string key) => _entries[key].Button;
 
     /// <summary>The panel of a key.</summary>
     public GwSidePanel PanelOf(string key) => _entries[key].Panel;
