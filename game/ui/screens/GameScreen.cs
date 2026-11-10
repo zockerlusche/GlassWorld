@@ -398,6 +398,11 @@ public partial class GameScreen : CanvasLayer
             return;
         }
 
+        if (TimeKey(@event, beforeGui: false))
+        {
+            return;
+        }
+
         // A left press into the world only starts a gesture: let go soon and close by it is a click (gift
         // placement or figure selection), moved farther it is a camera drag (B2567). The press is not
         // consumed, so the camera sees it as well and both use the same thresholds.
@@ -413,8 +418,8 @@ public partial class GameScreen : CanvasLayer
     public override void _Input(InputEvent @event)
     {
         // Moves and the release of a started press are read before the GUI, so a drag across a panel is
-        // still a drag; nothing is consumed here.
-        if (_click is not { Pressed: true } click)
+        // still a drag; nothing is consumed here (only a time key on a focused time button, GameScreen.Keys).
+        if (TimeKey(@event, beforeGui: true) || _click is not { Pressed: true } click)
         {
             return;
         }
