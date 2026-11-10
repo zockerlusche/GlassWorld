@@ -182,6 +182,47 @@ public partial class GameScreen : CanvasLayer
         _root.AddChild(_themeBar);
     }
 
+    /// <summary>Switches between the layout so far and the zones preview.</summary>
+    private void SetZones(bool on)
+    {
+        if (_zones == on)
+        {
+            return;
+        }
+
+        _zones = on;
+        _sideBar.Visible = !_zones;
+        _themeBar.Visible = _zones;
+        if (_zones && (_sideBar.OpenKey == ScreenZones.Pinned || (_card is not null && _sideBar.OpenKey is not null)))
+        {
+            _sideBar.Open(null);
+        }
+
+        ShowZoneState();
+    }
+
+    /// <summary>
+    /// Screenshots only: the zones preview in one of its states - a theme's side window (<paramref name="theme"/>),
+    /// the card of the first inhabitant (<paramref name="card"/>), or just the zones; <paramref name="on"/>
+    /// false returns to the layout so far.
+    /// </summary>
+    public void ShowZonesForShots(bool on, string? theme = null, bool card = false)
+    {
+        _card?.Close();
+        _sideBar.Open(null);
+        SetZones(on);
+        if (on && theme is not null && ScreenZones.Themes.FirstOrDefault(t => t.Id == theme) is { } chosen)
+        {
+            _sideBar.Open(chosen.Panels[0]);
+        }
+        else if (on && card && _feed is not null)
+        {
+            ShowInhabitant(_feed.Inhabitants()[0].Id);
+        }
+
+        Layout();
+    }
+
     /// <summary>A side window opened or closed: in the zones layout it shares its place with the card, and the log stays.</summary>
     private void PanelToggled()
     {
@@ -460,19 +501,7 @@ public partial class GameScreen : CanvasLayer
 
         // "Watch only" (XAG 117): bars, panels and hints disappear; Esc still opens the pause menu.
         _root.Visible = !settings.HideUi;
-        if (_zones != settings.ZonesPreview)
-        {
-            _zones = settings.ZonesPreview;
-            _sideBar.Visible = !_zones;
-            _themeBar.Visible = _zones;
-            if (_zones && (_sideBar.OpenKey == ScreenZones.Pinned || (_card is not null && _sideBar.OpenKey is not null)))
-            {
-                _sideBar.Open(null);
-            }
-
-            ShowZoneState();
-        }
-
+        SetZones(settings.ZonesPreview);
         Layout();
     }
 
