@@ -2337,6 +2337,10 @@
     {
       "key": "msg.hint.selfcheck",
       "text": "An AI needs you. The settings say under \"AI\" what to do."
+    },
+    {
+      "key": "ui.log.no_answer",
+      "text": "{name} did not answer."
     }
   ]
 }

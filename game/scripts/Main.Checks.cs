@@ -218,11 +218,27 @@ public partial class Main
             check.Checks.Add(nodes);
             check.Checks.Add(new AiCheck { Ai = AiCheckAi.Sound, State = AiCheckState.Not_planned, Reason = "not_planned", MessageKey = "msg.selfcheck.sound.not_planned" });
             settings.AddAi(() => Task.FromResult(new GlassWorld.AiClient.SelfCheckAnswer(check, null)), null, ProjectSettings.GlobalizePath("user://smoke/diagnostics"));
+
+            // Every tab is laid out in every case: one window per tab.
+            SettingsWindow Tab(string key)
+            {
+                var window = new SettingsWindow();
+                window.Build(_settings, _limits, _mix, style, data.Guard);
+                window.AddAi(() => Task.FromResult(new GlassWorld.AiClient.SelfCheckAnswer(check, null)), null, ProjectSettings.GlobalizePath("user://smoke/diagnostics"));
+                window.ShowTab(key);
+                return window;
+            }
+
+            settings.ShowTab("ui.settings.section.player");
             return
             [
                 ("new world", MainMenu.NewWorldWindow(data, style, _ => { })),
                 ("worlds", MainMenu.WorldsWindow(data, style, _ => { })),
                 ("settings", settings),
+                ("settings display", Tab("ui.settings.section.display")),
+                ("settings hints", Tab("ui.settings.section.hints")),
+                ("settings audio", Tab("ui.settings.section.audio")),
+                ("settings ai", Tab("ui.settings.section.ai")),
                 ("pause", PauseMenu.Create(style, new PauseActions(() => { }, () => { }, () => { }, () => { }, () => { }))),
             ];
         };

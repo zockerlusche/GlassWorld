@@ -1328,6 +1328,7 @@ public partial class GameScreen : CanvasLayer
                 LogLineKind.Thought => "ui.log.thought",
                 LogLineKind.Said => "ui.log.said",
                 LogLineKind.Player => "ui.log.player",
+                LogLineKind.NoAnswer => "ui.log.no_answer",
                 _ when line.Text.Length > 0 => "ui.log.not_understood_text",
                 _ => "ui.log.not_understood",
             };

@@ -15,6 +15,11 @@ namespace GlassWorld.Game.Ui.Screens;
 public partial class SettingsWindow : GwWindow
 {
     private PlayerSettings _settings = new();
+    private static string _lastTab = string.Empty;
+    private readonly ButtonGroup _group = new();
+    private readonly Dictionary<string, (Button Tab, VBoxContainer Page)> _pages = new(StringComparer.Ordinal);
+    private HFlowContainer _tabs = new();
+    private VBoxContainer _page = new();
     private float _labelWidth;
 
     /// <summary>Raised after every change with the new, already clamped settings.</summary>
@@ -29,6 +34,10 @@ public partial class SettingsWindow : GwWindow
         ArgumentNullException.ThrowIfNull(mix);
         ArgumentNullException.ThrowIfNull(style);
         Setup("ui.settings.title", style);
+
+        // One tab per section (TL #19986): the window stays short, each page shows only its own controls.
+        _tabs = new HFlowContainer { Name = "Tabs" };
+        Content.AddChild(_tabs);
         _labelWidth = style.Tokens.Window.CardBarWidth;
         _settings = settings;
 
@@ -58,7 +67,7 @@ public partial class SettingsWindow : GwWindow
         name.TextSubmitted += _ => TakeName();
         name.FocusExited += TakeName;
         Row("ui.settings.player_name", name);
-        Content.AddChild(nameProblem);
+        _page.AddChild(nameProblem);
 
         Section("ui.settings.section.language");
         var language = new OptionButton();
@@ -182,7 +191,7 @@ public partial class SettingsWindow : GwWindow
     {
         Section("ui.settings.section.ai");
         var lines = new VBoxContainer { Name = "AiLines" };
-        Content.AddChild(lines);
+        _page.AddChild(lines);
         var buttons = new HBoxContainer();
         var again = new Button { Text = "ui.selfcheck.again", Disabled = check is null };
         var make = new Button { Text = "ui.selfcheck.report", Disabled = report is null };
@@ -190,9 +199,9 @@ public partial class SettingsWindow : GwWindow
         buttons.AddChild(again);
         buttons.AddChild(make);
         buttons.AddChild(open);
-        Content.AddChild(buttons);
+        _page.AddChild(buttons);
         var status = new Label { Name = "AiReportStatus", Visible = false, AutoTranslateMode = AutoTranslateModeEnum.Disabled, AutowrapMode = TextServer.AutowrapMode.WordSmart };
-        Content.AddChild(status);
+        _page.AddChild(status);
 
         void Show(IEnumerable<Control> controls)
         {
@@ -302,7 +311,43 @@ public partial class SettingsWindow : GwWindow
         Run();
     }
 
-    private void Section(string key) => Content.AddChild(new Label { Text = key, ThemeTypeVariation = UiTheme.SubheaderLabel });
+    /// <summary>Shows the tab of a section (its text key); the window fits itself again.</summary>
+    public void ShowTab(string key)
+    {
+        if (!_pages.TryGetValue(key, out var chosen))
+        {
+            return;
+        }
+
+        _lastTab = key;
+        foreach (var (tab, page) in _pages.Values)
+        {
+            page.Visible = page == chosen.Page;
+            tab.SetPressedNoSignal(tab == chosen.Tab);
+        }
+
+        if (IsInsideTree())
+        {
+            FitInto(GetViewport().GetVisibleRect().Size);
+        }
+    }
+
+    /// <summary>Starts the tab of a section: the controls added next belong to it. The tab last used opens again.</summary>
+    private void Section(string key)
+    {
+        var first = _pages.Count == 0;
+        var tab = new Button { Text = key, ToggleMode = true, ButtonGroup = _group };
+        _page = new VBoxContainer { Name = "Page" + _pages.Count, Visible = first };
+        tab.SetPressedNoSignal(first);
+        tab.Pressed += () => ShowTab(key);
+        _tabs.AddChild(tab);
+        Content.AddChild(_page);
+        _pages[key] = (tab, _page);
+        if (key == _lastTab)
+        {
+            ShowTab(key);
+        }
+    }
 
     private void Row(string key, Control control)
     {
@@ -318,7 +363,7 @@ public partial class SettingsWindow : GwWindow
         });
         control.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         row.AddChild(control);
-        Content.AddChild(row);
+        _page.AddChild(row);
     }
 
     private static string Percent(double value) => ((int)Math.Round(value * 100)).ToString(CultureInfo.InvariantCulture) + " %";
