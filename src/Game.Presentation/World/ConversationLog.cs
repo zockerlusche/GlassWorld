@@ -16,6 +16,9 @@ public enum LogLineKind
 
     /// <summary>An inhabitant did not understand the player.</summary>
     NotUnderstood,
+
+    /// <summary>The player got no answer (service off or too slow); the favour is back.</summary>
+    NoAnswer,
 }
 
 /// <summary>A line of the conversation log.</summary>
@@ -59,11 +62,13 @@ public sealed class ConversationLog
                 "said" or "declined" when e.Text is { Length: > 0 } => LogLineKind.Said,
                 "conversation_started" when e.Text is { Length: > 0 } => LogLineKind.Player,
                 "not_understood" => LogLineKind.NotUnderstood,
+                "no_answer" => LogLineKind.NoAnswer,
                 _ => null,
             };
             if (kind is { } k)
             {
-                Add(e.InhabitantId, k, e.Text ?? string.Empty, e.Tick);
+                // The text of "no answer" is a key for the bubble, not words: the log has its own sentence.
+                Add(e.InhabitantId, k, k == LogLineKind.NoAnswer ? string.Empty : e.Text ?? string.Empty, e.Tick);
             }
         }
     }

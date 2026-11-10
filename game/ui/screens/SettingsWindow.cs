@@ -15,6 +15,11 @@ namespace GlassWorld.Game.Ui.Screens;
 public partial class SettingsWindow : GwWindow
 {
     private PlayerSettings _settings = new();
+    private static string _lastTab = string.Empty;
+    private readonly ButtonGroup _group = new();
+    private readonly Dictionary<string, (Button Tab, VBoxContainer Page)> _pages = new(StringComparer.Ordinal);
+    private HFlowContainer _tabs = new();
+    private VBoxContainer _page = new();
     private float _labelWidth;
 
     /// <summary>Raised after every change with the new, already clamped settings.</summary>
@@ -29,6 +34,10 @@ public partial class SettingsWindow : GwWindow
         ArgumentNullException.ThrowIfNull(mix);
         ArgumentNullException.ThrowIfNull(style);
         Setup("ui.settings.title", style);
+
+        // One tab per section (TL #19986): the window stays short, each page shows only its own controls.
+        _tabs = new HFlowContainer { Name = "Tabs" };
+        Content.AddChild(_tabs);
         _labelWidth = style.Tokens.Window.CardBarWidth;
         _settings = settings;
 
@@ -58,7 +67,7 @@ public partial class SettingsWindow : GwWindow
         name.TextSubmitted += _ => TakeName();
         name.FocusExited += TakeName;
         Row("ui.settings.player_name", name);
-        Content.AddChild(nameProblem);
+        _page.AddChild(nameProblem);
 
         Section("ui.settings.section.language");
         var language = new OptionButton();
@@ -172,7 +181,173 @@ public partial class SettingsWindow : GwWindow
         return toggle;
     }
 
-    private void Section(string key) => Content.AddChild(new Label { Text = key, ThemeTypeVariation = UiTheme.SubheaderLabel });
+    /// <summary>
+    /// The AI self-check (W1703 rules 2-4): per AI a calm line (state, clear text, what to do), "check again",
+    /// and a diagnostics report the player can pass on. <paramref name="check"/> and <paramref name="report"/>
+    /// never throw; null (no service, e.g. in the main menu) shows the calm "not running" text.
+    /// The report is also copied into <paramref name="reportFolder"/>, a folder the player can open.
+    /// </summary>
+    public void AddAi(Func<Task<AiClient.SelfCheckAnswer>>? check, Func<Task<AiClient.DiagnosticsAnswer>>? report, string reportFolder)
+    {
+        Section("ui.settings.section.ai");
+        var lines = new VBoxContainer { Name = "AiLines" };
+        _page.AddChild(lines);
+        var buttons = new HBoxContainer();
+        var again = new Button { Text = "ui.selfcheck.again", Disabled = check is null };
+        var make = new Button { Text = "ui.selfcheck.report", Disabled = report is null };
+        var open = new Button { Text = "ui.selfcheck.open_folder", Visible = false };
+        buttons.AddChild(again);
+        buttons.AddChild(make);
+        buttons.AddChild(open);
+        _page.AddChild(buttons);
+        var status = new Label { Name = "AiReportStatus", Visible = false, AutoTranslateMode = AutoTranslateModeEnum.Disabled, AutowrapMode = TextServer.AutowrapMode.WordSmart };
+        _page.AddChild(status);
+
+        void Show(IEnumerable<Control> controls)
+        {
+            foreach (var child in lines.GetChildren())
+            {
+                lines.RemoveChild(child);
+                child.QueueFree();
+            }
+
+            foreach (var control in controls)
+            {
+                lines.AddChild(control);
+            }
+        }
+
+        Label Text(string key) => new() { Text = key, AutowrapMode = TextServer.AutowrapMode.WordSmart };
+
+        async void Run()
+        {
+            if (check is null)
+            {
+                Show([Text(SelfCheckView.Unavailable)]);
+                return;
+            }
+
+            again.Disabled = true;
+            Show([Text(SelfCheckView.Checking)]);
+            var answer = await check();
+            if (!IsInstanceValid(this) || !IsInsideTree())
+            {
+                return;
+            }
+
+            again.Disabled = false;
+            if (answer.Check is null)
+            {
+                GD.Print($"SELFCHECK_UNAVAILABLE {answer.Problem}");
+                Show([Text(SelfCheckView.Unavailable)]);
+                return;
+            }
+
+            Show(SelfCheckView.Lines(answer.Check).SelectMany(AiLine));
+        }
+
+        IEnumerable<Control> AiLine(SelfCheckLine line)
+        {
+            // "Bild-KI: bereit" as a small header, the clear text below, then what to do.
+            var head = new Label
+            {
+                Text = TextFill.Fill(Tr("ui.selfcheck.line"), new Dictionary<string, string> { ["ai"] = Tr(line.AiKey), ["state"] = Tr(line.StateKey) }),
+                AutoTranslateMode = AutoTranslateModeEnum.Disabled,
+                ThemeTypeVariation = UiTheme.SubheaderLabel,
+            };
+            yield return head;
+
+            // A message the game does not know yet (newer service) gets the general text, never a raw key.
+            var message = Tr(line.MessageKey).ToString();
+            yield return new Label
+            {
+                Text = message == line.MessageKey ? Tr(SelfCheckView.UnknownMessage) : message,
+                AutoTranslateMode = AutoTranslateModeEnum.Disabled,
+                AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            };
+            if (line.Detail.Length > 0)
+            {
+                yield return new Label { Text = line.Detail, AutoTranslateMode = AutoTranslateModeEnum.Disabled, AutowrapMode = TextServer.AutowrapMode.WordSmart };
+            }
+
+            if (line.FixKey is { } fix && Tr(fix).ToString() is var hint && hint != fix)
+            {
+                yield return new Label { Text = hint, AutoTranslateMode = AutoTranslateModeEnum.Disabled, AutowrapMode = TextServer.AutowrapMode.WordSmart };
+            }
+        }
+
+        async void Report()
+        {
+            if (report is null)
+            {
+                return;
+            }
+
+            make.Disabled = true;
+            status.Text = Tr("ui.selfcheck.report_running");
+            status.Visible = true;
+            var answer = await report();
+            if (!IsInstanceValid(this) || !IsInsideTree())
+            {
+                return;
+            }
+
+            make.Disabled = false;
+            var saved = answer.Report is { } made && DiagnosticsFile.Save(reportFolder, made.FileName, made.Text);
+            if (!saved)
+            {
+                GD.Print($"DIAGNOSTICS_FAILED {answer.Problem ?? "could not write the copy"}");
+            }
+
+            status.Text = saved
+                ? TextFill.Fill(Tr("ui.selfcheck.report_saved"), new Dictionary<string, string> { ["file"] = answer.Report!.FileName, ["folder"] = reportFolder })
+                : Tr("ui.selfcheck.report_failed");
+            open.Visible = saved;
+        }
+
+        again.Pressed += Run;
+        make.Pressed += Report;
+        open.Pressed += () => OS.ShellOpen(reportFolder);
+        Run();
+    }
+
+    /// <summary>Shows the tab of a section (its text key); the window fits itself again.</summary>
+    public void ShowTab(string key)
+    {
+        if (!_pages.TryGetValue(key, out var chosen))
+        {
+            return;
+        }
+
+        _lastTab = key;
+        foreach (var (tab, page) in _pages.Values)
+        {
+            page.Visible = page == chosen.Page;
+            tab.SetPressedNoSignal(tab == chosen.Tab);
+        }
+
+        if (IsInsideTree())
+        {
+            FitInto(GetViewport().GetVisibleRect().Size);
+        }
+    }
+
+    /// <summary>Starts the tab of a section: the controls added next belong to it. The tab last used opens again.</summary>
+    private void Section(string key)
+    {
+        var first = _pages.Count == 0;
+        var tab = new Button { Text = key, ToggleMode = true, ButtonGroup = _group };
+        _page = new VBoxContainer { Name = "Page" + _pages.Count, Visible = first };
+        tab.SetPressedNoSignal(first);
+        tab.Pressed += () => ShowTab(key);
+        _tabs.AddChild(tab);
+        Content.AddChild(_page);
+        _pages[key] = (tab, _page);
+        if (key == _lastTab)
+        {
+            ShowTab(key);
+        }
+    }
 
     private void Row(string key, Control control)
     {
@@ -188,7 +363,7 @@ public partial class SettingsWindow : GwWindow
         });
         control.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         row.AddChild(control);
-        Content.AddChild(row);
+        _page.AddChild(row);
     }
 
     private static string Percent(double value) => ((int)Math.Round(value * 100)).ToString(CultureInfo.InvariantCulture) + " %";

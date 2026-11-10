@@ -32,6 +32,7 @@ public partial class WorldPresenter : Node3D
     private HttpConversationPort? _conversationPort;
     private HttpJobPort? _jobPort;
     private HttpHelpPort? _helpPort;
+    private HttpSetupPort? _setupPort;
     private string? _contentFingerprint;
     private long _seenEvents;
     private double _clock;
@@ -43,6 +44,9 @@ public partial class WorldPresenter : Node3D
 
     /// <summary>Help suggestions from the AI (A1341); null without the live service (the window uses the data).</summary>
     public HttpHelpPort? HelpPort => _helpPort;
+
+    /// <summary>Self-check and diagnostics of the AI service (W1703); null without the live service.</summary>
+    public HttpSetupPort? SetupPort => _setupPort;
 
     /// <summary>The running simulation (null until <see cref="Start"/>).</summary>
     public SimulationHost? Host => _host;
@@ -317,6 +321,8 @@ public partial class WorldPresenter : Node3D
         _conversationPort?.Dispose();
         _jobPort?.Dispose();
         _helpPort?.Dispose();
+        _setupPort?.Dispose();
+        _setupPort = null;
         if (_service is not null)
         {
             // ADR-0006: shutdown endpoint unloads the model (frees VRAM), then the process is killed.
@@ -353,6 +359,7 @@ public partial class WorldPresenter : Node3D
             // Generation jobs (inventions, D471): only with the live service; with the mock the system is dormant.
             _jobPort = HttpJobPort.ForService(_service);
             _helpPort = HttpHelpPort.ForService(_service, settings.DeadlineMs);
+            _setupPort = HttpSetupPort.ForService(_service);
             _conversationPort = HttpConversationPort.ForService(_service, settings.DeadlineMs);
             GD.Print($"AI_SERVICE live on port {_service.Port}");
             return _livePort;
