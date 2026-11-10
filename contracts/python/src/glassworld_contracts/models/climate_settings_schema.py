@@ -8,6 +8,30 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class ClimateSignal(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    condition: str = Field(
+        ...,
+        description='Weather id (one of the states of this climate).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    start_event: str = Field(
+        ...,
+        description='Event id reported when the condition begins.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    end_event: str = Field(
+        ...,
+        description='Event id reported when the condition ends.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+
+
 class ClimateWeatherState(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -193,6 +217,10 @@ class ClimateWeather(BaseModel):
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
     temperature: ClimateTemperature
+    signals: list[ClimateSignal] | None = Field(
+        None,
+        description='Optional: weather conditions whose start and end the core reports as world events (B2-5 R13, signals for B5). A condition is a weather id of the states; it counts as on while it is among the current conditions (the main weather, or the drought weather after the dry days). Missing = no signals.',
+    )
     gust_period_minutes: int = Field(
         ...,
         description='Game minutes between two gust key values (GW3): the wind swings smoothly between values drawn from the world seed and the tick, so the same seed gives the same wind. Placeholder.',

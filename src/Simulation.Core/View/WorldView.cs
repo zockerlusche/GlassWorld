@@ -71,6 +71,18 @@ public sealed record WorldSnapshot(WorldTime Time, IReadOnlyList<InhabitantSnaps
 {
     /// <summary>The weather now (B2 R13), or null without a weather system.</summary>
     public Weather.WeatherReading? Weather { get; init; }
+
+    /// <summary>
+    /// The tide now (B2-5 R15): water level against the mean sea level, for the water of the presentation;
+    /// null on worlds without an island. With amplitude 0 the level is always 0.
+    /// </summary>
+    public Map.TideReading? Tide { get; init; }
+
+    /// <summary>
+    /// The look epoch of the world (id of content/look/epochs.json, B2-5 R16); the presentation blends palette
+    /// and details to it. Null only in snapshots taken without a host.
+    /// </summary>
+    public string? LookEpoch { get; init; }
 }
 
 /// <summary>

@@ -583,7 +583,7 @@
       ],
       "properties": {
         "amplitude": {
-          "description": "Half the tidal range in height units; 0 turns the tides off (R15).",
+          "description": "Half the tidal range in height units; 0 turns the tides off (R15). The level follows from the world tick by the curve; the walk costs of the shallow sea follow it in whole height units.",
           "type": "integer",
           "minimum": 0,
           "maximum": 100000
@@ -686,6 +686,12 @@
         },
         "cost_per_slope_unit": {
           "description": "Extra cost per height unit climbed.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "cost_flooded_water": {
+          "description": "Optional (B2-5 R15): extra cost of one step through a shallow sea cell while the tide lifts its water above water.shallow_max_depth, on top of the cell's cost, in the unit of cost_shallow_water. The cell stays walkable, so nobody is trapped by the tide. Missing = no extra cost. PLACEHOLDER: the value in the presets (60) is not balanced and stays a placeholder until Marcel decides it.",
           "type": "integer",
           "minimum": 0,
           "maximum": 100000

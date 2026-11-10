@@ -293,6 +293,12 @@ public static class SaveGameStore
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("weather", JsonSerializer.Serialize(s.Weather, Json)));
         }
 
+        if (s.LookEpoch is not null)
+        {
+            // Look epoch (B2-5 R16): written once the world left its first epoch; no entry = first epoch.
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("look_epoch", s.LookEpoch));
+        }
+
         if (s.Skills is not null)
         {
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("skills", JsonSerializer.Serialize(s.Skills, Json)));
@@ -510,6 +516,7 @@ public static class SaveGameStore
             SkillGains = meta.TryGetValue("skill_gains", out var gains) ? JsonSerializer.Deserialize<List<Simulation.Inhabitants.SkillGain>>(gains, Json) : null,
             IslandData = ReadIsland(c, meta),
             Weather = meta.TryGetValue("weather", out var weather) ? JsonSerializer.Deserialize<Weather.WeatherState>(weather, Json) : null,
+            LookEpoch = meta.GetValueOrDefault("look_epoch"),
             Skills = meta.TryGetValue("skills", out var skills) ? JsonSerializer.Deserialize<Simulation.Inhabitants.SkillRegisterState>(skills, Json) : null,
             Mailbox = meta.TryGetValue("mailbox", out var mailbox) ? JsonSerializer.Deserialize<Simulation.Player.MailboxState>(mailbox, Json) : null,
             NamesSaved = meta.ContainsKey("names"),

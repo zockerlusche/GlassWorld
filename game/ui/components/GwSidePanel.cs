@@ -12,6 +12,9 @@ public partial class GwSidePanel : PanelContainer
 {
     private readonly Label _title = new() { ThemeTypeVariation = UiTheme.HeaderLabel };
 
+    /// <summary>Tabs of the panel's theme in the zones layout (W1717); hidden while empty.</summary>
+    public HFlowContainer Tabs { get; } = new() { Visible = false };
+
     /// <summary>Content container (inside the scroll area).</summary>
     public VBoxContainer Content { get; } = new() { SizeFlagsHorizontal = SizeFlags.ExpandFill };
 
@@ -22,6 +25,7 @@ public partial class GwSidePanel : PanelContainer
         var column = new VBoxContainer();
         var scroll = new ScrollContainer { HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled, SizeFlagsVertical = SizeFlags.ExpandFill };
         scroll.AddChild(Content);
+        column.AddChild(Tabs);
         column.AddChild(_title);
         column.AddChild(scroll);
         AddChild(column);
@@ -31,7 +35,13 @@ public partial class GwSidePanel : PanelContainer
     public void Setup(string titleKey) => _title.Text = titleKey;
 
     /// <summary>Places the panel at the right edge of <paramref name="area"/> (logical pixels).</summary>
-    public void Dock(Vector2 area, UiStyle style, float rightOffset)
+    /// <param name="area">The screen (logical pixels).</param>
+    /// <param name="style">The UI style.</param>
+    /// <param name="rightOffset">Room kept free at the right edge (the side bar).</param>
+    /// <param name="top">Upper edge; 0 = the safe margin (zones layout: below the top bar).</param>
+    /// <param name="left">True docks at the left edge instead (the pinned log of the zones layout).</param>
+    /// <param name="heightShare">Share of the free height the panel takes (1 = all).</param>
+    public void Dock(Vector2 area, UiStyle style, float rightOffset, float top = 0, bool left = false, float heightShare = 1)
     {
         ArgumentNullException.ThrowIfNull(style);
         var margin = style.Tokens.Window.SafeMargin;
@@ -49,8 +59,9 @@ public partial class GwSidePanel : PanelContainer
             _title.CustomMinimumSize = new Vector2(width - padding, 0);
         }
 
-        Size = new Vector2(width, area.Y - (2 * margin));
-        Position = new Vector2(area.X - margin - rightOffset - width, margin);
+        var y = top > 0 ? top : margin;
+        Size = new Vector2(width, (area.Y - margin - y) * Math.Clamp(heightShare, 0.1f, 1));
+        Position = new Vector2(left ? margin : area.X - margin - rightOffset - width, y);
     }
 
     /// <summary>Minimum sizes of the parts (diagnostics for the layout check).</summary>
@@ -81,6 +92,18 @@ public partial class GwSideBar : VBoxContainer
         AddChild(button);
         _entries[key] = (button, panel);
         return panel;
+    }
+
+    /// <summary>The panel of a key.</summary>
+    public GwSidePanel PanelOf(string key) => _entries[key].Panel;
+
+    /// <summary>Opens the panel of <paramref name="key"/> (no toggle); null closes the open one.</summary>
+    public void Open(string? key)
+    {
+        if (key != OpenKey)
+        {
+            Toggle(key ?? OpenKey!);
+        }
     }
 
     /// <summary>All panels (for placing them in the UI layer).</summary>
