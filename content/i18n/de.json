@@ -2257,6 +2257,86 @@
     {
       "key": "msg.selfcheck.sound.not_planned",
       "text": "Klang-KI ist in dieser Version nicht dabei. Die Welt klingt mit ihren Grundklängen."
+    },
+    {
+      "key": "ui.settings.section.ai",
+      "text": "KI"
+    },
+    {
+      "key": "ui.selfcheck.checking",
+      "text": "Die KI wird geprüft …"
+    },
+    {
+      "key": "ui.selfcheck.unavailable",
+      "text": "Der KI-Dienst läuft gerade nicht. Er startet mit einer Welt; ohne ihn leben die Bewohner nach einfachen Regeln."
+    },
+    {
+      "key": "ui.selfcheck.unknown_message",
+      "text": "Der KI-Dienst meldet einen Zustand, den diese Spielversion noch nicht kennt. Ein Diagnosebericht hilft weiter."
+    },
+    {
+      "key": "ui.selfcheck.line",
+      "text": "{ai}: {state}"
+    },
+    {
+      "key": "ui.selfcheck.ai.language",
+      "text": "Sprach-KI"
+    },
+    {
+      "key": "ui.selfcheck.ai.image",
+      "text": "Bild-KI"
+    },
+    {
+      "key": "ui.selfcheck.ai.sound",
+      "text": "Klang-KI"
+    },
+    {
+      "key": "ui.selfcheck.state.ok",
+      "text": "bereit"
+    },
+    {
+      "key": "ui.selfcheck.state.preparing",
+      "text": "wird vorbereitet"
+    },
+    {
+      "key": "ui.selfcheck.state.problem",
+      "text": "braucht dich"
+    },
+    {
+      "key": "ui.selfcheck.state.not_offered",
+      "text": "nicht vorgesehen"
+    },
+    {
+      "key": "ui.selfcheck.state.not_planned",
+      "text": "nicht dabei"
+    },
+    {
+      "key": "ui.selfcheck.again",
+      "text": "Erneut prüfen"
+    },
+    {
+      "key": "ui.selfcheck.report",
+      "text": "Diagnosebericht erstellen"
+    },
+    {
+      "key": "ui.selfcheck.open_folder",
+      "text": "Ordner öffnen"
+    },
+    {
+      "key": "ui.selfcheck.report_running",
+      "text": "Der Bericht wird erstellt …"
+    },
+    {
+      "key": "ui.selfcheck.report_saved",
+      "text": "Bericht gespeichert: {file} in {folder}. Er enthält keine Passwörter und keine persönlichen Ordnernamen – du kannst ihn weitergeben, wenn du Hilfe suchst."
+    },
+    {
+      "key": "ui.selfcheck.report_failed",
+      "text": "Der Bericht ließ sich gerade nicht erstellen. Versuch es gleich noch einmal."
+    },
+    {
+      "key": "msg.hint.selfcheck",
+      "text": "Eine KI braucht dich. In den Einstellungen unter „KI“ steht, was zu tun ist."
     }
   ]
 }

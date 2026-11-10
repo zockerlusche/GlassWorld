@@ -2257,6 +2257,86 @@
     {
       "key": "msg.selfcheck.sound.not_planned",
       "text": "Sound AI is not part of this version. The world uses its basic sounds."
+    },
+    {
+      "key": "ui.settings.section.ai",
+      "text": "AI"
+    },
+    {
+      "key": "ui.selfcheck.checking",
+      "text": "Checking the AI …"
+    },
+    {
+      "key": "ui.selfcheck.unavailable",
+      "text": "The AI service is not running right now. It starts with a world; without it the inhabitants live by simple rules."
+    },
+    {
+      "key": "ui.selfcheck.unknown_message",
+      "text": "The AI service reports a state this version of the game does not know yet. A diagnostics report will help."
+    },
+    {
+      "key": "ui.selfcheck.line",
+      "text": "{ai}: {state}"
+    },
+    {
+      "key": "ui.selfcheck.ai.language",
+      "text": "Language AI"
+    },
+    {
+      "key": "ui.selfcheck.ai.image",
+      "text": "Image AI"
+    },
+    {
+      "key": "ui.selfcheck.ai.sound",
+      "text": "Sound AI"
+    },
+    {
+      "key": "ui.selfcheck.state.ok",
+      "text": "ready"
+    },
+    {
+      "key": "ui.selfcheck.state.preparing",
+      "text": "being prepared"
+    },
+    {
+      "key": "ui.selfcheck.state.problem",
+      "text": "needs you"
+    },
+    {
+      "key": "ui.selfcheck.state.not_offered",
+      "text": "not offered"
+    },
+    {
+      "key": "ui.selfcheck.state.not_planned",
+      "text": "not included"
+    },
+    {
+      "key": "ui.selfcheck.again",
+      "text": "Check again"
+    },
+    {
+      "key": "ui.selfcheck.report",
+      "text": "Create diagnostics report"
+    },
+    {
+      "key": "ui.selfcheck.open_folder",
+      "text": "Open folder"
+    },
+    {
+      "key": "ui.selfcheck.report_running",
+      "text": "Creating the report …"
+    },
+    {
+      "key": "ui.selfcheck.report_saved",
+      "text": "Report saved: {file} in {folder}. It holds no passwords and no personal folder names - you can pass it on when you ask for help."
+    },
+    {
+      "key": "ui.selfcheck.report_failed",
+      "text": "The report could not be created just now. Try again in a moment."
+    },
+    {
+      "key": "msg.hint.selfcheck",
+      "text": "An AI needs you. The settings say under \"AI\" what to do."
     }
   ]
 }

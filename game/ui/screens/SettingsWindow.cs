@@ -172,6 +172,136 @@ public partial class SettingsWindow : GwWindow
         return toggle;
     }
 
+    /// <summary>
+    /// The AI self-check (W1703 rules 2-4): per AI a calm line (state, clear text, what to do), "check again",
+    /// and a diagnostics report the player can pass on. <paramref name="check"/> and <paramref name="report"/>
+    /// never throw; null (no service, e.g. in the main menu) shows the calm "not running" text.
+    /// The report is also copied into <paramref name="reportFolder"/>, a folder the player can open.
+    /// </summary>
+    public void AddAi(Func<Task<AiClient.SelfCheckAnswer>>? check, Func<Task<AiClient.DiagnosticsAnswer>>? report, string reportFolder)
+    {
+        Section("ui.settings.section.ai");
+        var lines = new VBoxContainer { Name = "AiLines" };
+        Content.AddChild(lines);
+        var buttons = new HBoxContainer();
+        var again = new Button { Text = "ui.selfcheck.again", Disabled = check is null };
+        var make = new Button { Text = "ui.selfcheck.report", Disabled = report is null };
+        var open = new Button { Text = "ui.selfcheck.open_folder", Visible = false };
+        buttons.AddChild(again);
+        buttons.AddChild(make);
+        buttons.AddChild(open);
+        Content.AddChild(buttons);
+        var status = new Label { Name = "AiReportStatus", Visible = false, AutoTranslateMode = AutoTranslateModeEnum.Disabled, AutowrapMode = TextServer.AutowrapMode.WordSmart };
+        Content.AddChild(status);
+
+        void Show(IEnumerable<Control> controls)
+        {
+            foreach (var child in lines.GetChildren())
+            {
+                lines.RemoveChild(child);
+                child.QueueFree();
+            }
+
+            foreach (var control in controls)
+            {
+                lines.AddChild(control);
+            }
+        }
+
+        Label Text(string key) => new() { Text = key, AutowrapMode = TextServer.AutowrapMode.WordSmart };
+
+        async void Run()
+        {
+            if (check is null)
+            {
+                Show([Text(SelfCheckView.Unavailable)]);
+                return;
+            }
+
+            again.Disabled = true;
+            Show([Text(SelfCheckView.Checking)]);
+            var answer = await check();
+            if (!IsInstanceValid(this) || !IsInsideTree())
+            {
+                return;
+            }
+
+            again.Disabled = false;
+            if (answer.Check is null)
+            {
+                GD.Print($"SELFCHECK_UNAVAILABLE {answer.Problem}");
+                Show([Text(SelfCheckView.Unavailable)]);
+                return;
+            }
+
+            Show(SelfCheckView.Lines(answer.Check).SelectMany(AiLine));
+        }
+
+        IEnumerable<Control> AiLine(SelfCheckLine line)
+        {
+            // "Bild-KI: bereit" as a small header, the clear text below, then what to do.
+            var head = new Label
+            {
+                Text = TextFill.Fill(Tr("ui.selfcheck.line"), new Dictionary<string, string> { ["ai"] = Tr(line.AiKey), ["state"] = Tr(line.StateKey) }),
+                AutoTranslateMode = AutoTranslateModeEnum.Disabled,
+                ThemeTypeVariation = UiTheme.SubheaderLabel,
+            };
+            yield return head;
+
+            // A message the game does not know yet (newer service) gets the general text, never a raw key.
+            var message = Tr(line.MessageKey).ToString();
+            yield return new Label
+            {
+                Text = message == line.MessageKey ? Tr(SelfCheckView.UnknownMessage) : message,
+                AutoTranslateMode = AutoTranslateModeEnum.Disabled,
+                AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            };
+            if (line.Detail.Length > 0)
+            {
+                yield return new Label { Text = line.Detail, AutoTranslateMode = AutoTranslateModeEnum.Disabled, AutowrapMode = TextServer.AutowrapMode.WordSmart };
+            }
+
+            if (line.FixKey is { } fix && Tr(fix).ToString() is var hint && hint != fix)
+            {
+                yield return new Label { Text = hint, AutoTranslateMode = AutoTranslateModeEnum.Disabled, AutowrapMode = TextServer.AutowrapMode.WordSmart };
+            }
+        }
+
+        async void Report()
+        {
+            if (report is null)
+            {
+                return;
+            }
+
+            make.Disabled = true;
+            status.Text = Tr("ui.selfcheck.report_running");
+            status.Visible = true;
+            var answer = await report();
+            if (!IsInstanceValid(this) || !IsInsideTree())
+            {
+                return;
+            }
+
+            make.Disabled = false;
+            var saved = answer.Report is { } made && DiagnosticsFile.Save(reportFolder, made.FileName, made.Text);
+            if (!saved)
+            {
+                GD.Print($"DIAGNOSTICS_FAILED {answer.Problem ?? "could not write the copy"}");
+            }
+
+            status.Text = saved
+                ? TextFill.Fill(Tr("ui.selfcheck.report_saved"), new Dictionary<string, string> { ["file"] = answer.Report!.FileName, ["folder"] = reportFolder })
+                : Tr("ui.selfcheck.report_failed");
+            open.Visible = saved;
+        }
+
+        again.Pressed += Run;
+        make.Pressed += Report;
+        open.Pressed += () => OS.ShellOpen(reportFolder);
+        Run();
+    }
+
     private void Section(string key) => Content.AddChild(new Label { Text = key, ThemeTypeVariation = UiTheme.SubheaderLabel });
 
     private void Row(string key, Control control)

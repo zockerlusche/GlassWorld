@@ -321,6 +321,7 @@ public partial class Main : Node3D
             _screen = new GameScreen { Name = "GameScreen" };
             AddChild(_screen);
             _screen.Setup(_world, _style);
+            HintIfAnAiNeedsThePlayer();
             _screen.ApplySettings(_settings, _style);
             _screen.SetupChronicle(ContractSerializer.Deserialize<ChronicleKinds>(System.IO.File.ReadAllText(System.IO.Path.Combine(_contentDirectory, "chronicle", "kinds.json"))));
             _world.SaveFailed += _ => _screen?.ShowHint(SaveFailedHint());
@@ -406,7 +407,33 @@ public partial class Main : Node3D
             }).CallDeferred();
         };
         window.Closed += SaveSettings;
+
+        // The AI self-check (W1703): with a running world's service; in the main menu the calm "not running" text.
+        var setup = _world?.SetupPort;
+        window.AddAi(setup is null ? null : () => setup.CheckAsync(), setup is null ? null : () => setup.DiagnosticsAsync(), DiagnosticsFolder());
         show(window);
+    }
+
+    /// <summary>Where the player's copies of diagnostics reports lie (W1703): the game's own folder, which it can open.</summary>
+    private static string DiagnosticsFolder() => System.IO.Path.Combine(OS.GetUserDataDir(), "diagnostics");
+
+    /// <summary>
+    /// Once per world (W1703 rule 2): if an AI needs the player, one calm hint that points to the settings.
+    /// The world runs on either way (rule 3).
+    /// </summary>
+    private async void HintIfAnAiNeedsThePlayer()
+    {
+        if (_world?.SetupPort is not { } setup)
+        {
+            return;
+        }
+
+        var world = _world;
+        var answer = await setup.CheckAsync();
+        if (answer.Check is { } check && SelfCheckView.NeedsPlayer(check) && IsInstanceValid(this) && _world == world)
+        {
+            _screen?.ShowHint(new ToastMessage("msg.hint.selfcheck", new Dictionary<string, string>(), "selfcheck"));
+        }
     }
 
     private void SaveSettings()
