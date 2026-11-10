@@ -79,7 +79,7 @@ public partial class IslandScene : Node3D
         var content = ContentLocator.ContentDirectory();
         T Look<T>(string file)
             where T : class => ContractSerializer.Deserialize<T>(File.ReadAllText(Path.Combine(content, "look", file)));
-        var host = SimulationHost.CreateGeneratedWorld(content, seed, new MockDecisionPort(), "de", preset);
+        var host = SimulationHost.CreateGeneratedWorld(content, seed, MockDecisionPort.FromContent(content), "de", preset);
         _host = host;
         var speed = double.Parse(Arg("--speed") ?? "1", CultureInfo.InvariantCulture);
         _warmTicks = long.Parse(Arg("--warm-ticks") ?? "0", CultureInfo.InvariantCulture);

@@ -10,7 +10,7 @@ public enum PoseSource
     /// <summary>The figure starts or stops walking.</summary>
     Walk,
 
-    /// <summary>The core's action (or its target) changed.</summary>
+    /// <summary>The core's action (or its target) changed since the figure's last pose change (a short action may already be over).</summary>
     Action,
 
     /// <summary>Same action, another idle behaviour (idle variety).</summary>
@@ -51,6 +51,7 @@ public static class PoseMeter
         var accumulator = 0.0;
         var start = host.World.Tick;
         var moving = new Dictionary<string, bool>(StringComparer.Ordinal);
+        var coreChanged = new HashSet<string>(StringComparer.Ordinal);
         GlassWorld.Simulation.View.WorldSnapshot? snapshot = null;
         for (long frame = 0; host.World.Tick - start < ticks; frame++)
         {
@@ -85,11 +86,17 @@ public static class PoseMeter
                 }
 
                 var now = pose(inhabitant, snapshot.Inhabitants, snapshot.Time.Tick, moving.GetValueOrDefault(inhabitant.Id), realS, frame, applied);
+                if (before.Pose is not null && (before.Action != inhabitant.Action || before.Target != inhabitant.TargetId))
+                {
+                    coreChanged.Add(inhabitant.Id);
+                }
+
                 if (before.Pose is not null && now != before.Pose)
                 {
                     var source = now == "walk" || before.Pose == "walk" ? PoseSource.Walk
-                        : before.Action != inhabitant.Action || before.Target != inhabitant.TargetId || !idleClips.Contains(now) ? PoseSource.Action
+                        : coreChanged.Remove(inhabitant.Id) || !idleClips.Contains(now) ? PoseSource.Action
                         : PoseSource.Idle;
+                    coreChanged.Remove(inhabitant.Id);
                     var counts = changes.TryGetValue(inhabitant.Id, out var c) ? c : changes[inhabitant.Id] = [];
                     counts[source] = counts.GetValueOrDefault(source) + 1;
                     var key = (inhabitant.Id, (long)(realS / 60));
