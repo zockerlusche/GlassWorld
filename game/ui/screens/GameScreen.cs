@@ -24,6 +24,7 @@ public partial class GameScreen : CanvasLayer
     private int _relayoutFrames;
     private readonly GwSideBar _sideBar = new();
     private readonly VBoxContainer _themeBar = new() { Name = "ThemeBar", Visible = false };
+    private readonly VBoxContainer _timelineList = new() { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
     private readonly Dictionary<string, Button> _themeButtons = new(StringComparer.Ordinal);
     private readonly Dictionary<string, string> _lastOfTheme = new(StringComparer.Ordinal);
     private readonly List<(bool Own, Button Tab)> _zoneTabs = [];
@@ -142,6 +143,12 @@ public partial class GameScreen : CanvasLayer
         _sideBar.Add(ScreenZones.Card, ScreenZones.TitleKey(ScreenZones.Card));
         _sideBar.ButtonOf(ScreenZones.Card).Visible = false;
         _root.AddChild(_sideBar.PanelOf(ScreenZones.Card));
+
+        // The timeline over seasons and years as its own tab of the world theme (D642 step 3); the layout so
+        // far keeps it as the drop-down inside the chronicle.
+        _sideBar.Add(ScreenZones.Timeline, ScreenZones.TitleKey(ScreenZones.Timeline)).Content.AddChild(_timelineList);
+        _sideBar.ButtonOf(ScreenZones.Timeline).Visible = false;
+        _root.AddChild(_sideBar.PanelOf(ScreenZones.Timeline));
         BuildZones();
 
         _toasts.Board = _board;
@@ -227,6 +234,7 @@ public partial class GameScreen : CanvasLayer
         }
 
         ShowZoneState();
+        ShowChronicleDay(_chronicleDay);
     }
 
     /// <summary>
@@ -979,10 +987,17 @@ public partial class GameScreen : CanvasLayer
             child.QueueFree();
         }
 
+        foreach (var child in _timelineList.GetChildren())
+        {
+            _timelineList.RemoveChild(child);
+            child.QueueFree();
+        }
+
         var days = _chronicle.Days();
         if (days.Count == 0)
         {
             _chronicleList.AddChild(new Label { Text = "ui.chronicle.empty", AutowrapMode = TextServer.AutowrapMode.WordSmart });
+            _timelineList.AddChild(new Label { Text = "ui.timeline.empty", AutowrapMode = TextServer.AutowrapMode.WordSmart });
             return;
         }
 
@@ -1026,7 +1041,30 @@ public partial class GameScreen : CanvasLayer
         }
 
         timeline.ItemSelected += index => ShowChronicleDay(seasons[(int)index].FirstDay);
+        timeline.Visible = !_zones;
         _chronicleList.AddChild(timeline);
+
+        // The same seasons as a list for the timeline tab of the zones layout: a click shows that season's
+        // first day in the chronicle tab; the season of the page shown is marked.
+        for (var i = 0; i < seasons.Count; i++)
+        {
+            var season = seasons[i];
+            var jump = new Button
+            {
+                Text = timeline.GetItemText(i),
+                ToggleMode = true,
+                ButtonPressed = timeline.Selected == i,
+                Alignment = HorizontalAlignment.Left,
+                AutoTranslateMode = AutoTranslateModeEnum.Disabled,
+                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+            };
+            jump.Pressed += () =>
+            {
+                ShowChronicleDay(season.FirstDay);
+                _sideBar.Open("chronicle");
+            };
+            _timelineList.AddChild(jump);
+        }
 
         // The entries of the day: a click opens the inhabitant's card (and the camera follows on the island).
         foreach (var entry in entries)
@@ -1789,6 +1827,22 @@ public partial class GameScreen : CanvasLayer
             if (boxes.Any(b => b.Box.HasPoint(middle)) || open.Position.X < middle.X)
             {
                 return "the middle of the picture is not free";
+            }
+
+            // Step 3: the world theme holds the chronicle and the timeline as tabs.
+            _themeButtons["world"].EmitSignal(BaseButton.SignalName.Pressed);
+            await Frames();
+            var worldTabs = _sideBar.PanelOf("chronicle").Tabs.GetChildren().OfType<Button>().ToList();
+            if (_sideBar.OpenKey != "chronicle" || worldTabs.Count != 2)
+            {
+                return $"the world theme opened '{_sideBar.OpenKey}' with {worldTabs.Count} tabs";
+            }
+
+            worldTabs[1].EmitSignal(BaseButton.SignalName.Pressed);
+            await Frames();
+            if (_sideBar.OpenKey != ScreenZones.Timeline || _timelineList.GetChildCount() == 0)
+            {
+                return "the timeline tab did not open or is empty";
             }
 
             // Step 2: the card is a tab of the people theme, in the side window's place, with the talk field.
