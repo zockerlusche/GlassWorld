@@ -104,11 +104,15 @@ public sealed class NightScene(LookNight data)
         }
     }
 
-    /// <summary>Whether the service reports nothing left: nothing queued or running, or its night budget spent.</summary>
+    /// <summary>
+    /// Whether the service reports nothing left of its night: it is in the night phase and has nothing queued or
+    /// running, or its night budget is spent. A status still in the day phase (the first poll right after nightfall,
+    /// before the service switched) is never "done" (review GW1 #209).
+    /// </summary>
     public static bool Done(PhaseStatus status)
     {
         ArgumentNullException.ThrowIfNull(status);
-        return (status.Queued + status.Running == 0) || status.BudgetLeftS <= 0;
+        return status.Phase == PhaseStatusPhase.Night && ((status.Queued + status.Running == 0) || status.BudgetLeftS <= 0);
     }
 
     private void Enter(NightStage stage)

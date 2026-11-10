@@ -94,5 +94,10 @@ public sealed class NightSceneTests
         Assert.True(NightScene.Done(Status(0, 0, 900)));
         Assert.True(NightScene.Done(Status(3, 1, 0)));
         Assert.False(NightScene.Done(Status(2, 0, 900)));
+
+        // Still in the day phase (the service has not switched yet): never done.
+        var day = Status(0, 0, 900);
+        day.Phase = PhaseStatusPhase.Day;
+        Assert.False(NightScene.Done(day));
     }
 }
