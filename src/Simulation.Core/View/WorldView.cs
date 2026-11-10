@@ -86,9 +86,10 @@ public sealed record WorldSnapshot(WorldTime Time, IReadOnlyList<InhabitantSnaps
 
     /// <summary>
     /// The compute night of the AI service runs (B7, content/jobs/phases.json night phases): the screen may
-    /// dim and show the night scene. A signal only, not in the state hash; world time keeps running.
+    /// dim and show the night scene. A signal only, not in the state hash; world time keeps running. Null
+    /// until the first tick of a new or loaded world has decided it (a start at night is no fresh night).
     /// </summary>
-    public bool ComputeNight { get; init; }
+    public bool? ComputeNight { get; init; }
 
     /// <summary>
     /// Version of the player's view (B2-6 R14): the number of cells any inhabitant has seen so far. It only
