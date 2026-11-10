@@ -153,3 +153,25 @@ def test_the_diagnostics_report_hides_tokens_and_user_paths(
     for leaked in (home, home.replace("\\", "/"), "hf_SECRETSECRETSECRET1", str(settings.log_dir)):
         assert leaked not in text, leaked
     assert (settings.log_dir / body["file_name"]).read_text(encoding="utf-8") == text
+
+
+def test_scrub_removes_the_account_name_outside_known_folders() -> None:
+    """Review GW1 #135: a traceback path outside the known folders keeps no user name."""
+    text = scrub(
+        "File D:/Spiele/Kim42/GlassWorld/x.py and E:/Kim42-backup but Kimono stays",
+        [],
+        user_names=["Kim42"],
+    )
+    assert "Kim42" not in text
+    assert "D:/Spiele/<user>/GlassWorld" in text and "E:/<user>-backup" in text
+    assert "Kimono" in text  # only the whole name
+
+
+def test_account_names_come_from_the_system(monkeypatch: pytest.MonkeyPatch) -> None:
+    from glassworld_ai.diagnostics import account_names
+
+    monkeypatch.setenv("USERNAME", "Kim42")
+    monkeypatch.setenv("USER", "ab")  # too short to be replaced safely
+    names = account_names()
+    assert "Kim42" in names and "ab" not in names
+    assert scrub("C:/Games/Kim42/log.txt", []) == "C:/Games/<user>/log.txt"

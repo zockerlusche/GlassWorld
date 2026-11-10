@@ -9,6 +9,7 @@ player passes it on.
 from __future__ import annotations
 
 import json
+import os
 import re
 from datetime import UTC, datetime
 from pathlib import Path
@@ -26,12 +27,22 @@ _SECRETS = [
 _USER_DIR = re.compile(r"(?i)([a-z]:[\\/]+users[\\/]+|/users/|/home/)[^\\/\s\"']+")
 
 
-def scrub(text: str, known_dirs: list[Path]) -> str:
-    """Removes secrets and user paths: known folders become <dir>, user folders <user>."""
+def account_names() -> list[str]:
+    """The names of the player's account (home folder name, USERNAME, USER), at least 3 letters."""
+    names = {Path.home().name, os.environ.get("USERNAME", ""), os.environ.get("USER", "")}
+    return sorted((n for n in names if len(n) >= 3), key=len, reverse=True)
+
+
+def scrub(text: str, known_dirs: list[Path], user_names: list[str] | None = None) -> str:
+    """Removes secrets and user paths: known folders become <dir>, user folders <user>, and the
+    account name anywhere else (e.g. a games folder named after it in a traceback) as a whole
+    word <user>."""
     for folder in sorted({str(d) for d in known_dirs if str(d)}, key=len, reverse=True):
         for spelling in {folder, folder.replace("\\", "/"), folder.replace("/", "\\")}:
             text = text.replace(spelling, "<dir>")
     text = _USER_DIR.sub(lambda m: m.group(1) + "<user>", text)
+    for name in account_names() if user_names is None else user_names:
+        text = re.sub(rf"(?i)(?<![^\W_]){re.escape(name)}(?![^\W_])", "<user>", text)
     for pattern in _SECRETS:
         text = pattern.sub(lambda m: m.group(0)[:3] + "<hidden>", text)
     return text
