@@ -45,6 +45,7 @@
     "recover_per_hour": 0.002,
     "fading_below": 0.2
   },
+  "togetherness": { "need": "company", "per_hour": 0.05, "cap": 0.6, "distance_m": 3.0, "min_trust": 0.5, "min_affection": 0.3, "sleep_action": "sleep" },
   "start": {
     "inhabitants": [
       { "sex": "female", "group": 1 },

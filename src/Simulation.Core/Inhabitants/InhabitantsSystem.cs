@@ -255,9 +255,15 @@ public sealed class InhabitantsSystem : IWorldSystem
             _tickStart[inhabitant.Id] = inhabitant.Position;
         }
 
+        var together = Together();
         foreach (var inhabitant in _inhabitants.Values)
         {
             DecayNeeds(inhabitant);
+            if (together.Contains(inhabitant.Id))
+            {
+                FillTogether(inhabitant, _model.Togetherness!);
+            }
+
             UpdateMoods(inhabitant);
             UpdateWillToLive(inhabitant);
             var before = inhabitant.Position;
@@ -427,6 +433,47 @@ public sealed class InhabitantsSystem : IWorldSystem
 
     private double PerTick(double perHour) => perHour / _ticksPerHour;
 
+    /// <summary>
+    /// Being together (TL #20190, data: togetherness in the inhabitant model): the inhabitants that, at the start
+    /// of the tick, stand within the distance of another they are familiar with (own relationship at least the
+    /// data's trust and affection; start values when they have not met), neither of them asleep. Only a need
+    /// effect follows, no behaviour. Deterministic: id order, no random draw.
+    /// </summary>
+    private HashSet<string> Together()
+    {
+        var together = new HashSet<string>(StringComparer.Ordinal);
+        if (_model.Togetherness is not { } data || Knowledge is not { } knowledge || (data.DistanceM ?? Space?.ConversationMaxM) is not { } reach)
+        {
+            return together;
+        }
+
+        var start = Start(knowledge);
+        foreach (var inhabitant in _inhabitants.Values.Where(i => !Asleep(i, data)))
+        {
+            if (_inhabitants.Values.Any(other => other != inhabitant && !Asleep(other, data)
+                && DistanceSquared(inhabitant.Position, other.Position) <= reach * reach
+                && inhabitant.Relationships.Get(other.Id, start) is var relation
+                && relation.Trust >= data.MinTrust && relation.Affection >= data.MinAffection))
+            {
+                together.Add(inhabitant.Id);
+            }
+        }
+
+        return together;
+    }
+
+    private static bool Asleep(Inhabitant inhabitant, Togetherness data) =>
+        inhabitant.Activity is { RemainingTicks: not null } activity && string.Equals(activity.Action, data.SleepAction, StringComparison.Ordinal);
+
+    /// <summary>Togetherness fills its need by the data's rate per hour, never above the cap (TL #20190).</summary>
+    private void FillTogether(Inhabitant inhabitant, Togetherness data)
+    {
+        if (inhabitant.Needs.TryGetValue(data.Need, out var value) && value < data.Cap)
+        {
+            inhabitant.Needs[data.Need] = Math.Min(value + PerTick(data.PerHour), data.Cap);
+        }
+    }
+
     private void DecayNeeds(Inhabitant inhabitant)
     {
         foreach (var need in _model.Needs)
@@ -576,6 +623,7 @@ public sealed class InhabitantsSystem : IWorldSystem
         var changed = Finish(world, inhabitant, activity, target);
         if (listener is not null)
         {
+            Share(listener, activity.Action);
             Pass(world, inhabitant, listener, activity.Action);
         }
 
@@ -968,24 +1016,7 @@ public sealed class InhabitantsSystem : IWorldSystem
         var least = Math.Max(_brain.Weights.Repetition?.MinEffect ?? 0, double.Epsilon);
         foreach (var effect in applying.SelectMany(r => r.Effects))
         {
-            switch (effect.Kind)
-            {
-                case EffectKind.Need when inhabitant.Needs.TryGetValue(effect.Id, out var need):
-                    inhabitant.Needs[effect.Id] = Math.Clamp(need + effect.Delta, 0.0, 1.0);
-                    changed |= Math.Abs(inhabitant.Needs[effect.Id] - need) >= least;
-                    break;
-                case EffectKind.Mood when inhabitant.Moods.TryGetValue(effect.Id, out var mood):
-                    inhabitant.Moods[effect.Id] = Math.Clamp(mood + effect.Delta, 0.0, 1.0);
-                    changed |= Math.Abs(inhabitant.Moods[effect.Id] - mood) >= least;
-                    break;
-                case EffectKind.Will_to_live:
-                    var will = inhabitant.WillToLive;
-                    inhabitant.WillToLive = Math.Clamp(will + effect.Delta, 0.0, 1.0);
-                    changed |= Math.Abs(inhabitant.WillToLive - will) >= least;
-                    break;
-                default:
-                    break;
-            }
+            changed |= Apply(inhabitant, effect, effect.Delta) >= least;
         }
 
         if (target is not null)
@@ -1003,6 +1034,40 @@ public sealed class InhabitantsSystem : IWorldSystem
         }
 
         return changed;
+    }
+
+    /// <summary>
+    /// Applies one effect with the given delta (clamped to 0..1) and returns how much the value changed.
+    /// </summary>
+    private static double Apply(Inhabitant inhabitant, Effect effect, double delta)
+    {
+        switch (effect.Kind)
+        {
+            case EffectKind.Need when inhabitant.Needs.TryGetValue(effect.Id, out var need):
+                inhabitant.Needs[effect.Id] = Math.Clamp(need + delta, 0.0, 1.0);
+                return Math.Abs(inhabitant.Needs[effect.Id] - need);
+            case EffectKind.Mood when inhabitant.Moods.TryGetValue(effect.Id, out var mood):
+                inhabitant.Moods[effect.Id] = Math.Clamp(mood + delta, 0.0, 1.0);
+                return Math.Abs(inhabitant.Moods[effect.Id] - mood);
+            case EffectKind.Will_to_live:
+                var will = inhabitant.WillToLive;
+                inhabitant.WillToLive = Math.Clamp(will + delta, 0.0, 1.0);
+                return Math.Abs(inhabitant.WillToLive - will);
+            default:
+                return 0;
+        }
+    }
+
+    /// <summary>
+    /// The other participant of an action aimed at an inhabitant gets the data's listener share of each effect
+    /// of the action as well (TL #20190); effects without a share reach only the actor.
+    /// </summary>
+    private void Share(Inhabitant listener, string action)
+    {
+        foreach (var effect in _actions.Applying(action, null).SelectMany(r => r.Effects).Where(e => e.ListenerShare > 0))
+        {
+            Apply(listener, effect, effect.Delta * effect.ListenerShare!.Value);
+        }
     }
 
     /// <summary>

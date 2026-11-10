@@ -64,6 +64,39 @@ class MoodDriver(BaseModel):
     delta_per_hour: float = Field(..., ge=-1.0, le=1.0)
 
 
+class Togetherness(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    need: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    per_hour: float = Field(..., ge=0.0, le=1.0)
+    cap: float = Field(
+        ...,
+        description='Togetherness fills the need up to this value, not above.',
+        ge=0.0,
+        le=1.0,
+    )
+    distance_m: float | None = Field(
+        None,
+        description='Distance in metres; omitted = spacing.conversation_max_m of content/behaviour/gaits.json.',
+        ge=0.0,
+        le=100.0,
+    )
+    min_trust: float = Field(..., ge=0.0, le=1.0)
+    min_affection: float = Field(..., ge=0.0, le=1.0)
+    sleep_action: str = Field(
+        ...,
+        description='Action during which an inhabitant counts as asleep (once it has started).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+
+
 class WillToLiveModel(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -180,3 +213,4 @@ class InhabitantModel(BaseModel):
         min_length=1,
     )
     skill_rules: SkillRules
+    togetherness: Togetherness | None = None

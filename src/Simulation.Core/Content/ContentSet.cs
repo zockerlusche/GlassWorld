@@ -465,6 +465,7 @@ public sealed class ContentSet
             .Concat(model.MoodDrivers.SelectMany(d => new[] { d.Need, d.Mood }).Where(id => !needs.Contains(id) && !moods.Contains(id)))
             .Concat(model.Start.Traits.Select(r => r.Id).Where(id => !traits.Contains(id)))
             .Concat(model.Start.Needs.Select(r => r.Id).Where(id => !needs.Contains(id)))
+            .Concat(model.Togetherness is { } together && !needs.Contains(together.Need) ? [together.Need] : [])
             .Distinct(StringComparer.Ordinal)
             .ToList();
         var badRanges = model.Start.Traits.Concat(model.Start.Needs).Where(r => r.Min > r.Max).Select(r => r.Id).ToList();

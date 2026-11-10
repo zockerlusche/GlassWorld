@@ -49,13 +49,13 @@
       { "kind": "need", "id": "purpose", "delta": 0.05 }
     ] },
     { "action": "warn", "requires_property": null, "consumes_target": false, "effects": [
-      { "kind": "need", "id": "company", "delta": 0.03 }
+      { "kind": "need", "id": "company", "delta": 0.03, "listener_share": 0.5 }
     ] },
     { "action": "show", "requires_property": null, "consumes_target": false, "effects": [
-      { "kind": "need", "id": "company", "delta": 0.04 }
+      { "kind": "need", "id": "company", "delta": 0.04, "listener_share": 0.5 }
     ] },
     { "action": "teach", "requires_property": null, "consumes_target": false, "effects": [
-      { "kind": "need", "id": "company", "delta": 0.05 },
+      { "kind": "need", "id": "company", "delta": 0.05, "listener_share": 0.5 },
       { "kind": "need", "id": "purpose", "delta": 0.03 }
     ] }
   ]

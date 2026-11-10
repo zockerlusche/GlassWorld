@@ -61,6 +61,12 @@ class Effect(BaseModel):
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
     delta: float = Field(..., ge=-1.0, le=1.0)
+    listener_share: float | None = Field(
+        None,
+        description='Share of the delta the other participant of an action aimed at an inhabitant (the listener) gets as well, 0..1 (TL #20190); omitted = 0, only the actor.',
+        ge=0.0,
+        le=1.0,
+    )
 
 
 class EffectRule(BaseModel):

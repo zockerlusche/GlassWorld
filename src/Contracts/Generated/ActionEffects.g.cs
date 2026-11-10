@@ -82,6 +82,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("delta")]
         public double Delta { get; set; } = default!;
 
+        /// <summary>
+        /// Share of the delta the other participant of an action aimed at an inhabitant (the listener) gets as well, 0..1 (TL #20190); omitted = 0, only the actor.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("listener_share")]
+        public double? ListenerShare { get; set; } = default!;
+
     }
 
     /// <summary>

@@ -45,7 +45,8 @@
       "properties": {
         "kind": { "type": "string", "enum": ["need", "mood", "will_to_live"] },
         "id": { "description": "Need or mood id; ignored for will_to_live.", "$ref": "common.schema.json#/$defs/VocabId" },
-        "delta": { "type": "number", "minimum": -1, "maximum": 1 }
+        "delta": { "type": "number", "minimum": -1, "maximum": 1 },
+        "listener_share": { "description": "Share of the delta the other participant of an action aimed at an inhabitant (the listener) gets as well, 0..1 (TL #20190); omitted = 0, only the actor.", "type": "number", "minimum": 0, "maximum": 1 }
       }
     }
   }
