@@ -26,6 +26,9 @@ public static class UiTheme
     /// <summary>Theme type variation for the window frame.</summary>
     public const string WindowPanel = "GwWindowPanel";
 
+    /// <summary>The window frame with the small padding of the zones layout (top bar and zone panels, W1717).</summary>
+    public const string CompactPanel = "GwCompactPanel";
+
     /// <summary>Panel type for hints and tooltips (Godot's built-in type name).</summary>
     public const string TooltipPanel = "TooltipPanel";
 
@@ -71,6 +74,12 @@ public static class UiTheme
         var window = Frame(style, UiFrameId.Window, UiColorId.Panel);
         theme.SetTypeVariation(WindowPanel, "PanelContainer");
         theme.SetStylebox("panel", WindowPanel, window);
+
+        // The same frame with the zones' small padding: a low top bar and slim panels keep the middle free.
+        var compact = (StyleBox)window.Duplicate();
+        compact.SetContentMarginAll((float)(style.Frame(UiFrameId.Window).ContentPadding + style.Tokens.Zones.PanelPadding));
+        theme.SetTypeVariation(CompactPanel, "PanelContainer");
+        theme.SetStylebox("panel", CompactPanel, compact);
         theme.SetStylebox("panel", TooltipPanel, Frame(style, UiFrameId.Tooltip, UiColorId.Panel_strong));
         theme.SetTypeVariation(BubblePanel, "PanelContainer");
         theme.SetStylebox("panel", BubblePanel, Frame(style, UiFrameId.Bubble, UiColorId.Bubble_inhabitant));
