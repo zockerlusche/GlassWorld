@@ -69,7 +69,7 @@ public sealed class WorldGenContent
         CheckSpawns(spawns, biomes, objects, problems);
         foreach (var climate in climates)
         {
-            CheckClimate(climate, weatherVocabulary, calendar, problems);
+            CheckClimate(climate, weatherVocabulary, Ids(vocabularies, VocabularyKind.Event), calendar, problems);
         }
 
         var biomeIds = biomes.Biomes.Select(b => b.Id).ToHashSet(StringComparer.Ordinal);
@@ -254,10 +254,16 @@ public sealed class WorldGenContent
         }
     }
 
-    private static void CheckClimate(ClimateSettings climate, HashSet<string> weatherVocabulary, WorldCalendar calendar, List<string> problems)
+    private static void CheckClimate(ClimateSettings climate, HashSet<string> weatherVocabulary, HashSet<string> eventVocabulary, WorldCalendar calendar, List<string> problems)
     {
         var weather = climate.Weather;
         var states = weather.States.Select(s => s.Weather).ToHashSet(StringComparer.Ordinal);
+
+        // Signals (B2-5 R13): a condition is a weather of this climate, its events are in the event vocabulary.
+        var signals = weather.Signals ?? [];
+        Duplicates(signals.Select(s => s.Condition), $"climate '{climate.Id}' signal", problems);
+        problems.AddRange(signals.Where(s => !states.Contains(s.Condition)).Select(s => $"climate '{climate.Id}': signal condition '{s.Condition}' has no state values"));
+        problems.AddRange(signals.SelectMany(s => new[] { s.StartEvent, s.EndEvent }).Where(e => !eventVocabulary.Contains(e)).Select(e => $"climate '{climate.Id}': signal event '{e}' not in vocabulary 'event'"));
         Duplicates(weather.States.Select(s => s.Weather), $"climate '{climate.Id}' weather state", problems);
         problems.AddRange(states.Where(s => !weatherVocabulary.Contains(s)).Select(s => $"climate '{climate.Id}': weather '{s}' not in vocabulary 'weather'"));
         var temperature = weather.Temperature;

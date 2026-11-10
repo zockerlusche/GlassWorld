@@ -9,6 +9,18 @@
     "snow_weather": "snow",
     "drought_weather": "drought",
     "gust_period_minutes": 15,
+    "signals": [
+      {
+        "condition": "storm",
+        "start_event": "storm_started",
+        "end_event": "storm_ended"
+      },
+      {
+        "condition": "drought",
+        "start_event": "drought_started",
+        "end_event": "drought_ended"
+      }
+    ],
     "states": [
       {
         "weather": "clear",

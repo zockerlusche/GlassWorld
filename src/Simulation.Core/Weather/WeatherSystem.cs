@@ -1,4 +1,5 @@
 using GlassWorld.Contracts;
+using GlassWorld.Simulation.Inhabitants;
 using GlassWorld.Simulation.Objects;
 using GlassWorld.Simulation.Random;
 using GlassWorld.Simulation.State;
@@ -28,6 +29,12 @@ public sealed record WeatherReading(
 {
     /// <summary>Wind 0..1 now with the blend after a change and the slow gusts (<see cref="IWeather.WindAt"/>; sound, plants sway, GW3).</summary>
     public double Wind { get; init; }
+
+    /// <summary>
+    /// The signalled conditions that are on now (condition id, tick it began), sorted by id: storm and
+    /// drought by the climate data (B2-5 R13, signals for B5 and the presentation).
+    /// </summary>
+    public IReadOnlyList<KeyValuePair<string, long>> Signals { get; init; } = [];
 }
 
 /// <summary>Saved state of the weather (save games, meta JSON).</summary>
@@ -35,7 +42,14 @@ public sealed record WeatherReading(
 /// <param name="SinceTick">Tick at which it began.</param>
 /// <param name="DryTicks">Ticks in a row without precipitation.</param>
 /// <param name="History">Recent phases (start tick, weather), oldest first, the current one last.</param>
-public sealed record WeatherState(string Weather, long SinceTick, long DryTicks, IReadOnlyList<KeyValuePair<long, string>> History);
+public sealed record WeatherState(string Weather, long SinceTick, long DryTicks, IReadOnlyList<KeyValuePair<long, string>> History)
+{
+    /// <summary>
+    /// The signalled conditions that are on (condition id, tick it began), sorted by id; null when none is
+    /// on and in save games from before the signals (B2-5), which get them from the saved weather on load.
+    /// </summary>
+    public IReadOnlyList<KeyValuePair<string, long>>? Signals { get; init; }
+}
 
 /// <summary>
 /// The weather as a world system (B2 R13, name "weather", stream "weather/change"): at every change step
@@ -43,6 +57,12 @@ public sealed record WeatherState(string Weather, long SinceTick, long DryTicks,
 /// current season; precipitation below the snow temperature turns into the snow weather; after the dry
 /// days of the data the drought weather joins the conditions. Integer state only, deterministic, part of
 /// the hash and the save game. The weather is island-wide for now.
+/// <para>
+/// Signals (B2-5 R13): for every condition the climate data name under <c>signals</c> (storm, drought) the
+/// system tracks whether it is on and since when, and reports its start and end as world events
+/// (<see cref="Report"/>) and through <see cref="SignalChanged"/>. The tracked conditions are saved and
+/// part of the hash while any is on.
+/// </para>
 /// </summary>
 public sealed class WeatherSystem : IWorldSystem, IWeather
 {
@@ -61,6 +81,8 @@ public sealed class WeatherSystem : IWorldSystem, IWeather
     private readonly long _transitionTicks;
     private readonly ulong _windSeed;
     private readonly List<KeyValuePair<long, string>> _history = [];
+    private readonly List<ClimateSignal> _signalRules;
+    private readonly SortedDictionary<string, long> _signals = new(StringComparer.Ordinal);
     private long _dryTicks;
 
     // The world tick up to which the weather is known: systems advance at tick t, then the world moves to t + 1.
@@ -88,8 +110,12 @@ public sealed class WeatherSystem : IWorldSystem, IWeather
         _gustTicks = Math.Max(1L, (long)_data.GustPeriodMinutes * ticksPerHour / 60);
         _transitionTicks = (long)_data.TransitionMinutes * ticksPerHour / 60;
         _windSeed = seed ^ RandomStreams.Fnv1a64("weather/wind");
+        _signalRules = [.. (_data.Signals ?? []).OrderBy(s => s.Condition, StringComparer.Ordinal)];
         Current = _data.States.First().Weather;
         _history.Add(new KeyValuePair<long, string>(0, Current));
+
+        // A world may begin in a signalled condition: it is on from tick 0, without an event.
+        SyncSignals(0, announce: false);
     }
 
     /// <inheritdoc/>
@@ -103,6 +129,24 @@ public sealed class WeatherSystem : IWorldSystem, IWeather
 
     /// <summary>Raised when the main weather changes (old, new, tick); for chronicle and B5 signals.</summary>
     public event Action<string, string, long>? Changed;
+
+    /// <summary>
+    /// Raised when a signalled condition begins or ends (condition id, true = began, tick), right after its
+    /// world event (B2-5 R13).
+    /// </summary>
+    public event Action<string, bool, long>? SignalChanged;
+
+    /// <summary>
+    /// Where the start and end events of the signals go (set by the host: the event list of the world); the
+    /// event kinds come from the climate data, Detail = the condition, no inhabitant.
+    /// </summary>
+    public Action<WorldEvent>? Report { get; set; }
+
+    /// <summary>The signalled conditions that are on (condition id, tick it began), sorted by id.</summary>
+    public IReadOnlyList<KeyValuePair<string, long>> Signals => [.. _signals];
+
+    /// <summary>Whether the climate has this weather (a state with values).</summary>
+    public bool Has(string weather) => weather is not null && _states.ContainsKey(weather);
 
     /// <summary>All current conditions, sorted by id (main weather, plus drought after the dry days).</summary>
     public IReadOnlyList<string> Conditions =>
@@ -138,6 +182,7 @@ public sealed class WeatherSystem : IWorldSystem, IWeather
         return new WeatherReading(Current, Conditions, state.WindPermille, state.PrecipitationPermille, state.CloudPermille, TemperatureAt(world.Now, Current), SinceTick, next, _data.TransitionMinutes)
         {
             Wind = Wind(_history.Count - 1, world.Tick),
+            Signals = Signals,
         };
     }
 
@@ -154,7 +199,10 @@ public sealed class WeatherSystem : IWorldSystem, IWeather
         return weather is null ? sum : sum + _weatherOffsets.GetValueOrDefault(weather);
     }
 
-    /// <summary>Sets the main weather now (player intervention, B6; debug jumps, R23). Unknown ids are refused.</summary>
+    /// <summary>
+    /// Sets the main weather now (debug jumps, R23; the player's intervention goes through the logged command
+    /// <c>set_weather</c>, see Player.WeatherIntervention, so replays follow). Unknown ids are refused.
+    /// </summary>
     public void Force(string weather, long tick)
     {
         if (!_states.ContainsKey(weather))
@@ -163,6 +211,7 @@ public sealed class WeatherSystem : IWorldSystem, IWeather
         }
 
         Change(weather, tick);
+        SyncSignals(tick, announce: true);
     }
 
     /// <inheritdoc/>
@@ -187,6 +236,7 @@ public sealed class WeatherSystem : IWorldSystem, IWeather
         }
 
         _dryTicks = _states[Current].PrecipitationPermille == 0 ? _dryTicks + 1 : 0;
+        SyncSignals(tick, announce: true);
     }
 
     /// <inheritdoc/>
@@ -198,10 +248,23 @@ public sealed class WeatherSystem : IWorldSystem, IWeather
         {
             hasher.Write(start).Write(weather);
         }
+
+        // Only while a signalled condition is on, so worlds in plain weather keep their hashes (B2-5).
+        if (_signals.Count > 0)
+        {
+            hasher.Write(_signals.Count);
+            foreach (var (condition, since) in _signals)
+            {
+                hasher.Write(condition).Write(since);
+            }
+        }
     }
 
     /// <summary>The saved state.</summary>
-    public WeatherState Capture() => new(Current, SinceTick, _dryTicks, [.. _history]);
+    public WeatherState Capture() => new(Current, SinceTick, _dryTicks, [.. _history])
+    {
+        Signals = _signals.Count > 0 ? [.. _signals] : null,
+    };
 
     /// <summary>Restores a saved state (unknown ids are refused).</summary>
     public void Restore(WeatherState state, long tick)
@@ -217,6 +280,65 @@ public sealed class WeatherSystem : IWorldSystem, IWeather
         _history.Clear();
         _history.AddRange(state.History);
         _knownUntil = tick;
+        _signals.Clear();
+        foreach (var (condition, since) in state.Signals ?? [])
+        {
+            if (_signalRules.Any(r => r.Condition == condition))
+            {
+                _signals[condition] = since;
+            }
+        }
+
+        // Save games from before the signals (and conditions the data signal only now): what is on by the
+        // saved weather counts as on, without an event; its end is then reported as usual.
+        foreach (var rule in _signalRules.Where(r => !_signals.ContainsKey(r.Condition) && IsOn(r.Condition)))
+        {
+            _signals[rule.Condition] = rule.Condition == Current || _droughtTicks <= 0 ? SinceTick : Math.Max(0, tick - (_dryTicks - _droughtTicks));
+        }
+
+        foreach (var gone in _signals.Keys.Where(c => !IsOn(c)).ToList())
+        {
+            _signals.Remove(gone);
+        }
+    }
+
+    private bool IsOn(string condition) => Conditions.Contains(condition, StringComparer.Ordinal);
+
+    /// <summary>
+    /// Brings the tracked signals in line with the current conditions; every start and end is reported once
+    /// (world event of the data, then <see cref="SignalChanged"/>), in the order of the condition ids.
+    /// </summary>
+    private void SyncSignals(long tick, bool announce)
+    {
+        if (_signalRules.Count == 0)
+        {
+            return;
+        }
+
+        var conditions = Conditions;
+        foreach (var rule in _signalRules)
+        {
+            var on = conditions.Contains(rule.Condition, StringComparer.Ordinal);
+            if (on == _signals.ContainsKey(rule.Condition))
+            {
+                continue;
+            }
+
+            if (on)
+            {
+                _signals[rule.Condition] = tick;
+            }
+            else
+            {
+                _signals.Remove(rule.Condition);
+            }
+
+            if (announce)
+            {
+                Report?.Invoke(new WorldEvent(on ? rule.StartEvent : rule.EndEvent, tick, string.Empty, null, null) { Detail = rule.Condition });
+                SignalChanged?.Invoke(rule.Condition, on, tick);
+            }
+        }
     }
 
     /// <summary>
