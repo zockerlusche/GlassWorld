@@ -10,6 +10,13 @@ using GlassWorld.Simulation.View;
 
 namespace GlassWorld.Simulation;
 
+/// <summary>Switches of a host that are not world data (B2-5): they come from the program that runs the world.</summary>
+/// <param name="DebugCommands">
+/// Whether debug commands are accepted (default off): only then the core takes commands that go around a
+/// rule of the world, e.g. <see cref="Look.LookEpochSystem.DebugSetLookEpoch"/>. Not part of the world state.
+/// </param>
+public sealed record SimulationHostOptions(bool DebugCommands = false);
+
 /// <summary>
 /// A complete simulation: content, world and its systems in their fixed order (objects → decisions →
 /// inhabitants). Used by the headless runner, the game and save games, so everybody builds the world the
@@ -81,11 +88,11 @@ public sealed class SimulationHost
     public DeciderSettings DeciderSettings { get; }
 
     /// <summary>Creates an empty simulation (no inhabitants, no objects) – the base for new worlds and save games.</summary>
-    public static SimulationHost CreateEmpty(string contentDirectory, ulong seed, IDecisionPort port, string displayLocale, IJobPort? jobPort = null)
+    public static SimulationHost CreateEmpty(string contentDirectory, ulong seed, IDecisionPort port, string displayLocale, IJobPort? jobPort = null, SimulationHostOptions? options = null)
     {
         var content = ContentSet.Load(contentDirectory);
         var settings = ContractSerializer.Deserialize<DeciderSettings>(File.ReadAllText(Path.Combine(contentDirectory, "decider", "settings.json")));
-        return Assemble(content, settings, new World(seed, content.Calendar), port, displayLocale, null, jobPort);
+        return Assemble(content, settings, new World(seed, content.Calendar), port, displayLocale, null, jobPort, null, options);
     }
 
     /// <summary>Assembles the systems around a given world (new or restored) in the fixed order.</summary>
@@ -110,10 +117,12 @@ public sealed class SimulationHost
     /// <param name="worldPreset">Preset of the island, or null for the placeholder world.</param>
     /// <param name="jobPort">Job port, or null (inventions dormant).</param>
     /// <param name="savedIsland">The island as a save game kept it (B2 R11); null = generate from seed and preset.</param>
-    public static SimulationHost Assemble(ContentSet content, DeciderSettings settings, World world, IDecisionPort port, string displayLocale, string? worldPreset, IJobPort? jobPort = null, (GeneratedIsland Island, int CellSizeCm)? savedIsland = null)
+    /// <param name="options">Switches of the host (debug commands); null = all off.</param>
+    public static SimulationHost Assemble(ContentSet content, DeciderSettings settings, World world, IDecisionPort port, string displayLocale, string? worldPreset, IJobPort? jobPort = null, (GeneratedIsland Island, int CellSizeCm)? savedIsland = null, SimulationHostOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(content);
         ArgumentNullException.ThrowIfNull(world);
+        options ??= new SimulationHostOptions();
         var types = new WorldTypeCatalog(content.Objects);
         var actions = content.Actions.WithTruth(types);
         var objects = new WorldObjects(types);
@@ -182,6 +191,21 @@ public sealed class SimulationHost
         var player = new Simulation.Player.PlayerSystem(content.GiftRules, content.Favor, content.Brain.Weights, content.Brain, inhabitants, objects, world.Calendar.Settings.TicksPerHour);
         decisions.RegisterCommand(Simulation.Player.PlayerSystem.PlaceGift, player.Check, player.Apply);
         decisions.RegisterCommand(Simulation.Player.PlayerSystem.StartFavorCommand, player.CheckStartFavor, player.ApplyStartFavor);
+
+        // The player's weather (B2-5 R13): a logged command that costs favour; start and end of storm and
+        // drought go to the world's events.
+        if (weather is not null)
+        {
+            weather.Report = inhabitants.Report;
+        }
+
+        var weatherIntervention = new Simulation.Player.WeatherIntervention(weather, player, inhabitants.Report);
+        decisions.RegisterCommand(Simulation.Player.WeatherIntervention.SetWeather, weatherIntervention.Check, weatherIntervention.Apply);
+
+        // The look epoch (B2-5 R16): the epochs count tech levels as numbers, the vocabulary gives their order.
+        var lookEpoch = new Look.LookEpochSystem(content.LookEpochs, content.Inventions.ReachedTechLevel, options.DebugCommands, inhabitants.Report);
+        decisions.RegisterCommand(Look.LookEpochSystem.SetLookEpoch, lookEpoch.Check, lookEpoch.Apply);
+        decisions.RegisterCommand(Look.LookEpochSystem.DebugSetLookEpoch, lookEpoch.CheckDebug, lookEpoch.ApplyDebug);
         var inventions = new InventionSystem(content.Inventions, inhabitants, objects, types, content.Brain.Weights.PerceptionRadiusM, jobPort, displayLocale);
         decisions.InventedName = typeId => inventions.Invention(typeId)?.Name;
         var chronicle = new ChronicleSystem(content.Chronicle);
@@ -221,11 +245,14 @@ public sealed class SimulationHost
         decisions.RegisterCommand(Simulation.Player.ConversationSystem.SendText, conversation.Check, conversation.Apply);
 
         // The mailbox after the chronicle (agreed order): help_needed is reported by the player system earlier in the tick.
-        world.Add(objects).Add(decisions).Add(inhabitants).Add(player).Add(inventions).Add(chronicle).Add(writing).Add(skills).Add(skillLevels).Add(mailbox).Add(conversation);
+        // The look epoch last: it stays out of the hash while the world is in its first epoch.
+        world.Add(objects).Add(decisions).Add(inhabitants).Add(player).Add(inventions).Add(chronicle).Add(writing).Add(skills).Add(skillLevels).Add(mailbox).Add(conversation).Add(lookEpoch);
         var host = new SimulationHost(content, world, map, types, objects, decisions, inhabitants, player, inventions, chronicle, settings, writing, skills, mailbox)
         {
             WeatherSystem = weather,
             Weather = weather,
+            LookEpoch = lookEpoch,
+            Options = options,
             SkillLevels = skillLevels,
             Conversation = conversation,
         };
@@ -294,9 +321,9 @@ public sealed class SimulationHost
     /// Creates a new world on the flat placeholder start (content/world/placeholder-start.json) until B2
     /// generates the island: start inhabitants by group, objects scattered from the world seed.
     /// </summary>
-    public static SimulationHost CreatePlaceholderWorld(string contentDirectory, ulong seed, IDecisionPort port, string displayLocale, IJobPort? jobPort = null)
+    public static SimulationHost CreatePlaceholderWorld(string contentDirectory, ulong seed, IDecisionPort port, string displayLocale, IJobPort? jobPort = null, SimulationHostOptions? options = null)
     {
-        var host = CreateEmpty(contentDirectory, seed, port, displayLocale, jobPort);
+        var host = CreateEmpty(contentDirectory, seed, port, displayLocale, jobPort, options);
         var start = ContractSerializer.Deserialize<PlaceholderStart>(File.ReadAllText(Path.Combine(contentDirectory, "world", "placeholder-start.json")));
         var centres = start.Groups.ToDictionary(g => g.Group, g => new Position(g.X, g.Z));
         var rng = host.World.Random.Get("placeholder/start");
@@ -332,11 +359,11 @@ public sealed class SimulationHost
     /// at the start positions of their pair (group n = pair n − 1, members in start order), objects
     /// at the centres of their cells.
     /// </summary>
-    public static SimulationHost CreateGeneratedWorld(string contentDirectory, ulong seed, IDecisionPort port, string displayLocale, string worldPreset, IJobPort? jobPort = null)
+    public static SimulationHost CreateGeneratedWorld(string contentDirectory, ulong seed, IDecisionPort port, string displayLocale, string worldPreset, IJobPort? jobPort = null, SimulationHostOptions? options = null)
     {
         var content = ContentSet.Load(contentDirectory);
         var settings = ContractSerializer.Deserialize<DeciderSettings>(File.ReadAllText(Path.Combine(contentDirectory, "decider", "settings.json")));
-        var host = Assemble(content, settings, new World(seed, content.Calendar), port, displayLocale, worldPreset, jobPort);
+        var host = Assemble(content, settings, new World(seed, content.Calendar), port, displayLocale, worldPreset, jobPort, null, options);
         var map = host.Map!;
         var free = map.Island.Starts.GroupBy(s => s.Pair).ToDictionary(g => g.Key + 1, g => new Queue<StartPosition>(g));
         var positions = new List<Position>();
@@ -362,7 +389,13 @@ public sealed class SimulationHost
     }
 
     /// <summary>Read-only snapshot for the UI.</summary>
-    public WorldSnapshot Snapshot() => WorldView.Snapshot(World, Inhabitants, Objects, Decisions) with { Weather = WeatherSystem?.Read(World) };
+    public WorldSnapshot Snapshot() => WorldView.Snapshot(World, Inhabitants, Objects, Decisions) with { Weather = WeatherSystem?.Read(World), LookEpoch = LookEpoch.Current };
+
+    /// <summary>The look epoch of the world (B2-5 R16).</summary>
+    public Look.LookEpochSystem LookEpoch { get; private init; } = null!;
+
+    /// <summary>The switches this host runs with (debug commands; all off by default).</summary>
+    public SimulationHostOptions Options { get; private init; } = new();
 
     /// <summary>The weather system itself (save games, debug jumps, player intervention); null without weather.</summary>
     public Weather.WeatherSystem? WeatherSystem { get; private init; }
