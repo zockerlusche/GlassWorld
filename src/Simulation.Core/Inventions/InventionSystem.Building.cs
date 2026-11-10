@@ -264,7 +264,8 @@ public sealed partial class InventionSystem
             }
 
             var missing = StepMaterials(ParsePlan(task), task.StepsDone + 1).Except(task.Gathered, StringComparer.Ordinal).ToHashSet(StringComparer.Ordinal);
-            var radiusSquared = _perceptionRadiusM * _perceptionRadiusM;
+            var radius = _inhabitants.Sight.Metres(_perceptionRadiusM);
+            var radiusSquared = radius * radius;
             var material = _objects.All
                 .Where(o => missing.Contains(o.TypeId))
                 .Select(o => (o, d: Square(o.Position.X - inhabitant.Position.X) + Square(o.Position.Z - inhabitant.Position.Z)))

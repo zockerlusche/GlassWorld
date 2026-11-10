@@ -13,36 +13,21 @@ from . import common_schema
 type Clip = Annotated[str, Field(..., pattern='^[a-z][a-z0-9_]*$')]
 
 
-class FigureLying(BaseModel):
+class FigureBodyPoint(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
-    clips: list[Clip] = Field(
+    bone: str = Field(
         ...,
-        description='Library clip ids played lying (e.g. sleep).',
-        max_length=32,
+        description='Bone of the figure rig (its joint is the point).',
+        max_length=64,
         min_length=1,
     )
-    pitch_deg: float = Field(
+    radius_m: float = Field(
         ...,
-        description="Tilt about the figure's left-right axis in degrees; -90 lays it on its back (the figure faces +Z).",
-        ge=-90.0,
-        le=90.0,
-    )
-    hip_m: float = Field(
-        ...,
-        description='Distance from the feet to the hips in metres at scale 1: where the lying body meets the ground.',
-        ge=0.0,
-        le=3.0,
-    )
-    lift_m: float = Field(
-        ...,
-        description="Height of the lying body's axis above the ground in metres at scale 1 (half the body's depth).",
+        description='Thickness of the body around the point in metres at scale 1: the point stays at least this far above the ground.',
         ge=0.0,
         le=1.0,
-    )
-    settle_s: float = Field(
-        ..., description='Real seconds to lie down or get up.', ge=0.05, le=10.0
     )
 
 
@@ -397,6 +382,106 @@ class FigureCrownFade(BaseModel):
     )
 
 
+class FigureLying(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    clips: list[Clip] = Field(
+        ...,
+        description='Library clip ids played lying (e.g. sleep); their asset is a seated loop.',
+        max_length=32,
+        min_length=1,
+    )
+    sit_clip: str = Field(
+        ...,
+        description='Library clip id of the transition from standing to sitting, played first when lying down.',
+        pattern='^[a-z][a-z0-9_]*$',
+    )
+    rise_clip: str = Field(
+        ...,
+        description='Library clip id of the transition from sitting to standing, played last when getting up.',
+        pattern='^[a-z][a-z0-9_]*$',
+    )
+    sit_s: float = Field(
+        ...,
+        description='Real seconds of sitting down and of standing up; the transition clips are played at the speed that fits them into it.',
+        ge=0.05,
+        le=10.0,
+    )
+    sink_from: float = Field(
+        ...,
+        description='Share of sit_s at which the hips begin to sink to the ground (as in the sit transition clip).',
+        ge=0.0,
+        le=0.95,
+    )
+    sink_to: float = Field(
+        ...,
+        description='Share of sit_s at which the hips have reached the ground; greater than sink_from.',
+        ge=0.05,
+        le=1.0,
+    )
+    roll_s: float = Field(
+        ...,
+        description='Real seconds of the eased roll from sitting onto the side, and back.',
+        ge=0.05,
+        le=10.0,
+    )
+    roll_deg: float = Field(
+        ...,
+        description="Roll about the figure's facing axis through its hips in degrees: -90 lays it on its left side with the head to its left, 90 on its right side.",
+        ge=-90.0,
+        le=90.0,
+    )
+    hip_back_m: float = Field(
+        ...,
+        description="How far the hips of the seated pose are behind the figure's origin in metres at scale 1.",
+        ge=0.0,
+        le=1.0,
+    )
+    hip_slide_m: float = Field(
+        ...,
+        description='How far the hips slide away from the side the head goes down to while rolling, in metres at scale 1, so the lying body is centred on its spot.',
+        ge=0.0,
+        le=1.0,
+    )
+    legs_from: float = Field(
+        ...,
+        description='Share of the roll after which the legs leave the seated pose (thighs open, knees bend): late, while the body is nearly down, so the legs do not dip into the ground.',
+        ge=0.0,
+        le=0.95,
+    )
+    hip_open: float = Field(
+        ...,
+        description='How far the thighs open from the seated pose towards straight legs while lying (0 = seated, 1 = straight); less than 1 keeps the body slightly curled.',
+        ge=0.0,
+        le=1.0,
+    )
+    knee_straighten: float = Field(
+        ...,
+        description='How far the knees straighten while lying (0 = bent as seated, 1 = straight).',
+        ge=0.0,
+        le=1.0,
+    )
+    lift_m: float = Field(
+        ...,
+        description='Height of the hips above the ground in metres at scale 1 while the body points are not known yet (the first frame of a figure).',
+        ge=0.0,
+        le=1.0,
+    )
+    max_tilt_deg: float = Field(
+        ...,
+        description='Largest tilt of the lying body towards the slope under it in degrees; on steeper ground it is lifted instead.',
+        ge=0.0,
+        le=60.0,
+    )
+    body_points: list[FigureBodyPoint] = Field(
+        ...,
+        description='The sampled points of the lying body: bones of the figure rig and how thick the body is around them. The ground is read under each of them.',
+        max_length=24,
+        min_length=1,
+    )
+
+
 class LookFigures(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -457,7 +542,7 @@ class LookFigures(BaseModel):
     )
     lying: FigureLying = Field(
         ...,
-        description='Lying poses (W1695): sleeping figures lie on their back on the ground instead of standing.',
+        description='Lying poses (W1695, W1729): sleeping figures sit down and lie on their side on the ground, fitted to it.',
     )
     greeting: FigureGreeting = Field(
         ...,

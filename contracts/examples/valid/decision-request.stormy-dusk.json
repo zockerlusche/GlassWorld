@@ -60,7 +60,8 @@
     "weather": [
       "rain",
       "storm"
-    ]
+    ],
+    "visibility_m": 30
   },
   "perception": {
     "objects": [

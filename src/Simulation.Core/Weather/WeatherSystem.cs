@@ -150,9 +150,30 @@ public sealed class WeatherSystem : IWorldSystem, IWeather
 
     /// <summary>All current conditions, sorted by id (main weather, plus drought after the dry days).</summary>
     public IReadOnlyList<string> Conditions =>
-        _droughtTicks > 0 && _dryTicks >= _droughtTicks && Current != _data.DroughtWeather
+        DroughtJoins
             ? [.. new[] { Current, _data.DroughtWeather }.Order(StringComparer.Ordinal)]
             : [Current];
+
+    /// <summary>
+    /// How far the inhabitants see in the weather now, in permille of their sight range (B2594): the
+    /// <c>sight_permille</c> of the main weather, or of the drought that has joined it if that is lower;
+    /// 1000 for a state without the value. The current weather counts from the change step on, without
+    /// blending. Read through <see cref="Inhabitants.Sight"/>, the one place the ranges come from.
+    /// </summary>
+    public int SightPermille
+    {
+        get
+        {
+            var sight = SightOf(Current);
+            return DroughtJoins ? Math.Min(sight, SightOf(_data.DroughtWeather)) : sight;
+        }
+    }
+
+    /// <summary>Whether the drought weather has joined another main weather after the dry days of the data.</summary>
+    private bool DroughtJoins => _droughtTicks > 0 && _dryTicks >= _droughtTicks && Current != _data.DroughtWeather;
+
+    private int SightOf(string weather) =>
+        _states.TryGetValue(weather, out var state) ? state.SightPermille ?? Inhabitants.Sight.Full : Inhabitants.Sight.Full;
 
     /// <summary>
     /// The main weather at a place and tick. The weather is island-wide for now (<paramref name="at"/> is
