@@ -76,8 +76,10 @@ void sky() {
 		vec2 p = dir.xz / (up + 0.25) * cloud_scale;
 		float n = 0.6 * cloud_noise(p) + 0.3 * cloud_noise(p * 2.1 + vec2(13.0, 7.0)) + 0.1 * cloud_noise(p * 4.3 + vec2(3.0, 29.0));
 		// No cover shows no cloud at all, a full cover hides the whole sky.
-		float limit = 1.0 - clouds * (1.0 + cloud_softness);
-		float cover = smoothstep(limit, limit + cloud_softness, n);
+		// The edges of the step must differ (review GW3 #183), whatever softness is set.
+		float soft = max(cloud_softness, 0.01);
+		float limit = 1.0 - clouds * (1.0 + soft);
+		float cover = smoothstep(limit, limit + soft, n);
 		color = mix(color, cloud_color, cover);
 	}
 

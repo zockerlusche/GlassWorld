@@ -30,6 +30,7 @@ public partial class NatureLook : Node3D
     private FallView _snow = null!;
     private StormGlow _glow = null!;
     private SeasonMix? _seasonShown;
+    private (SeasonMix? Season, WeatherMix? Weather) _laid;
     private Vector4 _windShown = new(float.NaN, 0, 0, 0);
     private Color _light = Colors.White;
 
@@ -104,7 +105,15 @@ public partial class NatureLook : Node3D
     {
         var mix = Weather.Update(weather?.Weather, weather?.Conditions, weather?.TransitionMinutes ?? 0, realSecondsPerGameMinute, speed, realSeconds);
         _glow.Update(mix.Glow, realSeconds);
-        Apply(mix.Over(Season.Update(season, realSeconds)));
+
+        // Outside a blend both blenders hand out the same mix every frame: nothing is composed or written then.
+        var seasonMix = Season.Update(season, realSeconds);
+        if (!ReferenceEquals(seasonMix, _laid.Season) || !ReferenceEquals(mix, _laid.Weather))
+        {
+            _laid = (seasonMix, mix);
+            Apply(mix.Over(seasonMix));
+        }
+
         Wind.Update(weather?.Wind, realSeconds);
         ApplyWind();
         Fall(focus);
@@ -119,6 +128,7 @@ public partial class NatureLook : Node3D
     {
         Season = new SeasonBlender(_palette, Season.Slots, keep);
         var mix = Weather.Jump(weather, weather is null ? null : [weather]);
+        _laid = (null, null);
         Apply(mix.Over(Season.Jump(season)));
         ApplyWind();
         Fall(focus);

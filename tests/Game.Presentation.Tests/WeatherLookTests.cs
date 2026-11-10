@@ -63,6 +63,41 @@ public sealed class WeatherLookTests
     }
 
     [Fact]
+    public void MixesAreEqualByValueAndTheBlendersHandOutTheSameMixOutsideABlend()
+    {
+        // The view writes shader parameters, sky and fog only when the mix changed (review GW3 #181).
+        var rain = Of("rain");
+        var same = rain with { Colors = [.. rain.Colors] };
+        Assert.NotSame(rain.Colors, same.Colors);
+        Assert.True(rain.Equals(same) && rain == same);
+        Assert.Equal(rain.GetHashCode(), same.GetHashCode());
+        Assert.NotEqual(rain, same with { Rain = rain.Rain + 0.01 });
+        Assert.NotEqual(rain, same with { Tint = new Rgb(0.5f, 0.5f, 0.5f) });
+        Assert.NotEqual(Of("heat"), Of("heat") with { Colors = [.. Of("heat").Colors.Select(c => (c.Color, c.Weight / 2))] });
+
+        // Laid over a season twice: equal results, so the season parameters are not written again.
+        var summer = SeasonMix.Of(Palette, Slots, "summer");
+        Assert.Equal(Of("drought").Over(summer), Of("drought").Over(summer));
+
+        // Outside a blend the blenders return the very same mix every frame (nothing is composed then).
+        var weather = new WeatherBlender(Weather, Slots);
+        var season = new SeasonBlender(Palette, Slots);
+        var (w, s) = (weather.Update("rain", ["rain"], 60, RealSecondsPerGameMinute, 1, 0.016), season.Update("summer", 0.016));
+        Assert.Same(w, weather.Update("rain", ["rain"], 60, RealSecondsPerGameMinute, 1, 0.016));
+        Assert.Same(s, season.Update("summer", 0.016));
+        Assert.NotSame(w, weather.Update("storm", ["storm"], 60, RealSecondsPerGameMinute, 1, 0.016));
+
+        // The shaded light and the sky of an unchanged moment are equal too.
+        var day = DaylightMix.Of(Daylight, "day");
+        var cloud = Rgb.Parse(Palette.Colors.Single(c => c.Id == Weather.Clouds.Color).Color);
+        Assert.Equal(rain.Shade(day, Daylight.NightMinBrightness), same.Shade(day, Daylight.NightMinBrightness));
+        Assert.Equal(rain.Sky(day, cloud), same.Sky(day, cloud));
+
+        // The data keeps the cloud edges soft: equal step edges are undefined in the shader (review GW3 #183).
+        Assert.True(Weather.Clouds.Softness >= 0.01);
+    }
+
+    [Fact]
     public void DroughtAsAConditionLaysItsDryColoursOverTheMainWeather()
     {
         // The reading: main weather clear, conditions clear + drought (after the dry days).
