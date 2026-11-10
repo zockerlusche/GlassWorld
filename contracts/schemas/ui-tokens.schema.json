@@ -21,7 +21,8 @@
     "durations_ms",
     "palettes",
     "knock",
-    "head_symbol"
+    "head_symbol",
+    "zones"
   ],
   "properties": {
     "contract_version": {
@@ -129,6 +130,43 @@
           "maximum": 800
         }
       }
+    },
+    "zones": {
+      "description": "Sizes of the zones layout (UI concept W1717, D642; preview behind a player setting): compact so the middle of the picture stays free.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "side_panel_width",
+        "log_width",
+        "log_height_share",
+        "panel_padding"
+      ],
+      "properties": {
+        "side_panel_width": {
+          "description": "Width of the side window on the right (pixels at the reference size; grows with the text size).",
+          "type": "integer",
+          "minimum": 200,
+          "maximum": 1200
+        },
+        "log_width": {
+          "description": "Width of the pinned log on the left.",
+          "type": "integer",
+          "minimum": 160,
+          "maximum": 1200
+        },
+        "log_height_share": {
+          "description": "Share of the free height below the top bar the log takes.",
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 1
+        },
+        "panel_padding": {
+          "description": "Inner padding of the top bar and the zone panels (the windows of the layout so far keep window.padding).",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 64
+        }
+      }
     }
   },
   "$defs": {
@@ -187,7 +225,8 @@
         "settings_apply_ms",
         "modal_dim",
         "log_lines",
-        "questions_shown"
+        "questions_shown",
+        "diary_lines"
       ],
       "properties": {
         "settings_apply_ms": {
@@ -298,6 +337,12 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 500
+        },
+        "diary_lines": {
+          "description": "Lines the diary of one inhabitant keeps (what it did, newest first; W1726).",
+          "type": "integer",
+          "minimum": 5,
+          "maximum": 1000
         }
       }
     },

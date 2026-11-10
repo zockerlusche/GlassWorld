@@ -31,6 +31,7 @@ public partial class MainMenu : CanvasLayer
     private MenuData? _data;
     private UiStyle? _style;
     private GwWindow? _window;
+    private PanelContainer? _loading;
 
     /// <summary>The player wants a new world.</summary>
     public event Action<NewWorldChoice>? NewWorldRequested;
@@ -75,6 +76,13 @@ public partial class MainMenu : CanvasLayer
             return;
         }
 
+        _loading?.QueueFree();
+        _loading = null;
+        if (_buttons.GetParent() is Control menu)
+        {
+            menu.Visible = true;
+        }
+
         foreach (var child in _buttons.GetChildren().Skip(1))
         {
             _buttons.RemoveChild(child);
@@ -116,16 +124,26 @@ public partial class MainMenu : CanvasLayer
             button.Disabled = true;
         }
 
-        var window = new GwWindow();
-        window.Setup("ui.menu.loading_title", _style);
-        window.Content.AddChild(new Label
+        // A small notice in the middle, alone on the screen (W1726, picture D659: the window stood tall and
+        // half empty over the menu): the menu behind it is hidden until the world is open or loading failed.
+        _window?.Close();
+        if (_buttons.GetParent() is Control menu)
+        {
+            menu.Visible = false;
+        }
+
+        _loading?.QueueFree();
+        _loading = new PanelContainer { ThemeTypeVariation = UiTheme.WindowPanel };
+        _loading.SetAnchorsPreset(Control.LayoutPreset.Center);
+        _loading.GrowHorizontal = Control.GrowDirection.Both;
+        _loading.GrowVertical = Control.GrowDirection.Both;
+        _loading.AddChild(new Label
         {
             Text = TextFill.Fill(Tr("ui.menu.loading"), new Dictionary<string, string> { ["name"] = worldName }),
             AutoTranslateMode = AutoTranslateModeEnum.Disabled,
-            AutowrapMode = TextServer.AutowrapMode.WordSmart,
             HorizontalAlignment = HorizontalAlignment.Center,
         });
-        ShowWindow(window);
+        _root.AddChild(_loading);
     }
 
     /// <summary>Shows a window over the menu (also used for the settings).</summary>

@@ -24,7 +24,7 @@
     },
     {
       "key": "msg.hint.question",
-      "text": "{name} hat eine Frage."
+      "text": "{name} fragt sich etwas."
     },
     {
       "key": "msg.load.failed",
@@ -108,7 +108,7 @@
     },
     {
       "key": "ui.card.questions",
-      "text": "Offene Fragen: {count}"
+      "text": "Beschäftigt ihn gerade: {count}"
     },
     {
       "key": "ui.card.wellbeing",
@@ -308,7 +308,7 @@
     },
     {
       "key": "ui.questions.title",
-      "text": "Offene Fragen"
+      "text": "Was sie beschäftigt"
     },
     {
       "key": "ui.settings.hide_ui",
@@ -2108,11 +2108,11 @@
     },
     {
       "key": "ui.questions.empty_text",
-      "text": "Niemand hat gerade eine offene Frage. Wenn ein Bewohner vor etwas Unbekanntem steht, erscheint seine Frage hier."
+      "text": "Gerade grübelt niemand. Wenn ein Bewohner auf etwas Unbekanntes stößt, steht hier, was ihn beschäftigt."
     },
     {
       "key": "ui.question.ask.unknown_object",
-      "text": "Was ist das?"
+      "text": "{name} fragt sich: Was ist das?"
     },
     {
       "key": "ui.question.reason.unknown_object",
@@ -2120,7 +2120,7 @@
     },
     {
       "key": "ui.question.ask.noticed_player",
-      "text": "Wer ist da?"
+      "text": "{name} fragt sich: Wer ist da?"
     },
     {
       "key": "ui.question.reason.noticed_player",
@@ -2136,15 +2136,15 @@
     },
     {
       "key": "ui.question.answer_hint",
-      "text": "Antworte ihm …"
+      "text": "Ihm etwas zuflüstern …"
     },
     {
       "key": "ui.question.answer",
-      "text": "Antworten"
+      "text": "Zuflüstern"
     },
     {
       "key": "ui.question.later",
-      "text": "Die Antwort findet er auch selbst – spätestens in der Rechennacht."
+      "text": "Du musst nichts tun: Die Bewohner finden ihre Antworten selbst – spätestens in der Rechennacht."
     },
     {
       "key": "ui.log.not_understood_text",
@@ -2473,6 +2473,26 @@
     {
       "key": "ui.debug.jumps",
       "text": "Debug-Sprünge: {back} und {forward} wechseln die Epoche"
+    },
+    {
+      "key": "ui.question.settled",
+      "text": "Das hat sich erledigt."
+    },
+    {
+      "key": "ui.card.musing",
+      "text": "Was ihn beschäftigt"
+    },
+    {
+      "key": "ui.card.diary",
+      "text": "Tagebuch"
+    },
+    {
+      "key": "ui.card.diary_empty",
+      "text": "Noch nichts notiert. Hier steht nach und nach, was der Bewohner getan hat."
+    },
+    {
+      "key": "ui.card.diary_line",
+      "text": "Tag {day}, {time} – {text}"
     }
   ]
 }
