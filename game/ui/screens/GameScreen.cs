@@ -23,6 +23,11 @@ public partial class GameScreen : CanvasLayer
     private readonly Control _overlay = new() { Name = "Overlay", MouseFilter = Control.MouseFilterEnum.Ignore };
     private int _relayoutFrames;
     private readonly GwSideBar _sideBar = new();
+    private readonly VBoxContainer _themeBar = new() { Name = "ThemeBar", Visible = false };
+    private readonly Dictionary<string, Button> _themeButtons = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, string> _lastOfTheme = new(StringComparer.Ordinal);
+    private readonly List<(bool Own, Button Tab)> _zoneTabs = [];
+    private bool _zones;
     private readonly GwTable _inhabitants = new() { SizeFlagsVertical = Control.SizeFlags.ExpandFill };
     private readonly VBoxContainer _questionList = new() { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
     private readonly VBoxContainer _logList = new() { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
@@ -125,6 +130,8 @@ public partial class GameScreen : CanvasLayer
             _root.AddChild(panel);
         }
 
+        BuildZones();
+
         _toasts.Board = _board;
         _root.AddChild(_toasts);
 
@@ -137,8 +144,92 @@ public partial class GameScreen : CanvasLayer
         // A new theme (text size, UI size) changes the top bar's height after it has wrapped again;
         // lay out once more two frames later, so the card stays below the bar (CI found it).
         _root.ThemeChanged += () => _relayoutFrames = 2;
-        _sideBar.Toggled += Layout;
+        _sideBar.Toggled += PanelToggled;
         Layout();
+    }
+
+    /// <summary>
+    /// The zones layout (W1717, D642 step 1, preview): three theme buttons instead of six side buttons, and a
+    /// row of tabs in each side window whose theme holds more than one. Hidden until the player switches the
+    /// preview on; the side windows themselves stay as they are.
+    /// </summary>
+    private void BuildZones()
+    {
+        foreach (var theme in ScreenZones.Themes)
+        {
+            var button = new Button { Text = theme.TitleKey, ToggleMode = true };
+            button.Pressed += () => _sideBar.Open(ScreenZones.Open(theme, _sideBar.OpenKey, _lastOfTheme.GetValueOrDefault(theme.Id)));
+            _themeBar.AddChild(button);
+            _themeButtons[theme.Id] = button;
+            if (theme.Panels.Count < 2)
+            {
+                continue;
+            }
+
+            foreach (var shown in theme.Panels)
+            {
+                foreach (var target in theme.Panels)
+                {
+                    var tab = new Button { Text = ScreenZones.TitleKey(target), ToggleMode = true };
+                    tab.SetPressedNoSignal(target == shown);
+                    tab.Pressed += () => _sideBar.Open(target);
+                    _sideBar.PanelOf(shown).Tabs.AddChild(tab);
+                    _zoneTabs.Add((target == shown, tab));
+                }
+            }
+        }
+
+        _root.AddChild(_themeBar);
+    }
+
+    /// <summary>A side window opened or closed: in the zones layout it shares its place with the card, and the log stays.</summary>
+    private void PanelToggled()
+    {
+        if (_zones)
+        {
+            if (_sideBar.OpenKey == ScreenZones.Pinned)
+            {
+                _sideBar.Open(null);
+                return;
+            }
+
+            if (_sideBar.OpenKey is { } open)
+            {
+                // One place on the right: a side window replaces the card.
+                _card?.Close();
+                if (ScreenZones.ThemeOf(open) is { } theme)
+                {
+                    _lastOfTheme[theme.Id] = open;
+                }
+            }
+
+            ShowZoneState();
+        }
+
+        Layout();
+    }
+
+    /// <summary>Theme buttons, tabs and the pinned log as the open side window and the layout want them.</summary>
+    private void ShowZoneState()
+    {
+        var theme = ScreenZones.ThemeOf(_sideBar.OpenKey);
+        foreach (var (id, button) in _themeButtons)
+        {
+            button.SetPressedNoSignal(theme?.Id == id);
+        }
+
+        foreach (var (own, tab) in _zoneTabs)
+        {
+            // A toggled tab keeps showing which window is open, also after a click on the open one.
+            tab.SetPressedNoSignal(own);
+        }
+
+        foreach (var panel in _sideBar.Panels)
+        {
+            panel.Tabs.Visible = _zones && panel.Tabs.GetChildCount() > 0;
+        }
+
+        _sideBar.PanelOf(ScreenZones.Pinned).Visible = _zones || _sideBar.OpenKey == ScreenZones.Pinned;
     }
 
     /// <summary>
@@ -369,6 +460,19 @@ public partial class GameScreen : CanvasLayer
 
         // "Watch only" (XAG 117): bars, panels and hints disappear; Esc still opens the pause menu.
         _root.Visible = !settings.HideUi;
+        if (_zones != settings.ZonesPreview)
+        {
+            _zones = settings.ZonesPreview;
+            _sideBar.Visible = !_zones;
+            _themeBar.Visible = _zones;
+            if (_zones && (_sideBar.OpenKey == ScreenZones.Pinned || (_card is not null && _sideBar.OpenKey is not null)))
+            {
+                _sideBar.Open(null);
+            }
+
+            ShowZoneState();
+        }
+
         Layout();
     }
 
@@ -1477,6 +1581,101 @@ public partial class GameScreen : CanvasLayer
     /// The card stays inside the safe area and beside the open side panel at the smallest and largest UI
     /// size (found in the 3840x1600 screenshots: the card kept its old place after a size change).
     /// </summary>
+    /// <summary>
+    /// Smoke run only: the zones preview (W1717, D642 step 1). The top bar spans the screen, the log is pinned
+    /// on the left, a theme button opens its side window on the right, a tab switches inside the theme, the card
+    /// and a side window never show together, nothing overlaps and the middle stays free. Leaves the layout
+    /// as <paramref name="settings"/> say. Empty when all holds.
+    /// </summary>
+    public async Task<string> CheckZonesAsync(PlayerSettings settings)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+        if (_style is null || _topBar is null || _feed is null)
+        {
+            return "screen not set up";
+        }
+
+        async Task Frames()
+        {
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            Layout();
+        }
+
+        static Rect2 Box(Control c) => new(c.Position, c.Size);
+
+        _card?.Close();
+        ApplySettings(settings with { ZonesPreview = true }, _style);
+        await Frames();
+        try
+        {
+            var view = GetViewport().GetVisibleRect().Size;
+            var middle = new Vector2(view.X / 2, view.Y / 2);
+            var log = _sideBar.PanelOf(ScreenZones.Pinned);
+            if (!log.Visible || log.Position.X + log.Size.X > middle.X)
+            {
+                return "the log is not pinned on the left";
+            }
+
+            if (_topBar.Size.X < view.X - (2 * _style.Tokens.Window.SafeMargin) - 1 || _sideBar.Visible || !_themeBar.Visible)
+            {
+                return "top bar or theme buttons are not in the zones layout";
+            }
+
+            _themeButtons["contact"].EmitSignal(BaseButton.SignalName.Pressed);
+            await Frames();
+            if (_sideBar.OpenKey != "questions")
+            {
+                return $"the contact theme opened '{_sideBar.OpenKey}'";
+            }
+
+            _sideBar.PanelOf("questions").Tabs.GetChildren().OfType<Button>().Last().EmitSignal(BaseButton.SignalName.Pressed);
+            await Frames();
+            if (_sideBar.OpenKey != "mailbox" || !log.Visible)
+            {
+                return $"the last contact tab opened '{_sideBar.OpenKey}' (log visible: {log.Visible})";
+            }
+
+            var open = _sideBar.PanelOf("mailbox");
+            var boxes = new (string Name, Rect2 Box)[] { ("top bar", Box(_topBar)), ("log", Box(log)), ("side window", Box(open)), ("theme buttons", Box(_themeBar)) };
+            foreach (var (a, b) in boxes.SelectMany((a, i) => boxes.Skip(i + 1).Select(b => (a, b))))
+            {
+                if (a.Box.Intersects(b.Box))
+                {
+                    return $"{a.Name} {a.Box} overlaps {b.Name} {b.Box}";
+                }
+            }
+
+            if (boxes.Any(b => b.Box.HasPoint(middle)) || open.Position.X < middle.X)
+            {
+                return "the middle of the picture is not free";
+            }
+
+            OpenCard(_feed.Inhabitants()[0].Id);
+            await Frames();
+            if (_card is null || _sideBar.OpenKey is not null || _sideBar.Panels.Any(p => p.Visible && p != log))
+            {
+                return "card and side window show together";
+            }
+
+            var card = Box(_card);
+            if (card.Intersects(Box(log)) || card.Intersects(Box(_topBar)) || card.HasPoint(middle))
+            {
+                return $"the card {card} is not in the side window's place";
+            }
+
+            _themeButtons["people"].EmitSignal(BaseButton.SignalName.Pressed);
+            await Frames();
+            return _card is null && _sideBar.OpenKey == "inhabitants" ? string.Empty : "a theme button did not replace the card";
+        }
+        finally
+        {
+            _card?.Close();
+            _sideBar.Open(null);
+            ApplySettings(settings, _style);
+        }
+    }
+
     private async Task<string> CheckCardPlacementAsync()
     {
         if (_style is null || _card is null)
@@ -1527,6 +1726,25 @@ public partial class GameScreen : CanvasLayer
         var margin = _style.Tokens.Window.SafeMargin;
         var gap = _style.Tokens.Window.Gap;
         var top = _topBar.Position.Y + _topBar.Size.Y + gap;
+        if (_zones)
+        {
+            // Between the pinned log on the left and whatever stands on the right (theme buttons, side window, card).
+            var log = _sideBar.PanelOf(ScreenZones.Pinned);
+            var from = log.Position.X + log.Size.X + gap;
+            var to = _themeBar.Position.X - gap;
+            foreach (var panel in _sideBar.Panels.Where(p => p.Visible && p != log))
+            {
+                to = Math.Min(to, panel.Position.X - gap);
+            }
+
+            if (_card is not null)
+            {
+                to = Math.Min(to, _card.Position.X - gap);
+            }
+
+            return new Rect2(from, top, Math.Max(0, to - from), Math.Max(0, view.Y - margin - top));
+        }
+
         var right = _sideBar.Position.X - gap;
         return new Rect2(margin, top, Math.Max(0, right - margin), Math.Max(0, view.Y - margin - top));
     }
@@ -1541,6 +1759,12 @@ public partial class GameScreen : CanvasLayer
         var area = GetViewport().GetVisibleRect().Size;
         var margin = _style.Tokens.Window.SafeMargin;
         var gap = _style.Tokens.Window.Gap;
+        if (_zones)
+        {
+            LayoutZones(area, margin, gap);
+            return;
+        }
+
         _sideBar.Position = new Vector2(area.X - margin - _sideBar.GetCombinedMinimumSize().X, margin);
         _topBar.Position = new Vector2(margin, margin);
         _topBar.Size = new Vector2(area.X - (2 * margin) - _sideBar.GetCombinedMinimumSize().X - gap, 0);
@@ -1554,6 +1778,37 @@ public partial class GameScreen : CanvasLayer
         _toasts.Position = new Vector2(area.X - margin - width, area.Y - margin - _toasts.GetCombinedMinimumSize().Y);
 
         // The card stays beside the side bar and its open panel and is re-fitted when the UI size changes.
+        FitCard(area);
+    }
+
+    /// <summary>
+    /// The zones layout (W1717, D642): A top bar over the full width, B theme buttons and one side window (or
+    /// the card) on the right below it, C the log on the left, D hints at the bottom centre; the middle is free.
+    /// </summary>
+    private void LayoutZones(Vector2 area, float margin, float gap)
+    {
+        _topBar!.Position = new Vector2(margin, margin);
+        _topBar.Size = new Vector2(area.X - (2 * margin), 0);
+        var top = margin + _topBar.GetCombinedMinimumSize().Y + gap;
+        var themes = _themeBar.GetCombinedMinimumSize();
+        _themeBar.Size = themes;
+        _themeBar.Position = new Vector2(area.X - margin - themes.X, top);
+        var log = _sideBar.PanelOf(ScreenZones.Pinned);
+        foreach (var panel in _sideBar.Panels)
+        {
+            if (panel == log)
+            {
+                panel.Dock(area, _style!, 0, top, left: true, heightShare: (float)_style!.Tokens.Window.MaxScreenFraction * 0.6f);
+            }
+            else
+            {
+                panel.Dock(area, _style!, themes.X + gap, top);
+            }
+        }
+
+        var width = Math.Min(_style!.Tokens.Window.SidePanelWidth, area.X - (2 * margin));
+        _toasts.Size = new Vector2(width, 0);
+        _toasts.Position = new Vector2(MathF.Floor((area.X - width) / 2), area.Y - margin - _toasts.GetCombinedMinimumSize().Y);
         FitCard(area);
     }
 
@@ -1572,6 +1827,15 @@ public partial class GameScreen : CanvasLayer
         var window = _style.Tokens.Window;
         var top = Math.Max(0, _topBar.Position.Y + _topBar.Size.Y + window.Gap - window.SafeMargin);
         _card.FitInto(new Vector2(CardArea(area).X, area.Y - top));
+
+        if (_zones)
+        {
+            // The card takes the side window's place on the right, below the top bar.
+            var y = _topBar.Position.Y + _topBar.GetCombinedMinimumSize().Y + window.Gap;
+            _card.FitInto(new Vector2(area.X, area.Y - y));
+            _card.Position = new Vector2(_themeBar.Position.X - window.Gap - _card.Size.X, y);
+            return;
+        }
 
         // At the left edge, not in the middle of the picture (W1695): the world stays free to watch.
         _card.Position = new Vector2(window.SafeMargin, top + window.SafeMargin);
@@ -1614,6 +1878,12 @@ public partial class GameScreen : CanvasLayer
         }
 
         _card?.Close();
+        if (_zones && _sideBar.OpenKey is not null)
+        {
+            // One place on the right: the card replaces the open side window.
+            _sideBar.Open(null);
+        }
+
         _card = new GwWindow();
         _card.Setup("ui.inhabitants.title", _style);
         _card.Closed += () =>

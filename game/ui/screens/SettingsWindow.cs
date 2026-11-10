@@ -91,6 +91,7 @@ public partial class SettingsWindow : GwWindow
         Row("ui.settings.reduce_motion", Toggle(settings.ReduceMotion, v => _settings with { ReduceMotion = v }));
         Row("ui.settings.feeling_symbols", Toggle(settings.FeelingSymbols, v => _settings with { FeelingSymbols = v }));
         Row("ui.settings.hide_ui", Toggle(settings.HideUi, v => _settings with { HideUi = v }));
+        Row("ui.settings.zones_preview", Toggle(settings.ZonesPreview, v => _settings with { ZonesPreview = v }));
 
         Section("ui.settings.section.hints");
         var duration = new SpinBox { MinValue = 1, MaxValue = limits.Tokens.Toast.MaxDurationFactor, Step = 1, Value = settings.HintDurationFactor };

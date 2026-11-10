@@ -57,6 +57,9 @@ public sealed record PlayerSettings
     /// <summary>Hide everything that is not interactive (XAG 117: watch the world only).</summary>
     public bool HideUi { get; init; }
 
+    /// <summary>Preview of the new screen layout with fixed zones (W1717, D642); off = the layout so far.</summary>
+    public bool ZonesPreview { get; init; }
+
     /// <summary>Volume per bus in dB (missing = default of the mix data).</summary>
     public Dictionary<string, double> BusVolumesDb { get; init; } = new(StringComparer.Ordinal);
 
