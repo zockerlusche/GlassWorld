@@ -763,12 +763,12 @@ public static partial class TerrainMesher
             var cell = map.Cell(x, z);
             if (cell.Water == WaterKind.None)
             {
-                // Banks: a dry cell next to still fresh water carries that water's surface too, where the
-                // shore line crosses it. The ground above the surface hides it, so the visible shore
-                // follows the slope (smooth, like the coast) instead of the cell edges.
+                // Banks: a dry cell next to still fresh water carries that water's surface where the shore
+                // line crosses it, cut along the line ground == surface (A1455), so the visible shore runs
+                // smoothly across the cell instead of along its edges.
                 if (only is null or WaterKind.Fresh && Carry(map, x, z, look) is { Kind: Carrier.Bank } bank)
                 {
-                    Fresh(map, mesh, x, z, bank.Depth <= look.SwampMaxUnits ? look.Swamp : look.Fresh, default, look);
+                    Bank(map, mesh, x, z, bank.Surface, bank.Depth <= look.SwampMaxUnits ? look.Swamp : look.Fresh, look);
                 }
 
                 continue;
@@ -800,12 +800,89 @@ public static partial class TerrainMesher
     /// <summary>
     /// Shore test of a dry cell next to still water at <paramref name="surface"/>: the shore line crosses
     /// the cell only where the surface lies between its lowest and highest ground corner. A bank wholly
-    /// above the water stays dry, and one wholly below would look flooded, so neither carries a plate.
+    /// above the water stays dry, and one at or below it everywhere would look flooded, so neither carries
+    /// a plate.
     /// </summary>
     public static bool IsShore(int[] ground, int surface)
     {
         ArgumentNullException.ThrowIfNull(ground);
         return ground.Min() < surface && ground.Max() > surface;
+    }
+
+    /// <summary>
+    /// The shore cut of a cell at the surface of still water (A1455): the cell's ground, its two top
+    /// triangles split as <see cref="Ground(WorldMap, int, int, TerrainLook)"/> splits them, cut by the
+    /// plane ground == surface. Each triangle gives its wet part (ground below the surface) and its dry
+    /// part as convex polygons in cell coordinates (u, v in 0..1, counter-clockwise seen from above); the
+    /// cut points lie on the triangle edges where the ground, interpolated linearly, reaches the surface.
+    /// Neighbouring cells share their corner heights, so the cut points on a shared edge coincide and the
+    /// shore line runs on across cells. A corner exactly at the surface counts as dry: the line passes
+    /// through it. Parts without area are left out.
+    /// </summary>
+    public static ShoreCut CutShore(ReadOnlySpan<int> ground, int surface)
+    {
+        if (ground.Length != 4)
+        {
+            throw new ArgumentException("four corner heights expected", nameof(ground));
+        }
+
+        var wet = new List<(float U, float V)[]>(2);
+        var dry = new List<(float U, float V)[]>(2);
+        ReadOnlySpan<int> triangles = SplitsAlong02(ground) ? [0, 2, 1, 0, 3, 2] : [0, 3, 1, 1, 3, 2];
+        for (var t = 0; t < 2; t++)
+        {
+            CutTriangle(ground, surface, triangles.Slice(t * 3, 3), wet, dry);
+        }
+
+        return new ShoreCut(wet, dry);
+    }
+
+    /// <summary>One ground triangle (corner indices in drawing order) cut by the surface into its wet and dry part.</summary>
+    private static void CutTriangle(ReadOnlySpan<int> ground, int surface, ReadOnlySpan<int> corners, List<(float U, float V)[]> wet, List<(float U, float V)[]> dry)
+    {
+        var wetSide = new List<(float U, float V)>(4);
+        var drySide = new List<(float U, float V)>(4);
+        for (var i = 0; i < 3; i++)
+        {
+            int a = corners[i], b = corners[(i + 1) % 3];
+            (ground[a] < surface ? wetSide : drySide).Add((Corners[a].Dx, Corners[a].Dz));
+            if ((ground[a] < surface) != (ground[b] < surface))
+            {
+                // From the wet to the dry corner, whichever is a or b, so both cells of a shared edge get
+                // the same point.
+                var (w, d) = ground[a] < surface ? (a, b) : (b, a);
+                var t = (surface - ground[w]) / (float)(ground[d] - ground[w]);
+                var cut = (Corners[w].Dx + (t * (Corners[d].Dx - Corners[w].Dx)), Corners[w].Dz + (t * (Corners[d].Dz - Corners[w].Dz)));
+                wetSide.Add(cut);
+                drySide.Add(cut);
+            }
+        }
+
+        AddPart(wet, wetSide);
+        AddPart(dry, drySide);
+    }
+
+    /// <summary>Adds a cut part without repeated points, if it still has an area.</summary>
+    private static void AddPart(List<(float U, float V)[]> parts, List<(float U, float V)> points)
+    {
+        var distinct = new List<(float U, float V)>(points.Count);
+        foreach (var p in points)
+        {
+            if (distinct.Count == 0 || distinct[^1] != p)
+            {
+                distinct.Add(p);
+            }
+        }
+
+        if (distinct.Count > 1 && distinct[^1] == distinct[0])
+        {
+            distinct.RemoveAt(distinct.Count - 1);
+        }
+
+        if (distinct.Count >= 3)
+        {
+            parts.Add([.. distinct]);
+        }
     }
 
     /// <summary>
@@ -918,6 +995,38 @@ public static partial class TerrainMesher
         {
             mesh.Triangle(p[0], p[3], p[1], color, flow);
             mesh.Triangle(p[1], p[3], p[2], color, flow);
+        }
+    }
+
+    /// <summary>
+    /// The bank plate of a dry cell beside still water at <paramref name="surface"/> (units): only the wet
+    /// parts of <see cref="CutShore"/>, so the water ends exactly on the shore line, where ground and
+    /// surface meet (no plate under the bank, nothing to fight the ground). Cut points lie at the surface;
+    /// corners take <see cref="FreshCorner"/>, so they meet the plates around them and come down to the
+    /// ground plus the shore lift where they touch bare ground.
+    /// </summary>
+    private static void Bank(WorldMap map, MeshData mesh, int x, int z, int surface, Rgb color, TerrainLook look)
+    {
+        Span<int> h = stackalloc int[4];
+        CornerHeights(map, x, z, look, h);
+        foreach (var part in CutShore(h, surface).Wet)
+        {
+            var p = new (float X, float Y, float Z)[part.Length];
+            for (var i = 0; i < part.Length; i++)
+            {
+                var (u, v) = part[i];
+                // A point of the part is a cell corner exactly when both coordinates are 0 or 1: corners
+                // are copied from Corners unchanged and a cut point that reaches a corner (t = 1) is
+                // computed as w + 1 * (d - w), which is exact for 0 and 1. So the comparison is exact.
+                var corner = Array.FindIndex(Corners, c => c.Dx == u && c.Dz == v);
+                var y = corner >= 0 ? FreshCorner(map, x + Corners[corner].Dx, z + Corners[corner].Dz, h[corner], look) : surface * look.UnitM;
+                p[i] = ((x + u) * look.CellM, y, (z + v) * look.CellM);
+            }
+
+            for (var i = 1; i + 1 < p.Length; i++)
+            {
+                mesh.Triangle(p[0], p[i], p[i + 1], color);
+            }
         }
     }
 
@@ -1305,6 +1414,13 @@ public static partial class TerrainMesher
         Diagonal13 = 4,
         Sea = 8,
     }
+
+    /// <summary>
+    /// The parts of a cell cut by a water surface (<see cref="CutShore"/>): convex polygons in cell
+    /// coordinates (u, v in 0..1) with the ground below the surface (<see cref="Wet"/>) and at or above
+    /// it (<see cref="Dry"/>). Together they cover the cell; the shore line is their shared edge.
+    /// </summary>
+    public sealed record ShoreCut(IReadOnlyList<(float U, float V)[]> Wet, IReadOnlyList<(float U, float V)[]> Dry);
 
     private enum Carrier
     {
