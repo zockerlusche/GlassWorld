@@ -80,6 +80,12 @@ public sealed record SaveState(
     /// <summary>The weather (B2 R13); null in worlds without weather and in older save games.</summary>
     public Weather.WeatherState? Weather { get; init; }
 
+    /// <summary>
+    /// The look epoch (B2-5 R16); null while the world is in its first epoch and in save games from before,
+    /// which load in the first epoch.
+    /// </summary>
+    public string? LookEpoch { get; init; }
+
     /// <summary>New skills of inventions (A1372); null in save games from before or without any.</summary>
     public SkillRegisterState? Skills { get; init; }
 
@@ -155,6 +161,7 @@ public static class StateCodec
             WritingSeen = host.Writing.Seen.Count > 0 ? host.Writing.Seen : null,
             IslandData = host.Map is { } map ? Map.IslandCodec.Encode(map.Island, map.CellSizeCm) : null,
             Weather = host.WeatherSystem?.Capture(),
+            LookEpoch = host.LookEpoch.Capture(),
             Skills = host.Skills.HasState ? host.Skills.Capture() : null,
             SkillGains = host.SkillLevels.HasState ? host.SkillLevels.Capture() : null,
             Mailbox = host.Mailbox.Capture(),
@@ -265,13 +272,14 @@ public static class StateCodec
             host.WeatherSystem?.Restore(state.Weather, state.Tick);
         }
 
+        host.LookEpoch.Restore(state.LookEpoch);
         host.UseLoggedDisplayLocale();
         return host;
     }
 }
 
 /// <summary>Everything needed to assemble a simulation around a world (content, decider settings, port, locale).</summary>
-public sealed class SimulationHostFactory(Content.ContentSet content, Contracts.DeciderSettings settings, IDecisionPort port, string displayLocale, IJobPort? jobPort = null)
+public sealed class SimulationHostFactory(Content.ContentSet content, Contracts.DeciderSettings settings, IDecisionPort port, string displayLocale, IJobPort? jobPort = null, SimulationHostOptions? options = null)
 {
     /// <summary>The content.</summary>
     public Content.ContentSet Content { get; } = content;
@@ -284,5 +292,5 @@ public sealed class SimulationHostFactory(Content.ContentSet content, Contracts.
 
     /// <summary>Assembles the systems around <paramref name="world"/>, on a saved island if one is given (B2 R11).</summary>
     public SimulationHost Assemble(World world, string? worldPreset, (Map.GeneratedIsland Island, int CellSizeCm)? savedIsland) =>
-        SimulationHost.Assemble(Content, settings, world, port, displayLocale, worldPreset, jobPort, savedIsland);
+        SimulationHost.Assemble(Content, settings, world, port, displayLocale, worldPreset, jobPort, savedIsland, options);
 }

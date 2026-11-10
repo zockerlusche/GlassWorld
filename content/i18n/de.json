@@ -1107,6 +1107,30 @@
       "text": "Das geht nur beim Anlegen einer Welt."
     },
     {
+      "key": "msg.command.no_weather",
+      "text": "Diese Welt hat kein Wetter."
+    },
+    {
+      "key": "msg.command.unknown_weather",
+      "text": "Dieses Wetter gibt es hier nicht."
+    },
+    {
+      "key": "msg.command.weather_unchanged",
+      "text": "So ist das Wetter schon."
+    },
+    {
+      "key": "msg.command.unknown_epoch",
+      "text": "Dieses Aussehen gibt es nicht."
+    },
+    {
+      "key": "msg.command.epoch_not_reached",
+      "text": "So weit sind die Bewohner noch nicht."
+    },
+    {
+      "key": "msg.command.debug_off",
+      "text": "Das geht nur im Debug-Modus."
+    },
+    {
       "key": "ui.settings.feeling_symbols",
       "text": "Gefühls-Symbole über den Köpfen"
     },
@@ -1461,6 +1485,30 @@
     {
       "key": "vocab.event.help_needed",
       "text": "Hilferuf"
+    },
+    {
+      "key": "vocab.event.storm_started",
+      "text": "Sturm beginnt"
+    },
+    {
+      "key": "vocab.event.storm_ended",
+      "text": "Sturm ist vorbei"
+    },
+    {
+      "key": "vocab.event.drought_started",
+      "text": "Dürre beginnt"
+    },
+    {
+      "key": "vocab.event.drought_ended",
+      "text": "Dürre ist vorbei"
+    },
+    {
+      "key": "vocab.event.weather_set",
+      "text": "Wetter von dir geändert"
+    },
+    {
+      "key": "vocab.event.look_epoch_changed",
+      "text": "Die Welt sieht anders aus"
     },
     {
       "key": "vocab.knowledge_source.experienced",

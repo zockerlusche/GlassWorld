@@ -157,6 +157,30 @@
     {
       "id": "discovered_process",
       "description": "An inhabitant discovered a new way of working, a process (B4b; action = the process; reported by the core once processes are discovered). The chronicle kind of the same name waited for it."
+    },
+    {
+      "id": "storm_started",
+      "description": "A storm began (B2-5 R13; Detail = the weather condition; no inhabitant). Named by the signals of the climate data."
+    },
+    {
+      "id": "storm_ended",
+      "description": "A storm is over (B2-5 R13; Detail = the weather condition; no inhabitant)."
+    },
+    {
+      "id": "drought_started",
+      "description": "A drought began: the dry days of the climate are reached or the drought weather set in (B2-5 R13; Detail = the weather condition)."
+    },
+    {
+      "id": "drought_ended",
+      "description": "A drought is over (B2-5 R13; Detail = the weather condition)."
+    },
+    {
+      "id": "weather_set",
+      "description": "The player set the weather (B2-5 R13, command set_weather; Detail = the weather)."
+    },
+    {
+      "id": "look_epoch_changed",
+      "description": "The look epoch of the world changed (B2-5 R16, commands set_look_epoch and debug_set_look_epoch; Detail = the epoch)."
     }
   ]
 }
