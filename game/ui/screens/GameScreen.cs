@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Collections.Frozen;
 using System.Globalization;
 using GlassWorld.Contracts;
 using GlassWorld.Game.Ui.Components;
@@ -32,7 +31,6 @@ public partial class GameScreen : CanvasLayer
     private LookNight? _nightLook;
     private readonly Dictionary<string, Label> _zzz = new(StringComparer.Ordinal);
     private double _nightClock;
-    private FrozenSet<string> _nightPhases = FrozenSet<string>.Empty;
     private PhaseStatus? _nightStatus;
     private double _nightPoll;
     private double _nightPollS = 2;
@@ -117,7 +115,6 @@ public partial class GameScreen : CanvasLayer
         _night = new NightScene(nightLook);
         _nightLook = nightLook;
         (_nightPollS, _nightDarkness) = (nightLook.PollS, nightLook.Darkness);
-        _nightPhases = presenter.Host.Content.Inventions.Build.NightPhases;
         _root.AddChild(_nightShade);
         _nightShade.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         _nightText.AddChild(new Label { Text = "ui.night.title", ThemeTypeVariation = UiTheme.HeaderLabel, HorizontalAlignment = HorizontalAlignment.Center, MouseFilter = Control.MouseFilterEnum.Ignore });
@@ -1673,7 +1670,8 @@ public partial class GameScreen : CanvasLayer
             return;
         }
 
-        var night = _nightPhases.Contains(WorldFeed.Phase(_feed.Snapshot.Time.Phase));
+        // The core's own flag (GW1 #205): null until a new or loaded world has decided it.
+        var night = _feed.Snapshot.ComputeNight;
         var setup = _presenter.SetupPort;
         if (_night.SceneShown && setup is not null && !_nightAsking && (_nightPoll -= delta) <= 0)
         {
