@@ -69,13 +69,13 @@ namespace GlassWorld.Contracts
     {
 
         /// <summary>
-        /// How far the foot of a face stands out from its top edge (mm); below half a cell, so the middle of the cell at the foot stays free.
+        /// How far the foot of a face stands out from its top edge (mm); with jitter_mm at most half a cell minus clearance_mm.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("lean_mm")]
         public int LeanMm { get; set; } = default!;
 
         /// <summary>
-        /// The same where the foot stands on a ledge one cell wide with the next drop right behind it (mm), so stacked steps close up towards one face; below half a cell.
+        /// The same where the foot stands on a ledge one cell wide with the next drop right behind it (mm), so stacked steps close up towards one face; with jitter_mm at most half a cell minus clearance_mm.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("ledge_lean_mm")]
         public int LedgeLeanMm { get; set; } = default!;
@@ -103,6 +103,12 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("blend_permille")]
         public int BlendPermille { get; set; } = default!;
+
+        /// <summary>
+        /// Radius around the middle of a cell that every face stays out of (mm): the body of an inhabitant standing on the cell at the foot of a wall or on a ledge, so no foot or shin ends up in the rock.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("clearance_mm")]
+        public int ClearanceMm { get; set; } = default!;
 
     }
 

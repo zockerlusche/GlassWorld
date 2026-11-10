@@ -10,23 +10,24 @@ namespace GlassWorld.Presentation.World;
 /// <param name="JitterM">Largest displacement of a face vertex by the hash of its grid corner (metres).</param>
 /// <param name="RowM">Height of one row of facets (metres): a taller face bends more often on its way down.</param>
 /// <param name="Blend">How far the colour at the top edge and at the foot takes on the colour of the ground there (share).</param>
-public sealed record RockFaceLook(float LeanM, float LedgeLeanM, float BevelM, float JitterM, float RowM, float Blend)
+/// <param name="ClearanceM">Radius around the middle of a cell that every face stays out of (metres): the body of an inhabitant standing there.</param>
+public sealed record RockFaceLook(float LeanM, float LedgeLeanM, float BevelM, float JitterM, float RowM, float Blend, float ClearanceM = 0)
 {
     /// <summary>Most rows of facets between the broken top edge and the foot of a face.</summary>
     public const int MaxRows = 4;
 
     /// <summary>
     /// Resolves the face data for a grid of the given cell size. A face must stay a steep wall next to its
-    /// cliff: with its jitter it ends before the middle of the cell at its foot, where the core lets
-    /// inhabitants stand.
+    /// cliff: with its jitter it ends the clearance (a body radius) before the middle of the cell at its
+    /// foot, where the core lets inhabitants stand, so no foot or shin ends up in the rock.
     /// </summary>
     public static RockFaceLook From(TerrainRockFace face, float cellM)
     {
         ArgumentNullException.ThrowIfNull(face);
-        var halfCellMm = cellM * 500f;
-        if (Math.Max(face.LeanMm, face.LedgeLeanMm) + face.JitterMm >= halfCellMm)
+        var freeMm = (cellM * 500f) - face.ClearanceMm;
+        if (Math.Max(face.LeanMm, face.LedgeLeanMm) + face.JitterMm > freeMm)
         {
-            throw new InvalidDataException($"Terrain look rock.face: lean_mm {face.LeanMm} and ledge_lean_mm {face.LedgeLeanMm} plus jitter_mm {face.JitterMm} must stay below half a cell ({halfCellMm:0} mm).");
+            throw new InvalidDataException($"Terrain look rock.face: lean_mm {face.LeanMm} and ledge_lean_mm {face.LedgeLeanMm} plus jitter_mm {face.JitterMm} must be at most half a cell minus clearance_mm {face.ClearanceMm} ({freeMm:0} mm).");
         }
 
         if (face.BevelMm > face.LeanMm || face.JitterMm * 2 > face.LeanMm)
@@ -34,7 +35,7 @@ public sealed record RockFaceLook(float LeanM, float LedgeLeanM, float BevelM, f
             throw new InvalidDataException($"Terrain look rock.face: bevel_mm {face.BevelMm} must be at most lean_mm {face.LeanMm} and jitter_mm {face.JitterMm} at most half of it.");
         }
 
-        return new RockFaceLook(face.LeanMm / 1000f, face.LedgeLeanMm / 1000f, face.BevelMm / 1000f, face.JitterMm / 1000f, face.RowMm / 1000f, face.BlendPermille / 1000f);
+        return new RockFaceLook(face.LeanMm / 1000f, face.LedgeLeanMm / 1000f, face.BevelMm / 1000f, face.JitterMm / 1000f, face.RowMm / 1000f, face.BlendPermille / 1000f, face.ClearanceMm / 1000f);
     }
 }
 
@@ -45,7 +46,7 @@ public sealed record RockFaceLook(float LeanM, float LedgeLeanM, float BevelM, f
 /// ground of the lower cells. Every vertex below the top edge is moved by a hash of its grid corner, so no
 /// two stretches are alike and none is a straight block side; the same map always gives the same faces.
 /// The ground mesh, its heights and <see cref="GroundHeight"/> are untouched: the core's cliffs stay
-/// where they are, and the face stays steep and ends before the middle of the cell at its foot.
+/// where they are, and the face stays steep and ends a body radius before the middle of the cell at its foot.
 /// </content>
 public static partial class TerrainMesher
 {

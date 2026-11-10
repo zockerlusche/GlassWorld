@@ -59,12 +59,13 @@
     "wall_foot_shade_permille": 250,
     "scree_permille": 450,
     "face": {
-      "lean_mm": 340,
-      "ledge_lean_mm": 420,
-      "bevel_mm": 140,
-      "jitter_mm": 70,
+      "lean_mm": 190,
+      "ledge_lean_mm": 220,
+      "bevel_mm": 110,
+      "jitter_mm": 60,
       "row_mm": 900,
-      "blend_permille": 600
+      "blend_permille": 600,
+      "clearance_mm": 220
     }
   },
   "open_sea_size_factor": 8.0,

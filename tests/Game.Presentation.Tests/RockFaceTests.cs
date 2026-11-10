@@ -92,8 +92,9 @@ public sealed class RockFaceTests
 
     /// <summary>
     /// The core's cliffs stay cliffs: every face vertex lies within the lean plus the jitter of a grid line
-    /// (its wall), so a face of at least half the cliff drop is steep and the middle of the cell at its foot,
-    /// where inhabitants and caves stand, stays free; and the ground itself is the same with and without faces.
+    /// (its wall), so a face of at least half the cliff drop is steep, and it keeps the clearance (a body
+    /// radius) from the middle of every cell, where inhabitants and caves stand (review GW3 #197); and the
+    /// ground itself is the same with and without faces.
     /// </summary>
     [Theory]
     [InlineData(7UL)]
@@ -103,10 +104,21 @@ public sealed class RockFaceTests
         var (map, look) = RealIsland(seed);
         var face = Assert.IsType<RockFaceLook>(look.Rock!.Face);
         var reach = MathF.Max(face.LeanM, face.LedgeLeanM) + face.JitterM + 1e-4f;
-        Assert.True(reach < look.CellM / 2);
+        Assert.True(face.ClearanceM >= 0.2f, "no body radius kept free");
+        Assert.True(reach <= (look.CellM / 2) - face.ClearanceM + 1e-4f);
         float OffLine(float v) => MathF.Abs((v / look.CellM) - MathF.Round(v / look.CellM)) * look.CellM;
         var all = All(map, look).ToList();
         Assert.All(all.Where(t => t.Face).SelectMany(t => new[] { t.A, t.B, t.C }), v => Assert.True(MathF.Min(OffLine(v.X), OffLine(v.Z)) <= reach, $"seed {seed}: face vertex ({v.X}, {v.Z}) leaves its wall"));
+
+        // An inhabitant stands on the middle of a cell (at the foot of a wall, on a ledge): no face vertex
+        // comes nearer to the middle of the cell it lies in than the body radius.
+        float FromMiddle((float X, float Y, float Z) v)
+        {
+            var (dx, dz) = (v.X - ((MathF.Floor(v.X / look.CellM) + 0.5f) * look.CellM), v.Z - ((MathF.Floor(v.Z / look.CellM) + 0.5f) * look.CellM));
+            return MathF.Sqrt((dx * dx) + (dz * dz));
+        }
+
+        Assert.All(all.Where(t => t.Face).SelectMany(t => new[] { t.A, t.B, t.C }), v => Assert.True(FromMiddle(v) >= face.ClearanceM - 1e-4f, $"seed {seed}: face vertex ({v.X}, {v.Z}) lies {FromMiddle(v):0.000} m from the middle of its cell"));
 
         var plain = All(map, look with { Rock = look.Rock with { Face = null } }).Where(t => !t.Face).Select(t => (t.A, t.B, t.C)).ToList();
         Assert.Equal(plain, all.Where(t => !t.Face).Select(t => (t.A, t.B, t.C)).ToList());
@@ -161,13 +173,18 @@ public sealed class RockFaceTests
     [Fact]
     public void TheFaceDataMustKeepTheMiddleOfTheCellFree()
     {
-        static Contracts.TerrainRockFace Data(int lean, int ledge, int bevel, int jitter) =>
-            new() { LeanMm = lean, LedgeLeanMm = ledge, BevelMm = bevel, JitterMm = jitter, RowMm = 900, BlendPermille = 600 };
-        Assert.Equal(new RockFaceLook(0.3f, 0.4f, 0.13f, 0.07f, 0.9f, 0.6f), RockFaceLook.From(Data(300, 400, 130, 70), 1f));
-        Assert.Throws<InvalidDataException>(() => RockFaceLook.From(Data(300, 450, 130, 70), 1f));
-        Assert.Throws<InvalidDataException>(() => RockFaceLook.From(Data(480, 400, 130, 30), 1f));
-        Assert.Throws<InvalidDataException>(() => RockFaceLook.From(Data(300, 400, 310, 70), 1f));
-        Assert.Throws<InvalidDataException>(() => RockFaceLook.From(Data(100, 400, 50, 70), 1f));
+        static Contracts.TerrainRockFace Data(int lean, int ledge, int bevel, int jitter, int clearance = 220) =>
+            new() { LeanMm = lean, LedgeLeanMm = ledge, BevelMm = bevel, JitterMm = jitter, RowMm = 900, BlendPermille = 600, ClearanceMm = clearance };
+        Assert.Equal(new RockFaceLook(0.19f, 0.22f, 0.11f, 0.06f, 0.9f, 0.6f, 0.22f), RockFaceLook.From(Data(190, 220, 110, 60), 1f));
+
+        // Lean plus jitter may reach half a cell minus the body radius (280 mm here), not a millimetre more:
+        // the middle of the cell alone is not enough, feet and shins need room (review GW3 #197).
+        Assert.Throws<InvalidDataException>(() => RockFaceLook.From(Data(190, 221, 110, 60), 1f));
+        Assert.Throws<InvalidDataException>(() => RockFaceLook.From(Data(230, 220, 110, 60), 1f));
+        Assert.Throws<InvalidDataException>(() => RockFaceLook.From(Data(340, 420, 140, 70), 1f));
+        Assert.NotNull(RockFaceLook.From(Data(340, 420, 140, 70, clearance: 0), 1f));
+        Assert.Throws<InvalidDataException>(() => RockFaceLook.From(Data(190, 220, 200, 60), 1f));
+        Assert.Throws<InvalidDataException>(() => RockFaceLook.From(Data(100, 220, 50, 60), 1f));
 
         // The data of the game are valid and switch the faces on.
         Assert.NotNull(RealIsland(7).Look.Rock?.Face);

@@ -32,13 +32,13 @@ class TerrainRockFace(BaseModel):
     )
     lean_mm: int = Field(
         ...,
-        description='How far the foot of a face stands out from its top edge (mm); below half a cell, so the middle of the cell at the foot stays free.',
+        description='How far the foot of a face stands out from its top edge (mm); with jitter_mm at most half a cell minus clearance_mm.',
         ge=0,
         le=2000,
     )
     ledge_lean_mm: int = Field(
         ...,
-        description='The same where the foot stands on a ledge one cell wide with the next drop right behind it (mm), so stacked steps close up towards one face; below half a cell.',
+        description='The same where the foot stands on a ledge one cell wide with the next drop right behind it (mm), so stacked steps close up towards one face; with jitter_mm at most half a cell minus clearance_mm.',
         ge=0,
         le=2000,
     )
@@ -65,6 +65,12 @@ class TerrainRockFace(BaseModel):
         description='How far the colour of a face takes on the colour of the ground it meets, at its top edge and at its foot (permille), so rock meets rock and grass softly.',
         ge=0,
         le=1000,
+    )
+    clearance_mm: int = Field(
+        ...,
+        description='Radius around the middle of a cell that every face stays out of (mm): the body of an inhabitant standing on the cell at the foot of a wall or on a ledge, so no foot or shin ends up in the rock.',
+        ge=0,
+        le=2000,
     )
 
 

@@ -146,17 +146,18 @@
         "bevel_mm",
         "jitter_mm",
         "row_mm",
-        "blend_permille"
+        "blend_permille",
+        "clearance_mm"
       ],
       "properties": {
         "lean_mm": {
-          "description": "How far the foot of a face stands out from its top edge (mm); below half a cell, so the middle of the cell at the foot stays free.",
+          "description": "How far the foot of a face stands out from its top edge (mm); with jitter_mm at most half a cell minus clearance_mm.",
           "type": "integer",
           "minimum": 0,
           "maximum": 2000
         },
         "ledge_lean_mm": {
-          "description": "The same where the foot stands on a ledge one cell wide with the next drop right behind it (mm), so stacked steps close up towards one face; below half a cell.",
+          "description": "The same where the foot stands on a ledge one cell wide with the next drop right behind it (mm), so stacked steps close up towards one face; with jitter_mm at most half a cell minus clearance_mm.",
           "type": "integer",
           "minimum": 0,
           "maximum": 2000
@@ -184,6 +185,12 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 1000
+        },
+        "clearance_mm": {
+          "description": "Radius around the middle of a cell that every face stays out of (mm): the body of an inhabitant standing on the cell at the foot of a wall or on a ledge, so no foot or shin ends up in the rock.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2000
         }
       }
     },
