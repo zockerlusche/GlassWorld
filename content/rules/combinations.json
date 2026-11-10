@@ -7,6 +7,13 @@
       "inputs": [ { "properties": ["sparks"] }, { "properties": ["hard", "sharp"] } ],
       "creates": ["spark"],
       "consumes": []
+    },
+    {
+      "id": "fire_from_spark_and_dry_grass",
+      "action": "combine",
+      "inputs": [ { "properties": ["hot"] }, { "properties": ["burnable", "fibrous", "portable"] } ],
+      "creates": ["fire"],
+      "consumes": [0, 1]
     }
   ]
 }

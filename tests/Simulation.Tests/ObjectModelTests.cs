@@ -88,6 +88,26 @@ public sealed class ObjectModelTests
     public void TwoEqualStonesMakeNoSpark(string a, string b) =>
         Assert.Empty(Content.Combinations.Match("combine", [a, b]));
 
+    [Theory]
+    [InlineData("spark", "dry_grass")]
+    [InlineData("dry_grass", "spark")]
+    public void ASparkAndDryGrassMakeAFireInAnyOrder(string a, string b)
+    {
+        // D333: sparks and dry grass give fire (A1464). The spark and the grass are used up.
+        var match = Assert.Single(Content.Combinations.Match("combine", [a, b]));
+        Assert.Equal("fire_from_spark_and_dry_grass", match.Rule.Id);
+        Assert.Equal(["fire"], match.Rule.Creates);
+        Assert.Equal([0, 1], match.Rule.Consumes);
+    }
+
+    [Theory]
+    [InlineData("spark", "dry_wood")] // burns, but is no fibrous tinder
+    [InlineData("spark", "flax")] // fibrous, but does not burn before it is dried
+    [InlineData("spark", "palm_tree")] // a standing tree is no tinder
+    [InlineData("flint", "dry_grass")] // nothing hot
+    public void WithoutASparkOrWithoutTinderThereIsNoFire(string a, string b) =>
+        Assert.Empty(Content.Combinations.Match("combine", [a, b]));
+
     [Fact]
     public void UnfittingObjectsOrActionsDoNotCombine()
     {
