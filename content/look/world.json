@@ -12,6 +12,7 @@
     "thought_seconds_fast": 3,
     "fast_from_speed": 16,
     "bubble_width_px": 440,
+    "bubble_order_hysteresis_px": 12,
     "speech_s": 9.0
   },
   "observer": {

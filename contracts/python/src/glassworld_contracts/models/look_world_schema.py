@@ -72,6 +72,12 @@ class WorldLookLabels(BaseModel):
         ge=1.0,
         le=120.0,
     )
+    bubble_order_hysteresis_px: float = Field(
+        ...,
+        description='Two heads within this many pixels of the same screen height keep the stacking order of their bubbles (no flipping when walkers swap depth; pixels at the reference height, scaled with the UI).',
+        ge=0.0,
+        le=200.0,
+    )
 
 
 class WorldLookObserver(BaseModel):

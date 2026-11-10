@@ -71,7 +71,8 @@
         "thought_seconds_fast",
         "fast_from_speed",
         "bubble_width_px",
-        "speech_s"
+        "speech_s",
+        "bubble_order_hysteresis_px"
       ],
       "properties": {
         "thought_above_head_m": {
@@ -127,6 +128,12 @@
           "type": "number",
           "minimum": 1,
           "maximum": 120
+        },
+        "bubble_order_hysteresis_px": {
+          "description": "Two heads within this many pixels of the same screen height keep the stacking order of their bubbles (no flipping when walkers swap depth; pixels at the reference height, scaled with the UI).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 200
         }
       }
     },
