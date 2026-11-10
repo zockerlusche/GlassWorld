@@ -60,6 +60,12 @@ public sealed class SimulationHost
     /// <summary>The chronicle (core state, D471 D8).</summary>
     public ChronicleSystem Chronicle { get; }
 
+    /// <summary>
+    /// Each inhabitant's diary of started actions (TL #20472): saved with the game, outside the world hash
+    /// (the simulation never reads it).
+    /// </summary>
+    public InhabitantDiary Diary { get; private init; } = null!;
+
     /// <summary>Writing on objects and how it wears away (B8 R13-R15).</summary>
     public Writing.WritingSystem Writing { get; }
 
@@ -242,6 +248,10 @@ public sealed class SimulationHost
         decisions.InventedName = typeId => inventions.Invention(typeId)?.Name;
         var chronicle = new ChronicleSystem(content.Chronicle);
         inhabitants.Reported += chronicle.Observe;
+
+        // Each inhabitant's diary (TL #20472): presentation-only history, saved but not a world system (not hashed).
+        var diary = new InhabitantDiary(content.InhabitantModel.Diary, inhabitants, objects);
+        inhabitants.Reported += diary.Observe;
         var skills = new SkillRegister(content.InhabitantModel.Skills, content.InhabitantModel.SkillRules, content.SkillPractice);
 
         // Skill levels per inhabitant (B5 part): finished actions practise their skills.
@@ -295,6 +305,7 @@ public sealed class SimulationHost
             Options = options,
             SkillLevels = skillLevels,
             Conversation = conversation,
+            Diary = diary,
         };
 
         // The player's language (#20043): a logged command, so replays ask in the same language at the same tick.

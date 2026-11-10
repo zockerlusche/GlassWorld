@@ -73,6 +73,28 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
+    /// Each inhabitant's diary (TL #20472): one entry per started action, newest kept, oldest dropped. Presentation-only history: saved with the game, outside the world hash, never read by the simulation. Omitted = no diary.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class Diary
+    {
+
+        /// <summary>
+        /// Entries kept per inhabitant.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("capacity")]
+        public int Capacity { get; set; } = default!;
+
+        /// <summary>
+        /// Actions that get no entry (resting in place).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("left_out_actions")]
+        public System.Collections.Generic.ICollection<string>? LeftOutActions { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// Being together (TL #20190): an inhabitant within the distance of a familiar other (its own relationship to the other at least min_trust and min_affection; start values count when they have not met), both not sleeping, slowly fills a need per hour, never above the cap. Only a need effect, no behaviour. Omitted = no togetherness.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -264,6 +286,10 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("togetherness")]
         public Togetherness? Togetherness { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("diary")]
+        public Diary? Diary { get; set; } = default!;
 
     }
 

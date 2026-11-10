@@ -92,26 +92,51 @@ public static class InhabitantActivity
             return tr(inhabitant.OpenQuestionIds.Count > 0 ? ThinkingKey : StandingKey);
         }
 
-        var args = new Dictionary<string, string>(StringComparer.Ordinal);
-        var keys = new List<string>();
+        string? other = null;
+        string? thingType = null;
         if (inhabitant.TargetId is { } id)
         {
             if (index.Inhabitants.ContainsKey(id))
             {
-                args["name"] = nameOf(id);
-                if (inhabitant.Topic is { } topic)
-                {
-                    args["thing"] = tr(VocabKeys.ObjectType(topic));
-                    keys.Add(Prefix + action + ".inhabitant_topic");
-                }
-
-                keys.Add(Prefix + action + ".inhabitant");
+                other = id;
             }
             else if (index.Objects.TryGetValue(id, out var thing))
             {
-                args["thing"] = tr(VocabKeys.ObjectType(thing.TypeId));
-                keys.Add(Prefix + action + ".object");
+                thingType = thing.TypeId;
             }
+        }
+
+        return Line(action, other, inhabitant.Topic, thingType, tr, nameOf);
+    }
+
+    /// <summary>
+    /// The readable line of an action (the list, the card and the diary share it): the most specific text the
+    /// catalog has for an action towards another inhabitant (<paramref name="otherId"/>, with what it is about,
+    /// <paramref name="topic"/>) or towards a thing of type <paramref name="thingType"/>, then the action alone,
+    /// then the action's name, else "is standing".
+    /// </summary>
+    public static string Line(string action, string? otherId, string? topic, string? thingType, Func<string, string> tr, Func<string, string> nameOf)
+    {
+        ArgumentNullException.ThrowIfNull(action);
+        ArgumentNullException.ThrowIfNull(tr);
+        ArgumentNullException.ThrowIfNull(nameOf);
+        var args = new Dictionary<string, string>(StringComparer.Ordinal);
+        var keys = new List<string>();
+        if (otherId is not null)
+        {
+            args["name"] = nameOf(otherId);
+            if (topic is not null)
+            {
+                args["thing"] = tr(VocabKeys.ObjectType(topic));
+                keys.Add(Prefix + action + ".inhabitant_topic");
+            }
+
+            keys.Add(Prefix + action + ".inhabitant");
+        }
+        else if (thingType is not null)
+        {
+            args["thing"] = tr(VocabKeys.ObjectType(thingType));
+            keys.Add(Prefix + action + ".object");
         }
 
         keys.Add(Prefix + action);

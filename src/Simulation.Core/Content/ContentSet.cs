@@ -136,6 +136,12 @@ public sealed class ContentSet
         var needs = Ids(vocabularies, VocabularyKind.Need);
         var moods = Ids(vocabularies, VocabularyKind.Mood);
         CheckModel(model, needs, moods, Ids(vocabularies, VocabularyKind.Trait));
+        var actionIds = Ids(vocabularies, VocabularyKind.Action);
+        if (model.Diary?.LeftOutActions?.FirstOrDefault(a => !actionIds.Contains(a)) is { } unknownAction)
+        {
+            throw new InvalidDataException($"Inhabitant model: diary.left_out_actions names unknown action '{unknownAction}'.");
+        }
+
         var actions = ActionRules.Create(
             Files(contentDirectory, "effects").Select(f => ContractSerializer.Deserialize<ActionEffects>(File.ReadAllText(f))),
             objects,

@@ -1,3 +1,7 @@
+using System.Globalization;
+using GlassWorld.Simulation.Inhabitants;
+using GlassWorld.Simulation.Time;
+
 namespace GlassWorld.Presentation.World;
 
 /// <summary>A line of an inhabitant's diary: when (as the clock showed it) and what it did.</summary>
@@ -8,50 +12,92 @@ public sealed record DiaryLine(int Day, string Time, string Text);
 
 /// <summary>
 /// What each inhabitant did, one after the other (Marcel W1726: "eine Historie, was der jeweilige Charakter
-/// tut, damit man sieht, oh, der hat das schon gemacht"). The screen notes the activity line of every
-/// inhabitant when it refreshes; a line is added only when the activity changed, and standing around between
-/// two activities is left out. Newest first, the newest <c>capacity</c> lines per inhabitant. Godot-free.
+/// tut, damit man sieht, oh, der hat das schon gemacht"). The core keeps the diary (TL #20472: one entry per
+/// started action, saved with the game, nothing missed at x16); this takes what is new and keeps the newest
+/// <c>shown</c> entries per inhabitant. Entries stay language-neutral; the lines are built when they are drawn,
+/// so a language switch or a newly learned name shows at once. Godot-free.
 /// </summary>
-public sealed class ActivityDiary(int capacity)
+public sealed class ActivityDiary(int shown, WorldCalendar calendar)
 {
-    private readonly int _capacity = Math.Max(1, capacity);
-    private readonly Dictionary<string, List<DiaryLine>> _lines = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, string> _last = new(StringComparer.Ordinal);
+    private readonly int _shown = Math.Max(1, shown);
+    private readonly Dictionary<string, List<DiaryEntry>> _entries = new(StringComparer.Ordinal);
+    private IInhabitantDiary? _source;
+    private long _taken;
 
-    /// <summary>Changes whenever a line is added.</summary>
+    /// <summary>Changes whenever an entry is added or the diary starts over.</summary>
     public long Version { get; private set; }
 
-    /// <summary>Notes what an inhabitant does now; <paramref name="idle"/> marks "nothing in particular".</summary>
-    public void Note(string inhabitantId, string activity, bool idle, int day, string time)
+    /// <summary>
+    /// Takes the core's entries that are new since the last call (all of them the first time). Another diary,
+    /// or one with an older version (a different or older world was loaded), starts over.
+    /// </summary>
+    /// <returns>Number of new entries.</returns>
+    public int Sync(IInhabitantDiary diary)
     {
-        ArgumentException.ThrowIfNullOrEmpty(inhabitantId);
-        ArgumentNullException.ThrowIfNull(activity);
-        if (_last.GetValueOrDefault(inhabitantId) == activity)
+        ArgumentNullException.ThrowIfNull(diary);
+        if (!ReferenceEquals(diary, _source) || diary.Version < _taken)
         {
-            return;
+            _source = diary;
+            _taken = 0;
+            if (_entries.Count > 0)
+            {
+                _entries.Clear();
+                Version++;
+            }
         }
 
-        _last[inhabitantId] = activity;
-        if (idle || activity.Length == 0)
+        if (diary.Version <= _taken)
         {
-            return;
+            return 0;
         }
 
-        if (!_lines.TryGetValue(inhabitantId, out var lines))
+        var added = 0;
+        foreach (var entry in diary.Since(_taken))
         {
-            _lines[inhabitantId] = lines = [];
+            _taken = Math.Max(_taken, entry.Seq);
+            if (!_entries.TryGetValue(entry.InhabitantId, out var list))
+            {
+                _entries[entry.InhabitantId] = list = [];
+            }
+
+            list.Add(entry);
+            if (list.Count > _shown)
+            {
+                list.RemoveAt(0);
+            }
+
+            added++;
         }
 
-        lines.Add(new DiaryLine(day, time, activity));
-        if (lines.Count > _capacity)
+        _taken = Math.Max(_taken, diary.Version);
+        if (added > 0)
         {
-            lines.RemoveAt(0);
+            Version++;
         }
 
-        Version++;
+        return added;
     }
 
-    /// <summary>The diary of an inhabitant, newest first.</summary>
-    public IReadOnlyList<DiaryLine> Of(string inhabitantId) =>
-        _lines.TryGetValue(inhabitantId, out var lines) ? [.. Enumerable.Reverse(lines)] : [];
+    /// <summary>The kept entries of an inhabitant, newest first.</summary>
+    public IReadOnlyList<DiaryEntry> EntriesOf(string inhabitantId) =>
+        _entries.TryGetValue(inhabitantId, out var list) ? [.. Enumerable.Reverse(list)] : [];
+
+    /// <summary>
+    /// The diary of an inhabitant, newest first, in the language of now: <paramref name="tr"/> translates a
+    /// key (returning the key when unknown), <paramref name="nameOf"/> is the screen's name of an inhabitant id.
+    /// </summary>
+    public IReadOnlyList<DiaryLine> Of(string inhabitantId, Func<string, string> tr, Func<string, string> nameOf)
+    {
+        ArgumentNullException.ThrowIfNull(tr);
+        ArgumentNullException.ThrowIfNull(nameOf);
+        return [.. EntriesOf(inhabitantId).Select(e =>
+        {
+            var time = calendar.At(e.Tick);
+            var other = e.TargetId is not null && e.TargetType is null ? e.TargetId : null;
+            return new DiaryLine(
+                time.DayOfSeason,
+                string.Create(CultureInfo.InvariantCulture, $"{time.Hour:00}:{time.Minute:00}"),
+                InhabitantActivity.Line(e.Action, other, e.Topic, e.TargetType, tr, nameOf));
+        })];
+    }
 }
