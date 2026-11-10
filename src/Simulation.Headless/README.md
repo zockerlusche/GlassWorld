@@ -31,7 +31,8 @@ Kinds are the ids of `content/vocabulary/events.json`; unknown kinds are refused
 ### Output lines
 
 The existing lines (`day ..`, `done ..`, `neglect ..`, `time ..`, `save ..`, `ACCEPTANCE_OK`/`ACCEPTANCE_FAIL`)
-are unchanged. New:
+are unchanged. On an island the line `explored  land <shown>/<all> cells (<p> %)  view <shown>/<all> cells` follows
+`neglect ..`: how much of the land (cells without water) and of the whole grid the player's view shows (B2-6 R14). New:
 
 ```
 EVENT tick=<t> kind=<kind> inhabitant=<id> action=<a> target=<id> detail=<d>

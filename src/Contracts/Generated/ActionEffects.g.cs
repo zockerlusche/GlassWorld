@@ -29,7 +29,7 @@ namespace GlassWorld.Contracts
         public double ReachM { get; set; } = default!;
 
         /// <summary>
-        /// Where an action without a target happens: here, or at a random spot within the perception radius (own seed stream).
+        /// Where an action without a target happens: here, at a random spot within the perception radius (own seed stream), or at the frontier: the nearest walkable cell the inhabitant has seen that lies next to one it has not seen yet (B2-6 R14). A frontier action is only offered while such a cell can be reached on foot.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("destination")]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ActionTimingDestination>))]
@@ -119,6 +119,10 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("random_nearby")]
         Random_nearby = 1,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("frontier")]
+        Frontier = 2,
 
 
     }

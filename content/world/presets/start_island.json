@@ -297,8 +297,10 @@
     ]
   },
   "exploration": {
-    "view_range_cells": 24,
+    "view_range_cells": 16,
     "height_bonus_per_100_height": 10,
+    "surroundings_radius_cells": 12,
+    "max_height_bonus_cells": 16,
     "reveal_real_seconds": 3.0
   },
   "pathfinding": {

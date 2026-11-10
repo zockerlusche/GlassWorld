@@ -531,6 +531,10 @@
       "text": "Wander"
     },
     {
+      "key": "vocab.action.explore",
+      "text": "Explore"
+    },
+    {
       "key": "vocab.action.use",
       "text": "Use"
     },
@@ -1847,6 +1851,10 @@
       "text": "is wandering about"
     },
     {
+      "key": "ui.activity.explore",
+      "text": "is exploring the land"
+    },
+    {
       "key": "ui.activity.move_to",
       "text": "is walking"
     },
@@ -2037,6 +2045,10 @@
     {
       "key": "msg.thought.wander",
       "text": "Let's look around a bit."
+    },
+    {
+      "key": "msg.thought.explore",
+      "text": "What might lie beyond?"
     },
     {
       "key": "msg.thought.use",
@@ -2405,6 +2417,50 @@
     {
       "key": "ui.zone.contact",
       "text": "Contact"
+    },
+    {
+      "key": "ui.debug.seed",
+      "text": "Seed: {seed}"
+    },
+    {
+      "key": "ui.debug.world_hash",
+      "text": "World hash: {hash}"
+    },
+    {
+      "key": "ui.debug.state_hash",
+      "text": "State hash: {hash}"
+    },
+    {
+      "key": "ui.debug.time",
+      "text": "World time: {time} ({phase}), day {day}, year {year}, tick {tick}"
+    },
+    {
+      "key": "ui.debug.season",
+      "text": "Season: {season}"
+    },
+    {
+      "key": "ui.debug.weather",
+      "text": "Weather: {weather}, conditions: {conditions}"
+    },
+    {
+      "key": "ui.debug.epoch",
+      "text": "Look epoch: {epoch}"
+    },
+    {
+      "key": "ui.debug.fps",
+      "text": "Frames per second: {fps}"
+    },
+    {
+      "key": "ui.debug.figures",
+      "text": "Figures: {count}"
+    },
+    {
+      "key": "ui.debug.biome",
+      "text": "Biome under the pointer: {biome}"
+    },
+    {
+      "key": "ui.debug.jumps",
+      "text": "Debug jumps: {back} and {forward} change the epoch"
     }
   ]
 }
