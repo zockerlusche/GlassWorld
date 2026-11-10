@@ -47,7 +47,7 @@ def _render(request: DecisionRequest, budget: int = BUDGET, version: int = 1) ->
     )
 
 
-@pytest.mark.parametrize("version", [1, 2, 3, 4])
+@pytest.mark.parametrize("version", [1, 2, 3, 4, 6])
 @pytest.mark.parametrize("case", ["hungry-berries", "stormy-dusk"])
 def test_decider_prompt_snapshot(case: str, version: int) -> None:
     text = _render(_request(case), version=version)
@@ -200,6 +200,7 @@ def test_every_knowledge_source_has_words_in_the_prompts_that_name_sources() -> 
         "decider/decide.v3",
         "decider/decide.v4",
         "decider/decide.v5",
+        "decider/decide.v6",
         "question/ask.v1",
     ):
         settings = tomllib.loads((PROMPTS / f"{name}.toml").read_text(encoding="utf-8"))
@@ -247,3 +248,30 @@ def test_v4_knows_its_own_name_to_introduce_itself() -> None:
     data = json.loads((EXAMPLES / "decision-request.b9-family.json").read_text(encoding="utf-8"))
     assert 'Your name: "Tavi"' in _render(DecisionRequest.model_validate(data), version=4)
     assert "Your name: (none yet)" in _render(_request("hungry-berries"), version=4)
+
+
+def test_v6_says_how_far_the_inhabitant_sees() -> None:
+    """B2594: v6 tells the model how far the inhabitant sees (fog, rain, snow shorten it)."""
+    request = _request("stormy-dusk")  # visibility_m 30
+    v6 = _render(request, version=6)
+    assert "- How far you can see: a fair way (about 30 m)" in v6
+    assert "hidden right now" in v6
+    near = request.model_copy(deep=True)
+    near.environment.visibility_m = 8.0
+    assert "- How far you can see: only what is very close (about 8 m)" in _render(near, version=6)
+    # The released versions stay as they were.
+    for version in (3, 4, 5):
+        assert "How far you can see" not in _render(request, version=version)
+
+
+def test_v6_keeps_the_b9_parts_of_v5_out() -> None:
+    """v6 builds on v4: no life, family, customs, names or gossip (prompt and answer)."""
+    from glassworld_ai.decider.context import b9_parts
+
+    v6 = load_prompt(PROMPTS, "decider/decide", 6)
+    assert not b9_parts(v6)
+    assert b9_parts(load_prompt(PROMPTS, "decider/decide", 5))
+    assert not b9_parts(load_prompt(PROMPTS, "decider/decide", 4))
+    v4_text = _render(_request("hungry-berries"), version=4).split("=== user ===")[1]
+    v6_text = _render(_request("hungry-berries"), version=6).split("=== user ===")[1]
+    assert v4_text == v6_text  # no visibility in this example: the user part is v4's
