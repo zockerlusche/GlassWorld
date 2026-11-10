@@ -44,7 +44,7 @@ public sealed class NightScene(LookNight data)
     public bool SceneShown => Stage is NightStage.FadingOut or NightStage.Dream or NightStage.FadingIn;
 
     /// <summary>
-    /// One frame. <paramref name="night"/>: the core's compute night runs (null: not decided yet for a new or
+    /// One frame. <paramref name="known"/>: the core's compute night runs (null: not decided yet for a new or
     /// loaded world - neither a start nor an end; the first known value is never taken as a change).
     /// <paramref name="serviceDone"/>: the service has nothing left this night (null: unknown - no service or no
     /// answer yet; then the scene ends after its minimum time). <paramref name="realSeconds"/>: real time since
