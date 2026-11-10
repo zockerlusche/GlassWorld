@@ -216,7 +216,7 @@ public sealed class ContentSet
                 Ids(vocabularies, VocabularyKind.Action),
                 brain.Weights,
                 model),
-            Knowledge = LoadKnowledge(contentDirectory, vocabularies, objects, actions),
+            Knowledge = LoadKnowledge(contentDirectory, vocabularies, objects, actions, model),
             EventKinds = Required(vocabularies, VocabularyKind.Event).Entries.Select(e => e.Id).ToFrozenSet(StringComparer.Ordinal),
             InhabitantNames = LoadNames(contentDirectory),
             LookEpochs = LoadLookEpochs(contentDirectory, Ids(vocabularies, VocabularyKind.Epoch), inventions.TechLevels.Count),
@@ -343,7 +343,7 @@ public sealed class ContentSet
         }
     }
 
-    private static KnowledgeSettings LoadKnowledge(string contentDirectory, Dictionary<VocabularyKind, Vocabulary> vocabularies, ObjectCatalog objects, ActionRules effects)
+    private static KnowledgeSettings LoadKnowledge(string contentDirectory, Dictionary<VocabularyKind, Vocabulary> vocabularies, ObjectCatalog objects, ActionRules effects, InhabitantModel model)
     {
         var data = ContractSerializer.Deserialize<KnowledgeSettings>(File.ReadAllText(Path.Combine(contentDirectory, "knowledge", "settings.json")));
         var actions = Required(vocabularies, VocabularyKind.Action).Entries.ToDictionary(e => e.Id, StringComparer.Ordinal);
@@ -369,12 +369,64 @@ public sealed class ContentSet
             problems.AddRange(LookingProblems(looking, data, actions, objects, effects));
         }
 
+        problems.AddRange(SocialProblems(data, actions, effects, model));
+
         if (problems.Count > 0)
         {
             throw new InvalidDataException("Knowledge settings: " + string.Join("; ", problems) + ".");
         }
 
         return data;
+    }
+
+    /// <summary>
+    /// Meeting, relationships and imprinting (B4a R6-R8): meeting actions are offered inhabitant actions that are
+    /// neither passing nor naming, with a known need; relationship actions aim at inhabitants; strangers start
+    /// below the togetherness thresholds (an unknown human is not company); imprinting names known actions.
+    /// </summary>
+    private static IEnumerable<string> SocialProblems(KnowledgeSettings data, Dictionary<string, VocabularyEntry> actions, ActionRules effects, InhabitantModel model)
+    {
+        bool AtInhabitant(string action) => actions.TryGetValue(action, out var entry) && entry.Target == VocabularyEntryTarget.Inhabitant;
+        foreach (var option in data.Meeting?.Options ?? [])
+        {
+            if (!AtInhabitant(option.Action) || !effects.OfferedActions.Contains(option.Action, StringComparer.Ordinal)
+                || data.Passing.Any(p => p.Action == option.Action) || data.Naming?.Action == option.Action)
+            {
+                yield return $"meeting action '{option.Action}' is not an offered action with an inhabitant target, or is also a passing or naming action";
+            }
+
+            if (option.Need is { } need && !model.Needs.Any(n => n.Id == need))
+            {
+                yield return $"meeting action '{option.Action}' names unknown need '{need}'";
+            }
+        }
+
+        foreach (var rule in data.RelationshipChanges?.Actions ?? [])
+        {
+            if (!AtInhabitant(rule.Action))
+            {
+                yield return $"relationship action '{rule.Action}' is not an action with an inhabitant target";
+            }
+        }
+
+        if (data.StartRelationships is { } starts && model.Togetherness is { } together
+            && starts.Strangers.Trust >= together.MinTrust && starts.Strangers.Affection >= together.MinAffection)
+        {
+            yield return "strangers start as familiar (start_relationships.strangers reach the togetherness thresholds of the inhabitant model)";
+        }
+
+        if (data.Imprinting is { } imprinting)
+        {
+            foreach (var action in imprinting.LeftOutActions.Where(a => !actions.ContainsKey(a)))
+            {
+                yield return $"unknown action '{action}' in imprinting.left_out_actions";
+            }
+
+            if (imprinting.FullAt < imprinting.HabitFrom)
+            {
+                yield return "imprinting.full_at is below habit_from";
+            }
+        }
     }
 
     /// <summary>

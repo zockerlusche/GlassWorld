@@ -65,5 +65,40 @@
   "naming": {
     "action": "introduce",
     "busy_need_below": 0.2
+  },
+  "start_relationships": {
+    "partners": { "affection": 0.6, "trust": 0.7, "respect": 0.5 },
+    "strangers": { "affection": 0.1, "trust": 0.2, "respect": 0.3 }
+  },
+  "relationship_changes": {
+    "together_distance_m": 3.0,
+    "together_per_hour": { "affection": 0.01, "trust": 0.01, "respect": 0.0 },
+    "heard_true": { "affection": 0.02, "trust": 0.0, "respect": 0.03 },
+    "heard_false": { "affection": -0.02, "trust": 0.0, "respect": -0.03 },
+    "actions": [
+      { "action": "approach", "actor": { "affection": 0.01, "trust": 0.0, "respect": 0.0 }, "listener": { "affection": 0.0, "trust": 0.01, "respect": 0.0 } },
+      { "action": "talk_to", "actor": { "affection": 0.03, "trust": 0.02, "respect": 0.01 }, "listener": { "affection": 0.03, "trust": 0.02, "respect": 0.01 } },
+      { "action": "introduce", "actor": { "affection": 0.04, "trust": 0.03, "respect": 0.01 }, "listener": { "affection": 0.04, "trust": 0.03, "respect": 0.01 } },
+      { "action": "warn", "actor": { "affection": 0.01, "trust": 0.0, "respect": 0.0 }, "listener": { "affection": 0.02, "trust": 0.0, "respect": 0.02 } },
+      { "action": "show", "actor": { "affection": 0.01, "trust": 0.0, "respect": 0.0 }, "listener": { "affection": 0.02, "trust": 0.0, "respect": 0.03 } },
+      { "action": "teach", "actor": { "affection": 0.01, "trust": 0.0, "respect": 0.0 }, "listener": { "affection": 0.02, "trust": 0.0, "respect": 0.04 } }
+    ],
+    "fade_per_hour": 0.002,
+    "fade_to": { "affection": 0.3, "trust": 0.5, "respect": 0.5 }
+  },
+  "meeting": {
+    "options": [
+      { "action": "approach", "min_distance_m": 4.0, "max_trust": 0.5 },
+      { "action": "talk_to", "need": "company", "need_below": 0.7 }
+    ]
+  },
+  "imprinting": {
+    "left_out_actions": ["idle"],
+    "fade_per_hour": 0.02,
+    "habit_from": 3,
+    "full_at": 10,
+    "forget_below": 0.05,
+    "max_counters": 48,
+    "max_habits": 6
   }
 }

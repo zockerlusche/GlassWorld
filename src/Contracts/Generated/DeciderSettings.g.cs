@@ -19,6 +19,9 @@ namespace GlassWorld.Contracts
     public partial class Trigger
     {
 
+        /// <summary>
+        /// unknown_object: a thing of a type without any belief in sight; noticed_player: the player noticed (click); unknown_inhabitant: another inhabitant in sight whose own name it does not know (B4a R8).
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("kind")]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TriggerKind>))]
         public TriggerKind Kind { get; set; } = default!;
@@ -80,6 +83,10 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("noticed_player")]
         Noticed_player = 1,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("unknown_inhabitant")]
+        Unknown_inhabitant = 2,
 
 
     }

@@ -22,13 +22,17 @@ class FallbackEnvironment(BaseModel):
 class Kind(StrEnum):
     unknown_object = 'unknown_object'
     noticed_player = 'noticed_player'
+    unknown_inhabitant = 'unknown_inhabitant'
 
 
 class Trigger(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
-    kind: Kind
+    kind: Kind = Field(
+        ...,
+        description='unknown_object: a thing of a type without any belief in sight; noticed_player: the player noticed (click); unknown_inhabitant: another inhabitant in sight whose own name it does not know (B4a R8).',
+    )
     enabled: bool
 
 

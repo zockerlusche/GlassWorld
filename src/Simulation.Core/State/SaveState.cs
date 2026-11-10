@@ -15,6 +15,9 @@ public sealed record SavedPlace(string ObjectId, string TypeId, Position Positio
 /// <summary>A relationship as saved (B4a R7).</summary>
 public sealed record SavedRelation(string Other, double Affection, double Trust, double Respect);
 
+/// <summary>An imprinting counter as saved (B4a R6); empty kind and id for an action without a target.</summary>
+public sealed record SavedImprint(string Action, string AboutKind, string AboutId, string TimeOfDay, double Count);
+
 /// <summary>An inhabitant as saved.</summary>
 public sealed record SavedInhabitant(
     string Id,
@@ -36,7 +39,9 @@ public sealed record SavedInhabitant(
     RepeatRun? Repeat = null,
     IReadOnlyList<RestingAction>? Resting = null,
     string? Name = null,
-    IReadOnlyList<string>? KnownNames = null);
+    IReadOnlyList<string>? KnownNames = null,
+    IReadOnlyList<string>? Met = null,
+    IReadOnlyList<SavedImprint>? Imprints = null);
 
 /// <summary>An open question as saved.</summary>
 public sealed record SavedQuestion(string Id, string InhabitantId, string Kind, string Subject, string RequestId, long AskedTick, IReadOnlyList<SavedOption> Options, long? RetryAtTick);
@@ -160,7 +165,9 @@ public static class StateCodec
                 i.Repeat,
                 i.Resting.Count > 0 ? [.. i.Resting] : null,
                 i.Name,
-                i.KnownNames.Count > 0 ? [.. i.KnownNames] : null))],
+                i.KnownNames.Count > 0 ? [.. i.KnownNames] : null,
+                i.Met.Count > 0 ? [.. i.Met] : null,
+                i.Imprints.Count > 0 ? [.. i.Imprints.Select(p => new SavedImprint(p.Key.Action, p.Key.AboutKind, p.Key.AboutId, p.Key.TimeOfDay, p.Value))] : null))],
             counter,
             [.. questions.Select(q => new SavedQuestion(q.Id, q.InhabitantId, q.Kind, q.Subject, q.RequestId, q.AskedTick, [.. q.Options.Select(o => new SavedOption(o.OptionId, o.Action, o.TargetId))], q.RetryAtTick))],
             lastAsked,
@@ -245,6 +252,12 @@ public static class StateCodec
                 Name = saved.Name,
             };
             inhabitant.KnownNames.UnionWith(saved.KnownNames ?? []);
+            inhabitant.Met.UnionWith(saved.Met ?? []);
+            foreach (var imprint in saved.Imprints ?? [])
+            {
+                inhabitant.Imprints[new ImprintKey(imprint.Action, imprint.AboutKind, imprint.AboutId, imprint.TimeOfDay)] = imprint.Count;
+            }
+
             foreach (var belief in saved.Beliefs)
             {
                 inhabitant.Beliefs.Set(belief.TypeId, belief.PropertyId, belief.Value, belief.Confidence, belief.Source, belief.ToldBy, belief.Tick);

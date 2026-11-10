@@ -79,6 +79,9 @@ public sealed class DecisionsSystem : IWorldSystem
     /// <summary>Trigger: an object type without any belief.</summary>
     public const string UnknownObject = "unknown_object";
 
+    /// <summary>Trigger: another inhabitant in sight whose own name the inhabitant does not know (B4a R8).</summary>
+    public const string UnknownInhabitant = "unknown_inhabitant";
+
     /// <summary>Trigger: the inhabitant noticed the player (e.g. was clicked).</summary>
     public const string NoticedPlayer = "noticed_player";
 
@@ -334,6 +337,19 @@ public sealed class DecisionsSystem : IWorldSystem
                 }
             }
         }
+
+        if (Enabled(UnknownInhabitant))
+        {
+            // B4a R8: the other is at first an unknown human; who it is becomes a question (W1595), whose
+            // options (approach, talk to, introduce ...) are the core's, the choice the decider's.
+            foreach (var inhabitant in _inhabitants.All)
+            {
+                if (PerceivedInhabitants(inhabitant).FirstOrDefault(o => o.Name is not null && !inhabitant.KnownNames.Contains(o.Id)) is { } stranger)
+                {
+                    Ask(world, inhabitant, UnknownInhabitant, "inhabitant:" + stranger.Id, null);
+                }
+            }
+        }
     }
 
     /// <inheritdoc/>
@@ -476,6 +492,7 @@ public sealed class DecisionsSystem : IWorldSystem
     {
         var raw = new List<(string Action, string? TargetId)>();
         var passOn = new List<(string Action, string? TargetId)>();
+        var meeting = new List<(string Action, string? TargetId)>();
         foreach (var action in _actions.OfferedActions)
         {
             // Only what the asker's needs suggest (F5275 A): no sleep offered to someone wide awake, so a
@@ -498,12 +515,13 @@ public sealed class DecisionsSystem : IWorldSystem
                 case VocabularyEntryTarget.Inhabitant when Knowledge is { } knowledge:
                     // Passing on knowledge (B4a R4): offered towards someone in sight when the asker knows
                     // something this action carries and the other has not experienced it. The naming action
-                    // (W1698) only while the asker does not know the other's name.
+                    // (W1698) only while the asker does not know the other's name; meeting actions (B4a R8)
+                    // while the conditions of their data hold.
                     foreach (var other in PerceivedInhabitants(asker).Take(knowledge.RequestMaxInhabitants))
                     {
                         if (InhabitantsSystem.HasPurpose(knowledge, asker, other, action) && !Rests(asker, action, other.Id, tick))
                         {
-                            passOn.Add((action, other.Id));
+                            (IsMeeting(knowledge, action) ? meeting : passOn).Add((action, other.Id));
                         }
                     }
 
@@ -518,8 +536,14 @@ public sealed class DecisionsSystem : IWorldSystem
         // contract's limit (review GW2 #103): at most the data's number, in a fixed order.
         var room = Math.Max(0, MaxOptions - raw.Count);
         raw.AddRange(passOn.Take(Math.Min(room, Knowledge?.MaxPassOnOptions ?? 0)));
+
+        // Meeting actions (B4a R8) are no knowledge passed on: they follow with the room that is left.
+        raw.AddRange(meeting);
         return [.. raw.Take(MaxOptions).Select((o, i) => (string.Create(CultureInfo.InvariantCulture, $"o{i + 1}"), o.Action, o.TargetId))];
     }
+
+    private static bool IsMeeting(KnowledgeSettings knowledge, string action) =>
+        knowledge.Meeting?.Options.Any(o => string.Equals(o.Action, action, StringComparison.Ordinal)) == true;
 
     /// <summary>W1696: an action that rests after repeats without effect (for this target, or here) is not offered.</summary>
     private bool Rests(Inhabitant asker, string action, string? targetId, long tick) =>

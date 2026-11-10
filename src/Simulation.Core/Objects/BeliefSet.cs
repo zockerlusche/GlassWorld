@@ -110,6 +110,9 @@ public sealed class RelationshipSet
             Math.Clamp(relation.Respect, 0.0, 1.0));
     }
 
+    /// <summary>Forgets the relationship to someone (true if there was one).</summary>
+    public bool Remove(string other) => _relations.Remove(other);
+
     /// <summary>Writes the relationships in a fixed order.</summary>
     public void WriteState(StateHasher hasher)
     {
