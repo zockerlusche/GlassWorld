@@ -35,6 +35,7 @@ public sealed class PoseCadenceTests(ITestOutputHelper output)
         var values = new Dictionary<string, double>(StringComparer.Ordinal);
         var lowSince = new Dictionary<string, double>(StringComparer.Ordinal);
         var longestLow = 0.0;
+        var shownIdle = new Dictionary<string, bool>(StringComparer.Ordinal);
         var low = new HashSet<string>(library.Idle.Where(i => !figures.PoseCadence.ConversationIdle.Contains(i.Id)).Select(i => i.Clip), StringComparer.Ordinal);
         var result = PoseMeter.Run(host, speed, Day, figures.WalkMinStepM, IdleAssets(library), id =>
         {
@@ -49,6 +50,7 @@ public sealed class PoseCadenceTests(ITestOutputHelper output)
                 }
 
                 var clip = cadence.Update(realS, frame, gate);
+                shownIdle[id] = !clip.Walking && chooser.IsIdleClip(clip.Clip.ClipId);
                 if (conversation && chooser.StandsIdle(inhabitant.Action) && !clip.Walking && low.Contains(clip.Clip.ClipId))
                 {
                     // Sitting or bending in a conversation ends at once (a free frame of the gate).
@@ -62,7 +64,7 @@ public sealed class PoseCadenceTests(ITestOutputHelper output)
 
                 return PoseCadence.PoseKey(clip, figures.Lying);
             };
-        });
+        }, id => shownIdle.GetValueOrDefault(id));
         foreach (var line in PoseMeter.Table($"fixed x{speed} seed {seed}", result))
         {
             output.WriteLine(line);
@@ -77,6 +79,12 @@ public sealed class PoseCadenceTests(ITestOutputHelper output)
             Assert.True(idle / minutes <= figures.PoseCadence.MaxChangesPerMinute, $"{c.Key}: {idle / minutes:0.0} idle changes per minute");
             Assert.True(core / minutes <= figures.PoseCadence.MaxWalkChangesPerMinute, $"{c.Key}: {core / minutes:0.0} walk and action changes per minute");
         });
+        if (speed <= 1)
+        {
+            // At normal speed figures do vary their idle poses: a meter that counts none measures nothing (review GW3 #170).
+            Assert.True(result.Changes.Values.Sum(c => c.GetValueOrDefault(PoseSource.Idle)) > 0, "no idle changes counted at x1");
+        }
+
         Assert.Equal(0, result.SharedFrames);
         Assert.True(longestLow <= 0.1, $"sat or bent in a conversation for {longestLow:0.00} s");
     }
