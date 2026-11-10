@@ -38,6 +38,12 @@ namespace GlassWorld.Contracts
         public double PuffM { get; set; } = default!;
 
         /// <summary>
+        /// Height above the island base of the flat layer the billow pattern lies on (metres). The pattern is read where the view ray meets this layer, so terrace steps and things under the cover never break it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("layer_height_m")]
+        public double LayerHeightM { get; set; } = default!;
+
+        /// <summary>
         /// How fast the cloud pattern drifts with the wind direction of this file (metres per real second; calm world: keep it slow). The cover itself never moves, only its pattern.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("drift_m_per_s")]

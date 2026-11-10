@@ -45,6 +45,7 @@
     "color": "cloud_cover",
     "shade_color": "cloud_cover_shade",
     "puff_m": 26.0,
+    "layer_height_m": 4.0,
     "drift_m_per_s": 0.5,
     "softness_cells": 2.5,
     "edge_softness": 0.22,

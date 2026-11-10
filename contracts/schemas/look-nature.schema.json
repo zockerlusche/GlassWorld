@@ -42,6 +42,7 @@
         "color",
         "shade_color",
         "puff_m",
+        "layer_height_m",
         "drift_m_per_s",
         "softness_cells",
         "edge_softness",
@@ -67,6 +68,12 @@
           "type": "number",
           "exclusiveMinimum": 0,
           "maximum": 500
+        },
+        "layer_height_m": {
+          "description": "Height above the island base of the flat layer the billow pattern lies on (metres). The pattern is read where the view ray meets this layer, so terrace steps and things under the cover never break it.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
         },
         "drift_m_per_s": {
           "description": "How fast the cloud pattern drifts with the wind direction of this file (metres per real second; calm world: keep it slow). The cover itself never moves, only its pattern.",

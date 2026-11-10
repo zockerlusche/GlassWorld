@@ -21,6 +21,8 @@ uniform vec2 cell_uv = vec2(0.0052, 0.0052);
 uniform vec4 light_color : source_color = vec4(0.96, 0.94, 0.9, 1.0);
 uniform vec4 shade_color : source_color = vec4(0.89, 0.85, 0.82, 1.0);
 uniform float puff_m = 26.0;
+// World height of the flat layer the billow pattern lies on (island height + layer_height_m).
+uniform float layer_y = 4.0;
 uniform float softness_cells = 2.5;
 uniform float edge_softness = 0.22;
 uniform float edge_puff = 0.6;
@@ -32,8 +34,17 @@ uniform vec2 drift_offset = vec2(0.0, 0.0);
 // Tint of the day phase (DaylightLook, content/look/daylight.json water_light); white by default.
 global uniform vec4 water_light;
 
+// Exact integer hash of a lattice corner: two neighbouring cells always get the same value for a shared
+// corner. (A sin hash differs there by rounding, which tore the billows into visible squares.)
 float hash(vec2 p) {
-	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+	uvec2 q = uvec2(ivec2(p) + ivec2(32768, 32768));
+	uint h = q.x * 1664525u + q.y * 22695477u + 1013904223u;
+	h ^= h >> 16u;
+	h *= 2246822519u;
+	h ^= h >> 13u;
+	h *= 3266489917u;
+	h ^= h >> 16u;
+	return float(h >> 8u) / 16777215.0;
 }
 
 float value_noise(vec2 p) {
@@ -65,12 +76,22 @@ void fragment() {
 	float scene_depth = texture(depth_texture, SCREEN_UV).r;
 	float cover = 0.0;
 	vec2 place = vec2(0.0, 0.0);
+	vec2 pattern_place = vec2(0.0, 0.0);
 	// Where nothing is drawn (the sky, depth 0 at the far end) there is no cloud.
 	if (scene_depth > 0.0) {
 		vec4 view_pos = INV_PROJECTION_MATRIX * vec4(SCREEN_UV * 2.0 - 1.0, scene_depth, 1.0);
 		view_pos.xyz /= view_pos.w;
 		vec3 world_pos = (INV_VIEW_MATRIX * vec4(view_pos.xyz, 1.0)).xyz;
 		place = world_pos.xz;
+		// The billows lie on a flat layer, not on the drawn ground: where the view ray meets that layer.
+		// So terrace steps, plants and figures under the cover never show through as breaks in the pattern.
+		vec3 eye = CAMERA_POSITION_WORLD;
+		vec3 ray = world_pos - eye;
+		float plane_y = min(layer_y, eye.y - 1.0);
+		pattern_place = place;
+		if (ray.y < -0.0001) {
+			pattern_place = eye.xz + ray.xz * min((plane_y - eye.y) / ray.y, 4096.0);
+		}
 		vec2 uv = (place - map_origin) / map_size_m;
 		// Soft edge: the map blurred over softness_cells (weights sum to 1).
 		vec2 o = cell_uv * softness_cells;
@@ -83,7 +104,7 @@ void fragment() {
 		cover = (1.0 - clamp(seen, 0.0, 1.0)) * inside.x * inside.y;
 	}
 
-	vec2 p = (place + drift_offset) / max(puff_m, 0.01);
+	vec2 p = (pattern_place + drift_offset) / max(puff_m, 0.01);
 	float puff = billows(p);
 	// Puffy edge: the billows move the edge only where the cover is neither full nor gone.
 	float edge = cover + (puff - 0.5) * edge_puff * 4.0 * cover * (1.0 - cover);
