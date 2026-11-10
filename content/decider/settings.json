@@ -3,6 +3,7 @@
   "deadline_ms": 60000,
   "max_open_questions": 2,
   "ask_cooldown_hours": 6,
+  "unknown_inhabitant_max_asks": 4,
   "retry_after_minutes": 30,
   "triggers": [
     { "kind": "unknown_object", "enabled": true },

@@ -65,6 +65,21 @@ public sealed partial class InhabitantsSystem
     }
 
     /// <summary>
+    /// The members of each start group have met (B4a R8, F5249); used at the start and after loading, where
+    /// a state without meetings (older saves, snapshots) must not let partners meet again.
+    /// </summary>
+    public void RememberStartGroups()
+    {
+        foreach (var a in _inhabitants.Values)
+        {
+            foreach (var b in _inhabitants.Values.Where(b => b != a && b.Group == a.Group))
+            {
+                a.Met.Add(b.Id);
+            }
+        }
+    }
+
+    /// <summary>
     /// First meetings (B4a R8): two inhabitants that see each other (within the sight of this tick) and have
     /// not met before now have; one first_meeting event per pair (actor = lower id). Only with knowledge data.
     /// </summary>

@@ -4,6 +4,7 @@ using GlassWorld.Simulation.Content;
 using GlassWorld.Simulation.Decisions;
 using GlassWorld.Simulation.Inhabitants;
 using GlassWorld.Simulation.Objects;
+using GlassWorld.Simulation.State;
 
 namespace GlassWorld.Simulation.Tests;
 
@@ -186,6 +187,92 @@ public sealed class MeetingTests
         Assert.Equal(Starts.Strangers.Trust, seen.Trust);
     }
 
+    [Fact]
+    public void LoadingAStateWithoutMeetingsNeverLetsPartnersMeetAgain()
+    {
+        // Review GW3 #207: a state from a path without meetings (older saves, snapshots) keeps the start groups met.
+        var host = SimulationHost.CreatePlaceholderWorld(ContentDirectory, 5, new MockDecisionPort(), "de");
+        host.World.Run(10);
+        var state = StateCodec.Capture(host);
+        state = state with { Inhabitants = [.. state.Inhabitants.Select(i => i with { Met = null })] };
+
+        var loaded = StateCodec.Restore(new SimulationHostFactory(Content, Settings, new MockDecisionPort(), "de"), state);
+        var meetings = new List<WorldEvent>();
+        loaded.Inhabitants.Reported += e =>
+        {
+            if (e.Kind == InhabitantsSystem.FirstMeeting)
+            {
+                meetings.Add(e);
+            }
+        };
+        loaded.World.Run(loaded.World.Calendar.Settings.TicksPerHour * 6);
+
+        Assert.Equal(host.World.Tick, state.Tick);
+        foreach (var i in loaded.Inhabitants.All)
+        {
+            Assert.All(loaded.Inhabitants.All.Where(o => o != i && o.Group == i.Group), o => Assert.Contains(o.Id, i.Met));
+        }
+
+        Assert.DoesNotContain(meetings, e => loaded.Inhabitants.Get(e.InhabitantId).Group == loaded.Inhabitants.Get(e.TargetId!).Group);
+    }
+
+    [Fact]
+    public void AStrangerCoolingDownDoesNotHideASecondStranger()
+    {
+        var port = new SilentPort();
+        var (world, _, decisions) = AskingWorld(Settings, port, [new(0, 0), new(500, 500), new(6, 0), new(9, 0)]);
+        world.Step();
+        world.Step();
+
+        Assert.Contains(decisions.Open, q => q.InhabitantId == "inh-000001" && q.Subject == "inhabitant:inh-000003");
+        Assert.Contains(decisions.Open, q => q.InhabitantId == "inh-000001" && q.Subject == "inhabitant:inh-000004");
+    }
+
+    [Fact]
+    public void WhoTheOtherIsIsAskedAtMostTheDataTimesPerPair()
+    {
+        var settings = ContractSerializer.Deserialize<DeciderSettings>(ContractSerializer.Serialize(Settings));
+        settings.AskCooldownHours = 0;
+        settings.UnknownInhabitantMaxAsks = 2;
+        var (world, inhabitants, _) = AskingWorld(settings, new NoTargetPort(), [new(0, 0), new(500, 500), new(6, 0), new(-500, -500)]);
+        var asked = new List<WorldEvent>();
+        inhabitants.Reported += e =>
+        {
+            if (e.Kind == "question_opened" && e.InhabitantId == "inh-000001")
+            {
+                asked.Add(e);
+            }
+        };
+        world.Run(200);
+
+        Assert.DoesNotContain("inh-000003", inhabitants.Get("inh-000001").KnownNames);
+        Assert.Equal(settings.UnknownInhabitantMaxAsks, asked.Count);
+    }
+
+    /// <summary>The start inhabitants at the given spots with names, knowledge and decisions; inh-000001 idles, needs met.</summary>
+    private static (World World, InhabitantsSystem Inhabitants, DecisionsSystem Decisions) AskingWorld(DeciderSettings settings, IDecisionPort port, Position[] at)
+    {
+        var world = new World(3, Content.Calendar);
+        var objects = new WorldObjects(Content.Objects);
+        var inhabitants = new InhabitantsSystem(Content.InhabitantModel, Content.Actions, Content.Brain, Content.Gaits, objects, world.Calendar.Settings.TicksPerHour)
+        {
+            Knowledge = Knowledge,
+            Names = Content.InhabitantNames,
+        };
+        var decisions = new DecisionsSystem(settings, inhabitants, objects, Content.Actions, Content.Brain, Content.Vocabularies[VocabularyKind.Action], port, "de")
+        {
+            Knowledge = Knowledge,
+        };
+        world.Add(objects).Add(decisions).Add(inhabitants);
+        inhabitants.SpawnStartInhabitants(world, at);
+        foreach (var inhabitant in inhabitants.All)
+        {
+            inhabitant.Activity = new Activity("idle", null, inhabitant.Position, 100_000);
+        }
+
+        return (world, inhabitants, decisions);
+    }
+
     private static Relation Of(KnowledgeRelationship r) => new(r.Affection, r.Trust, r.Respect);
 
     private static double Distance(Position a, Position b) => Math.Sqrt(((a.X - b.X) * (a.X - b.X)) + ((a.Z - b.Z) * (a.Z - b.Z)));
@@ -211,6 +298,34 @@ public sealed class MeetingTests
         var events = new List<WorldEvent>();
         inhabitants.Reported += events.Add;
         return (world, inhabitants, events);
+    }
+
+    /// <summary>Answers every request at the next tick with its first option without a target (nobody learns a name).</summary>
+    private sealed class NoTargetPort : IDecisionPort
+    {
+        private readonly List<PortMessage> _ready = [];
+
+        public void Send(string requestId, string requestJson)
+        {
+            var request = ContractSerializer.Deserialize<DecisionRequest>(requestJson);
+            var option = request.Options.First(o => o.Target is null);
+            _ready.Add(new PortMessage(requestId, ContractSerializer.Serialize(new DecisionResponse
+            {
+                ContractVersion = request.ContractVersion,
+                RequestId = request.RequestId,
+                Tick = request.Tick,
+                OptionId = option.OptionId,
+                Rationale = "test",
+                Meta = new ResponseMeta { Source = ResponseMetaSource.Mock, Model = "mock", LatencyMs = 0, Attempts = 1 },
+            }), IsError: false));
+        }
+
+        public IReadOnlyList<PortMessage> Receive(long tick)
+        {
+            var messages = _ready.ToList();
+            _ready.Clear();
+            return messages;
+        }
     }
 
     /// <summary>Keeps every request, never answers.</summary>

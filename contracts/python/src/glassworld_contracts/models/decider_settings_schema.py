@@ -65,5 +65,11 @@ class DeciderSettings(BaseModel):
         ge=0,
         le=1000,
     )
+    unknown_inhabitant_max_asks: int | None = Field(
+        None,
+        description='How often an inhabitant asks who the same other inhabitant is (trigger unknown_inhabitant) while it never learns the name; omitted = no limit.',
+        ge=0,
+        le=1000,
+    )
     triggers: list[Trigger] = Field(..., max_length=32)
     fallback_environment: FallbackEnvironment

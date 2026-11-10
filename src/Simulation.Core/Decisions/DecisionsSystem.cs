@@ -342,11 +342,18 @@ public sealed class DecisionsSystem : IWorldSystem
         {
             // B4a R8: the other is at first an unknown human; who it is becomes a question (W1595), whose
             // options (approach, talk to, introduce ...) are the core's, the choice the decider's.
+            // The nearest stranger (ties by id) it may ask about now: one cooling down or asked about
+            // unknown_inhabitant_max_asks times already does not hide a second one (review GW3 #207).
             foreach (var inhabitant in _inhabitants.All)
             {
-                if (PerceivedInhabitants(inhabitant).FirstOrDefault(o => o.Name is not null && !inhabitant.KnownNames.Contains(o.Id)) is { } stranger)
+                if (PerceivedInhabitants(inhabitant).FirstOrDefault(o => o.Name is not null && !inhabitant.KnownNames.Contains(o.Id)
+                    && MayAsk(world, inhabitant, InhabitantSubject + o.Id) && AsksAbout(inhabitant, o) < (_settings.UnknownInhabitantMaxAsks ?? int.MaxValue)) is { } stranger)
                 {
-                    Ask(world, inhabitant, UnknownInhabitant, "inhabitant:" + stranger.Id, null);
+                    var subject = InhabitantSubject + stranger.Id;
+                    if (Ask(world, inhabitant, UnknownInhabitant, subject, null))
+                    {
+                        _lastAsked[AsksKey(inhabitant, stranger)] = AsksAbout(inhabitant, stranger) + 1;
+                    }
                 }
             }
         }
@@ -436,15 +443,31 @@ public sealed class DecisionsSystem : IWorldSystem
             .Select(x => x.o)];
     }
 
-    private void Ask(World world, Inhabitant inhabitant, string kind, string subject, WorldObject? target)
+    private const string InhabitantSubject = "inhabitant:";
+
+    /// <summary>
+    /// How often the inhabitant has asked who another is (unknown_inhabitant). Kept with the cooldowns under
+    /// an own key prefix (value = count, not a tick), so it is saved and hashed with them.
+    /// </summary>
+    private long AsksAbout(Inhabitant inhabitant, Inhabitant other) => _lastAsked.GetValueOrDefault(AsksKey(inhabitant, other));
+
+    private static string AsksKey(Inhabitant inhabitant, Inhabitant other) => "asks|" + inhabitant.Id + "|" + InhabitantSubject + other.Id;
+
+    /// <summary>Whether a question about the subject may be asked now: room for one more, none open about it, not cooling down.</summary>
+    private bool MayAsk(World world, Inhabitant inhabitant, string subject)
+    {
+        var cooldown = (long)_settings.AskCooldownHours * world.Calendar.Settings.TicksPerHour;
+        return _open.Values.Count(q => q.InhabitantId == inhabitant.Id) < _settings.MaxOpenQuestions
+            && !_open.Values.Any(q => q.InhabitantId == inhabitant.Id && q.Subject == subject)
+            && !(_lastAsked.TryGetValue(inhabitant.Id + "|" + subject, out var last) && world.Tick - last < cooldown);
+    }
+
+    private bool Ask(World world, Inhabitant inhabitant, string kind, string subject, WorldObject? target)
     {
         var cooldownKey = inhabitant.Id + "|" + subject;
-        var cooldown = (long)_settings.AskCooldownHours * world.Calendar.Settings.TicksPerHour;
-        if (_open.Values.Count(q => q.InhabitantId == inhabitant.Id) >= _settings.MaxOpenQuestions
-            || _open.Values.Any(q => q.InhabitantId == inhabitant.Id && q.Subject == subject)
-            || (_lastAsked.TryGetValue(cooldownKey, out var last) && world.Tick - last < cooldown))
+        if (!MayAsk(world, inhabitant, subject))
         {
-            return;
+            return false;
         }
 
         _counter++;
@@ -453,6 +476,7 @@ public sealed class DecisionsSystem : IWorldSystem
         _open.Add(question.Id, question);
         _lastAsked[cooldownKey] = world.Tick;
         _inhabitants.Report(new WorldEvent("question_opened", world.Tick, inhabitant.Id, null, question.Id));
+        return true;
     }
 
     private OpenQuestion Send(World world, Inhabitant inhabitant, string questionId, string kind, string subject, WorldObject? target)

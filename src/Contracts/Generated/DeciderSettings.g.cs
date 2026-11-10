@@ -65,6 +65,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("ask_cooldown_hours")]
         public int AskCooldownHours { get; set; } = default!;
 
+        /// <summary>
+        /// How often an inhabitant asks who the same other inhabitant is (trigger unknown_inhabitant) while it never learns the name; omitted = no limit.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("unknown_inhabitant_max_asks")]
+        public int? UnknownInhabitantMaxAsks { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("triggers")]
         public System.Collections.Generic.ICollection<Trigger> Triggers { get; set; } = new System.Collections.ObjectModel.Collection<Trigger>();
 

@@ -284,6 +284,10 @@ public static class StateCodec
             host.Inhabitants.Add(inhabitant);
         }
 
+        // B4a R8: the members of a start group have always met, also where a state carries no meetings
+        // (review GW3 #207), so loading never makes partners meet a second time.
+        host.Inhabitants.RememberStartGroups();
+
         // Save games from before names (W1698): everyone gets an own name from the seed, nobody knows another's.
         if (!state.NamesSaved)
         {
