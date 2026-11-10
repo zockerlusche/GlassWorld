@@ -66,6 +66,13 @@ namespace GlassWorld.Contracts
         public string? Phase { get; set; } = default!;
 
         /// <summary>
+        /// Optional: this point is shot in this season (content/world/time.json), once, instead of once per season of the set.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("season")]
+        public string? Season { get; set; } = default!;
+
+        /// <summary>
         /// Optional: the scene finder picks the target near a start instead of the map target (the permille target is the fallback when no spot fits).
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
@@ -120,7 +127,7 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
-    /// Data files content/look/shots*.json: shot sets of the screenshot tool (B2 R32). It renders every fixed camera point in every projection and day phase as PNG, and optionally in every listed epoch, season and weather. shots.json is the default set (the T1 pictures); further sets such as shots_dimensions.json are chosen with --shot-set. Presentation only.
+    /// Data files content/look/shots*.json: shot sets of the screenshot tool (B2 R32). It renders every fixed camera point in every projection and day phase as PNG, and optionally in every listed epoch, season and weather. shots.json is the default set (the T1 pictures); further sets such as shots_dimensions.json are chosen with --shot-set. A point may force its season. Presentation only.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class LookShots

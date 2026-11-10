@@ -43,3 +43,35 @@ water_light={
 "type": "color",
 "value": Color(1, 1, 1, 1)
 }
+season_tint_0={
+"type": "vec4",
+"value": Vector4(0, 0, 0, 0)
+}
+season_tint_1={
+"type": "vec4",
+"value": Vector4(0, 0, 0, 0)
+}
+season_tint_2={
+"type": "vec4",
+"value": Vector4(0, 0, 0, 0)
+}
+season_tint_3={
+"type": "vec4",
+"value": Vector4(0, 0, 0, 0)
+}
+nature_snow={
+"type": "vec4",
+"value": Vector4(0.9, 0.92, 0.94, 0)
+}
+nature_snow_shape={
+"type": "vec4",
+"value": Vector4(7, 0.08, 0.55, 0)
+}
+nature_wind={
+"type": "vec4",
+"value": Vector4(0, 1, 0, 0)
+}
+nature_wind_shape={
+"type": "vec4",
+"value": Vector4(0.3, 0.4, 0, 0)
+}

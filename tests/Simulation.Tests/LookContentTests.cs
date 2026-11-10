@@ -185,6 +185,7 @@ public sealed class LookContentTests
         var epochs = Read<LookEpochs>("look", "epochs.json").Epochs.Select(e => e.Id).ToHashSet(StringComparer.Ordinal);
         Assert.All(shots.Epochs ?? [], e => Assert.Contains(e, epochs));
         Assert.All(shots.Seasons ?? [], s => Assert.Contains(s, Seasons()));
+        Assert.All(shots.Points.Where(p => p.Season is not null), p => Assert.Contains(p.Season!, Seasons()));
         Assert.All(shots.Weather ?? [], w => Assert.Contains(w, Vocabulary("weather.json")));
     }
 

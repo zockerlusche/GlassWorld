@@ -114,6 +114,38 @@ public sealed class ShotPlanTests
         Assert.Equal(shots.Points.Select(p => (p.Id, p.Phase!)), plan.Select(s => (s.Point.Id, s.Phase)));
     }
 
+    [Fact]
+    public void APointMayForceItsSeasonAndIsThenShotOnce()
+    {
+        var shots = Shots();
+        shots.Seasons = ["spring", "autumn"];
+        shots.Points.First().Season = "winter";
+        var plan = ShotPlan.Build(shots, Seasons(), None);
+
+        // The forced point once per projection and phase, the others once per listed season as well.
+        var perPoint = shots.Projections.Count * shots.Phases.Count;
+        var forced = plan.Where(s => s.Point.Season is not null).ToList();
+        Assert.Equal(perPoint, forced.Count);
+        Assert.All(forced, s => Assert.Equal(("winter", true), (s.Season, s.SeasonHasLook)));
+        Assert.Equal((shots.Points.Count - 1) * perPoint * 2, plan.Count - forced.Count);
+        Assert.Contains($"island_{shots.Points.First().Id}_perspective_day_winter_800x600.png", plan.Select(s => s.FileName(800, 600)));
+
+        // Without a season list the forced point still shows its season.
+        shots.Seasons = null;
+        Assert.Equal(perPoint, ShotPlan.Build(shots, Seasons(), None).Count(s => s.Season == "winter"));
+    }
+
+    [Fact]
+    public void TheSeasonSetShowsEverySeasonOnceFromTheSameView()
+    {
+        // The pictures the look of the seasons is judged by (B2-5 R24): one per season, nothing else changes.
+        var shots = Read<LookShots>("shots_seasons.json");
+        var plan = ShotPlan.Build(shots, Seasons(), None);
+        Assert.Equal(Seasons().Order(StringComparer.Ordinal), plan.Select(s => s.Season!).Order(StringComparer.Ordinal));
+        Assert.Single(plan.Select(s => (s.Point.Id, s.Projection, s.Phase)).Distinct());
+        Assert.All(plan, s => Assert.True(s.SeasonHasLook && s.Epoch is null && s.Weather is null));
+    }
+
     private static LookShots Shots() => new()
     {
         ContractVersion = "0.2",

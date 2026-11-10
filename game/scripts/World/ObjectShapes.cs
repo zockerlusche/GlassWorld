@@ -12,13 +12,21 @@ namespace GlassWorld.Game.World;
 /// </summary>
 public static class ObjectShapes
 {
-    /// <summary>Builds the mesh of a shape; <paramref name="color"/> gives the linear colour of a role.</summary>
-    public static ArrayMesh Build(ObjectLookShape shape, Func<int, Color> color)
+    /// <summary>
+    /// Builds the mesh of a shape; <paramref name="paint"/> gives the linear colour of a role and
+    /// <paramref name="tint"/> the shares of the seasonal palette colours in it (the four tint slots as
+    /// r, g, b, a; B2-5 R24), stored per vertex in CUSTOM0 for the warm comic shader.
+    /// </summary>
+    public static ArrayMesh Build(ObjectLookShape shape, Func<int, Color> paint, Func<int, Color>? tint = null)
     {
-        ArgumentNullException.ThrowIfNull(color);
+        ArgumentNullException.ThrowIfNull(paint);
         var tool = new SurfaceTool();
         tool.Begin(Mesh.PrimitiveType.Triangles);
-        var parts = new Parts(tool);
+        tool.SetCustomFormat(0, SurfaceTool.CustomFormat.Rgba8Unorm);
+        var parts = new Parts(tool, paint, tint ?? (_ => new Color(0, 0, 0, 0)));
+
+        // The shapes below name a part by its colour role; Parts turns the role into colour and weights.
+        Func<int, Color> color = role => new Color(role, 0, 0);
         switch (shape)
         {
             case ObjectLookShape.Conifer_tree:
@@ -216,11 +224,15 @@ public static class ObjectShapes
         }
     }
 
-    /// <summary>Appends meshes with one colour each into one surface.</summary>
-    private sealed class Parts(SurfaceTool tool)
+    /// <summary>
+    /// Appends meshes with one colour each into one surface. The colour argument carries the colour role in
+    /// its red channel; every vertex gets the role's colour and its seasonal weights.
+    /// </summary>
+    private sealed class Parts(SurfaceTool tool, Func<int, Color> paint, Func<int, Color> tint)
     {
-        public void Add(Mesh mesh, Transform3D transform, Color color)
+        public void Add(Mesh mesh, Transform3D transform, Color role)
         {
+            var (color, weights) = Role(role);
             var arrays = mesh.SurfaceGetArrays(0);
             var vertices = arrays[(int)Mesh.ArrayType.Vertex].AsVector3Array();
             var normals = arrays[(int)Mesh.ArrayType.Normal].AsVector3Array();
@@ -230,6 +242,7 @@ public static class ObjectShapes
             void Vertex(int i)
             {
                 tool.SetColor(color);
+                tool.SetCustom(0, weights);
                 tool.SetNormal(normals.Length > i ? (normalBasis * normals[i]).Normalized() : Vector3.Up);
                 tool.AddVertex(transform * vertices[i]);
             }
@@ -250,15 +263,23 @@ public static class ObjectShapes
             }
         }
 
-        public void Triangle(Vector3 a, Vector3 b, Vector3 c, Color color)
+        public void Triangle(Vector3 a, Vector3 b, Vector3 c, Color role)
         {
+            var (color, weights) = Role(role);
             var normal = (c - a).Cross(b - a).Normalized();
             foreach (var p in new[] { a, b, c })
             {
                 tool.SetColor(color);
+                tool.SetCustom(0, weights);
                 tool.SetNormal(normal);
                 tool.AddVertex(p);
             }
+        }
+
+        private (Color Color, Color Weights) Role(Color role)
+        {
+            var index = (int)MathF.Round(role.R);
+            return (paint(index), tint(index));
         }
     }
 }

@@ -4,9 +4,48 @@ using GlassWorld.Simulation.Map;
 
 namespace GlassWorld.Presentation.World;
 
-/// <summary>A colour with components 0..1.</summary>
+/// <summary>
+/// Shares of the seasonal palette colours in a colour (B2-5 R24), one per tint slot (<see cref="SeasonSlots"/>):
+/// 1 where the colour is that palette colour, a part where it is blended with others. They follow every
+/// blend of the colour, so the shader can move the seasonal part of a vertex colour without a mesh rebuild.
+/// </summary>
+public readonly record struct TintWeights(float A, float B, float C, float D)
+{
+    /// <summary>The weights with 1 in one slot (0..3) and 0 in the others.</summary>
+    public static TintWeights Slot(int slot) => new(slot == 0 ? 1 : 0, slot == 1 ? 1 : 0, slot == 2 ? 1 : 0, slot == 3 ? 1 : 0);
+
+    /// <summary>Weight of a slot (0..3).</summary>
+    public float this[int slot] => slot switch { 0 => A, 1 => B, 2 => C, _ => D };
+
+    /// <summary>The weights times a factor.</summary>
+    public TintWeights Times(float f) => new(A * f, B * f, C * f, D * f);
+
+    /// <summary>The sum of two weights.</summary>
+    public TintWeights Plus(TintWeights other) => new(A + other.A, B + other.B, C + other.C, D + other.D);
+}
+
+/// <summary>A colour with components 0..1 and the shares of the seasonal palette colours in it.</summary>
 public readonly record struct Rgb(float R, float G, float B)
 {
+    /// <summary>Shares of the seasonal palette colours in this colour (all 0 for a colour no season changes).</summary>
+    public TintWeights Tint { get; init; }
+
+    /// <summary>The colour times a brightness factor, each channel kept within 0..1; the seasonal shares scale with it.</summary>
+    public Rgb Scaled(float f) => new(Math.Clamp(R * f, 0f, 1f), Math.Clamp(G * f, 0f, 1f), Math.Clamp(B * f, 0f, 1f)) { Tint = Tint.Times(f) };
+
+    /// <summary>The weighted sum of colours (weights adding up to 1), with their seasonal shares.</summary>
+    public static Rgb Mix(params ReadOnlySpan<(Rgb Color, float Weight)> parts)
+    {
+        float r = 0, g = 0, b = 0;
+        var tint = default(TintWeights);
+        foreach (var (color, weight) in parts)
+        {
+            (r, g, b, tint) = (r + (color.R * weight), g + (color.G * weight), b + (color.B * weight), tint.Plus(color.Tint.Times(weight)));
+        }
+
+        return new Rgb(r, g, b) { Tint = tint };
+    }
+
     /// <summary>Parses lowercase <c>#rrggbb</c>.</summary>
     public static Rgb Parse(string hex)
     {
@@ -21,7 +60,8 @@ public readonly record struct Rgb(float R, float G, float B)
     }
 
     /// <summary>Linear blend towards <paramref name="other"/> (0 = this, 1 = other).</summary>
-    public Rgb Lerp(Rgb other, float t) => new(R + ((other.R - R) * t), G + ((other.G - G) * t), B + ((other.B - B) * t));
+    public Rgb Lerp(Rgb other, float t) =>
+        new(R + ((other.R - R) * t), G + ((other.G - G) * t), B + ((other.B - B) * t)) { Tint = Tint.Times(1 - t).Plus(other.Tint.Times(t)) };
 }
 
 /// <summary>Colours and units for drawing the island grid, resolved from look data (B2 R18–R20).</summary>
@@ -76,7 +116,8 @@ public sealed record TerrainLook(
         ArgumentNullException.ThrowIfNull(palette);
         ArgumentNullException.ThrowIfNull(map);
         ArgumentNullException.ThrowIfNull(preset);
-        var colors = palette.Colors.ToDictionary(c => c.Id, c => Rgb.Parse(c.Color), StringComparer.Ordinal);
+        var slots = SeasonSlots.From(palette);
+        var colors = palette.Colors.ToDictionary(c => c.Id, c => slots.Tinted(c.Id, Rgb.Parse(c.Color)), StringComparer.Ordinal);
         Rgb Color(string id) => colors.TryGetValue(id, out var c) ? c : throw new InvalidDataException($"Terrain look names unknown palette colour '{id}'.");
         var byBiome = terrain.BiomeColors.ToDictionary(b => b.Biome, b => Color(b.Color), StringComparer.Ordinal);
         var biomeColors = map.BiomeIds
@@ -178,6 +219,9 @@ public sealed class MeshData
     /// <summary>Vertex colours r, g, b.</summary>
     public List<float> Colors { get; } = [];
 
+    /// <summary>Per vertex the shares of the seasonal palette colours (four tint slots, see <see cref="TintWeights"/>).</summary>
+    public List<float> Tints { get; } = [];
+
     /// <summary>Per vertex flow direction x, z for water (0, 0 for still water and ground).</summary>
     public List<float> Flow { get; } = [];
 
@@ -210,6 +254,7 @@ public sealed class MeshData
             Positions.AddRange([x, y, z]);
             Normals.AddRange([nx, ny, nz]);
             Colors.AddRange([color.R, color.G, color.B]);
+            Tints.AddRange([color.Tint.A, color.Tint.B, color.Tint.C, color.Tint.D]);
             Flow.AddRange([flow.X, flow.Z]);
         }
     }
@@ -603,7 +648,7 @@ public static partial class TerrainMesher
         var wc = 1 - wa - wb;
         return (
             (wa * a.H) + (wb * b.H) + (wc * c.H),
-            new Rgb((wa * a.C.R) + (wb * b.C.R) + (wc * c.C.R), (wa * a.C.G) + (wb * b.C.G) + (wc * c.C.G), (wa * a.C.B) + (wb * b.C.B) + (wc * c.C.B)));
+            Rgb.Mix((a.C, wa), (b.C, wb), (c.C, wc)));
     }
 
     /// <summary>
@@ -849,7 +894,10 @@ public static partial class TerrainMesher
     }
 
     private static Rgb Mean(Rgb[] colors) =>
-        new(colors.Average(c => c.R), colors.Average(c => c.G), colors.Average(c => c.B));
+        new(colors.Average(c => c.R), colors.Average(c => c.G), colors.Average(c => c.B))
+        {
+            Tint = new TintWeights(colors.Average(c => c.Tint.A), colors.Average(c => c.Tint.B), colors.Average(c => c.Tint.C), colors.Average(c => c.Tint.D)),
+        };
 
     /// <summary>One fresh water cell (lake, stream, swamp or bank), its corners from <see cref="FreshCorner"/>, split like the ground below.</summary>
     private static void Fresh(WorldMap map, MeshData mesh, int x, int z, Rgb color, (float X, float Z) flow, TerrainLook look)
@@ -1081,6 +1129,7 @@ public static partial class TerrainMesher
     private static Rgb GroupColor(WorldMap map, TerrainLook look, int gx, int gz, int members)
     {
         float r = 0, g = 0, b = 0;
+        var tint = default(TintWeights);
         var count = 0;
         for (var s = 0; s < 4; s++)
         {
@@ -1094,11 +1143,11 @@ public static partial class TerrainMesher
                     c = Scale(c, rock.Brightness(gx, gz));
                 }
 
-                (r, g, b, count) = (r + c.R, g + c.G, b + c.B, count + 1);
+                (r, g, b, tint, count) = (r + c.R, g + c.G, b + c.B, tint.Plus(c.Tint), count + 1);
             }
         }
 
-        return new Rgb(r / count, g / count, b / count);
+        return new Rgb(r / count, g / count, b / count) { Tint = tint.Times(1f / count) };
     }
 
     /// <summary>The water surfaces of one chunk at a detail level: always those of the base grid, so they fit the ground of every level.</summary>
@@ -1146,7 +1195,7 @@ public static partial class TerrainMesher
         return result;
     }
 
-    private static Rgb Scale(Rgb c, float f) => new(Math.Clamp(c.R * f, 0f, 1f), Math.Clamp(c.G * f, 0f, 1f), Math.Clamp(c.B * f, 0f, 1f));
+    private static Rgb Scale(Rgb c, float f) => c.Scaled(f);
 
     /// <summary>Wall colour at a point: the cliff colour with the rock's brightness patches, darker towards the foot (TL #19984).</summary>
     private static Rgb WallColor(TerrainLook look, float x, float z, bool foot)

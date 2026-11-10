@@ -122,6 +122,12 @@ class ObjectVisual(BaseModel):
         ge=0.0,
         le=10.0,
     )
+    sway_m: float | None = Field(
+        None,
+        description='How far the top moves in full wind, in metres at size factor 1 (content/look/nature.json wind); absent = it stands still.',
+        ge=0.0,
+        le=2.0,
+    )
 
 
 class ObjectDecor(BaseModel):
