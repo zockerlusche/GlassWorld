@@ -41,6 +41,11 @@ public sealed class InhabitantDiary : IInhabitantDiary
     private readonly WorldObjects _objects;
     private readonly SortedDictionary<string, Queue<DiaryEntry>> _entries = new(StringComparer.Ordinal);
 
+    // All entries in seq order, append-only; entries trimmed from an inhabitant's queue are only marked and
+    // leave in one compaction once they are the majority, so Since costs O(log n + new entries) (review GW3 #201).
+    private readonly List<DiaryEntry> _log = [];
+    private readonly HashSet<long> _trimmed = [];
+
     /// <summary>Creates the diary from the data (null = no diary: nothing is kept).</summary>
     public InhabitantDiary(Contracts.Diary? settings, InhabitantsSystem inhabitants, WorldObjects objects)
     {
@@ -59,15 +64,46 @@ public sealed class InhabitantDiary : IInhabitantDiary
     public long Version { get; private set; }
 
     /// <summary>All kept entries, oldest first (save games).</summary>
-    public IReadOnlyList<DiaryEntry> All => [.. _entries.Values.SelectMany(q => q).OrderBy(e => e.Seq)];
+    public IReadOnlyList<DiaryEntry> All => [.. _log.Where(e => !_trimmed.Contains(e.Seq))];
 
     /// <summary>The kept entries of one inhabitant, oldest first.</summary>
     public IReadOnlyList<DiaryEntry> Of(string inhabitantId) =>
         _entries.TryGetValue(inhabitantId, out var queue) ? [.. queue] : [];
 
     /// <inheritdoc/>
-    public IReadOnlyList<DiaryEntry> Since(long version) =>
-        version >= Version ? [] : [.. _entries.Values.SelectMany(q => q).Where(e => e.Seq > version).OrderBy(e => e.Seq)];
+    public IReadOnlyList<DiaryEntry> Since(long version)
+    {
+        if (version >= Version)
+        {
+            return [];
+        }
+
+        // Binary search for the first entry with a number greater than version.
+        int low = 0, high = _log.Count;
+        while (low < high)
+        {
+            var mid = (low + high) / 2;
+            if (_log[mid].Seq <= version)
+            {
+                low = mid + 1;
+            }
+            else
+            {
+                high = mid;
+            }
+        }
+
+        var result = new List<DiaryEntry>(_log.Count - low);
+        for (var i = low; i < _log.Count; i++)
+        {
+            if (!_trimmed.Contains(_log[i].Seq))
+            {
+                result.Add(_log[i]);
+            }
+        }
+
+        return result;
+    }
 
     /// <summary>Takes a reported core event; only started actions that are not left out become entries.</summary>
     public void Observe(WorldEvent worldEvent)
@@ -95,11 +131,19 @@ public sealed class InhabitantDiary : IInhabitantDiary
         Add(new DiaryEntry(Version + 1, worldEvent.Tick, worldEvent.InhabitantId, action, worldEvent.TargetId, type, topic));
     }
 
-    /// <summary>Replaces the diary with saved entries (save games; older saves have none).</summary>
-    public void Restore(IEnumerable<DiaryEntry> entries)
+    /// <summary>
+    /// Replaces the diary with saved entries (save games; older saves have none). <paramref name="version"/> is
+    /// the saved running number (null in saves that did not write it: the newest saved number), so numbers
+    /// continue across save and load even when nothing was kept. Note: entries beyond the capacity of the
+    /// current data are dropped here, oldest first, so a lower capacity in the data shortens the history of a
+    /// loaded world for good (review GW2 #201).
+    /// </summary>
+    public void Restore(IEnumerable<DiaryEntry> entries, long? version = null)
     {
         ArgumentNullException.ThrowIfNull(entries);
         _entries.Clear();
+        _log.Clear();
+        _trimmed.Clear();
         Version = 0;
         foreach (var entry in entries.OrderBy(e => e.Seq))
         {
@@ -108,16 +152,27 @@ public sealed class InhabitantDiary : IInhabitantDiary
                 throw new InvalidDataException($"Diary entry {entry.Seq} is out of order.");
             }
 
-            Add(entry);
+            Version = entry.Seq;
+            Keep(entry);
         }
+
+        Version = Math.Max(Version, version ?? 0);
     }
 
     private void Add(DiaryEntry entry)
     {
-        Version = entry.Seq;
+        if (Keep(entry))
+        {
+            Version = entry.Seq;
+        }
+    }
+
+    /// <summary>Keeps an entry (false when the capacity is 0) and trims its inhabitant's oldest beyond the capacity.</summary>
+    private bool Keep(DiaryEntry entry)
+    {
         if (_capacity == 0)
         {
-            return;
+            return false;
         }
 
         if (!_entries.TryGetValue(entry.InhabitantId, out var queue))
@@ -126,9 +181,18 @@ public sealed class InhabitantDiary : IInhabitantDiary
         }
 
         queue.Enqueue(entry);
+        _log.Add(entry);
         while (queue.Count > _capacity)
         {
-            queue.Dequeue();
+            _trimmed.Add(queue.Dequeue().Seq);
         }
+
+        if (_trimmed.Count > _log.Count / 2)
+        {
+            _log.RemoveAll(e => _trimmed.Contains(e.Seq));
+            _trimmed.Clear();
+        }
+
+        return true;
     }
 }

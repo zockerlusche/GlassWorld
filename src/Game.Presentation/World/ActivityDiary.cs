@@ -46,6 +46,7 @@ public sealed class ActivityDiary(int shown, WorldCalendar calendar)
             }
         }
 
+        // Cheap path every refresh: nothing new, no call to Since (review GW2 #201).
         if (diary.Version <= _taken)
         {
             return 0;

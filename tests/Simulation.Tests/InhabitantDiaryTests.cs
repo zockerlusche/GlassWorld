@@ -77,6 +77,63 @@ public sealed class InhabitantDiaryTests : IDisposable
     }
 
     [Fact]
+    public void AfterTrimmingSinceIsStillCompleteAndInOrder()
+    {
+        var host = Host();
+        var small = new InhabitantDiary(new Diary { Capacity = 3, LeftOutActions = [.. LeftOut()] }, host.Inhabitants, host.Objects);
+        host.Inhabitants.Reported += small.Observe;
+        var read = new List<DiaryEntry>();
+        var perFrame = Content.Value.Calendar.Settings.MaxTicksPerFrame;
+        for (var frame = 0; frame < Content.Value.Calendar.TicksPerDay / perFrame; frame++)
+        {
+            host.World.Run(perFrame);
+            var last = read.Count == 0 ? 0 : read[^1].Seq;
+            var fresh = small.Since(last);
+            Assert.Equal(small.All.Where(e => e.Seq > last), fresh);
+            read.AddRange(fresh);
+        }
+
+        var kept = host.Inhabitants.All.SelectMany(i => small.Of(i.Id)).OrderBy(e => e.Seq).ToList();
+        Assert.Equal(3 * host.Inhabitants.All.Count(), kept.Count);
+        Assert.Equal(kept, small.All);
+        Assert.Equal(kept, small.Since(0));
+        Assert.Equal(kept.Skip(2), small.Since(kept[1].Seq));
+        Assert.Equal(small.Version, kept[^1].Seq);
+
+        // Read every frame: what is kept and new is complete each time, and the order holds.
+        Assert.True(read.Count > kept.Count);
+        Assert.True(read.Zip(read.Skip(1)).All(p => p.First.Seq < p.Second.Seq));
+    }
+
+    [Fact]
+    public void TheVersionContinuesAfterSaveAndLoadAndStaysWithCapacityZero()
+    {
+        var host = Host();
+        var none = new InhabitantDiary(new Diary { Capacity = 0 }, host.Inhabitants, host.Objects);
+        host.Inhabitants.Reported += none.Observe;
+        host.World.Run(Content.Value.Calendar.Settings.TicksPerHour * 6);
+        Assert.Equal(0, none.Version);
+        Assert.True(host.Diary.Version > 0);
+
+        var path = Path.Combine(_directory, "version.db");
+        SaveGameStore.Save(path, StateCodec.Capture(host));
+        var state = SaveGameStore.Load(path);
+        Assert.Equal(host.Diary.Version, state.DiaryVersion);
+        var loaded = Restore(state);
+        Assert.Equal(host.Diary.Version, loaded.Diary.Version);
+
+        none.Restore(state.Diary!, state.DiaryVersion);
+        Assert.Empty(none.All);
+        Assert.Equal(host.Diary.Version, none.Version);
+        Assert.Empty(none.Since(0));
+
+        host.World.Run(200);
+        loaded.World.Run(200);
+        Assert.Equal(host.Diary.Version, loaded.Diary.Version);
+        Assert.Equal(host.Diary.All, loaded.Diary.All);
+    }
+
+    [Fact]
     public void SaveAndLoadKeepTheDiaryAndTheDiaryIsOutsideTheHash()
     {
         var host = Host();
@@ -114,7 +171,7 @@ public sealed class InhabitantDiaryTests : IDisposable
         {
             connection.Open();
             using var command = connection.CreateCommand();
-            command.CommandText = "DROP TABLE diary; PRAGMA user_version = 8;";
+            command.CommandText = "DROP TABLE diary; DELETE FROM meta WHERE key = 'diary_version'; PRAGMA user_version = 8;";
             command.ExecuteNonQuery();
         }
 
