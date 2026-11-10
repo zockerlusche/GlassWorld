@@ -44,6 +44,15 @@ public sealed class ConversationLogTests
     }
 
     [Fact]
+    public void NoAnswerIsALineWithoutTheKeyAsWords()
+    {
+        var log = new ConversationLog(5);
+        log.Add([Event("no_answer", "i-1", "msg.converse.no_answer")]);
+        var line = Assert.Single(log.Newest());
+        Assert.Equal((LogLineKind.NoAnswer, string.Empty), (line.Kind, line.Text));
+    }
+
+    [Fact]
     public void NotUnderstoodKeepsItsTextWhenTheCoreSendsOne()
     {
         var log = new ConversationLog(5);
