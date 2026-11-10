@@ -225,7 +225,8 @@
         "settings_apply_ms",
         "modal_dim",
         "log_lines",
-        "questions_shown"
+        "questions_shown",
+        "diary_lines"
       ],
       "properties": {
         "settings_apply_ms": {
@@ -336,6 +337,12 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 500
+        },
+        "diary_lines": {
+          "description": "Lines the diary of one inhabitant keeps (what it did, newest first; W1726).",
+          "type": "integer",
+          "minimum": 5,
+          "maximum": 1000
         }
       }
     },
