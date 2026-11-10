@@ -2405,6 +2405,14 @@
     {
       "key": "ui.zone.contact",
       "text": "Contact"
+    },
+    {
+      "key": "ui.card.title",
+      "text": "Card"
+    },
+    {
+      "key": "ui.card.none",
+      "text": "Choose an inhabitant - in the list, in the log or with a click on the figure. This then shows what they are doing, and you can talk to them."
     }
   ]
 }

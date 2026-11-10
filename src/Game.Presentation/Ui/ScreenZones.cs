@@ -17,10 +17,13 @@ public static class ScreenZones
     /// <summary>The side window pinned on the left (the conversation log); it belongs to no theme.</summary>
     public const string Pinned = "log";
 
+    /// <summary>The side window that holds the inhabitant card in the zones layout (a tab of the people theme).</summary>
+    public const string Card = "card";
+
     /// <summary>The themes in the order of their buttons.</summary>
     public static IReadOnlyList<ScreenTheme> Themes { get; } =
     [
-        new("people", "ui.zone.people", ["inhabitants"]),
+        new("people", "ui.zone.people", ["inhabitants", Card]),
         new("world", "ui.zone.world", ["chronicle"]),
         new("contact", "ui.zone.contact", ["questions", "help", "mailbox"]),
     ];

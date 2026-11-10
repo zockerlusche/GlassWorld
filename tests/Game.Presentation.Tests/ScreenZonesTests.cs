@@ -7,7 +7,7 @@ public sealed class ScreenZonesTests
     [Fact]
     public void EverySideWindowButTheLogBelongsToExactlyOneTheme()
     {
-        string[] windows = ["inhabitants", "questions", "log", "chronicle", "help", "mailbox"];
+        string[] windows = ["inhabitants", "card", "questions", "log", "chronicle", "help", "mailbox"];
         foreach (var window in windows.Where(w => w != ScreenZones.Pinned))
         {
             Assert.Single(ScreenZones.Themes, t => t.Panels.Contains(window));
@@ -25,5 +25,10 @@ public sealed class ScreenZonesTests
         Assert.Equal("mailbox", ScreenZones.Open(contact, "inhabitants", "mailbox"));
         Assert.Equal("questions", ScreenZones.Open(contact, null, "chronicle"));
         Assert.Null(ScreenZones.Open(contact, "help", "help"));
+
+        // The card is a tab of the people theme: its button closes it, and opens it again when it was last shown.
+        var people = ScreenZones.Themes.Single(t => t.Id == "people");
+        Assert.Null(ScreenZones.Open(people, ScreenZones.Card, ScreenZones.Card));
+        Assert.Equal(ScreenZones.Card, ScreenZones.Open(people, null, ScreenZones.Card));
     }
 }
