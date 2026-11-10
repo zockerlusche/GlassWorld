@@ -187,6 +187,7 @@ public sealed class LookContentTests
         Assert.All(shots.Seasons ?? [], s => Assert.Contains(s, Seasons()));
         Assert.All(shots.Points.Where(p => p.Season is not null), p => Assert.Contains(p.Season!, Seasons()));
         Assert.All(shots.Weather ?? [], w => Assert.Contains(w, Vocabulary("weather.json")));
+        Assert.All(shots.Points.Where(p => p.Weather is not null), p => Assert.Contains(p.Weather!, Vocabulary("weather.json")));
     }
 
     [Fact]

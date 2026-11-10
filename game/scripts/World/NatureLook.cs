@@ -7,9 +7,13 @@ using Godot;
 namespace GlassWorld.Game.World;
 
 /// <summary>
-/// Living nature of the island (B2-5 R21, R24; island scene and main game): the season of the world clock
-/// as shader parameters (the seasonal colours of ground and plants, the snow cover), the wind of the core
-/// as plant sway, and falling leaves near the camera. Nothing is rebuilt: the meshes carry the shares of
+/// Living nature and weather of the island (B2-5 R21, R23, R24; island scene and main game): the season of
+/// the world clock as shader parameters (the seasonal colours of ground and plants, the snow cover), the
+/// wind of the core as plant sway, falling leaves near the camera, and the weather of the snapshot: rain
+/// and snow near the camera, the colours and snow cover it lays over the season's, stronger sway in a
+/// storm, and through <see cref="Shade"/> the light, clouds and fog of the day (blended softly by
+/// <see cref="WeatherBlender"/>; the storm glows softly instead of flashing, <see cref="StormGlow"/>).
+/// Nothing is rebuilt: the meshes carry the shares of
 /// the seasonal colours (<see cref="SeasonSlots"/>) and the warm comic shader reads global parameters,
 /// which this node sets only when they change. The season blends in real time (<see cref="SeasonBlender"/>),
 /// the wind is smoothed in real time (<see cref="WindSway"/>), so fast forward stays calm; while the game
@@ -22,7 +26,11 @@ public partial class NatureLook : Node3D
     private LookPalette _palette = null!;
     private Dictionary<string, Rgb> _colors = [];
     private FallView _leaves = null!;
+    private FallView _rain = null!;
+    private FallView _snow = null!;
+    private StormGlow _glow = null!;
     private SeasonMix? _seasonShown;
+    private (SeasonMix? Season, WeatherMix? Weather) _laid;
     private Vector4 _windShown = new(float.NaN, 0, 0, 0);
     private Color _light = Colors.White;
 
@@ -35,63 +43,118 @@ public partial class NatureLook : Node3D
     /// <summary>The shown wind.</summary>
     public WindSway Wind { get; private set; } = null!;
 
+    /// <summary>The weather look data (content/look/weather.json).</summary>
+    public LookWeather WeatherData { get; private set; } = null!;
+
+    /// <summary>The weather blend.</summary>
+    public WeatherBlender Weather { get; private set; } = null!;
+
+    /// <summary>The weather ids the data has a look for (the screenshot tool notes the others).</summary>
+    public IReadOnlySet<string> WeatherWithLook => WeatherData.Looks.Select(l => l.Weather).ToHashSet(StringComparer.Ordinal);
+
     /// <summary>Creates the node for a palette (the base palette the meshes were built with).</summary>
     public static NatureLook Create(string contentDirectory, LookPalette palette)
     {
         ArgumentNullException.ThrowIfNull(palette);
         var data = ContractSerializer.Deserialize<LookNature>(File.ReadAllText(Path.Combine(contentDirectory, "look", "nature.json")));
+        var weather = ContractSerializer.Deserialize<LookWeather>(File.ReadAllText(Path.Combine(contentDirectory, "look", "weather.json")));
+        var slots = SeasonSlots.From(palette);
         var look = new NatureLook
         {
             Name = "Nature",
             Data = data,
             _palette = palette,
             _colors = palette.Colors.ToDictionary(c => c.Id, c => Rgb.Parse(c.Color), StringComparer.Ordinal),
-            Season = new SeasonBlender(palette, SeasonSlots.From(palette)),
+            Season = new SeasonBlender(palette, slots),
             Wind = new WindSway(data.Wind),
+            WeatherData = weather,
+            Weather = new WeatherBlender(weather, slots),
+            _glow = new StormGlow(weather.Glow),
             _leaves = FallView.Create("Leaves", data.LeafFall),
+            _rain = FallView.Create("Rain", weather.Rain),
+            _snow = FallView.Create("Snow", weather.Snow),
         };
-        _ = look.PaletteColor(data.Snow.Color);
-        _ = look.PaletteColor(data.LeafFall.Color);
+        foreach (var id in new[] { data.Snow.Color, data.LeafFall.Color, weather.Clouds.Color, weather.Rain.Color, weather.Snow.Color })
+        {
+            _ = look.PaletteColor(id);
+        }
+
+        // Every look is resolved once, so a colour the shader cannot move is a data error at the start.
+        foreach (var entry in weather.Looks)
+        {
+            _ = WeatherMix.Of(weather, slots, entry.Weather);
+        }
+
         look.AddChild(look._leaves);
+        look.AddChild(look._rain);
+        look.AddChild(look._snow);
         var snow = data.Snow;
         RenderingServer.GlobalShaderParameterSet("nature_snow_shape", new Vector4((float)snow.PatchM, (float)snow.Edge, (float)snow.MinUp, 0));
         RenderingServer.GlobalShaderParameterSet("nature_wind_shape", new Vector4((float)look.Wind.WaveNumber, (float)look.Wind.LeanShare, 0, 0));
-        look.Apply(look.Season.Shown);
+        look.Apply(look.Weather.Shown.Over(look.Season.Shown));
         look.ApplyWind();
         return look;
     }
 
     /// <summary>
     /// One frame of a running world: the season id and the weather of the snapshot, the real seconds since
-    /// the last frame (0 while paused) and the camera target on the ground.
+    /// the last frame (0 while paused), the camera target on the ground, the speed factor and the real
+    /// seconds one game minute lasts at normal speed (for the weather's transition time).
     /// </summary>
-    public void Follow(string season, WeatherReading? weather, double realSeconds, Vector3 focus)
+    public void Follow(string season, WeatherReading? weather, double realSeconds, Vector3 focus, double speed, double realSecondsPerGameMinute)
     {
-        Apply(Season.Update(season, realSeconds));
+        var mix = Weather.Update(weather?.Weather, weather?.Conditions, weather?.TransitionMinutes ?? 0, realSecondsPerGameMinute, speed, realSeconds);
+        _glow.Update(mix.Glow, realSeconds);
+
+        // Outside a blend both blenders hand out the same mix every frame: nothing is composed or written then.
+        var seasonMix = Season.Update(season, realSeconds);
+        if (!ReferenceEquals(seasonMix, _laid.Season) || !ReferenceEquals(mix, _laid.Weather))
+        {
+            _laid = (seasonMix, mix);
+            Apply(mix.Over(seasonMix));
+        }
+
         Wind.Update(weather?.Wind, realSeconds);
         ApplyWind();
         Fall(focus);
     }
 
     /// <summary>
-    /// Screenshot tool: shows a season at once (null = the base colours), at the camera target
-    /// <paramref name="focus"/>. Colours in <paramref name="keep"/> stay as the meshes have them (an epoch
-    /// palette wins over the season).
+    /// Screenshot tool: shows a season and a weather at once (null = the base colours, no weather), at the
+    /// camera target <paramref name="focus"/>. Colours in <paramref name="keep"/> stay as the meshes have
+    /// them (an epoch palette wins over the season).
     /// </summary>
-    public void Show(string? season, Vector3 focus, IReadOnlySet<string>? keep = null)
+    public void Show(string? season, string? weather, Vector3 focus, IReadOnlySet<string>? keep = null)
     {
         Season = new SeasonBlender(_palette, Season.Slots, keep);
-        Apply(Season.Jump(season));
+        var mix = Weather.Jump(weather, weather is null ? null : [weather]);
+        _laid = (null, null);
+        Apply(mix.Over(Season.Jump(season)));
         ApplyWind();
         Fall(focus);
         _leaves.Settle();
+        _rain.Settle();
+        _snow.Settle();
     }
 
-    /// <summary>The day light that tints the unlit particles (the water light of the daylight data).</summary>
+    /// <summary>
+    /// The day light, the clouds and the fog under the shown weather (and the storm glow of this moment):
+    /// what <see cref="DaylightLook.Apply(LookDaylight, DaylightMix, DirectionalLight3D, Godot.Environment, WeatherSky?, WeatherClouds?)"/> shows.
+    /// </summary>
+    public (DaylightMix Light, WeatherSky Sky) Shade(DaylightMix day, double minAmbient)
+    {
+        var (mix, glow) = (Weather.Shown, WeatherData.Glow);
+        return (mix.Shade(day, minAmbient, _glow.Value, glow.AmbientBoost), mix.Sky(day, PaletteColor(WeatherData.Clouds.Color), _glow.Value, glow.SkyBoost));
+    }
+
+    /// <summary>The day light that tints the unlit particles (the water light of the shaded day).</summary>
     public void Light(Rgb light)
     {
         _light = new Color(light.R, light.G, light.B);
         TintLeaves();
+        var (rain, snow) = (PaletteColor(WeatherData.Rain.Color), PaletteColor(WeatherData.Snow.Color));
+        _rain.Tint(new Color(rain.R, rain.G, rain.B), _light);
+        _snow.Tint(new Color(snow.R, snow.G, snow.B), _light);
     }
 
     /// <inheritdoc/>
@@ -138,7 +201,9 @@ public partial class NatureLook : Node3D
 
     private void ApplyWind()
     {
-        var wind = new Vector4((float)Wind.DirectionX, (float)Wind.DirectionZ, (float)Wind.Strength, (float)Wind.Phase);
+        // The weather's sway factor makes a storm pull harder at the plants than its wind alone.
+        var strength = Math.Clamp(Wind.Strength * Weather.Shown.Sway, 0, 1);
+        var wind = new Vector4((float)Wind.DirectionX, (float)Wind.DirectionZ, (float)strength, (float)Wind.Phase);
         if (wind != _windShown)
         {
             _windShown = wind;
@@ -150,6 +215,8 @@ public partial class NatureLook : Node3D
     {
         var direction = new Vector2((float)Wind.DirectionX, (float)Wind.DirectionZ);
         _leaves.Follow(focus, _seasonShown?.LeafFall ?? 0, direction, Wind.Strength);
+        _rain.Follow(focus, Weather.Shown.Rain, direction, Wind.Strength);
+        _snow.Follow(focus, Weather.Shown.Snow, direction, Wind.Strength);
     }
 
     private void TintLeaves()
