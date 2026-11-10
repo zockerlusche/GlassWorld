@@ -121,6 +121,9 @@ def build_values(
     if template.version >= 3:
         values["body"] = _body(request, settings)
         values["environment"] = _environment(request, vocab, air=True)
+    if template.version >= 4:  # W1698: the own name, so it can introduce itself
+        own = _proper(request.inhabitant.name)
+        values["own_name"] = f'"{own}"' if own else "(none yet)"
     if template.version >= 5:
         values["life"] = _life(request, settings)
         values["culture"] = _culture(request, settings, locale)

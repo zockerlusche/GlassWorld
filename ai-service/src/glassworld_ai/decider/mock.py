@@ -27,6 +27,9 @@ class MockWeights:
     def load(cls, path: Path) -> MockWeights:
         """Reads the data file (validated against mock-weights.schema.json by the content check)."""
         data = json.loads(path.read_text(encoding="utf-8"))
+        actions = [str(w["action"]) for w in data["weights"]]
+        if len(set(actions)) != len(actions):  # the core rejects them as well (review #170)
+            raise ValueError(f"{path.name}: an action is listed twice")
         return cls(
             default_permille=int(data["default_permille"]),
             permille={str(w["action"]): int(w["permille"]) for w in data["weights"]},

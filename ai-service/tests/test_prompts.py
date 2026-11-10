@@ -240,3 +240,8 @@ def test_the_prompt_digest_tells_in_place_edits_apart(tmp_path: Path) -> None:
     texts = TextCatalog.load(REPO / "content/i18n")
     values = build_values(_request("hungry-berries"), template, _vocab(), BUDGET, texts)
     assert template.render(values).digest == template.digest
+def test_v4_knows_its_own_name_to_introduce_itself() -> None:
+    """W1698: under the default prompt the inhabitant can say 'Ich bin Tavi'."""
+    data = json.loads((EXAMPLES / "decision-request.b9-family.json").read_text(encoding="utf-8"))
+    assert 'Your name: "Tavi"' in _render(DecisionRequest.model_validate(data), version=4)
+    assert "Your name: (none yet)" in _render(_request("hungry-berries"), version=4)
