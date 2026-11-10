@@ -539,6 +539,10 @@
       "text": "Warn"
     },
     {
+      "key": "vocab.action.introduce",
+      "text": "Introduce"
+    },
+    {
       "key": "vocab.biome.beach_sea",
       "text": "Beach and sea"
     },
@@ -1407,6 +1411,10 @@
       "text": "New knowledge"
     },
     {
+      "key": "vocab.event.name_learned",
+      "text": "Learned a name"
+    },
+    {
       "key": "vocab.event.invention_wanted",
       "text": "Wish to invent"
     },
@@ -1863,8 +1871,16 @@
       "text": "is warning someone"
     },
     {
+      "key": "ui.activity.introduce",
+      "text": "is introducing themselves"
+    },
+    {
       "key": "ui.activity.warn.inhabitant",
       "text": "is warning {name}"
+    },
+    {
+      "key": "ui.activity.introduce.inhabitant",
+      "text": "is introducing themselves to {name}"
     },
     {
       "key": "ui.activity.warn.inhabitant_topic",
@@ -1981,6 +1997,10 @@
     {
       "key": "msg.thought.warn",
       "text": "Watch out!"
+    },
+    {
+      "key": "msg.thought.introduce",
+      "text": "What is your name?"
     },
     {
       "key": "ui.menu.loading_title",

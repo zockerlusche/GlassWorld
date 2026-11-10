@@ -319,6 +319,11 @@
     },
     {
       "kind": "action",
+      "id": "introduce",
+      "clip": "talk"
+    },
+    {
+      "kind": "action",
       "id": "show",
       "clip": "handle"
     },

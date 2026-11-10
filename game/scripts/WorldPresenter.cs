@@ -332,7 +332,7 @@ public partial class WorldPresenter : Node3D
     {
         if (!string.Equals(System.Environment.GetEnvironmentVariable("GLASSWORLD_AI"), "live", StringComparison.Ordinal))
         {
-            return new MockDecisionPort();
+            return MockDecisionPort.FromContent(contentDirectory);
         }
 
         // The AI service runs from the repository (uv project). An exported build sits elsewhere, so

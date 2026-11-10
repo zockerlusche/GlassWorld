@@ -157,6 +157,12 @@ public sealed class Inhabitant
     /// <summary>How the inhabitant looks (B2 R27); null only in worlds built without look data (tests).</summary>
     public Appearance? Appearance { get; set; }
 
+    /// <summary>The inhabitant's own name (W1698, a ProperName from the data list); null in worlds without names.</summary>
+    public string? Name { get; internal set; }
+
+    /// <summary>Ids of the inhabitants whose own name this one knows (per observer, W1698).</summary>
+    public SortedSet<string> KnownNames { get; } = new(StringComparer.Ordinal);
+
     /// <summary>Writes the complete state in canonical order.</summary>
     public void WriteState(StateHasher hasher)
     {
@@ -209,6 +215,21 @@ public sealed class Inhabitant
             foreach (var r in Resting)
             {
                 hasher.Write(r.Action).Write(r.TargetId ?? string.Empty).Write(r.Place.X).Write(r.Place.Z).Write(r.Until);
+            }
+        }
+
+        // Own name and known names only while there are any, so worlds without them keep their hashes.
+        if (Name is not null)
+        {
+            hasher.Write("name").Write(Name);
+        }
+
+        if (KnownNames.Count > 0)
+        {
+            hasher.Write("known_names").Write(KnownNames.Count);
+            foreach (var other in KnownNames)
+            {
+                hasher.Write(other);
             }
         }
     }

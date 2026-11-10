@@ -81,7 +81,7 @@ internal static class ReplayCommand
         var settings = ContractSerializer.Deserialize<DeciderSettings>(File.ReadAllText(Path.Combine(contentDirectory, "decider", "settings.json")));
 
         // The saved world's hash: restoring gives exactly the state that was saved (ADR-0003).
-        var savedHash = StateCodec.Restore(new SimulationHostFactory(content, settings, new MockDecisionPort(), DecisionsSystem.DefaultDisplayLocale), saved).World.StateHash();
+        var savedHash = StateCodec.Restore(new SimulationHostFactory(content, settings, MockDecisionPort.FromContent(contentDirectory), DecisionsSystem.DefaultDisplayLocale), saved).World.StateHash();
 
         var decisionLog = new DecisionLog();
         foreach (var entry in saved.DecisionLog)

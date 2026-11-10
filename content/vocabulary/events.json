@@ -39,6 +39,10 @@
       "description": "An inhabitant now knows or believes something new, with its source (B4a R3)."
     },
     {
+      "id": "name_learned",
+      "description": "An inhabitant now knows another inhabitant's own name (W1698): actor = the learner, target = the one whose name it learned."
+    },
+    {
       "id": "invention_wanted",
       "description": "A lasting lack becomes the wish to invent something."
     },

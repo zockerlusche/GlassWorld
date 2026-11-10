@@ -34,7 +34,9 @@ public sealed record SavedInhabitant(
     IReadOnlyDictionary<string, long>? SearchSince = null,
     IReadOnlyList<SavedPlace>? Places = null,
     RepeatRun? Repeat = null,
-    IReadOnlyList<RestingAction>? Resting = null);
+    IReadOnlyList<RestingAction>? Resting = null,
+    string? Name = null,
+    IReadOnlyList<string>? KnownNames = null);
 
 /// <summary>An open question as saved.</summary>
 public sealed record SavedQuestion(string Id, string InhabitantId, string Kind, string Subject, string RequestId, long AskedTick, IReadOnlyList<SavedOption> Options, long? RetryAtTick);
@@ -87,6 +89,12 @@ public sealed record SaveState(
     /// <summary>The mailbox (B6 R11); null in save games from before.</summary>
     public Player.MailboxState? Mailbox { get; init; }
 
+    /// <summary>
+    /// True when the save game knows own names (W1698), even if nobody has one; false in save games from before,
+    /// whose inhabitants get their names from the seed on load and know nobody's name.
+    /// </summary>
+    public bool NamesSaved { get; init; }
+
     /// <summary>Conversations with the player (B6 R13); null when nobody has been spoken to.</summary>
     public Player.ConversationState? Conversation { get; init; }
 
@@ -129,7 +137,9 @@ public static class StateCodec
                 i.SearchSince.Count > 0 ? new Dictionary<string, long>(i.SearchSince, StringComparer.Ordinal) : null,
                 i.Places.Count > 0 ? [.. i.Places.Select(p => new SavedPlace(p.Key, p.Value.TypeId, p.Value.Position, p.Value.Tick))] : null,
                 i.Repeat,
-                i.Resting.Count > 0 ? [.. i.Resting] : null))],
+                i.Resting.Count > 0 ? [.. i.Resting] : null,
+                i.Name,
+                i.KnownNames.Count > 0 ? [.. i.KnownNames] : null))],
             counter,
             [.. questions.Select(q => new SavedQuestion(q.Id, q.InhabitantId, q.Kind, q.Subject, q.RequestId, q.AskedTick, [.. q.Options.Select(o => new SavedOption(o.OptionId, o.Action, o.TargetId))], q.RetryAtTick))],
             lastAsked,
@@ -148,6 +158,7 @@ public static class StateCodec
             Skills = host.Skills.HasState ? host.Skills.Capture() : null,
             SkillGains = host.SkillLevels.HasState ? host.SkillLevels.Capture() : null,
             Mailbox = host.Mailbox.Capture(),
+            NamesSaved = true,
             Conversation = host.Conversation.HasState || host.Conversation.Log.Count > 0 ? host.Conversation.Capture() : null,
         };
     }
@@ -206,7 +217,9 @@ public static class StateCodec
                 Planned = saved.Planned,
                 // Ids renamed since the save get their current ids (F4), so the figure can be drawn.
                 Appearance = saved.Appearance?.WithCurrentIds(factory.Content.Appearance),
+                Name = saved.Name,
             };
+            inhabitant.KnownNames.UnionWith(saved.KnownNames ?? []);
             foreach (var belief in saved.Beliefs)
             {
                 inhabitant.Beliefs.Set(belief.TypeId, belief.PropertyId, belief.Value, belief.Confidence, belief.Source, belief.ToldBy, belief.Tick);
@@ -231,6 +244,12 @@ public static class StateCodec
             }
 
             host.Inhabitants.Add(inhabitant);
+        }
+
+        // Save games from before names (W1698): everyone gets an own name from the seed, nobody knows another's.
+        if (!state.NamesSaved)
+        {
+            host.Inhabitants.GiveNames(state.Seed);
         }
 
         host.Decisions.RestoreState(

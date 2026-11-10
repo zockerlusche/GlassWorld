@@ -62,6 +62,10 @@
       "sound": "action.talk_to"
     },
     {
+      "action": "introduce",
+      "sound": "action.talk_to"
+    },
+    {
       "action": "show",
       "sound": "action.talk_to"
     },
