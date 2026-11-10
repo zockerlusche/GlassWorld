@@ -22,6 +22,7 @@ public partial class BubbleOverlay : CanvasLayer
 {
     private readonly Dictionary<string, Label> _labels = new(StringComparer.Ordinal);
     private readonly List<BubbleRequest> _requests = [];
+    private List<string> _order = [];
     private readonly Dictionary<string, (int FontSize, float Width)> _textWidth = new(StringComparer.Ordinal);
     private readonly Control _root = new() { Name = "BubbleRoot", MouseFilter = Control.MouseFilterEnum.Ignore };
 
@@ -33,6 +34,9 @@ public partial class BubbleOverlay : CanvasLayer
 
     /// <summary>Largest bubble width in pixels.</summary>
     public Func<float> WidthPx { get; set; } = () => 440;
+
+    /// <summary>Two heads within this many pixels of the same height keep their bubbles' order.</summary>
+    public Func<float> OrderHysteresisPx { get; set; } = () => 0;
 
     /// <summary>Gap between stacked bubbles in pixels.</summary>
     public float GapPx { get; set; } = 6;
@@ -98,7 +102,8 @@ public partial class BubbleOverlay : CanvasLayer
             _textWidth.Remove(gone);
         }
 
-        var places = BubbleLayout.Place(_requests, (area.Position.X, area.Position.Y, area.End.X, area.End.Y), GapPx);
+        var places = BubbleLayout.Place(_requests, (area.Position.X, area.Position.Y, area.End.X, area.End.Y), GapPx, _order, OrderHysteresisPx());
+        _order = [.. places.Select(p => p.Id)];
         foreach (var place in places)
         {
             var label = _labels[place.Id];

@@ -14,6 +14,7 @@ from . import common_schema
 class Destination(StrEnum):
     here = 'here'
     random_nearby = 'random_nearby'
+    frontier = 'frontier'
 
 
 class Kind(StrEnum):
@@ -41,7 +42,7 @@ class ActionTiming(BaseModel):
     )
     destination: Destination = Field(
         ...,
-        description='Where an action without a target happens: here, or at a random spot within the perception radius (own seed stream).',
+        description='Where an action without a target happens: here, at a random spot within the perception radius (own seed stream), or at the frontier: the nearest walkable cell the inhabitant has seen that lies next to one it has not seen yet (B2-6 R14). A frontier action is only offered while such a cell can be reached on foot.',
     )
     decider_option: bool | None = Field(
         None,

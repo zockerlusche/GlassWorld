@@ -9,6 +9,7 @@
     { "action": "use", "destination": "here", "duration_minutes": 10, "reach_m": 1.5 },
     { "action": "build_step", "destination": "here", "duration_minutes": 30, "reach_m": 1.5, "decider_option": false },
     { "action": "wander", "destination": "random_nearby", "duration_minutes": 30, "reach_m": 0 },
+    { "action": "explore", "destination": "frontier", "duration_minutes": 10, "reach_m": 1 },
     { "action": "warn", "destination": "here", "duration_minutes": 5, "reach_m": 2 },
     { "action": "show", "destination": "here", "duration_minutes": 5, "reach_m": 2 },
     { "action": "teach", "destination": "here", "duration_minutes": 5, "reach_m": 2 },
@@ -41,6 +42,10 @@
     { "action": "wander", "requires_property": null, "consumes_target": false, "effects": [
       { "kind": "need", "id": "fun", "delta": 0.08 },
       { "kind": "mood", "id": "boredom", "delta": -0.1 }
+    ] },
+    { "action": "explore", "requires_property": null, "consumes_target": false, "effects": [
+      { "kind": "need", "id": "fun", "delta": 0.05 },
+      { "kind": "mood", "id": "boredom", "delta": -0.05 }
     ] },
     { "action": "use", "requires_property": "crafted", "consumes_target": false, "effects": [
       { "kind": "need", "id": "purpose", "delta": 0.15 },

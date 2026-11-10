@@ -14,6 +14,7 @@ namespace GlassWorld.Game;
 /// <summary>Smoke and screenshot runs of the start scene (marker lines for tools/godot-smoke.sh).</summary>
 public partial class Main
 {
+    private const string DebugOverlayName = "DebugOverlay";
     private bool _uiCheckDone = true;
     /// <summary>Frames the audio server gets to let go of the stopped music before quitting (measured: 1 is too few headless).</summary>
     private const int SilenceFrames = 30;
@@ -578,6 +579,17 @@ public partial class Main
                 GD.Print("ZONES_OK");
             }
 
+            // The debug view and the time keys (B2-6 R31).
+            var debug = CheckDebugOverlay();
+            if (debug.Length > 0)
+            {
+                problems = [.. problems, "debug view: " + debug];
+            }
+            else
+            {
+                GD.Print("DEBUG_OVERLAY_OK");
+            }
+
             // Camera keys (GW3 #144): a button that took the focus leaves them to the camera, a slider keeps them.
             var (button, slider) = (new Button(), new HSlider());
             if (GlassWorld.Game.World.CameraRig.BlocksCameraKeys(button) || !GlassWorld.Game.World.CameraRig.BlocksCameraKeys(slider))
@@ -679,6 +691,72 @@ public partial class Main
     }
 
     /// <summary>Smoke run only: proves that every catalog is loaded and the language can be switched.</summary>
+    /// <summary>
+    /// The debug view (B2-6 R31): off by default, toggled on it has lines in every language without a raw
+    /// key and never takes the mouse; the time keys press the time buttons and the pause key toggles.
+    /// </summary>
+    private string CheckDebugOverlay()
+    {
+        if (_screen?.GetNodeOrNull<GwDebugOverlay>(DebugOverlayName) is not { } view || _world is null)
+        {
+            return "missing";
+        }
+
+        var problems = new List<string>();
+        if (view.Visible)
+        {
+            problems.Add("shown before the first toggle");
+        }
+
+        view.Toggle();
+        if (!view.Visible || view.MouseFilter != Control.MouseFilterEnum.Ignore)
+        {
+            problems.Add("not shown after the toggle, or it takes the mouse");
+        }
+
+        var language = TranslationServer.GetLocale();
+        foreach (var locale in TextCatalogs.SupportedLocales)
+        {
+            TextCatalogs.SetLanguage(locale);
+            view.Refresh();
+            if (view.Lines.Count == 0 || view.Lines.Any(string.IsNullOrWhiteSpace))
+            {
+                problems.Add($"{locale}: empty lines");
+            }
+
+            problems.AddRange(DebugOverlayModel.RawKeys(view.Lines).Select(key => $"{locale}: raw key '{key}'"));
+        }
+
+        TextCatalogs.SetLanguage(language);
+        view.Toggle();
+        if (view.Visible)
+        {
+            problems.Add("still shown after the second toggle");
+        }
+
+        // Without --debug the core refuses the debug jump.
+        if (!_world.DebugCommands && view.StepEpoch(1))
+        {
+            problems.Add("an epoch step was accepted without debug commands");
+        }
+
+        var speed = _world.Speed;
+        var speeds = new List<double>();
+        foreach (var key in new[] { 2, 0, 0, 1 })
+        {
+            _screen.PressTimeKey(key);
+            speeds.Add(_world.Speed);
+        }
+
+        _world.Speed = speed;
+        if (speeds[0] <= 1 || speeds[1] != 0 || speeds[2] != speeds[0] || speeds[3] != 1)
+        {
+            problems.Add($"time keys fast, pause, pause, normal gave the speeds {string.Join(' ', speeds.Select(s => s.ToString(System.Globalization.CultureInfo.InvariantCulture)))}");
+        }
+
+        return string.Join("; ", problems);
+    }
+
     private static void CheckTexts(bool loaded)
     {
         var problem = loaded ? TextCatalogs.SelfCheck() : "catalogs not loaded";

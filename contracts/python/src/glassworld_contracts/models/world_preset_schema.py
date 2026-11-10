@@ -207,13 +207,25 @@ class WorldPresetExploration(BaseModel):
     )
     view_range_cells: int = Field(
         ...,
-        description='How far an inhabitant sees on flat ground (R14).',
+        description="How far an inhabitant sees the land on flat ground, in cells (R14). The one sight range of the cloud cover: the core's exploration system reads it, and the start check keeps the start pairs further apart than this plus max_height_bonus_cells. Its own value, not the perception radius of content/behaviour/utility.json (which things an inhabitant notices). Placeholder until Marcel decides.",
         ge=1,
         le=1000,
     )
     height_bonus_per_100_height: int = Field(
         ...,
         description='Extra cells of view per 100 height units above the surroundings (a view helps).',
+        ge=0,
+        le=1000,
+    )
+    surroundings_radius_cells: int = Field(
+        ...,
+        description='Radius in cells of the surroundings whose mean height the own height is compared with for the height bonus (water counts with its surface at sea level).',
+        ge=1,
+        le=100,
+    )
+    max_height_bonus_cells: int = Field(
+        ...,
+        description='Most extra cells of view by height, however high the inhabitant stands; 0 = no height bonus.',
         ge=0,
         le=1000,
     )
