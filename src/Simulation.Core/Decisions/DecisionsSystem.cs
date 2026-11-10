@@ -647,11 +647,19 @@ public sealed class DecisionsSystem : IWorldSystem
             return;
         }
 
+        // An action at the frontier (B2-6 R14) goes where unseen land begins now. If none is left since the
+        // offer, the answer is dropped like one whose target is gone: nobody is paid for standing around.
+        var atFrontier = _inhabitants.AtFrontier(action);
+        var frontier = atFrontier ? _inhabitants.FrontierOf?.Invoke(inhabitant) : null;
+        if (atFrontier && frontier is null)
+        {
+            Log.Add(new DecisionLogEntry(DecisionLogKind.Discarded, message.RequestId, world.Tick, message.Json, ReplayNotes.NothingToExplore));
+            Close(world, question, "question_failed", ReplayNotes.NothingToExplore);
+            return;
+        }
+
         Log.Add(new DecisionLogEntry(DecisionLogKind.Response, message.RequestId, world.Tick, message.Json, null));
-        // An action at the frontier (B2-6 R14) goes where unseen land begins now; if none is left it happens here.
-        var destination = resolved?.Position
-            ?? (_inhabitants.AtFrontier(action) ? _inhabitants.FrontierOf?.Invoke(inhabitant) : null)
-            ?? inhabitant.Position;
+        var destination = resolved?.Position ?? frontier ?? inhabitant.Position;
         var decided = new Activity(action, targetId, destination, null);
         if (inhabitant.Activity?.RemainingTicks is not null)
         {

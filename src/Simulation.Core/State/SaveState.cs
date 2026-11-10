@@ -291,6 +291,12 @@ public static class StateCodec
                 // A save game from before the cloud cover (B2-6 R14) starts with what the inhabitants see now.
                 exploration.Look();
             }
+
+            // Where each inhabitant last looked from is not saved: the first tick after a load looks again
+            // from where everyone stands, which adds nothing as long as the sight range of a cell never
+            // changes. Once B5 makes the range depend on the light this no longer holds (a look at night
+            // repeated by day would reveal more than the world that was never saved), and the range kept
+            // per cell is wrong too: then the last look must be saved, or the look made independent of the load.
         }
 
         host.UseLoggedDisplayLocale();

@@ -19,11 +19,11 @@ public sealed record ExplorationState(int Width, int Depth, byte[] Player, IRead
 /// <item>Every inhabitant has its own set of seen cells; a child born later starts with an empty one.</item>
 /// <item>The player's view is the union of everything any inhabitant has ever seen. Cells are only added:
 /// new land stays new land, whoever saw it.</item>
-/// <item>Seeing is a radius over the grid (content/world/exploration.json), wider where the inhabitant
+/// <item>Seeing is a radius over the grid (the preset's <c>exploration</c> section), wider where the inhabitant
 /// stands higher than its surroundings. Nothing blocks the view; no rays are cast. An inhabitant looks
 /// around only when it has entered another cell, in whole cells (integer maths).</item>
-/// <item>For the routine: <see cref="Frontier"/> names the nearest seen cell an inhabitant can walk to that
-/// lies next to an unseen one. Whether and how much inhabitants explore is data (action destination
+/// <item>For the routine: <see cref="Frontier"/> names the nearest seen dry cell an inhabitant can walk to
+/// that lies next to an unseen one. Whether and how much inhabitants explore is data (action destination
 /// <c>frontier</c>, weights in content/behaviour/utility.json).</item>
 /// </list>
 /// State (hashed and saved): the player's view and the sets per inhabitant. Everything else here is a
@@ -38,11 +38,14 @@ public sealed class ExplorationSystem : IWorldSystem, IOptionalWorldState
     private readonly int _width;
     private readonly int _depth;
     private readonly int _seaLevel;
-    private readonly int _heightUnitMm;
     private readonly int _rangeCells;
     private readonly int _surroundingsCells;
-    private readonly int _rangePerHeight;
+    private readonly int _bonusPer100Height;
     private readonly int _maxBonusCells;
+
+    // Inhabitants are never taken out of the world today, and neither are their sets: the cells of someone
+    // who is gone would stay in state, hash and save (one bit per cell, about 4.6 kB each on the start
+    // island). B9 (generations) must decide when to drop them; the player's view keeps everything anyway.
     private readonly SortedDictionary<string, CellSet> _seen = new(StringComparer.Ordinal);
     private CellSet _player;
 
@@ -58,25 +61,22 @@ public sealed class ExplorationSystem : IWorldSystem, IOptionalWorldState
     private int _search;
 
     /// <summary>Creates the system for an island; nothing is seen yet.</summary>
-    /// <param name="data">Sight range and height bonus (content/world/exploration.json).</param>
+    /// <param name="data">Sight range and height bonus in cells: the <c>exploration</c> section of the world preset, the same values the start check uses.</param>
     /// <param name="map">The island.</param>
     /// <param name="inhabitants">Who looks.</param>
     /// <param name="seaLevel">Sea level in height units (preset); water counts with its surface there.</param>
-    /// <param name="heightUnitMm">Millimetres per height unit (preset).</param>
-    public ExplorationSystem(ExplorationSettings data, WorldMapSystem map, InhabitantsSystem inhabitants, int seaLevel, int heightUnitMm)
+    public ExplorationSystem(WorldPresetExploration data, WorldMapSystem map, InhabitantsSystem inhabitants, int seaLevel)
     {
         ArgumentNullException.ThrowIfNull(data);
         _map = map ?? throw new ArgumentNullException(nameof(map));
         _inhabitants = inhabitants ?? throw new ArgumentNullException(nameof(inhabitants));
-        ArgumentOutOfRangeException.ThrowIfLessThan(heightUnitMm, 1);
         _width = map.Map.WidthCells;
         _depth = map.Map.DepthCells;
         _seaLevel = seaLevel;
-        _heightUnitMm = heightUnitMm;
-        _rangeCells = Cells(data.SightRangeM);
-        _surroundingsCells = Cells(data.HeightBonus.SurroundingsRadiusM);
-        _rangePerHeight = data.HeightBonus.RangeMPerHeightM;
-        _maxBonusCells = data.HeightBonus.MaxBonusM * 100 / map.CellSizeCm;
+        _rangeCells = Math.Max(1, data.ViewRangeCells);
+        _surroundingsCells = Math.Max(1, data.SurroundingsRadiusCells);
+        _bonusPer100Height = data.HeightBonusPer100Height;
+        _maxBonusCells = data.MaxHeightBonusCells;
         _player = new CellSet(_width, _depth);
         _rangeAt = new short[_width * _depth];
     }
@@ -182,10 +182,10 @@ public sealed class ExplorationSystem : IWorldSystem, IOptionalWorldState
     }
 
     /// <summary>
-    /// Where the land an inhabitant has not seen yet begins: the centre of the nearest cell (in steps over
-    /// cells it has seen and can walk on, in its own walkable area) that lies next to a cell it has not seen.
-    /// Null when nothing is left to explore on foot or it has not looked around yet. It reads the
-    /// inhabitant's own seen cells, never the player's view.
+    /// Where the land an inhabitant has not seen yet begins: the centre of the nearest dry cell (in steps
+    /// over cells it has seen and can walk on, in its own walkable area) that lies next to a cell it has
+    /// not seen. Null when nothing is left to explore on foot or it has not looked around yet. It reads
+    /// the inhabitant's own seen cells, never the player's view.
     /// </summary>
     public Position? Frontier(Inhabitant inhabitant)
     {
@@ -214,7 +214,9 @@ public sealed class ExplorationSystem : IWorldSystem, IOptionalWorldState
             var index = _queue[head++];
             var x = index % _width;
             var z = index / _width;
-            if (seen.Contains(index) && AtEdge(seen, x, z))
+            // The cell to walk to is dry land: the way may lead through a ford, but exploring does not
+            // send anyone into the shallow sea to uncover more sea.
+            if (seen.Contains(index) && _map.Map.Cell(x, z).Water == WaterKind.None && AtEdge(seen, x, z))
             {
                 return _map.CentreOf(x, z);
             }
@@ -285,15 +287,13 @@ public sealed class ExplorationSystem : IWorldSystem, IOptionalWorldState
         _player.CopyTo(_revealed);
     }
 
-    private int Cells(int metres) => Math.Max(1, metres * 100 / _map.CellSizeCm);
-
     /// <summary>
     /// Extra sight in cells where the ground at (x, z) is higher than the mean of its surroundings (water
     /// counts with its surface at sea level). Whole numbers only.
     /// </summary>
     private int HeightBonusCells(int x, int z)
     {
-        if (_rangePerHeight == 0 || _maxBonusCells == 0)
+        if (_bonusPer100Height == 0 || _maxBonusCells == 0)
         {
             return 0;
         }
@@ -323,9 +323,7 @@ public sealed class ExplorationSystem : IWorldSystem, IOptionalWorldState
             return 0;
         }
 
-        // Height units → millimetres → centimetres of extra sight → cells.
-        var bonusCm = above * _heightUnitMm * _rangePerHeight / 10;
-        return (int)Math.Min(_maxBonusCells, bonusCm / _map.CellSizeCm);
+        return (int)Math.Min(_maxBonusCells, above * _bonusPer100Height / 100);
     }
 
     private int Surface(int x, int z) => Math.Max(_map.Map.Cell(x, z).Height, _seaLevel);

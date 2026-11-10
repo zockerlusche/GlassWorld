@@ -1,5 +1,0 @@
-{
-  "contract_version": "0.2",
-  "sight_range_m": 16,
-  "height_bonus": { "surroundings_radius_m": 12, "range_m_per_height_m": 3, "max_bonus_m": 16 }
-}

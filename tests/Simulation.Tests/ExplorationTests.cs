@@ -343,11 +343,14 @@ public sealed class ExplorationTests : IDisposable
     {
         var host = Island(7);
         var map = host.Map!;
-        var data = host.Content.Exploration;
-        var exploration = host.Exploration!;
-        var near = data.SightRangeM * 100 / map.CellSizeCm;
-        var far = near + (data.HeightBonus.MaxBonusM * 100 / map.CellSizeCm);
         var preset = host.Content.WorldGen.Presets[Preset];
+
+        // One source: the preset's exploration section, the same values the start check uses.
+        var data = preset.Exploration;
+        var exploration = host.Exploration!;
+        var near = data.ViewRangeCells;
+        var far = near + data.MaxHeightBonusCells;
+        Assert.True(preset.Start.MinPairDistanceCells > far);
         var higher = 0;
         (int X, int Z, int Range) widest = (0, 0, 0);
         for (var z = 0; z < exploration.Depth; z++)
@@ -370,7 +373,7 @@ public sealed class ExplorationTests : IDisposable
         // The island has heights, and the widest view is from a cell above the land around it.
         Assert.True(higher > 0);
         var around = new List<int>();
-        var radius = data.HeightBonus.SurroundingsRadiusM * 100 / map.CellSizeCm;
+        var radius = data.SurroundingsRadiusCells;
         for (var dz = -radius; dz <= radius; dz++)
         {
             for (var dx = -radius; dx <= radius; dx++)
@@ -385,9 +388,9 @@ public sealed class ExplorationTests : IDisposable
         Assert.True(map.Map.Cell(widest.X, widest.Z).Height > around.Average());
 
         // Sight range and bonus are data: without a bonus everyone sees equally far, with a huge range everything.
-        var level = new ExplorationSystem(Settings(data.SightRangeM, 0), map, host.Inhabitants, preset.Terrain.SeaLevel, preset.Grid.HeightUnitMm);
+        var level = new ExplorationSystem(Settings(data.ViewRangeCells, 0), map, host.Inhabitants, preset.Terrain.SeaLevel);
         Assert.Equal(near, level.SightRangeCells(widest.X, widest.Z));
-        var everything = new ExplorationSystem(Settings(500, 0), map, host.Inhabitants, preset.Terrain.SeaLevel, preset.Grid.HeightUnitMm);
+        var everything = new ExplorationSystem(Settings(500, 0), map, host.Inhabitants, preset.Terrain.SeaLevel);
         Assert.False(everything.HasState);
         everything.Look();
         Assert.Equal(everything.Width * everything.Depth, everything.Version);
@@ -408,12 +411,116 @@ public sealed class ExplorationTests : IDisposable
             var cell = map.CellOf(edge.Value)!.Value;
             var own = map.CellOf(inhabitant.Position)!.Value;
             Assert.True(exploration.HasSeen(inhabitant.Id, cell.X, cell.Z));
+            Assert.Equal(WaterKind.None, map.Map.Cell(cell.X, cell.Z).Water);
             Assert.NotEqual(0, map.AreaOf(cell.X, cell.Z));
             Assert.Equal(map.AreaOf(own.X, own.Z), map.AreaOf(cell.X, cell.Z));
             Assert.Contains(new[] { (1, 0), (0, -1), (-1, 0), (0, 1) }, d =>
                 map.Map.Contains(cell.X + d.Item1, cell.Z + d.Item2) && !exploration.HasSeen(inhabitant.Id, cell.X + d.Item1, cell.Z + d.Item2));
             Assert.Equal(PathStatus.Found, map.Find(inhabitant.Position, edge.Value).Status);
         }
+    }
+
+    /// <summary>
+    /// Review GW2 #187 (4): wadeable sea is walkable, but exploring does not lead into it. The walker stands
+    /// in the shallow sea where a seen sea cell next to unseen sea is nearer than any dry one.
+    /// </summary>
+    [Fact]
+    public void TheFrontierLiesOnDryLandEvenWhereTheShallowSeaIsNearer()
+    {
+        var host = Island(7);
+        var map = host.Map!;
+        var grid = map.Map;
+        var preset = host.Content.WorldGen.Presets[Preset];
+        var who = host.Inhabitants.All.First();
+        var home = map.CellOf(who.Position)!.Value;
+        var area = map.AreaOf(home.X, home.Z);
+        bool Wades(int x, int z) => grid.Contains(x, z) && grid.Cell(x, z).Water == WaterKind.Salt && map.AreaOf(x, z) == area;
+        bool Dry(int x, int z) => grid.Contains(x, z) && grid.Cell(x, z).Water == WaterKind.None && map.AreaOf(x, z) == area;
+
+        // A spot in the sea: water two cells around, a wadeable diagonal (its end is the nearest seen cell
+        // next to unseen sea, two steps away) and dry land three cells off along a wadeable line.
+        (int X, int Z)? spot = null;
+        for (var z = 4; z < grid.DepthCells - 4 && spot is null; z++)
+        {
+            for (var x = 4; x < grid.WidthCells - 4 && spot is null; x++)
+            {
+                var water = Enumerable.Range(-2, 5).All(dz => Enumerable.Range(-2, 5).All(dx => grid.Cell(x + dx, z + dz).Water != WaterKind.None));
+                var diagonal = new[] { (1, 1), (1, -1), (-1, 1), (-1, -1) }.Any(d => Wades(x + d.Item1, z + d.Item2) && Wades(x + (2 * d.Item1), z + (2 * d.Item2)));
+                var shore = new[] { (1, 0), (0, -1), (-1, 0), (0, 1) }.Any(d => Wades(x + d.Item1, z + d.Item2) && Wades(x + (2 * d.Item1), z + (2 * d.Item2)) && Dry(x + (3 * d.Item1), z + (3 * d.Item2)));
+                if (Wades(x, z) && water && diagonal && shore)
+                {
+                    spot = (x, z);
+                }
+            }
+        }
+
+        Assert.NotNull(spot);
+        var narrow = new ExplorationSystem(Settings(3, 0), map, host.Inhabitants, preset.Terrain.SeaLevel);
+        who.Position = map.CentreOf(spot.Value.X, spot.Value.Z);
+        narrow.Look();
+
+        var edge = narrow.Frontier(who);
+        Assert.NotNull(edge);
+        var cell = map.CellOf(edge.Value)!.Value;
+        Assert.True(Dry(cell.X, cell.Z));
+        Assert.True(narrow.HasSeen(who.Id, cell.X, cell.Z));
+        Assert.Equal(3, Math.Max(Math.Abs(cell.X - spot.Value.X), Math.Abs(cell.Z - spot.Value.Z)));
+    }
+
+    /// <summary>
+    /// Review GW2 #187 (6): an answer to explore that finds no unseen land any more is dropped, like an answer
+    /// whose target is gone. Nobody is paid for standing around.
+    /// </summary>
+    [Fact]
+    public void AnAnswerToExploreIsDroppedWhenNoUnseenLandIsLeft()
+    {
+        var port = new RecordingPort();
+        var host = SimulationHost.CreateGeneratedWorld(ContentDirectory, 7, port, "de", Preset);
+        var exploration = host.Exploration!;
+        var map = host.Map!;
+        var explore = Explore;
+        for (var tick = 0; tick < 2 * host.World.Calendar.TicksPerDay && port.Requests.Count == 0; tick++)
+        {
+            foreach (var inhabitant in host.Inhabitants.All)
+            {
+                Sate(inhabitant, 1.0);
+            }
+
+            host.World.Step();
+        }
+
+        var request = port.Requests[0];
+        var asker = host.Inhabitants.Get(request.Inhabitant.Id);
+        var option = request.Options.Single(o => o.Action == explore);
+
+        // Between the offer and the answer the asker gets to see the whole island.
+        var at = asker.Position;
+        var step = host.Content.WorldGen.Presets[Preset].Exploration.ViewRangeCells / 2;
+        for (var z = 0; z < exploration.Depth; z += step)
+        {
+            for (var x = 0; x < exploration.Width; x += step)
+            {
+                asker.Position = map.CentreOf(x, z);
+                exploration.Look();
+            }
+        }
+
+        asker.Position = at;
+        Assert.Null(exploration.Frontier(asker));
+        var events = new List<WorldEvent>();
+        host.Inhabitants.Reported += events.Add;
+        port.Answer(request, option.OptionId);
+        for (var tick = 0; tick < 60; tick++)
+        {
+            host.World.Step();
+            Assert.NotEqual(explore, asker.Activity?.Action);
+            Assert.NotEqual(explore, asker.Planned?.Action);
+        }
+
+        Assert.Contains(host.Decisions.Log.Entries, e => e.Kind == DecisionLogKind.Discarded && e.RequestId == request.RequestId && e.Note == ReplayNotes.NothingToExplore);
+        Assert.DoesNotContain(host.Decisions.Log.Entries, e => e.Kind == DecisionLogKind.Response && e.RequestId == request.RequestId);
+        Assert.Contains(events, e => e.Kind == "question_failed" && e.InhabitantId == asker.Id && e.Detail == ReplayNotes.NothingToExplore);
+        Assert.DoesNotContain(events, e => e.InhabitantId == asker.Id && e.Action == explore);
     }
 
     [Fact]
@@ -459,14 +566,16 @@ public sealed class ExplorationTests : IDisposable
                 "de"),
             state);
 
-    private static ExplorationSettings Settings(int sightRangeM, int rangePerHeight)
+    private static WorldPresetExploration Settings(int viewRangeCells, int bonusPer100Height)
     {
-        var data = Content.Value.Exploration;
-        return new ExplorationSettings
+        var data = Content.Value.WorldGen.Presets[Preset].Exploration;
+        return new WorldPresetExploration
         {
-            ContractVersion = data.ContractVersion,
-            SightRangeM = sightRangeM,
-            HeightBonus = new SightHeightBonus { SurroundingsRadiusM = data.HeightBonus.SurroundingsRadiusM, RangeMPerHeightM = rangePerHeight, MaxBonusM = data.HeightBonus.MaxBonusM },
+            ViewRangeCells = viewRangeCells,
+            HeightBonusPer100Height = bonusPer100Height,
+            SurroundingsRadiusCells = data.SurroundingsRadiusCells,
+            MaxHeightBonusCells = data.MaxHeightBonusCells,
+            RevealRealSeconds = data.RevealRealSeconds,
         };
     }
 
@@ -544,13 +653,37 @@ public sealed class ExplorationTests : IDisposable
         }
     }
 
-    /// <summary>A decider that never answers and keeps what it was asked.</summary>
+    /// <summary>A decider that keeps what it was asked and answers only what a test tells it to.</summary>
     private sealed class RecordingPort : IDecisionPort
     {
+        private readonly List<PortMessage> _ready = [];
+
         public List<DecisionRequest> Requests { get; } = [];
 
         public void Send(string requestId, string requestJson) => Requests.Add(ContractSerializer.Deserialize<DecisionRequest>(requestJson));
 
-        public IReadOnlyList<PortMessage> Receive(long tick) => [];
+        /// <summary>Answers a request with one of its options at the next tick.</summary>
+        public void Answer(DecisionRequest request, string optionId) =>
+            _ready.Add(new PortMessage(
+                request.RequestId,
+                ContractSerializer.Serialize(new DecisionResponse
+                {
+                    ContractVersion = request.ContractVersion,
+                    RequestId = request.RequestId,
+                    Tick = request.Tick,
+                    OptionId = optionId,
+                    Expression = null,
+                    Rationale = "test",
+                    Thought = null,
+                    Meta = new ResponseMeta { Source = ResponseMetaSource.Mock, Model = "mock", LatencyMs = 0, Attempts = 1 },
+                }),
+                IsError: false));
+
+        public IReadOnlyList<PortMessage> Receive(long tick)
+        {
+            var messages = _ready.ToList();
+            _ready.Clear();
+            return messages;
+        }
     }
 }

@@ -94,9 +94,6 @@ public sealed class ContentSet
     /// <summary>Routine layer (content/behaviour/utility.json).</summary>
     public UtilityBrain Brain { get; }
 
-    /// <summary>Sight range for the cloud cover (content/world/exploration.json, B2-6 R14).</summary>
-    public ExplorationSettings Exploration { get; private init; } = null!;
-
     /// <summary>Walking speed and gaits (content/behaviour/gaits.json, F5264).</summary>
     public GaitTable Gaits { get; private init; } = null!;
 
@@ -208,7 +205,6 @@ public sealed class ContentSet
                 [.. worldGen.Climates.Keys],
                 Ids(vocabularies, VocabularyKind.Biome),
                 [.. inventions.TechLevels]),
-            Exploration = ContractSerializer.Deserialize<ExplorationSettings>(File.ReadAllText(Path.Combine(contentDirectory, "world", "exploration.json"))),
             Gaits = GaitTable.Create(
                 ContractSerializer.Deserialize<GaitSettings>(File.ReadAllText(Path.Combine(contentDirectory, "behaviour", "gaits.json"))),
                 Ids(vocabularies, VocabularyKind.Action),

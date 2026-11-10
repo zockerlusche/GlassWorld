@@ -11,10 +11,6 @@
       "schema": "world-time-settings"
     },
     {
-      "pattern": "world/exploration.json",
-      "schema": "exploration-settings"
-    },
-    {
       "pattern": "objects/*.json",
       "schema": "object-types"
     },

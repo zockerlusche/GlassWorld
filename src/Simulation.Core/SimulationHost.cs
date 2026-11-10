@@ -130,7 +130,7 @@ public sealed class SimulationHost
         Weather.WeatherSystem? weather = null;
         string? climate = null;
         var seaLevel = 0;
-        var heightUnitMm = 1;
+        WorldPresetExploration? sight = null;
         if (worldPreset is not null)
         {
             if (!content.WorldGen.Presets.TryGetValue(worldPreset, out var preset))
@@ -173,7 +173,7 @@ public sealed class SimulationHost
 
             climate = preset.Climate.ClimateId;
             seaLevel = preset.Terrain.SeaLevel;
-            heightUnitMm = preset.Grid.HeightUnitMm;
+            sight = preset.Exploration;
 
             // Weather of the preset's climate (B2 R13); worlds without a preset (placeholder) have none.
             // The weather is island-wide for now; its height drop stands for the mean height of the start cells.
@@ -210,7 +210,8 @@ public sealed class SimulationHost
         inhabitants.QuestionOpen = decisions.HasOpenQuestion;
 
         // Cloud cover and exploring (B2-6 R14): islands only, the placeholder world has no cells to see.
-        var exploration = map is null ? null : new Simulation.Exploration.ExplorationSystem(content.Exploration, map, inhabitants, seaLevel, heightUnitMm);
+        // The sight range is the preset's (its exploration section, the same values the start check uses).
+        var exploration = map is null || sight is null ? null : new Simulation.Exploration.ExplorationSystem(sight, map, inhabitants, seaLevel);
         if (exploration is not null)
         {
             inhabitants.FrontierOf = exploration.Frontier;

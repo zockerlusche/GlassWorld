@@ -633,17 +633,31 @@
       "required": [
         "view_range_cells",
         "height_bonus_per_100_height",
+        "surroundings_radius_cells",
+        "max_height_bonus_cells",
         "reveal_real_seconds"
       ],
       "properties": {
         "view_range_cells": {
-          "description": "How far an inhabitant sees on flat ground (R14).",
+          "description": "How far an inhabitant sees the land on flat ground, in cells (R14). The one sight range of the cloud cover: the core's exploration system reads it, and the start check keeps the start pairs further apart than this plus max_height_bonus_cells. Its own value, not the perception radius of content/behaviour/utility.json (which things an inhabitant notices). Placeholder until Marcel decides.",
           "type": "integer",
           "minimum": 1,
           "maximum": 1000
         },
         "height_bonus_per_100_height": {
           "description": "Extra cells of view per 100 height units above the surroundings (a view helps).",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "surroundings_radius_cells": {
+          "description": "Radius in cells of the surroundings whose mean height the own height is compared with for the height bonus (water counts with its surface at sea level).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "max_height_bonus_cells": {
+          "description": "Most extra cells of view by height, however high the inhabitant stands; 0 = no height bonus.",
           "type": "integer",
           "minimum": 0,
           "maximum": 1000
