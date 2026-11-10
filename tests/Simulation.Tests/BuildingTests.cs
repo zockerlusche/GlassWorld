@@ -219,6 +219,28 @@ public sealed class BuildingTests : IDisposable
     }
 
     [Fact]
+    public void TheSnapshotShowsTheComputeNightAsSignalledAndTheWorldGoesOn()
+    {
+        // B7 night scene (GW3): the screen follows the same flag the core signals to the AI service.
+        var port = new ScriptedJobPort();
+        var host = World(port, 28);
+        Assert.Null(host.Snapshot().ComputeNight); // not decided before the first tick
+        var seen = new List<bool>();
+        for (var hour = 0; hour < 48; hour++)
+        {
+            var before = host.World.Tick;
+            host.World.Run(host.World.Calendar.Settings.TicksPerHour);
+            Assert.True(host.World.Tick > before); // world time keeps running at night
+            var snapshot = host.Snapshot();
+            Assert.Equal(port.Phases[^1].Phase == JobPhase.Night, snapshot.ComputeNight);
+            seen.Add(snapshot.ComputeNight == true);
+        }
+
+        Assert.Contains(true, seen);
+        Assert.Contains(false, seen);
+    }
+
+    [Fact]
     public void TheDeciderNeverOffersTheBuildingStep()
     {
         var step = Content.Value.Inventions.Build.Settings.StepAction;
