@@ -16,6 +16,8 @@ public sealed class WaterLookTests
 {
     private static readonly string[] Biomes = ["low", "high"];
 
+    private static readonly string[] WaterGlobals = ["water_time", "water_wave_shift", "water_waves"];
+
     private static readonly Lazy<ContentSet> Content = new(() => ContentSet.Load(Path.Combine(TestPaths.Root, "content")));
 
     private static readonly TerrainLook Plain = new(
@@ -516,6 +518,168 @@ public sealed class WaterLookTests
         Assert.True(waves.Small.SpacingM < waves.Large.SpacingM && waves.Small.LengthM < waves.Large.LengthM);
         Assert.True(Waves("cloudy") < waves.Large.StartsAt, "small waves show no large crest");
         Assert.InRange(waves.LakeShare, 0.1, 1);
+
+        // A crest fits its place whichever way the wind turns it: the shader draws at most 68 percent of
+        // the place as length and 8 percent as thickness, and the data stays within that.
+        Assert.All(new[] { waves.Small, waves.Large }, l => Assert.True(l.LengthM <= l.SpacingM * 0.68 && l.ThicknessM <= l.SpacingM * 0.08));
+    }
+
+    [Fact]
+    public void TheWaterClockHoldsInAPauseAndWrapsWithoutAJump()
+    {
+        var period = Read<LookTerrain>("look", "terrain.json").WaterTimeWrapSeconds!.Value;
+        var clock = new WaterClock(period);
+        Assert.Equal((0.0, period), (clock.Seconds, clock.PeriodSeconds));
+        clock.Update(1.5);
+        clock.Update(0.25);
+        Assert.Equal(1.75, clock.Seconds, 12);
+
+        // A pause hands in 0 seconds: the water stands still. Broken frame times change nothing either.
+        foreach (var held in new[] { 0.0, -3.0, double.NaN, double.PositiveInfinity })
+        {
+            clock.Update(held);
+            Assert.Equal(1.75, clock.Seconds, 12);
+        }
+
+        // The cycles the shaders run (foam, glints, crest life, shimmer, lane wander, lane drift, dashes):
+        // each is rounded to whole rounds per period, a rate very near the one asked for.
+        double[] rates = [0.35, 0.095, 0.07, 0.7 / Math.Tau, 0.07 * 1.31, 0.7 / (1.8 * 60), 0.6 * 0.8 / 64];
+        Assert.All(rates, hz =>
+        {
+            var rounds = clock.Rounds(hz);
+            Assert.True(rounds >= 1 && rounds == Math.Floor(rounds), $"{hz} Hz: {rounds} rounds");
+            Assert.InRange((rounds / period) - hz, -0.5 / period, 0.5 / period);
+        });
+        Assert.Equal(0, clock.Rounds(0));
+        Assert.Equal(0, clock.Rounds(-1));
+
+        // Frame by frame across the wrap: the clock starts again, but the phase of every cycle moves on by
+        // its rate times the frame time - no jump, whatever the cycle.
+        var late = new WaterClock(period);
+        late.Update(period - 1.0);
+        var wrapped = false;
+        const double Frame = 1.0 / 60;
+        for (var frame = 0; frame < 240; frame++)
+        {
+            var before = rates.Select(late.Phase).ToArray();
+            var was = late.Seconds;
+            late.Update(Frame);
+            wrapped |= late.Seconds < was;
+            Assert.InRange(late.Seconds, 0, period - 1e-9);
+            for (var i = 0; i < rates.Length; i++)
+            {
+                var off = late.Phase(rates[i]) - before[i] - (late.Rounds(rates[i]) / period * Frame);
+                Assert.True(Math.Abs(off - Math.Round(off)) < 1e-9, $"{rates[i]} Hz jumps by {off} at {late.Seconds:0.000} s");
+                Assert.InRange(late.Phase(rates[i]), 0, 1);
+            }
+        }
+
+        Assert.True(wrapped && late.Seconds < 5, "the clock wrapped during the run");
+        Assert.Throws<ArgumentOutOfRangeException>(() => new WaterClock(0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new WaterClock(double.NaN));
+        Assert.Equal(WaterClock.DefaultPeriodSeconds, new WaterClock().PeriodSeconds);
+    }
+
+    [Fact]
+    public void TheCrestsDriftWithTheWindAndATurningWindNeverSlidesThem()
+    {
+        var waves = Read<LookTerrain>("look", "terrain.json").Waves!;
+        (double Spacing, double Speed)[] layers = [(waves.Small.SpacingM, waves.Small.SpeedMPerS), (waves.Large.SpacingM, waves.Large.SpeedMPerS)];
+        var drift = new WaveDrift(waves.TurnRealSeconds!.Value, layers[0], layers[1]);
+
+        // Before any wind the direction is a unit vector already (the shader never sees one without a length).
+        Assert.Equal(1, Math.Sqrt((drift.DirectionX * drift.DirectionX) + (drift.DirectionZ * drift.DirectionZ)), 12);
+        Assert.All(drift.Shifts, s => Assert.Equal((0.0, 0.0), s));
+
+        // The first wind is taken at once, of any length; two seconds of it push each layer its speed times two.
+        const double Frame = 1.0 / 60;
+        drift.Update(3, 0, 0);
+        Assert.Equal((1.0, 0.0), (drift.DirectionX, drift.DirectionZ));
+        for (var frame = 0; frame < 120; frame++)
+        {
+            drift.Update(3, 0, Frame);
+        }
+
+        for (var i = 0; i < layers.Length; i++)
+        {
+            Assert.Equal(layers[i].Speed * 2, drift.Shifts[i].X, 9);
+            Assert.Equal(0, drift.Shifts[i].Z, 9);
+        }
+
+        // A pause holds everything, even while the wind of the core turns.
+        var held = (drift.DirectionX, drift.DirectionZ, drift.Shifts[0], drift.Shifts[1]);
+        drift.Update(0, 1, 0);
+        drift.Update(0, 1, -1);
+        drift.Update(0, 1, double.NaN);
+        Assert.Equal(held, (drift.DirectionX, drift.DirectionZ, drift.Shifts[0], drift.Shifts[1]));
+
+        // The wind turns by a right angle: the direction follows in small steps and stays a unit vector,
+        // and every frame moves each layer by exactly its speed times the frame time - the path bends,
+        // nothing slides or jumps.
+        var largest = 0.0;
+        for (var frame = 0; frame < 60 * 60; frame++)
+        {
+            var (dx, dz, before) = (drift.DirectionX, drift.DirectionZ, drift.Shifts.ToArray());
+
+            // Now and then the wind has no direction at all (or a broken one): the last one is kept.
+            var (wx, wz) = (frame % 7) switch { 3 => (0.0, 0.0), 5 => (double.NaN, 1.0), _ => (0.0, 2.0) };
+            drift.Update(wx, wz, Frame);
+            Assert.Equal(1, Math.Sqrt((drift.DirectionX * drift.DirectionX) + (drift.DirectionZ * drift.DirectionZ)), 12);
+            largest = Math.Max(largest, Math.Acos(Math.Clamp((dx * drift.DirectionX) + (dz * drift.DirectionZ), -1, 1)));
+            for (var i = 0; i < layers.Length; i++)
+            {
+                var step = Math.Sqrt(Math.Pow(drift.Shifts[i].X - before[i].X, 2) + Math.Pow(drift.Shifts[i].Z - before[i].Z, 2));
+                Assert.Equal(layers[i].Speed * Frame, step, 9);
+            }
+        }
+
+        Assert.InRange(largest, 1e-6, Math.PI / 2 * Frame / waves.TurnRealSeconds.Value * 1.01);
+        Assert.Equal(0, drift.DirectionX, 3);
+        Assert.Equal(1, drift.DirectionZ, 3);
+
+        // A wind that turns right round is followed too (either way round), still in small steps.
+        drift.Update(0, -1, Frame);
+        Assert.True(drift.DirectionZ > 0.99, "no flip in one frame");
+
+        // The shift wraps after the places the shader's pattern repeats after: a whole number of repeats
+        // is taken off, so the picture is the same. Against the wind's sign too (never below zero).
+        Assert.Contains($"const float WAVE_PERIOD = {WaveDrift.PeriodCells}.0;", File.ReadAllText(Path.Combine(TestPaths.Root, "game", "shaders", "water_waves.gdshaderinc")), StringComparison.Ordinal);
+        foreach (var sign in new[] { 1.0, -1.0 })
+        {
+            var far = new WaveDrift(0, (2.0, 10.0));
+            var room = 2.0 * WaveDrift.PeriodCells;
+            var way = 0.0;
+            far.Update(sign, 0, 0);
+            for (var frame = 0; frame < 100; frame++)
+            {
+                far.Update(sign, 0, 0.5);
+                way += sign * 10.0 * 0.5;
+                Assert.InRange(far.Shifts[0].X, 0, room - 1e-9);
+                var repeats = (way - far.Shifts[0].X) / room;
+                Assert.Equal(Math.Round(repeats), repeats, 9);
+            }
+
+            Assert.NotEqual(way, far.Shifts[0].X);
+        }
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => new WaveDrift(1, (0.0, 1.0)));
+        Assert.Empty(new WaveDrift(0).Shifts);
+    }
+
+    [Fact]
+    public void NoWaterShaderMovesByTheEngineTimeAndTheGlobalsAreRegistered()
+    {
+        // TIME runs on in a pause and jumps at its rollover; the water moves by the water clock instead.
+        var shaders = Path.Combine(TestPaths.Root, "game", "shaders");
+        foreach (var file in new[] { "sea.gdshader", "island_water.gdshader", "stream.gdshader", "water_waves.gdshaderinc", "water_time.gdshaderinc" })
+        {
+            var code = string.Join('\n', File.ReadAllLines(Path.Combine(shaders, file)).Select(l => l.Contains("//", StringComparison.Ordinal) ? l[..l.IndexOf("//", StringComparison.Ordinal)] : l));
+            Assert.DoesNotMatch(@"\bTIME\b", code);
+        }
+
+        Assert.Contains("water_cycle", File.ReadAllText(Path.Combine(shaders, "sea.gdshader")), StringComparison.Ordinal);
+        var project = File.ReadAllText(Path.Combine(TestPaths.Root, "game", "project.godot"));
+        Assert.All(WaterGlobals, name => Assert.Contains(name + "={", project, StringComparison.Ordinal));
     }
 
     [Fact]

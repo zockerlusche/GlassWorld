@@ -80,6 +80,12 @@
     },
     "waves": {
       "$ref": "#/$defs/TerrainWaves"
+    },
+    "water_time_wrap_seconds": {
+      "description": "Period of the water clock in real seconds (W1724): the time flow lines, shimmer, foam and wave crests move by runs only while the game is not paused and starts again after this long; every cycle of the water shaders is rounded to a whole number of rounds per period, so the wrap does not show. Absent = 3600.",
+      "type": "number",
+      "minimum": 60,
+      "maximum": 86400
     }
   },
   "$defs": {
@@ -409,7 +415,7 @@
       }
     },
     "TerrainWaves": {
-      "description": "Wave crests on the sea and on lakes (W1724, game/shaders/water_waves.gdshaderinc): light arcs that travel with the wind. How many there are comes from the weather (content/look/weather.json, waves 0..1): none, a few small ones, many large ones. Absent = no crests.",
+      "description": "Wave crests on the sea and on lakes (W1724, game/shaders/water_waves.gdshaderinc): light bowed strokes that travel with the wind. How many there are comes from the weather (content/look/weather.json, waves 0..1): none, a few small ones, many large ones. Absent = no crests.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -443,11 +449,17 @@
           "type": "number",
           "minimum": 0,
           "maximum": 4
+        },
+        "turn_real_seconds": {
+          "description": "Real seconds over which the crests follow a turned wind: their strokes turn in place and their path bends, nothing slides or reshuffles. Absent = 4.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 600
         }
       }
     },
     "TerrainWaveLayer": {
-      "description": "One layer of wave crests on a fixed grid that travels with the wind; the weather only decides how many of its places carry a crest, so a change of weather never moves a crest.",
+      "description": "One layer of wave crests on a square grid that is fixed in the world and never turns; the wind only pushes the grid along (the game sums up direction times speed times time). The weather only decides how many of its places carry a crest, so neither a change of weather nor a turning wind ever moves a crest out of its place.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -461,19 +473,19 @@
       ],
       "properties": {
         "spacing_m": {
-          "description": "Distance between two rows of crests along the wind in metres.",
+          "description": "Size of one place of the crest grid in metres (the distance between two crests).",
           "type": "number",
           "exclusiveMinimum": 0,
           "maximum": 200
         },
         "length_m": {
-          "description": "Room of one crest across the wind in metres (a crest fills at most nine tenths of it).",
+          "description": "Longest crest in metres (at most two thirds of spacing_m is drawn, so a crest fits its place whichever way the wind turns it).",
           "type": "number",
           "exclusiveMinimum": 0,
           "maximum": 200
         },
         "thickness_m": {
-          "description": "Thickness of a crest line in metres (at most a fifth of spacing_m is drawn).",
+          "description": "Thickness of a crest stroke in metres (at most 8 percent of spacing_m is drawn).",
           "type": "number",
           "exclusiveMinimum": 0,
           "maximum": 20

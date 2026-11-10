@@ -1,7 +1,8 @@
 // Sea in the D355 look: soft colour bands by water depth (shallow, middle, deep), a light foam
 // line that breathes at the shore, a few slow glints and wave crests by the weather (W1724,
 // water_waves.gdshaderinc: none in calm weather, a few small ones, many large ones in a storm, and the
-// foam line breathes wider with them). Presentation only.
+// foam line breathes wider with them). Everything moves by the water clock (water_time.gdshaderinc), not
+// by TIME: it stands still in a pause and its wrap does not show. Presentation only.
 shader_type spatial;
 render_mode unshaded, cull_disabled, depth_draw_opaque;
 
@@ -46,7 +47,7 @@ void fragment() {
 	// Vertical depth is closer to what the eye reads in the top-down view.
 	water_depth *= 0.7;
 
-	float breathe = 0.5 + 0.5 * sin(TIME * wave_speed * 6.2831);
+	float breathe = 0.5 + 0.5 * sin(6.2831853 * water_cycle(wave_speed));
 	float waves_now = clamp(water_waves.x, 0.0, 1.0);
 	float foam_edge = foam_depth * (0.7 + 0.6 * breathe) * (1.0 + wave_shore_foam * waves_now);
 	vec3 color = deep_color.rgb;
@@ -58,13 +59,13 @@ void fragment() {
 	vec3 wp = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	vec2 cell = floor(wp.xz * 0.8);
 	float h = hash(cell);
-	float blink = smoothstep(0.92, 1.0, sin(TIME * 0.6 + h * 40.0));
+	float blink = smoothstep(0.92, 1.0, sin(6.2831853 * water_cycle(0.095) + h * 40.0));
 	vec2 local = fract(wp.xz * 0.8) - 0.5;
 	float dash = (1.0 - smoothstep(0.0, 0.06, abs(local.y))) * (1.0 - smoothstep(0.1, 0.3, abs(local.x)));
 	color = mix(color, vec3(1.0), dash * blink * glint_amount * step(0.7, h) * smoothstep(0.4, 1.2, water_depth));
 
 	// Wave crests by the weather, away from the foam at the shore.
-	float crest = wave_crests(wp.xz, TIME, 1.0) * smoothstep(0.25, 0.9, water_depth);
+	float crest = wave_crests(wp.xz, 1.0) * smoothstep(0.25, 0.9, water_depth);
 	color = mix(color, foam_color.rgb, crest * wave_strength);
 
 	if (use_shore_line) {

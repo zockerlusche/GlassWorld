@@ -13,8 +13,10 @@ namespace GlassWorld.Game.World;
 /// the world clock as shader parameters (the seasonal colours of ground and plants, the snow cover), the
 /// wind of the core as plant sway, falling leaves near the camera, and the weather of the snapshot: rain
 /// and snow near the camera, the colours and snow cover it lays over the season's, stronger sway in a
-/// storm, the waves on sea and lakes (W1724: <c>waves</c> of the weather look, running with the wind, as
-/// the global parameter <c>water_waves</c>), and through <see cref="Shade"/> the light, clouds and fog of the day (blended softly by
+/// storm, the waves on sea and lakes (W1724: <c>waves</c> of the weather look as the global parameter
+/// <c>water_waves</c>; the crests drift with the wind by a shift summed up here, <see cref="WaveDrift"/>,
+/// global <c>water_wave_shift</c>), the clock all water moves by (<see cref="WaterClock"/>, global
+/// <c>water_time</c>: it stands still in a pause and wraps without a jump), and through <see cref="Shade"/> the light, clouds and fog of the day (blended softly by
 /// <see cref="WeatherBlender"/>; the storm glows softly instead of flashing, <see cref="StormGlow"/>).
 /// Nothing is rebuilt: the meshes carry the shares of
 /// the seasonal colours (<see cref="SeasonSlots"/>) and the warm comic shader reads global parameters,
@@ -36,6 +38,8 @@ public partial class NatureLook : Node3D
     private (SeasonMix? Season, WeatherMix? Weather, EpochMix? Epoch) _laid;
     private Vector4 _windShown = new(float.NaN, 0, 0, 0);
     private Vector4 _wavesShown = new(float.NaN, 0, 0, 0);
+    private Vector4 _shiftShown = new(float.NaN, 0, 0, 0);
+    private Vector2 _timeShown = new(float.NaN, 0);
     private Color _light = Colors.White;
 
     /// <summary>The nature data (content/look/nature.json).</summary>
@@ -49,6 +53,12 @@ public partial class NatureLook : Node3D
 
     /// <summary>The shown wind.</summary>
     public WindSway Wind { get; private set; } = null!;
+
+    /// <summary>The clock the water shaders move by (real time, held in a pause).</summary>
+    public WaterClock Water { get; private set; } = null!;
+
+    /// <summary>Where the wave crests have drifted to with the wind.</summary>
+    public WaveDrift Waves { get; private set; } = null!;
 
     /// <summary>The weather look data (content/look/weather.json).</summary>
     public LookWeather WeatherData { get; private set; } = null!;
@@ -66,6 +76,7 @@ public partial class NatureLook : Node3D
         var data = ContractSerializer.Deserialize<LookNature>(File.ReadAllText(Path.Combine(contentDirectory, "look", "nature.json")));
         var weather = ContractSerializer.Deserialize<LookWeather>(File.ReadAllText(Path.Combine(contentDirectory, "look", "weather.json")));
         var epochs = ContractSerializer.Deserialize<LookEpochs>(File.ReadAllText(Path.Combine(contentDirectory, "look", "epochs.json")));
+        var terrain = ContractSerializer.Deserialize<LookTerrain>(File.ReadAllText(Path.Combine(contentDirectory, "look", "terrain.json")));
 
         // One tint slot per colour a season or an epoch changes; the meshes of ground and objects are built with the same slots.
         var slots = SeasonSlots.From(palette, epochs);
@@ -77,6 +88,12 @@ public partial class NatureLook : Node3D
             Season = new SeasonBlender(palette, slots),
             Epoch = new EpochBlender(epochs, slots),
             Wind = new WindSway(data.Wind),
+            Water = new WaterClock(terrain.WaterTimeWrapSeconds ?? WaterClock.DefaultPeriodSeconds),
+
+            // The two crest layers in the order of the shader's shift parameter: small, large.
+            Waves = terrain.Waves is { } crests
+                ? new WaveDrift(crests.TurnRealSeconds ?? 4, (crests.Small.SpacingM, crests.Small.SpeedMPerS), (crests.Large.SpacingM, crests.Large.SpeedMPerS))
+                : new WaveDrift(0),
             WeatherData = weather,
             Weather = new WeatherBlender(weather, slots),
             _glow = new StormGlow(weather.Glow),
@@ -128,6 +145,8 @@ public partial class NatureLook : Node3D
         }
 
         Wind.Update(weather?.Wind, realSeconds);
+        Water.Update(realSeconds);
+        Waves.Update(Wind.DirectionX, Wind.DirectionZ, realSeconds);
         ApplyWind();
         Fall(focus);
     }
@@ -181,6 +200,8 @@ public partial class NatureLook : Node3D
         RenderingServer.GlobalShaderParameterSet("nature_snow", new Vector4(1, 1, 1, 0));
         RenderingServer.GlobalShaderParameterSet("nature_wind", new Vector4(0, 1, 0, 0));
         RenderingServer.GlobalShaderParameterSet("water_waves", new Vector4(0, 0, 1, 0));
+        RenderingServer.GlobalShaderParameterSet("water_wave_shift", Vector4.Zero);
+        RenderingServer.GlobalShaderParameterSet("water_time", new Vector2(0, (float)WaterClock.DefaultPeriodSeconds));
     }
 
     private Rgb PaletteColor(string id) =>
@@ -224,12 +245,30 @@ public partial class NatureLook : Node3D
         }
 
         // Waves on sea and lakes (W1724): how many by the weather shown now (it blends softly with the
-        // weather), running with the wind.
-        var waves = new Vector4((float)Math.Clamp(Weather.Shown.Waves, 0, 1), (float)Wind.DirectionX, (float)Wind.DirectionZ, 0);
+        // weather); the strokes lie across the eased wind direction (never without a length), and the
+        // crests are where the wind has pushed their grids so far.
+        Waves.Update(Wind.DirectionX, Wind.DirectionZ, 0);
+        var waves = new Vector4((float)Math.Clamp(Weather.Shown.Waves, 0, 1), (float)Waves.DirectionX, (float)Waves.DirectionZ, 0);
         if (waves != _wavesShown)
         {
             _wavesShown = waves;
             RenderingServer.GlobalShaderParameterSet("water_waves", waves);
+        }
+
+        var (small, large) = Waves.Shifts.Count >= 2 ? (Waves.Shifts[0], Waves.Shifts[1]) : default;
+        var shift = new Vector4((float)small.X, (float)small.Z, (float)large.X, (float)large.Z);
+        if (shift != _shiftShown)
+        {
+            _shiftShown = shift;
+            RenderingServer.GlobalShaderParameterSet("water_wave_shift", shift);
+        }
+
+        // The clock of all water: real time, held in a pause, wrapped at its period.
+        var time = new Vector2((float)Water.Seconds, (float)Water.PeriodSeconds);
+        if (time != _timeShown)
+        {
+            _timeShown = time;
+            RenderingServer.GlobalShaderParameterSet("water_time", time);
         }
     }
 

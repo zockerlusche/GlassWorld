@@ -305,7 +305,7 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
-    /// Wave crests on the sea and on lakes (W1724, game/shaders/water_waves.gdshaderinc): light arcs that travel with the wind. How many there are comes from the weather (content/look/weather.json, waves 0..1): none, a few small ones, many large ones. Absent = no crests.
+    /// Wave crests on the sea and on lakes (W1724, game/shaders/water_waves.gdshaderinc): light bowed strokes that travel with the wind. How many there are comes from the weather (content/look/weather.json, waves 0..1): none, a few small ones, many large ones. Absent = no crests.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class TerrainWaves
@@ -335,29 +335,36 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("shore_foam_gain")]
         public double ShoreFoamGain { get; set; } = default!;
 
+        /// <summary>
+        /// Real seconds over which the crests follow a turned wind: their strokes turn in place and their path bends, nothing slides or reshuffles. Absent = 4.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("turn_real_seconds")]
+        public double? TurnRealSeconds { get; set; } = default!;
+
     }
 
     /// <summary>
-    /// One layer of wave crests on a fixed grid that travels with the wind; the weather only decides how many of its places carry a crest, so a change of weather never moves a crest.
+    /// One layer of wave crests on a square grid that is fixed in the world and never turns; the wind only pushes the grid along (the game sums up direction times speed times time). The weather only decides how many of its places carry a crest, so neither a change of weather nor a turning wind ever moves a crest out of its place.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class TerrainWaveLayer
     {
 
         /// <summary>
-        /// Distance between two rows of crests along the wind in metres.
+        /// Size of one place of the crest grid in metres (the distance between two crests).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("spacing_m")]
         public double SpacingM { get; set; } = default!;
 
         /// <summary>
-        /// Room of one crest across the wind in metres (a crest fills at most nine tenths of it).
+        /// Longest crest in metres (at most two thirds of spacing_m is drawn, so a crest fits its place whichever way the wind turns it).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("length_m")]
         public double LengthM { get; set; } = default!;
 
         /// <summary>
-        /// Thickness of a crest line in metres (at most a fifth of spacing_m is drawn).
+        /// Thickness of a crest stroke in metres (at most 8 percent of spacing_m is drawn).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("thickness_m")]
         public double ThicknessM { get; set; } = default!;
@@ -460,6 +467,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("waves")]
         public TerrainWaves? Waves { get; set; } = default!;
+
+        /// <summary>
+        /// Period of the water clock in real seconds (W1724): the time flow lines, shimmer, foam and wave crests move by runs only while the game is not paused and starts again after this long; every cycle of the water shaders is rounded to a whole number of rounds per period, so the wrap does not show. Absent = 3600.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("water_time_wrap_seconds")]
+        public double? WaterTimeWrapSeconds { get; set; } = default!;
 
     }
 }

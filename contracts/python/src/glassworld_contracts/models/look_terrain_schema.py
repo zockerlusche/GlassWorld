@@ -262,19 +262,19 @@ class TerrainWaveLayer(BaseModel):
     )
     spacing_m: float = Field(
         ...,
-        description='Distance between two rows of crests along the wind in metres.',
+        description='Size of one place of the crest grid in metres (the distance between two crests).',
         gt=0.0,
         le=200.0,
     )
     length_m: float = Field(
         ...,
-        description='Room of one crest across the wind in metres (a crest fills at most nine tenths of it).',
+        description='Longest crest in metres (at most two thirds of spacing_m is drawn, so a crest fits its place whichever way the wind turns it).',
         gt=0.0,
         le=200.0,
     )
     thickness_m: float = Field(
         ...,
-        description='Thickness of a crest line in metres (at most a fifth of spacing_m is drawn).',
+        description='Thickness of a crest stroke in metres (at most 8 percent of spacing_m is drawn).',
         gt=0.0,
         le=20.0,
     )
@@ -352,6 +352,12 @@ class TerrainWaves(BaseModel):
         ge=0.0,
         le=4.0,
     )
+    turn_real_seconds: float | None = Field(
+        None,
+        description='Real seconds over which the crests follow a turned wind: their strokes turn in place and their path bends, nothing slides or reshuffles. Absent = 4.',
+        ge=0.0,
+        le=600.0,
+    )
 
 
 class LookTerrain(BaseModel):
@@ -410,3 +416,9 @@ class LookTerrain(BaseModel):
     water_shader: TerrainWaterShader
     detail: TerrainDetail
     waves: TerrainWaves | None = None
+    water_time_wrap_seconds: float | None = Field(
+        None,
+        description='Period of the water clock in real seconds (W1724): the time flow lines, shimmer, foam and wave crests move by runs only while the game is not paused and starts again after this long; every cycle of the water shaders is rounded to a whole number of rounds per period, so the wrap does not show. Absent = 3600.',
+        ge=60.0,
+        le=86400.0,
+    )

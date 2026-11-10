@@ -147,7 +147,8 @@ public partial class IslandView : Node3D
                     throw new InvalidDataException($"content/look/terrain.json waves: full_at ({layer.FullAt}) must lie above starts_at ({layer.StartsAt}).");
                 }
 
-                material.SetShaderParameter(name, new Vector4((float)layer.SpacingM, (float)layer.LengthM, (float)layer.ThicknessM, (float)layer.SpeedMPerS));
+                // The speed is not the shader's business: the game sums the drift up (WaveDrift, NatureLook).
+                material.SetShaderParameter(name, new Vector3((float)layer.SpacingM, (float)layer.LengthM, (float)layer.ThicknessM));
                 material.SetShaderParameter(name + "_range", new Vector3((float)layer.Density, (float)layer.StartsAt, (float)layer.FullAt));
             }
         }

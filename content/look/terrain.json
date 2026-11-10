@@ -80,8 +80,8 @@
   },
   "waves": {
     "small": {
-      "spacing_m": 2.6,
-      "length_m": 3.4,
+      "spacing_m": 3.2,
+      "length_m": 2.1,
       "thickness_m": 0.12,
       "speed_m_per_s": 0.45,
       "density": 0.55,
@@ -89,8 +89,8 @@
       "full_at": 0.45
     },
     "large": {
-      "spacing_m": 6.0,
-      "length_m": 9.0,
+      "spacing_m": 8.0,
+      "length_m": 5.4,
       "thickness_m": 0.3,
       "speed_m_per_s": 0.9,
       "density": 0.6,
@@ -99,8 +99,10 @@
     },
     "strength": 0.7,
     "lake_share": 0.6,
-    "shore_foam_gain": 1.0
+    "shore_foam_gain": 1.0,
+    "turn_real_seconds": 4.0
   },
+  "water_time_wrap_seconds": 3600.0,
   "detail": {
     "levels": [
       {
