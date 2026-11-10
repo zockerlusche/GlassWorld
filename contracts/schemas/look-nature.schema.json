@@ -10,7 +10,8 @@
     "wind",
     "snow",
     "grass",
-    "leaf_fall"
+    "leaf_fall",
+    "cover"
   ],
   "properties": {
     "contract_version": {
@@ -27,9 +28,108 @@
     },
     "leaf_fall": {
       "$ref": "#/$defs/FallParticles"
+    },
+    "cover": {
+      "$ref": "#/$defs/NatureCover"
     }
   },
   "$defs": {
+    "NatureCover": {
+      "description": "The cloud cover over land the player has not seen yet (B2 R25): soft, light clouds, never black. How long newly seen land takes to clear is exploration.reveal_real_seconds of the world preset.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "color",
+        "shade_color",
+        "puff_m",
+        "drift_m_per_s",
+        "softness_cells",
+        "edge_softness",
+        "edge_puff",
+        "band",
+        "band_softness",
+        "opacity",
+        "daylight_share",
+        "sea_margin_cells",
+        "cells_per_frame"
+      ],
+      "properties": {
+        "color": {
+          "description": "Palette colour id of the lit parts of the clouds.",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "shade_color": {
+          "description": "Palette colour id of the shaded parts of the clouds (light and friendly too, never dark).",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "puff_m": {
+          "description": "Size of one cloud billow on the ground (metres).",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 500
+        },
+        "drift_m_per_s": {
+          "description": "How fast the cloud pattern drifts with the wind direction of this file (metres per real second; calm world: keep it slow). The cover itself never moves, only its pattern.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 5
+        },
+        "softness_cells": {
+          "description": "Blur of the edge between seen and unseen land (cells).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 16
+        },
+        "edge_softness": {
+          "description": "How gently the cloud thins out at its edge (share of the blurred edge, 0.01 hard .. 0.5 softest).",
+          "type": "number",
+          "minimum": 0.01,
+          "maximum": 0.5
+        },
+        "edge_puff": {
+          "description": "How far the billows push the edge in and out (0 = a smooth edge). Fully seen land always stays clear, unseen land always covered.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "band": {
+          "description": "Share of the cloud pattern drawn in the shade colour (0..1).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "band_softness": {
+          "description": "Softness of the step between shade and lit colour (0 = a hard comic step).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.5
+        },
+        "opacity": {
+          "description": "How much the cover hides (1 = everything; R25 wants unseen land hidden).",
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 1
+        },
+        "daylight_share": {
+          "description": "How far the clouds follow the tint of the day phase (water_light of content/look/daylight.json): 0 = always their own colour, 1 = fully tinted, so they do not glow at night.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "sea_margin_cells": {
+          "description": "Open sea further than this from any land is never covered (cells): the cover is a bank over the island and its coast.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 64
+        },
+        "cells_per_frame": {
+          "description": "At most this many newly seen cells start clearing per frame; the rest wait their turn.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        }
+      }
+    },
     "NatureWind": {
       "description": "How the wind strength of the core (0..1) moves plants. The strength is smoothed in real time, so fast forward stays calm; a visual sways by its sway_m (content/look/objects.json).",
       "type": "object",
