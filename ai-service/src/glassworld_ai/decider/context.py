@@ -108,7 +108,7 @@ def build_values(
 
         def nickname(label: str) -> str | None:
             """v5 (R11): a feature nickname in the player's language (vocab.nickname.<id>)."""
-            if template.version < 5:
+            if not b9_parts(template):
                 return None
             found = texts.get(locale, f"vocab.nickname.{label}") if texts is not None else None
             return found or _humanize(label)
@@ -120,11 +120,19 @@ def build_values(
         )
     if template.version >= 3:
         values["body"] = _body(request, settings)
-        values["environment"] = _environment(request, vocab, air=True)
+        values["environment"] = _environment(
+            request,
+            vocab,
+            air=True,
+            # v6 (B2594): only prompts with words for it say how far one sees.
+            visibility_words=_bands(settings, "visibility_words")
+            if "visibility_words" in settings
+            else None,
+        )
     if template.version >= 4:  # W1698: the own name, so it can introduce itself
         own = _proper(request.inhabitant.name)
         values["own_name"] = f'"{own}"' if own else "(none yet)"
-    if template.version >= 5:
+    if b9_parts(template):
         values["life"] = _life(request, settings)
         values["culture"] = _culture(request, settings, locale)
     # Fit the objects into what is left of the character budget; option targets always stay.
@@ -256,10 +264,30 @@ def _body(request: DecisionRequest, settings: dict[str, Any]) -> str:
     return "\n".join(lines) or "- (nothing particular to notice)"
 
 
-def _environment(request: DecisionRequest, vocab: Vocabulary, air: bool = False) -> str:
+def b9_parts(template: PromptTemplate) -> bool:
+    """Whether the prompt has the B9 parts (life, family, customs, names, gossip): the prompt's
+    setting ``b9_parts``, else from v5 on. v6 builds on v4 and switches them off."""
+    value: object = template.settings.get("b9_parts", template.version >= 5)
+    return bool(value)
+
+
+def _environment(
+    request: DecisionRequest,
+    vocab: Vocabulary,
+    air: bool = False,
+    visibility_words: list[tuple[float, str]] | None = None,
+) -> str:
     env = request.environment
     weather = ", ".join(_vocab_line(vocab, "weather", _id(w)) for w in env.weather)
     time_of_day = _vocab_line(vocab, "time_of_day", _id(env.time_of_day))
+    # B2594 (v6): how far it sees now, only where the prompt has words for it.
+    visibility = getattr(env, "visibility_m", None)
+    sight: list[str] = []
+    if visibility_words and visibility is not None:
+        metres = float(visibility)
+        sight.append(
+            f"- How far you can see: {_word(visibility_words, metres)} (about {metres:.0f} m)"
+        )
     return "\n".join(
         [
             f"- Time of day: {time_of_day}",
@@ -267,6 +295,7 @@ def _environment(request: DecisionRequest, vocab: Vocabulary, air: bool = False)
             if air  # v3: the felt temperature is under "Your body" (review GW1 #116)
             else f"- It feels like {env.temperature_c:.1f} degrees Celsius to you.",
             f"- Weather: {weather}",
+            *sight,
         ]
     )
 

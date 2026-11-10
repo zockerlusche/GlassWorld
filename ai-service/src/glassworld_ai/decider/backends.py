@@ -13,7 +13,7 @@ from typing import ClassVar, Protocol
 import httpx
 
 from glassworld_ai.calllog import CallLog, CallRecord
-from glassworld_ai.decider.context import build_values
+from glassworld_ai.decider.context import b9_parts, build_values
 from glassworld_ai.decider.mock import MockWeights, pick
 from glassworld_ai.decider.output import (
     InvalidModelOutputError,
@@ -214,7 +214,7 @@ class OllamaDecider:
         )
         option_ids = [_plain(o.option_id) for o in request.options]
         schema = output_schema(
-            option_ids, self._vocab.ids("expression"), b9=self._template.version >= 5
+            option_ids, self._vocab.ids("expression"), b9=b9_parts(self._template)
         )
         messages = [ChatMessage("system", rendered.system), ChatMessage("user", rendered.user)]
         attempts = 1 + self._settings.max_retries
