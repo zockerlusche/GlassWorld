@@ -13,6 +13,93 @@ namespace GlassWorld.Contracts
     #pragma warning disable // Disable all warnings
 
     /// <summary>
+    /// The cloud cover over land the player has not seen yet (B2 R25): soft, light clouds, never black. How long newly seen land takes to clear is exploration.reveal_real_seconds of the world preset.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class NatureCover
+    {
+
+        /// <summary>
+        /// Palette colour id of the lit parts of the clouds.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("color")]
+        public string Color { get; set; } = default!;
+
+        /// <summary>
+        /// Palette colour id of the shaded parts of the clouds (light and friendly too, never dark).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("shade_color")]
+        public string ShadeColor { get; set; } = default!;
+
+        /// <summary>
+        /// Size of one cloud billow on the ground (metres).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("puff_m")]
+        public double PuffM { get; set; } = default!;
+
+        /// <summary>
+        /// How fast the cloud pattern drifts with the wind direction of this file (metres per real second; calm world: keep it slow). The cover itself never moves, only its pattern.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("drift_m_per_s")]
+        public double DriftMPerS { get; set; } = default!;
+
+        /// <summary>
+        /// Blur of the edge between seen and unseen land (cells).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("softness_cells")]
+        public double SoftnessCells { get; set; } = default!;
+
+        /// <summary>
+        /// How gently the cloud thins out at its edge (share of the blurred edge, 0.01 hard .. 0.5 softest).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("edge_softness")]
+        public double EdgeSoftness { get; set; } = default!;
+
+        /// <summary>
+        /// How far the billows push the edge in and out (0 = a smooth edge). Fully seen land always stays clear, unseen land always covered.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("edge_puff")]
+        public double EdgePuff { get; set; } = default!;
+
+        /// <summary>
+        /// Share of the cloud pattern drawn in the shade colour (0..1).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("band")]
+        public double Band { get; set; } = default!;
+
+        /// <summary>
+        /// Softness of the step between shade and lit colour (0 = a hard comic step).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("band_softness")]
+        public double BandSoftness { get; set; } = default!;
+
+        /// <summary>
+        /// How much the cover hides (1 = everything; R25 wants unseen land hidden).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("opacity")]
+        public double Opacity { get; set; } = default!;
+
+        /// <summary>
+        /// How far the clouds follow the tint of the day phase (water_light of content/look/daylight.json): 0 = always their own colour, 1 = fully tinted, so they do not glow at night.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("daylight_share")]
+        public double DaylightShare { get; set; } = default!;
+
+        /// <summary>
+        /// Open sea further than this from any land is never covered (cells): the cover is a bank over the island and its coast.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("sea_margin_cells")]
+        public int SeaMarginCells { get; set; } = default!;
+
+        /// <summary>
+        /// At most this many newly seen cells start clearing per frame; the rest wait their turn.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("cells_per_frame")]
+        public int CellsPerFrame { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// How the wind strength of the core (0..1) moves plants. The strength is smoothed in real time, so fast forward stays calm; a visual sways by its sway_m (content/look/objects.json).
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -225,6 +312,9 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("leaf_fall")]
         public FallParticles LeafFall { get; set; } = new FallParticles();
+
+        [System.Text.Json.Serialization.JsonPropertyName("cover")]
+        public NatureCover Cover { get; set; } = new NatureCover();
 
     }
 }
