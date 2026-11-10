@@ -49,20 +49,27 @@ public partial class ObjectsView : Node3D
         _layers.TryGetValue(visualId, out var layer) ? (layer.Multimesh.Mesh, layer.MaterialOverride) : null;
 
     /// <summary>Creates the view: one mesh per visual in palette colours, the comic shader and the ink outline.</summary>
-    public static ObjectsView Create(LookObjects data, LookPalette palette, Func<double, double, double> ground, IReadOnlyList<WorldObject>? decor = null)
+    /// <param name="data">The object looks.</param>
+    /// <param name="palette">The palette the meshes are built with.</param>
+    /// <param name="ground">Ground height at a world position.</param>
+    /// <param name="decor">Decorative plants drawn with the objects.</param>
+    /// <param name="tintSlots">The tint slots of the nature look (seasons and look epochs), so meshes and shader parameters agree; null = the palette's seasons only.</param>
+    /// <param name="streamSources">Where the stream bands of the island start at a spring (W1724): an object the data names for it is drawn there as a spring; null = none.</param>
+    public static ObjectsView Create(LookObjects data, LookPalette palette, Func<double, double, double> ground, IReadOnlyList<WorldObject>? decor = null, SeasonSlots? tintSlots = null, IEnumerable<StreamSource>? streamSources = null)
     {
         ArgumentNullException.ThrowIfNull(data);
         ArgumentNullException.ThrowIfNull(palette);
         ArgumentNullException.ThrowIfNull(ground);
         var colors = palette.Colors.ToDictionary(c => c.Id, c => new Color(c.Color), StringComparer.Ordinal);
-        var slots = SeasonSlots.From(palette);
+        var slots = tintSlots ?? SeasonSlots.From(palette);
         var view = new ObjectsView { Name = "Objects", _looks = new ObjectLooks(data, colors.Keys.ToHashSet(StringComparer.Ordinal)), _ground = ground, _decor = decor ?? [] };
+        view._looks.UseStreamSources(streamSources ?? []);
         foreach (var look in view._looks.Visuals.Where(v => v.Shape != ObjectLookShape.None))
         {
-            Color Weights(int role)
+            (Color First, Color More) Weights(int role)
             {
                 var w = slots.WeightsOf(look.Color(role));
-                return new Color(w.A, w.B, w.C, w.D);
+                return (new Color(w.A, w.B, w.C, w.D), new Color(w.E, w.F, w.G, w.H));
             }
 
             var mesh = ObjectShapes.Build(look.Shape, role => colors[look.Color(role)].SrgbToLinear(), Weights);

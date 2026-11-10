@@ -5,23 +5,28 @@ using GlassWorld.Simulation.Map;
 namespace GlassWorld.Presentation.World;
 
 /// <summary>
-/// Shares of the seasonal palette colours in a colour (B2-5 R24), one per tint slot (<see cref="SeasonSlots"/>):
+/// Shares of the movable palette colours in a colour (B2-5 R24, R16), one per tint slot (<see cref="SeasonSlots"/>):
 /// 1 where the colour is that palette colour, a part where it is blended with others. They follow every
-/// blend of the colour, so the shader can move the seasonal part of a vertex colour without a mesh rebuild.
+/// blend of the colour, so the shader can move that part of a vertex colour (to the season, the weather,
+/// the look epoch) without a mesh rebuild. Eight slots: A–D travel in the vertex attribute CUSTOM0, E–H in CUSTOM1.
 /// </summary>
-public readonly record struct TintWeights(float A, float B, float C, float D)
+public readonly record struct TintWeights(float A, float B, float C, float D, float E = 0, float F = 0, float G = 0, float H = 0)
 {
-    /// <summary>The weights with 1 in one slot (0..3) and 0 in the others.</summary>
-    public static TintWeights Slot(int slot) => new(slot == 0 ? 1 : 0, slot == 1 ? 1 : 0, slot == 2 ? 1 : 0, slot == 3 ? 1 : 0);
+    /// <summary>The weights with 1 in one slot (0..7) and 0 in the others.</summary>
+    public static TintWeights Slot(int slot) =>
+        new(slot == 0 ? 1 : 0, slot == 1 ? 1 : 0, slot == 2 ? 1 : 0, slot == 3 ? 1 : 0, slot == 4 ? 1 : 0, slot == 5 ? 1 : 0, slot == 6 ? 1 : 0, slot == 7 ? 1 : 0);
 
-    /// <summary>Weight of a slot (0..3).</summary>
-    public float this[int slot] => slot switch { 0 => A, 1 => B, 2 => C, _ => D };
+    /// <summary>Weight of a slot (0..7).</summary>
+    public float this[int slot] => slot switch { 0 => A, 1 => B, 2 => C, 3 => D, 4 => E, 5 => F, 6 => G, _ => H };
 
     /// <summary>The weights times a factor.</summary>
-    public TintWeights Times(float f) => new(A * f, B * f, C * f, D * f);
+    public TintWeights Times(float f) => new(A * f, B * f, C * f, D * f, E * f, F * f, G * f, H * f);
 
     /// <summary>The sum of two weights.</summary>
-    public TintWeights Plus(TintWeights other) => new(A + other.A, B + other.B, C + other.C, D + other.D);
+    public TintWeights Plus(TintWeights other) => new(A + other.A, B + other.B, C + other.C, D + other.D, E + other.E, F + other.F, G + other.G, H + other.H);
+
+    /// <summary>The sum of all weights (0 for a colour nothing moves).</summary>
+    public float Sum => A + B + C + D + E + F + G + H;
 }
 
 /// <summary>A colour with components 0..1 and the shares of the seasonal palette colours in it.</summary>
@@ -86,6 +91,12 @@ public readonly record struct Rgb(float R, float G, float B)
 /// <param name="StreamSourceWidthShare">Width of a stream at its source as a share of its full width.</param>
 /// <param name="CliffBiomes">Per biome index of the map: whether its cells form rock walls where they stand at least <paramref name="CliffDrop"/> above a neighbour (null = every biome).</param>
 /// <param name="Rock">Natural rock colours (TL #19984), or null for plain colours.</param>
+/// <param name="StreamRelaxPasses">Most smoothing passes over a stream's centre line before the corner cutting (0 = none, W1724).</param>
+/// <param name="StreamTurnGoalDegPerM">Turn per metre at which the relaxing stops (0 = every pass is used).</param>
+/// <param name="StreamCellToleranceM">How far the smoothed centre line may leave the stream's own cells (metres).</param>
+/// <param name="StreamMaxShiftM">How far the relaxing may move a point of the centre line from where the cells put it (metres).</param>
+/// <param name="StreamCoverM">Every cell of a stream keeps the relaxed line within this distance of its centre (metres).</param>
+/// <param name="SwampAsGround">Whether swamp water is drawn as wet ground that blends into its surroundings instead of as a water plate (W1724).</param>
 public sealed record TerrainLook(
     IReadOnlyList<Rgb> BiomeColors,
     Rgb Cliff,
@@ -107,16 +118,27 @@ public sealed record TerrainLook(
     IReadOnlyList<bool>? CliffBiomes = null,
     float StreamSourceTaperM = 0,
     float StreamSourceWidthShare = 1,
-    RockLook? Rock = null)
+    RockLook? Rock = null,
+    int StreamRelaxPasses = 0,
+    float StreamTurnGoalDegPerM = 0,
+    float StreamCellToleranceM = 0.25f,
+    float StreamMaxShiftM = 0.5f,
+    float StreamCoverM = 1.2f,
+    bool SwampAsGround = false)
 {
     /// <summary>Resolves the look data against the palette, the map's biome order and the preset.</summary>
-    public static TerrainLook From(LookTerrain terrain, LookPalette palette, WorldMap map, WorldPreset preset)
+    /// <param name="terrain">The terrain look data.</param>
+    /// <param name="palette">The palette the meshes are built with.</param>
+    /// <param name="map">The base grid.</param>
+    /// <param name="preset">The preset of the island.</param>
+    /// <param name="epochs">The look epochs, whose colours get tint slots too (B2-5 R16); null = seasons only.</param>
+    public static TerrainLook From(LookTerrain terrain, LookPalette palette, WorldMap map, WorldPreset preset, LookEpochs? epochs = null)
     {
         ArgumentNullException.ThrowIfNull(terrain);
         ArgumentNullException.ThrowIfNull(palette);
         ArgumentNullException.ThrowIfNull(map);
         ArgumentNullException.ThrowIfNull(preset);
-        var slots = SeasonSlots.From(palette);
+        var slots = SeasonSlots.From(palette, epochs);
         var colors = palette.Colors.ToDictionary(c => c.Id, c => slots.Tinted(c.Id, Rgb.Parse(c.Color)), StringComparer.Ordinal);
         Rgb Color(string id) => colors.TryGetValue(id, out var c) ? c : throw new InvalidDataException($"Terrain look names unknown palette colour '{id}'.");
         var byBiome = terrain.BiomeColors.ToDictionary(b => b.Biome, b => Color(b.Color), StringComparer.Ordinal);
@@ -162,8 +184,17 @@ public sealed record TerrainLook(
             [.. map.BiomeIds.Select(id => terrain.Cliffs.Biomes.Contains(id, StringComparer.Ordinal))],
             (float)terrain.Water.StreamSourceTaperM,
             (float)terrain.Water.StreamSourceWidthShare,
-            terrain.Rock is { } rock ? new RockLook(rock.VariationPermille / 1000f, rock.VariationCells, rock.WallFootShadePermille / 1000f, rock.ScreePermille / 1000f) : null);
+            terrain.Rock is { } rock ? new RockLook(rock.VariationPermille / 1000f, rock.VariationCells, rock.WallFootShadePermille / 1000f, rock.ScreePermille / 1000f) : null,
+            terrain.Water.StreamRelaxPasses ?? 0,
+            (float)(terrain.Water.StreamTurnGoalDegPerM ?? 0),
+            (float)(terrain.Water.StreamCellToleranceM ?? 0.25),
+            (float)(terrain.Water.StreamMaxShiftM ?? 0.5),
+            (float)(terrain.Water.StreamCoverM ?? 1.2),
+            terrain.Water.SwampAsGround ?? false);
     }
+
+    /// <summary>Whether a cell holds swamp water that is drawn as wet ground (<see cref="SwampAsGround"/>): still fresh water no deeper than the swamp depth.</summary>
+    public bool IsSwampGround(MapCell cell) => SwampAsGround && cell is { Water: WaterKind.Fresh, Flow: < 0 } && cell.WaterDepth <= SwampMaxUnits;
 }
 
 /// <summary>Natural rock colours (TL #19984), resolved from the look data.</summary>
@@ -219,11 +250,17 @@ public sealed class MeshData
     /// <summary>Vertex colours r, g, b.</summary>
     public List<float> Colors { get; } = [];
 
-    /// <summary>Per vertex the shares of the seasonal palette colours (four tint slots, see <see cref="TintWeights"/>).</summary>
+    /// <summary>Per vertex the shares of the movable palette colours (<see cref="SeasonSlots.Max"/> tint slots, see <see cref="TintWeights"/>).</summary>
     public List<float> Tints { get; } = [];
 
     /// <summary>Per vertex flow direction x, z for water (0, 0 for still water and ground).</summary>
     public List<float> Flow { get; } = [];
+
+    /// <summary>
+    /// Only for stream bands (empty otherwise): per vertex its place on the band, metres along the centre
+    /// line from the head and the position across it (1 at one edge, 0 on the centre line, -1 at the other).
+    /// </summary>
+    public List<float> Band { get; } = [];
 
     /// <summary>Number of vertices.</summary>
     public int VertexCount => Positions.Count / 3;
@@ -254,7 +291,7 @@ public sealed class MeshData
             Positions.AddRange([x, y, z]);
             Normals.AddRange([nx, ny, nz]);
             Colors.AddRange([color.R, color.G, color.B]);
-            Tints.AddRange([color.Tint.A, color.Tint.B, color.Tint.C, color.Tint.D]);
+            Tints.AddRange([color.Tint.A, color.Tint.B, color.Tint.C, color.Tint.D, color.Tint.E, color.Tint.F, color.Tint.G, color.Tint.H]);
             Flow.AddRange([flow.X, flow.Z]);
         }
     }
@@ -751,7 +788,9 @@ public static partial class TerrainMesher
     /// The water surfaces of one chunk (sea, lakes, swamp), optionally of one kind only. The sea is flat
     /// per cell. Fresh water is drawn corner by corner (see <see cref="FreshCorner"/>), so lakes, swamp and
     /// their banks share one surface at every grid corner and close against dry ground. Running water is
-    /// not drawn here but as smooth bands along the stream lines (<see cref="Streams"/>, A1456).
+    /// not drawn here but as smooth bands along the stream lines (<see cref="Streams"/>, A1456). Swamp
+    /// that the look draws as wet ground (<see cref="TerrainLook.SwampAsGround"/>, W1724) has no surface
+    /// here: its colour lies in the ground and blends into the land around it.
     /// </summary>
     public static MeshData Water(WorldMap map, int chunkX, int chunkZ, TerrainLook look, WaterKind? only = null)
     {
@@ -788,6 +827,11 @@ public static partial class TerrainMesher
             if (cell.Flow >= 0)
             {
                 // A stream: drawn as a band along its line (Streams), not as square cell plates.
+                continue;
+            }
+
+            if (look.IsSwampGround(cell))
+            {
                 continue;
             }
 
@@ -973,7 +1017,15 @@ public static partial class TerrainMesher
     private static Rgb Mean(Rgb[] colors) =>
         new(colors.Average(c => c.R), colors.Average(c => c.G), colors.Average(c => c.B))
         {
-            Tint = new TintWeights(colors.Average(c => c.Tint.A), colors.Average(c => c.Tint.B), colors.Average(c => c.Tint.C), colors.Average(c => c.Tint.D)),
+            Tint = new TintWeights(
+                colors.Average(c => c.Tint.A),
+                colors.Average(c => c.Tint.B),
+                colors.Average(c => c.Tint.C),
+                colors.Average(c => c.Tint.D),
+                colors.Average(c => c.Tint.E),
+                colors.Average(c => c.Tint.F),
+                colors.Average(c => c.Tint.G),
+                colors.Average(c => c.Tint.H)),
         };
 
     /// <summary>One fresh water cell (lake, stream, swamp or bank), its corners from <see cref="FreshCorner"/>, split like the ground below.</summary>
@@ -1076,12 +1128,18 @@ public static partial class TerrainMesher
     private static (Carrier Kind, int Surface, int Depth) Carry(WorldMap map, int x, int z, TerrainLook look)
     {
         var cell = map.Cell(x, z);
+        if (look.IsSwampGround(cell))
+        {
+            // Swamp drawn as wet ground carries no surface: water beside it comes down to it like to a bank.
+            return (Carrier.Bare, 0, 0);
+        }
+
         if (cell.Water != WaterKind.None)
         {
             return (cell.Water == WaterKind.Fresh && cell.Flow >= 0 ? Carrier.Running : Carrier.Still, cell.Height + cell.WaterDepth, cell.WaterDepth);
         }
 
-        return BankWater(map, x, z) is { } bank && IsShore(CornerHeights(map, x, z, look), bank.Surface)
+        return BankWater(map, x, z, look) is { } bank && IsShore(CornerHeights(map, x, z, look), bank.Surface)
             ? (Carrier.Bank, bank.Surface, bank.Depth)
             : (Carrier.Bare, 0, 0);
     }
@@ -1096,8 +1154,8 @@ public static partial class TerrainMesher
         mesh.Triangle((x0, y, z0), (x0, y, z1), (x1, y, z1), color, flow);
     }
 
-    /// <summary>The highest still fresh water surface (and its depth) among the eight neighbours of a dry cell, if any.</summary>
-    private static (int Surface, int Depth)? BankWater(WorldMap map, int x, int z)
+    /// <summary>The highest still fresh water surface (and its depth) among the eight neighbours of a dry cell, if any; swamp drawn as wet ground has none.</summary>
+    private static (int Surface, int Depth)? BankWater(WorldMap map, int x, int z, TerrainLook look)
     {
         (int Surface, int Depth)? best = null;
         foreach (var (dx, dz) in FlowDirections.All)
@@ -1111,7 +1169,7 @@ public static partial class TerrainMesher
             // Only still water (lakes, swamp) reaches into its banks; a stream runs down a slope and
             // closes against its banks by itself.
             var n = map.Cell(nx, nz);
-            if (n.Water == WaterKind.Fresh && n.Flow < 0 && (best is null || n.Height + n.WaterDepth > best.Value.Surface))
+            if (n.Water == WaterKind.Fresh && n.Flow < 0 && !look.IsSwampGround(n) && (best is null || n.Height + n.WaterDepth > best.Value.Surface))
             {
                 best = (n.Height + n.WaterDepth, n.WaterDepth);
             }
@@ -1282,7 +1340,8 @@ public static partial class TerrainMesher
         }
     }
 
-    private static Rgb GroundColor(MapCell cell, TerrainLook look) => cell.Water == WaterKind.None ? look.BiomeColors[cell.Biome] : look.Bed;
+    private static Rgb GroundColor(MapCell cell, TerrainLook look) =>
+        cell.Water == WaterKind.None ? look.BiomeColors[cell.Biome] : look.IsSwampGround(cell) ? look.Swamp : look.Bed;
 
     private static Rgb[] CornerColors(WorldMap map, int x, int z, TerrainLook look)
     {

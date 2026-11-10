@@ -1,0 +1,234 @@
+{
+  "contract_version": "0.2",
+  "min_transition_real_seconds": 6.0,
+  "clouds": {
+    "color": "cloud_cover",
+    "scale": 1.4,
+    "softness": 0.3
+  },
+  "rain": {
+    "color": "sea_foam",
+    "max_count": 700,
+    "box_m": 30.0,
+    "height_m": 12.0,
+    "lifetime_s": 0.9,
+    "fall_m_per_s": 14.0,
+    "drift_m_per_s": 5.0,
+    "size_m": 0.02,
+    "length_m": 0.55,
+    "spin_deg_per_s": 0,
+    "opacity": 0.45
+  },
+  "snow": {
+    "color": "snow",
+    "max_count": 500,
+    "box_m": 30.0,
+    "height_m": 10.0,
+    "lifetime_s": 6.5,
+    "fall_m_per_s": 1.6,
+    "drift_m_per_s": 2.0,
+    "size_m": 0.07,
+    "length_m": 0.07,
+    "spin_deg_per_s": 60,
+    "opacity": 0.95
+  },
+  "glow": {
+    "max_changes_per_second": 1.0,
+    "rise_s": 0.8,
+    "hold_s": 0.4,
+    "fall_s": 1.8,
+    "interval_s": {
+      "min": 7.0,
+      "max": 18.0
+    },
+    "ambient_boost": 0.25,
+    "sky_boost": 0.35
+  },
+  "looks": [
+    {
+      "weather": "clear",
+      "overcast": 0.0,
+      "cloud_shade": 1.0,
+      "fog_density": 0.0,
+      "fog_sky": 0.0,
+      "rain": 0.0,
+      "snow": 0.0,
+      "light": 1.0,
+      "ambient": 1.0,
+      "tint": "#ffffff",
+      "shadow": 1.0,
+      "snow_cover": 0.0,
+      "sway": 1.0,
+      "waves": 0.0,
+      "glow": 0.0,
+      "colors": []
+    },
+    {
+      "weather": "cloudy",
+      "overcast": 0.7,
+      "cloud_shade": 0.82,
+      "fog_density": 0.001,
+      "fog_sky": 0.15,
+      "rain": 0.0,
+      "snow": 0.0,
+      "light": 0.75,
+      "ambient": 0.95,
+      "tint": "#eef0f2",
+      "shadow": 0.5,
+      "snow_cover": 0.0,
+      "sway": 1.0,
+      "waves": 0.3,
+      "glow": 0.0,
+      "colors": []
+    },
+    {
+      "weather": "rain",
+      "overcast": 0.92,
+      "cloud_shade": 0.68,
+      "fog_density": 0.004,
+      "fog_sky": 0.35,
+      "rain": 0.6,
+      "snow": 0.0,
+      "light": 0.6,
+      "ambient": 0.9,
+      "tint": "#dde6f0",
+      "shadow": 0.3,
+      "snow_cover": 0.0,
+      "sway": 1.0,
+      "waves": 0.45,
+      "glow": 0.0,
+      "colors": []
+    },
+    {
+      "weather": "storm",
+      "overcast": 1.0,
+      "cloud_shade": 0.45,
+      "fog_density": 0.008,
+      "fog_sky": 0.6,
+      "rain": 1.0,
+      "snow": 0.0,
+      "light": 0.42,
+      "ambient": 0.78,
+      "tint": "#cfd8e6",
+      "shadow": 0.1,
+      "snow_cover": 0.0,
+      "sway": 1.3,
+      "waves": 1.0,
+      "glow": 1.0,
+      "colors": []
+    },
+    {
+      "weather": "fog",
+      "overcast": 0.6,
+      "cloud_shade": 0.92,
+      "fog_density": 0.02,
+      "fog_sky": 0.9,
+      "rain": 0.0,
+      "snow": 0.0,
+      "light": 0.7,
+      "ambient": 1.0,
+      "tint": "#f0f0ee",
+      "shadow": 0.15,
+      "snow_cover": 0.0,
+      "sway": 0.8,
+      "waves": 0.0,
+      "glow": 0.0,
+      "colors": []
+    },
+    {
+      "weather": "frost",
+      "overcast": 0.2,
+      "cloud_shade": 0.95,
+      "fog_density": 0.0015,
+      "fog_sky": 0.1,
+      "rain": 0.0,
+      "snow": 0.0,
+      "light": 0.95,
+      "ambient": 1.0,
+      "tint": "#e6eeff",
+      "shadow": 0.9,
+      "snow_cover": 0.25,
+      "sway": 1.0,
+      "waves": 0.0,
+      "glow": 0.0,
+      "colors": [
+        {
+          "id": "grass",
+          "color": "#b9c7b4"
+        }
+      ]
+    },
+    {
+      "weather": "snow",
+      "overcast": 0.9,
+      "cloud_shade": 0.86,
+      "fog_density": 0.008,
+      "fog_sky": 0.5,
+      "rain": 0.0,
+      "snow": 0.8,
+      "light": 0.75,
+      "ambient": 1.05,
+      "tint": "#eef2ff",
+      "shadow": 0.25,
+      "snow_cover": 0.9,
+      "sway": 1.0,
+      "waves": 0.2,
+      "glow": 0.0,
+      "colors": []
+    },
+    {
+      "weather": "heat",
+      "overcast": 0.0,
+      "cloud_shade": 1.0,
+      "fog_density": 0.0012,
+      "fog_sky": 0.12,
+      "rain": 0.0,
+      "snow": 0.0,
+      "light": 1.1,
+      "ambient": 1.05,
+      "tint": "#fff0d0",
+      "shadow": 1.0,
+      "snow_cover": 0.0,
+      "sway": 0.6,
+      "waves": 0.0,
+      "glow": 0.0,
+      "colors": [
+        {
+          "id": "grass",
+          "color": "#c2c06a"
+        }
+      ]
+    },
+    {
+      "weather": "drought",
+      "overcast": 0.05,
+      "cloud_shade": 1.0,
+      "fog_density": 0.0008,
+      "fog_sky": 0.08,
+      "rain": 0.0,
+      "snow": 0.0,
+      "light": 1.05,
+      "ambient": 1.0,
+      "tint": "#fff2d6",
+      "shadow": 1.0,
+      "snow_cover": 0.0,
+      "sway": 0.8,
+      "waves": 0.1,
+      "glow": 0.0,
+      "colors": [
+        {
+          "id": "grass",
+          "color": "#cdb872"
+        },
+        {
+          "id": "foliage",
+          "color": "#8f9a58"
+        },
+        {
+          "id": "forest_floor",
+          "color": "#8f9a58"
+        }
+      ]
+    }
+  ]
+}

@@ -146,6 +146,32 @@ public sealed class ShotPlanTests
         Assert.All(plan, s => Assert.True(s.SeasonHasLook && s.Epoch is null && s.Weather is null));
     }
 
+    [Fact]
+    public void APointMayForceItsWeatherAndTheWeatherSetShowsEveryWeatherOnce()
+    {
+        var shots = Shots();
+        shots.Weather = ["clear", "rain"];
+        shots.Points.First().Weather = "snow";
+        shots.Points.First().Season = "winter";
+        var looks = Read<LookWeather>("weather.json").Looks.Select(l => l.Weather).ToHashSet(StringComparer.Ordinal);
+        var plan = ShotPlan.Build(shots, Seasons(), looks);
+        var perPoint = shots.Projections.Count * shots.Phases.Count;
+        Assert.Equal(perPoint, plan.Count(s => s.Weather == "snow"));
+        Assert.All(plan.Where(s => s.Weather == "snow"), s => Assert.Equal((shots.Points.First().Id, "winter", true), (s.Point.Id, s.Season, s.WeatherHasLook)));
+        Assert.Equal((shots.Points.Count - 1) * perPoint * 2, plan.Count(s => s.Weather != "snow"));
+        Assert.Contains($"island_{shots.Points.First().Id}_perspective_day_winter_snow_800x600.png", plan.Select(s => s.FileName(800, 600)));
+
+        // The pictures the weather looks are judged by (B2-5 R23): one per weather id, all with a look,
+        // snow and frost in winter (snow cover), heat and drought in summer.
+        var set = Read<LookShots>("shots_weather.json");
+        var pictures = ShotPlan.Build(set, Seasons(), looks);
+        Assert.Equal(looks.Order(StringComparer.Ordinal), pictures.Select(s => s.Weather!).Order(StringComparer.Ordinal));
+        Assert.All(pictures, s => Assert.True(s.WeatherHasLook && s.SeasonHasLook && s.Epoch is null));
+        Assert.Equal("winter", pictures.Single(s => s.Weather == "snow").Season);
+        Assert.Equal("summer", pictures.Single(s => s.Weather == "drought").Season);
+        Assert.Single(pictures.Select(s => (s.Point.TargetXPermille, s.Point.TargetZPermille, s.Point.YawDeg, s.Point.DistanceM, s.Point.PitchDeg, s.Point.FovDeg, s.Projection, s.Phase)).Distinct());
+    }
+
     private static LookShots Shots() => new()
     {
         ContractVersion = "0.2",

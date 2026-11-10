@@ -15,7 +15,7 @@
     },
     {
       "biome": "forest",
-      "color": "foliage"
+      "color": "forest_floor"
     },
     {
       "biome": "freshwater",
@@ -43,7 +43,14 @@
     "stream_width_m": 1.9,
     "stream_smoothing": 3,
     "stream_source_taper_m": 2.5,
-    "stream_source_width_share": 0.2
+    "stream_source_width_share": 0.2,
+    "stream_relax_passes": 60,
+    "stream_turn_goal_deg_per_m": 25.0,
+    "stream_max_turn_deg_per_m": 65.0,
+    "stream_cell_tolerance_m": 0.3,
+    "stream_max_shift_m": 0.6,
+    "stream_cover_m": 1.05,
+    "swamp_as_ground": true
   },
   "cliffs": {
     "biomes": [
@@ -60,13 +67,42 @@
     "scree_permille": 450
   },
   "open_sea_size_factor": 8.0,
+  "tide_follow_real_seconds": 2.0,
   "water_shader": {
-    "stripe_scale": 1.6,
-    "stripe_speed": 0.6,
-    "stripe_strength": 0.12,
+    "flow_lanes": 5.0,
+    "flow_line_length_m": 1.8,
+    "flow_speed_m_per_s": 0.7,
+    "flow_speed_spread": 0.6,
+    "flow_bend": 0.8,
+    "flow_strength": 0.16,
     "shimmer_speed": 0.7,
     "shimmer_strength": 0.04
   },
+  "waves": {
+    "small": {
+      "spacing_m": 3.2,
+      "length_m": 2.1,
+      "thickness_m": 0.12,
+      "speed_m_per_s": 0.45,
+      "density": 0.55,
+      "starts_at": 0.05,
+      "full_at": 0.45
+    },
+    "large": {
+      "spacing_m": 8.0,
+      "length_m": 5.4,
+      "thickness_m": 0.3,
+      "speed_m_per_s": 0.9,
+      "density": 0.6,
+      "starts_at": 0.5,
+      "full_at": 1.0
+    },
+    "strength": 0.7,
+    "lake_share": 0.6,
+    "shore_foam_gain": 1.0,
+    "turn_real_seconds": 4.0
+  },
+  "water_time_wrap_seconds": 3600.0,
   "detail": {
     "levels": [
       {

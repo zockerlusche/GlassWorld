@@ -7,7 +7,8 @@ namespace GlassWorld.Presentation.World;
 /// One picture of the screenshot tool (B2 R32): a camera point in a projection and day phase, and
 /// optionally an epoch, season and weather. <see cref="SeasonHasLook"/> and <see cref="WeatherHasLook"/>
 /// say whether the presentation data can show that season or weather yet; if not, the picture is
-/// rendered without it and its file name carries <see cref="ShotPlan.NoLookNote"/>.
+/// rendered without it and its file name carries <see cref="ShotPlan.NoLookNote"/>. A tide level the
+/// point forces (<c>tide_permille</c>) is read from the point; such points differ by their id.
 /// </summary>
 public sealed record Shot(
     ShotPoint Point,
@@ -37,13 +38,13 @@ public sealed record Shot(
 /// <summary>
 /// The screenshot plan from <c>content/look/shots.json</c> (B2 R32): every point × projection × day phase,
 /// and with the optional lists also × epoch × season × weather. Without those lists the plan and the file
-/// names are exactly those of the tool before them. Pictures of one epoch come one after the other, so
-/// the island is recoloured only when it changes. A point may force its season (<c>season</c>): it is then
-/// shot once with it instead of once per season of the set. Presentation only.
+/// names are exactly those of the tool before them. Pictures of one epoch come one after the other. A
+/// point may force its epoch, its season and its weather (<c>epoch</c>, <c>season</c>, <c>weather</c>): it
+/// is then shot once with it instead of once per epoch, season or weather of the set. Presentation only.
 /// </summary>
 public static class ShotPlan
 {
-    /// <summary>File name note of a season or weather that has no look yet (B2-5 brings them).</summary>
+    /// <summary>File name note of a season or weather that has no look in the data.</summary>
     public const string NoLookNote = "nolook";
 
     /// <summary>
@@ -57,22 +58,26 @@ public static class ShotPlan
         ArgumentNullException.ThrowIfNull(weatherWithLook);
         IEnumerable<string?> Optional(ICollection<string>? ids) => ids is { Count: > 0 } ? ids.Select(id => (string?)id) : [null];
         var plan = new List<Shot>();
+        var firstEpoch = Optional(shots.Epochs).First();
         var firstSeason = Optional(shots.Seasons).First();
-        foreach (var epoch in Optional(shots.Epochs))
+        var firstWeather = Optional(shots.Weather).First();
+        foreach (var listedEpoch in Optional(shots.Epochs))
         {
             foreach (var listedSeason in Optional(shots.Seasons))
             {
-                foreach (var weather in Optional(shots.Weather))
+                foreach (var listedWeather in Optional(shots.Weather))
                 {
                     foreach (var point in shots.Points)
                     {
-                        // A point that forces its season is shot once (in the round of the first listed one).
-                        if (point.Season is not null && listedSeason != firstSeason)
+                        // A point that forces its epoch, season or weather is shot once (in the round of the first listed one).
+                        if ((point.Epoch is not null && listedEpoch != firstEpoch) || (point.Season is not null && listedSeason != firstSeason) || (point.Weather is not null && listedWeather != firstWeather))
                         {
                             continue;
                         }
 
+                        var epoch = point.Epoch ?? listedEpoch;
                         var season = point.Season ?? listedSeason;
+                        var weather = point.Weather ?? listedWeather;
                         foreach (var projection in shots.Projections)
                         {
                             // A point may name its one phase (e.g. the night set: overview at night, close view at dusk).
@@ -98,9 +103,11 @@ public static class ShotPlan
     }
 
     /// <summary>
-    /// The palette of a picture (B2 R19): the base colours, then the season's overrides from
+    /// The palette of an epoch and a season (B2 R19): the base colours, then the season's overrides from
     /// <c>palette.json</c>, then the epoch's from <c>epochs.json</c>. Only colours change, never models or
     /// shaders. An unknown epoch is an error; a season without a palette leaves the colours as they are.
+    /// The game shows the same colours without a rebuild, as shader parameters (<see cref="EpochMix"/> over
+    /// <see cref="SeasonMix"/>); this is the reference they are tested against.
     /// </summary>
     public static LookPalette PaletteFor(LookPalette palette, LookEpochs epochs, string? epoch, string? season)
     {

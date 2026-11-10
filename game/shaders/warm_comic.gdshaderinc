@@ -67,7 +67,7 @@ void vertex() {
 	nature_world = vec3(0.0);
 	nature_up = 0.0;
 	if (use_nature) {
-		base_color = season_color(base_color, CUSTOM0);
+		base_color = season_color(base_color, CUSTOM0, CUSTOM1);
 		VERTEX = sway(VERTEX, MODEL_MATRIX, sway_m, sway_height_m);
 		nature_world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 		nature_up = normalize(MODEL_NORMAL_MATRIX * NORMAL).y;

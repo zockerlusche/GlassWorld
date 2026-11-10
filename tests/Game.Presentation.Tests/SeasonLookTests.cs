@@ -31,9 +31,9 @@ public sealed class SeasonLookTests
         Assert.Equal(default, Slots.WeightsOf("rock"));
         Assert.Equal(1f, Slots.WeightsOf(Slots.Ids[0])[0]);
 
-        // Five seasonal colours do not fit the four channels of the vertex attribute: a data error, not a silent cut.
+        // Nine movable colours do not fit the eight channels of the two vertex attributes: a data error, not a silent cut.
         var tooMany = Read<LookPalette>("palette.json");
-        tooMany.Seasons.First().Colors = [.. tooMany.Colors.Take(5).Select(c => new LookColor { Id = c.Id, Color = "#000000" })];
+        tooMany.Seasons.First().Colors = [.. tooMany.Colors.Take(SeasonSlots.Max + 1).Select(c => new LookColor { Id = c.Id, Color = "#000000" })];
         Assert.Throws<InvalidDataException>(() => SeasonSlots.From(tooMany));
     }
 
@@ -112,10 +112,11 @@ public sealed class SeasonLookTests
                 var built = TerrainMesher.Ground(island.Map, cx, cz, baseLook);
                 var rebuilt = TerrainMesher.Ground(island.Map, cx, cz, seasonLook);
                 Assert.Equal(rebuilt.Positions, built.Positions);
-                Assert.Equal(built.VertexCount * 4, built.Tints.Count);
+                Assert.Equal(built.VertexCount * SeasonSlots.Max, built.Tints.Count);
                 for (var v = 0; v < built.VertexCount; v++)
                 {
-                    var tint = new TintWeights(built.Tints[v * 4], built.Tints[(v * 4) + 1], built.Tints[(v * 4) + 2], built.Tints[(v * 4) + 3]);
+                    var at = v * SeasonSlots.Max;
+                    var tint = new TintWeights(built.Tints[at], built.Tints[at + 1], built.Tints[at + 2], built.Tints[at + 3]);
                     var shown = mix.Shade(new Rgb(built.Colors[v * 3], built.Colors[(v * 3) + 1], built.Colors[(v * 3) + 2]) { Tint = tint }, Slots);
                     var want = new Rgb(rebuilt.Colors[v * 3], rebuilt.Colors[(v * 3) + 1], rebuilt.Colors[(v * 3) + 2]);
                     worst = Math.Max(worst, Math.Max(Math.Abs(shown.R - want.R), Math.Max(Math.Abs(shown.G - want.G), Math.Abs(shown.B - want.B))));

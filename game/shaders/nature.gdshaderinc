@@ -1,6 +1,7 @@
 // Living nature (B2-5 R21/R24, content/look/nature.json), shared by the warm comic shader and the ink
-// outline (so a swaying plant keeps its outline): the seasonal part of a vertex colour moves to the colour
-// of the season, snow lies on faces that look up, plants sway in the wind. Everything comes from global
+// outline (so a swaying plant keeps its outline): the movable part of a vertex colour moves to the colour
+// of the season, the weather and the look epoch (B2-5 R16), snow lies on faces that look up, plants sway
+// in the wind. Everything comes from global
 // parameters (project.godot [shader_globals]) that NatureLook sets per frame; no mesh is ever rebuilt.
 
 // Per tint slot: the way from the base colour to the colour shown now (linear rgb).
@@ -8,6 +9,10 @@ global uniform vec4 season_tint_0;
 global uniform vec4 season_tint_1;
 global uniform vec4 season_tint_2;
 global uniform vec4 season_tint_3;
+global uniform vec4 season_tint_4;
+global uniform vec4 season_tint_5;
+global uniform vec4 season_tint_6;
+global uniform vec4 season_tint_7;
 // rgb: snow colour (linear), a: share of the ground covered by snow (0..1).
 global uniform vec4 nature_snow;
 // x: size of a snow patch in metres, y: softness of a patch edge, z: how far a face must look up.
@@ -17,9 +22,11 @@ global uniform vec4 nature_wind;
 // x: phase per metre along the wind, y: share of the bend that is a steady lean.
 global uniform vec4 nature_wind_shape;
 
-// The vertex colour in the season: weights are the shares of the seasonal palette colours in it (CUSTOM0).
-vec3 season_color(vec3 color, vec4 weights) {
+// The vertex colour as shown now: weights and more are the shares of the movable palette colours in it
+// (tint slots 0..3 in CUSTOM0, 4..7 in CUSTOM1).
+vec3 season_color(vec3 color, vec4 weights, vec4 more) {
 	vec3 moved = color + weights.r * season_tint_0.rgb + weights.g * season_tint_1.rgb + weights.b * season_tint_2.rgb + weights.a * season_tint_3.rgb;
+	moved += more.r * season_tint_4.rgb + more.g * season_tint_5.rgb + more.b * season_tint_6.rgb + more.a * season_tint_7.rgb;
 	return max(moved, vec3(0.0));
 }
 

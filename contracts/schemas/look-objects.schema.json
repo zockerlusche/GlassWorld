@@ -65,11 +65,14 @@
       "items": {
         "$ref": "#/$defs/ObjectDecor"
       }
+    },
+    "stream_sources": {
+      "$ref": "#/$defs/ObjectStreamSources"
     }
   },
   "$defs": {
     "ObjectLookShape": {
-      "description": "Shape builder of the game (simple low-poly meshes of the look prototype); none draws nothing (for example sea water, the sea is drawn already).",
+      "description": "Shape builder of the game (simple low-poly meshes of the look prototype); none draws nothing (for example sea water, the sea is drawn already); spring is a small heap of stones a stream comes out of (W1724), pool a small pond.",
       "type": "string",
       "enum": [
         "conifer_tree",
@@ -84,6 +87,7 @@
         "flower",
         "mushroom",
         "pool",
+        "spring",
         "log",
         "fruit",
         "shell",
@@ -286,6 +290,12 @@
           "type": "number",
           "minimum": 0,
           "maximum": 10
+        },
+        "fresh_water_within_cells": {
+          "description": "Bank plants (W1724): only a cell with fresh water (a stream, a spring, a lake, a swamp) within this many cells may hold a group centre, so groups_per_10000_cells is the density along the water. Absent = anywhere in the biomes.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16
         }
       }
     },
@@ -309,6 +319,39 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 64
+        }
+      }
+    },
+    "ObjectStreamSources": {
+      "description": "Objects at the source of a stream (W1724): an object of one of object_types that lies within max_distance_m of the point where a stream band starts at a spring is drawn as the visual of as_type instead, at that point and turned against the flow (its local +x side uphill), so the water comes out of it and runs straight into the band. Objects of those types elsewhere (a pond in a hollow, at a lake) keep their own visual. Absent = none.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "object_types",
+        "as_type",
+        "max_distance_m"
+      ],
+      "properties": {
+        "object_types": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$"
+          }
+        },
+        "as_type": {
+          "description": "Type id a visual of this file lists in its types (it must not be an object type of the catalogue).",
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]*$"
+        },
+        "max_distance_m": {
+          "description": "Largest distance between the object and the start of the stream band in metres.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 20
         }
       }
     }
