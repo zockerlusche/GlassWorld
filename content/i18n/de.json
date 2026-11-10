@@ -2425,6 +2425,50 @@
     {
       "key": "ui.card.none",
       "text": "Wähle einen Bewohner – in der Liste, im Verlauf oder mit einem Klick auf die Figur. Hier steht dann, was er gerade tut, und du kannst ihn ansprechen."
+    },
+    {
+      "key": "ui.debug.seed",
+      "text": "Seed: {seed}"
+    },
+    {
+      "key": "ui.debug.world_hash",
+      "text": "Welt-Hash: {hash}"
+    },
+    {
+      "key": "ui.debug.state_hash",
+      "text": "Zustands-Hash: {hash}"
+    },
+    {
+      "key": "ui.debug.time",
+      "text": "Weltzeit: {time} ({phase}), Tag {day}, Jahr {year}, Tick {tick}"
+    },
+    {
+      "key": "ui.debug.season",
+      "text": "Jahreszeit: {season}"
+    },
+    {
+      "key": "ui.debug.weather",
+      "text": "Wetter: {weather}, Lage: {conditions}"
+    },
+    {
+      "key": "ui.debug.epoch",
+      "text": "Epoche des Aussehens: {epoch}"
+    },
+    {
+      "key": "ui.debug.fps",
+      "text": "Bilder pro Sekunde: {fps}"
+    },
+    {
+      "key": "ui.debug.figures",
+      "text": "Figuren: {count}"
+    },
+    {
+      "key": "ui.debug.biome",
+      "text": "Biom unter dem Mauszeiger: {biome}"
+    },
+    {
+      "key": "ui.debug.jumps",
+      "text": "Debug-Sprünge: {back} und {forward} wechseln die Epoche"
     }
   ]
 }
