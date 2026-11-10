@@ -11,7 +11,9 @@ namespace GlassWorld.Presentation.World;
 /// looks, same ground fit). Placed from the world seed and the cell alone (no random stream), so the same
 /// world always shows the same plants: a cell of a listed biome may hold a group centre, the group's plants
 /// scatter within its spread and are kept only on dry walkable ground of a listed biome, apart from each
-/// other and from every core object at the start.
+/// other and from every core object at the start. A kind with <c>fresh_water_within_cells</c> is a bank
+/// plant (W1724: reeds and rushes at springs, along streams, around lakes and swamps): only a cell with
+/// fresh water that near may hold a group centre, so its density is the density along the water.
 /// </summary>
 public static class Decor
 {
@@ -81,6 +83,38 @@ public static class Decor
             Add(objectCells, o.Position.X, o.Position.Z);
         }
 
+        // Per reach in cells: which cells have fresh water within it (made once per reach the data asks for).
+        var nearFresh = new Dictionary<int, bool[]>();
+        bool[] NearFresh(int reach)
+        {
+            if (nearFresh.TryGetValue(reach, out var near))
+            {
+                return near;
+            }
+
+            nearFresh[reach] = near = new bool[map.WidthCells * map.DepthCells];
+            for (var z = 0; z < map.DepthCells; z++)
+            {
+                for (var x = 0; x < map.WidthCells; x++)
+                {
+                    if (map.Cell(x, z).Water != WaterKind.Fresh)
+                    {
+                        continue;
+                    }
+
+                    for (var nz = Math.Max(0, z - reach); nz <= Math.Min(map.DepthCells - 1, z + reach); nz++)
+                    {
+                        for (var nx = Math.Max(0, x - reach); nx <= Math.Min(map.WidthCells - 1, x + reach); nx++)
+                        {
+                            near[(nz * map.WidthCells) + nx] = true;
+                        }
+                    }
+                }
+            }
+
+            return near;
+        }
+
         var plants = new Dictionary<(int, int), List<(double X, double Z)>>();
         var kind = 0;
         foreach (var d in decor)
@@ -89,11 +123,12 @@ public static class Decor
             var biomes = d.Biomes.Select(b => map.BiomeIds.ToList().IndexOf(b)).Where(i => i >= 0).ToHashSet();
             bool Fits(int x, int z) =>
                 map.Contains(x, z) && map.Cell(x, z) is { Water: WaterKind.None } c && c.WalkCost != MapCell.Blocked && biomes.Contains(c.Biome);
+            var bank = d.FreshWaterWithinCells is { } reach ? NearFresh(reach) : null;
             for (var z = 0; z < map.DepthCells; z++)
             {
                 for (var x = 0; x < map.WidthCells; x++)
                 {
-                    if (!Fits(x, z) || Hash(seed, kind, x, z, 0) % 10000 >= (ulong)d.GroupsPer10000Cells)
+                    if (!Fits(x, z) || (bank is not null && !bank[(z * map.WidthCells) + x]) || Hash(seed, kind, x, z, 0) % 10000 >= (ulong)d.GroupsPer10000Cells)
                     {
                         continue;
                     }

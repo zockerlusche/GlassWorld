@@ -29,6 +29,12 @@ public partial class WorldPresenter
     private LookWorld? _look;
     private IslandView? _islandView;
     private ObjectsView? _objectsView;
+    private GrassView? _grassView;
+    private NatureLook? _nature;
+    private string _seasonSeen = string.Empty;
+    private Simulation.Weather.WeatherReading? _weatherSeen;
+    private string? _epochSeen;
+    private Simulation.Map.TideReading? _tideSeen;
     private CameraRig? _rig;
     private FigureShared? _figureShared;
     private LookFigures? _figuresLook;
@@ -46,8 +52,9 @@ public partial class WorldPresenter
     private readonly List<Vector3> _fadeFor = [];
     private List<Seat>? _seats;
     private (Godot.Environment? Environment, DirectionalLight3D? Sun, Color SunColor, float SunEnergy, Vector3 SunRotation, bool SunShadow, float SunShadowOpacity, List<Node3D> Hidden)? _restore;
-    private (LookDaylight Data, DirectionalLight3D Sun, Godot.Environment Environment)? _daylight;
+    private (LookDaylight Data, DirectionalLight3D Sun, Godot.Environment Environment, DaylightMix? Fixed)? _daylight;
     private DaylightMix? _daylightShown;
+    private WeatherSky? _skyShown;
 
     /// <summary>How this world is drawn (island when it has an island map).</summary>
     public WorldLookMode Mode { get; private set; } = WorldLookMode.Placeholder;
@@ -60,6 +67,9 @@ public partial class WorldPresenter
 
     /// <summary>Island mode: number of figures with the real figure model.</summary>
     public int FigureViews => _islandFigures.Count;
+
+    /// <summary>Island mode: grass and small plants drawn in detail levels (0 in placeholder mode).</summary>
+    public int GrassPlants => _grassView?.Plants ?? 0;
 
     /// <summary>Island mode: ground chunks of the island view.</summary>
     public int GroundChunks => _islandView?.GroundChunks ?? 0;
@@ -250,10 +260,17 @@ public partial class WorldPresenter
         _seaLevelM = preset.Terrain.SeaLevel * terrain.UnitM;
         _cellM = terrain.CellM;
 
+        // Living nature (B2-5 R21, R24): season colours, snow and wind as shader parameters; grass and
+        // small plants in detail levels (density and distance from the quality level).
         var objectLooks = Read<LookObjects>(content, "look", "objects.json");
-        var decor = Decor.Plan(objectLooks.Decor, map.Island, terrain.CellM);
-        _objectsView = ObjectsView.Create(objectLooks, Read<LookPalette>(content, "look", "palette.json"), _ground, decor);
+        var palette = Read<LookPalette>(content, "look", "palette.json");
+        _nature = NatureLook.Create(content, palette);
+        var (grass, otherDecor) = GrassPlan.Split(Decor.Plan(objectLooks.Decor, map.Island, terrain.CellM), _nature.Data.Grass);
+        _objectsView = ObjectsView.Create(objectLooks, palette, _ground, otherDecor, _nature.Season.Slots, TerrainMesher.StreamSources(ground, terrain));
         AddChild(_objectsView);
+        _grassView = GrassView.Create(_objectsView, grass, _ground, _nature.Data.Grass, GrassPlan.Level(Read<LookQuality>(content, "look", "quality.json")));
+        AddChild(_grassView);
+        AddChild(_nature);
 
         _figuresLook = Read<LookFigures>(content, "look", "figures.json");
         _objectsView.SetupCrownFade(_figuresLook.CrownFade);
@@ -275,6 +292,7 @@ public partial class WorldPresenter
 
         LightTheScene(content, _look, "IslandPlaceholder", "WaterPlaceholder");
         GD.Print($"ISLAND_WORLD preset={map.Island.PresetId} chunks={_islandView.GroundChunks} figures={_islandFigures.Count} objects_drawn={_objectsView.Drawn} layers={_objectsView.Layers}");
+        GD.Print($"ISLAND_NATURE grass_plants={_grassView.Plants} grass_layers={_grassView.Layers} season={_seasonSeen} season_colors={_nature.Season.Slots.Ids.Count} weather_looks={_nature.WeatherWithLook.Count}");
     }
 
     /// <summary>
@@ -330,6 +348,8 @@ public partial class WorldPresenter
         _look = null;
         _islandView = null;
         _objectsView = null;
+        _grassView = null;
+        _nature = null;
         _rig = null;
         _figureShared = null;
         _observer = null;
@@ -385,18 +405,15 @@ public partial class WorldPresenter
         }
 
         DaylightLook.ApplyRendering(daylight, sun, environment);
-        if (look.DayPhase == DaylightClock.FollowClock)
-        {
-            _daylight = (daylight, sun, environment);
-            FollowTheClock();
-        }
-        else
-        {
-            DaylightLook.Apply(daylight, look.DayPhase, sun, environment);
-        }
+        _daylight = (daylight, sun, environment, look.DayPhase == DaylightClock.FollowClock ? null : DaylightMix.Of(daylight, look.DayPhase));
+        FollowTheClock();
     }
 
-    /// <summary>Each frame: the light of the current world time, with the fraction of the running tick (smooth at x16).</summary>
+    /// <summary>
+    /// Each frame: the light of the current world time, with the fraction of the running tick (smooth at
+    /// x16), or of the fixed day phase; on the island under the shown weather (B2-5 R23: dimmer or tinted
+    /// light, clouds, fog, the soft storm glow). Applied only when something changed.
+    /// </summary>
     private void FollowTheClock()
     {
         if (_daylight is not { } d || _host is null || !IsInstanceValid(d.Sun))
@@ -404,13 +421,39 @@ public partial class WorldPresenter
             return;
         }
 
-        var calendar = _host.World.Calendar;
-        var mix = DaylightClock.At(d.Data, calendar, _host.World.Tick, _accumulator);
-        if (mix != _daylightShown)
+        var mix = d.Fixed ?? DaylightClock.At(d.Data, _host.World.Calendar, _host.World.Tick, _accumulator);
+        WeatherSky? sky = null;
+        if (_nature is not null)
         {
-            _daylightShown = mix;
-            DaylightLook.Apply(d.Data, mix, d.Sun, d.Environment);
+            (mix, sky) = _nature.Shade(mix, d.Data.NightMinBrightness);
         }
+
+        if (mix != _daylightShown || sky != _skyShown)
+        {
+            (_daylightShown, _skyShown) = (mix, sky);
+            DaylightLook.Apply(d.Data, mix, d.Sun, d.Environment, sky, _nature?.WeatherData.Clouds);
+            _nature?.Light(mix.WaterLight);
+        }
+    }
+
+    /// <summary>
+    /// Each frame of island mode: the season and the weather of the last snapshot move the season colours,
+    /// the snow, the plants in the wind, the falling leaves, rain and snow and the weather blend (B2-5 R21,
+    /// R23, R24); its look epoch blends the palette (R16) and its tide moves the sea surface (R15). Real
+    /// time, so fast forward stays calm; pause and speed 0 hold everything still, like the figures (W1688).
+    /// </summary>
+    private void FollowNature(double delta)
+    {
+        if (_nature is null || _rig is null || _host is null || _seasonSeen.Length == 0)
+        {
+            return;
+        }
+
+        var (x, z) = _rig.Model.Target;
+        var focus = new Vector3((float)x, Math.Max(GroundHeight(x, z), (float)_seaLevelM), (float)z);
+        var calendar = _host!.World.Calendar;
+        _islandView?.FollowTide(_tideSeen, _freeze.Frozen ? 0 : delta);
+        _nature.Follow(_seasonSeen, _epochSeen, _weatherSeen, _freeze.Frozen ? 0 : delta, focus, Speed, calendar.RealSecondsPerTickAtNormalSpeed * calendar.Settings.TicksPerHour / 60.0);
     }
 
     /// <summary>Puts back what <see cref="LightTheScene"/> changed in the scene (back to the menu).</summary>
@@ -424,6 +467,7 @@ public partial class WorldPresenter
         _restore = null;
         _daylight = null;
         _daylightShown = null;
+        _skyShown = null;
         foreach (var node in r.Hidden.Where(IsInstanceValid))
         {
             node.Visible = true;
@@ -477,6 +521,7 @@ public partial class WorldPresenter
         }
 
         var snapshot = _host.Snapshot();
+        (_seasonSeen, _weatherSeen, _epochSeen, _tideSeen) = (snapshot.Time.SeasonId, snapshot.Weather, snapshot.LookEpoch, snapshot.Tide);
 
         // Seats (W1688) are taken from the objects only when they changed.
         if (_objectsView?.Refresh(snapshot.Objects) != false || _seats is null)

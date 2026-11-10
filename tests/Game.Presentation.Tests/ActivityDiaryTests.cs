@@ -1,35 +1,84 @@
 using GlassWorld.Presentation.World;
+using GlassWorld.Simulation;
+using GlassWorld.Simulation.Decisions;
+using GlassWorld.Simulation.Inhabitants;
 
 namespace GlassWorld.Presentation.Tests;
 
 public sealed class ActivityDiaryTests
 {
-    [Fact]
-    public void ALineIsAddedOnlyWhenTheActivityChangesAndIdleIsLeftOut()
-    {
-        var diary = new ActivityDiary(10);
-        diary.Note("a", "untersucht Brennnessel", false, 1, "08:00");
-        diary.Note("a", "untersucht Brennnessel", false, 1, "08:05");
-        diary.Note("a", "steht da", true, 1, "08:10");
-        diary.Note("a", "untersucht Brennnessel", false, 1, "08:20");
-        diary.Note("a", "trinkt am Bach", false, 2, "09:00");
-        diary.Note("b", "schläft", false, 2, "09:00");
+    private static readonly string Content = Path.Combine(TestPaths.Root, "content");
 
-        Assert.Equal(["trinkt am Bach", "untersucht Brennnessel", "untersucht Brennnessel"], diary.Of("a").Select(l => l.Text));
-        Assert.Equal((2, "09:00"), (diary.Of("a")[0].Day, diary.Of("a")[0].Time));
-        Assert.Single(diary.Of("b"));
-        Assert.Empty(diary.Of("nobody"));
+    private sealed class FakeDiary(params DiaryEntry[] entries) : IInhabitantDiary
+    {
+        public long Version => entries.Length == 0 ? 0 : entries[^1].Seq;
+
+        public IReadOnlyList<DiaryEntry> Since(long version) => [.. entries.Where(e => e.Seq > version)];
     }
 
     [Fact]
-    public void OnlyTheNewestLinesAreKeptPerInhabitant()
+    public void AnX16RunShowsTheNewestEntriesOfTheCoreDiaryNewestFirst()
     {
-        var diary = new ActivityDiary(2);
-        foreach (var text in new[] { "eins", "zwei", "drei" })
+        var host = SimulationHost.CreatePlaceholderWorld(Content, 7, new MockDecisionPort(), "de");
+        var diary = new ActivityDiary(5, host.World.Calendar);
+        var perFrame = host.World.Calendar.Settings.MaxTicksPerFrame;
+        for (var frame = 0; frame < host.World.Calendar.TicksPerDay / perFrame; frame++)
         {
-            diary.Note("a", text, false, 1, "10:00");
+            host.World.Run(perFrame);
+            diary.Sync(host.Diary);
         }
 
-        Assert.Equal(["drei", "zwei"], diary.Of("a").Select(l => l.Text));
+        foreach (var inhabitant in host.Inhabitants.All)
+        {
+            var core = host.Diary.Of(inhabitant.Id);
+            Assert.True(core.Count >= 5);
+            Assert.Equal(Enumerable.Reverse(core).Take(5), diary.EntriesOf(inhabitant.Id));
+        }
+    }
+
+    [Fact]
+    public void ALanguageSwitchChangesTheLinesNotTheEntries()
+    {
+        var entries = new FakeDiary(
+            new DiaryEntry(1, 0, "a", "inspect", "obj-1", "nettle", null),
+            new DiaryEntry(2, 10, "a", "warn", "b", null, "nettle"),
+            new DiaryEntry(3, 20, "b", "drink", null, null, null));
+        var calendar = SimulationHost.CreatePlaceholderWorld(Content, 1, new MockDecisionPort(), "de").World.Calendar;
+        var diary = new ActivityDiary(10, calendar);
+        Assert.Equal(3, diary.Sync(entries));
+        var before = diary.EntriesOf("a");
+
+        var de = new Dictionary<string, string>
+        {
+            ["ui.activity.inspect.object"] = "untersucht {thing}",
+            ["ui.activity.warn.inhabitant_topic"] = "warnt {name} vor {thing}",
+            ["vocab.object.nettle"] = "Brennnessel",
+        };
+        var en = new Dictionary<string, string>
+        {
+            ["ui.activity.inspect.object"] = "inspects {thing}",
+            ["ui.activity.warn.inhabitant_topic"] = "warns {name} about {thing}",
+            ["vocab.object.nettle"] = "nettle",
+        };
+        static string Name(string id) => id == "b" ? "Bo" : id;
+
+        Assert.Equal(["warnt Bo vor Brennnessel", "untersucht Brennnessel"], diary.Of("a", k => de.GetValueOrDefault(k, k), Name).Select(l => l.Text));
+        Assert.Equal(["warns Bo about nettle", "inspects nettle"], diary.Of("a", k => en.GetValueOrDefault(k, k), Name).Select(l => l.Text));
+        Assert.Equal(before, diary.EntriesOf("a"));
+        Assert.Single(diary.EntriesOf("b"));
+        Assert.Empty(diary.Of("nobody", k => k, Name));
+    }
+
+    [Fact]
+    public void OnlyTheNewestShownEntriesAreKeptAndAnotherDiaryStartsOver()
+    {
+        var diary = new ActivityDiary(2, SimulationHost.CreatePlaceholderWorld(Content, 1, new MockDecisionPort(), "de").World.Calendar);
+        diary.Sync(new FakeDiary([.. Enumerable.Range(1, 4).Select(i => new DiaryEntry(i, i, "a", "act" + i, null, null, null))]));
+        Assert.Equal(["act4", "act3"], diary.EntriesOf("a").Select(e => e.Action));
+
+        var version = diary.Version;
+        Assert.Equal(1, diary.Sync(new FakeDiary(new DiaryEntry(1, 1, "a", "other", null, null, null))));
+        Assert.Equal(["other"], diary.EntriesOf("a").Select(e => e.Action));
+        Assert.True(diary.Version > version);
     }
 }

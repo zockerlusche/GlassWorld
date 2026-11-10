@@ -8,6 +8,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from . import common_schema
+
 
 class NeedModel(BaseModel):
     model_config = ConfigDict(
@@ -62,6 +64,18 @@ class MoodDriver(BaseModel):
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
     delta_per_hour: float = Field(..., ge=-1.0, le=1.0)
+
+
+class Diary(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    capacity: int = Field(
+        ..., description='Entries kept per inhabitant.', ge=0, le=10000
+    )
+    left_out_actions: list[common_schema.VocabId] | None = Field(
+        None, description='Actions that get no entry (resting in place).', max_length=64
+    )
 
 
 class Togetherness(BaseModel):
@@ -214,3 +228,4 @@ class InhabitantModel(BaseModel):
     )
     skill_rules: SkillRules
     togetherness: Togetherness | None = None
+    diary: Diary | None = None
