@@ -215,9 +215,9 @@ public partial class GameScreen : CanvasLayer
         {
             _sideBar.Open(chosen.Panels[0]);
         }
-        else if (on && card && _feed is not null)
+        else if (on && card && _feed?.Inhabitants() is { Count: > 0 } rows)
         {
-            ShowInhabitant(_feed.Inhabitants()[0].Id);
+            ShowInhabitant(rows[0].Id);
         }
 
         Layout();
