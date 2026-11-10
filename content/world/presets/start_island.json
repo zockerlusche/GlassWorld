@@ -305,6 +305,7 @@
     "node_budget": 20000,
     "cost_flat": 10,
     "cost_shallow_water": 20,
-    "cost_per_slope_unit": 3
+    "cost_per_slope_unit": 3,
+    "cost_flooded_water": 60
   }
 }

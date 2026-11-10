@@ -111,10 +111,23 @@ public static class PathFinder
     /// <param name="nodeBudget">Most nodes to expand.</param>
     /// <param name="minWalkCost">Lowest walk cost on the map (keeps the estimate admissible).</param>
     /// <param name="scratch">Reusable arrays (optional; must match the map size).</param>
-    public static PathResult Find(WorldMap map, (int X, int Z) from, (int X, int Z) to, int nodeBudget, int minWalkCost, Scratch? scratch = null)
+    /// <param name="costs">
+    /// Walk costs of a run-time layer over the map (index z × width + x, e.g. the tides, B2-5 R15), read
+    /// instead of the cells' base costs; null = the base costs. <paramref name="minWalkCost"/> must then be
+    /// the lowest of these costs.
+    /// </param>
+    public static PathResult Find(WorldMap map, (int X, int Z) from, (int X, int Z) to, int nodeBudget, int minWalkCost, Scratch? scratch = null, int[]? costs = null)
     {
         ArgumentNullException.ThrowIfNull(map);
-        if (!map.Contains(from.X, from.Z) || !map.Contains(to.X, to.Z) || map.Cell(to.X, to.Z).WalkCost == MapCell.Blocked)
+        var w = map.WidthCells;
+        var size = w * map.DepthCells;
+        if (costs is not null && costs.Length != size)
+        {
+            throw new ArgumentException($"The walk costs have {costs.Length} entries, the map has {size} cells.", nameof(costs));
+        }
+
+        int CostOf(int x, int z) => costs is null ? map.Cell(x, z).WalkCost : costs[(z * w) + x];
+        if (!map.Contains(from.X, from.Z) || !map.Contains(to.X, to.Z) || CostOf(to.X, to.Z) == MapCell.Blocked)
         {
             return new PathResult(PathStatus.Unreachable, [], 0);
         }
@@ -124,8 +137,6 @@ public static class PathFinder
             return new PathResult(PathStatus.Found, [], 0);
         }
 
-        var w = map.WidthCells;
-        var size = w * map.DepthCells;
         var s = scratch is { } given && given.Size == size ? given : new Scratch(size);
         if (++s.Stamp == int.MaxValue)
         {
@@ -184,14 +195,14 @@ public static class PathFinder
                     continue;
                 }
 
-                var cost = map.Cell(nx, nz).WalkCost;
+                var cost = CostOf(nx, nz);
                 if (cost == MapCell.Blocked)
                 {
                     continue;
                 }
 
                 // No corner cutting: a diagonal step needs both orthogonal neighbours walkable.
-                if (dx != 0 && dz != 0 && (map.Cell(cx + dx, cz).WalkCost == MapCell.Blocked || map.Cell(cx, cz + dz).WalkCost == MapCell.Blocked))
+                if (dx != 0 && dz != 0 && (CostOf(cx + dx, cz) == MapCell.Blocked || CostOf(cx, cz + dz) == MapCell.Blocked))
                 {
                     continue;
                 }

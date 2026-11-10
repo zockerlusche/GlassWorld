@@ -442,7 +442,7 @@ namespace GlassWorld.Contracts
     {
 
         /// <summary>
-        /// Half the tidal range in height units; 0 turns the tides off (R15).
+        /// Half the tidal range in height units; 0 turns the tides off (R15). The level follows from the world tick by the curve; the walk costs of the shallow sea follow it in whole height units.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("amplitude")]
         public int Amplitude { get; set; } = default!;
@@ -530,6 +530,13 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("cost_per_slope_unit")]
         public int CostPerSlopeUnit { get; set; } = default!;
+
+        /// <summary>
+        /// Optional (B2-5 R15): extra cost of one step through a shallow sea cell while the tide lifts its water above water.shallow_max_depth, on top of the cell's cost, in the unit of cost_shallow_water. The cell stays walkable, so nobody is trapped by the tide. Missing = no extra cost. PLACEHOLDER: the value in the presets (60) is not balanced and stays a placeholder until Marcel decides it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("cost_flooded_water")]
+        public int? CostFloodedWater { get; set; } = default!;
 
     }
 

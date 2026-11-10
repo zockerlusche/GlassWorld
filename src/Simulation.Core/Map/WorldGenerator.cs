@@ -701,10 +701,21 @@ public static partial class WorldGenerator
         cost += slope * preset.Pathfinding.CostPerSlopeUnit * 100 / Math.Max(1, preset.Pathfinding.CostFlat);
         if (water[i] != WaterKind.None)
         {
-            cost += preset.Pathfinding.CostShallowWater * 100 / Math.Max(1, preset.Pathfinding.CostFlat);
+            cost += WaterCost(preset.Pathfinding.CostShallowWater, preset.Pathfinding);
         }
 
         return cost;
+    }
+
+    /// <summary>
+    /// A water cost of the preset's pathfinding (cost_shallow_water, cost_flooded_water) in walk cost units
+    /// (1000 = flat meadow): the part a water cell's walk cost carries for it. The tide layer uses the same
+    /// conversion (B2-5 R15).
+    /// </summary>
+    public static int WaterCost(int cost, WorldPresetPathfinding pathfinding)
+    {
+        ArgumentNullException.ThrowIfNull(pathfinding);
+        return cost * 100 / Math.Max(1, pathfinding.CostFlat);
     }
 
     // ---------------------------------------------------------------- objects and starts
