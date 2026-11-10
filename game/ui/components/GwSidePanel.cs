@@ -32,7 +32,18 @@ public partial class GwSidePanel : PanelContainer
     }
 
     /// <summary>Sets the title key.</summary>
-    public void Setup(string titleKey) => _title.Text = titleKey;
+    public void Setup(string titleKey)
+    {
+        _title.AutoTranslateMode = AutoTranslateModeEnum.Inherit;
+        _title.Text = titleKey;
+    }
+
+    /// <summary>Sets the title to finished text (e.g. an inhabitant's name) that is never translated.</summary>
+    public void SetTitleText(string text)
+    {
+        _title.AutoTranslateMode = AutoTranslateModeEnum.Disabled;
+        _title.Text = text;
+    }
 
     /// <summary>Places the panel at the right edge of <paramref name="area"/> (logical pixels).</summary>
     /// <param name="area">The screen (logical pixels).</param>
@@ -41,18 +52,20 @@ public partial class GwSidePanel : PanelContainer
     /// <param name="top">Upper edge; 0 = the safe margin (zones layout: below the top bar).</param>
     /// <param name="left">True docks at the left edge instead (the pinned log of the zones layout).</param>
     /// <param name="heightShare">Share of the free height the panel takes (1 = all).</param>
-    public void Dock(Vector2 area, UiStyle style, float rightOffset, float top = 0, bool left = false, float heightShare = 1)
+    /// <param name="widthPx">Width at the reference size; 0 = the side panel width of the window tokens.</param>
+    public void Dock(Vector2 area, UiStyle style, float rightOffset, float top = 0, bool left = false, float heightShare = 1, float widthPx = 0)
     {
         ArgumentNullException.ThrowIfNull(style);
         var margin = style.Tokens.Window.SafeMargin;
         // Grows with the text size so headers stay readable (D366 section 2), never beyond the screen.
-        var wanted = style.Tokens.Window.SidePanelWidth * (float)Math.Max(1, style.Settings.TextScale);
+        var wanted = (widthPx > 0 ? widthPx : style.Tokens.Window.SidePanelWidth) * (float)Math.Max(1, style.Settings.TextScale);
         var width = Math.Min(wanted, area.X - (2 * margin) - rightOffset);
         // A wrapping label measures itself at its current width (one letter per line before the first
         // layout), so wrap the title only when it really does not fit.
         _title.AutowrapMode = TextServer.AutowrapMode.Off;
         _title.CustomMinimumSize = Vector2.Zero;
-        var padding = 2 * (style.Tokens.Window.Padding + style.Frame(GlassWorld.Contracts.UiFrameId.Window).ContentPadding);
+        var inner = ThemeTypeVariation == UiTheme.CompactPanel ? style.Tokens.Zones.PanelPadding : style.Tokens.Window.Padding;
+        var padding = 2 * (inner + style.Frame(GlassWorld.Contracts.UiFrameId.Window).ContentPadding);
         if (_title.GetCombinedMinimumSize().X > width - padding)
         {
             _title.AutowrapMode = TextServer.AutowrapMode.WordSmart;
@@ -93,6 +106,9 @@ public partial class GwSideBar : VBoxContainer
         _entries[key] = (button, panel);
         return panel;
     }
+
+    /// <summary>The side button of a key (hidden for windows that only the zones layout opens).</summary>
+    public Button ButtonOf(string key) => _entries[key].Button;
 
     /// <summary>The panel of a key.</summary>
     public GwSidePanel PanelOf(string key) => _entries[key].Panel;

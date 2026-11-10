@@ -140,6 +140,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("cloud_permille")]
         public int CloudPermille { get; set; } = default!;
 
+        /// <summary>
+        /// How far the inhabitants see in this weather, in permille of their sight range (B2594): the core scales the exploration range (cells) and the perception radius (metres) with it; of several conditions at once the lowest counts. Absent = 1000 (full sight). Placeholder.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("sight_permille")]
+        public int? SightPermille { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]

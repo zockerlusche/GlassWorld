@@ -148,11 +148,12 @@ if ! grep -Eq '^CLIPS_OK bodies=adult_female,adult_male,child reference=ual1_sta
   exit 1
 fi
 # Arms and torso (B2528, TL #19090): the clips the figures play must not push an arm into the body.
+# Every clip is sampled at fixed times (not with the frame time), so every run gives the same numbers.
 PEN_LOG="$(mktemp)"
 timeout "$TIMEOUT_S" "$GODOT" --headless --path "$GAME" --quit-after 6000 res://prototype/look/penetration_check.tscn >"$PEN_LOG" 2>&1
-if ! grep -Eq '^PENETRATION_OK samples=[1-9][0-9]* .* used_over=0$' "$PEN_LOG"; then
+if ! grep -Eq '^PENETRATION_OK samples=[1-9][0-9]* .* missing=0 .* used_over=0$' "$PEN_LOG"; then
   cat "$PEN_LOG" >&2
-  echo "SMOKE_FAIL: an arm goes into the body in a clip the figures play (marker 'PENETRATION_OK ... used_over=0' missing)" >&2
+  echo "SMOKE_FAIL: an arm goes into the body in a clip the figures play (marker 'PENETRATION_OK ... missing=0 ... used_over=0' missing)" >&2
   exit 1
 fi
 # Building plans (D471 D6): one mesh per part, inside the part sizes, visible step by step.

@@ -599,7 +599,8 @@
     {
       "id": "spark",
       "types": [
-        "spark"
+        "spark",
+        "fire"
       ],
       "shape": "fruit",
       "colors": [

@@ -1,0 +1,48 @@
+{
+  "contract_version": "0.2",
+  "points": [
+    {
+      "id": "sleep_steep",
+      "target_x_permille": 500,
+      "target_z_permille": 500,
+      "yaw_deg": 30,
+      "distance_m": 6,
+      "pitch_deg": 25,
+      "inhabitant": 0
+    },
+    {
+      "id": "sleep_steep_side",
+      "target_x_permille": 500,
+      "target_z_permille": 500,
+      "yaw_deg": 120,
+      "distance_m": 6,
+      "pitch_deg": 12,
+      "inhabitant": 0
+    },
+    {
+      "id": "sleep_gentle",
+      "target_x_permille": 500,
+      "target_z_permille": 500,
+      "yaw_deg": 200,
+      "distance_m": 5,
+      "pitch_deg": 20,
+      "inhabitant": 2
+    },
+    {
+      "id": "sleep_slope",
+      "target_x_permille": 500,
+      "target_z_permille": 500,
+      "yaw_deg": 300,
+      "distance_m": 5,
+      "pitch_deg": 15,
+      "inhabitant": 3
+    }
+  ],
+  "projections": [
+    "perspective"
+  ],
+  "phases": [
+    "day"
+  ],
+  "settle_frames": 12
+}
