@@ -39,7 +39,7 @@ public sealed class DaylightMixTests
         Assert.InRange(dusk.Stars, 0.01, night.Stars - 0.01);
         var half = dusk.Lerp(night, 0.5);
         Assert.InRange(half.Stars, dusk.Stars, night.Stars);
-        Assert.InRange(half.LightEnergy, Math.Min(dusk.LightEnergy, night.LightEnergy), Math.Max(dusk.LightEnergy, night.LightEnergy));
+        Assert.InRange(half.LightEnergy, 0, Math.Max(dusk.LightEnergy, night.LightEnergy));
         Assert.InRange(half.LightElevationDeg, 0, 90);
         Assert.Equal(night, dusk.Lerp(night, 1));
         Assert.Equal(dusk, dusk.Lerp(night, 0));

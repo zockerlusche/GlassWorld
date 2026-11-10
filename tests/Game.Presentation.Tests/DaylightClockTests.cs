@@ -54,24 +54,54 @@ public sealed class DaylightClockTests
             Assert.InRange(Math.Abs(mix.Stars - previous.Stars), 0, 0.02);
             Assert.InRange(Math.Abs(mix.ShadowOpacity - previous.ShadowOpacity), 0, 0.02);
             Assert.InRange(Math.Abs(mix.AmbientEnergy - previous.AmbientEnergy), 0, 0.02);
-            Assert.InRange(Math.Abs(mix.LightElevationDeg - previous.LightElevationDeg), 0, 2);
+            if (mix.MoonLit == previous.MoonLit)
+            {
+                Assert.InRange(Math.Abs(mix.LightElevationDeg - previous.LightElevationDeg), 0, 2);
+            }
+            else
+            {
+                // The direction jumps only at the hand-over, where the light is (almost) out.
+                Assert.InRange(Math.Max(mix.LightEnergy, previous.LightEnergy), 0, 0.02);
+            }
+
+            Assert.True(mix.AmbientEnergy >= Daylight.NightMinBrightness);
             previous = mix;
         }
     }
 
-    [Fact]
-    public void TheShadowFadesAcrossTheHandOverToTheMoonInsteadOfPopping()
+    [Theory]
+    [InlineData("dusk", "night")]
+    [InlineData("night", "dawn")]
+    public void TheHandOverFadesOutJumpsAndFadesInWithoutPassingTheZenith(string from, string to)
     {
-        var (dusk, night) = (DaylightMix.Of(Daylight, "dusk"), DaylightMix.Of(Daylight, "night"));
-        Assert.False(Daylight.Moon.Shadows);
-        Assert.Equal((1.0, 0.0), (dusk.ShadowOpacity, night.ShadowOpacity));
+        var (a, b) = (DaylightMix.Of(Daylight, from), DaylightMix.Of(Daylight, to));
+        Assert.NotEqual(a.MoonLit, b.MoonLit);
+        var highest = Math.Max(a.LightElevationDeg, b.LightElevationDeg);
+        var (previous, minimum) = (a, double.MaxValue);
+        for (var t = 0.001; t <= 1; t += 0.001)
+        {
+            var mix = a.Lerp(b, t);
 
-        // Around t = 0.5 the opacity changes as little as t itself; it reaches 0 only with the moon.
-        var (before, after) = (dusk.Lerp(night, 0.499), dusk.Lerp(night, 0.501));
-        Assert.InRange(Math.Abs(before.ShadowOpacity - after.ShadowOpacity), 0, 0.01);
-        Assert.InRange(dusk.Lerp(night, 0.5).ShadowOpacity, 0.4, 0.6);
-        Assert.True(dusk.Lerp(night, 0.99).Shadows);
-        Assert.False(dusk.Lerp(night, 1).Shadows);
+            // Only the two directions themselves, never one in between (sun 35° and moon 200° would cross the zenith).
+            Assert.InRange(mix.LightElevationDeg, 0, highest + 1e-9);
+            Assert.Contains((mix.LightElevationDeg, mix.LightAzimuthDeg), new[] { (a.LightElevationDeg, a.LightAzimuthDeg), (b.LightElevationDeg, b.LightAzimuthDeg) });
+
+            // Light and shadow change continuously; at the jump both are out.
+            Assert.InRange(Math.Abs(mix.LightEnergy - previous.LightEnergy), 0, 0.01);
+            Assert.InRange(Math.Abs(mix.ShadowOpacity - previous.ShadowOpacity), 0, 0.01);
+            if (mix.LightAzimuthDeg != previous.LightAzimuthDeg)
+            {
+                Assert.InRange(mix.LightEnergy + previous.LightEnergy, 0, 0.01);
+                Assert.InRange(mix.ShadowOpacity + previous.ShadowOpacity, 0, 0.01);
+            }
+
+            Assert.True(mix.AmbientEnergy >= Daylight.NightMinBrightness);
+            minimum = Math.Min(minimum, mix.LightEnergy);
+            previous = mix;
+        }
+
+        Assert.InRange(minimum, 0, 0.01);
+        Assert.Equal(b, a.Lerp(b, 1));
     }
 
     [Fact]
