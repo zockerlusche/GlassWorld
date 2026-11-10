@@ -291,9 +291,19 @@ public static partial class WorldGenerator
         }
 
         SmoothShortCliffs(heights, w, d, step, preset.Terrain.CliffMinRunCells, preset.Terrain.CliffSmoothingRounds);
+        // Rock faces (version 4): the walls to keep are chosen on the terraces as they stand (a stack counts
+        // with all its steps, as in version 3); then the stacks sink into one face each.
+        var faces = preset.Terrain.RockFaces;
+        bool[]? chosen = null;
+        if (faces is not null)
+        {
+            chosen = preset.Terrain.RockSlopes is { } keep ? LongestWalls(heights, terraced, w, d, step, keep.WallsKept) : null;
+            SinkLedges(heights, terraced, w, d, step, faces);
+        }
+
         if (preset.Terrain.RockSlopes is { } slopes)
         {
-            NaturalRock(heights, tread, terraced, w, d, step, slopes);
+            NaturalRock(heights, tread, terraced, w, d, step, slopes, faces, chosen, preset.Terrain.SeaLevel);
         }
 
         var cliffs = 0;
@@ -353,21 +363,19 @@ public static partial class WorldGenerator
     /// <summary>
     /// Natural rock (TL #19984, #19990): the longest terrace walls (cliff-top runs) stay sheer with their foot, so
     /// caves keep their place; every other terrace tread gets back the data share of its original relief
-    /// (no flat plateau), and every step steeper than the talus settles into a scree slope.
+    /// (no flat plateau), and every step steeper than the talus settles into a scree slope. With rock faces
+    /// (version 4) the walls kept are those that touch the cells chosen before the stacks sank, and the foot
+    /// level stays level for the data distance in front of them.
     /// </summary>
-    private static void NaturalRock(int[] heights, int[] tread, bool[] terraced, int w, int d, int step, WorldPresetRockSlopes slopes)
+    private static void NaturalRock(int[] heights, int[] tread, bool[] terraced, int w, int d, int step, WorldPresetRockSlopes slopes, WorldPresetRockFaces? faces, bool[]? chosen, int sea)
     {
-        var top = new bool[w * d];
-        for (var z = 0; z < d; z++)
-        {
-            for (var x = 0; x < w; x++)
-            {
-                top[(z * w) + x] = terraced[(z * w) + x] && IsCliffTop(heights, w, d, x, z, step);
-            }
-        }
-
+        var runs = Components4(WallTops(heights, terraced, w, d, step), w, d);
+        var keptRuns = chosen is null
+            ? runs.OrderByDescending(r => r.Count).ThenBy(r => r[0]).Take(slopes.WallsKept)
+            : runs.Where(r => r.Exists(c => chosen[c]));
         var kept = new bool[w * d];
-        foreach (var run in Components4(top, w, d).OrderByDescending(r => r.Count).ThenBy(r => r[0]).Take(slopes.WallsKept))
+        var feet = new List<int>();
+        foreach (var run in keptRuns)
         {
             foreach (var c in run)
             {
@@ -378,9 +386,15 @@ public static partial class WorldGenerator
                     if (nx >= 0 && nz >= 0 && nx < w && nz < d && heights[c] - heights[(nz * w) + nx] >= step)
                     {
                         kept[(nz * w) + nx] = true;
+                        feet.Add((nz * w) + nx);
                     }
                 }
             }
+        }
+
+        if (faces is not null)
+        {
+            KeepLevelFoot(heights, terraced, kept, feet, w, d, faces.FootCells);
         }
 
         for (var i = 0; i < heights.Length; i++)
@@ -392,6 +406,10 @@ public static partial class WorldGenerator
         }
 
         Settle(heights, kept, w, d, slopes.Talus, slopes.SharePermille, slopes.Rounds);
+        if (faces is not null)
+        {
+            ScreeBelowCliff(heights, kept, w, d, step, sea, faces.ScreeRounds);
+        }
     }
 
     /// <summary>
@@ -502,7 +520,10 @@ public static partial class WorldGenerator
         return false;
     }
 
-    /// <summary>Single rocks: small round bumps on land (R3).</summary>
+    /// <summary>
+    /// Single rocks: small round bumps on land (R3). With rock faces (version 4) a rock does not lie where
+    /// its bump would make a one-step wall on a steep slope (TL #20548); the draws stay the same.
+    /// </summary>
     private static void Rocks(WorldPreset preset, int[] heights, int w, int d, Pcg32 rng)
     {
         var sea = preset.Terrain.SeaLevel;
@@ -510,7 +531,7 @@ public static partial class WorldGenerator
         for (var k = 0; k < count; k++)
         {
             int x = rng.NextInt(2, w - 2), z = rng.NextInt(2, d - 2);
-            if (heights[(z * w) + x] <= sea + 2)
+            if (heights[(z * w) + x] <= sea + 2 || (preset.Terrain.RockFaces is not null && BumpMakesWall(heights, w, x, z, preset.Terrain.CliffMinDrop)))
             {
                 continue;
             }
@@ -814,7 +835,11 @@ public static partial class WorldGenerator
             && rng.NextInt(0, 1000) >= keep);
     }
 
-    /// <summary>Caves: rock niches at the foot of cliffs in rocky hills (R6, B2514 T3).</summary>
+    /// <summary>
+    /// Caves: rock niches at the foot of cliffs in rocky hills (R6, B2514 T3). With rock faces (version 4)
+    /// only at the foot of faces on the island's largest walkable ground, so a cave can be walked to from
+    /// the level ground in front (TL #20548); where there is none there, anywhere as before.
+    /// </summary>
     private static void Caves(WorldPreset preset, WorldMap map, List<IslandObject> objects, Pcg32 rng)
     {
         var candidates = new List<(int X, int Z)>();
@@ -837,6 +862,16 @@ public static partial class WorldGenerator
                         break;
                     }
                 }
+            }
+        }
+
+        if (preset.Terrain.RockFaces is not null)
+        {
+            var main = LargestWalkableArea(map);
+            var onMain = candidates.Where(c => main[(c.Z * map.WidthCells) + c.X]).ToList();
+            if (onMain.Count > 0)
+            {
+                candidates = onMain;
             }
         }
 

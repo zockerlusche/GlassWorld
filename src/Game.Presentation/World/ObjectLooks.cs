@@ -285,7 +285,30 @@ public sealed class ObjectLooks
 
         var up = new Point3(-best.Gx, 1, -best.Gz);
         var norm = Math.Sqrt((up.X * up.X) + 1 + (up.Z * up.Z));
-        return new ObjectPlacement(obj.Id, x, best.Height + look.LiftM, z, best.Yaw, scale, new Point3(up.X / norm, 1 / norm, up.Z / norm));
+        var lying = new ObjectPlacement(obj.Id, x, best.Height + look.LiftM, z, best.Yaw, scale, new Point3(up.X / norm, 1 / norm, up.Z / norm));
+
+        // The fit works on the ground under the footprint, the tilted object turns about its centre: where that
+        // lifts a rim point beyond the tolerance after all (steep, uneven ground), it stands upright instead.
+        return RestsWithin(lying, look, ground, fit.ToleranceM) ? lying : new ObjectPlacement(obj.Id, x, ground(x, z) + look.LiftM, z, yaw, scale, new Point3(0, 1, 0));
+    }
+
+    /// <summary>Whether every rim point of the tilted footprint (16 directions, centre, half and full) lies within the tolerance of the ground.</summary>
+    private static bool RestsWithin(ObjectPlacement placed, ObjectLook look, Func<double, double, double> ground, double tolerance)
+    {
+        for (var k = 0; k < 16; k++)
+        {
+            var a = k * Math.PI / 8;
+            foreach (var share in (ReadOnlySpan<double>)[0.5, 1.0])
+            {
+                var p = placed.ToWorld(new Point3(Math.Cos(a) * look.FootprintM * share, 0, Math.Sin(a) * look.HalfWidthM * share));
+                if (Math.Abs(p.Y - look.LiftM - ground(p.X, p.Z)) > tolerance)
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     /// <summary>

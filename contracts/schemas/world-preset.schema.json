@@ -223,6 +223,9 @@
         },
         "rock_slopes": {
           "$ref": "#/$defs/WorldPresetRockSlopes"
+        },
+        "rock_faces": {
+          "$ref": "#/$defs/WorldPresetRockFaces"
         }
       }
     },
@@ -301,6 +304,57 @@
         },
         "rounds": {
           "description": "Rounds of settling.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 64
+        }
+      }
+    },
+    "WorldPresetRockFaces": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Rock faces instead of step stacks (generator version 4, TL #20548, W1726): where the terraces form a stack of one-step ledges (each a narrow walkable tread with a wall of cliff_min_drop), the ledges sink to the level below until the stack is one higher face with level ground in front; the kept walls of rock_slopes keep that level ground for foot_cells. Absent = version-3 terraces.",
+      "required": [
+        "ledge_max_cells",
+        "max_steps",
+        "foot_cells",
+        "block_max_cells",
+        "rounds",
+        "scree_rounds"
+      ],
+      "properties": {
+        "ledge_max_cells": {
+          "description": "Widest tread (cells, between a wall above and a wall below) that counts as a ledge of a step stack and sinks to the level below.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        },
+        "max_steps": {
+          "description": "Highest rock face in cliff steps (cliff_min_drop): a ledge sinks only while the face above it stays within this height.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        },
+        "foot_cells": {
+          "description": "Level ground in front of the kept walls: terraced cells of the foot's exact level within this distance (cells) keep that level (no tread relief, no scree). 0 = only the foot cell, as in version 3.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 64
+        },
+        "block_max_cells": {
+          "description": "Largest level group of terraced cells (cells) that stands as a lone block one cliff step above all its surroundings and sinks with the ledges (leftover of a sunk stack). 0 = none.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4096
+        },
+        "rounds": {
+          "description": "Rounds of sinking ledges (each lowers the ledges of a round by one cliff step).",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 64
+        },
+        "scree_rounds": {
+          "description": "Rounds in which land away from the kept walls that still stands a cliff step or more above its lowest land neighbour (scree that did not settle, steep coasts) comes down to one below the cliff step, so only the kept faces are walls. 0 = off.",
           "type": "integer",
           "minimum": 0,
           "maximum": 64
