@@ -234,6 +234,63 @@ public sealed class WeatherSightTests : IDisposable
         Assert.Null(Chosen(host, inhabitant, home)?.TargetId);
     }
 
+    /// <summary>
+    /// Review GW2 #198: the help check and the routine agree. A search that ends while the need presses is a
+    /// futile attempt only when the inhabitant can aim at nothing that helps - and the water it remembers
+    /// nearby is something it can aim at, fog or not.
+    /// </summary>
+    [Fact]
+    public void InFogTheHelpCheckCountsTheKnownPlaceLikeTheRoutineDoes()
+    {
+        // In the open the water is seen: searching on is no futile attempt.
+        Assert.Equal(0, FutileAttemptsAfterASearch(Open.Weather, remembered: false, gone: false));
+
+        // In the fog and unknown: nothing in sight helps, the attempt counts.
+        Assert.Equal(1, FutileAttemptsAfterASearch(Thick.Weather, remembered: false, gone: false));
+
+        // In the fog and remembered: the routine would walk there, so it does not count ...
+        Assert.Equal(0, FutileAttemptsAfterASearch(Thick.Weather, remembered: true, gone: false));
+
+        // ... unless the remembered thing is gone, which is no goal for the routine either.
+        Assert.Equal(1, FutileAttemptsAfterASearch(Thick.Weather, remembered: true, gone: true));
+    }
+
+    [Fact]
+    public void WhatAnInhabitantCanAimAtIsWhatItSeesAndInFogWhatItRemembersNearby()
+    {
+        var host = Island(7);
+        var inhabitant = host.Inhabitants.All.First();
+        var sight = PerceptionRadiusM * (Thick.SightPermille ?? Sight.Full) / Sight.Full;
+        foreach (var obj in host.Objects.All.ToList())
+        {
+            host.Objects.Remove(obj.Id);
+        }
+
+        var near = host.Objects.Spawn(Water, new Position(inhabitant.Position.X + (sight / 2), inhabitant.Position.Z));
+        var far = host.Objects.Spawn(Water, new Position(inhabitant.Position.X - (sight + ((PerceptionRadiusM - sight) / 2)), inhabitant.Position.Z));
+        var beyond = host.Objects.Spawn(Water, new Position(inhabitant.Position.X, inhabitant.Position.Z + (PerceptionRadiusM * 1.5)));
+        var max = host.Content.Knowledge.Looking!.PlaceMemoryMax;
+
+        host.WeatherSystem!.Force(Open.Weather, host.World.Tick);
+        Assert.Equal([near.Id, far.Id], host.Inhabitants.InAim(inhabitant).Select(o => o.Id));
+
+        host.WeatherSystem.Force(Thick.Weather, host.World.Tick);
+        Assert.Equal([near.Id], host.Inhabitants.InAim(inhabitant).Select(o => o.Id));
+
+        // Remembered: the far one counts again, the one beyond the usual radius does not, and a thing seen
+        // and remembered is there once.
+        foreach (var known in new[] { near, far, beyond })
+        {
+            inhabitant.RememberPlace(known.Id, new PlaceMemory(Water, known.Position, host.World.Tick), max);
+        }
+
+        Assert.Equal([near.Id, far.Id], host.Inhabitants.InAim(inhabitant).Select(o => o.Id));
+
+        // In the open the memory adds nothing to what is seen.
+        host.WeatherSystem.Force(Open.Weather, host.World.Tick);
+        Assert.Equal([near.Id, far.Id], host.Inhabitants.InAim(inhabitant).Select(o => o.Id));
+    }
+
     [Fact]
     public void AThingThatWasUsedAndIsStillThereIsARememberedPlace()
     {
@@ -420,6 +477,50 @@ public sealed class WeatherSightTests : IDisposable
 
         inhabitant.Needs[Thirst] = 0.1;
         return inhabitant;
+    }
+
+    /// <summary>
+    /// The futile attempts the player system counts when a search of a parched inhabitant ends, with water it
+    /// believes drinkable out of sight in the thick weather but within the usual radius.
+    /// </summary>
+    private static int FutileAttemptsAfterASearch(string weatherId, bool remembered, bool gone)
+    {
+        var host = Island(7);
+        var inhabitant = Parched(host);
+        var home = inhabitant.Position;
+        var sight = PerceptionRadiusM * (Thick.SightPermille ?? Sight.Full) / Sight.Full;
+        foreach (var obj in host.Objects.All.ToList())
+        {
+            host.Objects.Remove(obj.Id);
+        }
+
+        var water = host.Objects.Spawn(Water, new Position(home.X + sight + ((PerceptionRadiusM - sight) / 2), home.Z));
+        inhabitant.Beliefs.Set(Water, Drinkable, true, 1.0, KnowledgeSources.Experienced, null, 1);
+        if (remembered)
+        {
+            inhabitant.RememberPlace(water.Id, new PlaceMemory(Water, water.Position, host.World.Tick), host.Content.Knowledge.Looking!.PlaceMemoryMax);
+        }
+
+        if (gone)
+        {
+            host.Objects.Remove(water.Id);
+        }
+
+        host.WeatherSystem!.Force(weatherId, host.World.Tick);
+        var search = host.Content.GiftRules.SearchActions.First();
+        inhabitant.Activity = new Activity(search, null, home, null);
+        var seq = host.Inhabitants.LastEventSeq;
+        for (var tick = 0; tick < 200; tick++)
+        {
+            inhabitant.Needs[Thirst] = 0.05;
+            host.World.Step();
+            if (host.Inhabitants.EventsSince(seq).Any(e => e.Event.Kind == InhabitantsSystem.ActionFinished && e.Event.InhabitantId == inhabitant.Id && e.Event.Action == search))
+            {
+                return host.Player.AttemptsOf(inhabitant.Id, Thirst);
+            }
+        }
+
+        throw new InvalidOperationException("The search did not end.");
     }
 
     /// <summary>What the routine chooses for the inhabitant at the next tick, from where it stood at first and with its thirst still pressing.</summary>

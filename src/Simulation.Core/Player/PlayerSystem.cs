@@ -282,11 +282,15 @@ public sealed class PlayerSystem : IWorldSystem
     private IEnumerable<string> PressingCandidates() =>
         _weights.Considerations.Where(c => c.Need is not null && c.TargetProperty is not null).Select(c => c.Need!).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal);
 
-    /// <summary>By its own beliefs: does the inhabitant see anything that might help with the need?</summary>
+    /// <summary>
+    /// By its own beliefs: can the inhabitant aim at anything that might help with the need? The same things
+    /// the routine chooses among (<see cref="InhabitantsSystem.InAim"/>): what it sees and, while the
+    /// weather shortens the sight, the places it remembers within the usual radius (B2594), so someone
+    /// walking to the water it knows in the fog does not count as seeing nothing that helps.
+    /// </summary>
     private bool SeemsHelpful(Inhabitant inhabitant, string need)
     {
-        var radius = _inhabitants.SightRadiusM;
-        var seen = _objects.All.Where(o => DistanceSquared(inhabitant.Position, o.Position) <= radius * radius).ToList();
+        var seen = _inhabitants.InAim(inhabitant);
         return _weights.Considerations
             .Where(c => c.Need == need && c.TargetProperty is not null)
             .Any(c => seen.Any(o => _brain.BeliefFactor(inhabitant, o.TypeId, c.TargetProperty!) > 0));

@@ -238,6 +238,42 @@ public sealed class InhabitantsSystem : IWorldSystem
     public double SightRadiusM => Sight.Metres(_brain.Weights.PerceptionRadiusM);
 
     /// <summary>
+    /// What an inhabitant can aim at right now (B2594), the one answer for the routine's goals and for the
+    /// check whether it sees anything that helps: every thing it sees (within <see cref="SightRadiusM"/>)
+    /// and, while the sight is shorter than the radius of the data, every thing it remembers (place memory,
+    /// #142) within that usual radius. So the weather hides what the inhabitant does not know, and nobody
+    /// goes thirsty in the fog next to the water it knows. Seen things first, in the order of the objects,
+    /// then remembered ones in the order of their ids; whether a thing can be walked to is the caller's question.
+    /// <para>
+    /// A remembered place counts only while its thing still stands there. That is a small piece of the
+    /// world's truth in the routine: in the fog the inhabitant cannot see that the thing is gone. It is
+    /// chosen on purpose, so nobody walks to nothing; B5 "last seen" (D634 R35) must pick this up and let
+    /// the inhabitant find out for itself.
+    /// </para>
+    /// </summary>
+    public List<WorldObject> InAim(Inhabitant inhabitant)
+    {
+        ArgumentNullException.ThrowIfNull(inhabitant);
+        var radius = _brain.Weights.PerceptionRadiusM;
+        var sight = Sight.Metres(radius);
+        var aim = _objects.All.Where(o => DistanceSquared(inhabitant.Position, o.Position) <= sight * sight).ToList();
+        if (sight < radius)
+        {
+            foreach (var (objectId, place) in inhabitant.Places)
+            {
+                var distance = DistanceSquared(inhabitant.Position, place.Position);
+                if (distance > sight * sight && distance <= radius * radius
+                    && _objects.TryGet(objectId, out var known) && known.TypeId == place.TypeId && known.Position == place.Position)
+                {
+                    aim.Add(known);
+                }
+            }
+        }
+
+        return aim;
+    }
+
+    /// <summary>
     /// Where the land an inhabitant has not seen yet begins (B2-6 R14, set by the host on worlds with an
     /// island); null from it = nothing left to explore on foot. Without it no action happens at the frontier.
     /// </summary>
@@ -909,29 +945,12 @@ public sealed class InhabitantsSystem : IWorldSystem
     private Activity? Choose(World world, Inhabitant inhabitant)
     {
         // The radius of the data stays the measure for walking (distance falloff, a random spot nearby);
-        // what the inhabitant sees ends where the weather lets it see (B2594).
+        // what the inhabitant can aim at ends where the weather lets it see, known places aside (B2594, InAim).
         var radius = _brain.Weights.PerceptionRadiusM;
-        var sight = Sight.Metres(radius);
         // On a map only what can be walked to counts (B2 R10): things beyond deep water or cliffs are no goals.
-        var perceived = _objects.All
-            .Where(o => DistanceSquared(inhabitant.Position, o.Position) <= sight * sight && (Routes is null || Routes.Connected(inhabitant.Position, o.Position)))
+        var perceived = InAim(inhabitant)
+            .Where(o => Routes is null || Routes.Connected(inhabitant.Position, o.Position))
             .ToList();
-        if (sight < radius)
-        {
-            // The weather hides what the inhabitant does not know. A thing it remembers (place memory, #142)
-            // and that still stands where it remembers it stays a goal within the usual radius, so nobody
-            // goes thirsty in the fog next to the water it knows.
-            foreach (var (objectId, place) in inhabitant.Places)
-            {
-                var distance = DistanceSquared(inhabitant.Position, place.Position);
-                if (distance > sight * sight && distance <= radius * radius
-                    && _objects.TryGet(objectId, out var known) && known.TypeId == place.TypeId && known.Position == place.Position
-                    && (Routes is null || Routes.Connected(inhabitant.Position, known.Position)))
-                {
-                    perceived.Add(known);
-                }
-            }
-        }
 
         // Looking further away gives up after the data's hours, until the need is met or something that
         // seems as good is in sight again (review GW3 #118: no endless search for what is gone).
