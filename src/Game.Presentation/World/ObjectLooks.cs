@@ -14,6 +14,7 @@ namespace GlassWorld.Presentation.World;
 /// <param name="FootprintM">Radius of the footprint at size factor 1 (half the length along local x for a long object).</param>
 /// <param name="Align">Upright, or lying on the ground following its slope (D576).</param>
 /// <param name="FootprintWidthM">Half width of an elongated footprint across local x at size factor 1 (null = round).</param>
+/// <param name="SwayM">How far the top moves in full wind at size factor 1 (metres; 0 = it stands still, B2-5 R21).</param>
 public sealed record ObjectLook(
     string VisualId,
     ObjectLookShape Shape,
@@ -24,7 +25,8 @@ public sealed record ObjectLook(
     ObjectLookRest Rest = ObjectLookRest.Centre,
     double FootprintM = 0,
     ObjectLookAlign Align = ObjectLookAlign.Upright,
-    double? FootprintWidthM = null)
+    double? FootprintWidthM = null,
+    double SwayM = 0)
 {
     /// <summary>The colour of a role; a shape with more roles than colours repeats them from the start.</summary>
     public string Color(int role) => Colors[role % Colors.Count];
@@ -152,7 +154,7 @@ public sealed class ObjectLooks
             }
 
             CheckColors($"visual '{visual.Id}'", visual.Colors);
-            var look = new ObjectLook(visual.Id, visual.Shape, [.. visual.Colors], visual.SizeM, visual.SizeJitter, visual.LiftM, visual.Rest, visual.FootprintM, visual.Align, visual.FootprintWidthM);
+            var look = new ObjectLook(visual.Id, visual.Shape, [.. visual.Colors], visual.SizeM, visual.SizeJitter, visual.LiftM, visual.Rest, visual.FootprintM, visual.Align, visual.FootprintWidthM, visual.SwayM ?? 0);
             visuals.Add(look);
             foreach (var type in visual.Types)
             {

@@ -136,6 +136,10 @@
     {
       "id": "shadow_tint",
       "color": "#d9c7d9"
+    },
+    {
+      "id": "snow",
+      "color": "#f3f6f8"
     }
   ],
   "ramp": [

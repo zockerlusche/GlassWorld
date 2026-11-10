@@ -297,6 +297,7 @@ public partial class WorldPresenter : Node3D
         {
             ProcessIsland(ticks);
             FollowTheClock();
+            FollowNature(delta);
             _clock += delta;
             ShowThoughts();
             ObserverCamera();

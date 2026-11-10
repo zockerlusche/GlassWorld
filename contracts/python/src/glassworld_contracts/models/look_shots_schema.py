@@ -91,6 +91,12 @@ class ShotPoint(BaseModel):
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
+    season: str | None = Field(
+        None,
+        description='Optional: this point is shot in this season (content/world/time.json), once, instead of once per season of the set.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
     scene: ShotScene | None = Field(
         None,
         description='Optional: the scene finder picks the target near a start instead of the map target (the permille target is the fallback when no spot fits).',

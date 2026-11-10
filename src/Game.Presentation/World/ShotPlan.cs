@@ -37,8 +37,9 @@ public sealed record Shot(
 /// <summary>
 /// The screenshot plan from <c>content/look/shots.json</c> (B2 R32): every point × projection × day phase,
 /// and with the optional lists also × epoch × season × weather. Without those lists the plan and the file
-/// names are exactly those of the tool before them. Pictures of one epoch and season come one after the
-/// other, so the island is recoloured only when they change. Presentation only.
+/// names are exactly those of the tool before them. Pictures of one epoch come one after the other, so
+/// the island is recoloured only when it changes. A point may force its season (<c>season</c>): it is then
+/// shot once with it instead of once per season of the set. Presentation only.
 /// </summary>
 public static class ShotPlan
 {
@@ -56,14 +57,22 @@ public static class ShotPlan
         ArgumentNullException.ThrowIfNull(weatherWithLook);
         IEnumerable<string?> Optional(ICollection<string>? ids) => ids is { Count: > 0 } ? ids.Select(id => (string?)id) : [null];
         var plan = new List<Shot>();
+        var firstSeason = Optional(shots.Seasons).First();
         foreach (var epoch in Optional(shots.Epochs))
         {
-            foreach (var season in Optional(shots.Seasons))
+            foreach (var listedSeason in Optional(shots.Seasons))
             {
                 foreach (var weather in Optional(shots.Weather))
                 {
                     foreach (var point in shots.Points)
                     {
+                        // A point that forces its season is shot once (in the round of the first listed one).
+                        if (point.Season is not null && listedSeason != firstSeason)
+                        {
+                            continue;
+                        }
+
+                        var season = point.Season ?? listedSeason;
                         foreach (var projection in shots.Projections)
                         {
                             // A point may name its one phase (e.g. the night set: overview at night, close view at dusk).

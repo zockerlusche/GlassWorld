@@ -151,6 +151,10 @@
       "schema": "look-quality"
     },
     {
+      "pattern": "look/nature.json",
+      "schema": "look-nature"
+    },
+    {
       "pattern": "sound/mix.json",
       "schema": "sound-mix"
     },

@@ -1,7 +1,8 @@
 // Warm comic (B2501, reference D355), shared body of warm_comic.gdshader and figure_comic.gdshader:
 // flat colour areas with soft light steps, warm shadows. Colour comes from the vertex colour (terrain,
 // props) or, for figures, from a region index in COLOR.r that picks one of the region colours below
-// (skin, top, bottom, shoes, hair).
+// (skin, top, bottom, shoes, hair). Materials of the land (ground, objects, grass) switch on the living
+// nature (B2-5 R21/R24, nature.gdshaderinc): season colours, snow cover and sway, all from global parameters.
 
 uniform vec4 albedo : source_color = vec4(1.0);
 uniform bool use_regions = false;
@@ -27,7 +28,20 @@ uniform float step_lit = 0.5;
 uniform float softness = 0.08;
 uniform vec4 shadow_tint : source_color = vec4(0.86, 0.78, 0.86, 1.0);
 
+// Living nature: off for figures and everything that is not part of the land.
+uniform bool use_nature = false;
+// How far the top of the model moves in full wind and the height of that top (model units); 0 = still.
+uniform float sway_m = 0.0;
+uniform float sway_height_m = 1.0;
+
+#include "res://shaders/nature.gdshaderinc"
+
 varying vec3 base_color;
+varying vec3 nature_world;
+varying float nature_up;
+#ifdef FADE_ALPHA
+varying float fade_alpha;
+#endif
 
 vec3 paint(int mode) {
 	return mode == 1 ? region_top.rgb : (mode == 2 ? region_bottom.rgb : region_skin.rgb);
@@ -50,10 +64,24 @@ vec3 region_color(float r) {
 
 void vertex() {
 	base_color = use_regions ? region_color(COLOR.r) : (use_vertex_color ? COLOR.rgb : vec3(1.0)) * albedo.rgb;
+	nature_world = vec3(0.0);
+	nature_up = 0.0;
+	if (use_nature) {
+		base_color = season_color(base_color, CUSTOM0);
+		VERTEX = sway(VERTEX, MODEL_MATRIX, sway_m, sway_height_m);
+		nature_world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+		nature_up = normalize(MODEL_NORMAL_MATRIX * NORMAL).y;
+	}
+#ifdef FADE_ALPHA
+	fade_alpha = COLOR.a;
+#endif
 }
 
 void fragment() {
-	ALBEDO = base_color;
+	ALBEDO = use_nature ? snowed(base_color, nature_world, nature_up) : base_color;
+#ifdef FADE_ALPHA
+	ALPHA = fade_alpha;
+#endif
 }
 
 void light() {

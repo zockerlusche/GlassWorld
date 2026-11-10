@@ -1,0 +1,33 @@
+{
+  "contract_version": "0.2",
+  "points": [
+    {
+      "id": "season_view",
+      "target_x_permille": 500,
+      "target_z_permille": 500,
+      "yaw_deg": 30,
+      "distance_m": 45,
+      "scene": {
+        "max_start_distance_cells": 40,
+        "radius_cells": 12,
+        "min_stream_cells": 8,
+        "spring": true,
+        "min_relief": 15,
+        "face_hill": true
+      }
+    }
+  ],
+  "projections": [
+    "perspective"
+  ],
+  "phases": [
+    "day"
+  ],
+  "settle_frames": 12,
+  "seasons": [
+    "spring",
+    "summer",
+    "autumn",
+    "winter"
+  ]
+}
