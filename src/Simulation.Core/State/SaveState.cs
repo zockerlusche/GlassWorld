@@ -115,6 +115,15 @@ public sealed record SaveState(
     /// the hash); null in older save games and when the host did not set it. Replays compare it first.
     /// </summary>
     public string? ContentFingerprint { get; init; }
+
+    /// <summary>
+    /// Each inhabitant's diary of started actions (TL #20472): presentation-only history, saved but not world
+    /// state and not in the hash; null in save games from before (they start with an empty diary).
+    /// </summary>
+    public IReadOnlyList<DiaryEntry>? Diary { get; init; }
+
+    /// <summary>The diary's running number (continues across save and load); null in saves from before.</summary>
+    public long? DiaryVersion { get; init; }
 }
 
 /// <summary>Captures and restores the complete state of a <see cref="SimulationHost"/>.</summary>
@@ -174,6 +183,8 @@ public static class StateCodec
             Mailbox = host.Mailbox.Capture(),
             NamesSaved = true,
             Conversation = host.Conversation.HasState || host.Conversation.Log.Count > 0 ? host.Conversation.Capture() : null,
+            Diary = host.Diary.All,
+            DiaryVersion = host.Diary.Version,
         };
     }
 
@@ -297,6 +308,7 @@ public static class StateCodec
             // exactly where the world that was never saved would. The weather is restored above, before this.
         }
 
+        host.Diary.Restore(state.Diary ?? [], state.DiaryVersion);
         host.UseLoggedDisplayLocale();
         return host;
     }

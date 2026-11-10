@@ -34,9 +34,16 @@ public partial class IslandScene : Node3D
     private int _wait;
     private Shot? _current;
     private IslandView? _view;
-    private LookPalette? _palette;
-    private LookEpochs? _epochs;
-    private (string? Epoch, string? Season) _variant;
+    private NatureLook? _nature;
+    private string? _epoch;
+    private GlassWorld.Simulation.Map.TideReading? _tide;
+    private GrassView? _grass;
+    private string _season = string.Empty;
+    private Func<double, double, double> _heightAt = (_, _) => 0;
+    private readonly Dictionary<string, DaylightMix> _phases = new(StringComparer.Ordinal);
+    private string _phase = "day";
+    private (DaylightMix Light, WeatherSky? Sky)? _lightShown;
+    private GlassWorld.Simulation.Weather.WeatherReading? _weather;
     private float _width;
     private float _depth;
     private SimulationHost _host = null!;
@@ -89,6 +96,7 @@ public partial class IslandScene : Node3D
         var island = host.Map!;
         var view = IslandView.Create(island, host.Content.WorldGen.Presets[preset], content);
         AddChild(view);
+        _view = view;
         _width = island.Map.WidthCells * view.Look!.CellM;
         _depth = island.Map.DepthCells * view.Look.CellM;
 
@@ -135,14 +143,26 @@ public partial class IslandScene : Node3D
 
         // The core's objects and the decorative plants (TL #19722), drawn as in the main game.
         var objectLooks = Look<LookObjects>("objects.json");
+        var palette = Look<LookPalette>("palette.json");
         var decor = Decor.Plan(objectLooks.Decor, island.Island, terrain.CellM);
-        _objects = ObjectsView.Create(objectLooks, Look<LookPalette>("palette.json"), (x, z) => IslandView.GroundHeight(ground, terrain, x, z), decor);
+
+        // Living nature (B2-5 R21, R24): season colours, snow and wind as shader parameters; grass and
+        // small plants in detail levels (density and distance from the quality level).
+        _nature = NatureLook.Create(content, palette);
+        var (grass, otherDecor) = GrassPlan.Split(decor, _nature.Data.Grass);
+        Func<double, double, double> groundAt = (x, z) => IslandView.GroundHeight(ground, terrain, x, z);
+        _objects = ObjectsView.Create(objectLooks, palette, groundAt, otherDecor, _nature.Season.Slots, TerrainMesher.StreamSources(ground, terrain));
         AddChild(_objects);
         _objects.Refresh(host.Snapshot().Objects);
+        _grass = GrassView.Create(_objects, grass, groundAt, _nature.Data.Grass, GrassPlan.Level(Look<LookQuality>("quality.json")));
+        AddChild(_grass);
+        AddChild(_nature);
+        ApplyPhase("day");
         _island = island.Island;
 
         // The camera target follows the ground, but never sinks below the sea surface.
         var seaLevel = host.Content.WorldGen.Presets[preset].Terrain.SeaLevel * terrain.UnitM;
+        _heightAt = (x, z) => Math.Max(seaLevel, IslandView.GroundHeight(ground, terrain, x, z));
         _rig = CameraRig.Create(Look<LookCamera>("camera.json"), _width, _depth, () => _figures.Values.Select(f => (f.InhabitantId, f.Position)), (x, z) => Math.Max(seaLevel, IslandView.GroundHeight(ground, terrain, x, z)));
         _rig.FindFigure = id => _figures.TryGetValue(id, out var f) ? f.Position : null;
         AddChild(_rig);
@@ -159,7 +179,8 @@ public partial class IslandScene : Node3D
 
         if (_check)
         {
-            GD.Print($"ISLAND_OK seed={seed} chunks={view.GroundChunks} ground_triangles={view.GroundTriangles} water_triangles={view.WaterTriangles} figures={_figures.Count} objects={_objects!.Drawn} decor={_objects.DecorCount}");
+            GD.Print($"ISLAND_OK seed={seed} chunks={view.GroundChunks} ground_triangles={view.GroundTriangles} water_triangles={view.WaterTriangles} figures={_figures.Count} objects={_objects!.Drawn} decor={decor.Count}");
+            GD.Print($"ISLAND_NATURE seed={seed} grass_plants={_grass.Plants} grass_layers={_grass.Layers} season_colors={_nature.Season.Slots.Ids.Count} weather_looks={_nature.WeatherWithLook.Count}");
             GD.Print($"ISLAND_LOD seed={seed} ground={string.Join(",", view.LevelTriangles.Select(l => $"{l.CellStep}:{l.Ground}"))} water={view.WaterTriangles}");
             GetTree().Quit(view.GroundChunks == island.Map.ChunksX * island.Map.ChunksZ && view.GroundTriangles > 0 && view.WaterTriangles > 0 && _figures.Count == host.Inhabitants.All.Count() ? 0 : 1);
             return;
@@ -167,15 +188,10 @@ public partial class IslandScene : Node3D
 
         if (_shotDirectory is not null)
         {
-            _view = view;
-            _palette = Look<LookPalette>("palette.json");
-            _epochs = Look<LookEpochs>("epochs.json");
-            var seasons = _palette.Seasons.Select(s => s.Season).ToHashSet(StringComparer.Ordinal);
+            var seasons = palette.Seasons.Select(s => s.Season).ToHashSet(StringComparer.Ordinal);
 
-            // TODO(B2-5): no weather has a look yet; fill this set from the weather look data once it exists.
-            // Until then weather pictures are rendered unchanged and noted in the file name.
-            var weatherWithLook = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var shot in ShotPlan.Build(_shots, seasons, weatherWithLook))
+            // A weather without an entry in content/look/weather.json is rendered unchanged and noted in the file name.
+            foreach (var shot in ShotPlan.Build(_shots, seasons, _nature.WeatherWithLook))
             {
                 _plan.Enqueue(shot);
             }
@@ -190,10 +206,15 @@ public partial class IslandScene : Node3D
         if (_shotDirectory is null)
         {
             StepWorld(delta);
-        }
+            if (!_check && _nature is not null && _rig is not null && _season.Length > 0)
+            {
+                // The season, the look epoch, the wind and the tide of the running world (from the snapshot).
+                var time = _host.World.Calendar;
+                _view?.FollowTide(_tide, delta);
+                _nature.Follow(_season, _epoch, _weather, delta, Focus(_rig.Model.Target.X, _rig.Model.Target.Z), _ticksPerSecond * time.RealSecondsPerTickAtNormalSpeed, time.RealSecondsPerTickAtNormalSpeed * time.Settings.TicksPerHour / 60.0);
+                ApplyPhase(_phase);
+            }
 
-        if (_shotDirectory is null)
-        {
             return;
         }
 
@@ -252,13 +273,15 @@ public partial class IslandScene : Node3D
             }
 
             _rig.Apply();
+
+            // The look epoch and the season are shader parameters, as in the running game (B2-5 R16, R24;
+            // colours the epoch sets stay the epoch's). The weather (B2-5 R23) is shown at once: clouds,
+            // fog, rain or snow, light and snow cover.
+            _nature!.Show(next.Season, next.WeatherHasLook ? next.Weather : null, Focus(tx, tz), next.Epoch);
+
+            // The sea at the tide level the point asks for (B2-5 R15), else at the level of the world tick.
+            _view!.ShowTide(next.Point.TidePermille is { } permille && _tide is { } tide ? TideFollower.AtPermille(tide.Amplitude, permille) : TideFollower.Level(_tide));
             ApplyPhase(next.Phase);
-            if ((next.Epoch, next.Season) != _variant)
-            {
-                // Epoch and season change only the palette (B2 R19); without those lists this never runs.
-                _variant = (next.Epoch, next.Season);
-                _view!.ApplyPalette(ShotPlan.PaletteFor(_palette!, _epochs!, next.Epoch, next.Season));
-            }
 
             _wait = _shots.SettleFrames;
             return;
@@ -301,9 +324,13 @@ public partial class IslandScene : Node3D
         ApplySnapshot(steps);
     }
 
+    /// <summary>The camera target on the ground (never below the sea), where leaves fall.</summary>
+    private Vector3 Focus(double x, double z) => new((float)x, (float)_heightAt(x, z), (float)z);
+
     private void ApplySnapshot(int ticks, bool place = false)
     {
         var snapshot = _host.Snapshot();
+        (_season, _weather, _epoch, _tide) = (snapshot.Time.SeasonId, snapshot.Weather, snapshot.LookEpoch, snapshot.Tide);
         foreach (var inhabitant in snapshot.Inhabitants)
         {
             if (_figures.TryGetValue(inhabitant.Id, out var figure))
@@ -335,5 +362,26 @@ public partial class IslandScene : Node3D
     }
 
     /// <summary>Light, sky and ambient of a day phase from the daylight data (B2-5 blends them over time).</summary>
-    private void ApplyPhase(string phase) => DaylightLook.Apply(_daylight, phase, _sun, _environment.Environment);
+    private void ApplyPhase(string phase)
+    {
+        _phase = phase;
+        if (!_phases.TryGetValue(phase, out var day))
+        {
+            _phases[phase] = day = DaylightMix.Of(_daylight, phase);
+        }
+
+        // Under the shown weather (B2-5 R23): dimmer or tinted light, clouds and fog; applied only when it changed.
+        WeatherSky? sky = null;
+        if (_nature is not null)
+        {
+            (day, sky) = _nature.Shade(day, _daylight.NightMinBrightness);
+        }
+
+        if (_lightShown != (day, sky))
+        {
+            _lightShown = (day, sky);
+            DaylightLook.Apply(_daylight, day, _sun, _environment.Environment, sky, _nature?.WeatherData.Clouds);
+            _nature?.Light(day.WaterLight);
+        }
+    }
 }

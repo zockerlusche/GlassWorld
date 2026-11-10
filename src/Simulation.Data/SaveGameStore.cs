@@ -21,7 +21,7 @@ public static class SaveGameStore
     public const string ContentFingerprintKey = "content_fingerprint";
 
     /// <summary>Schema version written by this code.</summary>
-    public const int SchemaVersion = 8;
+    public const int SchemaVersion = 9;
 
     private static readonly JsonSerializerOptions Json = new() { IncludeFields = true };
 
@@ -93,6 +93,12 @@ public static class SaveGameStore
         """
         ALTER TABLE exploration ADD COLUMN looked_cell INTEGER;
         ALTER TABLE exploration ADD COLUMN looked_range INTEGER;
+        """,
+
+        // 9 (diary, TL #20472): each inhabitant's diary of started actions (presentation-only history, not
+        // in the world hash). Files from before have no rows: their inhabitants start with an empty diary.
+        """
+        CREATE TABLE IF NOT EXISTS diary(seq INTEGER PRIMARY KEY, tick INTEGER NOT NULL, inhabitant TEXT NOT NULL, action TEXT NOT NULL, target TEXT, target_type TEXT, topic TEXT);
         """,
     ];
 
@@ -398,6 +404,16 @@ public static class SaveGameStore
         {
             Insert(c, tx, "INSERT INTO chronicle VALUES($a,$b,$c,$d,$e,$f)", (r.Seq, r.Tick, r.Kind, r.InhabitantId, r.TargetId, r.Action));
         }
+
+        if (s.DiaryVersion is { } diaryVersion)
+        {
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("diary_version", Str(diaryVersion)));
+        }
+
+        foreach (var d in s.Diary ?? [])
+        {
+            Insert(c, tx, "INSERT INTO diary VALUES($a,$b,$c,$d,$e,$f,$g)", (d.Seq, d.Tick, d.InhabitantId, d.Action, d.TargetId, d.TargetType, d.Topic));
+        }
     }
 
     /// <summary>
@@ -550,6 +566,9 @@ public static class SaveGameStore
             NamesSaved = meta.ContainsKey("names"),
             Conversation = meta.TryGetValue("conversation", out var conversation) ? JsonSerializer.Deserialize<Simulation.Player.ConversationState>(conversation, Json) : null,
             ContentFingerprint = meta.GetValueOrDefault(ContentFingerprintKey),
+            DiaryVersion = meta.TryGetValue("diary_version", out var diaryVersion) ? long.Parse(diaryVersion, CultureInfo.InvariantCulture) : null,
+            Diary = Query(c, "SELECT seq, tick, inhabitant, action, target, target_type, topic FROM diary ORDER BY seq",
+                r => new Simulation.Inhabitants.DiaryEntry(r.GetInt64(0), r.GetInt64(1), r.GetString(2), r.GetString(3), r.IsDBNull(4) ? null : r.GetString(4), r.IsDBNull(5) ? null : r.GetString(5), r.IsDBNull(6) ? null : r.GetString(6))),
         };
     }
 

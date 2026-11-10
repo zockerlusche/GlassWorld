@@ -136,6 +136,14 @@
     {
       "id": "shadow_tint",
       "color": "#d9c7d9"
+    },
+    {
+      "id": "snow",
+      "color": "#dfe6ee"
+    },
+    {
+      "id": "forest_floor",
+      "color": "#5f9a52"
     }
   ],
   "ramp": [
@@ -181,6 +189,10 @@
           "color": "#d98a3a"
         },
         {
+          "id": "forest_floor",
+          "color": "#7f8648"
+        },
+        {
           "id": "grass",
           "color": "#b8b56a"
         }
@@ -196,11 +208,15 @@
           "color": "#6d7f69"
         },
         {
+          "id": "forest_floor",
+          "color": "#6d7f69"
+        },
+        {
           "id": "grass",
           "color": "#a7ad95"
         }
       ],
-      "snow_cover": 0.7,
+      "snow_cover": 0.55,
       "leaf_fall": 0.0
     }
   ]

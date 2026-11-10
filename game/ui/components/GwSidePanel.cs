@@ -64,8 +64,11 @@ public partial class GwSidePanel : PanelContainer
         // layout), so wrap the title only when it really does not fit.
         _title.AutowrapMode = TextServer.AutowrapMode.Off;
         _title.CustomMinimumSize = Vector2.Zero;
-        var inner = ThemeTypeVariation == UiTheme.CompactPanel ? style.Tokens.Zones.PanelPadding : style.Tokens.Window.Padding;
-        var padding = 2 * (inner + style.Frame(GlassWorld.Contracts.UiFrameId.Window).ContentPadding);
+        // The frame in use says how much room it takes (flat or picture frame, compact or not; review GW1 #202).
+        var frame = GetThemeStylebox("panel");
+        var padding = frame is null
+            ? 2 * (style.Tokens.Window.Padding + style.Frame(GlassWorld.Contracts.UiFrameId.Window).ContentPadding)
+            : frame.GetContentMargin(Side.Left) + frame.GetContentMargin(Side.Right);
         if (_title.GetCombinedMinimumSize().X > width - padding)
         {
             _title.AutowrapMode = TextServer.AutowrapMode.WordSmart;

@@ -13,11 +13,18 @@ namespace GlassWorld.Game.World;
 /// is drawn as the calm fallback marker and logged once. Decorative plants (<see cref="Decor"/>) are drawn
 /// the same way next to the core's objects. Tree crowns near the line from the camera to a followed figure
 /// fade (W1689, <see cref="FadeCrowns"/>): such a tree leaves its layer for a small see-through layer.
-/// Presentation only: it never writes core state.
+/// Every look has its own material of the one warm comic shader with the living nature switched on (B2-5
+/// R21, R24): the meshes carry the shares of the seasonal colours, plants sway by their <c>sway_m</c>, and
+/// the ink outline sways with them. Presentation only: it never writes core state.
 /// </summary>
 public partial class ObjectsView : Node3D
 {
+    private static readonly Shader Comic = GD.Load<Shader>("res://shaders/warm_comic.gdshader");
+    private static readonly Shader ComicFade = GD.Load<Shader>("res://shaders/warm_comic_fade.gdshader");
+    private static readonly Shader Ink = GD.Load<Shader>("res://shaders/outline_hull.gdshader");
+
     private readonly Dictionary<string, MultiMeshInstance3D> _layers = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, ObjectLook> _byVisual = new(StringComparer.Ordinal);
     private ObjectLooks _looks = null!;
     private Func<double, double, double> _ground = (_, _) => 0;
     private long _signature = long.MinValue;
@@ -34,27 +41,49 @@ public partial class ObjectsView : Node3D
     /// <summary>Number of visuals with a mesh.</summary>
     public int Layers => _layers.Count;
 
+    /// <summary>The object looks of the data (for the grass view, which draws its plants the same way).</summary>
+    public ObjectLooks Looks => _looks;
+
+    /// <summary>Mesh and material of a visual, or null if it has no mesh.</summary>
+    public (Mesh Mesh, Material Material)? LayerOf(string visualId) =>
+        _layers.TryGetValue(visualId, out var layer) ? (layer.Multimesh.Mesh, layer.MaterialOverride) : null;
+
     /// <summary>Creates the view: one mesh per visual in palette colours, the comic shader and the ink outline.</summary>
-    public static ObjectsView Create(LookObjects data, LookPalette palette, Func<double, double, double> ground, IReadOnlyList<WorldObject>? decor = null)
+    /// <param name="data">The object looks.</param>
+    /// <param name="palette">The palette the meshes are built with.</param>
+    /// <param name="ground">Ground height at a world position.</param>
+    /// <param name="decor">Decorative plants drawn with the objects.</param>
+    /// <param name="tintSlots">The tint slots of the nature look (seasons and look epochs), so meshes and shader parameters agree; null = the palette's seasons only.</param>
+    /// <param name="streamSources">Where the stream bands of the island start at a spring (W1724): an object the data names for it is drawn there as a spring; null = none.</param>
+    public static ObjectsView Create(LookObjects data, LookPalette palette, Func<double, double, double> ground, IReadOnlyList<WorldObject>? decor = null, SeasonSlots? tintSlots = null, IEnumerable<StreamSource>? streamSources = null)
     {
         ArgumentNullException.ThrowIfNull(data);
         ArgumentNullException.ThrowIfNull(palette);
         ArgumentNullException.ThrowIfNull(ground);
         var colors = palette.Colors.ToDictionary(c => c.Id, c => new Color(c.Color), StringComparer.Ordinal);
+        var slots = tintSlots ?? SeasonSlots.From(palette);
         var view = new ObjectsView { Name = "Objects", _looks = new ObjectLooks(data, colors.Keys.ToHashSet(StringComparer.Ordinal)), _ground = ground, _decor = decor ?? [] };
-        var material = new ShaderMaterial { Shader = GD.Load<Shader>("res://shaders/warm_comic.gdshader") };
-        material.SetShaderParameter("use_vertex_color", true);
-        material.SetShaderParameter("use_regions", false);
-        if (data.Outline && data.OutlineWidthM > 0)
-        {
-            var ink = new ShaderMaterial { Shader = GD.Load<Shader>("res://shaders/outline_hull.gdshader") };
-            ink.SetShaderParameter("width", (float)data.OutlineWidthM);
-            material.NextPass = ink;
-        }
-
+        view._looks.UseStreamSources(streamSources ?? []);
         foreach (var look in view._looks.Visuals.Where(v => v.Shape != ObjectLookShape.None))
         {
-            var mesh = ObjectShapes.Build(look.Shape, role => colors[look.Color(role)].SrgbToLinear());
+            (Color First, Color More) Weights(int role)
+            {
+                var w = slots.WeightsOf(look.Color(role));
+                return (new Color(w.A, w.B, w.C, w.D), new Color(w.E, w.F, w.G, w.H));
+            }
+
+            var mesh = ObjectShapes.Build(look.Shape, role => colors[look.Color(role)].SrgbToLinear(), Weights);
+            var material = Land(Comic, look, mesh);
+            if (data.Outline && data.OutlineWidthM > 0)
+            {
+                // The outline sways with its plant: the same sway values as the material it follows.
+                var ink = new ShaderMaterial { Shader = Ink };
+                ink.SetShaderParameter("width", (float)data.OutlineWidthM);
+                Sway(ink, look, mesh);
+                material.NextPass = ink;
+            }
+
+            view._byVisual[look.VisualId] = look;
             var layer = new MultiMeshInstance3D
             {
                 Name = look.VisualId,
@@ -66,6 +95,24 @@ public partial class ObjectsView : Node3D
         }
 
         return view;
+    }
+
+    /// <summary>A warm comic material of the land for a look: vertex colours, living nature on, the look's sway.</summary>
+    private static ShaderMaterial Land(Shader shader, ObjectLook look, Mesh mesh)
+    {
+        var material = new ShaderMaterial { Shader = shader };
+        material.SetShaderParameter("use_vertex_color", true);
+        material.SetShaderParameter("use_regions", false);
+        material.SetShaderParameter("use_nature", true);
+        Sway(material, look, mesh);
+        return material;
+    }
+
+    /// <summary>The sway of a look: how far its top moves in full wind, and the height of that top in the mesh.</summary>
+    private static void Sway(ShaderMaterial material, ObjectLook look, Mesh mesh)
+    {
+        material.SetShaderParameter("sway_m", (float)look.SwayM);
+        material.SetShaderParameter("sway_height_m", Math.Max(mesh.GetAabb().End.Y, 0.01f));
     }
 
     /// <summary>Faded crowns now (smoke and tests).</summary>
@@ -81,13 +128,6 @@ public partial class ObjectsView : Node3D
             return;
         }
 
-        var material = new StandardMaterial3D
-        {
-            VertexColorUseAsAlbedo = true,
-            Transparency = BaseMaterial3D.TransparencyEnum.Alpha,
-            SpecularMode = BaseMaterial3D.SpecularModeEnum.Disabled,
-            CullMode = BaseMaterial3D.CullModeEnum.Back,
-        };
         foreach (var id in data.Visuals)
         {
             if (!_layers.TryGetValue(id, out var layer))
@@ -95,6 +135,8 @@ public partial class ObjectsView : Node3D
                 continue;
             }
 
+            // The see-through twin keeps the look, the season colours and the sway of its tree (B2-5).
+            var material = Land(ComicFade, _byVisual[id], layer.Multimesh.Mesh);
             var faded = new MultiMeshInstance3D
             {
                 Name = id + "_faded",

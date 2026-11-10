@@ -268,7 +268,7 @@ public sealed class IslandLookTests
         Func<double, double, double> slope = (x, _) => x / 2;
         var spring = Looks().For("spring_water");
         Assert.Equal((ObjectLookShape.Pool, ObjectLookAlign.Ground_uphill), (spring.Shape, spring.Align));
-        Assert.Equal(["fresh_water", "rock", "ground", "reed"], spring.Colors);
+        Assert.Equal(["fresh_water", "rock", "grass_edge", "reed"], spring.Colors);
         var placed = ObjectLooks.Place(new WorldObject("o1", "spring_water", new Position(10, 4)), spring, slope);
         Assert.Equal(slope(10, 4) + spring.LiftM, placed.Y, 6);
         var norm = Math.Sqrt(1.25);

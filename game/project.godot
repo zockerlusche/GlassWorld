@@ -43,3 +43,63 @@ water_light={
 "type": "color",
 "value": Color(1, 1, 1, 1)
 }
+season_tint_0={
+"type": "vec4",
+"value": Vector4(0, 0, 0, 0)
+}
+season_tint_1={
+"type": "vec4",
+"value": Vector4(0, 0, 0, 0)
+}
+season_tint_2={
+"type": "vec4",
+"value": Vector4(0, 0, 0, 0)
+}
+season_tint_3={
+"type": "vec4",
+"value": Vector4(0, 0, 0, 0)
+}
+season_tint_4={
+"type": "vec4",
+"value": Vector4(0, 0, 0, 0)
+}
+season_tint_5={
+"type": "vec4",
+"value": Vector4(0, 0, 0, 0)
+}
+season_tint_6={
+"type": "vec4",
+"value": Vector4(0, 0, 0, 0)
+}
+season_tint_7={
+"type": "vec4",
+"value": Vector4(0, 0, 0, 0)
+}
+nature_snow={
+"type": "vec4",
+"value": Vector4(0.9, 0.92, 0.94, 0)
+}
+nature_snow_shape={
+"type": "vec4",
+"value": Vector4(7, 0.08, 0.55, 0)
+}
+nature_wind={
+"type": "vec4",
+"value": Vector4(0, 1, 0, 0)
+}
+nature_wind_shape={
+"type": "vec4",
+"value": Vector4(0.3, 0.4, 0, 0)
+}
+water_waves={
+"type": "vec4",
+"value": Vector4(0, 0, 1, 0)
+}
+water_wave_shift={
+"type": "vec4",
+"value": Vector4(0, 0, 0, 0)
+}
+water_time={
+"type": "vec2",
+"value": Vector2(0, 3600)
+}

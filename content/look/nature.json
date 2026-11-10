@@ -1,0 +1,47 @@
+{
+  "contract_version": "0.2",
+  "wind": {
+    "direction_deg": 70,
+    "smooth_real_seconds": 3.0,
+    "swings_per_second_calm": 0.18,
+    "swings_per_second_full": 0.55,
+    "lean_share": 0.4,
+    "wave_length_m": 22.0
+  },
+  "snow": {
+    "color": "snow",
+    "patch_m": 7.0,
+    "edge": 0.08,
+    "min_up": 0.55
+  },
+  "grass": {
+    "types": [
+      "decor_grass",
+      "decor_grass_dry",
+      "decor_flower",
+      "decor_flower_blue",
+      "decor_flower_yellow",
+      "decor_fern",
+      "decor_reed",
+      "decor_rush",
+      "decor_bank_flower"
+    ],
+    "chunk_m": 32.0,
+    "near_share": 0.5,
+    "far_density_share": 0.4,
+    "switch_margin_m": 3.0
+  },
+  "leaf_fall": {
+    "color": "foliage",
+    "max_count": 80,
+    "box_m": 28.0,
+    "height_m": 7.0,
+    "lifetime_s": 8.0,
+    "fall_m_per_s": 0.9,
+    "drift_m_per_s": 1.6,
+    "size_m": 0.12,
+    "length_m": 0.12,
+    "spin_deg_per_s": 120,
+    "opacity": 1.0
+  }
+}

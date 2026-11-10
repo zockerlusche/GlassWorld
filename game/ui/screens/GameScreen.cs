@@ -115,7 +115,7 @@ public partial class GameScreen : CanvasLayer
             "ui.inhabitants.empty");
         _inhabitants.RowSelected += ShowInhabitant;
         _log = new ConversationLog(style.Tokens.Window.LogLines);
-        _diary = new ActivityDiary(style.Tokens.Window.DiaryLines);
+        _diary = new ActivityDiary(style.Tokens.Window.DiaryLines, presenter.Host.World.Calendar);
         _sideBar.Add("inhabitants", "ui.inhabitants.title").Content.AddChild(_inhabitants);
         _sideBar.Add("questions", "ui.questions.title").Content.AddChild(_questionList);
 
@@ -1657,11 +1657,10 @@ public partial class GameScreen : CanvasLayer
         });
         _time.Text = clock.Time;
 
-        // Each inhabitant's diary (W1726): what it does now, noted when it changes.
-        var standing = Tr(InhabitantActivity.StandingKey).ToString();
-        foreach (var row in rows)
+        // Each inhabitant's diary (W1726): the core keeps it (TL #20472); take what is new.
+        if (_presenter?.Host is { } diaryHost)
         {
-            _diary?.Note(row.Id, _activities[row.Id], _activities[row.Id] == standing, clock.Day, clock.Time);
+            _diary?.Sync(diaryHost.Diary);
         }
 
         foreach (var row in rows)
@@ -2263,7 +2262,7 @@ public partial class GameScreen : CanvasLayer
                 child.QueueFree();
             }
 
-            var lines = _diary.Of(inhabitantId);
+            var lines = _diary.Of(inhabitantId, key => Tr(key), NameOfId);
             if (lines.Count == 0)
             {
                 _cardDiaryBox.AddChild(new Label { Text = "ui.card.diary_empty", AutowrapMode = TextServer.AutowrapMode.WordSmart });

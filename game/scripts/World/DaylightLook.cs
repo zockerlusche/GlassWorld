@@ -37,9 +37,10 @@ public static class DaylightLook
     /// <summary>
     /// Applies one moment (a phase or a blend of two, see <see cref="DaylightMix.Lerp"/>): one directional
     /// light for sun and moon, the sky shader with horizon, stars and moon disc, the ambient light and the
-    /// tint of the unlit water shaders (global <c>water_light</c>).
+    /// tint of the unlit water shaders (global <c>water_light</c>). With <paramref name="weather"/> (B2-5
+    /// R23) the sky shows its cloud cover and the environment its fog; without it the sky is clear.
     /// </summary>
-    public static void Apply(LookDaylight daylight, DaylightMix mix, DirectionalLight3D sun, Godot.Environment environment)
+    public static void Apply(LookDaylight daylight, DaylightMix mix, DirectionalLight3D sun, Godot.Environment environment, WeatherSky? weather = null, WeatherClouds? clouds = null)
     {
         ArgumentNullException.ThrowIfNull(daylight);
         ArgumentNullException.ThrowIfNull(mix);
@@ -72,6 +73,26 @@ public static class DaylightLook
         sky.SetShaderParameter("moon_size_deg", (float)moon.DiscSizeDeg);
         sky.SetShaderParameter("moon_glow", (float)moon.Glow);
         sky.SetShaderParameter("moon", (float)mix.Moon);
+        sky.SetShaderParameter("clouds", (float)(weather?.Clouds ?? 0));
+        if (weather is not null && clouds is not null)
+        {
+            sky.SetShaderParameter("cloud_color", ToColor(weather.CloudColor));
+            sky.SetShaderParameter("cloud_scale", (float)clouds.Scale);
+            sky.SetShaderParameter("cloud_softness", (float)clouds.Softness);
+        }
+
+        // Fog of the weather: plain depth fog in the colour of the horizon; it hides the sky by its own share.
+        environment.FogEnabled = weather is { FogDensity: > 0 };
+        if (weather is { FogDensity: > 0 })
+        {
+            environment.FogDensity = (float)weather.FogDensity;
+            environment.FogLightColor = ToColor(weather.FogColor);
+            environment.FogLightEnergy = 1;
+            environment.FogSunScatter = 0;
+            environment.FogAerialPerspective = 0;
+            environment.FogSkyAffect = (float)weather.FogSky;
+        }
+
         environment.BackgroundMode = Godot.Environment.BGMode.Sky;
         environment.AmbientLightSource = Godot.Environment.AmbientSource.Color;
         environment.AmbientLightColor = ToColor(mix.Ambient);
