@@ -151,6 +151,10 @@
       "schema": "look-quality"
     },
     {
+      "pattern": "look/benchmark.json",
+      "schema": "look-benchmark"
+    },
+    {
       "pattern": "look/nature.json",
       "schema": "look-nature"
     },
