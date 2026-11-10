@@ -86,6 +86,12 @@ public sealed partial class InventionSystem
     private readonly SortedDictionary<string, SoundTask> _sounds = new(StringComparer.Ordinal);
     private bool? _night;
 
+    /// <summary>
+    /// True while the compute night of the AI service runs (B7): the day phase is one of the data's
+    /// NightPhases. Only a signal for the service and the screen; the world and its time go on as usual.
+    /// </summary>
+    public bool IsComputeNight => _night == true;
+
     /// <summary>Building tasks by runtime type.</summary>
     public IEnumerable<BuildTask> Builds => _builds.Values;
 
