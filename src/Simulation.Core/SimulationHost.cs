@@ -150,7 +150,23 @@ public sealed class SimulationHost
                 .Where(r => r.Hours is not null)
                 .GroupBy(r => r.Type, StringComparer.Ordinal)
                 .ToDictionary(g => g.Key, g => (long)g.First().Hours!.Value * ticksPerHour, StringComparer.Ordinal);
-            map = new WorldMapSystem(island, savedIsland?.CellSizeCm ?? preset.Grid.CellSizeCm, objects, regrow) { NodeBudget = preset.Pathfinding.NodeBudget };
+            // Tides (B2-5 R15): the level follows from the tick; with amplitude 0 no layer exists and walking
+            // reads the base grid as before.
+            var tides = new Tides(preset.Tides);
+            map = new WorldMapSystem(island, savedIsland?.CellSizeCm ?? preset.Grid.CellSizeCm, objects, regrow)
+            {
+                NodeBudget = preset.Pathfinding.NodeBudget,
+                Tides = tides,
+                TideWalk = tides.Active
+                    ? new TideWalkLayer(
+                        island.Map,
+                        tides,
+                        preset.Water.ShallowMaxDepth,
+                        WorldGenerator.WaterCost(preset.Pathfinding.CostShallowWater, preset.Pathfinding),
+                        WorldGenerator.WaterCost(preset.Pathfinding.CostFloodedWater ?? 0, preset.Pathfinding))
+                    : null,
+                Clock = () => world.Tick,
+            };
             world.Add(map);
 
             climate = preset.Climate.ClimateId;
@@ -389,7 +405,7 @@ public sealed class SimulationHost
     }
 
     /// <summary>Read-only snapshot for the UI.</summary>
-    public WorldSnapshot Snapshot() => WorldView.Snapshot(World, Inhabitants, Objects, Decisions) with { Weather = WeatherSystem?.Read(World), LookEpoch = LookEpoch.Current };
+    public WorldSnapshot Snapshot() => WorldView.Snapshot(World, Inhabitants, Objects, Decisions) with { Weather = WeatherSystem?.Read(World), LookEpoch = LookEpoch.Current, Tide = Map?.TideAt(World.Tick) };
 
     /// <summary>The look epoch of the world (B2-5 R16).</summary>
     public Look.LookEpochSystem LookEpoch { get; private init; } = null!;
