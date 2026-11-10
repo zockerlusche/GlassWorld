@@ -10,6 +10,10 @@
       "sound": "action.rustle"
     },
     {
+      "action": "explore",
+      "sound": "action.rustle"
+    },
+    {
       "action": "move_to",
       "sound": "action.rustle"
     },

@@ -254,6 +254,11 @@
     },
     {
       "kind": "action",
+      "id": "explore",
+      "clip": "walk"
+    },
+    {
+      "kind": "action",
       "id": "move_to",
       "clip": "walk"
     },

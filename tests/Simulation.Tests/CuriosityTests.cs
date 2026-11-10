@@ -265,7 +265,8 @@ public sealed class CuriosityTests : IDisposable
 
     private static (string Action, string? TargetId) Best(UtilityBrain brain, Inhabitant inhabitant, IReadOnlyList<WorldObject> perceived)
     {
-        var best = brain.Score(inhabitant, perceived)[0];
+        // These worlds have no island: an action at the frontier (B2-6 R14) is never an option there.
+        var best = brain.Score(inhabitant, perceived).First(o => !Content.Actions.Timing(o.Action).Frontier);
         return (best.Action, best.TargetId);
     }
 

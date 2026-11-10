@@ -168,6 +168,16 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
         return area != 0 && area == _areas[(to.Z * w) + to.X];
     }
 
+    /// <summary>
+    /// The walkable area the cell (x, z) belongs to; 0 = it cannot be walked on or lies outside the map.
+    /// Cells of one area can be reached from each other on foot (cheap, no search).
+    /// </summary>
+    public int AreaOf(int x, int z)
+    {
+        _areas ??= PathFinder.WalkableAreas(Map);
+        return Map.Contains(x, z) ? _areas[(z * Map.WidthCells) + x] : 0;
+    }
+
     /// <inheritdoc/>
     public double SpeedFactor(Position at)
     {

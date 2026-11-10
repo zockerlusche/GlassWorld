@@ -490,7 +490,9 @@ public sealed class DecisionsSystem : IWorldSystem
                 case VocabularyEntryTarget.Object when target is not null && !Rests(asker, action, target.Id, tick):
                     raw.Add((action, target.Id));
                     break;
-                case VocabularyEntryTarget.None when !Rests(asker, action, null, tick):
+                case VocabularyEntryTarget.None when !Rests(asker, action, null, tick)
+                    && (!_inhabitants.AtFrontier(action) || _inhabitants.FrontierOf?.Invoke(asker) is not null):
+                    // An action at the frontier (B2-6 R14) only while unseen land can be reached on foot.
                     raw.Add((action, null));
                     break;
                 case VocabularyEntryTarget.Inhabitant when Knowledge is { } knowledge:
@@ -646,7 +648,10 @@ public sealed class DecisionsSystem : IWorldSystem
         }
 
         Log.Add(new DecisionLogEntry(DecisionLogKind.Response, message.RequestId, world.Tick, message.Json, null));
-        var destination = resolved?.Position ?? inhabitant.Position;
+        // An action at the frontier (B2-6 R14) goes where unseen land begins now; if none is left it happens here.
+        var destination = resolved?.Position
+            ?? (_inhabitants.AtFrontier(action) ? _inhabitants.FrontierOf?.Invoke(inhabitant) : null)
+            ?? inhabitant.Position;
         var decided = new Activity(action, targetId, destination, null);
         if (inhabitant.Activity?.RemainingTicks is not null)
         {

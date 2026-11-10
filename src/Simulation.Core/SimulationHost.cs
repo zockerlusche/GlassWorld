@@ -129,6 +129,8 @@ public sealed class SimulationHost
         WorldMapSystem? map = null;
         Weather.WeatherSystem? weather = null;
         string? climate = null;
+        var seaLevel = 0;
+        var heightUnitMm = 1;
         if (worldPreset is not null)
         {
             if (!content.WorldGen.Presets.TryGetValue(worldPreset, out var preset))
@@ -170,6 +172,8 @@ public sealed class SimulationHost
             world.Add(map);
 
             climate = preset.Climate.ClimateId;
+            seaLevel = preset.Terrain.SeaLevel;
+            heightUnitMm = preset.Grid.HeightUnitMm;
 
             // Weather of the preset's climate (B2 R13); worlds without a preset (placeholder) have none.
             // The weather is island-wide for now; its height drop stands for the mean height of the start cells.
@@ -204,6 +208,14 @@ public sealed class SimulationHost
             Knowledge = content.Knowledge,
         };
         inhabitants.QuestionOpen = decisions.HasOpenQuestion;
+
+        // Cloud cover and exploring (B2-6 R14): islands only, the placeholder world has no cells to see.
+        var exploration = map is null ? null : new Simulation.Exploration.ExplorationSystem(content.Exploration, map, inhabitants, seaLevel, heightUnitMm);
+        if (exploration is not null)
+        {
+            inhabitants.FrontierOf = exploration.Frontier;
+        }
+
         var player = new Simulation.Player.PlayerSystem(content.GiftRules, content.Favor, content.Brain.Weights, content.Brain, inhabitants, objects, world.Calendar.Settings.TicksPerHour);
         decisions.RegisterCommand(Simulation.Player.PlayerSystem.PlaceGift, player.Check, player.Apply);
         decisions.RegisterCommand(Simulation.Player.PlayerSystem.StartFavorCommand, player.CheckStartFavor, player.ApplyStartFavor);
@@ -262,12 +274,20 @@ public sealed class SimulationHost
 
         // The mailbox after the chronicle (agreed order): help_needed is reported by the player system earlier in the tick.
         // The look epoch last: it stays out of the hash while the world is in its first epoch.
-        world.Add(objects).Add(decisions).Add(inhabitants).Add(player).Add(inventions).Add(chronicle).Add(writing).Add(skills).Add(skillLevels).Add(mailbox).Add(conversation).Add(lookEpoch);
+        // Exploration right after the inhabitants: who has moved in a tick looks around in the same tick.
+        world.Add(objects).Add(decisions).Add(inhabitants);
+        if (exploration is not null)
+        {
+            world.Add(exploration);
+        }
+
+        world.Add(player).Add(inventions).Add(chronicle).Add(writing).Add(skills).Add(skillLevels).Add(mailbox).Add(conversation).Add(lookEpoch);
         var host = new SimulationHost(content, world, map, types, objects, decisions, inhabitants, player, inventions, chronicle, settings, writing, skills, mailbox)
         {
             WeatherSystem = weather,
             Weather = weather,
             LookEpoch = lookEpoch,
+            Exploration = exploration,
             Options = options,
             SkillLevels = skillLevels,
             Conversation = conversation,
@@ -395,6 +415,7 @@ public sealed class SimulationHost
         }
 
         host.Inhabitants.SpawnStartInhabitants(host.World, positions);
+        host.Exploration?.Look();
         foreach (var obj in map.Island.Objects)
         {
             map.Track(host.Objects.Spawn(obj.TypeId, map.CentreOf(obj.X, obj.Z)), obj.X, obj.Z);
@@ -405,7 +426,13 @@ public sealed class SimulationHost
     }
 
     /// <summary>Read-only snapshot for the UI.</summary>
-    public WorldSnapshot Snapshot() => WorldView.Snapshot(World, Inhabitants, Objects, Decisions) with { Weather = WeatherSystem?.Read(World), LookEpoch = LookEpoch.Current, Tide = Map?.TideAt(World.Tick) };
+    public WorldSnapshot Snapshot() => WorldView.Snapshot(World, Inhabitants, Objects, Decisions) with { Weather = WeatherSystem?.Read(World), LookEpoch = LookEpoch.Current, Tide = Map?.TideAt(World.Tick), ExploredVersion = Exploration?.Version };
+
+    /// <summary>
+    /// Cloud cover and exploring (B2-6 R14): the cells every inhabitant has seen and the player's view, the
+    /// union of them that is never covered again. Null on worlds without an island.
+    /// </summary>
+    public Exploration.ExplorationSystem? Exploration { get; private init; }
 
     /// <summary>The look epoch of the world (B2-5 R16).</summary>
     public Look.LookEpochSystem LookEpoch { get; private init; } = null!;
