@@ -190,6 +190,7 @@ class OllamaDecider:
                 request_id=_plain(request.request_id),
                 tick=request.tick,
                 prompt_version=prompt_version,
+                prompt_digest=self._template.digest or None,
                 model=self._client.model,
                 seed=seed,
                 temperature=self._settings.temperature,
