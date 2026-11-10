@@ -76,8 +76,21 @@ public static class UiTheme
         theme.SetStylebox("panel", WindowPanel, window);
 
         // The same frame with the zones' small padding: a low top bar and slim panels keep the middle free.
+        // The frame's own content padding is left out: only the zones' padding, and never less than the corners of
+        // a frame picture (a smaller margin would squeeze them), so the top bar is one low line (feedback on D646).
         var compact = (StyleBox)window.Duplicate();
-        compact.SetContentMarginAll((float)(style.Frame(UiFrameId.Window).ContentPadding + style.Tokens.Zones.PanelPadding));
+        var pad = (float)style.Tokens.Zones.PanelPadding;
+        if (compact is StyleBoxTexture picture)
+        {
+            picture.ContentMarginLeft = Math.Max(pad, picture.TextureMarginLeft);
+            picture.ContentMarginRight = Math.Max(pad, picture.TextureMarginRight);
+            picture.ContentMarginTop = Math.Max(pad, picture.TextureMarginTop);
+            picture.ContentMarginBottom = Math.Max(pad, picture.TextureMarginBottom);
+        }
+        else
+        {
+            compact.SetContentMarginAll(pad + style.Tokens.Window.BorderWidth);
+        }
         theme.SetTypeVariation(CompactPanel, "PanelContainer");
         theme.SetStylebox("panel", CompactPanel, compact);
         theme.SetStylebox("panel", TooltipPanel, Frame(style, UiFrameId.Tooltip, UiColorId.Panel_strong));
