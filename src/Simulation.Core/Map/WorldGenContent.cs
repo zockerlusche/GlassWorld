@@ -338,10 +338,11 @@ public sealed class WorldGenContent
         Range($"{p} neighbour islands", preset.Neighbours.Islands.Min, preset.Neighbours.Islands.Max, problems);
         Range($"{p} neighbour group size", preset.Neighbours.GroupSize.Min, preset.Neighbours.GroupSize.Max, problems);
         Range($"{p} pair distance", preset.Start.MinPairDistanceCells, preset.Start.MaxPairDistanceCells, problems);
-        if (preset.Start.MinPairDistanceCells <= preset.Exploration.ViewRangeCells)
+        if (preset.Start.MinPairDistanceCells <= preset.Exploration.ViewRangeCells + preset.Exploration.MaxHeightBonusCells)
         {
-            // R9: the start pairs must not see each other.
-            problems.Add($"{p}: min_pair_distance_cells must exceed view_range_cells");
+            // R9: the start pairs must not see each other, not even from a height (B2-6 R14: the same
+            // values are the sight range of the cloud cover).
+            problems.Add($"{p}: min_pair_distance_cells must exceed view_range_cells plus max_height_bonus_cells");
         }
 
         var curve = preset.Tides.Curve.ToList();

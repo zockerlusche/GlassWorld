@@ -531,6 +531,10 @@
       "text": "Wander"
     },
     {
+      "key": "vocab.action.explore",
+      "text": "Explore"
+    },
+    {
       "key": "vocab.action.use",
       "text": "Use"
     },
@@ -1847,6 +1851,10 @@
       "text": "is wandering about"
     },
     {
+      "key": "ui.activity.explore",
+      "text": "is exploring the land"
+    },
+    {
       "key": "ui.activity.move_to",
       "text": "is walking"
     },
@@ -2037,6 +2045,10 @@
     {
       "key": "msg.thought.wander",
       "text": "Let's look around a bit."
+    },
+    {
+      "key": "msg.thought.explore",
+      "text": "What might lie beyond?"
     },
     {
       "key": "msg.thought.use",

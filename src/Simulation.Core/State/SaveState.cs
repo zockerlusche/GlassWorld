@@ -86,6 +86,12 @@ public sealed record SaveState(
     /// </summary>
     public string? LookEpoch { get; init; }
 
+    /// <summary>
+    /// Seen cells (B2-6 R14): the player's view and the cells per inhabitant. Null on worlds without an
+    /// island and in save games from before, which start with what the inhabitants see when loaded.
+    /// </summary>
+    public Exploration.ExplorationState? Exploration { get; init; }
+
     /// <summary>New skills of inventions (A1372); null in save games from before or without any.</summary>
     public SkillRegisterState? Skills { get; init; }
 
@@ -162,6 +168,7 @@ public static class StateCodec
             IslandData = host.Map is { } map ? Map.IslandCodec.Encode(map.Island, map.CellSizeCm) : null,
             Weather = host.WeatherSystem?.Capture(),
             LookEpoch = host.LookEpoch.Capture(),
+            Exploration = host.Exploration?.Capture(),
             Skills = host.Skills.HasState ? host.Skills.Capture() : null,
             SkillGains = host.SkillLevels.HasState ? host.SkillLevels.Capture() : null,
             Mailbox = host.Mailbox.Capture(),
@@ -273,6 +280,25 @@ public static class StateCodec
         }
 
         host.LookEpoch.Restore(state.LookEpoch);
+        if (host.Exploration is { } exploration)
+        {
+            if (state.Exploration is not null)
+            {
+                exploration.Restore(state.Exploration);
+            }
+            else
+            {
+                // A save game from before the cloud cover (B2-6 R14) starts with what the inhabitants see now.
+                exploration.Look();
+            }
+
+            // Where each inhabitant last looked from is not saved: the first tick after a load looks again
+            // from where everyone stands, which adds nothing as long as the sight range of a cell never
+            // changes. Once B5 makes the range depend on the light this no longer holds (a look at night
+            // repeated by day would reveal more than the world that was never saved), and the range kept
+            // per cell is wrong too: then the last look must be saved, or the look made independent of the load.
+        }
+
         host.UseLoggedDisplayLocale();
         return host;
     }

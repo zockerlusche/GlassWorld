@@ -225,6 +225,15 @@ public sealed class InhabitantsSystem : IWorldSystem
     /// <summary>Routes on the island map (B2 R10); null on worlds without a map, where walking is straight.</summary>
     public Map.IRouteFinder? Routes { get; init; }
 
+    /// <summary>
+    /// Where the land an inhabitant has not seen yet begins (B2-6 R14, set by the host on worlds with an
+    /// island); null from it = nothing left to explore on foot. Without it no action happens at the frontier.
+    /// </summary>
+    public Func<Inhabitant, Position?>? FrontierOf { get; set; }
+
+    /// <summary>Whether an action without a target happens at the frontier (destination <c>frontier</c> of the data).</summary>
+    public bool AtFrontier(string action) => _actions.Timing(action).Frontier;
+
     /// <summary>Knowledge with its source and trust (B4a R3/R4/R7); without it learning works as in B1.</summary>
     public KnowledgeSettings? Knowledge { get; init; }
 
@@ -921,6 +930,21 @@ public sealed class InhabitantsSystem : IWorldSystem
                 || !open(inhabitant.Id, thing.TypeId))];
         }
 
+        // B2-6 R14: an action at the frontier is an option only while its score counts and land the
+        // inhabitant has not seen can be reached on foot (never on worlds without a map). The frontier is
+        // looked for only when such an action would be chosen, so the search is paid once per walk.
+        Position? frontier = null;
+        while (scored.Count > 0 && AtFrontier(scored[0].Action))
+        {
+            frontier = scored[0].Score > 0 ? FrontierOf?.Invoke(inhabitant) : null;
+            if (frontier is not null)
+            {
+                break;
+            }
+
+            scored = [.. scored.Where(o => !AtFrontier(o.Action))];
+        }
+
         if (scored.Count == 0)
         {
             return null;
@@ -940,7 +964,11 @@ public sealed class InhabitantsSystem : IWorldSystem
         // Actions without a target happen here or, if the data says so, at a random spot nearby
         // (drawn from the inhabitant's own stream).
         var destination = inhabitant.Position;
-        if (_actions.Timing(best.Action).RandomNearby)
+        if (frontier is { } edge && AtFrontier(best.Action))
+        {
+            destination = edge;
+        }
+        else if (_actions.Timing(best.Action).RandomNearby)
         {
             var rng = world.Random.Get($"inhabitant/{inhabitant.Id}/wander");
             destination = new Position(

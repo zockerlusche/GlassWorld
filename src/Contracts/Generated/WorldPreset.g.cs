@@ -484,7 +484,7 @@ namespace GlassWorld.Contracts
     {
 
         /// <summary>
-        /// How far an inhabitant sees on flat ground (R14).
+        /// How far an inhabitant sees the land on flat ground, in cells (R14). The one sight range of the cloud cover: the core's exploration system reads it, and the start check keeps the start pairs further apart than this plus max_height_bonus_cells. Its own value, not the perception radius of content/behaviour/utility.json (which things an inhabitant notices). Placeholder until Marcel decides.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("view_range_cells")]
         public int ViewRangeCells { get; set; } = default!;
@@ -494,6 +494,18 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("height_bonus_per_100_height")]
         public int HeightBonusPer100Height { get; set; } = default!;
+
+        /// <summary>
+        /// Radius in cells of the surroundings whose mean height the own height is compared with for the height bonus (water counts with its surface at sea level).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("surroundings_radius_cells")]
+        public int SurroundingsRadiusCells { get; set; } = default!;
+
+        /// <summary>
+        /// Most extra cells of view by height, however high the inhabitant stands; 0 = no height bonus.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max_height_bonus_cells")]
+        public int MaxHeightBonusCells { get; set; } = default!;
 
         /// <summary>
         /// Presentation only: how long newly seen land takes to clear (R25).
