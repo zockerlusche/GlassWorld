@@ -91,3 +91,7 @@ nature_wind_shape={
 "type": "vec4",
 "value": Vector4(0.3, 0.4, 0, 0)
 }
+water_waves={
+"type": "vec4",
+"value": Vector4(0, 0, 1, 0)
+}

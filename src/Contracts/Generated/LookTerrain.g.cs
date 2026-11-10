@@ -119,7 +119,7 @@ namespace GlassWorld.Contracts
         public double StreamWidthM { get; set; } = default!;
 
         /// <summary>
-        /// Rounds of corner cutting (Chaikin) along a stream's centre line; each round doubles the points (0 = the cell-centre polyline).
+        /// Rounds of corner cutting (Chaikin) along a stream's centre line, after the relaxing; each round doubles the points (0 = the relaxed cell-centre polyline).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("stream_smoothing")]
         public int StreamSmoothing { get; set; } = default!;
@@ -136,32 +136,99 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("stream_source_width_share")]
         public double StreamSourceWidthShare { get; set; } = default!;
 
+        /// <summary>
+        /// Most smoothing passes over a stream's centre line before the corner cutting (W1724): each pass moves every point halfway to the middle of its neighbours, the ends stay. The relaxing stops earlier once the line turns no more than stream_turn_goal_deg_per_m. Absent or 0 = none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("stream_relax_passes")]
+        public int? StreamRelaxPasses { get; set; } = default!;
+
+        /// <summary>
+        /// Turn of a stream's centre line in degrees per metre (the angle between the metre before a place and the metre after it) the relaxing aims at: it goes on until the line is this smooth or the passes are used up. Absent = every pass is used.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("stream_turn_goal_deg_per_m")]
+        public double? StreamTurnGoalDegPerM { get; set; } = default!;
+
+        /// <summary>
+        /// Largest turn of a drawn stream line in degrees per metre: where the cells of a stream do not let the relaxing reach its goal (a hairpin), the line may turn up to this. The tests hold the streams of the real islands to it. Absent = no promise.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("stream_max_turn_deg_per_m")]
+        public double? StreamMaxTurnDegPerM { get; set; } = default!;
+
+        /// <summary>
+        /// How far the smoothed centre line may leave the stream's own cells, in metres; a point that would go further is held back. Absent = 0.25.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("stream_cell_tolerance_m")]
+        public double? StreamCellToleranceM { get; set; } = default!;
+
+        /// <summary>
+        /// How far the relaxing may move a point of the centre line from where the cells put it, in metres. Absent = 0.5.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("stream_max_shift_m")]
+        public double? StreamMaxShiftM { get; set; } = default!;
+
+        /// <summary>
+        /// Every cell of a stream keeps the relaxed centre line within this distance of its centre, in metres: where a stream is several cells wide a point may move less, so no cut bed is left without its band. Absent = 1.2.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("stream_cover_m")]
+        public double? StreamCoverM { get; set; } = default!;
+
+        /// <summary>
+        /// Swamp water (fresh water no deeper than swamp_max_units) is drawn as wet ground in the swamp colour, blended into the ground around it like a biome border, instead of as a water plate with a hard edge along the cells (W1724). Absent = false.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("swamp_as_ground")]
+        public bool? SwampAsGround { get; set; } = default!;
+
     }
 
     /// <summary>
-    /// Parameters of the fresh water shader (game/shaders/island_water.gdshader): light stripes that travel along the flow of streams, a slow shimmer on still water.
+    /// Parameters of the fresh water shader (game/shaders/island_water.gdshader): light flow lines that drift down a stream, each lane at its own pace (W1724), and a slow shimmer on still water.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class TerrainWaterShader
     {
 
         /// <summary>
-        /// Stripes per metre along the flow.
+        /// Lanes of flow lines across a stream band.
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("stripe_scale")]
-        public double StripeScale { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("flow_lanes")]
+        public double FlowLanes { get; set; } = default!;
 
         /// <summary>
-        /// How fast the stripes travel (stripes per second).
+        /// Typical length of a flow line along the stream in metres.
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("stripe_speed")]
-        public double StripeSpeed { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("flow_line_length_m")]
+        public double FlowLineLengthM { get; set; } = default!;
 
         /// <summary>
-        /// Brightness the stripes add (0..1).
+        /// Mean speed the flow lines drift downstream, metres per second.
         /// </summary>
-        [System.Text.Json.Serialization.JsonPropertyName("stripe_strength")]
-        public double StripeStrength { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("flow_speed_m_per_s")]
+        public double FlowSpeedMPerS { get; set; } = default!;
+
+        /// <summary>
+        /// How much the speed differs from lane to lane (0 = all the same, 1 = from half to one and a half times the mean).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("flow_speed_spread")]
+        public double FlowSpeedSpread { get; set; } = default!;
+
+        /// <summary>
+        /// How far the lanes wander sideways along the stream, in lane widths.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("flow_bend")]
+        public double FlowBend { get; set; } = default!;
+
+        /// <summary>
+        /// Brightness the flow lines add (0..1).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("flow_strength")]
+        public double FlowStrength { get; set; } = default!;
 
         /// <summary>
         /// Speed of the shimmer on still water.
@@ -238,6 +305,90 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
+    /// Wave crests on the sea and on lakes (W1724, game/shaders/water_waves.gdshaderinc): light arcs that travel with the wind. How many there are comes from the weather (content/look/weather.json, waves 0..1): none, a few small ones, many large ones. Absent = no crests.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class TerrainWaves
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("small")]
+        public TerrainWaveLayer Small { get; set; } = new TerrainWaveLayer();
+
+        [System.Text.Json.Serialization.JsonPropertyName("large")]
+        public TerrainWaveLayer Large { get; set; } = new TerrainWaveLayer();
+
+        /// <summary>
+        /// How strongly a crest lightens the water (0..1).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("strength")]
+        public double Strength { get; set; } = default!;
+
+        /// <summary>
+        /// Share of the weather's waves a lake shows (lakes are calmer than the sea).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("lake_share")]
+        public double LakeShare { get; set; } = default!;
+
+        /// <summary>
+        /// How much wider the foam line at the shore breathes in full waves (0 = unchanged, 1 = twice).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("shore_foam_gain")]
+        public double ShoreFoamGain { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// One layer of wave crests on a fixed grid that travels with the wind; the weather only decides how many of its places carry a crest, so a change of weather never moves a crest.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class TerrainWaveLayer
+    {
+
+        /// <summary>
+        /// Distance between two rows of crests along the wind in metres.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("spacing_m")]
+        public double SpacingM { get; set; } = default!;
+
+        /// <summary>
+        /// Room of one crest across the wind in metres (a crest fills at most nine tenths of it).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("length_m")]
+        public double LengthM { get; set; } = default!;
+
+        /// <summary>
+        /// Thickness of a crest line in metres (at most a fifth of spacing_m is drawn).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("thickness_m")]
+        public double ThicknessM { get; set; } = default!;
+
+        /// <summary>
+        /// Speed the crests travel with the wind, metres per second.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("speed_m_per_s")]
+        public double SpeedMPerS { get; set; } = default!;
+
+        /// <summary>
+        /// Share of the places that carry a crest when the layer is full (0..1).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("density")]
+        public double Density { get; set; } = default!;
+
+        /// <summary>
+        /// Waves value (0..1) at which the first crests of this layer appear.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("starts_at")]
+        public double StartsAt { get; set; } = default!;
+
+        /// <summary>
+        /// Waves value (0..1) from which the layer is full; must lie above starts_at.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("full_at")]
+        public double FullAt { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// Data file content/look/terrain.json: how the island grid is drawn (B2 R18-R20): palette colours per biome, for cliffs and the ground under water, the water surfaces and the detail levels of the chunks. Ids refer to content/look/palette.json. Presentation only, not part of the hash. Values are placeholders.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -305,6 +456,10 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("detail")]
         public TerrainDetail Detail { get; set; } = new TerrainDetail();
+
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("waves")]
+        public TerrainWaves? Waves { get; set; } = default!;
 
     }
 }

@@ -151,7 +151,7 @@ public partial class IslandScene : Node3D
         _nature = NatureLook.Create(content, palette);
         var (grass, otherDecor) = GrassPlan.Split(decor, _nature.Data.Grass);
         Func<double, double, double> groundAt = (x, z) => IslandView.GroundHeight(ground, terrain, x, z);
-        _objects = ObjectsView.Create(objectLooks, palette, groundAt, otherDecor, _nature.Season.Slots);
+        _objects = ObjectsView.Create(objectLooks, palette, groundAt, otherDecor, _nature.Season.Slots, TerrainMesher.StreamSources(ground, terrain));
         AddChild(_objects);
         _objects.Refresh(host.Snapshot().Objects);
         _grass = GrassView.Create(_objects, grass, groundAt, _nature.Data.Grass, GrassPlan.Level(Look<LookQuality>("quality.json")));

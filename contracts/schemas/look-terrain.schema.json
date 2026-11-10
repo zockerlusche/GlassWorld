@@ -77,6 +77,9 @@
     },
     "detail": {
       "$ref": "#/$defs/TerrainDetail"
+    },
+    "waves": {
+      "$ref": "#/$defs/TerrainWaves"
     }
   },
   "$defs": {
@@ -215,7 +218,7 @@
           "maximum": 10
         },
         "stream_smoothing": {
-          "description": "Rounds of corner cutting (Chaikin) along a stream's centre line; each round doubles the points (0 = the cell-centre polyline).",
+          "description": "Rounds of corner cutting (Chaikin) along a stream's centre line, after the relaxing; each round doubles the points (0 = the relaxed cell-centre polyline).",
           "type": "integer",
           "minimum": 0,
           "maximum": 6
@@ -231,35 +234,96 @@
           "type": "number",
           "minimum": 0,
           "maximum": 1
+        },
+        "stream_relax_passes": {
+          "description": "Most smoothing passes over a stream's centre line before the corner cutting (W1724): each pass moves every point halfway to the middle of its neighbours, the ends stay. The relaxing stops earlier once the line turns no more than stream_turn_goal_deg_per_m. Absent or 0 = none.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 500
+        },
+        "stream_turn_goal_deg_per_m": {
+          "description": "Turn of a stream's centre line in degrees per metre (the angle between the metre before a place and the metre after it) the relaxing aims at: it goes on until the line is this smooth or the passes are used up. Absent = every pass is used.",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 180
+        },
+        "stream_max_turn_deg_per_m": {
+          "description": "Largest turn of a drawn stream line in degrees per metre: where the cells of a stream do not let the relaxing reach its goal (a hairpin), the line may turn up to this. The tests hold the streams of the real islands to it. Absent = no promise.",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 180
+        },
+        "stream_cell_tolerance_m": {
+          "description": "How far the smoothed centre line may leave the stream's own cells, in metres; a point that would go further is held back. Absent = 0.25.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 5
+        },
+        "stream_max_shift_m": {
+          "description": "How far the relaxing may move a point of the centre line from where the cells put it, in metres. Absent = 0.5.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 5
+        },
+        "stream_cover_m": {
+          "description": "Every cell of a stream keeps the relaxed centre line within this distance of its centre, in metres: where a stream is several cells wide a point may move less, so no cut bed is left without its band. Absent = 1.2.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 5
+        },
+        "swamp_as_ground": {
+          "description": "Swamp water (fresh water no deeper than swamp_max_units) is drawn as wet ground in the swamp colour, blended into the ground around it like a biome border, instead of as a water plate with a hard edge along the cells (W1724). Absent = false.",
+          "type": "boolean"
         }
       }
     },
     "TerrainWaterShader": {
-      "description": "Parameters of the fresh water shader (game/shaders/island_water.gdshader): light stripes that travel along the flow of streams, a slow shimmer on still water.",
+      "description": "Parameters of the fresh water shader (game/shaders/island_water.gdshader): light flow lines that drift down a stream, each lane at its own pace (W1724), and a slow shimmer on still water.",
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "stripe_scale",
-        "stripe_speed",
-        "stripe_strength",
+        "flow_lanes",
+        "flow_line_length_m",
+        "flow_speed_m_per_s",
+        "flow_speed_spread",
+        "flow_bend",
+        "flow_strength",
         "shimmer_speed",
         "shimmer_strength"
       ],
       "properties": {
-        "stripe_scale": {
-          "description": "Stripes per metre along the flow.",
+        "flow_lanes": {
+          "description": "Lanes of flow lines across a stream band.",
           "type": "number",
-          "minimum": 0,
+          "minimum": 1,
+          "maximum": 32
+        },
+        "flow_line_length_m": {
+          "description": "Typical length of a flow line along the stream in metres.",
+          "type": "number",
+          "exclusiveMinimum": 0,
           "maximum": 100
         },
-        "stripe_speed": {
-          "description": "How fast the stripes travel (stripes per second).",
+        "flow_speed_m_per_s": {
+          "description": "Mean speed the flow lines drift downstream, metres per second.",
           "type": "number",
           "minimum": 0,
-          "maximum": 100
+          "maximum": 20
         },
-        "stripe_strength": {
-          "description": "Brightness the stripes add (0..1).",
+        "flow_speed_spread": {
+          "description": "How much the speed differs from lane to lane (0 = all the same, 1 = from half to one and a half times the mean).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "flow_bend": {
+          "description": "How far the lanes wander sideways along the stream, in lane widths.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "flow_strength": {
+          "description": "Brightness the flow lines add (0..1).",
           "type": "number",
           "minimum": 0,
           "maximum": 1
@@ -341,6 +405,102 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 1000
+        }
+      }
+    },
+    "TerrainWaves": {
+      "description": "Wave crests on the sea and on lakes (W1724, game/shaders/water_waves.gdshaderinc): light arcs that travel with the wind. How many there are comes from the weather (content/look/weather.json, waves 0..1): none, a few small ones, many large ones. Absent = no crests.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "small",
+        "large",
+        "strength",
+        "lake_share",
+        "shore_foam_gain"
+      ],
+      "properties": {
+        "small": {
+          "$ref": "#/$defs/TerrainWaveLayer"
+        },
+        "large": {
+          "$ref": "#/$defs/TerrainWaveLayer"
+        },
+        "strength": {
+          "description": "How strongly a crest lightens the water (0..1).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "lake_share": {
+          "description": "Share of the weather's waves a lake shows (lakes are calmer than the sea).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "shore_foam_gain": {
+          "description": "How much wider the foam line at the shore breathes in full waves (0 = unchanged, 1 = twice).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 4
+        }
+      }
+    },
+    "TerrainWaveLayer": {
+      "description": "One layer of wave crests on a fixed grid that travels with the wind; the weather only decides how many of its places carry a crest, so a change of weather never moves a crest.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "spacing_m",
+        "length_m",
+        "thickness_m",
+        "speed_m_per_s",
+        "density",
+        "starts_at",
+        "full_at"
+      ],
+      "properties": {
+        "spacing_m": {
+          "description": "Distance between two rows of crests along the wind in metres.",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 200
+        },
+        "length_m": {
+          "description": "Room of one crest across the wind in metres (a crest fills at most nine tenths of it).",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 200
+        },
+        "thickness_m": {
+          "description": "Thickness of a crest line in metres (at most a fifth of spacing_m is drawn).",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 20
+        },
+        "speed_m_per_s": {
+          "description": "Speed the crests travel with the wind, metres per second.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 20
+        },
+        "density": {
+          "description": "Share of the places that carry a crest when the layer is full (0..1).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "starts_at": {
+          "description": "Waves value (0..1) at which the first crests of this layer appear.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "full_at": {
+          "description": "Waves value (0..1) from which the layer is full; must lie above starts_at.",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
         }
       }
     }

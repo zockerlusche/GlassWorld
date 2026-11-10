@@ -106,6 +106,9 @@ public static class ObjectShapes
             case ObjectLookShape.Pool:
                 Pool(parts, color(0), color(1), color(2), color(3));
                 break;
+            case ObjectLookShape.Spring:
+                Spring(parts, color(0), color(1), color(2));
+                break;
             case ObjectLookShape.Log:
                 var lying = new Basis(Vector3.Forward, Mathf.Pi / 2);
                 parts.Add(new CylinderMesh { TopRadius = 0.12f, BottomRadius = 0.13f, Height = 1.0f, RadialSegments = 7 }, new Transform3D(lying, new Vector3(0, 0.12f, 0)), color(0));
@@ -149,15 +152,55 @@ public static class ObjectShapes
     private static readonly float[] PoolOutline = [1.0f, 0.86f, 0.95f, 0.8f, 0.92f, 1.0f, 0.84f, 0.9f, 0.97f];
 
     /// <summary>
-    /// A small natural spring pool (D576, TL #20085: recognisable as water), drawn on the ground plane y = 0
+    /// A spring (W1724): a small heap of low-poly stones a stream comes out of, on the ground plane y = 0
+    /// that the placement tilts to the slope and turns against the flow. The big stones stand in a
+    /// horseshoe at the uphill side (local +x) with one more lying on top of them; the horseshoe opens
+    /// downhill (local -x), where the water wells up between the stones and runs off into the stream band,
+    /// which starts under the heap (the origin). Two pebbles lie beside the run. No pond, no rim.
+    /// Colour roles: stone, darker stone, water.
+    /// </summary>
+    private static void Spring(Parts parts, Color stone, Color dark, Color water)
+    {
+        // The water between the stones: a low fan, wide under the heap and narrow where the band takes over.
+        Vector3[] rim =
+        [
+            new(0.3f, 0.03f, -0.2f), new(0.36f, 0.03f, 0.02f), new(0.28f, 0.03f, 0.22f), new(0.02f, 0.025f, 0.24f),
+            new(-0.42f, 0.015f, 0.13f), new(-0.42f, 0.015f, -0.13f), new(0f, 0.025f, -0.24f),
+        ];
+        var well = new Vector3(0.08f, 0.035f, 0);
+        for (var i = 0; i < rim.Length; i++)
+        {
+            parts.Triangle(well, rim[i], rim[(i + 1) % rim.Length], water);
+        }
+
+        // Angle from uphill, distance from the origin, lift, size: the back of the horseshoe, its flanks
+        // beside the run, one stone on top, two pebbles further down.
+        (float Angle, float Radius, float Lift, Vector3 Size, bool Dark)[] stones =
+        [
+            (0.05f, 0.44f, 0f, new Vector3(0.5f, 0.36f, 0.42f), false), (0.95f, 0.46f, 0f, new Vector3(0.4f, 0.27f, 0.34f), true),
+            (-0.9f, 0.45f, 0f, new Vector3(0.38f, 0.25f, 0.33f), false), (1.8f, 0.42f, 0f, new Vector3(0.3f, 0.19f, 0.26f), false),
+            (-1.75f, 0.41f, 0f, new Vector3(0.29f, 0.18f, 0.25f), true), (0.35f, 0.3f, 0.2f, new Vector3(0.32f, 0.2f, 0.28f), true),
+            (2.55f, 0.56f, 0f, new Vector3(0.16f, 0.09f, 0.13f), false), (-2.6f, 0.58f, 0f, new Vector3(0.14f, 0.08f, 0.12f), true),
+        ];
+        for (var i = 0; i < stones.Length; i++)
+        {
+            var (angle, radius, lift, size, darker) = stones[i];
+            var place = new Vector3(Mathf.Cos(angle) * radius, lift - (size.Y * 0.3f), Mathf.Sin(angle) * radius);
+            parts.Add(IslandPiece.Rock(51 + i, size, Colors.White), new Transform3D(new Basis(Vector3.Up, angle * 1.3f), place), darker ? dark : stone);
+        }
+    }
+
+    /// <summary>
+    /// A small natural pond (D576, TL #20085: recognisable as water; a drinking place in a hollow or at a
+    /// lake - a spring at the head of a stream is <see cref="Spring"/>), drawn on the ground plane y = 0
     /// that the placement tilts to the slope: an irregular low-poly water patch lying a little below a low
-    /// muddy rim, uneven stones half sunk around the rim (larger at the uphill side, local +x, where the water
-    /// comes out) and two clumps of reeds at the downhill edge. Nothing reaches below the ground, no basin.
-    /// Colour roles: water, stone, bank, reed.
+    /// rim in the colour of the bank (W1724: no ring of its own colour), uneven stones half sunk around the
+    /// rim (larger at the uphill side, local +x) and two clumps of reeds at the downhill edge. Nothing
+    /// reaches below the ground, no basin. Colour roles: water, stone, bank, reed.
     /// </summary>
     private static void Pool(Parts parts, Color water, Color stone, Color bank, Color reed)
     {
-        const float Water = 0.022f, Lip = 0.034f, Rim = 0.012f, Inner = 0.5f, Outer = 0.72f;
+        const float Water = 0.018f, Lip = 0.026f, Rim = 0.004f, Inner = 0.5f, Outer = 0.64f;
         var n = PoolOutline.Length;
         static Vector3 Edge(int i, float radius, float y)
         {

@@ -9,7 +9,9 @@ namespace GlassWorld.Game.World;
 /// <summary>
 /// Draws the generated island (B2 R18–R20): a ground mesh per chunk and detail level and the water per chunk from
 /// <see cref="TerrainMesher"/>, the ground in the warm comic shader with palette colours, the sea with
-/// depth bands and shore foam, fresh water with the core's flow direction, and an open sea around the
+/// depth bands and shore foam, fresh water with the core's flow direction (streams as bands with flow
+/// lines, W1724), wave crests on sea and lakes by the weather (<c>waves</c> of the terrain look; the amount
+/// is a global shader parameter <see cref="NatureLook"/> sets), and an open sea around the
 /// map. The sea follows the tide (B2-5 R15): all salt water hangs under one node that moves up and down
 /// with the level of the snapshot, glided in real time (<see cref="TideFollower"/>); the sea shader reads
 /// the water depth from the picture, so depth bands and shore foam follow by themselves, and the open sea
@@ -82,11 +84,15 @@ public partial class IslandView : Node3D
         view._seaMaterial.SetShaderParameter("use_shore_line", false);
         var fresh = view._freshMaterial = new ShaderMaterial { Shader = Fresh };
         var shader = data.WaterShader;
-        fresh.SetShaderParameter("stripe_scale", shader.StripeScale);
-        fresh.SetShaderParameter("stripe_speed", shader.StripeSpeed);
-        fresh.SetShaderParameter("stripe_strength", shader.StripeStrength);
+        fresh.SetShaderParameter("flow_lanes", shader.FlowLanes);
+        fresh.SetShaderParameter("flow_line_length", shader.FlowLineLengthM);
+        fresh.SetShaderParameter("flow_speed", shader.FlowSpeedMPerS);
+        fresh.SetShaderParameter("flow_speed_spread", shader.FlowSpeedSpread);
+        fresh.SetShaderParameter("flow_bend", shader.FlowBend);
+        fresh.SetShaderParameter("flow_strength", shader.FlowStrength);
         fresh.SetShaderParameter("shimmer_speed", shader.ShimmerSpeed);
         fresh.SetShaderParameter("shimmer_strength", shader.ShimmerStrength);
+        ApplyWaves(data.Waves, view._seaMaterial, fresh);
         view.ApplyPalette(palette);
         var look = view.Look!;
         var map = island.Map;
@@ -118,6 +124,39 @@ public partial class IslandView : Node3D
             CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
         });
         return view;
+    }
+
+    /// <summary>
+    /// The wave crests of the terrain look (W1724) as parameters of the sea and the fresh water shader;
+    /// without the data no crest is ever drawn.
+    /// </summary>
+    private static void ApplyWaves(TerrainWaves? waves, ShaderMaterial sea, ShaderMaterial fresh)
+    {
+        foreach (var material in new[] { sea, fresh })
+        {
+            material.SetShaderParameter("wave_strength", waves?.Strength ?? 0);
+            if (waves is null)
+            {
+                continue;
+            }
+
+            foreach (var (name, layer) in new[] { ("wave_small", waves.Small), ("wave_large", waves.Large) })
+            {
+                if (layer.FullAt <= layer.StartsAt)
+                {
+                    throw new InvalidDataException($"content/look/terrain.json waves: full_at ({layer.FullAt}) must lie above starts_at ({layer.StartsAt}).");
+                }
+
+                material.SetShaderParameter(name, new Vector4((float)layer.SpacingM, (float)layer.LengthM, (float)layer.ThicknessM, (float)layer.SpeedMPerS));
+                material.SetShaderParameter(name + "_range", new Vector3((float)layer.Density, (float)layer.StartsAt, (float)layer.FullAt));
+            }
+        }
+
+        if (waves is not null)
+        {
+            sea.SetShaderParameter("wave_shore_foam", waves.ShoreFoamGain);
+            fresh.SetShaderParameter("wave_share", waves.LakeShare);
+        }
     }
 
     /// <summary>
@@ -271,7 +310,8 @@ public partial class IslandView : Node3D
     /// Converts mesher output to an ArrayMesh. Godot treats clockwise triangles as front faces, so each
     /// triangle is reversed; vertex colours go from sRGB palette values to linear for the shader. With
     /// <paramref name="tints"/> the shares of the movable colours go into CUSTOM0 and CUSTOM1 (four bytes
-    /// per vertex each: tint slots 0..3 and 4..7).
+    /// per vertex each: tint slots 0..3 and 4..7). A stream band's places (<see cref="MeshData.Band"/>:
+    /// metres along, -1..1 across) go into UV2 for the flow lines of the fresh water shader.
     /// </summary>
     private static ArrayMesh ToMesh(MeshData data, bool tints = false)
     {
@@ -282,6 +322,7 @@ public partial class IslandView : Node3D
         var normals = new Vector3[count];
         var colors = new Color[count];
         var flow = new Vector2[count];
+        var band = data.Band.Count == count * 2 ? new Vector2[count] : null;
         for (var t = 0; t < count; t += 3)
         {
             // a, b, c → a, c, b
@@ -294,6 +335,11 @@ public partial class IslandView : Node3D
                 normals[o] = new Vector3(data.Normals[i * 3], data.Normals[(i * 3) + 1], data.Normals[(i * 3) + 2]);
                 colors[o] = new Color(data.Colors[i * 3], data.Colors[(i * 3) + 1], data.Colors[(i * 3) + 2]).SrgbToLinear();
                 flow[o] = new Vector2(data.Flow[i * 2], data.Flow[(i * 2) + 1]);
+                if (band is not null)
+                {
+                    band[o] = new Vector2(data.Band[i * 2], data.Band[(i * 2) + 1]);
+                }
+
                 for (var s = 0; tints && s < SeasonSlots.Max; s++)
                 {
                     (s < 4 ? weights : more)[(o * 4) + (s % 4)] = (byte)Math.Clamp((int)MathF.Round(data.Tints[(i * SeasonSlots.Max) + s] * 255), 0, 255);
@@ -307,6 +353,11 @@ public partial class IslandView : Node3D
         arrays[(int)Mesh.ArrayType.Normal] = normals;
         arrays[(int)Mesh.ArrayType.Color] = colors;
         arrays[(int)Mesh.ArrayType.TexUV] = flow;
+        if (band is not null)
+        {
+            arrays[(int)Mesh.ArrayType.TexUV2] = band;
+        }
+
         if (tints)
         {
             // The default custom format is four unsigned bytes (RGBA8), read as 0..1 in the shader.

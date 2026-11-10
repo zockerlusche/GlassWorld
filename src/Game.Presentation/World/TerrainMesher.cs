@@ -91,6 +91,12 @@ public readonly record struct Rgb(float R, float G, float B)
 /// <param name="StreamSourceWidthShare">Width of a stream at its source as a share of its full width.</param>
 /// <param name="CliffBiomes">Per biome index of the map: whether its cells form rock walls where they stand at least <paramref name="CliffDrop"/> above a neighbour (null = every biome).</param>
 /// <param name="Rock">Natural rock colours (TL #19984), or null for plain colours.</param>
+/// <param name="StreamRelaxPasses">Most smoothing passes over a stream's centre line before the corner cutting (0 = none, W1724).</param>
+/// <param name="StreamTurnGoalDegPerM">Turn per metre at which the relaxing stops (0 = every pass is used).</param>
+/// <param name="StreamCellToleranceM">How far the smoothed centre line may leave the stream's own cells (metres).</param>
+/// <param name="StreamMaxShiftM">How far the relaxing may move a point of the centre line from where the cells put it (metres).</param>
+/// <param name="StreamCoverM">Every cell of a stream keeps the relaxed line within this distance of its centre (metres).</param>
+/// <param name="SwampAsGround">Whether swamp water is drawn as wet ground that blends into its surroundings instead of as a water plate (W1724).</param>
 public sealed record TerrainLook(
     IReadOnlyList<Rgb> BiomeColors,
     Rgb Cliff,
@@ -112,7 +118,13 @@ public sealed record TerrainLook(
     IReadOnlyList<bool>? CliffBiomes = null,
     float StreamSourceTaperM = 0,
     float StreamSourceWidthShare = 1,
-    RockLook? Rock = null)
+    RockLook? Rock = null,
+    int StreamRelaxPasses = 0,
+    float StreamTurnGoalDegPerM = 0,
+    float StreamCellToleranceM = 0.25f,
+    float StreamMaxShiftM = 0.5f,
+    float StreamCoverM = 1.2f,
+    bool SwampAsGround = false)
 {
     /// <summary>Resolves the look data against the palette, the map's biome order and the preset.</summary>
     /// <param name="terrain">The terrain look data.</param>
@@ -172,8 +184,17 @@ public sealed record TerrainLook(
             [.. map.BiomeIds.Select(id => terrain.Cliffs.Biomes.Contains(id, StringComparer.Ordinal))],
             (float)terrain.Water.StreamSourceTaperM,
             (float)terrain.Water.StreamSourceWidthShare,
-            terrain.Rock is { } rock ? new RockLook(rock.VariationPermille / 1000f, rock.VariationCells, rock.WallFootShadePermille / 1000f, rock.ScreePermille / 1000f) : null);
+            terrain.Rock is { } rock ? new RockLook(rock.VariationPermille / 1000f, rock.VariationCells, rock.WallFootShadePermille / 1000f, rock.ScreePermille / 1000f) : null,
+            terrain.Water.StreamRelaxPasses ?? 0,
+            (float)(terrain.Water.StreamTurnGoalDegPerM ?? 0),
+            (float)(terrain.Water.StreamCellToleranceM ?? 0.25),
+            (float)(terrain.Water.StreamMaxShiftM ?? 0.5),
+            (float)(terrain.Water.StreamCoverM ?? 1.2),
+            terrain.Water.SwampAsGround ?? false);
     }
+
+    /// <summary>Whether a cell holds swamp water that is drawn as wet ground (<see cref="SwampAsGround"/>): still fresh water no deeper than the swamp depth.</summary>
+    public bool IsSwampGround(MapCell cell) => SwampAsGround && cell is { Water: WaterKind.Fresh, Flow: < 0 } && cell.WaterDepth <= SwampMaxUnits;
 }
 
 /// <summary>Natural rock colours (TL #19984), resolved from the look data.</summary>
@@ -234,6 +255,12 @@ public sealed class MeshData
 
     /// <summary>Per vertex flow direction x, z for water (0, 0 for still water and ground).</summary>
     public List<float> Flow { get; } = [];
+
+    /// <summary>
+    /// Only for stream bands (empty otherwise): per vertex its place on the band, metres along the centre
+    /// line from the head and the position across it (1 at one edge, 0 on the centre line, -1 at the other).
+    /// </summary>
+    public List<float> Band { get; } = [];
 
     /// <summary>Number of vertices.</summary>
     public int VertexCount => Positions.Count / 3;
@@ -761,7 +788,9 @@ public static partial class TerrainMesher
     /// The water surfaces of one chunk (sea, lakes, swamp), optionally of one kind only. The sea is flat
     /// per cell. Fresh water is drawn corner by corner (see <see cref="FreshCorner"/>), so lakes, swamp and
     /// their banks share one surface at every grid corner and close against dry ground. Running water is
-    /// not drawn here but as smooth bands along the stream lines (<see cref="Streams"/>, A1456).
+    /// not drawn here but as smooth bands along the stream lines (<see cref="Streams"/>, A1456). Swamp
+    /// that the look draws as wet ground (<see cref="TerrainLook.SwampAsGround"/>, W1724) has no surface
+    /// here: its colour lies in the ground and blends into the land around it.
     /// </summary>
     public static MeshData Water(WorldMap map, int chunkX, int chunkZ, TerrainLook look, WaterKind? only = null)
     {
@@ -798,6 +827,11 @@ public static partial class TerrainMesher
             if (cell.Flow >= 0)
             {
                 // A stream: drawn as a band along its line (Streams), not as square cell plates.
+                continue;
+            }
+
+            if (look.IsSwampGround(cell))
+            {
                 continue;
             }
 
@@ -1094,12 +1128,18 @@ public static partial class TerrainMesher
     private static (Carrier Kind, int Surface, int Depth) Carry(WorldMap map, int x, int z, TerrainLook look)
     {
         var cell = map.Cell(x, z);
+        if (look.IsSwampGround(cell))
+        {
+            // Swamp drawn as wet ground carries no surface: water beside it comes down to it like to a bank.
+            return (Carrier.Bare, 0, 0);
+        }
+
         if (cell.Water != WaterKind.None)
         {
             return (cell.Water == WaterKind.Fresh && cell.Flow >= 0 ? Carrier.Running : Carrier.Still, cell.Height + cell.WaterDepth, cell.WaterDepth);
         }
 
-        return BankWater(map, x, z) is { } bank && IsShore(CornerHeights(map, x, z, look), bank.Surface)
+        return BankWater(map, x, z, look) is { } bank && IsShore(CornerHeights(map, x, z, look), bank.Surface)
             ? (Carrier.Bank, bank.Surface, bank.Depth)
             : (Carrier.Bare, 0, 0);
     }
@@ -1114,8 +1154,8 @@ public static partial class TerrainMesher
         mesh.Triangle((x0, y, z0), (x0, y, z1), (x1, y, z1), color, flow);
     }
 
-    /// <summary>The highest still fresh water surface (and its depth) among the eight neighbours of a dry cell, if any.</summary>
-    private static (int Surface, int Depth)? BankWater(WorldMap map, int x, int z)
+    /// <summary>The highest still fresh water surface (and its depth) among the eight neighbours of a dry cell, if any; swamp drawn as wet ground has none.</summary>
+    private static (int Surface, int Depth)? BankWater(WorldMap map, int x, int z, TerrainLook look)
     {
         (int Surface, int Depth)? best = null;
         foreach (var (dx, dz) in FlowDirections.All)
@@ -1129,7 +1169,7 @@ public static partial class TerrainMesher
             // Only still water (lakes, swamp) reaches into its banks; a stream runs down a slope and
             // closes against its banks by itself.
             var n = map.Cell(nx, nz);
-            if (n.Water == WaterKind.Fresh && n.Flow < 0 && (best is null || n.Height + n.WaterDepth > best.Value.Surface))
+            if (n.Water == WaterKind.Fresh && n.Flow < 0 && !look.IsSwampGround(n) && (best is null || n.Height + n.WaterDepth > best.Value.Surface))
             {
                 best = (n.Height + n.WaterDepth, n.WaterDepth);
             }
@@ -1300,7 +1340,8 @@ public static partial class TerrainMesher
         }
     }
 
-    private static Rgb GroundColor(MapCell cell, TerrainLook look) => cell.Water == WaterKind.None ? look.BiomeColors[cell.Biome] : look.Bed;
+    private static Rgb GroundColor(MapCell cell, TerrainLook look) =>
+        cell.Water == WaterKind.None ? look.BiomeColors[cell.Biome] : look.IsSwampGround(cell) ? look.Swamp : look.Bed;
 
     private static Rgb[] CornerColors(WorldMap map, int x, int z, TerrainLook look)
     {

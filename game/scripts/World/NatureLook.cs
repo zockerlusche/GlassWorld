@@ -13,7 +13,8 @@ namespace GlassWorld.Game.World;
 /// the world clock as shader parameters (the seasonal colours of ground and plants, the snow cover), the
 /// wind of the core as plant sway, falling leaves near the camera, and the weather of the snapshot: rain
 /// and snow near the camera, the colours and snow cover it lays over the season's, stronger sway in a
-/// storm, and through <see cref="Shade"/> the light, clouds and fog of the day (blended softly by
+/// storm, the waves on sea and lakes (W1724: <c>waves</c> of the weather look, running with the wind, as
+/// the global parameter <c>water_waves</c>), and through <see cref="Shade"/> the light, clouds and fog of the day (blended softly by
 /// <see cref="WeatherBlender"/>; the storm glows softly instead of flashing, <see cref="StormGlow"/>).
 /// Nothing is rebuilt: the meshes carry the shares of
 /// the seasonal colours (<see cref="SeasonSlots"/>) and the warm comic shader reads global parameters,
@@ -34,6 +35,7 @@ public partial class NatureLook : Node3D
     private SeasonMix? _seasonShown;
     private (SeasonMix? Season, WeatherMix? Weather, EpochMix? Epoch) _laid;
     private Vector4 _windShown = new(float.NaN, 0, 0, 0);
+    private Vector4 _wavesShown = new(float.NaN, 0, 0, 0);
     private Color _light = Colors.White;
 
     /// <summary>The nature data (content/look/nature.json).</summary>
@@ -178,6 +180,7 @@ public partial class NatureLook : Node3D
 
         RenderingServer.GlobalShaderParameterSet("nature_snow", new Vector4(1, 1, 1, 0));
         RenderingServer.GlobalShaderParameterSet("nature_wind", new Vector4(0, 1, 0, 0));
+        RenderingServer.GlobalShaderParameterSet("water_waves", new Vector4(0, 0, 1, 0));
     }
 
     private Rgb PaletteColor(string id) =>
@@ -218,6 +221,15 @@ public partial class NatureLook : Node3D
         {
             _windShown = wind;
             RenderingServer.GlobalShaderParameterSet("nature_wind", wind);
+        }
+
+        // Waves on sea and lakes (W1724): how many by the weather shown now (it blends softly with the
+        // weather), running with the wind.
+        var waves = new Vector4((float)Math.Clamp(Weather.Shown.Waves, 0, 1), (float)Wind.DirectionX, (float)Wind.DirectionZ, 0);
+        if (waves != _wavesShown)
+        {
+            _wavesShown = waves;
+            RenderingServer.GlobalShaderParameterSet("water_waves", waves);
         }
     }
 

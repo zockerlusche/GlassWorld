@@ -110,8 +110,10 @@ public readonly record struct ObjectPlacement(string ObjectId, double X, double 
 /// The object look of the main game's island mode (<c>content/look/objects.json</c>) without Godot: which
 /// shape and colours each object type gets, the calm neutral fallback marker for a type without an entry
 /// (reported once per type), and a placement per object whose turn and size come from the object id, so
-/// the same world looks the same at every start and after loading. Presentation only: it reads core
-/// objects and never changes them.
+/// the same world looks the same at every start and after loading. An object at the source of a stream
+/// (<c>stream_sources</c> of the data, W1724) is drawn as the spring of the data instead, at the point
+/// where the stream band starts and turned against its flow (<see cref="UseStreamSources"/>).
+/// Presentation only: it reads core objects and never changes them.
 /// </summary>
 public sealed class ObjectLooks
 {
@@ -125,6 +127,12 @@ public sealed class ObjectLooks
     // placed once and a refresh (an object eaten, one regrown) only places the new ones (GW3 #120).
     private Dictionary<(string Id, string Type, double X, double Z), ObjectPlacement> _placed = [];
     private Func<double, double, double>? _placedOn;
+
+    // Objects at the source of a stream: the types this holds for, their look there and how near they must lie.
+    private readonly HashSet<string> _sourceTypes = new(StringComparer.Ordinal);
+    private readonly ObjectLook? _sourceLook;
+    private readonly double _sourceDistanceM;
+    private IReadOnlyList<StreamSource> _sources = [];
 
     /// <summary>Reads the data; every colour must be a palette id and every type may appear only once.</summary>
     public ObjectLooks(LookObjects data, IReadOnlySet<string> paletteIds)
@@ -166,6 +174,51 @@ public sealed class ObjectLooks
         }
 
         Visuals = visuals;
+        if (data.StreamSources is { } sources)
+        {
+            if (!_byType.TryGetValue(sources.AsType, out _sourceLook))
+            {
+                throw new InvalidDataException($"objects.json: stream_sources.as_type '{sources.AsType}' has no visual.");
+            }
+
+            _sourceTypes.UnionWith(sources.ObjectTypes);
+            _sourceDistanceM = sources.MaxDistanceM;
+        }
+    }
+
+    /// <summary>
+    /// The places where the stream bands of this island start at a spring (<see cref="TerrainMesher.StreamSources"/>).
+    /// From now on an object of the data's source types that lies within the data's distance of one is laid
+    /// out as the data's spring at that place.
+    /// </summary>
+    public void UseStreamSources(IEnumerable<StreamSource> sources)
+    {
+        ArgumentNullException.ThrowIfNull(sources);
+        _sources = [.. sources];
+        (_placed, _placedOn) = ([], null);
+    }
+
+    /// <summary>The stream source an object is drawn at (the nearest one within the data's distance), or null: no source look in the data, another type, none near.</summary>
+    public StreamSource? SourceOf(WorldObject obj)
+    {
+        ArgumentNullException.ThrowIfNull(obj);
+        if (_sourceLook is null || !_sourceTypes.Contains(obj.TypeId))
+        {
+            return null;
+        }
+
+        StreamSource? best = null;
+        var least = _sourceDistanceM * _sourceDistanceM;
+        foreach (var source in _sources)
+        {
+            var distance = Math.Pow(source.X - obj.Position.X, 2) + Math.Pow(source.Z - obj.Position.Z, 2);
+            if (distance <= least && (best is null || distance < least))
+            {
+                (best, least) = (source, distance);
+            }
+        }
+
+        return best;
     }
 
     /// <summary>The fallback marker.</summary>
@@ -209,7 +262,8 @@ public sealed class ObjectLooks
                 unknown?.Invoke(obj.TypeId);
             }
 
-            var look = For(obj.TypeId);
+            var source = SourceOf(obj);
+            var look = source is null ? For(obj.TypeId) : _sourceLook!;
             if (look.Shape == ObjectLookShape.None)
             {
                 continue;
@@ -223,7 +277,7 @@ public sealed class ObjectLooks
             var key = (obj.Id, obj.TypeId, obj.Position.X, obj.Position.Z);
             if (!known.TryGetValue(key, out var placement))
             {
-                placement = Place(obj, look, ground, Fit);
+                placement = Place(obj, look, ground, Fit, source);
             }
 
             placed[key] = placement;
@@ -243,15 +297,19 @@ public sealed class ObjectLooks
     /// tries other turns if its own fits badly and keeps the one that fits best; an uphill one turns its
     /// local +x side up the slope. A lying object whose best fit is still beyond the tolerance (across a
     /// rock wall) stands upright on the ground under its position instead. The lift comes on top.
+    /// With <paramref name="source"/> (W1724) the object stands at that stream source instead of its own
+    /// position, its local +x side against the flow, so the water runs off at its local -x side.
     /// </summary>
-    public static ObjectPlacement Place(WorldObject obj, ObjectLook look, Func<double, double, double> ground, GroundFit? fit = null)
+    public static ObjectPlacement Place(WorldObject obj, ObjectLook look, Func<double, double, double> ground, GroundFit? fit = null, StreamSource? source = null)
     {
         ArgumentNullException.ThrowIfNull(obj);
         ArgumentNullException.ThrowIfNull(look);
         ArgumentNullException.ThrowIfNull(ground);
         fit ??= GroundFit.Default;
-        var (x, z) = (obj.Position.X, obj.Position.Z);
-        var yaw = Hash01(obj.Id, 1) * 2 * Math.PI;
+        var (x, z) = source is { } at ? (at.X, at.Z) : (obj.Position.X, obj.Position.Z);
+
+        // Local +x points to (cos yaw, 0, -sin yaw): against the flow (fx, fz) that is yaw = atan2(fz, -fx).
+        var yaw = source is { } from ? Math.Atan2(from.FlowZ, -from.FlowX) : Hash01(obj.Id, 1) * 2 * Math.PI;
         var scale = look.SizeM * (1 + (look.SizeJitter * ((Hash01(obj.Id, 2) * 2) - 1)));
         if (!look.Lies)
         {
@@ -260,7 +318,12 @@ public sealed class ObjectLooks
 
         var (length, width) = (Math.Max(look.FootprintM * scale, fit.MinFootprintM), Math.Max(look.HalfWidthM * scale, fit.MinFootprintM));
         PlaneFit best;
-        if (look.Align == ObjectLookAlign.Ground_uphill)
+        if (source is not null)
+        {
+            // The turn is the stream's; only the tilt follows the ground.
+            best = FitPlane(x, z, yaw, length, width, ground);
+        }
+        else if (look.Align == ObjectLookAlign.Ground_uphill)
         {
             // Up the slope of the round fit; on flat ground the turn from the id.
             var probe = FitPlane(x, z, yaw, length, length, ground);

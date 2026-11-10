@@ -22,6 +22,7 @@ class ObjectLookShape(StrEnum):
     flower = 'flower'
     mushroom = 'mushroom'
     pool = 'pool'
+    spring = 'spring'
     log = 'log'
     fruit = 'fruit'
     shell = 'shell'
@@ -73,6 +74,27 @@ class ObjectDecorGroup(BaseModel):
     )
     min: int = Field(..., description='Fewest.', ge=1, le=64)
     max: int = Field(..., description='Most.', ge=1, le=64)
+
+
+type ObjectType = Annotated[str, Field(..., pattern='^[a-z][a-z0-9_]*$')]
+
+
+class ObjectStreamSources(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    object_types: list[ObjectType] = Field(..., max_length=16, min_length=1)
+    as_type: str = Field(
+        ...,
+        description='Type id a visual of this file lists in its types (it must not be an object type of the catalogue).',
+        pattern='^[a-z][a-z0-9_]*$',
+    )
+    max_distance_m: float = Field(
+        ...,
+        description='Largest distance between the object and the start of the stream band in metres.',
+        ge=0.0,
+        le=20.0,
+    )
 
 
 class ObjectVisual(BaseModel):
@@ -167,6 +189,12 @@ class ObjectDecor(BaseModel):
         ge=0.0,
         le=10.0,
     )
+    fresh_water_within_cells: int | None = Field(
+        None,
+        description='Bank plants (W1724): only a cell with fresh water (a stream, a spring, a lake, a swamp) within this many cells may hold a group centre, so groups_per_10000_cells is the density along the water. Absent = anywhere in the biomes.',
+        ge=1,
+        le=16,
+    )
 
 
 class LookObjects(BaseModel):
@@ -206,3 +234,4 @@ class LookObjects(BaseModel):
         description="Decorative plants drawn by the presentation only (TL #19722): grass tufts, flowers, shrubs in groups on the dry walkable ground of named biomes, placed from the world seed. They are no core objects, have no state and are never saved; they keep off the core's objects and off water. Absent = none.",
         max_length=32,
     )
+    stream_sources: ObjectStreamSources | None = None

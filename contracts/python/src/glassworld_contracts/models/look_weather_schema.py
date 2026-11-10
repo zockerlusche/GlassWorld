@@ -224,6 +224,12 @@ class WeatherLook(BaseModel):
         description='Colours laid over the colours of the season (dry grass in heat and drought). Only palette colours that a season changes too can move without a rebuild.',
         max_length=4,
     )
+    waves: float | None = Field(
+        None,
+        description='Waves on the sea and on lakes in this weather (W1724): 0 = none, about 0.3 = small, 1 = large; the crest layers of content/look/terrain.json (waves) say what that looks like. Absent = 0.',
+        ge=0.0,
+        le=1.0,
+    )
 
 
 class LookWeather(BaseModel):
