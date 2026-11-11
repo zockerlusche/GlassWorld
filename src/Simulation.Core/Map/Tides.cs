@@ -45,7 +45,10 @@ public sealed class Tides
 
         Amplitude = data.Amplitude;
         PeriodTicks = data.PeriodTicks;
-        HighestLevelTenths = (int)(Amplitude * 10L * _curve.Max(p => p.Level) / Thousand);
+        // Rounded up (a level below zero is cut off towards zero, which is up as well), so the line never
+        // lies below the water: not below a tick's level in tenths and not below the finer level the look shows.
+        var highest = Amplitude * 10L * _curve.Max(p => p.Level);
+        HighestLevelTenths = (int)(highest > 0 ? (highest + Thousand - 1) / Thousand : highest / Thousand);
     }
 
     /// <summary>Half the tidal range in height units; 0 = off.</summary>
@@ -59,7 +62,9 @@ public sealed class Tides
 
     /// <summary>
     /// The high-tide line: the highest water level of the curve against the mean sea level, in tenths of a
-    /// height unit (0 without tides). The curve is linear between its points, so no tick lies above it.
+    /// height unit, rounded up (0 without tides). The curve is linear between its points, so no tick lies
+    /// above it. Nothing else raises the sea: the level follows from the tick and this curve alone (no
+    /// spring tide, no weather surge), and the look moves the sea surface by exactly this level.
     /// </summary>
     public int HighestLevelTenths { get; }
 

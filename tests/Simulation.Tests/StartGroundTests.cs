@@ -1,6 +1,8 @@
+using GlassWorld.Contracts;
 using GlassWorld.Simulation.Content;
 using GlassWorld.Simulation.Decisions;
 using GlassWorld.Simulation.Map;
+using GlassWorld.Simulation.Random;
 
 namespace GlassWorld.Simulation.Tests;
 
@@ -35,6 +37,55 @@ public sealed class StartGroundTests
         var levels = Enumerable.Range(0, tides.PeriodTicks).Select(t => tides.LevelTenthsAt(t)).ToList();
         Assert.Equal(tides.Amplitude * 10, tides.HighestLevelTenths);
         Assert.Equal(tides.HighestLevelTenths, levels.Max());
+    }
+
+    /// <summary>
+    /// The line is rounded up to a tenth, never cut off (review GW3 #223): with an amplitude of 3 and a
+    /// curve that peaks at 950 permille the water reaches 28.5 tenths - the ticks read 28 (cut off), the
+    /// look shows the finer 2.85 units, and the line is 29, so it holds with a margin of 0 too.
+    /// </summary>
+    [Fact]
+    public void TheHighTideLineIsRoundedUpNotCutOff()
+    {
+        var data = new WorldPresetTides
+        {
+            Amplitude = 3,
+            PeriodTicks = 1000,
+            Curve =
+            [
+                new WorldPresetTidePoint { PhasePermille = 0, LevelPermille = 950 },
+                new WorldPresetTidePoint { PhasePermille = 500, LevelPermille = -950 },
+                new WorldPresetTidePoint { PhasePermille = 1000, LevelPermille = 950 },
+            ],
+        };
+        var tides = new Tides(data);
+        Assert.Equal(28, Enumerable.Range(0, tides.PeriodTicks).Max(t => tides.LevelTenthsAt(t)));
+        Assert.Equal(29, tides.HighestLevelTenths);
+
+        // The level the look shows (amplitude times the curve position, not cut to tenths) stays below the line.
+        var shown = Enumerable.Range(0, tides.PeriodTicks).Max(t => tides.Amplitude * 10 * tides.LevelPermilleAt(t) / 1000.0);
+        Assert.Equal(28.5, shown, 9);
+        Assert.True(shown <= tides.HighestLevelTenths);
+
+        // Exact values stay as they are, a curve wholly below the mean water is not lifted above it, and
+        // without tides the line is the mean sea level.
+        data.Curve.First().LevelPermille = data.Curve.Last().LevelPermille = 1000;
+        Assert.Equal(30, new Tides(data).HighestLevelTenths);
+        foreach (var point in data.Curve)
+        {
+            point.LevelPermille = point.PhasePermille == 500 ? -950 : -50;
+        }
+
+        Assert.Equal(-1, new Tides(data).HighestLevelTenths);
+        data.Amplitude = 0;
+        Assert.Equal(0, new Tides(data).HighestLevelTenths);
+
+        // With a margin of 0 the dry line of a preset is the rounded-up high water itself.
+        var content = ContentSet.Load(ContentDirectory);
+        var preset = content.WorldGen.Presets[Preset];
+        preset.Tides.Curve.First().LevelPermille = preset.Tides.Curve.Last().LevelPermille = 950;
+        preset.Start.DryGround!.Margin = 0;
+        Assert.Equal((preset.Terrain.SeaLevel * 10) + 29, WorldGenerator.StartDryLineTenths(preset));
     }
 
     [Theory]
@@ -148,6 +199,42 @@ public sealed class StartGroundTests
     }
 
     /// <summary>
+    /// A pair is not lost when the start supply is possible at the chosen cell but at none of the cells
+    /// beside it (review GW3 #223): the feasibility only prefers, so the partner then stands on one of the
+    /// cells with room, and the pair that finds no feasible cell at all is placed too.
+    /// </summary>
+    [Fact]
+    public void APairIsNotLostWhenNoCellBesideItIsFeasible()
+    {
+        var preset = Content.Value.WorldGen.Presets[Preset];
+        var island = Generate(7);
+        var only = (island.Starts[0].X, island.Starts[0].Z);
+        var asked = new List<(int X, int Z)>();
+        bool Feasible((int X, int Z) cell)
+        {
+            asked.Add(cell);
+            return cell == only;
+        }
+
+        var starts = WorldGenerator.Starts(preset, island.Map, Feasible, null, Content.Value.WorldGen.StartSeparationCm, new Pcg32(7, 11));
+        Assert.Equal(preset.Start.Pairs * 2, starts.Count);
+        Assert.Equal(only, (starts[0].X, starts[0].Z));
+        Assert.Equal("0 0 1 1", string.Join(' ', starts.Select(s => s.Pair)));
+
+        // The partner was asked for and is not feasible; it stands beside the first, on dry start ground.
+        var partner = (starts[1].X, starts[1].Z);
+        Assert.Contains(partner, asked);
+        Assert.NotEqual(only, partner);
+        Assert.InRange(Math.Max(Math.Abs(partner.X - only.X), Math.Abs(partner.Z - only.Z)), 1, 2);
+        Assert.All(starts, s => Assert.True(WorldGenerator.OnDryStartGround(preset, island.Map, s.X, s.Z)));
+        Assert.True(WorldGenerator.StartGroundCheck(preset, island.Map, starts)!.Passed);
+
+        // The same with no feasible cell on the whole island: both pairs are placed.
+        var none = WorldGenerator.Starts(preset, island.Map, _ => false, null, Content.Value.WorldGen.StartSeparationCm, new Pcg32(7, 11));
+        Assert.Equal(preset.Start.Pairs * 2, none.Count);
+    }
+
+    /// <summary>
     /// The start check rejects a flooded start: an island placed by the rule of version 4 (starts on the
     /// beach, below the high-tide line) fails the line of the dry start ground.
     /// </summary>
@@ -192,16 +279,26 @@ public sealed class StartGroundTests
         Assert.False(check.Passed);
     }
 
-    /// <summary>Without the data the start placement is that of version 4: its golden hash of seed 7.</summary>
+    /// <summary>
+    /// Without the data the start placement is that of version 4, by construction: its golden hash of
+    /// seed 7 - also with a personal space wider than a cell, which that path does not read (review GW3 #223).
+    /// </summary>
     [Fact]
     public void WithoutDryGroundTheGeneratorIsVersionFour()
     {
+        const string golden = "484c966f2cd51655ae8c23b289e305fbd6424ee9206d7414ad2ef5a37d2acd2f";
         var content = ContentSet.Load(ContentDirectory);
         var preset = content.WorldGen.Presets[Preset];
         preset.Start.DryGround = null;
         preset.GeneratorVersion = 4;
-        var island = WorldGenerator.Generate(content.WorldGen, content.Objects, Preset, 7);
-        Assert.Equal("484c966f2cd51655ae8c23b289e305fbd6424ee9206d7414ad2ef5a37d2acd2f", island.Hash());
+        Assert.Equal(golden, WorldGenerator.Generate(content.WorldGen, content.Objects, Preset, 7).Hash());
+
+        var wide = WorldGenContent.Load(ContentDirectory, content.Vocabularies, content.Objects, content.Calendar, minSeparationM: 2.5);
+        var widePreset = wide.Presets[Preset];
+        widePreset.Start.DryGround = null;
+        widePreset.GeneratorVersion = 4;
+        Assert.Equal(250, wide.StartSeparationCm);
+        Assert.Equal(golden, WorldGenerator.Generate(wide, content.Objects, Preset, 7).Hash());
     }
 
     private static bool NearBiome(WorldMap map, StartPosition start, int radius, string biome)

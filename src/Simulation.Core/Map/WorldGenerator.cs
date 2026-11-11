@@ -1122,11 +1122,13 @@ public static partial class WorldGenerator
     /// <summary>
     /// Pairs (woman and man) on different beaches, far enough apart not to see each other (R9, B2517). With
     /// <c>start.dry_ground</c> (version 5, TL #20750) the start cells are the dry ground just above the
-    /// beach that no tide reaches (<see cref="StartGround"/>); without it, cells of the start biome within
-    /// three cells of the sea as before. The two of a pair stand on different cells at least the personal
-    /// space of the inhabitants apart (<paramref name="separationCm"/>, the spacing rule of W1695).
+    /// beach that no tide reaches (<see cref="StartGround"/>), and the two of a pair stand at least the
+    /// personal space of the inhabitants apart (<paramref name="separationCm"/>, the spacing rule of
+    /// W1695). Without it the rule is exactly that of version 4: cells of the start biome within three
+    /// cells of the sea, the partner on any other such cell within two cells (the personal space is not
+    /// read on that path, so those worlds never change with the spacing data).
     /// </summary>
-    private static List<StartPosition> Starts(WorldPreset preset, WorldMap map, Func<(int X, int Z), bool> feasible, Func<(int X, int Z), bool>? near, int separationCm, Pcg32 rng)
+    internal static List<StartPosition> Starts(WorldPreset preset, WorldMap map, Func<(int X, int Z), bool> feasible, Func<(int X, int Z), bool>? near, int separationCm, Pcg32 rng)
     {
         var ground = preset.Start.DryGround is { } dry ? StartGround(preset, map, dry) : null;
         var beach = new List<(int X, int Z)>();
@@ -1141,7 +1143,8 @@ public static partial class WorldGenerator
             }
         }
 
-        // The partner stands within two cells, or as far as the personal space needs on a finer grid.
+        // Version 5 only: the partner stands within two cells, or as far as the personal space needs on a
+        // finer grid, and at least the personal space away.
         var cellCm = preset.Grid.CellSizeCm;
         var partnerReach = Math.Max(2, ((separationCm + cellCm - 1) / cellCm) + 1);
         bool Apart((int X, int Z) a, (int X, int Z) b) =>
@@ -1155,7 +1158,10 @@ public static partial class WorldGenerator
             if (ground is not null)
             {
                 // Version 5: only cells with room for the partner beside them, so a pair is never lost to
-                // a lone dry cell (up to version 4 such a pick left the island without that pair).
+                // a lone dry cell (up to version 4 such a pick left the island without that pair). Room is
+                // enough, whether or not the start supply is possible there: Feasible below only prefers
+                // and falls back to all the cells it is given when none is feasible, so the partner list
+                // of a chosen cell is never empty.
                 options = [.. options.Where(o => Partners(o).Any())];
             }
 
@@ -1168,7 +1174,9 @@ public static partial class WorldGenerator
             // the mandatory resources within the preferred radius (TL #19722); others only without one.
             options = Feasible(options);
             var anchor = options[rng.NextInt(0, options.Count)];
-            var partner = Feasible(ground is not null ? [.. Partners(anchor)] : beach.Where(b => Apart(b, anchor) && Math.Abs(b.X - anchor.X) <= partnerReach && Math.Abs(b.Z - anchor.Z) <= partnerReach).ToList());
+            var partner = Feasible(ground is not null
+                ? [.. Partners(anchor)]
+                : beach.Where(b => b != anchor && Math.Abs(b.X - anchor.X) <= 2 && Math.Abs(b.Z - anchor.Z) <= 2).ToList());
             if (partner.Count == 0)
             {
                 continue;
@@ -1182,7 +1190,7 @@ public static partial class WorldGenerator
 
         return starts;
 
-        // The start cells around a cell where its partner may stand, in row order (as the list of all start cells).
+        // Version 5: the start cells around a cell where its partner may stand, in row order (as the list of all start cells).
         IEnumerable<(int X, int Z)> Partners((int X, int Z) of)
         {
             for (var z = of.Z - partnerReach; z <= of.Z + partnerReach; z++)
@@ -1197,6 +1205,8 @@ public static partial class WorldGenerator
             }
         }
 
+        // A preference, never a filter: the cells where the start supply is possible (of those the ones
+        // with the mandatory resources close by), and all the cells given when it is possible on none.
         List<(int X, int Z)> Feasible(List<(int X, int Z)> cells)
         {
             var good = cells.Where(feasible).ToList();

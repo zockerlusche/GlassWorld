@@ -53,13 +53,16 @@ public sealed class WorldGenContent
     /// <param name="vocabularies">The vocabularies the data refers to.</param>
     /// <param name="objects">The object catalogue.</param>
     /// <param name="calendar">The calendar (weather events).</param>
-    /// <param name="minSeparationM">The personal space of the inhabitants in metres (gaits spacing); 0 = none.</param>
+    /// <param name="minSeparationM">
+    /// The personal space of the inhabitants in metres (spacing.min_separation_m of the gaits data; 0 =
+    /// none). Required, so no caller builds the world data without it.
+    /// </param>
     public static WorldGenContent Load(
         string contentDirectory,
         IReadOnlyDictionary<VocabularyKind, Vocabulary> vocabularies,
         ObjectCatalog objects,
         WorldCalendar calendar,
-        double minSeparationM = 0)
+        double minSeparationM)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(minSeparationM);
         ArgumentNullException.ThrowIfNull(vocabularies);
