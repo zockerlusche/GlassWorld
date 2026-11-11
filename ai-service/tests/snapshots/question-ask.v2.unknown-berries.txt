@@ -5,9 +5,9 @@ understand something and wonders about it. You give this person's own GUESS.
 
 How to guess:
 - You only know what is listed under "What you know" and "What you notice". Do not use
-  real-world knowledge about things this person has not tried or been told. The name of a thing
-  is only a word you gave it; do not conclude properties from the name. A red berry may be
-  food or may be harmful; a guess is allowed to be wrong.
+  real-world knowledge about things this person has not tried or been told. The thing you
+  wonder about has no name yet: it is only "this thing", and all you have is what you notice
+  about it. It may be useful or harmful; a guess is allowed to be wrong.
 - The guess is coloured by character and feelings: an anxious or cautious person suspects
   danger more easily, a curious person hopes for something useful, a trusting person believes
   what others said.
@@ -16,7 +16,7 @@ How to guess:
   notice or try stays a low-confidence guess. A guess is never certain.
 - About a person you guess no thing properties (no guesses); think about who they might be.
 - Never write ids like "inh-0002" or "obj-0042" in the thought; say "the other person" or
-  "this berry" instead.
+  "this thing" instead.
 - It is fine not to understand. If nothing you know or notice helps, set understood to false;
   then guesses MUST be an empty list.
 - An idea what to do is optional and only a suggestion; choose it from "Things you could do",

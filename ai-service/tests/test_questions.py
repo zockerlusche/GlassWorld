@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import copy
+import dataclasses
 import json
 import os
 from collections.abc import Callable
@@ -40,7 +41,7 @@ from glassworld_ai.questions.output import (
 from glassworld_ai.queue import ModelQueue
 from glassworld_ai.validation import ContractValidator
 from glassworld_ai.vocabulary import Vocabulary
-from glassworld_ai.words import plain_id
+from glassworld_ai.words import ContextError, plain_id
 from glassworld_contracts import CONTRACT_VERSION, GenerationJob
 
 REPO = Path(__file__).resolve().parents[2]
@@ -438,9 +439,39 @@ def test_v2_never_names_the_thing_asked_about(settings: Settings) -> None:
     text = f"=== SYSTEM ===\n{rendered.system}\n\n=== USER ===\n{rendered.user}\n"
     assert "Can I eat this thing?" in rendered.user
     assert "red berry bush" not in rendered.user
+    assert "berry" not in rendered.system  # no name advice or berry examples left from v1
     assert "- this thing is portable (sure 0.8; you looked at it)" in rendered.user
     assert "thing 'spring water' is drinkable" in rendered.user  # other things keep their name
     snapshot = SNAPSHOTS / "question-ask.v2.unknown-berries.txt"
     if os.environ.get("GW_UPDATE_SNAPSHOTS") == "1":
         snapshot.write_text(text, encoding="utf-8", newline="\n")
     assert text == snapshot.read_text(encoding="utf-8")
+
+
+def test_v2_takes_the_name_out_of_the_memory_summary_too(settings: Settings) -> None:
+    """Review GW1 #215: the condensed memory writes thing names ('Found a flint')."""
+    template = load_prompt(settings.prompts_dir, "question/ask", 2)
+    data = JOB.model_dump(mode="json")
+    question = data["payload"]["question"]
+    question["subject"] = {"kind": "type", "id": "sea_water"}
+    question["inhabitant"]["memory"]["summary"] = (
+        "Found a flint. Saw the sea water, then Sea_Water again; sea waters everywhere."
+    )
+    job = GenerationJob.model_validate(data)
+    user = template.render(build_values(job, template, _vocab(settings))).user
+    assert "Found a flint. Saw this thing, then this thing again; this thing everywhere." in user
+    assert "sea water" not in user.lower() and "sea_water" not in user.lower()
+    v1 = load_prompt(settings.prompts_dir, "question/ask", 1)
+    assert "Saw the sea water" in v1.render(build_values(job, v1, _vocab(settings))).user
+
+
+def test_an_empty_unnamed_subject_setting_is_an_error_not_a_silent_name(
+    settings: Settings,
+) -> None:
+    template = load_prompt(settings.prompts_dir, "question/ask", 2)
+    kind = JOB.model_dump(mode="json")["payload"]["question"]["subject"]["kind"]
+    broken = dataclasses.replace(
+        template, settings={**template.settings, "unnamed_subject": {kind: ""}}
+    )
+    with pytest.raises(ContextError, match="unnamed_subject"):
+        build_values(JOB, broken, _vocab(settings))

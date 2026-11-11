@@ -7,6 +7,7 @@ world's truth never does (ADR-0005).
 
 from __future__ import annotations
 
+import re
 from string import Template
 from typing import Any
 
@@ -34,6 +35,14 @@ def question_payload(job: GenerationJob) -> Any:
     if payload is None:
         raise ContextError("job has no question payload")
     return payload
+
+
+def _unname(text: str, subject_id: str, instead: str) -> str:
+    """`text` without the name of the thing asked about: its id and its readable form, with or
+    without an article, whatever the case ("a Flint", "sea_water", "the sea water")."""
+    readable = re.escape(humanize(subject_id)).replace(r"\ ", r"[ _-]")
+    pattern = rf"(?:\b(?:a|an|the|some)\s+)?\b{readable}(?:e?s)?\b"
+    return re.sub(pattern, instead, text, flags=re.IGNORECASE)
 
 
 def build_values(job: GenerationJob, template: PromptTemplate, vocab: Vocabulary) -> dict[str, str]:
@@ -82,6 +91,12 @@ def build_values(job: GenerationJob, template: PromptTemplate, vocab: Vocabulary
         if "unnamed_subject" in settings
         else None
     )
+    if "unnamed_subject" in settings and subject_key[0] in ("type", "object") and not unnamed:
+        raise ContextError(f"prompt setting unnamed_subject.{subject_key[0]} is empty")
+    if unnamed:
+        # The story so far must not name it either (review GW1 #215: the condensed memory
+        # writes thing names, 'Found a flint'): the name becomes 'this thing' there too.
+        summary = _unname(summary, plain_id(payload.subject.id), f"this {unnamed}")
 
     def about(entry: Any) -> str:
         line = knowledge_line(entry, settings)
