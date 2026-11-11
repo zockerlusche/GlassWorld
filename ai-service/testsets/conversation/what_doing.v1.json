@@ -1,0 +1,931 @@
+{
+  "id": "conversation-what-doing",
+  "version": 1,
+  "purpose": "W1737 (D675): ten 'what are you doing?' talks; the answer must fit what the inhabitant does, knows and sees; no invented activities or things.",
+  "cases": [
+    {
+      "id": "walking_to_water",
+      "description": "Walks to a known spring to drink.",
+      "kind": "conversation",
+      "request": {
+        "contract_version": "0.2",
+        "request_id": "00000000-000c-1737-0000-000000000001",
+        "tick": 90000,
+        "seed": 17371,
+        "deadline_ms": 8000,
+        "display_locale": "de",
+        "speaker": {
+          "id": "inh-000001",
+          "needs": [
+            {
+              "id": "hunger",
+              "value": 0.6
+            },
+            {
+              "id": "thirst",
+              "value": 0.8
+            }
+          ],
+          "mood": [
+            {
+              "id": "joy",
+              "value": 0.4
+            }
+          ],
+          "traits": [
+            {
+              "id": "curiosity",
+              "value": 0.7
+            },
+            {
+              "id": "patience",
+              "value": 0.5
+            }
+          ],
+          "will_to_live": 0.72,
+          "understanding": 0.8,
+          "relation_to_player": {
+            "trust": 0.3,
+            "awe": 0.6,
+            "fear": 0.2
+          },
+          "doing": {
+            "action": "move_to",
+            "target": {
+              "kind": "type",
+              "id": "spring_water"
+            },
+            "since_tick": 89990,
+            "planned": {
+              "action": "drink",
+              "target": {
+                "kind": "type",
+                "id": "spring_water"
+              }
+            }
+          },
+          "knowledge": [
+            {
+              "subject": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "property": "drinkable",
+              "value": true,
+              "confidence": 1.0,
+              "source": "experienced",
+              "told_by": null,
+              "tick": 900
+            }
+          ],
+          "sees": [
+            "dry_grass",
+            "spring_water"
+          ]
+        },
+        "player_text": "Was machst du?",
+        "recent_lines": []
+      },
+      "plausible_option_ids": [],
+      "forbidden_words": [
+        "buch",
+        "büch",
+        "lese",
+        "lesen",
+        "male",
+        "malen",
+        "zeichne",
+        "haus",
+        "häus",
+        "auto",
+        "handy",
+        "fernseh",
+        "schule",
+        "book",
+        "read",
+        "paint",
+        "draw",
+        "house",
+        "car",
+        "phone",
+        "school"
+      ]
+    },
+    {
+      "id": "eating_berries",
+      "description": "Eats blue berries it knows.",
+      "kind": "conversation",
+      "request": {
+        "contract_version": "0.2",
+        "request_id": "00000000-000c-1737-0000-000000000002",
+        "tick": 90000,
+        "seed": 17372,
+        "deadline_ms": 8000,
+        "display_locale": "de",
+        "speaker": {
+          "id": "inh-000001",
+          "needs": [
+            {
+              "id": "hunger",
+              "value": 0.6
+            },
+            {
+              "id": "thirst",
+              "value": 0.8
+            }
+          ],
+          "mood": [
+            {
+              "id": "joy",
+              "value": 0.4
+            }
+          ],
+          "traits": [
+            {
+              "id": "curiosity",
+              "value": 0.7
+            },
+            {
+              "id": "patience",
+              "value": 0.5
+            }
+          ],
+          "will_to_live": 0.72,
+          "understanding": 0.8,
+          "relation_to_player": {
+            "trust": 0.3,
+            "awe": 0.6,
+            "fear": 0.2
+          },
+          "doing": {
+            "action": "eat",
+            "target": {
+              "kind": "type",
+              "id": "blue_berry"
+            },
+            "since_tick": 89990,
+            "planned": null
+          },
+          "knowledge": [
+            {
+              "subject": {
+                "kind": "type",
+                "id": "blue_berry"
+              },
+              "property": "edible",
+              "value": true,
+              "confidence": 1.0,
+              "source": "experienced",
+              "told_by": null,
+              "tick": 900
+            }
+          ],
+          "sees": [
+            "berry_bush",
+            "blue_berry"
+          ]
+        },
+        "player_text": "Was machst du da?",
+        "recent_lines": []
+      },
+      "plausible_option_ids": [],
+      "forbidden_words": [
+        "buch",
+        "büch",
+        "lese",
+        "lesen",
+        "male",
+        "malen",
+        "zeichne",
+        "haus",
+        "häus",
+        "auto",
+        "handy",
+        "fernseh",
+        "schule",
+        "book",
+        "read",
+        "paint",
+        "draw",
+        "house",
+        "car",
+        "phone",
+        "school"
+      ]
+    },
+    {
+      "id": "wandering",
+      "description": "Strolls around, nothing special.",
+      "kind": "conversation",
+      "request": {
+        "contract_version": "0.2",
+        "request_id": "00000000-000c-1737-0000-000000000003",
+        "tick": 90000,
+        "seed": 17373,
+        "deadline_ms": 8000,
+        "display_locale": "de",
+        "speaker": {
+          "id": "inh-000001",
+          "needs": [
+            {
+              "id": "hunger",
+              "value": 0.6
+            },
+            {
+              "id": "thirst",
+              "value": 0.8
+            }
+          ],
+          "mood": [
+            {
+              "id": "joy",
+              "value": 0.4
+            }
+          ],
+          "traits": [
+            {
+              "id": "curiosity",
+              "value": 0.7
+            },
+            {
+              "id": "patience",
+              "value": 0.5
+            }
+          ],
+          "will_to_live": 0.72,
+          "understanding": 0.8,
+          "relation_to_player": {
+            "trust": 0.3,
+            "awe": 0.6,
+            "fear": 0.2
+          },
+          "doing": {
+            "action": "wander",
+            "target": null,
+            "since_tick": 89990,
+            "planned": null
+          },
+          "knowledge": [],
+          "sees": [
+            "deciduous_tree",
+            "dry_grass"
+          ]
+        },
+        "player_text": "Was machst du gerade?",
+        "recent_lines": []
+      },
+      "plausible_option_ids": [],
+      "forbidden_words": [
+        "buch",
+        "büch",
+        "lese",
+        "lesen",
+        "male",
+        "malen",
+        "zeichne",
+        "haus",
+        "häus",
+        "auto",
+        "handy",
+        "fernseh",
+        "schule",
+        "book",
+        "read",
+        "paint",
+        "draw",
+        "house",
+        "car",
+        "phone",
+        "school"
+      ]
+    },
+    {
+      "id": "resting",
+      "description": "Does nothing in particular.",
+      "kind": "conversation",
+      "request": {
+        "contract_version": "0.2",
+        "request_id": "00000000-000c-1737-0000-000000000004",
+        "tick": 90000,
+        "seed": 17374,
+        "deadline_ms": 8000,
+        "display_locale": "de",
+        "speaker": {
+          "id": "inh-000001",
+          "needs": [
+            {
+              "id": "hunger",
+              "value": 0.6
+            },
+            {
+              "id": "thirst",
+              "value": 0.8
+            }
+          ],
+          "mood": [
+            {
+              "id": "joy",
+              "value": 0.4
+            }
+          ],
+          "traits": [
+            {
+              "id": "curiosity",
+              "value": 0.7
+            },
+            {
+              "id": "patience",
+              "value": 0.5
+            }
+          ],
+          "will_to_live": 0.72,
+          "understanding": 0.8,
+          "relation_to_player": {
+            "trust": 0.3,
+            "awe": 0.6,
+            "fear": 0.2
+          },
+          "doing": null,
+          "knowledge": [
+            {
+              "subject": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "property": "drinkable",
+              "value": true,
+              "confidence": 1.0,
+              "source": "experienced",
+              "told_by": null,
+              "tick": 900
+            }
+          ],
+          "sees": [
+            "fieldstone"
+          ]
+        },
+        "player_text": "Was machst du?",
+        "recent_lines": []
+      },
+      "plausible_option_ids": [],
+      "forbidden_words": [
+        "buch",
+        "büch",
+        "lese",
+        "lesen",
+        "male",
+        "malen",
+        "zeichne",
+        "haus",
+        "häus",
+        "auto",
+        "handy",
+        "fernseh",
+        "schule",
+        "book",
+        "read",
+        "paint",
+        "draw",
+        "house",
+        "car",
+        "phone",
+        "school"
+      ]
+    },
+    {
+      "id": "inspecting_unknown",
+      "description": "Looks at a red berry it does not know.",
+      "kind": "conversation",
+      "request": {
+        "contract_version": "0.2",
+        "request_id": "00000000-000c-1737-0000-000000000005",
+        "tick": 90000,
+        "seed": 17375,
+        "deadline_ms": 8000,
+        "display_locale": "de",
+        "speaker": {
+          "id": "inh-000001",
+          "needs": [
+            {
+              "id": "hunger",
+              "value": 0.6
+            },
+            {
+              "id": "thirst",
+              "value": 0.8
+            }
+          ],
+          "mood": [
+            {
+              "id": "joy",
+              "value": 0.4
+            }
+          ],
+          "traits": [
+            {
+              "id": "curiosity",
+              "value": 0.7
+            },
+            {
+              "id": "patience",
+              "value": 0.5
+            }
+          ],
+          "will_to_live": 0.72,
+          "understanding": 0.8,
+          "relation_to_player": {
+            "trust": 0.3,
+            "awe": 0.6,
+            "fear": 0.2
+          },
+          "doing": {
+            "action": "inspect",
+            "target": {
+              "kind": "type",
+              "id": "red_berry"
+            },
+            "since_tick": 89990,
+            "planned": null
+          },
+          "knowledge": [],
+          "sees": [
+            "red_berry"
+          ]
+        },
+        "player_text": "Was tust du?",
+        "recent_lines": []
+      },
+      "plausible_option_ids": [],
+      "forbidden_words": [
+        "buch",
+        "büch",
+        "lese",
+        "lesen",
+        "male",
+        "malen",
+        "zeichne",
+        "haus",
+        "häus",
+        "auto",
+        "handy",
+        "fernseh",
+        "schule",
+        "book",
+        "read",
+        "paint",
+        "draw",
+        "house",
+        "car",
+        "phone",
+        "school"
+      ]
+    },
+    {
+      "id": "carrying_wood",
+      "description": "Picks up dry wood.",
+      "kind": "conversation",
+      "request": {
+        "contract_version": "0.2",
+        "request_id": "00000000-000c-1737-0000-000000000006",
+        "tick": 90000,
+        "seed": 17376,
+        "deadline_ms": 8000,
+        "display_locale": "de",
+        "speaker": {
+          "id": "inh-000001",
+          "needs": [
+            {
+              "id": "hunger",
+              "value": 0.6
+            },
+            {
+              "id": "thirst",
+              "value": 0.8
+            }
+          ],
+          "mood": [
+            {
+              "id": "joy",
+              "value": 0.4
+            }
+          ],
+          "traits": [
+            {
+              "id": "curiosity",
+              "value": 0.7
+            },
+            {
+              "id": "patience",
+              "value": 0.5
+            }
+          ],
+          "will_to_live": 0.72,
+          "understanding": 0.8,
+          "relation_to_player": {
+            "trust": 0.3,
+            "awe": 0.6,
+            "fear": 0.2
+          },
+          "doing": {
+            "action": "pick_up",
+            "target": {
+              "kind": "type",
+              "id": "dry_wood"
+            },
+            "since_tick": 89990,
+            "planned": null
+          },
+          "knowledge": [],
+          "sees": [
+            "conifer_tree",
+            "dry_wood"
+          ]
+        },
+        "player_text": "Was machst du mit dem Holz?",
+        "recent_lines": []
+      },
+      "plausible_option_ids": [],
+      "forbidden_words": [
+        "buch",
+        "büch",
+        "lese",
+        "lesen",
+        "male",
+        "malen",
+        "zeichne",
+        "haus",
+        "häus",
+        "auto",
+        "handy",
+        "fernseh",
+        "schule",
+        "book",
+        "read",
+        "paint",
+        "draw",
+        "house",
+        "car",
+        "phone",
+        "school"
+      ]
+    },
+    {
+      "id": "exploring",
+      "description": "Walks where it has not been yet.",
+      "kind": "conversation",
+      "request": {
+        "contract_version": "0.2",
+        "request_id": "00000000-000c-1737-0000-000000000007",
+        "tick": 90000,
+        "seed": 17377,
+        "deadline_ms": 8000,
+        "display_locale": "de",
+        "speaker": {
+          "id": "inh-000001",
+          "needs": [
+            {
+              "id": "hunger",
+              "value": 0.6
+            },
+            {
+              "id": "thirst",
+              "value": 0.8
+            }
+          ],
+          "mood": [
+            {
+              "id": "joy",
+              "value": 0.4
+            }
+          ],
+          "traits": [
+            {
+              "id": "curiosity",
+              "value": 0.7
+            },
+            {
+              "id": "patience",
+              "value": 0.5
+            }
+          ],
+          "will_to_live": 0.72,
+          "understanding": 0.8,
+          "relation_to_player": {
+            "trust": 0.3,
+            "awe": 0.6,
+            "fear": 0.2
+          },
+          "doing": {
+            "action": "explore",
+            "target": null,
+            "since_tick": 89990,
+            "planned": null
+          },
+          "knowledge": [],
+          "sees": [
+            "dry_grass",
+            "fieldstone"
+          ]
+        },
+        "player_text": "Wohin gehst du?",
+        "recent_lines": []
+      },
+      "plausible_option_ids": [],
+      "forbidden_words": [
+        "buch",
+        "büch",
+        "lese",
+        "lesen",
+        "male",
+        "malen",
+        "zeichne",
+        "haus",
+        "häus",
+        "auto",
+        "handy",
+        "fernseh",
+        "schule",
+        "book",
+        "read",
+        "paint",
+        "draw",
+        "house",
+        "car",
+        "phone",
+        "school"
+      ]
+    },
+    {
+      "id": "drinking_en",
+      "description": "Drinks at the spring.",
+      "kind": "conversation",
+      "request": {
+        "contract_version": "0.2",
+        "request_id": "00000000-000c-1737-0000-000000000008",
+        "tick": 90000,
+        "seed": 17378,
+        "deadline_ms": 8000,
+        "display_locale": "en",
+        "speaker": {
+          "id": "inh-000001",
+          "needs": [
+            {
+              "id": "hunger",
+              "value": 0.6
+            },
+            {
+              "id": "thirst",
+              "value": 0.8
+            }
+          ],
+          "mood": [
+            {
+              "id": "joy",
+              "value": 0.4
+            }
+          ],
+          "traits": [
+            {
+              "id": "curiosity",
+              "value": 0.7
+            },
+            {
+              "id": "patience",
+              "value": 0.5
+            }
+          ],
+          "will_to_live": 0.72,
+          "understanding": 0.8,
+          "relation_to_player": {
+            "trust": 0.3,
+            "awe": 0.6,
+            "fear": 0.2
+          },
+          "doing": {
+            "action": "drink",
+            "target": {
+              "kind": "type",
+              "id": "spring_water"
+            },
+            "since_tick": 89990,
+            "planned": null
+          },
+          "knowledge": [
+            {
+              "subject": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "property": "drinkable",
+              "value": true,
+              "confidence": 1.0,
+              "source": "experienced",
+              "told_by": null,
+              "tick": 900
+            }
+          ],
+          "sees": [
+            "spring_water"
+          ]
+        },
+        "player_text": "What are you doing?",
+        "recent_lines": []
+      },
+      "plausible_option_ids": [],
+      "forbidden_words": [
+        "buch",
+        "büch",
+        "lese",
+        "lesen",
+        "male",
+        "malen",
+        "zeichne",
+        "haus",
+        "häus",
+        "auto",
+        "handy",
+        "fernseh",
+        "schule",
+        "book",
+        "read",
+        "paint",
+        "draw",
+        "house",
+        "car",
+        "phone",
+        "school"
+      ]
+    },
+    {
+      "id": "walking_en",
+      "description": "Strolls around.",
+      "kind": "conversation",
+      "request": {
+        "contract_version": "0.2",
+        "request_id": "00000000-000c-1737-0000-000000000009",
+        "tick": 90000,
+        "seed": 17379,
+        "deadline_ms": 8000,
+        "display_locale": "en",
+        "speaker": {
+          "id": "inh-000001",
+          "needs": [
+            {
+              "id": "hunger",
+              "value": 0.6
+            },
+            {
+              "id": "thirst",
+              "value": 0.8
+            }
+          ],
+          "mood": [
+            {
+              "id": "joy",
+              "value": 0.4
+            }
+          ],
+          "traits": [
+            {
+              "id": "curiosity",
+              "value": 0.7
+            },
+            {
+              "id": "patience",
+              "value": 0.5
+            }
+          ],
+          "will_to_live": 0.72,
+          "understanding": 0.8,
+          "relation_to_player": {
+            "trust": 0.3,
+            "awe": 0.6,
+            "fear": 0.2
+          },
+          "doing": {
+            "action": "wander",
+            "target": null,
+            "since_tick": 89990,
+            "planned": null
+          },
+          "knowledge": [],
+          "sees": [
+            "apple",
+            "fruit_tree"
+          ]
+        },
+        "player_text": "What are you up to?",
+        "recent_lines": []
+      },
+      "plausible_option_ids": [],
+      "forbidden_words": [
+        "buch",
+        "büch",
+        "lese",
+        "lesen",
+        "male",
+        "malen",
+        "zeichne",
+        "haus",
+        "häus",
+        "auto",
+        "handy",
+        "fernseh",
+        "schule",
+        "book",
+        "read",
+        "paint",
+        "draw",
+        "house",
+        "car",
+        "phone",
+        "school"
+      ]
+    },
+    {
+      "id": "sleeping_en",
+      "description": "Lies down to sleep.",
+      "kind": "conversation",
+      "request": {
+        "contract_version": "0.2",
+        "request_id": "00000000-000c-1737-0000-000000000010",
+        "tick": 90000,
+        "seed": 17380,
+        "deadline_ms": 8000,
+        "display_locale": "en",
+        "speaker": {
+          "id": "inh-000001",
+          "needs": [
+            {
+              "id": "hunger",
+              "value": 0.6
+            },
+            {
+              "id": "thirst",
+              "value": 0.8
+            }
+          ],
+          "mood": [
+            {
+              "id": "joy",
+              "value": 0.4
+            }
+          ],
+          "traits": [
+            {
+              "id": "curiosity",
+              "value": 0.7
+            },
+            {
+              "id": "patience",
+              "value": 0.5
+            }
+          ],
+          "will_to_live": 0.72,
+          "understanding": 0.8,
+          "relation_to_player": {
+            "trust": 0.3,
+            "awe": 0.6,
+            "fear": 0.2
+          },
+          "doing": {
+            "action": "sleep",
+            "target": null,
+            "since_tick": 89990,
+            "planned": null
+          },
+          "knowledge": [],
+          "sees": [
+            "rock_niche"
+          ]
+        },
+        "player_text": "What are you doing?",
+        "recent_lines": []
+      },
+      "plausible_option_ids": [],
+      "forbidden_words": [
+        "buch",
+        "büch",
+        "lese",
+        "lesen",
+        "male",
+        "malen",
+        "zeichne",
+        "haus",
+        "häus",
+        "auto",
+        "handy",
+        "fernseh",
+        "schule",
+        "book",
+        "read",
+        "paint",
+        "draw",
+        "house",
+        "car",
+        "phone",
+        "school"
+      ]
+    }
+  ]
+}
