@@ -186,6 +186,30 @@ internal sealed class TimedDecisionPort(IDecisionPort inner, IStepProbe probe) :
     }
 }
 
+/// <summary>
+/// A decider that answers like <paramref name="inner"/>, but hands over at most one answer every
+/// <paramref name="everyTicks"/> ticks, oldest first: one model that needs that long for an answer, as in
+/// the game, where the questions of all inhabitants wait for the same model. Deterministic.
+/// </summary>
+internal sealed class PacedDecisionPort(IDecisionPort inner, int everyTicks) : IDecisionPort
+{
+    private readonly Queue<PortMessage> _waiting = new();
+
+    /// <inheritdoc/>
+    public void Send(string requestId, string requestJson) => inner.Send(requestId, requestJson);
+
+    /// <inheritdoc/>
+    public IReadOnlyList<PortMessage> Receive(long tick)
+    {
+        foreach (var message in inner.Receive(tick))
+        {
+            _waiting.Enqueue(message);
+        }
+
+        return tick % everyTicks == 0 && _waiting.TryDequeue(out var next) ? [next] : [];
+    }
+}
+
 /// <summary>A decider that never answers: every question it is asked stays open.</summary>
 internal sealed class SilentDecisionPort : IDecisionPort
 {

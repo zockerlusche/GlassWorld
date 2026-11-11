@@ -128,7 +128,7 @@ Jobs are replayed only if the saved run had a job port (non-empty invention stat
 
 ```
 dotnet run --project src/Simulation.Headless -c Release -- perf [--inhabitants N|data] [--days N | --ticks N]
-    [--ai mock|silent] [--seed N] [--preset P] [--warmup-ticks N] [--runtime-warmup-seconds X] [--budget-ms X]
+    [--ai mock|silent] [--answer-every N] [--seed N] [--preset P] [--warmup-ticks N] [--runtime-warmup-seconds X] [--budget-ms X]
     [--json] [--csv FILE] [--content DIR]
 ```
 
@@ -143,6 +143,7 @@ inhabitants for one game day with the mock decider; add `--ai silent` for the se
 | `--inhabitants N` | How many inhabitants the world starts with (default 100); `data` = those `content/inhabitants/model.json` lists (the world the run command builds, same hash after the same ticks). |
 | `--days N`, `--ticks N` | How long the world runs, warm-up included (default one game day; `--ticks` instead of whole days). |
 | `--ai mock\|silent` | Decider, see below (default `mock`). |
+| `--answer-every N` | With the mock: at most one answer every N ticks, oldest question first (default 0 = every question is answered at the next tick). See below. |
 | `--seed N`, `--preset P` | Island (default seed 1, `start_island`). |
 | `--warmup-ticks N` | Ticks at the start of the measured world that run but are not measured (default 120): the first ticks of a new world do work that comes once (everybody meets everybody, the first look around). |
 | `--runtime-warmup-seconds X` | Before the measured world is built, a throwaway world of the same kind runs for X seconds (default 6; 0 = none). .NET compiles a method quickly at first and for good only after it has run for a while; without this the first seconds of the measurement time that first code, which is several times slower and which a game leaves behind after its first seconds. The measured world does not depend on it: same ticks, same hash. |
@@ -172,12 +173,15 @@ can do:
 - `silent` never answers. Every inhabitant soon has as many open questions as the data allows and asks
   nothing more: the lower end, the world without any question traffic.
 
-The game lies between the two: its request rate is the answer rate of the model.
+The game lies between the two: its request rate is the answer rate of the model, because every inhabitant
+holds only as many open questions as the data allows and asks again when one is answered. `--ai mock
+--answer-every N` measures that: one model that hands over one answer every N ticks (N = 1 is 1.2 answers
+per second at normal speed and 19 per second at x16; N = 16 is 1.2 per second at x16).
 
 ### The report
 
 ```
-PERF preset=.. seed=.. inhabitants=.. decider=.. ticks=.. warmup_ticks=.. measured_ticks=.. runtime_warmup_s=.. runtime_warmup_ticks=.. build=release
+PERF preset=.. seed=.. inhabitants=.. decider=.. answer_every=.. ticks=.. warmup_ticks=.. measured_ticks=.. runtime_warmup_s=.. runtime_warmup_ticks=.. build=release
 STEP mean_ms=.. median_ms=.. p95_ms=.. p99_ms=.. max_ms=.. max_tick=..
 STEP_WITH_PORT mean_ms=.. ...
 CPU mean_ms=..

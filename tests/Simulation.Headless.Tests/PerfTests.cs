@@ -40,6 +40,23 @@ public sealed class PerfTests
         Assert.Null(options.BudgetMs);
         Assert.Null(options.CsvPath);
         Assert.Equal(PerfOptions.DefaultRuntimeWarmupSeconds, options.RuntimeWarmupSeconds);
+        Assert.Equal(0, options.AnswerEvery);
+    }
+
+    [Fact]
+    public void APacedMockHandsOverOneAnswerAtATime()
+    {
+        // Twelve inhabitants ask at once; one model answers one question every five ticks, oldest first.
+        string[] run = ["--inhabitants", "12", "--ticks", "100", "--warmup-ticks", "0", "--runtime-warmup-seconds", "0", "--content", Content];
+        var flood = PerfCommand.Measure(PerfOptions.Parse([.. run]));
+        var paced = PerfCommand.Measure(PerfOptions.Parse([.. run, "--answer-every", "5"]));
+        Assert.True(flood.Answers > 20, $"{flood.Answers} answers");
+        Assert.InRange(paced.Answers, 15, 20);
+        Assert.True(paced.Requests < flood.Requests);
+        Assert.True(paced.OpenQuestions > flood.OpenQuestions);
+        Assert.Equal(paced.Hash, PerfCommand.Measure(PerfOptions.Parse([.. run, "--answer-every", "5"])).Hash);
+        Assert.Contains(" decider=mock answer_every=5 ", PerfCommand.Lines(paced), StringComparison.Ordinal);
+        Assert.Throws<ArgumentException>(() => PerfOptions.Parse(["--ai", "silent", "--answer-every", "5"], () => "c"));
     }
 
     [Fact]
@@ -82,7 +99,7 @@ public sealed class PerfTests
         var (code, text) = Perf("--inhabitants", "12", "--ticks", "90", "--warmup-ticks", "30", "--ai", "silent");
         Assert.Equal(ExitCodes.Ok, code);
         var lines = LinesOf(text);
-        Assert.StartsWith("PERF preset=start_island seed=1 inhabitants=12 decider=silent ticks=90 warmup_ticks=30 measured_ticks=60 runtime_warmup_s=0 runtime_warmup_ticks=0 build=", lines[0], StringComparison.Ordinal);
+        Assert.StartsWith("PERF preset=start_island seed=1 inhabitants=12 decider=silent answer_every=0 ticks=90 warmup_ticks=30 measured_ticks=60 runtime_warmup_s=0 runtime_warmup_ticks=0 build=", lines[0], StringComparison.Ordinal);
         var step = Assert.Single(lines, l => l.StartsWith("STEP ", StringComparison.Ordinal));
         Assert.Matches("^STEP mean_ms=[0-9.]+ median_ms=[0-9.]+ p95_ms=[0-9.]+ p99_ms=[0-9.]+ max_ms=[0-9.]+ max_tick=[0-9]+$", step);
         Assert.InRange(Value(step, "max_tick"), 30, 89);

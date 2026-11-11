@@ -31,13 +31,19 @@ internal enum PerfDecider
 internal sealed record PerfOptions(ulong Seed, long Days, long? Ticks, int? Inhabitants, string Preset, string ContentDirectory, PerfDecider Decider, long WarmupTicks, bool Json, double? BudgetMs)
 {
     /// <summary>Usage line for errors.</summary>
-    public const string Usage = "Use: perf [--preset P] [--seed N] [--inhabitants N|data] [--days N | --ticks N] [--ai mock|silent] [--warmup-ticks N] [--runtime-warmup-seconds X] [--budget-ms X] [--json] [--csv FILE] [--content DIR].";
+    public const string Usage = "Use: perf [--preset P] [--seed N] [--inhabitants N|data] [--days N | --ticks N] [--ai mock|silent] [--answer-every N] [--warmup-ticks N] [--runtime-warmup-seconds X] [--budget-ms X] [--json] [--csv FILE] [--content DIR].";
 
     /// <summary>
     /// Seconds a throwaway world of the same kind runs before the measured world is built, so the runtime has
     /// compiled the hot code to its final form (0 = none).
     /// </summary>
     public double RuntimeWarmupSeconds { get; init; } = DefaultRuntimeWarmupSeconds;
+
+    /// <summary>
+    /// With the mock: at most one answer every this many ticks, oldest question first (one model that needs
+    /// that long per answer); 0 = every question is answered at the next tick.
+    /// </summary>
+    public int AnswerEvery { get; init; }
 
     /// <summary>Default of <see cref="RuntimeWarmupSeconds"/>.</summary>
     public const double DefaultRuntimeWarmupSeconds = 6;
@@ -70,6 +76,7 @@ internal sealed record PerfOptions(ulong Seed, long Days, long? Ticks, int? Inha
         double? budget = null;
         string? csv = null;
         var runtimeWarmup = DefaultRuntimeWarmupSeconds;
+        var answerEvery = 0;
         for (var i = 0; i < args.Length; i++)
         {
             switch (args[i])
@@ -113,6 +120,9 @@ internal sealed record PerfOptions(ulong Seed, long Days, long? Ticks, int? Inha
                 case "--csv":
                     csv = Value(args, ref i);
                     break;
+                case "--answer-every":
+                    answerEvery = int.Parse(Value(args, ref i), NumberStyles.None, CultureInfo.InvariantCulture);
+                    break;
                 case "--runtime-warmup-seconds":
                     runtimeWarmup = double.Parse(Value(args, ref i), NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture);
                     break;
@@ -136,7 +146,12 @@ internal sealed record PerfOptions(ulong Seed, long Days, long? Ticks, int? Inha
             throw new ArgumentException("--budget-ms must be greater than 0.");
         }
 
-        return new PerfOptions(seed, days, ticks, inhabitants, preset, content ?? (findContent ?? ContentFolder.Find)(), decider, warmup, json, budget) { CsvPath = csv, RuntimeWarmupSeconds = runtimeWarmup };
+        if (answerEvery > 0 && decider != PerfDecider.Mock)
+        {
+            throw new ArgumentException("--answer-every needs --ai mock (the silent decider never answers).");
+        }
+
+        return new PerfOptions(seed, days, ticks, inhabitants, preset, content ?? (findContent ?? ContentFolder.Find)(), decider, warmup, json, budget) { CsvPath = csv, RuntimeWarmupSeconds = runtimeWarmup, AnswerEvery = answerEvery };
     }
 
     private static string Value(string[] args, ref int i)
@@ -254,6 +269,11 @@ internal static class PerfCommand
     {
         var timer = new StepTimer();
         IDecisionPort decider = options.Decider == PerfDecider.Silent ? new SilentDecisionPort() : MockDecisionPort.FromContent(options.ContentDirectory);
+        if (options.AnswerEvery > 0)
+        {
+            decider = new PacedDecisionPort(decider, options.AnswerEvery);
+        }
+
         var port = new TimedDecisionPort(decider, timer);
         var host = SimulationHost.CreateGeneratedWorld(options.ContentDirectory, options.Seed, port, "de", options.Preset, inhabitants: options.Inhabitants);
         host.World.Probe = timer;
@@ -393,7 +413,7 @@ internal static class PerfCommand
         var o = result.Options;
         var text = new StringBuilder();
         void Line(FormattableString line) => text.Append(FormattableString.Invariant(line)).Append('\n');
-        Line($"PERF preset={o.Preset} seed={o.Seed} inhabitants={result.Inhabitants} decider={Name(o.Decider)} ticks={result.Ticks} warmup_ticks={result.WarmupTicks} measured_ticks={result.MeasuredTicks} runtime_warmup_s={o.RuntimeWarmupSeconds:0.###} runtime_warmup_ticks={result.RuntimeWarmupTicks} build={(result.Optimized ? "release" : "debug")}");
+        Line($"PERF preset={o.Preset} seed={o.Seed} inhabitants={result.Inhabitants} decider={Name(o.Decider)} answer_every={o.AnswerEvery} ticks={result.Ticks} warmup_ticks={result.WarmupTicks} measured_ticks={result.MeasuredTicks} runtime_warmup_s={o.RuntimeWarmupSeconds:0.###} runtime_warmup_ticks={result.RuntimeWarmupTicks} build={(result.Optimized ? "release" : "debug")}");
         if (!result.Optimized)
         {
             Line($"WARNING the core is a debug build: these times say nothing about the budget (run with -c Release)");
@@ -437,6 +457,7 @@ internal static class PerfCommand
             json.WriteNumber("seed", o.Seed);
             json.WriteNumber("inhabitants", result.Inhabitants);
             json.WriteString("decider", Name(o.Decider));
+            json.WriteNumber("answer_every", o.AnswerEvery);
             json.WriteNumber("ticks", result.Ticks);
             json.WriteNumber("warmup_ticks", result.WarmupTicks);
             json.WriteNumber("runtime_warmup_seconds", o.RuntimeWarmupSeconds);
