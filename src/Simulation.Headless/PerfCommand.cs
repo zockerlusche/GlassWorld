@@ -31,7 +31,19 @@ internal enum PerfDecider
 internal sealed record PerfOptions(ulong Seed, long Days, long? Ticks, int? Inhabitants, string Preset, string ContentDirectory, PerfDecider Decider, long WarmupTicks, bool Json, double? BudgetMs)
 {
     /// <summary>Usage line for errors.</summary>
-    public const string Usage = "Use: perf [--preset P] [--seed N] [--inhabitants N|data] [--days N | --ticks N] [--ai mock|silent] [--warmup-ticks N] [--budget-ms X] [--json] [--content DIR].";
+    public const string Usage = "Use: perf [--preset P] [--seed N] [--inhabitants N|data] [--days N | --ticks N] [--ai mock|silent] [--warmup-ticks N] [--runtime-warmup-seconds X] [--budget-ms X] [--json] [--csv FILE] [--content DIR].";
+
+    /// <summary>
+    /// Seconds a throwaway world of the same kind runs before the measured world is built, so the runtime has
+    /// compiled the hot code to its final form (0 = none).
+    /// </summary>
+    public double RuntimeWarmupSeconds { get; init; } = DefaultRuntimeWarmupSeconds;
+
+    /// <summary>Default of <see cref="RuntimeWarmupSeconds"/>.</summary>
+    public const double DefaultRuntimeWarmupSeconds = 6;
+
+    /// <summary>File for one line per measured step (tick, step, every part), or null.</summary>
+    public string? CsvPath { get; init; }
 
     /// <summary>Preset measured by default (the start island of the game).</summary>
     public const string DefaultPreset = "start_island";
@@ -56,6 +68,8 @@ internal sealed record PerfOptions(ulong Seed, long Days, long? Ticks, int? Inha
         var warmup = DefaultWarmupTicks;
         var json = false;
         double? budget = null;
+        string? csv = null;
+        var runtimeWarmup = DefaultRuntimeWarmupSeconds;
         for (var i = 0; i < args.Length; i++)
         {
             switch (args[i])
@@ -96,6 +110,12 @@ internal sealed record PerfOptions(ulong Seed, long Days, long? Ticks, int? Inha
                 case "--json":
                     json = true;
                     break;
+                case "--csv":
+                    csv = Value(args, ref i);
+                    break;
+                case "--runtime-warmup-seconds":
+                    runtimeWarmup = double.Parse(Value(args, ref i), NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture);
+                    break;
                 default:
                     throw new ArgumentException($"Unknown argument '{args[i]}'. {Usage}");
             }
@@ -116,7 +136,7 @@ internal sealed record PerfOptions(ulong Seed, long Days, long? Ticks, int? Inha
             throw new ArgumentException("--budget-ms must be greater than 0.");
         }
 
-        return new PerfOptions(seed, days, ticks, inhabitants, preset, content ?? (findContent ?? ContentFolder.Find)(), decider, warmup, json, budget);
+        return new PerfOptions(seed, days, ticks, inhabitants, preset, content ?? (findContent ?? ContentFolder.Find)(), decider, warmup, json, budget) { CsvPath = csv, RuntimeWarmupSeconds = runtimeWarmup };
     }
 
     private static string Value(string[] args, ref int i)
@@ -166,7 +186,8 @@ internal sealed record StepStats(double Mean, double Median, double P95, double 
 /// <param name="MeanMs">Mean milliseconds per step in this part alone.</param>
 /// <param name="Share">Its share of the step (0..1).</param>
 /// <param name="MaxMs">Most milliseconds one step spent in it.</param>
-internal sealed record PartTime(string Name, double MeanMs, double Share, double MaxMs);
+/// <param name="Calls">How often it began per step, on average (per inhabitant, per request ...).</param>
+internal sealed record PartTime(string Name, double MeanMs, double Share, double MaxMs, double Calls);
 
 /// <summary>One world system in the breakdown (or <see cref="World.BoundariesPart"/>), with the parts it names.</summary>
 /// <param name="Name">System name.</param>
@@ -182,6 +203,7 @@ internal sealed record PerfResult(
     int Inhabitants,
     long Ticks,
     long WarmupTicks,
+    long RuntimeWarmupTicks,
     long MeasuredTicks,
     bool Optimized,
     StepStats Step,
@@ -227,16 +249,55 @@ internal static class PerfCommand
         return result.OverBudget ? ExitCodes.OverBudget : ExitCodes.Ok;
     }
 
-    /// <summary>Builds the world and measures its steps.</summary>
-    public static PerfResult Measure(PerfOptions options)
+    /// <summary>The world of a measurement with its timer and its timed decider port.</summary>
+    private static (SimulationHost Host, StepTimer Timer, TimedDecisionPort Port) Build(PerfOptions options)
     {
-        ArgumentNullException.ThrowIfNull(options);
         var timer = new StepTimer();
         IDecisionPort decider = options.Decider == PerfDecider.Silent ? new SilentDecisionPort() : MockDecisionPort.FromContent(options.ContentDirectory);
         var port = new TimedDecisionPort(decider, timer);
         var host = SimulationHost.CreateGeneratedWorld(options.ContentDirectory, options.Seed, port, "de", options.Preset, inhabitants: options.Inhabitants);
+        host.World.Probe = timer;
+        return (host, timer, port);
+    }
+
+    /// <summary>
+    /// Runs a throwaway world of the same kind for the given seconds and returns its ticks. The runtime
+    /// compiles a method quickly at first and for good only after it has run for a while; a measurement
+    /// right after the start of the process would time that first code (several times slower), which no
+    /// game sees after its first seconds. The measured world is built afterwards, so its run - and its hash -
+    /// does not depend on how long this took.
+    /// </summary>
+    private static long WarmRuntimeUp(PerfOptions options)
+    {
+        if (options.RuntimeWarmupSeconds <= 0)
+        {
+            return 0;
+        }
+
+        var world = Build(options).Host.World;
+        var ticks = 0L;
+        var started = Stopwatch.GetTimestamp();
+        while (Stopwatch.GetElapsedTime(started).TotalSeconds < options.RuntimeWarmupSeconds)
+        {
+            world.Step();
+            ticks++;
+        }
+
+        return ticks;
+    }
+
+    /// <summary>Builds the world and measures its steps.</summary>
+    public static PerfResult Measure(PerfOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        var runtimeWarmupTicks = WarmRuntimeUp(options);
+
+        // The throwaway world is garbage now: collected here, not during the measured steps.
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+        var (host, timer, port) = Build(options);
         var world = host.World;
-        world.Probe = timer;
         var everyone = host.Inhabitants.All.ToList();
         var ticks = options.Ticks ?? (options.Days * world.Calendar.TicksPerDay);
         var warmup = Math.Min(options.WarmupTicks, ticks);
@@ -252,6 +313,7 @@ internal static class PerfCommand
         var firstTick = world.Tick;
         long onTheWay = 0;
         long acting = 0;
+        var perStep = options.CsvPath is null ? null : new List<double[]>(measured);
         var (sent, received) = (port.Sent, port.Received);
         var gen = (GC.CollectionCount(0), GC.CollectionCount(1), GC.CollectionCount(2));
         using var process = Process.GetCurrentProcess();
@@ -264,6 +326,7 @@ internal static class PerfCommand
             var whole = Stopwatch.GetTimestamp() - started;
             withPort[t] = Stopwatch.GetElapsedTime(0, whole).TotalMilliseconds;
             step[t] = Stopwatch.GetElapsedTime(0, whole - timer.InStep(TimedDecisionPort.Part)).TotalMilliseconds;
+            perStep?.Add(timer.StepMs());
             timer.Keep();
             foreach (var inhabitant in everyone)
             {
@@ -275,16 +338,21 @@ internal static class PerfCommand
         allocated = GC.GetAllocatedBytesForCurrentThread() - allocated;
         process.Refresh();
         cpu = process.TotalProcessorTime - cpu;
+        if (perStep is not null)
+        {
+            WriteCsv(options.CsvPath!, firstTick, step, withPort, timer.Parts, perStep);
+        }
+
         var stats = StepStats.Of(step, firstTick);
         double Share(double mean) => stats.Mean <= 0 ? 0 : mean / stats.Mean;
         var systems = new List<SystemTime>();
         foreach (var name in world.SystemNames.Append(World.BoundariesPart))
         {
             var named = timer.Parts.Where(p => p != name && StepTimer.GroupOf(p) == name).ToList();
-            var parts = named.Select(p => new PartTime(p, timer.MeanMs(p), Share(timer.MeanMs(p)), timer.MaxMs(p))).ToList();
+            var parts = named.Select(p => new PartTime(p, timer.MeanMs(p), Share(timer.MeanMs(p)), timer.MaxMs(p), timer.MeanCalls(p))).ToList();
             if (parts.Count > 0)
             {
-                parts.Add(new PartTime(name + "/" + Rest, timer.MeanMs(name), Share(timer.MeanMs(name)), timer.MaxMs(name)));
+                parts.Add(new PartTime(name + "/" + Rest, timer.MeanMs(name), Share(timer.MeanMs(name)), timer.MaxMs(name), timer.MeanCalls(name)));
             }
 
             systems.Add(new SystemTime(name, timer.GroupMeanMs(name), Share(timer.GroupMeanMs(name)), timer.GroupMaxMs(name), parts));
@@ -296,6 +364,7 @@ internal static class PerfCommand
             everyone.Count,
             world.Tick,
             warmup,
+            runtimeWarmupTicks,
             measured,
             typeof(World).Assembly.GetCustomAttribute<DebuggableAttribute>() is not { IsJITOptimizerDisabled: true },
             stats,
@@ -324,7 +393,7 @@ internal static class PerfCommand
         var o = result.Options;
         var text = new StringBuilder();
         void Line(FormattableString line) => text.Append(FormattableString.Invariant(line)).Append('\n');
-        Line($"PERF preset={o.Preset} seed={o.Seed} inhabitants={result.Inhabitants} decider={Name(o.Decider)} ticks={result.Ticks} warmup_ticks={result.WarmupTicks} measured_ticks={result.MeasuredTicks} build={(result.Optimized ? "release" : "debug")}");
+        Line($"PERF preset={o.Preset} seed={o.Seed} inhabitants={result.Inhabitants} decider={Name(o.Decider)} ticks={result.Ticks} warmup_ticks={result.WarmupTicks} measured_ticks={result.MeasuredTicks} runtime_warmup_s={o.RuntimeWarmupSeconds:0.###} runtime_warmup_ticks={result.RuntimeWarmupTicks} build={(result.Optimized ? "release" : "debug")}");
         if (!result.Optimized)
         {
             Line($"WARNING the core is a debug build: these times say nothing about the budget (run with -c Release)");
@@ -339,7 +408,7 @@ internal static class PerfCommand
             Line($"SYSTEM name={system.Name} mean_ms={system.MeanMs:F4} share={100 * system.Share:F1} max_ms={system.MaxMs:F3}");
             foreach (var part in system.Parts)
             {
-                Line($"PART name={part.Name} mean_ms={part.MeanMs:F4} share={100 * part.Share:F1} max_ms={part.MaxMs:F3}");
+                Line($"PART name={part.Name} mean_ms={part.MeanMs:F4} share={100 * part.Share:F1} max_ms={part.MaxMs:F3} calls={part.Calls:F1}");
             }
         }
 
@@ -370,6 +439,8 @@ internal static class PerfCommand
             json.WriteString("decider", Name(o.Decider));
             json.WriteNumber("ticks", result.Ticks);
             json.WriteNumber("warmup_ticks", result.WarmupTicks);
+            json.WriteNumber("runtime_warmup_seconds", o.RuntimeWarmupSeconds);
+            json.WriteNumber("runtime_warmup_ticks", result.RuntimeWarmupTicks);
             json.WriteNumber("measured_ticks", result.MeasuredTicks);
             json.WriteString("build", result.Optimized ? "release" : "debug");
             Write(json, "step_ms", result.Step);
@@ -395,6 +466,7 @@ internal static class PerfCommand
                     json.WriteNumber("mean_ms", part.MeanMs);
                     json.WriteNumber("share", part.Share);
                     json.WriteNumber("max_ms", part.MaxMs);
+                    json.WriteNumber("calls_per_step", part.Calls);
                     json.WriteEndObject();
                 }
 
@@ -435,6 +507,34 @@ internal static class PerfCommand
         }
 
         return Encoding.UTF8.GetString(stream.ToArray()) + "\n";
+    }
+
+    /// <summary>
+    /// One line per measured step: the world tick it advanced, the step without and with the decider port,
+    /// then every part alone (the columns add up to the step with the port, but for the loop around them).
+    /// </summary>
+    private static void WriteCsv(string path, long firstTick, double[] step, double[] withPort, IReadOnlyList<string> parts, List<double[]> perStep)
+    {
+        using var csv = new StreamWriter(path, append: false, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+        csv.Write("tick,step_ms,step_with_port_ms");
+        foreach (var part in parts)
+        {
+            csv.Write(',');
+            csv.Write(part);
+        }
+
+        csv.Write('\n');
+        for (var t = 0; t < perStep.Count; t++)
+        {
+            csv.Write(string.Create(CultureInfo.InvariantCulture, $"{firstTick + t},{step[t]:F4},{withPort[t]:F4}"));
+            for (var p = 0; p < parts.Count; p++)
+            {
+                // A part that first ran in a later step has no value in the earlier ones.
+                csv.Write(string.Create(CultureInfo.InvariantCulture, $",{(p < perStep[t].Length ? perStep[t][p] : 0):F4}"));
+            }
+
+            csv.Write('\n');
+        }
     }
 
     private static void Write(Utf8JsonWriter json, string name, StepStats stats)

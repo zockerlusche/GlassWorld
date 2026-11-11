@@ -128,7 +128,8 @@ Jobs are replayed only if the saved run had a job port (non-empty invention stat
 
 ```
 dotnet run --project src/Simulation.Headless -c Release -- perf [--inhabitants N|data] [--days N | --ticks N]
-    [--ai mock|silent] [--seed N] [--preset P] [--warmup-ticks N] [--budget-ms X] [--json] [--content DIR]
+    [--ai mock|silent] [--seed N] [--preset P] [--warmup-ticks N] [--runtime-warmup-seconds X] [--budget-ms X]
+    [--json] [--csv FILE] [--content DIR]
 ```
 
 Measures the budget of the engineering handbook (D334, "Performance und Beobachtbarkeit": *Simulationsschritt
@@ -143,9 +144,11 @@ inhabitants for one game day with the mock decider; add `--ai silent` for the se
 | `--days N`, `--ticks N` | How long the world runs, warm-up included (default one game day; `--ticks` instead of whole days). |
 | `--ai mock\|silent` | Decider, see below (default `mock`). |
 | `--seed N`, `--preset P` | Island (default seed 1, `start_island`). |
-| `--warmup-ticks N` | Ticks at the start that run but are not measured (default 120): the runtime compiles the hot code in them. |
+| `--warmup-ticks N` | Ticks at the start of the measured world that run but are not measured (default 120): the first ticks of a new world do work that comes once (everybody meets everybody, the first look around). |
+| `--runtime-warmup-seconds X` | Before the measured world is built, a throwaway world of the same kind runs for X seconds (default 6; 0 = none). .NET compiles a method quickly at first and for good only after it has run for a while; without this the first seconds of the measurement time that first code, which is several times slower and which a game leaves behind after its first seconds. The measured world does not depend on it: same ticks, same hash. |
 | `--budget-ms X` | Budget check: `PERF_OK` and exit 0 when mean and p95 of the step are at most X, else `PERF_OVER_BUDGET` and exit 7. Without it the command only reports. |
 | `--json` | One JSON object instead of the lines (same values, unrounded). |
+| `--csv FILE` | One line per measured step: `tick,step_ms,step_with_port_ms` and one column per part (each part alone, in milliseconds). For the question which steps are slow and why: sort by `step_ms`. |
 
 **Where the 100 come from.** The world starts with the data's start inhabitants and repeats them as further
 groups (`InhabitantsSystem.StartersFor`: pairs 3, 4, 5 ... after the data's pairs 1 and 2). They are start
@@ -174,13 +177,13 @@ The game lies between the two: its request rate is the answer rate of the model.
 ### The report
 
 ```
-PERF preset=.. seed=.. inhabitants=.. decider=.. ticks=.. warmup_ticks=.. measured_ticks=.. build=release
+PERF preset=.. seed=.. inhabitants=.. decider=.. ticks=.. warmup_ticks=.. measured_ticks=.. runtime_warmup_s=.. runtime_warmup_ticks=.. build=release
 STEP mean_ms=.. median_ms=.. p95_ms=.. p99_ms=.. max_ms=.. max_tick=..
 STEP_WITH_PORT mean_ms=.. ...
 CPU mean_ms=..
 PORT name=decider_port mean_ms=.. max_ms=..
 SYSTEM name=<system> mean_ms=.. share=.. max_ms=..
-PART name=<system>/<part> mean_ms=.. share=.. max_ms=..
+PART name=<system>/<part> mean_ms=.. share=.. max_ms=.. calls=..
 REQUESTS sent=.. per_step=.. answers=.. open_at_end=..
 ALLOC kb_per_step=.. gc0=.. gc1=.. gc2=..
 DOING on_the_way=.. acting=.. idle=..
@@ -196,7 +199,8 @@ FINAL hash=<state hash> tick=<t>
   included). When the machine is busy it stays put while the wall-clock times grow, so compare both.
 - `SYSTEM`: one line per world system in the order they run, then `boundaries` (the listeners of
   `World.BoundaryReached`); `share` is the percentage of the step's mean. `PART` lines are the parts a system
-  names inside its own work (`system/(rest)` = the system outside them). No part overlaps another, so the
+  names inside its own work (`system/(rest)` = the system outside them), `calls` how often the part began
+  per step (the routine chooses for a few inhabitants per step, a request is built now and then). No part overlaps another, so the
   lines add up to the step (the core tells a probe, `World.Probe`, when a part begins and ends; it reads no
   clock itself).
 - `ALLOC`: managed memory allocated per step and the garbage collections during the measured ticks.

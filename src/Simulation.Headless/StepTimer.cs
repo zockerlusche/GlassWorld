@@ -65,6 +65,7 @@ internal sealed class StepTimer(Func<long>? clock = null) : IStepProbe
         }
 
         var whole = now - started;
+        _parts[index].StepCalls++;
         _parts[index].Step += whole - inner;
         _parts[index].Group!.Step += whole - inner;
         if (_open.Count > 0)
@@ -72,6 +73,18 @@ internal sealed class StepTimer(Func<long>? clock = null) : IStepProbe
             var outer = _open.Pop();
             _open.Push((outer.Part, outer.Started, outer.Inner + whole));
         }
+    }
+
+    /// <summary>Milliseconds every part took alone in the step that just ended, in the order of <see cref="Parts"/>.</summary>
+    public double[] StepMs()
+    {
+        var ms = new double[_parts.Count];
+        for (var i = 0; i < ms.Length; i++)
+        {
+            ms[i] = Ms(_parts[i].Step);
+        }
+
+        return ms;
     }
 
     /// <summary>Time of a group in the step that is running or just ended (stopwatch ticks).</summary>
@@ -85,6 +98,8 @@ internal sealed class StepTimer(Func<long>? clock = null) : IStepProbe
             times.Sum += times.Step;
             times.Max = Math.Max(times.Max, times.Step);
             times.Step = 0;
+            times.Calls += times.StepCalls;
+            times.StepCalls = 0;
         }
 
         Steps++;
@@ -96,11 +111,15 @@ internal sealed class StepTimer(Func<long>? clock = null) : IStepProbe
         foreach (var times in _parts.Concat(_groups.Values))
         {
             times.Step = 0;
+            times.StepCalls = 0;
         }
     }
 
     /// <summary>Mean milliseconds per kept step in a part alone.</summary>
     public double MeanMs(string part) => _index.TryGetValue(part, out var index) ? Mean(_parts[index]) : 0;
+
+    /// <summary>How often a part began per kept step, on average.</summary>
+    public double MeanCalls(string part) => Steps == 0 || !_index.TryGetValue(part, out var index) ? 0 : (double)_parts[index].Calls / Steps;
 
     /// <summary>Most milliseconds a kept step spent in a part alone.</summary>
     public double MaxMs(string part) => _index.TryGetValue(part, out var index) ? Ms(_parts[index].Max) : 0;
@@ -124,6 +143,10 @@ internal sealed class StepTimer(Func<long>? clock = null) : IStepProbe
         public long Sum { get; set; }
 
         public long Max { get; set; }
+
+        public long StepCalls { get; set; }
+
+        public long Calls { get; set; }
     }
 }
 

@@ -15,7 +15,8 @@ public sealed class PerfTests
     private static (int Code, string Text) Perf(params string[] args)
     {
         var output = new StringWriter();
-        var code = PerfCommand.Run([.. args, "--content", Content], output);
+        // No warm-up of the runtime: these tests judge no time (it would add seconds to each of them).
+        var code = PerfCommand.Run([.. args, "--runtime-warmup-seconds", "0", "--content", Content], output);
         return (code, output.ToString());
     }
 
@@ -37,14 +38,31 @@ public sealed class PerfTests
         Assert.Equal(PerfOptions.DefaultWarmupTicks, options.WarmupTicks);
         Assert.False(options.Json);
         Assert.Null(options.BudgetMs);
+        Assert.Null(options.CsvPath);
+        Assert.Equal(PerfOptions.DefaultRuntimeWarmupSeconds, options.RuntimeWarmupSeconds);
+    }
+
+    [Fact]
+    public void TheRuntimeIsWarmedUpOnAWorldOfItsOwn()
+    {
+        // The throwaway world runs for the given time, the measured world afterwards from its first tick:
+        // the same ticks, the same hash as without the warm-up.
+        string[] run = ["--inhabitants", "8", "--ticks", "60", "--warmup-ticks", "20", "--content", Content];
+        var cold = PerfCommand.Measure(PerfOptions.Parse([.. run, "--runtime-warmup-seconds", "0"]));
+        var warm = PerfCommand.Measure(PerfOptions.Parse([.. run, "--runtime-warmup-seconds", "0.3"]));
+        Assert.Equal(0, cold.RuntimeWarmupTicks);
+        Assert.True(warm.RuntimeWarmupTicks > 0);
+        Assert.Equal(cold.Hash, warm.Hash);
+        Assert.Equal((60, 20, 40), (warm.Ticks, warm.WarmupTicks, warm.MeasuredTicks));
+        Assert.Contains(" runtime_warmup_s=0.3 runtime_warmup_ticks=" + warm.RuntimeWarmupTicks.ToString(CultureInfo.InvariantCulture) + " ", PerfCommand.Lines(warm), StringComparison.Ordinal);
     }
 
     [Fact]
     public void EveryOptionIsRead()
     {
         var options = PerfOptions.Parse(
-            ["--preset", "p", "--seed", "42", "--inhabitants", "12", "--days", "3", "--ticks", "500", "--ai", "silent", "--warmup-ticks", "7", "--budget-ms", "4.5", "--json", "--content", "c"]);
-        Assert.Equal(new PerfOptions(42, 3, 500, 12, "p", "c", PerfDecider.Silent, 7, true, 4.5), options);
+            ["--preset", "p", "--seed", "42", "--inhabitants", "12", "--days", "3", "--ticks", "500", "--ai", "silent", "--warmup-ticks", "7", "--budget-ms", "4.5", "--json", "--content", "c", "--csv", "steps.csv", "--runtime-warmup-seconds", "2.5"]);
+        Assert.Equal(new PerfOptions(42, 3, 500, 12, "p", "c", PerfDecider.Silent, 7, true, 4.5) { CsvPath = "steps.csv", RuntimeWarmupSeconds = 2.5 }, options);
         Assert.Null(PerfOptions.Parse(["--inhabitants", "data"], () => "c").Inhabitants);
     }
 
@@ -64,7 +82,7 @@ public sealed class PerfTests
         var (code, text) = Perf("--inhabitants", "12", "--ticks", "90", "--warmup-ticks", "30", "--ai", "silent");
         Assert.Equal(ExitCodes.Ok, code);
         var lines = LinesOf(text);
-        Assert.StartsWith("PERF preset=start_island seed=1 inhabitants=12 decider=silent ticks=90 warmup_ticks=30 measured_ticks=60 build=", lines[0], StringComparison.Ordinal);
+        Assert.StartsWith("PERF preset=start_island seed=1 inhabitants=12 decider=silent ticks=90 warmup_ticks=30 measured_ticks=60 runtime_warmup_s=0 runtime_warmup_ticks=0 build=", lines[0], StringComparison.Ordinal);
         var step = Assert.Single(lines, l => l.StartsWith("STEP ", StringComparison.Ordinal));
         Assert.Matches("^STEP mean_ms=[0-9.]+ median_ms=[0-9.]+ p95_ms=[0-9.]+ p99_ms=[0-9.]+ max_ms=[0-9.]+ max_tick=[0-9]+$", step);
         Assert.InRange(Value(step, "max_tick"), 30, 89);
@@ -74,7 +92,10 @@ public sealed class PerfTests
         var systems = lines.Where(l => l.StartsWith("SYSTEM ", StringComparison.Ordinal)).Select(l => l.Split(' ')[1]["name=".Length..]).ToList();
         Assert.Equal(["worldmap", "weather", "objects", "decisions", "inhabitants"], systems.Take(5));
         Assert.Equal(World.BoundariesPart, systems[^1]);
-        Assert.Contains(lines, l => l.StartsWith("PART name=inhabitants/act ", StringComparison.Ordinal));
+        var act = Assert.Single(lines, l => l.StartsWith("PART name=inhabitants/act ", StringComparison.Ordinal));
+
+        // The part "act" begins once per inhabitant and step.
+        Assert.Equal(12, Value(act, "calls"));
         Assert.Contains(lines, l => l.StartsWith("PART name=inhabitants/(rest) ", StringComparison.Ordinal));
 
         // The parts never overlap: together the systems take no more time than the step they are part of.
@@ -109,6 +130,39 @@ public sealed class PerfTests
         Assert.True(root.GetProperty("requests").GetProperty("sent").GetInt64() > 0);
         Assert.Equal(JsonValueKind.Null, root.GetProperty("budget_ms").ValueKind);
         Assert.Matches("^[0-9a-f]{64}$", root.GetProperty("hash").GetString()!);
+    }
+
+    [Fact]
+    public void TheCsvHasOneLinePerMeasuredStepWithEveryPart()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "gw-perf-" + Guid.NewGuid().ToString("N") + ".csv");
+        try
+        {
+            var (code, text) = Perf("--inhabitants", "12", "--ticks", "90", "--warmup-ticks", "30", "--csv", path);
+            Assert.Equal(ExitCodes.Ok, code);
+            var rows = File.ReadAllLines(path);
+            Assert.Equal(61, rows.Length);
+            var header = rows[0].Split(',');
+            Assert.Equal(["tick", "step_ms", "step_with_port_ms"], header.Take(3));
+            Assert.Contains("inhabitants", header);
+            Assert.Contains("inhabitants/act", header);
+            Assert.Contains(TimedDecisionPort.Part, header);
+            Assert.Equal(header.Length, header.Distinct().Count());
+            Assert.Equal(Enumerable.Range(30, 60).Select(t => t.ToString(CultureInfo.InvariantCulture)), rows.Skip(1).Select(r => r.Split(',')[0]));
+            Assert.All(rows.Skip(1), row =>
+            {
+                var values = row.Split(',').Skip(1).Select(v => double.Parse(v, CultureInfo.InvariantCulture)).ToList();
+                Assert.Equal(header.Length - 1, values.Count);
+
+                // The parts never overlap: together no more than the step with the port (rounded to 4 places each).
+                Assert.True(values.Skip(2).Sum() <= values[1] + (0.0001 * values.Count));
+            });
+            Assert.Equal(Value(LinesOf(text).Single(l => l.StartsWith("STEP ", StringComparison.Ordinal)), "max_ms"), rows.Skip(1).Max(r => double.Parse(r.Split(',')[1], CultureInfo.InvariantCulture)), 3);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
     }
 
     [Fact]
@@ -181,6 +235,7 @@ public sealed class PerfTests
         Assert.Equal(7, timer.MeanMs("system/part") / unit, 6);
         Assert.Equal(24, timer.GroupMeanMs("system") / unit, 6);
         Assert.Equal(24, timer.GroupMaxMs("system") / unit, 6);
+        Assert.Equal(1, timer.MeanCalls("system/part"));
         Assert.Throws<InvalidOperationException>(() =>
         {
             timer.Enter("a");
