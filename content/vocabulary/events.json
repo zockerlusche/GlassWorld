@@ -43,6 +43,10 @@
       "description": "An inhabitant now knows another inhabitant's own name (W1698): actor = the learner, target = the one whose name it learned."
     },
     {
+      "id": "first_meeting",
+      "description": "Two inhabitants who did not know each other see each other for the first time (B4a R8, F5249): actor = the one with the lower id, target = the other."
+    },
+    {
       "id": "invention_wanted",
       "description": "A lasting lack becomes the wish to invent something."
     },

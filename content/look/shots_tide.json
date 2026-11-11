@@ -3,32 +3,32 @@
   "points": [
     {
       "id": "coast_low_tide",
-      "target_x_permille": 844,
-      "target_z_permille": 177,
+      "target_x_permille": 63,
+      "target_z_permille": 636,
       "yaw_deg": 30,
       "distance_m": 45,
       "tide_permille": -1000
     },
     {
       "id": "coast_mean_tide",
-      "target_x_permille": 844,
-      "target_z_permille": 177,
+      "target_x_permille": 63,
+      "target_z_permille": 636,
       "yaw_deg": 30,
       "distance_m": 45,
       "tide_permille": 0
     },
     {
       "id": "coast_high_tide",
-      "target_x_permille": 844,
-      "target_z_permille": 177,
+      "target_x_permille": 63,
+      "target_z_permille": 636,
       "yaw_deg": 30,
       "distance_m": 45,
       "tide_permille": 1000
     },
     {
       "id": "rocks_first_epoch",
-      "target_x_permille": 885,
-      "target_z_permille": 343,
+      "target_x_permille": 869,
+      "target_z_permille": 515,
       "yaw_deg": 30,
       "distance_m": 45,
       "tide_permille": 0,
@@ -36,8 +36,8 @@
     },
     {
       "id": "rocks_later_epoch",
-      "target_x_permille": 885,
-      "target_z_permille": 343,
+      "target_x_permille": 869,
+      "target_z_permille": 515,
       "yaw_deg": 30,
       "distance_m": 45,
       "tide_permille": 0,

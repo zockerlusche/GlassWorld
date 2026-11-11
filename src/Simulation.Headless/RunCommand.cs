@@ -237,6 +237,7 @@ internal sealed class RunCommand
         var fading = host.Inhabitants.All.Count(host.Inhabitants.IsFading);
         output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"done  seed {options.Seed}  days {options.Days}  inhabitants {host.Inhabitants.All.Count()}  ticks {ticks}  hash {host.World.StateHash()}"));
         output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"neglect  longest {worstHours} h (limit {limitHours} h)  fading {fading}"));
+        WriteSocial(host, output);
         if (host.Exploration is { } exploration && host.Map is { } island)
         {
             // Cloud cover (B2-6 R14): how much of the land (cells without water) the player's view shows.
@@ -284,6 +285,22 @@ internal sealed class RunCommand
             : !ok ? ExitCodes.AcceptanceFailed
             : options.Until is not null && !reached ? ExitCodes.UntilNotReached
             : ExitCodes.Ok;
+    }
+
+    /// <summary>
+    /// B4a R6–R8 at the end of a run: per inhabitant whom it has met, its relationships to the other
+    /// inhabitants (affection/trust/respect) and how many habits it has.
+    /// </summary>
+    private static void WriteSocial(SimulationHost host, TextWriter output)
+    {
+        var knowledge = host.Content.Knowledge;
+        foreach (var i in host.Inhabitants.All)
+        {
+            var relations = i.Relationships.All.Where(r => i.Met.Contains(r.Other))
+                .Select(r => string.Create(CultureInfo.InvariantCulture, $"{r.Other} {r.Relation.Affection:F2}/{r.Relation.Trust:F2}/{r.Relation.Respect:F2}"));
+            var habits = knowledge is null ? 0 : Simulation.Inhabitants.InhabitantsSystem.Habits(knowledge, i).Count;
+            output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"social  {i.Id} g{i.Group}  habits {habits} (counters {i.Imprints.Count})  met: {string.Join(", ", relations)}"));
+        }
     }
 
     private static void WriteDay(SimulationHost host, int day, TextWriter output)

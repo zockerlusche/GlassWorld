@@ -16,6 +16,9 @@ namespace GlassWorld.Simulation.Headless;
 /// </summary>
 internal static class WorldGenCommand
 {
+    // Step-stack metric window (W1726): a one-step edge counts as stacked when another follows within it.
+    private const int StackWindowCells = 3;
+
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower };
 
     public static int Run(string[] args)
@@ -85,7 +88,8 @@ internal static class WorldGenCommand
             island.Neighbours.Count,
             Water(island, set),
             Ground(island),
-            Relief(island));
+            Relief(island),
+            Faces(island, set.WorldGen.Presets[preset]));
         if (json)
         {
             Console.WriteLine(JsonSerializer.Serialize(report, JsonOptions));
@@ -106,6 +110,8 @@ internal static class WorldGenCommand
             Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"  hydrology springs {h.Springs} stream cells {h.StreamCells} mouths {h.Mouths} lakes {h.Lakes} (cells {h.LakeCells}, largest {h.LargestLake}) max accumulation {h.MaxAccumulation} blocked {h.BlockedCells}"));
             Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"  drink per start [{string.Join(", ", h.DrinkPerStart)}] springs within radius per start [{string.Join(", ", h.SpringsPerStart)}]"));
             Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"  relief land cells {report.Relief.LandCells} height p10 {report.Relief.P10} p50 {report.Relief.P50} p90 {report.Relief.P90} max {report.Relief.Max} mean slope x100 {report.Relief.MeanSlopeX100} steep cells (slope >= 5) {report.Relief.SteepCells}"));
+            var f = report.Faces;
+            Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"  faces one-steps {f.OneSteps} stacked {f.StackedSteps} runs {f.StackRuns} (rock {f.RockStackedSteps} / {f.RockStackRuns}) max drop {f.MaxFaceDrop} caves {f.Caves} reachable {f.CavesReachable}"));
             Console.WriteLine("  underground soils " + string.Join(", ", report.Underground.Soils.Select(s => $"{s.Key} {s.Value}")) + string.Create(CultureInfo.InvariantCulture, $"; ore cells {report.Underground.OreCells}; groundwater at surface {report.Underground.SurfaceWaterCells}"));
         }
 
@@ -234,6 +240,22 @@ internal static class WorldGenCommand
     }
 
     /// <summary>How hilly the land is: height percentiles above the sea and the mean slope.</summary>
+    /// <summary>
+    /// Rock faces and step stacks (W1726): one-step edges, stacked ones (another within
+    /// <see cref="StackWindowCells"/> cells further down the same way), on all land and on the cliff biome,
+    /// the highest drop, and the caves with those the first start can walk to.
+    /// </summary>
+    private static FacesReport Faces(GeneratedIsland island, Contracts.WorldPreset preset)
+    {
+        var step = preset.Terrain.CliffMinDrop;
+        var all = WorldGenerator.StepStacks(island.Map, step, StackWindowCells, null);
+        var rock = WorldGenerator.StepStacks(island.Map, step, StackWindowCells, preset.Caves.CliffBiome);
+        var caves = island.Objects.Where(o => o.TypeId == preset.Caves.ObjectType).ToList();
+        var reach = island.Starts.Count == 0 ? null : WorldGenerator.Reachable(island.Map, island.Starts[0].X, island.Starts[0].Z);
+        var reachable = reach is null ? 0 : caves.Count(c => reach[(c.Z * island.Map.WidthCells) + c.X]);
+        return new FacesReport(all.OneSteps, all.StackedSteps, all.StackRuns, rock.StackedSteps, rock.StackRuns, all.MaxFaceDrop, caves.Count, reachable);
+    }
+
     private static ReliefReport Relief(GeneratedIsland island)
     {
         var map = island.Map;
@@ -445,6 +467,8 @@ internal static class WorldGenCommand
 
     private sealed record ReliefReport(int LandCells, int P10, int P50, int P90, int Max, int MeanSlopeX100, int SteepCells);
 
+    private sealed record FacesReport(int OneSteps, int StackedSteps, int StackRuns, int RockStackedSteps, int RockStackRuns, int MaxFaceDrop, int Caves, int CavesReachable);
+
     private sealed record GroundReport(Dictionary<string, int> Soils, int OreCells, int SurfaceWaterCells);
 
     private sealed record CheckLine(string Id, int Reachable, int Total, int Min, int Max, bool Passed, bool ReportOnly);
@@ -466,5 +490,6 @@ internal static class WorldGenCommand
         int Neighbours,
         WaterReport Hydrology,
         GroundReport Underground,
-        ReliefReport Relief);
+        ReliefReport Relief,
+        FacesReport Faces);
 }

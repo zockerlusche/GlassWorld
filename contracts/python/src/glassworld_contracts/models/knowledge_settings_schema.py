@@ -10,6 +10,105 @@ from pydantic import BaseModel, ConfigDict, Field
 from . import common_schema
 
 
+class KnowledgeRelationChange(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    affection: float = Field(..., ge=-1.0, le=1.0)
+    trust: float = Field(..., ge=-1.0, le=1.0)
+    respect: float = Field(..., ge=-1.0, le=1.0)
+
+
+class KnowledgeRelationAction(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    action: str = Field(
+        ...,
+        description='An action with an inhabitant target.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    actor: KnowledgeRelationChange
+    listener: KnowledgeRelationChange
+
+
+class KnowledgeMeetingOption(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    action: str = Field(
+        ...,
+        description='An action with an inhabitant target (not a passing or naming action).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    min_distance_m: float | None = Field(
+        None,
+        description='Only while the other is farther away than this.',
+        ge=0.0,
+        le=1000.0,
+    )
+    max_trust: float | None = Field(
+        None,
+        description="Only while the asker's trust in the other is below this.",
+        ge=0.0,
+        le=1.0,
+    )
+    max_affection: float | None = Field(
+        None,
+        description="Only while the asker's affection for the other is below this.",
+        ge=0.0,
+        le=1.0,
+    )
+    need: str | None = Field(
+        None,
+        description='A need of the asker that must be below need_below.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    need_below: float | None = Field(None, ge=0.0, le=1.0)
+
+
+class KnowledgeImprinting(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    left_out_actions: list[common_schema.VocabId] = Field(
+        ..., description='Actions that are not counted.', max_length=32
+    )
+    fade_per_hour: float = Field(
+        ..., description='How much every counter sinks per hour.', ge=0.0, le=10.0
+    )
+    habit_from: float = Field(
+        ..., description='A counter at least this high is a habit.', ge=0.0, le=1000.0
+    )
+    full_at: float = Field(
+        ...,
+        description='Counter at which a habit has full strength 1; counters never grow above it (at least habit_from, checked at load).',
+        ge=1.0,
+        le=1000.0,
+    )
+    forget_below: float = Field(
+        ...,
+        description='A counter that has faded below this is forgotten.',
+        ge=0.0,
+        le=1000.0,
+    )
+    max_counters: int = Field(
+        ...,
+        description='Most counters per inhabitant; beyond it the weakest is forgotten (ties by key).',
+        ge=0,
+        le=256,
+    )
+    max_habits: int = Field(
+        ...,
+        description='Most habits in one decider request, strongest first (text budget). At most 8 (decision-request: habits holds 8).',
+        ge=0,
+        le=8,
+    )
+
+
 class KnowledgeRelationship(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -72,6 +171,59 @@ class KnowledgePassing(BaseModel):
     value: bool | None = Field(
         ..., description='Only beliefs with this value (null = either).'
     )
+
+
+class KnowledgeStartRelationships(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    partners: KnowledgeRelationship = Field(
+        ..., description='Towards a member of the own start group.'
+    )
+    strangers: KnowledgeRelationship = Field(
+        ...,
+        description='Towards a member of another start group (an unknown human; below the togetherness thresholds of the inhabitant model, checked at load).',
+    )
+
+
+class KnowledgeRelationshipChanges(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    together_distance_m: float = Field(
+        ...,
+        description='Two inhabitants within this distance spend time together.',
+        ge=0.0,
+        le=100.0,
+    )
+    together_per_hour: KnowledgeRelationChange = Field(
+        ..., description='Change per hour spent together, for both.'
+    )
+    heard_true: KnowledgeRelationChange = Field(
+        ...,
+        description="Change towards a teller when one's own experience confirms what one heard (on top of trust_true_heard_gain).",
+    )
+    heard_false: KnowledgeRelationChange = Field(
+        ...,
+        description="Change towards a teller when one's own experience contradicts what one heard (on top of trust_false_heard_loss).",
+    )
+    actions: list[KnowledgeRelationAction] = Field(..., max_length=32)
+    fade_per_hour: float = Field(
+        ...,
+        description='How much each value above fade_to sinks per hour (never below fade_to).',
+        ge=0.0,
+        le=1.0,
+    )
+    fade_to: KnowledgeRelationship = Field(
+        ..., description='The level closeness fades to.'
+    )
+
+
+class KnowledgeMeeting(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    options: list[KnowledgeMeetingOption] = Field(..., max_length=16)
 
 
 class KnowledgeLooking(BaseModel):
@@ -177,3 +329,7 @@ class KnowledgeSettings(BaseModel):
     )
     looking: KnowledgeLooking | None = None
     naming: KnowledgeNaming | None = None
+    start_relationships: KnowledgeStartRelationships | None = None
+    relationship_changes: KnowledgeRelationshipChanges | None = None
+    meeting: KnowledgeMeeting | None = None
+    imprinting: KnowledgeImprinting | None = None

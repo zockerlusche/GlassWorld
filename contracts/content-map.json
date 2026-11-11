@@ -151,6 +151,10 @@
       "schema": "look-quality"
     },
     {
+      "pattern": "look/benchmark.json",
+      "schema": "look-benchmark"
+    },
+    {
       "pattern": "look/nature.json",
       "schema": "look-nature"
     },
@@ -257,6 +261,10 @@
     {
       "pattern": "look/world.json",
       "schema": "look-world"
+    },
+    {
+      "pattern": "look/night.json",
+      "schema": "look-night"
     },
     {
       "pattern": "look/objects.json",

@@ -95,9 +95,259 @@
     },
     "naming": {
       "$ref": "#/$defs/KnowledgeNaming"
+    },
+    "start_relationships": {
+      "$ref": "#/$defs/KnowledgeStartRelationships"
+    },
+    "relationship_changes": {
+      "$ref": "#/$defs/KnowledgeRelationshipChanges"
+    },
+    "meeting": {
+      "$ref": "#/$defs/KnowledgeMeeting"
+    },
+    "imprinting": {
+      "$ref": "#/$defs/KnowledgeImprinting"
     }
   },
   "$defs": {
+    "KnowledgeStartRelationships": {
+      "description": "Relationships of the start inhabitants when the world begins (B4a R8, F5249): members of the same start group know each other (partners), members of another group are strangers. Set for every pair at the start; absent = everybody starts with relationship_start.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "partners",
+        "strangers"
+      ],
+      "properties": {
+        "partners": {
+          "description": "Towards a member of the own start group.",
+          "$ref": "#/$defs/KnowledgeRelationship"
+        },
+        "strangers": {
+          "description": "Towards a member of another start group (an unknown human; below the togetherness thresholds of the inhabitant model, checked at load).",
+          "$ref": "#/$defs/KnowledgeRelationship"
+        }
+      }
+    },
+    "KnowledgeRelationChange": {
+      "description": "A change of affection, trust and respect (each -1..1); the results stay within 0..1.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "affection",
+        "trust",
+        "respect"
+      ],
+      "properties": {
+        "affection": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 1
+        },
+        "trust": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 1
+        },
+        "respect": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 1
+        }
+      }
+    },
+    "KnowledgeRelationAction": {
+      "description": "An action aimed at another inhabitant that, when it ends, changes how both see each other: the actor towards the listener and the listener towards the actor.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action",
+        "actor",
+        "listener"
+      ],
+      "properties": {
+        "action": {
+          "description": "An action with an inhabitant target.",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "actor": {
+          "$ref": "#/$defs/KnowledgeRelationChange"
+        },
+        "listener": {
+          "$ref": "#/$defs/KnowledgeRelationChange"
+        }
+      }
+    },
+    "KnowledgeRelationshipChanges": {
+      "description": "How shared experiences change relationships between inhabitants (B4a R7): time spent near each other, actions towards each other, and heard knowledge that one's own experience proved right or wrong; closeness fades slowly towards fade_to. Only values above fade_to fade (a grudge or a stranger is not forgotten into acquaintance). Deterministic, every value is data. Absent = only trust changes (trust_true_heard_gain, trust_false_heard_loss).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "together_distance_m",
+        "together_per_hour",
+        "heard_true",
+        "heard_false",
+        "actions",
+        "fade_per_hour",
+        "fade_to"
+      ],
+      "properties": {
+        "together_distance_m": {
+          "description": "Two inhabitants within this distance spend time together.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "together_per_hour": {
+          "description": "Change per hour spent together, for both.",
+          "$ref": "#/$defs/KnowledgeRelationChange"
+        },
+        "heard_true": {
+          "description": "Change towards a teller when one's own experience confirms what one heard (on top of trust_true_heard_gain).",
+          "$ref": "#/$defs/KnowledgeRelationChange"
+        },
+        "heard_false": {
+          "description": "Change towards a teller when one's own experience contradicts what one heard (on top of trust_false_heard_loss).",
+          "$ref": "#/$defs/KnowledgeRelationChange"
+        },
+        "actions": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "$ref": "#/$defs/KnowledgeRelationAction"
+          }
+        },
+        "fade_per_hour": {
+          "description": "How much each value above fade_to sinks per hour (never below fade_to).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "fade_to": {
+          "description": "The level closeness fades to.",
+          "$ref": "#/$defs/KnowledgeRelationship"
+        }
+      }
+    },
+    "KnowledgeMeeting": {
+      "description": "Actions towards another inhabitant in sight that the core offers to the decider (B4a R8: observe, approach, trust, care grow from options and relationship values, not from a script). Each option is offered only while all of its conditions hold. Absent = none of these actions is offered.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "options"
+      ],
+      "properties": {
+        "options": {
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "$ref": "#/$defs/KnowledgeMeetingOption"
+          }
+        }
+      }
+    },
+    "KnowledgeMeetingOption": {
+      "description": "One action towards another inhabitant and when it is offered; omitted conditions always hold.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action"
+      ],
+      "properties": {
+        "action": {
+          "description": "An action with an inhabitant target (not a passing or naming action).",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "min_distance_m": {
+          "description": "Only while the other is farther away than this.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "max_trust": {
+          "description": "Only while the asker's trust in the other is below this.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "max_affection": {
+          "description": "Only while the asker's affection for the other is below this.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "need": {
+          "description": "A need of the asker that must be below need_below.",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "need_below": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "KnowledgeImprinting": {
+      "description": "Imprinting (B4a R6): the core only counts repeated experiences per inhabitant - a finished action, what it was about (object type or inhabitant; none for actions without a target) and the time of day. Each repetition adds one, every hour fades the counter a little; a counter from habit_from on is a habit, its strength the counter over full_at (at most 1). Habits are information for the decider only; the routine does not weigh them.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "left_out_actions",
+        "fade_per_hour",
+        "habit_from",
+        "full_at",
+        "forget_below",
+        "max_counters",
+        "max_habits"
+      ],
+      "properties": {
+        "left_out_actions": {
+          "description": "Actions that are not counted.",
+          "type": "array",
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          }
+        },
+        "fade_per_hour": {
+          "description": "How much every counter sinks per hour.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "habit_from": {
+          "description": "A counter at least this high is a habit.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "full_at": {
+          "description": "Counter at which a habit has full strength 1; counters never grow above it (at least habit_from, checked at load).",
+          "type": "number",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "forget_below": {
+          "description": "A counter that has faded below this is forgotten.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "max_counters": {
+          "description": "Most counters per inhabitant; beyond it the weakest is forgotten (ties by key).",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 256
+        },
+        "max_habits": {
+          "description": "Most habits in one decider request, strongest first (text budget). At most 8 (decision-request: habits holds 8).",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 8
+        }
+      }
+    },
     "KnowledgeRelationship": {
       "description": "Values 0..1 towards someone one has just met.",
       "type": "object",

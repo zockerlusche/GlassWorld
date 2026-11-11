@@ -3,10 +3,12 @@
   "deadline_ms": 60000,
   "max_open_questions": 2,
   "ask_cooldown_hours": 6,
+  "unknown_inhabitant_max_asks": 4,
   "retry_after_minutes": 30,
   "triggers": [
     { "kind": "unknown_object", "enabled": true },
-    { "kind": "noticed_player", "enabled": true }
+    { "kind": "noticed_player", "enabled": true },
+    { "kind": "unknown_inhabitant", "enabled": true }
   ],
   "fallback_environment": { "temperature_c": 18.0, "weather": ["clear"] }
 }

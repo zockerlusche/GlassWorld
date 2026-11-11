@@ -1,0 +1,14 @@
+{
+  "contract_version": "0.2",
+  "fade_out_s": 4,
+  "fade_in_s": 3,
+  "min_scene_s": 6,
+  "darkness": 0.82,
+  "poll_s": 2,
+  "sleep_actions": [
+    "sleep"
+  ],
+  "zzz_above_head_m": 0.5,
+  "zzz_sway_s": 3,
+  "zzz_rise_px": 24
+}

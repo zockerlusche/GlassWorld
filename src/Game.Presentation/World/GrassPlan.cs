@@ -44,11 +44,15 @@ public static class GrassPlan
     }
 
     /// <summary>The quality level in use: the default level (which level a hardware tier uses is decided in B7).</summary>
-    public static QualityLevel Level(LookQuality quality)
+    public static QualityLevel Level(LookQuality quality) => Level(quality, null);
+
+    /// <summary>The quality level <paramref name="id"/> (e.g. the benchmark's <c>--quality=ID</c>), or the default level when null.</summary>
+    public static QualityLevel Level(LookQuality quality, string? id)
     {
         ArgumentNullException.ThrowIfNull(quality);
-        return quality.Levels.FirstOrDefault(l => l.Id == quality.DefaultLevel)
-            ?? throw new InvalidDataException($"Unknown default quality level '{quality.DefaultLevel}' (content/look/quality.json).");
+        var wanted = id ?? quality.DefaultLevel;
+        return quality.Levels.FirstOrDefault(l => l.Id == wanted)
+            ?? throw new InvalidDataException($"Unknown quality level '{wanted}' (content/look/quality.json: {string.Join(", ", quality.Levels.Select(l => l.Id))}).");
     }
 
     /// <summary>The distances of the levels for a quality level.</summary>
