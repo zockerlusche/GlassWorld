@@ -4,7 +4,8 @@
 #
 # Usage: tools/benchmark.sh BINARY WIDTHxHEIGHT OUT_DIR [--fullscreen] [--quality=ID] [more scene args …]
 #   BINARY   the exported GlassWorld.exe, or the Godot 4.7.2 .NET editor binary (then the game is built
-#            first and run with --path game)
+#            first and run with --path game). Both start the game's start scene, which hands over to
+#            the island scene on --benchmark=: an exported build takes no scene path as an argument.
 #   OUT_DIR  folder for bench_<WxH>_<pass>.csv and .log (created if missing)
 # Environment: BENCH_PASSES (default: every pass of the benchmark data - the content/ beside an exported
 # binary, else the repository's; read with python), BENCH_TIMEOUT_S per pass (default 900),
@@ -73,11 +74,11 @@ for PASS in $PASSES; do
   echo "== benchmark pass $PASS at $RES =="
   set +e
   # ${A[@]+"${A[@]}"}: an empty array is no error under set -u, also in bash before 4.4.
-  timeout "$TIMEOUT_S" "$BIN" ${ENGINE[@]+"${ENGINE[@]}"} ${PROJECT[@]+"${PROJECT[@]}"} res://world/island.tscn -- \
+  timeout "$TIMEOUT_S" "$BIN" ${ENGINE[@]+"${ENGINE[@]}"} ${PROJECT[@]+"${PROJECT[@]}"} -- \
     "--benchmark=$CSV" "--bench-pass=$PASS" "--resolution=$RES" "$@" >"$LOG" 2>&1
   CODE=$?
   set -e
-  grep -E '^(BENCH_START|BENCH_ENV|BENCH_PASS|BENCH_DONE|ISLAND_FAIL)' "$LOG" || true
+  grep -E '^(BENCH_START|BENCH_ENV|BENCH_PASS|BENCH_DONE|ISLAND_FAIL)|^ERROR: Scene path' "$LOG" || true
   if [[ $CODE -ne 0 || ! -s "$CSV" ]]; then
     echo "BENCH_FAIL pass=$PASS exit=$CODE (see $LOG)" >&2
     FAILED=1

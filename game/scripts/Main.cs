@@ -19,7 +19,9 @@ namespace GlassWorld.Game;
 /// at once: <c>--smoke-frames=N</c> (headless smoke, prints marker lines and quits after N frames),
 /// <c>--ui-shots=&lt;dir&gt;</c> (screenshots) and <c>--seed=N</c> (world seed, default 1).
 /// <c>--debug</c> lets the core accept debug commands (the debug jumps of the debug view, B2-6 R31);
-/// without it they are refused.
+/// without it they are refused. <c>--benchmark=CSV</c> or <c>--island</c> hand over to the island scene
+/// (world/island.tscn: benchmark, shot tool, checks) with the same arguments: an exported build takes no
+/// scene path on the command line, so this is the way in for it.
 /// </summary>
 public partial class Main : Node3D
 {
@@ -28,6 +30,9 @@ public partial class Main : Node3D
     private const string DebugArgument = "--debug";
 
     private const string TourArgument = "--ui-tour=";
+    private const string BenchmarkArgument = "--benchmark=";
+    private const string IslandArgument = "--island";
+    private const string IslandScene = "res://world/island.tscn";
     private string? _shotsFolder;
     private bool _tour;
     private string _contentDirectory = string.Empty;
@@ -62,6 +67,15 @@ public partial class Main : Node3D
     /// <inheritdoc/>
     public override void _Ready()
     {
+        if (OS.GetCmdlineUserArgs().Any(a => a == IslandArgument || a.StartsWith(BenchmarkArgument, StringComparison.Ordinal)))
+        {
+            // The export templates refuse a scene path on the command line ("compiled without support for
+            // path overrides"), so the island scene's runs start here; it reads the same arguments itself.
+            GD.Print($"MAIN_TO_ISLAND {IslandScene}");
+            GetTree().CallDeferred(SceneTree.MethodName.ChangeSceneToFile, IslandScene);
+            return;
+        }
+
         if (TimedShots.FromEnvironment() is { } shots)
         {
             AddChild(shots);
