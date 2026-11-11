@@ -3,6 +3,7 @@ using GlassWorld.Contracts.Validation;
 using GlassWorld.Simulation.Content;
 using GlassWorld.Simulation.Decisions;
 using GlassWorld.Simulation.Inhabitants;
+using GlassWorld.Simulation.Map;
 using GlassWorld.Simulation.Objects;
 
 namespace GlassWorld.Simulation.Tests;
@@ -182,6 +183,33 @@ public sealed class SpacingTests
         Assert.True(Distance(a.Position, b.Position) >= Space.MinSeparationM - 1e-9);
     }
 
+    /// <summary>
+    /// W1726 seed 2: two inhabitants met head-on on a shallow strip one cell wide along the map edge (cliff
+    /// behind, map edge in front) and waited for each other for 25 days. On a path with no room aside the
+    /// one with the higher id gives way backwards; both arrive, never closer than the separation.
+    /// </summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void WalkersMeetingHeadOnInAOneCellPathBothGetThrough(bool swapped)
+    {
+        var routes = new Corridor();
+        var (west, east) = (new Position(6, 0.5), new Position(30, 0.5));
+        var (world, inhabitants, _) = NewWorldWithObjects(swapped ? east : west, swapped ? west : east, routes);
+        var (a, b) = (inhabitants.Get("inh-000001"), inhabitants.Get("inh-000002"));
+        var (westEnd, eastEnd) = (new Position(1, 0.5), new Position(39, 0.5));
+        a.Activity = new Activity("wander", null, swapped ? westEnd : eastEnd, null);
+        b.Activity = new Activity("wander", null, swapped ? eastEnd : westEnd, null);
+        for (var tick = 0; tick < 600 && !(a.Activity?.RemainingTicks is not null && b.Activity?.RemainingTicks is not null); tick++)
+        {
+            var (a0, b0) = (a.Position, b.Position);
+            world.Step();
+            Assert.True(Closest(a0, a.Position, b0, b.Position) >= Space.MinSeparationM - 1e-6, $"tick {tick}: {a0}->{a.Position} {b0}->{b.Position}");
+        }
+
+        Assert.True(a.Activity?.RemainingTicks is not null && b.Activity?.RemainingTicks is not null, $"stuck: {a.Position} {a.Activity} / {b.Position} {b.Activity}");
+    }
+
     [Fact]
     public void SpacingIsDeterministic()
     {
@@ -242,7 +270,7 @@ public sealed class SpacingTests
         return (world, inhabitants);
     }
 
-    private static (World World, InhabitantsSystem Inhabitants, WorldObjects Objects) NewWorldWithObjects(Position first, Position second)
+    private static (World World, InhabitantsSystem Inhabitants, WorldObjects Objects) NewWorldWithObjects(Position first, Position second, IRouteFinder? routes = null)
     {
         var world = new World(1, Content.Calendar);
         var objects = new WorldObjects(Content.Objects);
@@ -250,6 +278,7 @@ public sealed class SpacingTests
         {
             Knowledge = Content.Knowledge,
             EventKinds = Content.EventKinds,
+            Routes = routes,
         };
         var decisions = new DecisionsSystem(Settings, inhabitants, objects, Content.Actions, Content.Brain, Content.Vocabularies[VocabularyKind.Action], new SilentPort(), "de")
         {
@@ -269,6 +298,31 @@ public sealed class SpacingTests
         }
 
         return (world, inhabitants, objects);
+    }
+
+    /// <summary>
+    /// The shape of seed 2's strip: a path one metre wide (z 0..1) from x 0 to 40, wider (z -3..4) only at
+    /// both ends; the resting inhabitants 3 and 4 far away count as on their own ground.
+    /// </summary>
+    private sealed class Corridor : IRouteFinder
+    {
+        public Route Find(Position start, Position destination) =>
+            Connected(start, destination) ? new Route(PathStatus.Found, [destination]) : new Route(PathStatus.Unreachable, []);
+
+        public double SpeedFactor(Position at) => 1.0;
+
+        public bool Connected(Position a, Position b) => On(a) == On(b) && On(a) != 0;
+
+        private static int On(Position p)
+        {
+            if (p.X > 500 || p.Z > 500)
+            {
+                return 2;
+            }
+
+            var wide = p.X < 3 || p.X > 37;
+            return p.X >= 0 && p.X <= 40 && p.Z >= (wide ? -3 : 0) && p.Z < (wide ? 4 : 1) ? 1 : 0;
+        }
     }
 
     /// <summary>A decider that never answers.</summary>
