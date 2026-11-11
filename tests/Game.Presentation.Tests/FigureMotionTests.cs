@@ -99,4 +99,51 @@ public sealed class FigureMotionTests
         still.Advance(1);
         Assert.Equal(0, still.Yaw, 9);
     }
+
+    /// <summary>
+    /// W1726 (seed 2, review GW3): a walker giving way on a path one cell wide steps back and forth for a
+    /// few ticks; it keeps facing the way it goes instead of flipping round every tick. Only the data's
+    /// number of backward steps in a row turns it; after standing, a step back turns it at once.
+    /// </summary>
+    [Fact]
+    public void AStepBackWhileWalkingKeepsTheHeading()
+    {
+        const int After = 6;
+        var motion = new FigureMotion(new Point3(0, 0, 0), 3600, After);
+        var x = 0.0;
+        void Step(double dx)
+        {
+            x += dx;
+            motion.Retarget(new Point3(x, 0, 0), 1, 60, 1, 0.05);
+            motion.Advance(1);
+        }
+
+        var forward = Math.PI / 2; // walking towards +x
+        Step(0.8);
+        Step(0.8);
+        Assert.Equal(forward, motion.Yaw, 9);
+
+        // Back, back, forward, back, forward ... (the yield of seed 2): never turned round.
+        foreach (var dx in new[] { -0.8, -0.8, 0.8, -0.8, 0.8, -0.8, -0.8, 0.4 })
+        {
+            Step(dx);
+            Assert.Equal(forward, motion.Yaw, 9);
+        }
+
+        // A long retreat: it turns round with the data's number of backward steps in a row.
+        for (var k = 1; k < After; k++)
+        {
+            Step(-0.8);
+            Assert.Equal(forward, motion.Yaw, 9);
+        }
+
+        Step(-0.8);
+        Assert.Equal(-forward, motion.Yaw, 9);
+
+        // After standing, the first step decides the facing at once, backwards too.
+        Step(0);
+        Step(0.8);
+        Assert.Equal(forward, motion.Yaw, 9);
+        Assert.Equal(After, ContractSerializer.Deserialize<LookFigures>(File.ReadAllText(Path.Combine(TestPaths.Root, "content", "look", "figures.json"))).TurnBackAfterSteps);
+    }
 }
