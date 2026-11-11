@@ -1167,6 +1167,9 @@ public sealed class DecisionsSystem : IWorldSystem
                 ofType.Add(thing.TypeId, type);
             }
 
+            // Every perceived thing of one type shares the SAME list and label instance (the request is only
+            // written out as JSON). Whoever edits a built request in place (trimming, a test helper) must copy
+            // the list first, or the edit lands on every thing of that type.
             objects.Add(new PerceivedObject
             {
                 Id = thing.Id,
