@@ -221,6 +221,12 @@ class UiToastTokens(BaseModel):
         ge=1,
         le=100,
     )
+    settled_min_seconds: int = Field(
+        ...,
+        description='A shown hint whose reason is gone (its question is settled) still stays this long in all, so it can be read and does not flicker.',
+        ge=0,
+        le=120,
+    )
 
 
 class Id(StrEnum):

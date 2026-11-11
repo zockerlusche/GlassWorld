@@ -461,6 +461,8 @@ public partial class GameScreen : CanvasLayer
         }
 
         var events = _feed.NewEvents();
+        var rowsNow = _feed.Inhabitants();
+        _board.DismissWhere(m => ScreenModel.IsSettledQuestionHint(m, rowsNow));
         if (events.Count > 0)
         {
             _log?.Add(events);
