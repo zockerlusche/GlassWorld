@@ -140,6 +140,17 @@ def test_budget_and_formative_events_are_enforced(raw: str, problem: str) -> Non
         parse_condensed(raw, schema, FORMATIVE)
 
 
+def test_a_tick_named_once_per_event_of_that_tick_is_the_same_answer() -> None:
+    """Jobs from the real core carry several events of one tick (review of #227, run L838):
+    the model named the tick twice, and the job failed for good."""
+    schema = output_schema(600, FORMATIVE)
+    twice = json.dumps({"summary": "Met someone. Berries hurt.", "kept": [1100, 1180, 1180]})
+    assert parse_condensed(twice, schema, FORMATIVE).kept == (1100, 1180)
+    missing = json.dumps({"summary": "Met someone.", "kept": [1180, 1180]})
+    with pytest.raises(InvalidOutputError):
+        parse_condensed(missing, schema, FORMATIVE)
+
+
 def test_ollama_condenses_and_retries_with_a_new_seed(settings: Settings) -> None:
     too_long = json.dumps({"summary": "x" * 700, "kept": FORMATIVE})
     handler, log, seeds = _handler(settings, [too_long, GOOD])
@@ -234,3 +245,32 @@ def test_impossible_budget_fails_without_asking_the_model(settings: Settings) ->
     assert (failure.value.code, failure.value.retryable) == ("bad_request", False)
     assert seeds == []
     assert log.read() == []
+
+
+def test_v2_gives_a_tick_one_line_and_lists_the_formative_ticks(settings: Settings) -> None:
+    """Review of #227 (runs L838/L839): two lines with one tick made the model name the tick
+    twice and leave another formative tick out, three attempts in a row."""
+    template = load_prompt(settings.prompts_dir, "memory/condense", 2)
+    data = JOB.model_dump(mode="json")
+    events = data["payload"]["memory"]["events"]
+    events.append(
+        {
+            "tick": 1180,
+            "kind": "ate",
+            "about": {"kind": "type", "id": "red_berry_bush"},
+            "formative": False,
+        }
+    )
+    job = GenerationJob.model_validate(data)
+    rendered = template.render(build_values(job, template))
+    lines = [line for line in rendered.user.splitlines() if line.startswith("- [tick 1180]")]
+    assert len(lines) == 1 and "; " in lines[0] and lines[0].endswith("- FORMATIVE, keep it")
+    assert "## Formative ticks (2)\n1100, 1180\n" in rendered.user
+    v1 = _template(settings)
+    old = v1.render(build_values(job, v1)).user
+    assert sum(line.startswith("- [tick 1180]") for line in old.splitlines()) == 2  # v1 as it was
+    text = f"=== SYSTEM ===\n{rendered.system}\n\n=== USER ===\n{rendered.user}\n"
+    snapshot = SNAPSHOTS / "memory-condense.v2.same-tick.txt"
+    if os.environ.get("GW_UPDATE_SNAPSHOTS") == "1":
+        snapshot.write_text(text, encoding="utf-8", newline="\n")
+    assert text == snapshot.read_text(encoding="utf-8")
