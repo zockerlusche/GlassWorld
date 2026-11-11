@@ -166,7 +166,20 @@ if ! grep -Eq '^BUILD_PLAN_OK plans=[1-9][0-9]* parts=[1-9][0-9]* shapes=[1-9][0
 fi
 # Island (B2-3): terrain and water meshes of the generated start island, one per chunk; objects and decorative plants (TL #19722).
 ISLAND_LOG="$(mktemp)"
-timeout "$TIMEOUT_S" "$GODOT" --headless --path "$GAME" --quit-after 1200 res://world/island.tscn -- --seed=7 --check >"$ISLAND_LOG" 2>&1
+# The exit code is taken by hand: with `set -e` a run that dies (exit 134, "Aborted", seen twice in CI on
+# 11.11.) ended the script before its log was shown, so nothing told where it died.
+ISLAND_RC=0
+timeout "$TIMEOUT_S" "$GODOT" --headless --path "$GAME" --quit-after 1200 res://world/island.tscn -- --seed=7 --check >"$ISLAND_LOG" 2>&1 || ISLAND_RC=$?
+if [[ "$ISLAND_RC" -ne 0 ]]; then
+  cat "$ISLAND_LOG" >&2
+  # Whether the check itself had passed before the engine died (from GW1's #254).
+  if grep -Eq '^ISLAND_OK seed=7 ' "$ISLAND_LOG"; then
+    echo "SMOKE_FAIL: the island check run ended with exit code $ISLAND_RC AFTER it had printed ISLAND_OK (the engine died on its way out; its log is above)" >&2
+  else
+    echo "SMOKE_FAIL: the island check run ended with exit code $ISLAND_RC BEFORE ISLAND_OK (its log is above; last line: $(tail -n 1 "$ISLAND_LOG"))" >&2
+  fi
+  exit 1
+fi
 if ! grep -Eq '^ISLAND_OK seed=7 chunks=[1-9][0-9]* ground_triangles=[1-9][0-9]* water_triangles=[1-9][0-9]* figures=[1-9][0-9]* objects=[1-9][0-9]* decor=[1-9][0-9]*$' "$ISLAND_LOG" || ! grep -Eq '^ISLAND_COVER seed=7 cells=[1-9][0-9]*x[1-9][0-9]* version=[1-9][0-9]* seen_permille=[1-9][0-9]*$' "$ISLAND_LOG" || grep -Eq '^(ERROR|SCRIPT ERROR)|Unhandled exception' "$ISLAND_LOG"; then
   cat "$ISLAND_LOG" >&2
   echo "SMOKE_FAIL: the island is not drawn (marker 'ISLAND_OK ...' missing or errors)" >&2

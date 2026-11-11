@@ -6,7 +6,8 @@
       "target_x_permille": 500,
       "target_z_permille": 500,
       "yaw_deg": 30,
-      "distance_m": 230
+      "distance_m": 230,
+      "revealed_permille": 1000
     },
     {
       "id": "relief_source",
@@ -21,7 +22,8 @@
         "spring": true,
         "min_relief": 20,
         "face_hill": true
-      }
+      },
+      "revealed_permille": 1000
     }
   ],
   "projections": [
