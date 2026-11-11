@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from enum import StrEnum
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -42,6 +43,20 @@ class RepetitionLimit(BaseModel):
         None,
         description="Actions that never rest (doing nothing, e.g. idle): resting them would only send the inhabitant off on strolls away from water and food; their calm look is the presentation's task (pose_cadence).",
         max_length=64,
+    )
+
+
+class Relation(StrEnum):
+    familiar = 'familiar'
+
+
+class InhabitantTarget(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    relation: Relation = Field(
+        ...,
+        description="familiar = the inhabitant's own relationship to the other reaches togetherness.min_trust and togetherness.min_affection of the inhabitant model (the one definition of familiar; start values count while no relationship is kept), and the other is not asleep by togetherness.sleep_action. Needs the togetherness section (checked at load).",
     )
 
 
@@ -88,7 +103,11 @@ class Consideration(BaseModel):
     )
     search_action: common_schema.VocabId | None = Field(
         None,
-        description='Action without a target (vocabulary target none) for looking further away while the inhabitant believes some kind of thing has target_property and nothing it avoids; scored with search_weight. Needs a target_property. Absent or null = the need waits until something turns up.',
+        description='Action without a target (vocabulary target none) for looking further away while the inhabitant believes some kind of thing has target_property and nothing it avoids; scored with search_weight. With target_inhabitant: while the inhabitant knows someone of that relation and none of them is in sight (a sleeper in sight counts as there: nobody walks off from a sleeping partner); scored urgency x search_weight. Needs a target_property or a target_inhabitant. Absent or null = the need waits until something turns up.',
+    )
+    target_inhabitant: InhabitantTarget | None = Field(
+        None,
+        description='Another inhabitant as the target (W1744): the action (vocabulary target inhabitant) is offered on every other inhabitant in sight that the inhabitant has met, that stands in this relation to it and that is not asleep, scored urgency x the distance factor (distance_falloff). The inhabitant acts on its own relationships only. Needs target_property null, no avoid_properties and no novelty_curve. Absent or null = no inhabitant target.',
     )
     need: common_schema.VocabId | None = Field(
         ..., description='Need whose value is the curve input; null = constant input 1.'

@@ -121,6 +121,10 @@ class Speaker(BaseModel):
         description='Object types the speaker sees right now (W1737), sorted, each once. Optional.',
         max_length=16,
     )
+    memory: common_schema.Memory | None = Field(
+        None,
+        description="The speaker's memory (B4a R5), the same as in the decision request: its summary and its latest remembered events. Optional: absent = not sent (older cores).",
+    )
 
 
 class ConversationRequest(BaseModel):

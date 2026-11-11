@@ -19,7 +19,11 @@
             "kind": "inhabitant",
             "id": "inh-0002"
           },
-          "formative": true
+          "formative": true,
+          "label": {
+            "de": "Mira",
+            "en": "Mira"
+          }
         },
         {
           "tick": 1150,
@@ -28,7 +32,9 @@
             "kind": "type",
             "id": "spring_water"
           },
-          "formative": false
+          "formative": false,
+          "times": 4,
+          "outcome": "done"
         },
         {
           "tick": 1180,

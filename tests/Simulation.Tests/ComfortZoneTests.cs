@@ -285,9 +285,13 @@ public sealed class ComfortZoneTests
 
         // Nothing of the comfort zone is saved: a loaded world goes on exactly like the one that kept running.
         var settings = ContractSerializer.Deserialize<DeciderSettings>(File.ReadAllText(Path.Combine(ContentDirectory, "decider", "settings.json")));
-        var loaded = StateCodec.Restore(new SimulationHostFactory(ContentSet.Load(ContentDirectory), settings, new MockDecisionPort(), "de"), StateCodec.Capture(host));
-        Assert.Equal(host.World.StateHash(), loaded.World.StateHash());
+        var saved = StateCodec.Capture(host);
+        Assert.Equal(host.World.StateHash(), StateCodec.Restore(new SimulationHostFactory(ContentSet.Load(ContentDirectory), settings, new MockDecisionPort(), "de"), saved).World.StateHash());
+
+        // Answers under way at the save belong to the run that kept going; the loaded world replays them
+        // (as in SaveGameTests), so the comparison does not depend on whether a question was open just then.
         host.World.Run(240);
+        var loaded = StateCodec.Restore(new SimulationHostFactory(ContentSet.Load(ContentDirectory), settings, new ReplayDecisionPort(host.Decisions.Log), "de"), saved);
         loaded.World.Run(240);
         Assert.Equal(host.World.StateHash(), loaded.World.StateHash());
         Assert.All(host.Inhabitants.All, i => Assert.Equal(i.Needs[Need], loaded.Inhabitants.Get(i.Id).Needs[Need]));

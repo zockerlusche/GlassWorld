@@ -134,6 +134,10 @@
           "items": {
             "$ref": "common.schema.json#/$defs/VocabId"
           }
+        },
+        "memory": {
+          "description": "The speaker's memory (B4a R5), the same as in the decision request: its summary and its latest remembered events. Optional: absent = not sent (older cores).",
+          "$ref": "common.schema.json#/$defs/Memory"
         }
       }
     },

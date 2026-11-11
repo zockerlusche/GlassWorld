@@ -211,6 +211,123 @@ public sealed class SpacingTests
     }
 
     [Fact]
+    public void AWalkerPushedOffItsRouteNeverEndsAStepOnGroundNobodyCanWalkOn()
+    {
+        // W1744 (island seed 7): giving way had pushed a walker off its route. The straight line to its next
+        // waypoint then led over a blocked cell, a step ended on it, and from there nothing could be walked
+        // to any more (no goal in reach, no way back): the inhabitant stood still until its needs ran out.
+        var pond = new Pond();
+        var destination = new Position(3.5, 1.5);
+        var (world, inhabitants, _) = NewWorldWithObjects(new Position(0.5, 1.5), new Position(0.5, 0.2), pond);
+        var walker = inhabitants.Get("inh-000001");
+        Stand(inhabitants.Get("inh-000002"));
+
+        // The kept route still names the cell beyond the pond as the next waypoint.
+        walker.Activity = new Activity("idle", null, destination, null, [new Position(2.5, 1.5), destination]);
+        for (var t = 0; t < 40 && walker.Activity is { RemainingTicks: null }; t++)
+        {
+            world.Step();
+            Assert.True(pond.Connected(walker.Position, walker.Position), $"tick {world.Tick}: on blocked ground at {walker.Position}");
+        }
+
+        Assert.NotNull(walker.Activity?.RemainingTicks);
+        Assert.True(Distance(walker.Position, destination) < 1e-6, "it walked around the pond and arrived");
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AWalkWhoseNewRouteLeavesTheWalkableGroundIsCancelledInsteadOfSearchedAgainEveryTick(bool kept)
+    {
+        // Review GW2 #228: the search for a new route is bounded. If the first step of a route just searched
+        // would end on blocked ground as well, the walk ends with a reason; the walker never stands on it.
+        var ditch = new Ditch();
+        var destination = new Position(2.5, 0.5);
+        var (world, inhabitants, _) = NewWorldWithObjects(new Position(0.5, 0.5), new Position(3.5, 0.5), ditch);
+        var walker = inhabitants.Get("inh-000001");
+        Stand(inhabitants.Get("inh-000002"));
+        var cancelled = new List<WorldEvent>();
+        inhabitants.Reported += e =>
+        {
+            if (e.Kind == InhabitantsSystem.ActionCancelled && e.InhabitantId == walker.Id)
+            {
+                cancelled.Add(e);
+            }
+        };
+
+        walker.Activity = new Activity("idle", null, destination, null, kept ? [destination] : null);
+        world.Step();
+
+        var e = Assert.Single(cancelled);
+        Assert.Equal(InhabitantsSystem.NoWalkableStep, e.Detail);
+        Assert.Equal(new Position(0.5, 0.5), walker.Position);
+        Assert.Null(walker.Activity);
+        Assert.Equal(1, ditch.Searches);
+    }
+
+    [Fact]
+    public void AWalkerPassesSomebodyWhoStandsOnItsNextWaypoint()
+    {
+        // W1744 (island seed 42): routes lead from cell centre to cell centre, and that is where inhabitants
+        // stop. A walker whose next waypoint was taken could never reach it and circled the one standing
+        // there until they left - seven hours around a sleeping partner on the way to food.
+        var pond = new Pond(7, 5, null);
+        var destination = new Position(6.5, 2.5);
+        var (world, inhabitants, _) = NewWorldWithObjects(new Position(0.5, 2.5), new Position(3.5, 2.5), pond);
+        var (walker, standing) = (inhabitants.Get("inh-000001"), inhabitants.Get("inh-000002"));
+        Stand(standing);
+        var apart = Content.Gaits.Data.Spacing!.MinSeparationM;
+
+        walker.Activity = new Activity("idle", null, destination, null);
+        for (var t = 0; t < 60 && walker.Activity is { RemainingTicks: null }; t++)
+        {
+            world.Step();
+            Assert.True(Distance(walker.Position, standing.Position) >= apart - 1e-6, $"tick {world.Tick}: too close at {walker.Position}");
+            Assert.True(pond.Connected(walker.Position, walker.Position), $"tick {world.Tick}: on blocked ground at {walker.Position}");
+        }
+
+        Assert.NotNull(walker.Activity?.RemainingTicks);
+        Assert.True(Distance(walker.Position, destination) < 1e-6, "it passed beside and arrived");
+        Assert.Equal(new Position(3.5, 2.5), standing.Position);
+    }
+
+    [Theory]
+    [InlineData(3, 1, true)]
+    [InlineData(4, 1, true)]
+    [InlineData(3, 3, false)]
+    [InlineData(2, 3, false)]
+    public void AWalkerNeverStandsInTheWaterNextToAWaypointSomebodyStandsOn(int waterX, int waterZ, bool passes)
+    {
+        // Review GW2 #228: the waypoint that is taken lies next to ground nobody can walk on. The walker
+        // leaves the waypoint out; where each step lands is checked (the walk's own step, giving way, keeping
+        // apart), so it never stands in the water and never comes too close.
+        var pond = new Pond(7, 5, (waterX, waterZ));
+        var destination = new Position(6.5, 2.5);
+        var (world, inhabitants, _) = NewWorldWithObjects(new Position(0.5, 2.5), new Position(3.5, 2.5), pond);
+        var (walker, standing) = (inhabitants.Get("inh-000001"), inhabitants.Get("inh-000002"));
+        Stand(standing);
+        var apart = Content.Gaits.Data.Spacing!.MinSeparationM;
+
+        walker.Activity = new Activity("idle", null, destination, null);
+        for (var t = 0; t < 80 && walker.Activity is { RemainingTicks: null }; t++)
+        {
+            world.Step();
+            Assert.True(pond.Connected(walker.Position, walker.Position), $"tick {world.Tick}: in the water at {walker.Position}");
+            Assert.True(Distance(walker.Position, standing.Position) >= apart - 1e-6, $"tick {world.Tick}: too close at {walker.Position}");
+        }
+
+        // With the water on its left it passes on the right and arrives. With the water on its right - the
+        // side inhabitants give way to (B2569, W1695) - there is no room for that step and none on the other
+        // side past the one standing there: today it waits beside them, on dry ground, until they leave. That
+        // waiting is older than this change and not settled by it, so only the passing is expected here.
+        if (passes)
+        {
+            Assert.NotNull(walker.Activity?.RemainingTicks);
+            Assert.True(Distance(walker.Position, destination) < 1e-6, "it passed on the free side and arrived");
+        }
+    }
+
+    [Fact]
     public void SpacingIsDeterministic()
     {
         static string Run()
@@ -323,6 +440,89 @@ public sealed class SpacingTests
             var wide = p.X < 3 || p.X > 37;
             return p.X >= 0 && p.X <= 40 && p.Z >= (wide ? -3 : 0) && p.Z < (wide ? 4 : 1) ? 1 : 0;
         }
+    }
+
+    /// <summary>
+    /// Cells of one metre, by default 4 wide (x 0..4) and 3 deep (z 0..3) with a blocked cell (1, 1) in the
+    /// middle of the west side; slow ground, so one step is shorter than a cell. Routes lead from cell centre
+    /// to cell centre as on the island (the last waypoint is the destination itself).
+    /// </summary>
+    private sealed class Pond(int width, int depth, (int X, int Z)? blocked) : IRouteFinder
+    {
+        public Pond()
+            : this(4, 3, (1, 1))
+        {
+        }
+
+        public Route Find(Position start, Position destination)
+        {
+            if (Cell(start) is not { } from || Cell(destination) is not { } to || !Walkable(to))
+            {
+                return new Route(PathStatus.Unreachable, []);
+            }
+
+            // Breadth first over the four neighbours, in a fixed order.
+            var came = new Dictionary<(int X, int Z), (int X, int Z)> { [from] = from };
+            var queue = new Queue<(int X, int Z)>([from]);
+            while (queue.TryDequeue(out var cell) && cell != to)
+            {
+                foreach (var next in new[] { (cell.X + 1, cell.Z), (cell.X, cell.Z + 1), (cell.X - 1, cell.Z), (cell.X, cell.Z - 1) })
+                {
+                    if (Walkable(next) && came.TryAdd(next, cell))
+                    {
+                        queue.Enqueue(next);
+                    }
+                }
+            }
+
+            if (!came.TryGetValue(to, out var before))
+            {
+                return new Route(PathStatus.Unreachable, []);
+            }
+
+            var points = new List<Position> { destination };
+            for (var cell = before; cell != from && to != from; cell = came[cell])
+            {
+                points.Insert(0, new Position(cell.X + 0.5, cell.Z + 0.5));
+            }
+
+            return new Route(PathStatus.Found, points);
+        }
+
+        public double SpeedFactor(Position at) => 0.5;
+
+        public bool Connected(Position a, Position b) => Area(a) == Area(b) && Area(a) != 0;
+
+        private int Area(Position p) => p.X > 500 || p.Z > 500 ? 2 : Cell(p) is { } cell && Walkable(cell) ? 1 : 0;
+
+        private (int X, int Z)? Cell(Position p) =>
+            p.X >= 0 && p.X < width && p.Z >= 0 && p.Z < depth ? ((int)Math.Floor(p.X), (int)Math.Floor(p.Z)) : null;
+
+        private bool Walkable((int X, int Z) cell) =>
+            cell.X >= 0 && cell.X < width && cell.Z >= 0 && cell.Z < depth && cell != blocked;
+    }
+
+    /// <summary>
+    /// Ground from x 0 to 4 (z 0..1) with a ditch nobody can walk on from x 1 to 2, and a route finder that
+    /// is wrong about it: both sides count as one area and every route is the straight line across. Slow
+    /// ground, so one step ends in the ditch.
+    /// </summary>
+    private sealed class Ditch : IRouteFinder
+    {
+        public int Searches { get; private set; }
+
+        public Route Find(Position start, Position destination)
+        {
+            Searches++;
+            return new Route(PathStatus.Found, [destination]);
+        }
+
+        public double SpeedFactor(Position at) => 0.5;
+
+        public bool Connected(Position a, Position b) => Area(a) == Area(b) && Area(a) != 0;
+
+        private static int Area(Position p) =>
+            p.X > 500 || p.Z > 500 ? 2 : p.X >= 0 && p.X < 4 && p.Z >= 0 && p.Z < 1 && (p.X < 1 || p.X >= 2) ? 1 : 0;
     }
 
     /// <summary>A decider that never answers.</summary>

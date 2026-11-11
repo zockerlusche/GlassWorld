@@ -105,6 +105,7 @@ public sealed class NamingTests : IDisposable
         host.World.Run(10);
         var a = host.Inhabitants.All.First();
         var b = host.Inhabitants.All.Last();
+        Assert.DoesNotContain(b.Id, a.KnownNames);
         a.KnownNames.Add(b.Id);
         Directory.CreateDirectory(_directory);
         var path = Path.Combine(_directory, "world.sqlite");
@@ -114,7 +115,8 @@ public sealed class NamingTests : IDisposable
 
         Assert.Equal(host.World.StateHash(), loaded.World.StateHash());
         Assert.Equal(host.Inhabitants.All.Select(i => i.Name), loaded.Inhabitants.All.Select(i => i.Name));
-        Assert.Equal([b.Id], loaded.Inhabitants.Get(a.Id).KnownNames);
+        Assert.Contains(b.Id, loaded.Inhabitants.Get(a.Id).KnownNames);
+        Assert.Equal(a.KnownNames, loaded.Inhabitants.Get(a.Id).KnownNames);
     }
 
     [Fact]

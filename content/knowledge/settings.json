@@ -100,5 +100,31 @@
     "forget_below": 0.05,
     "max_counters": 48,
     "max_habits": 6
+  },
+  "memory": {
+    "condense_at": 4,
+    "job_max_events": 32,
+    "job_max_formative": 12,
+    "max_chars": 600,
+    "max_events": 64,
+    "job_priority": 10,
+    "events": [
+      { "event": "action_finished", "action_as_kind": true, "only_with_subject": true, "left_out_actions": ["approach", "build_step"], "formative": "first", "repeat": "counted", "with_outcome": true, "everyday_outcomes": ["nothing"] },
+      { "event": "action_finished", "kind": "felt_bad", "formative": "always", "effect": { "kind": "will_to_live", "delta_at_most": -0.01 } },
+      { "event": "action_finished", "kind": "felt_bad", "formative": "always", "effect": { "kind": "need", "delta_at_most": -0.1 } },
+      { "event": "first_meeting", "formative": "always", "both": true },
+      { "event": "name_learned", "formative": "always" },
+      { "event": "knowledge_gained", "detail_ends_with": "/heard", "kind": "was_told", "formative": "first" },
+      { "event": "invented", "formative": "always" },
+      { "event": "built", "formative": "always" },
+      { "event": "first_use", "formative": "always" },
+      { "event": "help_needed", "formative": "first" }
+    ]
+  },
+  "night_questions": {
+    "job_priority": 40,
+    "questions": [
+      { "trigger": "unknown_object", "question": "what_is" }
+    ]
   }
 }

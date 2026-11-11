@@ -163,6 +163,9 @@ public partial class WorldPresenter : Node3D
         var host = StateCodec.Restore(factory, SaveGameStore.Load(savePath));
         HashAtLoad = host.World.StateHash();
         host.Decisions.ResendPendingAfterLoad(host.World);
+
+        // The same for the night's memory and question jobs: they went to the previous process.
+        host.NightJobs.ResendPendingAfterLoad();
         Begin(host, savePath);
     }
 
