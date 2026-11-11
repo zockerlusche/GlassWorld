@@ -172,6 +172,28 @@ public sealed class ShotPlanTests
         Assert.Single(pictures.Select(s => (s.Point.TargetXPermille, s.Point.TargetZPermille, s.Point.YawDeg, s.Point.DistanceM, s.Point.PitchDeg, s.Point.FovDeg, s.Projection, s.Phase)).Distinct());
     }
 
+    /// <summary>
+    /// The start set (TL #20750, findings 17 and 18 of the visual survey): every start inhabitant of the
+    /// start island from close by at the highest water, the two of a pair from different sides, and each
+    /// pair once from further away.
+    /// </summary>
+    [Fact]
+    public void TheStartSetShowsEveryStartInhabitantAtTheHighestWater()
+    {
+        var shots = Read<LookShots>("shots_start.json");
+        var plan = ShotPlan.Build(shots, Seasons(), None);
+        Assert.Equal(shots.Points.Count, plan.Count);
+        Assert.Equal(plan.Count, plan.Select(s => s.FileName(1280, 720)).Distinct().Count());
+        Assert.All(plan, s => Assert.Equal((1000, "day"), (s.Point.TidePermille, s.Phase)));
+
+        var content = ContentSet.Load(Path.Combine(TestPaths.Root, "content"));
+        var starters = content.InhabitantModel.Start.Inhabitants.Count;
+        var close = shots.Points.Where(p => !p.Id.EndsWith("_wide", StringComparison.Ordinal)).ToList();
+        Assert.Equal(Enumerable.Range(0, starters).Select(i => (int?)i), close.Select(p => p.Inhabitant));
+        Assert.All(close.Chunk(2), pair => Assert.NotEqual(pair[0].YawDeg, pair[1].YawDeg));
+        Assert.All(shots.Points, p => Assert.InRange(p.Inhabitant!.Value, 0, starters - 1));
+    }
+
     private static LookShots Shots() => new()
     {
         ContractVersion = "0.2",

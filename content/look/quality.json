@@ -1,6 +1,20 @@
 {
   "contract_version": "0.2",
   "default_level": "high",
+  "shadow_settings": {
+    "low": {
+      "max_distance_m": 60.0,
+      "atlas_size": 2048,
+      "mode": "orthogonal",
+      "soft_filter": "soft_low"
+    },
+    "high": {
+      "max_distance_m": 100.0,
+      "atlas_size": 4096,
+      "mode": "parallel_4_splits",
+      "soft_filter": "soft_low"
+    }
+  },
   "levels": [
     {
       "id": "low",
@@ -21,7 +35,7 @@
       "grass_density": 1.0,
       "grass_distance_m": 80.0,
       "shadows": "high",
-      "outline": "post_process"
+      "outline": "inverted_hull"
     }
   ]
 }

@@ -229,7 +229,7 @@ public partial class GameScreen : CanvasLayer
             {
                 foreach (var target in theme.Panels)
                 {
-                    var tab = new Button { Text = ScreenZones.TitleKey(target), ToggleMode = true };
+                    var tab = new Button { Text = ScreenZones.TabKey(target), ToggleMode = true };
                     tab.SetPressedNoSignal(target == shown);
                     tab.Pressed += () => _sideBar.Open(target);
                     _sideBar.PanelOf(shown).Tabs.AddChild(tab);
@@ -296,6 +296,39 @@ public partial class GameScreen : CanvasLayer
             ShowInhabitant(rows[0].Id);
         }
 
+        Layout();
+    }
+
+    /// <summary>UI tour only: the side windows a player can open in the given layout, in the order of the buttons and tabs.</summary>
+    public static IReadOnlyList<string> PanelKeysForShots(bool zones) =>
+        zones
+            ? [.. ScreenZones.Themes.SelectMany(t => t.Panels).Where(k => k != ScreenZones.Card)]
+            : ["inhabitants", "questions", ScreenZones.Pinned, "chronicle", "help", "mailbox"];
+
+    /// <summary>UI tour only: opens a side window (null closes the open one).</summary>
+    public void OpenPanelForShots(string? key)
+    {
+        _sideBar.Open(key);
+        Layout();
+    }
+
+    /// <summary>UI tour only: the card of an inhabitant (null closes it), with every section unfolded if asked.</summary>
+    public void ShowCardForShots(string? inhabitantId, bool expand)
+    {
+        if (inhabitantId is null)
+        {
+            CloseCard();
+            _sideBar.Open(null);
+            return;
+        }
+
+        foreach (var key in new[] { "ui.card.wellbeing", "ui.card.feelings", "ui.card.character", "ui.card.diary" })
+        {
+            _cardFolded[key] = !expand;
+        }
+
+        _cardShape = string.Empty;
+        ShowInhabitant(inhabitantId);
         Layout();
     }
 
@@ -428,6 +461,8 @@ public partial class GameScreen : CanvasLayer
         }
 
         var events = _feed.NewEvents();
+        var rowsNow = _feed.Inhabitants();
+        _board.DismissWhere(m => ScreenModel.IsSettledQuestionHint(m, rowsNow));
         if (events.Count > 0)
         {
             _log?.Add(events);
@@ -2589,9 +2624,14 @@ public partial class GameScreen : CanvasLayer
         }
 
         var questions = TextFill.Fill(Tr("ui.card.questions"), new Dictionary<string, string> { ["count"] = Number(card.Row.OpenQuestions) });
-        if (_cardQuestions is not null && _cardQuestions.Text != questions)
+        if (_cardQuestions is not null)
         {
-            _cardQuestions.Text = questions;
+            // A line that only says "0" tells nothing (D705 B10).
+            _cardQuestions.Visible = card.Row.OpenQuestions > 0;
+            if (_cardQuestions.Text != questions)
+            {
+                _cardQuestions.Text = questions;
+            }
         }
 
         void Section(string key) => content.AddChild(new Label { Text = key, ThemeTypeVariation = UiTheme.SubheaderLabel });

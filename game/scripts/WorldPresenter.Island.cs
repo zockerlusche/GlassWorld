@@ -52,7 +52,8 @@ public partial class WorldPresenter
     private readonly PlaybackFreeze _freeze = new();
     private readonly List<Vector3> _fadeFor = [];
     private List<Seat>? _seats;
-    private (Godot.Environment? Environment, DirectionalLight3D? Sun, Color SunColor, float SunEnergy, Vector3 SunRotation, bool SunShadow, float SunShadowOpacity, List<Node3D> Hidden)? _restore;
+    private (Godot.Environment? Environment, DirectionalLight3D? Sun, Color SunColor, float SunEnergy, Vector3 SunRotation, bool SunShadow, float SunShadowOpacity, DirectionalLight3D.ShadowMode SunShadowMode, float SunShadowDistance, List<Node3D> Hidden)? _restore;
+    private QualityPlan? _quality;
     private (LookDaylight Data, DirectionalLight3D Sun, Godot.Environment Environment, DaylightMix? Fixed)? _daylight;
     private DaylightMix? _daylightShown;
     private WeatherSky? _skyShown;
@@ -249,6 +250,9 @@ public partial class WorldPresenter
     private static T Read<T>(string content, string folder, string file)
         where T : class => ContractSerializer.Deserialize<T>(System.IO.File.ReadAllText(System.IO.Path.Combine(content, folder, file)));
 
+    /// <summary>The plan of the default quality level (content/look/quality.json).</summary>
+    private static QualityPlan ReadQuality(string contentDirectory) => QualityPlan.From(Read<LookQuality>(contentDirectory, "look", "quality.json"));
+
     /// <summary>Reads the world-look switch (content/look/world.json).</summary>
     private static LookWorld ReadLook(string contentDirectory) => Read<LookWorld>(contentDirectory, "look", "world.json");
 
@@ -274,9 +278,12 @@ public partial class WorldPresenter
         var palette = Read<LookPalette>(content, "look", "palette.json");
         _nature = NatureLook.Create(content, palette);
         var (grass, otherDecor) = GrassPlan.Split(Decor.Plan(objectLooks.Decor, map.Island, terrain.CellM), _nature.Data.Grass);
-        _objectsView = ObjectsView.Create(objectLooks, palette, _ground, otherDecor, _nature.Season.Slots, TerrainMesher.StreamSources(ground, terrain));
+
+        // The default quality level (B2-7 R30; which level a hardware tier uses is decided in B7).
+        var quality = _quality = ReadQuality(content);
+        _objectsView = ObjectsView.Create(objectLooks, palette, _ground, otherDecor, _nature.Season.Slots, TerrainMesher.StreamSources(ground, terrain), quality.HullOutline);
         AddChild(_objectsView);
-        _grassView = GrassView.Create(_objectsView, grass, _ground, _nature.Data.Grass, GrassPlan.Level(Read<LookQuality>(content, "look", "quality.json")));
+        _grassView = GrassView.Create(_objectsView, grass, _ground, _nature.Data.Grass, quality.Level);
         AddChild(_grassView);
         AddChild(_nature);
 
@@ -294,7 +301,7 @@ public partial class WorldPresenter
         _objectsView.SetupCrownFade(_figuresLook.CrownFade);
         _appearanceLook = Read<LookAppearance>(content, "look", "appearance.json");
         var library = Read<AnimationLibrary>(content, "animation", "library.json");
-        _figureShared = new FigureShared(library, _figuresLook, host.World.Calendar.Settings, Speed);
+        _figureShared = new FigureShared(library, _figuresLook, host.World.Calendar.Settings, Speed) { HullOutline = quality.HullOutline };
         _speedSeen = Speed;
         ApplyIsland(1, place: true);
 
@@ -312,6 +319,7 @@ public partial class WorldPresenter
         GD.Print($"ISLAND_WORLD preset={map.Island.PresetId} chunks={_islandView.GroundChunks} figures={_islandFigures.Count} objects_drawn={_objectsView.Drawn} layers={_objectsView.Layers}");
         GD.Print(_cover is null ? "ISLAND_COVER none" : $"ISLAND_COVER cells={_cover.Map.Width}x{_cover.Map.Depth} version={_cover.Map.Version} seen_permille={(int)(_cover.Map.SeenShare * 1000)}");
         GD.Print($"ISLAND_NATURE grass_plants={_grassView.Plants} grass_layers={_grassView.Layers} season={_seasonSeen} season_colors={_nature.Season.Slots.Ids.Count} weather_looks={_nature.WeatherWithLook.Count}");
+        GD.Print($"ISLAND_QUALITY {quality.Describe()}");
     }
 
     /// <summary>
@@ -372,6 +380,7 @@ public partial class WorldPresenter
         _nature = null;
         _rig = null;
         _figureShared = null;
+        _quality = null;
         _observer = null;
         _islandNodes.Clear();
         _islandFigures.Clear();
@@ -406,7 +415,7 @@ public partial class WorldPresenter
 
         var worldEnvironment = scene.GetChildren().OfType<WorldEnvironment>().FirstOrDefault();
         var sun = scene.GetChildren().OfType<DirectionalLight3D>().FirstOrDefault();
-        _restore = (worldEnvironment?.Environment, sun, sun?.LightColor ?? Colors.White, sun?.LightEnergy ?? 1, sun?.RotationDegrees ?? Vector3.Zero, sun?.ShadowEnabled ?? false, sun?.ShadowOpacity ?? 1, hidden);
+        _restore = (worldEnvironment?.Environment, sun, sun?.LightColor ?? Colors.White, sun?.LightEnergy ?? 1, sun?.RotationDegrees ?? Vector3.Zero, sun?.ShadowEnabled ?? false, sun?.ShadowOpacity ?? 1, sun?.DirectionalShadowMode ?? DirectionalLight3D.ShadowMode.Parallel4Splits, sun?.DirectionalShadowMaxDistance ?? 100, hidden);
         if (sun is null)
         {
             sun = new DirectionalLight3D { Name = "IslandSun" };
@@ -425,6 +434,10 @@ public partial class WorldPresenter
         }
 
         DaylightLook.ApplyRendering(daylight, sun, environment);
+
+        // The sun's shadow as the quality level renders it (the island set the level; the placeholder world reads it here).
+        _quality ??= ReadQuality(content);
+        QualityLook.Apply(_quality, sun);
         _daylight = (daylight, sun, environment, look.DayPhase == DaylightClock.FollowClock ? null : DaylightMix.Of(daylight, look.DayPhase));
         FollowTheClock();
     }
@@ -447,6 +460,9 @@ public partial class WorldPresenter
         {
             (mix, sky) = _nature.Shade(mix, d.Data.NightMinBrightness);
         }
+
+        // A quality level without shadows: no shadow in any phase.
+        mix = _quality?.Light(mix) ?? mix;
 
         if (mix != _daylightShown || sky != _skyShown)
         {
@@ -489,6 +505,10 @@ public partial class WorldPresenter
         _daylight = null;
         _daylightShown = null;
         _skyShown = null;
+        _quality = null;
+
+        // The shadow map size and filter are global renderer settings: back to the project's.
+        QualityLook.RestoreRenderer();
         foreach (var node in r.Hidden.Where(IsInstanceValid))
         {
             node.Visible = true;
@@ -506,6 +526,8 @@ public partial class WorldPresenter
             sun.RotationDegrees = r.SunRotation;
             sun.ShadowEnabled = r.SunShadow;
             sun.ShadowOpacity = r.SunShadowOpacity;
+            sun.DirectionalShadowMode = r.SunShadowMode;
+            sun.DirectionalShadowMaxDistance = r.SunShadowDistance;
         }
     }
 

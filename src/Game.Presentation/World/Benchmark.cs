@@ -363,6 +363,57 @@ public sealed record BenchmarkSummary(string Pass, int Frames, double MeanFrameM
 }
 
 /// <summary>
+/// The frame clock of a benchmark run. It starts with the first frame drawn: the time the scene took to
+/// build before that is neither warm-up nor a frame, so a slow start cannot eat the warm-up (review #224).
+/// </summary>
+public sealed class BenchmarkClock
+{
+    private ulong _lastUsec;
+    private bool _running;
+
+    /// <summary>Seconds since the first frame.</summary>
+    public double ElapsedS { get; private set; }
+
+    /// <summary>Takes a frame at a monotonic time in microseconds; returns its frame time in ms (0 for the first).</summary>
+    public double Step(ulong nowUsec)
+    {
+        var frameMs = _running && nowUsec > _lastUsec ? (nowUsec - _lastUsec) / 1000.0 : 0;
+        _running = true;
+        _lastUsec = nowUsec;
+        ElapsedS += frameMs / 1000.0;
+        return frameMs;
+    }
+}
+
+/// <summary>
+/// What a benchmark run really ran on, read back from the window and the driver once the warm-up is over
+/// (a fullscreen request can end at another size): one log line, so the evaluation can prove resolution,
+/// window mode, VSync, graphics driver and build instead of trusting the request (review #224).
+/// </summary>
+/// <param name="Size">Window size as WIDTHxHEIGHT.</param>
+/// <param name="Mode">Window mode.</param>
+/// <param name="Vsync">VSync mode.</param>
+/// <param name="MaxFps">Frame rate limit; 0 = none.</param>
+/// <param name="Adapter">Graphics adapter.</param>
+/// <param name="Driver">Graphics driver with its version.</param>
+/// <param name="Api">Graphics API with its version.</param>
+/// <param name="Build">Build id of the export (build.txt beside the executable); "dev" without one.</param>
+public sealed record BenchmarkEnvironment(string Size, string Mode, string Vsync, int MaxFps, string Adapter, string Driver, string Api, string Build)
+{
+    /// <summary>The log line: key=value pairs separated by one space, values without spaces.</summary>
+    public string Line() => string.Create(
+        CultureInfo.InvariantCulture,
+        $"BENCH_ENV size={Word(Size)} mode={Word(Mode)} vsync={Word(Vsync)} max_fps={MaxFps} adapter={Word(Adapter)} driver={Word(Driver)} api={Word(Api)} build={Word(Build)}");
+
+    // One word per value, so the line splits at spaces; an empty value reads "unknown".
+    private static string Word(string value)
+    {
+        var words = value.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+        return words.Length == 0 ? "unknown" : string.Join('_', words).Replace('=', '-');
+    }
+}
+
+/// <summary>
 /// Frame times of a benchmark run, one row per measured frame (pass, seconds since the pass's measuring began,
 /// frame time in ms), written as CSV for the evaluation (GW2: mean, p95, max) and summed up per pass.
 /// </summary>

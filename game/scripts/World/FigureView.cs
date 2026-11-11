@@ -102,7 +102,7 @@ public partial class FigureView : Node3D
         var figures = shared.Figures;
         // Figures mark their pixels in the stencil buffer, so their silhouette shows only behind cover (W1695).
         var comic = GD.Load<Shader>("res://shaders/figure_comic.gdshader");
-        var outline = figures.Outline ? GD.Load<Shader>("res://shaders/outline_hull.gdshader") : null;
+        var outline = figures.Outline && shared.HullOutline ? GD.Load<Shader>("res://shaders/outline_hull.gdshader") : null;
         var figure = FigureFactory.Build(FigureLook.From(spec), comic, outline);
 
         var start = new Point3(inhabitant.Position.X, groundHeight(inhabitant.Position.X, inhabitant.Position.Z), inhabitant.Position.Z);
