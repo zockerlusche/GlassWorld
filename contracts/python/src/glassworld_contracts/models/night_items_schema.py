@@ -45,7 +45,7 @@ class NightItem(BaseModel):
     )
     object_type: common_schema.VocabId | None = Field(
         ...,
-        description="Object type the job is about (the object_type of the job's payload, as the core sent it); null if the job names none.",
+        description="Object type the job is about (the object_type of the job's payload, or the subject of a question job when that is a thing type; as the core sent it); null if the job names none.",
     )
     image: Image | None = Field(
         ...,

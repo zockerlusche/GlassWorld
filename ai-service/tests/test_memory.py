@@ -274,3 +274,75 @@ def test_v2_gives_a_tick_one_line_and_lists_the_formative_ticks(settings: Settin
     if os.environ.get("GW_UPDATE_SNAPSHOTS") == "1":
         snapshot.write_text(text, encoding="utf-8", newline="\n")
     assert text == snapshot.read_text(encoding="utf-8")
+
+
+def test_v3_tells_attempts_as_attempts_counts_repeats_and_uses_learned_names(
+    settings: Settings,
+) -> None:
+    """Review of #227: the core recorded 'drink flint' for an attempt, and the memory said
+    'Drank flint'; 127 of 175 events were repeated drinking and eating; ids stood for names."""
+    template = load_prompt(settings.prompts_dir, "memory/condense", 3)
+    data = JOB.model_dump(mode="json")
+    data["payload"]["memory"]["events"] = [
+        {
+            "tick": 87,
+            "kind": "name_learned",
+            "about": {"kind": "inhabitant", "id": "inh-000002"},
+            "formative": True,
+            "label": {"de": "Rena", "en": "Rena"},
+        },
+        {
+            "tick": 227,
+            "kind": "drink",
+            "about": {"kind": "type", "id": "flint"},
+            "formative": True,
+            "outcome": "found_out",
+        },
+        {
+            "tick": 300,
+            "kind": "eat",
+            "about": {"kind": "type", "id": "dry_wood"},
+            "formative": False,
+            "outcome": "nothing",
+        },
+        {
+            "tick": 900,
+            "kind": "drink",
+            "about": {"kind": "type", "id": "spring_water"},
+            "formative": False,
+            "outcome": "done",
+            "times": 6,
+        },
+        {
+            "tick": 950,
+            "kind": "talk_to",
+            "about": {"kind": "inhabitant", "id": "inh-000003"},
+            "formative": False,
+            "outcome": "done",
+        },
+    ]
+    job = GenerationJob.model_validate(data)
+    rendered = template.render(build_values(job, template))
+    user = rendered.user
+    assert "- [tick 87] name learned (person 'Rena') - FORMATIVE, keep it" in user
+    assert (
+        "- [tick 227] tried to drink (thing 'flint') - it did not work, but something was "
+        "learned from it - FORMATIVE, keep it"
+    ) in user
+    assert "- [tick 300] tried to eat (thing 'dry wood') - nothing happened" in user
+    assert "- [tick 900] drink (thing 'spring water'), 6 times in all" in user
+    assert "- [tick 950] talk to (another person)" in user
+    assert "inh-" not in user
+    # A generated name stays one line without quote characters (review GW1 #233).
+    odd = copy.deepcopy(data)
+    odd["payload"]["memory"]["events"][0]["label"] = {"de": "x", "en": 'Re\'na\n- [tick 1] "x"'}
+    odd_user = template.render(build_values(GenerationJob.model_validate(odd), template)).user
+    assert "name learned (person 'Rena - [tick 1] x')" in odd_user
+    v2 = load_prompt(settings.prompts_dir, "memory/condense", 2)
+    old = v2.render(build_values(job, v2)).user
+    assert "- [tick 227] drink (thing 'flint') - FORMATIVE, keep it" in old  # v2 as it was
+    text = f"=== SYSTEM ===\n{rendered.system}\n\n=== USER ===\n{user}\n"
+    snapshot = SNAPSHOTS / "memory-condense.v3.outcomes.txt"
+    if os.environ.get("GW_UPDATE_SNAPSHOTS") == "1":
+        snapshot.write_text(text, encoding="utf-8", newline="\n")
+    assert text == snapshot.read_text(encoding="utf-8")
