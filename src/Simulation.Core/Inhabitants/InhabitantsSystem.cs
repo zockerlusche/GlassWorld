@@ -1205,9 +1205,23 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     /// <para>
     /// A waypoint somebody stands on cannot be reached: the minimum separation keeps the walker off it, and
     /// heading for it again and again it circled the one standing there until they left (W1744, seed 42:
-    /// seven hours around a sleeping partner on the way to food). So the walk leaves out the waypoints
+    /// seven hours around a sleeping partner on the way to food). So the walk leaves out a waypoint
     /// somebody stands on - never the last one, the destination - and passes beside, kept apart by the
     /// rules of personal space. If that step would leave the walkable ground, the route is walked as it is.
+    /// </para>
+    /// <para>
+    /// Only the waypoints this step heads for are looked at (the next one and those it passes with its
+    /// budget), not the whole route: the cost per walker and tick stays a handful of waypoints times the
+    /// inhabitants, whatever the length of the route, and a place far ahead is judged when the walker gets
+    /// there, not by who stands on it now.
+    /// </para>
+    /// <para>
+    /// A waypoint left out is gone from the kept route, also when the one standing there leaves a tick
+    /// later; the walker does not turn back to it. (Only a step that keeping clear shortened puts the route
+    /// of before the step back, see <see cref="Advance"/>.) That is safe because a waypoint is nothing the
+    /// walk has to touch: the waypoints still ahead are the same cells of the same route, and every step
+    /// towards the next of them is checked where it lands - never on ground nobody can walk on, else the
+    /// route as it is or a new search (<see cref="FollowRoute"/>).
     /// </para>
     /// </summary>
     private (Position Position, IReadOnlyList<Position> Ahead, bool Arrived) Step(Inhabitant walker, Position from, IReadOnlyList<Position> route, double budget, double reach, Map.IRouteFinder routes)
@@ -1215,19 +1229,29 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         if (Space is { MinSeparationM: > 0 } space)
         {
             var limit = space.MinSeparationM - 1e-9;
-            var standing = _inhabitants.Values.Where(o => !ReferenceEquals(o, walker) && !Walking(o)).Select(o => o.Position).ToList();
-            IReadOnlyList<Position> free = [.. route.Where((point, index) => index == route.Count - 1 || !standing.Any(at => Distance(at, point) < limit))];
-            if (free.Count < route.Count)
+            var leftOut = false;
+            bool Taken(Position point)
             {
-                var beside = Along(from, free, budget, reach);
-                if (routes.Connected(from, beside.Position))
+                foreach (var other in _inhabitants.Values)
                 {
-                    return (beside.Position, [.. free.Skip(beside.Next)], beside.Arrived);
+                    if (!ReferenceEquals(other, walker) && !Walking(other) && Distance(other.Position, point) < limit)
+                    {
+                        leftOut = true;
+                        return true;
+                    }
                 }
+
+                return false;
+            }
+
+            var beside = Along(from, route, budget, reach, Taken);
+            if (!leftOut || routes.Connected(from, beside.Position))
+            {
+                return (beside.Position, [.. route.Skip(beside.Next)], beside.Arrived);
             }
         }
 
-        var (position, next, arrived) = Along(from, route, budget, reach);
+        var (position, next, arrived) = Along(from, route, budget, reach, null);
         return (position, [.. route.Skip(next)], arrived);
     }
 
@@ -1256,14 +1280,22 @@ public sealed partial class InhabitantsSystem : IWorldSystem
 
     /// <summary>
     /// One tick's walk along the waypoints with the given budget in metres: where it ends, how many waypoints
-    /// were reached and whether the last one was (within the reach).
+    /// lie behind it (reached, or left out) and whether the last one was reached (within the reach). A
+    /// waypoint the walk is about to head for is left out when <paramref name="taken"/> says so (never the
+    /// last one); waypoints beyond what the budget reaches are not asked about.
     /// </summary>
-    private static (Position Position, int Next, bool Arrived) Along(Position position, IReadOnlyList<Position> route, double budget, double reach)
+    private static (Position Position, int Next, bool Arrived) Along(Position position, IReadOnlyList<Position> route, double budget, double reach, Func<Position, bool>? taken)
     {
         var next = 0;
         var arrived = false;
         while (budget > 1e-9 && next < route.Count)
         {
+            if (taken is not null && next < route.Count - 1 && taken(route[next]))
+            {
+                next++;
+                continue;
+            }
+
             var point = route[next];
             var last = next == route.Count - 1;
             var stop = last ? reach : 0.0;

@@ -291,6 +291,42 @@ public sealed class SpacingTests
         Assert.Equal(new Position(3.5, 2.5), standing.Position);
     }
 
+    [Theory]
+    [InlineData(3, 1, true)]
+    [InlineData(4, 1, true)]
+    [InlineData(3, 3, false)]
+    [InlineData(2, 3, false)]
+    public void AWalkerNeverStandsInTheWaterNextToAWaypointSomebodyStandsOn(int waterX, int waterZ, bool passes)
+    {
+        // Review GW2 #228: the waypoint that is taken lies next to ground nobody can walk on. The walker
+        // leaves the waypoint out; where each step lands is checked (the walk's own step, giving way, keeping
+        // apart), so it never stands in the water and never comes too close.
+        var pond = new Pond(7, 5, (waterX, waterZ));
+        var destination = new Position(6.5, 2.5);
+        var (world, inhabitants, _) = NewWorldWithObjects(new Position(0.5, 2.5), new Position(3.5, 2.5), pond);
+        var (walker, standing) = (inhabitants.Get("inh-000001"), inhabitants.Get("inh-000002"));
+        Stand(standing);
+        var apart = Content.Gaits.Data.Spacing!.MinSeparationM;
+
+        walker.Activity = new Activity("idle", null, destination, null);
+        for (var t = 0; t < 80 && walker.Activity is { RemainingTicks: null }; t++)
+        {
+            world.Step();
+            Assert.True(pond.Connected(walker.Position, walker.Position), $"tick {world.Tick}: in the water at {walker.Position}");
+            Assert.True(Distance(walker.Position, standing.Position) >= apart - 1e-6, $"tick {world.Tick}: too close at {walker.Position}");
+        }
+
+        // With the water on its left it passes on the right and arrives. With the water on its right - the
+        // side inhabitants give way to (B2569, W1695) - there is no room for that step and none on the other
+        // side past the one standing there: today it waits beside them, on dry ground, until they leave. That
+        // waiting is older than this change and not settled by it, so only the passing is expected here.
+        if (passes)
+        {
+            Assert.NotNull(walker.Activity?.RemainingTicks);
+            Assert.True(Distance(walker.Position, destination) < 1e-6, "it passed on the free side and arrived");
+        }
+    }
+
     [Fact]
     public void SpacingIsDeterministic()
     {
