@@ -302,10 +302,24 @@ public sealed class DecisionsSystem : IWorldSystem
         return new CommandResult(true, null);
     }
 
+    /// <summary>Step part (<see cref="IStepProbe"/>): taking in the decider's answers and the player's commands.</summary>
+    public const string PartAnswers = "decisions/answers";
+
+    /// <summary>Step part: looking for things an inhabitant has no belief about (trigger unknown_object).</summary>
+    public const string PartUnknownObject = "decisions/unknown_object";
+
+    /// <summary>Step part: looking for others whose name an inhabitant does not know (trigger unknown_inhabitant).</summary>
+    public const string PartUnknownInhabitant = "decisions/unknown_inhabitant";
+
+    /// <summary>Step part: building and sending a request (inside the parts that ask).</summary>
+    public const string PartRequest = "decisions/request";
+
     /// <inheritdoc/>
     public void Advance(World world)
     {
         ArgumentNullException.ThrowIfNull(world);
+        var probe = world.Probe;
+        probe?.Enter(PartAnswers);
         foreach (var message in _port.Receive(world.Tick))
         {
             Apply(world, message);
@@ -340,6 +354,8 @@ public sealed class DecisionsSystem : IWorldSystem
             Resend(world, due);
         }
 
+        probe?.Leave(PartAnswers);
+        probe?.Enter(PartUnknownObject);
         if (Enabled(UnknownObject))
         {
             foreach (var inhabitant in _inhabitants.All)
@@ -352,6 +368,8 @@ public sealed class DecisionsSystem : IWorldSystem
             }
         }
 
+        probe?.Leave(PartUnknownObject);
+        probe?.Enter(PartUnknownInhabitant);
         if (Enabled(UnknownInhabitant))
         {
             // B4a R8: the other is at first an unknown human; who it is becomes a question (W1595), whose
@@ -373,6 +391,8 @@ public sealed class DecisionsSystem : IWorldSystem
                 }
             }
         }
+
+        probe?.Leave(PartUnknownInhabitant);
     }
 
     /// <inheritdoc/>
@@ -516,11 +536,13 @@ public sealed class DecisionsSystem : IWorldSystem
 
     private OpenQuestion Send(World world, Inhabitant inhabitant, string questionId, string kind, string subject, WorldObject? target)
     {
+        world.Probe?.Enter(PartRequest);
         var requestId = DecisionIds.RequestId(world.Seed, world.Tick, inhabitant.Id, _counter);
         var options = BuildOptions(inhabitant, target, world.Tick);
         var json = ContractSerializer.Serialize(BuildRequest(world, inhabitant, requestId, options));
         Log.Add(new DecisionLogEntry(DecisionLogKind.Request, requestId, world.Tick, json, null));
         _port.Send(requestId, json);
+        world.Probe?.Leave(PartRequest);
         return new OpenQuestion(questionId, inhabitant.Id, kind, subject, requestId, world.Tick, options);
     }
 

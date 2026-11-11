@@ -192,11 +192,16 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     /// Creates the start inhabitants from the world seed (B2503): traits and start needs are drawn from
     /// the data ranges with one stream per inhabitant, so the same seed always gives the same people.
     /// </summary>
-    public void SpawnStartInhabitants(World world, IReadOnlyList<Position> positions)
+    /// <param name="world">The world (seed and streams).</param>
+    /// <param name="positions">Where they stand, in the order of the starters.</param>
+    /// <param name="count">
+    /// How many inhabitants the world starts with; null = those the data lists. See <see cref="StartersFor"/>.
+    /// </param>
+    public void SpawnStartInhabitants(World world, IReadOnlyList<Position> positions, int? count = null)
     {
         ArgumentNullException.ThrowIfNull(world);
         ArgumentNullException.ThrowIfNull(positions);
-        var starters = _model.Start.Inhabitants.ToList();
+        var starters = StartersFor(_model.Start, count);
         if (positions.Count < starters.Count)
         {
             throw new ArgumentException($"Need {starters.Count} start positions.", nameof(positions));
@@ -228,6 +233,39 @@ public sealed partial class InhabitantsSystem : IWorldSystem
 
         MeetStartGroups();
         GiveNames(world.Seed);
+    }
+
+    /// <summary>
+    /// Who starts a world with <paramref name="count"/> inhabitants (null = those the data lists): the data's
+    /// start inhabitants in their order; when more are asked for than the data lists, the list repeats, each
+    /// repeat as groups of its own (the data's pairs 1 and 2 are followed by the pairs 3 and 4, and so on).
+    /// So a bigger start population (measurements, B2 acceptance with 100 inhabitants) is made of the same
+    /// start inhabitants as every world: same data ranges, one random stream each, same start relationships.
+    /// </summary>
+    public static IReadOnlyList<StartInhabitant> StartersFor(StartModel start, int? count)
+    {
+        ArgumentNullException.ThrowIfNull(start);
+        var listed = start.Inhabitants.ToList();
+        if (count is not { } wanted)
+        {
+            return listed;
+        }
+
+        ArgumentOutOfRangeException.ThrowIfNegative(wanted, nameof(count));
+        if (wanted > listed.Count && listed.Count == 0)
+        {
+            throw new InvalidDataException("The inhabitant model lists no start inhabitants to repeat.");
+        }
+
+        var groups = listed.Count == 0 ? 0 : listed.Max(s => s.Group);
+        var starters = new List<StartInhabitant>(wanted);
+        for (var n = 0; n < wanted; n++)
+        {
+            var like = listed[n % listed.Count];
+            starters.Add(n < listed.Count ? like : new StartInhabitant { Sex = like.Sex, Group = like.Group + (n / listed.Count * groups) });
+        }
+
+        return starters;
     }
 
     /// <summary>Own names to pick from (content/inhabitants/names.json, W1698); empty = nobody gets a name.</summary>
@@ -433,10 +471,30 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         return inhabitant.Activity is { RemainingTicks: null } activity ? _gaits.GaitFor(inhabitant, activity.Action) : null;
     }
 
+    /// <summary>Step part (<see cref="IStepProbe"/>): being together, first meetings and bonds of the tick.</summary>
+    public const string PartMeeting = "inhabitants/meeting";
+
+    /// <summary>Step part: needs, the air, moods and the will to live of every inhabitant.</summary>
+    public const string PartState = "inhabitants/state";
+
+    /// <summary>Step part: what every inhabitant does (without the two parts inside it).</summary>
+    public const string PartAct = "inhabitants/act";
+
+    /// <summary>Step part: the routine choosing the next action (inside <see cref="PartAct"/>).</summary>
+    public const string PartChoose = "inhabitants/choose";
+
+    /// <summary>Step part: walking, with the route searches (inside <see cref="PartAct"/>).</summary>
+    public const string PartWalk = "inhabitants/walk";
+
+    /// <summary>Step part: keeping clear of each other after a move (personal space).</summary>
+    public const string PartSpacing = "inhabitants/spacing";
+
     /// <inheritdoc/>
     public void Advance(World world)
     {
         ArgumentNullException.ThrowIfNull(world);
+        var probe = world.Probe;
+        probe?.Enter(PartMeeting);
         _tickStart.Clear();
         foreach (var inhabitant in _inhabitants.Values)
         {
@@ -446,8 +504,10 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         var together = Together();
         Meet(world);
         Bond();
+        probe?.Leave(PartMeeting);
         foreach (var inhabitant in _inhabitants.Values)
         {
+            probe?.Enter(PartState);
             FadeImprints(world, inhabitant);
             DecayNeeds(inhabitant);
             FeelTheAir(world, inhabitant);
@@ -458,11 +518,15 @@ public sealed partial class InhabitantsSystem : IWorldSystem
 
             UpdateMoods(inhabitant);
             UpdateWillToLive(inhabitant);
+            probe?.Leave(PartState);
             var before = inhabitant.Position;
             var planned = inhabitant.Activity;
+            probe?.Enter(PartAct);
             Act(world, inhabitant);
+            probe?.Leave(PartAct);
             if (inhabitant.Position != before)
             {
+                probe?.Enter(PartSpacing);
                 var walked = inhabitant.Position;
                 KeepClearOnTheWay(inhabitant, before);
                 if (inhabitant.Position != walked && inhabitant.Activity is { Route: not null } activity
@@ -473,6 +537,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
                 }
 
                 Separate(inhabitant);
+                probe?.Leave(PartSpacing);
             }
         }
     }
@@ -758,7 +823,13 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             }
         }
 
-        inhabitant.Activity ??= Choose(world, inhabitant);
+        if (inhabitant.Activity is null)
+        {
+            world.Probe?.Enter(PartChoose);
+            inhabitant.Activity = Choose(world, inhabitant);
+            world.Probe?.Leave(PartChoose);
+        }
+
         var activity = inhabitant.Activity;
         if (activity is null)
         {
@@ -815,7 +886,10 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             var timing = _actions.Timing(activity.Action);
             var destination = target?.Position ?? activity.Destination;
             var from = inhabitant.Position;
-            if (!MoveTowards(world, inhabitant, destination, ReachOf(activity.Action, listener)))
+            world.Probe?.Enter(PartWalk);
+            var there = MoveTowards(world, inhabitant, destination, ReachOf(activity.Action, listener));
+            world.Probe?.Leave(PartWalk);
+            if (!there)
             {
                 if (inhabitant.Activity is not null)
                 {

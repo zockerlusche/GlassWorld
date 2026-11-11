@@ -468,26 +468,54 @@ public sealed class SimulationHost
     /// at the start positions of their pair (group n = pair n − 1, members in start order), objects
     /// at the centres of their cells.
     /// </summary>
-    public static SimulationHost CreateGeneratedWorld(string contentDirectory, ulong seed, IDecisionPort port, string displayLocale, string worldPreset, IJobPort? jobPort = null, SimulationHostOptions? options = null)
+    /// <remarks>
+    /// With <paramref name="inhabitants"/> the world starts with that many instead of those the data lists
+    /// (<see cref="InhabitantsSystem.StartersFor"/>: the data's start inhabitants, repeated as further
+    /// groups). A group the island has no start positions for wakes up around the start place of the group it
+    /// repeats, on the nearest free dry cells of the same walkable area (<see cref="FurtherStartCells"/>).
+    /// For measurements with many inhabitants (B2 acceptance: the step with 100 inhabitants); the game and
+    /// the save games start with the data's inhabitants.
+    /// </remarks>
+    public static SimulationHost CreateGeneratedWorld(string contentDirectory, ulong seed, IDecisionPort port, string displayLocale, string worldPreset, IJobPort? jobPort = null, SimulationHostOptions? options = null, int? inhabitants = null)
     {
         var content = ContentSet.Load(contentDirectory);
         var settings = ContractSerializer.Deserialize<DeciderSettings>(File.ReadAllText(Path.Combine(contentDirectory, "decider", "settings.json")));
         var host = Assemble(content, settings, new World(seed, content.Calendar), port, displayLocale, worldPreset, jobPort, null, options);
         var map = host.Map!;
         var free = map.Island.Starts.GroupBy(s => s.Pair).ToDictionary(g => g.Key + 1, g => new Queue<StartPosition>(g));
+        var listedGroups = content.InhabitantModel.Start.Inhabitants.Select(s => s.Group).DefaultIfEmpty(0).Max();
+        var further = new Dictionary<int, IEnumerator<(int X, int Z)>>();
         var positions = new List<Position>();
-        foreach (var starter in content.InhabitantModel.Start.Inhabitants)
+        foreach (var starter in InhabitantsSystem.StartersFor(content.InhabitantModel.Start, inhabitants))
         {
-            if (!free.TryGetValue(starter.Group, out var queue) || queue.Count == 0)
+            if (free.TryGetValue(starter.Group, out var queue) && queue.Count > 0)
+            {
+                var start = queue.Dequeue();
+                positions.Add(map.CentreOf(start.X, start.Z));
+                continue;
+            }
+
+            // A repeated group (see the remarks): around the start place of the listed group it repeats.
+            var home = listedGroups == 0 ? starter.Group : ((starter.Group - 1) % listedGroups) + 1;
+            if (starter.Group <= listedGroups || map.Island.Starts.FirstOrDefault(s => s.Pair + 1 == home) is not { } anchor)
             {
                 throw new InvalidDataException($"The island has no free start position for group {starter.Group}.");
             }
 
-            var start = queue.Dequeue();
-            positions.Add(map.CentreOf(start.X, start.Z));
+            if (!further.TryGetValue(home, out var cells))
+            {
+                further[home] = cells = FurtherStartCells(map, anchor).GetEnumerator();
+            }
+
+            if (!cells.MoveNext())
+            {
+                throw new InvalidDataException($"The island has no free place left around the start position of group {home} (for group {starter.Group}).");
+            }
+
+            positions.Add(map.CentreOf(cells.Current.X, cells.Current.Z));
         }
 
-        host.Inhabitants.SpawnStartInhabitants(host.World, positions);
+        host.Inhabitants.SpawnStartInhabitants(host.World, positions, inhabitants);
         host.Exploration?.Look();
         foreach (var obj in map.Island.Objects)
         {
@@ -496,6 +524,36 @@ public sealed class SimulationHost
 
         LogStartLocale(host, displayLocale);
         return host;
+    }
+
+    /// <summary>How far apart further start inhabitants wake up, in cells (every second cell: nobody stands in another's way).</summary>
+    private const int FurtherStartSpacingCells = 2;
+
+    /// <summary>
+    /// Free places around a start position for groups the island has no start positions for: dry cells of the
+    /// start's walkable area without a start position or an object on them, every second cell, nearest ring
+    /// first (rings of the square around the start; within a ring by z, then x). Deterministic, no random draw.
+    /// </summary>
+    private static IEnumerable<(int X, int Z)> FurtherStartCells(WorldMapSystem map, StartPosition anchor)
+    {
+        var area = map.AreaOf(anchor.X, anchor.Z);
+        var taken = map.Island.Starts.Select(s => (s.X, s.Z)).Concat(map.Island.Objects.Select(o => (o.X, o.Z))).ToHashSet();
+        var reach = Math.Max(map.Map.WidthCells, map.Map.DepthCells);
+        for (var ring = FurtherStartSpacingCells; area != 0 && ring <= reach; ring += FurtherStartSpacingCells)
+        {
+            for (var dz = -ring; dz <= ring; dz += FurtherStartSpacingCells)
+            {
+                for (var dx = -ring; dx <= ring; dx += FurtherStartSpacingCells)
+                {
+                    var (x, z) = (anchor.X + dx, anchor.Z + dz);
+                    if (Math.Max(Math.Abs(dx), Math.Abs(dz)) == ring && map.AreaOf(x, z) == area
+                        && map.Map.Cell(x, z).Water == WaterKind.None && !taken.Contains((x, z)))
+                    {
+                        yield return (x, z);
+                    }
+                }
+            }
+        }
     }
 
     /// <summary>Read-only snapshot for the UI.</summary>
