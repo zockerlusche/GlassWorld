@@ -31,6 +31,7 @@ public partial class Main : Node3D
     private const string DebugArgument = "--debug";
 
     private const string TourArgument = "--ui-tour=";
+    private const string TourRunArgument = "--tour-run-s=";
     private const string NightShotsArgument = "--night-shots=";
     private const string NightLimitArgument = "--night-limit=";
     private const string BenchmarkArgument = "--benchmark=";
@@ -38,6 +39,7 @@ public partial class Main : Node3D
     private const string IslandScene = "res://world/island.tscn";
     private string? _shotsFolder;
     private bool _tour;
+    private double _tourRunS;
     private bool _nightShots;
     private double _nightLimitS = 900;
     private string _contentDirectory = string.Empty;
@@ -170,6 +172,12 @@ public partial class Main : Node3D
                 && double.TryParse(arg[NightLimitArgument.Length..], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var limit) && limit > 0)
             {
                 _nightLimitS = limit;
+            }
+
+            if (arg.StartsWith(TourRunArgument, StringComparison.Ordinal)
+                && double.TryParse(arg[TourRunArgument.Length..], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var run) && run > 0)
+            {
+                _tourRunS = run;
             }
 
             // The UI tour (W1757): every menu and window, in both layouts, one picture each.
