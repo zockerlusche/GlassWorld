@@ -134,6 +134,7 @@ public sealed class InhabitantTests
         var unknowing = inhabitants.Get("inh-000002");
         unknowing.Needs["thirst"] = 0.3;
         unknowing.Needs["fun"] = 1.0;
+        unknowing.Needs["company"] = 1.0;
         Assert.DoesNotContain(Content.Brain.Score(unknowing, []), o => o.Action == search && o.Score > 0);
 
         var start = thirsty.Position;

@@ -385,6 +385,23 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     /// <summary>Detail of a cancelled action whose route search ran out of its budget.</summary>
     public const string NoRouteInBudget = "no_route_in_budget";
 
+    /// <summary>
+    /// Detail of a cancelled action towards an inhabitant who is asleep (B2466: nobody addresses a sleeper).
+    /// Until D715 (W1743, A1509) the rule is the same for every action aimed at an inhabitant, a warning
+    /// included: which actions count as addressing somebody, and whether one of them (a warning) may wake
+    /// the other, becomes data with the per-action flag decided there.
+    /// </summary>
+    public const string ListenerAsleep = "listener_asleep";
+
+    /// <summary>Detail of a cancelled action towards an inhabitant who was no longer where the actor last saw them.</summary>
+    public const string ListenerOutOfSight = "listener_out_of_sight";
+
+    /// <summary>
+    /// Detail of a cancelled walk whose next step would end on ground nobody can walk on although the way
+    /// was just searched anew (a safety net: such a walk would otherwise search again every tick).
+    /// </summary>
+    public const string NoWalkableStep = "no_walkable_step";
+
     /// <summary>Value ranges for the appearance of new inhabitants (null = no appearance, tests).</summary>
     public LookAppearance? Looks { get; init; }
 
@@ -644,6 +661,18 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         return together;
     }
 
+    /// <summary>
+    /// Whether an inhabitant is asleep (the one definition, data: togetherness.sleep_action of the inhabitant
+    /// model, once that action has started): nobody addresses a sleeper (B2466), so the rule checker cancels
+    /// an action aimed at one, and the decider is neither offered such an action nor asked who a sleeper is.
+    /// Always false without the togetherness data.
+    /// </summary>
+    public bool IsAsleep(Inhabitant inhabitant)
+    {
+        ArgumentNullException.ThrowIfNull(inhabitant);
+        return _model.Togetherness is { } data && Asleep(inhabitant, data);
+    }
+
     private static bool Asleep(Inhabitant inhabitant, Togetherness data) =>
         inhabitant.Activity is { RemainingTicks: not null } activity && string.Equals(activity.Action, data.SleepAction, StringComparison.Ordinal);
 
@@ -759,7 +788,19 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             listener = resolved.Inhabitant;
         }
 
-        if (listener is not null && activity.RemainingTicks is null && Following(activity, listener))
+        if (listener is not null && activity.RemainingTicks is null && IsAsleep(listener))
+        {
+            // B2466 (calm world): nobody addresses a sleeper. Whoever is on the way to one gives it up. The
+            // decider is not offered sleepers; this is the net for someone who falls asleep in between.
+            Report(new WorldEvent(ActionCancelled, world.Tick, inhabitant.Id, activity.Action, activity.TargetId) { Detail = ListenerAsleep });
+            inhabitant.Activity = null;
+            return;
+        }
+
+        // The actor knows where the other is only while it sees them (W1744: beliefs, never the truth);
+        // out of sight it walks on to where it saw them last.
+        var seen = listener is null || Sees(inhabitant, listener);
+        if (listener is not null && activity.RemainingTicks is null && seen && Following(activity, listener))
         {
             // Actions towards another inhabitant (warn, show, teach): walk over to them and follow when they
             // move. On a route map the way is planned again only once they have moved more than the action's
@@ -781,6 +822,14 @@ public sealed partial class InhabitantsSystem : IWorldSystem
                     Yield(inhabitant, from, listener);
                 }
 
+                return;
+            }
+
+            if (listener is not null && !seen)
+            {
+                // Arrived where it last saw the other, who is not there any more: nothing to say to nobody.
+                Report(new WorldEvent(ActionCancelled, world.Tick, inhabitant.Id, activity.Action, activity.TargetId) { Detail = ListenerOutOfSight });
+                inhabitant.Activity = null;
                 return;
             }
 
@@ -1052,7 +1101,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         var giveUpTicks = (long)(_brain.Weights.SearchGiveUpHours * _ticksPerHour);
         var givenUp = inhabitant.SearchSince.Where(s => world.Tick - s.Value >= giveUpTicks).Select(s => s.Key).ToHashSet(StringComparer.Ordinal);
         var searching = new HashSet<string>(StringComparer.Ordinal);
-        var scored = _brain.Score(inhabitant, perceived, givenUp, searching);
+        var scored = _brain.Score(inhabitant, perceived, givenUp, searching, _brain.AimsAtInhabitants ? InSight(inhabitant) : null);
         if (inhabitant.Resting.Count > 0 && scored.Any(o => Rests(inhabitant, o.Action, o.TargetId, world.Tick)))
         {
             // W1696: an action resting after repeats without effect is not chosen, and nothing is done in its
@@ -1101,8 +1150,9 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             inhabitant.SearchSince.TryAdd(search, world.Tick);
         }
 
-        if (best.TargetId is not null && _objects.TryGet(best.TargetId, out var target))
+        if (best.TargetId is not null && ResolveTarget(best.TargetId) is { } target)
         {
+            // A thing, or another inhabitant where it is seen now (W1744); the walk follows them (Act).
             return new Activity(best.Action, best.TargetId, target.Position, null);
         }
 
@@ -1127,6 +1177,22 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         }
 
         return new Activity(best.Action, null, destination, null);
+    }
+
+    /// <summary>
+    /// The other inhabitants the routine may aim at (W1744): those the inhabitant sees right now
+    /// (<see cref="SightRadiusM"/>) and, on a map, can walk to; in id order. Who of them is familiar and
+    /// awake is the brain's question.
+    /// </summary>
+    private List<Inhabitant> InSight(Inhabitant inhabitant) =>
+        [.. _inhabitants.Values.Where(other => !ReferenceEquals(other, inhabitant) && Sees(inhabitant, other)
+            && (Routes is null || Routes.Connected(inhabitant.Position, other.Position)))];
+
+    /// <summary>Whether an inhabitant sees another right now: within the sight of this tick (B2594).</summary>
+    private bool Sees(Inhabitant inhabitant, Inhabitant other)
+    {
+        var sight = SightRadiusM;
+        return DistanceSquared(inhabitant.Position, other.Position) <= sight * sight;
     }
 
     private bool MoveTowards(World world, Inhabitant inhabitant, Position destination, double reach)
@@ -1154,6 +1220,15 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     /// Walks along the route to the destination (B2 R10): the route is searched once when the walk starts
     /// and kept in the activity (saved and hashed, so a loaded game walks on identically); speed follows
     /// the ground (shallow water, slopes). No route: the action is cancelled with the reason.
+    /// <para>
+    /// A walker that was pushed off its route (giving way, keeping apart) may have its next waypoint beyond
+    /// ground nobody can walk on. A step that would end there is not taken: the way is searched anew from
+    /// where the walker stands (a new route begins with a neighbouring cell, so its first step stays on
+    /// walkable ground). Without this the walker stood on a blocked cell, from where nothing can be walked to.
+    /// The search is bounded: one new route per step, and if the first step of a route just searched would
+    /// leave the walkable ground as well, the walk is cancelled (<see cref="NoWalkableStep"/>). A new search
+    /// from the same spot would find the same route, so trying again tick after tick could only loop.
+    /// </para>
     /// </summary>
     private bool FollowRoute(World world, Inhabitant inhabitant, Activity activity, Map.IRouteFinder routes, Position destination, double reach)
     {
@@ -1162,38 +1237,147 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             return true;
         }
 
+        var from = inhabitant.Position;
         var route = activity.Route;
-        if (route is null)
+        var kept = route is not null;
+        if (route is null && (route = FindRoute(world, inhabitant, activity, routes, destination)) is null)
         {
-            var found = routes.Find(inhabitant.Position, destination);
-            if (found.Status != Map.PathStatus.Found)
+            return false;
+        }
+
+        var budget = StepOf(inhabitant) * routes.SpeedFactor(from);
+        var (position, ahead, arrived) = Step(inhabitant, from, route, budget, reach, routes);
+        if (OnWalkableGround(routes, from) && !routes.Connected(from, position))
+        {
+            if (kept)
             {
-                Report(new WorldEvent(ActionCancelled, world.Tick, inhabitant.Id, activity.Action, activity.TargetId)
+                if ((route = FindRoute(world, inhabitant, activity, routes, destination)) is null)
                 {
-                    Detail = found.Status == Map.PathStatus.Unreachable ? Unreachable : NoRouteInBudget,
-                });
+                    return false;
+                }
+
+                (position, ahead, arrived) = Step(inhabitant, from, route, budget, reach, routes);
+            }
+
+            if (!routes.Connected(from, position))
+            {
+                Report(new WorldEvent(ActionCancelled, world.Tick, inhabitant.Id, activity.Action, activity.TargetId) { Detail = NoWalkableStep });
                 inhabitant.Activity = null;
                 return false;
             }
-
-            route = found.Waypoints;
         }
 
-        var budget = StepOf(inhabitant) * routes.SpeedFactor(inhabitant.Position);
+        inhabitant.Position = position;
+        inhabitant.Activity = activity with { Route = ahead };
+        return arrived || Distance(inhabitant.Position, destination) <= reach;
+    }
+
+    /// <summary>
+    /// One tick's walk along a route: where it ends, the waypoints still ahead and whether it arrived.
+    /// <para>
+    /// A waypoint somebody stands on cannot be reached: the minimum separation keeps the walker off it, and
+    /// heading for it again and again it circled the one standing there until they left (W1744, seed 42:
+    /// seven hours around a sleeping partner on the way to food). So the walk leaves out a waypoint
+    /// somebody stands on - never the last one, the destination - and passes beside, kept apart by the
+    /// rules of personal space. If that step would leave the walkable ground, the route is walked as it is.
+    /// </para>
+    /// <para>
+    /// Only the waypoints this step heads for are looked at (the next one and those it passes with its
+    /// budget), not the whole route: the cost per walker and tick stays a handful of waypoints times the
+    /// inhabitants, whatever the length of the route, and a place far ahead is judged when the walker gets
+    /// there, not by who stands on it now.
+    /// </para>
+    /// <para>
+    /// A waypoint left out is gone from the kept route, also when the one standing there leaves a tick
+    /// later; the walker does not turn back to it. (Only a step that keeping clear shortened puts the route
+    /// of before the step back, see <see cref="Advance"/>.) That is safe because a waypoint is nothing the
+    /// walk has to touch: the waypoints still ahead are the same cells of the same route, and every step
+    /// towards the next of them is checked where it lands - never on ground nobody can walk on, else the
+    /// route as it is or a new search (<see cref="FollowRoute"/>).
+    /// </para>
+    /// </summary>
+    private (Position Position, IReadOnlyList<Position> Ahead, bool Arrived) Step(Inhabitant walker, Position from, IReadOnlyList<Position> route, double budget, double reach, Map.IRouteFinder routes)
+    {
+        if (Space is { MinSeparationM: > 0 } space)
+        {
+            var limit = space.MinSeparationM - 1e-9;
+            var leftOut = false;
+            bool Taken(Position point)
+            {
+                foreach (var other in _inhabitants.Values)
+                {
+                    if (!ReferenceEquals(other, walker) && !Walking(other) && Distance(other.Position, point) < limit)
+                    {
+                        leftOut = true;
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
+            var beside = Along(from, route, budget, reach, Taken);
+            if (!leftOut || routes.Connected(from, beside.Position))
+            {
+                return (beside.Position, [.. route.Skip(beside.Next)], beside.Arrived);
+            }
+        }
+
+        var (position, next, arrived) = Along(from, route, budget, reach, null);
+        return (position, [.. route.Skip(next)], arrived);
+    }
+
+    /// <summary>
+    /// Whether a position lies on ground that can be walked on (a cell of a walkable area). Somebody who
+    /// stands elsewhere (an older save) is let walk off it.
+    /// </summary>
+    private static bool OnWalkableGround(Map.IRouteFinder routes, Position position) => routes.Connected(position, position);
+
+    /// <summary>Searches the route to the destination; without one the action is cancelled with the reason and null returned.</summary>
+    private IReadOnlyList<Position>? FindRoute(World world, Inhabitant inhabitant, Activity activity, Map.IRouteFinder routes, Position destination)
+    {
+        var found = routes.Find(inhabitant.Position, destination);
+        if (found.Status == Map.PathStatus.Found)
+        {
+            return found.Waypoints;
+        }
+
+        Report(new WorldEvent(ActionCancelled, world.Tick, inhabitant.Id, activity.Action, activity.TargetId)
+        {
+            Detail = found.Status == Map.PathStatus.Unreachable ? Unreachable : NoRouteInBudget,
+        });
+        inhabitant.Activity = null;
+        return null;
+    }
+
+    /// <summary>
+    /// One tick's walk along the waypoints with the given budget in metres: where it ends, how many waypoints
+    /// lie behind it (reached, or left out) and whether the last one was reached (within the reach). A
+    /// waypoint the walk is about to head for is left out when <paramref name="taken"/> says so (never the
+    /// last one); waypoints beyond what the budget reaches are not asked about.
+    /// </summary>
+    private static (Position Position, int Next, bool Arrived) Along(Position position, IReadOnlyList<Position> route, double budget, double reach, Func<Position, bool>? taken)
+    {
         var next = 0;
         var arrived = false;
         while (budget > 1e-9 && next < route.Count)
         {
+            if (taken is not null && next < route.Count - 1 && taken(route[next]))
+            {
+                next++;
+                continue;
+            }
+
             var point = route[next];
             var last = next == route.Count - 1;
             var stop = last ? reach : 0.0;
-            var distance = Distance(inhabitant.Position, point);
+            var distance = Distance(position, point);
             var travel = Math.Min(budget, Math.Max(0.0, distance - stop));
             if (distance > 0)
             {
-                inhabitant.Position = new Position(
-                    inhabitant.Position.X + ((point.X - inhabitant.Position.X) * travel / distance),
-                    inhabitant.Position.Z + ((point.Z - inhabitant.Position.Z) * travel / distance));
+                position = new Position(
+                    position.X + ((point.X - position.X) * travel / distance),
+                    position.Z + ((point.Z - position.Z) * travel / distance));
             }
 
             budget -= travel;
@@ -1208,8 +1392,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             }
         }
 
-        inhabitant.Activity = activity with { Route = [.. route.Skip(next)] };
-        return arrived || Distance(inhabitant.Position, destination) <= reach;
+        return (position, next, arrived);
     }
 
     /// <summary>Metres the inhabitant walks this tick on flat ground, by its gait (data, F5264).</summary>
