@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Builds the Windows release archive (B10 R8): licence gate, Godot export with smoke start, the
+# Builds the Windows release archive (B10 R8): licence gate, request gate (ADR-0009), Godot export with smoke start, the
 # packaged AI service, licence and doc files, release notes, ZIP and SHA256SUMS.txt.
 # Usage: GODOT=<Godot 4.7.2 mono console exe> PYTHON_DIR=<python-build-standalone 3.12> \
 #        bash tools/release/build_release.sh <version|unreleased> [OUT_DIR]
@@ -52,6 +52,10 @@ touch "$STAGE/.glassworld-release"
 
 echo "== licence check"
 uv run --project "$ROOT" python "$ROOT/tools/licenses/check_licenses.py"
+
+echo "== request check run (ADR-0009)"
+# The game does not validate what it sends to the AI; a run that does is a gate of every release build.
+bash "$ROOT/tools/release/check_requests.sh"
 
 echo "== release notes"
 uv run --project "$ROOT" python "$ROOT/tools/release/release_notes.py" "${NOTES_ARGS[@]}" \

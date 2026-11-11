@@ -138,6 +138,14 @@
         "memory": {
           "description": "The speaker's memory (B4a R5), the same as in the decision request: its summary and its latest remembered events. Optional: absent = not sent (older cores).",
           "$ref": "common.schema.json#/$defs/Memory"
+        },
+        "sees_labels": {
+          "description": "The speaker's own names for kinds of things in sees that the data do not name (inventions it believes anything about), sorted by type, each type once. A type of sees without an entry here has no such name for the speaker. Optional (absent when it has none, and from an older core).",
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "$ref": "#/$defs/SeenLabel"
+          }
         }
       }
     },
@@ -245,6 +253,10 @@
               "type": "null"
             }
           ]
+        },
+        "label": {
+          "description": "What THIS inhabitant calls the kind of thing the action is about (target of kind type), by its own knowledge only: the inhabitants' name of an invention it believes anything about (it invented it, built it, tried it, looked at it, was told about it). Absent when it knows nothing of it, and for things the data name (the id is the vocabulary key, i18n key vocab.object.<id>). Never a truth the inhabitant does not know; resolved when the message is built. Optional (absent also from an older core).",
+          "$ref": "common.schema.json#/$defs/LocalizedName"
         }
       }
     },
@@ -268,6 +280,28 @@
               "type": "null"
             }
           ]
+        },
+        "label": {
+          "description": "What THIS inhabitant calls the kind of thing the step is about (target of kind type), by its own knowledge only: the inhabitants' name of an invention it believes anything about (it invented it, built it, tried it, looked at it, was told about it). Absent when it knows nothing of it, and for things the data name (the id is the vocabulary key, i18n key vocab.object.<id>). Never a truth the inhabitant does not know; resolved when the message is built. Optional (absent also from an older core).",
+          "$ref": "common.schema.json#/$defs/LocalizedName"
+        }
+      }
+    },
+    "SeenLabel": {
+      "description": "The speaker's own name for one kind of thing it sees (an entry of sees).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "label"
+      ],
+      "properties": {
+        "type": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "label": {
+          "description": "What the speaker calls this kind of thing: the inhabitants' name of the invention, in both languages.",
+          "$ref": "common.schema.json#/$defs/LocalizedName"
         }
       }
     }

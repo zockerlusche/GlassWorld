@@ -4,6 +4,7 @@ using GlassWorld.Contracts.Validation;
 using GlassWorld.Simulation.Behaviour;
 using GlassWorld.Simulation.Inhabitants;
 using GlassWorld.Simulation.Objects;
+using GlassWorld.Simulation.Safety;
 using GlassWorld.Simulation.State;
 
 namespace GlassWorld.Simulation.Decisions;
@@ -62,6 +63,12 @@ public sealed class DecisionsSystem : IWorldSystem
 {
     /// <summary>The world's weather for the decider's environment (B2 R13); null = fallback values from the settings.</summary>
     public Weather.WeatherSystem? WeatherSource { get; init; }
+
+    /// <summary>
+    /// Whether a request is validated against its schema before it leaves (ADR-0009; set by the host from
+    /// <see cref="SimulationHostOptions.ValidateRequests"/>): on in tests and check runs, off in the running game.
+    /// </summary>
+    public bool ValidateRequests { get; init; } = true;
 
     /// <summary>Knowledge data (B4a): passing actions as options, knowledge and relationships in the request.</summary>
     public KnowledgeSettings? Knowledge { get; init; }
@@ -149,15 +156,17 @@ public sealed class DecisionsSystem : IWorldSystem
     private readonly ActionRules _actions;
     private readonly UtilityBrain _brain;
     private readonly IDecisionPort _port;
+    private readonly TextGuard _guard;
     private string _displayLocale;
     private readonly IReadOnlyDictionary<string, VocabularyEntryTarget> _actionTargets;
     private ILookup<long, PlayerCommand>? _replayCommands;
     private long _counter;
 
     /// <summary>Creates the system.</summary>
-    public DecisionsSystem(DeciderSettings settings, InhabitantsSystem inhabitants, WorldObjects objects, ActionRules actions, UtilityBrain brain, Vocabulary actionVocabulary, IDecisionPort port, string displayLocale)
+    public DecisionsSystem(DeciderSettings settings, InhabitantsSystem inhabitants, WorldObjects objects, ActionRules actions, UtilityBrain brain, Vocabulary actionVocabulary, IDecisionPort port, TextGuard guard, string displayLocale)
     {
         ArgumentNullException.ThrowIfNull(actionVocabulary);
+        _guard = guard ?? throw new ArgumentNullException(nameof(guard));
         _actionTargets = actionVocabulary.Entries.ToDictionary(e => e.Id, e => e.Target ?? VocabularyEntryTarget.None, StringComparer.Ordinal);
         _settings = settings;
         _inhabitants = inhabitants;
@@ -878,7 +887,7 @@ public sealed class DecisionsSystem : IWorldSystem
         // One look around per request: the options and the request describe the same moment.
         var others = PerceivedInhabitants(inhabitant);
         var options = BuildOptions(inhabitant, target, world.Tick, others);
-        var json = ContractSerializer.Serialize(BuildRequest(world, inhabitant, requestId, options, others));
+        var json = ContractSerializer.Serialize(BuildRequest(world, inhabitant, requestId, options, others), ValidateRequests);
         Log.Add(new DecisionLogEntry(DecisionLogKind.Request, requestId, world.Tick, json, null));
         _port.Send(requestId, json);
         world.Probe?.Leave(PartRequest);
@@ -984,7 +993,7 @@ public sealed class DecisionsSystem : IWorldSystem
             Seed = seed,
             DeadlineMs = _settings.DeadlineMs,
             DisplayLocale = Enum.Parse<Locale>(_displayLocale, ignoreCase: true),
-            Inhabitant = InhabitantStates.Of(inhabitant, Knowledge, things.Select(o => o.TypeId), others.Select(i => i.Id), _inhabitants.LabelOf),
+            Inhabitant = InhabitantStates.Of(inhabitant, Knowledge, things.Select(o => o.TypeId), others.Select(i => i.Id), _inhabitants.LabelOf, _inhabitants.TypeLabelOf),
             Environment = new EnvironmentState
             {
                 TimeOfDay = world.Now.Phase.ToString().ToLowerInvariant(),
@@ -1002,6 +1011,10 @@ public sealed class DecisionsSystem : IWorldSystem
                     Type = o.TypeId,
                     DistanceM = Distance(inhabitant.Position, o.Position),
                     KnownProperties = [.. inhabitant.Beliefs.About(o.TypeId).Select(b => new KnownProperty { Property = b.PropertyId, Value = b.Belief.Value, Confidence = b.Belief.Confidence })],
+
+                    // What the asker itself calls this kind of thing: the name of an invention it knows
+                    // something about; absent for what the data name and for a thing it knows nothing of.
+                    Label = _inhabitants.TypeLabelOf(inhabitant, o.TypeId),
                 })],
 
                 // Contract 0.2 (B4a-S5): other inhabitants in sight, nearest first.
@@ -1048,7 +1061,9 @@ public sealed class DecisionsSystem : IWorldSystem
         var question = _open.Values.FirstOrDefault(q => q.RequestId == message.RequestId && q.RetryAtTick is null);
         if (message.IsError)
         {
-            Log.Add(new DecisionLogEntry(DecisionLogKind.Error, message.RequestId, world.Tick, message.Json, ReplayNotes.ServiceError));
+            // A request the service refused as invalid has its own name in the log and in the event (ADR-0009).
+            var note = ReplayNotes.OfError(message.Json);
+            Log.Add(new DecisionLogEntry(DecisionLogKind.Error, message.RequestId, world.Tick, message.Json, note));
             if (question is not null && IsRetryable(message.Json))
             {
                 // B2487: no fixed time limit; the question stays open and is asked again later.
@@ -1056,7 +1071,7 @@ public sealed class DecisionsSystem : IWorldSystem
                 return;
             }
 
-            Close(world, question, "question_failed");
+            Close(world, question, "question_failed", note == ReplayNotes.RequestRejected ? note : null);
             return;
         }
 
@@ -1123,9 +1138,12 @@ public sealed class DecisionsSystem : IWorldSystem
         }
 
         Close(world, question, "question_answered");
-        if (response.Thought is { } thought)
+        if (response.Thought is { } thought && _guard.Check(thought.Text).Allowed)
         {
             // Thought bubble (B3): the only player-visible text of a decision, in the display language.
+            // It is text of the AI, so it passes the content guard like every other visible AI text
+            // (youth protection, B2466); a thought the guard does not allow is not shown and nothing
+            // replaces it. The decision itself stands: the guard judges words, not the choice.
             _inhabitants.Report(new WorldEvent("thought", world.Tick, inhabitant.Id, action, targetId) { Text = thought.Text });
         }
     }

@@ -358,7 +358,7 @@ public sealed class KnowledgeTests : IDisposable
             Knowledge = knowledge,
             EventKinds = Content.EventKinds,
         };
-        var decisions = new DecisionsSystem(Settings, inhabitants, objects, Content.Actions, Content.Brain, Content.Vocabularies[VocabularyKind.Action], port, "de")
+        var decisions = new DecisionsSystem(Settings, inhabitants, objects, Content.Actions, Content.Brain, Content.Vocabularies[VocabularyKind.Action], port, Content.Inventions.Guard, "de")
         {
             Knowledge = knowledge,
         };

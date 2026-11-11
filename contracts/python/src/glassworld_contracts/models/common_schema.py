@@ -155,21 +155,6 @@ class Relationship(BaseModel):
     respect: float = Field(..., ge=0.0, le=1.0)
 
 
-class Habit(BaseModel):
-    model_config = ConfigDict(
-        extra='forbid',
-    )
-    action: str = Field(
-        ...,
-        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
-        max_length=64,
-        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
-    )
-    time_of_day: VocabId | None
-    about: Subject | None
-    strength: float = Field(..., ge=0.0, le=1.0)
-
-
 type FeltTemperatureC = Annotated[
     float,
     Field(
@@ -292,19 +277,6 @@ class ProcessOutcome(BaseModel):
         description='Indices (0-based) of the inputs that are used up; the first input changes (add/remove) unless it is consumed and produces is set.',
         max_length=4,
     )
-
-
-class ObservedThing(BaseModel):
-    model_config = ConfigDict(
-        extra='forbid',
-    )
-    type: str = Field(
-        ...,
-        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
-        max_length=64,
-        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
-    )
-    observed: list[VocabId] = Field(..., max_length=12, min_length=0)
 
 
 class SoundKind(StrEnum):
@@ -517,6 +489,10 @@ class KnowledgeEntry(BaseModel):
         None,
         description='The object instance it was about (B2533), null if none. Optional: absent = unknown.',
     )
+    label: LocalizedName | None = Field(
+        None,
+        description="What THIS inhabitant calls the kind of thing the belief is about (subject of kind type), by its own knowledge only: the inhabitants' name of an invention it believes anything about (it invented it, built it, tried it, looked at it, was told about it). Absent when it knows nothing of it, and for things the data name (the id is the vocabulary key, i18n key vocab.object.<id>). Never a truth the inhabitant does not know; resolved when the message is built. Optional (absent also from an older core).",
+    )
 
 
 class MemoryEvent(BaseModel):
@@ -564,6 +540,25 @@ class Memory(BaseModel):
         max_length=1200,
     )
     recent: list[MemoryEvent] = Field(..., max_length=12)
+
+
+class Habit(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    action: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    time_of_day: VocabId | None
+    about: Subject | None
+    strength: float = Field(..., ge=0.0, le=1.0)
+    label: LocalizedName | None = Field(
+        None,
+        description="What THIS inhabitant calls the kind of thing the habit is about (about of kind type), by its own knowledge only: the inhabitants' name of an invention it believes anything about (it invented it, built it, tried it, looked at it, was told about it). Absent when it knows nothing of it, and for things the data name (the id is the vocabulary key, i18n key vocab.object.<id>). Never a truth the inhabitant does not know; resolved when the message is built. Optional (absent also from an older core).",
+    )
 
 
 class InhabitantState(BaseModel):
@@ -738,3 +733,20 @@ class ProcessRule(BaseModel):
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
     result: ProcessOutcome
+
+
+class ObservedThing(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    type: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    observed: list[VocabId] = Field(..., max_length=12, min_length=0)
+    label: LocalizedName | None = Field(
+        None,
+        description="What THIS inhabitant calls this kind of thing (type), by its own knowledge only: the inhabitants' name of an invention it believes anything about (it invented it, built it, tried it, looked at it, was told about it). Absent when it knows nothing of it, and for things the data name (the id is the vocabulary key, i18n key vocab.object.<id>). Never a truth the inhabitant does not know; resolved when the message is built. Optional (absent also from an older core).",
+    )
