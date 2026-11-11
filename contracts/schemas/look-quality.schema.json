@@ -2,12 +2,13 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://glassworld.local/contracts/v0/look-quality.schema.json",
   "title": "LookQuality",
-  "description": "Data file content/look/quality.json: quality levels (B2 R30). Which level a hardware tier uses is decided in B7. Values are placeholders until the benchmark (acceptance 5) has measured them.",
+  "description": "Data file content/look/quality.json: quality levels (B2 R30) and how the sun's shadow is rendered at each shadow quality. Which level a hardware tier uses is decided in B7. Values are placeholders until the benchmark (acceptance 5) has measured them.",
   "type": "object",
   "additionalProperties": false,
   "required": [
     "contract_version",
     "default_level",
+    "shadow_settings",
     "levels"
   ],
   "properties": {
@@ -16,6 +17,9 @@
     },
     "default_level": {
       "$ref": "common.schema.json#/$defs/VocabId"
+    },
+    "shadow_settings": {
+      "$ref": "#/$defs/ShadowSettings"
     },
     "levels": {
       "description": "Levels from lowest to highest.",
@@ -55,7 +59,7 @@
           "maximum": 1000
         },
         "shadows": {
-          "description": "Shadow quality.",
+          "description": "Shadow quality: off = the sun casts no shadow; low and high are rendered as shadow_settings says.",
           "type": "string",
           "enum": [
             "off",
@@ -64,12 +68,81 @@
           ]
         },
         "outline": {
-          "description": "Outline method of the comic style.",
+          "description": "Outline method of the comic style: off = no ink outline on objects and figures; inverted_hull = the hull pass; post_process is not built yet and is drawn as inverted_hull.",
           "type": "string",
           "enum": [
             "off",
             "inverted_hull",
             "post_process"
+          ]
+        }
+      }
+    },
+    "ShadowSettings": {
+      "description": "How the sun's shadow is rendered at the shadow qualities a level can name (off needs none).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "low",
+        "high"
+      ],
+      "properties": {
+        "low": {
+          "$ref": "#/$defs/ShadowRendering"
+        },
+        "high": {
+          "$ref": "#/$defs/ShadowRendering"
+        }
+      }
+    },
+    "ShadowRendering": {
+      "description": "Rendering of the sun's shadow at one shadow quality (the softness of the edges is look data: daylight.json shadow_blur).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "max_distance_m",
+        "atlas_size",
+        "mode",
+        "soft_filter"
+      ],
+      "properties": {
+        "max_distance_m": {
+          "description": "Distance from the camera up to which shadows are drawn (they fade out before it).",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 8192
+        },
+        "atlas_size": {
+          "description": "Edge length of the directional shadow map in pixels (shared by the splits).",
+          "type": "integer",
+          "enum": [
+            512,
+            1024,
+            2048,
+            4096,
+            8192,
+            16384
+          ]
+        },
+        "mode": {
+          "description": "How the view is split into shadow maps: one map (cheapest, softer up close), two or four splits.",
+          "type": "string",
+          "enum": [
+            "orthogonal",
+            "parallel_2_splits",
+            "parallel_4_splits"
+          ]
+        },
+        "soft_filter": {
+          "description": "Filter quality of the shadow edges (hard = no filtering; a higher quality is smoother and costs more).",
+          "type": "string",
+          "enum": [
+            "hard",
+            "soft_very_low",
+            "soft_low",
+            "soft_medium",
+            "soft_high",
+            "soft_ultra"
           ]
         }
       }

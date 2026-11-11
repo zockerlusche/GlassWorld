@@ -116,7 +116,7 @@ fi
 if grep -Eq '^(ERROR|SCRIPT ERROR|USER ERROR)|Unhandled exception' "$MAIN_ISLAND_LOG"; then
   island_fail "errors in Godot output"
 fi
-for marker in   '^WORLD_OK seed=[0-9]+ inhabitants=[1-9][0-9]* objects=[1-9][0-9]* hash=[0-9a-f]{12}$'   '^ISLAND_WORLD preset=[a-z_]+ chunks=[1-9][0-9]* figures=[1-9][0-9]* objects_drawn=[1-9][0-9]* layers=[1-9][0-9]*$'   '^ISLAND_COVER cells=[1-9][0-9]*x[1-9][0-9]* version=[1-9][0-9]* seen_permille=[1-9][0-9]*$'   '^AUDIO_SPATIAL_OK$'   '^SYMBOLS_OK$'   '^SCREEN_OK$'   '^ISLAND_UI_OK figures=[1-9][0-9]* objects_drawn=[1-9][0-9]*$'   '^ISLAND_NATURE grass_plants=[1-9][0-9]* grass_layers=[1-9][0-9]* season=[a-z_]+ season_colors=[1-9] weather_looks=[1-9][0-9]*$'   '^SAVE_OK hash=[0-9a-f]{12} tick=[1-9][0-9]* questions=[1-9][0-9]*$'   '^GIFT_OK$'   '^KNOCK_OK$'   '^MENU_OK screens=[1-9][0-9]*$'   '^UI_OK$'; do
+for marker in   '^WORLD_OK seed=[0-9]+ inhabitants=[1-9][0-9]* objects=[1-9][0-9]* hash=[0-9a-f]{12}$'   '^ISLAND_WORLD preset=[a-z_]+ chunks=[1-9][0-9]* figures=[1-9][0-9]* objects_drawn=[1-9][0-9]* layers=[1-9][0-9]*$'   '^ISLAND_COVER cells=[1-9][0-9]*x[1-9][0-9]* version=[1-9][0-9]* seen_permille=[1-9][0-9]*$'   '^AUDIO_SPATIAL_OK$'   '^SYMBOLS_OK$'   '^SCREEN_OK$'   '^ISLAND_UI_OK figures=[1-9][0-9]* objects_drawn=[1-9][0-9]*$'   '^ISLAND_NATURE grass_plants=[1-9][0-9]* grass_layers=[1-9][0-9]* season=[a-z_]+ season_colors=[1-9] weather_looks=[1-9][0-9]*$'   '^ISLAND_QUALITY level=[a-z_]+ shadows=(off|low|high) outline=(off|inverted_hull)$'   '^SAVE_OK hash=[0-9a-f]{12} tick=[1-9][0-9]* questions=[1-9][0-9]*$'   '^GIFT_OK$'   '^KNOCK_OK$'   '^MENU_OK screens=[1-9][0-9]*$'   '^UI_OK$'; do
   if ! grep -Eq "$marker" "$MAIN_ISLAND_LOG"; then
     island_fail "marker '$marker' missing"
   fi
@@ -182,6 +182,13 @@ fi
 if ! grep -Eq '^ISLAND_LOD seed=7 ground=1:[1-9][0-9]*(,[1-9][0-9]*:[1-9][0-9]*)+ water=[1-9][0-9]*$' "$ISLAND_LOG"; then
   cat "$ISLAND_LOG" >&2
   echo "SMOKE_FAIL: the island has no coarser detail level (marker 'ISLAND_LOD ...' missing)" >&2
+  exit 1
+fi
+# Quality level (B2-7 R30): the scene reads its level (grass, shadows, outline) from the data and
+# reports what it left on the sun and the materials.
+if ! grep -Eq '^ISLAND_QUALITY seed=7 level=[a-z_]+ shadows=(off|low|high) outline=(off|inverted_hull)$' "$ISLAND_LOG" || ! grep -Eq '^ISLAND_QUALITY_STATE seed=7 sun_shadow=[01] shadow_mode=[0-2] shadow_distance_m=[0-9.]+ hull_meshes=[0-9]+$' "$ISLAND_LOG"; then
+  cat "$ISLAND_LOG" >&2
+  echo "SMOKE_FAIL: the island applies no quality level (marker 'ISLAND_QUALITY ...' or 'ISLAND_QUALITY_STATE ...' missing)" >&2
   exit 1
 fi
 echo "SMOKE_PASS: $FRAMES frames without errors"
