@@ -104,6 +104,19 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     private readonly Dictionary<string, Inhabitant> _inhabitants = new(StringComparer.Ordinal);
     private readonly List<Inhabitant> _ordered = [];
 
+    // Where everybody stood when the tick began, side by side in id order (not state): the passes over all
+    // pairs at the start of a tick (being together, meeting, bonding) read these instead of every object.
+    private double[] _xs = [];
+    private double[] _zs = [];
+
+    // Counts the changes of who is in the system (the places in the id order change with them).
+    private int _population;
+
+    // The needs, moods and mood drivers of the model as arrays: every inhabitant walks them in every tick.
+    private readonly NeedModel[] _needs;
+    private readonly MoodModel[] _moods;
+    private readonly MoodDriver[] _moodDrivers;
+
     // "Is this the id of an inhabitant?" as one delegate for the passes that ask it.
     private readonly Func<string, bool> _isInhabitant;
 
@@ -133,6 +146,9 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         _objects = objects;
         _ticksPerHour = ticksPerHour;
         _isInhabitant = _inhabitants.ContainsKey;
+        _needs = [.. model.Needs];
+        _moods = [.. model.Moods];
+        _moodDrivers = [.. model.MoodDrivers];
     }
 
     /// <inheritdoc/>
@@ -325,6 +341,12 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         }
 
         _ordered.Insert(at, inhabitant);
+        for (var i = at; i < _ordered.Count; i++)
+        {
+            _ordered[i].Ordinal = i;
+        }
+
+        _population++;
     }
 
     /// <summary>Routes on the island map (B2 R10); null on worlds without a map, where walking is straight.</summary>
@@ -520,9 +542,18 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         ArgumentNullException.ThrowIfNull(world);
         var probe = world.Probe;
         probe?.Enter(PartMeeting);
-        foreach (var inhabitant in _ordered)
+        if (_xs.Length < _ordered.Count)
         {
-            inhabitant.StartOfTick = inhabitant.Position;
+            _xs = new double[_ordered.Count];
+            _zs = new double[_ordered.Count];
+        }
+
+        for (var i = 0; i < _ordered.Count; i++)
+        {
+            var at = _ordered[i].Position;
+            _ordered[i].StartOfTick = at;
+            _xs[i] = at.X;
+            _zs[i] = at.Z;
         }
 
         var together = Together();
@@ -746,18 +777,22 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         }
 
         var start = Start(knowledge);
-        foreach (var inhabitant in _ordered)
+        var (xs, zs) = (_xs, _zs);
+        for (var i = 0; i < _ordered.Count; i++)
         {
+            var inhabitant = _ordered[i];
             if (Asleep(inhabitant, data))
             {
                 continue;
             }
 
             // The distance first: it rules out nearly everybody, and it is the cheapest thing to ask.
-            foreach (var other in _ordered)
+            for (var j = 0; j < _ordered.Count; j++)
             {
-                if (other != inhabitant && DistanceSquared(inhabitant.Position, other.Position) <= reach * reach && !Asleep(other, data)
-                    && inhabitant.Relationships.Get(other.Id, start) is var relation
+                var dx = xs[i] - xs[j];
+                var dz = zs[i] - zs[j];
+                if (j != i && (dx * dx) + (dz * dz) <= reach * reach && !Asleep(_ordered[j], data)
+                    && inhabitant.Relationships.Get(_ordered[j].Id, start) is var relation
                     && relation.Trust >= data.MinTrust && relation.Affection >= data.MinAffection)
                 {
                     together.Add(inhabitant.Id);
@@ -795,7 +830,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
 
     private void DecayNeeds(Inhabitant inhabitant)
     {
-        foreach (var need in _model.Needs)
+        foreach (var need in _needs)
         {
             if (inhabitant.Needs.TryGetValue(need.Id, out var value))
             {
@@ -806,7 +841,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
 
     private void UpdateMoods(Inhabitant inhabitant)
     {
-        foreach (var mood in _model.Moods)
+        foreach (var mood in _moods)
         {
             var value = inhabitant.Moods.GetValueOrDefault(mood.Id, mood.Baseline);
             var step = PerTick(mood.ReturnPerHour);
@@ -814,7 +849,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             inhabitant.Moods[mood.Id] = value;
         }
 
-        foreach (var driver in _model.MoodDrivers)
+        foreach (var driver in _moodDrivers)
         {
             if (inhabitant.Needs.TryGetValue(driver.Need, out var need) && need < driver.Below && inhabitant.Moods.TryGetValue(driver.Mood, out var mood))
             {
@@ -826,7 +861,16 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     private void UpdateWillToLive(Inhabitant inhabitant)
     {
         var w = _model.WillToLive;
-        var neglected = _model.Needs.Any(n => n.NeglectBelow > 0 && inhabitant.Needs.GetValueOrDefault(n.Id, 1.0) < n.NeglectBelow);
+        var neglected = false;
+        foreach (var need in _needs)
+        {
+            if (need.NeglectBelow > 0 && inhabitant.Needs.GetValueOrDefault(need.Id, 1.0) < need.NeglectBelow)
+            {
+                neglected = true;
+                break;
+            }
+        }
+
         inhabitant.NeglectTicks = neglected ? inhabitant.NeglectTicks + 1 : 0;
         if (inhabitant.NeglectTicks > (long)w.NeglectHoursBeforeDecline * _ticksPerHour)
         {

@@ -90,21 +90,25 @@ public sealed partial class InhabitantsSystem
             return;
         }
 
-        // Every pair once, lower id first (the list is in id order); the distance is asked before the two
-        // look-ups of who has met whom.
+        // Every pair once, lower id first (the list is in id order). Who has met whom is read from a row per
+        // inhabitant (MetRowOf): once everybody in sight has met, a pair costs two look-ups in two arrays.
         var sight = SightRadiusM * SightRadiusM;
+        var (xs, zs) = (_xs, _zs);
         for (var i = 0; i < _ordered.Count; i++)
         {
             var a = _ordered[i];
             for (var j = i + 1; j < _ordered.Count; j++)
             {
                 var b = _ordered[j];
-                if (DistanceSquared(a.Position, b.Position) > sight || (a.Met.Contains(b.Id) && b.Met.Contains(a.Id)))
+                var (aMetB, bMetA) = (MetRowOf(a)[j], MetRowOf(b)[i]);
+                var dx = xs[i] - xs[j];
+                var dz = zs[i] - zs[j];
+                if ((aMetB && bMetA) || (dx * dx) + (dz * dz) > sight)
                 {
                     continue;
                 }
 
-                var first = !a.Met.Contains(b.Id) && !b.Met.Contains(a.Id);
+                var first = !aMetB && !bMetA;
                 a.Met.Add(b.Id);
                 b.Met.Add(a.Id);
                 if (first)
@@ -113,6 +117,33 @@ public sealed partial class InhabitantsSystem
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// Whom an inhabitant has met as a row over the places of the others in the id order: the same answers
+    /// as its <see cref="Inhabitant.Met"/> gives id by id, worked out again whenever that set or the
+    /// population has changed since (the set says so with its version).
+    /// </summary>
+    private bool[] MetRowOf(Inhabitant inhabitant)
+    {
+        var valid = (inhabitant.Met.Version, _population);
+        if (inhabitant.MetRowFor != valid)
+        {
+            var row = inhabitant.MetRow.Length == _ordered.Count ? inhabitant.MetRow : new bool[_ordered.Count];
+            Array.Clear(row);
+            foreach (var id in inhabitant.Met)
+            {
+                if (_inhabitants.TryGetValue(id, out var other))
+                {
+                    row[other.Ordinal] = true;
+                }
+            }
+
+            inhabitant.MetRow = row;
+            inhabitant.MetRowFor = valid;
+        }
+
+        return inhabitant.MetRow;
     }
 
     /// <summary>
@@ -130,13 +161,17 @@ public sealed partial class InhabitantsSystem
         var start = Start(knowledge);
         var reach = changes.TogetherDistanceM * changes.TogetherDistanceM;
         var perTick = 1.0 / _ticksPerHour;
-        foreach (var a in _ordered)
+        var (xs, zs) = (_xs, _zs);
+        for (var i = 0; i < _ordered.Count; i++)
         {
-            foreach (var b in _ordered)
+            var a = _ordered[i];
+            for (var j = 0; j < _ordered.Count; j++)
             {
-                if (a != b && DistanceSquared(a.Position, b.Position) <= reach)
+                var dx = xs[i] - xs[j];
+                var dz = zs[i] - zs[j];
+                if (j != i && (dx * dx) + (dz * dz) <= reach)
                 {
-                    Change(a, b.Id, changes.TogetherPerHour, perTick, start);
+                    Change(a, _ordered[j].Id, changes.TogetherPerHour, perTick, start);
                 }
             }
 

@@ -200,6 +200,9 @@ public sealed class SimulationHost
         // The air where an inhabitant stands (B2582, comfort zone): the island-wide weather's temperature, with
         // the height drop of the inhabitant's own cell in place of the one of the start cells. Integers only.
         // Worlds without a climate (placeholder) have no air temperature.
+        // The weather's part of it is the same for everybody within a tick, so it is worked out once per
+        // tick and main weather, not once per inhabitant.
+        (long Tick, string Weather, int TemperatureTenthC)? islandAir = null;
         Air? AirAt(World w, Position at)
         {
             if (weather is null || map is null)
@@ -210,7 +213,12 @@ public sealed class SimulationHost
             var cellDropTenthC = map.CellOf(at) is { } cell
                 ? -(dropPer100Height * Math.Max(0, map.Map.Cell(cell.X, cell.Z).Height - seaLevel) / 100)
                 : startDropTenthC;
-            return new Air(weather.TemperatureAt(w.Now, weather.Current) - startDropTenthC + cellDropTenthC, weather.PrecipitationPermille > 0);
+            if (islandAir is not { } known || known.Tick != w.Tick || !string.Equals(known.Weather, weather.Current, StringComparison.Ordinal))
+            {
+                islandAir = known = (w.Tick, weather.Current, weather.TemperatureAt(w.Now, weather.Current));
+            }
+
+            return new Air(known.TemperatureTenthC - startDropTenthC + cellDropTenthC, weather.PrecipitationPermille > 0);
         }
 
         var inhabitants = new InhabitantsSystem(content.InhabitantModel, actions, content.Brain, content.Gaits, objects, world.Calendar.Settings.TicksPerHour)

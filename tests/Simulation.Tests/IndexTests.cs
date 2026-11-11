@@ -1,6 +1,7 @@
 using GlassWorld.Simulation.Content;
 using GlassWorld.Simulation.Data;
 using GlassWorld.Simulation.Decisions;
+using GlassWorld.Simulation.Inhabitants;
 using GlassWorld.Simulation.Objects;
 using GlassWorld.Simulation.State;
 
@@ -112,6 +113,64 @@ public sealed class IndexTests : IDisposable
             Assert.Equal(all.Where(b => b.TypeId == type).Max(b => b.Belief.Confidence), beliefs.Surest(type));
             Assert.True(beliefs.Knows(type));
         }
+    }
+
+    [Fact]
+    public void AnIdSetIsReadInOrderAndSaysWhenItChanged()
+    {
+        var ids = new IdSet();
+        Assert.Empty(ids);
+        Assert.True(ids.Add("inh-000007"));
+        Assert.True(ids.Add("inh-000002"));
+        Assert.False(ids.Add("inh-000007"));
+        Assert.Equal(["inh-000002", "inh-000007"], ids);
+        Assert.Equal(2, ids.Count);
+        Assert.True(ids.Contains("inh-000002"));
+        Assert.False(ids.Contains("inh-000003"));
+
+        // The version moves with every change and only with a change.
+        var version = ids.Version;
+        Assert.False(ids.Add("inh-000002"));
+        Assert.False(ids.Remove("inh-000003"));
+        ids.UnionWith(["inh-000002", "inh-000007"]);
+        Assert.Equal(version, ids.Version);
+        ids.UnionWith(["inh-000001", "inh-000002"]);
+        Assert.NotEqual(version, ids.Version);
+        version = ids.Version;
+        Assert.True(ids.Remove("inh-000002"));
+        Assert.NotEqual(version, ids.Version);
+        Assert.Equal(["inh-000001", "inh-000007"], ids);
+        Assert.False(ids.Contains("inh-000002"));
+    }
+
+    [Fact]
+    public void WhoHasMetWhomFollowsTheSetAlsoWhenItIsChangedFromOutside()
+    {
+        // Everybody in sight of each other: after the first tick all have met. Forgetting someone (as a test
+        // or a later rule may do) is seen by the meeting pass at once: they meet again, without a first meeting.
+        var host = SimulationHost.CreateGeneratedWorld(ContentDirectory, 7, new SilentPort(), "de", Preset, inhabitants: 12);
+        host.World.Run(3);
+        var everyone = host.Inhabitants.All.ToList();
+        var a = everyone[0];
+        var near = everyone.Where(o => o != a && a.Met.Contains(o.Id)).ToList();
+        Assert.True(near.Count > 1);
+        Assert.All(near, o => Assert.Contains(a.Id, o.Met));
+
+        var forgotten = near[^1];
+        Assert.True(a.Met.Remove(forgotten.Id));
+        var events = host.Inhabitants.LastEventSeq;
+        host.World.Step();
+        Assert.Contains(forgotten.Id, a.Met);
+        Assert.DoesNotContain(host.Inhabitants.EventsSince(events), e => e.Event.Kind == Inhabitants.InhabitantsSystem.FirstMeeting);
+
+        // Both forget each other: that is a first meeting again.
+        Assert.True(a.Met.Remove(forgotten.Id));
+        Assert.True(forgotten.Met.Remove(a.Id));
+        events = host.Inhabitants.LastEventSeq;
+        host.World.Step();
+        Assert.Contains(forgotten.Id, a.Met);
+        Assert.Contains(a.Id, forgotten.Met);
+        Assert.Single(host.Inhabitants.EventsSince(events), e => e.Event.Kind == Inhabitants.InhabitantsSystem.FirstMeeting);
     }
 
     [Fact]

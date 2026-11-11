@@ -96,6 +96,18 @@ public sealed class Inhabitant
     /// </summary>
     internal Position StartOfTick { get; set; }
 
+    /// <summary>The inhabitant's place in the id order of its inhabitants system (kept by the system; not state).</summary>
+    internal int Ordinal { get; set; }
+
+    /// <summary>
+    /// Whom of the others it has met, as a row over their places in the system's id order: worked out from
+    /// <see cref="Met"/> by the system and valid for the versions in <see cref="MetRowFor"/> (not state).
+    /// </summary>
+    internal bool[] MetRow { get; set; } = [];
+
+    /// <summary>The version of <see cref="Met"/> and of the system's population <see cref="MetRow"/> was worked out for.</summary>
+    internal (int Met, int Population) MetRowFor { get; set; } = (-1, -1);
+
     /// <summary>Need levels 0 (urgent) … 1 (satisfied), by need id.</summary>
     public SortedDictionary<string, double> Needs { get; }
 
@@ -187,13 +199,13 @@ public sealed class Inhabitant
     public string? Name { get; internal set; }
 
     /// <summary>Ids of the inhabitants whose own name this one knows (per observer, W1698).</summary>
-    public SortedSet<string> KnownNames { get; } = new(StringComparer.Ordinal);
+    public IdSet KnownNames { get; } = [];
 
     /// <summary>
     /// Ids of the inhabitants this one has met (B4a R8): the own start group from the start, everybody else
     /// once it has seen them (first_meeting).
     /// </summary>
-    public SortedSet<string> Met { get; } = new(StringComparer.Ordinal);
+    public IdSet Met { get; } = [];
 
     /// <summary>
     /// Imprinting counters (B4a R6): repeated experiences, each counter grows by one per repetition and
