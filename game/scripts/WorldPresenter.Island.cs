@@ -65,6 +65,13 @@ public partial class WorldPresenter
     /// <summary>Island mode: objects drawn now (0 in placeholder mode).</summary>
     public int ObjectsDrawn => _objectsView?.Drawn ?? 0;
 
+    /// <summary>
+    /// Mesh and material of an object type as the world draws it (for the dream images of the night scene,
+    /// B2579: "das vorhandene Symbol des Objekt-Typs"); null in the placeholder world or for a type without a shape.
+    /// </summary>
+    public (Mesh Mesh, Material Material)? ShapeOfType(string typeId) =>
+        _objectsView is { } view ? view.LayerOf(view.Looks.For(typeId).VisualId) : null;
+
     /// <summary>Island mode: number of figures with the real figure model.</summary>
     public int FigureViews => _islandFigures.Count;
 
