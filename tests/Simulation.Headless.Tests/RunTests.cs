@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Text.Json;
 using GlassWorld.Simulation.Data;
 using GlassWorld.Simulation.Decisions;
+using GlassWorld.Simulation.State;
 
 namespace GlassWorld.Simulation.Headless.Tests;
 
@@ -133,6 +134,27 @@ public sealed class RunTests : IDisposable
         var result = ReplayCommand.Replay(Content, state with { DecisionLog = entries });
         Assert.Equal(ExitCodes.ReplayDiff, result.Code);
         Assert.Equal($"REPLAY_DIFF tick={original.Tick} content={state.ContentFingerprint}", result.Line);
+    }
+
+    [Fact]
+    public void ASaveWithAQuestionThatIsHeldBackReplaysWithoutAJobPort()
+    {
+        // A1487: a question held back while its inhabitant is busy is unsent, like one that waits for the
+        // night - but it says nothing about a job port. The replay of a run without one must not start the
+        // night's jobs (they would be in the replay's job log and not in the saved one).
+        var host = SimulationHost.CreateGeneratedWorld(Content, 1, MockDecisionPort.FromContent(Content), DecisionsSystem.DefaultDisplayLocale, "start_island");
+        var day = host.World.Calendar.TicksPerDay;
+        while (host.World.Tick < 3 * day && !(host.World.Tick >= day && host.Decisions.Open.Any(q => q.RequestId.Length == 0)))
+        {
+            host.World.Step();
+        }
+
+        var state = StateCodec.Capture(host);
+        Assert.Contains(state.Questions, q => q.RequestId.Length == 0);
+        Assert.False(ReplayCommand.HadJobs(state.Inventions));
+        var result = ReplayCommand.Replay(Content, state);
+        Assert.True(result.Ok, result.Line);
+        Assert.StartsWith($"REPLAY_OK hash={host.World.StateHash()} ticks={host.World.Tick}", result.Line, StringComparison.Ordinal);
     }
 
     [Fact]
