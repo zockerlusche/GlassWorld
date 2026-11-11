@@ -88,6 +88,13 @@ namespace GlassWorld.Contracts
         public double? ChoiceProtectionHours { get; set; } = default!;
 
         /// <summary>
+        /// At most this many requests go to the decider in one step (tick), whatever raised them: new questions, questions that waited (held back) and questions sent again after an error or after loading a save. What is over waits with its question mark and goes out in the next steps, in the order it would have gone. Bounds the one step in which many questions fall due together - all held-back questions at the end of choice_protection_hours, every open question after loading a save. Omitted = no limit (as before).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("max_requests_per_step")]
+        public int? MaxRequestsPerStep { get; set; } = default!;
+
+        /// <summary>
         /// How often an inhabitant asks who the same other inhabitant is (trigger unknown_inhabitant) while it never learns the name; omitted = no limit.
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]

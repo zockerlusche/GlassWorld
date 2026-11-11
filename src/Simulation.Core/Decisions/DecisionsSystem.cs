@@ -162,6 +162,11 @@ public sealed class DecisionsSystem : IWorldSystem
     private ILookup<long, PlayerCommand>? _replayCommands;
     private long _counter;
 
+    // max_requests_per_step: how many requests went out in the step of _sentTick. Derived from the step
+    // alone - it starts at 0 in every tick, so it is neither saved nor hashed.
+    private long _sentTick = -1;
+    private int _sentInStep;
+
     /// <summary>Creates the system.</summary>
     public DecisionsSystem(DeciderSettings settings, InhabitantsSystem inhabitants, WorldObjects objects, ActionRules actions, UtilityBrain brain, Vocabulary actionVocabulary, IDecisionPort port, TextGuard guard, string displayLocale)
     {
@@ -397,6 +402,12 @@ public sealed class DecisionsSystem : IWorldSystem
 
         foreach (var due in _open.Values.Where(q => q.RetryAtTick is { } at && at <= world.Tick).ToList())
         {
+            // Over the step's limit the question stays due and goes out in a later step.
+            if (!MaySend(world))
+            {
+                break;
+            }
+
             Resend(world, due);
         }
 
@@ -408,6 +419,12 @@ public sealed class DecisionsSystem : IWorldSystem
             // (each one sent keeps the next back in turn).
             foreach (var held in _open.Values.Where(q => q.RequestId.Length == 0 && !WaitsForNight(q.Kind)).ToList())
             {
+                // Over the step's limit the rest waits on as it is, in the same order, for the next step.
+                if (!MaySend(world))
+                {
+                    break;
+                }
+
                 AskHeld(world, held);
             }
         }
@@ -916,7 +933,9 @@ public sealed class DecisionsSystem : IWorldSystem
         // A question that waits for the night opens with its question mark but asks nobody by day: no
         // request, no options; the night's question job answers it (NightJobsSystem). A question that is
         // held back (A1487) opens the same way and is asked once its inhabitant is free again (AskHeld).
-        var held = !WaitsForNight(kind) && HeldBack(world, inhabitant, kind);
+        // Over the step's limit (max_requests_per_step) a question waits the same way and goes out in a
+        // later step as one that was held back.
+        var held = !WaitsForNight(kind) && (HeldBack(world, inhabitant, kind) || !MaySend(world));
         var question = held || WaitsForNight(kind)
             ? new OpenQuestion(questionId, inhabitant.Id, kind, subject, string.Empty, world.Tick, [])
             : Send(world, inhabitant, questionId, kind, subject, target);
@@ -935,8 +954,29 @@ public sealed class DecisionsSystem : IWorldSystem
     // change in between. Empty outside Send.
     private readonly Dictionary<(string Action, string OtherId), (string TypeId, string PropertyId, Objects.Belief Belief)> _passable = [];
 
+    /// <summary>
+    /// Whether one more request may go to the decider in this step (max_requests_per_step; no value = no
+    /// limit). The data bound the cost of one step, not what is asked: what is over waits and is asked later.
+    /// </summary>
+    private bool MaySend(World world)
+    {
+        if (_settings.MaxRequestsPerStep is not { } most)
+        {
+            return true;
+        }
+
+        return _sentTick != world.Tick || _sentInStep < most;
+    }
+
     private OpenQuestion Send(World world, Inhabitant inhabitant, string questionId, string kind, string subject, WorldObject? target)
     {
+        if (_sentTick != world.Tick)
+        {
+            _sentTick = world.Tick;
+            _sentInStep = 0;
+        }
+
+        _sentInStep++;
         var probe = world.Probe;
         probe?.Enter(PartRequest);
         var requestId = DecisionIds.RequestId(world.Seed, world.Tick, inhabitant.Id, _counter);
