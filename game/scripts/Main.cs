@@ -27,7 +27,9 @@ public partial class Main : Node3D
     private const string SeedArgument = "--seed=";
     private const string DebugArgument = "--debug";
 
+    private const string TourArgument = "--ui-tour=";
     private string? _shotsFolder;
+    private bool _tour;
     private string _contentDirectory = string.Empty;
     private int _smokeFrames;
     private int _frame;
@@ -92,7 +94,7 @@ public partial class Main : Node3D
             var spatialReady = StartWorld(presenter => presenter.Start(_contentDirectory, _seed), null);
             if (_shotsFolder is not null && _style is not null)
             {
-                _ = TakeShotsAsync(_style);
+                _ = _tour ? TourAsync(_style) : TakeShotsAsync(_style);
             }
 
             if (_smokeFrames > 0)
@@ -129,6 +131,13 @@ public partial class Main : Node3D
             if (arg.StartsWith(UiShots.Argument, StringComparison.Ordinal))
             {
                 _shotsFolder = arg[UiShots.Argument.Length..];
+            }
+
+            // The UI tour (W1757): every menu and window, in both layouts, one picture each.
+            if (arg.StartsWith(TourArgument, StringComparison.Ordinal))
+            {
+                _shotsFolder = arg[TourArgument.Length..];
+                _tour = true;
             }
 
             if (arg.StartsWith(SeedArgument, StringComparison.Ordinal)
