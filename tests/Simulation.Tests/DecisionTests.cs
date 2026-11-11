@@ -431,11 +431,7 @@ public sealed class DecisionTests
             Triggers = [],
             FallbackEnvironment = Settings.FallbackEnvironment,
         };
-        // The thought guard as the host sets it (SimulationHost.Assemble).
-        var decisions = new DecisionsSystem(settings, inhabitants, objects, Content.Actions, Content.Brain, Content.Vocabularies[VocabularyKind.Action], port, "de")
-        {
-            ThoughtGuard = Content.Inventions.Guard,
-        };
+        var decisions = new DecisionsSystem(settings, inhabitants, objects, Content.Actions, Content.Brain, Content.Vocabularies[VocabularyKind.Action], port, Content.Inventions.Guard, "de");
         world.Add(objects).Add(decisions).Add(inhabitants);
         inhabitants.SpawnStartInhabitants(world, [new Position(0, 0), new Position(500, 500), new Position(1000, 0), new Position(0, 1000)]);
         return (world, objects, inhabitants, decisions);
