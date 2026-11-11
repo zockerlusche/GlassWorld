@@ -166,7 +166,22 @@ if ! grep -Eq '^BUILD_PLAN_OK plans=[1-9][0-9]* parts=[1-9][0-9]* shapes=[1-9][0
 fi
 # Island (B2-3): terrain and water meshes of the generated start island, one per chunk; objects and decorative plants (TL #19722).
 ISLAND_LOG="$(mktemp)"
+# The exit code is looked at here, not left to 'set -e': twice the engine aborted in this run in CI (exit
+# 134) and the script ended without a word about where. A crash stays a failure - but the log says
+# whether the check itself had passed before the engine died.
+set +e
 timeout "$TIMEOUT_S" "$GODOT" --headless --path "$GAME" --quit-after 1200 res://world/island.tscn -- --seed=7 --check >"$ISLAND_LOG" 2>&1
+ISLAND_EXIT=$?
+set -e
+if [[ $ISLAND_EXIT -ne 0 ]]; then
+  tail -n 80 "$ISLAND_LOG" >&2
+  if grep -Eq '^ISLAND_OK seed=7 ' "$ISLAND_LOG"; then
+    echo "SMOKE_FAIL: the island check ended with exit code $ISLAND_EXIT AFTER it had printed ISLAND_OK (the engine died on its way out)" >&2
+  else
+    echo "SMOKE_FAIL: the island check ended with exit code $ISLAND_EXIT BEFORE ISLAND_OK (see the last lines above)" >&2
+  fi
+  exit 1
+fi
 if ! grep -Eq '^ISLAND_OK seed=7 chunks=[1-9][0-9]* ground_triangles=[1-9][0-9]* water_triangles=[1-9][0-9]* figures=[1-9][0-9]* objects=[1-9][0-9]* decor=[1-9][0-9]*$' "$ISLAND_LOG" || ! grep -Eq '^ISLAND_COVER seed=7 cells=[1-9][0-9]*x[1-9][0-9]* version=[1-9][0-9]* seen_permille=[1-9][0-9]*$' "$ISLAND_LOG" || grep -Eq '^(ERROR|SCRIPT ERROR)|Unhandled exception' "$ISLAND_LOG"; then
   cat "$ISLAND_LOG" >&2
   echo "SMOKE_FAIL: the island is not drawn (marker 'ISLAND_OK ...' missing or errors)" >&2
