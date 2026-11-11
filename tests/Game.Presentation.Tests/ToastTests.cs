@@ -27,6 +27,32 @@ public sealed class ToastTests
     }
 
     [Fact]
+    public void AHintWithATextForSeveralIsOneHintPerGroupAndSettledHintsLeave()
+    {
+        var board = new ToastBoard(Tokens, new ToastSettings(1, UntilDismissed: false));
+        ToastMessage Question(string who) => new("q", NoArgs, "q|" + who, who, "q.many");
+        board.Push(Question("a"), fastForward: false);
+        board.Push(Question("a"), fastForward: false);
+        board.Push(Question("b"), fastForward: false);
+        board.Push(Msg("other"), fastForward: false);
+        board.Push(Msg("late"), fastForward: false);
+        Assert.Equal([2, 1, 1], board.Visible.Select(t => t.Count));
+        Assert.Equal(1, board.Waiting);
+
+        // The question of "a" is settled: its hint leaves, shown or waiting, and the waiting one moves up.
+        var version = board.Version;
+        board.DismissWhere(m => m.LookAt == "a");
+        Assert.Equal(["b", null, null], board.Visible.Select(t => t.Message.LookAt));
+        Assert.Equal(0, board.Waiting);
+        Assert.True(board.Version > version);
+
+        // Nothing stale: nothing changes.
+        version = board.Version;
+        board.DismissWhere(m => m.LookAt == "a");
+        Assert.Equal(version, board.Version);
+    }
+
+    [Fact]
     public void DurationFactorStretchesTheDisplayTime()
     {
         var queue = new ToastBoard(Tokens, new ToastSettings(10, UntilDismissed: false));

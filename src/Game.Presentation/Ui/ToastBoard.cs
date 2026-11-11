@@ -7,7 +7,8 @@ namespace GlassWorld.Presentation.Ui;
 /// <param name="Args">Placeholder values (<c>{name}</c> in the text).</param>
 /// <param name="Group">Hints of the same group are bundled; null = the text key is the group.</param>
 /// <param name="LookAt">Inhabitant the hint is about: the hint gets a "look" button, the only way an event moves the camera (TL #19976).</param>
-public sealed record ToastMessage(string TextKey, IReadOnlyDictionary<string, string> Args, string? Group, string? LookAt = null);
+/// <param name="ManyKey">Text key shown instead of a count when the hint bundles several ("wonders about several things"); null = text with count.</param>
+public sealed record ToastMessage(string TextKey, IReadOnlyDictionary<string, string> Args, string? Group, string? LookAt = null, string? ManyKey = null);
 
 /// <summary>A hint on screen.</summary>
 /// <param name="Id">Running number.</param>
@@ -63,7 +64,8 @@ public sealed class ToastBoard
     public void Push(ToastMessage message, bool fastForward)
     {
         ArgumentNullException.ThrowIfNull(message);
-        var bundle = fastForward || _waiting.Count >= _tokens.BundleAfterWaiting;
+        // A hint with a text for "several" is one hint per group at any speed (one per inhabitant, D705 A4).
+        var bundle = fastForward || _waiting.Count >= _tokens.BundleAfterWaiting || message.ManyKey is not null;
         if (bundle)
         {
             var same = _visible.Concat(_waiting).FirstOrDefault(e => GroupOf(e.Message) == GroupOf(message));
@@ -108,6 +110,27 @@ public sealed class ToastBoard
             Version++;
         }
 
+        Fill();
+    }
+
+    /// <summary>Closes every hint, shown or waiting, that no longer holds (e.g. the question it points to is answered).</summary>
+    public void DismissWhere(Func<ToastMessage, bool> stale)
+    {
+        ArgumentNullException.ThrowIfNull(stale);
+        var removed = _visible.RemoveAll(e => stale(e.Message));
+        var keep = _waiting.Where(e => !stale(e.Message)).ToList();
+        if (removed == 0 && keep.Count == _waiting.Count)
+        {
+            return;
+        }
+
+        _waiting.Clear();
+        foreach (var entry in keep)
+        {
+            _waiting.Enqueue(entry);
+        }
+
+        Version++;
         Fill();
     }
 
