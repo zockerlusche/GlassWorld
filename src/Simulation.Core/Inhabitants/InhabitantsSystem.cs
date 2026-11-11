@@ -100,10 +100,13 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     /// <summary>Detail of <see cref="ActionCancelled"/> for an action that rests after repeats without effect (W1696).</summary>
     public const string Resting = "resting";
 
-    private readonly SortedDictionary<string, Inhabitant> _inhabitants = new(StringComparer.Ordinal);
-
-    // The same inhabitants in the same (id) order as a list: every pass of a tick walks it instead of the tree.
+    // The inhabitants by id for the look-up and in id order for every pass of a tick, hash and save.
+    private readonly Dictionary<string, Inhabitant> _inhabitants = new(StringComparer.Ordinal);
     private readonly List<Inhabitant> _ordered = [];
+
+    // Working memory of the routine's choice, reused from inhabitant to inhabitant (not state).
+    private readonly UtilityBrain.Scratch _scoring = new();
+    private readonly List<WorldObject> _aim = [];
     private readonly List<WorldEvent> _events = [];
     private readonly InhabitantModel _model;
     private readonly ActionRules _actions;
@@ -352,10 +355,18 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     /// </summary>
     public List<WorldObject> InAim(Inhabitant inhabitant)
     {
+        var aim = new List<WorldObject>();
+        AddInAim(inhabitant, aim);
+        return aim;
+    }
+
+    /// <summary>As <see cref="InAim"/>, added to a list of the caller.</summary>
+    private void AddInAim(Inhabitant inhabitant, List<WorldObject> aim)
+    {
         ArgumentNullException.ThrowIfNull(inhabitant);
         var radius = _brain.Weights.PerceptionRadiusM;
         var sight = Sight.Metres(radius);
-        var aim = _objects.All.Where(o => DistanceSquared(inhabitant.Position, o.Position) <= sight * sight).ToList();
+        _objects.Within(inhabitant.Position, sight, aim);
         if (sight < radius)
         {
             foreach (var (objectId, place) in inhabitant.Places)
@@ -368,8 +379,6 @@ public sealed partial class InhabitantsSystem : IWorldSystem
                 }
             }
         }
-
-        return aim;
     }
 
     /// <summary>
@@ -1179,59 +1188,99 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         // what the inhabitant can aim at ends where the weather lets it see, known places aside (B2594, InAim).
         var radius = _brain.Weights.PerceptionRadiusM;
         // On a map only what can be walked to counts (B2 R10): things beyond deep water or cliffs are no goals.
-        var perceived = InAim(inhabitant)
-            .Where(o => Routes is null || Routes.Connected(inhabitant.Position, o.Position))
-            .ToList();
+        var perceived = _aim;
+        perceived.Clear();
+        AddInAim(inhabitant, perceived);
+        if (Routes is { } reachable)
+        {
+            var kept = 0;
+            for (var i = 0; i < perceived.Count; i++)
+            {
+                if (reachable.Connected(inhabitant.Position, perceived[i].Position))
+                {
+                    perceived[kept++] = perceived[i];
+                }
+            }
+
+            perceived.RemoveRange(kept, perceived.Count - kept);
+        }
 
         // Looking further away gives up after the data's hours, until the need is met or something that
         // seems as good is in sight again (review GW3 #118: no endless search for what is gone).
         var giveUpTicks = (long)(_brain.Weights.SearchGiveUpHours * _ticksPerHour);
         var givenUp = inhabitant.SearchSince.Where(s => world.Tick - s.Value >= giveUpTicks).Select(s => s.Key).ToHashSet(StringComparer.Ordinal);
         var searching = new HashSet<string>(StringComparer.Ordinal);
-        var scored = _brain.Score(inhabitant, perceived, givenUp, searching, _brain.AimsAtInhabitants ? InSight(inhabitant) : null);
-        if (inhabitant.Resting.Count > 0 && scored.Any(o => Rests(inhabitant, o.Action, o.TargetId, world.Tick)))
+        // The options as the brain makes them, not sorted: the best one that the rules below let through is
+        // looked for (UtilityBrain.Compare is the order a sorted list would have), and a rule is asked only
+        // about an option that would be the best so far.
+        var options = _brain.Candidates(inhabitant, perceived, givenUp, searching, _brain.AimsAtInhabitants ? InSight(inhabitant) : null, _scoring);
+
+        // W1696: an action resting after repeats without effect is not chosen, and nothing is done in its
+        // place that no need asks for (score 0): the inhabitant then just stands there instead of being
+        // sent off on a stroll that leads it away from water and food.
+        var resting = false;
+        for (var i = 0; i < options.Count && inhabitant.Resting.Count > 0 && !resting; i++)
         {
-            // W1696: an action resting after repeats without effect is not chosen, and nothing is done in its
-            // place that no need asks for (score 0): the inhabitant then just stands there instead of being
-            // sent off on a stroll that leads it away from water and food.
-            scored = [.. scored.Where(o => !Rests(inhabitant, o.Action, o.TargetId, world.Tick) && o.Score > 0)];
+            resting = Rests(inhabitant, options[i].Action, options[i].TargetId, world.Tick);
         }
 
-        foreach (var over in inhabitant.SearchSince.Keys.Where(k => !searching.Contains(k)).ToList())
+        if (inhabitant.SearchSince.Count > 0)
         {
-            inhabitant.SearchSince.Remove(over);
+            foreach (var over in inhabitant.SearchSince.Keys.Where(k => !searching.Contains(k)).ToList())
+            {
+                inhabitant.SearchSince.Remove(over);
+            }
         }
 
-        if (Knowledge is { } knowledge && QuestionOpen is { } open && knowledge.WaitWhileQuestionOpen.Count > 0)
-        {
-            // W1595: what the inhabitant asked about is not eaten (or drunk …) before the answer comes.
-            scored = [.. scored.Where(o => o.TargetId is null
-                || !knowledge.WaitWhileQuestionOpen.Contains(o.Action)
+        // W1595: what the inhabitant asked about is not eaten (or drunk …) before the answer comes.
+        var waitFor = Knowledge is { WaitWhileQuestionOpen.Count: > 0 } knowledge && QuestionOpen is not null ? knowledge.WaitWhileQuestionOpen : null;
+        bool Allowed(in Candidate o) =>
+            (!resting || (!Rests(inhabitant, o.Action, o.TargetId, world.Tick) && o.Score > 0))
+            && (waitFor is null
+                || o.TargetId is null
+                || !waitFor.Contains(o.Action)
                 || !_objects.TryGet(o.TargetId, out var thing)
-                || !open(inhabitant.Id, thing.TypeId))];
-        }
+                || !QuestionOpen!(inhabitant.Id, thing.TypeId));
 
         // B2-6 R14: an action at the frontier is an option only while its score counts and land the
         // inhabitant has not seen can be reached on foot (never on worlds without a map). The frontier is
         // looked for only when such an action would be chosen, so the search is paid once per walk.
         Position? frontier = null;
-        while (scored.Count > 0 && AtFrontier(scored[0].Action))
+        var atFrontier = true;
+        int chosen;
+        while (true)
         {
-            frontier = scored[0].Score > 0 ? FrontierOf?.Invoke(inhabitant) : null;
+            chosen = -1;
+            for (var i = 0; i < options.Count; i++)
+            {
+                var o = options[i];
+                if ((chosen < 0 || UtilityBrain.Compare(o, i, options[chosen], chosen) < 0) && (atFrontier || !AtFrontier(o.Action)) && Allowed(o))
+                {
+                    chosen = i;
+                }
+            }
+
+            if (chosen < 0)
+            {
+                return null;
+            }
+
+            if (!AtFrontier(options[chosen].Action))
+            {
+                break;
+            }
+
+            frontier = options[chosen].Score > 0 ? FrontierOf?.Invoke(inhabitant) : null;
             if (frontier is not null)
             {
                 break;
             }
 
-            scored = [.. scored.Where(o => !AtFrontier(o.Action))];
+            // No unseen land to walk to: the actions at the frontier are no options, the next best is looked for.
+            atFrontier = false;
         }
 
-        if (scored.Count == 0)
-        {
-            return null;
-        }
-
-        var best = scored[0];
+        var best = options[chosen];
         if (best.SearchFor is { } search)
         {
             inhabitant.SearchSince.TryAdd(search, world.Tick);
@@ -1271,9 +1320,21 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     /// (<see cref="SightRadiusM"/>) and, on a map, can walk to; in id order. Who of them is familiar and
     /// awake is the brain's question.
     /// </summary>
-    private List<Inhabitant> InSight(Inhabitant inhabitant) =>
-        [.. _ordered.Where(other => !ReferenceEquals(other, inhabitant) && Sees(inhabitant, other)
-            && (Routes is null || Routes.Connected(inhabitant.Position, other.Position)))];
+    private List<Inhabitant> InSight(Inhabitant inhabitant)
+    {
+        var sight = SightRadiusM;
+        var seen = new List<Inhabitant>();
+        foreach (var other in _ordered)
+        {
+            if (!ReferenceEquals(other, inhabitant) && DistanceSquared(inhabitant.Position, other.Position) <= sight * sight
+                && (Routes is null || Routes.Connected(inhabitant.Position, other.Position)))
+            {
+                seen.Add(other);
+            }
+        }
+
+        return seen;
+    }
 
     /// <summary>Whether an inhabitant sees another right now: within the sight of this tick (B2594).</summary>
     private bool Sees(Inhabitant inhabitant, Inhabitant other)

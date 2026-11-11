@@ -36,14 +36,32 @@ public sealed class BeliefSet
 {
     private readonly SortedDictionary<(string TypeId, string PropertyId), Belief> _beliefs = new(KeyComparer.Instance);
 
-    // The types there is a belief about (beliefs are set, never taken away).
-    private readonly HashSet<string> _types = new(StringComparer.Ordinal);
+    // Indexes, not state (they follow from _beliefs; beliefs are set, never taken away): every belief by its
+    // key for the look-up, and the properties believed about each type in ordinal order. The routine asks
+    // about single beliefs and about "everything on this type" for every kind of thing in sight.
+    private readonly Dictionary<(string TypeId, string PropertyId), Belief> _byKey = [];
+    private readonly Dictionary<string, List<string>> _properties = new(StringComparer.Ordinal);
 
     /// <summary>Number of beliefs.</summary>
     public int Count => _beliefs.Count;
 
     /// <summary>Whether there is any belief about a type (the same answer as <see cref="About"/> not being empty).</summary>
-    public bool Knows(string typeId) => _types.Contains(typeId);
+    public bool Knows(string typeId) => _properties.ContainsKey(typeId);
+
+    /// <summary>The highest confidence of the beliefs about a type (any property, any value); 0 without any.</summary>
+    public double Surest(string typeId)
+    {
+        var surest = 0.0;
+        if (_properties.TryGetValue(typeId, out var properties))
+        {
+            foreach (var property in properties)
+            {
+                surest = Math.Max(surest, _byKey[(typeId, property)].Confidence);
+            }
+        }
+
+        return surest;
+    }
 
     /// <summary>Sets a belief with its source (confidence is clamped to 0..1).</summary>
     public void Set(string typeId, string propertyId, bool value, double confidence, string source = KnowledgeSources.Experienced, string? toldBy = null, long tick = 0)
@@ -51,12 +69,31 @@ public sealed class BeliefSet
         ArgumentException.ThrowIfNullOrEmpty(typeId);
         ArgumentException.ThrowIfNullOrEmpty(propertyId);
         ArgumentException.ThrowIfNullOrEmpty(source);
-        _beliefs[(typeId, propertyId)] = new Belief(value, Math.Clamp(confidence, 0.0, 1.0), source, toldBy, tick);
-        _types.Add(typeId);
+        var belief = new Belief(value, Math.Clamp(confidence, 0.0, 1.0), source, toldBy, tick);
+        _beliefs[(typeId, propertyId)] = belief;
+        if (_byKey.TryAdd((typeId, propertyId), belief))
+        {
+            if (!_properties.TryGetValue(typeId, out var properties))
+            {
+                _properties[typeId] = properties = [];
+            }
+
+            var at = properties.Count;
+            while (at > 0 && string.CompareOrdinal(properties[at - 1], propertyId) > 0)
+            {
+                at--;
+            }
+
+            properties.Insert(at, propertyId);
+        }
+        else
+        {
+            _byKey[(typeId, propertyId)] = belief;
+        }
     }
 
     /// <summary>Looks up a belief.</summary>
-    public bool TryGet(string typeId, string propertyId, out Belief belief) => _beliefs.TryGetValue((typeId, propertyId), out belief);
+    public bool TryGet(string typeId, string propertyId, out Belief belief) => _byKey.TryGetValue((typeId, propertyId), out belief);
 
     /// <summary>All beliefs in (type, property) order.</summary>
     public IEnumerable<(string TypeId, string PropertyId, Belief Belief)> All =>
@@ -64,7 +101,7 @@ public sealed class BeliefSet
 
     /// <summary>The beliefs about one type, in property order.</summary>
     public IEnumerable<(string PropertyId, Belief Belief)> About(string typeId) =>
-        _beliefs.Where(b => b.Key.TypeId == typeId).Select(b => (b.Key.PropertyId, b.Value));
+        _properties.TryGetValue(typeId, out var properties) ? properties.Select(p => (p, _byKey[(typeId, p)])) : [];
 
     /// <summary>Writes the beliefs in a fixed order.</summary>
     public void WriteState(StateHasher hasher)

@@ -25,9 +25,11 @@ public sealed record ObjectsOfType(string TypeId, IReadOnlyList<WorldObject> Obj
 /// </summary>
 public sealed class WorldObjects : IWorldSystem
 {
-    private readonly SortedDictionary<string, WorldObject> _objects = new(StringComparer.Ordinal);
+    // The objects by id for the look-up and in id order for every pass, hash and save.
+    private readonly Dictionary<string, WorldObject> _objects = new(StringComparer.Ordinal);
+    private readonly List<WorldObject> _ordered = [];
 
-    // Index, not state (it follows from _objects): the objects of each type in id order, the types in
+    // Index, not state (it follows from the objects): the objects of each type in id order, the types in
     // ordinal order. Whoever asks about a kind of thing (the nearest thing of a type nobody knows) walks
     // the objects of that type instead of every object of the world.
     private readonly List<ObjectsOfType> _byType = [];
@@ -46,10 +48,29 @@ public sealed class WorldObjects : IWorldSystem
     public string Name => "objects";
 
     /// <summary>All objects in id order.</summary>
-    public IEnumerable<WorldObject> All => _objects.Values;
+    public IEnumerable<WorldObject> All => _ordered;
 
     /// <summary>Number of objects.</summary>
-    public int Count => _objects.Count;
+    public int Count => _ordered.Count;
+
+    /// <summary>
+    /// Adds the objects that lie within <paramref name="radius"/> metres of a position (the border counts)
+    /// to <paramref name="into"/>, in id order.
+    /// </summary>
+    public void Within(Position centre, double radius, List<WorldObject> into)
+    {
+        ArgumentNullException.ThrowIfNull(into);
+        var limit = radius * radius;
+        foreach (var obj in _ordered)
+        {
+            var dx = centre.X - obj.Position.X;
+            var dz = centre.Z - obj.Position.Z;
+            if ((dx * dx) + (dz * dz) <= limit)
+            {
+                into.Add(obj);
+            }
+        }
+    }
 
     /// <summary>
     /// The objects by type: every type that has had an object in this world, in ordinal order of the type
@@ -87,6 +108,7 @@ public sealed class WorldObjects : IWorldSystem
 
         var ofType = OfType(obj.TypeId);
         ofType.RemoveAt(Place(ofType, id));
+        _ordered.RemoveAt(Place(_ordered, id));
         return true;
     }
 
@@ -103,6 +125,7 @@ public sealed class WorldObjects : IWorldSystem
     {
         var ofType = OfType(obj.TypeId);
         ofType.Insert(~Place(ofType, obj.Id), obj);
+        _ordered.Insert(~Place(_ordered, obj.Id), obj);
     }
 
     /// <summary>The list of a type's objects, added in its place among the types when the type is new.</summary>
@@ -159,8 +182,8 @@ public sealed class WorldObjects : IWorldSystem
     public void WriteState(StateHasher hasher)
     {
         ArgumentNullException.ThrowIfNull(hasher);
-        hasher.Write(NextNumber).Write(_objects.Count);
-        foreach (var obj in _objects.Values)
+        hasher.Write(NextNumber).Write(_ordered.Count);
+        foreach (var obj in _ordered)
         {
             hasher.Write(obj.Id).Write(obj.TypeId).Write(obj.Position.X).Write(obj.Position.Z);
         }

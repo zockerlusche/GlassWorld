@@ -76,6 +76,83 @@ public sealed class IndexTests : IDisposable
     }
 
     [Fact]
+    public void BeliefsAreFoundByKeyByTypeAndInOrder()
+    {
+        var beliefs = new BeliefSet();
+        beliefs.Set("flint", "sharp", true, 0.4);
+        beliefs.Set("apple", "poisonous", false, 0.9);
+        beliefs.Set("apple", "edible", true, 0.3);
+        beliefs.Set("apple", "fruit", true, 0.8, KnowledgeSources.Seen);
+        beliefs.Set("apple", "edible", true, 0.5, KnowledgeSources.Heard, "inh-000002", 7);
+        AssertBeliefs(beliefs);
+        Assert.Equal(4, beliefs.Count);
+        Assert.Equal(["edible", "fruit", "poisonous"], beliefs.About("apple").Select(b => b.PropertyId));
+        Assert.True(beliefs.TryGet("apple", "edible", out var edible));
+        Assert.Equal(new Belief(true, 0.5, KnowledgeSources.Heard, "inh-000002", 7), edible);
+        Assert.Equal(0.9, beliefs.Surest("apple"));
+        Assert.Equal(0.0, beliefs.Surest("clay"));
+        Assert.Empty(beliefs.About("clay"));
+        Assert.False(beliefs.TryGet("clay", "edible", out _));
+    }
+
+    private static void AssertBeliefs(BeliefSet beliefs)
+    {
+        var all = beliefs.All.ToList();
+        Assert.Equal(beliefs.Count, all.Count);
+        Assert.Equal(all.OrderBy(b => b.TypeId, StringComparer.Ordinal).ThenBy(b => b.PropertyId, StringComparer.Ordinal), all);
+        foreach (var (typeId, propertyId, belief) in all)
+        {
+            Assert.True(beliefs.TryGet(typeId, propertyId, out var found));
+            Assert.Equal(belief, found);
+        }
+
+        foreach (var type in all.Select(b => b.TypeId).Distinct(StringComparer.Ordinal))
+        {
+            Assert.Equal(all.Where(b => b.TypeId == type).Select(b => (b.PropertyId, b.Belief)), beliefs.About(type));
+            Assert.Equal(all.Where(b => b.TypeId == type).Max(b => b.Belief.Confidence), beliefs.Surest(type));
+            Assert.True(beliefs.Knows(type));
+        }
+    }
+
+    [Fact]
+    public void TheBestCandidateIsTheFirstOfTheSortedOptions()
+    {
+        // A world that has lived a while: beliefs, needs and things in sight differ from inhabitant to inhabitant.
+        var host = SimulationHost.CreateGeneratedWorld(ContentDirectory, 42, MockDecisionPort.FromContent(ContentDirectory), "de", Preset, inhabitants: 12);
+        host.World.Run(400);
+        var brain = host.Content.Brain;
+        var scratch = new Behaviour.UtilityBrain.Scratch();
+        var none = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var inhabitant in host.Inhabitants.All)
+        {
+            var perceived = host.Inhabitants.InAim(inhabitant);
+            var others = host.Inhabitants.All.Where(o => o != inhabitant).ToList();
+            var sorted = brain.Score(inhabitant, perceived, none, null, others);
+            var candidates = brain.Candidates(inhabitant, perceived, none, null, others, scratch);
+            Assert.Equal(sorted.Count, candidates.Count);
+            Assert.NotEmpty(sorted);
+
+            // The sorted list is the candidates in the order of Compare, which never calls two of them equal.
+            for (var i = 1; i < sorted.Count; i++)
+            {
+                Assert.True(sorted[i - 1].Score >= sorted[i].Score);
+            }
+
+            var best = 0;
+            for (var i = 1; i < candidates.Count; i++)
+            {
+                Assert.NotEqual(0, Behaviour.UtilityBrain.Compare(candidates[i], i, candidates[best], best));
+                best = Behaviour.UtilityBrain.Compare(candidates[i], i, candidates[best], best) < 0 ? i : best;
+            }
+
+            Assert.Equal((sorted[0].Action, sorted[0].TargetId, sorted[0].Score, sorted[0].SearchFor), (candidates[best].Action, candidates[best].TargetId, candidates[best].Score, candidates[best].SearchFor));
+            Assert.Equal(
+                sorted.Select(o => (o.Action, o.TargetId, o.Score)).Order(),
+                candidates.Select(o => (o.Action, o.TargetId, o.Score)).Order());
+        }
+    }
+
+    [Fact]
     public void TheIndexesAgreeWithTheStateDuringARunAndAfterLoading()
     {
         // Twenty inhabitants and a decider that answers: questions open and close, things are eaten and grow back.
@@ -111,6 +188,7 @@ public sealed class IndexTests : IDisposable
         foreach (var inhabitant in host.Inhabitants.All)
         {
             Assert.All(types, type => Assert.Equal(inhabitant.Beliefs.About(type).Any(), inhabitant.Beliefs.Knows(type)));
+            AssertBeliefs(inhabitant.Beliefs);
             Assert.All(types, type => Assert.Equal(
                 open.Any(q => q.InhabitantId == inhabitant.Id && q.Subject == "type:" + type),
                 host.Decisions.HasOpenQuestion(inhabitant.Id, type)));
