@@ -6,6 +6,8 @@ namespace GlassWorld.Simulation.Inhabitants;
 /// <summary>
 /// One diary entry (TL #20472): an action an inhabitant started. Language-neutral; the screen builds the
 /// line from the action's text key and these values when it draws, so names and language are those of now.
+/// The conversation request reads the start tick of the running action from it (W1737); the answers are
+/// logged, so a replay does not depend on the diary.
 /// </summary>
 /// <param name="Seq">Running number over all inhabitants, starting at 1, never reused.</param>
 /// <param name="Tick">Tick the action started (after walking to the target).</param>

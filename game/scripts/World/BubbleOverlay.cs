@@ -51,7 +51,7 @@ public partial class BubbleOverlay : CanvasLayer
         Layer = -1;
 
         // The game's UI theme (fonts, sizes) also below this layer.
-        _root.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        _root.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
         AddChild(_root);
         GlassWorld.Game.Ui.UiSetup.Bind(_root);
     }

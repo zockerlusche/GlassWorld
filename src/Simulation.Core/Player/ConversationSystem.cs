@@ -137,6 +137,12 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
     /// </summary>
     public IConversationPort? Port { get; set; }
 
+    /// <summary>
+    /// The diary of started actions (TL #20472), set by the host: it tells the request since when the speaker
+    /// has been doing what it does (W1737). Without it the action counts as begun now.
+    /// </summary>
+    public InhabitantDiary? Diary { get; set; }
+
     /// <inheritdoc/>
     public string Name => "conversation";
 
@@ -276,6 +282,7 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
         _counter++;
         var start = new Relation(_knowledge.RelationshipStart.Affection, _knowledge.RelationshipStart.Trust, _knowledge.RelationshipStart.Respect);
         var relation = inhabitant.Relationships.Get(PlayerId, start);
+        var seen = _decisions.PerceivedTypes(inhabitant);
         return new ConversationRequest
         {
             ContractVersion = ContractInfo.Version,
@@ -298,6 +305,12 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
                 WillToLive = inhabitant.WillToLive,
                 Understanding = memory.Understanding,
                 RelationToPlayer = new RelationToPlayer { Trust = relation.Trust, Awe = relation.Respect, Fear = memory.Fear },
+
+                // W1737: what it does, knows and sees, so the answer stays with what is there. Beliefs only,
+                // never the truth.
+                Doing = Doing(world, inhabitant),
+                Knowledge = Known(inhabitant, seen),
+                Sees = [.. seen.Take(SeesMax).Order(StringComparer.Ordinal)],
             },
             PlayerText = text,
             RecentLines = [.. memory.Lines.Select(l => new ConversationLine
@@ -307,6 +320,75 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
                 Text = new GeneratedText { Locale = Enum.Parse<Locale>(l.Locale, ignoreCase: true), Text = l.Text },
             })],
         };
+    }
+
+    // Limits of the conversation request contract (maxItems of speaker.knowledge and speaker.sees).
+    private const int KnowledgeMax = 24;
+    private const int SeesMax = 16;
+
+    /// <summary>
+    /// What the speaker is doing (W1737): its action, the thing or inhabitant it is about, since when, and the
+    /// step it has planned. Null while it does nothing. A thing is named by its type, as the speaker sees it.
+    /// </summary>
+    private ConversationDoing? Doing(World world, Inhabitant inhabitant)
+    {
+        if (inhabitant.Activity is not { } activity)
+        {
+            return null;
+        }
+
+        // The diary notes an action when it starts (after the walk to its target): while the action itself runs,
+        // the speaker's last entry is this one. On the way there it has only just set out.
+        var started = activity.RemainingTicks is not null && Diary?.Of(inhabitant.Id) is { Count: > 0 } entries ? entries[^1] : null;
+        if (started is not null && !(string.Equals(started.Action, activity.Action, StringComparison.Ordinal)
+            && string.Equals(started.TargetId, activity.TargetId, StringComparison.Ordinal)))
+        {
+            started = null;
+        }
+
+        return new ConversationDoing
+        {
+            Action = activity.Action,
+            Target = About(activity.TargetId, started?.TargetType),
+            SinceTick = started?.Tick ?? world.Tick,
+            Planned = inhabitant.Planned is { } next ? new ConversationStep { Action = next.Action, Target = About(next.TargetId, null) } : null,
+        };
+    }
+
+    private Subject? About(string? targetId, string? knownType)
+    {
+        if (targetId is null)
+        {
+            return null;
+        }
+
+        if (_inhabitants.All.Any(i => string.Equals(i.Id, targetId, StringComparison.Ordinal)))
+        {
+            return new Subject { Kind = SubjectKind.Inhabitant, Id = targetId };
+        }
+
+        return (knownType ?? _decisions.TypeOf(targetId)) is { } type ? new Subject { Kind = SubjectKind.Type, Id = type } : null;
+    }
+
+    /// <summary>
+    /// What the speaker believes (W1737): first about what it sees, chosen as in the decision request, then its
+    /// newest other beliefs, up to the contract's limit.
+    /// </summary>
+    private List<KnowledgeEntry> Known(Inhabitant inhabitant, IReadOnlyList<string> seen)
+    {
+        var known = (InhabitantStates.Of(inhabitant, _knowledge, seen, []).Knowledge ?? []).Take(KnowledgeMax).ToList();
+        var seenTypes = seen.ToHashSet(StringComparer.Ordinal);
+        var visible = _knowledge.Looking?.VisibleProperties.ToHashSet(StringComparer.Ordinal) ?? [];
+        known.AddRange(inhabitant.Beliefs.All
+
+            // As in the first part: what a thing is not by its look says little and would crowd out the rest.
+            .Where(b => !seenTypes.Contains(b.TypeId) && (b.Belief.Value || !visible.Contains(b.PropertyId)))
+            .OrderByDescending(b => b.Belief.Tick)
+            .ThenBy(b => b.TypeId, StringComparer.Ordinal)
+            .ThenBy(b => b.PropertyId, StringComparer.Ordinal)
+            .Take(KnowledgeMax - known.Count)
+            .Select(b => InhabitantStates.Entry(inhabitant, b.TypeId, b.PropertyId, b.Belief)));
+        return known;
     }
 
     private void Take(World world, PortMessage message)

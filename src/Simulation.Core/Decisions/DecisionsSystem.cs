@@ -432,6 +432,13 @@ public sealed class DecisionsSystem : IWorldSystem
         return best;
     }
 
+    /// <summary>The object types the inhabitant perceives right now, nearest first, each once (W1737).</summary>
+    internal IReadOnlyList<string> PerceivedTypes(Inhabitant inhabitant) =>
+        [.. Perceived(inhabitant).Select(o => o.TypeId).Distinct(StringComparer.Ordinal)];
+
+    /// <summary>The type of a thing in the world by its id; null when there is no such thing (any more).</summary>
+    internal string? TypeOf(string objectId) => _objects.TryGet(objectId, out var thing) ? thing.TypeId : null;
+
     private List<WorldObject> Perceived(Inhabitant inhabitant)
     {
         var radius = _inhabitants.SightRadiusM;
