@@ -420,7 +420,7 @@ class KnowledgeMemory(BaseModel):
     )
     condense_at: int = Field(
         ...,
-        description="A compute night condenses an inhabitant's memory once this many of its events are not in the summary yet.",
+        description="A compute night condenses an inhabitant's memory once at least this many of its entries are not in the summary yet (new since the last condensing, or sent with a job that failed). Small on purpose: the summary is what the decider, the questions and the conversation read as the story so far, so it should follow every night that brought something new.",
         ge=1,
         le=512,
     )

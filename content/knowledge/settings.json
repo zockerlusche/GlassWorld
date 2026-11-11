@@ -102,7 +102,7 @@
     "max_habits": 6
   },
   "memory": {
-    "condense_at": 16,
+    "condense_at": 4,
     "job_max_events": 32,
     "job_max_formative": 12,
     "max_chars": 600,

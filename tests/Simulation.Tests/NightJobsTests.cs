@@ -20,8 +20,14 @@ namespace GlassWorld.Simulation.Tests;
 public sealed class NightJobsTests : IDisposable
 {
     private const string Thing = "flint";
-    private static readonly string ContentDirectory = Path.Combine(TestData.Root, "content");
+    private static readonly string ShippedContent = Path.Combine(TestData.Root, "content");
+
+    // The mechanism is tested with limits of its own (a copy of the content), so a new proposal value in the
+    // shipped data does not move these tests; one test below looks at the shipped values.
+    private static readonly Lazy<string> OwnContent = new(CopyContentWithOwnMemoryLimits);
     private static readonly Lazy<ContentSet> Content = new(() => ContentSet.Load(ContentDirectory));
+
+    private static string ContentDirectory => OwnContent.Value;
 
     private readonly string _directory = Path.Combine(Path.GetTempPath(), "gw-night-" + Guid.NewGuid().ToString("N"));
 
@@ -30,6 +36,30 @@ public sealed class NightJobsTests : IDisposable
     public void Dispose() => Directory.Delete(_directory, recursive: true);
 
     private static KnowledgeMemory Settings => Content.Value.Knowledge.Memory!;
+
+    [Fact]
+    public void TheShippedDataCondenseEveryNightThatBroughtAFewNewEntries()
+    {
+        // The summary is 'the story so far' for the decider, the questions and the conversation (GW2 #227):
+        // with the shipped value a few new entries are enough, one fewer is not.
+        var shipped = ContentSet.Load(ShippedContent).Knowledge.Memory!;
+        Assert.InRange(shipped.CondenseAt, 1, shipped.JobMaxFormative);
+        foreach (var (entries, jobs) in new[] { (shipped.CondenseAt - 1, 0), (shipped.CondenseAt, 1) })
+        {
+            var port = new ScriptedJobPort();
+            var host = SimulationHost.CreateEmpty(ShippedContent, 21, new SilentDecisionPort(), "de", port);
+            var a = Person(host, "inh-000001", new Position(0, 0));
+            for (var i = 0; i < entries; i++)
+            {
+                a.Memory.Remember(100 + i, "inspect", InhabitantsSystem.AboutType, "type_" + i, formative: i == 0, shipped.MaxEvents);
+            }
+
+            RunIntoTheNight(host);
+
+            Assert.Equal(jobs, port.Submitted.Count);
+            Assert.All(port.Submitted, j => Assert.Equal(entries, j.Payload.Memory!.Events.Count));
+        }
+    }
 
     [Fact]
     public void BelowTheThresholdTheNightSendsNoMemoryJob()
@@ -967,6 +997,29 @@ public sealed class NightJobsTests : IDisposable
         }
 
         host.World.Step();
+    }
+
+    /// <summary>A copy of the content whose memory limits are the tests' own (not the shipped proposal values).</summary>
+    private static string CopyContentWithOwnMemoryLimits()
+    {
+        var target = Path.Combine(Path.GetTempPath(), "glassworld-night-content-" + Path.GetRandomFileName());
+        foreach (var file in Directory.EnumerateFiles(ShippedContent, "*", SearchOption.AllDirectories))
+        {
+            var to = Path.Combine(target, Path.GetRelativePath(ShippedContent, file));
+            Directory.CreateDirectory(Path.GetDirectoryName(to)!);
+            File.Copy(file, to);
+        }
+
+        var path = Path.Combine(target, "knowledge", "settings.json");
+        var settings = ContractSerializer.Deserialize<KnowledgeSettings>(File.ReadAllText(path));
+        var memory = settings.Memory!;
+        memory.CondenseAt = 16;
+        memory.JobMaxEvents = 32;
+        memory.JobMaxFormative = 12;
+        memory.MaxChars = 600;
+        memory.MaxEvents = 64;
+        File.WriteAllText(path, ContractSerializer.Serialize(settings));
+        return target;
     }
 
     private static SimulationHostFactory Factory(IJobPort jobs, IDecisionPort decisions)

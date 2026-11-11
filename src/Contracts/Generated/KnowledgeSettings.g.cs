@@ -20,7 +20,7 @@ namespace GlassWorld.Contracts
     {
 
         /// <summary>
-        /// A compute night condenses an inhabitant's memory once this many of its events are not in the summary yet.
+        /// A compute night condenses an inhabitant's memory once at least this many of its entries are not in the summary yet (new since the last condensing, or sent with a job that failed). Small on purpose: the summary is what the decider, the questions and the conversation read as the story so far, so it should follow every night that brought something new.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("condense_at")]
         public int CondenseAt { get; set; } = default!;
