@@ -6,21 +6,24 @@
       "target_x_permille": 500,
       "target_z_permille": 500,
       "yaw_deg": 30,
-      "distance_m": 260
+      "distance_m": 260,
+      "revealed_permille": 1000
     },
     {
       "id": "start",
       "target_x_permille": 500,
       "target_z_permille": 500,
       "yaw_deg": 30,
-      "distance_m": 60
+      "distance_m": 60,
+      "revealed_permille": 1000
     },
     {
       "id": "close",
       "target_x_permille": 500,
       "target_z_permille": 500,
       "yaw_deg": 120,
-      "distance_m": 30
+      "distance_m": 30,
+      "revealed_permille": 1000
     },
     {
       "id": "figures",
@@ -28,7 +31,8 @@
       "target_z_permille": 500,
       "yaw_deg": 30,
       "distance_m": 14,
-      "inhabitant": 0
+      "inhabitant": 0,
+      "revealed_permille": 1000
     },
     {
       "id": "figures_far",
@@ -36,7 +40,8 @@
       "target_z_permille": 500,
       "yaw_deg": 60,
       "distance_m": 40,
-      "inhabitant": 1
+      "inhabitant": 1,
+      "revealed_permille": 1000
     },
     {
       "id": "creek_scene",
@@ -51,7 +56,8 @@
         "spring": true,
         "min_relief": 15,
         "face_hill": true
-      }
+      },
+      "revealed_permille": 1000
     },
     {
       "id": "creek_close",
@@ -66,7 +72,8 @@
         "spring": true,
         "min_relief": 15,
         "face_hill": true
-      }
+      },
+      "revealed_permille": 1000
     }
   ],
   "projections": [

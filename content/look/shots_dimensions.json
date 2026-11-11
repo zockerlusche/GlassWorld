@@ -6,7 +6,8 @@
       "target_x_permille": 500,
       "target_z_permille": 500,
       "yaw_deg": 30,
-      "distance_m": 260
+      "distance_m": 260,
+      "revealed_permille": 1000
     }
   ],
   "projections": [
