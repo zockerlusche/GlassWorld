@@ -9,7 +9,8 @@
 #   OUT_DIR  folder for bench_<WxH>_<pass>.csv and .log (created if missing)
 # Environment: BENCH_PASSES (default: every pass of the benchmark data - the content/ beside an exported
 # binary, else the repository's; read with python), BENCH_TIMEOUT_S per pass (default 900),
-# BENCH_HEADLESS=1 for a check without a window (no rendering, the numbers mean nothing).
+# BENCH_HEADLESS=1 for a check without a window (no rendering, the numbers mean nothing),
+# BENCH_PASS_LIMIT=N to run only the first N passes of the data (the export's own proof runs one).
 # The extra arguments go to the scene (after --), never to the engine: "--headless" among them does NOT
 # run headless. Without BENCH_HEADLESS=1 every pass opens a window on the GPU, so the run belongs in the
 # AMW run queue (amw lauf start --schirm --gpu --warten).
@@ -54,6 +55,18 @@ if [[ -z "$PASSES" ]]; then
     echo "BENCH_FAIL: cannot read the passes from $DATA (python needed) - set BENCH_PASSES" >&2
     exit 2
   fi
+fi
+
+if [[ -n "${BENCH_PASS_LIMIT:-}" ]]; then
+  # shellcheck disable=SC2086  # the pass ids are words on purpose
+  set -- $PASSES -- "$@"
+  KEPT=()
+  while [[ "$1" != "--" ]]; do
+    if [[ ${#KEPT[@]} -lt "$BENCH_PASS_LIMIT" ]]; then KEPT+=("$1"); fi
+    shift
+  done
+  shift
+  PASSES="${KEPT[*]}"
 fi
 
 ENGINE=()

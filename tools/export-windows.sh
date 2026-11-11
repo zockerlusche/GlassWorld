@@ -91,7 +91,8 @@ grep -E '^WORLD_OK' "$LOG"
 # The exported build must reach the island scene's benchmark (B2-7): the templates take no scene path,
 # so this is the only proof that the measurement can run on an export. Headless, one second, no window.
 BENCH_DIR="$(mktemp -d)"
-if ! BENCH_HEADLESS=1 BENCH_PASSES="${EXPORT_BENCH_PASS:-day}" BENCH_TIMEOUT_S=180 bash "$ROOT/tools/benchmark.sh" "$OUT/GlassWorld.exe" 1280x720 "$BENCH_DIR" --bench-seconds=1 --bench-warmup=0.5 >"$BENCH_DIR/out.log" 2>&1 \
+# The first pass of the benchmark data, whatever it is called (review GW3 #234).
+if ! BENCH_HEADLESS=1 BENCH_PASS_LIMIT=1 BENCH_TIMEOUT_S=180 bash "$ROOT/tools/benchmark.sh" "$OUT/GlassWorld.exe" 1280x720 "$BENCH_DIR" --bench-seconds=1 --bench-warmup=0.5 >"$BENCH_DIR/out.log" 2>&1 \
   || ! grep -Eq '^BENCH_DONE ' "$BENCH_DIR/out.log"; then
   cat "$BENCH_DIR/out.log" >&2
   echo "EXPORT_FAIL: exported build did not run the benchmark of the island scene" >&2

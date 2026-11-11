@@ -21,7 +21,8 @@ namespace GlassWorld.Game;
 /// <c>--debug</c> lets the core accept debug commands (the debug jumps of the debug view, B2-6 R31);
 /// without it they are refused. <c>--benchmark=CSV</c> or <c>--island</c> hand over to the island scene
 /// (world/island.tscn: benchmark, shot tool, checks) with the same arguments: an exported build takes no
-/// scene path on the command line, so this is the way in for it.
+/// scene path on the command line, so this is the way in for it. These two are for measurements and
+/// checks only, not a feature for players: the island scene has no menu and saves nothing.
 /// </summary>
 public partial class Main : Node3D
 {
