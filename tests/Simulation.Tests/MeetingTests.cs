@@ -83,20 +83,11 @@ public sealed class MeetingTests
         host.World.Run(ticksPerDay);
         Assert.Single(meetings, e => e.InhabitantId == one.Id && e.TargetId == other.Id);
         var strangers = Of(Starts.Strangers);
-        bool Changed() => all.SelectMany(x => all.Where(y => y.Group != x.Group).Select(y => x.Relationships.Get(y.Id, strangers))).Any(r => r != strangers);
 
-        // W1744: since the routine seeks company, the partners talk to each other first and the pairs meet
-        // earlier (seed 1: tick 24 instead of 90). The decider's first choice towards a stranger (talk_to,
-        // answered at tick 25) waited behind the running talk and was replaced at tick 31 by the decider's
-        // answer to the next question (who the second stranger is) - decider over decider, as before this
-        // change. Which answer then leads to the first shared experience is a matter of the run, so it gets
-        // the same days as the meeting.
-        for (var t = 0; t < 2 * ticksPerDay && !Changed(); t++)
-        {
-            host.World.Step();
-        }
-
-        Assert.True(Changed(), "a relationship between the pairs changed");
+        // Within the day after the meeting a relationship between the pairs has changed. (For a while this
+        // needed two more days: the decider's first choice towards a stranger, queued behind a running talk,
+        // was replaced by its own answer to the next question. A1487 ended that: one thing at a time.)
+        Assert.Contains(all.SelectMany(x => all.Where(y => y.Group != x.Group).Select(y => x.Relationships.Get(y.Id, strangers))), r => r != strangers);
     }
 
     [Fact]
@@ -205,8 +196,12 @@ public sealed class MeetingTests
     {
         // W1744 (review GW2 #228): an answer aimed at a sleeper is cancelled by the rule checker, so offering
         // it would be an AI call for nothing. The sleeper is still seen; it is asked about once it is awake.
+        // This is about whom a question names, not about when it goes out: the decider never answers here, so
+        // the second question would wait behind the first (A1487, OneThingAtATimeTests) - switched off.
         var port = new SilentPort();
-        var (world, inhabitants, decisions) = AskingWorld(Settings, port, [new(0, 0), new(5, 0), new(10, 0), new(-500, -500)]);
+        var settings = ContractSerializer.Deserialize<DeciderSettings>(ContractSerializer.Serialize(Settings));
+        settings.ChoiceProtectionHours = null;
+        var (world, inhabitants, decisions) = AskingWorld(settings, port, [new(0, 0), new(5, 0), new(10, 0), new(-500, -500)]);
         var (asker, partner, stranger) = (inhabitants.Get("inh-000001"), inhabitants.Get("inh-000002"), inhabitants.Get("inh-000003"));
         partner.Activity = new Activity(Content.InhabitantModel.Togetherness!.SleepAction, null, partner.Position, 100_000);
         Assert.True(inhabitants.IsAsleep(partner));

@@ -13,7 +13,7 @@ namespace GlassWorld.Simulation.Decisions;
 /// <param name="InhabitantId">Who asks.</param>
 /// <param name="Kind">What was not understood (trigger kind).</param>
 /// <param name="Subject">Object id or subject key the question is about.</param>
-/// <param name="RequestId">Request sent to the decider; empty for a question that waits for the compute night (trigger data: ask night) and was never sent.</param>
+/// <param name="RequestId">Request sent to the decider; empty for a question that was never sent: it waits for the compute night (trigger data: ask night), or it is held back while its inhabitant is busy with the decider (A1487) and is asked later.</param>
 /// <param name="AskedTick">Tick the question was asked.</param>
 /// <param name="Options">Options offered (option id → action, target), to check the answer against.</param>
 /// <param name="RetryAtTick">After a retryable error: tick at which the question is sent again (B2487).</param>
@@ -112,6 +112,13 @@ public sealed class DecisionsSystem : IWorldSystem
     /// #20043 asked in it, so replays and restores start with it.
     /// </summary>
     public const string DefaultDisplayLocale = "de";
+
+    /// <summary>
+    /// Detail of <c>question_failed</c> for a question that was held back (A1487) and never asked: when its
+    /// inhabitant was free again, what had raised it no longer held (the thing or the other out of sight,
+    /// understood meanwhile, the other asleep).
+    /// </summary>
+    public const string Lapsed = "lapsed";
 
     /// <summary>Text key: unknown command.</summary>
     public const string ReasonUnknownCommand = "msg.command.unknown";
@@ -340,6 +347,16 @@ public sealed class DecisionsSystem : IWorldSystem
             Resend(world, due);
         }
 
+        if (_open.Count > 0)
+        {
+            // A1487: questions that were held back go out once their inhabitant is free again, oldest first
+            // (each one sent keeps the next back in turn).
+            foreach (var held in _open.Values.Where(q => q.RequestId.Length == 0 && !WaitsForNight(q.Kind)).ToList())
+            {
+                AskHeld(world, held);
+            }
+        }
+
         if (Enabled(UnknownObject))
         {
             foreach (var inhabitant in _inhabitants.All)
@@ -362,14 +379,10 @@ public sealed class DecisionsSystem : IWorldSystem
             // rule checker cancels; the question comes when the other is awake and in sight again.
             foreach (var inhabitant in _inhabitants.All)
             {
-                if (PerceivedInhabitants(inhabitant).FirstOrDefault(o => o.Name is not null && !inhabitant.KnownNames.Contains(o.Id) && !_inhabitants.IsAsleep(o)
-                    && MayAsk(world, inhabitant, InhabitantSubject + o.Id) && AsksAbout(inhabitant, o) < (_settings.UnknownInhabitantMaxAsks ?? int.MaxValue)) is { } stranger)
+                if (PerceivedInhabitants(inhabitant).FirstOrDefault(o => AskableStranger(inhabitant, o)
+                    && MayAsk(world, inhabitant, InhabitantSubject + o.Id, UnknownInhabitant)) is { } stranger)
                 {
-                    var subject = InhabitantSubject + stranger.Id;
-                    if (Ask(world, inhabitant, UnknownInhabitant, subject, null))
-                    {
-                        _lastAsked[AsksKey(inhabitant, stranger)] = AsksAbout(inhabitant, stranger) + 1;
-                    }
+                    Ask(world, inhabitant, UnknownInhabitant, InhabitantSubject + stranger.Id, null);
                 }
             }
         }
@@ -418,6 +431,109 @@ public sealed class DecisionsSystem : IWorldSystem
     /// </summary>
     private bool WaitsForNight(string kind) =>
         NightAnswers && _settings.Triggers.Any(t => t.Enabled && t.Ask == TriggerAsk.Night && string.Equals(t.Kind.ToString(), kind, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>
+    /// A1487: whether a question of this trigger goes out even while its inhabitant is busy (data: interrupts).
+    /// Always false while questions are never held back (no choice_protection_hours).
+    /// </summary>
+    private bool Interrupts(string kind) =>
+        _settings.ChoiceProtectionHours > 0 && _settings.Triggers.Any(t => t.Enabled && t.Interrupts == true && string.Equals(t.Kind.ToString(), kind, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>
+    /// A1487, one thing at a time: whether a question of this trigger has to wait now, because its inhabitant
+    /// is busy with the decider - a question of it is out with the decider, or a choice the decider made for
+    /// it is queued (<see cref="Inhabitant.Planned"/>) or under way (its <see cref="Inhabitant.Activity"/>,
+    /// walking there or doing it; the mark is <see cref="Activity.DecidedTick"/>). Read from the state alone.
+    /// The protection ends by itself when the choice has finished, was cancelled or dropped (the activity is
+    /// gone). Nothing holds questions back forever: an action that runs ends by its duration, and so does
+    /// the wait of a choice queued behind it; what has no end of its own - a question that is out, a walk -
+    /// protects only for the data's hours (choice_protection_hours). The rule does not hold for a trigger that
+    /// interrupts (data), nor for a choice that has gone stale by neglect
+    /// (<see cref="InhabitantsSystem.StaleByNeglect"/>: a need below its neglect threshold that the choice
+    /// does not serve). An answer still replaces whatever is queued or walked to, as before; the rule only
+    /// keeps the questions from going out.
+    /// </summary>
+    private bool HeldBack(World world, Inhabitant inhabitant, string kind)
+    {
+        var hours = _settings.ChoiceProtectionHours ?? 0;
+        if (hours <= 0 || Interrupts(kind))
+        {
+            return false;
+        }
+
+        var limit = (long)Math.Round(hours * world.Calendar.Settings.TicksPerHour);
+        var walking = inhabitant.Activity is { RemainingTicks: null };
+
+        // Under way: doing it (ends by itself), or walking there within the limit. Queued: its turn comes when
+        // the running action ends; behind a walk it waits within the limit only.
+        return Protects(inhabitant.Activity, bounded: !walking) || Protects(inhabitant.Planned, bounded: !walking)
+            || _open.Values.Any(q => q.InhabitantId == inhabitant.Id && q.RequestId.Length > 0 && world.Tick - q.AskedTick < limit);
+
+        bool Protects(Activity? choice, bool bounded) =>
+            choice?.DecidedTick is { } since && (bounded || world.Tick - since < limit) && !_inhabitants.StaleByNeglect(inhabitant, choice.Action);
+    }
+
+    /// <summary>
+    /// A1487: a question that was held back, looked at once its inhabitant is free: it goes to the decider if
+    /// what raised it still holds (the trigger's own condition for its subject: a thing of the type in sight
+    /// and still not understood; the other in sight, awake, its name unknown, not asked about too often).
+    /// Otherwise it lapses. Nothing is lost by that: the trigger raises the question anew the moment the
+    /// thing is in sight again (no cooldown has begun), while a request without its subject among the
+    /// options would be an AI call for nothing. A question about nothing in the world (the player) is asked.
+    /// </summary>
+    private void AskHeld(World world, OpenQuestion held)
+    {
+        var inhabitant = _inhabitants.Get(held.InhabitantId);
+        if (HeldBack(world, inhabitant, held.Kind))
+        {
+            return;
+        }
+
+        WorldObject? target = null;
+        var holds = true;
+        if (held.Kind == UnknownObject)
+        {
+            var typeId = held.Subject[TypeSubject.Length..];
+            target = inhabitant.Beliefs.About(typeId).Any() ? null : Perceived(inhabitant).FirstOrDefault(o => o.TypeId == typeId);
+            holds = target is not null;
+        }
+        else if (held.Kind == UnknownInhabitant)
+        {
+            holds = PerceivedInhabitants(inhabitant).Any(o => InhabitantSubject + o.Id == held.Subject && AskableStranger(inhabitant, o));
+        }
+
+        if (!holds)
+        {
+            Close(world, held, "question_failed", Lapsed);
+            return;
+        }
+
+        _counter++;
+        _open[held.Id] = Send(world, inhabitant, held.Id, held.Kind, held.Subject, target);
+        NoteAsked(world, inhabitant, held.Kind, held.Subject);
+    }
+
+    /// <summary>
+    /// Whether the inhabitant may ask who the other is (trigger unknown_inhabitant): the other has a name it
+    /// does not know, is awake, and it has not asked about them the data's number of times yet.
+    /// </summary>
+    private bool AskableStranger(Inhabitant inhabitant, Inhabitant other) =>
+        other.Name is not null && !inhabitant.KnownNames.Contains(other.Id) && !_inhabitants.IsAsleep(other)
+        && AsksAbout(inhabitant, other) < (_settings.UnknownInhabitantMaxAsks ?? int.MaxValue);
+
+    /// <summary>
+    /// What begins when a question is really asked (not while it is only held back): the cooldown of its
+    /// subject and, for who-is-that, its count for the pair.
+    /// </summary>
+    private void NoteAsked(World world, Inhabitant inhabitant, string kind, string subject)
+    {
+        _lastAsked[inhabitant.Id + "|" + subject] = world.Tick;
+        if (kind == UnknownInhabitant)
+        {
+            var asks = AsksKey(inhabitant, subject);
+            _lastAsked[asks] = _lastAsked.GetValueOrDefault(asks) + 1;
+        }
+    }
 
     /// <summary>
     /// The nearest perceived object whose type the inhabitant has no belief about (ties by id). A single
@@ -479,39 +595,48 @@ public sealed class DecisionsSystem : IWorldSystem
     /// How often the inhabitant has asked who another is (unknown_inhabitant). Kept with the cooldowns under
     /// an own key prefix (value = count, not a tick), so it is saved and hashed with them.
     /// </summary>
-    private long AsksAbout(Inhabitant inhabitant, Inhabitant other) => _lastAsked.GetValueOrDefault(AsksKey(inhabitant, other));
+    private long AsksAbout(Inhabitant inhabitant, Inhabitant other) => _lastAsked.GetValueOrDefault(AsksKey(inhabitant, InhabitantSubject + other.Id));
 
-    private static string AsksKey(Inhabitant inhabitant, Inhabitant other) => "asks|" + inhabitant.Id + "|" + InhabitantSubject + other.Id;
+    private static string AsksKey(Inhabitant inhabitant, string subject) => "asks|" + inhabitant.Id + "|" + subject;
 
-    /// <summary>Whether a question about the subject may be asked now: room for one more, none open about it, not cooling down.</summary>
-    private bool MayAsk(World world, Inhabitant inhabitant, string subject)
+    /// <summary>
+    /// Whether a question about the subject may be asked now: room for one more, none open about it, not
+    /// cooling down. A trigger that interrupts (A1487) is not kept out by questions that only wait, held back
+    /// or for the night: the player always goes first.
+    /// </summary>
+    private bool MayAsk(World world, Inhabitant inhabitant, string subject, string kind)
     {
         var cooldown = (long)_settings.AskCooldownHours * world.Calendar.Settings.TicksPerHour;
-        return _open.Values.Count(q => q.InhabitantId == inhabitant.Id) < _settings.MaxOpenQuestions
+        var interrupts = Interrupts(kind);
+        return _open.Values.Count(q => q.InhabitantId == inhabitant.Id && !(interrupts && q.RequestId.Length == 0)) < _settings.MaxOpenQuestions
             && !_open.Values.Any(q => q.InhabitantId == inhabitant.Id && q.Subject == subject)
             && !(_lastAsked.TryGetValue(inhabitant.Id + "|" + subject, out var last) && world.Tick - last < cooldown);
     }
 
-    private bool Ask(World world, Inhabitant inhabitant, string kind, string subject, WorldObject? target)
+    private void Ask(World world, Inhabitant inhabitant, string kind, string subject, WorldObject? target)
     {
-        var cooldownKey = inhabitant.Id + "|" + subject;
-        if (!MayAsk(world, inhabitant, subject))
+        if (!MayAsk(world, inhabitant, subject, kind))
         {
-            return false;
+            return;
         }
 
         _counter++;
         var questionId = string.Create(CultureInfo.InvariantCulture, $"q-{_counter:000000}");
 
         // A question that waits for the night opens with its question mark but asks nobody by day: no
-        // request, no options; the night's question job answers it (NightJobsSystem).
-        var question = WaitsForNight(kind)
+        // request, no options; the night's question job answers it (NightJobsSystem). A question that is
+        // held back (A1487) opens the same way and is asked once its inhabitant is free again (AskHeld).
+        var held = !WaitsForNight(kind) && HeldBack(world, inhabitant, kind);
+        var question = held || WaitsForNight(kind)
             ? new OpenQuestion(questionId, inhabitant.Id, kind, subject, string.Empty, world.Tick, [])
             : Send(world, inhabitant, questionId, kind, subject, target);
         _open.Add(question.Id, question);
-        _lastAsked[cooldownKey] = world.Tick;
+        if (!held)
+        {
+            NoteAsked(world, inhabitant, kind, subject);
+        }
+
         _inhabitants.Report(new WorldEvent("question_opened", world.Tick, inhabitant.Id, null, question.Id));
-        return true;
     }
 
     private OpenQuestion Send(World world, Inhabitant inhabitant, string questionId, string kind, string subject, WorldObject? target)
@@ -747,7 +872,7 @@ public sealed class DecisionsSystem : IWorldSystem
 
         Log.Add(new DecisionLogEntry(DecisionLogKind.Response, message.RequestId, world.Tick, message.Json, null));
         var destination = resolved?.Position ?? frontier ?? inhabitant.Position;
-        var decided = new Activity(action, targetId, destination, null);
+        var decided = new Activity(action, targetId, destination, null, DecidedTick: world.Tick);
         if (inhabitant.Activity?.RemainingTicks is not null)
         {
             // An action is in progress (e.g. sleeping): the answer waits, it never breaks it off.
