@@ -20,6 +20,60 @@
       "phase": "day"
     },
     {
+      "id": "cliffs_cave_front",
+      "target_x_permille": 539,
+      "target_z_permille": 768,
+      "yaw_deg": 99,
+      "distance_m": 7,
+      "pitch_deg": 18,
+      "phase": "day"
+    },
+    {
+      "id": "cliffs_cave_side",
+      "target_x_permille": 539,
+      "target_z_permille": 768,
+      "yaw_deg": 40,
+      "distance_m": 8,
+      "pitch_deg": 25,
+      "phase": "day"
+    },
+    {
+      "id": "cliffs_cave_play",
+      "target_x_permille": 539,
+      "target_z_permille": 768,
+      "yaw_deg": 99,
+      "distance_m": 30,
+      "pitch_deg": 50,
+      "phase": "day"
+    },
+    {
+      "id": "cliffs_cave_night",
+      "target_x_permille": 539,
+      "target_z_permille": 768,
+      "yaw_deg": 99,
+      "distance_m": 9,
+      "pitch_deg": 20,
+      "phase": "night"
+    },
+    {
+      "id": "cliffs_fieldstone",
+      "target_x_permille": 909,
+      "target_z_permille": 539,
+      "yaw_deg": 30,
+      "distance_m": 3,
+      "pitch_deg": 24,
+      "phase": "day"
+    },
+    {
+      "id": "cliffs_flint",
+      "target_x_permille": 706,
+      "target_z_permille": 633,
+      "yaw_deg": 30,
+      "distance_m": 3,
+      "pitch_deg": 24,
+      "phase": "day"
+    },
+    {
       "id": "cliffs_face_night",
       "target_x_permille": 855,
       "target_z_permille": 736,

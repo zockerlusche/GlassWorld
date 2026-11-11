@@ -77,110 +77,33 @@ class TerrainCliffs(BaseModel):
     )
 
 
-class TerrainWater(BaseModel):
+class TerrainStreamMouth(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
-    sea_shallow: str = Field(
+    fade_m: float = Field(
         ...,
-        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
-        max_length=64,
-        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+        description='Length in metres before the coast over which the water of a stream that runs into the sea thins from its depth to a film on the ground (the height of stream_shore_lift_mm), so it meets the beach without a step.',
+        ge=0.0,
+        le=20.0,
     )
-    sea_deep: str = Field(
+    reach_cells: int = Field(
         ...,
-        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
-        max_length=64,
-        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
-    )
-    fresh: str = Field(
-        ...,
-        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
-        max_length=64,
-        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
-    )
-    swamp: str = Field(
-        ...,
-        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
-        max_length=64,
-        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
-    )
-    deep_from_units: int = Field(..., ge=1, le=1000)
-    swamp_max_units: int = Field(
-        ...,
-        description='Fresh water this shallow (height units) is drawn as murky swamp.',
+        description='Most sea cells a stream runs on over, down the sea floor, to reach ground that lies under the lowest tide.',
         ge=0,
-        le=100,
+        le=64,
     )
-    stream_shore_lift_mm: int = Field(
+    under_mm: int = Field(
         ...,
-        description='Where a stream borders dry ground its edge comes down to the ground and lies this far above it (millimetres), so the edge closes against the bank without flickering into it.',
+        description='How far below the receiving water the band ends, in millimetres: below the lowest tide at the sea, below the surface in a lake.',
         ge=0,
-        le=200,
+        le=1000,
     )
-    stream_width_m: float = Field(
+    widen_share: float = Field(
         ...,
-        description='Width of a stream band in metres: streams are drawn as smooth bands along their centre line (A1456); the generator makes them two cells wide.',
-        gt=0.0,
-        le=10.0,
-    )
-    stream_smoothing: int = Field(
-        ...,
-        description="Rounds of corner cutting (Chaikin) along a stream's centre line, after the relaxing; each round doubles the points (0 = the relaxed cell-centre polyline).",
-        ge=0,
-        le=6,
-    )
-    stream_source_taper_m: float = Field(
-        ...,
-        description='Length over which a stream widens from its source (a spring seep) to its full width, in metres.',
+        description='How much wider the band is at its end in the sea than at the coast, as a share of its width (0 = it keeps its width): the stream fans out over the beach.',
         ge=0.0,
-        le=50.0,
-    )
-    stream_source_width_share: float = Field(
-        ...,
-        description='Width of a stream at its source as a share of its full width (0..1); it widens over stream_source_taper_m.',
-        ge=0.0,
-        le=1.0,
-    )
-    stream_relax_passes: int | None = Field(
-        None,
-        description="Most smoothing passes over a stream's centre line before the corner cutting (W1724): each pass moves every point halfway to the middle of its neighbours, the ends stay. The relaxing stops earlier once the line turns no more than stream_turn_goal_deg_per_m. Absent or 0 = none.",
-        ge=0,
-        le=500,
-    )
-    stream_turn_goal_deg_per_m: float | None = Field(
-        None,
-        description="Turn of a stream's centre line in degrees per metre (the angle between the metre before a place and the metre after it) the relaxing aims at: it goes on until the line is this smooth or the passes are used up. Absent = every pass is used.",
-        gt=0.0,
-        le=180.0,
-    )
-    stream_max_turn_deg_per_m: float | None = Field(
-        None,
-        description='Largest turn of a drawn stream line in degrees per metre: where the cells of a stream do not let the relaxing reach its goal (a hairpin), the line may turn up to this. The tests hold the streams of the real islands to it. Absent = no promise.',
-        gt=0.0,
-        le=180.0,
-    )
-    stream_cell_tolerance_m: float | None = Field(
-        None,
-        description="How far the smoothed centre line may leave the stream's own cells, in metres; a point that would go further is held back. Absent = 0.25.",
-        ge=0.0,
-        le=5.0,
-    )
-    stream_max_shift_m: float | None = Field(
-        None,
-        description='How far the relaxing may move a point of the centre line from where the cells put it, in metres. Absent = 0.5.',
-        ge=0.0,
-        le=5.0,
-    )
-    stream_cover_m: float | None = Field(
-        None,
-        description='Every cell of a stream keeps the relaxed centre line within this distance of its centre, in metres: where a stream is several cells wide a point may move less, so no cut bed is left without its band. Absent = 1.2.',
-        ge=0.0,
-        le=5.0,
-    )
-    swamp_as_ground: bool | None = Field(
-        None,
-        description='Swamp water (fresh water no deeper than swamp_max_units) is drawn as wet ground in the swamp colour, blended into the ground around it like a biome border, instead of as a water plate with a hard edge along the cells (W1724). Absent = false.',
+        le=3.0,
     )
 
 
@@ -302,6 +225,114 @@ class TerrainWaveLayer(BaseModel):
         gt=0.0,
         le=1.0,
     )
+
+
+class TerrainWater(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    sea_shallow: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    sea_deep: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    fresh: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    swamp: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    deep_from_units: int = Field(..., ge=1, le=1000)
+    swamp_max_units: int = Field(
+        ...,
+        description='Fresh water this shallow (height units) is drawn as murky swamp.',
+        ge=0,
+        le=100,
+    )
+    stream_shore_lift_mm: int = Field(
+        ...,
+        description='Where a stream borders dry ground its edge comes down to the ground and lies this far above it (millimetres), so the edge closes against the bank without flickering into it.',
+        ge=0,
+        le=200,
+    )
+    stream_width_m: float = Field(
+        ...,
+        description='Width of a stream band in metres: streams are drawn as smooth bands along their centre line (A1456); the generator makes them two cells wide.',
+        gt=0.0,
+        le=10.0,
+    )
+    stream_smoothing: int = Field(
+        ...,
+        description="Rounds of corner cutting (Chaikin) along a stream's centre line, after the relaxing; each round doubles the points (0 = the relaxed cell-centre polyline).",
+        ge=0,
+        le=6,
+    )
+    stream_source_taper_m: float = Field(
+        ...,
+        description='Length over which a stream widens from its source (a spring seep) to its full width, in metres.',
+        ge=0.0,
+        le=50.0,
+    )
+    stream_source_width_share: float = Field(
+        ...,
+        description='Width of a stream at its source as a share of its full width (0..1); it widens over stream_source_taper_m.',
+        ge=0.0,
+        le=1.0,
+    )
+    stream_relax_passes: int | None = Field(
+        None,
+        description="Most smoothing passes over a stream's centre line before the corner cutting (W1724): each pass moves every point halfway to the middle of its neighbours, the ends stay. The relaxing stops earlier once the line turns no more than stream_turn_goal_deg_per_m. Absent or 0 = none.",
+        ge=0,
+        le=500,
+    )
+    stream_turn_goal_deg_per_m: float | None = Field(
+        None,
+        description="Turn of a stream's centre line in degrees per metre (the angle between the metre before a place and the metre after it) the relaxing aims at: it goes on until the line is this smooth or the passes are used up. Absent = every pass is used.",
+        gt=0.0,
+        le=180.0,
+    )
+    stream_max_turn_deg_per_m: float | None = Field(
+        None,
+        description='Largest turn of a drawn stream line in degrees per metre: where the cells of a stream do not let the relaxing reach its goal (a hairpin), the line may turn up to this. The tests hold the streams of the real islands to it. Absent = no promise.',
+        gt=0.0,
+        le=180.0,
+    )
+    stream_cell_tolerance_m: float | None = Field(
+        None,
+        description="How far the smoothed centre line may leave the stream's own cells, in metres; a point that would go further is held back. Absent = 0.25.",
+        ge=0.0,
+        le=5.0,
+    )
+    stream_max_shift_m: float | None = Field(
+        None,
+        description='How far the relaxing may move a point of the centre line from where the cells put it, in metres. Absent = 0.5.',
+        ge=0.0,
+        le=5.0,
+    )
+    stream_cover_m: float | None = Field(
+        None,
+        description='Every cell of a stream keeps the relaxed centre line within this distance of its centre, in metres: where a stream is several cells wide a point may move less, so no cut bed is left without its band. Absent = 1.2.',
+        ge=0.0,
+        le=5.0,
+    )
+    swamp_as_ground: bool | None = Field(
+        None,
+        description='Swamp water (fresh water no deeper than swamp_max_units) is drawn as wet ground in the swamp colour, blended into the ground around it like a biome border, instead of as a water plate with a hard edge along the cells (W1724). Absent = false.',
+    )
+    stream_mouth: TerrainStreamMouth | None = None
 
 
 class TerrainDetail(BaseModel):

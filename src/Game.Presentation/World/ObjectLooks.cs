@@ -15,6 +15,9 @@ namespace GlassWorld.Presentation.World;
 /// <param name="Align">Upright, or lying on the ground following its slope (D576).</param>
 /// <param name="FootprintWidthM">Half width of an elongated footprint across local x at size factor 1 (null = round).</param>
 /// <param name="SwayM">How far the top moves in full wind at size factor 1 (metres; 0 = it stands still, B2-5 R21).</param>
+/// <param name="Niche">The measures of a rock niche (shape rock_niche, TL #20750), or null.</param>
+/// <param name="WallProbeM">Radius around the object in which the ground is searched for the wall it leans on (align wall; 0 = no search).</param>
+/// <param name="WallMinRiseM">How far the ground must rise within that radius to count as a wall.</param>
 public sealed record ObjectLook(
     string VisualId,
     ObjectLookShape Shape,
@@ -26,13 +29,16 @@ public sealed record ObjectLook(
     double FootprintM = 0,
     ObjectLookAlign Align = ObjectLookAlign.Upright,
     double? FootprintWidthM = null,
-    double SwayM = 0)
+    double SwayM = 0,
+    RockNicheShape? Niche = null,
+    double WallProbeM = 0,
+    double WallMinRiseM = 0)
 {
     /// <summary>The colour of a role; a shape with more roles than colours repeats them from the start.</summary>
     public string Color(int role) => Colors[role % Colors.Count];
 
     /// <summary>Whether the object lies on the ground and follows its slope.</summary>
-    public bool Lies => Align != ObjectLookAlign.Upright;
+    public bool Lies => Align is ObjectLookAlign.Ground or ObjectLookAlign.Ground_uphill;
 
     /// <summary>Half width of the footprint across local x at size factor 1.</summary>
     public double HalfWidthM => FootprintWidthM ?? FootprintM;
@@ -162,7 +168,26 @@ public sealed class ObjectLooks
             }
 
             CheckColors($"visual '{visual.Id}'", visual.Colors);
-            var look = new ObjectLook(visual.Id, visual.Shape, [.. visual.Colors], visual.SizeM, visual.SizeJitter, visual.LiftM, visual.Rest, visual.FootprintM, visual.Align, visual.FootprintWidthM, visual.SwayM ?? 0);
+            if ((visual.Shape == ObjectLookShape.Rock_niche || visual.Align == ObjectLookAlign.Wall) && visual.Niche is null)
+            {
+                throw new InvalidDataException($"objects.json: visual '{visual.Id}' has the shape rock_niche or the align wall and needs its niche measures.");
+            }
+
+            var look = new ObjectLook(
+                visual.Id,
+                visual.Shape,
+                [.. visual.Colors],
+                visual.SizeM,
+                visual.SizeJitter,
+                visual.LiftM,
+                visual.Rest,
+                visual.FootprintM,
+                visual.Align,
+                visual.FootprintWidthM,
+                visual.SwayM ?? 0,
+                visual.Niche is { } niche ? RockNicheShape.From(niche) : null,
+                visual.Niche?.WallProbeM ?? 0,
+                visual.Niche?.WallMinRiseM ?? 0);
             visuals.Add(look);
             foreach (var type in visual.Types)
             {
@@ -299,6 +324,9 @@ public sealed class ObjectLooks
     /// rock wall) stands upright on the ground under its position instead. The lift comes on top.
     /// With <paramref name="source"/> (W1724) the object stands at that stream source instead of its own
     /// position, its local +x side against the flow, so the water runs off at its local -x side.
+    /// An object that leans on a wall (align wall, TL #20750) stands upright with its local +x side
+    /// turned to the higher ground around it (<see cref="WallYaw"/>), so its local -x side - the opening
+    /// of a rock niche - faces the open ground; without a wall near it keeps the turn from its id.
     /// </summary>
     public static ObjectPlacement Place(WorldObject obj, ObjectLook look, Func<double, double, double> ground, GroundFit? fit = null, StreamSource? source = null)
     {
@@ -313,6 +341,11 @@ public sealed class ObjectLooks
         var scale = look.SizeM * (1 + (look.SizeJitter * ((Hash01(obj.Id, 2) * 2) - 1)));
         if (!look.Lies)
         {
+            if (look.Align == ObjectLookAlign.Wall && source is null)
+            {
+                yaw = WallYaw(ground, x, z, look.WallProbeM, look.WallMinRiseM) ?? yaw;
+            }
+
             return new ObjectPlacement(obj.Id, x, Rest(look, x, z, scale, ground) + look.LiftM, z, yaw, scale, new Point3(0, 1, 0));
         }
 
@@ -355,6 +388,45 @@ public sealed class ObjectLooks
         // The fit works on the ground under the footprint, the tilted object turns about its centre: where that
         // lifts a rim point beyond the tolerance after all (steep, uneven ground), it stands upright instead.
         return RestsWithin(lying, look, ground, fit.ToleranceM) ? lying : new ObjectPlacement(obj.Id, x, ground(x, z) + look.LiftM, z, yaw, scale, new Point3(0, 1, 0));
+    }
+
+    /// <summary>
+    /// The turn of an object that leans on a wall (TL #20750), from the drawn ground alone: the heights on
+    /// two rings around it (half and the whole of <paramref name="probeM"/>, sixteen directions each) are
+    /// compared with the ground under it, and every direction in which the ground rises pulls the
+    /// object's back that way, the more the higher it rises - a wall on one side, the corner of two
+    /// walls, a notch in a rock face all give the direction into the rock. The result is the yaw that
+    /// turns the object's local +x axis there, so its local -x side faces the open, lower ground. Null
+    /// where the ground nowhere rises by <paramref name="minRiseM"/> (no wall near) or rises alike all
+    /// around (a pit): the caller keeps its own turn.
+    /// </summary>
+    public static double? WallYaw(Func<double, double, double> ground, double x, double z, double probeM, double minRiseM)
+    {
+        ArgumentNullException.ThrowIfNull(ground);
+        if (probeM <= 0)
+        {
+            return null;
+        }
+
+        var here = ground(x, z);
+        double wallX = 0, wallZ = 0, most = 0, sum = 0;
+        foreach (var share in (ReadOnlySpan<double>)[0.5, 1.0])
+        {
+            for (var k = 0; k < 16; k++)
+            {
+                var a = k * Math.PI / 8;
+                var (dx, dz) = (Math.Cos(a), Math.Sin(a));
+                var rise = ground(x + (dx * probeM * share), z + (dz * probeM * share)) - here;
+                if (rise > 0)
+                {
+                    (wallX, wallZ, most, sum) = (wallX + (dx * rise), wallZ + (dz * rise), Math.Max(most, rise), sum + rise);
+                }
+            }
+        }
+
+        // A clear side: the pulls must not cancel (at least a tenth of them is left).
+        var pull = Math.Sqrt((wallX * wallX) + (wallZ * wallZ));
+        return most < minRiseM || pull <= 0.1 * sum ? null : Math.Atan2(-wallZ, wallX);
     }
 
     /// <summary>Whether every rim point of the tilted footprint (16 directions, centre, half and full) lies within the tolerance of the ground.</summary>

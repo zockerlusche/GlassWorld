@@ -15,13 +15,17 @@ namespace GlassWorld.Game.World;
 /// fade (W1689, <see cref="FadeCrowns"/>): such a tree leaves its layer for a small see-through layer.
 /// Every look has its own material of the one warm comic shader with the living nature switched on (B2-5
 /// R21, R24): the meshes carry the shares of the seasonal colours, plants sway by their <c>sway_m</c>, and
-/// the ink outline sways with them. Presentation only: it never writes core state.
+/// the ink outline sways with them. The outline is pushed out along the directions the meshes carry
+/// (<see cref="ObjectShapes"/>, TL #20750), so it sits on flat-shaded rocks too. A mesh with a second
+/// surface (the dark inside of a rock niche) carries its materials itself: the look's material and the
+/// unlit one of the inside. Presentation only: it never writes core state.
 /// </summary>
 public partial class ObjectsView : Node3D
 {
     private static readonly Shader Comic = GD.Load<Shader>("res://shaders/warm_comic.gdshader");
     private static readonly Shader ComicFade = GD.Load<Shader>("res://shaders/warm_comic_fade.gdshader");
     private static readonly Shader Ink = GD.Load<Shader>("res://shaders/outline_hull.gdshader");
+    private static readonly Shader NicheInside = GD.Load<Shader>("res://shaders/niche_inside.gdshader");
 
     private readonly Dictionary<string, MultiMeshInstance3D> _layers = new(StringComparer.Ordinal);
     private readonly Dictionary<string, ObjectLook> _byVisual = new(StringComparer.Ordinal);
@@ -46,7 +50,7 @@ public partial class ObjectsView : Node3D
 
     /// <summary>Mesh and material of a visual, or null if it has no mesh.</summary>
     public (Mesh Mesh, Material Material)? LayerOf(string visualId) =>
-        _layers.TryGetValue(visualId, out var layer) ? (layer.Multimesh.Mesh, layer.MaterialOverride) : null;
+        _layers.TryGetValue(visualId, out var layer) ? (layer.Multimesh.Mesh, layer.MaterialOverride ?? layer.Multimesh.Mesh.SurfaceGetMaterial(0)) : null;
 
     /// <summary>Creates the view: one mesh per visual in palette colours, the comic shader and the ink outline.</summary>
     /// <param name="data">The object looks.</param>
@@ -72,15 +76,25 @@ public partial class ObjectsView : Node3D
                 return (new Color(w.A, w.B, w.C, w.D), new Color(w.E, w.F, w.G, w.H));
             }
 
-            var mesh = ObjectShapes.Build(look.Shape, role => colors[look.Color(role)].SrgbToLinear(), Weights);
+            var mesh = ObjectShapes.Build(look.Shape, role => colors[look.Color(role)].SrgbToLinear(), Weights, look.Niche);
             var material = Land(Comic, look, mesh);
             if (data.Outline && data.OutlineWidthM > 0)
             {
                 // The outline sways with its plant: the same sway values as the material it follows.
                 var ink = new ShaderMaterial { Shader = Ink };
                 ink.SetShaderParameter("width", (float)data.OutlineWidthM);
+                ink.SetShaderParameter("use_hull_directions", true);
                 Sway(ink, look, mesh);
                 material.NextPass = ink;
+            }
+
+            // A second surface is the unlit inside of a rock niche: then the mesh carries both materials
+            // (an override on the layer would paint the inside with the look's material too).
+            var surfaces = mesh.GetSurfaceCount() > 1;
+            if (surfaces)
+            {
+                mesh.SurfaceSetMaterial(0, material);
+                mesh.SurfaceSetMaterial(1, new ShaderMaterial { Shader = NicheInside });
             }
 
             view._byVisual[look.VisualId] = look;
@@ -88,7 +102,7 @@ public partial class ObjectsView : Node3D
             {
                 Name = look.VisualId,
                 Multimesh = new MultiMesh { TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, Mesh = mesh, InstanceCount = 0 },
-                MaterialOverride = material,
+                MaterialOverride = surfaces ? null : material,
             };
             view.AddChild(layer);
             view._layers[look.VisualId] = layer;

@@ -280,6 +280,46 @@
         "swamp_as_ground": {
           "description": "Swamp water (fresh water no deeper than swamp_max_units) is drawn as wet ground in the swamp colour, blended into the ground around it like a biome border, instead of as a water plate with a hard edge along the cells (W1724). Absent = false.",
           "type": "boolean"
+        },
+        "stream_mouth": {
+          "$ref": "#/$defs/TerrainStreamMouth"
+        }
+      }
+    },
+    "TerrainStreamMouth": {
+      "description": "How a stream band ends in standing water (TL #20750, W1738). At the sea the band thins out to a film on the ground before the coast and runs on over the beach the low tide leaves dry, down to the low-tide line, where it ends under the lowest water; the sea surface, which follows the tide, covers whatever lies below it, so the stream ends at the waterline at every tide. In a lake the band never lies above the lake's surface. Absent = the band ends in the first cell of standing water as before.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fade_m",
+        "reach_cells",
+        "under_mm",
+        "widen_share"
+      ],
+      "properties": {
+        "fade_m": {
+          "description": "Length in metres before the coast over which the water of a stream that runs into the sea thins from its depth to a film on the ground (the height of stream_shore_lift_mm), so it meets the beach without a step.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 20
+        },
+        "reach_cells": {
+          "description": "Most sea cells a stream runs on over, down the sea floor, to reach ground that lies under the lowest tide.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 64
+        },
+        "under_mm": {
+          "description": "How far below the receiving water the band ends, in millimetres: below the lowest tide at the sea, below the surface in a lake.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "widen_share": {
+          "description": "How much wider the band is at its end in the sea than at the coast, as a share of its width (0 = it keeps its width): the stream fans out over the beach.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 3
         }
       }
     },

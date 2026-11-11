@@ -72,7 +72,7 @@
   },
   "$defs": {
     "ObjectLookShape": {
-      "description": "Shape builder of the game (simple low-poly meshes of the look prototype); none draws nothing (for example sea water, the sea is drawn already); spring is a small heap of stones a stream comes out of (W1724), pool a small pond.",
+      "description": "Shape builder of the game (simple low-poly meshes of the look prototype); none draws nothing (for example sea water, the sea is drawn already); spring is a small heap of stones a stream comes out of (W1724), pool a small pond; rock_niche is a shelter in a rock wall (TL #20750): a dark opening under a lintel between side rocks, its measures in the visual's niche.",
       "type": "string",
       "enum": [
         "conifer_tree",
@@ -82,6 +82,7 @@
         "bush",
         "berry_bush",
         "rock",
+        "rock_niche",
         "stone",
         "tuft",
         "flower",
@@ -213,6 +214,102 @@
           "type": "number",
           "minimum": 0,
           "maximum": 2
+        },
+        "niche": {
+          "$ref": "#/$defs/ObjectNiche"
+        }
+      }
+    },
+    "ObjectNiche": {
+      "description": "Measures of the shape rock_niche (TL #20750), in metres at size factor 1, and how it finds the wall it leans on. The rock stands with its local +x side in the wall and opens at its local -x side: a dark opening (colour role 2, drawn unlit, so it stays dark in every light) under a lintel that juts out over it, between two side rocks (role 1), in a body of rock (role 0) that reaches back into the wall and down below the ground. A visual with this shape must carry it. Placeholder values.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "opening_width_m",
+        "opening_height_m",
+        "front_m",
+        "depth_m",
+        "side_rock_m",
+        "lintel_m",
+        "overhang_m",
+        "back_m",
+        "sink_m",
+        "roughness",
+        "wall_probe_m",
+        "wall_min_rise_m"
+      ],
+      "properties": {
+        "opening_width_m": {
+          "description": "Width of the opening at the ground.",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 10
+        },
+        "opening_height_m": {
+          "description": "Height of the opening at its highest point.",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 10
+        },
+        "front_m": {
+          "description": "How far the foot of the opening lies in front of the object's position. The object stands at the foot of the wall, where the ground already rises; the opening stands this far out on the level ground before it.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "depth_m": {
+          "description": "How far the dark hollow reaches into the rock behind the opening.",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 10
+        },
+        "side_rock_m": {
+          "description": "Thickness of the rock at either side of the opening.",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 10
+        },
+        "lintel_m": {
+          "description": "Thickness of the rock above the opening.",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 10
+        },
+        "overhang_m": {
+          "description": "How far the lintel juts out over the foot of the opening.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 5
+        },
+        "back_m": {
+          "description": "How far the rock reaches back from the object's position into the wall it leans on.",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 20
+        },
+        "sink_m": {
+          "description": "How far the rock reaches below the object's position, so it sits flush on uneven ground.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 5
+        },
+        "roughness": {
+          "description": "How uneven the rock is: its corners move by up to this share of the rock's thickness (0 = smooth).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 0.5
+        },
+        "wall_probe_m": {
+          "description": "Radius in metres around the object in which the ground is searched for the wall (align wall): the higher ground there is the wall.",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 20
+        },
+        "wall_min_rise_m": {
+          "description": "How far the ground must rise within the probe radius to count as a wall; on flatter ground the object keeps the turn from its id.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 20
         }
       }
     },
@@ -226,12 +323,13 @@
       ]
     },
     "ObjectLookAlign": {
-      "description": "How an object meets the ground (D576): upright stands straight up on its rest height (trees, bushes, plants); ground lies on the ground and follows its slope (logs, stones), turned from its id towards the turn that fits the ground best; ground_uphill lies on the ground like ground with its local +x side facing uphill (a spring pool with its stones at the uphill side).",
+      "description": "How an object meets the ground (D576): upright stands straight up on its rest height (trees, bushes, plants); ground lies on the ground and follows its slope (logs, stones), turned from its id towards the turn that fits the ground best; ground_uphill lies on the ground like ground with its local +x side facing uphill (a spring pool with its stones at the uphill side); wall stands upright with its local +x side turned to the higher ground around it (the rock wall it leans on, searched within niche.wall_probe_m), so its local -x side faces the open ground (a rock niche, TL #20750).",
       "type": "string",
       "enum": [
         "upright",
         "ground",
-        "ground_uphill"
+        "ground_uphill",
+        "wall"
       ]
     },
     "ObjectDecor": {

@@ -42,6 +42,10 @@
       "color": "#8f8a8b"
     },
     {
+      "id": "cave_inside",
+      "color": "#332b2c"
+    },
+    {
       "id": "sea_foam",
       "color": "#d6ece6"
     },

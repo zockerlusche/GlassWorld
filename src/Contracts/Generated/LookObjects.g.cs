@@ -13,7 +13,7 @@ namespace GlassWorld.Contracts
     #pragma warning disable // Disable all warnings
 
     /// <summary>
-    /// Shape builder of the game (simple low-poly meshes of the look prototype); none draws nothing (for example sea water, the sea is drawn already); spring is a small heap of stones a stream comes out of (W1724), pool a small pond.
+    /// Shape builder of the game (simple low-poly meshes of the look prototype); none draws nothing (for example sea water, the sea is drawn already); spring is a small heap of stones a stream comes out of (W1724), pool a small pond; rock_niche is a shelter in a rock wall (TL #20750): a dark opening under a lintel between side rocks, its measures in the visual's niche.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public enum ObjectLookShape
@@ -47,52 +47,56 @@ namespace GlassWorld.Contracts
         Rock = 6,
 
 
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("rock_niche")]
+        Rock_niche = 7,
+
+
         [System.Text.Json.Serialization.JsonStringEnumMemberName("stone")]
-        Stone = 7,
+        Stone = 8,
 
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("tuft")]
-        Tuft = 8,
+        Tuft = 9,
 
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("flower")]
-        Flower = 9,
+        Flower = 10,
 
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("mushroom")]
-        Mushroom = 10,
+        Mushroom = 11,
 
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("pool")]
-        Pool = 11,
+        Pool = 12,
 
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("spring")]
-        Spring = 12,
+        Spring = 13,
 
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("log")]
-        Log = 13,
+        Log = 14,
 
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("fruit")]
-        Fruit = 14,
+        Fruit = 15,
 
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("shell")]
-        Shell = 15,
+        Shell = 16,
 
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("reeds")]
-        Reeds = 16,
+        Reeds = 17,
 
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("marker")]
-        Marker = 17,
+        Marker = 18,
 
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("none")]
-        None = 18,
+        None = 19,
 
 
     }
@@ -194,6 +198,91 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("sway_m")]
         public double? SwayM { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("niche")]
+        public ObjectNiche? Niche { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Measures of the shape rock_niche (TL #20750), in metres at size factor 1, and how it finds the wall it leans on. The rock stands with its local +x side in the wall and opens at its local -x side: a dark opening (colour role 2, drawn unlit, so it stays dark in every light) under a lintel that juts out over it, between two side rocks (role 1), in a body of rock (role 0) that reaches back into the wall and down below the ground. A visual with this shape must carry it. Placeholder values.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ObjectNiche
+    {
+
+        /// <summary>
+        /// Width of the opening at the ground.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("opening_width_m")]
+        public double OpeningWidthM { get; set; } = default!;
+
+        /// <summary>
+        /// Height of the opening at its highest point.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("opening_height_m")]
+        public double OpeningHeightM { get; set; } = default!;
+
+        /// <summary>
+        /// How far the foot of the opening lies in front of the object's position. The object stands at the foot of the wall, where the ground already rises; the opening stands this far out on the level ground before it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("front_m")]
+        public double FrontM { get; set; } = default!;
+
+        /// <summary>
+        /// How far the dark hollow reaches into the rock behind the opening.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("depth_m")]
+        public double DepthM { get; set; } = default!;
+
+        /// <summary>
+        /// Thickness of the rock at either side of the opening.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("side_rock_m")]
+        public double SideRockM { get; set; } = default!;
+
+        /// <summary>
+        /// Thickness of the rock above the opening.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("lintel_m")]
+        public double LintelM { get; set; } = default!;
+
+        /// <summary>
+        /// How far the lintel juts out over the foot of the opening.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("overhang_m")]
+        public double OverhangM { get; set; } = default!;
+
+        /// <summary>
+        /// How far the rock reaches back from the object's position into the wall it leans on.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("back_m")]
+        public double BackM { get; set; } = default!;
+
+        /// <summary>
+        /// How far the rock reaches below the object's position, so it sits flush on uneven ground.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("sink_m")]
+        public double SinkM { get; set; } = default!;
+
+        /// <summary>
+        /// How uneven the rock is: its corners move by up to this share of the rock's thickness (0 = smooth).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("roughness")]
+        public double Roughness { get; set; } = default!;
+
+        /// <summary>
+        /// Radius in metres around the object in which the ground is searched for the wall (align wall): the higher ground there is the wall.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("wall_probe_m")]
+        public double WallProbeM { get; set; } = default!;
+
+        /// <summary>
+        /// How far the ground must rise within the probe radius to count as a wall; on flatter ground the object keeps the turn from its id.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("wall_min_rise_m")]
+        public double WallMinRiseM { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -218,7 +307,7 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
-    /// How an object meets the ground (D576): upright stands straight up on its rest height (trees, bushes, plants); ground lies on the ground and follows its slope (logs, stones), turned from its id towards the turn that fits the ground best; ground_uphill lies on the ground like ground with its local +x side facing uphill (a spring pool with its stones at the uphill side).
+    /// How an object meets the ground (D576): upright stands straight up on its rest height (trees, bushes, plants); ground lies on the ground and follows its slope (logs, stones), turned from its id towards the turn that fits the ground best; ground_uphill lies on the ground like ground with its local +x side facing uphill (a spring pool with its stones at the uphill side); wall stands upright with its local +x side turned to the higher ground around it (the rock wall it leans on, searched within niche.wall_probe_m), so its local -x side faces the open ground (a rock niche, TL #20750).
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public enum ObjectLookAlign
@@ -234,6 +323,10 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("ground_uphill")]
         Ground_uphill = 2,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("wall")]
+        Wall = 3,
 
 
     }
