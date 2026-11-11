@@ -7,7 +7,6 @@ to a character budget; options are never cut.
 
 from __future__ import annotations
 
-import re
 from collections.abc import Callable, Sequence
 from typing import Any, cast
 
@@ -17,7 +16,13 @@ from glassworld_ai.vocabulary import Vocabulary
 from glassworld_ai.words import ContextError as ContextError
 from glassworld_ai.words import bands as _bands
 from glassworld_ai.words import humanize as _humanize
-from glassworld_ai.words import knowledge_line, quote, subject_name
+from glassworld_ai.words import (
+    knowledge_line,
+    own_names,
+    quote,
+    subject_name,
+    without_runtime_ids,
+)
 from glassworld_ai.words import plain_id as _id
 from glassworld_ai.words import vocab_line as _vocab_line
 from glassworld_ai.words import word as _word
@@ -158,42 +163,24 @@ def build_values(
         lines.append(f"- ... and {hidden} more things further away")
     values["objects"] = "\n".join(lines) or NOTHING
     if isinstance(made, str):
-        return {key: _without_runtime_ids(text, labels, made) for key, text in values.items()}
+        return {key: without_runtime_ids(text, labels, made) for key, text in values.items()}
     return values
-
-
-def _without_runtime_ids(text: str, labels: dict[str, str], made: str) -> str:
-    """A runtime type id says nothing to the model and is no word of the inhabitant. Where a line
-    names the kind in quotes (beliefs, habits), the inhabitant's own name stands there; everywhere
-    else the kind is the neutral word (the object line adds the name itself)."""
-    for type_id, label in labels.items():
-        for shown in (type_id, type_id.replace("_", " ")):
-            text = text.replace(f"'{shown}'", f"'{label}'")
-    return _RUNTIME_TYPE.sub(made, text)
-
-
-_RUNTIME_TYPE = re.compile(r"\binv[_ ][0-9a-f]{6,}\b")
 
 
 def _labels(request: DecisionRequest, locale: str) -> dict[str, str]:
     """Type id -> the name this inhabitant has for it, from every place the request labels."""
-    found: dict[str, str] = {}
-
-    def note(type_id: object, label: object) -> None:
-        name: object = getattr(label, locale, None) if label is not None else None
-        if type_id is not None and isinstance(name, str) and name.strip():
-            shown = name.replace('"', "").replace("'", "")  # no quote may end a line's quotes early
-            found.setdefault(_id(type_id), " ".join(shown.split()))
-
-    for thing in request.perception.objects:
-        note(thing.type, getattr(thing, "label", None))
-    for entry in request.inhabitant.knowledge or []:
-        note(entry.subject.id, getattr(entry, "label", None))
     habits: list[Any] = list(getattr(request.inhabitant, "habits", None) or [])
+    pairs: list[tuple[object, object]] = [
+        (thing.type, getattr(thing, "label", None)) for thing in request.perception.objects
+    ]
+    pairs += [
+        (entry.subject.id, getattr(entry, "label", None))
+        for entry in request.inhabitant.knowledge or []
+    ]
     for habit in habits:
         about: Any = getattr(habit, "about", None)
-        note(about.id if about is not None else None, getattr(habit, "label", None))
-    return found
+        pairs.append((about.id if about is not None else None, getattr(habit, "label", None)))
+    return own_names(pairs, locale)
 
 
 def _v2_values(
