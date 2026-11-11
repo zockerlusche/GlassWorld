@@ -22,13 +22,17 @@ class FallbackEnvironment(BaseModel):
 class Kind(StrEnum):
     unknown_object = 'unknown_object'
     noticed_player = 'noticed_player'
+    unknown_inhabitant = 'unknown_inhabitant'
 
 
 class Trigger(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
-    kind: Kind
+    kind: Kind = Field(
+        ...,
+        description='unknown_object: a thing of a type without any belief in sight; noticed_player: the player noticed (click); unknown_inhabitant: another inhabitant in sight whose own name it does not know (B4a R8).',
+    )
     enabled: bool
 
 
@@ -58,6 +62,12 @@ class DeciderSettings(BaseModel):
     ask_cooldown_hours: int = Field(
         ...,
         description='Game hours before the same inhabitant asks about the same subject again.',
+        ge=0,
+        le=1000,
+    )
+    unknown_inhabitant_max_asks: int | None = Field(
+        None,
+        description='How often an inhabitant asks who the same other inhabitant is (trigger unknown_inhabitant) while it never learns the name; omitted = no limit.',
         ge=0,
         le=1000,
     )
