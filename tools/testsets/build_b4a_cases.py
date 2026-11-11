@@ -10,8 +10,11 @@ they never prescribe one answer (frame, not outcome). Situations the decider set
 
 v2 adds a sharper pair for trust (D690): very hungry, the warned-about berries are the only food
 in sight - once warned by a trusted person, once by someone hardly trusted. Both are in the same
-language, so the pair differs only in trust; the measure is how often each one eats. v1 stays as
-it was.
+language, so the pair differs only in trust AND the confidence of the heard belief (as in the
+game, where a warning from a trusted person is believed more) - the pair cannot tell which of the
+two the model reacts to. The measure is how often each one eats; 10 runs per case show a
+direction, not a statistic. 'idle' is not counted plausible for a starving inhabitant. v1 stays
+as it was.
 """
 
 from __future__ import annotations
