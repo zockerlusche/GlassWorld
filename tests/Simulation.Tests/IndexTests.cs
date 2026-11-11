@@ -322,6 +322,32 @@ public sealed class IndexTests : IDisposable
         Assert.Equal(waiting.World.StateHash(), waitingForgetful.World.StateHash());
     }
 
+    [Fact]
+    public void ForgettingTheKeptPathSearchesChangesNothing()
+    {
+        // The map system keeps the path searches of the tide level that holds (start and goal cell -> path).
+        // One world throws them away before every tick, the other never: the same walks, the same hashes -
+        // and the one that keeps them searches less.
+        var kept = SimulationHost.CreateGeneratedWorld(ContentDirectory, 7, MockDecisionPort.FromContent(ContentDirectory), "de", Preset, inhabitants: 24);
+        var forgetful = SimulationHost.CreateGeneratedWorld(ContentDirectory, 7, MockDecisionPort.FromContent(ContentDirectory), "de", Preset, inhabitants: 24);
+        for (var tick = 1; tick <= 900; tick++)
+        {
+            forgetful.Map!.ForgetPaths();
+            kept.World.Step();
+            forgetful.World.Step();
+            if (tick % 50 == 0)
+            {
+                Assert.True(kept.World.StateHash() == forgetful.World.StateHash(), $"the worlds part by tick {tick}");
+            }
+        }
+
+        // The run crossed tide levels (kept searches were dropped in between) and walked a lot.
+        var tides = kept.Map!.TideWalk!.Tides;
+        Assert.True(Enumerable.Range(0, 900).Select(t => tides.LevelUnitsAt(t)).Distinct().Count() > 2);
+        Assert.True(forgetful.Map!.Searches > 500, $"only {forgetful.Map.Searches} searches");
+        Assert.True(kept.Map.Searches < forgetful.Map.Searches, $"kept {kept.Map.Searches}, forgetful {forgetful.Map.Searches}");
+    }
+
     private static void AssertIndexes(SimulationHost host)
     {
         AssertObjectsByType(host.Objects);

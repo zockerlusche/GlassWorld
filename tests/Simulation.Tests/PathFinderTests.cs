@@ -111,6 +111,60 @@ public sealed class PathFinderTests
         }
     }
 
+    [Fact]
+    public void TheSearchGivesExactlyWhatTheFirstSearchGave()
+    {
+        // The search is built for speed; which of several equally cheap paths it takes, and how many nodes
+        // it expands, must stay what the first search (PathFinderReference) gave: on open and on walled
+        // ground, with equal costs (many ties) and with mixed ones, with a weak and a strong estimate, with
+        // a layer of run-time costs, with a budget that runs out, and with one scratch for all searches.
+        var rng = new GlassWorld.Simulation.Random.Pcg32(20261111, 3);
+        var scratch = new PathFinder.Scratch(24 * 24);
+        var statuses = new HashSet<PathStatus>();
+        for (var round = 0; round < 400; round++)
+        {
+            var kind = round % 4;
+            var costs = new int[24 * 24];
+            for (var i = 0; i < costs.Length; i++)
+            {
+                costs[i] = rng.NextInt(0, 100) < (kind == 3 ? 30 : 12) ? MapCell.Blocked
+                    : kind == 0 ? 1000
+                    : kind == 1 ? 1000 * (1 + rng.NextInt(0, 3))
+                    : 20 + rng.NextInt(0, 4000);
+            }
+
+            var map = Map(24, 24, (x, z) => costs[(z * 24) + x]);
+            var layer = (int[])costs.Clone();
+            for (var i = 0; i < layer.Length; i++)
+            {
+                if (layer[i] != MapCell.Blocked && rng.NextInt(0, 100) < 20)
+                {
+                    layer[i] += 600;
+                }
+            }
+
+            var lowest = costs.Where(c => c != MapCell.Blocked).DefaultIfEmpty(1000).Min();
+            for (var pair = 0; pair < 6; pair++)
+            {
+                var from = (rng.NextInt(0, 24), rng.NextInt(0, 24));
+                var to = (rng.NextInt(0, 24), rng.NextInt(0, 24));
+                var budget = pair == 5 ? 1 + rng.NextInt(0, 40) : 100000;
+                var unit = pair % 2 == 0 ? lowest : lowest / 3;
+                var over = pair >= 3 ? layer : null;
+                var expected = PathFinderReference.Find(map, from, to, budget, unit, over);
+                var found = PathFinder.Find(map, from, to, budget, unit, pair == 4 ? null : scratch, over);
+                Assert.Equal(expected.Status, found.Status);
+                Assert.Equal(expected.Cells, found.Cells);
+                Assert.Equal(expected.Cost, found.Cost);
+                Assert.Equal(expected.Expanded, found.Expanded);
+                statuses.Add(found.Status);
+            }
+        }
+
+        // The rounds really met all three outcomes.
+        Assert.Equal(3, statuses.Count);
+    }
+
     private static long CostOf(WorldMap map, (int X, int Z) from, IReadOnlyList<(int X, int Z)> cells)
     {
         long total = 0;
