@@ -178,7 +178,8 @@ public sealed class UtilityBrain
     /// <paramref name="inSight"/> (the others the inhabitant sees and can walk to) that it is familiar with
     /// and that is awake, scored urgency x distance factor and only while that is above 0. Its search action
     /// is offered (urgency x search_weight) while the inhabitant knows someone familiar and none of them is
-    /// in sight; a familiar sleeper in sight counts as there, so nobody walks off from a sleeping partner.
+    /// there: in sight with the action offered on them, or in sight and asleep (nobody walks off from a
+    /// sleeping partner).
     /// </para>
     /// </summary>
     public IReadOnlyList<ScoredOption> Score(Inhabitant inhabitant, IReadOnlyList<WorldObject> perceived, IReadOnlySet<string> givenUp, ISet<string>? searching, IReadOnlyList<Inhabitant>? inSight = null)
@@ -283,10 +284,17 @@ public sealed class UtilityBrain
                 continue;
             }
 
-            there = true;
+            // There = a sleeper (nobody walks off from a sleeping partner) or somebody the action is offered
+            // on. Somebody at the edge of sight whose option scores 0 (distance_falloff 1) is neither: the
+            // need must not wait without an option and without a search.
             var score = urgency * DistanceFactor(inhabitant.Position, other.Position);
-            if (score > 0 && !familiarity.Asleep(other))
+            if (familiarity.Asleep(other))
             {
+                there = true;
+            }
+            else if (score > 0)
+            {
+                there = true;
                 options.Add(new ScoredOption(c.Action, other.Id, score));
             }
         }

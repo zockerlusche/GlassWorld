@@ -316,11 +316,22 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     /// <summary>Detail of a cancelled action whose route search ran out of its budget.</summary>
     public const string NoRouteInBudget = "no_route_in_budget";
 
-    /// <summary>Detail of a cancelled action towards an inhabitant who is asleep (B2466: nobody addresses a sleeper).</summary>
+    /// <summary>
+    /// Detail of a cancelled action towards an inhabitant who is asleep (B2466: nobody addresses a sleeper).
+    /// Until D715 (W1743, A1509) the rule is the same for every action aimed at an inhabitant, a warning
+    /// included: which actions count as addressing somebody, and whether one of them (a warning) may wake
+    /// the other, becomes data with the per-action flag decided there.
+    /// </summary>
     public const string ListenerAsleep = "listener_asleep";
 
     /// <summary>Detail of a cancelled action towards an inhabitant who was no longer where the actor last saw them.</summary>
     public const string ListenerOutOfSight = "listener_out_of_sight";
+
+    /// <summary>
+    /// Detail of a cancelled walk whose next step would end on ground nobody can walk on although the way
+    /// was just searched anew (a safety net: such a walk would otherwise search again every tick).
+    /// </summary>
+    public const string NoWalkableStep = "no_walkable_step";
 
     /// <summary>Value ranges for the appearance of new inhabitants (null = no appearance, tests).</summary>
     public LookAppearance? Looks { get; init; }
@@ -581,6 +592,18 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         return together;
     }
 
+    /// <summary>
+    /// Whether an inhabitant is asleep (the one definition, data: togetherness.sleep_action of the inhabitant
+    /// model, once that action has started): nobody addresses a sleeper (B2466), so the rule checker cancels
+    /// an action aimed at one, and the decider is neither offered such an action nor asked who a sleeper is.
+    /// Always false without the togetherness data.
+    /// </summary>
+    public bool IsAsleep(Inhabitant inhabitant)
+    {
+        ArgumentNullException.ThrowIfNull(inhabitant);
+        return _model.Togetherness is { } data && Asleep(inhabitant, data);
+    }
+
     private static bool Asleep(Inhabitant inhabitant, Togetherness data) =>
         inhabitant.Activity is { RemainingTicks: not null } activity && string.Equals(activity.Action, data.SleepAction, StringComparison.Ordinal);
 
@@ -696,9 +719,10 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             listener = resolved.Inhabitant;
         }
 
-        if (listener is not null && activity.RemainingTicks is null && _model.Togetherness is { } sleep && Asleep(listener, sleep))
+        if (listener is not null && activity.RemainingTicks is null && IsAsleep(listener))
         {
-            // B2466 (calm world): nobody addresses a sleeper. Whoever is on the way to one gives it up.
+            // B2466 (calm world): nobody addresses a sleeper. Whoever is on the way to one gives it up. The
+            // decider is not offered sleepers; this is the net for someone who falls asleep in between.
             Report(new WorldEvent(ActionCancelled, world.Tick, inhabitant.Id, activity.Action, activity.TargetId) { Detail = ListenerAsleep });
             inhabitant.Activity = null;
             return;
@@ -1129,6 +1153,9 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     /// ground nobody can walk on. A step that would end there is not taken: the way is searched anew from
     /// where the walker stands (a new route begins with a neighbouring cell, so its first step stays on
     /// walkable ground). Without this the walker stood on a blocked cell, from where nothing can be walked to.
+    /// The search is bounded: one new route per step, and if the first step of a route just searched would
+    /// leave the walkable ground as well, the walk is cancelled (<see cref="NoWalkableStep"/>). A new search
+    /// from the same spot would find the same route, so trying again tick after tick could only loop.
     /// </para>
     /// </summary>
     private bool FollowRoute(World world, Inhabitant inhabitant, Activity activity, Map.IRouteFinder routes, Position destination, double reach)
@@ -1148,20 +1175,36 @@ public sealed partial class InhabitantsSystem : IWorldSystem
 
         var budget = StepOf(inhabitant) * routes.SpeedFactor(from);
         var (position, next, arrived) = Along(from, route, budget, reach);
-        if (kept && routes.Connected(from, from) && !routes.Connected(from, position))
+        if (OnWalkableGround(routes, from) && !routes.Connected(from, position))
         {
-            if ((route = FindRoute(world, inhabitant, activity, routes, destination)) is null)
+            if (kept)
             {
-                return false;
+                if ((route = FindRoute(world, inhabitant, activity, routes, destination)) is null)
+                {
+                    return false;
+                }
+
+                (position, next, arrived) = Along(from, route, budget, reach);
             }
 
-            (position, next, arrived) = Along(from, route, budget, reach);
+            if (!routes.Connected(from, position))
+            {
+                Report(new WorldEvent(ActionCancelled, world.Tick, inhabitant.Id, activity.Action, activity.TargetId) { Detail = NoWalkableStep });
+                inhabitant.Activity = null;
+                return false;
+            }
         }
 
         inhabitant.Position = position;
         inhabitant.Activity = activity with { Route = [.. route.Skip(next)] };
         return arrived || Distance(inhabitant.Position, destination) <= reach;
     }
+
+    /// <summary>
+    /// Whether a position lies on ground that can be walked on (a cell of a walkable area). Somebody who
+    /// stands elsewhere (an older save) is let walk off it.
+    /// </summary>
+    private static bool OnWalkableGround(Map.IRouteFinder routes, Position position) => routes.Connected(position, position);
 
     /// <summary>Searches the route to the destination; without one the action is cancelled with the reason and null returned.</summary>
     private IReadOnlyList<Position>? FindRoute(World world, Inhabitant inhabitant, Activity activity, Map.IRouteFinder routes, Position destination)

@@ -125,6 +125,93 @@ public sealed class CompanyRoutineTests
     }
 
     [Fact]
+    public void SomebodyWhoseOptionScoresNothingIsNotThere()
+    {
+        // Review GW2 #228: with distance_falloff 1 a familiar inhabitant at the edge of sight scores 0. It must
+        // not count as there with no option and no search, or the need would wait for nothing.
+        var weights = Clone(Weights);
+        weights.DistanceFalloff = 1.0;
+        var brain = Brain(weights);
+        var (_, inhabitants, _) = NewWorld([new(0, 0), new(weights.PerceptionRadiusM, 0), new(500, 0), new(500, 500)]);
+        var (a, b) = (inhabitants.Get("inh-000001"), inhabitants.Get("inh-000002"));
+        Settle(a, 0.1);
+        var key = UtilityBrain.SearchKey(Company);
+
+        var searching = new HashSet<string>(StringComparer.Ordinal);
+        var options = brain.Score(a, [], Nothing, searching, [b]);
+        Assert.DoesNotContain(options, o => o.TargetId == b.Id);
+        Assert.Contains(options, o => o.SearchFor == key && o.Score > 0);
+        Assert.Contains(key, searching);
+
+        // A sleeper at the same spot is there: nobody walks off from it.
+        b.Activity = new Activity(Together.SleepAction, null, b.Position, 200);
+        searching.Clear();
+        Assert.DoesNotContain(brain.Score(a, [], Nothing, searching, [b]), o => o.TargetId is not null || o.SearchFor is not null);
+        Assert.Empty(searching);
+
+        // Nearer and awake the action is offered on it, and there is nothing to search for.
+        b.Activity = null;
+        b.Position = new Position(weights.PerceptionRadiusM / 2, 0);
+        searching.Clear();
+        options = brain.Score(a, [], Nothing, searching, [b]);
+        Assert.Contains(options, o => o.TargetId == b.Id && o.Score > 0);
+        Assert.DoesNotContain(options, o => o.SearchFor is not null);
+        Assert.Empty(searching);
+    }
+
+    [Fact]
+    public void ADeciderChoiceQueuedOrUnderWayIsNotDisplacedByTheWishForCompany()
+    {
+        // Review GW2 #228: an accepted decider choice (an AI call) must not lose against a routine option that
+        // gives way to needs. The routine only chooses when nothing is queued and nothing is under way; what
+        // the decisions system sets (Planned behind a running action, else Activity) is carried out first.
+        var (world, inhabitants, events) = NewWorld([new(0, 0), new(1.2, 0), new(500, 0), new(500, 500)], out var objects);
+        var (a, b) = (inhabitants.Get("inh-000001"), inhabitants.Get("inh-000002"));
+        Settle(a, 0.0);
+        Settle(b, 1.0);
+        b.Activity = new Activity("idle", null, b.Position, 100_000);
+        var thing = objects.Spawn("apple", new Position(0, 30));
+        world.Step();
+        Assert.Equal((Company.Action, b.Id), (a.Activity?.Action, a.Activity?.TargetId));
+        Assert.NotNull(a.Activity!.RemainingTicks);
+
+        // Queued behind the running talk: when the talk ends, the choice starts, although the partner stands
+        // next to it and the wish for company is far from met.
+        var choice = new Activity("inspect", thing.Id, thing.Position, null);
+        a.Planned = choice;
+        for (var t = 0; t < 100 && !events.Any(e => e.Kind == InhabitantsSystem.ActionFinished && e.InhabitantId == a.Id); t++)
+        {
+            world.Step();
+        }
+
+        world.Step();
+        Assert.Equal(b.Id, Content.Brain.Score(a, [thing], Nothing, null, [b])[0].TargetId);
+        Assert.Equal((choice.Action, choice.TargetId), (a.Activity?.Action, a.Activity?.TargetId));
+        Assert.Null(a.Planned);
+
+        // Under way: the walk to the thing goes on tick after tick; the routine is not asked again.
+        for (var t = 0; t < 100 && a.Activity is { RemainingTicks: null }; t++)
+        {
+            Assert.Equal((choice.Action, choice.TargetId), (a.Activity?.Action, a.Activity?.TargetId));
+            world.Step();
+        }
+
+        Assert.Contains(events, e => e.Kind == InhabitantsSystem.ActionStarted && e.InhabitantId == a.Id && e.Action == choice.Action && e.TargetId == thing.Id);
+        Assert.Single(events, e => e.Kind == InhabitantsSystem.ActionStarted && e.InhabitantId == a.Id && e.Action == Company.Action);
+
+        // Only a neglected body need drops a queued choice that does not serve it (F5275 B), as before.
+        Assert.NotNull(a.Activity?.RemainingTicks);
+        a.Planned = new Activity("inspect", thing.Id, thing.Position, null);
+        a.Needs["thirst"] = Content.InhabitantModel.Needs.Single(n => n.Id == "thirst").NeglectBelow / 2;
+        for (var t = 0; t < 100 && a.Planned is not null; t++)
+        {
+            world.Step();
+        }
+
+        Assert.Contains(events, e => e.Kind == InhabitantsSystem.AnswerExpired && e.InhabitantId == a.Id && e.Detail == InhabitantsSystem.NeedNeglected);
+    }
+
+    [Fact]
     public void ASleeperIsNotAddressedAndNobodyWalksOffFromOne()
     {
         var (world, inhabitants, events) = NewWorld([new(0, 0), new(10, 0), new(500, 0), new(500, 500)]);

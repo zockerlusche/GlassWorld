@@ -234,6 +234,37 @@ public sealed class SpacingTests
         Assert.True(Distance(walker.Position, destination) < 1e-6, "it walked around the pond and arrived");
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void AWalkWhoseNewRouteLeavesTheWalkableGroundIsCancelledInsteadOfSearchedAgainEveryTick(bool kept)
+    {
+        // Review GW2 #228: the search for a new route is bounded. If the first step of a route just searched
+        // would end on blocked ground as well, the walk ends with a reason; the walker never stands on it.
+        var ditch = new Ditch();
+        var destination = new Position(2.5, 0.5);
+        var (world, inhabitants, _) = NewWorldWithObjects(new Position(0.5, 0.5), new Position(3.5, 0.5), ditch);
+        var walker = inhabitants.Get("inh-000001");
+        Stand(inhabitants.Get("inh-000002"));
+        var cancelled = new List<WorldEvent>();
+        inhabitants.Reported += e =>
+        {
+            if (e.Kind == InhabitantsSystem.ActionCancelled && e.InhabitantId == walker.Id)
+            {
+                cancelled.Add(e);
+            }
+        };
+
+        walker.Activity = new Activity("idle", null, destination, null, kept ? [destination] : null);
+        world.Step();
+
+        var e = Assert.Single(cancelled);
+        Assert.Equal(InhabitantsSystem.NoWalkableStep, e.Detail);
+        Assert.Equal(new Position(0.5, 0.5), walker.Position);
+        Assert.Null(walker.Activity);
+        Assert.Equal(1, ditch.Searches);
+    }
+
     [Fact]
     public void SpacingIsDeterministic()
     {
@@ -405,6 +436,29 @@ public sealed class SpacingTests
 
         private static bool Walkable((int X, int Z) cell) =>
             cell.X >= 0 && cell.X < Width && cell.Z >= 0 && cell.Z < Depth && cell != (1, 1);
+    }
+
+    /// <summary>
+    /// Ground from x 0 to 4 (z 0..1) with a ditch nobody can walk on from x 1 to 2, and a route finder that
+    /// is wrong about it: both sides count as one area and every route is the straight line across. Slow
+    /// ground, so one step ends in the ditch.
+    /// </summary>
+    private sealed class Ditch : IRouteFinder
+    {
+        public int Searches { get; private set; }
+
+        public Route Find(Position start, Position destination)
+        {
+            Searches++;
+            return new Route(PathStatus.Found, [destination]);
+        }
+
+        public double SpeedFactor(Position at) => 0.5;
+
+        public bool Connected(Position a, Position b) => Area(a) == Area(b) && Area(a) != 0;
+
+        private static int Area(Position p) =>
+            p.X > 500 || p.Z > 500 ? 2 : p.X >= 0 && p.X < 4 && p.Z >= 0 && p.Z < 1 && (p.X < 1 || p.X >= 2) ? 1 : 0;
     }
 
     /// <summary>A decider that never answers.</summary>
