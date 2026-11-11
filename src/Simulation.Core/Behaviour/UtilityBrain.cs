@@ -15,6 +15,16 @@ public sealed record ScoredOption(string Action, string? TargetId, double Score)
 }
 
 /// <summary>
+/// An option as the brain scores it, before any order (<see cref="UtilityBrain.Candidates"/>): the same
+/// values as a <see cref="ScoredOption"/>, as a value, so choosing among thousands of them allocates nothing.
+/// </summary>
+/// <param name="Action">Action id.</param>
+/// <param name="TargetId">Id of the target or null.</param>
+/// <param name="Score">Utility score (higher is better).</param>
+/// <param name="SearchFor">For a search: the search key it serves; null otherwise.</param>
+public readonly record struct Candidate(string Action, string? TargetId, double Score, string? SearchFor = null);
+
+/// <summary>
 /// The routine layer (utility AI): scores the options the core allows with weights and curves from data
 /// (content/behaviour/utility.json). It sees only the inhabitant's BELIEFS, never the truth. Ties are
 /// broken by option order (action, then target id), so the choice is deterministic.
@@ -168,6 +178,46 @@ public sealed class UtilityBrain
         Score(inhabitant, perceived, new HashSet<string>(StringComparer.Ordinal), null);
 
     /// <summary>
+    /// Working memory of <see cref="Candidates"/>, kept by the caller from call to call (one per world: the
+    /// brain itself is content and may serve several worlds at once). The list a call returns is this
+    /// scratch's and holds until the next call with it.
+    /// </summary>
+    public sealed class Scratch
+    {
+        internal List<Candidate> Options { get; } = [];
+
+        internal Dictionary<string, int> Types { get; } = new(StringComparer.Ordinal);
+
+        internal List<string> TypeIds { get; } = [];
+
+        internal int[] TypeOf { get; set; } = [];
+
+        internal double[] Near { get; set; } = [];
+
+        internal double[] PerType { get; set; } = [];
+    }
+
+    /// <summary>
+    /// The order of the options: higher score first, then action, then target id (none first), then the
+    /// order they were made in. A total order, so "the best" is the same whether one sorts or looks for it.
+    /// </summary>
+    public static int Compare(in Candidate a, int madeA, in Candidate b, int madeB)
+    {
+        var order = b.Score.CompareTo(a.Score);
+        if (order == 0)
+        {
+            order = string.CompareOrdinal(a.Action, b.Action);
+        }
+
+        if (order == 0)
+        {
+            order = string.CompareOrdinal(a.TargetId ?? string.Empty, b.TargetId ?? string.Empty);
+        }
+
+        return order != 0 ? order : madeA.CompareTo(madeB);
+    }
+
+    /// <summary>
     /// All options with their scores, best first. A consideration with a search action also offers looking
     /// further away while the inhabitant believes some kind of thing helps, scored urgency x surest such
     /// belief x search_weight, so a weak target in sight competes fairly. Searches in
@@ -184,21 +234,90 @@ public sealed class UtilityBrain
     /// </summary>
     public IReadOnlyList<ScoredOption> Score(Inhabitant inhabitant, IReadOnlyList<WorldObject> perceived, IReadOnlySet<string> givenUp, ISet<string>? searching, IReadOnlyList<Inhabitant>? inSight = null)
     {
+        var options = Candidates(inhabitant, perceived, givenUp, searching, inSight, new Scratch());
+        var order = new int[options.Count];
+        for (var i = 0; i < order.Length; i++)
+        {
+            order[i] = i;
+        }
+
+        Array.Sort(order, (x, y) => Compare(options[x], x, options[y], y));
+        var sorted = new ScoredOption[order.Length];
+        for (var i = 0; i < order.Length; i++)
+        {
+            var option = options[order[i]];
+            sorted[i] = new ScoredOption(option.Action, option.TargetId, option.Score) { SearchFor = option.SearchFor };
+        }
+
+        return sorted;
+    }
+
+    /// <summary>
+    /// The options of <see cref="Score(Inhabitant, IReadOnlyList{WorldObject}, IReadOnlySet{string}, ISet{string}?, IReadOnlyList{Inhabitant}?)"/>
+    /// with the same scores, in the order they are made (consideration by consideration, thing by thing),
+    /// not sorted: the routine needs the best one, found with <see cref="Compare"/>, not the whole order.
+    /// <para>
+    /// What a consideration asks about a thing in sight depends on the thing's type and its distance only,
+    /// so both are worked out once (per type, per thing) and not once per consideration and thing: on the
+    /// start island an inhabitant sees more than a thousand things of a few dozen kinds.
+    /// </para>
+    /// </summary>
+    public List<Candidate> Candidates(Inhabitant inhabitant, IReadOnlyList<WorldObject> perceived, IReadOnlySet<string> givenUp, ISet<string>? searching, IReadOnlyList<Inhabitant>? inSight, Scratch scratch)
+    {
         ArgumentNullException.ThrowIfNull(inhabitant);
         ArgumentNullException.ThrowIfNull(perceived);
         ArgumentNullException.ThrowIfNull(givenUp);
-        var options = new List<ScoredOption>();
+        ArgumentNullException.ThrowIfNull(scratch);
+        var options = scratch.Options;
+        options.Clear();
+        var types = scratch.Types;
+        var typeIds = scratch.TypeIds;
+        types.Clear();
+        typeIds.Clear();
+        if (scratch.TypeOf.Length < perceived.Count)
+        {
+            scratch.TypeOf = new int[Math.Max(perceived.Count, 2 * scratch.TypeOf.Length)];
+            scratch.Near = new double[scratch.TypeOf.Length];
+        }
+
+        var typeOf = scratch.TypeOf;
+        var near = scratch.Near;
+        for (var i = 0; i < perceived.Count; i++)
+        {
+            var obj = perceived[i];
+            if (!types.TryGetValue(obj.TypeId, out var type))
+            {
+                type = typeIds.Count;
+                types.Add(obj.TypeId, type);
+                typeIds.Add(obj.TypeId);
+            }
+
+            typeOf[i] = type;
+            near[i] = DistanceFactor(inhabitant.Position, obj.Position);
+        }
+
+        if (scratch.PerType.Length < typeIds.Count)
+        {
+            scratch.PerType = new double[Math.Max(typeIds.Count, 2 * scratch.PerType.Length)];
+        }
+
+        var perType = scratch.PerType;
         foreach (var (c, curve, novelty) in _considerations)
         {
             if (novelty is not null)
             {
                 // Exploring (TL #19921): every thing in sight, by how little the inhabitant knows of its kind.
-                foreach (var obj in perceived)
+                for (var type = 0; type < typeIds.Count; type++)
                 {
-                    var score = Exploring(inhabitant, c, curve, novelty, obj.TypeId) * DistanceFactor(inhabitant.Position, obj.Position);
+                    perType[type] = Exploring(inhabitant, c, curve, novelty, typeIds[type]);
+                }
+
+                for (var i = 0; i < perceived.Count; i++)
+                {
+                    var score = perType[typeOf[i]] * near[i];
                     if (score > 0)
                     {
-                        options.Add(new ScoredOption(c.Action, obj.Id, score));
+                        options.Add(new Candidate(c.Action, perceived[i].Id, score));
                     }
                 }
 
@@ -220,18 +339,23 @@ public sealed class UtilityBrain
 
             if (c.TargetProperty is null)
             {
-                options.Add(new ScoredOption(c.Action, null, urgency));
+                options.Add(new Candidate(c.Action, null, urgency));
                 continue;
             }
 
-            var bestInSight = 0.0;
-            foreach (var obj in perceived)
+            for (var type = 0; type < typeIds.Count; type++)
             {
-                var belief = BeliefFactor(inhabitant, obj.TypeId, c.TargetProperty) * AvoidFactor(inhabitant, obj.TypeId, c.AvoidProperties);
+                perType[type] = BeliefFactor(inhabitant, typeIds[type], c.TargetProperty) * AvoidFactor(inhabitant, typeIds[type], c.AvoidProperties);
+            }
+
+            var bestInSight = 0.0;
+            for (var i = 0; i < perceived.Count; i++)
+            {
+                var belief = perType[typeOf[i]];
                 if (belief > 0)
                 {
-                    var score = urgency * belief * DistanceFactor(inhabitant.Position, obj.Position);
-                    options.Add(new ScoredOption(c.Action, obj.Id, score));
+                    var score = urgency * belief * near[i];
+                    options.Add(new Candidate(c.Action, perceived[i].Id, score));
                     bestInSight = Math.Max(bestInSight, score);
                 }
             }
@@ -250,18 +374,12 @@ public sealed class UtilityBrain
 
                 if (!givenUp.Contains(key))
                 {
-                    options.Add(new ScoredOption(search, null, score) { SearchFor = key });
+                    options.Add(new Candidate(search, null, score, key));
                 }
             }
         }
 
-        return [.. options
-            .Select((o, index) => (o, index))
-            .OrderByDescending(x => x.o.Score)
-            .ThenBy(x => x.o.Action, StringComparer.Ordinal)
-            .ThenBy(x => x.o.TargetId ?? string.Empty, StringComparer.Ordinal)
-            .ThenBy(x => x.index)
-            .Select(x => x.o)];
+        return options;
     }
 
     /// <summary>
@@ -269,7 +387,7 @@ public sealed class UtilityBrain
     /// inhabitant in sight (nearer scores higher, ties by id), else the search action while the inhabitant
     /// knows someone familiar and sees none of them. Only its own relationships decide who is familiar.
     /// </summary>
-    private void Company(Inhabitant inhabitant, Consideration c, double urgency, IReadOnlyList<Inhabitant> inSight, IReadOnlySet<string> givenUp, ISet<string>? searching, List<ScoredOption> options)
+    private void Company(Inhabitant inhabitant, Consideration c, double urgency, IReadOnlyList<Inhabitant> inSight, IReadOnlySet<string> givenUp, ISet<string>? searching, List<Candidate> options)
     {
         if (urgency <= 0 || _familiarity is not { } familiarity)
         {
@@ -295,7 +413,7 @@ public sealed class UtilityBrain
             else if (score > 0)
             {
                 there = true;
-                options.Add(new ScoredOption(c.Action, other.Id, score));
+                options.Add(new Candidate(c.Action, other.Id, score));
             }
         }
 
@@ -305,7 +423,7 @@ public sealed class UtilityBrain
             searching?.Add(key);
             if (!givenUp.Contains(key))
             {
-                options.Add(new ScoredOption(search, null, urgency * Weights.SearchWeight) { SearchFor = key });
+                options.Add(new Candidate(search, null, urgency * Weights.SearchWeight, key));
             }
         }
     }
@@ -330,13 +448,7 @@ public sealed class UtilityBrain
     public static double Novelty(Inhabitant inhabitant, string typeId)
     {
         ArgumentNullException.ThrowIfNull(inhabitant);
-        var surest = 0.0;
-        foreach (var (_, belief) in inhabitant.Beliefs.About(typeId))
-        {
-            surest = Math.Max(surest, belief.Confidence);
-        }
-
-        return 1.0 - surest;
+        return 1.0 - inhabitant.Beliefs.Surest(typeId);
     }
 
     /// <summary>

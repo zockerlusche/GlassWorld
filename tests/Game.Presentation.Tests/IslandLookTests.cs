@@ -396,6 +396,12 @@ public sealed class IslandLookTests
                 continue;
             }
 
+            if (look.Align == ObjectLookAlign.Wall)
+            {
+                // It leans on its wall and sits in the low ground before it (TL #20750): RockNicheTests.
+                continue;
+            }
+
             var placed = ObjectLooks.Place(obj, look, Ground, looks.Fit);
             if (look.Lies && placed.Up == new Point3(0, 1, 0) && !Flat(obj))
             {

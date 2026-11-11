@@ -17,6 +17,7 @@ class ObjectLookShape(StrEnum):
     bush = 'bush'
     berry_bush = 'berry_bush'
     rock = 'rock'
+    rock_niche = 'rock_niche'
     stone = 'stone'
     tuft = 'tuft'
     flower = 'flower'
@@ -53,6 +54,75 @@ class ObjectLookFallback(BaseModel):
 type Type = Annotated[str, Field(..., pattern='^[a-z][a-z0-9_]*$')]
 
 
+class ObjectNiche(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    opening_width_m: float = Field(
+        ..., description='Width of the opening at the ground.', gt=0.0, le=10.0
+    )
+    opening_height_m: float = Field(
+        ..., description='Height of the opening at its highest point.', gt=0.0, le=10.0
+    )
+    front_m: float = Field(
+        ...,
+        description="How far the foot of the opening lies in front of the object's position. The object stands at the foot of the wall, where the ground already rises; the opening stands this far out on the level ground before it.",
+        ge=0.0,
+        le=10.0,
+    )
+    depth_m: float = Field(
+        ...,
+        description='How far the dark hollow reaches into the rock behind the opening.',
+        gt=0.0,
+        le=10.0,
+    )
+    side_rock_m: float = Field(
+        ...,
+        description='Thickness of the rock at either side of the opening.',
+        gt=0.0,
+        le=10.0,
+    )
+    lintel_m: float = Field(
+        ..., description='Thickness of the rock above the opening.', gt=0.0, le=10.0
+    )
+    overhang_m: float = Field(
+        ...,
+        description='How far the lintel juts out over the foot of the opening.',
+        ge=0.0,
+        le=5.0,
+    )
+    back_m: float = Field(
+        ...,
+        description="How far the rock reaches back from the object's position into the wall it leans on.",
+        gt=0.0,
+        le=20.0,
+    )
+    sink_m: float = Field(
+        ...,
+        description="How far the rock reaches below the object's position, so it sits flush on uneven ground.",
+        ge=0.0,
+        le=5.0,
+    )
+    roughness: float = Field(
+        ...,
+        description="How uneven the rock is: its corners move by up to this share of the rock's thickness (0 = smooth).",
+        ge=0.0,
+        le=0.5,
+    )
+    wall_probe_m: float = Field(
+        ...,
+        description='Radius in metres around the object in which the ground is searched for the wall (align wall): the higher ground there is the wall.',
+        gt=0.0,
+        le=20.0,
+    )
+    wall_min_rise_m: float = Field(
+        ...,
+        description='How far the ground must rise within the probe radius to count as a wall; on flatter ground the object keeps the turn from its id.',
+        ge=0.0,
+        le=20.0,
+    )
+
+
 class ObjectLookRest(StrEnum):
     centre = 'centre'
     lowest = 'lowest'
@@ -63,6 +133,7 @@ class ObjectLookAlign(StrEnum):
     upright = 'upright'
     ground = 'ground'
     ground_uphill = 'ground_uphill'
+    wall = 'wall'
 
 
 type Biome = Annotated[str, Field(..., pattern='^[a-z][a-z0-9_]*$')]
@@ -150,6 +221,7 @@ class ObjectVisual(BaseModel):
         ge=0.0,
         le=2.0,
     )
+    niche: ObjectNiche | None = None
 
 
 class ObjectDecor(BaseModel):
@@ -208,6 +280,12 @@ class LookObjects(BaseModel):
     outline: bool = Field(..., description='Whether objects get the ink outline pass.')
     outline_width_m: float = Field(
         ..., description='Width of the ink outline hull in metres.', ge=0.0, le=0.5
+    )
+    outline_mitre_limit: float = Field(
+        ...,
+        description='How thick the ink outline may get at a sharp corner of a flat-shaded rock (stones, the rock niche; TL #20750), in outline widths. Where the faces of such a rock meet at a corner the outline is pushed out along their common direction, and further the sharper the corner is, so that every face still lies one whole width off the body (a mitre); a spike is capped at this many widths. 1 = no mitre (thinner outline at corners). Shapes with smooth normals (trees, bushes, plants) are pushed out along their normals by exactly one width and do not use it.',
+        ge=1.0,
+        le=10.0,
     )
     ground_tolerance_m: float = Field(
         ...,
