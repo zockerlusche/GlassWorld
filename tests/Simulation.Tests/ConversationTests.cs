@@ -257,6 +257,7 @@ public sealed class ConversationTests : IDisposable
     {
         // W1737 (Marcel: inhabitants invented activities like reading a book): the request carries the
         // running action with its thing and start, the beliefs and the types in sight - beliefs, never the truth.
+        // The action looked for is one on a thing: since W1744 the routine also talks to a partner.
         var (host, _) = Host();
         var port = new CapturePort();
         host.Conversation.Port = port;
@@ -265,7 +266,7 @@ public sealed class ConversationTests : IDisposable
         {
             host.World.Run(1);
             busy = host.Inhabitants.All.OrderBy(x => x.Id, StringComparer.Ordinal)
-                .FirstOrDefault(x => x.Activity is { RemainingTicks: >= 5, TargetId: not null });
+                .FirstOrDefault(x => x.Activity is { RemainingTicks: >= 5, TargetId: { } target } && host.Objects.TryGet(target, out _));
         }
 
         Assert.NotNull(busy);

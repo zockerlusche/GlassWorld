@@ -53,7 +53,23 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
-    /// Scores an action. With target_property the core offers the action on every perceived object; the belief that the object has that property scales the score.
+    /// Which other inhabitants a consideration aims at.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class InhabitantTarget
+    {
+
+        /// <summary>
+        /// familiar = the inhabitant's own relationship to the other reaches togetherness.min_trust and togetherness.min_affection of the inhabitant model (the one definition of familiar; start values count while no relationship is kept), and the other is not asleep by togetherness.sleep_action. Needs the togetherness section (checked at load).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("relation")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<InhabitantTargetRelation>))]
+        public InhabitantTargetRelation Relation { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Scores an action. With target_property the core offers the action on every perceived object; the belief that the object has that property scales the score. With target_inhabitant it offers the action on other inhabitants in sight instead.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class Consideration
@@ -72,11 +88,18 @@ namespace GlassWorld.Contracts
         public System.Collections.Generic.ICollection<string> AvoidProperties { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
         /// <summary>
-        /// Action without a target (vocabulary target none) for looking further away while the inhabitant believes some kind of thing has target_property and nothing it avoids; scored with search_weight. Needs a target_property. Absent or null = the need waits until something turns up.
+        /// Action without a target (vocabulary target none) for looking further away while the inhabitant believes some kind of thing has target_property and nothing it avoids; scored with search_weight. With target_inhabitant: while the inhabitant knows someone of that relation and none of them is in sight (a sleeper in sight counts as there: nobody walks off from a sleeping partner); scored urgency x search_weight. Needs a target_property or a target_inhabitant. Absent or null = the need waits until something turns up.
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("search_action")]
         public string? SearchAction { get; set; } = default!;
+
+        /// <summary>
+        /// Another inhabitant as the target (W1744): the action (vocabulary target inhabitant) is offered on every other inhabitant in sight that the inhabitant has met, that stands in this relation to it and that is not asleep, scored urgency x the distance factor (distance_falloff). The inhabitant acts on its own relationships only. Needs target_property null, no avoid_properties and no novelty_curve. Absent or null = no inhabitant target.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("target_inhabitant")]
+        public InhabitantTarget? TargetInhabitant { get; set; } = default!;
 
         /// <summary>
         /// Need whose value is the curve input; null = constant input 1.
@@ -165,6 +188,16 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("considerations")]
         public System.Collections.Generic.ICollection<Consideration> Considerations { get; set; } = new System.Collections.ObjectModel.Collection<Consideration>();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public enum InhabitantTargetRelation
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("familiar")]
+        Familiar = 0,
+
 
     }
 }
