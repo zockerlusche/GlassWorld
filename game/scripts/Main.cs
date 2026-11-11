@@ -28,8 +28,12 @@ public partial class Main : Node3D
     private const string DebugArgument = "--debug";
 
     private const string TourArgument = "--ui-tour=";
+    private const string NightShotsArgument = "--night-shots=";
+    private const string NightLimitArgument = "--night-limit=";
     private string? _shotsFolder;
     private bool _tour;
+    private bool _nightShots;
+    private double _nightLimitS = 900;
     private string _contentDirectory = string.Empty;
     private int _smokeFrames;
     private int _frame;
@@ -94,9 +98,9 @@ public partial class Main : Node3D
             var spatialReady = StartWorld(presenter => presenter.Start(_contentDirectory, _seed), null);
             if (_shotsFolder is not null && _style is not null)
             {
-                _ = _tour ? TourAsync(_style) : TakeShotsAsync(_style);
+                _ = _nightShots ? NightShotsAsync() : _tour ? TourAsync(_style) : TakeShotsAsync(_style);
             }
-            else if (_tour)
+            else if (_tour || _nightShots)
             {
                 // Without the UI style there is nothing to tour: say so and end the run (review GW1 #214),
                 // instead of an open window that prints nothing.
@@ -141,6 +145,19 @@ public partial class Main : Node3D
             }
 
             // The UI tour (W1757): every menu and window, in both layouts, one picture each.
+            // The compute night in pictures (B7-S8/S10): one picture per stage of the night scene.
+            if (arg.StartsWith(NightShotsArgument, StringComparison.Ordinal))
+            {
+                _shotsFolder = arg[NightShotsArgument.Length..];
+                _nightShots = true;
+            }
+
+            if (arg.StartsWith(NightLimitArgument, StringComparison.Ordinal)
+                && double.TryParse(arg[NightLimitArgument.Length..], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var limit) && limit > 0)
+            {
+                _nightLimitS = limit;
+            }
+
             if (arg.StartsWith(TourArgument, StringComparison.Ordinal))
             {
                 _shotsFolder = arg[TourArgument.Length..];
