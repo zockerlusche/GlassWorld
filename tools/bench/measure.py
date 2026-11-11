@@ -17,7 +17,8 @@ It writes `report.md` for an AMW document. A window on the screen: only as an AM
 
 Arguments for the scene go after `--` (e.g. `-- --bench-seconds=5` for a dry run). Any such
 argument is shown in the report and makes every pass invalid: the acceptance run has none.
-The output folder must be outside the repository; an earlier run's folder or report is kept under a new name (rule PR4).
+The output folder must be outside the repository; an earlier run's folder or report is kept
+under a new name (rule PR4).
 Exit code 0: every pass measured and within marks and budget. 3: measured, but a mark or the budget
 is missed. 1: a run failed or something was not measured as required. (2 is a usage error.)
 """
