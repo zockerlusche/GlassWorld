@@ -13,6 +13,31 @@ namespace GlassWorld.Contracts
     #pragma warning disable // Disable all warnings
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class EventEffect
+    {
+
+        /// <summary>
+        /// Event kind (event vocabulary).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("event")]
+        public string Event { get; set; } = default!;
+
+        /// <summary>
+        /// Only events whose language-neutral detail ends with this text (e.g. '/experienced' for knowledge_gained, whose detail is property/source). Omitted = every event of the kind.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("detail_ends_with")]
+        public string? DetailEndsWith { get; set; } = default!;
+
+        /// <summary>
+        /// Effects on the event's inhabitant; listener_share has no meaning here and is refused at load.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("effects")]
+        public System.Collections.Generic.ICollection<Effect> Effects { get; set; } = new System.Collections.ObjectModel.Collection<Effect>();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class ActionTiming
     {
 
@@ -106,6 +131,13 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("rules")]
         public System.Collections.Generic.ICollection<EffectRule> Rules { get; set; } = new System.Collections.ObjectModel.Collection<EffectRule>();
+
+        /// <summary>
+        /// What a core event does to the inhabitant it is about (W1744): when an event of the kind is reported, its effects reach that inhabitant right away. Events without an inhabitant (weather, player) reach nobody. Omitted = no event has an effect.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("event_effects")]
+        public System.Collections.Generic.ICollection<EventEffect>? EventEffects { get; set; } = default!;
 
     }
 

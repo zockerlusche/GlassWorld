@@ -21,12 +21,14 @@ public sealed class ActionRules
 {
     private readonly FrozenDictionary<string, ActionTimingInfo> _timing;
     private readonly FrozenDictionary<string, EffectRule[]> _rules;
+    private readonly FrozenDictionary<string, EventEffect[]> _eventEffects;
     private readonly ITypeTruth _catalog;
 
-    private ActionRules(FrozenDictionary<string, ActionTimingInfo> timing, FrozenDictionary<string, EffectRule[]> rules, ITypeTruth catalog)
+    private ActionRules(FrozenDictionary<string, ActionTimingInfo> timing, FrozenDictionary<string, EffectRule[]> rules, FrozenDictionary<string, EventEffect[]> eventEffects, ITypeTruth catalog)
     {
         _timing = timing;
         _rules = rules;
+        _eventEffects = eventEffects;
         _catalog = catalog;
     }
 
@@ -37,7 +39,14 @@ public sealed class ActionRules
     public IEnumerable<string> OfferedActions => _timing.Where(t => t.Value.Offered).Select(t => t.Key).Order(StringComparer.Ordinal);
 
     /// <summary>Builds the rules and checks every id against the vocabularies.</summary>
-    public static ActionRules Create(IEnumerable<ActionEffects> files, ObjectCatalog catalog, Vocabulary actions, IReadOnlySet<string> needs, IReadOnlySet<string> moods, int ticksPerHour)
+    /// <param name="files">The effect files (content/effects).</param>
+    /// <param name="catalog">Object types and the property vocabulary.</param>
+    /// <param name="actions">Action vocabulary.</param>
+    /// <param name="needs">Need ids.</param>
+    /// <param name="moods">Mood ids.</param>
+    /// <param name="ticksPerHour">Ticks per game hour.</param>
+    /// <param name="events">Event kinds for <c>event_effects</c>; null = the kinds are not checked (rules built without the event vocabulary).</param>
+    public static ActionRules Create(IEnumerable<ActionEffects> files, ObjectCatalog catalog, Vocabulary actions, IReadOnlySet<string> needs, IReadOnlySet<string> moods, int ticksPerHour, IReadOnlySet<string>? events = null)
     {
         ArgumentNullException.ThrowIfNull(files);
         ArgumentNullException.ThrowIfNull(catalog);
@@ -60,19 +69,34 @@ public sealed class ActionRules
             Require(rule.RequiresProperty is null || catalog.PropertyVocabulary.Contains(rule.RequiresProperty), $"effect rule uses unknown property '{rule.RequiresProperty}'");
             foreach (var effect in rule.Effects)
             {
-                Require(effect.Kind switch
-                {
-                    EffectKind.Need => needs.Contains(effect.Id),
-                    EffectKind.Mood => moods.Contains(effect.Id),
-                    _ => true,
-                }, $"effect on unknown {effect.Kind} '{effect.Id}'");
+                Require(Known(effect), $"effect on unknown {effect.Kind} '{effect.Id}'");
             }
         }
+
+        foreach (var onEvent in all.SelectMany(f => f.EventEffects ?? []))
+        {
+            Require(events is null || events.Contains(onEvent.Event), $"event effect for unknown event '{onEvent.Event}'");
+            foreach (var effect in onEvent.Effects)
+            {
+                Require(Known(effect), $"event effect on unknown {effect.Kind} '{effect.Id}'");
+                Require(effect.ListenerShare is null, $"event effect of '{onEvent.Event}' has a listener_share (an event has no listener)");
+            }
+        }
+
+        bool Known(Effect effect) => effect.Kind switch
+        {
+            EffectKind.Need => needs.Contains(effect.Id),
+            EffectKind.Mood => moods.Contains(effect.Id),
+            _ => true,
+        };
 
         var rules = all.SelectMany(f => f.Rules)
             .GroupBy(r => r.Action, StringComparer.Ordinal)
             .ToFrozenDictionary(g => g.Key, g => g.OrderBy(r => r.RequiresProperty ?? string.Empty, StringComparer.Ordinal).ToArray(), StringComparer.Ordinal);
-        return new ActionRules(timing.ToFrozenDictionary(StringComparer.Ordinal), rules, catalog);
+        var eventEffects = all.SelectMany(f => f.EventEffects ?? [])
+            .GroupBy(e => e.Event, StringComparer.Ordinal)
+            .ToFrozenDictionary(g => g.Key, g => g.ToArray(), StringComparer.Ordinal);
+        return new ActionRules(timing.ToFrozenDictionary(StringComparer.Ordinal), rules, eventEffects, catalog);
     }
 
     /// <summary>
@@ -82,7 +106,7 @@ public sealed class ActionRules
     public ActionRules WithTruth(ITypeTruth truth)
     {
         ArgumentNullException.ThrowIfNull(truth);
-        return new ActionRules(_timing, _rules, truth);
+        return new ActionRules(_timing, _rules, _eventEffects, truth);
     }
 
     /// <summary>Timing of an action.</summary>
@@ -102,6 +126,18 @@ public sealed class ActionRules
     public IReadOnlyList<EffectRule> Applying(string action, string? targetTypeId) =>
         [.. Rules(action).Where(r => r.RequiresProperty is null
             || (targetTypeId is not null && _catalog.HasProperty(targetTypeId, r.RequiresProperty)))];
+
+    /// <summary>
+    /// The effects a reported core event has on the inhabitant it is about (data: <c>event_effects</c>, W1744),
+    /// in data order: every entry of the kind whose <c>detail_ends_with</c> is absent or ends the event's detail.
+    /// </summary>
+    public IEnumerable<Effect> EventEffects(string kind, string? detail)
+    {
+        ArgumentNullException.ThrowIfNull(kind);
+        return _eventEffects.TryGetValue(kind, out var entries)
+            ? entries.Where(e => e.DetailEndsWith is null || (detail is not null && detail.EndsWith(e.DetailEndsWith, StringComparison.Ordinal))).SelectMany(e => e.Effects)
+            : [];
+    }
 
     private static void Require(bool condition, string problem)
     {

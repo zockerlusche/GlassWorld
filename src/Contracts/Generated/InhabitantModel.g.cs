@@ -95,6 +95,99 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
+    /// Comfort zone (B2582, W1745): the air temperature at the inhabitant's place (climate: season, weather, time of day, height of its cell) moves a need. Inside the zone the need recovers per hour; below the zone it sinks per hour by the cold loss times the degrees below, above the zone by the heat loss times the degrees above. Only a need effect, no behaviour: what warms or cools an inhabitant otherwise stays the business of the action effects. Worlds without a climate have no air temperature, there nothing moves. Omitted = the air moves no need. Temperatures in tenths of a degree Celsius like the climate data.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ComfortZone
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("need")]
+        public string Need { get; set; } = default!;
+
+        /// <summary>
+        /// Lower edge of the zone; colder air is too cold.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("min_tenth_c")]
+        public int MinTenthC { get; set; } = default!;
+
+        /// <summary>
+        /// Upper edge of the zone (not below min_tenth_c, checked at load); warmer air is too warm.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max_tenth_c")]
+        public int MaxTenthC { get; set; } = default!;
+
+        /// <summary>
+        /// Every inhabitant's zone lies a little differently (B2582): its zone is shifted as a whole by a fixed value between minus and plus this, drawn from the world seed and its id (not saved, the same in every run). Omitted = 0, all alike.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("individual_shift_tenth_c")]
+        public int? IndividualShiftTenthC { get; set; } = default!;
+
+        /// <summary>
+        /// Loss of the need per hour for every degree Celsius the air is below the zone.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("cold_loss_per_hour_per_degree")]
+        public double ColdLossPerHourPerDegree { get; set; } = default!;
+
+        /// <summary>
+        /// Loss of the need per hour for every degree Celsius the air is above the zone.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("heat_loss_per_hour_per_degree")]
+        public double HeatLossPerHourPerDegree { get; set; } = default!;
+
+        /// <summary>
+        /// Gain of the need per hour while the air is inside the zone.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("recover_per_hour")]
+        public double RecoverPerHour { get; set; } = default!;
+
+        /// <summary>
+        /// The air alone never pushes the need below this value (a need already below it is left alone). Omitted = 0.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("floor")]
+        public double? Floor { get; set; } = default!;
+
+        /// <summary>
+        /// Factor on the cold loss while precipitation falls (wet: rain, snow, storm). Omitted = 1.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("precipitation_cold_factor")]
+        public double? PrecipitationColdFactor { get; set; } = default!;
+
+        /// <summary>
+        /// Factors on the loss while an action runs (once it has started), e.g. lying still asleep. At most one entry per action.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("action_factors")]
+        public System.Collections.Generic.ICollection<ComfortZoneActionFactor>? ActionFactors { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ComfortZoneActionFactor
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("action")]
+        public string Action { get; set; } = default!;
+
+        /// <summary>
+        /// Factor on the cold loss during the action. Omitted = 1.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("cold_factor")]
+        public double? ColdFactor { get; set; } = default!;
+
+        /// <summary>
+        /// Factor on the heat loss during the action. Omitted = 1.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("heat_factor")]
+        public double? HeatFactor { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// Being together (TL #20190): an inhabitant within the distance of a familiar other (its own relationship to the other at least min_trust and min_affection; start values count when they have not met), both not sleeping, slowly fills a need per hour, never above the cap. Only a need effect, no behaviour. Omitted = no togetherness.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -290,6 +383,10 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("diary")]
         public Diary? Diary { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("comfort_zone")]
+        public ComfortZone? ComfortZone { get; set; } = default!;
 
     }
 

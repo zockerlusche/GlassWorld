@@ -45,6 +45,7 @@
     ] },
     { "action": "explore", "requires_property": null, "consumes_target": false, "effects": [
       { "kind": "need", "id": "fun", "delta": 0.05 },
+      { "kind": "need", "id": "purpose", "delta": 0.01 },
       { "kind": "mood", "id": "boredom", "delta": -0.05 }
     ] },
     { "action": "use", "requires_property": "crafted", "consumes_target": false, "effects": [
@@ -55,10 +56,12 @@
       { "kind": "need", "id": "purpose", "delta": 0.05 }
     ] },
     { "action": "warn", "requires_property": null, "consumes_target": false, "effects": [
-      { "kind": "need", "id": "company", "delta": 0.03, "listener_share": 0.5 }
+      { "kind": "need", "id": "company", "delta": 0.03, "listener_share": 0.5 },
+      { "kind": "need", "id": "purpose", "delta": 0.02 }
     ] },
     { "action": "show", "requires_property": null, "consumes_target": false, "effects": [
-      { "kind": "need", "id": "company", "delta": 0.04, "listener_share": 0.5 }
+      { "kind": "need", "id": "company", "delta": 0.04, "listener_share": 0.5 },
+      { "kind": "need", "id": "purpose", "delta": 0.02 }
     ] },
     { "action": "teach", "requires_property": null, "consumes_target": false, "effects": [
       { "kind": "need", "id": "company", "delta": 0.05, "listener_share": 0.5 },
@@ -66,6 +69,17 @@
     ] },
     { "action": "introduce", "requires_property": null, "consumes_target": false, "effects": [
       { "kind": "need", "id": "company", "delta": 0.03, "listener_share": 1 }
+    ] }
+  ],
+  "event_effects": [
+    { "event": "knowledge_gained", "detail_ends_with": "/experienced", "effects": [
+      { "kind": "need", "id": "purpose", "delta": 0.05 }
+    ] },
+    { "event": "knowledge_gained", "detail_ends_with": "/heard", "effects": [
+      { "kind": "need", "id": "purpose", "delta": 0.02 }
+    ] },
+    { "event": "knowledge_gained", "detail_ends_with": "/seen", "effects": [
+      { "kind": "need", "id": "purpose", "delta": 0.01 }
     ] }
   ]
 }

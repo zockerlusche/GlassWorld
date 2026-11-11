@@ -78,6 +78,30 @@ class Diary(BaseModel):
     )
 
 
+class ComfortZoneActionFactor(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    action: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    cold_factor: float | None = Field(
+        None,
+        description='Factor on the cold loss during the action. Omitted = 1.',
+        ge=0.0,
+        le=10.0,
+    )
+    heat_factor: float | None = Field(
+        None,
+        description='Factor on the heat loss during the action. Omitted = 1.',
+        ge=0.0,
+        le=10.0,
+    )
+
+
 class Togetherness(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -193,6 +217,71 @@ class SkillRules(BaseModel):
     max_runtime_skills: int = Field(..., ge=0, le=64)
 
 
+class ComfortZone(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    need: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    min_tenth_c: int = Field(
+        ...,
+        description='Lower edge of the zone; colder air is too cold.',
+        ge=-500,
+        le=600,
+    )
+    max_tenth_c: int = Field(
+        ...,
+        description='Upper edge of the zone (not below min_tenth_c, checked at load); warmer air is too warm.',
+        ge=-500,
+        le=600,
+    )
+    individual_shift_tenth_c: int | None = Field(
+        None,
+        description="Every inhabitant's zone lies a little differently (B2582): its zone is shifted as a whole by a fixed value between minus and plus this, drawn from the world seed and its id (not saved, the same in every run). Omitted = 0, all alike.",
+        ge=0,
+        le=200,
+    )
+    cold_loss_per_hour_per_degree: float = Field(
+        ...,
+        description='Loss of the need per hour for every degree Celsius the air is below the zone.',
+        ge=0.0,
+        le=1.0,
+    )
+    heat_loss_per_hour_per_degree: float = Field(
+        ...,
+        description='Loss of the need per hour for every degree Celsius the air is above the zone.',
+        ge=0.0,
+        le=1.0,
+    )
+    recover_per_hour: float = Field(
+        ...,
+        description='Gain of the need per hour while the air is inside the zone.',
+        ge=0.0,
+        le=1.0,
+    )
+    floor: float | None = Field(
+        None,
+        description='The air alone never pushes the need below this value (a need already below it is left alone). Omitted = 0.',
+        ge=0.0,
+        le=1.0,
+    )
+    precipitation_cold_factor: float | None = Field(
+        None,
+        description='Factor on the cold loss while precipitation falls (wet: rain, snow, storm). Omitted = 1.',
+        ge=0.0,
+        le=10.0,
+    )
+    action_factors: list[ComfortZoneActionFactor] | None = Field(
+        None,
+        description='Factors on the loss while an action runs (once it has started), e.g. lying still asleep. At most one entry per action.',
+        max_length=64,
+    )
+
+
 class StartModel(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -229,3 +318,4 @@ class InhabitantModel(BaseModel):
     skill_rules: SkillRules
     togetherness: Togetherness | None = None
     diary: Diary | None = None
+    comfort_zone: ComfortZone | None = None

@@ -142,13 +142,16 @@ public sealed class ContentSet
             throw new InvalidDataException($"Inhabitant model: diary.left_out_actions names unknown action '{unknownAction}'.");
         }
 
+        CheckComfortZone(model.ComfortZone, needs, actionIds);
+
         var actions = ActionRules.Create(
             Files(contentDirectory, "effects").Select(f => ContractSerializer.Deserialize<ActionEffects>(File.ReadAllText(f))),
             objects,
             Required(vocabularies, VocabularyKind.Action),
             needs,
             moods,
-            calendar.Settings.TicksPerHour);
+            calendar.Settings.TicksPerHour,
+            Ids(vocabularies, VocabularyKind.Event));
         var brain = new UtilityBrain(
             ContractSerializer.Deserialize<UtilityWeights>(File.ReadAllText(Path.Combine(contentDirectory, "behaviour", "utility.json"))),
             actions,
@@ -537,6 +540,34 @@ public sealed class ContentSet
         if (unknown.Count > 0 || badRanges.Count > 0)
         {
             throw new InvalidDataException($"Inhabitant model: unknown ids [{string.Join(", ", unknown)}], min > max for [{string.Join(", ", badRanges)}].");
+        }
+    }
+
+    /// <summary>The comfort zone names a known need and known actions (each once), and its zone is not upside down.</summary>
+    private static void CheckComfortZone(ComfortZone? comfort, HashSet<string> needs, HashSet<string> actions)
+    {
+        if (comfort is null)
+        {
+            return;
+        }
+
+        var problems = new List<string>();
+        if (!needs.Contains(comfort.Need))
+        {
+            problems.Add($"unknown need '{comfort.Need}'");
+        }
+
+        if (comfort.MinTenthC > comfort.MaxTenthC)
+        {
+            problems.Add($"min_tenth_c {comfort.MinTenthC} is above max_tenth_c {comfort.MaxTenthC}");
+        }
+
+        var factors = (comfort.ActionFactors ?? []).Select(f => f.Action).ToList();
+        problems.AddRange(factors.Where(a => !actions.Contains(a)).Select(a => $"action_factors names unknown action '{a}'"));
+        problems.AddRange(factors.GroupBy(a => a, StringComparer.Ordinal).Where(g => g.Count() > 1).Select(g => $"action_factors names action '{g.Key}' twice"));
+        if (problems.Count > 0)
+        {
+            throw new InvalidDataException("Inhabitant model: comfort_zone: " + string.Join("; ", problems) + ".");
         }
     }
 

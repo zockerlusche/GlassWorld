@@ -45,7 +45,7 @@ public sealed record SequencedEvent(long Seq, WorldEvent Event);
 /// TRUE properties of the target. Experience updates beliefs (the frame for learning, extended in B4a).
 /// Every number comes from data; the code names no need, mood or action.
 /// </summary>
-public sealed class InhabitantsSystem : IWorldSystem
+public sealed partial class InhabitantsSystem : IWorldSystem
 {
     /// <summary>Event: an action started (after walking to the target).</summary>
     public const string ActionStarted = "action_started";
@@ -136,6 +136,15 @@ public sealed class InhabitantsSystem : IWorldSystem
         if (_history.Count > EventHistoryCapacity)
         {
             _history.RemoveFirst();
+        }
+
+        // What the event does to the inhabitant it is about (data: event_effects, W1744), before anyone hears of it.
+        if (_inhabitants.TryGetValue(worldEvent.InhabitantId, out var about))
+        {
+            foreach (var effect in _actions.EventEffects(worldEvent.Kind, worldEvent.Detail))
+            {
+                Apply(about, effect, effect.Delta);
+            }
         }
 
         Reported?.Invoke(worldEvent);
@@ -351,6 +360,7 @@ public sealed class InhabitantsSystem : IWorldSystem
         foreach (var inhabitant in _inhabitants.Values)
         {
             DecayNeeds(inhabitant);
+            FeelTheAir(world, inhabitant);
             if (together.Contains(inhabitant.Id))
             {
                 FillTogether(inhabitant, _model.Togetherness!);
