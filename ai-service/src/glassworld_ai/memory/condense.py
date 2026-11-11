@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from string import Template
 from typing import Any, cast
 
 from jsonschema import Draft202012Validator
@@ -29,7 +30,14 @@ from glassworld_ai.llm.jobcall import (
 from glassworld_ai.llm.ollama import OllamaClient
 from glassworld_ai.prompts import PromptTemplate
 from glassworld_ai.queue import ModelQueue
-from glassworld_ai.words import ContextError, humanize, plain_id, quote, subject_name
+from glassworld_ai.words import (
+    ContextError,
+    humanize,
+    plain_id,
+    quote,
+    subject_name,
+    table,
+)
 from glassworld_contracts import GenerationJob
 
 ROLE = "memory"
@@ -54,6 +62,38 @@ def formative_ticks(job: GenerationJob) -> list[int]:
     return sorted({e.tick for e in memory_payload(job).events if e.formative})
 
 
+def _event_text(event: Any, settings: dict[str, Any]) -> str:
+    """One event as words. From v3 (prompt setting outcome_phrases) with what the core says came of
+    it, how often it happened and the name the inhabitant has for a person or invention."""
+    phrases = cast(dict[str, str], settings.get("outcome_phrases", {}))
+    words = cast(dict[str, Any], settings.get("events", {}))
+    about = ""
+    if event.about is not None:
+        name = subject_name(event.about, settings)
+        if phrases:
+            label = getattr(event, "label", None)
+            kind = plain_id(event.about.kind)
+            if label is not None:
+                # The summary is English and internal; names are the same in both languages.
+                name = f"{table(settings, 'subject_kinds').get(kind, kind)} '{label.en}'"
+            elif kind == "inhabitant" and "unnamed_person" in words:
+                name = str(words["unnamed_person"])  # never an id in a text later prompts read
+        about = f" ({name})"
+    what = f"{humanize(plain_id(event.kind))}{about}"
+    if not phrases:
+        return what
+    outcome = getattr(event, "outcome", None)
+    if outcome is not None:
+        phrase = phrases.get(plain_id(outcome))
+        if phrase is None:
+            raise ContextError(f"no outcome phrase for {plain_id(outcome)}")
+        what = Template(phrase).safe_substitute(what=what)
+    times = getattr(event, "times", None)
+    if times is not None and times > 1 and "times" in words:
+        what = Template(str(words["times"])).safe_substitute(what=what, times=times)
+    return what
+
+
 def build_values(job: GenerationJob, template: PromptTemplate) -> dict[str, str]:
     payload = memory_payload(job)
     settings = template.settings
@@ -66,11 +106,7 @@ def build_values(job: GenerationJob, template: PromptTemplate) -> dict[str, str]
     for n, event in enumerate(ordered):
         groups.setdefault(event.tick if per_tick else n, []).append(event)
     for events in groups.values():
-        parts = [
-            humanize(plain_id(e.kind))
-            + (f" ({subject_name(e.about, settings)})" if e.about is not None else "")
-            for e in events
-        ]
+        parts = [_event_text(e, settings) for e in events]
         mark = " - FORMATIVE, keep it" if any(e.formative for e in events) else ""
         lines.append(f"- [tick {events[0].tick}] {'; '.join(parts)}{mark}")
     formative = formative_ticks(job)

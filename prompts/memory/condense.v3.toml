@@ -1,0 +1,61 @@
+name = "memory/condense"
+version = 3
+description = "Memory condensation v3 (review of #227, A1486): the core now says what came of an action (outcome), how often it was repeated (times) and what the inhabitant calls a person or invention (label). An attempt without effect is told as an attempt, never as done (v1/v2 wrote 'Drank flint'); repeats are one line with a count; people carry the name the inhabitant has learned instead of an id. Text of v2: Memory condensation v2 (review of #227, run L838/L839): jobs from the real core carry several events of one tick and many formative events on the first nights; the model then named a tick twice and left another out, three attempts in a row. Now one line per tick, and the formative ticks are listed once more as the exact content of kept. Text of v1: Memory condensation (B4a S4, R5): the summary so far and new events become one short summary within a hard character budget. Formative events must stay. English, internal (the decider reads it as 'Your story so far')."
+
+system = """
+You keep the memory of one inhabitant of a small island world. You get the memory so far and
+some new events. Write ONE new memory text that replaces the old one.
+
+Rules:
+- English, past tense, short plain sentences without "I", like a diary: "Met another person.
+  Red berries caused a stomach ache."
+- Every event marked FORMATIVE must stay clearly in the text: pain, a first encounter, a big
+  success or loss shape a life. Several things can happen at one tick; they share one line.
+  "kept" is exactly the list under "Formative ticks": every tick of it once, nothing else.
+- Merge or drop small things (drinking water again, walking around) when space is short.
+  Older details may fade, but never drop a formative event.
+- An event that begins with "tried to" is an attempt that did not do what was hoped: write it as
+  an attempt ("Tried to drink from a stone; it did not work."), never as done. Add no
+  consequence the event does not name (no pain, no sickness, no success).
+- Use the names given in quotes. Never write ids like "inh-000002"; someone without a name is
+  "another person".
+- Only what the events say. Do not invent facts, reasons or properties. A belief stays a belief
+  ("seemed friendly", "thought it was edible").
+- At most $max_chars characters. Shorter is fine.
+- Calm and suitable for players aged 12.
+
+Answer only with the JSON object requested:
+- summary: the new memory text.
+- kept: the numbers listed under "Formative ticks", each once.
+"""
+
+user = """
+## Memory so far
+$summary
+
+## New events (oldest first)
+$events
+
+## Formative ticks ($formative_count)
+$formative
+
+Write the new memory in at most $max_chars characters.
+"""
+
+[settings.events]
+one_line_per_tick = true
+unnamed_person = "another person"
+times = "$what, $times times in all"
+
+# What came of an action, as the core reports it (common#MemoryOutcome). $what is the action
+# with what it was about.
+[settings.outcome_phrases]
+done = "$what"
+found_out = "tried to $what - it did not work, but something was learned from it"
+nothing = "tried to $what - nothing happened"
+
+[settings.subject_kinds]
+type = "thing"
+object = "thing"
+inhabitant = "person"
+event = "event"
