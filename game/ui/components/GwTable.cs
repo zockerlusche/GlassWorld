@@ -108,13 +108,22 @@ public partial class GwTable : VBoxContainer
         Rebuild();
     }
 
+    /// <summary>
+    /// The width at which every header shows in full, with the table's frame and the bar to scroll down;
+    /// 0 until the table has been measured in the tree. The panel asks for it when it is docked - it is a
+    /// wish, not a minimum: with less room the table scrolls sideways.
+    /// </summary>
+    public float WantedWidth { get; private set; }
+
     /// <summary>Smallest width the header row needs (for the layout check).</summary>
     public float HeaderMinimumWidth() =>
         _columns.Select((c, i) => GetThemeFont("font").GetStringSize(Tr(c.HeaderKey), HorizontalAlignment.Left, -1, GetThemeFontSize("font_size")).X).Sum();
 
     public override void _Notification(int what)
     {
-        if (what == NotificationTranslationChanged)
+        // The headers are measured with the theme's font: when the table has entered the tree with its
+        // theme (ready), and again when the language or the text size changes.
+        if (what == NotificationReady || what == NotificationTranslationChanged || (what == NotificationThemeChanged && IsNodeReady()))
         {
             UpdateTitles();
         }
@@ -128,6 +137,38 @@ public partial class GwTable : VBoxContainer
             _tree.SetColumnTitleAlignment(i, _columns[i].Numeric ? HorizontalAlignment.Right : HorizontalAlignment.Left);
             _tree.SetColumnExpand(i, !_columns[i].Numeric);
         }
+
+        // Measured only in the tree: outside it the control finds the engine's fallback theme, not the
+        // game's font and text size (review GW1 #243).
+        if (!IsInsideTree())
+        {
+            return;
+        }
+
+        // Every column is at least as wide as its header, and the table says how much room all of them
+        // need (WantedWidth): no cut header, no bar to scroll sideways while the panel has that room
+        // (D747 A3: "Frage" for "Fragen").
+        var font = _tree.GetThemeFont("title_button_font");
+        var size = _tree.GetThemeFontSize("title_button_font_size");
+        var room = 0f;
+
+        // What a header takes beside its text: the frame of the title button, the gap between columns and
+        // the cell margins, all from the theme (a fixed padding instead cut "Fragen" in the first window run).
+        var around = (_tree.GetThemeStylebox("title_button_normal")?.GetMinimumSize().X ?? 0)
+            + _tree.GetThemeConstant("h_separation") + _tree.GetThemeConstant("inner_item_margin_left") + _tree.GetThemeConstant("inner_item_margin_right");
+        for (var i = 0; i < _columns.Count; i++)
+        {
+            var title = Tr(_columns[i].HeaderKey);
+            var width = (int)Math.Ceiling(font.GetStringSize(title, HorizontalAlignment.Left, -1, size).X + around);
+            _tree.SetColumnCustomMinimumWidth(i, width);
+            room += width;
+        }
+
+        // Around the columns: the tree's own frame and the bar to scroll down, which takes its width from the
+        // columns when it shows.
+        var frame = _tree.GetThemeStylebox("panel")?.GetMinimumSize().X ?? 0;
+        var bar = _tree.GetThemeStylebox("scroll", "VScrollBar")?.GetMinimumSize().X ?? 0;
+        WantedWidth = room + frame + bar;
     }
 
     private IReadOnlyList<GwRow> Sorted()

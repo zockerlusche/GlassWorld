@@ -195,6 +195,10 @@ class QuestionPayload(BaseModel):
         description='What the inhabitant notices about the subject right now (observable properties only, no truth).',
         max_length=16,
     )
+    label: common_schema.LocalizedName | None = Field(
+        None,
+        description="What THIS inhabitant calls the kind of thing it asks about (subject of kind type), by its own knowledge only: the inhabitants' name of an invention it believes anything about (it invented it, built it, tried it, looked at it, was told about it). Absent when it knows nothing of it, and for things the data name (the id is the vocabulary key, i18n key vocab.object.<id>). Never a truth the inhabitant does not know; resolved when the message is built. Optional (absent also from an older core).",
+    )
 
 
 class InventionPayload(BaseModel):
