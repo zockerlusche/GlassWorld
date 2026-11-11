@@ -266,6 +266,32 @@ public sealed class SpacingTests
     }
 
     [Fact]
+    public void AWalkerPassesSomebodyWhoStandsOnItsNextWaypoint()
+    {
+        // W1744 (island seed 42): routes lead from cell centre to cell centre, and that is where inhabitants
+        // stop. A walker whose next waypoint was taken could never reach it and circled the one standing
+        // there until they left - seven hours around a sleeping partner on the way to food.
+        var pond = new Pond(7, 5, null);
+        var destination = new Position(6.5, 2.5);
+        var (world, inhabitants, _) = NewWorldWithObjects(new Position(0.5, 2.5), new Position(3.5, 2.5), pond);
+        var (walker, standing) = (inhabitants.Get("inh-000001"), inhabitants.Get("inh-000002"));
+        Stand(standing);
+        var apart = Content.Gaits.Data.Spacing!.MinSeparationM;
+
+        walker.Activity = new Activity("idle", null, destination, null);
+        for (var t = 0; t < 60 && walker.Activity is { RemainingTicks: null }; t++)
+        {
+            world.Step();
+            Assert.True(Distance(walker.Position, standing.Position) >= apart - 1e-6, $"tick {world.Tick}: too close at {walker.Position}");
+            Assert.True(pond.Connected(walker.Position, walker.Position), $"tick {world.Tick}: on blocked ground at {walker.Position}");
+        }
+
+        Assert.NotNull(walker.Activity?.RemainingTicks);
+        Assert.True(Distance(walker.Position, destination) < 1e-6, "it passed beside and arrived");
+        Assert.Equal(new Position(3.5, 2.5), standing.Position);
+    }
+
+    [Fact]
     public void SpacingIsDeterministic()
     {
         static string Run()
@@ -381,14 +407,16 @@ public sealed class SpacingTests
     }
 
     /// <summary>
-    /// Cells of one metre, 4 wide (x 0..4) and 3 deep (z 0..3), with a blocked cell (1, 1) in the middle of
-    /// the west side; slow ground, so one step is shorter than a cell. Routes lead from cell centre to cell
-    /// centre as on the island (the last waypoint is the destination itself).
+    /// Cells of one metre, by default 4 wide (x 0..4) and 3 deep (z 0..3) with a blocked cell (1, 1) in the
+    /// middle of the west side; slow ground, so one step is shorter than a cell. Routes lead from cell centre
+    /// to cell centre as on the island (the last waypoint is the destination itself).
     /// </summary>
-    private sealed class Pond : IRouteFinder
+    private sealed class Pond(int width, int depth, (int X, int Z)? blocked) : IRouteFinder
     {
-        private const int Width = 4;
-        private const int Depth = 3;
+        public Pond()
+            : this(4, 3, (1, 1))
+        {
+        }
 
         public Route Find(Position start, Position destination)
         {
@@ -429,13 +457,13 @@ public sealed class SpacingTests
 
         public bool Connected(Position a, Position b) => Area(a) == Area(b) && Area(a) != 0;
 
-        private static int Area(Position p) => p.X > 500 || p.Z > 500 ? 2 : Cell(p) is { } cell && Walkable(cell) ? 1 : 0;
+        private int Area(Position p) => p.X > 500 || p.Z > 500 ? 2 : Cell(p) is { } cell && Walkable(cell) ? 1 : 0;
 
-        private static (int X, int Z)? Cell(Position p) =>
-            p.X >= 0 && p.X < Width && p.Z >= 0 && p.Z < Depth ? ((int)Math.Floor(p.X), (int)Math.Floor(p.Z)) : null;
+        private (int X, int Z)? Cell(Position p) =>
+            p.X >= 0 && p.X < width && p.Z >= 0 && p.Z < depth ? ((int)Math.Floor(p.X), (int)Math.Floor(p.Z)) : null;
 
-        private static bool Walkable((int X, int Z) cell) =>
-            cell.X >= 0 && cell.X < Width && cell.Z >= 0 && cell.Z < Depth && cell != (1, 1);
+        private bool Walkable((int X, int Z) cell) =>
+            cell.X >= 0 && cell.X < width && cell.Z >= 0 && cell.Z < depth && cell != blocked;
     }
 
     /// <summary>

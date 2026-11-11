@@ -1174,7 +1174,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         }
 
         var budget = StepOf(inhabitant) * routes.SpeedFactor(from);
-        var (position, next, arrived) = Along(from, route, budget, reach);
+        var (position, ahead, arrived) = Step(inhabitant, from, route, budget, reach, routes);
         if (OnWalkableGround(routes, from) && !routes.Connected(from, position))
         {
             if (kept)
@@ -1184,7 +1184,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
                     return false;
                 }
 
-                (position, next, arrived) = Along(from, route, budget, reach);
+                (position, ahead, arrived) = Step(inhabitant, from, route, budget, reach, routes);
             }
 
             if (!routes.Connected(from, position))
@@ -1196,8 +1196,39 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         }
 
         inhabitant.Position = position;
-        inhabitant.Activity = activity with { Route = [.. route.Skip(next)] };
+        inhabitant.Activity = activity with { Route = ahead };
         return arrived || Distance(inhabitant.Position, destination) <= reach;
+    }
+
+    /// <summary>
+    /// One tick's walk along a route: where it ends, the waypoints still ahead and whether it arrived.
+    /// <para>
+    /// A waypoint somebody stands on cannot be reached: the minimum separation keeps the walker off it, and
+    /// heading for it again and again it circled the one standing there until they left (W1744, seed 42:
+    /// seven hours around a sleeping partner on the way to food). So the walk leaves out the waypoints
+    /// somebody stands on - never the last one, the destination - and passes beside, kept apart by the
+    /// rules of personal space. If that step would leave the walkable ground, the route is walked as it is.
+    /// </para>
+    /// </summary>
+    private (Position Position, IReadOnlyList<Position> Ahead, bool Arrived) Step(Inhabitant walker, Position from, IReadOnlyList<Position> route, double budget, double reach, Map.IRouteFinder routes)
+    {
+        if (Space is { MinSeparationM: > 0 } space)
+        {
+            var limit = space.MinSeparationM - 1e-9;
+            var standing = _inhabitants.Values.Where(o => !ReferenceEquals(o, walker) && !Walking(o)).Select(o => o.Position).ToList();
+            IReadOnlyList<Position> free = [.. route.Where((point, index) => index == route.Count - 1 || !standing.Any(at => Distance(at, point) < limit))];
+            if (free.Count < route.Count)
+            {
+                var beside = Along(from, free, budget, reach);
+                if (routes.Connected(from, beside.Position))
+                {
+                    return (beside.Position, [.. free.Skip(beside.Next)], beside.Arrived);
+                }
+            }
+        }
+
+        var (position, next, arrived) = Along(from, route, budget, reach);
+        return (position, [.. route.Skip(next)], arrived);
     }
 
     /// <summary>
