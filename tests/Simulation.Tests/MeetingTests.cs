@@ -172,7 +172,7 @@ public sealed class MeetingTests
             Knowledge = Knowledge,
             Names = Content.InhabitantNames,
         };
-        var decisions = new DecisionsSystem(Settings, inhabitants, objects, Content.Actions, Content.Brain, Content.Vocabularies[VocabularyKind.Action], port, "de")
+        var decisions = new DecisionsSystem(Settings, inhabitants, objects, Content.Actions, Content.Brain, Content.Vocabularies[VocabularyKind.Action], port, Content.Inventions.Guard, "de")
         {
             Knowledge = Knowledge,
         };
@@ -297,7 +297,7 @@ public sealed class MeetingTests
             Knowledge = Knowledge,
             Names = Content.InhabitantNames,
         };
-        var decisions = new DecisionsSystem(settings, inhabitants, objects, Content.Actions, Content.Brain, Content.Vocabularies[VocabularyKind.Action], port, "de")
+        var decisions = new DecisionsSystem(settings, inhabitants, objects, Content.Actions, Content.Brain, Content.Vocabularies[VocabularyKind.Action], port, Content.Inventions.Guard, "de")
         {
             Knowledge = Knowledge,
         };
