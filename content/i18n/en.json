@@ -2539,6 +2539,34 @@
       "text": "{name} sees someone whose name they do not know yet."
     },
     {
+      "key": "ui.zone.tab.inhabitants",
+      "text": "List"
+    },
+    {
+      "key": "ui.zone.tab.card",
+      "text": "Card"
+    },
+    {
+      "key": "ui.zone.tab.chronicle",
+      "text": "Chronicle"
+    },
+    {
+      "key": "ui.zone.tab.timeline",
+      "text": "Timeline"
+    },
+    {
+      "key": "ui.zone.tab.questions",
+      "text": "What occupies them"
+    },
+    {
+      "key": "ui.zone.tab.help",
+      "text": "Help"
+    },
+    {
+      "key": "ui.zone.tab.mailbox",
+      "text": "Mailbox"
+    },
+    {
       "key": "msg.hint.questions_many",
       "text": "{name} is wondering about several things."
     }
