@@ -96,6 +96,13 @@ public partial class Main : Node3D
             {
                 _ = _tour ? TourAsync(_style) : TakeShotsAsync(_style);
             }
+            else if (_tour)
+            {
+                // Without the UI style there is nothing to tour: say so and end the run (review GW1 #214),
+                // instead of an open window that prints nothing.
+                GD.PushError("UI_TOUR_FAIL the UI style did not load");
+                GetTree().Quit(1);
+            }
 
             if (_smokeFrames > 0)
             {
