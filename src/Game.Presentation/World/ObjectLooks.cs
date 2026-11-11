@@ -157,6 +157,7 @@ public sealed class ObjectLooks
         }
 
         CheckColors("the fallback", data.Fallback.Colors);
+        OutlineMitreLimit = data.OutlineMitreLimit;
         Fit = new GroundFit(data.GroundToleranceM, data.TurnTries, data.MinFootprintM);
         Fallback = new ObjectLook(FallbackId, data.Fallback.Shape, [.. data.Fallback.Colors], data.Fallback.SizeM, 0, 0);
         var visuals = new List<ObjectLook> { Fallback };
@@ -251,6 +252,9 @@ public sealed class ObjectLooks
 
     /// <summary>How far a lying object's underside may float above or sink below the drawn ground (metres).</summary>
     public double GroundToleranceM => Fit.ToleranceM;
+
+    /// <summary>How thick the ink outline may get at a sharp corner of a flat-shaded rock, in outline widths (<see cref="OutlineHull.Directions"/>), from the data.</summary>
+    public double OutlineMitreLimit { get; }
 
     /// <summary>How lying objects meet the ground, from the data.</summary>
     public GroundFit Fit { get; }

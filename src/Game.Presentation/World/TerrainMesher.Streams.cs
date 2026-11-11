@@ -433,9 +433,9 @@ public static partial class TerrainMesher
 
     /// <summary>
     /// The cross-sections of one stream band, one per point of its centre line (see <see cref="Streams"/>):
-    /// the centre at the height <see cref="AtMouth"/> gives over the drawn ground, the edges half the
-    /// width to either side, as high as the centre but never higher than the ground under them plus the
-    /// shore lift.
+    /// the centre at the height <see cref="AtMouth"/> gives over the drawn ground - at the sea settled so
+    /// that the water never rises on its way (<see cref="RunDownToTheSea"/>) -, the edges half the width to
+    /// either side, as high as the centre but never higher than the ground under them plus the shore lift.
     /// </summary>
     public static IReadOnlyList<StreamSection> StreamSections(WorldMap map, TerrainLook look, StreamCourse course)
     {
@@ -449,6 +449,22 @@ public static partial class TerrainMesher
             along[i] = along[i - 1] + (float)Math.Sqrt(Math.Pow(line[i].X - line[i - 1].X, 2) + Math.Pow(line[i].Z - line[i - 1].Z, 2));
         }
 
+        var surfaces = new float[line.Count];
+        var widens = new float[line.Count];
+        var deepest = new float[line.Count];
+        for (var i = 0; i < line.Count; i++)
+        {
+            var ground = GroundHeight(map, look, line[i].X, line[i].Z);
+            var depth = (float)(line[i].Depth * look.UnitM);
+            (surfaces[i], widens[i]) = AtMouth(look, course.Mouth, ground, depth, along[^1] - along[i]);
+            deepest[i] = ground + depth;
+        }
+
+        if (course.Mouth is { Kind: StreamMouthKind.Sea } mouth && look.Mouth is { } data)
+        {
+            RunDownToTheSea(surfaces, deepest, along, mouth.LengthM, data.SeaLevelM(look.UnitM, 1000));
+        }
+
         var sections = new StreamSection[line.Count];
         for (var i = 0; i < line.Count; i++)
         {
@@ -459,8 +475,8 @@ public static partial class TerrainMesher
             var length = Math.Sqrt((tx * tx) + (tz * tz));
             (tx, tz) = length > 1e-9 ? (tx / length, tz / length) : (1, 0);
             var p = line[i];
-            var (surface, widen) = AtMouth(look, course.Mouth, GroundHeight(map, look, p.X, p.Z), (float)(p.Depth * look.UnitM), along[^1] - along[i]);
-            var half = p.WidthM * widen / 2;
+            var surface = surfaces[i];
+            var half = p.WidthM * widens[i] / 2;
             (float X, float Y, float Z) Edge(double side)
             {
                 double ex = p.X - (tz * half * side), ez = p.Z + (tx * half * side);
@@ -471,6 +487,66 @@ public static partial class TerrainMesher
         }
 
         return sections;
+    }
+
+    /// <summary>
+    /// Settles the heights of a band's centre line towards the sea so that the water never rises on its way
+    /// (review of #222, seed 42 of generator version 5: the ground along a line does not only fall - the
+    /// cut bed of a stream lies lower than the beach it runs out onto, and the drawn ground has small
+    /// rises between cells. A film that follows such ground dips under the sea and comes up again beyond
+    /// its own waterline). Two passes over the heights <see cref="AtMouth"/> gave:
+    /// <list type="number">
+    /// <item>Before the coast (the last <paramref name="inWaterM"/> metres of the line lie beyond it) the
+    /// water stands behind a rise of the ground further down as water does: level with the water there,
+    /// but nowhere above <paramref name="deepest"/> (the ground plus the stream's depth, where it lay
+    /// before). So a cut bed is filled up to the beach before it and the stream runs on without a break.</item>
+    /// <item>From the first point the highest tide can reach (its water lies under
+    /// <paramref name="highestSeaM"/>) no point lies higher than the one before it. Where the ground rises
+    /// above the water that came down to it, the band passes under it instead of climbing it.</item>
+    /// </list>
+    /// So for every tide the centre line crosses the sea level once: what the sea has covered stays
+    /// covered. Heights are only ever lowered below what <see cref="AtMouth"/> gave beyond the coast, so the
+    /// film there still never lies above the ground plus the shore lift.
+    /// </summary>
+    /// <param name="surfaces">Heights of the centre line in metres from the head to the end; settled in place.</param>
+    /// <param name="deepest">Per point the ground plus the stream's full depth.</param>
+    /// <param name="along">Per point the metres along the line from its head.</param>
+    /// <param name="inWaterM">How much of the end of the line lies in the sea (<see cref="StreamMouth.LengthM"/>).</param>
+    /// <param name="highestSeaM">Height of the sea surface at the highest tide.</param>
+    public static void RunDownToTheSea(float[] surfaces, IReadOnlyList<float> deepest, IReadOnlyList<float> along, double inWaterM, float highestSeaM)
+    {
+        ArgumentNullException.ThrowIfNull(surfaces);
+        ArgumentNullException.ThrowIfNull(deepest);
+        ArgumentNullException.ThrowIfNull(along);
+        if (deepest.Count != surfaces.Length || along.Count != surfaces.Length)
+        {
+            throw new ArgumentException("one value per point expected", nameof(surfaces));
+        }
+
+        if (surfaces.Length == 0)
+        {
+            return;
+        }
+
+        // The first point beyond the coast; the last point of the line always is.
+        var total = along[^1];
+        var coast = surfaces.Length - 1;
+        while (coast > 0 && total - along[coast - 1] <= inWaterM)
+        {
+            coast--;
+        }
+
+        // Far up the stream this changes nothing: there the water lies at its full depth already.
+        for (var i = coast - 1; i >= 0; i--)
+        {
+            surfaces[i] = MathF.Min(deepest[i], MathF.Max(surfaces[i], surfaces[i + 1]));
+        }
+
+        var reached = Array.FindIndex(surfaces, y => y < highestSeaM);
+        for (var i = reached + 1; reached >= 0 && i < surfaces.Length; i++)
+        {
+            surfaces[i] = MathF.Min(surfaces[i], surfaces[i - 1]);
+        }
     }
 
     /// <summary>

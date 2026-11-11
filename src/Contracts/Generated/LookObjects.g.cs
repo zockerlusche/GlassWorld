@@ -454,6 +454,12 @@ namespace GlassWorld.Contracts
         public double OutlineWidthM { get; set; } = default!;
 
         /// <summary>
+        /// How thick the ink outline may get at a sharp corner of a flat-shaded rock (stones, the rock niche; TL #20750), in outline widths. Where the faces of such a rock meet at a corner the outline is pushed out along their common direction, and further the sharper the corner is, so that every face still lies one whole width off the body (a mitre); a spike is capped at this many widths. 1 = no mitre (thinner outline at corners). Shapes with smooth normals (trees, bushes, plants) are pushed out along their normals by exactly one width and do not use it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("outline_mitre_limit")]
+        public double OutlineMitreLimit { get; set; } = default!;
+
+        /// <summary>
         /// How far (metres) the underside of an object lying on the ground (align ground or ground_uphill) may float above or sink below the drawn ground within its footprint (D576, TL #19553). A lying object whose best fit is worse (for example across a rock wall) stands upright instead; the tests hold every object of the start island to it. Placeholder value.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("ground_tolerance_m")]

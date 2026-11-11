@@ -13,21 +13,20 @@ public static class OutlineHull
     /// <summary>Corners closer than this (metres, per axis) count as the same place.</summary>
     public const double WeldM = 1e-4;
 
-    /// <summary>Longest direction: a sharp spike is not pushed out further than this many outline widths.</summary>
-    public const double MaxLength = 2.0;
-
     /// <summary>
     /// One direction per corner: the mean of the different face normals that meet at its place, made
     /// longer where they spread (a mitre), so every face of the hull lies about one outline width off its
-    /// face of the body, at most <see cref="MaxLength"/> long. A corner whose normals cancel (the two
-    /// sides of a leaf) keeps its own normal.
+    /// face of the body, at most <paramref name="mitreLimit"/> long. A corner whose normals cancel (the
+    /// two sides of a leaf) keeps its own normal.
     /// </summary>
     /// <param name="positions">Corner positions, one per mesh vertex.</param>
     /// <param name="normals">The face normal of each corner (unit length).</param>
-    public static Point3[] Directions(IReadOnlyList<Point3> positions, IReadOnlyList<Point3> normals)
+    /// <param name="mitreLimit">Longest direction in outline widths (<c>outline_mitre_limit</c> of <c>content/look/objects.json</c>): a sharp spike is not pushed out further; at least 1.</param>
+    public static Point3[] Directions(IReadOnlyList<Point3> positions, IReadOnlyList<Point3> normals, double mitreLimit)
     {
         ArgumentNullException.ThrowIfNull(positions);
         ArgumentNullException.ThrowIfNull(normals);
+        ArgumentOutOfRangeException.ThrowIfLessThan(mitreLimit, 1);
         if (positions.Count != normals.Count)
         {
             throw new ArgumentException("one normal per position expected", nameof(normals));
@@ -77,7 +76,7 @@ public static class OutlineHull
                 least = Math.Min(least, (x * n.X) + (y * n.Y) + (z * n.Z));
             }
 
-            var scale = Math.Min(MaxLength, 1 / Math.Max(least, 1e-6));
+            var scale = Math.Min(mitreLimit, 1 / Math.Max(least, 1e-6));
             result[i] = new Point3(x * scale, y * scale, z * scale);
         }
 

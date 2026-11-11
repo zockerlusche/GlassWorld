@@ -349,14 +349,16 @@ public sealed class TerrainMesherTests
     }
 
     /// <summary>
-    /// Centre vertices lie at ground plus depth - in a stream that ends in standing water at most there and
-    /// at least a film above the ground (it comes down to the water, TL #20750; StreamMouthTests holds it
-    /// to the exact heights); every other vertex at most the shore lift above its ground.
+    /// Centre vertices lie at ground plus depth - in a stream that ends in standing water at most there (it
+    /// comes down to the water, TL #20750): in a lake at least a film above the ground; towards the sea the
+    /// water never rises on its way, so where the ground rises again the band passes under it.
+    /// StreamMouthTests holds the mouths to the exact heights. Every other vertex lies at most the shore
+    /// lift above its ground.
     /// </summary>
     private static void AssertBandRests(WorldMap map, TerrainLook look)
     {
         var centres = TerrainMesher.StreamCourses(map, look)
-            .SelectMany(c => c.Points.Select(p => (X: (float)p.X, Z: (float)p.Z, p.Depth, Mouth: c.Mouth is not null)))
+            .SelectMany(c => c.Points.Select(p => (X: (float)p.X, Z: (float)p.Z, p.Depth, Mouth: c.Mouth?.Kind)))
             .ToList();
         var stream = TerrainMesher.Streams(map, look);
         Assert.True(stream.TriangleCount > 0);
@@ -364,12 +366,17 @@ public sealed class TerrainMesherTests
         {
             float x = stream.Positions[i * 3], y = stream.Positions[(i * 3) + 1], z = stream.Positions[(i * 3) + 2];
             var ground = TerrainMesher.GroundHeight(map, look, x, z);
-            var centre = centres.Where(c => MathF.Abs(c.X - x) < 1e-5f && MathF.Abs(c.Z - z) < 1e-5f).Select(c => ((double Depth, bool Mouth)?)(c.Depth, c.Mouth)).FirstOrDefault();
+            var centre = centres.Where(c => MathF.Abs(c.X - x) < 1e-5f && MathF.Abs(c.Z - z) < 1e-5f).Select(c => ((double Depth, StreamMouthKind? Mouth)?)(c.Depth, c.Mouth)).FirstOrDefault();
             if (centre is { } found)
             {
                 // Float rounding only (the heights are single precision): a tolerance, not decimal places.
                 var full = ground + (float)(found.Depth * look.UnitM);
-                var least = found.Mouth ? ground + MathF.Min((float)(found.Depth * look.UnitM), look.ShoreLiftM) : full;
+                var least = found.Mouth switch
+                {
+                    null => full,
+                    StreamMouthKind.Lake => ground + MathF.Min((float)(found.Depth * look.UnitM), look.ShoreLiftM),
+                    _ => float.NegativeInfinity,
+                };
                 Assert.InRange(y, least - 1e-4f, full + 1e-4f);
             }
             else

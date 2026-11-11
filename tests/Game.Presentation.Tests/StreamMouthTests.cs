@@ -103,6 +103,54 @@ public sealed class StreamMouthTests
 
     private static float Ground(WorldMap map, TerrainLook look, (float X, float Y, float Z) p) => TerrainMesher.GroundHeight(map, look, p.X, p.Z);
 
+    /// <summary>The islands the mouths are checked on: thirty in a row and the two the other look tests use.</summary>
+    public static TheoryData<ulong> Seeds()
+    {
+        var seeds = new TheoryData<ulong>();
+        for (var seed = 1UL; seed <= 30; seed++)
+        {
+            seeds.Add(seed);
+        }
+
+        seeds.Add(42);
+        seeds.Add(2026);
+        return seeds;
+    }
+
+    /// <summary>
+    /// The mouth of seed 42 (generator version 5) that ends at (109.5, 11.5), cell for cell: a stream between
+    /// two strips of swamp (still water one unit deep on ground of 23 units) runs out to the sea. Its bed is
+    /// cut to 20 and 19 units; the first sea cells in its row lie at 19 and 18, but the drawn ground there
+    /// is lifted by the swamp ground beside it (shared corner heights) - a bar before the cut bed.
+    /// </summary>
+    private static WorldMap BarBeforeTheSea()
+    {
+        int[] row = [19, 18, 18, 17, 16, 15, 14, 14, 13, 12];
+        int[] beside = [19, 18, 16, 15, 15, 14, 14, 12, 12];
+        const int Size = 16, Stream = 6;
+        var builder = new WorldMapBuilder(Size, 1, 1, Biomes);
+        for (var z = 0; z < Size; z++)
+        {
+            for (var x = 0; x < Size; x++)
+            {
+                if (z == Stream)
+                {
+                    builder.Set(x, z, x < Stream
+                        ? new MapCell(24 - x, WaterKind.Fresh, 2, Flow(1, 0), 1000, 150, 0, 3000)
+                        : new MapCell(row[x - Stream], WaterKind.Salt, 20 - row[x - Stream], -1, 1000, 150, 0, 3000));
+                }
+                else
+                {
+                    builder.Set(x, z, x <= Stream
+                        ? new MapCell(23, WaterKind.Fresh, 1, -1, 1000, 150, 0, 3000)
+                        : new MapCell(beside[x - Stream - 1], WaterKind.Salt, 20 - beside[x - Stream - 1], -1, 1000, 150, 0, 3000));
+                }
+            }
+        }
+
+        return builder.Build();
+    }
+
     [Fact]
     public void TheDataLetsAStreamRunToTheLowTideLine()
     {
@@ -194,6 +242,96 @@ public sealed class StreamMouthTests
         static float Width(StreamSection s) => MathF.Sqrt(MathF.Pow(s.Left.X - s.Right.X, 2) + MathF.Pow(s.Left.Z - s.Right.Z, 2));
         var coast = sections.Last(s => total - s.AlongM >= course.Mouth.LengthM);
         Assert.Equal(Width(coast) * (1 + Mouth.WidenShare), Width(sections[^1]), 3);
+    }
+
+    [Fact]
+    public void BehindABarTheWaterStandsLevelAndNeverComesUpAgainBeyondItsWaterline()
+    {
+        // The shape CI found on seed 42: the ground along the line dips into the cut bed and rises again
+        // onto the beach before the sea floor falls. A film that only follows the ground goes under the
+        // mean sea in the bed and comes up again on the bar, beyond its own waterline.
+        var map = BarBeforeTheSea();
+        var look = Plain with { SwampAsGround = true };
+        var course = Assert.Single(TerrainMesher.StreamCourses(map, look));
+        Assert.Equal(StreamMouthKind.Sea, course.Mouth!.Kind);
+        var line = course.Points;
+        var sections = TerrainMesher.StreamSections(map, look, course);
+        var total = sections[^1].AlongM;
+        var ground = sections.Select(s => Ground(map, look, s.Centre)).ToArray();
+        float mean = Mouth.SeaLevelM(look.UnitM), high = Mouth.SeaLevelM(look.UnitM, 1000), low = Mouth.SeaLevelM(look.UnitM, -1000);
+
+        // The shape is there: in the last metres before the coast the ground lies under the mean sea, and
+        // further down the line it rises above it again by more than the film.
+        var dip = Enumerable.Range(0, ground.Length).Where(i => total - sections[i].AlongM > course.Mouth.LengthM).MinBy(i => ground[i]);
+        var bar = Enumerable.Range(dip, ground.Length - dip).MaxBy(i => ground[i]);
+        Assert.True(ground[dip] + look.ShoreLiftM < mean && ground[bar] > mean, $"bed {ground[dip]:0.000}, bar {ground[bar]:0.000}");
+        Assert.True(ground[bar] - ground[dip] > 0.1f);
+
+        // The heights the thinning alone gives go under the mean sea in the bed and come up again on the
+        // bar, more than 0.1 m above it (CI reported 0.124 m for the island's mouth) ...
+        var thinned = sections.Select((s, i) => TerrainMesher.AtMouth(look, course.Mouth, ground[i], (float)(line[i].Depth * look.UnitM), total - s.AlongM).Surface).ToArray();
+        Assert.True(thinned[dip] < mean && thinned[bar] > mean + 0.1f, $"thinned to {thinned[dip]:0.000} in the bed and {thinned[bar]:0.000} on the bar");
+
+        // ... the band does not: from where the highest tide reaches it, it never rises on its way.
+        var reached = Array.FindIndex([.. sections], s => s.Centre.Y < high);
+        Assert.True(reached >= 0 && reached < dip);
+        for (var i = reached + 1; i < sections.Count; i++)
+        {
+            Assert.True(sections[i].Centre.Y <= sections[i - 1].Centre.Y + Tolerance, $"the band rises {sections[i].Centre.Y - sections[i - 1].Centre.Y:0.000} m at {total - sections[i].AlongM:0.0} m before its end");
+        }
+
+        // So at every tide it crosses the sea level once.
+        foreach (var level in (ReadOnlySpan<float>)[low, mean, high])
+        {
+            var under = Array.FindIndex([.. sections], s => s.Centre.Y < level);
+            Assert.True(under >= 0);
+            Assert.All(sections.Skip(under), s => Assert.True(s.Centre.Y < level));
+        }
+
+        // The cut bed is filled up to the bar: the water stands level with the film on it, no deeper than
+        // the stream is, and the band runs on across the bar without a break.
+        Assert.Equal(ground[bar] + look.ShoreLiftM, sections[bar].Centre.Y, 4);
+        Assert.Equal(sections[bar].Centre.Y, sections[dip].Centre.Y, 4);
+        Assert.True(sections[dip].Centre.Y <= ground[dip] + (float)(line[dip].Depth * look.UnitM) + Tolerance);
+        Assert.All(Enumerable.Range(dip, bar - dip + 1), i => Assert.True(sections[i].Centre.Y >= ground[i] + look.ShoreLiftM - Tolerance, "the band is hidden before the bar"));
+
+        // Beyond the coast it is still a film at most: nothing above the beach.
+        Assert.All(Enumerable.Range(0, sections.Count).Where(i => total - sections[i].AlongM <= course.Mouth.LengthM), i => Assert.True(sections[i].Centre.Y <= ground[i] + look.ShoreLiftM + Tolerance));
+        Assert.True(sections[^1].Centre.Y <= low - Mouth.UnderM + Tolerance);
+    }
+
+    [Fact]
+    public void RunningDownToTheSeaTheWaterNeverRises()
+    {
+        // Heights along a line (head first), the last four points beyond the coast; the highest tide at 2.3.
+        float[] along = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+        float[] deepest = [3.2f, 2.7f, 2.13f, 2.25f, 2.3f, 2.2f, 2.0f, 2.1f, 1.8f];
+
+        // A dip before the coast (1.96 under 2.12): filled to the level further down. A rise beyond the
+        // coast (1.9 after 1.8): the band stays at 1.8 and passes under it.
+        float[] heights = [3.0f, 2.5f, 1.96f, 2.05f, 2.12f, 2.0f, 1.8f, 1.9f, 1.6f];
+        TerrainMesher.RunDownToTheSea(heights, deepest, along, 3.5, 2.3f);
+        Assert.Equal([3.0f, 2.5f, 2.12f, 2.12f, 2.12f, 2.0f, 1.8f, 1.8f, 1.6f], heights);
+
+        // The water never stands deeper than the stream is: where the rise is higher than that, the bed
+        // is filled to its depth and the band passes under the rise.
+        heights = [3.0f, 2.5f, 1.96f, 2.05f, 2.12f, 2.0f, 1.8f, 1.9f, 1.6f];
+        deepest[2] = 2.02f;
+        TerrainMesher.RunDownToTheSea(heights, deepest, along, 3.5, 2.3f);
+        Assert.Equal([3.0f, 2.5f, 2.02f, 2.02f, 2.02f, 2.0f, 1.8f, 1.8f, 1.6f], heights);
+
+        // Above the reach of the highest tide the heights stay as they are, also where they rise.
+        heights = [3.0f, 3.1f, 2.6f, 2.7f, 2.2f, 2.25f, 1.8f, 1.7f, 1.6f];
+        float[] same = [.. heights];
+        TerrainMesher.RunDownToTheSea(heights, same, along, 3.5, 2.3f);
+        Assert.Equal([3.0f, 3.1f, 2.6f, 2.7f, 2.2f, 2.2f, 1.8f, 1.7f, 1.6f], heights);
+
+        // A line that falls all the way is left alone; lists of different lengths are refused.
+        float[] falling = [3.0f, 2.5f, 2.2f, 2.0f, 1.9f, 1.8f, 1.7f, 1.6f, 1.5f];
+        float[] before = [.. falling];
+        TerrainMesher.RunDownToTheSea(falling, [.. falling.Select(h => h + 0.2f)], along, 3.5, 2.3f);
+        Assert.Equal(before, falling);
+        Assert.Throws<ArgumentException>(() => TerrainMesher.RunDownToTheSea(falling, [1f], along, 3.5, 2.3f));
     }
 
     [Fact]
@@ -297,10 +435,7 @@ public sealed class StreamMouthTests
     }
 
     [Theory]
-    [InlineData(1UL)]
-    [InlineData(7UL)]
-    [InlineData(42UL)]
-    [InlineData(2026UL)]
+    [MemberData(nameof(Seeds))]
     public void TheMouthsOfTheRealIslandsEndAtTheWaterlineAtLowAndAtHighTide(ulong seed)
     {
         var (map, look) = RealIsland(seed);
@@ -308,7 +443,7 @@ public sealed class StreamMouthTests
         float low = mouth.SeaLevelM(look.UnitM, -1000), mean = mouth.SeaLevelM(look.UnitM), high = mouth.SeaLevelM(look.UnitM, 1000);
         Assert.True(low < mean && mean < high);
         var courses = TerrainMesher.StreamCourses(map, look);
-        var (seaMouths, lakeMouths, underLowTide) = (0, 0, 0);
+        var (seaMouths, lakeMouths, underLowTide, shown, exposed) = (0, 0, 0, 0, 0);
         foreach (var course in courses.Where(c => c.Mouth is not null))
         {
             var sections = TerrainMesher.StreamSections(map, look, course);
@@ -361,15 +496,34 @@ public sealed class StreamMouthTests
                 }
             }
 
+            // The reason it holds: from the first point the highest tide can reach, the water never rises
+            // on its way - where the ground rises above water that came down to it, the band passes under
+            // it, level, instead of climbing it; it never lies under the ground for any other reason.
+            var reached = Array.FindIndex([.. sections], s => s.Centre.Y < high);
+            for (var i = Math.Max(reached, 0) + 1; reached >= 0 && i < sections.Count; i++)
+            {
+                var (here, before) = (sections[i].Centre.Y, sections[i - 1].Centre.Y);
+                Assert.True(here <= before + Tolerance, $"{name} rises {here - before:0.000} m at ({sections[i].Centre.X:0.0}, {sections[i].Centre.Z:0.0}) within reach of the tide");
+                var film = Ground(map, look, sections[i].Centre) + MathF.Min((float)(course.Points[i].Depth * look.UnitM), look.ShoreLiftM);
+                Assert.True(here >= film - Tolerance || here >= before - Tolerance, $"{name} drops under the ground at ({sections[i].Centre.X:0.0}, {sections[i].Centre.Z:0.0})");
+            }
+
             // Low tide: where the sea floor lets it, the band reaches the low-tide line and is there above it.
             if (endsUnder && inWater.Count > 4)
             {
                 Assert.Contains(sections, s => s.Centre.Y > low);
             }
+
+            // The stream is not lost on the way: most of what the lowest tide leaves dry of its last
+            // stretch shows the band on the ground.
+            var dry = Enumerable.Range(0, sections.Count).Where(i => total - sections[i].AlongM <= course.Mouth.LengthM + mouth.FadeM && Ground(map, look, sections[i].Centre) > low).ToList();
+            shown += dry.Count(i => sections[i].Centre.Y >= Ground(map, look, sections[i].Centre) - Tolerance);
+            exposed += dry.Count;
         }
 
         Assert.True(seaMouths >= 3, $"seed {seed}: {seaMouths} streams reach the sea");
         Assert.True(underLowTide * 10 >= seaMouths * 8, $"seed {seed}: {underLowTide} of {seaMouths} streams end under the lowest tide");
+        Assert.True(shown * 10 >= exposed * 8, $"seed {seed}: the band shows on {shown} of {exposed} points of the beach at low tide");
         _ = lakeMouths;
     }
 }

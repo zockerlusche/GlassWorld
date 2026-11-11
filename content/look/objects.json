@@ -2,6 +2,7 @@
   "contract_version": "0.2",
   "outline": true,
   "outline_width_m": 0.03,
+  "outline_mitre_limit": 2.0,
   "ground_tolerance_m": 0.06,
   "turn_tries": 8,
   "min_footprint_m": 0.05,

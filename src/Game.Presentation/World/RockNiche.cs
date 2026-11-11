@@ -106,8 +106,8 @@ public static class RockNiche
         (-1.0, 0.0), (-1.0, 0.56), (-0.64, 0.94), (-0.06, 1.0), (0.54, 0.9), (1.0, 0.5), (1.0, 0.0),
     ];
 
-    /// <summary>Builds the niche.</summary>
-    public static IReadOnlyList<ShapeTriangle> Build(RockNicheShape shape)
+    /// <summary>Builds the niche; <paramref name="outlineMitreLimit"/> is the look's cap of the outline directions (<see cref="OutlineHull.Directions"/>).</summary>
+    public static IReadOnlyList<ShapeTriangle> Build(RockNicheShape shape, double outlineMitreLimit)
     {
         ArgumentNullException.ThrowIfNull(shape);
         var all = new List<ShapeTriangle>();
@@ -174,7 +174,7 @@ public static class RockNiche
             body.Add(rings[^1][k], rings[^1][k + 1], new Point3(shape.BackM + (0.15 * f), 0.2 * top, 0), new Point3(1, 0.2, 0));
         }
 
-        body.Into(all, hull: true);
+        body.Into(all, outlineMitreLimit);
 
         // The hollow: walls and ceiling from where the rock of the opening ends to its back, and a floor
         // that closes it. The object stands at the foot of a wall, where the ground already rises under it:
@@ -192,18 +192,18 @@ public static class RockNiche
 
         hollow.Quad(inner[0], inner[^1], inner[^1] with { Y = step }, inner[0] with { Y = step }, _ => new Point3(-1, 0, 0));
         hollow.Quad(inner[0] with { Y = step }, inner[^1] with { Y = step }, back[^1] with { Y = ceiling }, back[0] with { Y = ceiling }, _ => new Point3(-0.3, 1, 0));
-        hollow.Into(all, hull: false);
+        hollow.Into(all, null);
 
         // The lintel: a block across the top, its underside at the top of the opening, jutting out by the
         // overhang and lying a little askew.
         var slab = new Point3(shape.OverhangM + shape.RevealM + (0.45 * f), t, w + (1.25 * f));
-        Block(all, 21, new Point3(lip - shape.OverhangM + (slab.X / 2), h + (0.45 * slab.Y), 0.03 * w), slab, 0.07, rough);
+        Block(all, 21, new Point3(lip - shape.OverhangM + (slab.X / 2), h + (0.45 * slab.Y), 0.03 * w), slab, 0.07, rough, outlineMitreLimit);
 
         // A rock at either jamb, the left one taller, and a small stone beside the left one. None of them
         // stands further out than the lintel, so the ground before the opening stays free to walk on.
-        Block(all, 22, new Point3(lip + (0.28 * f), 0.34 * h, -((w / 2) + (0.62 * f))), new Point3(1.05 * f, 0.86 * h, 1.15 * f), 0.4, rough);
-        Block(all, 23, new Point3(lip + (0.36 * f), 0.22 * h, (w / 2) + (0.7 * f)), new Point3(1.15 * f, 0.58 * h, 1.3 * f), -0.3, rough);
-        Block(all, 24, new Point3(lip + (0.3 * f), 0.05 * h, -((w / 2) + (1.6 * f))), new Point3(0.55 * f, 0.18 * h, 0.5 * f), 1.1, rough * 0.4);
+        Block(all, 22, new Point3(lip + (0.28 * f), 0.34 * h, -((w / 2) + (0.62 * f))), new Point3(1.05 * f, 0.86 * h, 1.15 * f), 0.4, rough, outlineMitreLimit);
+        Block(all, 23, new Point3(lip + (0.36 * f), 0.22 * h, (w / 2) + (0.7 * f)), new Point3(1.15 * f, 0.58 * h, 1.3 * f), -0.3, rough, outlineMitreLimit);
+        Block(all, 24, new Point3(lip + (0.3 * f), 0.05 * h, -((w / 2) + (1.6 * f))), new Point3(0.55 * f, 0.18 * h, 0.5 * f), 1.1, rough * 0.4, outlineMitreLimit);
         return all;
     }
 
@@ -218,7 +218,7 @@ public static class RockNiche
     /// every corner moved by up to <paramref name="jitter"/> metres, turned about the vertical. Angular,
     /// so it reads as a broken piece of rock and not as a ball.
     /// </summary>
-    private static void Block(List<ShapeTriangle> all, int seed, Point3 centre, Point3 size, double yaw, double jitter)
+    private static void Block(List<ShapeTriangle> all, int seed, Point3 centre, Point3 size, double yaw, double jitter, double outlineMitreLimit)
     {
         var (cos, sin) = (Math.Cos(yaw), Math.Sin(yaw));
         (double Y, double Wide)[] rows = [(-0.5, 0.88), (0.08, 1.0), (0.5, 0.74)];
@@ -248,7 +248,7 @@ public static class RockNiche
 
         stone.Quad(corners[^1][0], corners[^1][1], corners[^1][2], corners[^1][3], _ => new Point3(0, 1, 0));
         stone.Quad(corners[0][0], corners[0][1], corners[0][2], corners[0][3], _ => new Point3(0, -1, 0));
-        stone.Into(all, hull: true);
+        stone.Into(all, outlineMitreLimit);
     }
 
     /// <summary>A value in -1..1 from three whole numbers, the same at every start.</summary>
@@ -305,10 +305,10 @@ public static class RockNiche
             Add(a, c, d, toward(Middle(a, c, d)));
         }
 
-        /// <summary>Hands the part over, with outline directions that keep its hull closed, or without an outline (its own normals).</summary>
-        public void Into(List<ShapeTriangle> all, bool hull)
+        /// <summary>Hands the part over, with outline directions that keep its hull closed (capped at <paramref name="mitreLimit"/>), or with null without an outline (its own normals).</summary>
+        public void Into(List<ShapeTriangle> all, double? mitreLimit)
         {
-            IReadOnlyList<Point3> directions = hull ? OutlineHull.Directions(_corners, _normals) : _normals;
+            IReadOnlyList<Point3> directions = mitreLimit is { } limit ? OutlineHull.Directions(_corners, _normals, limit) : _normals;
             for (var i = 0; i < _corners.Count; i += 3)
             {
                 all.Add(new ShapeTriangle(_corners[i], _corners[i + 1], _corners[i + 2], _normals[i], role, directions[i], directions[i + 1], directions[i + 2]));

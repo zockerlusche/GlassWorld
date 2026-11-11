@@ -23,8 +23,11 @@ public static class ObjectShapes
     /// each as r, g, b, a; B2-5 R24, R16), stored per vertex in CUSTOM0 and CUSTOM1 for the warm comic shader.
     /// A rock niche takes its measures from <paramref name="niche"/> and gets a second surface: its dark
     /// inside (<see cref="RockNiche.InsideRole"/>), which the view draws unlit.
+    /// <paramref name="outlineMitreLimit"/> caps the outline directions of the flat-shaded rocks
+    /// (<c>outline_mitre_limit</c> of the object look data); every other part is pushed out along its
+    /// own normals by one outline width, exactly as before the directions were there.
     /// </summary>
-    public static ArrayMesh Build(ObjectLookShape shape, Func<int, Color> paint, Func<int, (Color First, Color More)>? tint = null, RockNicheShape? niche = null)
+    public static ArrayMesh Build(ObjectLookShape shape, Func<int, Color> paint, double outlineMitreLimit, Func<int, (Color First, Color More)>? tint = null, RockNicheShape? niche = null)
     {
         ArgumentNullException.ThrowIfNull(paint);
         var tool = new SurfaceTool();
@@ -32,7 +35,7 @@ public static class ObjectShapes
         tool.SetCustomFormat(0, SurfaceTool.CustomFormat.Rgba8Unorm);
         tool.SetCustomFormat(1, SurfaceTool.CustomFormat.Rgba8Unorm);
         tool.SetCustomFormat(2, SurfaceTool.CustomFormat.RgbFloat);
-        var parts = new Parts(tool, paint, tint ?? (_ => (new Color(0, 0, 0, 0), new Color(0, 0, 0, 0))));
+        var parts = new Parts(tool, paint, tint ?? (_ => (new Color(0, 0, 0, 0), new Color(0, 0, 0, 0))), outlineMitreLimit);
         IReadOnlyList<ShapeTriangle> inside = [];
 
         // The shapes below name a part by its colour role; Parts turns the role into colour and weights.
@@ -94,7 +97,7 @@ public static class ObjectShapes
                 parts.Add(IslandPiece.Rock(7, new Vector3(1.4f, 0.9f, 1.2f), Colors.White), Transform3D.Identity, color(0), closedHull: true);
                 break;
             case ObjectLookShape.Rock_niche:
-                var triangles = RockNiche.Build(niche ?? throw new InvalidDataException("The shape rock_niche needs the niche measures of its visual."));
+                var triangles = RockNiche.Build(niche ?? throw new InvalidDataException("The shape rock_niche needs the niche measures of its visual."), outlineMitreLimit);
                 foreach (var triangle in triangles.Where(t => t.Role != RockNiche.InsideRole))
                 {
                     parts.Add(triangle);
@@ -313,7 +316,7 @@ public static class ObjectShapes
     /// Appends meshes with one colour each into one surface. The colour argument carries the colour role in
     /// its red channel; every vertex gets the role's colour, its seasonal weights and its outline direction.
     /// </summary>
-    private sealed class Parts(SurfaceTool tool, Func<int, Color> paint, Func<int, (Color First, Color More)> tint)
+    private sealed class Parts(SurfaceTool tool, Func<int, Color> paint, Func<int, (Color First, Color More)> tint, double outlineMitreLimit)
     {
         /// <summary>
         /// Appends a mesh. With <paramref name="closedHull"/> (a flat-shaded stone) the outline directions
@@ -339,7 +342,7 @@ public static class ObjectShapes
             }
 
             var hull = closedHull
-                ? OutlineHull.Directions([.. placed.Select(ToPoint)], [.. turned.Select(ToPoint)])
+                ? OutlineHull.Directions([.. placed.Select(ToPoint)], [.. turned.Select(ToPoint)], outlineMitreLimit)
                 : null;
             for (var k = 0; k < indices.Length; k++)
             {

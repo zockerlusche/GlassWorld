@@ -281,6 +281,12 @@ class LookObjects(BaseModel):
     outline_width_m: float = Field(
         ..., description='Width of the ink outline hull in metres.', ge=0.0, le=0.5
     )
+    outline_mitre_limit: float = Field(
+        ...,
+        description='How thick the ink outline may get at a sharp corner of a flat-shaded rock (stones, the rock niche; TL #20750), in outline widths. Where the faces of such a rock meet at a corner the outline is pushed out along their common direction, and further the sharper the corner is, so that every face still lies one whole width off the body (a mitre); a spike is capped at this many widths. 1 = no mitre (thinner outline at corners). Shapes with smooth normals (trees, bushes, plants) are pushed out along their normals by exactly one width and do not use it.',
+        ge=1.0,
+        le=10.0,
+    )
     ground_tolerance_m: float = Field(
         ...,
         description='How far (metres) the underside of an object lying on the ground (align ground or ground_uphill) may float above or sink below the drawn ground within its footprint (D576, TL #19553). A lying object whose best fit is worse (for example across a rock wall) stands upright instead; the tests hold every object of the start island to it. Placeholder value.',

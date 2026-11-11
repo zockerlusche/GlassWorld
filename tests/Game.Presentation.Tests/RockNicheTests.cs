@@ -24,6 +24,8 @@ public sealed class RockNicheTests
 
     private static ObjectLook Niche() => Looks().For("rock_niche");
 
+    private static IReadOnlyList<ShapeTriangle> Build(RockNicheShape shape) => RockNiche.Build(shape, Looks().OutlineMitreLimit);
+
     private static Point3 Minus(Point3 a, Point3 b) => new(a.X - b.X, a.Y - b.Y, a.Z - b.Z);
 
     private static Point3 Cross(Point3 a, Point3 b) => new((a.Y * b.Z) - (a.Z * b.Y), (a.Z * b.X) - (a.X * b.Z), (a.X * b.Y) - (a.Y * b.X));
@@ -94,7 +96,7 @@ public sealed class RockNicheTests
     public void TheOpeningIsDarkFromTheFrontAndRockFromEveryOtherSide()
     {
         var shape = Niche().Niche!;
-        var niche = RockNiche.Build(shape);
+        var niche = Build(shape);
         Assert.Contains(niche, t => t.Role == RockNiche.BodyRole);
         Assert.Contains(niche, t => t.Role == RockNiche.StoneRole);
         Assert.Contains(niche, t => t.Role == RockNiche.InsideRole);
@@ -137,7 +139,7 @@ public sealed class RockNicheTests
     public void ALintelJutsOutOverTheOpeningBetweenTwoSideRocksAndTheRockReachesBelowTheGround()
     {
         var shape = Niche().Niche!;
-        var niche = RockNiche.Build(shape);
+        var niche = Build(shape);
         var (w, h) = (shape.OpeningWidthM, shape.OpeningHeightM);
         static IEnumerable<Point3> Corners(ShapeTriangle t) => [t.A, t.B, t.C];
         var rock = niche.Where(t => t.Role != RockNiche.InsideRole).SelectMany(Corners).ToList();
@@ -177,8 +179,8 @@ public sealed class RockNicheTests
     public void EveryFaceIsFlatWithItsNormalAndTheSameMeasuresGiveTheSameNiche()
     {
         var shape = Niche().Niche!;
-        var niche = RockNiche.Build(shape);
-        Assert.Equal(niche, RockNiche.Build(shape));
+        var niche = Build(shape);
+        Assert.Equal(niche, Build(shape));
         Assert.All(niche, t =>
         {
             var n = Cross(Minus(t.B, t.A), Minus(t.C, t.A));
@@ -188,7 +190,7 @@ public sealed class RockNicheTests
         });
 
         // A different measure changes it: the shape is data, not a fixed model.
-        Assert.NotEqual(niche, RockNiche.Build(shape with { OpeningWidthM = shape.OpeningWidthM * 1.2 }));
+        Assert.NotEqual(niche, Build(shape with { OpeningWidthM = shape.OpeningWidthM * 1.2 }));
     }
 
     [Fact]
@@ -197,7 +199,9 @@ public sealed class RockNicheTests
         // The cause of the floating strokes (survey D704): pushed out along its own flat normals, every
         // face of the hull moves off by itself. With the common directions all corners at a place move
         // together, and every face still lies a whole outline width off its face of the body.
-        var rock = RockNiche.Build(Niche().Niche!).Where(t => t.Role != RockNiche.InsideRole).ToList();
+        var rock = Build(Niche().Niche!).Where(t => t.Role != RockNiche.InsideRole).ToList();
+        var limit = Looks().OutlineMitreLimit;
+        Assert.InRange(limit, 1.5, 4);
         var places = new Dictionary<(long, long, long), List<(Point3 Hull, Point3 Normal)>>();
         foreach (var t in rock)
         {
@@ -223,7 +227,7 @@ public sealed class RockNicheTests
             torn += corners.Any(c => Dot(Minus(c.Normal, corners[0].Normal), Minus(c.Normal, corners[0].Normal)) > 1e-6) ? 1 : 0;
 
             // Every face moves outwards, as a rule by a whole width, never by more than the cap.
-            Assert.All(corners, c => Assert.InRange(Dot(c.Hull, c.Normal), 0.05, OutlineHull.MaxLength + 1e-9));
+            Assert.All(corners, c => Assert.InRange(Dot(c.Hull, c.Normal), 0.05, limit + 1e-9));
         }
 
         Assert.True(torn > places.Count / 2, "most places of a flat-shaded rock have faces with different normals");
@@ -249,7 +253,7 @@ public sealed class RockNicheTests
             }
         }
 
-        var hull = OutlineHull.Directions(positions, normals);
+        var hull = OutlineHull.Directions(positions, normals, 2);
         for (var i = 0; i < positions.Count; i++)
         {
             // Out along the diagonal, long enough that each of the three faces moves one whole width.
@@ -262,13 +266,18 @@ public sealed class RockNicheTests
         // The two sides of a leaf cancel: each keeps its own normal, as before.
         Point3[] leaf = [new(0, 0, 0), new(1, 0, 0), new(0, 1, 0), new(0, 0, 0), new(0, 1, 0), new(1, 0, 0)];
         Point3[] sides = [new(0, 0, 1), new(0, 0, 1), new(0, 0, 1), new(0, 0, -1), new(0, 0, -1), new(0, 0, -1)];
-        Assert.Equal(sides, OutlineHull.Directions(leaf, sides));
+        Assert.Equal(sides, OutlineHull.Directions(leaf, sides, 2));
 
         // A sharp spike is capped.
         Point3[] spike = [new(0, 0, 0), new(0, 0, 0)];
         Point3[] apart = [new(1, 0, 0), new(-0.999, Math.Sqrt(1 - (0.999 * 0.999)), 0)];
-        Assert.All(OutlineHull.Directions(spike, apart), d => Assert.InRange(Math.Sqrt(Dot(d, d)), 1, OutlineHull.MaxLength + 1e-9));
-        Assert.Throws<ArgumentException>(() => OutlineHull.Directions(leaf, apart));
+        Assert.All(OutlineHull.Directions(spike, apart, 2), d => Assert.Equal(2, Math.Sqrt(Dot(d, d)), 9));
+        Assert.All(OutlineHull.Directions(spike, apart, 3.5), d => Assert.Equal(3.5, Math.Sqrt(Dot(d, d)), 9));
+
+        // Without a mitre (limit 1) every direction has unit length: the cube's corners move along the diagonal by one width.
+        Assert.All(OutlineHull.Directions(positions, normals, 1), d => Assert.Equal(1, Math.Sqrt(Dot(d, d)), 9));
+        Assert.Throws<ArgumentException>(() => OutlineHull.Directions(leaf, apart, 2));
+        Assert.Throws<ArgumentOutOfRangeException>(() => OutlineHull.Directions(leaf, sides, 0.5));
     }
 
     [Theory]
@@ -334,7 +343,7 @@ public sealed class RockNicheTests
         var looks = Looks();
         var look = looks.For("rock_niche");
         var shape = look.Niche!;
-        var triangles = RockNiche.Build(shape);
+        var triangles = Build(shape);
         var niches = island.Objects.Where(o => o.TypeId == "rock_niche").ToList();
         Assert.NotEmpty(niches);
         var number = 0;

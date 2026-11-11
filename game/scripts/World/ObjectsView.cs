@@ -77,7 +77,7 @@ public partial class ObjectsView : Node3D
                 return (new Color(w.A, w.B, w.C, w.D), new Color(w.E, w.F, w.G, w.H));
             }
 
-            var mesh = ObjectShapes.Build(look.Shape, role => colors[look.Color(role)].SrgbToLinear(), Weights, look.Niche);
+            var mesh = ObjectShapes.Build(look.Shape, role => colors[look.Color(role)].SrgbToLinear(), data.OutlineMitreLimit, Weights, look.Niche);
             var material = Land(Comic, look, mesh);
             if (hullOutline && data.Outline && data.OutlineWidthM > 0)
             {
