@@ -152,22 +152,12 @@ public sealed class HttpDecisionPort : IDecisionPort, IDisposable
             return body;
         }
 
+        var message = ServiceErrors.WithoutValidBody(status, body);
         return status >= 500
-            ? Synthesize(requestJson, ServiceErrorCode.Internal, "AI service answered HTTP " + status + " without a valid error body.", retryable: true)
-            : Synthesize(requestJson, ServiceErrorCode.Bad_request, "AI service answered HTTP " + status + " without a valid error body.", retryable: false);
+            ? Synthesize(requestJson, ServiceErrorCode.Internal, message, retryable: true)
+            : Synthesize(requestJson, ServiceErrorCode.Bad_request, message, retryable: false);
     }
 
-    private static string Synthesize(string requestJson, ServiceErrorCode code, string message, bool retryable)
-    {
-        var request = ContractSerializer.Deserialize<DecisionRequest>(requestJson);
-        return ContractSerializer.Serialize(new ServiceError
-        {
-            ContractVersion = request.ContractVersion,
-            RequestId = request.RequestId,
-            Tick = request.Tick,
-            Code = code,
-            Message = message,
-            Retryable = retryable,
-        });
-    }
+    private static string Synthesize(string requestJson, ServiceErrorCode code, string message, bool retryable) =>
+        ServiceErrors.For(requestJson, code, message, retryable);
 }

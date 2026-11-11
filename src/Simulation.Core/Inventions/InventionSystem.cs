@@ -129,6 +129,12 @@ public sealed partial class InventionSystem : IWorldSystem, IOptionalWorldState,
     /// <inheritdoc/>
     public string Name => "invention";
 
+    /// <summary>
+    /// Whether a request is validated against its schema before it leaves (ADR-0009; set by the host from
+    /// <see cref="SimulationHostOptions.ValidateRequests"/>): on in tests and check runs, off in the running game.
+    /// </summary>
+    public bool ValidateRequests { get; init; } = true;
+
     /// <summary>Language of the texts the jobs write (display_locale; set with the player's language).</summary>
     public string DisplayLocale
     {
@@ -421,7 +427,7 @@ public sealed partial class InventionSystem : IWorldSystem, IOptionalWorldState,
                 },
             },
         };
-        var json = ContractSerializer.Serialize(job);
+        var json = ContractSerializer.Serialize(job, ValidateRequests);
         Log.Add(new DecisionLogEntry(DecisionLogKind.JobRequest, requestId, world.Tick, json, null));
         _port!.Submit(requestId, json);
         return new OpenWant(inhabitant.Id, want, requestId, world.Tick, [.. materials.Select(m => m.Type)], null);
@@ -437,7 +443,7 @@ public sealed partial class InventionSystem : IWorldSystem, IOptionalWorldState,
         var want = _wants.Values.FirstOrDefault(w => w.RequestId == message.RequestId && w.RetryAtTick is null);
         if (message.IsError)
         {
-            Log.Add(new DecisionLogEntry(DecisionLogKind.JobError, message.RequestId, world.Tick, message.Json, ReplayNotes.ServiceError));
+            Log.Add(new DecisionLogEntry(DecisionLogKind.JobError, message.RequestId, world.Tick, message.Json, ReplayNotes.OfError(message.Json)));
             Retry(world, want, IsRetryable(message.Json));
             return;
         }
@@ -486,7 +492,10 @@ public sealed partial class InventionSystem : IWorldSystem, IOptionalWorldState,
         }
 
         Log.Add(new DecisionLogEntry(DecisionLogKind.JobResult, want.RequestId, world.Tick, json, reasons.Count == 0 ? null : "rejected:" + string.Join(',', reasons)));
-        if (result.Thought is { } thought)
+        // The inventor's thought is text of the AI that the player sees: it passes the same content guard
+        // as every other visible AI text (youth protection, B2466; the invention's names pass it in
+        // InventionCheck). A thought the guard does not allow is not shown - nothing replaces it.
+        if (result.Thought is { } thought && _rules.Guard.Check(thought.Text).Allowed)
         {
             _inhabitants.Report(new WorldEvent("thought", world.Tick, want.InhabitantId, null, null) { Text = thought.Text });
         }
