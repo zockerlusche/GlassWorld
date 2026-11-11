@@ -72,7 +72,8 @@ for PASS in $PASSES; do
   LOG="$OUT/bench_${RES}_${PASS}.log"
   echo "== benchmark pass $PASS at $RES =="
   set +e
-  timeout "$TIMEOUT_S" "$BIN" "${ENGINE[@]}" "${PROJECT[@]}" res://world/island.tscn -- \
+  # ${A[@]+"${A[@]}"}: an empty array is no error under set -u, also in bash before 4.4.
+  timeout "$TIMEOUT_S" "$BIN" ${ENGINE[@]+"${ENGINE[@]}"} ${PROJECT[@]+"${PROJECT[@]}"} res://world/island.tscn -- \
     "--benchmark=$CSV" "--bench-pass=$PASS" "--resolution=$RES" "$@" >"$LOG" 2>&1
   CODE=$?
   set -e

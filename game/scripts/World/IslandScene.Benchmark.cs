@@ -38,6 +38,7 @@ public partial class IslandScene
     private int _benchWarmupFrames;
     private bool _benchEnvShown;
     private string _benchDriver = string.Empty;
+    private string _benchBuild = "dev";
     private int _benchPass = -1;
     private (double X, double Z) _crowdCentre;
     private WeatherReading? _benchWeather;
@@ -113,6 +114,11 @@ public partial class IslandScene
 
         // Asked once, before the clock runs (the query can take a moment); empty without a driver (headless).
         _benchDriver = string.Join(' ', OS.GetVideoAdapterDriverInfo());
+
+        // The build id of an export (tools/export-windows.sh writes build.txt beside the executable), read
+        // here as well, so the first measured frame touches no file.
+        var beside = Path.Combine(Path.GetDirectoryName(OS.GetExecutablePath()) ?? string.Empty, "build.txt");
+        _benchBuild = OS.HasFeature("editor") || !File.Exists(beside) ? "dev" : File.ReadAllText(beside);
     }
 
     /// <summary>One benchmark frame: time it, run the schedule, the world, the crowd, the look and the camera.</summary>
@@ -149,7 +155,11 @@ public partial class IslandScene
                 GD.Print(BenchEnvironment().Line());
             }
 
-            _recorder.Add(pass.Id, moment.MeasureS, frameMs);
+            if (frameMs > 0)
+            {
+                // A step whose time did not move on is no frame (review GW3 #225).
+                _recorder.Add(pass.Id, moment.MeasureS, frameMs);
+            }
         }
         else
         {
@@ -249,8 +259,6 @@ public partial class IslandScene
     /// <summary>What the run really runs on, read back from the window, the renderer and the export.</summary>
     private BenchmarkEnvironment BenchEnvironment()
     {
-        var beside = Path.Combine(Path.GetDirectoryName(OS.GetExecutablePath()) ?? string.Empty, "build.txt");
-        var build = OS.HasFeature("editor") || !File.Exists(beside) ? "dev" : File.ReadAllText(beside);
         return new BenchmarkEnvironment(
             Size(),
             DisplayServer.WindowGetMode().ToString(),
@@ -259,7 +267,7 @@ public partial class IslandScene
             RenderingServer.GetVideoAdapterName(),
             _benchDriver,
             RenderingServer.GetVideoAdapterApiVersion(),
-            build);
+            _benchBuild);
     }
 
     private static string Size()
