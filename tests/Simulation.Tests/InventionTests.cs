@@ -90,18 +90,24 @@ public sealed class InventionTests : IDisposable
         Assert.Equal(record, Assert.Single(host.Chronicle.Since(0)));
         Assert.Equal(record, Assert.Single(host.Chronicle.Page(long.MaxValue, 10)));
 
-        // Its name is known to the inventor and to whoever was told about the thing, to nobody else
-        // (labels of remembered events, GW2 #227); a content type has no such name.
+        // Its name is known to the inventor and to whoever believes anything about the thing, whatever the
+        // source (labels of remembered events, GW2 #227 and #245), to nobody else; a content type has no
+        // such name.
         var inventor = host.Inhabitants.All.Single();
         var stranger = new Inhabitant("inh-000002", "male", 2, new Position(500, 0), new Dictionary<string, double>(), new Dictionary<string, double>(), new Dictionary<string, double>(), 0.8);
         var remembered = new MemoryEntry(1, host.World.Tick, InventionSystem.Invented, InhabitantsSystem.AboutType, typeId, true);
         Assert.Equal(info.Name.En, host.Inhabitants.LabelOf(inventor, remembered)!.En);
         Assert.Equal(info.Name.De, host.Inventions.NameKnownTo(inventor, typeId)!.De);
         Assert.Null(host.Inhabitants.LabelOf(stranger, remembered));
-        stranger.Beliefs.Set(typeId, "container", true, 0.8, KnowledgeSources.Seen, null, host.World.Tick);
+        stranger.Beliefs.Set("flint", "hard", true, 0.8, KnowledgeSources.Seen, null, host.World.Tick);
         Assert.Null(host.Inhabitants.LabelOf(stranger, remembered));
-        stranger.Beliefs.Set(typeId, "drinkable", true, 0.5, KnowledgeSources.Heard, inventor.Id, host.World.Tick);
-        Assert.Equal(info.Name.En, host.Inhabitants.LabelOf(stranger, remembered)!.En);
+        foreach (var source in new[] { KnowledgeSources.Experienced, KnowledgeSources.Guessed, KnowledgeSources.Seen, KnowledgeSources.Heard, KnowledgeSources.Read })
+        {
+            var knowing = new Inhabitant("inh-000003", "male", 2, new Position(500, 0), new Dictionary<string, double>(), new Dictionary<string, double>(), new Dictionary<string, double>(), 0.8);
+            knowing.Beliefs.Set(typeId, "container", true, 0.5, source, source == KnowledgeSources.Heard ? inventor.Id : null, host.World.Tick);
+            Assert.Equal(info.Name.En, host.Inhabitants.LabelOf(knowing, remembered)!.En);
+        }
+
         Assert.Null(host.Inhabitants.LabelOf(inventor, remembered with { AboutId = "flint" }));
 
         // The rules know the new type by its true properties only.
