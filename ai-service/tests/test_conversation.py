@@ -320,6 +320,8 @@ def test_v3_tells_the_model_what_it_does_knows_and_sees(settings: Settings) -> N
         ("Ich gehe zum Quellwasser, ich hab Durst.", True),
         ("Ich bin Silo. Und du?", True),  # a name is no invented thing
         ("Heute ist ein ruhiger Tag.", True),
+        ("Wie geht es Ihnen? Ich zeige Dir gern das Quellwasser.", True),  # address (review GW1)
+        ("Ich hatte einen Traum und ein gutes Gefühl.", True),  # inner words
     ],
 )
 def test_v3_a_sentence_naming_unknown_things_becomes_the_stand_in(

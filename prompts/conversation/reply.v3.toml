@@ -102,7 +102,7 @@ event = "event"
 noun_locales = ["de"]
 # General words a sentence may use besides the things the inhabitant knows, sees or does and the
 # display texts of needs, moods, weather, times of day and biomes (content i18n). Placeholders.
-general_words.de = ["Ich", "Du", "Sie", "Wir", "Ihr", "Stimme", "Hallo", "Tag", "Nacht", "Morgen", "Abend", "Zeit", "Hause", "Insel", "Welt", "Ding", "Dinge", "Sachen", "Hunger", "Durst", "Wasser", "Essen", "Ruhe", "Spaziergang", "Weg", "Gegend", "Ufer", "Strand", "Meer", "Baum", "Bäume", "Gras", "Steine", "Stein", "Himmel", "Sonne", "Regen", "Wind", "Bauch", "Kopf", "Hand", "Hände", "Füße", "Beine", "Augen", "Ohren", "Glas", "Name", "Freund", "Freundin", "Moment", "Ahnung", "Lust", "Angst", "Freude", "Mut", "Neugier", "Bewohner", "Leute", "Mensch", "Menschen", "Ja", "Nein", "Hm", "Na", "Oh", "Ach", "Okay", "Danke", "Bitte", "Gute", "Gut"]
+general_words.de = ["Ich", "Du", "Sie", "Wir", "Ihr", "Ihre", "Ihnen", "Dir", "Dich", "Euch", "Dein", "Deine", "Gedanke", "Gedanken", "Gefühl", "Gefühle", "Traum", "Träume", "Stimme", "Hallo", "Tag", "Nacht", "Morgen", "Abend", "Zeit", "Hause", "Insel", "Welt", "Ding", "Dinge", "Sachen", "Hunger", "Durst", "Wasser", "Essen", "Ruhe", "Spaziergang", "Weg", "Gegend", "Ufer", "Strand", "Meer", "Baum", "Bäume", "Gras", "Steine", "Stein", "Himmel", "Sonne", "Regen", "Wind", "Bauch", "Kopf", "Hand", "Hände", "Füße", "Beine", "Augen", "Ohren", "Glas", "Name", "Freund", "Freundin", "Moment", "Ahnung", "Lust", "Angst", "Freude", "Mut", "Neugier", "Bewohner", "Leute", "Mensch", "Menschen", "Ja", "Nein", "Hm", "Na", "Oh", "Ach", "Okay", "Danke", "Bitte", "Gute", "Gut"]
 
 [settings.language_names]
 de = "German"
