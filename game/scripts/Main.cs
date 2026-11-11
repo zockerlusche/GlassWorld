@@ -104,7 +104,7 @@ public partial class Main : Node3D
             {
                 // Without the UI style there is nothing to tour: say so and end the run (review GW1 #214),
                 // instead of an open window that prints nothing.
-                GD.PushError("UI_TOUR_FAIL the UI style did not load");
+                GD.PushError($"{(_nightShots ? "NIGHT_SHOTS_FAIL" : "UI_TOUR_FAIL")} the UI style did not load");
                 GetTree().Quit(1);
             }
 
@@ -144,7 +144,6 @@ public partial class Main : Node3D
                 _shotsFolder = arg[UiShots.Argument.Length..];
             }
 
-            // The UI tour (W1757): every menu and window, in both layouts, one picture each.
             // The compute night in pictures (B7-S8/S10): one picture per stage of the night scene.
             if (arg.StartsWith(NightShotsArgument, StringComparison.Ordinal))
             {
@@ -158,6 +157,7 @@ public partial class Main : Node3D
                 _nightLimitS = limit;
             }
 
+            // The UI tour (W1757): every menu and window, in both layouts, one picture each.
             if (arg.StartsWith(TourArgument, StringComparison.Ordinal))
             {
                 _shotsFolder = arg[TourArgument.Length..];

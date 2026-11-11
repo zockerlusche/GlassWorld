@@ -641,7 +641,8 @@ public partial class Main
     /// With <c>GLASSWORLD_AI=live</c> the scene follows the real service; without it only the fades show.
     /// Prints <c>NIGHT_SHOTS_OK n stages=…</c> and quits; a stage that never came within the limit
     /// (<c>--night-limit=SECONDS</c>, real time) is a failure. Headless it is a dry run: the stages are
-    /// walked and reported, no pictures are saved.
+    /// walked and reported, no pictures are saved. A run with a window belongs in the AMW run queue
+    /// (<c>amw lauf start --schirm --gpu --warten</c>).
     /// </summary>
     private async Task NightShotsAsync()
     {
@@ -727,11 +728,15 @@ public partial class Main
                 }
 
                 GD.Print(string.Create(System.Globalization.CultureInfo.InvariantCulture, $"NIGHT_SHOT {name} stage={_screen.NightNow.Stage} darkness={_screen.NightNow.Darkness:0.00} dreams={_screen.DreamsShownForShots} text='{_screen.NightTextForShots}'"));
+                // The name is the stage that triggered the picture; if the scene moved on during the wait,
+                // the file says which stage it really shows (review GW1 #235).
+                var now = _screen.NightNow.Stage;
+                var changed = now == stage ? string.Empty : $"_zeigt_{now}";
                 if (dry)
                 {
                     seen.Add(name);
                 }
-                else if (await DrawnShot($"{prefix}{count + 1:00}_{name}.png"))
+                else if (await DrawnShot($"{prefix}{count + 1:00}_{name}{changed}.png"))
                 {
                     count++;
                     seen.Add(name);
