@@ -52,10 +52,10 @@
     "min_tenth_c": 80,
     "max_tenth_c": 260,
     "individual_shift_tenth_c": 20,
-    "cold_loss_per_hour_per_degree": 0.0003,
+    "cold_loss_per_hour_per_degree": 0.0001,
     "heat_loss_per_hour_per_degree": 0.001,
     "recover_per_hour": 0.05,
-    "floor": 0.15,
+    "floor": 0.3,
     "precipitation_cold_factor": 1.5,
     "action_factors": [
       { "action": "sleep", "cold_factor": 1.5 }
