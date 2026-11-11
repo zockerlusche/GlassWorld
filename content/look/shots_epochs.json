@@ -1,0 +1,54 @@
+{
+  "contract_version": "0.2",
+  "points": [
+    {
+      "id": "epoch_island",
+      "target_x_permille": 500,
+      "target_z_permille": 500,
+      "yaw_deg": 30,
+      "distance_m": 150,
+      "pitch_deg": 40,
+      "tide_permille": 0,
+      "revealed_permille": 1000
+    },
+    {
+      "id": "epoch_meadow",
+      "target_x_permille": 869,
+      "target_z_permille": 515,
+      "yaw_deg": 30,
+      "distance_m": 45,
+      "tide_permille": 0,
+      "revealed_permille": 1000
+    },
+    {
+      "id": "epoch_shore",
+      "target_x_permille": 500,
+      "target_z_permille": 150,
+      "yaw_deg": 120,
+      "distance_m": 35,
+      "pitch_deg": 22,
+      "tide_permille": 0,
+      "revealed_permille": 1000
+    }
+  ],
+  "projections": [
+    "perspective"
+  ],
+  "phases": [
+    "day"
+  ],
+  "epochs": [
+    "wilderness",
+    "tools",
+    "hut",
+    "workshop",
+    "metal"
+  ],
+  "seasons": [
+    "summer"
+  ],
+  "weather": [
+    "clear"
+  ],
+  "settle_frames": 12
+}

@@ -412,6 +412,28 @@ public sealed class TideEpochLookTests
         Assert.Equal(free.Count(s => s.Point.Id != point.Id), forced.Count(s => s.Point.Id != point.Id));
     }
 
+    [Fact]
+    public void TheEpochSetShowsEveryPaletteInTheSameLight()
+    {
+        // The S2 check of the epoch palettes looks at these pictures: every epoch of the data is in the set,
+        // and nothing but the palette differs between the pictures of one view - clear weather, one season,
+        // a fixed tide, the land revealed.
+        var shots = Read<LookShots>("shots_epochs.json");
+        Assert.Equal(Epochs.Epochs.Select(e => e.Id).Order(StringComparer.Ordinal), shots.Epochs!.Order(StringComparer.Ordinal));
+        Assert.Equal(["clear"], shots.Weather!);
+        Assert.Single(shots.Seasons!);
+        Assert.All(shots.Points, p =>
+        {
+            Assert.NotNull(p.TidePermille);
+            Assert.Equal(1000, p.RevealedPermille);
+            Assert.Null(p.Epoch);
+            Assert.Null(p.Weather);
+            Assert.Null(p.Season);
+        });
+        var plan = ShotPlan.Build(shots, new HashSet<string>(StringComparer.Ordinal), new HashSet<string>(StringComparer.Ordinal));
+        Assert.Equal(shots.Points.Count * Epochs.Epochs.Count, plan.Count);
+    }
+
     private static T Read<T>(string file)
         where T : class => ContractSerializer.Deserialize<T>(File.ReadAllText(Path.Combine(TestPaths.Root, "content", "look", file)));
 }
