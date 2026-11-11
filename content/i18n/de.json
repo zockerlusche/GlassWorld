@@ -1447,6 +1447,10 @@
       "text": "Name gelernt"
     },
     {
+      "key": "vocab.event.first_meeting",
+      "text": "Erste Begegnung"
+    },
+    {
       "key": "vocab.event.invention_wanted",
       "text": "Erfindungswunsch"
     },
@@ -1601,6 +1605,10 @@
     {
       "key": "msg.chronicle.partnership",
       "text": "{inhabitant} und {other} gehören jetzt zusammen."
+    },
+    {
+      "key": "msg.chronicle.first_meeting",
+      "text": "{inhabitant} und {other} sind sich zum ersten Mal begegnet."
     },
     {
       "key": "msg.chronicle.migration",

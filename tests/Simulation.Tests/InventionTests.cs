@@ -176,7 +176,11 @@ public sealed class InventionTests : IDisposable
                 inhabitant.Beliefs.Set(typeId, propertyId, belief.Value, belief.Confidence);
             }
 
-            Assert.Equal(0, inhabitant.Relationships.Count);
+            // ... and no relationships (B4a R7/R8 sets them at the start).
+            foreach (var (other, _) in inhabitant.Relationships.All.ToList())
+            {
+                inhabitant.Relationships.Remove(other);
+            }
         }
 
         var path = Path.Combine(_directory, "v1.db");

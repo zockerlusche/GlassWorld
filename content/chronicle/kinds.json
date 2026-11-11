@@ -82,6 +82,15 @@
       ]
     },
     {
+      "id": "first_meeting",
+      "event": "first_meeting",
+      "text_key": "msg.chronicle.first_meeting",
+      "params": [
+        "inhabitant",
+        "other"
+      ]
+    },
+    {
       "id": "partnership",
       "event": "partnered",
       "text_key": "msg.chronicle.partnership",

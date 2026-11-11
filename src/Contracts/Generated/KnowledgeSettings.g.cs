@@ -13,6 +13,224 @@ namespace GlassWorld.Contracts
     #pragma warning disable // Disable all warnings
 
     /// <summary>
+    /// Relationships of the start inhabitants when the world begins (B4a R8, F5249): members of the same start group know each other (partners), members of another group are strangers. Set for every pair at the start; absent = everybody starts with relationship_start.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class KnowledgeStartRelationships
+    {
+
+        /// <summary>
+        /// Towards a member of the own start group.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("partners")]
+        public KnowledgeRelationship Partners { get; set; } = new KnowledgeRelationship();
+
+        /// <summary>
+        /// Towards a member of another start group (an unknown human; below the togetherness thresholds of the inhabitant model, checked at load).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("strangers")]
+        public KnowledgeRelationship Strangers { get; set; } = new KnowledgeRelationship();
+
+    }
+
+    /// <summary>
+    /// A change of affection, trust and respect (each -1..1); the results stay within 0..1.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class KnowledgeRelationChange
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("affection")]
+        public double Affection { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("trust")]
+        public double Trust { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("respect")]
+        public double Respect { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// An action aimed at another inhabitant that, when it ends, changes how both see each other: the actor towards the listener and the listener towards the actor.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class KnowledgeRelationAction
+    {
+
+        /// <summary>
+        /// An action with an inhabitant target.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("action")]
+        public string Action { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("actor")]
+        public KnowledgeRelationChange Actor { get; set; } = new KnowledgeRelationChange();
+
+        [System.Text.Json.Serialization.JsonPropertyName("listener")]
+        public KnowledgeRelationChange Listener { get; set; } = new KnowledgeRelationChange();
+
+    }
+
+    /// <summary>
+    /// How shared experiences change relationships between inhabitants (B4a R7): time spent near each other, actions towards each other, and heard knowledge that one's own experience proved right or wrong; closeness fades slowly towards fade_to. Only values above fade_to fade (a grudge or a stranger is not forgotten into acquaintance). Deterministic, every value is data. Absent = only trust changes (trust_true_heard_gain, trust_false_heard_loss).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class KnowledgeRelationshipChanges
+    {
+
+        /// <summary>
+        /// Two inhabitants within this distance spend time together.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("together_distance_m")]
+        public double TogetherDistanceM { get; set; } = default!;
+
+        /// <summary>
+        /// Change per hour spent together, for both.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("together_per_hour")]
+        public KnowledgeRelationChange TogetherPerHour { get; set; } = new KnowledgeRelationChange();
+
+        /// <summary>
+        /// Change towards a teller when one's own experience confirms what one heard (on top of trust_true_heard_gain).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("heard_true")]
+        public KnowledgeRelationChange HeardTrue { get; set; } = new KnowledgeRelationChange();
+
+        /// <summary>
+        /// Change towards a teller when one's own experience contradicts what one heard (on top of trust_false_heard_loss).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("heard_false")]
+        public KnowledgeRelationChange HeardFalse { get; set; } = new KnowledgeRelationChange();
+
+        [System.Text.Json.Serialization.JsonPropertyName("actions")]
+        public System.Collections.Generic.ICollection<KnowledgeRelationAction> Actions { get; set; } = new System.Collections.ObjectModel.Collection<KnowledgeRelationAction>();
+
+        /// <summary>
+        /// How much each value above fade_to sinks per hour (never below fade_to).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("fade_per_hour")]
+        public double FadePerHour { get; set; } = default!;
+
+        /// <summary>
+        /// The level closeness fades to.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("fade_to")]
+        public KnowledgeRelationship FadeTo { get; set; } = new KnowledgeRelationship();
+
+    }
+
+    /// <summary>
+    /// Actions towards another inhabitant in sight that the core offers to the decider (B4a R8: observe, approach, trust, care grow from options and relationship values, not from a script). Each option is offered only while all of its conditions hold. Absent = none of these actions is offered.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class KnowledgeMeeting
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("options")]
+        public System.Collections.Generic.ICollection<KnowledgeMeetingOption> Options { get; set; } = new System.Collections.ObjectModel.Collection<KnowledgeMeetingOption>();
+
+    }
+
+    /// <summary>
+    /// One action towards another inhabitant and when it is offered; omitted conditions always hold.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class KnowledgeMeetingOption
+    {
+
+        /// <summary>
+        /// An action with an inhabitant target (not a passing or naming action).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("action")]
+        public string Action { get; set; } = default!;
+
+        /// <summary>
+        /// Only while the other is farther away than this.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("min_distance_m")]
+        public double? MinDistanceM { get; set; } = default!;
+
+        /// <summary>
+        /// Only while the asker's trust in the other is below this.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("max_trust")]
+        public double? MaxTrust { get; set; } = default!;
+
+        /// <summary>
+        /// Only while the asker's affection for the other is below this.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("max_affection")]
+        public double? MaxAffection { get; set; } = default!;
+
+        /// <summary>
+        /// A need of the asker that must be below need_below.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("need")]
+        public string? Need { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("need_below")]
+        public double? NeedBelow { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Imprinting (B4a R6): the core only counts repeated experiences per inhabitant - a finished action, what it was about (object type or inhabitant; none for actions without a target) and the time of day. Each repetition adds one, every hour fades the counter a little; a counter from habit_from on is a habit, its strength the counter over full_at (at most 1). Habits are information for the decider only; the routine does not weigh them.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class KnowledgeImprinting
+    {
+
+        /// <summary>
+        /// Actions that are not counted.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("left_out_actions")]
+        public System.Collections.Generic.ICollection<string> LeftOutActions { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// How much every counter sinks per hour.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("fade_per_hour")]
+        public double FadePerHour { get; set; } = default!;
+
+        /// <summary>
+        /// A counter at least this high is a habit.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("habit_from")]
+        public double HabitFrom { get; set; } = default!;
+
+        /// <summary>
+        /// Counter at which a habit has full strength 1; counters never grow above it (at least habit_from, checked at load).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("full_at")]
+        public double FullAt { get; set; } = default!;
+
+        /// <summary>
+        /// A counter that has faded below this is forgotten.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("forget_below")]
+        public double ForgetBelow { get; set; } = default!;
+
+        /// <summary>
+        /// Most counters per inhabitant; beyond it the weakest is forgotten (ties by key).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max_counters")]
+        public int MaxCounters { get; set; } = default!;
+
+        /// <summary>
+        /// Most habits in one decider request, strongest first (text budget). At most 8 (decision-request: habits holds 8).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max_habits")]
+        public int MaxHabits { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// Values 0..1 towards someone one has just met.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -221,6 +439,22 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("naming")]
         public KnowledgeNaming? Naming { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("start_relationships")]
+        public KnowledgeStartRelationships? StartRelationships { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("relationship_changes")]
+        public KnowledgeRelationshipChanges? RelationshipChanges { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("meeting")]
+        public KnowledgeMeeting? Meeting { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("imprinting")]
+        public KnowledgeImprinting? Imprinting { get; set; } = default!;
 
     }
 }

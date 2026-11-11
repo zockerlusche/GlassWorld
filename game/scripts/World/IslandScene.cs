@@ -19,7 +19,9 @@ namespace GlassWorld.Game.World;
 /// <c>--follow=POINT</c> follows the inhabitant of a shot point with its yaw and distance while the world runs
 /// (with Godot's <c>--write-movie</c> and <c>--fixed-fps</c> a repeatable clip); <c>--speed=F</c> is the time
 /// factor, <c>--warm-ticks=N</c> runs the world N ticks before the first picture;
-/// <c>--check</c> prints <c>ISLAND_OK …</c> for the smoke run and quits. Presentation only.
+/// <c>--check</c> prints <c>ISLAND_OK …</c> for the smoke run and quits; <c>--quality=ID</c> picks a quality
+/// level of <c>content/look/quality.json</c>; <c>--benchmark=CSV</c> runs the FPS benchmark (B2-7, see
+/// <c>IslandScene.Benchmark.cs</c>). Presentation only.
 /// </summary>
 public partial class IslandScene : Node3D
 {
@@ -78,14 +80,16 @@ public partial class IslandScene : Node3D
     {
         var args = OS.GetCmdlineUserArgs();
         string? Arg(string name) => args.FirstOrDefault(a => a.StartsWith(name + "=", StringComparison.Ordinal))?[(name.Length + 1)..];
-        var seed = ulong.Parse(Arg("--seed") ?? "1", CultureInfo.InvariantCulture);
-        var preset = Arg("--preset") ?? "start_island";
-        _shotDirectory = Arg("--shots");
-        _check = args.Contains("--check");
-
         var content = ContentLocator.ContentDirectory();
         T Look<T>(string file)
             where T : class => ContractSerializer.Deserialize<T>(File.ReadAllText(Path.Combine(content, "look", file)));
+
+        // The benchmark (B2-7) takes its fixed world from its data; --seed and --preset still win.
+        var benchmark = Arg("--benchmark") is not null ? Look<LookBenchmark>("benchmark.json") : null;
+        var seed = ulong.Parse(Arg("--seed") ?? benchmark?.Seed.ToString(CultureInfo.InvariantCulture) ?? "1", CultureInfo.InvariantCulture);
+        var preset = Arg("--preset") ?? benchmark?.Preset ?? "start_island";
+        _shotDirectory = benchmark is null ? Arg("--shots") : null;
+        _check = args.Contains("--check");
         var host = SimulationHost.CreateGeneratedWorld(content, seed, MockDecisionPort.FromContent(content), "de", preset);
         _host = host;
         var speed = double.Parse(Arg("--speed") ?? "1", CultureInfo.InvariantCulture);
@@ -154,7 +158,8 @@ public partial class IslandScene : Node3D
         _objects = ObjectsView.Create(objectLooks, palette, groundAt, otherDecor, _nature.Season.Slots, TerrainMesher.StreamSources(ground, terrain));
         AddChild(_objects);
         _objects.Refresh(host.Snapshot().Objects);
-        _grass = GrassView.Create(_objects, grass, groundAt, _nature.Data.Grass, GrassPlan.Level(Look<LookQuality>("quality.json")));
+        var quality = GrassPlan.Level(Look<LookQuality>("quality.json"), Arg("--quality"));
+        _grass = GrassView.Create(_objects, grass, groundAt, _nature.Data.Grass, quality);
         AddChild(_grass);
         AddChild(_nature);
         ApplyPhase("day");
@@ -175,6 +180,13 @@ public partial class IslandScene : Node3D
                 _rig.FollowFigure(figure.InhabitantId, point.DistanceM);
                 _rig.Apply();
             }
+        }
+
+        if (benchmark is not null)
+        {
+            // 100 placeholder figures for the presentation only, the camera path and the passes (B2-7).
+            var templates = host.Snapshot().Inhabitants.Where(i => i.Appearance is not null).OrderBy(i => i.Id, StringComparer.Ordinal).ToList();
+            BuildBenchmark(benchmark, Arg("--benchmark")!, Arg, args, seed, quality.Id, templates, shared, library, (x, z) => IslandView.GroundHeight(ground, terrain, x, z), seaLevel, palette.Seasons.Select(s => s.Season).ToHashSet(StringComparer.Ordinal), figure => FigureSpec.From(figure.Appearance!, figure.Sex, figuresLook, appearanceLook));
         }
 
         if (_check)
@@ -201,6 +213,12 @@ public partial class IslandScene : Node3D
     /// <inheritdoc/>
     public override void _Process(double delta)
     {
+        if (_benchmark is not null)
+        {
+            StepBenchmark(delta);
+            return;
+        }
+
         // Screenshot runs keep the world still (it was warmed with --warm-ticks), so every shot repeats
         // exactly whatever the frame rate; normal and --follow runs step the world by real time.
         if (_shotDirectory is null)
@@ -338,6 +356,8 @@ public partial class IslandScene : Node3D
                 figure.Apply(inhabitant, snapshot.Time.Tick, ticks, place, snapshot.Inhabitants);
             }
         }
+
+        ApplyCrowd(ticks, place);
     }
 
     /// <summary>The figure a shot point names (index in id order), or null with a warning once per point.</summary>
