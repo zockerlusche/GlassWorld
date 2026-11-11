@@ -708,9 +708,12 @@ public sealed class DecisionsSystem : IWorldSystem
     }
 
     /// <summary>
-    /// The nearest perceived object whose type the inhabitant has no belief about and may ask about now (ties by
-    /// id): a type it is already asking about or cooling down on does not hide a second unknown thing a little
-    /// farther away (A1551, as for strangers since #207). This runs
+    /// The nearest perceived object whose type the inhabitant has no belief about and is not cooling down on
+    /// (ties by id): a thing it asked about lately without learning anything (the answer did not teach the type,
+    /// the question lapsed) does not hide a second unknown thing a little farther away (A1551). A thing it is
+    /// asking about right now (its cooldown runs from the asking) keeps its place - nothing more is asked about
+    /// things meanwhile, so questions about things do not take the room that questions about strangers need.
+    /// This runs
     /// every tick for every inhabitant that has room for a question, so it walks only the objects of the
     /// types the inhabitant knows nothing about (none at all once it knows something about every kind of
     /// thing there is), without sorting.
@@ -747,7 +750,7 @@ public sealed class DecisionsSystem : IWorldSystem
 
             if (nearest is not null
                 && (nearestDistance < bestDistance || (nearestDistance == bestDistance && string.CompareOrdinal(nearest.Id, best!.Id) < 0))
-                && MayAsk(world, inhabitant, TypeSubject + nearest.TypeId, UnknownObject))
+                && (HasOpenQuestion(inhabitant.Id, nearest.TypeId) || !CoolingDown(world, inhabitant, TypeSubject + nearest.TypeId)))
             {
                 best = nearest;
                 bestDistance = nearestDistance;
@@ -861,11 +864,17 @@ public sealed class DecisionsSystem : IWorldSystem
     /// </summary>
     private bool MayAsk(World world, Inhabitant inhabitant, string subject, string kind)
     {
-        var cooldown = (long)_settings.AskCooldownHours * world.Calendar.Settings.TicksPerHour;
         var questions = _openOf.GetValueOrDefault(inhabitant.Id);
         return HasRoom(inhabitant, kind)
             && !(questions is not null && HasSubject(questions, string.Empty, subject))
-            && !(_lastAsked.TryGetValue(inhabitant.Id + "|" + subject, out var last) && world.Tick - last < cooldown);
+            && !CoolingDown(world, inhabitant, subject);
+    }
+
+    /// <summary>Whether the inhabitant asked about the subject less than ask_cooldown_hours ago.</summary>
+    private bool CoolingDown(World world, Inhabitant inhabitant, string subject)
+    {
+        var cooldown = (long)_settings.AskCooldownHours * world.Calendar.Settings.TicksPerHour;
+        return _lastAsked.TryGetValue(inhabitant.Id + "|" + subject, out var last) && world.Tick - last < cooldown;
     }
 
     /// <summary>

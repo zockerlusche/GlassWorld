@@ -8,8 +8,8 @@ using GlassWorld.Simulation.Objects;
 namespace GlassWorld.Simulation.Tests;
 
 /// <summary>
-/// A1551: the unknown_object trigger asks about the nearest unknown thing the inhabitant may ask about now - a
-/// nearer thing it is already asking about, or cooling down on, does not hide a second unknown thing.
+/// A1551: a nearer unknown thing the inhabitant is cooling down on does not hide a second unknown thing; one it is
+/// asking about right now keeps its place, so questions about things leave room for questions about strangers.
 /// </summary>
 public sealed class UnknownThingsTests
 {
@@ -20,17 +20,22 @@ public sealed class UnknownThingsTests
     private static readonly ContentSet Content = ContentSet.Load(ContentDirectory);
 
     [Fact]
-    public void ANearerThingAlreadyAskedAboutDoesNotHideASecondUnknownThing()
+    public void ANearerThingAskedAboutRightNowKeepsItsPlace()
     {
         var w = NewWorld();
         w.Objects.Spawn(Near, new Position(0, 3));
         w.Objects.Spawn(Far, new Position(0, 8));
 
-        // First the nearer thing; then, with room for a second question, the farther one.
+        // She stands still (walking on, the farther thing could become the nearer one).
+        var a = w.Inhabitants.Get("inh-000001");
+        a.Activity = new Activity("idle", null, a.Position, 100_000);
+
+        // The nearer thing is asked about; while that question is out nothing more is asked about things,
+        // although there is room for a second question (it stays for a stranger).
         w.World.Step();
         Assert.Equal(["type:" + Near], w.Subjects());
-        w.World.Step();
-        Assert.Equal(["type:" + Near, "type:" + Far], w.Subjects());
+        w.World.Run(5);
+        Assert.Equal(["type:" + Near], w.Subjects());
     }
 
     [Fact]
@@ -77,10 +82,10 @@ public sealed class UnknownThingsTests
         inhabitants.QuestionOpen = decisions.IsAskingAbout;
         world.Add(objects).Add(decisions).Add(inhabitants);
         inhabitants.SpawnStartInhabitants(world, [new Position(0, 0), new Position(5000, 5000), new Position(10000, 0), new Position(0, 10000)]);
-        return new TestWorld(world, objects, decisions);
+        return new TestWorld(world, objects, inhabitants, decisions);
     }
 
-    private sealed record TestWorld(World World, WorldObjects Objects, DecisionsSystem Decisions)
+    private sealed record TestWorld(World World, WorldObjects Objects, InhabitantsSystem Inhabitants, DecisionsSystem Decisions)
     {
         /// <summary>The subjects of the open questions of inh-000001, in order.</summary>
         public List<string> Subjects() =>
