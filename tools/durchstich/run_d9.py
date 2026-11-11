@@ -17,9 +17,9 @@ outcome).
 from __future__ import annotations
 
 import argparse
+import itertools
 import json
 import os
-import shutil
 import subprocess
 import sys
 from collections import Counter
@@ -280,6 +280,15 @@ def report(
     return text, chain_ok and same_hash and run.exit_code == 0
 
 
+def archive_name(folder: Path) -> Path:
+    """A free name next to `folder` for keeping an earlier run: <name>.alt-1, .alt-2, ..."""
+    for n in itertools.count(1):
+        candidate = folder.with_name(f"{folder.name}.alt-{n}")
+        if not candidate.exists():
+            return candidate
+    raise AssertionError("unreachable")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=(__doc__ or "").splitlines()[0])
     parser.add_argument("--ai", choices=["live", "mock"], default="live")
@@ -307,7 +316,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"D9_FAIL: {out} exists, is not empty and is not a D9 output folder", file=sys.stderr)
         return 1
     if out.exists():
-        shutil.rmtree(out)
+        # Rule PR4: nothing is deleted - an earlier run's folder is kept under a new name.
+        out.rename(archive_name(out))
     out.mkdir(parents=True)
     (out / ".glassworld-d9").write_text("made by tools/durchstich/run_d9.py", encoding="utf-8")
 

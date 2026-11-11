@@ -202,6 +202,7 @@ def test_every_knowledge_source_has_words_in_the_prompts_that_name_sources() -> 
         "decider/decide.v5",
         "decider/decide.v6",
         "question/ask.v1",
+        "question/ask.v2",
     ):
         settings = tomllib.loads((PROMPTS / f"{name}.toml").read_text(encoding="utf-8"))
         words = settings["settings"]["source_words"]
