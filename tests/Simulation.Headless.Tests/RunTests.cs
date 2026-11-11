@@ -52,6 +52,16 @@ public sealed class RunTests : IDisposable
     }
 
     [Fact]
+    public void TheSummaryCountsTheRequestsAndTheOnesTheServiceRefused()
+    {
+        // ADR-0009: a check run validates what it sends, and its summary names the requests the service refused.
+        var (code, lines) = Run("--days", "1", "--quiet");
+        Assert.Equal(ExitCodes.Ok, code);
+        var requests = Assert.Single(lines, l => l.StartsWith("requests  ", StringComparison.Ordinal));
+        Assert.Matches("^requests  decisions [1-9][0-9]*  jobs 0  conversations 0  rejected 0$", requests);
+    }
+
+    [Fact]
     public void UntilNotReachedWithinTheDaysGivesExitCodeThree()
     {
         // The mock decider never sends a thought.

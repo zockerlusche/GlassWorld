@@ -54,6 +54,45 @@ public sealed class HttpDecisionPortTests
         Assert.Equal((code, retryable), (error.Code, error.Retryable));
     }
 
+    /// <summary>
+    /// ADR-0009: the running game does not validate what it sends, so the port must be able to report a
+    /// failure also for a request that is not valid - otherwise the question would wait for an answer that
+    /// never comes (the port used to read the request with validation to write the error).
+    /// </summary>
+    [Theory]
+    [InlineData("{\"contract_version\":\"0.2\",\"request_id\":\"not-an-id\",\"tick\":\"soon\"}")]
+    [InlineData("{\"tick\":12}")]
+    [InlineData("[1,2,3]")]
+    [InlineData("this is no json")]
+    public async Task AFailureIsReportedAlsoForARequestThatIsNotValid(string request)
+    {
+        using var unreachable = NewPort(new FakeService(_ => throw new HttpRequestException("connection refused")));
+        unreachable.Send("r1", request);
+        Assert.True(await unreachable.WhenIdleAsync(IdleLimit), "the port did not finish its requests in time");
+        var message = Assert.Single(unreachable.Receive(0));
+        Assert.Equal(("r1", true), (message.RequestId, message.IsError));
+        var error = ContractSerializer.Deserialize<ServiceError>(message.Json);
+        Assert.Equal((ServiceErrorCode.Model_unavailable, true), (error.Code, error.Retryable));
+
+        // The service refuses it (422 without a ServiceError body): a refusal, not retryable.
+        using var refusing = NewPort(new FakeService(_ => new HttpResponseMessage((HttpStatusCode)422) { Content = new StringContent("{\"detail\":\"invalid\"}") }));
+        refusing.Send("r2", request);
+        Assert.True(await refusing.WhenIdleAsync(IdleLimit), "the port did not finish its requests in time");
+        var refused = ContractSerializer.Deserialize<ServiceError>(Assert.Single(refusing.Receive(0)).Json);
+        Assert.Equal((ServiceErrorCode.Bad_request, false), (refused.Code, refused.Retryable));
+    }
+
+    [Fact]
+    public void ASynthesizedErrorNamesTheRequestWhereItCanBeRead()
+    {
+        var valid = ContractSerializer.Deserialize<DecisionRequest>(SampleRequest());
+        var named = ContractSerializer.Deserialize<ServiceError>(ServiceErrors.For(SampleRequest(), ServiceErrorCode.Timeout, "late", retryable: true));
+        Assert.Equal((valid.ContractVersion, valid.RequestId, valid.Tick), (named.ContractVersion, named.RequestId, named.Tick));
+
+        var unreadable = ContractSerializer.Deserialize<ServiceError>(ServiceErrors.For("{\"request_id\":7}", ServiceErrorCode.Internal, "broken", retryable: true));
+        Assert.Equal((ContractInfo.Version, ServiceErrors.UnreadableRequestId, 0L), (unreadable.ContractVersion, unreadable.RequestId, unreadable.Tick));
+    }
+
     [Theory]
     [InlineData("http://localhost:5000/")]
     [InlineData("http://0.0.0.0:5000/")]

@@ -157,17 +157,6 @@ public sealed class HttpDecisionPort : IDecisionPort, IDisposable
             : Synthesize(requestJson, ServiceErrorCode.Bad_request, "AI service answered HTTP " + status + " without a valid error body.", retryable: false);
     }
 
-    private static string Synthesize(string requestJson, ServiceErrorCode code, string message, bool retryable)
-    {
-        var request = ContractSerializer.Deserialize<DecisionRequest>(requestJson);
-        return ContractSerializer.Serialize(new ServiceError
-        {
-            ContractVersion = request.ContractVersion,
-            RequestId = request.RequestId,
-            Tick = request.Tick,
-            Code = code,
-            Message = message,
-            Retryable = retryable,
-        });
-    }
+    private static string Synthesize(string requestJson, ServiceErrorCode code, string message, bool retryable) =>
+        ServiceErrors.For(requestJson, code, message, retryable);
 }

@@ -318,17 +318,6 @@ public sealed class HttpJobPort : IJobPort, IDisposable
             : Synthesize(jobJson, ServiceErrorCode.Bad_request, message, retryable: false);
     }
 
-    private static string Synthesize(string jobJson, ServiceErrorCode code, string message, bool retryable)
-    {
-        var job = ContractSerializer.Deserialize<GenerationJob>(jobJson);
-        return ContractSerializer.Serialize(new ServiceError
-        {
-            ContractVersion = job.ContractVersion,
-            RequestId = job.RequestId,
-            Tick = job.Tick,
-            Code = code,
-            Message = message,
-            Retryable = retryable,
-        });
-    }
+    private static string Synthesize(string jobJson, ServiceErrorCode code, string message, bool retryable) =>
+        ServiceErrors.For(jobJson, code, message, retryable);
 }

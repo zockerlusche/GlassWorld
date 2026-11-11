@@ -33,7 +33,11 @@ Kinds are the ids of `content/vocabulary/events.json`; unknown kinds are refused
 
 The existing lines (`day ..`, `done ..`, `neglect ..`, `time ..`, `save ..`, `ACCEPTANCE_OK`/`ACCEPTANCE_FAIL`)
 are unchanged. On an island the line `explored  land <shown>/<all> cells (<p> %)  view <shown>/<all> cells` follows
-`neglect ..`: how much of the land (cells without water) and of the whole grid the player's view shows (B2-6 R14). New:
+`neglect ..`: how much of the land (cells without water) and of the whole grid the player's view shows (B2-6 R14).
+Before the `needs` lines the line `requests  decisions <n>  jobs <n>  conversations <n>  rejected <n>` counts what
+the world sent to the AI and how many of those requests the service refused as invalid (`request_rejected` in the
+logs, ADR-0009). A run validates every request before it leaves, so `rejected` is 0 unless the core and the
+service disagree about the contract. New:
 
 ```
 EVENT tick=<t> kind=<kind> inhabitant=<id> action=<a> target=<id> detail=<d>
@@ -144,6 +148,7 @@ inhabitants for one game day with the mock decider; add `--ai silent` for the se
 | `--days N`, `--ticks N` | How long the world runs, warm-up included (default one game day; `--ticks` instead of whole days). |
 | `--ai mock\|silent` | Decider, see below (default `mock`). |
 | `--answer-every N` | With the mock: at most one answer every N ticks, oldest question first (default 0 = every question is answered at the next tick). See below. |
+| `--validate-requests` | Validate every request against its schema before it leaves, as tests and check runs do. Off by default: the running game does not (ADR-0009), and its step is what `perf` measures. The results are the same either way (same hash); only the time differs. |
 | `--seed N`, `--preset P` | Island (default seed 1, `start_island`). |
 | `--warmup-ticks N` | Ticks at the start of the measured world that run but are not measured (default 120): the first ticks of a new world do work that comes once (everybody meets everybody, the first look around). |
 | `--runtime-warmup-seconds X` | Before the measured world is built, a throwaway world of the same kind runs for X seconds (default 6; 0 = none). .NET compiles a method quickly at first and for good only after it has run for a while; without this the first seconds of the measurement time that first code, which is several times slower and which a game leaves behind after its first seconds. The measured world does not depend on it: same ticks, same hash. |
@@ -186,14 +191,14 @@ it the validation of the outgoing JSON against the schema.
 ### The report
 
 ```
-PERF preset=.. seed=.. inhabitants=.. decider=.. answer_every=.. ticks=.. warmup_ticks=.. measured_ticks=.. runtime_warmup_s=.. runtime_warmup_ticks=.. build=release
+PERF preset=.. seed=.. inhabitants=.. decider=.. answer_every=.. validate_requests=on|off ticks=.. warmup_ticks=.. measured_ticks=.. runtime_warmup_s=.. runtime_warmup_ticks=.. build=release
 STEP mean_ms=.. median_ms=.. p95_ms=.. p99_ms=.. max_ms=.. max_tick=..
 STEP_WITH_PORT mean_ms=.. ...
 CPU mean_ms=..
 PORT name=decider_port mean_ms=.. max_ms=..
 SYSTEM name=<system> mean_ms=.. share=.. max_ms=..
 PART name=<system>/<part> mean_ms=.. share=.. max_ms=.. calls=..
-REQUESTS sent=.. per_step=.. answers=.. open_at_end=..
+REQUESTS sent=.. per_step=.. answers=.. open_at_end=.. rejected=..
 ALLOC kb_per_step=.. gc0=.. gc1=.. gc2=..
 DOING on_the_way=.. acting=.. idle=..
 PERF_OK|PERF_OVER_BUDGET budget_ms=.. mean_ms=.. p95_ms=..      (only with --budget-ms)
