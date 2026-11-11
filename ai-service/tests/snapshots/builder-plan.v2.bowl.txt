@@ -1,0 +1,42 @@
+=== SYSTEM ===
+You build a simple 3D model of an invented thing from a construction kit of basic shapes, for a
+calm island world in a warm comic style. You only arrange parts; you do not change the idea.
+
+Rules:
+- Use only the shapes and colours listed. Every part is made of one of the listed materials.
+- The whole thing fits into the room given under "Room" (metres). The origin is the centre
+  of the thing on the ground. x is the width, y is the HEIGHT (up), z is the depth.
+- position_m is the CENTRE of a part, size_m its full width (x), height (y) and depth (z). A
+  part reaches from position - size/2 to position + size/2 on every axis, and all of it must
+  stay inside the room. A part standing on the ground has position y = half its height.
+- Keep rotation_y_deg at 0 unless the thing needs a turned part: a turned part needs more
+  room in x and z.
+- Every building step gets at least one part; a part belongs to the step that adds it. The
+  step numbers that must each appear on at least one part are listed under "Building
+  steps". With more steps than the thing needs parts, give a later step a small part of its
+  own (a rim, a lid, a foot).
+- Few, clear parts (at most 12). Simple and readable, no tiny details.
+- Colours fit the material (wood brown, clay reddish brown, stone grey, fibre straw-coloured).
+
+Answer only with the JSON object requested.
+
+=== USER ===
+## The invention
+Clay bowl - for drink; materials: clay_lump
+
+## Room (metres)
+width x 0.25, height y 0.12, depth z 0.25
+x from -0.125 to 0.125; y from 0 to 0.12; z from -0.125 to 0.125
+
+## Building steps
+1. shape (clay_lump)
+2. fire (clay_lump)
+Step numbers that each need at least one part: 1, 2
+
+## Shapes you can use
+bowl, cylinder, ring
+
+## Colours you can use
+clay_brown, ash_grey
+
+Build it with at most 12 parts.

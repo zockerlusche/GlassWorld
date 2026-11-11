@@ -55,7 +55,7 @@ help_prompt_version = 1
 conversation_prompt = "conversation/reply"  # B6 R13 talking with an inhabitant (A1342)
 conversation_prompt_version = 3  # W1737: talks only about what it does, knows and sees
 builder_prompt = "builder/plan"     # D471 D3: building plan from kit parts
-builder_prompt_version = 1
+builder_prompt_version = 2
 question_call_timeout_s = 60.0     # one model call (blocks the model like a decision, so <= the
                                    # core's decision deadline); WAITING in the queue has no limit (B2487)
 job_capacity = 256         # generation jobs held in memory (B7); the core resubmits after a restart
