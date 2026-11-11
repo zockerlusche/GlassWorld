@@ -2339,9 +2339,10 @@ public partial class GameScreen : CanvasLayer
         _sideBar.Position = new Vector2(area.X - margin - _sideBar.GetCombinedMinimumSize().X, margin);
         _topBar.Position = new Vector2(margin, margin);
         _topBar.Size = new Vector2(area.X - (2 * margin) - _sideBar.GetCombinedMinimumSize().X - gap, 0);
+        var list = _sideBar.PanelOf("inhabitants");
         foreach (var panel in _sideBar.Panels)
         {
-            panel.Dock(area, _style, _sideBar.GetCombinedMinimumSize().X + gap);
+            panel.Dock(area, _style, _sideBar.GetCombinedMinimumSize().X + gap, contentPx: panel == list ? _inhabitants.WantedWidth : 0);
         }
 
         var width = Math.Min(_style.Tokens.Window.SidePanelWidth, area.X - (2 * margin));
@@ -2373,7 +2374,7 @@ public partial class GameScreen : CanvasLayer
             }
             else
             {
-                panel.Dock(area, _style!, themes.X + gap, top, widthPx: _style!.Tokens.Zones.SidePanelWidth);
+                panel.Dock(area, _style!, themes.X + gap, top, widthPx: _style!.Tokens.Zones.SidePanelWidth, contentPx: panel == _sideBar.PanelOf("inhabitants") ? _inhabitants.WantedWidth : 0);
             }
         }
 

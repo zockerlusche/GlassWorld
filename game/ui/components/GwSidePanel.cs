@@ -53,12 +53,27 @@ public partial class GwSidePanel : PanelContainer
     /// <param name="left">True docks at the left edge instead (the pinned log of the zones layout).</param>
     /// <param name="heightShare">Share of the free height the panel takes (1 = all).</param>
     /// <param name="widthPx">Width at the reference size; 0 = the side panel width of the window tokens.</param>
-    public void Dock(Vector2 area, UiStyle style, float rightOffset, float top = 0, bool left = false, float heightShare = 1, float widthPx = 0)
+    /// <param name="contentPx">Width the content asks for in pixels as measured (a table's headers), without the panel's frame; 0 = no wish. Capped at the room like the token width.</param>
+    public void Dock(Vector2 area, UiStyle style, float rightOffset, float top = 0, bool left = false, float heightShare = 1, float widthPx = 0, float contentPx = 0)
     {
         ArgumentNullException.ThrowIfNull(style);
         var margin = style.Tokens.Window.SafeMargin;
+
+        // A panel docked on the right grows to the left whenever its content grows later (a chronicle day
+        // with a longer date), never under the buttons beside it (review GW1 #243).
+        GrowHorizontal = left ? GrowDirection.End : GrowDirection.Begin;
+
         // Grows with the text size so headers stay readable (D366 section 2), never beyond the screen.
         var wanted = (widthPx > 0 ? widthPx : style.Tokens.Window.SidePanelWidth) * (float)Math.Max(1, style.Settings.TextScale);
+
+        // What the content asks for (a table's headers, measured in pixels already) plus the panel's frame:
+        // a wish that is capped at the room like the token width, so the panel never leaves the picture.
+        if (contentPx > 0)
+        {
+            var around = GetThemeStylebox("panel") is { } box ? box.GetContentMargin(Side.Left) + box.GetContentMargin(Side.Right) : 0;
+            wanted = Math.Max(wanted, contentPx + around);
+        }
+
         var width = Math.Min(wanted, area.X - (2 * margin) - rightOffset);
         // A wrapping label measures itself at its current width (one letter per line before the first
         // layout), so wrap the title only when it really does not fit.
@@ -81,7 +96,7 @@ public partial class GwSidePanel : PanelContainer
         // The size is the asked one or, if the content needs more, its minimum: placed by what it really is,
         // a panel on the right grows to the left instead of under the buttons beside it (D747 A2: the
         // chronicle's day row was wider than the panel and hid "later" under the theme buttons).
-        Position = new Vector2(left ? margin : area.X - margin - rightOffset - Size.X, y);
+        Position = new Vector2(left ? margin : Math.Max(margin, area.X - margin - rightOffset - Size.X), y);
     }
 
     /// <summary>Minimum sizes of the parts (diagnostics for the layout check).</summary>
