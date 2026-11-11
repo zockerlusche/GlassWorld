@@ -20,8 +20,8 @@ public sealed record GwRow(string Id, IReadOnlyList<string> Cells, IReadOnlyList
 /// </summary>
 public partial class GwTable : VBoxContainer
 {
-    // Room beside a header's text for the tree's own cell margins and the sort arrow.
-    private const int HeaderPaddingPx = 20;
+    // Room beside a header's text for the sort arrow, on top of what the theme says.
+    private const int HeaderPaddingPx = 16;
 
     private readonly Tree _tree = new() { HideRoot = true, ColumnTitlesVisible = true, SizeFlagsVertical = SizeFlags.ExpandFill, SelectMode = Tree.SelectModeEnum.Row };
     private readonly Label _empty = new() { ThemeTypeVariation = UiTheme.SmallLabel, AutowrapMode = TextServer.AutowrapMode.WordSmart };
@@ -131,18 +131,29 @@ public partial class GwTable : VBoxContainer
         var font = _tree.GetThemeFont("title_button_font");
         var size = _tree.GetThemeFontSize("title_button_font_size");
         var room = 0f;
+
+        // What a header takes beside its text: the frame of the title button, the gap between columns and
+        // the cell margins, all from the theme, plus a little room (the first run in a window still cut
+        // "Fragen": a fixed 20 px was not enough).
+        var around = (_tree.GetThemeStylebox("title_button_normal")?.GetMinimumSize().X ?? 0)
+            + _tree.GetThemeConstant("h_separation") + _tree.GetThemeConstant("inner_item_margin_left") + _tree.GetThemeConstant("inner_item_margin_right")
+            + HeaderPaddingPx;
         for (var i = 0; i < _columns.Count; i++)
         {
             var title = Tr(_columns[i].HeaderKey);
             _tree.SetColumnTitle(i, title);
             _tree.SetColumnTitleAlignment(i, _columns[i].Numeric ? HorizontalAlignment.Right : HorizontalAlignment.Left);
             _tree.SetColumnExpand(i, !_columns[i].Numeric);
-            var width = (int)Math.Ceiling(font.GetStringSize(title, HorizontalAlignment.Left, -1, size).X) + HeaderPaddingPx;
+            var width = (int)Math.Ceiling(font.GetStringSize(title, HorizontalAlignment.Left, -1, size).X + around);
             _tree.SetColumnCustomMinimumWidth(i, width);
             room += width;
         }
 
-        _tree.CustomMinimumSize = new Vector2(room, _tree.CustomMinimumSize.Y);
+        // Around the columns: the tree's own frame and the bar to scroll down, which takes its width from the
+        // columns when it shows.
+        var frame = _tree.GetThemeStylebox("panel")?.GetMinimumSize().X ?? 0;
+        var bar = _tree.GetThemeStylebox("scroll", "VScrollBar")?.GetMinimumSize().X ?? 0;
+        _tree.CustomMinimumSize = new Vector2(room + frame + Math.Max(bar, HeaderPaddingPx), _tree.CustomMinimumSize.Y);
     }
 
     private IReadOnlyList<GwRow> Sorted()
