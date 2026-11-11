@@ -24,6 +24,7 @@ from glassworld_ai.words import (
     subject_name,
     table,
     vocab_line,
+    without_names,
     without_runtime_ids,
     word,
 )
@@ -99,6 +100,14 @@ def build_values(job: GenerationJob, template: PromptTemplate, vocab: Vocabulary
         # The story so far must not name it either (review GW1 #215: the condensed memory
         # writes thing names, 'Found a flint'): the name becomes 'this thing' there too.
         summary = _unname(summary, plain_id(payload.subject.id), f"this {unnamed}")
+        # ... and not by the name the inhabitant itself has for it (review GW1 #256): the
+        # memory writes an invention by its label, and that name says what it is for.
+        label: Any = getattr(payload, "label", None)
+        if label is not None:
+            own_names_of_it = [
+                str(n) for n in (getattr(label, "de", None), getattr(label, "en", None)) if n
+            ]
+            summary = without_names(summary, own_names_of_it, f"this {unnamed}")
 
     def about(entry: Any) -> str:
         line = knowledge_line(entry, settings)

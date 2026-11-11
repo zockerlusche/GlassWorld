@@ -36,6 +36,7 @@ from glassworld_ai.prompts import PromptTemplate, RenderedPrompt
 from glassworld_ai.queue import ModelQueue
 from glassworld_ai.vocabulary import Vocabulary
 from glassworld_ai.words import (
+    RUNTIME_TYPE,
     ContextError,
     bands,
     humanize,
@@ -256,6 +257,11 @@ def _check_invention(invention: dict[str, Any]) -> None:
 def parse_inventor(raw: str, schema: dict[str, Any]) -> dict[str, Any]:
     data = _validated(raw, schema)
     _check_invention(data["invention"])
+    # The prompt shows materials by id (the answer names them so). The id must not come back in
+    # what the player will read: the thought and the new thing's names (review GW1 #256).
+    shown = [data.get("thought"), *dict(data["invention"].get("name") or {}).values()]
+    if any(isinstance(text, str) and RUNTIME_TYPE.search(text) for text in shown):
+        raise InvalidOutputError("a runtime type id in the thought or the name")
     return data
 
 

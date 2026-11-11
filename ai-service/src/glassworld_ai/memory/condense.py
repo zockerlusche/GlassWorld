@@ -33,6 +33,7 @@ from glassworld_ai.queue import ModelQueue
 from glassworld_ai.words import (
     ContextError,
     humanize,
+    own_names,
     plain_id,
     quote,
     subject_name,
@@ -63,7 +64,7 @@ def formative_ticks(job: GenerationJob) -> list[int]:
     return sorted({e.tick for e in memory_payload(job).events if e.formative})
 
 
-def _event_text(event: Any, settings: dict[str, Any]) -> str:
+def _event_text(event: Any, settings: dict[str, Any], locale: str = "en") -> str:
     """One event as words. From v3 (prompt setting outcome_phrases) with what the core says came of
     it, how often it happened and the name the inhabitant has for a person or invention."""
     phrases = cast(dict[str, str], settings.get("outcome_phrases", {}))
@@ -79,8 +80,14 @@ def _event_text(event: Any, settings: dict[str, Any]) -> str:
                 # A name can be generated text (an invention's name): one line and no quote
                 # characters, so it cannot break the line or close the quotes early (review
                 # GW1 #233).
-                shown = " ".join(str(label.en).replace("'", "").replace('"', "").split())
-                name = f"{table(settings, 'subject_kinds').get(kind, kind)} '{shown}'"
+                # v6 (review GW1 #256): one thing, one name per prompt - the name in the
+                # player's language, as the prompts that read the summary use it. Before:
+                # label.en, so a German decider prompt had 'water bowl' in the story and
+                # 'Wasserschale' among the things.
+                where = locale if words.get("names") == "display" else "en"
+                shown = own_names([(event.about.id, label)], where).get(plain_id(event.about.id))
+                if shown:
+                    name = f"{table(settings, 'subject_kinds').get(kind, kind)} '{shown}'"
             elif kind == "inhabitant" and "unnamed_person" in words:
                 name = str(words["unnamed_person"])  # never an id in a text later prompts read
         about = f" ({name})"
@@ -111,7 +118,7 @@ def build_values(job: GenerationJob, template: PromptTemplate) -> dict[str, str]
     for n, event in enumerate(ordered):
         groups.setdefault(event.tick if per_tick else n, []).append(event)
     for events in groups.values():
-        parts = [_event_text(e, settings) for e in events]
+        parts = [_event_text(e, settings, plain_id(job.display_locale)) for e in events]
         mark = " - FORMATIVE, keep it" if any(e.formative for e in events) else ""
         lines.append(f"- [tick {events[0].tick}] {'; '.join(parts)}{mark}")
     made: object = cast(dict[str, Any], settings.get("events", {})).get("made_thing")
@@ -120,6 +127,9 @@ def build_values(job: GenerationJob, template: PromptTemplate) -> dict[str, str]
         lines = [without_runtime_ids(line, {}, made) for line in lines]
     formative = formative_ticks(job)
     summary = payload.summary.strip()
+    if isinstance(made, str):
+        # A summary written by an older version may still carry an id (review GW1 #256).
+        summary = without_runtime_ids(summary, {}, made)
     return {
         "summary": quote(summary) if summary else "(nothing yet)",
         "events": "\n".join(lines),

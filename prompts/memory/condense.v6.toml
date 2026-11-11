@@ -19,6 +19,7 @@ Rules:
   an attempt ("Tried to <do that> with <the thing>; it did not work." - with the action and
   the thing of the event, without the angle brackets), never as done. Add no
   consequence the event does not name (no pain, no sickness, no success).
+- Use the names given in quotes exactly as they are, also when they are not English.
 - Use the names given in quotes. Never write ids like "inh-000002"; someone without a name is
   "another person".
 - Only what the events say. Do not invent facts, reasons or properties. A belief stays a belief
@@ -48,6 +49,7 @@ Write the new memory in at most $max_chars characters.
 one_line_per_tick = true
 unnamed_person = "another person"
 made_thing = "made thing"   # an invented kind without a name of its own (never inv_<hex>)
+names = "display"   # an invention by its name in the player's language (one name per prompt)
 times = "$what, $times times in all"
 
 # What came of an action, as the core reports it (common#MemoryOutcome). $what is the action

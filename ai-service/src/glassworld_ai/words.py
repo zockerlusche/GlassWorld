@@ -126,3 +126,15 @@ def without_runtime_ids(
             if everywhere:
                 text = text.replace(shown, name)
     return RUNTIME_TYPE.sub(made, text)
+
+
+_ARTICLES = r"(?:\b(?:a|an|the|some|der|die|das|den|dem|des|ein|eine|einen|einem|einer)\s+)?"
+
+
+def without_names(text: str, names: Iterable[str], instead: str) -> str:
+    """`text` with every one of `names` (with an article before it, whatever the case) replaced
+    by `instead` - for a thing that must stay unnamed although a text written earlier names it."""
+    for name in sorted({n for n in names if n and n.strip()}, key=len, reverse=True):
+        pattern = _ARTICLES + r"\b" + re.escape(name.strip()).replace(r"\ ", r"\s+") + r"\b"
+        text = re.sub(pattern, instead, text, flags=re.IGNORECASE)
+    return text

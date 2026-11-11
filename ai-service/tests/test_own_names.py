@@ -126,3 +126,67 @@ def test_memory_v6_writes_no_runtime_id_for_an_unnamed_invention(settings: Setti
     assert "inv" not in user.split("## New events")[1].split("## Formative")[0].replace("inh", "")
     old = load_prompt(settings.prompts_dir, "memory/condense", 5)
     assert "inv 3fa2c19b7e04" in old.render(memory_values(job, old)).user
+
+
+def test_question_v3_does_not_name_the_asked_thing_through_the_story(settings: Settings) -> None:
+    """Review GW1 #256 F1: the memory writes an invention by its label, so 'Your story so far'
+    named exactly the thing the question keeps unnamed."""
+    data = _example("generation-job.question-made-thing.json")
+    data["payload"]["question"]["inhabitant"]["memory"]["summary"] = (
+        "Woke up on a beach. Made a water bowl from clay and carried water in the Wasserschale."
+    )
+    job = GenerationJob.model_validate(data)
+    template = load_prompt(settings.prompts_dir, "question/ask", 3)
+    user = template.render(question_values(job, template, _vocab())).user
+    assert "water bowl" not in user.lower() and "wasserschale" not in user.lower()
+    assert "Made this thing from clay and carried water in this thing." in user
+
+
+def test_memory_v6_uses_the_players_language_for_a_name_and_cleans_the_old_summary(
+    settings: Settings,
+) -> None:
+    """Review GW1 #256 F2/F3: one thing, one name per prompt - the readers of the summary use the
+    display language; and a summary written by an older version may still carry an id."""
+    data = _example("generation-job.memory-condense.json")
+    data["display_locale"] = "de"
+    data["payload"]["memory"]["summary"] = "Made inv 3fa2c19b7e04 from clay."
+    data["payload"]["memory"]["events"].append(
+        {
+            "tick": 5000,
+            "kind": "use",
+            "about": {"kind": "type", "id": MADE},
+            "formative": False,
+            "label": {"de": "Wasserschale", "en": "water bowl"},
+        }
+    )
+    job = GenerationJob.model_validate(data)
+    template = load_prompt(settings.prompts_dir, "memory/condense", 6)
+    user = template.render(memory_values(job, template)).user
+    assert "- [tick 5000] use (thing 'Wasserschale')" in user
+    assert "water bowl" not in user
+    assert "> Made made thing from clay." in user and "inv 3fa" not in user
+    old = load_prompt(settings.prompts_dir, "memory/condense", 5)
+    assert "use (thing 'water bowl')" in old.render(memory_values(job, old)).user  # v5 as it was
+
+
+def test_an_inventors_answer_must_not_carry_a_runtime_id_in_what_is_shown() -> None:
+    """Review GW1 #256 F3: the inventor's prompt shows materials by id; the id must not come back
+    in the thought or in the new thing's name."""
+    import pytest
+
+    from glassworld_ai.invention.flow import parse_inventor
+    from glassworld_ai.llm.jobcall import InvalidOutputError
+
+    status = _example("job-status.invention-approved.json")["result"]["invention"]
+    invention: dict[str, Any] = status["invention"]
+    good: dict[str, Any] = {"invention": invention, "thought": "Das könnte gehen."}
+    schema: dict[str, Any] = {"type": "object"}
+    assert parse_inventor(json.dumps(good), schema)["thought"] == "Das könnte gehen."
+    renamed: dict[str, Any] = {**invention, "name": {"de": "inv 3fa2c19b7e04", "en": "x"}}
+    cases: list[dict[str, Any]] = [
+        {**good, "thought": f"Ich nehme {MADE} dafür."},
+        {**good, "invention": renamed},
+    ]
+    for bad in cases:
+        with pytest.raises(InvalidOutputError, match="runtime type id"):
+            parse_inventor(json.dumps(bad), schema)
