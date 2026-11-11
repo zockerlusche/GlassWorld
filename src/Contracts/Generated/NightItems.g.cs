@@ -40,7 +40,7 @@ namespace GlassWorld.Contracts
         public string? Inhabitant { get; set; } = default!;
 
         /// <summary>
-        /// Object type the job is about (the object_type of the job's payload, as the core sent it); null if the job names none.
+        /// Object type the job is about (the object_type of the job's payload, or the subject of a question job when that is a thing type; as the core sent it); null if the job names none.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("object_type")]
         public string? ObjectType { get; set; } = default!;
