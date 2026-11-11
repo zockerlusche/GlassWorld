@@ -8,6 +8,7 @@
       "yaw_deg": 30,
       "distance_m": 150,
       "pitch_deg": 40,
+      "tide_permille": 0,
       "revealed_permille": 1000
     },
     {
@@ -26,6 +27,7 @@
       "yaw_deg": 120,
       "distance_m": 35,
       "pitch_deg": 22,
+      "tide_permille": 0,
       "revealed_permille": 1000
     }
   ],
