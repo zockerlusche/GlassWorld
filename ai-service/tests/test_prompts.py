@@ -279,6 +279,23 @@ def test_v6_keeps_the_b9_parts_of_v5_out() -> None:
     assert v4_text == v6_text  # no visibility in this example: the user part is v4's
 
 
+# Settings that are word lists of a check on the answer, not text the model reads.
+CHECK_WORD_LISTS = ("grounding", "thought_check")
+
+
+def _setting_texts(node: object, key: str = "") -> list[str]:
+    if key in CHECK_WORD_LISTS:
+        return []
+    if isinstance(node, str):
+        return [node]
+    if isinstance(node, dict):
+        items = cast(dict[str, object], node).items()
+        return [text for k, v in items for text in _setting_texts(v, k)]
+    if isinstance(node, list):
+        return [text for v in cast(list[object], node) for text in _setting_texts(v, key)]
+    return []
+
+
 # Prompts in use that still name things of the world, each with the open decision (D763).
 NAMES_THINGS_PENDING: dict[str, str] = {
     "process/judge.v1": "D763 A3: the judge of processes states physics with fire as prose; "
@@ -301,8 +318,23 @@ def test_no_prompt_in_use_names_a_thing_of_the_world() -> None:
         else:
             flat[key] = value
     catalog = json.loads((REPO / "content/objects/start-catalog.json").read_text(encoding="utf-8"))
-    things = sorted({t["id"].replace("_", " ") for t in catalog["types"]})
-    assert len(things) > 20
+    things = {t["id"].replace("_", " ") for t in catalog["types"]}
+    # ... and what the player's languages call them (review GW3 #246: the first version knew the
+    # English ids only, so 'Rote Beere' or 'Feuerstein' in a prompt went unseen).
+    for locale in ("de", "en"):
+        data = json.loads((REPO / f"content/i18n/{locale}.json").read_text(encoding="utf-8"))
+        texts = {e["key"]: e["text"] for e in data["entries"]}
+        for thing in catalog["types"]:
+            name = texts.get(f"vocab.object.{thing['id']}")
+            if isinstance(name, str) and name.strip():
+                things.add(name.strip().lower())
+    # The head noun of a name alone, so that an inflected form is seen too ('die roten Beeren'
+    # for 'Rote Beere', 'red berries' for 'red berry').
+    things |= {
+        name.split()[-1] for name in things if len(name.split()) > 1 and len(name.split()[-1]) >= 4
+    }
+    things = sorted(things)
+    assert len(things) > 40
     found: dict[str, list[str]] = {}
     checked = 0
     for key, name in sorted(flat.items()):
@@ -310,11 +342,17 @@ def test_no_prompt_in_use_names_a_thing_of_the_world() -> None:
             continue
         version = flat[f"{key}_version"]
         prompt = tomllib.loads((PROMPTS / f"{name}.v{version}.toml").read_text(encoding="utf-8"))
-        text = f"{prompt['system']}\n{prompt['user']}".lower()
+        # The words the model reads: system, user and every text of the settings (their word
+        # tables are rendered into the prompt). Lists of allowed or forbidden words of a check
+        # are not read by the model and are left out by their key.
+        text = "\n".join(
+            [prompt["system"], prompt["user"], *_setting_texts(prompt.get("settings", {}))]
+        ).lower()
         checked += 1
         hits: list[str] = []
         for thing in things:
-            stem = thing[:-1] + "(y|ies)" if thing.endswith("y") else thing + "(s|es)?"
+            word = re.escape(thing)
+            stem = word[:-1] + "(y|ies)" if word.endswith("y") else word + "(s|es|n|en)?"
             if re.search(rf"\b{stem}\b", text):
                 hits.append(thing)
         if hits and f"{name}.v{version}" not in NAMES_THINGS_PENDING:
