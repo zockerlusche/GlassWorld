@@ -7,6 +7,7 @@ to a character budget; options are never cut.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable, Sequence
 from typing import Any, cast
 
@@ -55,11 +56,17 @@ def build_values(
         cast(dict[str, str], unknown_raw).get(locale) if isinstance(unknown_raw, dict) else None
     )
 
+    # v8 (#251): the inhabitants' own name of an invention, as the request gives it for this
+    # inhabitant (perceived things, beliefs, habits). Only read when the prompt has made_thing.
+    made: object = settings.get("made_thing")
+    labels = _labels(request, locale) if isinstance(made, str) else {}
+
     def called(type_id: str) -> str | None:
-        """v4: the thing's name in the player's language (data), or the data's 'unknown' word."""
+        """v4: the thing's name in the player's language (data), or the data's 'unknown' word.
+        v8: for an invention the name this inhabitant knows for it."""
         if template.version < 4 or texts is None:
             return None
-        return texts.thing(locale, type_id) or unknown
+        return labels.get(type_id) or texts.thing(locale, type_id) or unknown
 
     max_moods = int(settings.get("max_moods", 5))
 
@@ -150,7 +157,33 @@ def build_values(
     if hidden > 0:
         lines.append(f"- ... and {hidden} more things further away")
     values["objects"] = "\n".join(lines) or NOTHING
+    if isinstance(made, str):
+        # A runtime type id says nothing to the model and is no word of the inhabitant.
+        values = {key: _RUNTIME_TYPE.sub(made, text) for key, text in values.items()}
     return values
+
+
+_RUNTIME_TYPE = re.compile(r"\binv[_ ][0-9a-f]{6,}\b")
+
+
+def _labels(request: DecisionRequest, locale: str) -> dict[str, str]:
+    """Type id -> the name this inhabitant has for it, from every place the request labels."""
+    found: dict[str, str] = {}
+
+    def note(type_id: object, label: object) -> None:
+        name: object = getattr(label, locale, None) if label is not None else None
+        if type_id is not None and isinstance(name, str) and name.strip():
+            found.setdefault(_id(type_id), " ".join(name.replace('"', "").split()))
+
+    for thing in request.perception.objects:
+        note(thing.type, getattr(thing, "label", None))
+    for entry in request.inhabitant.knowledge or []:
+        note(entry.subject.id, getattr(entry, "label", None))
+    habits: list[Any] = list(getattr(request.inhabitant, "habits", None) or [])
+    for habit in habits:
+        about: Any = getattr(habit, "about", None)
+        note(about.id if about is not None else None, getattr(habit, "label", None))
+    return found
 
 
 def _v2_values(
