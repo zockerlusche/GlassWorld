@@ -1,11 +1,15 @@
-"""The benchmark measurement tool (B2-7): evaluation, report and guards (no game needed)."""
+"""The benchmark measurement tool (B2-7): judging, report, sampler and guards (no game needed)."""
 
 from __future__ import annotations
 
 import importlib.util
+import json
 import sys
+import time
 from pathlib import Path
 from types import ModuleType
+
+import pytest
 
 
 def _module() -> ModuleType:
@@ -19,17 +23,46 @@ def _module() -> ModuleType:
 
 
 BM = _module()
-MARKS = BM.Marks(60.0, 16.7, ("day", "night"))
+MARKS = BM.Marks(60.0, 16.7, 120.0, 100, 2560, ("day", "night"))
+RES = "800x600"
 
 
-def _csv(path: Path, frames: list[float]) -> None:
-    rows = ["pass,time_s,frame_ms"] + [f"day,{i * 0.01:.2f},{ms}" for i, ms in enumerate(frames)]
-    path.write_text("\n".join(rows) + "\n", encoding="utf-8")
+def _pass(
+    out: Path,
+    name: str,
+    frames: list[float],
+    *,
+    size: str = RES,
+    duration: str = "120",
+    base: int = 1500,
+    peak: int = 3000,
+) -> None:
+    """A complete, good pass: CSV, log with the game's own lines, memory samples."""
+    rows = ["pass,time_s,frame_ms"] + [f"{name},{i * 0.01:.2f},{ms}" for i, ms in enumerate(frames)]
+    (out / f"bench_{RES}_{name}.csv").write_text("\n".join(rows) + "\n", encoding="utf-8")
+    mean = 1000.0 * len(frames) / sum(frames)
+    p95 = BM.percentile(frames, 0.95)
+    (out / f"bench_{RES}_{name}.log").write_text(
+        f"BENCH_START seed=7 quality=high passes={name} warmup_s=10 duration_s={duration} "
+        f"figures=100 size=640x480 csv=x\n"
+        f"BENCH_PASS pass={name} frames={len(frames)} mean_fps={mean:.2f} p95_ms={p95:.3f} "
+        f"max_ms={max(frames)} ok=yes size={size}\n",
+        encoding="utf-8",
+    )
+    (out / f"vram_{RES}_{name}.csv").write_text(
+        f"time_s,phase,used_mib,total_mib\n0.0,baseline,{base},10240\n1.0,baseline,{base},10240\n"
+        f"5.0,run,{base + 100},10240\n6.0,run,{peak},10240\n7.0,run,,\n",
+        encoding="utf-8",
+    )
 
 
-def test_the_marks_come_from_the_benchmark_data() -> None:
+GOOD = [10.0] * 95 + [20.0] * 5
+
+
+def test_the_marks_and_the_memory_budget_come_from_the_data() -> None:
     marks = BM.load_marks()
-    assert marks.mean_fps > 0 and marks.p95_ms > 0 and "day" in marks.passes
+    assert marks.mean_fps > 0 and marks.p95_ms > 0 and marks.vram_mib > 0 and marks.duration_s > 0
+    assert "day" in marks.passes and marks.figures > 0
 
 
 def test_percentile_is_nearest_rank() -> None:
@@ -37,49 +70,164 @@ def test_percentile_is_nearest_rank() -> None:
     assert BM.percentile([5.0], 0.95) == 5.0
 
 
-def test_a_pass_is_evaluated_from_its_frame_times(tmp_path: Path) -> None:
-    _csv(tmp_path / "bench_800x600_day.csv", [10.0] * 95 + [20.0] * 5)
-    result = BM.evaluate_csv(tmp_path / "bench_800x600_day.csv", "800x600", "day", MARKS)
-    assert result.frames == 100
-    assert round(result.mean_fps, 1) == 95.2  # 100 frames in 1050 ms
-    assert result.p95_ms == 10.0 and result.max_ms == 20.0 and result.ok
-    _csv(tmp_path / "slow.csv", [10.0] * 90 + [20.0] * 10)
-    assert not BM.evaluate_csv(tmp_path / "slow.csv", "800x600", "day", MARKS).ok  # p95 20 ms
-
-
-def test_missing_passes_are_named_and_the_report_says_so(tmp_path: Path) -> None:
-    _csv(tmp_path / "bench_800x600_day.csv", [10.0] * 10)
-    (tmp_path / "vram_800x600.csv").write_text(
-        "time_s,used_mib,total_mib\n0.0,1500,10240\n1.0,4200,10240\n", encoding="utf-8"
+def test_a_good_pass_is_judged_from_csv_log_and_memory(tmp_path: Path) -> None:
+    _pass(tmp_path, "day", GOOD)
+    r = BM.judge(tmp_path, RES, "window", "day", MARKS, 0)
+    assert r.frames == 100 and round(r.mean_fps, 1) == 95.2  # 100 frames in 1050 ms
+    assert r.p95_ms == 10.0 and r.max_ms == 20.0
+    assert (r.baseline_mib, r.peak_mib, r.game_mib, r.samples, r.sample_errors) == (
+        1500,
+        3000,
+        1500,
+        2,
+        1,
     )
-    results, missing = BM.evaluate(tmp_path, ["800x600"], MARKS)
-    assert [r.name for r in results] == ["day"] and missing == ["800x600 night"]
-    peaks = BM.vram_peaks(tmp_path, ["800x600"])
-    assert peaks == {"800x600": (4200, 10240)}
-    text = BM.report(results, missing, peaks, MARKS, "Build abc")
-    assert "| 800x600 | day | 10 | 100.0 | 10.0 | 10.0 | erfüllt |" in text
-    assert "**Ohne Messwerte:** 800x600 night." in text
-    assert "| 800x600 | 4200 | 10240 |" in text and "1 von 1 Durchgängen" in text
+    assert r.size == RES and r.quality == "high" and r.verdict == "erfüllt"
 
 
-def test_a_run_needs_the_screen_queue_a_binary_and_a_folder_outside_the_repository(
-    tmp_path: Path,
+def test_missed_marks_and_budget_are_missed_not_invalid(tmp_path: Path) -> None:
+    _pass(tmp_path, "day", [10.0] * 90 + [20.0] * 10, peak=1500 + 2561)
+    r = BM.judge(tmp_path, RES, "window", "day", MARKS, 0)
+    assert not r.invalid and r.verdict == "verfehlt"
+    assert any("p95 20.00 ms" in m for m in r.missed) and any("2561 MiB" in m for m in r.missed)
+    assert BM.exit_code([r]) == BM.EXIT_MISSED
+
+
+@pytest.mark.parametrize(
+    ("change", "reason"),
+    [
+        ({"size": "2560x1440"}, "gerendert in 2560x1440 statt 800x600"),
+        ({"duration": "5"}, "verkürzt: 5 s statt 120 s"),
+    ],
+)
+def test_another_size_or_a_shortened_run_is_invalid(
+    tmp_path: Path, change: dict[str, str], reason: str
 ) -> None:
+    _pass(tmp_path, "day", GOOD, **change)
+    r = BM.judge(tmp_path, RES, "window", "day", MARKS, 0)
+    assert reason in r.invalid and r.verdict == "ungültig"
+    assert BM.exit_code([r]) == BM.EXIT_FAILED
+
+
+def test_what_is_not_measured_is_invalid_and_never_ends_the_tool(tmp_path: Path) -> None:
+    _pass(tmp_path, "day", GOOD)
+    (tmp_path / f"vram_{RES}_day.csv").write_text("time_s,phase,used_mib,total_mib\n", "utf-8")
+    assert (
+        "Grafikspeicher nicht gemessen"
+        in BM.judge(tmp_path, RES, "window", "day", MARKS, 0).invalid
+    )
+    (tmp_path / f"bench_{RES}_day.csv").write_text("pass,time_s,frame_ms\nday,10.0\n", "utf-8")
+    cut = BM.judge(tmp_path, RES, "window", "day", MARKS, 0)
+    assert any("CSV nicht lesbar" in reason for reason in cut.invalid)
+    (tmp_path / f"bench_{RES}_day.csv").write_text("pass,time_s,frame_ms\n", "utf-8")
+    assert "CSV ohne Bilder" in BM.judge(tmp_path, RES, "window", "day", MARKS, 0).invalid
+    gone = BM.judge(tmp_path, RES, "window", "night", MARKS, 1)
+    assert gone.invalid[:2] == ["Lauf endete mit Fehler (1)", "keine CSV-Datei"]
+    assert "Log ohne BENCH_START/BENCH_PASS" in gone.invalid
+
+
+def test_the_games_own_numbers_must_agree_with_the_csv(tmp_path: Path) -> None:
+    _pass(tmp_path, "day", GOOD)
+    log = tmp_path / f"bench_{RES}_day.log"
+    log.write_text(log.read_text("utf-8").replace("frames=100", "frames=90"), "utf-8")
+    r = BM.judge(tmp_path, RES, "window", "day", MARKS, 0)
+    assert "Zahlen des Spiels weichen von der CSV ab" in r.invalid
+
+
+def test_the_report_counts_against_the_expected_passes_and_names_the_method(tmp_path: Path) -> None:
+    _pass(tmp_path, "day", GOOD)
+    results = [BM.judge(tmp_path, RES, "fullscreen", name, MARKS, 0) for name in MARKS.passes]
+    text = BM.report(results, MARKS, {"note": "Export abc", "card": "Karte, 1.0"})
+    row = "| 800x600 Vollbild | 800x600 | day | high | 100 | 95.24 | 10.00 | 20.00 | 1500 "
+    assert row + "| erfüllt | - |" in text
+    assert "| nicht gemessen | ungültig |" in text
+    assert (
+        "**Ergebnis 800x600 (Abnahme-Auflösung):** 1 von 2 Durchgängen erfüllt, nicht bestanden."
+        in text
+    )
+    assert "Export abc" in text and "Karte, 1.0" in text and "Spitze minus" in text
+    assert "mit 100 Figuren" in text
+
+
+def test_evaluate_only_end_to_end_keeps_the_earlier_report(tmp_path: Path) -> None:
+    out = tmp_path / "run"
+    out.mkdir()
+    for name in BM.load_marks().passes:
+        _pass(out, name, GOOD)
+    (out / "run.json").write_text(
+        json.dumps({"note": "Export abc", "entries": [[RES, "window"]], "exit": {}}), "utf-8"
+    )
+    (out / "report.md").write_text("old", encoding="utf-8")
+    assert BM.main(["--evaluate-only", "--out", str(out)]) == BM.EXIT_OK
+    assert (out / "report.md.alt-1").read_text("utf-8") == "old"
+    assert "Export abc" in (out / "report.md").read_text("utf-8")
+    _pass(out, "day", [30.0] * 100)
+    assert BM.main(["--evaluate-only", "--out", str(out)]) == BM.EXIT_MISSED
+    (out / f"bench_{RES}_day.csv").unlink()
+    assert BM.main(["--evaluate-only", "--out", str(out)]) == BM.EXIT_FAILED
+
+
+def test_the_sampler_keeps_sampling_after_a_bad_line_and_marks_the_phases(tmp_path: Path) -> None:
+    go = tmp_path / "go"
+    script = (
+        "import os,sys,time\n"
+        "print('1500, 10240', flush=True)\n"
+        "while not os.path.exists(sys.argv[1]): time.sleep(0.05)\n"
+        "for line in ('error', '1600, 10240', '4000, 10240'): print(line, flush=True)\n"
+        "time.sleep(30)\n"
+    )
+    target = tmp_path / "v.csv"
+    sampler = BM.Sampler(target, [sys.executable, "-c", script, str(go)])
+    sampler.start()
+
+    def rows() -> int:
+        return len(target.read_text("utf-8").splitlines()) - 1 if target.is_file() else 0
+
+    deadline = time.monotonic() + 20
+    while rows() < 1 and time.monotonic() < deadline:
+        time.sleep(0.05)
+    sampler.game_starts()
+    go.write_text("go", encoding="utf-8")
+    while rows() < 4 and time.monotonic() < deadline:
+        time.sleep(0.05)
+    sampler.stop()
+    assert BM.read_vram(target) == (1500, 4000, 2, 1)
+
+
+def test_no_card_tool_means_not_measured(tmp_path: Path) -> None:
+    sampler = BM.Sampler(tmp_path / "v.csv", ["no-such-tool-glassworld"])
+    sampler.start()
+    sampler.stop()
+    assert BM.read_vram(tmp_path / "v.csv") == (None, None, 0, 0)
+
+
+def test_guards(tmp_path: Path) -> None:
     binary = tmp_path / "GlassWorld.exe"
     binary.write_text("x", encoding="utf-8")
-    assert "inside the repository" in BM.guard(BM.ROOT / "out", True, False, binary)
-    assert "screen-queue" in BM.guard(tmp_path / "out", False, False, binary)
-    assert "not found" in BM.guard(tmp_path / "out", True, False, tmp_path / "none.exe")
+
+    def check(out: Path, *args: str) -> str | None:
+        parser_args = ["--out", str(out), *args]
+        options = type("O", (), {})()
+        options.resolutions = ["3840x1600:fullscreen", "1920x1080"]
+        options.evaluate_only = "--evaluate-only" in parser_args
+        options.screen_queue = "--screen-queue" in parser_args
+        options.binary = binary if "--binary" in parser_args else None
+        options.note = "n" if "--note" in parser_args else ""
+        if "--typo" in parser_args:
+            options.resolutions = ["3840x1600:fullscren"]
+        return BM.guard(out, options)
+
+    full = ("--screen-queue", "--binary", "--note")
+    assert "WxH" in (check(tmp_path / "o", *full, "--typo") or "")
+    assert "inside the repository" in (check(BM.ROOT / "out", *full) or "")
+    assert "screen-queue" in (check(tmp_path / "o", "--binary", "--note") or "")
+    assert "not found" in (check(tmp_path / "o", "--screen-queue", "--note") or "")
+    assert "--note" in (check(tmp_path / "o", "--screen-queue", "--binary") or "")
     foreign = tmp_path / "foreign"
     foreign.mkdir()
     (foreign / "notes.txt").write_text("x", encoding="utf-8")
-    assert "not a folder of this tool" in BM.guard(foreign, True, False, binary)
-    assert BM.guard(tmp_path / "new", True, False, binary) is None
-    assert BM.guard(foreign, False, True, None) is None  # evaluating CSVs needs no screen
-    assert "does not exist" in BM.guard(tmp_path / "nowhere", False, True, None)
-
-
-def test_an_earlier_run_is_kept_under_a_new_name(tmp_path: Path) -> None:
-    out = tmp_path / "b"
-    out.mkdir()
-    assert BM.archive_name(out) == tmp_path / "b.alt-1"
+    assert "not a folder of this tool" in (check(foreign, *full) or "")
+    assert check(tmp_path / "new", *full) is None
+    assert check(foreign, "--evaluate-only") is None
+    assert "does not exist" in (check(tmp_path / "nowhere", "--evaluate-only") or "")
+    assert BM.archive_name(foreign) == tmp_path / "foreign.alt-1"
