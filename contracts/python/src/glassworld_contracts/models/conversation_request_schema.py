@@ -58,6 +58,26 @@ class ConversationStep(BaseModel):
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
     target: common_schema.Subject | None
+    label: common_schema.LocalizedName | None = Field(
+        None,
+        description="What THIS inhabitant calls the kind of thing the step is about (target of kind type), by its own knowledge only: the inhabitants' name of an invention it believes anything about (it invented it, built it, tried it, looked at it, was told about it). Absent when it knows nothing of it, and for things the data name (the id is the vocabulary key, i18n key vocab.object.<id>). Never a truth the inhabitant does not know; resolved when the message is built. Optional (absent also from an older core).",
+    )
+
+
+class SeenLabel(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    type: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    label: common_schema.LocalizedName = Field(
+        ...,
+        description="What the speaker calls this kind of thing: the inhabitants' name of the invention, in both languages.",
+    )
 
 
 class ConversationDoing(BaseModel):
@@ -79,6 +99,10 @@ class ConversationDoing(BaseModel):
     )
     planned: ConversationStep | None = Field(
         ..., description='The next step it has planned, or null.'
+    )
+    label: common_schema.LocalizedName | None = Field(
+        None,
+        description="What THIS inhabitant calls the kind of thing the action is about (target of kind type), by its own knowledge only: the inhabitants' name of an invention it believes anything about (it invented it, built it, tried it, looked at it, was told about it). Absent when it knows nothing of it, and for things the data name (the id is the vocabulary key, i18n key vocab.object.<id>). Never a truth the inhabitant does not know; resolved when the message is built. Optional (absent also from an older core).",
     )
 
 
@@ -124,6 +148,11 @@ class Speaker(BaseModel):
     memory: common_schema.Memory | None = Field(
         None,
         description="The speaker's memory (B4a R5), the same as in the decision request: its summary and its latest remembered events. Optional: absent = not sent (older cores).",
+    )
+    sees_labels: list[SeenLabel] | None = Field(
+        None,
+        description="The speaker's own names for kinds of things in sees that the data do not name (inventions it believes anything about), sorted by type, each type once. A type of sees without an entry here has no such name for the speaker. Optional (absent when it has none, and from an older core).",
+        max_length=16,
     )
 
 

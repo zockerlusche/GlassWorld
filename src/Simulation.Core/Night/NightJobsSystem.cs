@@ -408,7 +408,10 @@ public sealed class NightJobsSystem : IWorldSystem, IOptionalWorldState
                 {
                     Question = Enum.Parse<QuestionPayloadQuestion>(entry.Question.ToString()),
                     Subject = new Subject { Kind = SubjectKind.Type, Id = typeId },
-                    Inhabitant = InhabitantStates.Asking(inhabitant, knowledge, typeId, _inhabitants.LabelOf),
+
+                    // What the asker calls the kind of thing it asks about (an invention it knows something of).
+                    Label = _inhabitants.TypeLabelOf(inhabitant, typeId),
+                    Inhabitant = InhabitantStates.Asking(inhabitant, knowledge, typeId, _inhabitants.LabelOf, _inhabitants.TypeLabelOf),
 
                     // What it has seen of the thing by looking (source seen), never the truth: without a look it notices nothing.
                     Perception = [.. inhabitant.Beliefs.About(typeId)
