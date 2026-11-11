@@ -43,6 +43,7 @@ public partial class SettingsWindow : GwWindow
 
         Section("ui.settings.section.player");
         var name = new LineEdit { Text = settings.PlayerName ?? string.Empty, MaxLength = limits.PlayerNameMaxLength, PlaceholderText = "ui.settings.player_name_hint" };
+        UiFit.HintFits(name, style.Tokens.Window.FieldMinWidth, UiFit.FieldShare);
         var nameProblem = new Label { Visible = false, AutowrapMode = TextServer.AutowrapMode.WordSmart };
         void TakeName()
         {
@@ -355,13 +356,16 @@ public partial class SettingsWindow : GwWindow
         // Long labels wrap (large text in 1920x1080 at UI 200 %); the minimum width keeps them from
         // collapsing to one character per line.
         var row = new HBoxContainer();
-        row.AddChild(new Label
+        var label = new Label
         {
             Text = key,
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
             AutowrapMode = TextServer.AutowrapMode.WordSmart,
-            CustomMinimumSize = new Vector2(_labelWidth, 0),
-        });
+        };
+
+        // No word breaks inside, whatever the language and text size (D705 A6: "Gesamtlautstärk / e").
+        UiFit.LongestWordFits(label, _labelWidth);
+        row.AddChild(label);
         control.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         row.AddChild(control);
         _page.AddChild(row);

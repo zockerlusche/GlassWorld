@@ -166,6 +166,12 @@ public partial class Main
                     problems.Add($"{locale} {name}: window {window.Position}+{window.Size} leaves the safe area of {area}");
                 }
 
+                // No hint text cut, no word broken inside (D705 A5/A6, review GW1 #226).
+                if (menu.OpenWindow is { } shown)
+                {
+                    problems.AddRange(UiFit.CutTexts(shown).Select(cut => $"{locale} {name}: {cut}"));
+                }
+
                 checkedScreens++;
             }
 

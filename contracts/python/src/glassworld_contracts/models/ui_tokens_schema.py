@@ -162,13 +162,13 @@ class UiWindowTokens(BaseModel):
     )
     field_min_width: int = Field(
         ...,
-        description='Least width of a text field in a form (new world, settings), so its hint text is not cut off.',
+        description='Least width of a text field in a form (new world, the player name in the settings); the field grows with its hint text.',
         ge=80,
         le=800,
     )
     settings_label_width: int = Field(
         ...,
-        description='Least width of the label column in the settings, so a long word does not break inside.',
+        description='Least width of the label column in the settings; a label grows to its longest word.',
         ge=80,
         le=800,
     )

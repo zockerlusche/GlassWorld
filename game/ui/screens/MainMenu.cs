@@ -263,10 +263,11 @@ public partial class MainMenu : CanvasLayer
         // The seed is drawn at once and shown, so the world code exists before the world (B2534).
         var seed = new LineEdit { PlaceholderText = "ui.new_world.seed_hint", Text = NewWorldModel.DrawSeed(DateTimeOffset.UtcNow).ToString(CultureInfo.InvariantCulture) };
         var code = new LineEdit { PlaceholderText = "ui.new_world.code_hint" };
-        // Wide enough for their hint texts (D705 A5: "Name der Wel").
+        // Wide enough for their hint texts in the language and text size chosen (D705 A5: "Name der Wel"),
+        // at most a share of the picture, so the window still fits the smallest screen with the largest text.
         foreach (var field in new[] { name, seed, code })
         {
-            field.CustomMinimumSize = new Vector2(style.Tokens.Window.FieldMinWidth, 0);
+            UiFit.HintFits(field, style.Tokens.Window.FieldMinWidth, UiFit.FieldShare);
         }
 
         var copy = new Button { Text = "ui.common.copy" };

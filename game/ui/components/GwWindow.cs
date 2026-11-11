@@ -106,6 +106,9 @@ public partial class GwWindow : PanelContainer
         var limit = area * (float)_style.Tokens.Window.MaxScreenFraction;
         var safe = area - (Vector2.One * 2 * _style.Tokens.Window.SafeMargin);
         limit = new Vector2(Math.Min(limit.X, safe.X), Math.Min(limit.Y, safe.Y));
+        // Fields that follow their hint text take their share of this picture (UiFit).
+        UiFit.Refit(this, area.X);
+
         // Measure with the title on one line; wrap it only if it cannot fit the allowed width.
         _title.AutowrapMode = TextServer.AutowrapMode.Off;
         var wanted = Wanted();

@@ -143,13 +143,13 @@ namespace GlassWorld.Contracts
         public int DiaryLines { get; set; } = default!;
 
         /// <summary>
-        /// Least width of a text field in a form (new world, settings), so its hint text is not cut off.
+        /// Least width of a text field in a form (new world, the player name in the settings); the field grows with its hint text.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("field_min_width")]
         public int FieldMinWidth { get; set; } = default!;
 
         /// <summary>
-        /// Least width of the label column in the settings, so a long word does not break inside.
+        /// Least width of the label column in the settings; a label grows to its longest word.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("settings_label_width")]
         public int SettingsLabelWidth { get; set; } = default!;
