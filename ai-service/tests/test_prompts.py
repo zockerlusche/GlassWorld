@@ -306,7 +306,12 @@ NAMES_THINGS_PENDING: dict[str, str] = {
 def test_no_prompt_in_use_names_a_thing_of_the_world() -> None:
     """Frame, not outcome (PR2; check D763 by GW3, Marcel W1820): an example in a prompt shows the
     form only. A prompt that names a real thing of the world - 'red berries are poisonous',
-    'clay for a vessel' - hands the model knowledge its inhabitant has not found out."""
+    'clay for a vessel' - hands the model knowledge its inhabitant has not found out.
+
+    The head-noun rule forbids plain words like water, wood or stone on purpose: they are things
+    of this world. A prompt that must name one goes into NAMES_THINGS_PENDING with its reason; a
+    settings table the model never reads goes into CHECK_WORD_LISTS. Known limit: plurals that
+    change the vowel (Apfel, Aepfel) are not matched."""
     import re
     import tomllib
 
