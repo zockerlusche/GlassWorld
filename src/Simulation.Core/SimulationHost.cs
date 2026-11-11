@@ -245,6 +245,7 @@ public sealed class SimulationHost
         {
             WeatherSource = weather,
             Knowledge = content.Knowledge,
+            ThoughtGuard = content.Inventions.Guard,
 
             // A1487: questions wait for the night only where the night can answer them (a job port).
             NightAnswers = jobPort is not null && content.Knowledge.NightQuestions is not null,

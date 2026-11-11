@@ -119,6 +119,32 @@ public sealed class InventionTests : IDisposable
         Assert.Throws<KeyNotFoundException>(() => Content.Value.Actions.Applying("drink", typeId));
     }
 
+    /// <summary>
+    /// Youth protection (B2466; PR2 check D763 v2, TL #21181): the inventor's thought is AI text the
+    /// player sees. It went out as a visible event without the content guard, while the invention's names
+    /// passed it. A thought the guard does not allow is not shown; the invention is judged by its own checks.
+    /// </summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void TheInventorsThoughtIsShownOnlyIfTheContentGuardAllowsIt(bool blocked)
+    {
+        var port = new ScriptedJobPort();
+        var host = World(port, 12);
+        RunUntilJob(host, port);
+        var job = port.Submitted.Single();
+        var text = blocked ? $"Dafür ein {BlockedWord()} bauen." : "Das könnte gehen.";
+        Assert.Equal(!blocked, Content.Value.Inventions.Guard.Check(text).Allowed);
+        var status = Approved(job, ["container"]);
+        status.Result!.Invention!.Thought = new Thought { Locale = Locale.De, Text = text };
+        port.Answer(job, status);
+        host.World.Step();
+
+        var shown = host.Inhabitants.EventsSince(0).Any(e => e.Event.Kind == "thought" && e.Event.Text == text);
+        Assert.Equal(!blocked, shown);
+        Assert.True(host.Types.Contains(InventionSystem.TypeIdFor(job.RequestId)));
+    }
+
     [Fact]
     public void ARefusedInventionLeavesNoTypeClosesTheWishAndWaitsForTheCooldown()
     {

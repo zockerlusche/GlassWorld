@@ -486,7 +486,10 @@ public sealed partial class InventionSystem : IWorldSystem, IOptionalWorldState,
         }
 
         Log.Add(new DecisionLogEntry(DecisionLogKind.JobResult, want.RequestId, world.Tick, json, reasons.Count == 0 ? null : "rejected:" + string.Join(',', reasons)));
-        if (result.Thought is { } thought)
+        // The inventor's thought is text of the AI that the player sees: it passes the same content guard
+        // as every other visible AI text (youth protection, B2466; the invention's names pass it in
+        // InventionCheck). A thought the guard does not allow is not shown - nothing replaces it.
+        if (result.Thought is { } thought && _rules.Guard.Check(thought.Text).Allowed)
         {
             _inhabitants.Report(new WorldEvent("thought", world.Tick, want.InhabitantId, null, null) { Text = thought.Text });
         }

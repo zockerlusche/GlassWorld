@@ -67,6 +67,13 @@ public sealed class DecisionsSystem : IWorldSystem
     public KnowledgeSettings? Knowledge { get; init; }
 
     /// <summary>
+    /// The content guard for the thought of a decision (youth protection, B2466): the thought is AI text the
+    /// player sees and passes the same guard as every other visible AI text; one the guard does not allow
+    /// is not shown. Set by the host; null = no guard (tests without safety data).
+    /// </summary>
+    public Safety.TextGuard? ThoughtGuard { get; init; }
+
+    /// <summary>
     /// Whether the compute night answers questions in this world (a job port and the night questions data;
     /// set by the host). Only then a trigger with <c>ask: night</c> waits for the night; otherwise its
     /// question goes to the decider at once, so nobody waits for an answer that cannot come.
@@ -1123,9 +1130,10 @@ public sealed class DecisionsSystem : IWorldSystem
         }
 
         Close(world, question, "question_answered");
-        if (response.Thought is { } thought)
+        if (response.Thought is { } thought && ThoughtGuard?.Check(thought.Text).Allowed != false)
         {
             // Thought bubble (B3): the only player-visible text of a decision, in the display language.
+            // It has passed the content guard (the decision itself stands either way).
             _inhabitants.Report(new WorldEvent("thought", world.Tick, inhabitant.Id, action, targetId) { Text = thought.Text });
         }
     }
