@@ -229,7 +229,7 @@ public partial class GameScreen : CanvasLayer
             {
                 foreach (var target in theme.Panels)
                 {
-                    var tab = new Button { Text = ScreenZones.TitleKey(target), ToggleMode = true };
+                    var tab = new Button { Text = ScreenZones.TabKey(target), ToggleMode = true };
                     tab.SetPressedNoSignal(target == shown);
                     tab.Pressed += () => _sideBar.Open(target);
                     _sideBar.PanelOf(shown).Tabs.AddChild(tab);
@@ -461,6 +461,8 @@ public partial class GameScreen : CanvasLayer
         }
 
         var events = _feed.NewEvents();
+        var rowsNow = _feed.Inhabitants();
+        _board.DismissWhere(m => ScreenModel.IsSettledQuestionHint(m, rowsNow));
         if (events.Count > 0)
         {
             _log?.Add(events);
@@ -2622,9 +2624,14 @@ public partial class GameScreen : CanvasLayer
         }
 
         var questions = TextFill.Fill(Tr("ui.card.questions"), new Dictionary<string, string> { ["count"] = Number(card.Row.OpenQuestions) });
-        if (_cardQuestions is not null && _cardQuestions.Text != questions)
+        if (_cardQuestions is not null)
         {
-            _cardQuestions.Text = questions;
+            // A line that only says "0" tells nothing (D705 B10).
+            _cardQuestions.Visible = card.Row.OpenQuestions > 0;
+            if (_cardQuestions.Text != questions)
+            {
+                _cardQuestions.Text = questions;
+            }
         }
 
         void Section(string key) => content.AddChild(new Label { Text = key, ThemeTypeVariation = UiTheme.SubheaderLabel });

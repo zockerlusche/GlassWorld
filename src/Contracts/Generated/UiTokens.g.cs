@@ -142,6 +142,24 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("diary_lines")]
         public int DiaryLines { get; set; } = default!;
 
+        /// <summary>
+        /// Least width of a text field in a form (new world, the player name in the settings); the field grows with its hint text up to field_max_share.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("field_min_width")]
+        public int FieldMinWidth { get; set; } = default!;
+
+        /// <summary>
+        /// Least width of the label column in the settings; a label grows to its longest word.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("settings_label_width")]
+        public int SettingsLabelWidth { get; set; } = default!;
+
+        /// <summary>
+        /// The most a form field may take of the picture's width while it grows with its hint text (0..1); beyond it the hint is cut.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("field_max_share")]
+        public double FieldMaxShare { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -213,6 +231,12 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("max_duration_factor")]
         public int MaxDurationFactor { get; set; } = default!;
+
+        /// <summary>
+        /// A shown hint whose reason is gone (its question is settled) still stays this long in all, so it can be read and does not flicker.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("settled_min_seconds")]
+        public int SettledMinSeconds { get; set; } = default!;
 
     }
 

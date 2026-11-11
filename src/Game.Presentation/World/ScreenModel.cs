@@ -87,6 +87,19 @@ public static class ScreenModel
         return row.Number.ToString(CultureInfo.InvariantCulture);
     }
 
+    private const string QuestionHint = "msg.hint.question";
+
+    /// <summary>
+    /// True for a question hint whose inhabitant has no open question any more: the hint said "wonders about
+    /// something" while the window said nobody does (D705 A4).
+    /// </summary>
+    public static bool IsSettledQuestionHint(ToastMessage message, IReadOnlyList<InhabitantRow> rows)
+    {
+        ArgumentNullException.ThrowIfNull(message);
+        ArgumentNullException.ThrowIfNull(rows);
+        return message.TextKey == QuestionHint && message.LookAt is { } id && rows.FirstOrDefault(r => r.Id == id) is not { OpenQuestions: > 0 };
+    }
+
     /// <summary>
     /// Calm hints for new events (D366 section 9): an inhabitant has a new open question (B2487: that,
     /// not what). Hints of this kind form one group, so many questions bundle.
@@ -114,10 +127,15 @@ public static class ScreenModel
         {
             var row = rows.FirstOrDefault(r => r.Id == e.InhabitantId);
             var subject = e.TargetId is { } id ? questionSubject?.Invoke(id) : null;
-            if (row is not null && (subject is null || hinted is null || hinted.Add(row.Id + "|" + subject)))
+            // A question that is over when its event arrives (several ticks in one frame) raises no hint and
+            // does not count towards "several": the lookup knows only open questions (review GW1 #220).
+            var over = questionSubject is not null && e.TargetId is not null && subject is null;
+            if (row is not null && !over && row.OpenQuestions > 0 && (subject is null || hinted is null || hinted.Add(row.Id + "|" + subject)))
             {
-                // A hint leads to the inhabitant (W1695: hints were not clickable).
-                yield return new ToastMessage("msg.hint.question", NameArgs(row, unnamedText), "question", row.Id);
+                // A hint leads to the inhabitant (W1695: hints were not clickable). One hint per inhabitant:
+                // several questions read "wonders about several things", not a growing count (D705 A4), and a
+                // question already settled when the events arrive raises none.
+                yield return new ToastMessage(QuestionHint, NameArgs(row, unnamedText), QuestionHint + "|" + row.Id, row.Id, "msg.hint.questions_many");
             }
         }
 
