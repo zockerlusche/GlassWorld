@@ -209,7 +209,7 @@ public sealed class KnowledgeTests : IDisposable
     {
         // Review GW2 #103: three pass-on actions x many inhabitants in sight exceeded the 32 options of the
         // contract, so every request was refused. Pass-on options are capped by data and by the contract.
-        var settings = ContractSerializer.Deserialize<KnowledgeSettings>(ContractSerializer.Serialize(Content.Knowledge));
+        var settings = Knowledge();
         settings.MaxPassOnOptions = maxPassOn;
         settings.RequestMaxInhabitants = 16; // the schema maximum (the contract holds 16 inhabitants)
         var w = NewWorld(new SilentPort(), settings);
@@ -328,8 +328,17 @@ public sealed class KnowledgeTests : IDisposable
         Assert.Contains(InhabitantsSystem.KnowledgeGained, kinds);
     }
 
-    private static KnowledgeSettings Knowledge() => ContractSerializer.Deserialize<KnowledgeSettings>(
-        File.ReadAllText(Path.Combine(ContentDirectory, "knowledge", "settings.json")));
+    /// <summary>
+    /// The knowledge data without start relationships and relationship changes (B4a R7/R8, see MeetingTests):
+    /// these tests check the trust rules of R3/R4 alone, from relationship_start.
+    /// </summary>
+    private static KnowledgeSettings Knowledge()
+    {
+        var knowledge = ContractSerializer.Deserialize<KnowledgeSettings>(File.ReadAllText(Path.Combine(ContentDirectory, "knowledge", "settings.json")));
+        knowledge.StartRelationships = null;
+        knowledge.RelationshipChanges = null;
+        return knowledge;
+    }
 
     private static (World World, WorldObjects Objects, InhabitantsSystem Inhabitants, DecisionsSystem Decisions) Hungry(
         (World World, WorldObjects Objects, InhabitantsSystem Inhabitants, DecisionsSystem Decisions) w)
@@ -341,7 +350,7 @@ public sealed class KnowledgeTests : IDisposable
 
     private static (World World, WorldObjects Objects, InhabitantsSystem Inhabitants, DecisionsSystem Decisions) NewWorld(IDecisionPort port, KnowledgeSettings? knowledge = null)
     {
-        knowledge ??= Content.Knowledge;
+        knowledge ??= Knowledge();
         var world = new World(1, Content.Calendar);
         var objects = new WorldObjects(Content.Objects);
         var inhabitants = new InhabitantsSystem(Content.InhabitantModel, Content.Actions, Content.Brain, Content.Gaits, objects, world.Calendar.Settings.TicksPerHour)

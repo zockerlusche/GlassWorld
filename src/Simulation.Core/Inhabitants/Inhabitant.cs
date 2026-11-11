@@ -38,6 +38,26 @@ public sealed record RestingAction(string Action, string? TargetId, Position Pla
 public readonly record struct PlaceMemory(string TypeId, Position Position, long Tick);
 
 /// <summary>
+/// What an imprinting counter counts (B4a R6): an action, what it was about (kind <c>type</c> or
+/// <c>inhabitant</c> and its id; both empty for an action without a target) and the time of day it began.
+/// </summary>
+/// <param name="Action">Action id.</param>
+/// <param name="AboutKind">Subject kind (<c>type</c>, <c>inhabitant</c>) or empty.</param>
+/// <param name="AboutId">Subject id or empty.</param>
+/// <param name="TimeOfDay">Time of day id (vocabulary time_of_day).</param>
+public readonly record struct ImprintKey(string Action, string AboutKind, string AboutId, string TimeOfDay)
+{
+    /// <summary>Ordinal order by action, kind, id and time of day (saving, hashing, ties).</summary>
+    public static IComparer<ImprintKey> Order { get; } = Comparer<ImprintKey>.Create((x, y) =>
+    {
+        var c = string.CompareOrdinal(x.Action, y.Action);
+        c = c != 0 ? c : string.CompareOrdinal(x.AboutKind, y.AboutKind);
+        c = c != 0 ? c : string.CompareOrdinal(x.AboutId, y.AboutId);
+        return c != 0 ? c : string.CompareOrdinal(x.TimeOfDay, y.TimeOfDay);
+    });
+}
+
+/// <summary>
 /// An inhabitant's state. Needs, moods and traits are registers keyed by vocabulary id (not enums), so
 /// data and later inventions can add new ones without code changes (B4b R11).
 /// </summary>
@@ -163,6 +183,18 @@ public sealed class Inhabitant
     /// <summary>Ids of the inhabitants whose own name this one knows (per observer, W1698).</summary>
     public SortedSet<string> KnownNames { get; } = new(StringComparer.Ordinal);
 
+    /// <summary>
+    /// Ids of the inhabitants this one has met (B4a R8): the own start group from the start, everybody else
+    /// once it has seen them (first_meeting).
+    /// </summary>
+    public SortedSet<string> Met { get; } = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// Imprinting counters (B4a R6): repeated experiences, each counter grows by one per repetition and
+    /// fades with time (data: knowledge imprinting). The core only counts; habits are read from here.
+    /// </summary>
+    public SortedDictionary<ImprintKey, double> Imprints { get; } = new(ImprintKey.Order);
+
     /// <summary>Writes the complete state in canonical order.</summary>
     public void WriteState(StateHasher hasher)
     {
@@ -230,6 +262,25 @@ public sealed class Inhabitant
             foreach (var other in KnownNames)
             {
                 hasher.Write(other);
+            }
+        }
+
+        // Met inhabitants and imprinting counters only while there are any (B4a R6/R8).
+        if (Met.Count > 0)
+        {
+            hasher.Write("met").Write(Met.Count);
+            foreach (var other in Met)
+            {
+                hasher.Write(other);
+            }
+        }
+
+        if (Imprints.Count > 0)
+        {
+            hasher.Write("imprints").Write(Imprints.Count);
+            foreach (var (key, count) in Imprints)
+            {
+                hasher.Write(key.Action).Write(key.AboutKind).Write(key.AboutId).Write(key.TimeOfDay).Write(count);
             }
         }
     }
