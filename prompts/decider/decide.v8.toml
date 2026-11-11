@@ -177,7 +177,9 @@ max_words = 12
 # (240 = four game hours); similarity = share of shared words. Placeholders.
 repeat_window_ticks = 240
 repeat_similarity = 0.6
+# v8: the made-up words of the tone examples (Knubbel, Knolle) are blocked too, so a thought
+# that copies them is not shown (review GW3 #255).
 # Whole words (lower case) a shown thought must not contain: another language slipped in, or
 # words from the system's view instead of the person's (TL F5289: no "der Mensch", "die Person").
-blocked_words.de = ["the", "and", "to", "of", "with", "is", "this", "that", "you", "hearby", "nearby", "object", "person", "something", "here", "there", "what", "mensch", "menschen", "bewohner", "bewohnerin", "objekt"]
-blocked_words.en = ["inhabitant", "object", "human"]
+blocked_words.de = ["the", "and", "to", "of", "with", "is", "this", "that", "you", "hearby", "nearby", "object", "person", "something", "here", "there", "what", "mensch", "menschen", "bewohner", "bewohnerin", "objekt", "knubbel", "knolle"]
+blocked_words.en = ["inhabitant", "object", "human", "knubbel", "knolle"]
