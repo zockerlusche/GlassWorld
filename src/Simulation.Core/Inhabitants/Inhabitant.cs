@@ -9,7 +9,12 @@ namespace GlassWorld.Simulation.Inhabitants;
 /// <param name="Destination">Where the inhabitant walks before the action starts.</param>
 /// <param name="RemainingTicks">Ticks left once the action has started; null while still walking.</param>
 /// <param name="Route">Waypoints still to walk on a map (B2 R10), searched once when the walk starts; null without a map.</param>
-public sealed record Activity(string Action, string? TargetId, Position Destination, long? RemainingTicks, IReadOnlyList<Position>? Route = null);
+/// <param name="DecidedTick">
+/// The mark of a choice of the decider (A1487): the tick its answer was accepted or, for a choice that waited
+/// behind another action, the tick its turn came (so its walk has the whole time limit of the decider data).
+/// Null for everything the routine or another system chose. It stays with the activity while it waits, walks and runs.
+/// </param>
+public sealed record Activity(string Action, string? TargetId, Position Destination, long? RemainingTicks, IReadOnlyList<Position>? Route = null, long? DecidedTick = null);
 
 /// <summary>
 /// The same action done again and again at one spot without any effect (W1696): which action on which
@@ -326,6 +331,12 @@ public sealed class Inhabitant
             foreach (var point in a.Route ?? [])
             {
                 hasher.Write(point.X).Write(point.Z);
+            }
+
+            // The decider's mark only where there is one, so activities without it keep their hashes.
+            if (a.DecidedTick is { } decided)
+            {
+                hasher.Write("decided").Write(decided);
             }
         }
     }

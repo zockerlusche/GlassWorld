@@ -280,16 +280,27 @@ public sealed class IndexTests : IDisposable
         // does), the other never: if anything were kept that the state does not say, they would part.
         var kept = SimulationHost.CreateGeneratedWorld(ContentDirectory, 42, MockDecisionPort.FromContent(ContentDirectory), "de", Preset, inhabitants: 24);
         var forgetful = SimulationHost.CreateGeneratedWorld(ContentDirectory, 42, MockDecisionPort.FromContent(ContentDirectory), "de", Preset, inhabitants: 24);
+        var held = false;
+        var lapsed = false;
+        var seen = 0L;
         for (var tick = 1; tick <= 600; tick++)
         {
             forgetful.Decisions.ForgetDerived();
             kept.World.Step();
             forgetful.World.Step();
+            held |= kept.Decisions.Open.Any(q => q.RequestId.Length == 0);
+            lapsed |= kept.Inhabitants.EventsSince(seen).Any(e => e.Event.Kind == "question_failed" && e.Event.Detail == DecisionsSystem.Lapsed);
+            seen = kept.Inhabitants.LastEventSeq;
             if (tick % 50 == 0)
             {
                 Assert.True(kept.World.StateHash() == forgetful.World.StateHash(), $"the worlds part by tick {tick}");
             }
         }
+
+        // One thing at a time (A1487): questions were held back while their inhabitant was busy with the
+        // decider, asked later or lapsed - the paths that change an open question in place or take it away.
+        Assert.True(held, "no question was ever held back");
+        Assert.True(lapsed, "no held question ever lapsed");
 
         // The run asked who others are, again and again, and questions stayed open: both tables were in use.
         var asked = kept.Decisions.CaptureState().LastAsked;
