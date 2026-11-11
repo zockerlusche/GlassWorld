@@ -1751,6 +1751,7 @@ public partial class GameScreen : CanvasLayer
         var done = setup is null ? (bool?)null : _nightStatus is { } status ? NightScene.Done(status) : false;
         _night.Update(night, done, _presenter.Speed > 0 ? delta : 0);
         _nightShade.Color = new Color(0, 0, 0, (float)_night.Darkness);
+        RaiseNight();
         _nightText.Visible = _night.SceneShown;
         _nightText.Modulate = new Color(1, 1, 1, (float)Math.Clamp(_night.Darkness / Math.Max(_nightDarkness, 0.01), 0, 1));
         ShowSleepers(_presenter.Speed > 0 ? delta : 0);
@@ -1965,6 +1966,33 @@ public partial class GameScreen : CanvasLayer
         }
     }
 
+    /// <summary>
+    /// The whole scene fades into the dream scene (B2579/B2580, Marcel W1835): the shade lies over the bars,
+    /// the log and every side window too; only the night's own things stay above it - its words, the "Zzz"
+    /// and the dream images. Windows over the game (pause, settings) are another layer and stay as they are.
+    /// Checked every frame because windows of the screen are added later (the card); it moves nothing while
+    /// the order already holds. The shade takes no mouse input, so everything under it stays usable.
+    /// </summary>
+    private void RaiseNight()
+    {
+        bool OfTheNight(Node node) => node == _nightText || (node is Label label && _zzz.ContainsValue(label)) || (node is Control control && _dreamNodes.ContainsValue(control));
+        var children = _root.GetChildren();
+        var shade = _nightShade.GetIndex();
+        if (!children.Skip(shade + 1).Any(c => !OfTheNight(c)) && _nightText.GetIndex() == children.Count - 1)
+        {
+            return;
+        }
+
+        var own = children.Where(OfTheNight).Where(c => c != _nightText).ToList();
+        _root.MoveChild(_nightShade, -1);
+        foreach (var node in own)
+        {
+            _root.MoveChild(node, -1);
+        }
+
+        _root.MoveChild(_nightText, -1);
+    }
+
     /// <summary>Night pictures only: how many dream images are on screen.</summary>
     public int DreamsShownForShots => _dreamNodes.Count;
 
@@ -2079,6 +2107,14 @@ public partial class GameScreen : CanvasLayer
         var shaded = _nightShade.Size.X >= view.X - 1 && _nightShade.Size.Y >= view.Y - 1;
         probe.Close();
         await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        // The shade lies over the bars and side windows too, the night's words above it (Marcel W1835).
+        RaiseNight();
+        var above = _root.GetChildren().Where(c => c.GetIndex() > _nightShade.GetIndex()).ToList();
+        if (_topBar is null || _nightShade.GetIndex() < _topBar.GetIndex() || _nightShade.GetIndex() < _sideBar.GetIndex() || above.Count == 0 || above[^1] != _nightText)
+        {
+            return $"the night shade does not lie over the bars with its words on top (shade at {_nightShade.GetIndex()} of {_root.GetChildCount()})";
+        }
+
         // The words of the night scene stand on the shade: they must be light (seen dark on dark in run L854).
         foreach (var words in _nightText.GetChildren().OfType<Label>())
         {
