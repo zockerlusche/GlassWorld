@@ -16,7 +16,13 @@ from glassworld_ai.vocabulary import Vocabulary
 from glassworld_ai.words import ContextError as ContextError
 from glassworld_ai.words import bands as _bands
 from glassworld_ai.words import humanize as _humanize
-from glassworld_ai.words import knowledge_line, quote, subject_name
+from glassworld_ai.words import (
+    knowledge_line,
+    own_names,
+    quote,
+    subject_name,
+    without_runtime_ids,
+)
 from glassworld_ai.words import plain_id as _id
 from glassworld_ai.words import vocab_line as _vocab_line
 from glassworld_ai.words import word as _word
@@ -55,11 +61,17 @@ def build_values(
         cast(dict[str, str], unknown_raw).get(locale) if isinstance(unknown_raw, dict) else None
     )
 
+    # v8 (#251): the inhabitants' own name of an invention, as the request gives it for this
+    # inhabitant (perceived things, beliefs, habits). Only read when the prompt has made_thing.
+    made: object = settings.get("made_thing")
+    labels = _labels(request, locale) if isinstance(made, str) else {}
+
     def called(type_id: str) -> str | None:
-        """v4: the thing's name in the player's language (data), or the data's 'unknown' word."""
+        """v4: the thing's name in the player's language (data), or the data's 'unknown' word.
+        v8: for an invention the name this inhabitant knows for it."""
         if template.version < 4 or texts is None:
             return None
-        return texts.thing(locale, type_id) or unknown
+        return labels.get(type_id) or texts.thing(locale, type_id) or unknown
 
     max_moods = int(settings.get("max_moods", 5))
 
@@ -150,7 +162,25 @@ def build_values(
     if hidden > 0:
         lines.append(f"- ... and {hidden} more things further away")
     values["objects"] = "\n".join(lines) or NOTHING
+    if isinstance(made, str):
+        return {key: without_runtime_ids(text, labels, made) for key, text in values.items()}
     return values
+
+
+def _labels(request: DecisionRequest, locale: str) -> dict[str, str]:
+    """Type id -> the name this inhabitant has for it, from every place the request labels."""
+    habits: list[Any] = list(getattr(request.inhabitant, "habits", None) or [])
+    pairs: list[tuple[object, object]] = [
+        (thing.type, getattr(thing, "label", None)) for thing in request.perception.objects
+    ]
+    pairs += [
+        (entry.subject.id, getattr(entry, "label", None))
+        for entry in request.inhabitant.knowledge or []
+    ]
+    for habit in habits:
+        about: Any = getattr(habit, "about", None)
+        pairs.append((about.id if about is not None else None, getattr(habit, "label", None)))
+    return own_names(pairs, locale)
 
 
 def _v2_values(

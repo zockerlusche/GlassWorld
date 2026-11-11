@@ -7,7 +7,8 @@
       "target_z_permille": 636,
       "yaw_deg": 30,
       "distance_m": 45,
-      "tide_permille": -1000
+      "tide_permille": -1000,
+      "revealed_permille": 1000
     },
     {
       "id": "coast_mean_tide",
@@ -15,7 +16,8 @@
       "target_z_permille": 636,
       "yaw_deg": 30,
       "distance_m": 45,
-      "tide_permille": 0
+      "tide_permille": 0,
+      "revealed_permille": 1000
     },
     {
       "id": "coast_high_tide",
@@ -23,7 +25,8 @@
       "target_z_permille": 636,
       "yaw_deg": 30,
       "distance_m": 45,
-      "tide_permille": 1000
+      "tide_permille": 1000,
+      "revealed_permille": 1000
     },
     {
       "id": "rocks_first_epoch",
@@ -32,7 +35,8 @@
       "yaw_deg": 30,
       "distance_m": 45,
       "tide_permille": 0,
-      "epoch": "wilderness"
+      "epoch": "wilderness",
+      "revealed_permille": 1000
     },
     {
       "id": "rocks_later_epoch",
@@ -41,7 +45,8 @@
       "yaw_deg": 30,
       "distance_m": 45,
       "tide_permille": 0,
-      "epoch": "metal"
+      "epoch": "metal",
+      "revealed_permille": 1000
     }
   ],
   "projections": [

@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Any, cast
 
 from glassworld_ai.texts import TextCatalog
-from glassworld_ai.words import plain_id
+from glassworld_ai.words import own_names, plain_id
 from glassworld_contracts.models.conversation_request_schema import ConversationRequest
 
 # Vocabulary kinds whose display texts are general words of the world (not things to invent).
@@ -34,6 +34,22 @@ def _stem(word: str) -> str:
         if len(low) > 4 and low.endswith(ending):
             return low[: -len(ending)]
     return low
+
+
+def spoken_names(request: ConversationRequest, locale: str) -> dict[str, str]:
+    """Type id -> the speaker's own name for an invented kind of thing, from every place the
+    request labels (#251): beliefs, what it sees, what it does and plans."""
+    speaker = request.speaker
+    pairs: list[tuple[object, object]] = [
+        (entry.subject.id, getattr(entry, "label", None)) for entry in speaker.knowledge or []
+    ]
+    seen: list[Any] = list(getattr(speaker, "sees_labels", None) or [])
+    pairs += [(item.type, item.label) for item in seen]
+    doing: Any = speaker.doing
+    for step in (doing, doing.planned if doing is not None else None):
+        if step is not None and step.target is not None:
+            pairs.append((step.target.id, getattr(step, "label", None)))
+    return own_names(pairs, locale)
 
 
 def known_words(
@@ -67,6 +83,8 @@ def known_words(
     said = [request.player_text, *(line.text for line in request.recent_lines or [])]
     for text in said:
         words.update(_stem(w) for w in _WORD.findall(str(text)))
+    for own in spoken_names(request, locale).values():
+        words.update(_stem(w) for w in _WORD.findall(own))  # its own name for a made thing
     words.update(_stem(n) for n in names)
     words.update(_stem(g) for g in general)
     return words

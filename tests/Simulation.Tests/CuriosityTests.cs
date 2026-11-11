@@ -286,7 +286,7 @@ public sealed class CuriosityTests : IDisposable
             Knowledge = knowledge,
             EventKinds = Content.EventKinds,
         };
-        var decisions = new DecisionsSystem(Settings, inhabitants, objects, Content.Actions, Content.Brain, Content.Vocabularies[VocabularyKind.Action], new SilentPort(), "de")
+        var decisions = new DecisionsSystem(Settings, inhabitants, objects, Content.Actions, Content.Brain, Content.Vocabularies[VocabularyKind.Action], new SilentPort(), Content.Inventions.Guard, "de")
         {
             Knowledge = knowledge,
         };

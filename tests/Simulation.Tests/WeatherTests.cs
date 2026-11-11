@@ -143,12 +143,13 @@ public sealed class WeatherTests : IDisposable
     /// <summary>
     /// Acceptance 3 of the spec read by the letter: every weather id, the drought too, at least once over
     /// 20 seeds. With the repository's values it does not: see the skip reason. The test is kept, skipped,
-    /// so the finding stays visible until the values (or the wording of the acceptance) are decided.
+    /// so the finding stays visible. Decided (Marcel W1835): the threshold stays and the acceptance line counts
+    /// without the drought for M2.
     /// </summary>
     [Fact(Skip = "Finding (B2 acceptance 3, evidence audit): the drought condition never occurs in 20 seeds x 28 days. "
         + "The longest spell without precipitation is 7.75 days (11160 ticks, seed 3), drought_after_dry_days is 10, and a year has 28 days "
-        + "(content/climate/temperate.json, placeholder values). A value question for Marcel, not a code error: "
-        + "the rule itself is tested in DryDaysAddTheDroughtConditionFromTheData.")]
+        + "(content/climate/temperate.json). Decided by Marcel (W1835, 11.11.): the threshold stays, and for M2 the acceptance line "
+        + "counts without the drought; this test stays skipped. The rule itself is tested in DryDaysAddTheDroughtConditionFromTheData.")]
     public void TheDroughtConditionOccursOver20Seeds()
     {
         var (seen, _, longestDry, drySeed) = TwentyYears.Value;
