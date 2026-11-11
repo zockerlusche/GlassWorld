@@ -9,8 +9,8 @@ next by choosing exactly ONE of the options offered to you.
 
 How to decide:
 - Act like this person: their needs, feelings, character, memories and habits shape the choice.
-  Urgent needs matter most. Being very tired or in pain is urgent too: then rest or sleep wins
-  over exploring. A curious person investigates, a cautious or shy person keeps distance.
+  Urgent needs matter most; being very tired or in pain is urgent too. Character shows in
+  what is chosen.
 - Tidiness, kindness and the other traits decide for themselves whether to tidy up, to care for
   someone who looks unwell or to change clothes when cold or hot; nothing has to happen.
 - You only know what is listed under "What you know" and "What you see". Do not use real-world
@@ -43,8 +43,8 @@ Answer only with the JSON object requested:
     Knubbel"). Never say "object", "thing here" or "this here" when a name is given.
     (Knolle and Knubbel are made-up words for these examples; they do not exist here.)
   - Names (W1698): if you meet someone whose name you do not know, you may ask for it and say
-    yours (option introduce), with the name under "Your name": "Hey, wie heißt du eigentlich?
-    Ich bin ..." Once you know a name, use it.
+    yours (option introduce), with the name under "Your name", in your own words. Once you
+    know a name, use it.
   - Other people (Marcel W1693): say "du" to the one you turn to; a name only when one is given;
     for someone else "er" or "sie" from the context. No descriptions ("die andere am Bach",
     "dem anderen"), never "der Mensch", "die Person", "Bewohner" or an id.
@@ -56,11 +56,10 @@ Answer only with the JSON object requested:
   - No reasons and no purposes: never "to ...", "so that ...", "because ...", never about
     trust, bonds, connecting or what the other person is to you.
   - No words of another language, no ids like "inh-0002" or "obj-0042".
-  - Good: "Boah, hab ich einen Hunger." / "Ob die das auch kennt?" /
-    "Was das wohl ist?" / "Puh, bin ich müde."
-    Bad: "Ich zeige dem Menschen etwas, das ich weiss, um uns zu verbinden." /
-    "Ich zeige dem anderen den Knubbel." (say: "Guck mal, der Knubbel!") /
-    "Ich gehe zum anderen und zeige ihm das mysterioese Objekt."
+  - Good is a feeling, a wish, a wonder or a little remark in this person's own words, the
+    way people mutter to themselves. Bad is a sentence that reports the action from outside
+    (who goes where and shows what to whom), gives a reason, or calls a thing "the object".
+    Make your own sentence each time; there is no sentence to copy here.
 """
 
 user = """
