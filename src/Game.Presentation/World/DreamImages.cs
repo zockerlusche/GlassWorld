@@ -5,7 +5,7 @@ namespace GlassWorld.Presentation.World;
 /// <summary>A dream image on screen now.</summary>
 /// <param name="Key">Stable key of the image (job and whether it is the symbol or the picture).</param>
 /// <param name="JobId">The night job it belongs to.</param>
-/// <param name="ObjectType">The object type whose shape shows (the symbol), or null for a picture without one.</param>
+/// <param name="ObjectType">The object type the job is about: its shape shows for the symbol, and for a picture that cannot be read.</param>
 /// <param name="ImageFile">File name of the picture the job made, or null for the symbol.</param>
 /// <param name="X">Centre on screen, 0..1 from the left.</param>
 /// <param name="Y">Centre on screen, 0..1 from the top.</param>
@@ -116,7 +116,7 @@ public sealed class DreamImages(NightDreams data)
             _sinceStart = 0;
         }
 
-        return [.. _active.Select(a => new DreamImage(a.Key, a.JobId, a.File is null ? a.Type : null, a.File, a.X, a.Y, _data.Brightness * Level(a.Age, fadeIn, hold, fadeOut)))];
+        return [.. _active.Select(a => new DreamImage(a.Key, a.JobId, a.Type, a.File, a.X, a.Y, _data.Brightness * Level(a.Age, fadeIn, hold, fadeOut)))];
     }
 
     /// <summary>Opacity share 0..1 of an image of the given age: a soft rise, a stand, a soft fall.</summary>
