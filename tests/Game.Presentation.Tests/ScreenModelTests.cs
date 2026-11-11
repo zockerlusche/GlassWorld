@@ -82,6 +82,13 @@ public sealed class ScreenModelTests
 
         // A question that is settled when its events arrive raises no hint at all.
         Assert.Empty(ScreenModel.Hints(opened, [settled], Unnamed));
+
+        // Nor does it count towards "several" while another question of the same inhabitant is open:
+        // 30 opened and settled within one frame and one still open give one hint, not 31.
+        string? Subject(string id) => id == "q-open" ? "unknown_object:flint" : null;
+        var many = Enumerable.Range(0, 30).Select(i => new WorldEvent("question_opened", 5, "inh-000002", null, "q-" + i))
+            .Append(new WorldEvent("question_opened", 6, "inh-000002", null, "q-open")).ToList();
+        Assert.Single(ScreenModel.Hints(many, [open], Unnamed, Subject, new HashSet<string>(StringComparer.Ordinal)));
     }
 
     [Fact]

@@ -127,7 +127,10 @@ public static class ScreenModel
         {
             var row = rows.FirstOrDefault(r => r.Id == e.InhabitantId);
             var subject = e.TargetId is { } id ? questionSubject?.Invoke(id) : null;
-            if (row is not null && row.OpenQuestions > 0 && (subject is null || hinted is null || hinted.Add(row.Id + "|" + subject)))
+            // A question that is over when its event arrives (several ticks in one frame) raises no hint and
+            // does not count towards "several": the lookup knows only open questions (review GW1 #220).
+            var over = questionSubject is not null && e.TargetId is not null && subject is null;
+            if (row is not null && !over && row.OpenQuestions > 0 && (subject is null || hinted is null || hinted.Add(row.Id + "|" + subject)))
             {
                 // A hint leads to the inhabitant (W1695: hints were not clickable). One hint per inhabitant:
                 // several questions read "wonders about several things", not a growing count (D705 A4), and a

@@ -6,7 +6,7 @@ namespace GlassWorld.Presentation.Tests;
 /// <summary>Hints (D366 section 9, XAG 116), placeholders and table sorting.</summary>
 public sealed class ToastTests
 {
-    private static readonly UiToastTokens Tokens = new() { MaxVisible = 3, MinSeconds = 6, BundleAfterWaiting = 3, MaxDurationFactor = 10 };
+    private static readonly UiToastTokens Tokens = new() { MaxVisible = 3, MinSeconds = 6, BundleAfterWaiting = 3, MaxDurationFactor = 10, SettledMinSeconds = 2 };
     private static readonly IReadOnlyDictionary<string, string> NoArgs = new Dictionary<string, string>();
 
     private static ToastMessage Msg(string key, string? group = null) => new(key, NoArgs, group);
@@ -39,8 +39,13 @@ public sealed class ToastTests
         Assert.Equal([2, 1, 1], board.Visible.Select(t => t.Count));
         Assert.Equal(1, board.Waiting);
 
-        // The question of "a" is settled: its hint leaves, shown or waiting, and the waiting one moves up.
+        // The question of "a" is settled: its shown hint stays the least time (no flashing), then leaves,
+        // and the waiting one moves up.
         var version = board.Version;
+        board.DismissWhere(m => m.LookAt == "a");
+        Assert.Equal(version, board.Version);
+        Assert.Equal(3, board.Visible.Count);
+        board.Advance(2, null);
         board.DismissWhere(m => m.LookAt == "a");
         Assert.Equal(["b", null, null], board.Visible.Select(t => t.Message.LookAt));
         Assert.Equal(0, board.Waiting);

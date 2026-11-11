@@ -113,11 +113,15 @@ public sealed class ToastBoard
         Fill();
     }
 
-    /// <summary>Closes every hint, shown or waiting, that no longer holds (e.g. the question it points to is answered).</summary>
+    /// <summary>
+    /// Closes every hint that no longer holds (e.g. the question it points to is answered): a waiting one at
+    /// once, a shown one when it has been on screen for the tokens' <c>settled_min_seconds</c> - a question
+    /// answered within a tick must not make its hint flash (review GW1 #220).
+    /// </summary>
     public void DismissWhere(Func<ToastMessage, bool> stale)
     {
         ArgumentNullException.ThrowIfNull(stale);
-        var removed = _visible.RemoveAll(e => stale(e.Message));
+        var removed = _visible.RemoveAll(e => e.Age >= _tokens.SettledMinSeconds && stale(e.Message));
         var keep = _waiting.Where(e => !stale(e.Message)).ToList();
         if (removed == 0 && keep.Count == _waiting.Count)
         {
