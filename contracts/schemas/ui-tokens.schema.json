@@ -226,7 +226,10 @@
         "modal_dim",
         "log_lines",
         "questions_shown",
-        "diary_lines"
+        "diary_lines",
+        "field_min_width",
+        "settings_label_width",
+        "field_max_share"
       ],
       "properties": {
         "settings_apply_ms": {
@@ -343,6 +346,24 @@
           "type": "integer",
           "minimum": 5,
           "maximum": 1000
+        },
+        "field_min_width": {
+          "description": "Least width of a text field in a form (new world, the player name in the settings); the field grows with its hint text up to field_max_share.",
+          "type": "integer",
+          "minimum": 80,
+          "maximum": 800
+        },
+        "settings_label_width": {
+          "description": "Least width of the label column in the settings; a label grows to its longest word.",
+          "type": "integer",
+          "minimum": 80,
+          "maximum": 800
+        },
+        "field_max_share": {
+          "description": "The most a form field may take of the picture's width while it grows with its hint text (0..1); beyond it the hint is cut.",
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 1
         }
       }
     },
@@ -416,7 +437,8 @@
         "max_visible",
         "min_seconds",
         "bundle_after_waiting",
-        "max_duration_factor"
+        "max_duration_factor",
+        "settled_min_seconds"
       ],
       "properties": {
         "max_visible": {
@@ -440,6 +462,12 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 100
+        },
+        "settled_min_seconds": {
+          "description": "A shown hint whose reason is gone (its question is settled) still stays this long in all, so it can be read and does not flicker.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 120
         }
       }
     },
