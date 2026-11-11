@@ -53,7 +53,7 @@ public partial class MainMenu : CanvasLayer
     {
         _data = data ?? throw new ArgumentNullException(nameof(data));
         _style = style ?? throw new ArgumentNullException(nameof(style));
-        _root.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        _root.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
         _root.MouseFilter = Control.MouseFilterEnum.Ignore;
         AddChild(_root);
         UiSetup.Bind(_root);

@@ -2561,6 +2561,10 @@
     {
       "key": "ui.zone.tab.mailbox",
       "text": "Mailbox"
+    },
+    {
+      "key": "msg.hint.questions_many",
+      "text": "{name} is wondering about several things."
     }
   ]
 }

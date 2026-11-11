@@ -49,7 +49,8 @@ public sealed class ScreenModelTests
         };
         var hint = Assert.Single(ScreenModel.Hints(events, rows, Unnamed));
         Assert.Equal("msg.hint.question", hint.TextKey);
-        Assert.Equal("question", hint.Group);
+        Assert.Equal("msg.hint.question|inh-000002", hint.Group);
+        Assert.Equal("msg.hint.questions_many", hint.ManyKey);
         Assert.Equal("2", hint.Args["number"]);
     }
 
@@ -64,6 +65,30 @@ public sealed class ScreenModelTests
         Assert.Equal(expected, ScreenModel.DisplayName(row, Unnamed));
         var hint = Assert.Single(ScreenModel.Hints([new WorldEvent("question_opened", 5, "inh-000002", null, "q-1")], [row], Unnamed));
         Assert.Equal(expected, hint.Args["name"]);
+    }
+
+    [Fact]
+    public void AQuestionHintHoldsOnlyWhileItsInhabitantHasAnOpenQuestion()
+    {
+        // D705 A4: the hint said "wonders about something" while the window said nobody does.
+        var open = new InhabitantRow("inh-000002", 2, 80, false, null, 1);
+        var settled = open with { OpenQuestions = 0 };
+        var opened = new[] { new WorldEvent("question_opened", 5, "inh-000002", null, "q-1") };
+        var hint = Assert.Single(ScreenModel.Hints(opened, [open], Unnamed));
+        Assert.False(ScreenModel.IsSettledQuestionHint(hint, [open]));
+        Assert.True(ScreenModel.IsSettledQuestionHint(hint, [settled]));
+        Assert.True(ScreenModel.IsSettledQuestionHint(hint, []));
+        Assert.False(ScreenModel.IsSettledQuestionHint(new GlassWorld.Presentation.Ui.ToastMessage("msg.hint.autosaved", new Dictionary<string, string>(), null), [settled]));
+
+        // A question that is settled when its events arrive raises no hint at all.
+        Assert.Empty(ScreenModel.Hints(opened, [settled], Unnamed));
+
+        // Nor does it count towards "several" while another question of the same inhabitant is open:
+        // 30 opened and settled within one frame and one still open give one hint, not 31.
+        string? Subject(string id) => id == "q-open" ? "unknown_object:flint" : null;
+        var many = Enumerable.Range(0, 30).Select(i => new WorldEvent("question_opened", 5, "inh-000002", null, "q-" + i))
+            .Append(new WorldEvent("question_opened", 6, "inh-000002", null, "q-open")).ToList();
+        Assert.Single(ScreenModel.Hints(many, [open], Unnamed, Subject, new HashSet<string>(StringComparer.Ordinal)));
     }
 
     [Fact]

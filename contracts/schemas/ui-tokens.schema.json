@@ -430,7 +430,8 @@
         "max_visible",
         "min_seconds",
         "bundle_after_waiting",
-        "max_duration_factor"
+        "max_duration_factor",
+        "settled_min_seconds"
       ],
       "properties": {
         "max_visible": {
@@ -454,6 +455,12 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 100
+        },
+        "settled_min_seconds": {
+          "description": "A shown hint whose reason is gone (its question is settled) still stays this long in all, so it can be read and does not flicker.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 120
         }
       }
     },

@@ -144,6 +144,11 @@ public partial class GwToasts : VBoxContainer
 
     private string Text(VisibleToast toast)
     {
+        if (toast.Count > 1 && toast.Message.ManyKey is { } many)
+        {
+            return TextFill.Fill(Tr(many), toast.Message.Args);
+        }
+
         var text = TextFill.Fill(Tr(toast.Message.TextKey), toast.Message.Args);
         return toast.Count > 1
             ? TextFill.Fill(Tr("ui.toast.bundled"), new Dictionary<string, string> { ["text"] = text, ["count"] = toast.Count.ToString(System.Globalization.CultureInfo.CurrentCulture) })
