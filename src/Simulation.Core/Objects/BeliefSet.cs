@@ -42,6 +42,9 @@ public sealed class BeliefSet
     private readonly Dictionary<(string TypeId, string PropertyId), Belief> _byKey = [];
     private readonly Dictionary<string, List<string>> _properties = new(StringComparer.Ordinal);
 
+    // All beliefs in (type, property) order as one list, laid out when it is asked for after a change.
+    private (string TypeId, string PropertyId, Belief Belief)[]? _ordered;
+
     /// <summary>Number of beliefs.</summary>
     public int Count => _beliefs.Count;
 
@@ -71,6 +74,7 @@ public sealed class BeliefSet
         ArgumentException.ThrowIfNullOrEmpty(source);
         var belief = new Belief(value, Math.Clamp(confidence, 0.0, 1.0), source, toldBy, tick);
         _beliefs[(typeId, propertyId)] = belief;
+        _ordered = null;
         if (_byKey.TryAdd((typeId, propertyId), belief))
         {
             if (!_properties.TryGetValue(typeId, out var properties))
@@ -98,6 +102,13 @@ public sealed class BeliefSet
     /// <summary>All beliefs in (type, property) order.</summary>
     public IEnumerable<(string TypeId, string PropertyId, Belief Belief)> All =>
         _beliefs.Select(b => (b.Key.TypeId, b.Key.PropertyId, b.Value));
+
+    /// <summary>
+    /// All beliefs in (type, property) order, as <see cref="All"/> gives them, for a pass by index: whoever
+    /// goes through everything an inhabitant believes again and again (what it could tell each of the
+    /// others in sight) does not walk the sorted tree every time.
+    /// </summary>
+    internal IReadOnlyList<(string TypeId, string PropertyId, Belief Belief)> Ordered => _ordered ??= [.. All];
 
     /// <summary>The beliefs about one type, in property order.</summary>
     public IEnumerable<(string PropertyId, Belief Belief)> About(string typeId) =>

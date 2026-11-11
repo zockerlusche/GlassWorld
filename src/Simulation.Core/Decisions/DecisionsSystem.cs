@@ -345,8 +345,20 @@ public sealed class DecisionsSystem : IWorldSystem
     /// <summary>Step part: looking for others whose name an inhabitant does not know (trigger unknown_inhabitant).</summary>
     public const string PartUnknownInhabitant = "decisions/unknown_inhabitant";
 
-    /// <summary>Step part: building and sending a request (inside the parts that ask).</summary>
+    /// <summary>Step part: sending a request - its id, the log entry, the port (inside the parts that ask).</summary>
     public const string PartRequest = "decisions/request";
+
+    /// <summary>Step part of a request: who and what the asker perceives.</summary>
+    public const string PartRequestLook = "decisions/request_look";
+
+    /// <summary>Step part of a request: the options the core allows.</summary>
+    public const string PartRequestOptions = "decisions/request_options";
+
+    /// <summary>Step part of a request: the asker's state, its perception and the options as the contract carries them.</summary>
+    public const string PartRequestBuild = "decisions/request_build";
+
+    /// <summary>Step part of a request: writing it as JSON (and validating it, where that is on).</summary>
+    public const string PartRequestJson = "decisions/request_json";
 
     /// <inheritdoc/>
     public void Advance(World world)
@@ -700,15 +712,53 @@ public sealed class DecisionsSystem : IWorldSystem
     /// <summary>The type of a thing in the world by its id; null when there is no such thing (any more).</summary>
     internal string? TypeOf(string objectId) => _objects.TryGet(objectId, out var thing) ? thing.TypeId : null;
 
+    // Scratch of a look around (one at a time, on the simulation thread): who or what lies in sight, with
+    // its distance, before it is put in order.
+    private readonly List<(double Distance, WorldObject Thing)> _thingsInSight = [];
+    private readonly List<(double Distance, Inhabitant Other)> _othersInSight = [];
+
+    private static readonly Comparison<(double Distance, WorldObject Thing)> NearestThingFirst = (a, b) =>
+    {
+        var byDistance = a.Distance.CompareTo(b.Distance);
+        return byDistance != 0 ? byDistance : string.CompareOrdinal(a.Thing.Id, b.Thing.Id);
+    };
+
+    private static readonly Comparison<(double Distance, Inhabitant Other)> NearestOtherFirst = (a, b) =>
+    {
+        var byDistance = a.Distance.CompareTo(b.Distance);
+        return byDistance != 0 ? byDistance : string.CompareOrdinal(a.Other.Id, b.Other.Id);
+    };
+
+    /// <summary>
+    /// The objects within the perception radius as it is right now (B2594), nearest first, ties by id. Only
+    /// what lies in sight is put in order, not every object of the world; ids are unique, so the order is
+    /// the same whatever sorts it.
+    /// </summary>
     private List<WorldObject> Perceived(Inhabitant inhabitant)
     {
         var radius = _inhabitants.SightRadiusM;
-        return [.. _objects.All
-            .Select(o => (o, d: Distance(inhabitant.Position, o.Position)))
-            .Where(x => x.d <= radius)
-            .OrderBy(x => x.d)
-            .ThenBy(x => x.o.Id, StringComparer.Ordinal)
-            .Select(x => x.o)];
+        var position = inhabitant.Position;
+        var all = _objects.Ordered;
+        var inSight = _thingsInSight;
+        inSight.Clear();
+        for (var i = 0; i < all.Count; i++)
+        {
+            var distance = Distance(position, all[i].Position);
+            if (distance <= radius)
+            {
+                inSight.Add((distance, all[i]));
+            }
+        }
+
+        inSight.Sort(NearestThingFirst);
+        var things = new List<WorldObject>(inSight.Count);
+        foreach (var (_, thing) in inSight)
+        {
+            things.Add(thing);
+        }
+
+        inSight.Clear();
+        return things;
     }
 
     private const string InhabitantSubject = "inhabitant:";
@@ -879,18 +929,37 @@ public sealed class DecisionsSystem : IWorldSystem
         _inhabitants.Report(new WorldEvent("question_opened", world.Tick, inhabitant.Id, null, question.Id));
     }
 
+    // What a passing action of the request that is being built would carry to each of the others it has
+    // something for: found when the options are built, read when the request names the topic of an option
+    // (what is not kept here is looked for there, as before). The asker's and the others' beliefs do not
+    // change in between. Empty outside Send.
+    private readonly Dictionary<(string Action, string OtherId), (string TypeId, string PropertyId, Objects.Belief Belief)> _passable = [];
+
     private OpenQuestion Send(World world, Inhabitant inhabitant, string questionId, string kind, string subject, WorldObject? target)
     {
-        world.Probe?.Enter(PartRequest);
+        var probe = world.Probe;
+        probe?.Enter(PartRequest);
         var requestId = DecisionIds.RequestId(world.Seed, world.Tick, inhabitant.Id, _counter);
 
         // One look around per request: the options and the request describe the same moment.
+        probe?.Enter(PartRequestLook);
         var others = PerceivedInhabitants(inhabitant);
+        var things = Perceived(inhabitant);
+        probe?.Leave(PartRequestLook);
+        probe?.Enter(PartRequestOptions);
+        _passable.Clear();
         var options = BuildOptions(inhabitant, target, world.Tick, others);
-        var json = ContractSerializer.Serialize(BuildRequest(world, inhabitant, requestId, options, others), ValidateRequests);
+        probe?.Leave(PartRequestOptions);
+        probe?.Enter(PartRequestBuild);
+        var request = BuildRequest(world, inhabitant, requestId, options, others, things);
+        _passable.Clear();
+        probe?.Leave(PartRequestBuild);
+        probe?.Enter(PartRequestJson);
+        var json = ContractSerializer.Serialize(request, ValidateRequests);
+        probe?.Leave(PartRequestJson);
         Log.Add(new DecisionLogEntry(DecisionLogKind.Request, requestId, world.Tick, json, null));
         _port.Send(requestId, json);
-        world.Probe?.Leave(PartRequest);
+        probe?.Leave(PartRequest);
         return new OpenQuestion(questionId, inhabitant.Id, kind, subject, requestId, world.Tick, options);
     }
 
@@ -949,11 +1018,21 @@ public sealed class DecisionsSystem : IWorldSystem
                     // while the conditions of their data hold. Never towards a sleeper (W1744): the rule
                     // checker would cancel the answer, an AI call for nothing.
                     awake ??= [.. others.Where(o => !_inhabitants.IsAsleep(o)).Take(knowledge.RequestMaxInhabitants)];
+
+                    // What kind of action it is, is looked up once for all the others; what a passing action
+                    // would carry to each of them is kept for the request, which names it (TopicOf).
+                    var meetingOption = InhabitantsSystem.MeetingOptionOf(knowledge, action);
                     foreach (var other in awake)
                     {
-                        if (InhabitantsSystem.HasPurpose(knowledge, asker, other, action) && !Rests(asker, action, other.Id, tick))
+                        var purpose = InhabitantsSystem.HasPurpose(knowledge, asker, other, action, meetingOption, out var passable);
+                        if (passable is { } carried)
                         {
-                            (IsMeeting(knowledge, action) ? meeting : passOn).Add((action, other.Id));
+                            _passable[(action, other.Id)] = carried;
+                        }
+
+                        if (purpose && !Rests(asker, action, other.Id, tick))
+                        {
+                            (meetingOption is not null ? meeting : passOn).Add((action, other.Id));
                         }
                     }
 
@@ -974,17 +1053,13 @@ public sealed class DecisionsSystem : IWorldSystem
         return [.. raw.Take(MaxOptions).Select((o, i) => (string.Create(CultureInfo.InvariantCulture, $"o{i + 1}"), o.Action, o.TargetId))];
     }
 
-    private static bool IsMeeting(KnowledgeSettings knowledge, string action) =>
-        knowledge.Meeting?.Options.Any(o => string.Equals(o.Action, action, StringComparison.Ordinal)) == true;
-
     /// <summary>W1696: an action that rests after repeats without effect (for this target, or here) is not offered.</summary>
     private bool Rests(Inhabitant asker, string action, string? targetId, long tick) =>
         asker.Resting.Count > 0 && asker.Rests(action, targetId, asker.Position, tick, _brain.Weights.Repetition?.SamePlaceM ?? 0);
 
-    private DecisionRequest BuildRequest(World world, Inhabitant inhabitant, string requestId, List<(string OptionId, string Action, string? TargetId)> options, List<Inhabitant> others)
+    private DecisionRequest BuildRequest(World world, Inhabitant inhabitant, string requestId, List<(string OptionId, string Action, string? TargetId)> options, List<Inhabitant> others, List<WorldObject> things)
     {
         var seed = world.Random.Get("decisions/seed").NextInt(0, int.MaxValue);
-        var things = Perceived(inhabitant);
         return new DecisionRequest
         {
             ContractVersion = ContractInfo.Version,
@@ -1005,17 +1080,7 @@ public sealed class DecisionsSystem : IWorldSystem
             },
             Perception = new Perception
             {
-                Objects = [.. things.Take(64).Select(o => new PerceivedObject
-                {
-                    Id = o.Id,
-                    Type = o.TypeId,
-                    DistanceM = Distance(inhabitant.Position, o.Position),
-                    KnownProperties = [.. inhabitant.Beliefs.About(o.TypeId).Select(b => new KnownProperty { Property = b.PropertyId, Value = b.Belief.Value, Confidence = b.Belief.Confidence })],
-
-                    // What the asker itself calls this kind of thing: the name of an invention it knows
-                    // something about; absent for what the data name and for a thing it knows nothing of.
-                    Label = _inhabitants.TypeLabelOf(inhabitant, o.TypeId),
-                })],
+                Objects = PerceivedObjects(inhabitant, things),
 
                 // Contract 0.2 (B4a-S5): other inhabitants in sight, nearest first.
                 // W1698: how the asker calls the other - its own name once the asker knows it.
@@ -1031,6 +1096,54 @@ public sealed class DecisionsSystem : IWorldSystem
         };
     }
 
+    // What the asker knows about a type and what it calls it, while the things it perceives are listed
+    // (most of them are of a few kinds). Empty outside PerceivedObjects.
+    private readonly Dictionary<string, (List<KnownProperty> Known, LocalizedName? Label)> _knownOfType = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// The nearest things in sight as the contract carries them (at most 64): each with what the asker
+    /// believes about its type and with what the asker itself calls this kind of thing - the name of an
+    /// invention it knows something about; absent for what the data name and for a thing it knows nothing of.
+    /// Both belong to the type, so they are looked up once per type and shared by the things of that type.
+    /// </summary>
+    private List<PerceivedObject> PerceivedObjects(Inhabitant inhabitant, List<WorldObject> things)
+    {
+        var count = Math.Min(64, things.Count);
+        var objects = new List<PerceivedObject>(count);
+        var ofType = _knownOfType;
+        ofType.Clear();
+        for (var i = 0; i < count; i++)
+        {
+            var thing = things[i];
+            if (!ofType.TryGetValue(thing.TypeId, out var type))
+            {
+                var known = new List<KnownProperty>();
+                foreach (var (property, belief) in inhabitant.Beliefs.About(thing.TypeId))
+                {
+                    known.Add(new KnownProperty { Property = property, Value = belief.Value, Confidence = belief.Confidence });
+                }
+
+                type = (known, _inhabitants.TypeLabelOf(inhabitant, thing.TypeId));
+                ofType.Add(thing.TypeId, type);
+            }
+
+            // Every perceived thing of one type shares the SAME list and label instance (the request is only
+            // written out as JSON). Whoever edits a built request in place (trimming, a test helper) must copy
+            // the list first, or the edit lands on every thing of that type.
+            objects.Add(new PerceivedObject
+            {
+                Id = thing.Id,
+                Type = thing.TypeId,
+                DistanceM = Distance(inhabitant.Position, thing.Position),
+                KnownProperties = type.Known,
+                Label = type.Label,
+            });
+        }
+
+        ofType.Clear();
+        return objects;
+    }
+
     /// <summary>
     /// What a passing option (show, teach, warn) is about (D625): the asker's own belief the core would pass
     /// to the target (the same one <see cref="InhabitantsSystem.TopicOf"/> shows), so the decider can name the
@@ -1042,7 +1155,7 @@ public sealed class DecisionsSystem : IWorldSystem
             || targetId is null
             || _actionTargets.GetValueOrDefault(action, VocabularyEntryTarget.None) != VocabularyEntryTarget.Inhabitant
             || _inhabitants.ResolveTarget(targetId)?.Inhabitant is not { } listener
-            || InhabitantsSystem.PassableBelief(knowledge, asker, listener, action) is not { } belief)
+            || (_passable.TryGetValue((action, listener.Id), out var kept) ? kept : InhabitantsSystem.PassableBelief(knowledge, asker, listener, action)) is not { } belief)
         {
             return null;
         }
@@ -1193,13 +1306,34 @@ public sealed class DecisionsSystem : IWorldSystem
     private List<Inhabitant> PerceivedInhabitants(Inhabitant inhabitant)
     {
         var radius = _inhabitants.SightRadiusM;
-        return [.. _inhabitants.All
-            .Where(i => i.Id != inhabitant.Id)
-            .Select(i => (i, d: Distance(inhabitant.Position, i.Position)))
-            .Where(x => x.d <= radius)
-            .OrderBy(x => x.d)
-            .ThenBy(x => x.i.Id, StringComparer.Ordinal)
-            .Select(x => x.i)];
+        var position = inhabitant.Position;
+        var everyone = _inhabitants.Ordered;
+        var inSight = _othersInSight;
+        inSight.Clear();
+        for (var i = 0; i < everyone.Count; i++)
+        {
+            var other = everyone[i];
+            if (other.Id == inhabitant.Id)
+            {
+                continue;
+            }
+
+            var distance = Distance(position, other.Position);
+            if (distance <= radius)
+            {
+                inSight.Add((distance, other));
+            }
+        }
+
+        inSight.Sort(NearestOtherFirst);
+        var others = new List<Inhabitant>(inSight.Count);
+        foreach (var (_, other) in inSight)
+        {
+            others.Add(other);
+        }
+
+        inSight.Clear();
+        return others;
     }
 
     private static double Distance(Position a, Position b)
