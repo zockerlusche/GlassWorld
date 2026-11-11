@@ -984,7 +984,7 @@ public sealed class DecisionsSystem : IWorldSystem
             Seed = seed,
             DeadlineMs = _settings.DeadlineMs,
             DisplayLocale = Enum.Parse<Locale>(_displayLocale, ignoreCase: true),
-            Inhabitant = InhabitantStates.Of(inhabitant, Knowledge, things.Select(o => o.TypeId), others.Select(i => i.Id), _inhabitants.LabelOf),
+            Inhabitant = InhabitantStates.Of(inhabitant, Knowledge, things.Select(o => o.TypeId), others.Select(i => i.Id), _inhabitants.LabelOf, _inhabitants.TypeLabelOf),
             Environment = new EnvironmentState
             {
                 TimeOfDay = world.Now.Phase.ToString().ToLowerInvariant(),
@@ -1002,6 +1002,10 @@ public sealed class DecisionsSystem : IWorldSystem
                     Type = o.TypeId,
                     DistanceM = Distance(inhabitant.Position, o.Position),
                     KnownProperties = [.. inhabitant.Beliefs.About(o.TypeId).Select(b => new KnownProperty { Property = b.PropertyId, Value = b.Belief.Value, Confidence = b.Belief.Confidence })],
+
+                    // What the asker itself calls this kind of thing: the name of an invention it knows
+                    // something about; absent for what the data name and for a thing it knows nothing of.
+                    Label = _inhabitants.TypeLabelOf(inhabitant, o.TypeId),
                 })],
 
                 // Contract 0.2 (B4a-S5): other inhabitants in sight, nearest first.

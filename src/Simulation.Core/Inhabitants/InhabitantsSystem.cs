@@ -455,7 +455,21 @@ public sealed partial class InhabitantsSystem : IWorldSystem
                 : null;
         }
 
-        return entry.AboutKind == AboutType ? InventionNameKnownTo?.Invoke(inhabitant, id) : null;
+        return entry.AboutKind == AboutType ? TypeLabelOf(inhabitant, id) : null;
+    }
+
+    /// <summary>
+    /// What an inhabitant calls a kind of thing, by its own knowledge only: the inhabitants' name of an
+    /// invented type it knows (<see cref="InventionNameKnownTo"/>: its inventor, or whoever believes anything
+    /// about the type); null when it knows nothing of it and for things the data name. The one rule for
+    /// every place a request or job names a type as an inhabitant sees it (memory, knowledge, perception),
+    /// so the AI never has to read a runtime type id; never a truth the inhabitant does not know.
+    /// </summary>
+    public LocalizedName? TypeLabelOf(Inhabitant inhabitant, string typeId)
+    {
+        ArgumentNullException.ThrowIfNull(inhabitant);
+        ArgumentNullException.ThrowIfNull(typeId);
+        return InventionNameKnownTo?.Invoke(inhabitant, typeId);
     }
 
     /// <summary>Event: an inhabitant now knows or believes something new (B4a R3).</summary>

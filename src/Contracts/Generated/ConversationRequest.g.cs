@@ -77,6 +77,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("memory")]
         public Memory? Memory { get; set; } = default!;
 
+        /// <summary>
+        /// The speaker's own names for kinds of things in sees that the data do not name (inventions it believes anything about), sorted by type, each type once. A type of sees without an entry here has no such name for the speaker. Optional (absent when it has none, and from an older core).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("sees_labels")]
+        public System.Collections.Generic.ICollection<SeenLabel>? SeesLabels { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -153,6 +160,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("planned")]
         public ConversationStep? Planned { get; set; } = default!;
 
+        /// <summary>
+        /// What THIS inhabitant calls the kind of thing the action is about (target of kind type), by its own knowledge only: the inhabitants' name of an invention it believes anything about (it invented it, built it, tried it, looked at it, was told about it). Absent when it knows nothing of it, and for things the data name (the id is the vocabulary key, i18n key vocab.object.&lt;id&gt;). Never a truth the inhabitant does not know; resolved when the message is built. Optional (absent also from an older core).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("label")]
+        public LocalizedName? Label { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -164,6 +178,31 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("target")]
         public Subject? Target { get; set; } = default!;
+
+        /// <summary>
+        /// What THIS inhabitant calls the kind of thing the step is about (target of kind type), by its own knowledge only: the inhabitants' name of an invention it believes anything about (it invented it, built it, tried it, looked at it, was told about it). Absent when it knows nothing of it, and for things the data name (the id is the vocabulary key, i18n key vocab.object.&lt;id&gt;). Never a truth the inhabitant does not know; resolved when the message is built. Optional (absent also from an older core).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("label")]
+        public LocalizedName? Label { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// The speaker's own name for one kind of thing it sees (an entry of sees).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class SeenLabel
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        public string Type { get; set; } = default!;
+
+        /// <summary>
+        /// What the speaker calls this kind of thing: the inhabitants' name of the invention, in both languages.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("label")]
+        public LocalizedName Label { get; set; } = new LocalizedName();
 
     }
 

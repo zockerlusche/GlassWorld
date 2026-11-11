@@ -386,6 +386,9 @@ public sealed partial class InventionSystem : IWorldSystem, IOptionalWorldState,
             {
                 Type = type,
                 Observed = [.. inhabitant.Beliefs.About(type).Where(b => b.Belief.Value).Select(b => b.PropertyId).Order(StringComparer.Ordinal).Take(12)],
+
+                // An earlier invention among the materials goes by the name the inhabitant knows it by.
+                Label = NameKnownTo(inhabitant, type),
             })];
     }
 
