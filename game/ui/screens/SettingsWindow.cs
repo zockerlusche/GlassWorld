@@ -43,7 +43,7 @@ public partial class SettingsWindow : GwWindow
 
         Section("ui.settings.section.player");
         var name = new LineEdit { Text = settings.PlayerName ?? string.Empty, MaxLength = limits.PlayerNameMaxLength, PlaceholderText = "ui.settings.player_name_hint" };
-        UiFit.HintFits(name, style.Tokens.Window.FieldMinWidth, UiFit.FieldShare);
+        UiFit.HintFits(name, style.Tokens.Window.FieldMinWidth, (float)style.Tokens.Window.FieldMaxShare);
         var nameProblem = new Label { Visible = false, AutowrapMode = TextServer.AutowrapMode.WordSmart };
         void TakeName()
         {

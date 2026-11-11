@@ -143,7 +143,7 @@ namespace GlassWorld.Contracts
         public int DiaryLines { get; set; } = default!;
 
         /// <summary>
-        /// Least width of a text field in a form (new world, the player name in the settings); the field grows with its hint text.
+        /// Least width of a text field in a form (new world, the player name in the settings); the field grows with its hint text up to field_max_share.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("field_min_width")]
         public int FieldMinWidth { get; set; } = default!;
@@ -153,6 +153,12 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("settings_label_width")]
         public int SettingsLabelWidth { get; set; } = default!;
+
+        /// <summary>
+        /// The most a form field may take of the picture's width while it grows with its hint text (0..1); beyond it the hint is cut.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("field_max_share")]
+        public double FieldMaxShare { get; set; } = default!;
 
     }
 

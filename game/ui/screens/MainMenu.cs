@@ -267,7 +267,7 @@ public partial class MainMenu : CanvasLayer
         // at most a share of the picture, so the window still fits the smallest screen with the largest text.
         foreach (var field in new[] { name, seed, code })
         {
-            UiFit.HintFits(field, style.Tokens.Window.FieldMinWidth, UiFit.FieldShare);
+            UiFit.HintFits(field, style.Tokens.Window.FieldMinWidth, (float)style.Tokens.Window.FieldMaxShare);
         }
 
         var copy = new Button { Text = "ui.common.copy" };
