@@ -89,7 +89,7 @@ class DeciderSettings(BaseModel):
     )
     max_requests_per_step: int | None = Field(
         None,
-        description='At most this many requests go to the decider in one step (tick), whatever raised them: new questions, questions that waited (held back) and questions sent again after an error or after loading a save. What is over waits with its question mark and goes out in the next steps, in the order it would have gone. Bounds the one step in which many questions fall due together - all held-back questions at the end of choice_protection_hours, every open question after loading a save. Omitted = no limit (as before).',
+        description='At most this many requests go to the decider in one step (tick), whatever raised them: new questions, questions that waited (held back) and questions sent again after an error or after loading a save. What is over waits with its question mark and goes out in the next steps, in the order it would have gone. The places of a step are taken in this order: questions due to be sent again (after an error or a load), then questions that waited, then new ones - so while the AI service keeps failing, retries can fill a step and the others wait longer. Bounds the one step in which many questions fall due together - all held-back questions at the end of choice_protection_hours, every open question after loading a save. Omitted = no limit (as before).',
         ge=1,
         le=1000,
     )
