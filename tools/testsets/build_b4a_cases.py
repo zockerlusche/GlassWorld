@@ -1,11 +1,17 @@
-"""Builds ai-service/testsets/b4a/cases.v1.json: B4a test situations (Bogen 28 R10, A1403).
+"""Builds ai-service/testsets/b4a/cases.v1.json and cases.v2.json: B4a test situations (Bogen 28
+R10, A1403).
 
 Knowledge with its source and trust, passing it on and the first encounter, for the decider:
     uv run python tools/testsets/build_b4a_cases.py
-    uv run python -m glassworld_ai.testsets decider --cases ai-service/testsets/b4a/cases.v1.json ...
+    uv run python -m glassworld_ai.testsets decider --cases ai-service/testsets/b4a/cases.v2.json ...
 The output is checked in. Plausible options are the ones a person in that situation might choose;
 they never prescribe one answer (frame, not outcome). Situations the decider set v1 already has
 (unknown berries when hungry, known poison, shy first sight) are not repeated here.
+
+v2 adds a sharper pair for trust (D690): very hungry, the warned-about berries are the only food
+in sight - once warned by a trusted person, once by someone hardly trusted. Both are in the same
+language, so the pair differs only in trust; the measure is how often each one eats. v1 stays as
+it was.
 """
 
 from __future__ import annotations
@@ -15,7 +21,7 @@ import pathlib
 from typing import Any
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-OUT = ROOT / "ai-service" / "testsets" / "b4a" / "cases.v1.json"
+OUT = ROOT / "ai-service" / "testsets" / "b4a" / "cases.v{version}.json"
 NEEDS = dict(
     hunger=0.7, thirst=0.7, sleep=0.7, warmth=0.8, safety=0.8, company=0.6, fun=0.6, purpose=0.6
 )
@@ -45,14 +51,15 @@ def case(n: int, cid: str, desc: str, plausible: list[str], options: list[dict[s
          objects: list[dict[str, Any]], knowledge: list[dict[str, Any]],
          needs: dict[str, float] | None = None, traits: dict[str, float] | None = None,
          people: list[dict[str, Any]] | None = None,
-         relations: list[dict[str, Any]] | None = None) -> dict[str, Any]:  # fmt: skip
-    request = {
+         relations: list[dict[str, Any]] | None = None,
+         locale: str | None = None) -> dict[str, Any]:  # fmt: skip
+    request: dict[str, Any] = {
         "contract_version": "0.2",
         "request_id": f"00000000-000b-1403-0000-{n:012d}",
         "tick": 1000 + n,
         "seed": 14030 + n,
         "deadline_ms": 60000,
-        "display_locale": "de" if n % 2 else "en",
+        "display_locale": locale or ("de" if n % 2 else "en"),
         "inhabitant": {
             "id": ME,
             "needs": [{"id": k, "value": v} for k, v in sorted({**NEEDS, **(needs or {})}.items())],
@@ -190,19 +197,59 @@ CASES = [
     ),
 ]
 
+STARVING = {"hunger": 0.05}
+ONLY_FOOD_OPTIONS = [option("o1", "eat", "obj-0001"), option("o2", "inspect", "obj-0001"),
+                     option("o3", "wander"), option("o4", "idle")]  # fmt: skip
 
-def main() -> None:
+
+def only_food(n: int, cid: str, trust: float, confidence: float, who: str) -> dict[str, Any]:
+    eats_plausible = ["o1"] if trust < 0.5 else []
+    return case(
+        n,
+        cid,
+        f"Very hungry; {who} said the red berries close by are poisonous; no other food in sight.",
+        [*eats_plausible, "o2", "o3"],
+        ONLY_FOOD_OPTIONS,
+        [
+            {
+                **RED,
+                "known_properties": [
+                    {"property": "poisonous", "value": True, "confidence": confidence}
+                ],
+            }
+        ],
+        [belief("type", "red_berry", "poisonous", True, confidence, "heard", OTHER)],
+        needs=STARVING,
+        relations=relation(trust),
+        locale="de",
+    )
+
+
+CASES_V2 = [
+    *CASES,
+    only_food(7, "only_food_warning_trusted", 0.9, 0.81, "a trusted person"),
+    only_food(8, "only_food_warning_mistrusted", 0.1, 0.09, "someone it hardly trusts"),
+]
+
+
+def write(version: int, cases: list[dict[str, Any]]) -> None:
     data = {
         "id": "b4a-testset",
-        "version": 1,
+        "version": version,
         "purpose": "B4a R10 (A1403): knowledge with source and trust, passing it on, first encounter; "
         "x N runs with the real model, content-valid >= 95 %, plausibility reported.",
-        "cases": CASES,
+        "cases": cases,
     }
-    OUT.parent.mkdir(parents=True, exist_ok=True)
-    OUT.write_text(
+    out = pathlib.Path(str(OUT).format(version=version))
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(
         json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n"
     )
+
+
+def main() -> None:
+    write(1, CASES)
+    write(2, CASES_V2)
 
 
 if __name__ == "__main__":
