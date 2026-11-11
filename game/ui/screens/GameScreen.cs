@@ -30,6 +30,7 @@ public partial class GameScreen : CanvasLayer
     private NightScene? _night;
     private DreamImages? _dreams;
     private readonly Dictionary<string, Control> _dreamNodes = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _dreamFailed = new(StringComparer.Ordinal);
     private string _dreamFolder = string.Empty;
     private LookNight? _nightLook;
     private readonly Dictionary<string, Label> _zzz = new(StringComparer.Ordinal);
@@ -1708,6 +1709,7 @@ public partial class GameScreen : CanvasLayer
             if (!_night.SceneShown)
             {
                 _dreams.Clear();
+                _dreamFailed.Clear();
             }
 
             var scene = (float)Math.Clamp(_night.Darkness / Math.Max(_nightDarkness, 0.01), 0, 1);
@@ -1761,9 +1763,11 @@ public partial class GameScreen : CanvasLayer
         {
             if (!_dreamNodes.TryGetValue(image.Key, out var node))
             {
-                node = DreamNode(image, size);
+                // An image that cannot be built (no shape, no picture) is tried once, not every frame (review GW1 #213).
+                node = _dreamFailed.Contains(image.Key) ? null : DreamNode(image, size);
                 if (node is null)
                 {
+                    _dreamFailed.Add(image.Key);
                     continue;
                 }
 

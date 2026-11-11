@@ -99,9 +99,23 @@ public sealed class DreamImagesTests
         var dreams = new DreamImages(Data());
         dreams.Take(Items("s1", Item(40, "j-1", JobKind.Question, JobState.Queued, "flint")));
         Assert.Equal(40, dreams.Since);
+        // The page that reveals the new session was asked for with the old number: it is dropped and asked again.
+        Assert.True(dreams.Take(Items("s2", Item(41, "j-50", JobKind.Question, JobState.Queued, "reed"))));
+        Assert.Equal(0, dreams.Since);
         dreams.Take(Items("s2", Item(1, "j-9", JobKind.Question, JobState.Queued, "reed")));
         Assert.Equal(1, dreams.Since);
         Assert.Equal("j-9", Assert.Single(Run(dreams, 0.2)).JobId);
+    }
+
+    [Fact]
+    public void AListFromBeforeTheServiceSwitchedToTheNightIsNotShown()
+    {
+        var dreams = new DreamImages(Data());
+        var day = Items("s1", Item(1, "j-1", JobKind.Question, JobState.Queued, "flint"));
+        day.Phase = NightItemsPhase.Day;
+        Assert.False(dreams.Take(day));
+        Assert.Empty(Run(dreams, 3));
+        Assert.Equal(0, dreams.Since);
     }
 
     [Fact]

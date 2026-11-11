@@ -40,17 +40,30 @@ public sealed class DreamImages(NightDreams data)
     /// <summary>The job ids of every image shown so far this night, in order (acceptance A6).</summary>
     public IReadOnlyList<string> Shown => _shown;
 
-    /// <summary>Takes a page of the night list. Returns true if a full page came, i.e. more may wait at the service.</summary>
+    /// <summary>
+    /// Takes a page of the night list. Returns true if the caller should ask again at once with
+    /// <see cref="Since"/>: a full page came (more may wait), or the service session changed.
+    /// </summary>
     public bool Take(NightItems items, int pageSize = 512)
     {
         ArgumentNullException.ThrowIfNull(items);
         if (_session is not null && _session != items.Session)
         {
-            // The service started anew: its numbers begin again, and so does the list.
+            // The service started anew: its numbers begin again, and so does the list. This page was asked
+            // for with the old number, so it may lack the new session's first items: drop it and ask again
+            // from the start (review GW1 #213).
             Clear();
+            _session = items.Session;
+            return true;
         }
 
         _session = items.Session;
+        if (items.Phase != NightItemsPhase.Night)
+        {
+            // The service has not switched to the night yet: what it lists is last night's (review GW1 #213).
+            return false;
+        }
+
         foreach (var item in items.Items)
         {
             Since = Math.Max(Since, item.Seq);
