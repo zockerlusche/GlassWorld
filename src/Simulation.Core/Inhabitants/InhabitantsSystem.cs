@@ -104,6 +104,9 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     private readonly Dictionary<string, Inhabitant> _inhabitants = new(StringComparer.Ordinal);
     private readonly List<Inhabitant> _ordered = [];
 
+    // "Is this the id of an inhabitant?" as one delegate for the passes that ask it.
+    private readonly Func<string, bool> _isInhabitant;
+
     // Working memory of the routine's choice, reused from inhabitant to inhabitant (not state).
     private readonly UtilityBrain.Scratch _scoring = new();
     private readonly List<WorldObject> _aim = [];
@@ -116,7 +119,6 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     private readonly int _ticksPerHour;
     private long _eventsTick = -1;
     private readonly LinkedList<SequencedEvent> _history = new();
-    private readonly Dictionary<string, Position> _tickStart = new(StringComparer.Ordinal);
 
     /// <summary>Creates the system.</summary>
     public InhabitantsSystem(InhabitantModel model, ActionRules actions, UtilityBrain brain, GaitTable gaits, WorldObjects objects, int ticksPerHour)
@@ -130,6 +132,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         _gaits = gaits;
         _objects = objects;
         _ticksPerHour = ticksPerHour;
+        _isInhabitant = _inhabitants.ContainsKey;
     }
 
     /// <inheritdoc/>
@@ -517,10 +520,9 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         ArgumentNullException.ThrowIfNull(world);
         var probe = world.Probe;
         probe?.Enter(PartMeeting);
-        _tickStart.Clear();
         foreach (var inhabitant in _ordered)
         {
-            _tickStart[inhabitant.Id] = inhabitant.Position;
+            inhabitant.StartOfTick = inhabitant.Position;
         }
 
         var together = Together();
@@ -634,14 +636,24 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     /// over this tick stays at least the minimum separation from every other inhabitant moving straight from
     /// where it began the tick to where it is now (pairs closer already at the start do not count).
     /// </summary>
-    private bool PathClear(Inhabitant mover, Position from, Position to) =>
-        _ordered.All(other => ReferenceEquals(other, mover) || Clear(mover, other, from, to));
+    private bool PathClear(Inhabitant mover, Position from, Position to)
+    {
+        foreach (var other in _ordered)
+        {
+            if (!ReferenceEquals(other, mover) && !Clear(mover, other, from, to))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
 
     /// <summary>Whether the straight move of <paramref name="mover"/> stays clear of <paramref name="other"/> (see <see cref="PathClear"/>).</summary>
     private bool Clear(Inhabitant mover, Inhabitant other, Position from, Position to)
     {
         var limit = Space!.MinSeparationM - 1e-9;
-        var start = _tickStart.GetValueOrDefault(other.Id, other.Position);
+        var start = other.StartOfTick;
 
         // Relative position p + t·v for t in [0, 1]; its closest approach to zero.
         var (px, pz) = (from.X - start.X, from.Z - start.Z);
@@ -734,14 +746,23 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         }
 
         var start = Start(knowledge);
-        foreach (var inhabitant in _ordered.Where(i => !Asleep(i, data)))
+        foreach (var inhabitant in _ordered)
         {
-            if (_ordered.Any(other => other != inhabitant && !Asleep(other, data)
-                && DistanceSquared(inhabitant.Position, other.Position) <= reach * reach
-                && inhabitant.Relationships.Get(other.Id, start) is var relation
-                && relation.Trust >= data.MinTrust && relation.Affection >= data.MinAffection))
+            if (Asleep(inhabitant, data))
             {
-                together.Add(inhabitant.Id);
+                continue;
+            }
+
+            // The distance first: it rules out nearly everybody, and it is the cheapest thing to ask.
+            foreach (var other in _ordered)
+            {
+                if (other != inhabitant && DistanceSquared(inhabitant.Position, other.Position) <= reach * reach && !Asleep(other, data)
+                    && inhabitant.Relationships.Get(other.Id, start) is var relation
+                    && relation.Trust >= data.MinTrust && relation.Affection >= data.MinAffection)
+                {
+                    together.Add(inhabitant.Id);
+                    break;
+                }
             }
         }
 
@@ -957,7 +978,12 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             BondByAction(inhabitant, listener, activity.Action);
         }
 
-        var learned = _history.Reverse().TakeWhile(e => e.Seq > seq).Any(e => e.Event.Kind is KnowledgeGained or NameLearned);
+        // The events this action reported, newest first (walking back from the end of the history).
+        var learned = false;
+        for (var node = _history.Last; node is not null && node.Value.Seq > seq && !learned; node = node.Previous)
+        {
+            learned = node.Value.Event.Kind is KnowledgeGained or NameLearned;
+        }
 
         // One measure for the repetition guard and for what the inhabitant remembers of the action.
         var outcome = ActionOutcomes.Of(effect, learned);
@@ -1115,7 +1141,16 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         var c = Math.Sqrt(0.5);
         for (var round = 0; round < 3; round++)
         {
-            var other = _ordered.FirstOrDefault(o => !ReferenceEquals(o, mover) && Distance(o.Position, mover.Position) < limit);
+            Inhabitant? other = null;
+            foreach (var o in _ordered)
+            {
+                if (!ReferenceEquals(o, mover) && Distance(o.Position, mover.Position) < limit)
+                {
+                    other = o;
+                    break;
+                }
+            }
+
             if (other is null)
             {
                 return;
@@ -1142,9 +1177,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             foreach (var (x, z) in directions)
             {
                 var spot = new Position(other.Position.X + (x * space.MinSeparationM), other.Position.Z + (z * space.MinSeparationM));
-                if (!Walkable(mover.Position, spot)
-                    || _ordered.Any(o => !ReferenceEquals(o, mover) && !ReferenceEquals(o, other) && Distance(o.Position, spot) < limit)
-                    || !BesideNotBeyond(mover.Position, other.Position, spot))
+                if (!Walkable(mover.Position, spot) || !BesideNotBeyond(mover.Position, other.Position, spot) || Crowded(spot, mover, other, limit))
                 {
                     continue;
                 }
@@ -1163,6 +1196,20 @@ public sealed partial class InhabitantsSystem : IWorldSystem
 
             mover.Position = chosen;
         }
+    }
+
+    /// <summary>Whether anybody but the two stands closer to a spot than the limit.</summary>
+    private bool Crowded(Position spot, Inhabitant mover, Inhabitant other, double limit)
+    {
+        foreach (var o in _ordered)
+        {
+            if (!ReferenceEquals(o, mover) && !ReferenceEquals(o, other) && Distance(o.Position, spot) < limit)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -1454,7 +1501,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             {
                 foreach (var other in _ordered)
                 {
-                    if (!ReferenceEquals(other, walker) && !Walking(other) && Distance(other.Position, point) < limit)
+                    if (!ReferenceEquals(other, walker) && Distance(other.Position, point) < limit && !Walking(other))
                     {
                         leftOut = true;
                         return true;

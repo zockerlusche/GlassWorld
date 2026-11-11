@@ -90,6 +90,12 @@ public sealed class Inhabitant
     /// <summary>Where the inhabitant is.</summary>
     public Position Position { get; internal set; }
 
+    /// <summary>
+    /// Where the inhabitant stood when the tick that is running began (set by the inhabitants system at the
+    /// start of every tick, read within the tick by the rules of personal space). Not state: never saved or hashed.
+    /// </summary>
+    internal Position StartOfTick { get; set; }
+
     /// <summary>Need levels 0 (urgent) … 1 (satisfied), by need id.</summary>
     public SortedDictionary<string, double> Needs { get; }
 

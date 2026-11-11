@@ -90,12 +90,16 @@ public sealed partial class InhabitantsSystem
             return;
         }
 
+        // Every pair once, lower id first (the list is in id order); the distance is asked before the two
+        // look-ups of who has met whom.
         var sight = SightRadiusM * SightRadiusM;
-        foreach (var a in _ordered)
+        for (var i = 0; i < _ordered.Count; i++)
         {
-            foreach (var b in _ordered)
+            var a = _ordered[i];
+            for (var j = i + 1; j < _ordered.Count; j++)
             {
-                if (string.CompareOrdinal(a.Id, b.Id) >= 0 || (a.Met.Contains(b.Id) && b.Met.Contains(a.Id)) || DistanceSquared(a.Position, b.Position) > sight)
+                var b = _ordered[j];
+                if (DistanceSquared(a.Position, b.Position) > sight || (a.Met.Contains(b.Id) && b.Met.Contains(a.Id)))
                 {
                     continue;
                 }
@@ -136,20 +140,9 @@ public sealed partial class InhabitantsSystem
                 }
             }
 
-            var step = PerTick(changes.FadePerHour);
-            var to = changes.FadeTo;
-            foreach (var (other, r) in a.Relationships.All.Where(r => _inhabitants.ContainsKey(r.Other)).ToList())
-            {
-                var faded = new Relation(Fade(r.Affection, to.Affection, step), Fade(r.Trust, to.Trust, step), Fade(r.Respect, to.Respect, step));
-                if (faded != r)
-                {
-                    a.Relationships.Set(other, faded);
-                }
-            }
+            a.Relationships.Fade(new Relation(changes.FadeTo.Affection, changes.FadeTo.Trust, changes.FadeTo.Respect), PerTick(changes.FadePerHour), _isInhabitant);
         }
     }
-
-    private static double Fade(double value, double to, double step) => value > to ? Math.Max(to, value - step) : value;
 
     /// <summary>An action towards another inhabitant has ended: both see each other as the data says (B4a R7).</summary>
     private void BondByAction(Inhabitant actor, Inhabitant listener, string action)

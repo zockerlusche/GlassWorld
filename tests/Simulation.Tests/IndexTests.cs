@@ -115,6 +115,39 @@ public sealed class IndexTests : IDisposable
     }
 
     [Fact]
+    public void RelationshipsStayInIdOrderAndFadeTowardsTheirTargets()
+    {
+        var start = new Relation(0.3, 0.5, 0.5);
+        var relations = new RelationshipSet();
+        Assert.Equal(start, relations.Get("inh-000002", start));
+        relations.Set("inh-000005", new Relation(0.6, 0.7, 0.5));
+        relations.Set("inh-000002", new Relation(1.4, -0.2, 0.3));
+        relations.Set("inh-000009", new Relation(0.1, 0.2, 0.3));
+        relations.Set("inh-000005", new Relation(0.61, 0.7, 0.5));
+        Assert.Equal(3, relations.Count);
+        Assert.Equal(["inh-000002", "inh-000005", "inh-000009"], relations.All.Select(r => r.Other));
+        Assert.Equal(new Relation(1.0, 0.0, 0.3), relations.Get("inh-000002", start));
+        Assert.Equal(new Relation(0.61, 0.7, 0.5), relations.Get("inh-000005", start));
+
+        // Every value above its target sinks by the step, never below the target; values at or below stay.
+        // Towards someone who does not count nothing fades.
+        relations.Fade(start, 0.25, other => other != "inh-000005");
+        Assert.Equal(new Relation(0.75, 0.0, 0.3), relations.Get("inh-000002", start));
+        Assert.Equal(new Relation(0.61, 0.7, 0.5), relations.Get("inh-000005", start));
+        Assert.Equal(new Relation(0.1, 0.2, 0.3), relations.Get("inh-000009", start));
+        relations.Fade(start, 0.25, _ => true);
+        relations.Fade(start, 0.25, _ => true);
+        Assert.Equal(new Relation(0.3, 0.0, 0.3), relations.Get("inh-000002", start));
+        Assert.Equal(new Relation(0.3, 0.5, 0.5), relations.Get("inh-000005", start));
+
+        Assert.True(relations.Remove("inh-000005"));
+        Assert.False(relations.Remove("inh-000005"));
+        Assert.Equal(["inh-000002", "inh-000009"], relations.All.Select(r => r.Other));
+        Assert.Equal(start, relations.Get("inh-000005", start));
+        Assert.Throws<ArgumentException>(() => relations.Set(string.Empty, start));
+    }
+
+    [Fact]
     public void TheBestCandidateIsTheFirstOfTheSortedOptions()
     {
         // A world that has lived a while: beliefs, needs and things in sight differ from inhabitant to inhabitant.
