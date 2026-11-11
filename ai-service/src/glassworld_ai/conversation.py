@@ -14,11 +14,14 @@ from __future__ import annotations
 
 import json
 import time
+from collections.abc import Callable
+from pathlib import Path
 from typing import Any, ClassVar, Protocol, cast
 
 from jsonschema import Draft202012Validator
 
 from glassworld_ai.calllog import CallLog
+from glassworld_ai.grounding import checks_nouns, known_words, settings_words, unknown_nouns
 from glassworld_ai.llm.jobcall import (
     InvalidOutputError,
     ModelCallSettings,
@@ -27,15 +30,25 @@ from glassworld_ai.llm.jobcall import (
     recorded_answers,
 )
 from glassworld_ai.llm.ollama import OllamaClient
-from glassworld_ai.prompts import PromptTemplate
+from glassworld_ai.prompts import PromptTemplate, load_prompt
 from glassworld_ai.queue import ModelQueue, Priority
 from glassworld_ai.safety import TextGuard
 from glassworld_ai.texts import TextCatalog
-from glassworld_ai.words import ContextError, bands, humanize, plain_id, quote, word
+from glassworld_ai.words import (
+    ContextError,
+    bands,
+    humanize,
+    knowledge_line,
+    plain_id,
+    quote,
+    subject_name,
+    word,
+)
 from glassworld_contracts import CONTRACT_VERSION
 from glassworld_contracts.models.conversation_request_schema import ConversationRequest
 from glassworld_contracts.models.conversation_response_schema import ConversationResponse
 
+ROLE_PROMPT = "conversation/reply"
 ROLE = "conversation"
 REPLY_MAX = 200
 OUTCOMES = ("reply", "gesture", "not_understood", "decline")
@@ -78,7 +91,11 @@ def output_schema(expressions: list[str]) -> dict[str, Any]:
 
 
 def parse(
-    raw: str, schema: dict[str, Any], guard: TextGuard, answer_all: bool = False
+    raw: str,
+    schema: dict[str, Any],
+    guard: TextGuard,
+    answer_all: bool = False,
+    grounding: Callable[[str], list[str]] | None = None,
 ) -> dict[str, Any]:
     """Validate the model answer. With `answer_all` (prompt v2, Marcel W1701) decline and not
     understood keep their sentence too; a blocked one is dropped and replaced by a stand-in."""
@@ -104,6 +121,9 @@ def parse(
             values["reply"] = None
     else:
         values["reply"] = None  # v1: a sentence only with outcome reply
+    if grounding is not None and values["reply"]:
+        # W1737 (v3): a sentence naming things the inhabitant cannot know is not said.
+        values["ungrounded"] = grounding(values["reply"])
     return values
 
 
@@ -116,7 +136,10 @@ def with_words(data: dict[str, Any], texts: TextCatalog | None, locale: str) -> 
 
 
 def values(
-    request: ConversationRequest, template: PromptTemplate, expressions: dict[str, str]
+    request: ConversationRequest,
+    template: PromptTemplate,
+    expressions: dict[str, str],
+    texts: TextCatalog | None = None,
 ) -> dict[str, str]:
     settings = template.settings
     locale = plain_id(request.display_locale)
@@ -154,7 +177,8 @@ def values(
         for line in request.recent_lines
     ]
     understanding = word(bands(settings, "understanding_words"), float(speaker.understanding))
-    return {
+    grounded = _grounded_values(request, settings, texts, locale) if template.version >= 3 else {}
+    return grounded | {
         "language": language,
         "understanding": understanding,
         "trust": feeling(float(relation.trust)),
@@ -168,6 +192,45 @@ def values(
         "expressions": "\n".join(f"- {k}: {v}" for k, v in sorted(expressions.items()))
         or "- (none)",
         "reply_max": str(REPLY_MAX),
+    }
+
+
+def _name(texts: TextCatalog | None, locale: str, subject: Any, settings: dict[str, Any]) -> str:
+    """A thing by its name in the player's language (content data), else the readable subject."""
+    kind = plain_id(subject.kind)
+    found = (
+        texts.thing(locale, plain_id(subject.id)) if texts is not None and kind == "type" else None
+    )
+    return f'"{found}"' if found else subject_name(subject, settings)
+
+
+def _grounded_values(
+    request: ConversationRequest,
+    settings: dict[str, Any],
+    texts: TextCatalog | None,
+    locale: str,
+) -> dict[str, str]:
+    """v3 (W1737): what the inhabitant does, knows and sees - the only things it may talk about."""
+    speaker = request.speaker
+    doing = speaker.doing
+    if doing is None:
+        doing_text = "- nothing in particular, you are resting where you are"
+    else:
+        target = f" ({_name(texts, locale, doing.target, settings)})" if doing.target else ""
+        doing_text = f"- now: {humanize(plain_id(doing.action))}{target}"
+        if doing.planned is not None:
+            step = doing.planned
+            then = f" ({_name(texts, locale, step.target, settings)})" if step.target else ""
+            doing_text += f"\n- next: {humanize(plain_id(step.action))}{then}"
+    known = "\n".join(knowledge_line(entry, settings) for entry in (speaker.knowledge or []))
+    sees = ", ".join(
+        (texts.thing(locale, plain_id(t)) if texts is not None else None) or humanize(plain_id(t))
+        for t in (speaker.sees or [])
+    )
+    return {
+        "doing": doing_text,
+        "knowledge": known or "- (nothing yet beyond what you see)",
+        "sees": sees or "(nothing special)",
     }
 
 
@@ -199,6 +262,44 @@ def _response(
     )
 
 
+def grounding_check(
+    request: ConversationRequest,
+    template: PromptTemplate,
+    texts: TextCatalog | None,
+    names: tuple[str, ...],
+) -> Callable[[str], list[str]] | None:
+    """v3 (W1737): the check of the answer's nouns, where the language allows it (settings)."""
+    settings = template.settings
+    locale = plain_id(request.display_locale)
+    if template.version < 3 or not checks_nouns(settings, locale):
+        return None
+    words = known_words(
+        request, texts, locale, names, settings_words(settings, "general_words", locale)
+    )
+    return lambda reply: unknown_nouns(reply, words)
+
+
+def grounded(
+    request: ConversationRequest, data: dict[str, Any], texts: TextCatalog | None
+) -> dict[str, Any]:
+    """A sentence that names unknown things is replaced by the data's stand-in for what the
+    inhabitant really does (msg.thought.<action>), else the general reply stand-in."""
+    unknown = data.pop("ungrounded", None)
+    if not unknown or texts is None:
+        return data
+    locale = plain_id(request.display_locale)
+    doing = request.speaker.doing
+    action = plain_id(doing.action) if doing is not None else "idle"
+    stand_in = texts.get(locale, f"msg.thought.{action}") or texts.get(locale, "msg.converse.reply")
+    note = f" [replaced, unknown: {', '.join(unknown[:3])}]"
+    return {
+        **data,
+        "outcome": "reply",
+        "reply": stand_in,
+        "rationale": (str(data.get("rationale", "")) + note)[-280:],
+    }
+
+
 class OllamaConversation:
     def __init__(
         self,
@@ -211,22 +312,28 @@ class OllamaConversation:
         guard: TextGuard,
         expressions: dict[str, str],
         texts: TextCatalog | None = None,
+        names: tuple[str, ...] = (),
     ) -> None:
         self._client, self._queue, self._template = client, queue, template
         self._settings, self._log, self._guard = settings, log, guard
         self._expressions = expressions
         # Prompt v2 (W1701): every outcome except a gesture carries a sentence.
         self._texts = texts if template.version >= 2 else None
+        self._names = names
 
     async def answer(self, request: ConversationRequest, deadline: float) -> ConversationResponse:
         schema = output_schema(sorted(self._expressions))
-        rendered = self._template.render(values(request, self._template, self._expressions))
+        rendered = self._template.render(
+            values(request, self._template, self._expressions, self._texts)
+        )
+        locale = plain_id(request.display_locale)
+        check = grounding_check(request, self._template, self._texts, self._names)
         answer = await ask_model(
             role=ROLE,
             job=request,
             rendered=rendered,
             schema=schema,
-            parse=lambda raw: parse(raw, schema, self._guard, self._texts is not None),
+            parse=lambda raw: parse(raw, schema, self._guard, self._texts is not None, check),
             client=self._client,
             queue=self._queue,
             settings=self._settings,
@@ -234,7 +341,7 @@ class OllamaConversation:
             priority=Priority.PLAYER,
             deadline=deadline,
         )
-        data = with_words(answer.value, self._texts, plain_id(request.display_locale))
+        data = with_words(grounded(request, answer.value, self._texts), self._texts, locale)
         return _response(
             request, data, "model", self._client.model, answer.latency_ms, answer.attempts
         )
@@ -273,8 +380,12 @@ class ReplayConversation:
         guard: TextGuard,
         expressions: dict[str, str],
         texts: TextCatalog | None = None,
+        prompts_dir: Path | None = None,
+        names: tuple[str, ...] = (),
     ) -> None:
         self._log, self._guard, self._expressions = log, guard, expressions
+        # v3 rows (W1737) are checked with their own prompt's settings, as when they were played.
+        self._prompts_dir, self._names = prompts_dir, names
         self._texts = texts  # used for rows recorded with prompt v2 or later (W1701)
         self._answers: dict[str, dict[str, object]] | None = None
 
@@ -287,14 +398,21 @@ class ReplayConversation:
             raise fail("model_unavailable", f"no recorded answer for request {request_id}")
         recorded = str(row.get("prompt_version", "")).rpartition(".v")[2]
         texts = self._texts if recorded.isdigit() and int(recorded) >= 2 else None
+        check = None
+        if recorded.isdigit() and int(recorded) >= 3 and self._prompts_dir is not None:
+            template = load_prompt(self._prompts_dir, ROLE_PROMPT, int(recorded))
+            check = grounding_check(request, template, texts, self._names)
         try:
             data = parse(
                 str(row["raw_output"]),
                 output_schema(sorted(self._expressions)),
                 self._guard,
                 texts is not None,
+                check,
             )
-            data = with_words(data, texts, plain_id(request.display_locale))
+            data = with_words(
+                grounded(request, data, texts), texts, plain_id(request.display_locale)
+            )
         except InvalidOutputError as error:
             raise fail(
                 "model_unavailable", f"recorded answer does not fit request {request_id}"
