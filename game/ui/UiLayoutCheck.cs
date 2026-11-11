@@ -151,9 +151,10 @@ public static class UiLayoutCheck
                 }
             }
 
-            if (window is not SettingsWindow)
+            if (tabs.Count == 0)
             {
-                // The window settles in the frame after its fit (GwWindow.Settle).
+                // The window settles in the frame after its fit (GwWindow.Settle); the settings whose tabs
+                // were already walked in this case are looked at on the tab they open on (review GW1 #263).
                 await host.ToSignal(host.GetTree(), SceneTree.SignalName.ProcessFrame);
                 await host.ToSignal(host.GetTree(), SceneTree.SignalName.ProcessFrame);
                 var other = window.HiddenContentProblem(area);

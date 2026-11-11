@@ -140,6 +140,8 @@ public partial class GwWindow : PanelContainer
     /// line in a narrower window - and that height is known only once the content has been laid out at the
     /// new width (the next frame). Measured before, a short page lost exactly that line to the scroll area
     /// (D809 M1). So the window fits itself once more in the next frame; that second fit settles nothing new.
+    /// A window placed by someone else after its fit does not settle: the docked card keeps the height of its
+    /// fit, so content of the card that flows into more lines must be fitted again by its owner (review GW1 #263).
     /// </summary>
     private void Settle(Vector2 area)
     {
