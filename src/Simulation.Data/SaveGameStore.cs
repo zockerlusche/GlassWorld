@@ -21,7 +21,7 @@ public static class SaveGameStore
     public const string ContentFingerprintKey = "content_fingerprint";
 
     /// <summary>Schema version written by this code.</summary>
-    public const int SchemaVersion = 9;
+    public const int SchemaVersion = 10;
 
     private static readonly JsonSerializerOptions Json = new() { IncludeFields = true };
 
@@ -99,6 +99,16 @@ public static class SaveGameStore
         // in the world hash). Files from before have no rows: their inhabitants start with an empty diary.
         """
         CREATE TABLE IF NOT EXISTS diary(seq INTEGER PRIMARY KEY, tick INTEGER NOT NULL, inhabitant TEXT NOT NULL, action TEXT NOT NULL, target TEXT, target_type TEXT, topic TEXT);
+        """,
+
+        // 10 (B4a R6/R8): imprinting counters and who has met whom. Files from before have no counters; the
+        // members of a start group have met (as at a new start), relationships stay as they are, and
+        // everybody else meets when they first see each other.
+        """
+        CREATE TABLE IF NOT EXISTS imprints(inhabitant TEXT NOT NULL, action TEXT NOT NULL, about_kind TEXT NOT NULL, about_id TEXT NOT NULL, time_of_day TEXT NOT NULL, count REAL NOT NULL,
+          PRIMARY KEY(inhabitant, action, about_kind, about_id, time_of_day));
+        CREATE TABLE IF NOT EXISTS met(inhabitant TEXT NOT NULL, other TEXT NOT NULL, PRIMARY KEY(inhabitant, other));
+        INSERT OR IGNORE INTO met SELECT a.id, b.id FROM inhabitants a JOIN inhabitants b ON a.grp = b.grp AND a.id <> b.id;
         """,
     ];
 
@@ -378,6 +388,16 @@ public static class SaveGameStore
             {
                 Insert(c, tx, "INSERT INTO relationships VALUES($a,$b,$c,$d,$e)", (i.Id, r.Other, r.Affection, r.Trust, r.Respect));
             }
+
+            foreach (var other in i.Met ?? [])
+            {
+                Insert(c, tx, "INSERT INTO met VALUES($a,$b)", (i.Id, other));
+            }
+
+            foreach (var m in i.Imprints ?? [])
+            {
+                Insert(c, tx, "INSERT INTO imprints VALUES($a,$b,$c,$d,$e,$f)", (i.Id, m.Action, m.AboutKind, m.AboutId, m.TimeOfDay, m.Count));
+            }
         }
 
         foreach (var q in s.Questions)
@@ -496,6 +516,11 @@ public static class SaveGameStore
         var relations = Query(c, "SELECT inhabitant, other, affection, trust, respect FROM relationships ORDER BY inhabitant, other",
                 r => (Inhabitant: r.GetString(0), Relation: new SavedRelation(r.GetString(1), r.GetDouble(2), r.GetDouble(3), r.GetDouble(4))))
             .ToLookup(x => x.Inhabitant, x => x.Relation, StringComparer.Ordinal);
+        var met = Query(c, "SELECT inhabitant, other FROM met ORDER BY inhabitant, other", r => (Inhabitant: r.GetString(0), Other: r.GetString(1)))
+            .ToLookup(x => x.Inhabitant, x => x.Other, StringComparer.Ordinal);
+        var imprints = Query(c, "SELECT inhabitant, action, about_kind, about_id, time_of_day, count FROM imprints ORDER BY inhabitant, action, about_kind, about_id, time_of_day",
+                r => (Inhabitant: r.GetString(0), Imprint: new SavedImprint(r.GetString(1), r.GetString(2), r.GetString(3), r.GetString(4), r.GetDouble(5))))
+            .ToLookup(x => x.Inhabitant, x => x.Imprint, StringComparer.Ordinal);
         var appearances = meta.TryGetValue("appearances", out var appearanceJson)
             ? JsonSerializer.Deserialize<Dictionary<string, Appearance>>(appearanceJson, Json) ?? []
             : [];
@@ -539,7 +564,9 @@ public static class SaveGameStore
                     repeats.GetValueOrDefault(r.GetString(0))?.Repeat,
                     repeats.GetValueOrDefault(r.GetString(0))?.Resting,
                     names.GetValueOrDefault(r.GetString(0))?.Name,
-                    names.GetValueOrDefault(r.GetString(0))?.KnownNames)),
+                    names.GetValueOrDefault(r.GetString(0))?.KnownNames,
+                    met[r.GetString(0)].ToList() is { Count: > 0 } metList ? metList : null,
+                    imprints[r.GetString(0)].ToList() is { Count: > 0 } imprintList ? imprintList : null)),
             long.Parse(meta["question_counter"], CultureInfo.InvariantCulture),
             Query(c, "SELECT data FROM questions ORDER BY id", r => JsonSerializer.Deserialize<SavedQuestion>(r.GetString(0))!),
             Query(c, "SELECT key, tick FROM last_asked ORDER BY key", r => new KeyValuePair<string, long>(r.GetString(0), r.GetInt64(1))),
