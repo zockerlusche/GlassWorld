@@ -577,6 +577,13 @@ namespace GlassWorld.Contracts
         public double TurnRateDegS { get; set; } = default!;
 
         /// <summary>
+        /// A walking figure whose step points backwards (more than 90 degrees from its facing, e.g. when it gives way on a narrow path, W1726) turns round only from this many such steps in a row; a step forward in between resets the count, a first step after standing turns at once. Absent = 1 (every step turns the figure).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("turn_back_after_steps")]
+        public int? TurnBackAfterSteps { get; set; } = default!;
+
+        /// <summary>
         /// Range of the gait playback factor: the gait clips play faster or slower so the feet roughly match the on-screen speed, but never beyond this range (calm world, B2466).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("gait_time_scale")]

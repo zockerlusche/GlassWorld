@@ -163,6 +163,7 @@
   },
   "walk_min_step_m": 0.05,
   "turn_rate_deg_s": 360,
+  "turn_back_after_steps": 6,
   "gait_time_scale": {
     "min": 0.6,
     "max": 1.5

@@ -2,7 +2,7 @@
   "contract_version": "0.2",
   "id": "start_island",
   "description": "Placeholder start island: beach, meadow, forest, hills with rock outcrops, streams and ponds from the terrain's own drainage, a swamp.",
-  "generator_version": 3,
+  "generator_version": 4,
   "generation_budget_ms": 10000,
   "grid": {
     "cell_size_cm": 100,
@@ -61,6 +61,14 @@
       "talus": 10,
       "share_permille": 250,
       "rounds": 48
+    },
+    "rock_faces": {
+      "ledge_max_cells": 3,
+      "max_steps": 4,
+      "foot_cells": 3,
+      "block_max_cells": 24,
+      "rounds": 16,
+      "scree_rounds": 32
     }
   },
   "water": {
