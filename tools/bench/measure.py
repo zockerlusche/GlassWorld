@@ -539,6 +539,9 @@ class ProcessGroup:
             # the job (with an assignment after a running start a quick child escaped, review
             # GW1 #232 B).
             child = subprocess.Popen(command, env=env, creationflags=0x00000004)  # CREATE_SUSPENDED
+            # Known to end() from here on: if anything raises before the resume (an interrupt
+            # included), the suspended child is still ended and never left behind.
+            self._child = child
             handle = int(child._handle)  # type: ignore[attr-defined]
             if self._job is not None and not self._k32.AssignProcessToJobObject(self._job, handle):
                 # Without the job only the old way is left (taskkill by parent ids): say so.
