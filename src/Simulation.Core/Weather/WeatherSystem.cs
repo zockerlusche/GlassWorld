@@ -222,7 +222,7 @@ public sealed class WeatherSystem : IWorldSystem, IWeather
     {
         var sum = _data.Temperature.BaseTenthC + _heightOffsetTenthC
             + _seasonOffsets.GetValueOrDefault(time.SeasonId)
-            + _timeOffsets.GetValueOrDefault(time.Phase.ToString().ToLowerInvariant());
+            + _timeOffsets.GetValueOrDefault(Time.DayPhases.IdOf(time.Phase));
         return weather is null ? sum : sum + _weatherOffsets.GetValueOrDefault(weather);
     }
 

@@ -95,8 +95,11 @@ internal static class ReplayCommand
             jobLog.Add(entry);
         }
 
-        // Questions that wait for the night (never sent, A1487) exist only in a run with a job port.
-        var jobs = HadJobs(saved.Inventions) || saved.Questions.Any(q => q.RequestId.Length == 0) ? new ReplayJobPort(jobLog) : null;
+        // Questions that wait for the night (never sent, A1487) exist only in a run with a job port. A question
+        // that is only held back while its inhabitant is busy is unsent too, in any run: it says nothing, so
+        // only the questions of a trigger the data let ask at night count.
+        var askAtNight = settings.Triggers.Where(t => t.Enabled && t.Ask == TriggerAsk.Night).Select(t => t.Kind.ToString()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var jobs = HadJobs(saved.Inventions) || saved.Questions.Any(q => q.RequestId.Length == 0 && askAtNight.Contains(q.Kind)) ? new ReplayJobPort(jobLog) : null;
         var port = new ReplayDecisionPort(decisionLog);
         var host = saved.WorldPreset is null
             ? SimulationHost.CreatePlaceholderWorld(contentDirectory, saved.Seed, port, DecisionsSystem.DefaultDisplayLocale, jobs)

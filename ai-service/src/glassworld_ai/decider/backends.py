@@ -38,6 +38,7 @@ from glassworld_ai.queue import (
     Priority,
     QueueClosedError,
     QueueFullError,
+    TypicalDuration,
 )
 from glassworld_ai.texts import TextCatalog
 from glassworld_ai.vocabulary import Vocabulary
@@ -130,6 +131,7 @@ class OllamaDecider:
         self._log = log
         self._texts = texts
         self._shown = ThoughtMemory()
+        self._typical = TypicalDuration()
 
     def _b9_fields(self, request: DecisionRequest, choice: ModelChoice) -> ModelChoice:
         """Prompt v5 (B9 R6/R11): a name only with name_person (one readable word), gossip only
@@ -238,7 +240,8 @@ class OllamaDecider:
                 )
 
             async def call(seed: int = seed) -> ChatResult:
-                return await self._client.chat(
+                began = time.monotonic()
+                answer = await self._client.chat(
                     messages,
                     schema=schema,
                     seed=seed,
@@ -246,9 +249,14 @@ class OllamaDecider:
                     num_ctx=self._settings.num_ctx,
                     timeout=max(0.1, deadline - time.monotonic()),
                 )
+                self._typical.note(time.monotonic() - began)  # only calls that came through
+                return answer
 
             try:
-                result = await self._queue.run(Priority.DECISION, deadline, call)
+                # Not begun when the usual duration of a decision does not fit any more (A1487).
+                result = await self._queue.run(
+                    Priority.DECISION, deadline, call, needs_s=self._typical.seconds
+                )
             except QueueClosedError as error:
                 log("unavailable", None, str(error))
                 raise DecisionError("model_unavailable", "service is stopping") from error

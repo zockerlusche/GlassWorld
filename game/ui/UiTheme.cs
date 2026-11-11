@@ -14,6 +14,12 @@ public static class UiTheme
     /// <summary>Theme type variation for window titles.</summary>
     public const string HeaderLabel = "HeaderLabel";
 
+    /// <summary>A header over a darkened picture (night scene): the light panel colour instead of the dark text colour.</summary>
+    public const string OnDarkHeaderLabel = "OnDarkHeaderLabel";
+
+    /// <summary>Body text over a darkened picture (night scene).</summary>
+    public const string OnDarkLabel = "OnDarkLabel";
+
     /// <summary>Theme type variation for big titles.</summary>
     public const string TitleLabel = "TitleLabel";
 
@@ -65,8 +71,16 @@ public static class UiTheme
         Variation(theme, SmallLabel, style.FontPx(UiFontSizeId.Small));
         theme.SetFontSize("font_size", "TooltipLabel", style.FontPx(UiFontSizeId.Small));
 
+        // Text over the night scene's shade: dark text on the dark picture could not be read (first look at
+        // the compute night in a window, run L854).
+        var onDark = ToGodot(style.Color(UiColorId.Panel));
+        Variation(theme, OnDarkHeaderLabel, style.FontPx(UiFontSizeId.Header));
+        Variation(theme, OnDarkLabel, style.FontPx(UiFontSizeId.Body));
+        theme.SetColor("font_color", OnDarkHeaderLabel, onDark);
+        theme.SetColor("font_color", OnDarkLabel, onDark);
+
         var bold = LoadFont("AtkinsonHyperlegible-Bold.ttf");
-        foreach (var variation in new[] { TitleLabel, HeaderLabel, SubheaderLabel })
+        foreach (var variation in new[] { TitleLabel, HeaderLabel, SubheaderLabel, OnDarkHeaderLabel })
         {
             theme.SetFont("font", variation, bold);
         }

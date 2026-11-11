@@ -6,7 +6,8 @@ with the live AI, and replays of save games.
 ```
 dotnet run --project src/Simulation.Headless -c Release -- [run options]
 dotnet run --project src/Simulation.Headless -c Release -- replay --save FILE [--content DIR]
-dotnet run --project src/Simulation.Headless -c Release -- worldgen --seed N [--preset P] [--json] [--png FILE]
+dotnet run --project src/Simulation.Headless -c Release -- worldgen --seed N | --seeds FROM-TO [--preset P] [--json] [--png FILE]
+dotnet run --project src/Simulation.Headless -c Release -- perf [--inhabitants N] [--days N] [--ai mock|silent] [--json]
 ```
 
 ## Run options
@@ -62,6 +63,7 @@ from the answer's `meta` (decisions) or `provenance` (jobs).
 | 4 | `--ai live`: the AI service could not be started, or a game's AI service is running (`AI_SERVICE_UNAVAILABLE ..`). |
 | 5 | `replay`: `REPLAY_DIFF`. |
 | 6 | `replay`: `REPLAY_CONTENT_CHANGED` (nothing replayed). |
+| 7 | `perf`: `PERF_OVER_BUDGET` (mean or p95 of the step above `--budget-ms`). |
 | 130 | Stopped with Ctrl+C. |
 
 ## Live AI (`--ai live`)
@@ -122,12 +124,149 @@ without it (older ones) replay as before, with the current fingerprint printed.
 
 Jobs are replayed only if the saved run had a job port (non-empty invention state).
 
+## Perf: how long the step takes
+
+```
+dotnet run --project src/Simulation.Headless -c Release -- perf [--inhabitants N|data] [--days N | --ticks N]
+    [--ai mock|silent] [--answer-every N] [--seed N] [--preset P] [--warmup-ticks N] [--runtime-warmup-seconds X] [--budget-ms X]
+    [--json] [--csv FILE] [--content DIR]
+```
+
+Measures the budget of the engineering handbook (D334, "Performance und Beobachtbarkeit": *Simulationsschritt
+unter 4 ms*) the way the B2 acceptance asks for it (item 3: *Der Simulationsschritt mit 100 Bewohnern bleibt
+unter 4 ms*). The acceptance run is the default: `perf` alone is the start island of seed 1 with 100
+inhabitants for one game day with the mock decider; add `--ai silent` for the second run. **Always `-c Release`**
+(the report says `build=release`; a debug build prints a warning, its times mean nothing).
+
+| Option | Meaning |
+|---|---|
+| `--inhabitants N` | How many inhabitants the world starts with (default 100); `data` = those `content/inhabitants/model.json` lists (the world the run command builds, same hash after the same ticks). |
+| `--days N`, `--ticks N` | How long the world runs, warm-up included (default one game day; `--ticks` instead of whole days). |
+| `--ai mock\|silent` | Decider, see below (default `mock`). |
+| `--answer-every N` | With the mock: at most one answer every N ticks, oldest question first (default 0 = every question is answered at the next tick). See below. |
+| `--seed N`, `--preset P` | Island (default seed 1, `start_island`). |
+| `--warmup-ticks N` | Ticks at the start of the measured world that run but are not measured (default 120): the first ticks of a new world do work that comes once (everybody meets everybody, the first look around). |
+| `--runtime-warmup-seconds X` | Before the measured world is built, a throwaway world of the same kind runs for X seconds (default 6; 0 = none). .NET compiles a method quickly at first and for good only after it has run for a while; without this the first seconds of the measurement time that first code, which is several times slower and which a game leaves behind after its first seconds. The measured world does not depend on it: same ticks, same hash. |
+| `--budget-ms X` | Budget check: `PERF_OK` and exit 0 when mean and p95 of the step are at most X, else `PERF_OVER_BUDGET` and exit 7. Without it the command only reports. |
+| `--json` | One JSON object instead of the lines (same values, unrounded). |
+| `--csv FILE` | One line per measured step: `tick,step_ms,step_with_port_ms` and one column per part (each part alone, in milliseconds). For the question which steps are slow and why: sort by `step_ms`. |
+
+**Where the 100 come from.** The world starts with the data's start inhabitants and repeats them as further
+groups (`InhabitantsSystem.StartersFor`: pairs 3, 4, 5 ... after the data's pairs 1 and 2). They are start
+inhabitants like the first four: traits and needs from the data ranges with one random stream each, an
+appearance, a name, the start relationships of the knowledge data. A repeated group wakes up around the
+start place of the group it repeats, on the nearest free dry cells of the same walkable area, every second
+cell. Only `perf` starts a world this way; the game and the save games start with the data's inhabitants.
+
+**What "the step" is.** One `World.Step()`: every world system of one tick and the listeners of the time
+boundaries, without the time inside the decider port. The game advances the world by real time x speed (one
+tick per 833 ms at normal speed, per 52 ms at x16), so a frame pays for one tick at most unless it has to catch
+up; the 4 ms are that tick's share of the 16.7 ms of a frame. The port is left out because its work is not the
+core's: with the mock it is the mock computing its answers inside `Send`/`Receive`, in the game it is the AI
+service in its own process. `STEP_WITH_PORT` shows the step with it.
+
+**The decider** sets how many questions travel, and building a request is the most expensive thing a tick
+can do:
+
+- `mock` answers every question at the next tick. With 100 inhabitants that is a flood of requests no local
+  model produces (`REQUESTS per_step=`): the upper end.
+- `silent` never answers. Every inhabitant soon has as many open questions as the data allows and asks
+  nothing more: the lower end, the world without any question traffic.
+
+The game lies between the two: its request rate is the answer rate of the model, because every inhabitant
+holds only as many open questions as the data allows and asks again when one is answered. `--ai mock
+--answer-every N` measures that: one model that hands over one answer every N ticks (N = 1 is 1.2 answers
+per second at normal speed and 19 per second at x16; N = 16 is 1.2 per second at x16).
+
+When this command was added (11.11.2026, development machine, start island seed 1, one game day) the step
+with 100 inhabitants took 1.14 ms with the silent decider (p95 2.23), 1.49 ms with one answer per 16 ticks (p95 3.77),
+4.72 ms with one answer per tick and 28.30 ms with the mock's flood; one request cost about 3.2 ms, most of
+it the validation of the outgoing JSON against the schema.
+
+### The report
+
+```
+PERF preset=.. seed=.. inhabitants=.. decider=.. answer_every=.. ticks=.. warmup_ticks=.. measured_ticks=.. runtime_warmup_s=.. runtime_warmup_ticks=.. build=release
+STEP mean_ms=.. median_ms=.. p95_ms=.. p99_ms=.. max_ms=.. max_tick=..
+STEP_WITH_PORT mean_ms=.. ...
+CPU mean_ms=..
+PORT name=decider_port mean_ms=.. max_ms=..
+SYSTEM name=<system> mean_ms=.. share=.. max_ms=..
+PART name=<system>/<part> mean_ms=.. share=.. max_ms=.. calls=..
+REQUESTS sent=.. per_step=.. answers=.. open_at_end=..
+ALLOC kb_per_step=.. gc0=.. gc1=.. gc2=..
+DOING on_the_way=.. acting=.. idle=..
+PERF_OK|PERF_OVER_BUDGET budget_ms=.. mean_ms=.. p95_ms=..      (only with --budget-ms)
+FINAL hash=<state hash> tick=<t>
+```
+
+- `STEP`: wall-clock milliseconds per step over the measured ticks; percentiles by nearest rank; `max_tick` is
+  the world tick of the slowest step. Judge the budget by **mean and p95** (p95 as for the frame time, B2
+  acceptance 5). The maximum is one step: on a desktop system it also holds whatever else the machine did
+  in that moment.
+- `CPU`: processor time of the whole process per measured step (port, garbage collector and JIT threads
+  included). When the machine is busy it stays put while the wall-clock times grow, so compare both.
+- `SYSTEM`: one line per world system in the order they run, then `boundaries` (the listeners of
+  `World.BoundaryReached`); `share` is the percentage of the step's mean. `PART` lines are the parts a system
+  names inside its own work (`system/(rest)` = the system outside them), `calls` how often the part began
+  per step (the routine chooses for a few inhabitants per step, a request is built now and then). No part overlaps another, so the
+  lines add up to the step (the core tells a probe, `World.Probe`, when a part begins and ends; it reads no
+  clock itself).
+- `ALLOC`: managed memory allocated per step and the garbage collections during the measured ticks.
+- `DOING`: inhabitants on their way, in an action and without one, mean per step (a sleeping village is cheap).
+- `FINAL`: the state hash, the proof that two builds measured the same run.
+
+### Reading it right, and a guard for CI
+
+Wall-clock times depend on the machine and on what else runs on it. The budget is set for the reference PC
+(D334); only a run there, alone on the machine, decides the acceptance. Elsewhere compare runs taken one
+after the other, look at `CPU` next to `STEP`, and repeat a run that looks odd.
+
+The test suite therefore judges no time: `PerfTests` checks that the measurement runs, reports every system,
+adds up, is deterministic and that the budget check sets the exit code (with budgets no machine can miss or
+meet). A guard against a regression is the command itself with a generous budget, as its own CI job (not a
+unit test), e.g. three times the mark on the CI runner:
+
+```
+dotnet src/Simulation.Headless/bin/Release/net10.0/GlassWorld.Simulation.Headless.dll perf --ai silent --budget-ms 12
+```
+
+## World generator (`worldgen`)
+
+`worldgen --seed N [--preset P] [--content DIR] [--json] [--png FILE] [--png-flow FILE]` generates the start
+island of a seed and prints its world hash and key figures: attempts, time, biome shares, every line of the
+mandatory check (`ok` / `FAIL`; start supply lines that only report read `ok (report only)` / `short (report only)`),
+objects, hydrology, relief, rock faces, start ground and underground. `--json` prints the same as one JSON
+line. Exit code 0: the island passed its mandatory check; 2: it did not (after all attempts of the preset;
+the `FAIL` lines name what was missing).
+
+`--seeds FROM-TO` generates every seed of the range one after the other in one process (the content is
+loaded once), one block or - with `--json` - one line per seed; exit code 2 if any island failed. The first
+island of a process carries the start-up of the runtime in its time. `--png` and `--png-flow` draw one
+island and need `--seed`.
+
+The hydrology figure `stream dead ends` (`hydrology.stream_dead_ends`) counts the stream cells whose water
+reaches neither the sea nor a lake when followed downstream (0 on a sound island; B2 acceptance).
+
+The seed series of the acceptance is `tools/worldgen/seed_series.py`: it runs a range of seeds through
+`worldgen --seeds FROM-TO --json` and writes the figures and a short German report with a verdict per
+acceptance point (mandatory check and each of its lines, distinct hashes, biomes, cliffs and caves, streams,
+time against `generation_budget_ms`). The error output of each process goes into a file beside the report; a
+process that ends early or with an error fails the run (exit code 1) and the report names the missing seeds.
+Build once, then run; the 1,000 seeds belong in the AMW run queue:
+
+```
+dotnet build src/Simulation.Headless -c Release -m:1
+uv run python tools/worldgen/seed_series.py --out ../series --seeds 1-1000 --note "main <sha>"
+```
+
 ## Tests and CI
 
 `tests/Simulation.Headless.Tests` covers the option parser, `--until`, event lines, the JSON log, replay
 (OK, a tampered answer → `REPLAY_DIFF`, changed content → exit 6 and `--force`), exit code 4 (also with a
 fake game lock), Ctrl+C and the live path with a fake connection
-that answers in real time on another thread. CI never starts the real AI service (no GPU); the live path
+that answers in real time on another thread; and `worldgen`: the report of an island without flint (exit 2, one
+`FAIL` line), the same hash in two processes, seed ranges and the dead-end count. CI never starts the real AI service (no GPU); the live path
 is checked by hand, only through the AMW GPU queue:
 
 ```

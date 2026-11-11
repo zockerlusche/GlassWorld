@@ -100,7 +100,29 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     /// <summary>Detail of <see cref="ActionCancelled"/> for an action that rests after repeats without effect (W1696).</summary>
     public const string Resting = "resting";
 
-    private readonly SortedDictionary<string, Inhabitant> _inhabitants = new(StringComparer.Ordinal);
+    // The inhabitants by id for the look-up and in id order for every pass of a tick, hash and save.
+    private readonly Dictionary<string, Inhabitant> _inhabitants = new(StringComparer.Ordinal);
+    private readonly List<Inhabitant> _ordered = [];
+
+    // Where everybody stood when the tick began, side by side in id order (not state): the passes over all
+    // pairs at the start of a tick (being together, meeting, bonding) read these instead of every object.
+    private double[] _xs = [];
+    private double[] _zs = [];
+
+    // Counts the changes of who is in the system (the places in the id order change with them).
+    private int _population;
+
+    // The needs, moods and mood drivers of the model as arrays: every inhabitant walks them in every tick.
+    private readonly NeedModel[] _needs;
+    private readonly MoodModel[] _moods;
+    private readonly MoodDriver[] _moodDrivers;
+
+    // "Is this the id of an inhabitant?" as one delegate for the passes that ask it.
+    private readonly Func<string, bool> _isInhabitant;
+
+    // Working memory of the routine's choice, reused from inhabitant to inhabitant (not state).
+    private readonly UtilityBrain.Scratch _scoring = new();
+    private readonly List<WorldObject> _aim = [];
     private readonly List<WorldEvent> _events = [];
     private readonly InhabitantModel _model;
     private readonly ActionRules _actions;
@@ -110,7 +132,6 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     private readonly int _ticksPerHour;
     private long _eventsTick = -1;
     private readonly LinkedList<SequencedEvent> _history = new();
-    private readonly Dictionary<string, Position> _tickStart = new(StringComparer.Ordinal);
 
     /// <summary>Creates the system.</summary>
     public InhabitantsSystem(InhabitantModel model, ActionRules actions, UtilityBrain brain, GaitTable gaits, WorldObjects objects, int ticksPerHour)
@@ -124,13 +145,20 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         _gaits = gaits;
         _objects = objects;
         _ticksPerHour = ticksPerHour;
+        _isInhabitant = _inhabitants.ContainsKey;
+        _needs = [.. model.Needs];
+        _moods = [.. model.Moods];
+        _moodDrivers = [.. model.MoodDrivers];
     }
 
     /// <inheritdoc/>
     public string Name => "inhabitants";
 
     /// <summary>All inhabitants in id order.</summary>
-    public IEnumerable<Inhabitant> All => _inhabitants.Values;
+    public IEnumerable<Inhabitant> All => _ordered;
+
+    /// <summary>All inhabitants in id order, by index (for the passes of the core's own systems).</summary>
+    internal IReadOnlyList<Inhabitant> Ordered => _ordered;
 
     /// <summary>Events of the most recent tick that had events (UI, sound and tests read them each tick).</summary>
     public IReadOnlyList<WorldEvent> Events => _events;
@@ -192,11 +220,16 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     /// Creates the start inhabitants from the world seed (B2503): traits and start needs are drawn from
     /// the data ranges with one stream per inhabitant, so the same seed always gives the same people.
     /// </summary>
-    public void SpawnStartInhabitants(World world, IReadOnlyList<Position> positions)
+    /// <param name="world">The world (seed and streams).</param>
+    /// <param name="positions">Where they stand, in the order of the starters.</param>
+    /// <param name="count">
+    /// How many inhabitants the world starts with; null = those the data lists. See <see cref="StartersFor"/>.
+    /// </param>
+    public void SpawnStartInhabitants(World world, IReadOnlyList<Position> positions, int? count = null)
     {
         ArgumentNullException.ThrowIfNull(world);
         ArgumentNullException.ThrowIfNull(positions);
-        var starters = _model.Start.Inhabitants.ToList();
+        var starters = StartersFor(_model.Start, count);
         if (positions.Count < starters.Count)
         {
             throw new ArgumentException($"Need {starters.Count} start positions.", nameof(positions));
@@ -230,6 +263,39 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         GiveNames(world.Seed);
     }
 
+    /// <summary>
+    /// Who starts a world with <paramref name="count"/> inhabitants (null = those the data lists): the data's
+    /// start inhabitants in their order; when more are asked for than the data lists, the list repeats, each
+    /// repeat as groups of its own (the data's pairs 1 and 2 are followed by the pairs 3 and 4, and so on).
+    /// So a bigger start population (measurements, B2 acceptance with 100 inhabitants) is made of the same
+    /// start inhabitants as every world: same data ranges, one random stream each, same start relationships.
+    /// </summary>
+    public static IReadOnlyList<StartInhabitant> StartersFor(StartModel start, int? count)
+    {
+        ArgumentNullException.ThrowIfNull(start);
+        var listed = start.Inhabitants.ToList();
+        if (count is not { } wanted)
+        {
+            return listed;
+        }
+
+        ArgumentOutOfRangeException.ThrowIfNegative(wanted, nameof(count));
+        if (wanted > listed.Count && listed.Count == 0)
+        {
+            throw new InvalidDataException("The inhabitant model lists no start inhabitants to repeat.");
+        }
+
+        var groups = listed.Count == 0 ? 0 : listed.Max(s => s.Group);
+        var starters = new List<StartInhabitant>(wanted);
+        for (var n = 0; n < wanted; n++)
+        {
+            var like = listed[n % listed.Count];
+            starters.Add(n < listed.Count ? like : new StartInhabitant { Sex = like.Sex, Group = like.Group + (n / listed.Count * groups) });
+        }
+
+        return starters;
+    }
+
     /// <summary>Own names to pick from (content/inhabitants/names.json, W1698); empty = nobody gets a name.</summary>
     public IReadOnlyList<string> Names { get; init; } = [];
 
@@ -246,8 +312,8 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         }
 
         var rng = RandomStreams.Create(seed, "inhabitant/names");
-        var pool = Names.Where(n => !_inhabitants.Values.Any(i => i.Name == n)).ToList();
-        foreach (var inhabitant in _inhabitants.Values.Where(i => i.Name is null))
+        var pool = Names.Where(n => !_ordered.Any(i => i.Name == n)).ToList();
+        foreach (var inhabitant in _ordered.Where(i => i.Name is null))
         {
             if (pool.Count == 0)
             {
@@ -268,6 +334,19 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     {
         ArgumentNullException.ThrowIfNull(inhabitant);
         _inhabitants.Add(inhabitant.Id, inhabitant);
+        var at = _ordered.Count;
+        while (at > 0 && string.CompareOrdinal(_ordered[at - 1].Id, inhabitant.Id) > 0)
+        {
+            at--;
+        }
+
+        _ordered.Insert(at, inhabitant);
+        for (var i = at; i < _ordered.Count; i++)
+        {
+            _ordered[i].Ordinal = i;
+        }
+
+        _population++;
     }
 
     /// <summary>Routes on the island map (B2 R10); null on worlds without a map, where walking is straight.</summary>
@@ -301,10 +380,18 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     /// </summary>
     public List<WorldObject> InAim(Inhabitant inhabitant)
     {
+        var aim = new List<WorldObject>();
+        AddInAim(inhabitant, aim);
+        return aim;
+    }
+
+    /// <summary>As <see cref="InAim"/>, added to a list of the caller.</summary>
+    private void AddInAim(Inhabitant inhabitant, List<WorldObject> aim)
+    {
         ArgumentNullException.ThrowIfNull(inhabitant);
         var radius = _brain.Weights.PerceptionRadiusM;
         var sight = Sight.Metres(radius);
-        var aim = _objects.All.Where(o => DistanceSquared(inhabitant.Position, o.Position) <= sight * sight).ToList();
+        _objects.Within(inhabitant.Position, sight, aim);
         if (sight < radius)
         {
             foreach (var (objectId, place) in inhabitant.Places)
@@ -317,8 +404,6 @@ public sealed partial class InhabitantsSystem : IWorldSystem
                 }
             }
         }
-
-        return aim;
     }
 
     /// <summary>
@@ -433,21 +518,51 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         return inhabitant.Activity is { RemainingTicks: null } activity ? _gaits.GaitFor(inhabitant, activity.Action) : null;
     }
 
+    /// <summary>Step part (<see cref="IStepProbe"/>): being together, first meetings and bonds of the tick.</summary>
+    public const string PartMeeting = "inhabitants/meeting";
+
+    /// <summary>Step part: needs, the air, moods and the will to live of every inhabitant.</summary>
+    public const string PartState = "inhabitants/state";
+
+    /// <summary>Step part: what every inhabitant does (without the two parts inside it).</summary>
+    public const string PartAct = "inhabitants/act";
+
+    /// <summary>Step part: the routine choosing the next action (inside <see cref="PartAct"/>).</summary>
+    public const string PartChoose = "inhabitants/choose";
+
+    /// <summary>Step part: walking, with the route searches (inside <see cref="PartAct"/>).</summary>
+    public const string PartWalk = "inhabitants/walk";
+
+    /// <summary>Step part: keeping clear of each other after a move (personal space).</summary>
+    public const string PartSpacing = "inhabitants/spacing";
+
     /// <inheritdoc/>
     public void Advance(World world)
     {
         ArgumentNullException.ThrowIfNull(world);
-        _tickStart.Clear();
-        foreach (var inhabitant in _inhabitants.Values)
+        var probe = world.Probe;
+        probe?.Enter(PartMeeting);
+        if (_xs.Length < _ordered.Count)
         {
-            _tickStart[inhabitant.Id] = inhabitant.Position;
+            _xs = new double[_ordered.Count];
+            _zs = new double[_ordered.Count];
+        }
+
+        for (var i = 0; i < _ordered.Count; i++)
+        {
+            var at = _ordered[i].Position;
+            _ordered[i].StartOfTick = at;
+            _xs[i] = at.X;
+            _zs[i] = at.Z;
         }
 
         var together = Together();
         Meet(world);
         Bond();
-        foreach (var inhabitant in _inhabitants.Values)
+        probe?.Leave(PartMeeting);
+        foreach (var inhabitant in _ordered)
         {
+            probe?.Enter(PartState);
             FadeImprints(world, inhabitant);
             DecayNeeds(inhabitant);
             FeelTheAir(world, inhabitant);
@@ -458,11 +573,15 @@ public sealed partial class InhabitantsSystem : IWorldSystem
 
             UpdateMoods(inhabitant);
             UpdateWillToLive(inhabitant);
+            probe?.Leave(PartState);
             var before = inhabitant.Position;
             var planned = inhabitant.Activity;
+            probe?.Enter(PartAct);
             Act(world, inhabitant);
+            probe?.Leave(PartAct);
             if (inhabitant.Position != before)
             {
+                probe?.Enter(PartSpacing);
                 var walked = inhabitant.Position;
                 KeepClearOnTheWay(inhabitant, before);
                 if (inhabitant.Position != walked && inhabitant.Activity is { Route: not null } activity
@@ -473,6 +592,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
                 }
 
                 Separate(inhabitant);
+                probe?.Leave(PartSpacing);
             }
         }
     }
@@ -528,7 +648,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         // No room aside: give way to a walker with the lower id in the way (never to one standing still,
         // which would only send it back and forth).
         var back = new Position(from.X - dx, from.Z - dz);
-        if (_inhabitants.Values.Any(other => !ReferenceEquals(other, mover) && string.CompareOrdinal(other.Id, mover.Id) < 0 && Walking(other) && !Clear(mover, other, from, to))
+        if (_ordered.Any(other => !ReferenceEquals(other, mover) && string.CompareOrdinal(other.Id, mover.Id) < 0 && Walking(other) && !Clear(mover, other, from, to))
             && Walkable(from, back) && PathClear(mover, from, back))
         {
             mover.Position = back;
@@ -547,14 +667,24 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     /// over this tick stays at least the minimum separation from every other inhabitant moving straight from
     /// where it began the tick to where it is now (pairs closer already at the start do not count).
     /// </summary>
-    private bool PathClear(Inhabitant mover, Position from, Position to) =>
-        _inhabitants.Values.All(other => ReferenceEquals(other, mover) || Clear(mover, other, from, to));
+    private bool PathClear(Inhabitant mover, Position from, Position to)
+    {
+        foreach (var other in _ordered)
+        {
+            if (!ReferenceEquals(other, mover) && !Clear(mover, other, from, to))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
 
     /// <summary>Whether the straight move of <paramref name="mover"/> stays clear of <paramref name="other"/> (see <see cref="PathClear"/>).</summary>
     private bool Clear(Inhabitant mover, Inhabitant other, Position from, Position to)
     {
         var limit = Space!.MinSeparationM - 1e-9;
-        var start = _tickStart.GetValueOrDefault(other.Id, other.Position);
+        var start = other.StartOfTick;
 
         // Relative position p + t·v for t in [0, 1]; its closest approach to zero.
         var (px, pz) = (from.X - start.X, from.Z - start.Z);
@@ -594,7 +724,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             return null;
         }
 
-        return _inhabitants.Values.FirstOrDefault(o => o.Activity is { RemainingTicks: not null } a && a.TargetId == inhabitant.Id)?.Id;
+        return _ordered.FirstOrDefault(o => o.Activity is { RemainingTicks: not null } a && a.TargetId == inhabitant.Id)?.Id;
     }
 
     /// <summary>
@@ -617,7 +747,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     {
         ArgumentNullException.ThrowIfNull(hasher);
         hasher.Write(_inhabitants.Count);
-        foreach (var inhabitant in _inhabitants.Values)
+        foreach (var inhabitant in _ordered)
         {
             inhabitant.WriteState(hasher);
         }
@@ -647,14 +777,27 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         }
 
         var start = Start(knowledge);
-        foreach (var inhabitant in _inhabitants.Values.Where(i => !Asleep(i, data)))
+        var (xs, zs) = (_xs, _zs);
+        for (var i = 0; i < _ordered.Count; i++)
         {
-            if (_inhabitants.Values.Any(other => other != inhabitant && !Asleep(other, data)
-                && DistanceSquared(inhabitant.Position, other.Position) <= reach * reach
-                && inhabitant.Relationships.Get(other.Id, start) is var relation
-                && relation.Trust >= data.MinTrust && relation.Affection >= data.MinAffection))
+            var inhabitant = _ordered[i];
+            if (Asleep(inhabitant, data))
             {
-                together.Add(inhabitant.Id);
+                continue;
+            }
+
+            // The distance first: it rules out nearly everybody, and it is the cheapest thing to ask.
+            for (var j = 0; j < _ordered.Count; j++)
+            {
+                var dx = xs[i] - xs[j];
+                var dz = zs[i] - zs[j];
+                if (j != i && (dx * dx) + (dz * dz) <= reach * reach && !Asleep(_ordered[j], data)
+                    && inhabitant.Relationships.Get(_ordered[j].Id, start) is var relation
+                    && relation.Trust >= data.MinTrust && relation.Affection >= data.MinAffection)
+                {
+                    together.Add(inhabitant.Id);
+                    break;
+                }
             }
         }
 
@@ -687,7 +830,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
 
     private void DecayNeeds(Inhabitant inhabitant)
     {
-        foreach (var need in _model.Needs)
+        foreach (var need in _needs)
         {
             if (inhabitant.Needs.TryGetValue(need.Id, out var value))
             {
@@ -698,7 +841,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
 
     private void UpdateMoods(Inhabitant inhabitant)
     {
-        foreach (var mood in _model.Moods)
+        foreach (var mood in _moods)
         {
             var value = inhabitant.Moods.GetValueOrDefault(mood.Id, mood.Baseline);
             var step = PerTick(mood.ReturnPerHour);
@@ -706,7 +849,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             inhabitant.Moods[mood.Id] = value;
         }
 
-        foreach (var driver in _model.MoodDrivers)
+        foreach (var driver in _moodDrivers)
         {
             if (inhabitant.Needs.TryGetValue(driver.Need, out var need) && need < driver.Below && inhabitant.Moods.TryGetValue(driver.Mood, out var mood))
             {
@@ -718,7 +861,16 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     private void UpdateWillToLive(Inhabitant inhabitant)
     {
         var w = _model.WillToLive;
-        var neglected = _model.Needs.Any(n => n.NeglectBelow > 0 && inhabitant.Needs.GetValueOrDefault(n.Id, 1.0) < n.NeglectBelow);
+        var neglected = false;
+        foreach (var need in _needs)
+        {
+            if (need.NeglectBelow > 0 && inhabitant.Needs.GetValueOrDefault(need.Id, 1.0) < need.NeglectBelow)
+            {
+                neglected = true;
+                break;
+            }
+        }
+
         inhabitant.NeglectTicks = neglected ? inhabitant.NeglectTicks + 1 : 0;
         if (inhabitant.NeglectTicks > (long)w.NeglectHoursBeforeDecline * _ticksPerHour)
         {
@@ -736,6 +888,21 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     /// <summary>Reason of a queued answer dropped because a need fell below its neglect threshold while it waited.</summary>
     public const string NeedNeglected = "need_neglected";
 
+    /// <summary>
+    /// Whether an answer of the decider has gone stale by neglect (the one definition, F5275 B): a need of the
+    /// inhabitant is below its neglect threshold (neglect_below of the inhabitant model) and the action - one
+    /// the decider may be offered - serves none of the neglected needs. A queued answer is dropped by it when
+    /// its turn comes, and an accepted choice no longer keeps further questions back (A1487).
+    /// </summary>
+    public bool StaleByNeglect(Inhabitant inhabitant, string action)
+    {
+        ArgumentNullException.ThrowIfNull(inhabitant);
+        var neglected = _model.Needs.Where(n => n.NeglectBelow > 0 && inhabitant.Needs.GetValueOrDefault(n.Id, 1.0) < n.NeglectBelow).Select(n => n.Id).ToList();
+        return neglected.Count > 0
+            && _actions.OfferedActions.Contains(action, StringComparer.Ordinal)
+            && !neglected.Any(need => _brain.Serves(action, need));
+    }
+
     private void Act(World world, Inhabitant inhabitant)
     {
         if (inhabitant.Activity is null && inhabitant.Planned is { } planned)
@@ -746,19 +913,24 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             // and the answer serves none of the neglected needs (F5275 B, review GW3 #137): it is dropped
             // and logged, and the routine or the decider decides anew. A thirsty inhabitant keeps a queued
             // drink.
-            var neglected = _model.Needs.Where(n => n.NeglectBelow > 0 && inhabitant.Needs.GetValueOrDefault(n.Id, 1.0) < n.NeglectBelow).Select(n => n.Id).ToList();
-            if (_actions.OfferedActions.Contains(planned.Action, StringComparer.Ordinal)
-                && neglected.Count > 0 && !neglected.Any(need => _brain.Serves(planned.Action, need)))
+            if (StaleByNeglect(inhabitant, planned.Action))
             {
                 Report(new WorldEvent(AnswerExpired, world.Tick, inhabitant.Id, planned.Action, planned.TargetId) { Detail = NeedNeglected });
             }
             else
             {
-                inhabitant.Activity = planned;
+                // A choice of the decider keeps its mark; the time limit of its walk counts from now (A1487).
+                inhabitant.Activity = planned.DecidedTick is null ? planned : planned with { DecidedTick = world.Tick };
             }
         }
 
-        inhabitant.Activity ??= Choose(world, inhabitant);
+        if (inhabitant.Activity is null)
+        {
+            world.Probe?.Enter(PartChoose);
+            inhabitant.Activity = Choose(world, inhabitant);
+            world.Probe?.Leave(PartChoose);
+        }
+
         var activity = inhabitant.Activity;
         if (activity is null)
         {
@@ -815,7 +987,10 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             var timing = _actions.Timing(activity.Action);
             var destination = target?.Position ?? activity.Destination;
             var from = inhabitant.Position;
-            if (!MoveTowards(world, inhabitant, destination, ReachOf(activity.Action, listener)))
+            world.Probe?.Enter(PartWalk);
+            var there = MoveTowards(world, inhabitant, destination, ReachOf(activity.Action, listener));
+            world.Probe?.Leave(PartWalk);
+            if (!there)
             {
                 if (inhabitant.Activity is not null)
                 {
@@ -861,7 +1036,12 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             BondByAction(inhabitant, listener, activity.Action);
         }
 
-        var learned = _history.Reverse().TakeWhile(e => e.Seq > seq).Any(e => e.Event.Kind is KnowledgeGained or NameLearned);
+        // The events this action reported, newest first (walking back from the end of the history).
+        var learned = false;
+        for (var node = _history.Last; node is not null && node.Value.Seq > seq && !learned; node = node.Previous)
+        {
+            learned = node.Value.Event.Kind is KnowledgeGained or NameLearned;
+        }
 
         // One measure for the repetition guard and for what the inhabitant remembers of the action.
         var outcome = ActionOutcomes.Of(effect, learned);
@@ -977,7 +1157,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         var (ux, uz) = (dx / length, dz / length);
         var (rx, rz) = (-uz, ux);
         var threatened = false;
-        foreach (var other in _inhabitants.Values)
+        foreach (var other in _ordered)
         {
             if (ReferenceEquals(other, walker) || ReferenceEquals(other, walkingTo))
             {
@@ -1019,7 +1199,16 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         var c = Math.Sqrt(0.5);
         for (var round = 0; round < 3; round++)
         {
-            var other = _inhabitants.Values.FirstOrDefault(o => !ReferenceEquals(o, mover) && Distance(o.Position, mover.Position) < limit);
+            Inhabitant? other = null;
+            foreach (var o in _ordered)
+            {
+                if (!ReferenceEquals(o, mover) && Distance(o.Position, mover.Position) < limit)
+                {
+                    other = o;
+                    break;
+                }
+            }
+
             if (other is null)
             {
                 return;
@@ -1046,9 +1235,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             foreach (var (x, z) in directions)
             {
                 var spot = new Position(other.Position.X + (x * space.MinSeparationM), other.Position.Z + (z * space.MinSeparationM));
-                if (!Walkable(mover.Position, spot)
-                    || _inhabitants.Values.Any(o => !ReferenceEquals(o, mover) && !ReferenceEquals(o, other) && Distance(o.Position, spot) < limit)
-                    || !BesideNotBeyond(mover.Position, other.Position, spot))
+                if (!Walkable(mover.Position, spot) || !BesideNotBeyond(mover.Position, other.Position, spot) || Crowded(spot, mover, other, limit))
                 {
                     continue;
                 }
@@ -1067,6 +1254,20 @@ public sealed partial class InhabitantsSystem : IWorldSystem
 
             mover.Position = chosen;
         }
+    }
+
+    /// <summary>Whether anybody but the two stands closer to a spot than the limit.</summary>
+    private bool Crowded(Position spot, Inhabitant mover, Inhabitant other, double limit)
+    {
+        foreach (var o in _ordered)
+        {
+            if (!ReferenceEquals(o, mover) && !ReferenceEquals(o, other) && Distance(o.Position, spot) < limit)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -1092,59 +1293,99 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         // what the inhabitant can aim at ends where the weather lets it see, known places aside (B2594, InAim).
         var radius = _brain.Weights.PerceptionRadiusM;
         // On a map only what can be walked to counts (B2 R10): things beyond deep water or cliffs are no goals.
-        var perceived = InAim(inhabitant)
-            .Where(o => Routes is null || Routes.Connected(inhabitant.Position, o.Position))
-            .ToList();
+        var perceived = _aim;
+        perceived.Clear();
+        AddInAim(inhabitant, perceived);
+        if (Routes is { } reachable)
+        {
+            var kept = 0;
+            for (var i = 0; i < perceived.Count; i++)
+            {
+                if (reachable.Connected(inhabitant.Position, perceived[i].Position))
+                {
+                    perceived[kept++] = perceived[i];
+                }
+            }
+
+            perceived.RemoveRange(kept, perceived.Count - kept);
+        }
 
         // Looking further away gives up after the data's hours, until the need is met or something that
         // seems as good is in sight again (review GW3 #118: no endless search for what is gone).
         var giveUpTicks = (long)(_brain.Weights.SearchGiveUpHours * _ticksPerHour);
         var givenUp = inhabitant.SearchSince.Where(s => world.Tick - s.Value >= giveUpTicks).Select(s => s.Key).ToHashSet(StringComparer.Ordinal);
         var searching = new HashSet<string>(StringComparer.Ordinal);
-        var scored = _brain.Score(inhabitant, perceived, givenUp, searching, _brain.AimsAtInhabitants ? InSight(inhabitant) : null);
-        if (inhabitant.Resting.Count > 0 && scored.Any(o => Rests(inhabitant, o.Action, o.TargetId, world.Tick)))
+        // The options as the brain makes them, not sorted: the best one that the rules below let through is
+        // looked for (UtilityBrain.Compare is the order a sorted list would have), and a rule is asked only
+        // about an option that would be the best so far.
+        var options = _brain.Candidates(inhabitant, perceived, givenUp, searching, _brain.AimsAtInhabitants ? InSight(inhabitant) : null, _scoring);
+
+        // W1696: an action resting after repeats without effect is not chosen, and nothing is done in its
+        // place that no need asks for (score 0): the inhabitant then just stands there instead of being
+        // sent off on a stroll that leads it away from water and food.
+        var resting = false;
+        for (var i = 0; i < options.Count && inhabitant.Resting.Count > 0 && !resting; i++)
         {
-            // W1696: an action resting after repeats without effect is not chosen, and nothing is done in its
-            // place that no need asks for (score 0): the inhabitant then just stands there instead of being
-            // sent off on a stroll that leads it away from water and food.
-            scored = [.. scored.Where(o => !Rests(inhabitant, o.Action, o.TargetId, world.Tick) && o.Score > 0)];
+            resting = Rests(inhabitant, options[i].Action, options[i].TargetId, world.Tick);
         }
 
-        foreach (var over in inhabitant.SearchSince.Keys.Where(k => !searching.Contains(k)).ToList())
+        if (inhabitant.SearchSince.Count > 0)
         {
-            inhabitant.SearchSince.Remove(over);
+            foreach (var over in inhabitant.SearchSince.Keys.Where(k => !searching.Contains(k)).ToList())
+            {
+                inhabitant.SearchSince.Remove(over);
+            }
         }
 
-        if (Knowledge is { } knowledge && QuestionOpen is { } open && knowledge.WaitWhileQuestionOpen.Count > 0)
-        {
-            // W1595: what the inhabitant asked about is not eaten (or drunk …) before the answer comes.
-            scored = [.. scored.Where(o => o.TargetId is null
-                || !knowledge.WaitWhileQuestionOpen.Contains(o.Action)
+        // W1595: what the inhabitant asked about is not eaten (or drunk …) before the answer comes.
+        var waitFor = Knowledge is { WaitWhileQuestionOpen.Count: > 0 } knowledge && QuestionOpen is not null ? knowledge.WaitWhileQuestionOpen : null;
+        bool Allowed(in Candidate o) =>
+            (!resting || (!Rests(inhabitant, o.Action, o.TargetId, world.Tick) && o.Score > 0))
+            && (waitFor is null
+                || o.TargetId is null
+                || !waitFor.Contains(o.Action)
                 || !_objects.TryGet(o.TargetId, out var thing)
-                || !open(inhabitant.Id, thing.TypeId))];
-        }
+                || !QuestionOpen!(inhabitant.Id, thing.TypeId));
 
         // B2-6 R14: an action at the frontier is an option only while its score counts and land the
         // inhabitant has not seen can be reached on foot (never on worlds without a map). The frontier is
         // looked for only when such an action would be chosen, so the search is paid once per walk.
         Position? frontier = null;
-        while (scored.Count > 0 && AtFrontier(scored[0].Action))
+        var atFrontier = true;
+        int chosen;
+        while (true)
         {
-            frontier = scored[0].Score > 0 ? FrontierOf?.Invoke(inhabitant) : null;
+            chosen = -1;
+            for (var i = 0; i < options.Count; i++)
+            {
+                var o = options[i];
+                if ((chosen < 0 || UtilityBrain.Compare(o, i, options[chosen], chosen) < 0) && (atFrontier || !AtFrontier(o.Action)) && Allowed(o))
+                {
+                    chosen = i;
+                }
+            }
+
+            if (chosen < 0)
+            {
+                return null;
+            }
+
+            if (!AtFrontier(options[chosen].Action))
+            {
+                break;
+            }
+
+            frontier = options[chosen].Score > 0 ? FrontierOf?.Invoke(inhabitant) : null;
             if (frontier is not null)
             {
                 break;
             }
 
-            scored = [.. scored.Where(o => !AtFrontier(o.Action))];
+            // No unseen land to walk to: the actions at the frontier are no options, the next best is looked for.
+            atFrontier = false;
         }
 
-        if (scored.Count == 0)
-        {
-            return null;
-        }
-
-        var best = scored[0];
+        var best = options[chosen];
         if (best.SearchFor is { } search)
         {
             inhabitant.SearchSince.TryAdd(search, world.Tick);
@@ -1184,9 +1425,21 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     /// (<see cref="SightRadiusM"/>) and, on a map, can walk to; in id order. Who of them is familiar and
     /// awake is the brain's question.
     /// </summary>
-    private List<Inhabitant> InSight(Inhabitant inhabitant) =>
-        [.. _inhabitants.Values.Where(other => !ReferenceEquals(other, inhabitant) && Sees(inhabitant, other)
-            && (Routes is null || Routes.Connected(inhabitant.Position, other.Position)))];
+    private List<Inhabitant> InSight(Inhabitant inhabitant)
+    {
+        var sight = SightRadiusM;
+        var seen = new List<Inhabitant>();
+        foreach (var other in _ordered)
+        {
+            if (!ReferenceEquals(other, inhabitant) && DistanceSquared(inhabitant.Position, other.Position) <= sight * sight
+                && (Routes is null || Routes.Connected(inhabitant.Position, other.Position)))
+            {
+                seen.Add(other);
+            }
+        }
+
+        return seen;
+    }
 
     /// <summary>Whether an inhabitant sees another right now: within the sight of this tick (B2594).</summary>
     private bool Sees(Inhabitant inhabitant, Inhabitant other)
@@ -1304,9 +1557,9 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             var leftOut = false;
             bool Taken(Position point)
             {
-                foreach (var other in _inhabitants.Values)
+                foreach (var other in _ordered)
                 {
-                    if (!ReferenceEquals(other, walker) && !Walking(other) && Distance(other.Position, point) < limit)
+                    if (!ReferenceEquals(other, walker) && Distance(other.Position, point) < limit && !Walking(other))
                     {
                         leftOut = true;
                         return true;
