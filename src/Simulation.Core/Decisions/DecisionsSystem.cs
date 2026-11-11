@@ -63,8 +63,21 @@ public sealed class DecisionsSystem : IWorldSystem
     /// <summary>The world's weather for the decider's environment (B2 R13); null = fallback values from the settings.</summary>
     public Weather.WeatherSystem? WeatherSource { get; init; }
 
+    /// <summary>
+    /// Whether a request is validated against its schema before it leaves (ADR-0009; set by the host from
+    /// <see cref="SimulationHostOptions.ValidateRequests"/>): on in tests and check runs, off in the running game.
+    /// </summary>
+    public bool ValidateRequests { get; init; } = true;
+
     /// <summary>Knowledge data (B4a): passing actions as options, knowledge and relationships in the request.</summary>
     public KnowledgeSettings? Knowledge { get; init; }
+
+    /// <summary>
+    /// The content guard for the thought of a decision (youth protection, B2466): the thought is AI text the
+    /// player sees and passes the same guard as every other visible AI text; one the guard does not allow
+    /// is not shown. Set by the host; null = no guard (tests without safety data).
+    /// </summary>
+    public Safety.TextGuard? ThoughtGuard { get; init; }
 
     /// <summary>
     /// Whether the compute night answers questions in this world (a job port and the night questions data;
@@ -878,7 +891,7 @@ public sealed class DecisionsSystem : IWorldSystem
         // One look around per request: the options and the request describe the same moment.
         var others = PerceivedInhabitants(inhabitant);
         var options = BuildOptions(inhabitant, target, world.Tick, others);
-        var json = ContractSerializer.Serialize(BuildRequest(world, inhabitant, requestId, options, others));
+        var json = ContractSerializer.Serialize(BuildRequest(world, inhabitant, requestId, options, others), ValidateRequests);
         Log.Add(new DecisionLogEntry(DecisionLogKind.Request, requestId, world.Tick, json, null));
         _port.Send(requestId, json);
         world.Probe?.Leave(PartRequest);
@@ -984,7 +997,7 @@ public sealed class DecisionsSystem : IWorldSystem
             Seed = seed,
             DeadlineMs = _settings.DeadlineMs,
             DisplayLocale = Enum.Parse<Locale>(_displayLocale, ignoreCase: true),
-            Inhabitant = InhabitantStates.Of(inhabitant, Knowledge, things.Select(o => o.TypeId), others.Select(i => i.Id), _inhabitants.LabelOf),
+            Inhabitant = InhabitantStates.Of(inhabitant, Knowledge, things.Select(o => o.TypeId), others.Select(i => i.Id), _inhabitants.LabelOf, _inhabitants.TypeLabelOf),
             Environment = new EnvironmentState
             {
                 TimeOfDay = world.Now.Phase.ToString().ToLowerInvariant(),
@@ -1002,6 +1015,10 @@ public sealed class DecisionsSystem : IWorldSystem
                     Type = o.TypeId,
                     DistanceM = Distance(inhabitant.Position, o.Position),
                     KnownProperties = [.. inhabitant.Beliefs.About(o.TypeId).Select(b => new KnownProperty { Property = b.PropertyId, Value = b.Belief.Value, Confidence = b.Belief.Confidence })],
+
+                    // What the asker itself calls this kind of thing: the name of an invention it knows
+                    // something about; absent for what the data name and for a thing it knows nothing of.
+                    Label = _inhabitants.TypeLabelOf(inhabitant, o.TypeId),
                 })],
 
                 // Contract 0.2 (B4a-S5): other inhabitants in sight, nearest first.
@@ -1048,7 +1065,9 @@ public sealed class DecisionsSystem : IWorldSystem
         var question = _open.Values.FirstOrDefault(q => q.RequestId == message.RequestId && q.RetryAtTick is null);
         if (message.IsError)
         {
-            Log.Add(new DecisionLogEntry(DecisionLogKind.Error, message.RequestId, world.Tick, message.Json, ReplayNotes.ServiceError));
+            // A request the service refused as invalid has its own name in the log and in the event (ADR-0009).
+            var note = ReplayNotes.OfError(message.Json);
+            Log.Add(new DecisionLogEntry(DecisionLogKind.Error, message.RequestId, world.Tick, message.Json, note));
             if (question is not null && IsRetryable(message.Json))
             {
                 // B2487: no fixed time limit; the question stays open and is asked again later.
@@ -1056,7 +1075,7 @@ public sealed class DecisionsSystem : IWorldSystem
                 return;
             }
 
-            Close(world, question, "question_failed");
+            Close(world, question, "question_failed", note == ReplayNotes.RequestRejected ? note : null);
             return;
         }
 
@@ -1123,9 +1142,10 @@ public sealed class DecisionsSystem : IWorldSystem
         }
 
         Close(world, question, "question_answered");
-        if (response.Thought is { } thought)
+        if (response.Thought is { } thought && ThoughtGuard?.Check(thought.Text).Allowed != false)
         {
             // Thought bubble (B3): the only player-visible text of a decision, in the display language.
+            // It has passed the content guard (the decision itself stands either way).
             _inhabitants.Report(new WorldEvent("thought", world.Tick, inhabitant.Id, action, targetId) { Text = thought.Text });
         }
     }

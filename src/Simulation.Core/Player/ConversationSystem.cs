@@ -146,6 +146,12 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
     /// <inheritdoc/>
     public string Name => "conversation";
 
+    /// <summary>
+    /// Whether a request is validated against its schema before it leaves (ADR-0009; set by the host from
+    /// <see cref="SimulationHostOptions.ValidateRequests"/>): on in tests and check runs, off in the running game.
+    /// </summary>
+    public bool ValidateRequests { get; init; } = true;
+
     /// <summary>Language of the player's sentences and the answers (display_locale; set with the player's language).</summary>
     public string DisplayLocale
     {
@@ -210,7 +216,7 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
         var request = Request(world, inhabitant, memory, text);
         _memories[inhabitant.Id] = Remember(memory, new ConversationLineState(true, world.Tick, _displayLocale, text));
         _open[request.RequestId] = new OpenConversation(request.RequestId, inhabitant.Id, world.Tick);
-        var json = ContractSerializer.Serialize(request);
+        var json = ContractSerializer.Serialize(request, ValidateRequests);
         Append(new ConversationLogEntry(ConversationLogKind.Request, request.RequestId, world.Tick, json));
         _inhabitants.Report(new WorldEvent("conversation_started", world.Tick, inhabitant.Id, null, null) { Text = text });
         Port?.Send(request.RequestId, json);
@@ -311,6 +317,7 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
                 Doing = Doing(world, inhabitant),
                 Knowledge = Known(inhabitant, seen),
                 Sees = [.. seen.Take(SeesMax).Order(StringComparer.Ordinal)],
+                SeesLabels = SeenLabels(inhabitant, seen),
             },
             PlayerText = text,
             RecentLines = [.. memory.Lines.Select(l => new ConversationLine
@@ -346,13 +353,34 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
             started = null;
         }
 
+        var target = About(activity.TargetId, started?.TargetType);
+        var planned = inhabitant.Planned is { } next ? About(next.TargetId, null) : null;
         return new ConversationDoing
         {
             Action = activity.Action,
-            Target = About(activity.TargetId, started?.TargetType),
+            Target = target,
+            Label = LabelOf(inhabitant, target),
             SinceTick = started?.Tick ?? world.Tick,
-            Planned = inhabitant.Planned is { } next ? new ConversationStep { Action = next.Action, Target = About(next.TargetId, null) } : null,
+            Planned = inhabitant.Planned is { } step ? new ConversationStep { Action = step.Action, Target = planned, Label = LabelOf(inhabitant, planned) } : null,
         };
+    }
+
+    /// <summary>What the speaker calls the kind of thing a subject names (an invention it knows something about); null otherwise.</summary>
+    private LocalizedName? LabelOf(Inhabitant inhabitant, Subject? subject) =>
+        subject is { Kind: SubjectKind.Type } ? _inhabitants.TypeLabelOf(inhabitant, subject.Id) : null;
+
+    /// <summary>
+    /// The speaker's own names for the kinds of things it sees that the data do not name (the entries of
+    /// <c>sees</c> it has a name for), sorted by type; null when it has none.
+    /// </summary>
+    private List<SeenLabel>? SeenLabels(Inhabitant inhabitant, IReadOnlyList<string> seen)
+    {
+        var labels = seen.Take(SeesMax).Order(StringComparer.Ordinal)
+            .Select(type => (Type: type, Label: _inhabitants.TypeLabelOf(inhabitant, type)))
+            .Where(x => x.Label is not null)
+            .Select(x => new SeenLabel { Type = x.Type, Label = x.Label! })
+            .ToList();
+        return labels.Count > 0 ? labels : null;
     }
 
     private Subject? About(string? targetId, string? knownType)
@@ -376,7 +404,7 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
     /// </summary>
     private List<KnowledgeEntry> Known(Inhabitant inhabitant, IReadOnlyList<string> seen)
     {
-        var known = (InhabitantStates.Of(inhabitant, _knowledge, seen, []).Knowledge ?? []).Take(KnowledgeMax).ToList();
+        var known = (InhabitantStates.Of(inhabitant, _knowledge, seen, [], null, _inhabitants.TypeLabelOf).Knowledge ?? []).Take(KnowledgeMax).ToList();
         var seenTypes = seen.ToHashSet(StringComparer.Ordinal);
         var visible = _knowledge.Looking?.VisibleProperties.ToHashSet(StringComparer.Ordinal) ?? [];
         known.AddRange(inhabitant.Beliefs.All
@@ -387,7 +415,7 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
             .ThenBy(b => b.TypeId, StringComparer.Ordinal)
             .ThenBy(b => b.PropertyId, StringComparer.Ordinal)
             .Take(KnowledgeMax - known.Count)
-            .Select(b => InhabitantStates.Entry(inhabitant, b.TypeId, b.PropertyId, b.Belief)));
+            .Select(b => InhabitantStates.Entry(inhabitant, b.TypeId, b.PropertyId, b.Belief, _inhabitants.TypeLabelOf)));
         return known;
     }
 

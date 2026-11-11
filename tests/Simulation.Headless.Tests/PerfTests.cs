@@ -41,6 +41,25 @@ public sealed class PerfTests
         Assert.Null(options.CsvPath);
         Assert.Equal(PerfOptions.DefaultRuntimeWarmupSeconds, options.RuntimeWarmupSeconds);
         Assert.Equal(0, options.AnswerEvery);
+
+        // As the running game: the requests are not validated (ADR-0009).
+        Assert.False(options.ValidateRequests);
+        Assert.True(PerfOptions.Parse(["--validate-requests"], () => "content-dir").ValidateRequests);
+    }
+
+    [Fact]
+    public void ValidatingTheRequestsChangesNoResult()
+    {
+        string[] run = ["--inhabitants", "12", "--ticks", "120", "--warmup-ticks", "20", "--runtime-warmup-seconds", "0", "--content", Content];
+        var game = PerfCommand.Measure(PerfOptions.Parse([.. run]));
+        var checkedRun = PerfCommand.Measure(PerfOptions.Parse([.. run, "--validate-requests"]));
+        Assert.Equal(game.Hash, checkedRun.Hash);
+        Assert.Equal((game.Requests, game.Answers), (checkedRun.Requests, checkedRun.Answers));
+        Assert.True(game.Requests > 0);
+        Assert.Equal((0, 0), (game.RejectedRequests, checkedRun.RejectedRequests));
+        Assert.Contains(" validate_requests=off ", PerfCommand.Lines(game), StringComparison.Ordinal);
+        Assert.Contains(" validate_requests=on ", PerfCommand.Lines(checkedRun), StringComparison.Ordinal);
+        Assert.Contains(" rejected=0", PerfCommand.Lines(game), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -99,7 +118,7 @@ public sealed class PerfTests
         var (code, text) = Perf("--inhabitants", "12", "--ticks", "90", "--warmup-ticks", "30", "--ai", "silent");
         Assert.Equal(ExitCodes.Ok, code);
         var lines = LinesOf(text);
-        Assert.StartsWith("PERF preset=start_island seed=1 inhabitants=12 decider=silent answer_every=0 ticks=90 warmup_ticks=30 measured_ticks=60 runtime_warmup_s=0 runtime_warmup_ticks=0 build=", lines[0], StringComparison.Ordinal);
+        Assert.StartsWith("PERF preset=start_island seed=1 inhabitants=12 decider=silent answer_every=0 validate_requests=off ticks=90 warmup_ticks=30 measured_ticks=60 runtime_warmup_s=0 runtime_warmup_ticks=0 build=", lines[0], StringComparison.Ordinal);
         var step = Assert.Single(lines, l => l.StartsWith("STEP ", StringComparison.Ordinal));
         Assert.Matches("^STEP mean_ms=[0-9.]+ median_ms=[0-9.]+ p95_ms=[0-9.]+ p99_ms=[0-9.]+ max_ms=[0-9.]+ max_tick=[0-9]+$", step);
         Assert.InRange(Value(step, "max_tick"), 30, 89);

@@ -312,23 +312,12 @@ public sealed class HttpJobPort : IJobPort, IDisposable
             return body;
         }
 
-        var message = string.Create(CultureInfo.InvariantCulture, $"AI service answered HTTP {status} without a valid error body.");
+        var message = ServiceErrors.WithoutValidBody(status, body);
         return status >= 500
             ? Synthesize(jobJson, ServiceErrorCode.Internal, message, retryable: true)
             : Synthesize(jobJson, ServiceErrorCode.Bad_request, message, retryable: false);
     }
 
-    private static string Synthesize(string jobJson, ServiceErrorCode code, string message, bool retryable)
-    {
-        var job = ContractSerializer.Deserialize<GenerationJob>(jobJson);
-        return ContractSerializer.Serialize(new ServiceError
-        {
-            ContractVersion = job.ContractVersion,
-            RequestId = job.RequestId,
-            Tick = job.Tick,
-            Code = code,
-            Message = message,
-            Retryable = retryable,
-        });
-    }
+    private static string Synthesize(string jobJson, ServiceErrorCode code, string message, bool retryable) =>
+        ServiceErrors.For(jobJson, code, message, retryable);
 }

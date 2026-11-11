@@ -275,6 +275,7 @@ public sealed class DecisionTests
         w.World.Run(3);
         var question = Assert.Single(w.Decisions.Open);
         Assert.NotNull(question.RetryAtTick);
+        Assert.Equal(ReplayNotes.ServiceError, Assert.Single(w.Decisions.Log.Entries, e => e.Kind == DecisionLogKind.Error).Note);
 
         w.World.Run(question.RetryAtTick!.Value - w.World.Tick + 1);
         Assert.Equal(2, w.Decisions.Log.Entries.Count(e => e.Kind == DecisionLogKind.Request));
@@ -297,7 +298,11 @@ public sealed class DecisionTests
         w.Objects.Spawn("blue_berry", new Position(2, 0));
         w.World.Run(3);
         Assert.Empty(w.Decisions.Open);
-        Assert.Contains(w.Inhabitants.Events, e => e.Kind == "question_failed");
+
+        // The service refused the request as invalid: that has its own name in the log and in the event (ADR-0009).
+        Assert.Contains(w.Inhabitants.Events, e => e.Kind == "question_failed" && e.Detail == ReplayNotes.RequestRejected);
+        Assert.Equal(ReplayNotes.RequestRejected, Assert.Single(w.Decisions.Log.Entries, e => e.Kind == DecisionLogKind.Error).Note);
+        Assert.Equal(1, w.Decisions.Log.CountOf(ReplayNotes.RequestRejected));
     }
 
     [Fact]
@@ -371,6 +376,37 @@ public sealed class DecisionTests
         Assert.Equal(("inh-000001", "Was ist das?"), (thought.InhabitantId, thought.Text));
     }
 
+    /// <summary>
+    /// Youth protection (B2466; TL #21181): the thought of a decision is the most frequent AI text the
+    /// player sees and had no content guard at all, neither in the service nor in the core. A thought the
+    /// guard does not allow is not shown; the decision itself is carried out as before.
+    /// </summary>
+    [Fact]
+    public void AThoughtTheContentGuardRefusesIsNotShownButTheDecisionStands()
+    {
+        using var rules = System.Text.Json.JsonDocument.Parse(File.ReadAllText(Path.Combine(TestData.Root, "content", "safety", "rules.json")));
+        var blocked = rules.RootElement.GetProperty("categories")[0].GetProperty("terms_de")[0].GetString()!;
+        var text = $"Ich denke an {blocked}.";
+        Assert.False(Content.Inventions.Guard.Check(text).Allowed);
+        var port = new ScriptedPort(request => ContractSerializer.Serialize(new DecisionResponse
+        {
+            ContractVersion = ContractInfo.Version,
+            RequestId = request.RequestId,
+            Tick = request.Tick,
+            OptionId = request.Options.First().OptionId,
+            Rationale = "x",
+            Thought = new Thought { Locale = Locale.De, Text = text },
+            Meta = new ResponseMeta { Source = ResponseMetaSource.Mock, Model = "mock", LatencyMs = 0, Attempts = 1 },
+        }));
+        var w = NewWorld(1, port);
+        w.Objects.Spawn("blue_berry", new Position(2, 0));
+        w.World.Run(3);
+
+        var events = w.Inhabitants.EventsSince(0);
+        Assert.DoesNotContain(events, e => e.Event.Kind == "thought");
+        Assert.Contains(events, e => e.Event.Kind == "question_answered");
+    }
+
     [Fact]
     public void RequestIdsAreDeterministicUuidV8()
     {
@@ -395,7 +431,11 @@ public sealed class DecisionTests
             Triggers = [],
             FallbackEnvironment = Settings.FallbackEnvironment,
         };
-        var decisions = new DecisionsSystem(settings, inhabitants, objects, Content.Actions, Content.Brain, Content.Vocabularies[VocabularyKind.Action], port, "de");
+        // The thought guard as the host sets it (SimulationHost.Assemble).
+        var decisions = new DecisionsSystem(settings, inhabitants, objects, Content.Actions, Content.Brain, Content.Vocabularies[VocabularyKind.Action], port, "de")
+        {
+            ThoughtGuard = Content.Inventions.Guard,
+        };
         world.Add(objects).Add(decisions).Add(inhabitants);
         inhabitants.SpawnStartInhabitants(world, [new Position(0, 0), new Position(500, 500), new Position(1000, 0), new Position(0, 1000)]);
         return (world, objects, inhabitants, decisions);
