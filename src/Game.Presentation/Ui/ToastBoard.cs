@@ -7,7 +7,8 @@ namespace GlassWorld.Presentation.Ui;
 /// <param name="Args">Placeholder values (<c>{name}</c> in the text).</param>
 /// <param name="Group">Hints of the same group are bundled; null = the text key is the group.</param>
 /// <param name="LookAt">Inhabitant the hint is about: the hint gets a "look" button, the only way an event moves the camera (TL #19976).</param>
-public sealed record ToastMessage(string TextKey, IReadOnlyDictionary<string, string> Args, string? Group, string? LookAt = null);
+/// <param name="ManyKey">Text key shown instead of a count when the hint bundles several ("wonders about several things"); null = text with count.</param>
+public sealed record ToastMessage(string TextKey, IReadOnlyDictionary<string, string> Args, string? Group, string? LookAt = null, string? ManyKey = null);
 
 /// <summary>A hint on screen.</summary>
 /// <param name="Id">Running number.</param>
@@ -63,7 +64,8 @@ public sealed class ToastBoard
     public void Push(ToastMessage message, bool fastForward)
     {
         ArgumentNullException.ThrowIfNull(message);
-        var bundle = fastForward || _waiting.Count >= _tokens.BundleAfterWaiting;
+        // A hint with a text for "several" is one hint per group at any speed (one per inhabitant, D705 A4).
+        var bundle = fastForward || _waiting.Count >= _tokens.BundleAfterWaiting || message.ManyKey is not null;
         if (bundle)
         {
             var same = _visible.Concat(_waiting).FirstOrDefault(e => GroupOf(e.Message) == GroupOf(message));
@@ -83,14 +85,16 @@ public sealed class ToastBoard
     /// <summary>Advances real time by <paramref name="seconds"/>; the hovered hint does not age.</summary>
     public void Advance(double seconds, long? hoveredId)
     {
+        // The age always runs (a settled hint leaves by it, review GW1 #220); only the end by lifetime
+        // is switched off by "hints stay until I close them".
+        foreach (var entry in _visible.Where(e => e.Id != hoveredId))
+        {
+            entry.Age += seconds;
+        }
+
         if (!Settings.UntilDismissed)
         {
             var lifetime = _tokens.MinSeconds * Math.Clamp(Settings.DurationFactor, 1, _tokens.MaxDurationFactor);
-            foreach (var entry in _visible.Where(e => e.Id != hoveredId))
-            {
-                entry.Age += seconds;
-            }
-
             if (_visible.RemoveAll(e => e.Age >= lifetime) > 0)
             {
                 Version++;
@@ -108,6 +112,31 @@ public sealed class ToastBoard
             Version++;
         }
 
+        Fill();
+    }
+
+    /// <summary>
+    /// Closes every hint that no longer holds (e.g. the question it points to is answered): a waiting one at
+    /// once, a shown one when it has been on screen for the tokens' <c>settled_min_seconds</c> - a question
+    /// answered within a tick must not make its hint flash (review GW1 #220).
+    /// </summary>
+    public void DismissWhere(Func<ToastMessage, bool> stale)
+    {
+        ArgumentNullException.ThrowIfNull(stale);
+        var removed = _visible.RemoveAll(e => e.Age >= _tokens.SettledMinSeconds && stale(e.Message));
+        var keep = _waiting.Where(e => !stale(e.Message)).ToList();
+        if (removed == 0 && keep.Count == _waiting.Count)
+        {
+            return;
+        }
+
+        _waiting.Clear();
+        foreach (var entry in keep)
+        {
+            _waiting.Enqueue(entry);
+        }
+
+        Version++;
         Fill();
     }
 

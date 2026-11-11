@@ -154,6 +154,21 @@ public sealed partial class InventionSystem : IWorldSystem, IOptionalWorldState,
     /// <inheritdoc/>
     public InventionInfo? Invention(string typeId) => _inventions.TryGetValue(typeId, out var record) ? InfoOf(record) : null;
 
+    /// <summary>
+    /// The name of an invention as far as one inhabitant knows it: its inventor does, and so does whoever
+    /// was told about the thing (a belief it heard; telling names it). Null for everybody else and for
+    /// content types. Used for the labels of remembered events; never the truth an inhabitant does not know.
+    /// </summary>
+    public LocalizedName? NameKnownTo(Inhabitant inhabitant, string typeId)
+    {
+        ArgumentNullException.ThrowIfNull(inhabitant);
+        ArgumentNullException.ThrowIfNull(typeId);
+        return _inventions.TryGetValue(typeId, out var record)
+            && (record.InhabitantId == inhabitant.Id || inhabitant.Beliefs.About(typeId).Any(b => b.Belief.Source == KnowledgeSources.Heard))
+            ? Parse(record).Name
+            : null;
+    }
+
     /// <summary>New skills an approved invention brings (B4b R11); empty for other types.</summary>
     public IReadOnlyList<NewAbility> AbilitiesOf(string typeId) =>
         _inventions.TryGetValue(typeId, out var record) ? [.. Parse(record).IntroducesAbilities ?? []] : [];
@@ -288,8 +303,7 @@ public sealed partial class InventionSystem : IWorldSystem, IOptionalWorldState,
         return new InventionInfo(record.TypeId, invention.Name, invention.Category, invention.Purpose, record.InhabitantId, record.Tick, file, decision?.Needed == true ? decision.Description : null);
     }
 
-    private static int SeedOf(string requestId) =>
-        (int)(BitConverter.ToUInt32(SHA256.HashData(Encoding.UTF8.GetBytes(requestId)), 0) & 0x7FFFFFFF);
+    private static int SeedOf(string requestId) => DecisionIds.SeedOf(requestId);
 
     private static bool IsRetryable(string json)
     {
@@ -398,7 +412,7 @@ public sealed partial class InventionSystem : IWorldSystem, IOptionalWorldState,
                     Trigger = InventionPayloadTrigger.Need,
                     Want = want,
                     Subject = null,
-                    Inhabitant = InhabitantStates.Of(inhabitant),
+                    Inhabitant = InhabitantStates.Of(inhabitant, null, [], [], _inhabitants.LabelOf),
                     Materials = materials,
                     TechLevel = settings.TechLevel,
                     Limits = new InventionLimits { MaxSizeM = settings.Limits.MaxSizeM, MaxParts = settings.Limits.MaxParts, MaxRounds = settings.Limits.MaxRounds },

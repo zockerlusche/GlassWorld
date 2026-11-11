@@ -440,12 +440,12 @@ public sealed class WeatherSightTests : IDisposable
     private static SimulationHost Island(ulong seed) =>
         SimulationHost.CreateGeneratedWorld(ContentDirectory, seed, new MockDecisionPort(), "de", Preset);
 
-    private static SimulationHost Restore(SaveState state) =>
+    private static SimulationHost Restore(SaveState state, IDecisionPort? port = null) =>
         StateCodec.Restore(
             new SimulationHostFactory(
                 Content.Value,
                 ContractSerializer.Deserialize<DeciderSettings>(File.ReadAllText(Path.Combine(ContentDirectory, "decider", "settings.json"))),
-                new MockDecisionPort(),
+                port ?? new MockDecisionPort(),
                 "de"),
             state);
 
@@ -453,7 +453,10 @@ public sealed class WeatherSightTests : IDisposable
     {
         var path = Path.Combine(_directory, file);
         SaveGameStore.Save(path, StateCodec.Capture(host));
-        var loaded = Restore(SaveGameStore.Load(path));
+        // The loaded world gets the answers the world that kept running got (as SaveGameTests replays the
+        // log): an answer under way at the save is not in the save, so with a new mock the comparison would
+        // depend on whether a question happened to be asked in the very tick before.
+        var loaded = Restore(SaveGameStore.Load(path), new FollowingPort(host.Decisions.Log));
         Assert.Equal(host.World.StateHash(), loaded.World.StateHash());
         return loaded;
     }
@@ -604,6 +607,22 @@ public sealed class WeatherSightTests : IDisposable
         }
 
         return target;
+    }
+
+    /// <summary>
+    /// Gives a loaded world the messages another world's log holds for the tick, read when asked: the other
+    /// world must have run that tick already (it is always stepped first here).
+    /// </summary>
+    private sealed class FollowingPort(DecisionLog log) : IDecisionPort
+    {
+        public void Send(string requestId, string requestJson)
+        {
+        }
+
+        public IReadOnlyList<PortMessage> Receive(long tick) =>
+            [.. log.Entries
+                .Where(e => e.Tick == tick && e.Kind is DecisionLogKind.Response or DecisionLogKind.Error or DecisionLogKind.Discarded)
+                .Select(e => new PortMessage(e.RequestId, e.Json, e.Kind == DecisionLogKind.Error && e.Note == ReplayNotes.ServiceError))];
     }
 
     /// <summary>A decider that keeps what it was asked and never answers.</summary>

@@ -13,7 +13,7 @@ namespace GlassWorld.Simulation.Decisions;
 /// <param name="InhabitantId">Who asks.</param>
 /// <param name="Kind">What was not understood (trigger kind).</param>
 /// <param name="Subject">Object id or subject key the question is about.</param>
-/// <param name="RequestId">Request sent to the decider.</param>
+/// <param name="RequestId">Request sent to the decider; empty for a question that waits for the compute night (trigger data: ask night) and was never sent.</param>
 /// <param name="AskedTick">Tick the question was asked.</param>
 /// <param name="Options">Options offered (option id → action, target), to check the answer against.</param>
 /// <param name="RetryAtTick">After a retryable error: tick at which the question is sent again (B2487).</param>
@@ -65,6 +65,19 @@ public sealed class DecisionsSystem : IWorldSystem
 
     /// <summary>Knowledge data (B4a): passing actions as options, knowledge and relationships in the request.</summary>
     public KnowledgeSettings? Knowledge { get; init; }
+
+    /// <summary>
+    /// Whether the compute night answers questions in this world (a job port and the night questions data;
+    /// set by the host). Only then a trigger with <c>ask: night</c> waits for the night; otherwise its
+    /// question goes to the decider at once, so nobody waits for an answer that cannot come.
+    /// </summary>
+    public bool NightAnswers { get; init; }
+
+    /// <summary>
+    /// Whether the compute night can answer questions of a trigger at all: it guesses about object types, so
+    /// only a trigger whose questions are about a type qualifies (checked when the world is assembled).
+    /// </summary>
+    public static bool NightCanAnswer(string kind) => string.Equals(kind, UnknownObject, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// The inhabitants' own name of an invented type (null for content types, which the data names); set by
@@ -216,7 +229,8 @@ public sealed class DecisionsSystem : IWorldSystem
     public void ResendPendingAfterLoad(World world)
     {
         ArgumentNullException.ThrowIfNull(world);
-        foreach (var question in _open.Values.Where(q => q.RetryAtTick is null).ToList())
+        // A question that waits for the night was never sent: nothing to send again.
+        foreach (var question in _open.Values.Where(q => q.RetryAtTick is null && q.RequestId.Length > 0).ToList())
         {
             _open[question.Id] = question with { RetryAtTick = world.Tick };
         }
@@ -344,9 +358,11 @@ public sealed class DecisionsSystem : IWorldSystem
             // options (approach, talk to, introduce ...) are the core's, the choice the decider's.
             // The nearest stranger (ties by id) it may ask about now: one cooling down or asked about
             // unknown_inhabitant_max_asks times already does not hide a second one (review GW3 #207).
+            // Nobody asks who a sleeper is (W1744): every answer would be an action on a sleeper, which the
+            // rule checker cancels; the question comes when the other is awake and in sight again.
             foreach (var inhabitant in _inhabitants.All)
             {
-                if (PerceivedInhabitants(inhabitant).FirstOrDefault(o => o.Name is not null && !inhabitant.KnownNames.Contains(o.Id)
+                if (PerceivedInhabitants(inhabitant).FirstOrDefault(o => o.Name is not null && !inhabitant.KnownNames.Contains(o.Id) && !_inhabitants.IsAsleep(o)
                     && MayAsk(world, inhabitant, InhabitantSubject + o.Id) && AsksAbout(inhabitant, o) < (_settings.UnknownInhabitantMaxAsks ?? int.MaxValue)) is { } stranger)
                 {
                     var subject = InhabitantSubject + stranger.Id;
@@ -397,6 +413,13 @@ public sealed class DecisionsSystem : IWorldSystem
         _settings.Triggers.Any(t => t.Enabled && string.Equals(t.Kind.ToString(), kind, StringComparison.OrdinalIgnoreCase));
 
     /// <summary>
+    /// A1487: whether a question of this trigger waits for the compute night (data: ask night) instead of
+    /// going to the decider now. Omitted or immediate = now, as before.
+    /// </summary>
+    private bool WaitsForNight(string kind) =>
+        NightAnswers && _settings.Triggers.Any(t => t.Enabled && t.Ask == TriggerAsk.Night && string.Equals(t.Kind.ToString(), kind, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>
     /// The nearest perceived object whose type the inhabitant has no belief about (ties by id). A single
     /// pass without sorting: this runs every tick for every inhabitant.
     /// </summary>
@@ -431,6 +454,13 @@ public sealed class DecisionsSystem : IWorldSystem
 
         return best;
     }
+
+    /// <summary>The object types the inhabitant perceives right now, nearest first, each once (W1737).</summary>
+    internal IReadOnlyList<string> PerceivedTypes(Inhabitant inhabitant) =>
+        [.. Perceived(inhabitant).Select(o => o.TypeId).Distinct(StringComparer.Ordinal)];
+
+    /// <summary>The type of a thing in the world by its id; null when there is no such thing (any more).</summary>
+    internal string? TypeOf(string objectId) => _objects.TryGet(objectId, out var thing) ? thing.TypeId : null;
 
     private List<WorldObject> Perceived(Inhabitant inhabitant)
     {
@@ -472,7 +502,12 @@ public sealed class DecisionsSystem : IWorldSystem
 
         _counter++;
         var questionId = string.Create(CultureInfo.InvariantCulture, $"q-{_counter:000000}");
-        var question = Send(world, inhabitant, questionId, kind, subject, target);
+
+        // A question that waits for the night opens with its question mark but asks nobody by day: no
+        // request, no options; the night's question job answers it (NightJobsSystem).
+        var question = WaitsForNight(kind)
+            ? new OpenQuestion(questionId, inhabitant.Id, kind, subject, string.Empty, world.Tick, [])
+            : Send(world, inhabitant, questionId, kind, subject, target);
         _open.Add(question.Id, question);
         _lastAsked[cooldownKey] = world.Tick;
         _inhabitants.Report(new WorldEvent("question_opened", world.Tick, inhabitant.Id, null, question.Id));
@@ -540,8 +575,9 @@ public sealed class DecisionsSystem : IWorldSystem
                     // Passing on knowledge (B4a R4): offered towards someone in sight when the asker knows
                     // something this action carries and the other has not experienced it. The naming action
                     // (W1698) only while the asker does not know the other's name; meeting actions (B4a R8)
-                    // while the conditions of their data hold.
-                    foreach (var other in PerceivedInhabitants(asker).Take(knowledge.RequestMaxInhabitants))
+                    // while the conditions of their data hold. Never towards a sleeper (W1744): the rule
+                    // checker would cancel the answer, an AI call for nothing.
+                    foreach (var other in PerceivedInhabitants(asker).Where(o => !_inhabitants.IsAsleep(o)).Take(knowledge.RequestMaxInhabitants))
                     {
                         if (InhabitantsSystem.HasPurpose(knowledge, asker, other, action) && !Rests(asker, action, other.Id, tick))
                         {
@@ -584,7 +620,7 @@ public sealed class DecisionsSystem : IWorldSystem
             Seed = seed,
             DeadlineMs = _settings.DeadlineMs,
             DisplayLocale = Enum.Parse<Locale>(_displayLocale, ignoreCase: true),
-            Inhabitant = InhabitantStates.Of(inhabitant, Knowledge, Perceived(inhabitant).Select(o => o.TypeId), PerceivedInhabitants(inhabitant).Select(i => i.Id)),
+            Inhabitant = InhabitantStates.Of(inhabitant, Knowledge, Perceived(inhabitant).Select(o => o.TypeId), PerceivedInhabitants(inhabitant).Select(i => i.Id), _inhabitants.LabelOf),
             Environment = new EnvironmentState
             {
                 TimeOfDay = world.Now.Phase.ToString().ToLowerInvariant(),
@@ -740,6 +776,24 @@ public sealed class DecisionsSystem : IWorldSystem
         {
             return false;
         }
+    }
+
+    /// <summary>
+    /// Settles an open question that was answered another way than by the decider (the compute night's guess,
+    /// B7): it closes as answered, with <paramref name="reason"/> as the event's detail. An answer of the
+    /// decider that comes later is dropped like every answer to a closed question. False if it is not open.
+    /// </summary>
+    public bool Settle(World world, string questionId, string reason)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(questionId);
+        if (!_open.TryGetValue(questionId, out var question))
+        {
+            return false;
+        }
+
+        Close(world, question, "question_answered", reason);
+        return true;
     }
 
     private void Close(World world, OpenQuestion? question, string eventKind, string? reason = null)

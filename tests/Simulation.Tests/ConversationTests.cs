@@ -252,6 +252,127 @@ public sealed class ConversationTests : IDisposable
         Assert.Equal(host.World.StateHash(), loaded.World.StateHash());
     }
 
+    [Fact]
+    public void TheRequestSaysWhatTheSpeakerDoesKnowsAndSees()
+    {
+        // W1737 (Marcel: inhabitants invented activities like reading a book): the request carries the
+        // running action with its thing and start, the beliefs and the types in sight - beliefs, never the truth.
+        // The action looked for is one on a thing: since W1744 the routine also talks to a partner.
+        var (host, _) = Host();
+        var port = new CapturePort();
+        host.Conversation.Port = port;
+        Inhabitant? busy = null;
+        for (var i = 0; i < 2000 && busy is null; i++)
+        {
+            host.World.Run(1);
+            busy = host.Inhabitants.All.OrderBy(x => x.Id, StringComparer.Ordinal)
+                .FirstOrDefault(x => x.Activity is { RemainingTicks: >= 5, TargetId: { } target } && host.Objects.TryGet(target, out _));
+        }
+
+        Assert.NotNull(busy);
+        var activity = busy.Activity!;
+        var entry = host.Diary.Of(busy.Id)[^1];
+        Say(host, busy.Id, "Was machst du?");
+        host.World.Run(1); // the sentence is taken up in the next tick; the action is still running then
+        var json = Assert.Single(port.Requests);
+        Assert.Empty(ContractValidator.Validate("conversation-request", json));
+        var speaker = ContractSerializer.Deserialize<ConversationRequest>(json).Speaker;
+
+        Assert.NotNull(speaker.Doing);
+        Assert.Equal(activity.Action, speaker.Doing.Action);
+        Assert.Equal(entry.Tick, speaker.Doing.SinceTick);
+        Assert.True(speaker.Doing.SinceTick <= host.World.Tick);
+        Assert.Equal(SubjectKind.Type, speaker.Doing.Target!.Kind);
+        Assert.Equal(entry.TargetType, speaker.Doing.Target.Id);
+
+        var sees = speaker.Sees!.ToList();
+        Assert.NotEmpty(sees);
+        Assert.Equal(sees.Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal), sees);
+        Assert.True(sees.Count <= 16);
+
+        var known = speaker.Knowledge!.ToList();
+        Assert.True(known.Count <= 24);
+        Assert.All(known, k =>
+        {
+            Assert.True(busy.Beliefs.TryGet(k.Subject.Id, k.Property, out var belief));
+            Assert.Equal(belief.Value, k.Value);
+            Assert.Equal(belief.Confidence, k.Confidence, 9);
+        });
+
+        // First what it sees, then the rest, newest first.
+        var seenTypes = sees.ToHashSet(StringComparer.Ordinal);
+        var rest = known.SkipWhile(k => seenTypes.Contains(k.Subject.Id)).ToList();
+        Assert.DoesNotContain(rest, k => seenTypes.Contains(k.Subject.Id));
+        Assert.Equal(rest.OrderByDescending(k => k.Tick).Select(k => k.Tick), rest.Select(k => k.Tick));
+    }
+
+    [Fact]
+    public void ASpeakerDoingNothingSaysSoAndOneOnItsWayHasJustSetOut()
+    {
+        // The sentence is taken up one tick after it was sent, so each case is only judged when the speaker
+        // is still in the same state then.
+        var (host, _) = Host();
+        var port = new CapturePort();
+        host.Conversation.Port = port;
+        var sawIdle = false;
+        var sawWalking = false;
+        for (var i = 0; i < 6000 && !(sawIdle && sawWalking); i++)
+        {
+            host.World.Run(1);
+            var all = host.Inhabitants.All.OrderBy(x => x.Id, StringComparer.Ordinal).ToList();
+            var idle = sawIdle ? null : all.FirstOrDefault(x => x.Activity is null && !host.Conversation.IsWaiting(x.Id));
+            var walking = sawWalking ? null : all.FirstOrDefault(x => x != idle && x.Activity is { RemainingTicks: null } && !host.Conversation.IsWaiting(x.Id));
+            var asked = host.World.Tick;
+            var action = walking?.Activity!.Action;
+            var sent = port.Requests.Count;
+            if (idle is not null)
+            {
+                Say(host, idle.Id, "Hallo");
+            }
+
+            if (walking is not null)
+            {
+                Say(host, walking.Id, "Wohin gehst du?");
+            }
+
+            if (idle is null && walking is null)
+            {
+                continue;
+            }
+
+            host.World.Run(1);
+            foreach (var json in port.Requests.Skip(sent))
+            {
+                var speaker = ContractSerializer.Deserialize<ConversationRequest>(json).Speaker;
+                if (idle is not null && speaker.Id == idle.Id && idle.Activity is null)
+                {
+                    Assert.Null(speaker.Doing);
+                    sawIdle = true;
+                }
+
+                if (walking is not null && speaker.Id == walking.Id && walking.Activity is { RemainingTicks: null } still && still.Action == action)
+                {
+                    Assert.NotNull(speaker.Doing);
+                    Assert.Equal(action, speaker.Doing.Action);
+                    Assert.True(speaker.Doing.SinceTick >= asked, $"since {speaker.Doing.SinceTick}, asked at {asked}");
+                    sawWalking = true;
+                }
+            }
+        }
+
+        Assert.True(sawWalking, "no inhabitant was asked on its way");
+    }
+
+    /// <summary>Keeps the requests and never answers.</summary>
+    private sealed class CapturePort : IConversationPort
+    {
+        public List<string> Requests { get; } = [];
+
+        public void Send(string requestId, string requestJson) => Requests.Add(requestJson);
+
+        public IReadOnlyList<PortMessage> Receive(long tick) => [];
+    }
+
     private static (SimulationHost Host, string Id) Host()
     {
         var host = SimulationHost.CreatePlaceholderWorld(ContentDirectory, 1, new MockDecisionPort(), "de");

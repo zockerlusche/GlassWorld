@@ -106,6 +106,38 @@
         },
         "relation_to_player": {
           "$ref": "#/$defs/RelationToPlayer"
+        },
+        "doing": {
+          "description": "What the speaker is doing right now (Marcel W1737): its current action, and the next planned step. Null while it does nothing. The service tells the model, so the answer fits what the inhabitant really does. Optional: absent = not sent (older cores).",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ConversationDoing"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "knowledge": {
+          "description": "What the speaker believes (W1737), the same selection as in the decision request: about what it sees first, then the newest. Only beliefs, never the truth. Optional.",
+          "type": "array",
+          "maxItems": 24,
+          "items": {
+            "$ref": "common.schema.json#/$defs/KnowledgeEntry"
+          }
+        },
+        "sees": {
+          "description": "Object types the speaker sees right now (W1737), sorted, each once. Optional.",
+          "type": "array",
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          }
+        },
+        "memory": {
+          "description": "The speaker's memory (B4a R5), the same as in the decision request: its summary and its latest remembered events. Optional: absent = not sent (older cores).",
+          "$ref": "common.schema.json#/$defs/Memory"
         }
       }
     },
@@ -168,6 +200,74 @@
         },
         "text": {
           "$ref": "common.schema.json#/$defs/GeneratedText"
+        }
+      }
+    },
+    "ConversationDoing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action",
+        "target",
+        "since_tick",
+        "planned"
+      ],
+      "properties": {
+        "action": {
+          "description": "Action id (vocabulary action).",
+          "allOf": [
+            {
+              "$ref": "common.schema.json#/$defs/VocabId"
+            }
+          ]
+        },
+        "target": {
+          "description": "What the action is about, as the speaker knows it (type, object or inhabitant); null if none.",
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/Subject"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "since_tick": {
+          "$ref": "common.schema.json#/$defs/Tick"
+        },
+        "planned": {
+          "description": "The next step it has planned, or null.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ConversationStep"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "ConversationStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action",
+        "target"
+      ],
+      "properties": {
+        "action": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "target": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/Subject"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
     }

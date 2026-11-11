@@ -49,6 +49,34 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("relation_to_player")]
         public RelationToPlayer RelationToPlayer { get; set; } = new RelationToPlayer();
 
+        /// <summary>
+        /// What the speaker is doing right now (Marcel W1737): its current action, and the next planned step. Null while it does nothing. The service tells the model, so the answer fits what the inhabitant really does. Optional: absent = not sent (older cores).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("doing")]
+        public ConversationDoing? Doing { get; set; } = default!;
+
+        /// <summary>
+        /// What the speaker believes (W1737), the same selection as in the decision request: about what it sees first, then the newest. Only beliefs, never the truth. Optional.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("knowledge")]
+        public System.Collections.Generic.ICollection<KnowledgeEntry>? Knowledge { get; set; } = default!;
+
+        /// <summary>
+        /// Object types the speaker sees right now (W1737), sorted, each once. Optional.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("sees")]
+        public System.Collections.Generic.ICollection<string>? Sees { get; set; } = default!;
+
+        /// <summary>
+        /// The speaker's memory (B4a R5), the same as in the decision request: its summary and its latest remembered events. Optional: absent = not sent (older cores).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("memory")]
+        public Memory? Memory { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -97,6 +125,45 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("text")]
         public GeneratedText Text { get; set; } = new GeneratedText();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ConversationDoing
+    {
+
+        /// <summary>
+        /// Action id (vocabulary action).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("action")]
+        public string Action { get; set; } = default!;
+
+        /// <summary>
+        /// What the action is about, as the speaker knows it (type, object or inhabitant); null if none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("target")]
+        public Subject? Target { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("since_tick")]
+        public long SinceTick { get; set; } = default!;
+
+        /// <summary>
+        /// The next step it has planned, or null.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("planned")]
+        public ConversationStep? Planned { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ConversationStep
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("action")]
+        public string Action { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("target")]
+        public Subject? Target { get; set; } = default!;
 
     }
 

@@ -58,15 +58,29 @@ def build_values(job: GenerationJob, template: PromptTemplate) -> dict[str, str]
     payload = memory_payload(job)
     settings = template.settings
     lines: list[str] = []
-    for event in sorted(payload.events, key=lambda e: (e.tick, plain_id(e.kind))):
-        about = f" ({subject_name(event.about, settings)})" if event.about is not None else ""
-        mark = " - FORMATIVE, keep it" if event.formative else ""
-        lines.append(f"- [tick {event.tick}] {humanize(plain_id(event.kind))}{about}{mark}")
+    ordered = sorted(payload.events, key=lambda e: (e.tick, plain_id(e.kind)))
+    # v2: what happened at one tick shares one line - ticks are the ids of "kept", and two lines
+    # with the same tick made the model name it twice and leave another out (run L838).
+    per_tick = bool(cast(dict[str, Any], settings.get("events", {})).get("one_line_per_tick"))
+    groups: dict[Any, list[Any]] = {}
+    for n, event in enumerate(ordered):
+        groups.setdefault(event.tick if per_tick else n, []).append(event)
+    for events in groups.values():
+        parts = [
+            humanize(plain_id(e.kind))
+            + (f" ({subject_name(e.about, settings)})" if e.about is not None else "")
+            for e in events
+        ]
+        mark = " - FORMATIVE, keep it" if any(e.formative for e in events) else ""
+        lines.append(f"- [tick {events[0].tick}] {'; '.join(parts)}{mark}")
+    formative = formative_ticks(job)
     summary = payload.summary.strip()
     return {
         "summary": quote(summary) if summary else "(nothing yet)",
         "events": "\n".join(lines),
         "max_chars": str(payload.max_chars),
+        "formative": ", ".join(str(tick) for tick in formative) or "(none)",
+        "formative_count": str(len(formative)),
     }
 
 
@@ -98,6 +112,12 @@ def parse_condensed(raw: str, schema: dict[str, Any], formative: list[int]) -> C
         data: Any = json.loads(raw)
     except json.JSONDecodeError as error:
         raise InvalidOutputError(f"not JSON: {error.msg}") from error
+    if isinstance(data, dict) and isinstance(cast(dict[str, Any], data).get("kept"), list):
+        # Ticks are the ids, and the core may send several events of one tick (seen with jobs from
+        # the real core, review of #227): the model then names that tick once per event. "kept" is
+        # a set of ticks, so a repeated tick is the same answer, not a wrong one.
+        values_in = cast(dict[str, Any], data)
+        values_in["kept"] = list(dict.fromkeys(cast(list[Any], values_in["kept"])))
     errors = sorted(Draft202012Validator(schema).iter_errors(data), key=lambda e: list(e.path))
     if errors:
         first = errors[0]

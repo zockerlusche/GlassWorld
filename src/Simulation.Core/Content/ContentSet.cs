@@ -142,13 +142,17 @@ public sealed class ContentSet
             throw new InvalidDataException($"Inhabitant model: diary.left_out_actions names unknown action '{unknownAction}'.");
         }
 
+        CheckComfortZone(model.ComfortZone, needs, actionIds);
+
         var actions = ActionRules.Create(
             Files(contentDirectory, "effects").Select(f => ContractSerializer.Deserialize<ActionEffects>(File.ReadAllText(f))),
             objects,
             Required(vocabularies, VocabularyKind.Action),
             needs,
             moods,
-            calendar.Settings.TicksPerHour);
+            calendar.Settings.TicksPerHour,
+            Ids(vocabularies, VocabularyKind.Event));
+        var knowledge = LoadKnowledge(contentDirectory, vocabularies, objects, actions, model);
         var brain = new UtilityBrain(
             ContractSerializer.Deserialize<UtilityWeights>(File.ReadAllText(Path.Combine(contentDirectory, "behaviour", "utility.json"))),
             actions,
@@ -156,8 +160,17 @@ public sealed class ContentSet
             objects.PropertyVocabulary,
             Required(vocabularies, VocabularyKind.Action).Entries.Where(e => (e.Target ?? VocabularyEntryTarget.None) == VocabularyEntryTarget.None).Select(e => e.Id).ToFrozenSet(StringComparer.Ordinal),
             Ids(vocabularies, VocabularyKind.Trait),
-            model.Needs.Where(n => n.NeglectBelow > 0).ToFrozenDictionary(n => n.Id, n => n.NeglectBelow, StringComparer.Ordinal));
-        var worldGen = WorldGenContent.Load(contentDirectory, vocabularies, objects, calendar);
+            model.Needs.Where(n => n.NeglectBelow > 0).ToFrozenDictionary(n => n.Id, n => n.NeglectBelow, StringComparer.Ordinal),
+            Familiarity.From(model.Togetherness, knowledge.RelationshipStart),
+            Required(vocabularies, VocabularyKind.Action).Entries.Where(e => e.Target == VocabularyEntryTarget.Inhabitant).Select(e => e.Id).ToFrozenSet(StringComparer.Ordinal));
+        if (brain.AimsAtInhabitants && brain.Familiarity is null)
+        {
+            // Who is familiar and who is asleep is defined once, by togetherness (W1744).
+            throw new InvalidDataException("Utility weights: a consideration with target_inhabitant needs the togetherness section of the inhabitant model.");
+        }
+
+        var gaits = ContractSerializer.Deserialize<GaitSettings>(File.ReadAllText(Path.Combine(contentDirectory, "behaviour", "gaits.json")));
+        var worldGen = WorldGenContent.Load(contentDirectory, vocabularies, objects, calendar, gaits.Spacing?.MinSeparationM ?? 0);
         var inventionSettings = ContractSerializer.Deserialize<InventionSettings>(File.ReadAllText(Path.Combine(contentDirectory, "invention", "settings.json")));
         var inventions = new InventionRules(
             inventionSettings,
@@ -212,11 +225,11 @@ public sealed class ContentSet
                 Ids(vocabularies, VocabularyKind.Biome),
                 [.. inventions.TechLevels]),
             Gaits = GaitTable.Create(
-                ContractSerializer.Deserialize<GaitSettings>(File.ReadAllText(Path.Combine(contentDirectory, "behaviour", "gaits.json"))),
+                gaits,
                 Ids(vocabularies, VocabularyKind.Action),
                 brain.Weights,
                 model),
-            Knowledge = LoadKnowledge(contentDirectory, vocabularies, objects, actions, model),
+            Knowledge = knowledge,
             EventKinds = Required(vocabularies, VocabularyKind.Event).Entries.Select(e => e.Id).ToFrozenSet(StringComparer.Ordinal),
             InhabitantNames = LoadNames(contentDirectory),
             LookEpochs = LoadLookEpochs(contentDirectory, Ids(vocabularies, VocabularyKind.Epoch), inventions.TechLevels.Count),
@@ -370,6 +383,7 @@ public sealed class ContentSet
         }
 
         problems.AddRange(SocialProblems(data, actions, effects, model));
+        problems.AddRange(MemoryProblems(data, actions, Ids(vocabularies, VocabularyKind.Event), model));
 
         if (problems.Count > 0)
         {
@@ -377,6 +391,74 @@ public sealed class ContentSet
         }
 
         return data;
+    }
+
+    /// <summary>
+    /// Memory and night questions (B4a R5, B7): the limits fit each other and the job contract; every
+    /// remembered event names a known event, known actions and, for an effect, a known need or mood with a
+    /// bound; a trigger is listed for at most one question.
+    /// </summary>
+    private static IEnumerable<string> MemoryProblems(KnowledgeSettings data, Dictionary<string, VocabularyEntry> actions, HashSet<string> events, InhabitantModel model)
+    {
+        foreach (var twice in (data.NightQuestions?.Questions ?? []).GroupBy(q => q.Trigger).Where(g => g.Count() > 1))
+        {
+            yield return $"night_questions lists trigger '{twice.Key.ToString().ToLowerInvariant()}' twice";
+        }
+
+        if (data.Memory is not { } memory)
+        {
+            yield break;
+        }
+
+        if (memory.JobMaxFormative > memory.JobMaxEvents)
+        {
+            yield return "memory.job_max_formative is above job_max_events";
+        }
+
+        if (memory.MaxEvents < memory.CondenseAt)
+        {
+            yield return "memory.max_events is below condense_at (the memory would never be condensed)";
+        }
+
+        foreach (var entry in memory.Events)
+        {
+            if (!events.Contains(entry.Event))
+            {
+                yield return $"memory event '{entry.Event}' is not in vocabulary 'event'";
+            }
+
+            if (entry.Kind is not null && entry.ActionAsKind == true)
+            {
+                yield return $"memory event '{entry.Event}' has both kind and action_as_kind";
+            }
+
+            foreach (var action in (entry.LeftOutActions ?? []).Where(a => !actions.ContainsKey(a)))
+            {
+                yield return $"memory event '{entry.Event}' leaves out unknown action '{action}'";
+            }
+
+            foreach (var outcome in (entry.EverydayOutcomes ?? []).Where(o => !Inhabitants.ActionOutcomes.All.Contains(o, StringComparer.Ordinal)))
+            {
+                yield return $"memory event '{entry.Event}' names unknown outcome '{outcome}' in everyday_outcomes";
+            }
+
+            if (entry.Effect is not { } effect)
+            {
+                continue;
+            }
+
+            if (effect.DeltaAtMost is null && effect.DeltaAtLeast is null)
+            {
+                yield return $"memory event '{entry.Event}' has an effect without delta_at_most or delta_at_least";
+            }
+
+            if (effect.Id is { } id
+                && ((effect.Kind == KnowledgeMemoryEffectKind.Need && !model.Needs.Any(n => n.Id == id))
+                    || (effect.Kind == KnowledgeMemoryEffectKind.Mood && !model.Moods.Any(m => m.Id == id))))
+            {
+                yield return $"memory event '{entry.Event}' names unknown {effect.Kind.ToString().ToLowerInvariant()} '{id}'";
+            }
+        }
     }
 
     /// <summary>
@@ -589,6 +671,34 @@ public sealed class ContentSet
         if (unknown.Count > 0 || badRanges.Count > 0)
         {
             throw new InvalidDataException($"Inhabitant model: unknown ids [{string.Join(", ", unknown)}], min > max for [{string.Join(", ", badRanges)}].");
+        }
+    }
+
+    /// <summary>The comfort zone names a known need and known actions (each once), and its zone is not upside down.</summary>
+    private static void CheckComfortZone(ComfortZone? comfort, HashSet<string> needs, HashSet<string> actions)
+    {
+        if (comfort is null)
+        {
+            return;
+        }
+
+        var problems = new List<string>();
+        if (!needs.Contains(comfort.Need))
+        {
+            problems.Add($"unknown need '{comfort.Need}'");
+        }
+
+        if (comfort.MinTenthC > comfort.MaxTenthC)
+        {
+            problems.Add($"min_tenth_c {comfort.MinTenthC} is above max_tenth_c {comfort.MaxTenthC}");
+        }
+
+        var factors = (comfort.ActionFactors ?? []).Select(f => f.Action).ToList();
+        problems.AddRange(factors.Where(a => !actions.Contains(a)).Select(a => $"action_factors names unknown action '{a}'"));
+        problems.AddRange(factors.GroupBy(a => a, StringComparer.Ordinal).Where(g => g.Count() > 1).Select(g => $"action_factors names action '{g.Key}' twice"));
+        if (problems.Count > 0)
+        {
+            throw new InvalidDataException("Inhabitant model: comfort_zone: " + string.Join("; ", problems) + ".");
         }
     }
 

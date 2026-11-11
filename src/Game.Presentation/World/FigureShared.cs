@@ -37,6 +37,9 @@ public sealed class FigureShared
     /// <summary>The one chooser of the scene.</summary>
     public AnimationChooser Chooser { get; }
 
+    /// <summary>Whether the figures get the ink outline of the quality level (<see cref="QualityPlan.HullOutline"/>; the figure look data can still switch it off).</summary>
+    public bool HullOutline { get; init; } = true;
+
     /// <summary>The scene's pose gate: one figure changes its pose per frame (W1697).</summary>
     public PoseGate Gate { get; }
 

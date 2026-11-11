@@ -15,12 +15,13 @@ namespace GlassWorld.Game.World;
 /// tool (B2 R32: every point × projection × phase, and the epochs, seasons and weather it lists, from
 /// <c>content/look/shots.json</c>, see <see cref="ShotPlan"/>, then quits; <c>--shot-set=NAME</c> takes
 /// <c>content/look/shots_NAME.json</c> instead, e.g. <c>dimensions</c>: epochs × seasons × weather; the world
-/// pauses while a shot is pending and a point with an inhabitant follows that figure);
+/// pauses while a shot is pending and a point with an inhabitant follows that figure; <c>clouds</c>: the
+/// cloud cover over unseen land, R25);
 /// <c>--follow=POINT</c> follows the inhabitant of a shot point with its yaw and distance while the world runs
 /// (with Godot's <c>--write-movie</c> and <c>--fixed-fps</c> a repeatable clip); <c>--speed=F</c> is the time
 /// factor, <c>--warm-ticks=N</c> runs the world N ticks before the first picture;
 /// <c>--check</c> prints <c>ISLAND_OK …</c> for the smoke run and quits; <c>--quality=ID</c> picks a quality
-/// level of <c>content/look/quality.json</c>; <c>--benchmark=CSV</c> runs the FPS benchmark (B2-7, see
+/// level of <c>content/look/quality.json</c> (grass, shadows, outline; see <see cref="QualityPlan"/>); <c>--benchmark=CSV</c> runs the FPS benchmark (B2-7, see
 /// <c>IslandScene.Benchmark.cs</c>). Presentation only.
 /// </summary>
 public partial class IslandScene : Node3D
@@ -30,6 +31,7 @@ public partial class IslandScene : Node3D
     private DirectionalLight3D _sun = null!;
     private WorldEnvironment _environment = null!;
     private LookDaylight _daylight = null!;
+    private QualityPlan _quality = null!;
     private LookShots _shots = null!;
     private string? _shotDirectory;
     private bool _check;
@@ -40,6 +42,7 @@ public partial class IslandScene : Node3D
     private string? _epoch;
     private GlassWorld.Simulation.Map.TideReading? _tide;
     private GrassView? _grass;
+    private CloudCover? _cover;
     private string _season = string.Empty;
     private Func<double, double, double> _heightAt = (_, _) => 0;
     private readonly Dictionary<string, DaylightMix> _phases = new(StringComparer.Ordinal);
@@ -111,13 +114,19 @@ public partial class IslandScene : Node3D
         _sun = new DirectionalLight3D { Name = "Sun" };
         AddChild(_sun);
         DaylightLook.ApplyRendering(_daylight, _sun, _environment.Environment);
+
+        // The quality level (B2-7 R30): grass, the sun's shadow and the ink outline.
+        var qualityData = Look<LookQuality>("quality.json");
+        _quality = QualityPlan.From(qualityData, Arg("--quality"));
+        QualityLook.Apply(_quality, _sun);
+        GD.Print($"ISLAND_QUALITY seed={seed} {_quality.Describe()}");
         ApplyPhase("day");
 
         // Figures of the inhabitants (B2-4): appearance from the core, clips from the library.
         var figuresLook = Look<LookFigures>("figures.json");
         var appearanceLook = Look<LookAppearance>("appearance.json");
         var library = ContractSerializer.Deserialize<AnimationLibrary>(File.ReadAllText(Path.Combine(content, "animation", "library.json")));
-        var shared = new FigureShared(library, figuresLook, time, speed);
+        var shared = new FigureShared(library, figuresLook, time, speed) { HullOutline = _quality.HullOutline };
         var ground = island.Map;
         var terrain = view.Look;
         foreach (var inhabitant in host.Snapshot().Inhabitants)
@@ -155,11 +164,10 @@ public partial class IslandScene : Node3D
         _nature = NatureLook.Create(content, palette);
         var (grass, otherDecor) = GrassPlan.Split(decor, _nature.Data.Grass);
         Func<double, double, double> groundAt = (x, z) => IslandView.GroundHeight(ground, terrain, x, z);
-        _objects = ObjectsView.Create(objectLooks, palette, groundAt, otherDecor, _nature.Season.Slots, TerrainMesher.StreamSources(ground, terrain));
+        _objects = ObjectsView.Create(objectLooks, palette, groundAt, otherDecor, _nature.Season.Slots, TerrainMesher.StreamSources(ground, terrain), _quality.HullOutline);
         AddChild(_objects);
         _objects.Refresh(host.Snapshot().Objects);
-        var quality = GrassPlan.Level(Look<LookQuality>("quality.json"), Arg("--quality"));
-        _grass = GrassView.Create(_objects, grass, groundAt, _nature.Data.Grass, quality);
+        _grass = GrassView.Create(_objects, grass, groundAt, _nature.Data.Grass, _quality.Level);
         AddChild(_grass);
         AddChild(_nature);
         ApplyPhase("day");
@@ -168,6 +176,14 @@ public partial class IslandScene : Node3D
         // The camera target follows the ground, but never sinks below the sea surface.
         var seaLevel = host.Content.WorldGen.Presets[preset].Terrain.SeaLevel * terrain.UnitM;
         _heightAt = (x, z) => Math.Max(seaLevel, IslandView.GroundHeight(ground, terrain, x, z));
+
+        // Cloud cover over what the player has not seen yet (B2-6 R25); what is seen by now is clear at once.
+        if (host.Exploration is { } exploration)
+        {
+            bool IsLand(int x, int z) => IslandView.GroundHeight(ground, terrain, (x + 0.5) * terrain.CellM, (z + 0.5) * terrain.CellM) > seaLevel;
+            _cover = CloudCover.Create(exploration, IsLand, _nature.Data.Cover, palette, terrain.CellM, host.Content.WorldGen.Presets[preset].Exploration?.RevealRealSeconds ?? 0, _nature.Wind.DirectionX, _nature.Wind.DirectionZ);
+            AddChild(_cover);
+        }
         _rig = CameraRig.Create(Look<LookCamera>("camera.json"), _width, _depth, () => _figures.Values.Select(f => (f.InhabitantId, f.Position)), (x, z) => Math.Max(seaLevel, IslandView.GroundHeight(ground, terrain, x, z)));
         _rig.FindFigure = id => _figures.TryGetValue(id, out var f) ? f.Position : null;
         AddChild(_rig);
@@ -186,14 +202,29 @@ public partial class IslandScene : Node3D
         {
             // 100 placeholder figures for the presentation only, the camera path and the passes (B2-7).
             var templates = host.Snapshot().Inhabitants.Where(i => i.Appearance is not null).OrderBy(i => i.Id, StringComparer.Ordinal).ToList();
-            BuildBenchmark(benchmark, Arg("--benchmark")!, Arg, args, seed, quality.Id, templates, shared, library, (x, z) => IslandView.GroundHeight(ground, terrain, x, z), seaLevel, palette.Seasons.Select(s => s.Season).ToHashSet(StringComparer.Ordinal), figure => FigureSpec.From(figure.Appearance!, figure.Sex, figuresLook, appearanceLook));
+            BuildBenchmark(benchmark, Arg("--benchmark")!, Arg, args, seed, _quality.Level.Id, templates, shared, library, (x, z) => IslandView.GroundHeight(ground, terrain, x, z), seaLevel, palette.Seasons.Select(s => s.Season).ToHashSet(StringComparer.Ordinal), figure => FigureSpec.From(figure.Appearance!, figure.Sex, figuresLook, appearanceLook));
         }
 
         if (_check)
         {
             GD.Print($"ISLAND_OK seed={seed} chunks={view.GroundChunks} ground_triangles={view.GroundTriangles} water_triangles={view.WaterTriangles} figures={_figures.Count} objects={_objects!.Drawn} decor={decor.Count}");
             GD.Print($"ISLAND_NATURE seed={seed} grass_plants={_grass.Plants} grass_layers={_grass.Layers} season_colors={_nature.Season.Slots.Ids.Count} weather_looks={_nature.WeatherWithLook.Count}");
+            GD.Print(_cover is null ? $"ISLAND_COVER seed={seed} none" : $"ISLAND_COVER seed={seed} cells={_cover.Map.Width}x{_cover.Map.Depth} version={_cover.Map.Version} seen_permille={(int)(_cover.Map.SeenShare * 1000)}");
             GD.Print($"ISLAND_LOD seed={seed} ground={string.Join(",", view.LevelTriangles.Select(l => $"{l.CellStep}:{l.Ground}"))} water={view.WaterTriangles}");
+
+            // What the quality level left in the scene, read back from the nodes (not from the plan).
+            GD.Print(string.Create(CultureInfo.InvariantCulture, $"ISLAND_QUALITY_STATE seed={seed} sun_shadow={(_sun.ShadowEnabled ? 1 : 0)} shadow_mode={(int)_sun.DirectionalShadowMode} shadow_distance_m={_sun.DirectionalShadowMaxDistance:0.#} hull_meshes={HullMeshes()}"));
+
+            // Every level of the data on this sun by day, one after the other (as a switch at runtime
+            // would): a level without shadows must leave the light's shadow off, the others on.
+            var day = DaylightMix.Of(_daylight, "day");
+            foreach (var level in qualityData.Levels)
+            {
+                var plan = QualityPlan.From(qualityData, level.Id);
+                QualityLook.Apply(plan, _sun);
+                DaylightLook.Apply(_daylight, plan.Light(day), _sun, _environment.Environment);
+                GD.Print(string.Create(CultureInfo.InvariantCulture, $"ISLAND_QUALITY_LEVEL seed={seed} {plan.Describe()} sun_shadow={(_sun.ShadowEnabled ? 1 : 0)} shadow_mode={(int)_sun.DirectionalShadowMode} shadow_distance_m={_sun.DirectionalShadowMaxDistance:0.#}"));
+            }
             GetTree().Quit(view.GroundChunks == island.Map.ChunksX * island.Map.ChunksZ && view.GroundTriangles > 0 && view.WaterTriangles > 0 && _figures.Count == host.Inhabitants.All.Count() ? 0 : 1);
             return;
         }
@@ -230,6 +261,7 @@ public partial class IslandScene : Node3D
                 var time = _host.World.Calendar;
                 _view?.FollowTide(_tide, delta);
                 _nature.Follow(_season, _epoch, _weather, delta, Focus(_rig.Model.Target.X, _rig.Model.Target.Z), _ticksPerSecond * time.RealSecondsPerTickAtNormalSpeed, time.RealSecondsPerTickAtNormalSpeed * time.Settings.TicksPerHour / 60.0);
+                _cover?.Advance(delta);
                 ApplyPhase(_phase);
             }
 
@@ -301,6 +333,12 @@ public partial class IslandScene : Node3D
             _view!.ShowTide(next.Point.TidePermille is { } permille && _tide is { } tide ? TideFollower.AtPermille(tide.Amplitude, permille) : TideFollower.Level(_tide));
             ApplyPhase(next.Phase);
 
+            // The cloud cover as the world has it, or with the share of seen land the point asks for (R25).
+            if (next.Point.RevealedPermille is { } revealed)
+            {
+                _cover?.ShowShare(revealed);
+            }
+
             _wait = _shots.SettleFrames;
             return;
         }
@@ -349,6 +387,11 @@ public partial class IslandScene : Node3D
     {
         var snapshot = _host.Snapshot();
         (_season, _weather, _epoch, _tide) = (snapshot.Time.SeasonId, snapshot.Weather, snapshot.LookEpoch, snapshot.Tide);
+        if (_host.Exploration is { } exploration)
+        {
+            _cover?.Take(exploration, snapshot.ExploredVersion);
+        }
+
         foreach (var inhabitant in snapshot.Inhabitants)
         {
             if (_figures.TryGetValue(inhabitant.Id, out var figure))
@@ -381,6 +424,26 @@ public partial class IslandScene : Node3D
         return null;
     }
 
+    /// <summary>Meshes of the scene (objects, plants, figures) whose material chain has the ink hull pass.</summary>
+    private int HullMeshes()
+    {
+        var hull = GD.Load<Shader>("res://shaders/outline_hull.gdshader");
+        var count = 0;
+        foreach (var mesh in FindChildren("*", "GeometryInstance3D", true, false).OfType<GeometryInstance3D>())
+        {
+            for (var pass = mesh.MaterialOverride; pass is not null; pass = pass.NextPass)
+            {
+                if (pass is ShaderMaterial { Shader: var shader } && shader == hull)
+                {
+                    count++;
+                    break;
+                }
+            }
+        }
+
+        return count;
+    }
+
     /// <summary>Light, sky and ambient of a day phase from the daylight data (B2-5 blends them over time).</summary>
     private void ApplyPhase(string phase)
     {
@@ -396,6 +459,9 @@ public partial class IslandScene : Node3D
         {
             (day, sky) = _nature.Shade(day, _daylight.NightMinBrightness);
         }
+
+        // A quality level without shadows: no shadow in any phase.
+        day = _quality.Light(day);
 
         if (_lightShown != (day, sky))
         {

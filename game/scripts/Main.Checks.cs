@@ -166,6 +166,12 @@ public partial class Main
                     problems.Add($"{locale} {name}: window {window.Position}+{window.Size} leaves the safe area of {area}");
                 }
 
+                // No hint text cut, no word broken inside (D705 A5/A6, review GW1 #226).
+                if (menu.OpenWindow is { } shown)
+                {
+                    problems.AddRange(UiFit.CutTexts(shown).Select(cut => $"{locale} {name}: {cut}"));
+                }
+
                 checkedScreens++;
             }
 
@@ -513,6 +519,260 @@ public partial class Main
         GetTree().Quit(0);
     }
 
+    /// <summary>
+    /// The UI tour (Marcel W1757, B2603: agents look at the running game themselves): opens every menu and
+    /// window once, in the layout so far and in the zones preview, and saves a picture of each into the shots
+    /// folder (German, the size of the window as started). The pictures are the basis of the list of what can
+    /// get better. Then quits.
+    /// </summary>
+    private async Task TourAsync(UiStyle style)
+    {
+        TextCatalogs.SetLanguage("de");
+        var size = GetWindow().Size;
+        var prefix = $"{size.X}x{size.Y}_";
+        var (count, failed) = (0, 0);
+        DirAccess.MakeDirRecursiveAbsolute(_shotsFolder!);
+        async Task Take(string name)
+        {
+            await Frames(12);
+            _screen?.Refresh();
+            await Frames(2);
+            if (Shot(prefix + name + ".png"))
+            {
+                count++;
+            }
+            else
+            {
+                failed++;
+            }
+        }
+
+        // Whatever happens on the way, the run ends and says how it went (review GW1 #214): no window left open.
+        var ok = false;
+        try
+        {
+            // Let the world live a little, so lists, log, questions and chronicle have something to show.
+            _world!.Host!.Conversation.Port ??= new Simulation.Player.MockConversationPort();
+            for (var i = 0; i < 600; i++)
+            {
+                _world.Host.World.Step();
+            }
+
+            _world.Speed = 0;
+            var first = _world.Host.Inhabitants.All.OrderBy(i => i.Id, StringComparer.Ordinal).First().Id;
+
+            // 1. Windows of the main menu (shown over the game: the menu itself has no world behind it).
+            if (_library is not null)
+            {
+                var menu = new MainMenu { Name = "TourMenu" };
+                AddChild(menu);
+                menu.Setup(LoadMenuData(_library), style);
+                await Take("01_hauptmenue");
+                menu.OpenNewWorld();
+                await Take("02_neue_welt");
+                menu.OpenWorlds();
+                await Take("03_welten_laden");
+                menu.ShowLoading("Meine Welt");
+                await Take("04_lade_hinweis");
+                menu.QueueFree();
+                await Frames(2);
+            }
+
+            // 2. The game screen in both layouts: every side window, the card, the pause menu.
+            foreach (var (zones, tag) in new[] { (false, "alt"), (true, "neu") })
+            {
+                _screen!.ShowZonesForShots(zones);
+                await Take($"10_{tag}_spiel");
+                foreach (var key in GameScreen.PanelKeysForShots(zones))
+                {
+                    _screen.OpenPanelForShots(key);
+                    await Take($"11_{tag}_{key}");
+                }
+
+                _screen.OpenPanelForShots(null);
+                _screen.ShowCardForShots(first, expand: false);
+                await Take($"12_{tag}_karte");
+                _screen.ShowCardForShots(first, expand: true);
+                await Take($"13_{tag}_karte_aufgeklappt");
+                _screen.ShowCardForShots(null, expand: false);
+
+                OpenPause();
+                await Take($"14_{tag}_pause");
+                _pause?.Close();
+                await Frames(2);
+            }
+
+            // 3. The settings, every tab (opened from the game, as the pause menu does).
+            _screen!.ShowZonesForShots(false);
+            SettingsWindow? settings = null;
+            OpenSettings(window =>
+            {
+                settings = window as SettingsWindow;
+                _screen.ShowWindow(window, modal: true);
+            });
+            if (settings is not null)
+            {
+                foreach (var tab in new[] { "player", "language", "display", "hints", "audio", "ai" })
+                {
+                    settings.ShowTab("ui.settings.section." + tab);
+                    await Take($"20_einstellungen_{tab}");
+                }
+
+                settings.Close();
+            }
+
+            ok = failed == 0 && count > 0;
+        }
+        catch (Exception e) when (e is not OutOfMemoryException)
+        {
+            GD.PushError($"UI_TOUR_FAIL {e.GetType().Name}: {e.Message}");
+        }
+        finally
+        {
+            GD.Print(ok ? $"UI_TOUR_OK {count}" : $"UI_TOUR_FAIL pictures={count} failed={failed}");
+            GetTree().Quit(ok ? 0 : 1);
+        }
+    }
+
+    /// <summary>
+    /// The compute night in pictures (B7-S8, acceptance B7-S10): runs the world in fast-forward until the
+    /// night begins, then at normal speed through the night scene, and saves a picture at each stage - the
+    /// fade-out, the dream (again whenever more dream images show), the fade-in and the morning after.
+    /// With <c>GLASSWORLD_AI=live</c> the scene follows the real service; without it only the fades show.
+    /// Prints <c>NIGHT_SHOTS_OK n stages=…</c> and quits; a stage that never came within the limit
+    /// (<c>--night-limit=SECONDS</c>, real time) is a failure. Headless it is a dry run: the stages are
+    /// walked and reported, no pictures are saved. A run with a window belongs in the AMW run queue
+    /// (<c>amw lauf start --schirm --gpu --warten</c>).
+    /// </summary>
+    private async Task NightShotsAsync()
+    {
+        TextCatalogs.SetLanguage("de");
+        var size = GetWindow().Size;
+        var prefix = $"{size.X}x{size.Y}_nacht_";
+        var (count, failed) = (0, 0);
+        var seen = new List<string>();
+        var ok = false;
+        var reason = "limit reached";
+
+        // Without a window nothing is drawn: the run then only walks the stages (a dry run), no pictures.
+        var dry = DisplayServer.GetName() == "headless";
+        try
+        {
+            DirAccess.MakeDirRecursiveAbsolute(_shotsFolder!);
+            var live = string.Equals(System.Environment.GetEnvironmentVariable("GLASSWORLD_AI"), "live", StringComparison.Ordinal);
+            GD.Print($"NIGHT_SHOTS_START live={(live ? 1 : 0)} world={_world!.Mode} limit_s={_nightLimitS.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
+            var fastest = ScreenModel.TimeChoices(_world.Host!.World.Calendar.Settings).Max(c => c.Speed);
+            _world.Speed = fastest;
+            var started = Time.GetTicksMsec();
+            var last = NightStage.Day;
+            var dreams = 0;
+            var wasNight = false;
+            var nextReport = 0.0;
+            var (calendarNight, sawDay) = (false, false);
+            while ((Time.GetTicksMsec() - started) / 1000.0 < _nightLimitS)
+            {
+                await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+                var (stage, darkness) = _screen!.NightNow;
+                var nowS = (Time.GetTicksMsec() - started) / 1000.0;
+                if (nowS >= nextReport)
+                {
+                    // A line every few seconds, so a run that waits in vain shows where it stands.
+                    nextReport = nowS + 10;
+                    var at = _world.Host.World.Calendar.At(_world.Host.World.Tick);
+                    GD.Print(string.Create(System.Globalization.CultureInfo.InvariantCulture, $"NIGHT_SHOTS_AT s={nowS:0} tick={_world.Host.World.Tick} phase={at.Phase} speed={_world.Speed} stage={stage} darkness={darkness:0.00} night={_world.Host.Snapshot().ComputeNight}"));
+                }
+
+                // The night is watched at the speed a player sees it; once the scene is over the rest of the
+                // calendar night runs in fast-forward again (it took seven minutes of waiting otherwise).
+                var wanted = stage is NightStage.Day or NightStage.Awake ? fastest : 1;
+                if (_world.Speed != wanted)
+                {
+                    _world.Speed = wanted;
+                }
+
+                var shown = _screen.DreamsShownForShots;
+                var name = stage == last
+                    ? stage == NightStage.Dream && shown > dreams ? $"traum_{shown}_bilder" : null
+                    : stage switch
+                    {
+                        NightStage.FadingOut => "1_abblenden",
+                        NightStage.Dream => "2_traum",
+                        NightStage.FadingIn => "3_aufblenden",
+                        NightStage.Awake => "4_wach",
+                        _ => wasNight ? "5_tag" : null,
+                    };
+                wasNight |= stage != NightStage.Day;
+                last = stage;
+
+                // A calendar night that ends without the scene: the core called no compute night (it does so
+                // only with an AI service to compute for). Waiting longer shows nothing new.
+                var phase = _world.Host.World.Calendar.At(_world.Host.World.Tick).Phase;
+                calendarNight |= phase == GlassWorld.Simulation.Time.DayPhase.Night && _world.Host.World.Tick > 0 && sawDay;
+                sawDay |= phase == GlassWorld.Simulation.Time.DayPhase.Day;
+                if (calendarNight && phase == GlassWorld.Simulation.Time.DayPhase.Day && !wasNight)
+                {
+                    reason = "a night passed without a night scene (no compute night: is the AI service running? GLASSWORLD_AI=live)";
+                    break;
+                }
+
+                dreams = Math.Max(dreams, shown);
+                if (name is null)
+                {
+                    continue;
+                }
+
+                // A fade is caught in its middle, a standing stage once it has settled.
+                for (var i = 0; i < (stage is NightStage.FadingOut or NightStage.FadingIn ? 45 : 20); i++)
+                {
+                    await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+                }
+
+                GD.Print(string.Create(System.Globalization.CultureInfo.InvariantCulture, $"NIGHT_SHOT {name} stage={_screen.NightNow.Stage} darkness={_screen.NightNow.Darkness:0.00} dreams={_screen.DreamsShownForShots} text='{_screen.NightTextForShots}'"));
+                // The name is the stage that triggered the picture; if the scene moved on during the wait,
+                // the file says which stage it really shows (review GW1 #235).
+                var now = _screen.NightNow.Stage;
+                var changed = now == stage ? string.Empty : $"_zeigt_{now}";
+                if (dry)
+                {
+                    seen.Add(name);
+                }
+                else if (await DrawnShot($"{prefix}{count + 1:00}_{name}{changed}.png"))
+                {
+                    count++;
+                    seen.Add(name);
+                }
+                else
+                {
+                    failed++;
+                }
+
+                if (stage == NightStage.Day && wasNight)
+                {
+                    break;
+                }
+            }
+
+            // The scene must have gone dark and come back; with the live service a dream stage belongs to it.
+            ok = failed == 0 && seen.Contains("1_abblenden") && seen.Contains("5_tag") && (!live || seen.Contains("2_traum"));
+        }
+        catch (Exception e) when (e is not OutOfMemoryException)
+        {
+            GD.PushError($"NIGHT_SHOTS_FAIL {e.GetType().Name}: {e.Message}");
+        }
+        finally
+        {
+            var stages = string.Join(',', seen);
+            GD.Print(ok ? $"NIGHT_SHOTS_OK {count} stages={stages}{(dry ? " dry=1" : string.Empty)}" : $"NIGHT_SHOTS_FAIL pictures={count} failed={failed} stages={stages} reason='{reason}'");
+            GetTree().Quit(ok ? 0 : 1);
+        }
+    }
+
+    private async Task<bool> DrawnShot(string name)
+    {
+        await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
+        return Shot(name);
+    }
+
     private async Task Frames(int count)
     {
         for (var i = 0; i < count; i++)
@@ -523,10 +783,12 @@ public partial class Main
         await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
     }
 
-    private void Shot(string name)
+    private bool Shot(string name)
     {
         var path = System.IO.Path.Combine(_shotsFolder!, name);
-        GD.Print($"UI_SHOT {path} {GetViewport().GetTexture().GetImage().SavePng(path)}");
+        var error = GetViewport().GetTexture().GetImage().SavePng(path);
+        GD.Print($"UI_SHOT {path} {error}");
+        return error == Error.Ok;
     }
 
     /// <summary>Smoke run only: visible controls that would take the mouse at <paramref name="point"/> (names, comma-separated).</summary>
@@ -566,6 +828,17 @@ public partial class Main
             else
             {
                 GD.Print("SCREEN_OK");
+            }
+
+            // The dream images of the night scene (B7, D637 A8): shown from a made-up night list, none from an empty one.
+            var dreamCheck = _screen?.CheckDreams() ?? "game screen missing";
+            if (dreamCheck.Length > 0)
+            {
+                problems = [.. problems, "night scene: " + dreamCheck];
+            }
+            else
+            {
+                GD.Print("NIGHT_OK");
             }
 
             // The zones preview of the UI concept (W1717): switched on, checked, switched back.

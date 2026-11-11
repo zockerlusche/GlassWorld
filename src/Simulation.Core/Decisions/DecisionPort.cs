@@ -47,4 +47,11 @@ public static class DecisionIds
         var hex = Convert.ToHexStringLower(hash.AsSpan(0, 16));
         return string.Create(CultureInfo.InvariantCulture, $"{hex[..8]}-{hex[8..12]}-{hex[12..16]}-{hex[16..20]}-{hex[20..32]}");
     }
+
+    /// <summary>The seed a generation job carries: derived from its request id, so a new attempt draws anew.</summary>
+    public static int SeedOf(string requestId)
+    {
+        ArgumentNullException.ThrowIfNull(requestId);
+        return (int)(BitConverter.ToUInt32(SHA256.HashData(Encoding.UTF8.GetBytes(requestId)), 0) & 0x7FFFFFFF);
+    }
 }

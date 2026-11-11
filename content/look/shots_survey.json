@@ -1,0 +1,536 @@
+{
+  "contract_version": "0.2",
+  "points": [
+    {
+      "id": "obj_apple",
+      "target_x_permille": 674,
+      "target_z_permille": 440,
+      "yaw_deg": 30,
+      "distance_m": 3.0,
+      "pitch_deg": 24,
+      "phase": "day"
+    },
+    {
+      "id": "obj_bark",
+      "target_x_permille": 820,
+      "target_z_permille": 445,
+      "yaw_deg": 30,
+      "distance_m": 3.0,
+      "pitch_deg": 24,
+      "phase": "day"
+    },
+    {
+      "id": "obj_berry_bush",
+      "target_x_permille": 904,
+      "target_z_permille": 456,
+      "yaw_deg": 30,
+      "distance_m": 3.0,
+      "pitch_deg": 24,
+      "phase": "day"
+    },
+    {
+      "id": "obj_blue_berry",
+      "target_x_permille": 122,
+      "target_z_permille": 435,
+      "yaw_deg": 30,
+      "distance_m": 3.0,
+      "pitch_deg": 24,
+      "phase": "day"
+    },
+    {
+      "id": "obj_brown_mushroom",
+      "target_x_permille": 117,
+      "target_z_permille": 633,
+      "yaw_deg": 30,
+      "distance_m": 3.0,
+      "pitch_deg": 24,
+      "phase": "day"
+    },
+    {
+      "id": "obj_clay",
+      "target_x_permille": 398,
+      "target_z_permille": 440,
+      "yaw_deg": 30,
+      "distance_m": 3.0,
+      "pitch_deg": 24,
+      "phase": "day"
+    },
+    {
+      "id": "obj_conifer_tree",
+      "target_x_permille": 633,
+      "target_z_permille": 586,
+      "yaw_deg": 30,
+      "distance_m": 3.0,
+      "pitch_deg": 24,
+      "phase": "day"
+    },
+    {
+      "id": "obj_deciduous_tree",
+      "target_x_permille": 430,
+      "target_z_permille": 445,
+      "yaw_deg": 30,
+      "distance_m": 3.0,
+      "pitch_deg": 24,
+      "phase": "day"
+    },
+    {
+      "id": "obj_driftwood",
+      "target_x_permille": 148,
+      "target_z_permille": 159,
+      "yaw_deg": 30,
+      "distance_m": 3.0,
+      "pitch_deg": 24,
+      "phase": "day"
+    },
+    {
+      "id": "obj_dry_grass",
+      "target_x_permille": 831,
+      "target_z_permille": 487,
+      "yaw_deg": 30,
+      "distance_m": 3.0,
+      "pitch_deg": 24,
+      "phase": "day"
+    },
+    {
+      "id": "obj_dry_wood",
+      "target_x_permille": 602,
+      "target_z_permille": 451,
+      "yaw_deg": 30,
+      "distance_m": 3.0,
+      "pitch_deg": 24,
+      "phase": "day"
+    },
+    {
+      "id": "obj_fieldstone",
+      "target_x_permille": 909,
+      "target_z_permille": 539,
+      "yaw_deg": 30,
+      "distance_m": 3.0,
+      "pitch_deg": 24,
+      "phase": "day"
+    },
+    {
+      "id": "obj_flax",
+      "target_x_permille": 294,
+      "target_z_permille": 617,
+      "yaw_deg": 30,
+      "distance_m": 3.0,
+      "pitch_deg": 24,
+      "phase": "day"
+    },
+    {
+      "id": "obj_flint",
+      "target_x_permille": 706,
+      "target_z_permille": 633,
+      "yaw_deg": 30,
+      "distance_m": 3.0,
+      "pitch_deg": 24,
+      "phase": "day"
+    },
+    {
+      "id": "obj_fruit_tree",
+      "target_x_permille": 138,
+      "target_z_permille": 336,
+      "yaw_deg": 30,
+      "distance_m": 3.0,
+      "pitch_deg": 24,
+      "phase": "day"
+    },
+    {
+      "id": "obj_hazel_bush",
+      "target_x_permille": 76,
+      "target_z_permille": 513,
+      "yaw_deg": 30,
+      "distance_m": 3.0,
+      "pitch_deg": 24,
+      "phase": "day"
+    },
+    {
+      "id": "obj_hazelnut",
+      "target_x_permille": 60,
+      "target_z_permille": 383,
+      "yaw_deg": 30,
+      "distance_m": 3.0,
+      "pitch_deg": 24,
+      "phase": "day"
+    },
+    {
+      "id": "obj_healing_herb",
+      "target_x_permille": 133,
+      "target_z_permille": 534,
+      "yaw_deg": 30,
+      "distance_m": 3.0,
+      "pitch_deg": 24,
+      "phase": "day"
+    },
+    {
+      "id": "obj_nettle",
+      "target_x_permille": 258,
+      "target_z_permille": 508,
+      "yaw_deg": 30,
+      "distance_m": 3.0,
+      "pitch_deg": 24,
+      "phase": "day"
+    },
+    {
+      "id": "obj_palm_tree",
+      "target_x_permille": 273,
+      "target_z_permille": 122,
+      "yaw_deg": 30,
+      "distance_m": 3.0,
+      "pitch_deg": 24,
+      "phase": "day"
+    },
+    {
+      "id": "obj_peat",
+      "target_x_permille": 122,
+      "target_z_permille": 539,
+      "yaw_deg": 30,
+      "distance_m": 3.0,
+      "pitch_deg": 24,
+      "phase": "day"
+    },
+    {
+      "id": "obj_pyrite",
+      "target_x_permille": 643,
+      "target_z_permille": 633,
+      "yaw_deg": 30,
+      "distance_m": 3.0,
+      "pitch_deg": 24,
+      "phase": "day"
+    },
+    {
+      "id": "obj_red_berry",
+      "target_x_permille": 799,
+      "target_z_permille": 492,
+      "yaw_deg": 30,
+      "distance_m": 3.0,
+      "pitch_deg": 24,
+      "phase": "day"
+    },
+    {
+      "id": "obj_red_mushroom",
+      "target_x_permille": 643,
+      "target_z_permille": 362,
+      "yaw_deg": 30,
+      "distance_m": 3.0,
+      "pitch_deg": 24,
+      "phase": "day"
+    },
+    {
+      "id": "obj_reed",
+      "target_x_permille": 799,
+      "target_z_permille": 409,
+      "yaw_deg": 30,
+      "distance_m": 3.0,
+      "pitch_deg": 24,
+      "phase": "day"
+    },
+    {
+      "id": "obj_resin",
+      "target_x_permille": 648,
+      "target_z_permille": 440,
+      "yaw_deg": 30,
+      "distance_m": 3.0,
+      "pitch_deg": 24,
+      "phase": "day"
+    },
+    {
+      "id": "obj_rock_niche",
+      "target_x_permille": 539,
+      "target_z_permille": 768,
+      "yaw_deg": 30,
+      "distance_m": 3.0,
+      "pitch_deg": 24,
+      "phase": "day"
+    },
+    {
+      "id": "obj_sandstone",
+      "target_x_permille": 701,
+      "target_z_permille": 617,
+      "yaw_deg": 30,
+      "distance_m": 3.0,
+      "pitch_deg": 24,
+      "phase": "day"
+    },
+    {
+      "id": "obj_sea_water",
+      "target_x_permille": 81,
+      "target_z_permille": 289,
+      "yaw_deg": 30,
+      "distance_m": 3.0,
+      "pitch_deg": 24,
+      "phase": "day"
+    },
+    {
+      "id": "obj_shell",
+      "target_x_permille": 143,
+      "target_z_permille": 169,
+      "yaw_deg": 30,
+      "distance_m": 3.0,
+      "pitch_deg": 24,
+      "phase": "day"
+    },
+    {
+      "id": "obj_slate",
+      "target_x_permille": 716,
+      "target_z_permille": 602,
+      "yaw_deg": 30,
+      "distance_m": 3.0,
+      "pitch_deg": 24,
+      "phase": "day"
+    },
+    {
+      "id": "obj_spring_water",
+      "target_x_permille": 654,
+      "target_z_permille": 508,
+      "yaw_deg": 30,
+      "distance_m": 3.0,
+      "pitch_deg": 24,
+      "phase": "day"
+    },
+    {
+      "id": "obj_thorn_bush",
+      "target_x_permille": 445,
+      "target_z_permille": 576,
+      "yaw_deg": 30,
+      "distance_m": 3.0,
+      "pitch_deg": 24,
+      "phase": "day"
+    },
+    {
+      "id": "obj_wild_grain",
+      "target_x_permille": 169,
+      "target_z_permille": 299,
+      "yaw_deg": 30,
+      "distance_m": 3.0,
+      "pitch_deg": 24,
+      "phase": "day"
+    },
+    {
+      "id": "inhabitant_1",
+      "target_x_permille": 500,
+      "target_z_permille": 500,
+      "inhabitant": 0,
+      "yaw_deg": 200,
+      "distance_m": 6,
+      "pitch_deg": 14,
+      "phase": "day"
+    },
+    {
+      "id": "inhabitant_2",
+      "target_x_permille": 500,
+      "target_z_permille": 500,
+      "inhabitant": 1,
+      "yaw_deg": 200,
+      "distance_m": 6,
+      "pitch_deg": 14,
+      "phase": "day"
+    },
+    {
+      "id": "inhabitant_3",
+      "target_x_permille": 500,
+      "target_z_permille": 500,
+      "inhabitant": 2,
+      "yaw_deg": 200,
+      "distance_m": 6,
+      "pitch_deg": 14,
+      "phase": "day"
+    },
+    {
+      "id": "inhabitant_4",
+      "target_x_permille": 500,
+      "target_z_permille": 500,
+      "inhabitant": 3,
+      "yaw_deg": 200,
+      "distance_m": 6,
+      "pitch_deg": 14,
+      "phase": "day"
+    },
+    {
+      "id": "area_200_200",
+      "target_x_permille": 200,
+      "target_z_permille": 200,
+      "yaw_deg": 30,
+      "distance_m": 60,
+      "pitch_deg": 38,
+      "phase": "day"
+    },
+    {
+      "id": "area_200_500",
+      "target_x_permille": 200,
+      "target_z_permille": 500,
+      "yaw_deg": 30,
+      "distance_m": 60,
+      "pitch_deg": 38,
+      "phase": "day"
+    },
+    {
+      "id": "area_200_800",
+      "target_x_permille": 200,
+      "target_z_permille": 800,
+      "yaw_deg": 30,
+      "distance_m": 60,
+      "pitch_deg": 38,
+      "phase": "day"
+    },
+    {
+      "id": "area_500_200",
+      "target_x_permille": 500,
+      "target_z_permille": 200,
+      "yaw_deg": 30,
+      "distance_m": 60,
+      "pitch_deg": 38,
+      "phase": "day"
+    },
+    {
+      "id": "area_500_500",
+      "target_x_permille": 500,
+      "target_z_permille": 500,
+      "yaw_deg": 30,
+      "distance_m": 60,
+      "pitch_deg": 38,
+      "phase": "day"
+    },
+    {
+      "id": "area_500_800",
+      "target_x_permille": 500,
+      "target_z_permille": 800,
+      "yaw_deg": 30,
+      "distance_m": 60,
+      "pitch_deg": 38,
+      "phase": "day"
+    },
+    {
+      "id": "area_800_200",
+      "target_x_permille": 800,
+      "target_z_permille": 200,
+      "yaw_deg": 30,
+      "distance_m": 60,
+      "pitch_deg": 38,
+      "phase": "day"
+    },
+    {
+      "id": "area_800_500",
+      "target_x_permille": 800,
+      "target_z_permille": 500,
+      "yaw_deg": 30,
+      "distance_m": 60,
+      "pitch_deg": 38,
+      "phase": "day"
+    },
+    {
+      "id": "area_800_800",
+      "target_x_permille": 800,
+      "target_z_permille": 800,
+      "yaw_deg": 30,
+      "distance_m": 60,
+      "pitch_deg": 38,
+      "phase": "day"
+    },
+    {
+      "id": "night_300_300",
+      "target_x_permille": 300,
+      "target_z_permille": 300,
+      "yaw_deg": 120,
+      "distance_m": 35,
+      "pitch_deg": 22,
+      "phase": "night"
+    },
+    {
+      "id": "night_700_700",
+      "target_x_permille": 700,
+      "target_z_permille": 700,
+      "yaw_deg": 120,
+      "distance_m": 35,
+      "pitch_deg": 22,
+      "phase": "night"
+    },
+    {
+      "id": "night_500_150",
+      "target_x_permille": 500,
+      "target_z_permille": 150,
+      "yaw_deg": 120,
+      "distance_m": 35,
+      "pitch_deg": 22,
+      "phase": "night"
+    },
+    {
+      "id": "rain_300_300",
+      "target_x_permille": 300,
+      "target_z_permille": 300,
+      "yaw_deg": 120,
+      "distance_m": 35,
+      "pitch_deg": 22,
+      "phase": "day",
+      "weather": "rain"
+    },
+    {
+      "id": "rain_700_700",
+      "target_x_permille": 700,
+      "target_z_permille": 700,
+      "yaw_deg": 120,
+      "distance_m": 35,
+      "pitch_deg": 22,
+      "phase": "day",
+      "weather": "rain"
+    },
+    {
+      "id": "rain_500_150",
+      "target_x_permille": 500,
+      "target_z_permille": 150,
+      "yaw_deg": 120,
+      "distance_m": 35,
+      "pitch_deg": 22,
+      "phase": "day",
+      "weather": "rain"
+    },
+    {
+      "id": "fog_300_300",
+      "target_x_permille": 300,
+      "target_z_permille": 300,
+      "yaw_deg": 120,
+      "distance_m": 35,
+      "pitch_deg": 22,
+      "phase": "day",
+      "weather": "fog"
+    },
+    {
+      "id": "fog_700_700",
+      "target_x_permille": 700,
+      "target_z_permille": 700,
+      "yaw_deg": 120,
+      "distance_m": 35,
+      "pitch_deg": 22,
+      "phase": "day",
+      "weather": "fog"
+    },
+    {
+      "id": "fog_500_150",
+      "target_x_permille": 500,
+      "target_z_permille": 150,
+      "yaw_deg": 120,
+      "distance_m": 35,
+      "pitch_deg": 22,
+      "phase": "day",
+      "weather": "fog"
+    },
+    {
+      "id": "low_horizon",
+      "target_x_permille": 500,
+      "target_z_permille": 500,
+      "yaw_deg": 300,
+      "distance_m": 45,
+      "pitch_deg": 8,
+      "phase": "day"
+    }
+  ],
+  "projections": [
+    "perspective"
+  ],
+  "phases": [
+    "day",
+    "night"
+  ],
+  "settle_frames": 12
+}

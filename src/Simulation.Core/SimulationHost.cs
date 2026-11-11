@@ -107,13 +107,13 @@ public sealed class SimulationHost
 
     /// <summary>
     /// Assembles the systems around a given world in the fixed order (worldmap → objects → decisions →
-    /// inhabitants → inventions → chronicle); with a preset the island is generated from the world seed
-    /// (also when loading).
+    /// inhabitants → inventions → night jobs → chronicle); with a preset the island is generated from the
+    /// world seed (also when loading).
     /// </summary>
     /// <remarks>
     /// Rules judge targets by the world's type truth (content types plus runtime types). Without a job port
-    /// the invention system is dormant; invention and chronicle stay out of the world hash while empty, so
-    /// worlds without inventions keep their hashes.
+    /// the invention system and the night jobs are dormant; invention, night jobs and chronicle stay out of
+    /// the world hash while empty, so worlds without them keep their hashes.
     /// </remarks>
     /// <param name="content">Content.</param>
     /// <param name="settings">Decider settings.</param>
@@ -136,6 +136,8 @@ public sealed class SimulationHost
         Weather.WeatherSystem? weather = null;
         string? climate = null;
         var seaLevel = 0;
+        var dropPer100Height = 0;
+        var startDropTenthC = 0;
         WorldPresetExploration? sight = null;
         if (worldPreset is not null)
         {
@@ -184,17 +186,36 @@ public sealed class SimulationHost
             // Weather of the preset's climate (B2 R13); worlds without a preset (placeholder) have none.
             // The weather is island-wide for now; its height drop stands for the mean height of the start cells.
             var startHeight = island.Starts.Count == 0 ? 0 : island.Starts.Sum(s => Math.Max(0, island.Map.Cell(s.X, s.Z).Height - preset.Terrain.SeaLevel)) / island.Starts.Count;
+            dropPer100Height = preset.Climate.TemperatureDropPer100Height;
+            startDropTenthC = -(dropPer100Height * startHeight / 100);
             weather = new Weather.WeatherSystem(
                 content.WorldGen.Climates[preset.Climate.ClimateId],
-                -(preset.Climate.TemperatureDropPer100Height * startHeight / 100),
+                startDropTenthC,
                 world.Calendar.Settings.TicksPerHour,
                 world.Calendar.Settings.HoursPerDay,
                 world.Seed);
             world.Add(weather);
         }
 
+        // The air where an inhabitant stands (B2582, comfort zone): the island-wide weather's temperature, with
+        // the height drop of the inhabitant's own cell in place of the one of the start cells. Integers only.
+        // Worlds without a climate (placeholder) have no air temperature.
+        Air? AirAt(World w, Position at)
+        {
+            if (weather is null || map is null)
+            {
+                return null;
+            }
+
+            var cellDropTenthC = map.CellOf(at) is { } cell
+                ? -(dropPer100Height * Math.Max(0, map.Map.Cell(cell.X, cell.Z).Height - seaLevel) / 100)
+                : startDropTenthC;
+            return new Air(weather.TemperatureAt(w.Now, weather.Current) - startDropTenthC + cellDropTenthC, weather.PrecipitationPermille > 0);
+        }
+
         var inhabitants = new InhabitantsSystem(content.InhabitantModel, actions, content.Brain, content.Gaits, objects, world.Calendar.Settings.TicksPerHour)
         {
+            AirAt = AirAt,
             Looks = content.Appearance,
             Names = content.InhabitantNames,
             Routes = map,
@@ -211,10 +232,14 @@ public sealed class SimulationHost
                 map?.CellOf(at) is { } cell ? map.Map.BiomeAt(cell.X, cell.Z) : null,
                 content.Inventions.Settings.TechLevel),
         };
+        CheckNightTriggers(settings, content.Knowledge);
         var decisions = new DecisionsSystem(settings, inhabitants, objects, actions, content.Brain, content.Vocabularies[VocabularyKind.Action], port, displayLocale)
         {
             WeatherSource = weather,
             Knowledge = content.Knowledge,
+
+            // A1487: questions wait for the night only where the night can answer them (a job port).
+            NightAnswers = jobPort is not null && content.Knowledge.NightQuestions is not null,
         };
         inhabitants.QuestionOpen = decisions.HasOpenQuestion;
 
@@ -244,8 +269,19 @@ public sealed class SimulationHost
         var lookEpoch = new Look.LookEpochSystem(content.LookEpochs, content.Inventions.ReachedTechLevel, options.DebugCommands, inhabitants.Report);
         decisions.RegisterCommand(Look.LookEpochSystem.SetLookEpoch, lookEpoch.Check, lookEpoch.Apply);
         decisions.RegisterCommand(Look.LookEpochSystem.DebugSetLookEpoch, lookEpoch.CheckDebug, lookEpoch.ApplyDebug);
-        var inventions = new InventionSystem(content.Inventions, inhabitants, objects, types, content.Brain.Weights.PerceptionRadiusM, jobPort, displayLocale);
+
+        // One job port for all job systems: each receives only the outcomes of its own jobs (the invention
+        // system takes the rest), and all write the world's one job log.
+        var jobs = jobPort is null ? null : new JobRouter(jobPort);
+        var inventions = new InventionSystem(content.Inventions, inhabitants, objects, types, content.Brain.Weights.PerceptionRadiusM, jobs?.Rest, displayLocale);
         decisions.InventedName = typeId => inventions.Invention(typeId)?.Name;
+        inhabitants.InventionNameKnownTo = inventions.NameKnownTo;
+
+        // Memory (B4a R5): what the inhabitants remember comes from the core's events, by data; the compute
+        // night condenses it and guesses at open questions (dormant without a job port).
+        var memory = new MemoryRecorder(content.Knowledge.Memory, inhabitants, objects, actions);
+        inhabitants.Reported += memory.Observe;
+        var nightJobs = new Night.NightJobsSystem(content.Knowledge, content.Inventions.Build.NightPhases, types.PropertyVocabulary, content.Inventions.Guard, inhabitants, decisions, jobs, inventions.Log, displayLocale);
         var chronicle = new ChronicleSystem(content.Chronicle);
         inhabitants.Reported += chronicle.Observe;
 
@@ -283,7 +319,7 @@ public sealed class SimulationHost
 
         // Talking with an inhabitant (B6 R13): the AI port is set by the game, the core decides.
         var expressions = content.Vocabularies[VocabularyKind.Expression].Entries.Select(e => e.Id).ToHashSet(StringComparer.Ordinal);
-        var conversation = new Simulation.Player.ConversationSystem(content.Conversation, content.Knowledge, inhabitants, player, decisions, content.Inventions.Guard, expressions, displayLocale, world.Calendar.Settings.TicksPerHour);
+        var conversation = new Simulation.Player.ConversationSystem(content.Conversation, content.Knowledge, inhabitants, player, decisions, content.Inventions.Guard, expressions, displayLocale, world.Calendar.Settings.TicksPerHour) { Diary = diary };
         decisions.RegisterCommand(Simulation.Player.ConversationSystem.SendText, conversation.Check, conversation.Apply);
 
         // The mailbox after the chronicle (agreed order): help_needed is reported by the player system earlier in the tick.
@@ -295,7 +331,8 @@ public sealed class SimulationHost
             world.Add(exploration);
         }
 
-        world.Add(player).Add(inventions).Add(chronicle).Add(writing).Add(skills).Add(skillLevels).Add(mailbox).Add(conversation).Add(lookEpoch);
+        // The night jobs right after the inventions: both stay out of the hash while they hold nothing.
+        world.Add(player).Add(inventions).Add(nightJobs).Add(chronicle).Add(writing).Add(skills).Add(skillLevels).Add(mailbox).Add(conversation).Add(lookEpoch);
         var host = new SimulationHost(content, world, map, types, objects, decisions, inhabitants, player, inventions, chronicle, settings, writing, skills, mailbox)
         {
             WeatherSystem = weather,
@@ -304,6 +341,7 @@ public sealed class SimulationHost
             Exploration = exploration,
             Options = options,
             SkillLevels = skillLevels,
+            NightJobs = nightJobs,
             Conversation = conversation,
             Diary = diary,
         };
@@ -338,6 +376,25 @@ public sealed class SimulationHost
         UseDisplayLocale(locale);
     }
 
+    /// <summary>
+    /// A trigger that asks at night (decider settings, A1487) needs a night that can answer it: its questions
+    /// are about an object type and the knowledge data list it under night_questions. Otherwise its questions
+    /// would stay open for good.
+    /// </summary>
+    private static void CheckNightTriggers(DeciderSettings settings, KnowledgeSettings knowledge)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+        foreach (var trigger in settings.Triggers.Where(t => t.Ask == TriggerAsk.Night))
+        {
+            var kind = trigger.Kind.ToString().ToLowerInvariant();
+            if (!DecisionsSystem.NightCanAnswer(kind)
+                || knowledge?.NightQuestions?.Questions.Any(q => string.Equals(q.Trigger.ToString(), kind, StringComparison.OrdinalIgnoreCase)) != true)
+            {
+                throw new InvalidDataException($"Decider settings: trigger '{kind}' asks at night, but the night cannot answer it (only questions about an object type that knowledge night_questions lists).");
+            }
+        }
+    }
+
     private static CommandResult CheckDisplayLocale(PlayerCommand command) =>
         Enum.GetValues<Locale>().Any(l => string.Equals(l.ToString().ToLowerInvariant(), command.Text, StringComparison.Ordinal))
             ? new CommandResult(true, null)
@@ -347,6 +404,7 @@ public sealed class SimulationHost
     {
         Decisions.DisplayLocale = locale;
         Inventions.DisplayLocale = locale;
+        NightJobs.DisplayLocale = locale;
         Conversation.DisplayLocale = locale;
     }
 
@@ -463,6 +521,9 @@ public sealed class SimulationHost
 
     /// <summary>Skill levels per inhabitant (start level, talent, practice; B5 part).</summary>
     public SkillLevelsSystem SkillLevels { get; private init; } = null!;
+
+    /// <summary>The inhabitants' work of the compute night: memory jobs, then question jobs (B4a R5, B7).</summary>
+    public Night.NightJobsSystem NightJobs { get; private init; } = null!;
 
     private static Position Scatter(Random.Pcg32 rng, Position centre, double radius) =>
         new(centre.X + (((rng.NextDouble() * 2.0) - 1.0) * radius), centre.Z + (((rng.NextDouble() * 2.0) - 1.0) * radius));

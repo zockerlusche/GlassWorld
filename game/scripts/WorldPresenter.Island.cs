@@ -30,6 +30,7 @@ public partial class WorldPresenter
     private IslandView? _islandView;
     private ObjectsView? _objectsView;
     private GrassView? _grassView;
+    private CloudCover? _cover;
     private NatureLook? _nature;
     private string _seasonSeen = string.Empty;
     private Simulation.Weather.WeatherReading? _weatherSeen;
@@ -51,7 +52,8 @@ public partial class WorldPresenter
     private readonly PlaybackFreeze _freeze = new();
     private readonly List<Vector3> _fadeFor = [];
     private List<Seat>? _seats;
-    private (Godot.Environment? Environment, DirectionalLight3D? Sun, Color SunColor, float SunEnergy, Vector3 SunRotation, bool SunShadow, float SunShadowOpacity, List<Node3D> Hidden)? _restore;
+    private (Godot.Environment? Environment, DirectionalLight3D? Sun, Color SunColor, float SunEnergy, Vector3 SunRotation, bool SunShadow, float SunShadowOpacity, DirectionalLight3D.ShadowMode SunShadowMode, float SunShadowDistance, List<Node3D> Hidden)? _restore;
+    private QualityPlan? _quality;
     private (LookDaylight Data, DirectionalLight3D Sun, Godot.Environment Environment, DaylightMix? Fixed)? _daylight;
     private DaylightMix? _daylightShown;
     private WeatherSky? _skyShown;
@@ -64,6 +66,13 @@ public partial class WorldPresenter
 
     /// <summary>Island mode: objects drawn now (0 in placeholder mode).</summary>
     public int ObjectsDrawn => _objectsView?.Drawn ?? 0;
+
+    /// <summary>
+    /// Mesh and material of an object type as the world draws it (for the dream images of the night scene,
+    /// B2579: "das vorhandene Symbol des Objekt-Typs"); null in the placeholder world or for a type without a shape.
+    /// </summary>
+    public (Mesh Mesh, Material Material)? ShapeOfType(string typeId) =>
+        _objectsView is { } view ? view.LayerOf(view.Looks.For(typeId).VisualId) : null;
 
     /// <summary>Island mode: number of figures with the real figure model.</summary>
     public int FigureViews => _islandFigures.Count;
@@ -241,6 +250,9 @@ public partial class WorldPresenter
     private static T Read<T>(string content, string folder, string file)
         where T : class => ContractSerializer.Deserialize<T>(System.IO.File.ReadAllText(System.IO.Path.Combine(content, folder, file)));
 
+    /// <summary>The plan of the default quality level (content/look/quality.json).</summary>
+    private static QualityPlan ReadQuality(string contentDirectory) => QualityPlan.From(Read<LookQuality>(contentDirectory, "look", "quality.json"));
+
     /// <summary>Reads the world-look switch (content/look/world.json).</summary>
     private static LookWorld ReadLook(string contentDirectory) => Read<LookWorld>(contentDirectory, "look", "world.json");
 
@@ -266,17 +278,30 @@ public partial class WorldPresenter
         var palette = Read<LookPalette>(content, "look", "palette.json");
         _nature = NatureLook.Create(content, palette);
         var (grass, otherDecor) = GrassPlan.Split(Decor.Plan(objectLooks.Decor, map.Island, terrain.CellM), _nature.Data.Grass);
-        _objectsView = ObjectsView.Create(objectLooks, palette, _ground, otherDecor, _nature.Season.Slots, TerrainMesher.StreamSources(ground, terrain));
+
+        // The default quality level (B2-7 R30; which level a hardware tier uses is decided in B7).
+        var quality = _quality = ReadQuality(content);
+        _objectsView = ObjectsView.Create(objectLooks, palette, _ground, otherDecor, _nature.Season.Slots, TerrainMesher.StreamSources(ground, terrain), quality.HullOutline);
         AddChild(_objectsView);
-        _grassView = GrassView.Create(_objectsView, grass, _ground, _nature.Data.Grass, GrassPlan.Level(Read<LookQuality>(content, "look", "quality.json")));
+        _grassView = GrassView.Create(_objectsView, grass, _ground, _nature.Data.Grass, quality.Level);
         AddChild(_grassView);
         AddChild(_nature);
+
+        // Cloud cover over what the player has not seen yet (B2-6 R25); the land a new or loaded world
+        // knows is clear at once, only land seen from now on clears slowly.
+        if (host.Exploration is { } exploration)
+        {
+            var seaLevelM = _seaLevelM;
+            bool IsLand(int x, int z) => IslandView.GroundHeight(ground, terrain, (x + 0.5) * terrain.CellM, (z + 0.5) * terrain.CellM) > seaLevelM;
+            _cover = CloudCover.Create(exploration, IsLand, _nature.Data.Cover, palette, terrain.CellM, preset.Exploration?.RevealRealSeconds ?? 0, _nature.Wind.DirectionX, _nature.Wind.DirectionZ);
+            AddChild(_cover);
+        }
 
         _figuresLook = Read<LookFigures>(content, "look", "figures.json");
         _objectsView.SetupCrownFade(_figuresLook.CrownFade);
         _appearanceLook = Read<LookAppearance>(content, "look", "appearance.json");
         var library = Read<AnimationLibrary>(content, "animation", "library.json");
-        _figureShared = new FigureShared(library, _figuresLook, host.World.Calendar.Settings, Speed);
+        _figureShared = new FigureShared(library, _figuresLook, host.World.Calendar.Settings, Speed) { HullOutline = quality.HullOutline };
         _speedSeen = Speed;
         ApplyIsland(1, place: true);
 
@@ -292,7 +317,9 @@ public partial class WorldPresenter
 
         LightTheScene(content, _look, "IslandPlaceholder", "WaterPlaceholder");
         GD.Print($"ISLAND_WORLD preset={map.Island.PresetId} chunks={_islandView.GroundChunks} figures={_islandFigures.Count} objects_drawn={_objectsView.Drawn} layers={_objectsView.Layers}");
+        GD.Print(_cover is null ? "ISLAND_COVER none" : $"ISLAND_COVER cells={_cover.Map.Width}x{_cover.Map.Depth} version={_cover.Map.Version} seen_permille={(int)(_cover.Map.SeenShare * 1000)}");
         GD.Print($"ISLAND_NATURE grass_plants={_grassView.Plants} grass_layers={_grassView.Layers} season={_seasonSeen} season_colors={_nature.Season.Slots.Ids.Count} weather_looks={_nature.WeatherWithLook.Count}");
+        GD.Print($"ISLAND_QUALITY {quality.Describe()}");
     }
 
     /// <summary>
@@ -349,9 +376,11 @@ public partial class WorldPresenter
         _islandView = null;
         _objectsView = null;
         _grassView = null;
+        _cover = null;
         _nature = null;
         _rig = null;
         _figureShared = null;
+        _quality = null;
         _observer = null;
         _islandNodes.Clear();
         _islandFigures.Clear();
@@ -386,7 +415,7 @@ public partial class WorldPresenter
 
         var worldEnvironment = scene.GetChildren().OfType<WorldEnvironment>().FirstOrDefault();
         var sun = scene.GetChildren().OfType<DirectionalLight3D>().FirstOrDefault();
-        _restore = (worldEnvironment?.Environment, sun, sun?.LightColor ?? Colors.White, sun?.LightEnergy ?? 1, sun?.RotationDegrees ?? Vector3.Zero, sun?.ShadowEnabled ?? false, sun?.ShadowOpacity ?? 1, hidden);
+        _restore = (worldEnvironment?.Environment, sun, sun?.LightColor ?? Colors.White, sun?.LightEnergy ?? 1, sun?.RotationDegrees ?? Vector3.Zero, sun?.ShadowEnabled ?? false, sun?.ShadowOpacity ?? 1, sun?.DirectionalShadowMode ?? DirectionalLight3D.ShadowMode.Parallel4Splits, sun?.DirectionalShadowMaxDistance ?? 100, hidden);
         if (sun is null)
         {
             sun = new DirectionalLight3D { Name = "IslandSun" };
@@ -405,6 +434,10 @@ public partial class WorldPresenter
         }
 
         DaylightLook.ApplyRendering(daylight, sun, environment);
+
+        // The sun's shadow as the quality level renders it (the island set the level; the placeholder world reads it here).
+        _quality ??= ReadQuality(content);
+        QualityLook.Apply(_quality, sun);
         _daylight = (daylight, sun, environment, look.DayPhase == DaylightClock.FollowClock ? null : DaylightMix.Of(daylight, look.DayPhase));
         FollowTheClock();
     }
@@ -427,6 +460,9 @@ public partial class WorldPresenter
         {
             (mix, sky) = _nature.Shade(mix, d.Data.NightMinBrightness);
         }
+
+        // A quality level without shadows: no shadow in any phase.
+        mix = _quality?.Light(mix) ?? mix;
 
         if (mix != _daylightShown || sky != _skyShown)
         {
@@ -454,6 +490,7 @@ public partial class WorldPresenter
         var calendar = _host!.World.Calendar;
         _islandView?.FollowTide(_tideSeen, _freeze.Frozen ? 0 : delta);
         _nature.Follow(_seasonSeen, _epochSeen, _weatherSeen, _freeze.Frozen ? 0 : delta, focus, Speed, calendar.RealSecondsPerTickAtNormalSpeed * calendar.Settings.TicksPerHour / 60.0);
+        _cover?.Advance(_freeze.Frozen ? 0 : delta);
     }
 
     /// <summary>Puts back what <see cref="LightTheScene"/> changed in the scene (back to the menu).</summary>
@@ -468,6 +505,10 @@ public partial class WorldPresenter
         _daylight = null;
         _daylightShown = null;
         _skyShown = null;
+        _quality = null;
+
+        // The shadow map size and filter are global renderer settings: back to the project's.
+        QualityLook.RestoreRenderer();
         foreach (var node in r.Hidden.Where(IsInstanceValid))
         {
             node.Visible = true;
@@ -485,6 +526,8 @@ public partial class WorldPresenter
             sun.RotationDegrees = r.SunRotation;
             sun.ShadowEnabled = r.SunShadow;
             sun.ShadowOpacity = r.SunShadowOpacity;
+            sun.DirectionalShadowMode = r.SunShadowMode;
+            sun.DirectionalShadowMaxDistance = r.SunShadowDistance;
         }
     }
 
@@ -522,6 +565,11 @@ public partial class WorldPresenter
 
         var snapshot = _host.Snapshot();
         (_seasonSeen, _weatherSeen, _epochSeen, _tideSeen) = (snapshot.Time.SeasonId, snapshot.Weather, snapshot.LookEpoch, snapshot.Tide);
+        if (_host.Exploration is { } exploration)
+        {
+            // The player's view of the core (R25), asked where the snapshot is taken.
+            _cover?.Take(exploration, snapshot.ExploredVersion);
+        }
 
         // Seats (W1688) are taken from the objects only when they changed.
         if (_objectsView?.Refresh(snapshot.Objects) != false || _seats is null)

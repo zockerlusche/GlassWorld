@@ -70,6 +70,10 @@
       "color": "#f4efe6"
     },
     {
+      "id": "cloud_cover_shade",
+      "color": "#e3d9d2"
+    },
+    {
       "id": "flower",
       "color": "#f7f4ea"
     },

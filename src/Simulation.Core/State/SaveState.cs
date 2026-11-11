@@ -18,6 +18,12 @@ public sealed record SavedRelation(string Other, double Affection, double Trust,
 /// <summary>An imprinting counter as saved (B4a R6); empty kind and id for an action without a target.</summary>
 public sealed record SavedImprint(string Action, string AboutKind, string AboutId, string TimeOfDay, double Count);
 
+/// <summary>
+/// An inhabitant's memory as saved (B4a R5): summary, running number, events, what it has remembered for the
+/// first time, and up to which running number its events have gone out to a condensing.
+/// </summary>
+public sealed record SavedMemory(string Summary, long LastSeq, IReadOnlyList<MemoryEntry> Events, IReadOnlyList<string> Firsts, long SealedSeq = 0);
+
 /// <summary>An inhabitant as saved.</summary>
 public sealed record SavedInhabitant(
     string Id,
@@ -41,7 +47,8 @@ public sealed record SavedInhabitant(
     string? Name = null,
     IReadOnlyList<string>? KnownNames = null,
     IReadOnlyList<string>? Met = null,
-    IReadOnlyList<SavedImprint>? Imprints = null);
+    IReadOnlyList<SavedImprint>? Imprints = null,
+    SavedMemory? Memory = null);
 
 /// <summary>An open question as saved.</summary>
 public sealed record SavedQuestion(string Id, string InhabitantId, string Kind, string Subject, string RequestId, long AskedTick, IReadOnlyList<SavedOption> Options, long? RetryAtTick);
@@ -129,6 +136,12 @@ public sealed record SaveState(
 
     /// <summary>The diary's running number (continues across save and load); null in saves from before.</summary>
     public long? DiaryVersion { get; init; }
+
+    /// <summary>
+    /// Open memory and question jobs of the compute night (B4a R5, B7); null while there are none and in save
+    /// games from before.
+    /// </summary>
+    public Night.NightJobsState? NightJobs { get; init; }
 }
 
 /// <summary>Captures and restores the complete state of a <see cref="SimulationHost"/>.</summary>
@@ -167,7 +180,8 @@ public static class StateCodec
                 i.Name,
                 i.KnownNames.Count > 0 ? [.. i.KnownNames] : null,
                 i.Met.Count > 0 ? [.. i.Met] : null,
-                i.Imprints.Count > 0 ? [.. i.Imprints.Select(p => new SavedImprint(p.Key.Action, p.Key.AboutKind, p.Key.AboutId, p.Key.TimeOfDay, p.Value))] : null))],
+                i.Imprints.Count > 0 ? [.. i.Imprints.Select(p => new SavedImprint(p.Key.Action, p.Key.AboutKind, p.Key.AboutId, p.Key.TimeOfDay, p.Value))] : null,
+                i.Memory.HasState ? new SavedMemory(i.Memory.Summary, i.Memory.LastSeq, [.. i.Memory.Events], [.. i.Memory.Firsts], i.Memory.SealedSeq) : null))],
             counter,
             [.. questions.Select(q => new SavedQuestion(q.Id, q.InhabitantId, q.Kind, q.Subject, q.RequestId, q.AskedTick, [.. q.Options.Select(o => new SavedOption(o.OptionId, o.Action, o.TargetId))], q.RetryAtTick))],
             lastAsked,
@@ -192,6 +206,7 @@ public static class StateCodec
             Conversation = host.Conversation.HasState || host.Conversation.Log.Count > 0 ? host.Conversation.Capture() : null,
             Diary = host.Diary.All,
             DiaryVersion = host.Diary.Version,
+            NightJobs = host.NightJobs.HasState ? host.NightJobs.Capture() : null,
         };
     }
 
@@ -273,6 +288,11 @@ public static class StateCodec
                 inhabitant.SearchSince[key] = tick;
             }
 
+            if (saved.Memory is { } memory)
+            {
+                inhabitant.Memory.Restore(memory.Summary, memory.LastSeq, memory.Events, memory.Firsts, memory.SealedSeq);
+            }
+
             inhabitant.Repeat = saved.Repeat;
             inhabitant.Resting.AddRange(saved.Resting ?? []);
 
@@ -326,6 +346,7 @@ public static class StateCodec
         }
 
         host.Diary.Restore(state.Diary ?? [], state.DiaryVersion);
+        host.NightJobs.Restore(state.NightJobs);
         host.UseLoggedDisplayLocale();
         return host;
     }

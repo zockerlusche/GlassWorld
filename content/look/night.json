@@ -10,5 +10,57 @@
   ],
   "zzz_above_head_m": 0.5,
   "zzz_sway_s": 3,
-  "zzz_rise_px": 24
+  "zzz_rise_px": 24,
+  "dreams": {
+    "fade_in_s": 1.5,
+    "hold_s": 2.5,
+    "fade_out_s": 2.0,
+    "max_at_once": 3,
+    "min_gap_s": 1.2,
+    "size_px": 160,
+    "brightness": 0.85,
+    "reduce_motion_factor": 2,
+    "appearances": [
+      {
+        "kind": "question",
+        "show": "symbol"
+      },
+      {
+        "kind": "invention",
+        "show": "symbol"
+      },
+      {
+        "kind": "build_plan",
+        "show": "symbol"
+      },
+      {
+        "kind": "process",
+        "show": "symbol"
+      },
+      {
+        "kind": "image",
+        "show": "image"
+      },
+      {
+        "kind": "model3d",
+        "show": "symbol"
+      },
+      {
+        "kind": "sound",
+        "show": "symbol"
+      },
+      {
+        "kind": "dream",
+        "show": "none"
+      },
+      {
+        "kind": "memory",
+        "show": "none"
+      },
+      {
+        "kind": "chronicle",
+        "show": "none"
+      }
+    ]
+  }
 }
