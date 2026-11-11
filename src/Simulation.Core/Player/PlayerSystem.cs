@@ -205,17 +205,26 @@ public sealed class PlayerSystem : IWorldSystem
             .Where(e => e.Tick == world.Tick && e.Kind == InhabitantsSystem.ActionFinished && e.Action is not null && _rules.SearchActions.Contains(e.Action))
             .Select(e => e.InhabitantId)
             .ToHashSet(StringComparer.Ordinal);
+        // The needs to look at are the same for everybody (data), so they are listed once per tick.
+        var candidates = PressingCandidates().ToList();
         foreach (var inhabitant in _inhabitants.All)
         {
-            foreach (var need in PressingCandidates())
+            foreach (var need in candidates)
             {
-                var key = inhabitant.Id + "|" + need;
                 var value = inhabitant.Needs.GetValueOrDefault(need, 1.0);
                 if (value >= _rules.UrgentBelow)
                 {
-                    // Satisfied again: effort and the call are over.
-                    _attempts.Remove(key);
-                    _open.RemoveAll(c => c.InhabitantId == inhabitant.Id && c.Need == need);
+                    // Satisfied again: effort and the call are over (nothing to take away while nothing is kept).
+                    if (_attempts.Count > 0)
+                    {
+                        _attempts.Remove(inhabitant.Id + "|" + need);
+                    }
+
+                    if (_open.Count > 0)
+                    {
+                        DropCalls(inhabitant.Id, need);
+                    }
+
                     continue;
                 }
 
@@ -224,11 +233,12 @@ public sealed class PlayerSystem : IWorldSystem
                     continue;
                 }
 
+                var key = inhabitant.Id + "|" + need;
                 var attempts = _attempts.GetValueOrDefault(key) + 1;
                 _attempts[key] = attempts;
                 if (attempts >= _rules.FutileAttemptsThreshold
                     && _open.Count < _rules.MaxOpenSuggestions
-                    && !_open.Any(c => c.InhabitantId == inhabitant.Id && c.Need == need)
+                    && !HasCall(inhabitant.Id, need)
                     && ReallyMissing(inhabitant, need))
                 {
                     _open.Add(new HelpCall(inhabitant.Id, need, world.Tick));
@@ -277,6 +287,23 @@ public sealed class PlayerSystem : IWorldSystem
         _open.Clear();
         _open.AddRange(state.Open);
     }
+
+    /// <summary>Whether a call for help of the inhabitant for the need is open.</summary>
+    private bool HasCall(string inhabitantId, string need)
+    {
+        foreach (var call in _open)
+        {
+            if (call.InhabitantId == inhabitantId && call.Need == need)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>Takes the inhabitant's open calls for help for the need away.</summary>
+    private void DropCalls(string inhabitantId, string need) => _open.RemoveAll(c => c.InhabitantId == inhabitantId && c.Need == need);
 
     /// <summary>Needs that something in the world can satisfy (considerations with a target property).</summary>
     private IEnumerable<string> PressingCandidates() =>

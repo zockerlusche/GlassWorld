@@ -45,9 +45,9 @@ public sealed partial class InhabitantsSystem
     private void MeetStartGroups()
     {
         var starts = Knowledge?.StartRelationships;
-        foreach (var a in _inhabitants.Values)
+        foreach (var a in _ordered)
         {
-            foreach (var b in _inhabitants.Values.Where(b => b != a))
+            foreach (var b in _ordered.Where(b => b != a))
             {
                 var partners = a.Group == b.Group;
                 if (partners)
@@ -70,9 +70,9 @@ public sealed partial class InhabitantsSystem
     /// </summary>
     public void RememberStartGroups()
     {
-        foreach (var a in _inhabitants.Values)
+        foreach (var a in _ordered)
         {
-            foreach (var b in _inhabitants.Values.Where(b => b != a && b.Group == a.Group))
+            foreach (var b in _ordered.Where(b => b != a && b.Group == a.Group))
             {
                 a.Met.Add(b.Id);
             }
@@ -90,17 +90,25 @@ public sealed partial class InhabitantsSystem
             return;
         }
 
+        // Every pair once, lower id first (the list is in id order). Who has met whom is read from a row per
+        // inhabitant (MetRowOf): once everybody in sight has met, a pair costs two look-ups in two arrays.
         var sight = SightRadiusM * SightRadiusM;
-        foreach (var a in _inhabitants.Values)
+        var (xs, zs) = (_xs, _zs);
+        for (var i = 0; i < _ordered.Count; i++)
         {
-            foreach (var b in _inhabitants.Values)
+            var a = _ordered[i];
+            for (var j = i + 1; j < _ordered.Count; j++)
             {
-                if (string.CompareOrdinal(a.Id, b.Id) >= 0 || (a.Met.Contains(b.Id) && b.Met.Contains(a.Id)) || DistanceSquared(a.Position, b.Position) > sight)
+                var b = _ordered[j];
+                var (aMetB, bMetA) = (MetRowOf(a)[j], MetRowOf(b)[i]);
+                var dx = xs[i] - xs[j];
+                var dz = zs[i] - zs[j];
+                if ((aMetB && bMetA) || (dx * dx) + (dz * dz) > sight)
                 {
                     continue;
                 }
 
-                var first = !a.Met.Contains(b.Id) && !b.Met.Contains(a.Id);
+                var first = !aMetB && !bMetA;
                 a.Met.Add(b.Id);
                 b.Met.Add(a.Id);
                 if (first)
@@ -109,6 +117,33 @@ public sealed partial class InhabitantsSystem
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// Whom an inhabitant has met as a row over the places of the others in the id order: the same answers
+    /// as its <see cref="Inhabitant.Met"/> gives id by id, worked out again whenever that set or the
+    /// population has changed since (the set says so with its version).
+    /// </summary>
+    private bool[] MetRowOf(Inhabitant inhabitant)
+    {
+        var valid = (inhabitant.Met.Version, _population);
+        if (inhabitant.MetRowFor != valid)
+        {
+            var row = inhabitant.MetRow.Length == _ordered.Count ? inhabitant.MetRow : new bool[_ordered.Count];
+            Array.Clear(row);
+            foreach (var id in inhabitant.Met)
+            {
+                if (_inhabitants.TryGetValue(id, out var other))
+                {
+                    row[other.Ordinal] = true;
+                }
+            }
+
+            inhabitant.MetRow = row;
+            inhabitant.MetRowFor = valid;
+        }
+
+        return inhabitant.MetRow;
     }
 
     /// <summary>
@@ -126,30 +161,23 @@ public sealed partial class InhabitantsSystem
         var start = Start(knowledge);
         var reach = changes.TogetherDistanceM * changes.TogetherDistanceM;
         var perTick = 1.0 / _ticksPerHour;
-        foreach (var a in _inhabitants.Values)
+        var (xs, zs) = (_xs, _zs);
+        for (var i = 0; i < _ordered.Count; i++)
         {
-            foreach (var b in _inhabitants.Values)
+            var a = _ordered[i];
+            for (var j = 0; j < _ordered.Count; j++)
             {
-                if (a != b && DistanceSquared(a.Position, b.Position) <= reach)
+                var dx = xs[i] - xs[j];
+                var dz = zs[i] - zs[j];
+                if (j != i && (dx * dx) + (dz * dz) <= reach)
                 {
-                    Change(a, b.Id, changes.TogetherPerHour, perTick, start);
+                    Change(a, _ordered[j].Id, changes.TogetherPerHour, perTick, start);
                 }
             }
 
-            var step = PerTick(changes.FadePerHour);
-            var to = changes.FadeTo;
-            foreach (var (other, r) in a.Relationships.All.Where(r => _inhabitants.ContainsKey(r.Other)).ToList())
-            {
-                var faded = new Relation(Fade(r.Affection, to.Affection, step), Fade(r.Trust, to.Trust, step), Fade(r.Respect, to.Respect, step));
-                if (faded != r)
-                {
-                    a.Relationships.Set(other, faded);
-                }
-            }
+            a.Relationships.Fade(new Relation(changes.FadeTo.Affection, changes.FadeTo.Trust, changes.FadeTo.Respect), PerTick(changes.FadePerHour), _isInhabitant);
         }
     }
-
-    private static double Fade(double value, double to, double step) => value > to ? Math.Max(to, value - step) : value;
 
     /// <summary>An action towards another inhabitant has ended: both see each other as the data says (B4a R7).</summary>
     private void BondByAction(Inhabitant actor, Inhabitant listener, string action)
