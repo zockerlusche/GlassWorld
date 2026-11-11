@@ -63,6 +63,12 @@ public sealed class DecisionsSystem : IWorldSystem
     /// <summary>The world's weather for the decider's environment (B2 R13); null = fallback values from the settings.</summary>
     public Weather.WeatherSystem? WeatherSource { get; init; }
 
+    /// <summary>
+    /// Whether a request is validated against its schema before it leaves (ADR-0009; set by the host from
+    /// <see cref="SimulationHostOptions.ValidateRequests"/>): on in tests and check runs, off in the running game.
+    /// </summary>
+    public bool ValidateRequests { get; init; } = true;
+
     /// <summary>Knowledge data (B4a): passing actions as options, knowledge and relationships in the request.</summary>
     public KnowledgeSettings? Knowledge { get; init; }
 
@@ -885,7 +891,7 @@ public sealed class DecisionsSystem : IWorldSystem
         // One look around per request: the options and the request describe the same moment.
         var others = PerceivedInhabitants(inhabitant);
         var options = BuildOptions(inhabitant, target, world.Tick, others);
-        var json = ContractSerializer.Serialize(BuildRequest(world, inhabitant, requestId, options, others));
+        var json = ContractSerializer.Serialize(BuildRequest(world, inhabitant, requestId, options, others), ValidateRequests);
         Log.Add(new DecisionLogEntry(DecisionLogKind.Request, requestId, world.Tick, json, null));
         _port.Send(requestId, json);
         world.Probe?.Leave(PartRequest);
@@ -1055,7 +1061,9 @@ public sealed class DecisionsSystem : IWorldSystem
         var question = _open.Values.FirstOrDefault(q => q.RequestId == message.RequestId && q.RetryAtTick is null);
         if (message.IsError)
         {
-            Log.Add(new DecisionLogEntry(DecisionLogKind.Error, message.RequestId, world.Tick, message.Json, ReplayNotes.ServiceError));
+            // A request the service refused as invalid has its own name in the log and in the event (ADR-0009).
+            var note = ReplayNotes.OfError(message.Json);
+            Log.Add(new DecisionLogEntry(DecisionLogKind.Error, message.RequestId, world.Tick, message.Json, note));
             if (question is not null && IsRetryable(message.Json))
             {
                 // B2487: no fixed time limit; the question stays open and is asked again later.
@@ -1063,7 +1071,7 @@ public sealed class DecisionsSystem : IWorldSystem
                 return;
             }
 
-            Close(world, question, "question_failed");
+            Close(world, question, "question_failed", note == ReplayNotes.RequestRejected ? note : null);
             return;
         }
 

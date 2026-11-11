@@ -37,6 +37,9 @@ public sealed class BuildingTests : IDisposable
     {
         var (host, port, typeId) = Invented(21);
         var planJob = Assert.Single(port.Submitted, j => j.Kind == JobKind.Build_plan);
+
+        // The contract test of this request form (ADR-0009): the job as it left the core fits its schema.
+        Assert.Empty(ContractValidator.Validate("generation-job", port.Json[planJob.RequestId]));
         var kit = Content.Value.Inventions.Build.Kit;
         Assert.Equal(kit.Shapes, planJob.Payload.BuildPlan!.Shapes);
         Assert.Equal(kit.Colors.Select(c => c.Id), planJob.Payload.BuildPlan.Colors);
@@ -258,6 +261,9 @@ public sealed class BuildingTests : IDisposable
         host.World.Step();
 
         var job = Assert.Single(port.Submitted, j => j.Kind == JobKind.Sound);
+
+        // The contract test of this request form (ADR-0009): the job as it left the core fits its schema.
+        Assert.Empty(ContractValidator.Validate("generation-job", port.Json[job.RequestId]));
         var generation = Content.Value.Inventions.Build.Sound;
         var decision = host.Inventions.Invention(typeId)!;
         Assert.Equal(generation.Priority, job.Priority);
@@ -511,9 +517,16 @@ public sealed class BuildingTests : IDisposable
 
         public List<GenerationJob> Submitted { get; } = [];
 
+        /// <summary>Every submitted job as it left the core, by request id.</summary>
+        public Dictionary<string, string> Json { get; } = new(StringComparer.Ordinal);
+
         public List<(string Phase, long Tick, bool Force)> Phases { get; } = [];
 
-        public void Submit(string requestId, string jobJson) => Submitted.Add(ContractSerializer.Deserialize<GenerationJob>(jobJson));
+        public void Submit(string requestId, string jobJson)
+        {
+            Json[requestId] = jobJson;
+            Submitted.Add(ContractSerializer.Deserialize<GenerationJob>(jobJson));
+        }
 
         public void Answer(GenerationJob job, JobStatus status) => _ready.Enqueue(new PortMessage(job.RequestId, ContractSerializer.Serialize(status), IsError: false));
 

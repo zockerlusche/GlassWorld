@@ -46,7 +46,7 @@ public sealed class ReplayJobPort : IJobPort
         ArgumentNullException.ThrowIfNull(log);
         _byTick = log.Entries
             .Where(e => e.Kind is DecisionLogKind.JobResult or DecisionLogKind.JobError or DecisionLogKind.JobDiscarded)
-            .ToLookup(e => e.Tick, e => new PortMessage(e.RequestId, e.Json, e.Kind == DecisionLogKind.JobError && e.Note == ReplayNotes.ServiceError));
+            .ToLookup(e => e.Tick, e => new PortMessage(e.RequestId, e.Json, e.Kind == DecisionLogKind.JobError && ReplayNotes.IsServiceError(e.Note)));
     }
 
     /// <inheritdoc/>

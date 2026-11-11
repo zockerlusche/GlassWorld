@@ -31,7 +31,7 @@ internal enum PerfDecider
 internal sealed record PerfOptions(ulong Seed, long Days, long? Ticks, int? Inhabitants, string Preset, string ContentDirectory, PerfDecider Decider, long WarmupTicks, bool Json, double? BudgetMs)
 {
     /// <summary>Usage line for errors.</summary>
-    public const string Usage = "Use: perf [--preset P] [--seed N] [--inhabitants N|data] [--days N | --ticks N] [--ai mock|silent] [--answer-every N] [--warmup-ticks N] [--runtime-warmup-seconds X] [--budget-ms X] [--json] [--csv FILE] [--content DIR].";
+    public const string Usage = "Use: perf [--preset P] [--seed N] [--inhabitants N|data] [--days N | --ticks N] [--ai mock|silent] [--answer-every N] [--validate-requests] [--warmup-ticks N] [--runtime-warmup-seconds X] [--budget-ms X] [--json] [--csv FILE] [--content DIR].";
 
     /// <summary>
     /// Seconds a throwaway world of the same kind runs before the measured world is built, so the runtime has
@@ -44,6 +44,13 @@ internal sealed record PerfOptions(ulong Seed, long Days, long? Ticks, int? Inha
     /// that long per answer); 0 = every question is answered at the next tick.
     /// </summary>
     public int AnswerEvery { get; init; }
+
+    /// <summary>
+    /// Whether the measured world validates the requests it sends against their schema (ADR-0009). Off by
+    /// default: that is what the running game does, and the step of the game is what is measured; on is what
+    /// tests and check runs do.
+    /// </summary>
+    public bool ValidateRequests { get; init; }
 
     /// <summary>Default of <see cref="RuntimeWarmupSeconds"/>.</summary>
     public const double DefaultRuntimeWarmupSeconds = 6;
@@ -77,6 +84,7 @@ internal sealed record PerfOptions(ulong Seed, long Days, long? Ticks, int? Inha
         string? csv = null;
         var runtimeWarmup = DefaultRuntimeWarmupSeconds;
         var answerEvery = 0;
+        var validate = false;
         for (var i = 0; i < args.Length; i++)
         {
             switch (args[i])
@@ -123,6 +131,9 @@ internal sealed record PerfOptions(ulong Seed, long Days, long? Ticks, int? Inha
                 case "--answer-every":
                     answerEvery = int.Parse(Value(args, ref i), NumberStyles.None, CultureInfo.InvariantCulture);
                     break;
+                case "--validate-requests":
+                    validate = true;
+                    break;
                 case "--runtime-warmup-seconds":
                     runtimeWarmup = double.Parse(Value(args, ref i), NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture);
                     break;
@@ -151,7 +162,7 @@ internal sealed record PerfOptions(ulong Seed, long Days, long? Ticks, int? Inha
             throw new ArgumentException("--answer-every needs --ai mock (the silent decider never answers).");
         }
 
-        return new PerfOptions(seed, days, ticks, inhabitants, preset, content ?? (findContent ?? ContentFolder.Find)(), decider, warmup, json, budget) { CsvPath = csv, RuntimeWarmupSeconds = runtimeWarmup, AnswerEvery = answerEvery };
+        return new PerfOptions(seed, days, ticks, inhabitants, preset, content ?? (findContent ?? ContentFolder.Find)(), decider, warmup, json, budget) { CsvPath = csv, RuntimeWarmupSeconds = runtimeWarmup, AnswerEvery = answerEvery, ValidateRequests = validate };
     }
 
     private static string Value(string[] args, ref int i)
@@ -230,6 +241,7 @@ internal sealed record PerfResult(
     long Requests,
     long Answers,
     int OpenQuestions,
+    int RejectedRequests,
     double AllocatedBytesPerStep,
     int Gen0,
     int Gen1,
@@ -275,7 +287,8 @@ internal static class PerfCommand
         }
 
         var port = new TimedDecisionPort(decider, timer);
-        var host = SimulationHost.CreateGeneratedWorld(options.ContentDirectory, options.Seed, port, "de", options.Preset, inhabitants: options.Inhabitants);
+        var host = SimulationHost.CreateGeneratedWorld(
+            options.ContentDirectory, options.Seed, port, "de", options.Preset, options: new SimulationHostOptions { ValidateRequests = options.ValidateRequests }, inhabitants: options.Inhabitants);
         host.World.Probe = timer;
         return (host, timer, port);
     }
@@ -397,6 +410,7 @@ internal static class PerfCommand
             port.Sent - sent,
             port.Received - received,
             host.Decisions.Open.Count(),
+            host.RejectedRequests,
             (double)allocated / steps,
             GC.CollectionCount(0) - gen.Item1,
             GC.CollectionCount(1) - gen.Item2,
@@ -414,7 +428,7 @@ internal static class PerfCommand
         var o = result.Options;
         var text = new StringBuilder();
         void Line(FormattableString line) => text.Append(FormattableString.Invariant(line)).Append('\n');
-        Line($"PERF preset={o.Preset} seed={o.Seed} inhabitants={result.Inhabitants} decider={Name(o.Decider)} answer_every={o.AnswerEvery} ticks={result.Ticks} warmup_ticks={result.WarmupTicks} measured_ticks={result.MeasuredTicks} runtime_warmup_s={o.RuntimeWarmupSeconds:0.###} runtime_warmup_ticks={result.RuntimeWarmupTicks} build={(result.Optimized ? "release" : "debug")}");
+        Line($"PERF preset={o.Preset} seed={o.Seed} inhabitants={result.Inhabitants} decider={Name(o.Decider)} answer_every={o.AnswerEvery} validate_requests={(o.ValidateRequests ? "on" : "off")} ticks={result.Ticks} warmup_ticks={result.WarmupTicks} measured_ticks={result.MeasuredTicks} runtime_warmup_s={o.RuntimeWarmupSeconds:0.###} runtime_warmup_ticks={result.RuntimeWarmupTicks} build={(result.Optimized ? "release" : "debug")}");
         if (!result.Optimized)
         {
             Line($"WARNING the core is a debug build: these times say nothing about the budget (run with -c Release)");
@@ -433,7 +447,7 @@ internal static class PerfCommand
             }
         }
 
-        Line($"REQUESTS sent={result.Requests} per_step={(double)result.Requests / Math.Max(1, result.MeasuredTicks):F3} answers={result.Answers} open_at_end={result.OpenQuestions}");
+        Line($"REQUESTS sent={result.Requests} per_step={(double)result.Requests / Math.Max(1, result.MeasuredTicks):F3} answers={result.Answers} open_at_end={result.OpenQuestions} rejected={result.RejectedRequests}");
         Line($"ALLOC kb_per_step={result.AllocatedBytesPerStep / 1024:F1} gc0={result.Gen0} gc1={result.Gen1} gc2={result.Gen2}");
         Line($"DOING on_the_way={result.OnTheWay:F1} acting={result.Acting:F1} idle={result.Idle:F1}");
         if (o.BudgetMs is { } budget)
@@ -459,6 +473,7 @@ internal static class PerfCommand
             json.WriteNumber("inhabitants", result.Inhabitants);
             json.WriteString("decider", Name(o.Decider));
             json.WriteNumber("answer_every", o.AnswerEvery);
+            json.WriteBoolean("validate_requests", o.ValidateRequests);
             json.WriteNumber("ticks", result.Ticks);
             json.WriteNumber("warmup_ticks", result.WarmupTicks);
             json.WriteNumber("runtime_warmup_seconds", o.RuntimeWarmupSeconds);
@@ -501,6 +516,7 @@ internal static class PerfCommand
             json.WriteNumber("sent", result.Requests);
             json.WriteNumber("answers", result.Answers);
             json.WriteNumber("open_at_end", result.OpenQuestions);
+            json.WriteNumber("rejected", result.RejectedRequests);
             json.WriteEndObject();
             json.WriteNumber("allocated_bytes_per_step", result.AllocatedBytesPerStep);
             json.WriteStartObject("gc");

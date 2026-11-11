@@ -275,6 +275,7 @@ public sealed class DecisionTests
         w.World.Run(3);
         var question = Assert.Single(w.Decisions.Open);
         Assert.NotNull(question.RetryAtTick);
+        Assert.Equal(ReplayNotes.ServiceError, Assert.Single(w.Decisions.Log.Entries, e => e.Kind == DecisionLogKind.Error).Note);
 
         w.World.Run(question.RetryAtTick!.Value - w.World.Tick + 1);
         Assert.Equal(2, w.Decisions.Log.Entries.Count(e => e.Kind == DecisionLogKind.Request));
@@ -297,7 +298,11 @@ public sealed class DecisionTests
         w.Objects.Spawn("blue_berry", new Position(2, 0));
         w.World.Run(3);
         Assert.Empty(w.Decisions.Open);
-        Assert.Contains(w.Inhabitants.Events, e => e.Kind == "question_failed");
+
+        // The service refused the request as invalid: that has its own name in the log and in the event (ADR-0009).
+        Assert.Contains(w.Inhabitants.Events, e => e.Kind == "question_failed" && e.Detail == ReplayNotes.RequestRejected);
+        Assert.Equal(ReplayNotes.RequestRejected, Assert.Single(w.Decisions.Log.Entries, e => e.Kind == DecisionLogKind.Error).Note);
+        Assert.Equal(1, w.Decisions.Log.CountOf(ReplayNotes.RequestRejected));
     }
 
     [Fact]

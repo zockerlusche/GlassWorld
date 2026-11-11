@@ -57,6 +57,13 @@ public partial class WorldPresenter : Node3D
     /// <summary>Whether the core accepts debug commands (debug jumps, B2-6 R31); set before the world starts, off by default.</summary>
     public bool DebugCommands { get; init; }
 
+    /// <summary>
+    /// The switches of the game's worlds. The running game does not validate the requests it sends against
+    /// their schema (ADR-0009): that costs more than the rest of a simulation step, the service validates
+    /// everything it receives, and every request form has its contract test. Answers are validated as ever.
+    /// </summary>
+    private SimulationHostOptions HostOptions() => new(DebugCommands) { ValidateRequests = false };
+
     /// <summary>Speed factor: 0 = pause, 1 = normal, 4/16 = fast forward (B6 adds the controls).</summary>
     public double Speed { get; set; } = 1.0;
 
@@ -105,8 +112,8 @@ public partial class WorldPresenter : Node3D
         SimulationHost Make(WorldLookMode m)
         {
             var made = m == WorldLookMode.Island
-                ? SimulationHost.CreateGeneratedWorld(contentDirectory, seed, port, UiLocale(), look.IslandPreset, _jobPort, new SimulationHostOptions(DebugCommands))
-                : SimulationHost.CreatePlaceholderWorld(contentDirectory, seed, port, UiLocale(), _jobPort, new SimulationHostOptions(DebugCommands));
+                ? SimulationHost.CreateGeneratedWorld(contentDirectory, seed, port, UiLocale(), look.IslandPreset, _jobPort, HostOptions())
+                : SimulationHost.CreatePlaceholderWorld(contentDirectory, seed, port, UiLocale(), _jobPort, HostOptions());
             if (startFavor is { } favor)
             {
                 // Part of the start (GW1 review #67 S1/N1): as a command in the log, applied at the first
@@ -159,7 +166,7 @@ public partial class WorldPresenter : Node3D
         var settings = Contracts.Validation.ContractSerializer.Deserialize<Contracts.DeciderSettings>(
             System.IO.File.ReadAllText(System.IO.Path.Combine(contentDirectory, "decider", "settings.json")));
         var decisions = port ?? CreatePort(contentDirectory);
-        var factory = new SimulationHostFactory(ContentSet.Load(contentDirectory), settings, decisions, UiLocale(), _jobPort, new SimulationHostOptions(DebugCommands));
+        var factory = new SimulationHostFactory(ContentSet.Load(contentDirectory), settings, decisions, UiLocale(), _jobPort, HostOptions());
         var host = StateCodec.Restore(factory, SaveGameStore.Load(savePath));
         HashAtLoad = host.World.StateHash();
         host.Decisions.ResendPendingAfterLoad(host.World);
