@@ -299,6 +299,39 @@ public partial class GameScreen : CanvasLayer
         Layout();
     }
 
+    /// <summary>UI tour only: the side windows a player can open in the given layout, in the order of the buttons and tabs.</summary>
+    public static IReadOnlyList<string> PanelKeysForShots(bool zones) =>
+        zones
+            ? [.. ScreenZones.Themes.SelectMany(t => t.Panels).Where(k => k != ScreenZones.Card)]
+            : ["inhabitants", "questions", ScreenZones.Pinned, "chronicle", "help", "mailbox"];
+
+    /// <summary>UI tour only: opens a side window (null closes the open one).</summary>
+    public void OpenPanelForShots(string? key)
+    {
+        _sideBar.Open(key);
+        Layout();
+    }
+
+    /// <summary>UI tour only: the card of an inhabitant (null closes it), with every section unfolded if asked.</summary>
+    public void ShowCardForShots(string? inhabitantId, bool expand)
+    {
+        if (inhabitantId is null)
+        {
+            CloseCard();
+            _sideBar.Open(null);
+            return;
+        }
+
+        foreach (var key in new[] { "ui.card.wellbeing", "ui.card.feelings", "ui.card.character", "ui.card.diary" })
+        {
+            _cardFolded[key] = !expand;
+        }
+
+        _cardShape = string.Empty;
+        ShowInhabitant(inhabitantId);
+        Layout();
+    }
+
     /// <summary>A side window opened or closed: in the zones layout it shares its place with the card, and the log stays.</summary>
     private void PanelToggled()
     {
@@ -428,6 +461,8 @@ public partial class GameScreen : CanvasLayer
         }
 
         var events = _feed.NewEvents();
+        var rowsNow = _feed.Inhabitants();
+        _board.DismissWhere(m => ScreenModel.IsSettledQuestionHint(m, rowsNow));
         if (events.Count > 0)
         {
             _log?.Add(events);
