@@ -1084,17 +1084,7 @@ public sealed class DecisionsSystem : IWorldSystem
             },
             Perception = new Perception
             {
-                Objects = [.. things.Take(64).Select(o => new PerceivedObject
-                {
-                    Id = o.Id,
-                    Type = o.TypeId,
-                    DistanceM = Distance(inhabitant.Position, o.Position),
-                    KnownProperties = [.. inhabitant.Beliefs.About(o.TypeId).Select(b => new KnownProperty { Property = b.PropertyId, Value = b.Belief.Value, Confidence = b.Belief.Confidence })],
-
-                    // What the asker itself calls this kind of thing: the name of an invention it knows
-                    // something about; absent for what the data name and for a thing it knows nothing of.
-                    Label = _inhabitants.TypeLabelOf(inhabitant, o.TypeId),
-                })],
+                Objects = PerceivedObjects(inhabitant, things),
 
                 // Contract 0.2 (B4a-S5): other inhabitants in sight, nearest first.
                 // W1698: how the asker calls the other - its own name once the asker knows it.
@@ -1108,6 +1098,51 @@ public sealed class DecisionsSystem : IWorldSystem
             },
             Options = [.. options.Select(o => new Option { OptionId = o.OptionId, Action = o.Action, Target = o.TargetId, Topic = TopicOf(inhabitant, o.Action, o.TargetId) })],
         };
+    }
+
+    // What the asker knows about a type and what it calls it, while the things it perceives are listed
+    // (most of them are of a few kinds). Empty outside PerceivedObjects.
+    private readonly Dictionary<string, (List<KnownProperty> Known, LocalizedName? Label)> _knownOfType = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// The nearest things in sight as the contract carries them (at most 64): each with what the asker
+    /// believes about its type and with what the asker itself calls this kind of thing - the name of an
+    /// invention it knows something about; absent for what the data name and for a thing it knows nothing of.
+    /// Both belong to the type, so they are looked up once per type and shared by the things of that type.
+    /// </summary>
+    private List<PerceivedObject> PerceivedObjects(Inhabitant inhabitant, List<WorldObject> things)
+    {
+        var count = Math.Min(64, things.Count);
+        var objects = new List<PerceivedObject>(count);
+        var ofType = _knownOfType;
+        ofType.Clear();
+        for (var i = 0; i < count; i++)
+        {
+            var thing = things[i];
+            if (!ofType.TryGetValue(thing.TypeId, out var type))
+            {
+                var known = new List<KnownProperty>();
+                foreach (var (property, belief) in inhabitant.Beliefs.About(thing.TypeId))
+                {
+                    known.Add(new KnownProperty { Property = property, Value = belief.Value, Confidence = belief.Confidence });
+                }
+
+                type = (known, _inhabitants.TypeLabelOf(inhabitant, thing.TypeId));
+                ofType.Add(thing.TypeId, type);
+            }
+
+            objects.Add(new PerceivedObject
+            {
+                Id = thing.Id,
+                Type = thing.TypeId,
+                DistanceM = Distance(inhabitant.Position, thing.Position),
+                KnownProperties = type.Known,
+                Label = type.Label,
+            });
+        }
+
+        ofType.Clear();
+        return objects;
     }
 
     /// <summary>
