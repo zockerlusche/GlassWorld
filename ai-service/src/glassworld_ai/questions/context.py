@@ -75,9 +75,26 @@ def build_values(job: GenerationJob, template: PromptTemplate, vocab: Vocabulary
     )[:max_knowledge]
 
     summary = inhabitant.memory.summary.strip()
+    # v2 (B4a R10): the thing asked about has no name here - a name like 'flint' or 'sea water'
+    # gives away what the inhabitant has not found out. People keep their label.
+    unnamed = (
+        table(settings, "unnamed_subject").get(subject_key[0])
+        if "unnamed_subject" in settings
+        else None
+    )
+
+    def about(entry: Any) -> str:
+        line = knowledge_line(entry, settings)
+        own = (plain_id(entry.subject.kind), plain_id(entry.subject.id)) == subject_key
+        return (
+            line.replace(subject_name(entry.subject, settings), f"this {unnamed}", 1)
+            if unnamed and own
+            else line
+        )
+
     return {
         "question": Template(question_text).safe_substitute(
-            subject=subject_name(payload.subject, settings)
+            subject=unnamed or subject_name(payload.subject, settings)
         ),
         "will_to_live": f"{will:.2f} ({word(will_words, will)})",
         "needs": "\n".join(
@@ -97,8 +114,7 @@ def build_values(job: GenerationJob, template: PromptTemplate, vocab: Vocabulary
         )
         or NOTHING,
         "memory": quote(summary) if summary else "(you remember nothing special yet)",
-        "knowledge": "\n".join(knowledge_line(k, settings) for k in knowledge)
-        or "- (you know nothing about it yet)",
+        "knowledge": "\n".join(about(k) for k in knowledge) or "- (you know nothing about it yet)",
         "perception": "\n".join(
             f"- {vocab_line(vocab, 'property', plain_id(p))}"
             for p in sorted(payload.perception, key=plain_id)

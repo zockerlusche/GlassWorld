@@ -416,3 +416,31 @@ def test_no_thing_guesses_about_a_person(settings: Settings) -> None:
     handler, _ = _handler(settings, fake)
     asyncio.run(handler(GenerationJob.model_validate(data)))
     assert sent[0]["format"]["properties"]["guesses"]["maxItems"] == 0
+
+
+def test_v2_never_names_the_thing_asked_about(settings: Settings) -> None:
+    """B4a R10: a name like 'flint' gives away what the inhabitant has not found out."""
+    template = load_prompt(settings.prompts_dir, "question/ask", 2)
+    data = JOB.model_dump(mode="json")
+    data["payload"]["question"]["inhabitant"]["knowledge"].append(
+        {
+            "subject": data["payload"]["question"]["subject"],
+            "property": "portable",
+            "value": True,
+            "confidence": 0.8,
+            "source": "seen",
+            "told_by": None,
+            "tick": 1,
+        }
+    )
+    job = GenerationJob.model_validate(data)
+    rendered = template.render(build_values(job, template, _vocab(settings)))
+    text = f"=== SYSTEM ===\n{rendered.system}\n\n=== USER ===\n{rendered.user}\n"
+    assert "Can I eat this thing?" in rendered.user
+    assert "red berry bush" not in rendered.user
+    assert "- this thing is portable (sure 0.8; you looked at it)" in rendered.user
+    assert "thing 'spring water' is drinkable" in rendered.user  # other things keep their name
+    snapshot = SNAPSHOTS / "question-ask.v2.unknown-berries.txt"
+    if os.environ.get("GW_UPDATE_SNAPSHOTS") == "1":
+        snapshot.write_text(text, encoding="utf-8", newline="\n")
+    assert text == snapshot.read_text(encoding="utf-8")
