@@ -48,6 +48,15 @@ public sealed class ToastTests
         board.Advance(2, null);
         board.DismissWhere(m => m.LookAt == "a");
         Assert.Equal(["b", null, null], board.Visible.Select(t => t.Message.LookAt));
+
+        // A waiting hint that is settled leaves at once: it was never shown, nothing can flash.
+        board.Push(Msg("more"), fastForward: false);
+        board.Push(Question("c"), fastForward: false);
+        Assert.Equal(2, board.Waiting);
+        board.DismissWhere(m => m.LookAt == "c");
+        Assert.Equal(1, board.Waiting);
+        board.DismissWhere(m => m.TextKey == "more");
+        Assert.Equal(["b", null, null], board.Visible.Select(t => t.Message.LookAt));
         Assert.Equal(0, board.Waiting);
         Assert.True(board.Version > version);
 
@@ -55,6 +64,19 @@ public sealed class ToastTests
         version = board.Version;
         board.DismissWhere(m => m.LookAt == "a");
         Assert.Equal(version, board.Version);
+    }
+
+    [Fact]
+    public void WithHintsThatStayASettledHintStillLeaves()
+    {
+        // "Hints stay until I close them" keeps hints past their lifetime, but not one whose reason is gone.
+        var board = new ToastBoard(Tokens, new ToastSettings(1, UntilDismissed: true));
+        board.Push(new ToastMessage("q", NoArgs, "q|a", "a", "q.many"), fastForward: false);
+        board.Push(Msg("other"), fastForward: false);
+        board.Advance(60, null);
+        Assert.Equal(2, board.Visible.Count);
+        board.DismissWhere(m => m.LookAt == "a");
+        Assert.Equal("other", Assert.Single(board.Visible).Message.TextKey);
     }
 
     [Fact]

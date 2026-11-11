@@ -85,14 +85,16 @@ public sealed class ToastBoard
     /// <summary>Advances real time by <paramref name="seconds"/>; the hovered hint does not age.</summary>
     public void Advance(double seconds, long? hoveredId)
     {
+        // The age always runs (a settled hint leaves by it, review GW1 #220); only the end by lifetime
+        // is switched off by "hints stay until I close them".
+        foreach (var entry in _visible.Where(e => e.Id != hoveredId))
+        {
+            entry.Age += seconds;
+        }
+
         if (!Settings.UntilDismissed)
         {
             var lifetime = _tokens.MinSeconds * Math.Clamp(Settings.DurationFactor, 1, _tokens.MaxDurationFactor);
-            foreach (var entry in _visible.Where(e => e.Id != hoveredId))
-            {
-                entry.Age += seconds;
-            }
-
             if (_visible.RemoveAll(e => e.Age >= lifetime) > 0)
             {
                 Version++;
