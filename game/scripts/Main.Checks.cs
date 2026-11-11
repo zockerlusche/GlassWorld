@@ -524,88 +524,108 @@ public partial class Main
         TextCatalogs.SetLanguage("de");
         var size = GetWindow().Size;
         var prefix = $"{size.X}x{size.Y}_";
-        var count = 0;
+        var (count, failed) = (0, 0);
+        DirAccess.MakeDirRecursiveAbsolute(_shotsFolder!);
         async Task Take(string name)
         {
             await Frames(12);
             _screen?.Refresh();
             await Frames(2);
-            Shot(prefix + name + ".png");
-            count++;
-        }
-
-        // Let the world live a little, so lists, log, questions and chronicle have something to show.
-        _world!.Host!.Conversation.Port ??= new Simulation.Player.MockConversationPort();
-        for (var i = 0; i < 600; i++)
-        {
-            _world.Host.World.Step();
-        }
-
-        _world.Speed = 0;
-        var first = _world.Host.Inhabitants.All.OrderBy(i => i.Id, StringComparer.Ordinal).First().Id;
-
-        // 1. Windows of the main menu (shown over the game: the menu itself has no world behind it).
-        if (_library is not null)
-        {
-            var menu = new MainMenu { Name = "TourMenu" };
-            AddChild(menu);
-            menu.Setup(LoadMenuData(_library), style);
-            await Take("01_hauptmenue");
-            menu.OpenNewWorld();
-            await Take("02_neue_welt");
-            menu.OpenWorlds();
-            await Take("03_welten_laden");
-            menu.ShowLoading("Meine Welt");
-            await Take("04_lade_hinweis");
-            menu.QueueFree();
-            await Frames(2);
-        }
-
-        // 2. The game screen in both layouts: every side window, the card, the pause menu.
-        foreach (var (zones, tag) in new[] { (false, "alt"), (true, "neu") })
-        {
-            _screen!.ShowZonesForShots(zones);
-            await Take($"10_{tag}_spiel");
-            foreach (var key in GameScreen.PanelKeysForShots(zones))
+            if (Shot(prefix + name + ".png"))
             {
-                _screen.OpenPanelForShots(key);
-                await Take($"11_{tag}_{key}");
+                count++;
+            }
+            else
+            {
+                failed++;
+            }
+        }
+
+        // Whatever happens on the way, the run ends and says how it went (review GW1 #214): no window left open.
+        var ok = false;
+        try
+        {
+            // Let the world live a little, so lists, log, questions and chronicle have something to show.
+            _world!.Host!.Conversation.Port ??= new Simulation.Player.MockConversationPort();
+            for (var i = 0; i < 600; i++)
+            {
+                _world.Host.World.Step();
             }
 
-            _screen.OpenPanelForShots(null);
-            _screen.ShowCardForShots(first, expand: false);
-            await Take($"12_{tag}_karte");
-            _screen.ShowCardForShots(first, expand: true);
-            await Take($"13_{tag}_karte_aufgeklappt");
-            _screen.ShowCardForShots(null, expand: false);
+            _world.Speed = 0;
+            var first = _world.Host.Inhabitants.All.OrderBy(i => i.Id, StringComparer.Ordinal).First().Id;
 
-            OpenPause();
-            await Take($"14_{tag}_pause");
-            _pause?.Close();
-            await Frames(2);
-        }
-
-        // 3. The settings, every tab (opened from the game, as the pause menu does).
-        _screen!.ShowZonesForShots(false);
-        SettingsWindow? settings = null;
-        OpenSettings(window =>
-        {
-            settings = window as SettingsWindow;
-            _screen.ShowWindow(window, modal: true);
-        });
-        if (settings is not null)
-        {
-            foreach (var tab in new[] { "player", "language", "display", "hints", "audio", "ai" })
+            // 1. Windows of the main menu (shown over the game: the menu itself has no world behind it).
+            if (_library is not null)
             {
-                settings.ShowTab("ui.settings.section." + tab);
-                await Take($"20_einstellungen_{tab}");
+                var menu = new MainMenu { Name = "TourMenu" };
+                AddChild(menu);
+                menu.Setup(LoadMenuData(_library), style);
+                await Take("01_hauptmenue");
+                menu.OpenNewWorld();
+                await Take("02_neue_welt");
+                menu.OpenWorlds();
+                await Take("03_welten_laden");
+                menu.ShowLoading("Meine Welt");
+                await Take("04_lade_hinweis");
+                menu.QueueFree();
+                await Frames(2);
             }
 
-            settings.Close();
-        }
+            // 2. The game screen in both layouts: every side window, the card, the pause menu.
+            foreach (var (zones, tag) in new[] { (false, "alt"), (true, "neu") })
+            {
+                _screen!.ShowZonesForShots(zones);
+                await Take($"10_{tag}_spiel");
+                foreach (var key in GameScreen.PanelKeysForShots(zones))
+                {
+                    _screen.OpenPanelForShots(key);
+                    await Take($"11_{tag}_{key}");
+                }
 
-        GD.Print($"UI_TOUR_OK {count}");
-        GetTree().Quit(0);
+                _screen.OpenPanelForShots(null);
+                _screen.ShowCardForShots(first, expand: false);
+                await Take($"12_{tag}_karte");
+                _screen.ShowCardForShots(first, expand: true);
+                await Take($"13_{tag}_karte_aufgeklappt");
+                _screen.ShowCardForShots(null, expand: false);
+
+                OpenPause();
+                await Take($"14_{tag}_pause");
+                _pause?.Close();
+                await Frames(2);
+            }
+
+            // 3. The settings, every tab (opened from the game, as the pause menu does).
+            _screen!.ShowZonesForShots(false);
+            SettingsWindow? settings = null;
+            OpenSettings(window =>
+            {
+                settings = window as SettingsWindow;
+                _screen.ShowWindow(window, modal: true);
+            });
+            if (settings is not null)
+            {
+                foreach (var tab in new[] { "player", "language", "display", "hints", "audio", "ai" })
+                {
+                    settings.ShowTab("ui.settings.section." + tab);
+                    await Take($"20_einstellungen_{tab}");
+                }
+
+                settings.Close();
+            }
+
+            ok = failed == 0 && count > 0;
+        }
+        catch (Exception e) when (e is not OutOfMemoryException)
+        {
+            GD.PushError($"UI_TOUR_FAIL {e.GetType().Name}: {e.Message}");
+        }
+        finally
+        {
+            GD.Print(ok ? $"UI_TOUR_OK {count}" : $"UI_TOUR_FAIL pictures={count} failed={failed}");
+            GetTree().Quit(ok ? 0 : 1);
+        }
     }
 
     private async Task Frames(int count)
@@ -618,10 +638,12 @@ public partial class Main
         await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
     }
 
-    private void Shot(string name)
+    private bool Shot(string name)
     {
         var path = System.IO.Path.Combine(_shotsFolder!, name);
-        GD.Print($"UI_SHOT {path} {GetViewport().GetTexture().GetImage().SavePng(path)}");
+        var error = GetViewport().GetTexture().GetImage().SavePng(path);
+        GD.Print($"UI_SHOT {path} {error}");
+        return error == Error.Ok;
     }
 
     /// <summary>Smoke run only: visible controls that would take the mouse at <paramref name="point"/> (names, comma-separated).</summary>
