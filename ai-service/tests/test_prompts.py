@@ -423,3 +423,21 @@ def test_v8_calls_an_invention_what_its_inhabitant_calls_it() -> None:
         }
     )
     assert '(you call it "water bowl")' in _render(english, version=8)
+
+
+def test_v8_a_name_cannot_break_the_quotes_of_a_line() -> None:
+    """Review GW3 #255: an invention's name is generated text; a quote or line break in it must
+    not end the quotes of a belief line early."""
+    data = json.loads(
+        (EXAMPLES / "decision-request.own-invention.json").read_text(encoding="utf-8")
+    )
+    odd = {"de": 'Mira\'s "Schale"\n  gross', "en": "Mira's bowl"}
+    for thing in data["perception"]["objects"]:
+        if "label" in thing:
+            thing["label"] = odd
+    for entry in data["inhabitant"]["knowledge"]:
+        if "label" in entry:
+            entry["label"] = odd
+    user = _render(DecisionRequest.model_validate(data), version=8).split("=== user ===")[1]
+    assert "- thing 'Miras Schale gross' is crafted" in user
+    assert '(you call it "Miras Schale gross")' in user

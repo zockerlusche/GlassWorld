@@ -182,7 +182,8 @@ def _labels(request: DecisionRequest, locale: str) -> dict[str, str]:
     def note(type_id: object, label: object) -> None:
         name: object = getattr(label, locale, None) if label is not None else None
         if type_id is not None and isinstance(name, str) and name.strip():
-            found.setdefault(_id(type_id), " ".join(name.replace('"', "").split()))
+            shown = name.replace('"', "").replace("'", "")  # no quote may end a line's quotes early
+            found.setdefault(_id(type_id), " ".join(shown.split()))
 
     for thing in request.perception.objects:
         note(thing.type, getattr(thing, "label", None))
