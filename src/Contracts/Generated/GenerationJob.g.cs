@@ -83,6 +83,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("perception")]
         public System.Collections.Generic.ICollection<string> Perception { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
+        /// <summary>
+        /// What THIS inhabitant calls the kind of thing it asks about (subject of kind type), by its own knowledge only: the inhabitants' name of an invention it believes anything about (it invented it, built it, tried it, looked at it, was told about it). Absent when it knows nothing of it, and for things the data name (the id is the vocabulary key, i18n key vocab.object.&lt;id&gt;). Never a truth the inhabitant does not know; resolved when the message is built. Optional (absent also from an older core).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("label")]
+        public LocalizedName? Label { get; set; } = default!;
+
     }
 
     /// <summary>

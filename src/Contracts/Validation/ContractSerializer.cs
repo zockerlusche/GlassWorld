@@ -5,8 +5,13 @@ namespace GlassWorld.Contracts.Validation;
 
 /// <summary>
 /// The only way the game and the core read or write contract messages: JSON is validated against
-/// the schema of the target type before deserializing, and after serializing (the core never sends
-/// an invalid request). The schema is found by name: <c>DecisionRequest</c> → <c>decision-request</c>.
+/// the schema of the target type before deserializing, and after serializing. The schema is found by
+/// name: <c>DecisionRequest</c> → <c>decision-request</c>.
+/// <para>
+/// What comes in is always validated (AI output is data). What the core sends is validated in tests and
+/// check runs and not in the running game (ADR-0009): the caller says so with
+/// <see cref="Serialize{T}(T, bool)"/>.
+/// </para>
 /// </summary>
 public static class ContractSerializer
 {
@@ -39,6 +44,16 @@ public static class ContractSerializer
         var errors = ContractValidator.Validate(schema, json);
         return errors.Count > 0 ? throw new ContractViolationException(schema, errors) : json;
     }
+
+    /// <summary>
+    /// Serializes <paramref name="value"/>; validates the result only when <paramref name="validate"/> is
+    /// true. For the requests the core builds from its own typed data (ADR-0009): validating one costs
+    /// more than the rest of a simulation step, so the running game leaves it to the tests, the check runs
+    /// and the service, which validates everything it receives.
+    /// </summary>
+    /// <exception cref="ContractViolationException">The value does not satisfy the schema (only when validating).</exception>
+    public static string Serialize<T>(T value, bool validate) where T : class =>
+        validate ? Serialize(value) : JsonSerializer.Serialize(value);
 
     /// <summary>Schema name for a generated root type, e.g. <c>HealthStatus</c> → <c>health-status</c>.</summary>
     public static string SchemaNameOf(Type type)

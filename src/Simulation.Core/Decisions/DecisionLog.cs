@@ -50,6 +50,18 @@ public sealed class DecisionLog
     /// <summary>All entries in order.</summary>
     public IReadOnlyList<DecisionLogEntry> Entries => _entries;
 
+    /// <summary>How many entries carry a note (e.g. <see cref="ReplayNotes.RequestRejected"/>).</summary>
+    public int CountOf(string note)
+    {
+        var count = 0;
+        foreach (var entry in _entries)
+        {
+            count += string.Equals(entry.Note, note, StringComparison.Ordinal) ? 1 : 0;
+        }
+
+        return count;
+    }
+
     /// <summary>Appends an entry.</summary>
     public void Add(DecisionLogEntry entry)
     {
@@ -69,7 +81,7 @@ public sealed class ReplayDecisionPort : IDecisionPort
         ArgumentNullException.ThrowIfNull(log);
         _byTick = log.Entries
             .Where(e => e.Kind is DecisionLogKind.Response or DecisionLogKind.Error or DecisionLogKind.Discarded)
-            .ToLookup(e => e.Tick, e => new PortMessage(e.RequestId, e.Json, e.Kind == DecisionLogKind.Error && e.Note == ReplayNotes.ServiceError));
+            .ToLookup(e => e.Tick, e => new PortMessage(e.RequestId, e.Json, e.Kind == DecisionLogKind.Error && ReplayNotes.IsServiceError(e.Note)));
     }
 
     /// <inheritdoc/>
@@ -87,6 +99,66 @@ public static class ReplayNotes
 {
     /// <summary>The decider answered with a ServiceError.</summary>
     public const string ServiceError = "service_error";
+
+    /// <summary>
+    /// The service refused the request as invalid (a ServiceError with code <c>bad_request</c>): its own
+    /// name among the errors, because the running game does not validate what it sends (ADR-0009) and a
+    /// refusal is the sign that a request form and its contract have come apart. Counted per world
+    /// (<see cref="SimulationHost.RejectedRequests"/>).
+    /// </summary>
+    public const string RequestRejected = "request_rejected";
+
+    /// <summary>
+    /// What the service said in an error message (its <c>message</c>), or null when it cannot be read. A
+    /// log entry keeps the whole error message as its JSON; for a refused request these words say what was
+    /// wrong with it - the only place that does, since the running game does not validate what it sends.
+    /// </summary>
+    public static string? MessageOf(string errorJson)
+    {
+        ArgumentNullException.ThrowIfNull(errorJson);
+        try
+        {
+            using var document = System.Text.Json.JsonDocument.Parse(errorJson);
+            return document.RootElement.ValueKind == System.Text.Json.JsonValueKind.Object
+                && document.RootElement.TryGetProperty("message", out var message)
+                && message.ValueKind == System.Text.Json.JsonValueKind.String
+                    ? message.GetString()
+                    : null;
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>The note for an error message of the service: <see cref="RequestRejected"/> or <see cref="ServiceError"/>.</summary>
+    public static string OfError(string errorJson) => IsRejection(errorJson) ? RequestRejected : ServiceError;
+
+    /// <summary>Whether a log note marks an error message of the service (either name).</summary>
+    public static bool IsServiceError(string? note) =>
+        string.Equals(note, ServiceError, StringComparison.Ordinal) || string.Equals(note, RequestRejected, StringComparison.Ordinal);
+
+    /// <summary>
+    /// Whether an error message of the service says that it refused the request as invalid: its
+    /// <c>code</c> is <c>bad_request</c>. Read leniently (the conversation port also hands on error bodies
+    /// that are no complete ServiceError); anything unreadable is no refusal.
+    /// </summary>
+    public static bool IsRejection(string errorJson)
+    {
+        ArgumentNullException.ThrowIfNull(errorJson);
+        try
+        {
+            using var document = System.Text.Json.JsonDocument.Parse(errorJson);
+            return document.RootElement.ValueKind == System.Text.Json.JsonValueKind.Object
+                && document.RootElement.TryGetProperty("code", out var code)
+                && code.ValueKind == System.Text.Json.JsonValueKind.String
+                && string.Equals(code.GetString(), "bad_request", StringComparison.Ordinal);
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return false;
+        }
+    }
 
     /// <summary>The answer violated the contract.</summary>
     public const string ContractViolation = "contract_violation";

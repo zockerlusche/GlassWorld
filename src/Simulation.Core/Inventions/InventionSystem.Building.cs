@@ -142,7 +142,7 @@ public sealed partial class InventionSystem
                 },
             },
         };
-        var json = ContractSerializer.Serialize(job);
+        var json = ContractSerializer.Serialize(job, ValidateRequests);
         Log.Add(new DecisionLogEntry(DecisionLogKind.JobRequest, requestId, world.Tick, json, null));
         _port!.Submit(requestId, json);
         return task with { Attempts = task.Attempts + 1, RequestId = requestId, RetryAtTick = null };
@@ -159,7 +159,7 @@ public sealed partial class InventionSystem
 
         if (message.IsError)
         {
-            Log.Add(new DecisionLogEntry(DecisionLogKind.JobError, message.RequestId, world.Tick, message.Json, ReplayNotes.ServiceError));
+            Log.Add(new DecisionLogEntry(DecisionLogKind.JobError, message.RequestId, world.Tick, message.Json, ReplayNotes.OfError(message.Json)));
             RetryPlan(world, task, IsRetryable(message.Json));
             return true;
         }
@@ -416,7 +416,7 @@ public sealed partial class InventionSystem
                 },
             },
         };
-        var json = ContractSerializer.Serialize(job);
+        var json = ContractSerializer.Serialize(job, ValidateRequests);
         Log.Add(new DecisionLogEntry(DecisionLogKind.JobRequest, requestId, tick, json, null));
         _port!.Submit(requestId, json);
         _sounds[task.TypeId] = new SoundTask(task.TypeId, requestId, null, false, attempt);
@@ -470,7 +470,7 @@ public sealed partial class InventionSystem
             retryable = error.Retryable;
         }
 
-        Log.Add(new DecisionLogEntry(message.IsError ? DecisionLogKind.JobError : DecisionLogKind.JobDiscarded, message.RequestId, world.Tick, message.Json, message.IsError ? ReplayNotes.ServiceError : "sound_failed"));
+        Log.Add(new DecisionLogEntry(message.IsError ? DecisionLogKind.JobError : DecisionLogKind.JobDiscarded, message.RequestId, world.Tick, message.Json, message.IsError ? ReplayNotes.OfError(message.Json) : "sound_failed"));
 
         // A retryable failure is tried again in the next compute night (up to the data limit); anything else
         // is final: the invention keeps no sound of its own and the game takes the base library (D7).

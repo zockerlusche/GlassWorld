@@ -43,6 +43,9 @@ public sealed class InventionTests : IDisposable
 
         var job = Assert.Single(port.Submitted);
         Assert.Equal(JobKind.Invention, job.Kind);
+
+        // The contract test of this request form (ADR-0009): the job as it left the core fits its schema.
+        Assert.Empty(ContractValidator.Validate("generation-job", port.Json[job.RequestId]));
         Assert.Equal(inhabitant.Id, job.Inhabitant);
         var payload = job.Payload.Invention!;
         Assert.Equal(Need, payload.Want);
@@ -426,7 +429,14 @@ public sealed class InventionTests : IDisposable
 
         public List<GenerationJob> Submitted { get; } = [];
 
-        public void Submit(string requestId, string jobJson) => Submitted.Add(ContractSerializer.Deserialize<GenerationJob>(jobJson));
+        /// <summary>Every submitted job as it left the core, by request id.</summary>
+        public Dictionary<string, string> Json { get; } = new(StringComparer.Ordinal);
+
+        public void Submit(string requestId, string jobJson)
+        {
+            Json[requestId] = jobJson;
+            Submitted.Add(ContractSerializer.Deserialize<GenerationJob>(jobJson));
+        }
 
         public void Answer(GenerationJob job, JobStatus status) => _ready.Enqueue(new PortMessage(job.RequestId, ContractSerializer.Serialize(status), IsError: false));
 

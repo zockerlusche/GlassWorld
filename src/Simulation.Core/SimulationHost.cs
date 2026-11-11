@@ -15,7 +15,17 @@ namespace GlassWorld.Simulation;
 /// Whether debug commands are accepted (default off): only then the core takes commands that go around a
 /// rule of the world, e.g. <see cref="Look.LookEpochSystem.DebugSetLookEpoch"/>. Not part of the world state.
 /// </param>
-public sealed record SimulationHostOptions(bool DebugCommands = false);
+public sealed record SimulationHostOptions(bool DebugCommands = false)
+{
+    /// <summary>
+    /// Whether the requests the core sends (decisions, conversations, night jobs, inventions, build plans,
+    /// sounds) are validated against their schema before they leave (ADR-0009). On unless the host says
+    /// otherwise, so every test and every check run validates without having to ask for it; the running
+    /// game turns it off, because validating a request costs more than the rest of a step. What comes back
+    /// from the AI is validated in any case. Not part of the world state: the same requests leave either way.
+    /// </summary>
+    public bool ValidateRequests { get; init; } = true;
+}
 
 /// <summary>
 /// A complete simulation: content, world and its systems in their fixed order (objects → decisions →
@@ -248,6 +258,7 @@ public sealed class SimulationHost
 
             // A1487: questions wait for the night only where the night can answer them (a job port).
             NightAnswers = jobPort is not null && content.Knowledge.NightQuestions is not null,
+            ValidateRequests = options.ValidateRequests,
         };
         inhabitants.QuestionOpen = decisions.HasOpenQuestion;
 
@@ -281,7 +292,7 @@ public sealed class SimulationHost
         // One job port for all job systems: each receives only the outcomes of its own jobs (the invention
         // system takes the rest), and all write the world's one job log.
         var jobs = jobPort is null ? null : new JobRouter(jobPort);
-        var inventions = new InventionSystem(content.Inventions, inhabitants, objects, types, content.Brain.Weights.PerceptionRadiusM, jobs?.Rest, displayLocale);
+        var inventions = new InventionSystem(content.Inventions, inhabitants, objects, types, content.Brain.Weights.PerceptionRadiusM, jobs?.Rest, displayLocale) { ValidateRequests = options.ValidateRequests };
         decisions.InventedName = typeId => inventions.Invention(typeId)?.Name;
         inhabitants.InventionNameKnownTo = inventions.NameKnownTo;
 
@@ -289,7 +300,7 @@ public sealed class SimulationHost
         // night condenses it and guesses at open questions (dormant without a job port).
         var memory = new MemoryRecorder(content.Knowledge.Memory, inhabitants, objects, actions);
         inhabitants.Reported += memory.Observe;
-        var nightJobs = new Night.NightJobsSystem(content.Knowledge, content.Inventions.Build.NightPhases, types.PropertyVocabulary, content.Inventions.Guard, inhabitants, decisions, jobs, inventions.Log, displayLocale);
+        var nightJobs = new Night.NightJobsSystem(content.Knowledge, content.Inventions.Build.NightPhases, types.PropertyVocabulary, content.Inventions.Guard, inhabitants, decisions, jobs, inventions.Log, displayLocale) { ValidateRequests = options.ValidateRequests };
         var chronicle = new ChronicleSystem(content.Chronicle);
         inhabitants.Reported += chronicle.Observe;
 
@@ -327,7 +338,7 @@ public sealed class SimulationHost
 
         // Talking with an inhabitant (B6 R13): the AI port is set by the game, the core decides.
         var expressions = content.Vocabularies[VocabularyKind.Expression].Entries.Select(e => e.Id).ToHashSet(StringComparer.Ordinal);
-        var conversation = new Simulation.Player.ConversationSystem(content.Conversation, content.Knowledge, inhabitants, player, decisions, content.Inventions.Guard, expressions, displayLocale, world.Calendar.Settings.TicksPerHour) { Diary = diary };
+        var conversation = new Simulation.Player.ConversationSystem(content.Conversation, content.Knowledge, inhabitants, player, decisions, content.Inventions.Guard, expressions, displayLocale, world.Calendar.Settings.TicksPerHour) { Diary = diary, ValidateRequests = options.ValidateRequests };
         decisions.RegisterCommand(Simulation.Player.ConversationSystem.SendText, conversation.Check, conversation.Apply);
 
         // The mailbox after the chronicle (agreed order): help_needed is reported by the player system earlier in the tick.
@@ -563,6 +574,29 @@ public sealed class SimulationHost
             }
         }
     }
+
+    /// <summary>
+    /// How many requests of this world the AI service has refused as invalid so far (ADR-0009): the entries
+    /// <see cref="ReplayNotes.RequestRejected"/> of the decision log and of the job log, and the refused
+    /// conversation requests. It should stay 0: every request form has a contract test; a number here
+    /// means the core and the service disagree about the contract. Read from the logs, so it survives a load.
+    /// </summary>
+    public int RejectedRequests =>
+        Decisions.Log.CountOf(ReplayNotes.RequestRejected) + Inventions.Log.CountOf(ReplayNotes.RequestRejected)
+        + Conversation.Log.Count(e => e.Kind == Simulation.Player.ConversationLogKind.Error && ReplayNotes.IsRejection(e.Json));
+
+    /// <summary>
+    /// The requests the service refused, oldest first: the request, the tick the refusal took effect and
+    /// what the service said was wrong (read from the log entries, which keep the service's whole message).
+    /// </summary>
+    public IReadOnlyList<(string RequestId, long Tick, string? Message)> Rejections =>
+        [.. Decisions.Log.Entries.Concat(Inventions.Log.Entries)
+            .Where(e => string.Equals(e.Note, ReplayNotes.RequestRejected, StringComparison.Ordinal))
+            .Select(e => (e.RequestId, e.Tick, ReplayNotes.MessageOf(e.Json)))
+            .Concat(Conversation.Log
+                .Where(e => e.Kind == Simulation.Player.ConversationLogKind.Error && ReplayNotes.IsRejection(e.Json))
+                .Select(e => (e.RequestId, e.Tick, ReplayNotes.MessageOf(e.Json))))
+            .OrderBy(r => r.Tick)];
 
     /// <summary>Read-only snapshot for the UI.</summary>
     public WorldSnapshot Snapshot() => WorldView.Snapshot(World, Inhabitants, Objects, Decisions) with { Weather = WeatherSystem?.Read(World), LookEpoch = LookEpoch.Current, Tide = Map?.TideAt(World.Tick), ExploredVersion = Exploration?.Version, ComputeNight = Inventions.IsComputeNight };

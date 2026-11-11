@@ -19,7 +19,8 @@ public static class InhabitantStates
     /// <param name="perceivedTypes">Object types in sight.</param>
     /// <param name="perceivedInhabitants">Inhabitants in sight.</param>
     /// <param name="label">What the inhabitant calls the subject of a remembered event (<see cref="InhabitantsSystem.LabelOf"/>); null = no labels.</param>
-    public static InhabitantState Of(Inhabitant inhabitant, KnowledgeSettings? knowledge, IEnumerable<string> perceivedTypes, IEnumerable<string> perceivedInhabitants, Func<Inhabitant, MemoryEntry, LocalizedName?>? label = null)
+    /// <param name="typeLabel">What the inhabitant calls a kind of thing its knowledge or a habit is about (<see cref="InhabitantsSystem.TypeLabelOf"/>); null = no labels.</param>
+    public static InhabitantState Of(Inhabitant inhabitant, KnowledgeSettings? knowledge, IEnumerable<string> perceivedTypes, IEnumerable<string> perceivedInhabitants, Func<Inhabitant, MemoryEntry, LocalizedName?>? label = null, Func<Inhabitant, string, LocalizedName?>? typeLabel = null)
     {
         ArgumentNullException.ThrowIfNull(perceivedTypes);
         ArgumentNullException.ThrowIfNull(perceivedInhabitants);
@@ -36,7 +37,7 @@ public static class InhabitantStates
             // What a thing is not by its look (not a stone ...) says little and would crowd out the rest.
             .SelectMany(type => inhabitant.Beliefs.About(type).Where(b => b.Belief.Value || !visible.Contains(b.PropertyId)).Select(b => (Type: type, b.PropertyId, b.Belief)))
             .Take(knowledge.RequestMaxKnowledge)
-            .Select(b => Entry(inhabitant, b.Type, b.PropertyId, b.Belief))];
+            .Select(b => Entry(inhabitant, b.Type, b.PropertyId, b.Belief, typeLabel))];
         var start = new Objects.Relation(knowledge.RelationshipStart.Affection, knowledge.RelationshipStart.Trust, knowledge.RelationshipStart.Respect);
         state.Relationships = [.. perceivedInhabitants.Take(knowledge.RequestMaxInhabitants).Select(other =>
         {
@@ -51,11 +52,14 @@ public static class InhabitantStates
             TimeOfDay = h.Key.TimeOfDay,
             About = h.Key.AboutKind.Length == 0 ? null : new Subject { Kind = Enum.Parse<SubjectKind>(h.Key.AboutKind, ignoreCase: true), Id = h.Key.AboutId },
             Strength = h.Strength,
+
+            // What the inhabitant calls the kind of thing its habit is about (an invention it knows); else absent.
+            Label = h.Key.AboutKind == InhabitantsSystem.AboutType ? typeLabel?.Invoke(inhabitant, h.Key.AboutId) : null,
         })];
         return state;
     }
 
-    internal static KnowledgeEntry Entry(Inhabitant inhabitant, string type, string property, Objects.Belief belief)
+    internal static KnowledgeEntry Entry(Inhabitant inhabitant, string type, string property, Objects.Belief belief, Func<Inhabitant, string, LocalizedName?>? typeLabel = null)
     {
         var seen = LatestPlace(inhabitant, type);
         return new KnowledgeEntry
@@ -71,6 +75,9 @@ public static class InhabitantStates
             // Where the inhabitant last saw a thing of this type (place memory, B2533); absent if never.
             Place = seen is { } s ? new Place { XM = s.Place.Position.X, ZM = s.Place.Position.Z } : null,
             Object = seen?.ObjectId,
+
+            // What the inhabitant itself calls this kind of thing (an invention it knows); absent for what the data name.
+            Label = typeLabel?.Invoke(inhabitant, type),
         };
     }
 
@@ -171,12 +178,12 @@ public static class InhabitantStates
     /// The inhabitant asking itself about one object type (job question): what it believes about that type
     /// first, then its newest other beliefs, within the knowledge data's limit. Beliefs only, never the truth.
     /// </summary>
-    public static InhabitantState Asking(Inhabitant inhabitant, KnowledgeSettings knowledge, string typeId, Func<Inhabitant, MemoryEntry, LocalizedName?>? label = null)
+    public static InhabitantState Asking(Inhabitant inhabitant, KnowledgeSettings knowledge, string typeId, Func<Inhabitant, MemoryEntry, LocalizedName?>? label = null, Func<Inhabitant, string, LocalizedName?>? typeLabel = null)
     {
         ArgumentNullException.ThrowIfNull(inhabitant);
         ArgumentNullException.ThrowIfNull(knowledge);
         ArgumentException.ThrowIfNullOrEmpty(typeId);
-        var state = Of(inhabitant, knowledge, [typeId], [], label);
+        var state = Of(inhabitant, knowledge, [typeId], [], label, typeLabel);
         var known = state.Knowledge.ToList();
         var visible = knowledge.Looking?.VisibleProperties.ToHashSet(StringComparer.Ordinal) ?? [];
         known.AddRange(inhabitant.Beliefs.All
@@ -187,7 +194,7 @@ public static class InhabitantStates
             .ThenBy(b => b.TypeId, StringComparer.Ordinal)
             .ThenBy(b => b.PropertyId, StringComparer.Ordinal)
             .Take(Math.Max(0, knowledge.RequestMaxKnowledge - known.Count))
-            .Select(b => Entry(inhabitant, b.TypeId, b.PropertyId, b.Belief)));
+            .Select(b => Entry(inhabitant, b.TypeId, b.PropertyId, b.Belief, typeLabel)));
         state.Knowledge = known;
         return state;
     }
