@@ -365,6 +365,11 @@ def _night_item(seq: int, record: _Record) -> dict[str, object]:
     """One item of the night list (schema night-items): the job's own references, no wording."""
     payload: object = getattr(record.job.payload, record.kind, None)
     object_type = getattr(payload, "object_type", None)
+    subject = getattr(payload, "subject", None)
+    if object_type is None and subject is not None and _text(subject.kind) == "type":
+        # A question job is about a thing type (its subject): passed on as it came from the core,
+        # so the dream scene can show the thing the inhabitant wonders about (GW3 #20970).
+        object_type = subject.id
     outcome = record.outcome
     made: object = outcome.result.get("image") if outcome is not None else None
     image = cast(dict[str, object], made).get("file") if isinstance(made, dict) else None
