@@ -1,0 +1,27 @@
+{
+  "contract_version": "0.2",
+  "points": [
+    {
+      "id": "cover_early",
+      "target_x_permille": 500,
+      "target_z_permille": 500,
+      "yaw_deg": 30,
+      "distance_m": 260
+    },
+    {
+      "id": "cover_later",
+      "target_x_permille": 500,
+      "target_z_permille": 500,
+      "yaw_deg": 30,
+      "distance_m": 260,
+      "revealed_permille": 800
+    }
+  ],
+  "projections": [
+    "perspective"
+  ],
+  "phases": [
+    "day"
+  ],
+  "settle_frames": 12
+}

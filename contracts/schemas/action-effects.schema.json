@@ -9,9 +9,23 @@
   "properties": {
     "contract_version": { "$ref": "common.schema.json#/$defs/ContractVersion" },
     "actions": { "type": "array", "maxItems": 128, "items": { "$ref": "#/$defs/ActionTiming" } },
-    "rules": { "type": "array", "maxItems": 512, "items": { "$ref": "#/$defs/EffectRule" } }
+    "rules": { "type": "array", "maxItems": 512, "items": { "$ref": "#/$defs/EffectRule" } },
+    "event_effects": {
+      "description": "What a core event does to the inhabitant it is about (W1744): when an event of the kind is reported, its effects reach that inhabitant right away. Events without an inhabitant (weather, player) reach nobody. Omitted = no event has an effect.",
+      "type": "array", "maxItems": 128, "items": { "$ref": "#/$defs/EventEffect" }
+    }
   },
   "$defs": {
+    "EventEffect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["event", "effects"],
+      "properties": {
+        "event": { "description": "Event kind (event vocabulary).", "$ref": "common.schema.json#/$defs/VocabId" },
+        "detail_ends_with": { "description": "Only events whose language-neutral detail ends with this text (e.g. '/experienced' for knowledge_gained, whose detail is property/source). Omitted = every event of the kind.", "type": "string", "minLength": 1, "maxLength": 64 },
+        "effects": { "description": "Effects on the event's inhabitant; listener_share has no meaning here and is refused at load.", "type": "array", "minItems": 1, "maxItems": 16, "items": { "$ref": "#/$defs/Effect" } }
+      }
+    },
     "ActionTiming": {
       "type": "object",
       "additionalProperties": false,

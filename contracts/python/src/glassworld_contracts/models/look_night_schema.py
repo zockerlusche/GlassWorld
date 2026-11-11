@@ -3,11 +3,73 @@
 
 from __future__ import annotations
 
+from enum import StrEnum
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from . import common_schema
+
+
+class Show(StrEnum):
+    none = 'none'
+    symbol = 'symbol'
+    image = 'image'
+
+
+class NightAppearance(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    kind: common_schema.JobKind
+    show: Show
+
+
+class NightDreams(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    fade_in_s: float = Field(
+        ..., description='Real seconds an image takes to appear.', ge=0.5, le=20.0
+    )
+    hold_s: float = Field(..., description='Real seconds it stays.', ge=0.0, le=60.0)
+    fade_out_s: float = Field(
+        ..., description='Real seconds it takes to fade.', ge=0.5, le=20.0
+    )
+    max_at_once: int = Field(
+        ...,
+        description='Most images on screen at once; more wait their turn.',
+        ge=1,
+        le=6,
+    )
+    min_gap_s: float = Field(
+        ...,
+        description='Least real seconds between two images appearing.',
+        ge=0.7,
+        le=60.0,
+    )
+    size_px: int = Field(
+        ...,
+        description='Size of an image (pixels at the reference height, scaled with the UI).',
+        ge=48,
+        le=600,
+    )
+    brightness: float = Field(
+        ...,
+        description='Greatest opacity of an image (soft, never glaring).',
+        ge=0.1,
+        le=1.0,
+    )
+    reduce_motion_factor: float = Field(
+        ...,
+        description="With 'reduce motion' the fades take this many times as long.",
+        ge=1.0,
+        le=10.0,
+    )
+    appearances: list[NightAppearance] = Field(
+        ...,
+        description="What a job kind shows: 'symbol' = the shape of the object type it is about, as soon as the job is seen; 'image' = that symbol and, once the job is done, the picture it made; 'none' = nothing. Kinds not listed show nothing.",
+    )
 
 
 class LookNight(BaseModel):
@@ -68,3 +130,4 @@ class LookNight(BaseModel):
         ge=0.0,
         le=200.0,
     )
+    dreams: NightDreams
