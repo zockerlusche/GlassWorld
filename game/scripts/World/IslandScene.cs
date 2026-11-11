@@ -35,6 +35,9 @@ public partial class IslandScene : Node3D
     private LookShots _shots = null!;
     private string? _shotDirectory;
     private bool _check;
+
+    // --clock-light: the light follows the world clock (day, dusk, night) as in the game, not a fixed phase.
+    private bool _clockLight;
     private int _wait;
     private Shot? _current;
     private IslandView? _view;
@@ -93,6 +96,7 @@ public partial class IslandScene : Node3D
         var preset = Arg("--preset") ?? benchmark?.Preset ?? "start_island";
         _shotDirectory = benchmark is null ? Arg("--shots") : null;
         _check = args.Contains("--check");
+        _clockLight = args.Contains("--clock-light");
         var host = SimulationHost.CreateGeneratedWorld(content, seed, MockDecisionPort.FromContent(content), "de", preset);
         _host = host;
         var speed = double.Parse(Arg("--speed") ?? "1", CultureInfo.InvariantCulture);
@@ -275,7 +279,14 @@ public partial class IslandScene : Node3D
                 _view?.FollowTide(_tide, delta);
                 _nature.Follow(_season, _epoch, _weather, delta, Focus(_rig.Model.Target.X, _rig.Model.Target.Z), _ticksPerSecond * time.RealSecondsPerTickAtNormalSpeed, time.RealSecondsPerTickAtNormalSpeed * time.Settings.TicksPerHour / 60.0);
                 _cover?.Advance(delta);
-                ApplyPhase(_phase);
+                if (_clockLight)
+                {
+                    ApplyLight(DaylightClock.At(_daylight, time, _host.World.Tick, _tickDebt));
+                }
+                else
+                {
+                    ApplyPhase(_phase);
+                }
             }
 
             return;
@@ -466,6 +477,12 @@ public partial class IslandScene : Node3D
             _phases[phase] = day = DaylightMix.Of(_daylight, phase);
         }
 
+        ApplyLight(day);
+    }
+
+    /// <summary>A daylight mix under the shown weather and the quality level; applied only when it changed.</summary>
+    private void ApplyLight(DaylightMix day)
+    {
         // Under the shown weather (B2-5 R23): dimmer or tinted light, clouds and fog; applied only when it changed.
         WeatherSky? sky = null;
         if (_nature is not null)
