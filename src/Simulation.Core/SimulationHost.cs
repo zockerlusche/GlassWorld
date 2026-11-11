@@ -136,6 +136,8 @@ public sealed class SimulationHost
         Weather.WeatherSystem? weather = null;
         string? climate = null;
         var seaLevel = 0;
+        var dropPer100Height = 0;
+        var startDropTenthC = 0;
         WorldPresetExploration? sight = null;
         if (worldPreset is not null)
         {
@@ -184,17 +186,36 @@ public sealed class SimulationHost
             // Weather of the preset's climate (B2 R13); worlds without a preset (placeholder) have none.
             // The weather is island-wide for now; its height drop stands for the mean height of the start cells.
             var startHeight = island.Starts.Count == 0 ? 0 : island.Starts.Sum(s => Math.Max(0, island.Map.Cell(s.X, s.Z).Height - preset.Terrain.SeaLevel)) / island.Starts.Count;
+            dropPer100Height = preset.Climate.TemperatureDropPer100Height;
+            startDropTenthC = -(dropPer100Height * startHeight / 100);
             weather = new Weather.WeatherSystem(
                 content.WorldGen.Climates[preset.Climate.ClimateId],
-                -(preset.Climate.TemperatureDropPer100Height * startHeight / 100),
+                startDropTenthC,
                 world.Calendar.Settings.TicksPerHour,
                 world.Calendar.Settings.HoursPerDay,
                 world.Seed);
             world.Add(weather);
         }
 
+        // The air where an inhabitant stands (B2582, comfort zone): the island-wide weather's temperature, with
+        // the height drop of the inhabitant's own cell in place of the one of the start cells. Integers only.
+        // Worlds without a climate (placeholder) have no air temperature.
+        Air? AirAt(World w, Position at)
+        {
+            if (weather is null || map is null)
+            {
+                return null;
+            }
+
+            var cellDropTenthC = map.CellOf(at) is { } cell
+                ? -(dropPer100Height * Math.Max(0, map.Map.Cell(cell.X, cell.Z).Height - seaLevel) / 100)
+                : startDropTenthC;
+            return new Air(weather.TemperatureAt(w.Now, weather.Current) - startDropTenthC + cellDropTenthC, weather.PrecipitationPermille > 0);
+        }
+
         var inhabitants = new InhabitantsSystem(content.InhabitantModel, actions, content.Brain, content.Gaits, objects, world.Calendar.Settings.TicksPerHour)
         {
+            AirAt = AirAt,
             Looks = content.Appearance,
             Names = content.InhabitantNames,
             Routes = map,
@@ -283,7 +304,7 @@ public sealed class SimulationHost
 
         // Talking with an inhabitant (B6 R13): the AI port is set by the game, the core decides.
         var expressions = content.Vocabularies[VocabularyKind.Expression].Entries.Select(e => e.Id).ToHashSet(StringComparer.Ordinal);
-        var conversation = new Simulation.Player.ConversationSystem(content.Conversation, content.Knowledge, inhabitants, player, decisions, content.Inventions.Guard, expressions, displayLocale, world.Calendar.Settings.TicksPerHour);
+        var conversation = new Simulation.Player.ConversationSystem(content.Conversation, content.Knowledge, inhabitants, player, decisions, content.Inventions.Guard, expressions, displayLocale, world.Calendar.Settings.TicksPerHour) { Diary = diary };
         decisions.RegisterCommand(Simulation.Player.ConversationSystem.SendText, conversation.Check, conversation.Apply);
 
         // The mailbox after the chronicle (agreed order): help_needed is reported by the player system earlier in the tick.

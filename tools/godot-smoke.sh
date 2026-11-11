@@ -116,7 +116,7 @@ fi
 if grep -Eq '^(ERROR|SCRIPT ERROR|USER ERROR)|Unhandled exception' "$MAIN_ISLAND_LOG"; then
   island_fail "errors in Godot output"
 fi
-for marker in   '^WORLD_OK seed=[0-9]+ inhabitants=[1-9][0-9]* objects=[1-9][0-9]* hash=[0-9a-f]{12}$'   '^ISLAND_WORLD preset=[a-z_]+ chunks=[1-9][0-9]* figures=[1-9][0-9]* objects_drawn=[1-9][0-9]* layers=[1-9][0-9]*$'   '^AUDIO_SPATIAL_OK$'   '^SYMBOLS_OK$'   '^SCREEN_OK$'   '^ISLAND_UI_OK figures=[1-9][0-9]* objects_drawn=[1-9][0-9]*$'   '^ISLAND_NATURE grass_plants=[1-9][0-9]* grass_layers=[1-9][0-9]* season=[a-z_]+ season_colors=[1-9] weather_looks=[1-9][0-9]*$'   '^SAVE_OK hash=[0-9a-f]{12} tick=[1-9][0-9]* questions=[1-9][0-9]*$'   '^GIFT_OK$'   '^KNOCK_OK$'   '^MENU_OK screens=[1-9][0-9]*$'   '^UI_OK$'; do
+for marker in   '^WORLD_OK seed=[0-9]+ inhabitants=[1-9][0-9]* objects=[1-9][0-9]* hash=[0-9a-f]{12}$'   '^ISLAND_WORLD preset=[a-z_]+ chunks=[1-9][0-9]* figures=[1-9][0-9]* objects_drawn=[1-9][0-9]* layers=[1-9][0-9]*$'   '^ISLAND_COVER cells=[1-9][0-9]*x[1-9][0-9]* version=[1-9][0-9]* seen_permille=[1-9][0-9]*$'   '^AUDIO_SPATIAL_OK$'   '^SYMBOLS_OK$'   '^SCREEN_OK$'   '^ISLAND_UI_OK figures=[1-9][0-9]* objects_drawn=[1-9][0-9]*$'   '^ISLAND_NATURE grass_plants=[1-9][0-9]* grass_layers=[1-9][0-9]* season=[a-z_]+ season_colors=[1-9] weather_looks=[1-9][0-9]*$'   '^SAVE_OK hash=[0-9a-f]{12} tick=[1-9][0-9]* questions=[1-9][0-9]*$'   '^GIFT_OK$'   '^KNOCK_OK$'   '^MENU_OK screens=[1-9][0-9]*$'   '^UI_OK$'; do
   if ! grep -Eq "$marker" "$MAIN_ISLAND_LOG"; then
     island_fail "marker '$marker' missing"
   fi
@@ -167,7 +167,7 @@ fi
 # Island (B2-3): terrain and water meshes of the generated start island, one per chunk; objects and decorative plants (TL #19722).
 ISLAND_LOG="$(mktemp)"
 timeout "$TIMEOUT_S" "$GODOT" --headless --path "$GAME" --quit-after 1200 res://world/island.tscn -- --seed=7 --check >"$ISLAND_LOG" 2>&1
-if ! grep -Eq '^ISLAND_OK seed=7 chunks=[1-9][0-9]* ground_triangles=[1-9][0-9]* water_triangles=[1-9][0-9]* figures=[1-9][0-9]* objects=[1-9][0-9]* decor=[1-9][0-9]*$' "$ISLAND_LOG" || grep -Eq '^(ERROR|SCRIPT ERROR)|Unhandled exception' "$ISLAND_LOG"; then
+if ! grep -Eq '^ISLAND_OK seed=7 chunks=[1-9][0-9]* ground_triangles=[1-9][0-9]* water_triangles=[1-9][0-9]* figures=[1-9][0-9]* objects=[1-9][0-9]* decor=[1-9][0-9]*$' "$ISLAND_LOG" || ! grep -Eq '^ISLAND_COVER seed=7 cells=[1-9][0-9]*x[1-9][0-9]* version=[1-9][0-9]* seen_permille=[1-9][0-9]*$' "$ISLAND_LOG" || grep -Eq '^(ERROR|SCRIPT ERROR)|Unhandled exception' "$ISLAND_LOG"; then
   cat "$ISLAND_LOG" >&2
   echo "SMOKE_FAIL: the island is not drawn (marker 'ISLAND_OK ...' missing or errors)" >&2
   exit 1

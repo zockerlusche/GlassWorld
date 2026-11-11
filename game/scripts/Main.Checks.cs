@@ -568,6 +568,17 @@ public partial class Main
                 GD.Print("SCREEN_OK");
             }
 
+            // The dream images of the night scene (B7, D637 A8): shown from a made-up night list, none from an empty one.
+            var dreamCheck = _screen?.CheckDreams() ?? "game screen missing";
+            if (dreamCheck.Length > 0)
+            {
+                problems = [.. problems, "night scene: " + dreamCheck];
+            }
+            else
+            {
+                GD.Print("NIGHT_OK");
+            }
+
             // The zones preview of the UI concept (W1717): switched on, checked, switched back.
             var zones = _screen is null ? "game screen missing" : await _screen.CheckZonesAsync(_settings);
             if (zones.Length > 0)

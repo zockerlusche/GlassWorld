@@ -7,6 +7,7 @@ world's truth never does (ADR-0005).
 
 from __future__ import annotations
 
+import re
 from string import Template
 from typing import Any
 
@@ -34,6 +35,14 @@ def question_payload(job: GenerationJob) -> Any:
     if payload is None:
         raise ContextError("job has no question payload")
     return payload
+
+
+def _unname(text: str, subject_id: str, instead: str) -> str:
+    """`text` without the name of the thing asked about: its id and its readable form, with or
+    without an article, whatever the case ("a Flint", "sea_water", "the sea water")."""
+    readable = re.escape(humanize(subject_id)).replace(r"\ ", r"[ _-]")
+    pattern = rf"(?:\b(?:a|an|the|some)\s+)?\b{readable}(?:e?s)?\b"
+    return re.sub(pattern, instead, text, flags=re.IGNORECASE)
 
 
 def build_values(job: GenerationJob, template: PromptTemplate, vocab: Vocabulary) -> dict[str, str]:
@@ -75,9 +84,32 @@ def build_values(job: GenerationJob, template: PromptTemplate, vocab: Vocabulary
     )[:max_knowledge]
 
     summary = inhabitant.memory.summary.strip()
+    # v2 (B4a R10): the thing asked about has no name here - a name like 'flint' or 'sea water'
+    # gives away what the inhabitant has not found out. People keep their label.
+    unnamed = (
+        table(settings, "unnamed_subject").get(subject_key[0])
+        if "unnamed_subject" in settings
+        else None
+    )
+    if "unnamed_subject" in settings and subject_key[0] in ("type", "object") and not unnamed:
+        raise ContextError(f"prompt setting unnamed_subject.{subject_key[0]} is empty")
+    if unnamed:
+        # The story so far must not name it either (review GW1 #215: the condensed memory
+        # writes thing names, 'Found a flint'): the name becomes 'this thing' there too.
+        summary = _unname(summary, plain_id(payload.subject.id), f"this {unnamed}")
+
+    def about(entry: Any) -> str:
+        line = knowledge_line(entry, settings)
+        own = (plain_id(entry.subject.kind), plain_id(entry.subject.id)) == subject_key
+        return (
+            line.replace(subject_name(entry.subject, settings), f"this {unnamed}", 1)
+            if unnamed and own
+            else line
+        )
+
     return {
         "question": Template(question_text).safe_substitute(
-            subject=subject_name(payload.subject, settings)
+            subject=unnamed or subject_name(payload.subject, settings)
         ),
         "will_to_live": f"{will:.2f} ({word(will_words, will)})",
         "needs": "\n".join(
@@ -97,8 +129,7 @@ def build_values(job: GenerationJob, template: PromptTemplate, vocab: Vocabulary
         )
         or NOTHING,
         "memory": quote(summary) if summary else "(you remember nothing special yet)",
-        "knowledge": "\n".join(knowledge_line(k, settings) for k in knowledge)
-        or "- (you know nothing about it yet)",
+        "knowledge": "\n".join(about(k) for k in knowledge) or "- (you know nothing about it yet)",
         "perception": "\n".join(
             f"- {vocab_line(vocab, 'property', plain_id(p))}"
             for p in sorted(payload.perception, key=plain_id)

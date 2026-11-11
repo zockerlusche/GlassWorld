@@ -577,6 +577,10 @@ public partial class FigureView : Node3D
                 Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
                 AutoTranslateMode = AutoTranslateModeEnum.Disabled,
                 NoDepthTest = true,
+
+                // Above the cloud cover (R25), the outline just below the dots.
+                RenderPriority = CloudCover.AbovePriority + 1,
+                OutlineRenderPriority = CloudCover.AbovePriority,
                 Modulate = new Color(1, 1, 1, (float)look.AlphaMin),
             };
             _thinking.AddChild(_dots[i]);

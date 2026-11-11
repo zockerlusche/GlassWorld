@@ -138,6 +138,15 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             _history.RemoveFirst();
         }
 
+        // What the event does to the inhabitant it is about (data: event_effects, W1744), before anyone hears of it.
+        if (_inhabitants.TryGetValue(worldEvent.InhabitantId, out var about))
+        {
+            foreach (var effect in _actions.EventEffects(worldEvent.Kind, worldEvent.Detail))
+            {
+                Apply(about, effect, effect.Delta);
+            }
+        }
+
         Reported?.Invoke(worldEvent);
     }
 
@@ -355,6 +364,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         {
             FadeImprints(world, inhabitant);
             DecayNeeds(inhabitant);
+            FeelTheAir(world, inhabitant);
             if (together.Contains(inhabitant.Id))
             {
                 FillTogether(inhabitant, _model.Togetherness!);
