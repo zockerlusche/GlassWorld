@@ -169,6 +169,12 @@ public sealed class WeatherSystem : IWorldSystem, IWeather
         }
     }
 
+    /// <summary>
+    /// How much precipitation falls in the main weather now, in permille (0 = dry); the current weather
+    /// counts from the change step on, without blending.
+    /// </summary>
+    public int PrecipitationPermille => _states[Current].PrecipitationPermille;
+
     /// <summary>Whether the drought weather has joined another main weather after the dry days of the data.</summary>
     private bool DroughtJoins => _droughtTicks > 0 && _dryTicks >= _droughtTicks && Current != _data.DroughtWeather;
 
