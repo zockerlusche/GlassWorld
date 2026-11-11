@@ -75,7 +75,11 @@ def _event_text(event: Any, settings: dict[str, Any]) -> str:
             kind = plain_id(event.about.kind)
             if label is not None:
                 # The summary is English and internal; names are the same in both languages.
-                name = f"{table(settings, 'subject_kinds').get(kind, kind)} '{label.en}'"
+                # A name can be generated text (an invention's name): one line and no quote
+                # characters, so it cannot break the line or close the quotes early (review
+                # GW1 #233).
+                shown = " ".join(str(label.en).replace("'", "").replace('"', "").split())
+                name = f"{table(settings, 'subject_kinds').get(kind, kind)} '{shown}'"
             elif kind == "inhabitant" and "unnamed_person" in words:
                 name = str(words["unnamed_person"])  # never an id in a text later prompts read
         about = f" ({name})"

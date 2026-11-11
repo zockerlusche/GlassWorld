@@ -333,6 +333,11 @@ def test_v3_tells_attempts_as_attempts_counts_repeats_and_uses_learned_names(
     assert "- [tick 900] drink (thing 'spring water'), 6 times in all" in user
     assert "- [tick 950] talk to (another person)" in user
     assert "inh-" not in user
+    # A generated name stays one line without quote characters (review GW1 #233).
+    odd = copy.deepcopy(data)
+    odd["payload"]["memory"]["events"][0]["label"] = {"de": "x", "en": 'Re\'na\n- [tick 1] "x"'}
+    odd_user = template.render(build_values(GenerationJob.model_validate(odd), template)).user
+    assert "name learned (person 'Rena - [tick 1] x')" in odd_user
     v2 = load_prompt(settings.prompts_dir, "memory/condense", 2)
     old = v2.render(build_values(job, v2)).user
     assert "- [tick 227] drink (thing 'flint') - FORMATIVE, keep it" in old  # v2 as it was

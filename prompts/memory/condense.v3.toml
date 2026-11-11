@@ -49,6 +49,9 @@ times = "$what, $times times in all"
 
 # What came of an action, as the core reports it (common#MemoryOutcome). $what is the action
 # with what it was about.
+# found_out is worded as a failed attempt: right for eating or drinking the wrong thing, which
+# is where the core sets it today (memory.events with_outcome). An action whose purpose is
+# finding out would need its own phrase before it gets an outcome.
 [settings.outcome_phrases]
 done = "$what"
 found_out = "tried to $what - it did not work, but something was learned from it"
