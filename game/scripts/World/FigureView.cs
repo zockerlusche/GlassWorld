@@ -114,7 +114,7 @@ public partial class FigureView : Node3D
             _ground = groundHeight,
             _groundM = (x, z) => groundHeight(x, z),
             _scale = spec.Scale,
-            _motion = new FigureMotion(start, figures.TurnRateDegS),
+            _motion = new FigureMotion(start, figures.TurnRateDegS, figures.TurnBackAfterSteps ?? 1),
             _cadence = new PoseCadence(figures.PoseCadence, figures.IdleSlotSpread, inhabitant.Id, figures.Lying),
             _seats = seats ?? (() => []),
             _wave = figure.Wave,

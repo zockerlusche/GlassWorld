@@ -110,6 +110,48 @@ class WorldPresetRockSlopes(BaseModel):
     rounds: int = Field(..., description='Rounds of settling.', ge=0, le=64)
 
 
+class WorldPresetRockFaces(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    ledge_max_cells: int = Field(
+        ...,
+        description='Widest tread (cells, between a wall above and a wall below) that counts as a ledge of a step stack and sinks to the level below.',
+        ge=1,
+        le=64,
+    )
+    max_steps: int = Field(
+        ...,
+        description='Highest rock face in cliff steps (cliff_min_drop): a ledge sinks only while the face above it stays within this height.',
+        ge=1,
+        le=64,
+    )
+    foot_cells: int = Field(
+        ...,
+        description="Level ground in front of the kept walls: terraced cells of the foot's exact level within this distance (cells) keep that level (no tread relief, no scree). 0 = only the foot cell, as in version 3.",
+        ge=0,
+        le=64,
+    )
+    block_max_cells: int = Field(
+        ...,
+        description='Largest level group of terraced cells (cells) that stands as a lone block one cliff step above all its surroundings and sinks with the ledges (leftover of a sunk stack). 0 = none.',
+        ge=0,
+        le=4096,
+    )
+    rounds: int = Field(
+        ...,
+        description='Rounds of sinking ledges (each lowers the ledges of a round by one cliff step).',
+        ge=0,
+        le=64,
+    )
+    scree_rounds: int = Field(
+        ...,
+        description='Rounds in which land away from the kept walls that still stands a cliff step or more above its lowest land neighbour (scree that did not settle, steep coasts) comes down to one below the cliff step, so only the kept faces are walls. 0 = off.',
+        ge=0,
+        le=64,
+    )
+
+
 class WorldPresetNoiseOctave(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -625,6 +667,7 @@ class WorldPresetTerrain(BaseModel):
     )
     coast_cliffs: WorldPresetCoastCliffs | None = None
     rock_slopes: WorldPresetRockSlopes | None = None
+    rock_faces: WorldPresetRockFaces | None = None
 
 
 class WorldPresetWater(BaseModel):
