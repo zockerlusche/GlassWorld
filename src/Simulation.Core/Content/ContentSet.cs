@@ -152,6 +152,7 @@ public sealed class ContentSet
             moods,
             calendar.Settings.TicksPerHour,
             Ids(vocabularies, VocabularyKind.Event));
+        var knowledge = LoadKnowledge(contentDirectory, vocabularies, objects, actions, model);
         var brain = new UtilityBrain(
             ContractSerializer.Deserialize<UtilityWeights>(File.ReadAllText(Path.Combine(contentDirectory, "behaviour", "utility.json"))),
             actions,
@@ -159,7 +160,15 @@ public sealed class ContentSet
             objects.PropertyVocabulary,
             Required(vocabularies, VocabularyKind.Action).Entries.Where(e => (e.Target ?? VocabularyEntryTarget.None) == VocabularyEntryTarget.None).Select(e => e.Id).ToFrozenSet(StringComparer.Ordinal),
             Ids(vocabularies, VocabularyKind.Trait),
-            model.Needs.Where(n => n.NeglectBelow > 0).ToFrozenDictionary(n => n.Id, n => n.NeglectBelow, StringComparer.Ordinal));
+            model.Needs.Where(n => n.NeglectBelow > 0).ToFrozenDictionary(n => n.Id, n => n.NeglectBelow, StringComparer.Ordinal),
+            Familiarity.From(model.Togetherness, knowledge.RelationshipStart),
+            Required(vocabularies, VocabularyKind.Action).Entries.Where(e => e.Target == VocabularyEntryTarget.Inhabitant).Select(e => e.Id).ToFrozenSet(StringComparer.Ordinal));
+        if (brain.AimsAtInhabitants && brain.Familiarity is null)
+        {
+            // Who is familiar and who is asleep is defined once, by togetherness (W1744).
+            throw new InvalidDataException("Utility weights: a consideration with target_inhabitant needs the togetherness section of the inhabitant model.");
+        }
+
         var worldGen = WorldGenContent.Load(contentDirectory, vocabularies, objects, calendar);
         var inventionSettings = ContractSerializer.Deserialize<InventionSettings>(File.ReadAllText(Path.Combine(contentDirectory, "invention", "settings.json")));
         var inventions = new InventionRules(
@@ -219,7 +228,7 @@ public sealed class ContentSet
                 Ids(vocabularies, VocabularyKind.Action),
                 brain.Weights,
                 model),
-            Knowledge = LoadKnowledge(contentDirectory, vocabularies, objects, actions, model),
+            Knowledge = knowledge,
             EventKinds = Required(vocabularies, VocabularyKind.Event).Entries.Select(e => e.Id).ToFrozenSet(StringComparer.Ordinal),
             InhabitantNames = LoadNames(contentDirectory),
             LookEpochs = LoadLookEpochs(contentDirectory, Ids(vocabularies, VocabularyKind.Epoch), inventions.TechLevels.Count),

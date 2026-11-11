@@ -83,7 +83,17 @@ public sealed class MeetingTests
         host.World.Run(ticksPerDay);
         Assert.Single(meetings, e => e.InhabitantId == one.Id && e.TargetId == other.Id);
         var strangers = Of(Starts.Strangers);
-        Assert.Contains(all.SelectMany(x => all.Where(y => y.Group != x.Group).Select(y => x.Relationships.Get(y.Id, strangers))), r => r != strangers);
+        bool Changed() => all.SelectMany(x => all.Where(y => y.Group != x.Group).Select(y => x.Relationships.Get(y.Id, strangers))).Any(r => r != strangers);
+
+        // W1744: since the routine seeks company, the partners talk to each other first and the pairs meet
+        // earlier (seed 1: tick 24 instead of 90); which answer of the mock decider then leads to the first
+        // shared experience with a stranger is a matter of the run, so it gets the same days as the meeting.
+        for (var t = 0; t < 2 * ticksPerDay && !Changed(); t++)
+        {
+            host.World.Step();
+        }
+
+        Assert.True(Changed(), "a relationship between the pairs changed");
     }
 
     [Fact]

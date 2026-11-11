@@ -211,6 +211,30 @@ public sealed class SpacingTests
     }
 
     [Fact]
+    public void AWalkerPushedOffItsRouteNeverEndsAStepOnGroundNobodyCanWalkOn()
+    {
+        // W1744 (island seed 7): giving way had pushed a walker off its route. The straight line to its next
+        // waypoint then led over a blocked cell, a step ended on it, and from there nothing could be walked
+        // to any more (no goal in reach, no way back): the inhabitant stood still until its needs ran out.
+        var pond = new Pond();
+        var destination = new Position(3.5, 1.5);
+        var (world, inhabitants, _) = NewWorldWithObjects(new Position(0.5, 1.5), new Position(0.5, 0.2), pond);
+        var walker = inhabitants.Get("inh-000001");
+        Stand(inhabitants.Get("inh-000002"));
+
+        // The kept route still names the cell beyond the pond as the next waypoint.
+        walker.Activity = new Activity("idle", null, destination, null, [new Position(2.5, 1.5), destination]);
+        for (var t = 0; t < 40 && walker.Activity is { RemainingTicks: null }; t++)
+        {
+            world.Step();
+            Assert.True(pond.Connected(walker.Position, walker.Position), $"tick {world.Tick}: on blocked ground at {walker.Position}");
+        }
+
+        Assert.NotNull(walker.Activity?.RemainingTicks);
+        Assert.True(Distance(walker.Position, destination) < 1e-6, "it walked around the pond and arrived");
+    }
+
+    [Fact]
     public void SpacingIsDeterministic()
     {
         static string Run()
@@ -323,6 +347,64 @@ public sealed class SpacingTests
             var wide = p.X < 3 || p.X > 37;
             return p.X >= 0 && p.X <= 40 && p.Z >= (wide ? -3 : 0) && p.Z < (wide ? 4 : 1) ? 1 : 0;
         }
+    }
+
+    /// <summary>
+    /// Cells of one metre, 4 wide (x 0..4) and 3 deep (z 0..3), with a blocked cell (1, 1) in the middle of
+    /// the west side; slow ground, so one step is shorter than a cell. Routes lead from cell centre to cell
+    /// centre as on the island (the last waypoint is the destination itself).
+    /// </summary>
+    private sealed class Pond : IRouteFinder
+    {
+        private const int Width = 4;
+        private const int Depth = 3;
+
+        public Route Find(Position start, Position destination)
+        {
+            if (Cell(start) is not { } from || Cell(destination) is not { } to || !Walkable(to))
+            {
+                return new Route(PathStatus.Unreachable, []);
+            }
+
+            // Breadth first over the four neighbours, in a fixed order.
+            var came = new Dictionary<(int X, int Z), (int X, int Z)> { [from] = from };
+            var queue = new Queue<(int X, int Z)>([from]);
+            while (queue.TryDequeue(out var cell) && cell != to)
+            {
+                foreach (var next in new[] { (cell.X + 1, cell.Z), (cell.X, cell.Z + 1), (cell.X - 1, cell.Z), (cell.X, cell.Z - 1) })
+                {
+                    if (Walkable(next) && came.TryAdd(next, cell))
+                    {
+                        queue.Enqueue(next);
+                    }
+                }
+            }
+
+            if (!came.TryGetValue(to, out var before))
+            {
+                return new Route(PathStatus.Unreachable, []);
+            }
+
+            var points = new List<Position> { destination };
+            for (var cell = before; cell != from && to != from; cell = came[cell])
+            {
+                points.Insert(0, new Position(cell.X + 0.5, cell.Z + 0.5));
+            }
+
+            return new Route(PathStatus.Found, points);
+        }
+
+        public double SpeedFactor(Position at) => 0.5;
+
+        public bool Connected(Position a, Position b) => Area(a) == Area(b) && Area(a) != 0;
+
+        private static int Area(Position p) => p.X > 500 || p.Z > 500 ? 2 : Cell(p) is { } cell && Walkable(cell) ? 1 : 0;
+
+        private static (int X, int Z)? Cell(Position p) =>
+            p.X >= 0 && p.X < Width && p.Z >= 0 && p.Z < Depth ? ((int)Math.Floor(p.X), (int)Math.Floor(p.Z)) : null;
+
+        private static bool Walkable((int X, int Z) cell) =>
+            cell.X >= 0 && cell.X < Width && cell.Z >= 0 && cell.Z < Depth && cell != (1, 1);
     }
 
     /// <summary>A decider that never answers.</summary>

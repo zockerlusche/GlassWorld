@@ -6,7 +6,7 @@ namespace GlassWorld.Simulation.Behaviour;
 
 /// <summary>An option the routine layer can choose.</summary>
 /// <param name="Action">Action id.</param>
-/// <param name="TargetId">Target object id or null.</param>
+/// <param name="TargetId">Id of the target (an object, or another inhabitant for a consideration with target_inhabitant) or null.</param>
 /// <param name="Score">Utility score (higher is better).</param>
 public sealed record ScoredOption(string Action, string? TargetId, double Score)
 {
@@ -23,19 +23,26 @@ public sealed class UtilityBrain
 {
     private readonly (Consideration Data, Curve Curve, Curve? Novelty)[] _considerations;
     private readonly IReadOnlyDictionary<string, double> _neglectBelow;
+    private readonly Familiarity? _familiarity;
 
     /// <summary>
     /// Creates the brain and checks ids against the action rules and needs. A search action must be an
     /// action without a target (<paramref name="targetlessActions"/>, the vocabulary's target none; without
-    /// it: an action no rule needs a target for) on a consideration with a target property. A trait must be
-    /// one of <paramref name="traits"/> (when given); exploring (novelty_curve) yields to the needs in
-    /// <paramref name="neglectBelow"/> (need id to neglect threshold; without it: to every need).
+    /// it: an action no rule needs a target for) on a consideration with a target property or an inhabitant
+    /// target. A trait must be one of <paramref name="traits"/> (when given); exploring (novelty_curve) yields
+    /// to the needs in <paramref name="neglectBelow"/> (need id to neglect threshold; without it: to every
+    /// need). A consideration with an inhabitant target (W1744) needs an action aimed at inhabitants
+    /// (<paramref name="inhabitantActions"/>, the vocabulary's target inhabitant, when given) and neither a
+    /// target property nor avoided properties nor a novelty curve; who is familiar and who is asleep comes
+    /// from <paramref name="familiarity"/> (without it such a consideration offers nothing; the content
+    /// check refuses that combination).
     /// </summary>
-    public UtilityBrain(UtilityWeights weights, ActionRules actions, IReadOnlySet<string> needs, IReadOnlySet<string> properties, IReadOnlySet<string>? targetlessActions = null, IReadOnlySet<string>? traits = null, IReadOnlyDictionary<string, double>? neglectBelow = null)
+    public UtilityBrain(UtilityWeights weights, ActionRules actions, IReadOnlySet<string> needs, IReadOnlySet<string> properties, IReadOnlySet<string>? targetlessActions = null, IReadOnlySet<string>? traits = null, IReadOnlyDictionary<string, double>? neglectBelow = null, Familiarity? familiarity = null, IReadOnlySet<string>? inhabitantActions = null)
     {
         ArgumentNullException.ThrowIfNull(weights);
         ArgumentNullException.ThrowIfNull(actions);
         Weights = weights;
+        _familiarity = familiarity;
         if (weights.SearchWeight > weights.UnknownTargetBelief)
         {
             // Trying something unknown close by is how inhabitants learn; searching far away must not outbid it.
@@ -44,6 +51,7 @@ public sealed class UtilityBrain
 
         _neglectBelow = neglectBelow ?? needs.ToDictionary(n => n, _ => 0.0, StringComparer.Ordinal);
         _considerations = [.. weights.Considerations.Select(c => (c, new Curve(c.Curve), c.NoveltyCurve is { } novelty ? new Curve(novelty) : null))];
+        AimsAtInhabitants = _considerations.Any(c => c.Data.TargetInhabitant is not null);
         foreach (var (c, _, novelty) in _considerations)
         {
             if (novelty is not null && (c.TargetProperty is not null || c.SearchAction is not null))
@@ -57,12 +65,25 @@ public sealed class UtilityBrain
             }
 
             _ = actions.Timing(c.Action);
+            if (c.TargetInhabitant is not null)
+            {
+                if (c.TargetProperty is not null || c.AvoidProperties.Count > 0 || novelty is not null)
+                {
+                    throw new InvalidDataException($"Utility consideration for '{c.Action}': target_inhabitant needs target_property and novelty_curve null and no avoid_properties.");
+                }
+
+                if (inhabitantActions is not null && !inhabitantActions.Contains(c.Action))
+                {
+                    throw new InvalidDataException($"Utility consideration for '{c.Action}': target_inhabitant needs an action aimed at inhabitants (vocabulary target inhabitant).");
+                }
+            }
+
             if (c.SearchAction is { } search)
             {
                 _ = actions.Timing(search);
-                if (c.TargetProperty is null || !(targetlessActions?.Contains(search) ?? !actions.NeedsTarget(search)))
+                if ((c.TargetProperty is null && c.TargetInhabitant is null) || !(targetlessActions?.Contains(search) ?? !actions.NeedsTarget(search)))
                 {
-                    throw new InvalidDataException($"Utility consideration for '{c.Action}': search_action '{search}' needs a target_property and must be an action without a target.");
+                    throw new InvalidDataException($"Utility consideration for '{c.Action}': search_action '{search}' needs a target_property or a target_inhabitant and must be an action without a target.");
                 }
             }
 
@@ -77,6 +98,12 @@ public sealed class UtilityBrain
 
     /// <summary>The data in use.</summary>
     public UtilityWeights Weights { get; }
+
+    /// <summary>Whether any consideration aims at other inhabitants (target_inhabitant, W1744).</summary>
+    public bool AimsAtInhabitants { get; }
+
+    /// <summary>Who is familiar and who is asleep for considerations with an inhabitant target; null without the data.</summary>
+    public Familiarity? Familiarity => _familiarity;
 
     /// <summary>
     /// Whether the inhabitant's needs suggest an action (F5275 A): an action with need-based considerations
@@ -146,8 +173,15 @@ public sealed class UtilityBrain
     /// belief x search_weight, so a weak target in sight competes fairly. Searches in
     /// <paramref name="givenUp"/> are not offered; <paramref name="searching"/> receives the keys whose
     /// search is still called for (need not met, nothing in sight that seems as good as searching).
+    /// <para>
+    /// A consideration with an inhabitant target (W1744) offers its action on every inhabitant of
+    /// <paramref name="inSight"/> (the others the inhabitant sees and can walk to) that it is familiar with
+    /// and that is awake, scored urgency x distance factor and only while that is above 0. Its search action
+    /// is offered (urgency x search_weight) while the inhabitant knows someone familiar and none of them is
+    /// in sight; a familiar sleeper in sight counts as there, so nobody walks off from a sleeping partner.
+    /// </para>
     /// </summary>
-    public IReadOnlyList<ScoredOption> Score(Inhabitant inhabitant, IReadOnlyList<WorldObject> perceived, IReadOnlySet<string> givenUp, ISet<string>? searching)
+    public IReadOnlyList<ScoredOption> Score(Inhabitant inhabitant, IReadOnlyList<WorldObject> perceived, IReadOnlySet<string> givenUp, ISet<string>? searching, IReadOnlyList<Inhabitant>? inSight = null)
     {
         ArgumentNullException.ThrowIfNull(inhabitant);
         ArgumentNullException.ThrowIfNull(perceived);
@@ -175,6 +209,12 @@ public sealed class UtilityBrain
             {
                 // B2-6 R14: gives way to pressing needs, like exploring by novelty.
                 urgency *= Calm(inhabitant);
+            }
+
+            if (c.TargetInhabitant is not null)
+            {
+                Company(inhabitant, c, urgency, inSight ?? [], givenUp, searching, options);
+                continue;
             }
 
             if (c.TargetProperty is null)
@@ -221,6 +261,45 @@ public sealed class UtilityBrain
             .ThenBy(x => x.o.TargetId ?? string.Empty, StringComparer.Ordinal)
             .ThenBy(x => x.index)
             .Select(x => x.o)];
+    }
+
+    /// <summary>
+    /// Options of a consideration with an inhabitant target (W1744): the action on every familiar, waking
+    /// inhabitant in sight (nearer scores higher, ties by id), else the search action while the inhabitant
+    /// knows someone familiar and sees none of them. Only its own relationships decide who is familiar.
+    /// </summary>
+    private void Company(Inhabitant inhabitant, Consideration c, double urgency, IReadOnlyList<Inhabitant> inSight, IReadOnlySet<string> givenUp, ISet<string>? searching, List<ScoredOption> options)
+    {
+        if (urgency <= 0 || _familiarity is not { } familiarity)
+        {
+            return;
+        }
+
+        var there = false;
+        foreach (var other in inSight)
+        {
+            if (ReferenceEquals(other, inhabitant) || !familiarity.Familiar(inhabitant, other.Id))
+            {
+                continue;
+            }
+
+            there = true;
+            var score = urgency * DistanceFactor(inhabitant.Position, other.Position);
+            if (score > 0 && !familiarity.Asleep(other))
+            {
+                options.Add(new ScoredOption(c.Action, other.Id, score));
+            }
+        }
+
+        if (c.SearchAction is { } search && !there && familiarity.KnowsSomeone(inhabitant))
+        {
+            var key = SearchKey(c);
+            searching?.Add(key);
+            if (!givenUp.Contains(key))
+            {
+                options.Add(new ScoredOption(search, null, urgency * Weights.SearchWeight) { SearchFor = key });
+            }
+        }
     }
 
     /// <summary>
