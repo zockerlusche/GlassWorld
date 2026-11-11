@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pytest
 
@@ -201,6 +201,7 @@ def test_every_knowledge_source_has_words_in_the_prompts_that_name_sources() -> 
         "decider/decide.v4",
         "decider/decide.v5",
         "decider/decide.v6",
+        "decider/decide.v7",
         "question/ask.v1",
         "question/ask.v2",
     ):
@@ -276,3 +277,47 @@ def test_v6_keeps_the_b9_parts_of_v5_out() -> None:
     v4_text = _render(_request("hungry-berries"), version=4).split("=== user ===")[1]
     v6_text = _render(_request("hungry-berries"), version=6).split("=== user ===")[1]
     assert v4_text == v6_text  # no visibility in this example: the user part is v4's
+
+
+# Prompts in use that still name things of the world, each with the open decision (D763).
+NAMES_THINGS_PENDING: dict[str, str] = {
+    "process/judge.v1": "D763 A3: the judge of processes states physics with fire as prose; "
+    "open decision (TL) whether those rules become data",
+}
+
+
+def test_no_prompt_in_use_names_a_thing_of_the_world() -> None:
+    """Frame, not outcome (PR2; check D763 by GW3, Marcel W1820): an example in a prompt shows the
+    form only. A prompt that names a real thing of the world - 'red berries are poisonous',
+    'clay for a vessel' - hands the model knowledge its inhabitant has not found out."""
+    import re
+    import tomllib
+
+    config = tomllib.loads((REPO / "ai-service/config.toml").read_text(encoding="utf-8"))
+    flat: dict[str, object] = {}
+    for key, value in config.items():
+        if isinstance(value, dict):
+            flat.update(cast(dict[str, object], value))
+        else:
+            flat[key] = value
+    catalog = json.loads((REPO / "content/objects/start-catalog.json").read_text(encoding="utf-8"))
+    things = sorted({t["id"].replace("_", " ") for t in catalog["types"]})
+    assert len(things) > 20
+    found: dict[str, list[str]] = {}
+    checked = 0
+    for key, name in sorted(flat.items()):
+        if not key.endswith("_prompt") or not isinstance(name, str):
+            continue
+        version = flat[f"{key}_version"]
+        prompt = tomllib.loads((PROMPTS / f"{name}.v{version}.toml").read_text(encoding="utf-8"))
+        text = f"{prompt['system']}\n{prompt['user']}".lower()
+        checked += 1
+        hits: list[str] = []
+        for thing in things:
+            stem = thing[:-1] + "(y|ies)" if thing.endswith("y") else thing + "(s|es)?"
+            if re.search(rf"\b{stem}\b", text):
+                hits.append(thing)
+        if hits and f"{name}.v{version}" not in NAMES_THINGS_PENDING:
+            found[f"{name}.v{version}"] = hits
+    assert checked >= 8
+    assert found == {}, found

@@ -282,19 +282,22 @@ def grounding_check(
 def grounded(
     request: ConversationRequest, data: dict[str, Any], texts: TextCatalog | None
 ) -> dict[str, Any]:
-    """A sentence that names unknown things is replaced by the data's stand-in for what the
-    inhabitant really does (msg.thought.<action>), else the general reply stand-in."""
+    """A sentence that names unknown things is replaced by the data's stand-in for the outcome
+    the MODEL chose (msg.converse.<outcome>). The choice itself - reply, decline, not
+    understood - stays the model's: the service only takes back words (PR2 check D763 G1;
+    before, a decline became a reply with a sentence about the current action, and the core
+    applied the effects of an answer)."""
     unknown = data.pop("ungrounded", None)
     if not unknown or texts is None:
         return data
     locale = plain_id(request.display_locale)
-    doing = request.speaker.doing
-    action = plain_id(doing.action) if doing is not None else "idle"
-    stand_in = texts.get(locale, f"msg.thought.{action}") or texts.get(locale, "msg.converse.reply")
+    outcome = str(data.get("outcome", "reply"))
+    stand_in = texts.get(locale, f"msg.converse.{outcome}") or texts.get(
+        locale, "msg.converse.reply"
+    )
     note = f" [replaced, unknown: {', '.join(unknown[:3])}]"
     return {
         **data,
-        "outcome": "reply",
         "reply": stand_in,
         "rationale": (str(data.get("rationale", "")) + note)[-280:],
     }

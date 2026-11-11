@@ -44,8 +44,9 @@ def known_words(
     general: Iterable[str],
 ) -> set[str]:
     """Stems of everything the inhabitant may name: what it sees, knows and does (their names in
-    the player's language), the world's general words, the inhabitants' names and the settings'
-    general words."""
+    the player's language), the world's general words, the inhabitants' names, the settings'
+    general words - and every word that was said in this conversation: asked about a bed, the
+    inhabitant may ask back "Bett? Was ist das?" (PR2 check D763 G2)."""
     speaker = request.speaker
     types: set[str] = {plain_id(t) for t in speaker.sees or []}
     for entry in speaker.knowledge or []:
@@ -63,6 +64,9 @@ def known_words(
         for key, text in texts.texts.get(locale, {}).items():
             if key.startswith(tuple(f"vocab.{kind}." for kind in GENERAL_KINDS)):
                 words.update(_stem(w) for w in _WORD.findall(text))
+    said = [request.player_text, *(line.text for line in request.recent_lines or [])]
+    for text in said:
+        words.update(_stem(w) for w in _WORD.findall(str(text)))
     words.update(_stem(n) for n in names)
     words.update(_stem(g) for g in general)
     return words
