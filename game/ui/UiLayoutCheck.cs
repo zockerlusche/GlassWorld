@@ -113,6 +113,7 @@ public static class UiLayoutCheck
     private static async Task<IReadOnlyList<string>> CheckWindows(Node host, Control stage, Vector2 area, IReadOnlyList<(string Name, GwWindow Window)> windows)
     {
         var problems = new List<string>();
+        var tabsWalked = false;
         foreach (var (name, window) in windows)
         {
             stage.AddChild(window);
@@ -132,6 +133,35 @@ public static class UiLayoutCheck
 
             // No hint cut while its field has room, no word broken inside (D705 A5/A6, review GW1 #226).
             problems.AddRange(UiFit.CutTexts(window).Select(cut => $"{name}: {cut}"));
+
+            // Every tab of the settings shows its content, as a player opens them one after the other (D809 M1).
+            // The list holds the settings several times (opened at different tabs); walking the tabs once
+            // per case is enough and keeps the check within the smoke run's frame budget.
+            var tabs = window is SettingsWindow settings && !tabsWalked ? settings.TabKeys : [];
+            tabsWalked |= tabs.Count > 0;
+            foreach (var tab in tabs)
+            {
+                ((SettingsWindow)window).ShowTab(tab);
+                await host.ToSignal(host.GetTree(), SceneTree.SignalName.ProcessFrame);
+                await host.ToSignal(host.GetTree(), SceneTree.SignalName.ProcessFrame);
+                var hidden = window.HiddenContentProblem(area);
+                if (hidden.Length > 0)
+                {
+                    problems.Add($"{name} tab {tab}: {hidden}");
+                }
+            }
+
+            if (window is not SettingsWindow)
+            {
+                // The window settles in the frame after its fit (GwWindow.Settle).
+                await host.ToSignal(host.GetTree(), SceneTree.SignalName.ProcessFrame);
+                await host.ToSignal(host.GetTree(), SceneTree.SignalName.ProcessFrame);
+                var other = window.HiddenContentProblem(area);
+                if (other.Length > 0)
+                {
+                    problems.Add($"{name}: {other}");
+                }
+            }
 
             window.Free();
         }

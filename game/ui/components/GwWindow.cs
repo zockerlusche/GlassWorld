@@ -127,6 +127,45 @@ public partial class GwWindow : PanelContainer
 
         Size = new Vector2(Math.Min(wanted.X, limit.X), Math.Min(wanted.Y, limit.Y));
         Position = ((area - Size) / 2).Floor();
+        _fittedAt = Position;
+        Settle(area);
+    }
+
+    private bool _settling;
+    private Vector2 _settleArea;
+    private Vector2 _fittedAt;
+
+    /// <summary>
+    /// Some content is only as high as its width lets it be - the settings' tab row flows into a second
+    /// line in a narrower window - and that height is known only once the content has been laid out at the
+    /// new width (the next frame). Measured before, a short page lost exactly that line to the scroll area
+    /// (D809 M1). So the window fits itself once more in the next frame; that second fit settles nothing new.
+    /// </summary>
+    private void Settle(Vector2 area)
+    {
+        // The latest area counts: a fit asked for meanwhile (the picture was resized) is not undone.
+        _settleArea = area;
+        if (_settling || !IsInsideTree())
+        {
+            return;
+        }
+
+        _settling = true;
+        GetTree().Connect(SceneTree.SignalName.ProcessFrame, Callable.From(() =>
+        {
+            _settling = false;
+
+            // A window someone else placed after the fit (the card docks beside the side panel) is theirs to
+            // size and place; only a window that still stands where its fit put it fits itself again.
+            if (!IsInstanceValid(this) || !IsInsideTree() || Position != _fittedAt)
+            {
+                return;
+            }
+
+            _settling = true;
+            FitInto(_settleArea);
+            _settling = false;
+        }), (uint)ConnectFlags.OneShot);
     }
 
     /// <summary>
@@ -136,6 +175,23 @@ public partial class GwWindow : PanelContainer
     /// </summary>
     private Vector2 Wanted() =>
         GetCombinedMinimumSize() + new Vector2(0, Content.GetCombinedMinimumSize().Y - _scroll.GetCombinedMinimumSize().Y);
+
+    /// <summary>
+    /// Empty if the content is fully visible, or if it scrolls only because the window has reached its
+    /// allowed height in <paramref name="area"/>; else why not - content hidden in the scroll area of a
+    /// window that could still grow (D809 M1: settings tabs with one row showed only their tab buttons).
+    /// </summary>
+    public string HiddenContentProblem(Vector2 area)
+    {
+        var hidden = Content.Size.Y - _scroll.Size.Y;
+        if (hidden <= 1 || _style is null)
+        {
+            return string.Empty;
+        }
+
+        var limit = Math.Min(area.Y * (float)_style.Tokens.Window.MaxScreenFraction, area.Y - (2 * _style.Tokens.Window.SafeMargin));
+        return Size.Y >= limit - 0.5f ? string.Empty : $"{hidden:0} px of content hidden in a window of height {Size.Y:0} that may grow to {limit:0}";
+    }
 
     /// <summary>True if the window lies fully inside the safe area of <paramref name="area"/>.</summary>
     public bool IsInsideSafeArea(Vector2 area)
