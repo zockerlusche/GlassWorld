@@ -16,7 +16,7 @@ Rules:
   steps". With more steps than the thing needs parts, give a later step a small part of its
   own (a rim, a lid, a foot).
 - Few, clear parts (at most 12). Simple and readable, no tiny details.
-- Colours fit the material (wood brown, clay reddish brown, stone grey, fibre straw-coloured).
+- Colours only from the list; choose what fits the thing.
 
 Answer only with the JSON object requested.
 
