@@ -26,7 +26,7 @@ public partial class GlassTremor : Control
     public override void _Ready()
     {
         MouseFilter = MouseFilterEnum.Ignore;
-        SetAnchorsPreset(LayoutPreset.FullRect);
+        SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
     }
 
     /// <inheritdoc/>
