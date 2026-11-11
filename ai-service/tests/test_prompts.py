@@ -47,7 +47,7 @@ def _render(request: DecisionRequest, budget: int = BUDGET, version: int = 1) ->
     )
 
 
-@pytest.mark.parametrize("version", [1, 2, 3, 4, 6])
+@pytest.mark.parametrize("version", [1, 2, 3, 4, 6, 7, 8])
 @pytest.mark.parametrize("case", ["hungry-berries", "stormy-dusk"])
 def test_decider_prompt_snapshot(case: str, version: int) -> None:
     text = _render(_request(case), version=version)
@@ -202,6 +202,7 @@ def test_every_knowledge_source_has_words_in_the_prompts_that_name_sources() -> 
         "decider/decide.v5",
         "decider/decide.v6",
         "decider/decide.v7",
+        "decider/decide.v8",
         "question/ask.v1",
         "question/ask.v2",
     ):
@@ -364,3 +365,79 @@ def test_no_prompt_in_use_names_a_thing_of_the_world() -> None:
             found[f"{name}.v{version}"] = hits
     assert checked >= 8
     assert found == {}, found
+
+
+def test_v8_never_shows_a_runtime_type_id() -> None:
+    """Since the builder knows its work (#245) an invented type reaches the decider. Its runtime
+    id says nothing to the model and is no word of the inhabitant: without a name of its own it
+    is a 'made thing' (prompt setting made_thing), in every line that names it."""
+    data = json.loads(
+        (EXAMPLES / "decision-request.hungry-berries.json").read_text(encoding="utf-8")
+    )
+    made = "inv_3fa2c19b7e04"
+    first = data["perception"]["objects"][0]
+    first["type"] = made
+    data["inhabitant"]["knowledge"].append(
+        {
+            "subject": {"kind": "type", "id": made},
+            "property": "crafted",
+            "value": True,
+            "confidence": 1.0,
+            "source": "experienced",
+            "told_by": None,
+            "tick": 1,
+        }
+    )
+    request = DecisionRequest.model_validate(data)
+    new = _render(request, version=8)
+    assert "inv_3fa2c19b7e04" not in new and "inv 3fa2c19b7e04" not in new
+    assert "made thing" in new
+    old = _render(request, version=7)
+    assert "inv 3fa2c19b7e04" in old  # v7 as it was
+
+
+def test_v8_shows_the_tone_only_with_made_up_things() -> None:
+    """TL #21243: the tone examples come back, but with things that do not exist in the world."""
+    system = _render(_request("hungry-berries"), version=8).split("=== user ===")[0]
+    assert "Knubbel" in system and "Knolle" in system
+    assert "never use these two words" in system
+
+
+def test_v8_calls_an_invention_what_its_inhabitant_calls_it() -> None:
+    """#251: the request carries the inhabitants' own name of an invention (label). v8 shows it in
+    the player's language wherever the thing is named - thing, belief, habit, option - and never
+    the runtime id."""
+    text = _render(_request("own-invention"), version=8)
+    user = text.split("=== user ===")[1]
+    assert '- made thing [obj-0077] (you call it "Wasserschale"), 3.0 m away' in user
+    assert "- thing 'Wasserschale' is crafted (sure 1.0; you tried it yourself)" in user
+    assert "(thing 'Wasserschale')" in user  # the habit
+    assert '-> made thing [obj-0077] ("Wasserschale")' in user  # the option
+    assert "inv_" not in user and "inv 3fa" not in user
+    english = DecisionRequest.model_validate(
+        {
+            **json.loads(
+                (EXAMPLES / "decision-request.own-invention.json").read_text(encoding="utf-8")
+            ),
+            "display_locale": "en",
+        }
+    )
+    assert '(you call it "water bowl")' in _render(english, version=8)
+
+
+def test_v8_a_name_cannot_break_the_quotes_of_a_line() -> None:
+    """Review GW3 #255: an invention's name is generated text; a quote or line break in it must
+    not end the quotes of a belief line early."""
+    data = json.loads(
+        (EXAMPLES / "decision-request.own-invention.json").read_text(encoding="utf-8")
+    )
+    odd = {"de": 'Mira\'s "Schale"\n  gross', "en": "Mira's bowl"}
+    for thing in data["perception"]["objects"]:
+        if "label" in thing:
+            thing["label"] = odd
+    for entry in data["inhabitant"]["knowledge"]:
+        if "label" in entry:
+            entry["label"] = odd
+    user = _render(DecisionRequest.model_validate(data), version=8).split("=== user ===")[1]
+    assert "- thing 'Miras Schale gross' is crafted" in user
+    assert '(you call it "Miras Schale gross")' in user
