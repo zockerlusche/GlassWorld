@@ -349,8 +349,20 @@ public sealed class DecisionsSystem : IWorldSystem
     /// <summary>Step part: looking for others whose name an inhabitant does not know (trigger unknown_inhabitant).</summary>
     public const string PartUnknownInhabitant = "decisions/unknown_inhabitant";
 
-    /// <summary>Step part: building and sending a request (inside the parts that ask).</summary>
+    /// <summary>Step part: sending a request - its id, the log entry, the port (inside the parts that ask).</summary>
     public const string PartRequest = "decisions/request";
+
+    /// <summary>Step part of a request: who and what the asker perceives.</summary>
+    public const string PartRequestLook = "decisions/request_look";
+
+    /// <summary>Step part of a request: the options the core allows.</summary>
+    public const string PartRequestOptions = "decisions/request_options";
+
+    /// <summary>Step part of a request: the asker's state, its perception and the options as the contract carries them.</summary>
+    public const string PartRequestBuild = "decisions/request_build";
+
+    /// <summary>Step part of a request: writing it as JSON (and validating it, where that is on).</summary>
+    public const string PartRequestJson = "decisions/request_json";
 
     /// <inheritdoc/>
     public void Advance(World world)
@@ -885,16 +897,27 @@ public sealed class DecisionsSystem : IWorldSystem
 
     private OpenQuestion Send(World world, Inhabitant inhabitant, string questionId, string kind, string subject, WorldObject? target)
     {
-        world.Probe?.Enter(PartRequest);
+        var probe = world.Probe;
+        probe?.Enter(PartRequest);
         var requestId = DecisionIds.RequestId(world.Seed, world.Tick, inhabitant.Id, _counter);
 
         // One look around per request: the options and the request describe the same moment.
+        probe?.Enter(PartRequestLook);
         var others = PerceivedInhabitants(inhabitant);
+        var things = Perceived(inhabitant);
+        probe?.Leave(PartRequestLook);
+        probe?.Enter(PartRequestOptions);
         var options = BuildOptions(inhabitant, target, world.Tick, others);
-        var json = ContractSerializer.Serialize(BuildRequest(world, inhabitant, requestId, options, others), ValidateRequests);
+        probe?.Leave(PartRequestOptions);
+        probe?.Enter(PartRequestBuild);
+        var request = BuildRequest(world, inhabitant, requestId, options, others, things);
+        probe?.Leave(PartRequestBuild);
+        probe?.Enter(PartRequestJson);
+        var json = ContractSerializer.Serialize(request, ValidateRequests);
+        probe?.Leave(PartRequestJson);
         Log.Add(new DecisionLogEntry(DecisionLogKind.Request, requestId, world.Tick, json, null));
         _port.Send(requestId, json);
-        world.Probe?.Leave(PartRequest);
+        probe?.Leave(PartRequest);
         return new OpenQuestion(questionId, inhabitant.Id, kind, subject, requestId, world.Tick, options);
     }
 
@@ -985,10 +1008,9 @@ public sealed class DecisionsSystem : IWorldSystem
     private bool Rests(Inhabitant asker, string action, string? targetId, long tick) =>
         asker.Resting.Count > 0 && asker.Rests(action, targetId, asker.Position, tick, _brain.Weights.Repetition?.SamePlaceM ?? 0);
 
-    private DecisionRequest BuildRequest(World world, Inhabitant inhabitant, string requestId, List<(string OptionId, string Action, string? TargetId)> options, List<Inhabitant> others)
+    private DecisionRequest BuildRequest(World world, Inhabitant inhabitant, string requestId, List<(string OptionId, string Action, string? TargetId)> options, List<Inhabitant> others, List<WorldObject> things)
     {
         var seed = world.Random.Get("decisions/seed").NextInt(0, int.MaxValue);
-        var things = Perceived(inhabitant);
         return new DecisionRequest
         {
             ContractVersion = ContractInfo.Version,

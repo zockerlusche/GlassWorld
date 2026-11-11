@@ -106,6 +106,9 @@ public sealed class ExplorationSystem : IWorldSystem, IOptionalWorldState
     /// <inheritdoc/>
     public string Name => "exploration";
 
+    /// <summary>Step part (<see cref="IStepProbe"/>): the search for where unseen land begins (<see cref="Frontier"/>), wherever it is asked from.</summary>
+    public const string PartFrontier = "exploration/frontier";
+
     /// <summary>Width of the grid in cells.</summary>
     public int Width => _width;
 

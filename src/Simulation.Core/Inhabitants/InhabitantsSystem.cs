@@ -547,6 +547,9 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     /// <summary>Step part: walking, with the route searches (inside <see cref="PartAct"/>).</summary>
     public const string PartWalk = "inhabitants/walk";
 
+    /// <summary>Step part: searching a route on the map (inside the walk).</summary>
+    public const string PartRoute = "inhabitants/route";
+
     /// <summary>Step part: keeping clear of each other after a move (personal space).</summary>
     public const string PartSpacing = "inhabitants/spacing";
 
@@ -1603,7 +1606,9 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     /// <summary>Searches the route to the destination; without one the action is cancelled with the reason and null returned.</summary>
     private IReadOnlyList<Position>? FindRoute(World world, Inhabitant inhabitant, Activity activity, Map.IRouteFinder routes, Position destination)
     {
+        world.Probe?.Enter(PartRoute);
         var found = routes.Find(inhabitant.Position, destination);
+        world.Probe?.Leave(PartRoute);
         if (found.Status == Map.PathStatus.Found)
         {
             return found.Waypoints;

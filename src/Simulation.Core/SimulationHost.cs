@@ -268,7 +268,14 @@ public sealed class SimulationHost
         var exploration = map is null || sight is null ? null : new Simulation.Exploration.ExplorationSystem(sight, map, inhabitants, seaLevel);
         if (exploration is not null)
         {
-            inhabitants.FrontierOf = exploration.Frontier;
+            // The search is a step part of its own (IStepProbe), whoever asks: the routine or a request.
+            inhabitants.FrontierOf = inhabitant =>
+            {
+                world.Probe?.Enter(Simulation.Exploration.ExplorationSystem.PartFrontier);
+                var frontier = exploration.Frontier(inhabitant);
+                world.Probe?.Leave(Simulation.Exploration.ExplorationSystem.PartFrontier);
+                return frontier;
+            };
         }
 
         var player = new Simulation.Player.PlayerSystem(content.GiftRules, content.Favor, content.Brain.Weights, content.Brain, inhabitants, objects, world.Calendar.Settings.TicksPerHour);
