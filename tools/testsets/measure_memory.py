@@ -30,21 +30,24 @@ KINDS = ["drank", "ate", "slept", "met_inhabitant", "felt_pain", "inspected", "w
 TYPES = ["spring_water", "blue_berry", "red_berry", "apple", "dry_grass", "fieldstone"]
 
 
-def job(n: int, events: int, formative: int, max_chars: int) -> GenerationJob:
+def job(n: int, events: int, formative: int, max_chars: int, late: bool = False) -> GenerationJob:
+    """A condensing job; formative events spread evenly, or (late) the last ones in a row."""
     data = copy.deepcopy(BASE)
-    data["request_id"] = str(
-        uuid.uuid5(uuid.NAMESPACE_URL, f"a3/{events}/{formative}/{max_chars}/{n}")
-    )
+    name = f"a3/{events}/{formative}/{max_chars}/{late}/{n}"
+    data["request_id"] = str(uuid.uuid5(uuid.NAMESPACE_URL, name))
     data["seed"] = 1403 + n * 1000 + events
     memory = data["payload"]["memory"]
     memory["max_chars"] = max_chars
+    step = max(1, events // max(1, formative))
+    marked = (
+        set(range(events - formative, events)) if late else {i * step for i in range(formative)}
+    )
     memory["events"] = [
         {
             "tick": 1000 + i * 10,
             "kind": KINDS[i % len(KINDS)],
             "about": {"kind": "type", "id": TYPES[i % len(TYPES)]},
-            "formative": i % max(1, events // max(1, formative)) == 0
-            and i // max(1, events // max(1, formative)) < formative,
+            "formative": i in marked,
         }
         for i in range(events)
     ]
@@ -74,21 +77,25 @@ async def main() -> int:
             ),
             log=CallLog(OUT / "memory.jsonl"),
         )
-        for events, formative, max_chars in [
-            (8, 2, 600),
-            (32, 5, 600),
-            (32, 5, 300),
-            (32, 8, 1200),
+        for events, formative, max_chars, late in [
+            (8, 2, 600, False),
+            (32, 5, 600, False),
+            (32, 5, 300, False),
+            (32, 8, 1200, False),
+            (32, 5, 600, True),  # formative events clustered at the end (review GW3 #212)
         ]:
+            label = (
+                f"{events} events/{formative} formative{' late' if late else ''}/{max_chars} chars"
+            )
             for n in range(5):
-                request = job(n, events, formative, max_chars)
+                request = job(n, events, formative, max_chars, late)
                 wanted = sorted(e.tick for e in request.payload.memory.events if e.formative)  # type: ignore[union-attr]
                 started = time.perf_counter()
                 try:
                     outcome = await memory(request)
                     result = outcome.result["memory"]  # type: ignore[index]
                     row = {
-                        "case": f"{events} events/{formative} formative/{max_chars} chars",
+                        "case": label,
                         "ok": True,
                         "chars": len(result["summary"]),
                         "within": len(result["summary"]) <= max_chars,  # type: ignore[index,arg-type]
@@ -99,7 +106,7 @@ async def main() -> int:
                     }
                 except JobFailedError as error:
                     row = {
-                        "case": f"{events} events/{formative} formative/{max_chars} chars",
+                        "case": label,
                         "ok": False,
                         "error": f"{error.code}: {error}",
                         "ms": int((time.perf_counter() - started) * 1000),
@@ -113,7 +120,9 @@ async def main() -> int:
         f"A3_RESULT ok {len(ok)}/{len(rows)}, within budget {sum(r['within'] for r in ok)}, "
         f"kept all {sum(r['kept_all'] for r in ok)}, retried {sum(r['attempts'] > 1 for r in ok)}"
     )
-    return 0
+    # The exit code tells the result (review GW3 #212): 0 only if every call kept budget and events.
+    good = len(ok) == len(rows) and all(r["within"] and r["kept_all"] for r in ok)
+    return 0 if good else 2
 
 
 raise SystemExit(asyncio.run(main()))
