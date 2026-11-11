@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from enum import StrEnum
+from enum import IntEnum, StrEnum
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -40,8 +40,70 @@ class QualityLevel(BaseModel):
     grass_distance_m: float = Field(
         ..., description='Distance up to which grass is drawn.', ge=0.0, le=1000.0
     )
-    shadows: Shadows = Field(..., description='Shadow quality.')
-    outline: Outline = Field(..., description='Outline method of the comic style.')
+    shadows: Shadows = Field(
+        ...,
+        description='Shadow quality: off = the sun casts no shadow; low and high are rendered as shadow_settings says.',
+    )
+    outline: Outline = Field(
+        ...,
+        description='Outline method of the comic style: off = no ink outline on objects and figures; inverted_hull = the hull pass; post_process is not built yet and is drawn as inverted_hull.',
+    )
+
+
+class AtlasSize(IntEnum):
+    integer_512 = 512
+    integer_1024 = 1024
+    integer_2048 = 2048
+    integer_4096 = 4096
+    integer_8192 = 8192
+    integer_16384 = 16384
+
+
+class Mode(StrEnum):
+    orthogonal = 'orthogonal'
+    parallel_2_splits = 'parallel_2_splits'
+    parallel_4_splits = 'parallel_4_splits'
+
+
+class SoftFilter(StrEnum):
+    hard = 'hard'
+    soft_very_low = 'soft_very_low'
+    soft_low = 'soft_low'
+    soft_medium = 'soft_medium'
+    soft_high = 'soft_high'
+    soft_ultra = 'soft_ultra'
+
+
+class ShadowRendering(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    max_distance_m: float = Field(
+        ...,
+        description='Distance from the camera up to which shadows are drawn (they fade out before it).',
+        gt=0.0,
+        le=8192.0,
+    )
+    atlas_size: AtlasSize = Field(
+        ...,
+        description='Edge length of the directional shadow map in pixels (shared by the splits).',
+    )
+    mode: Mode = Field(
+        ...,
+        description='How the view is split into shadow maps: one map (cheapest, softer up close), two or four splits.',
+    )
+    soft_filter: SoftFilter = Field(
+        ...,
+        description='Filter quality of the shadow edges (hard = no filtering; a higher quality is smoother and costs more).',
+    )
+
+
+class ShadowSettings(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    low: ShadowRendering
+    high: ShadowRendering
 
 
 class LookQuality(BaseModel):
@@ -58,6 +120,7 @@ class LookQuality(BaseModel):
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
+    shadow_settings: ShadowSettings
     levels: list[QualityLevel] = Field(
         ..., description='Levels from lowest to highest.', max_length=8, min_length=1
     )

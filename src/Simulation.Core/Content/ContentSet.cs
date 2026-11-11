@@ -169,7 +169,8 @@ public sealed class ContentSet
             throw new InvalidDataException("Utility weights: a consideration with target_inhabitant needs the togetherness section of the inhabitant model.");
         }
 
-        var worldGen = WorldGenContent.Load(contentDirectory, vocabularies, objects, calendar);
+        var gaits = ContractSerializer.Deserialize<GaitSettings>(File.ReadAllText(Path.Combine(contentDirectory, "behaviour", "gaits.json")));
+        var worldGen = WorldGenContent.Load(contentDirectory, vocabularies, objects, calendar, gaits.Spacing?.MinSeparationM ?? 0);
         var inventionSettings = ContractSerializer.Deserialize<InventionSettings>(File.ReadAllText(Path.Combine(contentDirectory, "invention", "settings.json")));
         var inventions = new InventionRules(
             inventionSettings,
@@ -224,7 +225,7 @@ public sealed class ContentSet
                 Ids(vocabularies, VocabularyKind.Biome),
                 [.. inventions.TechLevels]),
             Gaits = GaitTable.Create(
-                ContractSerializer.Deserialize<GaitSettings>(File.ReadAllText(Path.Combine(contentDirectory, "behaviour", "gaits.json"))),
+                gaits,
                 Ids(vocabularies, VocabularyKind.Action),
                 brain.Weights,
                 model),

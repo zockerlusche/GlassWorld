@@ -55,7 +55,8 @@ public partial class ObjectsView : Node3D
     /// <param name="decor">Decorative plants drawn with the objects.</param>
     /// <param name="tintSlots">The tint slots of the nature look (seasons and look epochs), so meshes and shader parameters agree; null = the palette's seasons only.</param>
     /// <param name="streamSources">Where the stream bands of the island start at a spring (W1724): an object the data names for it is drawn there as a spring; null = none.</param>
-    public static ObjectsView Create(LookObjects data, LookPalette palette, Func<double, double, double> ground, IReadOnlyList<WorldObject>? decor = null, SeasonSlots? tintSlots = null, IEnumerable<StreamSource>? streamSources = null)
+    /// <param name="hullOutline">Whether the quality level draws the ink outline (QualityPlan.HullOutline); the object look data can still switch it off.</param>
+    public static ObjectsView Create(LookObjects data, LookPalette palette, Func<double, double, double> ground, IReadOnlyList<WorldObject>? decor = null, SeasonSlots? tintSlots = null, IEnumerable<StreamSource>? streamSources = null, bool hullOutline = true)
     {
         ArgumentNullException.ThrowIfNull(data);
         ArgumentNullException.ThrowIfNull(palette);
@@ -74,7 +75,7 @@ public partial class ObjectsView : Node3D
 
             var mesh = ObjectShapes.Build(look.Shape, role => colors[look.Color(role)].SrgbToLinear(), Weights);
             var material = Land(Comic, look, mesh);
-            if (data.Outline && data.OutlineWidthM > 0)
+            if (hullOutline && data.Outline && data.OutlineWidthM > 0)
             {
                 // The outline sways with its plant: the same sway values as the material it follows.
                 var ink = new ShaderMaterial { Shader = Ink };

@@ -130,6 +130,9 @@ public static class UiLayoutCheck
                 problems.Add($"{name} header: {header}");
             }
 
+            // No hint cut while its field has room, no word broken inside (D705 A5/A6, review GW1 #226).
+            problems.AddRange(UiFit.CutTexts(window).Select(cut => $"{name}: {cut}"));
+
             window.Free();
         }
 

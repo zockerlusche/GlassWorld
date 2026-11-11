@@ -32,14 +32,14 @@ namespace GlassWorld.Contracts
         public double GrassDistanceM { get; set; } = default!;
 
         /// <summary>
-        /// Shadow quality.
+        /// Shadow quality: off = the sun casts no shadow; low and high are rendered as shadow_settings says.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("shadows")]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<QualityLevelShadows>))]
         public QualityLevelShadows Shadows { get; set; } = default!;
 
         /// <summary>
-        /// Outline method of the comic style.
+        /// Outline method of the comic style: off = no ink outline on objects and figures; inverted_hull = the hull pass; post_process is not built yet and is drawn as inverted_hull.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("outline")]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<QualityLevelOutline>))]
@@ -48,7 +48,57 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
-    /// Data file content/look/quality.json: quality levels (B2 R30). Which level a hardware tier uses is decided in B7. Values are placeholders until the benchmark (acceptance 5) has measured them.
+    /// How the sun's shadow is rendered at the shadow qualities a level can name (off needs none).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ShadowSettings
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("low")]
+        public ShadowRendering Low { get; set; } = new ShadowRendering();
+
+        [System.Text.Json.Serialization.JsonPropertyName("high")]
+        public ShadowRendering High { get; set; } = new ShadowRendering();
+
+    }
+
+    /// <summary>
+    /// Rendering of the sun's shadow at one shadow quality (the softness of the edges is look data: daylight.json shadow_blur).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ShadowRendering
+    {
+
+        /// <summary>
+        /// Distance from the camera up to which shadows are drawn (they fade out before it).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max_distance_m")]
+        public double MaxDistanceM { get; set; } = default!;
+
+        /// <summary>
+        /// Edge length of the directional shadow map in pixels (shared by the splits).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("atlas_size")]
+        public ShadowRenderingAtlasSize AtlasSize { get; set; } = default!;
+
+        /// <summary>
+        /// How the view is split into shadow maps: one map (cheapest, softer up close), two or four splits.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("mode")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ShadowRenderingMode>))]
+        public ShadowRenderingMode Mode { get; set; } = default!;
+
+        /// <summary>
+        /// Filter quality of the shadow edges (hard = no filtering; a higher quality is smoother and costs more).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("soft_filter")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ShadowRenderingSoftFilter>))]
+        public ShadowRenderingSoftFilter SoftFilter { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Data file content/look/quality.json: quality levels (B2 R30) and how the sun's shadow is rendered at each shadow quality. Which level a hardware tier uses is decided in B7. Values are placeholders until the benchmark (acceptance 5) has measured them.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class LookQuality
@@ -59,6 +109,9 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("default_level")]
         public string DefaultLevel { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("shadow_settings")]
+        public ShadowSettings ShadowSettings { get; set; } = new ShadowSettings();
 
         /// <summary>
         /// Levels from lowest to highest.
@@ -100,6 +153,78 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("post_process")]
         Post_process = 2,
+
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public enum ShadowRenderingAtlasSize
+    {
+
+        _512 = 512,
+
+
+        _1024 = 1024,
+
+
+        _2048 = 2048,
+
+
+        _4096 = 4096,
+
+
+        _8192 = 8192,
+
+
+        _16384 = 16384,
+
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public enum ShadowRenderingMode
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("orthogonal")]
+        Orthogonal = 0,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("parallel_2_splits")]
+        Parallel_2_splits = 1,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("parallel_4_splits")]
+        Parallel_4_splits = 2,
+
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public enum ShadowRenderingSoftFilter
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("hard")]
+        Hard = 0,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("soft_very_low")]
+        Soft_very_low = 1,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("soft_low")]
+        Soft_low = 2,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("soft_medium")]
+        Soft_medium = 3,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("soft_high")]
+        Soft_high = 4,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("soft_ultra")]
+        Soft_ultra = 5,
 
 
     }

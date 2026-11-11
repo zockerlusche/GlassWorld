@@ -1,0 +1,72 @@
+{
+  "contract_version": "0.2",
+  "points": [
+    {
+      "id": "start_1",
+      "target_x_permille": 500,
+      "target_z_permille": 500,
+      "yaw_deg": 30,
+      "distance_m": 7,
+      "pitch_deg": 18,
+      "inhabitant": 0,
+      "tide_permille": 1000
+    },
+    {
+      "id": "start_2",
+      "target_x_permille": 500,
+      "target_z_permille": 500,
+      "yaw_deg": 120,
+      "distance_m": 7,
+      "pitch_deg": 18,
+      "inhabitant": 1,
+      "tide_permille": 1000
+    },
+    {
+      "id": "start_3",
+      "target_x_permille": 500,
+      "target_z_permille": 500,
+      "yaw_deg": 30,
+      "distance_m": 7,
+      "pitch_deg": 18,
+      "inhabitant": 2,
+      "tide_permille": 1000
+    },
+    {
+      "id": "start_4",
+      "target_x_permille": 500,
+      "target_z_permille": 500,
+      "yaw_deg": 120,
+      "distance_m": 7,
+      "pitch_deg": 18,
+      "inhabitant": 3,
+      "tide_permille": 1000
+    },
+    {
+      "id": "start_1_wide",
+      "target_x_permille": 500,
+      "target_z_permille": 500,
+      "yaw_deg": 210,
+      "distance_m": 24,
+      "pitch_deg": 28,
+      "inhabitant": 0,
+      "tide_permille": 1000
+    },
+    {
+      "id": "start_3_wide",
+      "target_x_permille": 500,
+      "target_z_permille": 500,
+      "yaw_deg": 210,
+      "distance_m": 24,
+      "pitch_deg": 28,
+      "inhabitant": 2,
+      "tide_permille": 1000
+    }
+  ],
+  "projections": [
+    "perspective"
+  ],
+  "phases": [
+    "day"
+  ],
+  "settle_frames": 12
+}
