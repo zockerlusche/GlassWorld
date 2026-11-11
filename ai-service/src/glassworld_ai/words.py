@@ -5,7 +5,8 @@ Deterministic, so rendered prompts can be snapshot-tested.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+import re
+from collections.abc import Iterable, Sequence
 from typing import Any, cast
 
 from glassworld_ai.vocabulary import Vocabulary
@@ -92,3 +93,48 @@ def leaked_ids(text: str, hidden_ids: frozenset[str]) -> list[str]:
     """Internal entity ids that show in a player-visible text, in any spelling (review GW1 D1)."""
     squeezed = _squeeze(text)
     return sorted(i for i in hidden_ids if _squeeze(i) and _squeeze(i) in squeezed)
+
+
+# The id of a kind of thing that came into being in the game (an invention): inv_<hex>.
+RUNTIME_TYPE = re.compile(r"\binv[_ ][0-9a-f]{6,}\b")
+
+
+def own_names(pairs: Iterable[tuple[object, object]], locale: str) -> dict[str, str]:
+    """Type id -> the name THIS inhabitant has for it (the optional `label` of a request, #251), in
+    `locale`. A name is generated text: one line, no quote characters. First name per type wins."""
+    found: dict[str, str] = {}
+    for type_id, label in pairs:
+        name: object = getattr(label, locale, None) if label is not None else None
+        if type_id is None or not isinstance(name, str):
+            continue
+        shown = " ".join(name.replace('"', "").replace("'", "").split())
+        if shown:
+            found.setdefault(plain_id(type_id), shown)
+    return found
+
+
+def without_runtime_ids(
+    text: str, names: dict[str, str], made: str, *, everywhere: bool = False
+) -> str:
+    """`text` without any runtime type id: it says nothing to the model and is no word of the
+    inhabitant. A named kind carries the inhabitant's own name where the line quotes the kind
+    ('...') - or everywhere, for texts without a separate "you call it" part; an unnamed kind is
+    the neutral word `made`."""
+    for type_id, name in names.items():
+        for shown in (type_id, type_id.replace("_", " ")):
+            text = text.replace(f"'{shown}'", f"'{name}'")
+            if everywhere:
+                text = text.replace(shown, name)
+    return RUNTIME_TYPE.sub(made, text)
+
+
+_ARTICLES = r"(?:\b(?:a|an|the|some|der|die|das|den|dem|des|ein|eine|einen|einem|einer)\s+)?"
+
+
+def without_names(text: str, names: Iterable[str], instead: str) -> str:
+    """`text` with every one of `names` (with an article before it, whatever the case) replaced
+    by `instead` - for a thing that must stay unnamed although a text written earlier names it."""
+    for name in sorted({n for n in names if n and n.strip()}, key=len, reverse=True):
+        pattern = _ARTICLES + r"\b" + re.escape(name.strip()).replace(r"\ ", r"\s+") + r"\b"
+        text = re.sub(pattern, instead, text, flags=re.IGNORECASE)
+    return text

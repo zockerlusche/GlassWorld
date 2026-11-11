@@ -35,7 +35,16 @@ from glassworld_ai.llm.ollama import OllamaClient
 from glassworld_ai.prompts import PromptTemplate, RenderedPrompt
 from glassworld_ai.queue import ModelQueue
 from glassworld_ai.vocabulary import Vocabulary
-from glassworld_ai.words import ContextError, bands, humanize, plain_id, vocab_line, word
+from glassworld_ai.words import (
+    RUNTIME_TYPE,
+    ContextError,
+    bands,
+    humanize,
+    own_names,
+    plain_id,
+    vocab_line,
+    word,
+)
 from glassworld_contracts import GenerationJob
 
 INVENT_ROLE = "invention"
@@ -248,6 +257,11 @@ def _check_invention(invention: dict[str, Any]) -> None:
 def parse_inventor(raw: str, schema: dict[str, Any]) -> dict[str, Any]:
     data = _validated(raw, schema)
     _check_invention(data["invention"])
+    # The prompt shows materials by id (the answer names them so). The id must not come back in
+    # what the player will read: the thought and the new thing's names (review GW1 #256).
+    shown = [data.get("thought"), *dict(data["invention"].get("name") or {}).values()]
+    if any(isinstance(text, str) and RUNTIME_TYPE.search(text) for text in shown):
+        raise InvalidOutputError("a runtime type id in the thought or the name")
     return data
 
 
@@ -266,15 +280,29 @@ def parse_guard(raw: str, schema: dict[str, Any]) -> dict[str, Any]:
 # --- prompt values ---------------------------------------------------------------------------
 
 
-def _materials_text(payload: Any) -> str:
+def _materials_text(payload: Any, names: dict[str, str] | None = None) -> str:
+    """The materials by their ids (the answer must name them so); from v3 with the name the
+    inhabitant has for a material that is itself an invention."""
+    names = names or {}
     return "\n".join(
         f"- {plain_id(m.type)}"
+        + (f' (you call it "{names[plain_id(m.type)]}")' if plain_id(m.type) in names else "")
         + (
             f" (you notice: {', '.join(humanize(plain_id(p)) for p in m.observed)})"
             if m.observed
             else ""
         )
         for m in payload.materials
+    )
+
+
+def _material_names(job: GenerationJob, template: PromptTemplate) -> dict[str, str]:
+    """v3 (#251): the inhabitant's own name of a material that is itself an invention."""
+    if template.settings.get("material_names") is not True:
+        return {}
+    materials: list[Any] = list(_payload(job).materials)
+    return own_names(
+        ((m.type, getattr(m, "label", None)) for m in materials), plain_id(job.display_locale)
     )
 
 
@@ -305,7 +333,7 @@ def inventor_values(
     return {
         "why": why,
         "character": character,
-        "materials": _materials_text(payload),
+        "materials": _materials_text(payload, _material_names(job, template)),
         "tech_level": humanize(plain_id(payload.tech_level)),
         "processes": "\n".join(
             f"- {vocab_line(vocab, 'process', p)}" for p in vocab.ids("process")
