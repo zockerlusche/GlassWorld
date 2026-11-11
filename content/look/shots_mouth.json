@@ -8,7 +8,8 @@
       "yaw_deg": 25,
       "distance_m": 12,
       "pitch_deg": 28,
-      "tide_permille": -1000
+      "tide_permille": -1000,
+      "revealed_permille": 1000
     },
     {
       "id": "mouth_sea_mean",
@@ -17,7 +18,8 @@
       "yaw_deg": 25,
       "distance_m": 12,
       "pitch_deg": 28,
-      "tide_permille": 0
+      "tide_permille": 0,
+      "revealed_permille": 1000
     },
     {
       "id": "mouth_sea_high",
@@ -26,7 +28,8 @@
       "yaw_deg": 25,
       "distance_m": 12,
       "pitch_deg": 28,
-      "tide_permille": 1000
+      "tide_permille": 1000,
+      "revealed_permille": 1000
     },
     {
       "id": "mouth_sea_side_low",
@@ -35,7 +38,8 @@
       "yaw_deg": 100,
       "distance_m": 8,
       "pitch_deg": 16,
-      "tide_permille": -1000
+      "tide_permille": -1000,
+      "revealed_permille": 1000
     },
     {
       "id": "mouth_sea_side_high",
@@ -44,7 +48,8 @@
       "yaw_deg": 100,
       "distance_m": 8,
       "pitch_deg": 16,
-      "tide_permille": 1000
+      "tide_permille": 1000,
+      "revealed_permille": 1000
     },
     {
       "id": "mouth_survey_low",
@@ -53,7 +58,8 @@
       "yaw_deg": 30,
       "distance_m": 3,
       "pitch_deg": 24,
-      "tide_permille": -1000
+      "tide_permille": -1000,
+      "revealed_permille": 1000
     },
     {
       "id": "mouth_survey_mean",
@@ -62,7 +68,8 @@
       "yaw_deg": 30,
       "distance_m": 3,
       "pitch_deg": 24,
-      "tide_permille": 0
+      "tide_permille": 0,
+      "revealed_permille": 1000
     },
     {
       "id": "mouth_survey_high",
@@ -71,7 +78,8 @@
       "yaw_deg": 30,
       "distance_m": 3,
       "pitch_deg": 24,
-      "tide_permille": 1000
+      "tide_permille": 1000,
+      "revealed_permille": 1000
     },
     {
       "id": "mouth_lake",
@@ -79,7 +87,8 @@
       "target_z_permille": 570,
       "yaw_deg": 30,
       "distance_m": 10,
-      "pitch_deg": 28
+      "pitch_deg": 28,
+      "revealed_permille": 1000
     },
     {
       "id": "mouth_lake_side",
@@ -87,7 +96,8 @@
       "target_z_permille": 570,
       "yaw_deg": 120,
       "distance_m": 7,
-      "pitch_deg": 16
+      "pitch_deg": 16,
+      "revealed_permille": 1000
     },
     {
       "id": "mouth_lake_hill",
@@ -95,7 +105,8 @@
       "target_z_permille": 546,
       "yaw_deg": 315,
       "distance_m": 10,
-      "pitch_deg": 28
+      "pitch_deg": 28,
+      "revealed_permille": 1000
     }
   ],
   "projections": [
