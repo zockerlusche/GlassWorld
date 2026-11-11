@@ -149,6 +149,70 @@ public sealed class WorldMapTests
         }
     }
 
+    /// <summary>
+    /// B2 acceptance 4 (R33): a changed table changes the world without code. The same seed, the same
+    /// program, a copy of the content in which only one value of the biome table differs (the forest
+    /// begins at a lower moisture): the generated island has more forest, less of other land and another
+    /// world hash. Nothing but the data file was touched.
+    /// </summary>
+    [Fact]
+    public void AChangedBiomeTableChangesTheGeneratedWorldWithoutCodeChange()
+    {
+        const ulong seed = 7;
+        var original = ContentSet.Load(Path.Combine(TestData.Root, "content"));
+        var before = WorldGenerator.Generate(original.WorldGen, original.Objects, "start_island", seed);
+        var copy = CopyContent();
+        try
+        {
+            var path = Path.Combine(copy, "world", "biomes.json");
+            var text = File.ReadAllText(path).ReplaceLineEndings("\n");
+            const string find = "\"max_height\": 104,\n      \"min_moisture_permille\": 470,";
+            Assert.Contains(find, text, StringComparison.Ordinal);
+            File.WriteAllText(path, text.Replace(find, "\"max_height\": 104,\n      \"min_moisture_permille\": 400,", StringComparison.Ordinal));
+            var changed = ContentSet.Load(copy);
+            var forest = changed.WorldGen.Biomes.Rules.Single(r => r.Biome == "forest");
+            Assert.Equal(400, forest.MinMoisturePermille);
+            Assert.Equal(470, original.WorldGen.Biomes.Rules.Single(r => r.Biome == "forest").MinMoisturePermille);
+
+            var after = WorldGenerator.Generate(changed.WorldGen, changed.Objects, "start_island", seed);
+            Assert.NotEqual(before.Hash(), after.Hash());
+
+            // Both islands are the same attempt of the seed, so they stand on the same ground.
+            Assert.Equal(before.Attempts, after.Attempts);
+            var (cellsBefore, cellsAfter) = (BiomeCells(before.Map), BiomeCells(after.Map));
+            Assert.True(cellsAfter["forest"] > cellsBefore["forest"], $"forest cells {cellsBefore["forest"]} -> {cellsAfter["forest"]}");
+
+            // The ground itself is the same (the table sorts cells into biomes, it does not shape them): what
+            // the forest gained, the biomes below it in the table lost.
+            Assert.Equal(cellsBefore.Values.Sum(), cellsAfter.Values.Sum());
+            Assert.Equal(cellsBefore["beach_sea"], cellsAfter["beach_sea"]);
+            Assert.True(cellsAfter["meadow"] + cellsAfter["field"] < cellsBefore["meadow"] + cellsBefore["field"]);
+
+            // And the unchanged copy gives the unchanged world: the difference comes from the value alone.
+            File.WriteAllText(path, text);
+            var same = ContentSet.Load(copy);
+            Assert.Equal(before.Hash(), WorldGenerator.Generate(same.WorldGen, same.Objects, "start_island", seed).Hash());
+        }
+        finally
+        {
+            Directory.Delete(copy, true);
+        }
+    }
+
+    private static Dictionary<string, int> BiomeCells(WorldMap map)
+    {
+        var cells = map.BiomeIds.ToDictionary(id => id, _ => 0, StringComparer.Ordinal);
+        for (var z = 0; z < map.DepthCells; z++)
+        {
+            for (var x = 0; x < map.WidthCells; x++)
+            {
+                cells[map.BiomeAt(x, z)]++;
+            }
+        }
+
+        return cells;
+    }
+
     private static string CopyContent()
     {
         var target = Path.Combine(Path.GetTempPath(), "gw-content-" + Guid.NewGuid().ToString("N"));
