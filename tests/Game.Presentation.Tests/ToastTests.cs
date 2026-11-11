@@ -6,7 +6,7 @@ namespace GlassWorld.Presentation.Tests;
 /// <summary>Hints (D366 section 9, XAG 116), placeholders and table sorting.</summary>
 public sealed class ToastTests
 {
-    private static readonly UiToastTokens Tokens = new() { MaxVisible = 3, MinSeconds = 6, BundleAfterWaiting = 3, MaxDurationFactor = 10 };
+    private static readonly UiToastTokens Tokens = new() { MaxVisible = 3, MinSeconds = 6, BundleAfterWaiting = 3, MaxDurationFactor = 10, SettledMinSeconds = 2 };
     private static readonly IReadOnlyDictionary<string, string> NoArgs = new Dictionary<string, string>();
 
     private static ToastMessage Msg(string key, string? group = null) => new(key, NoArgs, group);
@@ -24,6 +24,59 @@ public sealed class ToastTests
         Assert.Equal(2, queue.Waiting);
         queue.Advance(6, null);
         Assert.Equal(["msg.t.n3", "msg.t.n4"], queue.Visible.Select(t => t.Message.TextKey));
+    }
+
+    [Fact]
+    public void AHintWithATextForSeveralIsOneHintPerGroupAndSettledHintsLeave()
+    {
+        var board = new ToastBoard(Tokens, new ToastSettings(1, UntilDismissed: false));
+        ToastMessage Question(string who) => new("q", NoArgs, "q|" + who, who, "q.many");
+        board.Push(Question("a"), fastForward: false);
+        board.Push(Question("a"), fastForward: false);
+        board.Push(Question("b"), fastForward: false);
+        board.Push(Msg("other"), fastForward: false);
+        board.Push(Msg("late"), fastForward: false);
+        Assert.Equal([2, 1, 1], board.Visible.Select(t => t.Count));
+        Assert.Equal(1, board.Waiting);
+
+        // The question of "a" is settled: its shown hint stays the least time (no flashing), then leaves,
+        // and the waiting one moves up.
+        var version = board.Version;
+        board.DismissWhere(m => m.LookAt == "a");
+        Assert.Equal(version, board.Version);
+        Assert.Equal(3, board.Visible.Count);
+        board.Advance(2, null);
+        board.DismissWhere(m => m.LookAt == "a");
+        Assert.Equal(["b", null, null], board.Visible.Select(t => t.Message.LookAt));
+
+        // A waiting hint that is settled leaves at once: it was never shown, nothing can flash.
+        board.Push(Msg("more"), fastForward: false);
+        board.Push(Question("c"), fastForward: false);
+        Assert.Equal(2, board.Waiting);
+        board.DismissWhere(m => m.LookAt == "c");
+        Assert.Equal(1, board.Waiting);
+        board.DismissWhere(m => m.TextKey == "more");
+        Assert.Equal(["b", null, null], board.Visible.Select(t => t.Message.LookAt));
+        Assert.Equal(0, board.Waiting);
+        Assert.True(board.Version > version);
+
+        // Nothing stale: nothing changes.
+        version = board.Version;
+        board.DismissWhere(m => m.LookAt == "a");
+        Assert.Equal(version, board.Version);
+    }
+
+    [Fact]
+    public void WithHintsThatStayASettledHintStillLeaves()
+    {
+        // "Hints stay until I close them" keeps hints past their lifetime, but not one whose reason is gone.
+        var board = new ToastBoard(Tokens, new ToastSettings(1, UntilDismissed: true));
+        board.Push(new ToastMessage("q", NoArgs, "q|a", "a", "q.many"), fastForward: false);
+        board.Push(Msg("other"), fastForward: false);
+        board.Advance(60, null);
+        Assert.Equal(2, board.Visible.Count);
+        board.DismissWhere(m => m.LookAt == "a");
+        Assert.Equal("other", Assert.Single(board.Visible).Message.TextKey);
     }
 
     [Fact]
