@@ -36,8 +36,14 @@ public sealed class BeliefSet
 {
     private readonly SortedDictionary<(string TypeId, string PropertyId), Belief> _beliefs = new(KeyComparer.Instance);
 
+    // The types there is a belief about (beliefs are set, never taken away).
+    private readonly HashSet<string> _types = new(StringComparer.Ordinal);
+
     /// <summary>Number of beliefs.</summary>
     public int Count => _beliefs.Count;
+
+    /// <summary>Whether there is any belief about a type (the same answer as <see cref="About"/> not being empty).</summary>
+    public bool Knows(string typeId) => _types.Contains(typeId);
 
     /// <summary>Sets a belief with its source (confidence is clamped to 0..1).</summary>
     public void Set(string typeId, string propertyId, bool value, double confidence, string source = KnowledgeSources.Experienced, string? toldBy = null, long tick = 0)
@@ -46,6 +52,7 @@ public sealed class BeliefSet
         ArgumentException.ThrowIfNullOrEmpty(propertyId);
         ArgumentException.ThrowIfNullOrEmpty(source);
         _beliefs[(typeId, propertyId)] = new Belief(value, Math.Clamp(confidence, 0.0, 1.0), source, toldBy, tick);
+        _types.Add(typeId);
     }
 
     /// <summary>Looks up a belief.</summary>

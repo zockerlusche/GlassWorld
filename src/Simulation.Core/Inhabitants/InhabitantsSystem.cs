@@ -101,6 +101,9 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     public const string Resting = "resting";
 
     private readonly SortedDictionary<string, Inhabitant> _inhabitants = new(StringComparer.Ordinal);
+
+    // The same inhabitants in the same (id) order as a list: every pass of a tick walks it instead of the tree.
+    private readonly List<Inhabitant> _ordered = [];
     private readonly List<WorldEvent> _events = [];
     private readonly InhabitantModel _model;
     private readonly ActionRules _actions;
@@ -130,7 +133,10 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     public string Name => "inhabitants";
 
     /// <summary>All inhabitants in id order.</summary>
-    public IEnumerable<Inhabitant> All => _inhabitants.Values;
+    public IEnumerable<Inhabitant> All => _ordered;
+
+    /// <summary>All inhabitants in id order, by index (for the passes of the core's own systems).</summary>
+    internal IReadOnlyList<Inhabitant> Ordered => _ordered;
 
     /// <summary>Events of the most recent tick that had events (UI, sound and tests read them each tick).</summary>
     public IReadOnlyList<WorldEvent> Events => _events;
@@ -284,8 +290,8 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         }
 
         var rng = RandomStreams.Create(seed, "inhabitant/names");
-        var pool = Names.Where(n => !_inhabitants.Values.Any(i => i.Name == n)).ToList();
-        foreach (var inhabitant in _inhabitants.Values.Where(i => i.Name is null))
+        var pool = Names.Where(n => !_ordered.Any(i => i.Name == n)).ToList();
+        foreach (var inhabitant in _ordered.Where(i => i.Name is null))
         {
             if (pool.Count == 0)
             {
@@ -306,6 +312,13 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     {
         ArgumentNullException.ThrowIfNull(inhabitant);
         _inhabitants.Add(inhabitant.Id, inhabitant);
+        var at = _ordered.Count;
+        while (at > 0 && string.CompareOrdinal(_ordered[at - 1].Id, inhabitant.Id) > 0)
+        {
+            at--;
+        }
+
+        _ordered.Insert(at, inhabitant);
     }
 
     /// <summary>Routes on the island map (B2 R10); null on worlds without a map, where walking is straight.</summary>
@@ -496,7 +509,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         var probe = world.Probe;
         probe?.Enter(PartMeeting);
         _tickStart.Clear();
-        foreach (var inhabitant in _inhabitants.Values)
+        foreach (var inhabitant in _ordered)
         {
             _tickStart[inhabitant.Id] = inhabitant.Position;
         }
@@ -505,7 +518,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         Meet(world);
         Bond();
         probe?.Leave(PartMeeting);
-        foreach (var inhabitant in _inhabitants.Values)
+        foreach (var inhabitant in _ordered)
         {
             probe?.Enter(PartState);
             FadeImprints(world, inhabitant);
@@ -593,7 +606,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         // No room aside: give way to a walker with the lower id in the way (never to one standing still,
         // which would only send it back and forth).
         var back = new Position(from.X - dx, from.Z - dz);
-        if (_inhabitants.Values.Any(other => !ReferenceEquals(other, mover) && string.CompareOrdinal(other.Id, mover.Id) < 0 && Walking(other) && !Clear(mover, other, from, to))
+        if (_ordered.Any(other => !ReferenceEquals(other, mover) && string.CompareOrdinal(other.Id, mover.Id) < 0 && Walking(other) && !Clear(mover, other, from, to))
             && Walkable(from, back) && PathClear(mover, from, back))
         {
             mover.Position = back;
@@ -613,7 +626,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     /// where it began the tick to where it is now (pairs closer already at the start do not count).
     /// </summary>
     private bool PathClear(Inhabitant mover, Position from, Position to) =>
-        _inhabitants.Values.All(other => ReferenceEquals(other, mover) || Clear(mover, other, from, to));
+        _ordered.All(other => ReferenceEquals(other, mover) || Clear(mover, other, from, to));
 
     /// <summary>Whether the straight move of <paramref name="mover"/> stays clear of <paramref name="other"/> (see <see cref="PathClear"/>).</summary>
     private bool Clear(Inhabitant mover, Inhabitant other, Position from, Position to)
@@ -659,7 +672,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             return null;
         }
 
-        return _inhabitants.Values.FirstOrDefault(o => o.Activity is { RemainingTicks: not null } a && a.TargetId == inhabitant.Id)?.Id;
+        return _ordered.FirstOrDefault(o => o.Activity is { RemainingTicks: not null } a && a.TargetId == inhabitant.Id)?.Id;
     }
 
     /// <summary>
@@ -682,7 +695,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     {
         ArgumentNullException.ThrowIfNull(hasher);
         hasher.Write(_inhabitants.Count);
-        foreach (var inhabitant in _inhabitants.Values)
+        foreach (var inhabitant in _ordered)
         {
             inhabitant.WriteState(hasher);
         }
@@ -712,9 +725,9 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         }
 
         var start = Start(knowledge);
-        foreach (var inhabitant in _inhabitants.Values.Where(i => !Asleep(i, data)))
+        foreach (var inhabitant in _ordered.Where(i => !Asleep(i, data)))
         {
-            if (_inhabitants.Values.Any(other => other != inhabitant && !Asleep(other, data)
+            if (_ordered.Any(other => other != inhabitant && !Asleep(other, data)
                 && DistanceSquared(inhabitant.Position, other.Position) <= reach * reach
                 && inhabitant.Relationships.Get(other.Id, start) is var relation
                 && relation.Trust >= data.MinTrust && relation.Affection >= data.MinAffection))
@@ -1051,7 +1064,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         var (ux, uz) = (dx / length, dz / length);
         var (rx, rz) = (-uz, ux);
         var threatened = false;
-        foreach (var other in _inhabitants.Values)
+        foreach (var other in _ordered)
         {
             if (ReferenceEquals(other, walker) || ReferenceEquals(other, walkingTo))
             {
@@ -1093,7 +1106,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         var c = Math.Sqrt(0.5);
         for (var round = 0; round < 3; round++)
         {
-            var other = _inhabitants.Values.FirstOrDefault(o => !ReferenceEquals(o, mover) && Distance(o.Position, mover.Position) < limit);
+            var other = _ordered.FirstOrDefault(o => !ReferenceEquals(o, mover) && Distance(o.Position, mover.Position) < limit);
             if (other is null)
             {
                 return;
@@ -1121,7 +1134,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             {
                 var spot = new Position(other.Position.X + (x * space.MinSeparationM), other.Position.Z + (z * space.MinSeparationM));
                 if (!Walkable(mover.Position, spot)
-                    || _inhabitants.Values.Any(o => !ReferenceEquals(o, mover) && !ReferenceEquals(o, other) && Distance(o.Position, spot) < limit)
+                    || _ordered.Any(o => !ReferenceEquals(o, mover) && !ReferenceEquals(o, other) && Distance(o.Position, spot) < limit)
                     || !BesideNotBeyond(mover.Position, other.Position, spot))
                 {
                     continue;
@@ -1259,7 +1272,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     /// awake is the brain's question.
     /// </summary>
     private List<Inhabitant> InSight(Inhabitant inhabitant) =>
-        [.. _inhabitants.Values.Where(other => !ReferenceEquals(other, inhabitant) && Sees(inhabitant, other)
+        [.. _ordered.Where(other => !ReferenceEquals(other, inhabitant) && Sees(inhabitant, other)
             && (Routes is null || Routes.Connected(inhabitant.Position, other.Position)))];
 
     /// <summary>Whether an inhabitant sees another right now: within the sight of this tick (B2594).</summary>
@@ -1378,7 +1391,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             var leftOut = false;
             bool Taken(Position point)
             {
-                foreach (var other in _inhabitants.Values)
+                foreach (var other in _ordered)
                 {
                     if (!ReferenceEquals(other, walker) && !Walking(other) && Distance(other.Position, point) < limit)
                     {

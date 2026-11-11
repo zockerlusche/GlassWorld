@@ -45,9 +45,9 @@ public sealed partial class InhabitantsSystem
     private void MeetStartGroups()
     {
         var starts = Knowledge?.StartRelationships;
-        foreach (var a in _inhabitants.Values)
+        foreach (var a in _ordered)
         {
-            foreach (var b in _inhabitants.Values.Where(b => b != a))
+            foreach (var b in _ordered.Where(b => b != a))
             {
                 var partners = a.Group == b.Group;
                 if (partners)
@@ -70,9 +70,9 @@ public sealed partial class InhabitantsSystem
     /// </summary>
     public void RememberStartGroups()
     {
-        foreach (var a in _inhabitants.Values)
+        foreach (var a in _ordered)
         {
-            foreach (var b in _inhabitants.Values.Where(b => b != a && b.Group == a.Group))
+            foreach (var b in _ordered.Where(b => b != a && b.Group == a.Group))
             {
                 a.Met.Add(b.Id);
             }
@@ -91,9 +91,9 @@ public sealed partial class InhabitantsSystem
         }
 
         var sight = SightRadiusM * SightRadiusM;
-        foreach (var a in _inhabitants.Values)
+        foreach (var a in _ordered)
         {
-            foreach (var b in _inhabitants.Values)
+            foreach (var b in _ordered)
             {
                 if (string.CompareOrdinal(a.Id, b.Id) >= 0 || (a.Met.Contains(b.Id) && b.Met.Contains(a.Id)) || DistanceSquared(a.Position, b.Position) > sight)
                 {
@@ -126,9 +126,9 @@ public sealed partial class InhabitantsSystem
         var start = Start(knowledge);
         var reach = changes.TogetherDistanceM * changes.TogetherDistanceM;
         var perTick = 1.0 / _ticksPerHour;
-        foreach (var a in _inhabitants.Values)
+        foreach (var a in _ordered)
         {
-            foreach (var b in _inhabitants.Values)
+            foreach (var b in _ordered)
             {
                 if (a != b && DistanceSquared(a.Position, b.Position) <= reach)
                 {
