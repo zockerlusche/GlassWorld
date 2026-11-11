@@ -113,9 +113,13 @@ public sealed class StartPopulationTests
         Assert.Equal(watched.World.SystemNames.Append(World.BoundariesPart), probe.TopLevel);
         Assert.Contains("inhabitants", watched.World.SystemNames);
 
-        // Parts a system names begin and end inside it, and their names start with the system's.
+        // Parts a system names begin and end inside it, and their names start with the system's - except the
+        // frontier search, one search of the exploration that the routine and a request both ask for, so it
+        // lies inside whichever system asks.
         Assert.Contains(probe.Nested, n => n.Part == InhabitantsSystem.PartAct && n.Inside == "inhabitants");
-        Assert.All(probe.Nested, n => Assert.StartsWith(n.Outermost + "/", n.Part, StringComparison.Ordinal));
+        Assert.All(
+            probe.Nested.Where(n => n.Part != Simulation.Exploration.ExplorationSystem.PartFrontier),
+            n => Assert.StartsWith(n.Outermost + "/", n.Part, StringComparison.Ordinal));
         Assert.Equal(0, probe.Depth);
 
         watched.World.Run(200);

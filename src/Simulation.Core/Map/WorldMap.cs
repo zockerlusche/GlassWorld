@@ -100,6 +100,30 @@ public sealed class WorldMap
         return chunk[((z % ChunkCells) * ChunkCells) + (x % ChunkCells)];
     }
 
+    private int[]? _walkCosts;
+
+    /// <summary>
+    /// The walk costs of all cells in one array (index z x width + x, <see cref="MapCell.Blocked"/> for
+    /// obstacles): what the path search reads instead of asking cell by cell. Built once, on first use -
+    /// the grid never changes. Callers must not change it.
+    /// </summary>
+    internal int[] WalkCosts => _walkCosts ??= BuildWalkCosts();
+
+    private int[] BuildWalkCosts()
+    {
+        int w = WidthCells, d = DepthCells;
+        var costs = new int[w * d];
+        for (var z = 0; z < d; z++)
+        {
+            for (var x = 0; x < w; x++)
+            {
+                costs[(z * w) + x] = Cell(x, z).WalkCost;
+            }
+        }
+
+        return costs;
+    }
+
     /// <summary>Biome id of the cell at (x, z).</summary>
     public string BiomeAt(int x, int z) => BiomeIds[Cell(x, z).Biome];
 
