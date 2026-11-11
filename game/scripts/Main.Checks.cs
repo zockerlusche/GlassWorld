@@ -634,6 +634,145 @@ public partial class Main
         }
     }
 
+    /// <summary>
+    /// The compute night in pictures (B7-S8, acceptance B7-S10): runs the world in fast-forward until the
+    /// night begins, then at normal speed through the night scene, and saves a picture at each stage - the
+    /// fade-out, the dream (again whenever more dream images show), the fade-in and the morning after.
+    /// With <c>GLASSWORLD_AI=live</c> the scene follows the real service; without it only the fades show.
+    /// Prints <c>NIGHT_SHOTS_OK n stages=…</c> and quits; a stage that never came within the limit
+    /// (<c>--night-limit=SECONDS</c>, real time) is a failure. Headless it is a dry run: the stages are
+    /// walked and reported, no pictures are saved. A run with a window belongs in the AMW run queue
+    /// (<c>amw lauf start --schirm --gpu --warten</c>).
+    /// </summary>
+    private async Task NightShotsAsync()
+    {
+        TextCatalogs.SetLanguage("de");
+        var size = GetWindow().Size;
+        var prefix = $"{size.X}x{size.Y}_nacht_";
+        var (count, failed) = (0, 0);
+        var seen = new List<string>();
+        var ok = false;
+        var reason = "limit reached";
+
+        // Without a window nothing is drawn: the run then only walks the stages (a dry run), no pictures.
+        var dry = DisplayServer.GetName() == "headless";
+        try
+        {
+            DirAccess.MakeDirRecursiveAbsolute(_shotsFolder!);
+            var live = string.Equals(System.Environment.GetEnvironmentVariable("GLASSWORLD_AI"), "live", StringComparison.Ordinal);
+            GD.Print($"NIGHT_SHOTS_START live={(live ? 1 : 0)} world={_world!.Mode} limit_s={_nightLimitS.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
+            var fastest = ScreenModel.TimeChoices(_world.Host!.World.Calendar.Settings).Max(c => c.Speed);
+            _world.Speed = fastest;
+            var started = Time.GetTicksMsec();
+            var last = NightStage.Day;
+            var dreams = 0;
+            var wasNight = false;
+            var nextReport = 0.0;
+            var (calendarNight, sawDay) = (false, false);
+            while ((Time.GetTicksMsec() - started) / 1000.0 < _nightLimitS)
+            {
+                await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+                var (stage, darkness) = _screen!.NightNow;
+                var nowS = (Time.GetTicksMsec() - started) / 1000.0;
+                if (nowS >= nextReport)
+                {
+                    // A line every few seconds, so a run that waits in vain shows where it stands.
+                    nextReport = nowS + 10;
+                    var at = _world.Host.World.Calendar.At(_world.Host.World.Tick);
+                    GD.Print(string.Create(System.Globalization.CultureInfo.InvariantCulture, $"NIGHT_SHOTS_AT s={nowS:0} tick={_world.Host.World.Tick} phase={at.Phase} speed={_world.Speed} stage={stage} darkness={darkness:0.00} night={_world.Host.Snapshot().ComputeNight}"));
+                }
+
+                // The night is watched at the speed a player sees it; once the scene is over the rest of the
+                // calendar night runs in fast-forward again (it took seven minutes of waiting otherwise).
+                var wanted = stage is NightStage.Day or NightStage.Awake ? fastest : 1;
+                if (_world.Speed != wanted)
+                {
+                    _world.Speed = wanted;
+                }
+
+                var shown = _screen.DreamsShownForShots;
+                var name = stage == last
+                    ? stage == NightStage.Dream && shown > dreams ? $"traum_{shown}_bilder" : null
+                    : stage switch
+                    {
+                        NightStage.FadingOut => "1_abblenden",
+                        NightStage.Dream => "2_traum",
+                        NightStage.FadingIn => "3_aufblenden",
+                        NightStage.Awake => "4_wach",
+                        _ => wasNight ? "5_tag" : null,
+                    };
+                wasNight |= stage != NightStage.Day;
+                last = stage;
+
+                // A calendar night that ends without the scene: the core called no compute night (it does so
+                // only with an AI service to compute for). Waiting longer shows nothing new.
+                var phase = _world.Host.World.Calendar.At(_world.Host.World.Tick).Phase;
+                calendarNight |= phase == GlassWorld.Simulation.Time.DayPhase.Night && _world.Host.World.Tick > 0 && sawDay;
+                sawDay |= phase == GlassWorld.Simulation.Time.DayPhase.Day;
+                if (calendarNight && phase == GlassWorld.Simulation.Time.DayPhase.Day && !wasNight)
+                {
+                    reason = "a night passed without a night scene (no compute night: is the AI service running? GLASSWORLD_AI=live)";
+                    break;
+                }
+
+                dreams = Math.Max(dreams, shown);
+                if (name is null)
+                {
+                    continue;
+                }
+
+                // A fade is caught in its middle, a standing stage once it has settled.
+                for (var i = 0; i < (stage is NightStage.FadingOut or NightStage.FadingIn ? 45 : 20); i++)
+                {
+                    await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+                }
+
+                GD.Print(string.Create(System.Globalization.CultureInfo.InvariantCulture, $"NIGHT_SHOT {name} stage={_screen.NightNow.Stage} darkness={_screen.NightNow.Darkness:0.00} dreams={_screen.DreamsShownForShots} text='{_screen.NightTextForShots}'"));
+                // The name is the stage that triggered the picture; if the scene moved on during the wait,
+                // the file says which stage it really shows (review GW1 #235).
+                var now = _screen.NightNow.Stage;
+                var changed = now == stage ? string.Empty : $"_zeigt_{now}";
+                if (dry)
+                {
+                    seen.Add(name);
+                }
+                else if (await DrawnShot($"{prefix}{count + 1:00}_{name}{changed}.png"))
+                {
+                    count++;
+                    seen.Add(name);
+                }
+                else
+                {
+                    failed++;
+                }
+
+                if (stage == NightStage.Day && wasNight)
+                {
+                    break;
+                }
+            }
+
+            // The scene must have gone dark and come back; with the live service a dream stage belongs to it.
+            ok = failed == 0 && seen.Contains("1_abblenden") && seen.Contains("5_tag") && (!live || seen.Contains("2_traum"));
+        }
+        catch (Exception e) when (e is not OutOfMemoryException)
+        {
+            GD.PushError($"NIGHT_SHOTS_FAIL {e.GetType().Name}: {e.Message}");
+        }
+        finally
+        {
+            var stages = string.Join(',', seen);
+            GD.Print(ok ? $"NIGHT_SHOTS_OK {count} stages={stages}{(dry ? " dry=1" : string.Empty)}" : $"NIGHT_SHOTS_FAIL pictures={count} failed={failed} stages={stages} reason='{reason}'");
+            GetTree().Quit(ok ? 0 : 1);
+        }
+    }
+
+    private async Task<bool> DrawnShot(string name)
+    {
+        await ToSignal(RenderingServer.Singleton, RenderingServer.SignalName.FramePostDraw);
+        return Shot(name);
+    }
+
     private async Task Frames(int count)
     {
         for (var i = 0; i < count; i++)

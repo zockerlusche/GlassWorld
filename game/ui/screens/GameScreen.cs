@@ -1953,6 +1953,12 @@ public partial class GameScreen : CanvasLayer
         }
     }
 
+    /// <summary>Night pictures only: how many dream images are on screen.</summary>
+    public int DreamsShownForShots => _dreamNodes.Count;
+
+    /// <summary>Night pictures only: the words of the night scene as shown (empty while hidden).</summary>
+    public string NightTextForShots => _nightText.Visible ? _nightProgress.Text : string.Empty;
+
     /// <summary>Smoke only: the night's stage and darkness now.</summary>
     public (NightStage Stage, double Darkness) NightNow => _night is null ? (NightStage.Day, 0) : (_night.Stage, _night.Darkness);
 
