@@ -582,6 +582,12 @@ public partial class Main
                 {
                     GD.Print($"UI_TOUR_NIGHT waited for the morning, stage now {_screen.NightNow.Stage}");
                 }
+
+                if (_screen.NightNow.Stage != NightStage.Day)
+                {
+                    // Dark pictures are no result: the run fails rather than report them as good (review GW1 #238).
+                    throw new InvalidOperationException($"the compute night did not end within ten minutes (stage {_screen.NightNow.Stage})");
+                }
             }
             else
             {
