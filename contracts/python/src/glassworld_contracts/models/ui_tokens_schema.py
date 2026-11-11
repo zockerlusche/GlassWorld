@@ -160,6 +160,24 @@ class UiWindowTokens(BaseModel):
         ge=5,
         le=1000,
     )
+    field_min_width: int = Field(
+        ...,
+        description='Least width of a text field in a form (new world, the player name in the settings); the field grows with its hint text up to field_max_share.',
+        ge=80,
+        le=800,
+    )
+    settings_label_width: int = Field(
+        ...,
+        description='Least width of the label column in the settings; a label grows to its longest word.',
+        ge=80,
+        le=800,
+    )
+    field_max_share: float = Field(
+        ...,
+        description="The most a form field may take of the picture's width while it grows with its hint text (0..1); beyond it the hint is cut.",
+        gt=0.0,
+        le=1.0,
+    )
 
 
 class UiButtonTokens(BaseModel):

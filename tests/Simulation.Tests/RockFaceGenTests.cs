@@ -15,10 +15,10 @@ public sealed class RockFaceGenTests
         WorldGenerator.Generate(Content.Value.WorldGen, Content.Value.Objects, "start_island", seed);
 
     [Fact]
-    public void TheStartIslandAsksForRockFacesInVersionFour()
+    public void TheStartIslandAsksForRockFacesSinceVersionFour()
     {
         var preset = Content.Value.WorldGen.Presets["start_island"];
-        Assert.Equal(4, preset.GeneratorVersion);
+        Assert.True(preset.GeneratorVersion >= 4);
         Assert.NotNull(preset.Terrain.RockFaces);
     }
 
@@ -68,13 +68,17 @@ public sealed class RockFaceGenTests
         Assert.Equal(Generate(2026).Hash(), Generate(2026).Hash());
     }
 
-    /// <summary>Without rock faces in the data the generator is version 3: the old golden hash of seed 1.</summary>
+    /// <summary>
+    /// Without rock faces in the data (and with the start placement of that time, no dry start ground) the
+    /// generator is version 3: the old golden hash of seed 1.
+    /// </summary>
     [Fact]
     public void WithoutRockFacesTheGeneratorIsVersionThree()
     {
         var content = ContentSet.Load(Path.Combine(TestData.Root, "content"));
         var preset = content.WorldGen.Presets["start_island"];
         preset.Terrain.RockFaces = null;
+        preset.Start.DryGround = null;
         preset.GeneratorVersion = 3;
         var island = WorldGenerator.Generate(content.WorldGen, content.Objects, "start_island", 1);
         Assert.Equal("d64e7fea4c0e163ad497d216220464dd20c067ff54245875cd3067e40e20c3a6", island.Hash());
