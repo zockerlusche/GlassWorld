@@ -77,7 +77,11 @@ public partial class GwSidePanel : PanelContainer
 
         var y = top > 0 ? top : margin;
         Size = new Vector2(width, (area.Y - margin - y) * Math.Clamp(heightShare, 0.1f, 1));
-        Position = new Vector2(left ? margin : area.X - margin - rightOffset - width, y);
+
+        // The size is the asked one or, if the content needs more, its minimum: placed by what it really is,
+        // a panel on the right grows to the left instead of under the buttons beside it (D747 A2: the
+        // chronicle's day row was wider than the panel and hid "later" under the theme buttons).
+        Position = new Vector2(left ? margin : area.X - margin - rightOffset - Size.X, y);
     }
 
     /// <summary>Minimum sizes of the parts (diagnostics for the layout check).</summary>

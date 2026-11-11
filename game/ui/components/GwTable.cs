@@ -20,6 +20,9 @@ public sealed record GwRow(string Id, IReadOnlyList<string> Cells, IReadOnlyList
 /// </summary>
 public partial class GwTable : VBoxContainer
 {
+    // Room beside a header's text for the tree's own cell margins and the sort arrow.
+    private const int HeaderPaddingPx = 20;
+
     private readonly Tree _tree = new() { HideRoot = true, ColumnTitlesVisible = true, SizeFlagsVertical = SizeFlags.ExpandFill, SelectMode = Tree.SelectModeEnum.Row };
     private readonly Label _empty = new() { ThemeTypeVariation = UiTheme.SmallLabel, AutowrapMode = TextServer.AutowrapMode.WordSmart };
     private IReadOnlyList<GwColumn> _columns = [];
@@ -114,7 +117,8 @@ public partial class GwTable : VBoxContainer
 
     public override void _Notification(int what)
     {
-        if (what == NotificationTranslationChanged)
+        // The headers are measured with the theme's font: again when the language or the text size changes.
+        if (what == NotificationTranslationChanged || (what == NotificationThemeChanged && IsNodeReady()))
         {
             UpdateTitles();
         }
@@ -122,12 +126,23 @@ public partial class GwTable : VBoxContainer
 
     private void UpdateTitles()
     {
+        // Every column is at least as wide as its header, and the table asks for the room of all of them:
+        // no cut header, no bar to scroll sideways (D747 A3: "Frage" for "Fragen").
+        var font = _tree.GetThemeFont("title_button_font");
+        var size = _tree.GetThemeFontSize("title_button_font_size");
+        var room = 0f;
         for (var i = 0; i < _columns.Count; i++)
         {
-            _tree.SetColumnTitle(i, Tr(_columns[i].HeaderKey));
+            var title = Tr(_columns[i].HeaderKey);
+            _tree.SetColumnTitle(i, title);
             _tree.SetColumnTitleAlignment(i, _columns[i].Numeric ? HorizontalAlignment.Right : HorizontalAlignment.Left);
             _tree.SetColumnExpand(i, !_columns[i].Numeric);
+            var width = (int)Math.Ceiling(font.GetStringSize(title, HorizontalAlignment.Left, -1, size).X) + HeaderPaddingPx;
+            _tree.SetColumnCustomMinimumWidth(i, width);
+            room += width;
         }
+
+        _tree.CustomMinimumSize = new Vector2(room, _tree.CustomMinimumSize.Y);
     }
 
     private IReadOnlyList<GwRow> Sorted()

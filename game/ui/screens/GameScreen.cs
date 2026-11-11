@@ -1458,6 +1458,17 @@ public partial class GameScreen : CanvasLayer
         ["need"] = message.Detail is null ? string.Empty : Tr(VocabKeys.Need(message.Detail)),
     });
 
+    /// <summary>
+    /// A text that speaks of an inhabitant, in the form for its sex (<see cref="AddressKeys"/>); the plain
+    /// text if the catalogue has no such form.
+    /// </summary>
+    private string TrFor(string key, string? sex)
+    {
+        var sexed = AddressKeys.For(key, sex);
+        var text = Tr(sexed).ToString();
+        return text == sexed ? Tr(key).ToString() : text;
+    }
+
     /// <summary>Shows a calm hint (e.g. saving failed).</summary>
     public void ShowHint(ToastMessage message) => _board?.Push(message, fastForward: false);
 
@@ -1592,11 +1603,12 @@ public partial class GameScreen : CanvasLayer
             ["thing"] = question.TypeId is { } type ? Tr(VocabKeys.ObjectType(type)) : string.Empty,
         };
 
-        // A kind without its own text gets the general one.
+        // A kind without its own text gets the general one; each in the form for the inhabitant's sex.
+        var sex = _feed?.SexOf(row.Id);
         string Text(string key, string other)
         {
-            var text = Tr(key).ToString();
-            return TextFill.Fill(text == key ? Tr(other) : text, args);
+            var text = TrFor(key, sex);
+            return TextFill.Fill(text == key ? TrFor(other, sex) : text, args);
         }
 
         var box = new VBoxContainer();
@@ -1613,7 +1625,7 @@ public partial class GameScreen : CanvasLayer
 
         var input = new LineEdit
         {
-            PlaceholderText = Tr("ui.question.answer_hint"),
+            PlaceholderText = TrFor("ui.question.answer_hint", sex),
             MaxLength = 280,
             SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
             AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled,
@@ -2559,7 +2571,7 @@ public partial class GameScreen : CanvasLayer
             // What occupies this inhabitant (W1726): its open questions, here too, with the whisper field.
             _cardQuestionEntries.Clear();
             _cardQuestionBox = new VBoxContainer { Visible = false };
-            _cardQuestionBox.AddChild(new Label { Text = "ui.card.musing", ThemeTypeVariation = UiTheme.SubheaderLabel });
+            _cardQuestionBox.AddChild(new Label { Text = TrFor("ui.card.musing", _feed?.SexOf(inhabitantId)), ThemeTypeVariation = UiTheme.SubheaderLabel, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled });
             content.AddChild(_cardQuestionBox);
 
             var wellbeing = Fold("ui.card.wellbeing", folded: false);
@@ -2638,7 +2650,7 @@ public partial class GameScreen : CanvasLayer
             }
         }
 
-        var questions = TextFill.Fill(Tr("ui.card.questions"), new Dictionary<string, string> { ["count"] = Number(card.Row.OpenQuestions) });
+        var questions = TextFill.Fill(TrFor("ui.card.questions", _feed?.SexOf(card.Row.Id)), new Dictionary<string, string> { ["count"] = Number(card.Row.OpenQuestions) });
         if (_cardQuestions is not null)
         {
             // A line that only says "0" tells nothing (D705 B10).
