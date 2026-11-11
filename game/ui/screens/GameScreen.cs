@@ -28,6 +28,10 @@ public partial class GameScreen : CanvasLayer
     private readonly VBoxContainer _nightText = new() { Name = "NightText", Visible = false, MouseFilter = Control.MouseFilterEnum.Ignore };
     private readonly Label _nightProgress = new() { AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled, HorizontalAlignment = HorizontalAlignment.Center, MouseFilter = Control.MouseFilterEnum.Ignore };
     private NightScene? _night;
+    private DreamImages? _dreams;
+    private readonly Dictionary<string, Control> _dreamNodes = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _dreamFailed = new(StringComparer.Ordinal);
+    private string _dreamFolder = string.Empty;
     private LookNight? _nightLook;
     private readonly Dictionary<string, Label> _zzz = new(StringComparer.Ordinal);
     private double _nightClock;
@@ -114,6 +118,15 @@ public partial class GameScreen : CanvasLayer
         var nightLook = GlassWorld.Contracts.Validation.ContractSerializer.Deserialize<LookNight>(System.IO.File.ReadAllText(System.IO.Path.Combine(presenter.ContentDirectory, "look", "night.json")));
         _night = new NightScene(nightLook);
         _nightLook = nightLook;
+        _dreams = new DreamImages(nightLook.Dreams);
+
+        // Pictures the service made lie in its output folder, like the made sounds (GW2 #206).
+        _dreamFolder = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(GlassWorld.Presentation.Audio.InventionSounds.DefaultFolder(
+            presenter.ContentDirectory, null, OS.GetEnvironment("GLASSWORLD_AI_ROOT")))!, "images");
+        if (OS.GetEnvironment("GW_AI_IMAGE_OUTPUT_DIR") is { Length: > 0 } images)
+        {
+            _dreamFolder = System.IO.Path.GetFullPath(images);
+        }
         (_nightPollS, _nightDarkness) = (nightLook.PollS, nightLook.Darkness);
         _root.AddChild(_nightShade);
         _nightShade.SetAnchorsPreset(Control.LayoutPreset.FullRect);
@@ -1691,6 +1704,18 @@ public partial class GameScreen : CanvasLayer
         _nightText.Visible = _night.SceneShown;
         _nightText.Modulate = new Color(1, 1, 1, (float)Math.Clamp(_night.Darkness / Math.Max(_nightDarkness, 0.01), 0, 1));
         ShowSleepers(_presenter.Speed > 0 ? delta : 0);
+        if (_dreams is not null && _style is not null)
+        {
+            if (!_night.SceneShown)
+            {
+                _dreams.Clear();
+                _dreamFailed.Clear();
+            }
+
+            var scene = (float)Math.Clamp(_night.Darkness / Math.Max(_nightDarkness, 0.01), 0, 1);
+            ShowDreams(_dreams.Update(_night.SceneShown && _presenter.Speed > 0 ? delta : 0, _style.Settings.ReduceMotion), scene);
+        }
+
         if (_nightText.Visible)
         {
             _nightProgress.Text = _nightStatus is { } s
@@ -1702,11 +1727,137 @@ public partial class GameScreen : CanvasLayer
     private async void AskNight(GlassWorld.AiClient.HttpSetupPort setup)
     {
         var answer = await setup.PhaseAsync();
-        _nightAsking = false;
         if (IsInstanceValid(this) && answer.Status is { } status)
         {
             _nightStatus = status;
         }
+
+        // What the night's jobs are about (GW2 #206), page by page while full pages come.
+        for (var pages = 0; pages < 8 && IsInstanceValid(this) && _dreams is { } dreams; pages++)
+        {
+            var list = await setup.NightItemsAsync(dreams.Since);
+            if (list.Items is null || !IsInstanceValid(this) || !dreams.Take(list.Items))
+            {
+                break;
+            }
+        }
+
+        _nightAsking = false;
+    }
+
+    /// <summary>
+    /// Draws the dream images (B2579, D637 R11/R12): the shape of an object type in a small picture of its own,
+    /// or the picture a job made; each at its place with its opacity, behind the bars and windows.
+    /// </summary>
+    private void ShowDreams(IReadOnlyList<DreamImage> images, float scene)
+    {
+        if (_style is null || _nightLook is null)
+        {
+            return;
+        }
+
+        var view = GetViewport().GetVisibleRect().Size;
+        var size = (float)(_nightLook.Dreams.SizePx * _style.ContentScaleFactor);
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var image in images)
+        {
+            if (!_dreamNodes.TryGetValue(image.Key, out var node))
+            {
+                // An image that cannot be built (no shape, no picture) is tried once, not every frame (review GW1 #213).
+                node = _dreamFailed.Contains(image.Key) ? null : DreamNode(image, size);
+                if (node is null)
+                {
+                    _dreamFailed.Add(image.Key);
+                    continue;
+                }
+
+                node.MouseFilter = Control.MouseFilterEnum.Ignore;
+                _root.AddChild(node);
+                _root.MoveChild(node, _nightShade.GetIndex() + 1);
+                _dreamNodes[image.Key] = node;
+            }
+
+            seen.Add(image.Key);
+            node.Position = new Vector2(((float)image.X * view.X) - (size / 2), ((float)image.Y * view.Y) - (size / 2)).Floor();
+            node.Modulate = new Color(1, 1, 1, (float)image.Alpha * scene);
+        }
+
+        foreach (var (key, node) in _dreamNodes.Where(n => !seen.Contains(n.Key)).ToList())
+        {
+            node.QueueFree();
+            _dreamNodes.Remove(key);
+        }
+    }
+
+    /// <summary>The control of one dream image: the made picture if it can be read, else the object type's shape; null if neither exists.</summary>
+    private Control? DreamNode(DreamImage image, float size)
+    {
+        // The file name is checked by the contract (a plain name, no path); a missing or broken file falls back to the shape.
+        if (image.ImageFile is { } file && System.IO.File.Exists(System.IO.Path.Combine(_dreamFolder, file)))
+        {
+            var picture = Image.LoadFromFile(System.IO.Path.Combine(_dreamFolder, file));
+            if (picture is not null && !picture.IsEmpty())
+            {
+                return new TextureRect
+                {
+                    Texture = ImageTexture.CreateFromImage(picture),
+                    ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+                    StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+                    Size = new Vector2(size, size),
+                };
+            }
+        }
+
+        if (image.ObjectType is not { } type || _presenter?.ShapeOfType(type) is not { } shape)
+        {
+            return null;
+        }
+
+        // The shape alone in a small world of its own: lit softly, turned a little, framed by its bounds.
+        var box = shape.Mesh.GetAabb();
+        var reach = Math.Max(0.05f, box.Size.Length() / 2);
+        var viewport = new SubViewport { OwnWorld3D = true, TransparentBg = true, Size = new Vector2I((int)size, (int)size), RenderTargetUpdateMode = SubViewport.UpdateMode.Always };
+        viewport.AddChild(new MeshInstance3D { Mesh = shape.Mesh, MaterialOverride = shape.Material, Position = -box.GetCenter(), RotationDegrees = new Vector3(0, 30, 0) });
+        var camera = new Camera3D { Projection = Camera3D.ProjectionType.Orthogonal, Size = reach * 2.2f, Position = new Vector3(0, reach * 0.6f, reach * 3), Near = 0.01f, Far = reach * 8 };
+        viewport.AddChild(camera);
+        camera.LookAtFromPosition(camera.Position, Vector3.Zero, Vector3.Up);
+        viewport.AddChild(new DirectionalLight3D { RotationDegrees = new Vector3(-45, -30, 0), LightEnergy = 1.1f });
+        var container = new SubViewportContainer { Stretch = true, Size = new Vector2(size, size), CustomMinimumSize = new Vector2(size, size) };
+        container.AddChild(viewport);
+        return container;
+    }
+
+    /// <summary>
+    /// Smoke only (D637 A8): a made-up night list with one job about a real object type shows one dream image
+    /// with the type's shape; an empty list shows none. Leaves nothing behind.
+    /// </summary>
+    public string CheckDreams()
+    {
+        if (_nightLook is null || _style is null || _presenter?.Host is not { } host)
+        {
+            return "night scene not set up";
+        }
+
+        var type = host.Objects.All.Select(o => o.TypeId).FirstOrDefault(t => _presenter.ShapeOfType(t) is not null);
+        var dreams = new DreamImages(_nightLook.Dreams);
+        var list = new NightItems { ContractVersion = ContractInfo.Version, Session = "smoke", Phase = NightItemsPhase.Night };
+        ShowDreams(dreams.Update(1, false), 1);
+        if (_dreamNodes.Count != 0)
+        {
+            return "an empty night list shows a dream image";
+        }
+
+        if (type is null)
+        {
+            return string.Empty; // the placeholder world has no object shapes: nothing to show, nothing wrong
+        }
+
+        list.Items.Add(new NightItem { Seq = 1, JobId = "smoke-job-0001", Kind = JobKind.Question, State = JobState.Queued, Inhabitant = null, ObjectType = type, Image = null });
+        dreams.Take(list);
+        ShowDreams(dreams.Update(1, false), 1);
+        var shown = _dreamNodes.Count == 1 && _dreamNodes.Values.Single() is SubViewportContainer;
+        ShowDreams([], 1);
+        return shown && dreams.Shown.SequenceEqual(["smoke-job-0001"]) ? string.Empty : "a job about an object type did not show its shape";
     }
 
     /// <summary>
