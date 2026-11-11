@@ -412,7 +412,7 @@ public sealed class OneThingAtATimeTests : IDisposable
         var world = new World(1, Content.Calendar);
         var objects = new WorldObjects(Content.Objects);
         var inhabitants = new InhabitantsSystem(Content.InhabitantModel, Content.Actions, Content.Brain, Content.Gaits, objects, world.Calendar.Settings.TicksPerHour);
-        var decisions = new DecisionsSystem(settings, inhabitants, objects, Content.Actions, Content.Brain, Content.Vocabularies[VocabularyKind.Action], port ?? new FirstTargetPort(), "de");
+        var decisions = new DecisionsSystem(settings, inhabitants, objects, Content.Actions, Content.Brain, Content.Vocabularies[VocabularyKind.Action], port ?? new FirstTargetPort(), Content.Inventions.Guard, "de");
         world.Add(objects).Add(decisions).Add(inhabitants);
         inhabitants.SpawnStartInhabitants(world, [new Position(0, 0), new Position(5000, 5000), new Position(10000, 0), new Position(0, 10000)]);
         var events = new List<WorldEvent>();

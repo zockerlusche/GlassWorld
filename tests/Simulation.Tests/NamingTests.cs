@@ -248,7 +248,7 @@ public sealed class NamingTests : IDisposable
             Knowledge = Content.Knowledge,
             Names = Content.InhabitantNames,
         };
-        var decisions = new DecisionsSystem(Settings, inhabitants, objects, Content.Actions, Content.Brain, Content.Vocabularies[VocabularyKind.Action], port, "de")
+        var decisions = new DecisionsSystem(Settings, inhabitants, objects, Content.Actions, Content.Brain, Content.Vocabularies[VocabularyKind.Action], port, Content.Inventions.Guard, "de")
         {
             Knowledge = Content.Knowledge,
         };
