@@ -87,7 +87,7 @@ public sealed class DecisionsSystem : IWorldSystem
 
     /// <summary>Whether the inhabitant has an open question about a type (W1595; the routine waits for the answer).</summary>
     public bool HasOpenQuestion(string inhabitantId, string typeId) =>
-        _openSubjects.TryGetValue(inhabitantId, out var subjects) && HasSubject(subjects, TypeSubject, typeId);
+        _openOf.TryGetValue(inhabitantId, out var questions) && HasSubject(questions, TypeSubject, typeId);
 
     /// <summary>Trigger: an object type without any belief.</summary>
     public const string UnknownObject = "unknown_object";
@@ -122,12 +122,18 @@ public sealed class DecisionsSystem : IWorldSystem
     private readonly SortedDictionary<string, OpenQuestion> _open = new(StringComparer.Ordinal);
     private readonly SortedDictionary<string, long> _lastAsked = new(StringComparer.Ordinal);
 
-    // Indexes, not state (they follow from _open and _lastAsked): the subjects of each inhabitant's open
-    // questions, and for the unknown_inhabitant trigger when and how often one inhabitant asked who another
-    // is. The triggers ask "may it ask?" for every inhabitant and every stranger in sight in every tick;
-    // without the indexes each of those walks all open questions of the world and builds key strings.
-    private readonly Dictionary<string, List<string>> _openSubjects = new(StringComparer.Ordinal);
-    private readonly Dictionary<(Inhabitant Asker, Inhabitant Other), (long? LastAsked, long Asks)> _askedWho = [];
+    // Indexes, not state (they follow from _open and _lastAsked; ForgetDerived builds them anew): the open
+    // questions of each inhabitant, and for the unknown_inhabitant trigger when and how often one inhabitant
+    // asked who another is. The triggers ask "may it ask?" for every inhabitant and every stranger in sight in
+    // every tick; without the indexes each of those walks all open questions of the world and builds key
+    // strings. They hold because each table has one way in:
+    // - _open is written only by AddOpen, SetOpen and RemoveOpen, which keep _openOf in step;
+    // - _lastAsked is written only by NoteAsked (and filled by a load), which drops the pair from _askedWho
+    //   (a load clears it), so what is kept there is always what the table says.
+    // _askedWho is keyed by the ids of the pair and never shrinks: inhabitants are never taken out of the
+    // world, so it holds at most n x (n - 1) small entries (9900 with a hundred inhabitants).
+    private readonly Dictionary<string, List<OpenQuestion>> _openOf = new(StringComparer.Ordinal);
+    private readonly Dictionary<(string Asker, string Other), (long? LastAsked, long Asks)> _askedWho = [];
     private readonly Queue<PlayerCommand> _commands = new();
     private readonly Dictionary<string, (Func<PlayerCommand, CommandResult> Check, Action<World, PlayerCommand> Apply)> _handlers = new(StringComparer.Ordinal);
     private readonly DeciderSettings _settings;
@@ -241,7 +247,7 @@ public sealed class DecisionsSystem : IWorldSystem
         // A question that waits for the night was never sent: nothing to send again.
         foreach (var question in _open.Values.Where(q => q.RetryAtTick is null && q.RequestId.Length > 0).ToList())
         {
-            _open[question.Id] = question with { RetryAtTick = world.Tick };
+            SetOpen(question with { RetryAtTick = world.Tick });
         }
     }
 
@@ -406,7 +412,7 @@ public sealed class DecisionsSystem : IWorldSystem
 
                 // One pass in id order instead of sorting everyone in sight: the nearest who passes wins,
                 // and of two at the same distance the one met first here, which has the lower id.
-                var subjects = _openSubjects.GetValueOrDefault(inhabitant.Id);
+                var subjects = _openOf.GetValueOrDefault(inhabitant.Id);
                 Inhabitant? stranger = null;
                 var nearest = double.MaxValue;
                 for (var i = 0; i < everyone.Count; i++)
@@ -435,11 +441,9 @@ public sealed class DecisionsSystem : IWorldSystem
                     nearest = distance;
                 }
 
-                if (stranger is not null && Ask(world, inhabitant, UnknownInhabitant, InhabitantSubject + stranger.Id, null))
+                if (stranger is not null)
                 {
-                    var asks = AsksAbout(inhabitant, stranger) + 1;
-                    _lastAsked[AsksKey(inhabitant, stranger)] = asks;
-                    _askedWho[(inhabitant, stranger)] = (world.Tick, asks);
+                    Ask(world, inhabitant, UnknownInhabitant, InhabitantSubject + stranger.Id, null);
                 }
             }
         }
@@ -553,44 +557,81 @@ public sealed class DecisionsSystem : IWorldSystem
     /// How often the inhabitant has asked who another is (unknown_inhabitant). Kept with the cooldowns under
     /// an own key prefix (value = count, not a tick), so it is saved and hashed with them.
     /// </summary>
-    private long AsksAbout(Inhabitant inhabitant, Inhabitant other) => _lastAsked.GetValueOrDefault(AsksKey(inhabitant, other));
+    private long AsksAbout(Inhabitant inhabitant, Inhabitant other) => _lastAsked.GetValueOrDefault(AsksKey(inhabitant, InhabitantSubject + other.Id));
 
-    private static string AsksKey(Inhabitant inhabitant, Inhabitant other) => "asks|" + inhabitant.Id + "|" + InhabitantSubject + other.Id;
+    private static string AsksKey(Inhabitant inhabitant, string subject) => "asks|" + inhabitant.Id + "|" + subject;
 
     /// <summary>
     /// When the inhabitant last asked who the other is (null = never) and how often: the two entries of
-    /// <see cref="_lastAsked"/> (cooldown and count), looked up by key once and kept by the pair.
+    /// <see cref="_lastAsked"/> (cooldown and count), looked up by key once and kept by the pair until
+    /// <see cref="NoteAsked"/> writes one of them.
     /// </summary>
     private (long? LastAsked, long Asks) AskedWho(Inhabitant inhabitant, Inhabitant other)
     {
-        if (!_askedWho.TryGetValue((inhabitant, other), out var asked))
+        if (!_askedWho.TryGetValue((inhabitant.Id, other.Id), out var asked))
         {
             asked = (_lastAsked.TryGetValue(inhabitant.Id + "|" + InhabitantSubject + other.Id, out var last) ? last : null, AsksAbout(inhabitant, other));
-            _askedWho[(inhabitant, other)] = asked;
+            _askedWho[(inhabitant.Id, other.Id)] = asked;
         }
 
         return asked;
+    }
+
+    /// <summary>
+    /// What begins when a question is asked: the cooldown of its subject and, for who-is-that, its count for
+    /// the pair. The only place that writes <see cref="_lastAsked"/>; for a subject that is an inhabitant it
+    /// drops what <see cref="AskedWho"/> keeps about the pair, so that is read again from the table.
+    /// </summary>
+    private void NoteAsked(World world, Inhabitant inhabitant, string kind, string subject)
+    {
+        _lastAsked[inhabitant.Id + "|" + subject] = world.Tick;
+        if (kind == UnknownInhabitant)
+        {
+            var asks = AsksKey(inhabitant, subject);
+            _lastAsked[asks] = _lastAsked.GetValueOrDefault(asks) + 1;
+        }
+
+        if (subject.StartsWith(InhabitantSubject, StringComparison.Ordinal))
+        {
+            _askedWho.Remove((inhabitant.Id, subject[InhabitantSubject.Length..]));
+        }
+    }
+
+    /// <summary>
+    /// Throws away everything that is only worked out from the state (the open questions per inhabitant,
+    /// who asked about whom) and builds it anew from the state, as a load does. Nothing may depend on
+    /// whether this is called: a test runs a world with it before every tick against one without.
+    /// </summary>
+    internal void ForgetDerived()
+    {
+        _askedWho.Clear();
+        _openOf.Clear();
+        foreach (var question in _open.Values)
+        {
+            Index(question);
+        }
     }
 
     /// <summary>Whether a question about the subject may be asked now: room for one more, none open about it, not cooling down.</summary>
     private bool MayAsk(World world, Inhabitant inhabitant, string subject)
     {
         var cooldown = (long)_settings.AskCooldownHours * world.Calendar.Settings.TicksPerHour;
-        var subjects = _openSubjects.GetValueOrDefault(inhabitant.Id);
-        return (subjects?.Count ?? 0) < _settings.MaxOpenQuestions
-            && subjects?.Contains(subject) != true
+        var questions = _openOf.GetValueOrDefault(inhabitant.Id);
+        return (questions?.Count ?? 0) < _settings.MaxOpenQuestions
+            && !(questions is not null && HasSubject(questions, string.Empty, subject))
             && !(_lastAsked.TryGetValue(inhabitant.Id + "|" + subject, out var last) && world.Tick - last < cooldown);
     }
 
     /// <summary>Whether the inhabitant has room for another open question (the first thing <see cref="MayAsk"/> asks).</summary>
     private bool HasRoom(Inhabitant inhabitant) =>
-        (_openSubjects.GetValueOrDefault(inhabitant.Id)?.Count ?? 0) < _settings.MaxOpenQuestions;
+        (_openOf.GetValueOrDefault(inhabitant.Id)?.Count ?? 0) < _settings.MaxOpenQuestions;
 
-    /// <summary>Whether one of the subjects is <paramref name="prefix"/> followed by <paramref name="id"/> (without building that string).</summary>
-    private static bool HasSubject(List<string> subjects, string prefix, string id)
+    /// <summary>Whether one of the questions is about <paramref name="prefix"/> followed by <paramref name="id"/> (without building that string).</summary>
+    private static bool HasSubject(List<OpenQuestion> questions, string prefix, string id)
     {
-        foreach (var subject in subjects)
+        foreach (var question in questions)
         {
+            var subject = question.Subject;
             if (subject.Length == prefix.Length + id.Length && subject.StartsWith(prefix, StringComparison.Ordinal) && subject.EndsWith(id, StringComparison.Ordinal))
             {
                 return true;
@@ -600,21 +641,53 @@ public sealed class DecisionsSystem : IWorldSystem
         return false;
     }
 
-    /// <summary>Adds an open question (and its subject to the index).</summary>
+    /// <summary>Adds an open question. With <see cref="SetOpen"/> and <see cref="RemoveOpen"/> the only way to write <see cref="_open"/>.</summary>
     private void AddOpen(OpenQuestion question)
     {
         _open.Add(question.Id, question);
-        if (!_openSubjects.TryGetValue(question.InhabitantId, out var subjects))
+        Index(question);
+    }
+
+    /// <summary>Puts a changed question (a new request, a retry tick) in the place of the open one with its id.</summary>
+    private void SetOpen(OpenQuestion question)
+    {
+        _open[question.Id] = question;
+        var questions = _openOf.GetValueOrDefault(question.InhabitantId);
+        var at = questions?.FindIndex(q => q.Id == question.Id) ?? -1;
+        if (at >= 0)
         {
-            _openSubjects[question.InhabitantId] = subjects = [];
+            questions![at] = question;
+        }
+        else
+        {
+            Index(question);
+        }
+    }
+
+    /// <summary>Takes an open question away; false if it was not open.</summary>
+    private bool RemoveOpen(OpenQuestion question)
+    {
+        if (!_open.Remove(question.Id))
+        {
+            return false;
         }
 
-        subjects.Add(question.Subject);
+        _openOf.GetValueOrDefault(question.InhabitantId)?.RemoveAll(q => q.Id == question.Id);
+        return true;
+    }
+
+    private void Index(OpenQuestion question)
+    {
+        if (!_openOf.TryGetValue(question.InhabitantId, out var questions))
+        {
+            _openOf[question.InhabitantId] = questions = [];
+        }
+
+        questions.Add(question);
     }
 
     private bool Ask(World world, Inhabitant inhabitant, string kind, string subject, WorldObject? target)
     {
-        var cooldownKey = inhabitant.Id + "|" + subject;
         if (!MayAsk(world, inhabitant, subject))
         {
             return false;
@@ -629,7 +702,7 @@ public sealed class DecisionsSystem : IWorldSystem
             ? new OpenQuestion(questionId, inhabitant.Id, kind, subject, string.Empty, world.Tick, [])
             : Send(world, inhabitant, questionId, kind, subject, target);
         AddOpen(question);
-        _lastAsked[cooldownKey] = world.Tick;
+        NoteAsked(world, inhabitant, kind, subject);
         _inhabitants.Report(new WorldEvent("question_opened", world.Tick, inhabitant.Id, null, question.Id));
         return true;
     }
@@ -661,7 +734,7 @@ public sealed class DecisionsSystem : IWorldSystem
         }
 
         var resent = Send(world, _inhabitants.Get(question.InhabitantId), question.Id, question.Kind, question.Subject, target);
-        _open[question.Id] = resent with { AskedTick = question.AskedTick };
+        SetOpen(resent with { AskedTick = question.AskedTick });
     }
 
     /// <summary>Most options a decision request may hold (contract decision-request: options maxItems).</summary>
@@ -816,7 +889,7 @@ public sealed class DecisionsSystem : IWorldSystem
             if (question is not null && IsRetryable(message.Json))
             {
                 // B2487: no fixed time limit; the question stays open and is asked again later.
-                _open[question.Id] = question with { RetryAtTick = world.Tick + ((long)_settings.RetryAfterMinutes * world.Calendar.Settings.TicksPerHour / 60) };
+                SetOpen(question with { RetryAtTick = world.Tick + ((long)_settings.RetryAfterMinutes * world.Calendar.Settings.TicksPerHour / 60) });
                 return;
             }
 
@@ -931,11 +1004,7 @@ public sealed class DecisionsSystem : IWorldSystem
             return;
         }
 
-        if (_open.Remove(question.Id) && _openSubjects.TryGetValue(question.InhabitantId, out var subjects))
-        {
-            subjects.Remove(question.Subject);
-        }
-
+        RemoveOpen(question);
         _inhabitants.Report(new WorldEvent(eventKind, world.Tick, question.InhabitantId, null, question.Id) { Detail = reason });
     }
 

@@ -272,6 +272,45 @@ public sealed class IndexTests : IDisposable
         AssertIndexes(loaded);
     }
 
+    [Fact]
+    public void ForgettingWhatIsWorkedOutFromTheStateChangesNothing()
+    {
+        // The decisions system keeps the open questions per inhabitant and who asked about whom beside its
+        // state. One world throws that away before every tick and builds it anew from the state (as a load
+        // does), the other never: if anything were kept that the state does not say, they would part.
+        var kept = SimulationHost.CreateGeneratedWorld(ContentDirectory, 42, MockDecisionPort.FromContent(ContentDirectory), "de", Preset, inhabitants: 24);
+        var forgetful = SimulationHost.CreateGeneratedWorld(ContentDirectory, 42, MockDecisionPort.FromContent(ContentDirectory), "de", Preset, inhabitants: 24);
+        for (var tick = 1; tick <= 600; tick++)
+        {
+            forgetful.Decisions.ForgetDerived();
+            kept.World.Step();
+            forgetful.World.Step();
+            if (tick % 50 == 0)
+            {
+                Assert.True(kept.World.StateHash() == forgetful.World.StateHash(), $"the worlds part by tick {tick}");
+            }
+        }
+
+        // The run asked who others are, again and again, and questions stayed open: both tables were in use.
+        var asked = kept.Decisions.CaptureState().LastAsked;
+        Assert.Contains(asked, a => a.Key.StartsWith("asks|", StringComparison.Ordinal) && a.Value > 1);
+        Assert.Contains(asked, a => !a.Key.StartsWith("asks|", StringComparison.Ordinal) && a.Key.Contains("|type:", StringComparison.Ordinal));
+        AssertIndexes(kept);
+        AssertIndexes(forgetful);
+
+        // The same with a decider that never answers: everybody runs out of room and stays there.
+        var waiting = SimulationHost.CreateGeneratedWorld(ContentDirectory, 7, new SilentPort(), "de", Preset, inhabitants: 24);
+        var waitingForgetful = SimulationHost.CreateGeneratedWorld(ContentDirectory, 7, new SilentPort(), "de", Preset, inhabitants: 24);
+        for (var tick = 1; tick <= 200; tick++)
+        {
+            waitingForgetful.Decisions.ForgetDerived();
+            waiting.World.Step();
+            waitingForgetful.World.Step();
+        }
+
+        Assert.Equal(waiting.World.StateHash(), waitingForgetful.World.StateHash());
+    }
+
     private static void AssertIndexes(SimulationHost host)
     {
         AssertObjectsByType(host.Objects);
