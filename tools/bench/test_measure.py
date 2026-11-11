@@ -46,6 +46,8 @@ def _pass(
     warmup: str = "10",
     quality: str = "high",
     run_samples: int = 70,
+    last_sample_s: int = 200,
+    figures: str = "104",
 ) -> None:
     """A complete, good pass: CSV, log with the game's own lines, memory samples."""
     rows = ["pass,time_s,frame_ms"] + [f"{name},{i * 0.01:.2f},{ms}" for i, ms in enumerate(frames)]
@@ -55,7 +57,7 @@ def _pass(
     (out / f"bench_{RES}_{name}.log").write_text(
         f"BENCH_START seed=7 quality={quality} passes={name} warmup_s={warmup} "
         f"duration_s={duration} "
-        f"figures=104 size=640x480 csv=x\n{env}"
+        f"figures={figures} size=640x480 csv=x\n{env}"
         f"BENCH_PASS pass={name} frames={len(frames)} mean_fps={mean:.2f} p95_ms={p95:.3f} "
         f"max_ms={max(frames)} ok=yes size={size} warmup_frames=600\n",
         encoding="utf-8",
@@ -65,8 +67,8 @@ def _pass(
         f"0.0,baseline,{base},10240",
         f"1.0,baseline,{base},10240",
     ]
-    rows += [f"{5 + i}.0,run,{base + 100},10240" for i in range(run_samples - 1)]
-    rows += [f"200.0,run,{peak},10240", "201.0,run,,"]
+    rows += [f"{5 + i}.0,run,{base + 100},10240" for i in range(min(run_samples - 1, 80))]
+    rows += [f"{last_sample_s}.0,run,{peak},10240", f"{last_sample_s + 1}.0,run,,"]
     (out / f"vram_{RES}_{name}.csv").write_text("\n".join(rows) + "\n", encoding="utf-8")
 
 
@@ -212,14 +214,14 @@ def test_the_sampler_keeps_sampling_after_a_bad_line_and_marks_the_phases(tmp_pa
     while rows() < 4 and time.monotonic() < deadline:
         time.sleep(0.05)
     sampler.stop()
-    assert BM.read_vram(target) == (1500, 4000, 2, 1)
+    assert BM.read_vram(target)[:4] == (1500, 4000, 2, 1)
 
 
 def test_no_card_tool_means_not_measured(tmp_path: Path) -> None:
     sampler = BM.Sampler(tmp_path / "v.csv", ["no-such-tool-glassworld"])
     sampler.start()
     sampler.stop()
-    assert BM.read_vram(tmp_path / "v.csv") == (None, None, 0, 0)
+    assert BM.read_vram(tmp_path / "v.csv") == (None, None, 0, 0, 0.0)
 
 
 def test_guards(tmp_path: Path) -> None:
@@ -270,6 +272,13 @@ def test_guards(tmp_path: Path) -> None:
         ({"warmup": "0"}, "window", "Aufwärmzeit 0 s statt 10 s"),
         ({"quality": "low"}, "window", "Qualität low statt high"),
         ({"run_samples": 3}, "window", "Grafikspeicher nur 3 Messpunkte"),
+        ({"last_sample_s": 90}, "window", "Grafikspeicher nur 85 s lang gemessen"),
+        (
+            {"env": ENV.replace("build=abc1234", "build=unknown")},
+            "window",
+            "Build 'unknown' ist kein benannter Stand",
+        ),
+        ({"figures": "52"}, "window", "nur 52 Figuren statt mindestens 100"),
     ],
 )
 def test_what_the_run_really_ran_on_must_be_the_acceptance_setup(
@@ -291,3 +300,87 @@ def test_a_bash_that_cannot_start_leaves_no_sampler_running(
         "no-such-bash-glassworld", tmp_path / "x.exe", RES, "window", "day", tmp_path, []
     )
     assert code == 127 and stopped == [True]
+
+
+def test_extra_scene_arguments_are_shown_and_never_the_acceptance_run(tmp_path: Path) -> None:
+    _pass(tmp_path, "day", GOOD)
+    r = BM.judge(tmp_path, RES, "window", "day", MARKS, 0, ["--preset=small", "--speed=4"])
+    assert r.invalid == ["zusätzliche Szenen-Argumente: --preset=small --speed=4"]
+    text = BM.report([r], MARKS, {"extra": ["--preset=small", "--speed=4"]})
+    assert "**Zusätzliche Szenen-Argumente:** --preset=small --speed=4" in text
+    assert "**Zusätzliche Szenen-Argumente:** keine" in BM.report([r], MARKS, {})
+
+
+def _runs(pid: int) -> bool:
+    if sys.platform == "win32":
+        import subprocess
+
+        listed = subprocess.run(
+            ["tasklist", "/FI", f"PID eq {pid}", "/NH"], capture_output=True, text=True, check=False
+        )
+        return str(pid) in listed.stdout
+    import os
+
+    try:
+        os.kill(pid, 0)
+    except OSError:
+        return False
+    return True
+
+
+def test_the_group_ends_what_the_started_command_started_even_after_its_parent_is_gone(
+    tmp_path: Path,
+) -> None:
+    """Review GW1 #230 F1: bash ended, `timeout` and the game below it kept running."""
+    note = tmp_path / "pid.txt"
+    # The command starts a long sleeper, writes its pid and ends: the sleeper's parent is gone.
+    script = (
+        "import subprocess,sys\n"
+        "p = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(120)'])\n"
+        "open(sys.argv[1], 'w').write(str(p.pid))\n"
+    )
+    group = BM.ProcessGroup()
+    import os
+
+    child = group.start([sys.executable, "-c", script, str(note)], dict(os.environ))
+    assert child.wait(timeout=30) == 0
+    pid = int(note.read_text())
+    assert _runs(pid)
+    group.end()
+    deadline = time.monotonic() + 10
+    while _runs(pid) and time.monotonic() < deadline:
+        time.sleep(0.1)
+    assert not _runs(pid)
+
+
+def test_no_further_pass_is_started_after_one_ran_over_its_time(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    binary = tmp_path / "GlassWorld.exe"
+    binary.write_text("x", encoding="utf-8")
+    started: list[str] = []
+
+    def fake(
+        bash: str, exe: Path, res: str, mode: str, name: str, out: Path, extra: list[str]
+    ) -> int:
+        started.append(f"{res}_{name}")
+        return 124
+
+    monkeypatch.setattr(BM, "run_pass", fake)
+    monkeypatch.setattr(BM, "card", lambda: "Karte, 1.0")
+    out = tmp_path / "run"
+    code = BM.main(
+        [
+            "--screen-queue",
+            "--binary",
+            str(binary),
+            "--out",
+            str(out),
+            "--note",
+            "n",
+            "--bash",
+            "bash",
+        ]
+    )
+    assert code == BM.EXIT_FAILED and len(started) == 1
+    assert "Lauf endete mit Fehler (124)" in (out / "report.md").read_text("utf-8")

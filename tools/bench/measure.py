@@ -25,6 +25,7 @@ is missed. 1: a run failed or something was not measured as required. (2 is a us
 from __future__ import annotations
 
 import argparse
+import contextlib
 import csv
 import datetime
 import itertools
@@ -149,7 +150,10 @@ def judge_setup(
         (result.window == wanted, f"Modus {result.window} statt {wanted}"),
         (result.vsync == "Disabled", f"VSync {result.vsync}"),
         (env.get("max_fps") == "0", f"Bildraten-Grenze {env.get('max_fps')}"),
-        (result.build not in ("?", "dev"), f"Build '{result.build}' ist kein benannter Stand"),
+        (
+            result.build not in ("?", "dev", "unknown"),
+            f"Build '{result.build}' ist kein benannter Stand",
+        ),
         (result.warmup_frames not in ("?", "0"), f"Aufwärm-Bilder {result.warmup_frames}"),
         (
             start.get("quality") == marks.quality,
@@ -158,6 +162,10 @@ def judge_setup(
         (start.get("seed") == marks.seed, f"Seed {start.get('seed')} statt {marks.seed}"),
     ]
     result.invalid += [reason for good, reason in checks if not good]
+    if not start.get("figures", "").isdigit() or int(start["figures"]) < marks.figures:
+        result.invalid.append(
+            f"nur {start.get('figures', '?')} Figuren statt mindestens {marks.figures}"
+        )
     try:
         if float(start["warmup_s"]) != marks.warmup_s:
             result.invalid.append(f"Aufwärmzeit {start['warmup_s']} s statt {marks.warmup_s:g} s")
@@ -207,10 +215,12 @@ def log_line(path: Path, start: str) -> dict[str, str]:
     return found
 
 
-def read_vram(path: Path) -> tuple[int | None, int | None, int, int]:
-    """Baseline (median before the game), peak while it ran, samples while it ran, failed reads."""
+def read_vram(path: Path) -> tuple[int | None, int | None, int, int, float]:
+    """Baseline (median before the game), peak while it ran, samples while it ran, failed reads,
+    and the seconds between the first and the last sample while it ran."""
     if not path.is_file():
-        return None, None, 0, 0
+        return None, None, 0, 0, 0.0
+    times: list[float] = []
     base: list[int] = []
     run: list[int] = []
     errors = 0
@@ -218,20 +228,33 @@ def read_vram(path: Path) -> tuple[int | None, int | None, int, int]:
         for row in csv.DictReader(file):
             try:
                 (base if row["phase"] == "baseline" else run).append(int(row["used_mib"]))
+                if row["phase"] != "baseline":
+                    times.append(float(row["time_s"]))
             except (KeyError, TypeError, ValueError):
                 errors += 1
     baseline = int(statistics.median(base)) if base else None
-    return baseline, (max(run) if run else None), len(run), errors
+    covered = max(times) - min(times) if times else 0.0
+    return baseline, (max(run) if run else None), len(run), errors, covered
 
 
 def judge(
-    out: Path, resolution: str, mode: str, name: str, marks: Marks, code: int | None
+    out: Path,
+    resolution: str,
+    mode: str,
+    name: str,
+    marks: Marks,
+    code: int | None,
+    extra: list[str] | None = None,
 ) -> PassResult:
     """One pass judged from its CSV, its log and its memory samples."""
     result = PassResult(resolution, mode, name)
     stem = f"{resolution}_{name}"
     if code not in (None, 0):
         result.invalid.append(f"Lauf endete mit Fehler ({code})")
+    if extra:
+        # Any extra scene argument changes what is measured (preset, speed, warm ticks ...): shown
+        # in the report, and never the acceptance run (review GW1 #230 F2).
+        result.invalid.append("zusätzliche Szenen-Argumente: " + " ".join(extra))
     try:
         frames = read_frames(out / f"bench_{stem}.csv")
     except ValueError as error:
@@ -273,15 +296,22 @@ def judge(
         except (KeyError, ValueError):
             result.invalid.append("Log-Zeile unvollständig")
 
-    result.baseline_mib, result.peak_mib, result.samples, result.sample_errors = read_vram(
-        out / f"vram_{stem}.csv"
-    )
+    (
+        result.baseline_mib,
+        result.peak_mib,
+        result.samples,
+        result.sample_errors,
+        covered,
+    ) = read_vram(out / f"vram_{stem}.csv")
     game = result.game_mib
     if game is None:
         result.invalid.append("Grafikspeicher nicht gemessen")
     elif result.samples < marks.duration_s / 2:
         # One sample a second is asked for: fewer than half of them do not cover the pass.
         result.invalid.append(f"Grafikspeicher nur {result.samples} Messpunkte")
+    elif covered < marks.duration_s:
+        # A sampler that died early has enough samples but misses the late, close camera passes.
+        result.invalid.append(f"Grafikspeicher nur {covered:.0f} s lang gemessen")
     elif game > marks.vram_mib:
         result.missed.append(f"Grafikspeicher {game} MiB über {marks.vram_mib} MiB")
     return result
@@ -301,6 +331,7 @@ def report(results: list[PassResult], marks: Marks, meta: dict[str, Any]) -> str
         + (", ".join(dict.fromkeys(r.build for r in results if r.build != "?")) or "?")
         + "; "
         + (", ".join(dict.fromkeys(r.driver for r in results if r.driver != "?")) or "?"),
+        "- **Zusätzliche Szenen-Argumente:** " + (" ".join(meta.get("extra") or []) or "keine"),
         f"- **Szene laut Daten:** Seed {marks.seed}, Qualität {marks.quality}, Aufwärmzeit "
         f"{marks.warmup_s:g} s. Die erste Auflösung der Liste ist die Abnahme-Auflösung.",
         f"- **Marken:** im Mittel mindestens {marks.mean_fps:g} Bilder je Sekunde, 95 % der "
@@ -438,15 +469,93 @@ class Sampler:
             self._thread.join(timeout=10)
 
 
-def end_tree(child: subprocess.Popen[bytes]) -> None:
-    """Ends the benchmark this tool started, with the game below it (the screen is free again)."""
-    if child.poll() is not None:
-        return
-    if os.name == "nt":
-        command = ["taskkill", "/T", "/F", "/PID", str(child.pid)]
-        subprocess.run(command, capture_output=True, check=False)
-    else:
-        child.kill()
+class ProcessGroup:
+    """Everything a started benchmark starts, so that all of it can be ended (review GW1 #230 F1).
+
+    `taskkill /T` follows parent ids, and bash running a script that calls `timeout <program>`
+    breaks that chain: bash ended, the game kept the screen. On Windows a job object holds every
+    process started below the child, whoever its parent is, and ends them together (also when
+    this tool itself is ended: kill on close). Elsewhere the child leads its own process group.
+    """
+
+    def __init__(self) -> None:
+        self._job: Any = None
+        self._child: subprocess.Popen[bytes] | None = None
+        if os.name == "nt":
+            import ctypes
+            from ctypes import wintypes
+
+            class Basic(ctypes.Structure):
+                _fields_ = [  # noqa: RUF012
+                    ("PerProcessUserTimeLimit", ctypes.c_int64),
+                    ("PerJobUserTimeLimit", ctypes.c_int64),
+                    ("LimitFlags", wintypes.DWORD),
+                    ("MinimumWorkingSetSize", ctypes.c_size_t),
+                    ("MaximumWorkingSetSize", ctypes.c_size_t),
+                    ("ActiveProcessLimit", wintypes.DWORD),
+                    ("Affinity", ctypes.c_size_t),
+                    ("PriorityClass", wintypes.DWORD),
+                    ("SchedulingClass", wintypes.DWORD),
+                ]
+
+            class Extended(ctypes.Structure):
+                _fields_ = [  # noqa: RUF012
+                    ("BasicLimitInformation", Basic),
+                    ("IoInfo", ctypes.c_uint64 * 6),
+                    ("ProcessMemoryLimit", ctypes.c_size_t),
+                    ("JobMemoryLimit", ctypes.c_size_t),
+                    ("PeakProcessMemoryUsed", ctypes.c_size_t),
+                    ("PeakJobMemoryUsed", ctypes.c_size_t),
+                ]
+
+            self._k32 = ctypes.WinDLL("kernel32", use_last_error=True)
+            self._k32.CreateJobObjectW.restype = wintypes.HANDLE
+            self._k32.SetInformationJobObject.argtypes = [
+                wintypes.HANDLE,
+                ctypes.c_int,
+                ctypes.c_void_p,
+                wintypes.DWORD,
+            ]
+            self._k32.AssignProcessToJobObject.argtypes = [wintypes.HANDLE, wintypes.HANDLE]
+            self._k32.TerminateJobObject.argtypes = [wintypes.HANDLE, wintypes.UINT]
+            self._k32.CloseHandle.argtypes = [wintypes.HANDLE]
+            job = self._k32.CreateJobObjectW(None, None)
+            info = Extended()
+            info.BasicLimitInformation.LimitFlags = 0x2000  # JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+            if job and self._k32.SetInformationJobObject(
+                job, 9, ctypes.byref(info), ctypes.sizeof(info)
+            ):
+                self._job = job
+
+    def start(self, command: list[str], env: dict[str, str]) -> subprocess.Popen[bytes]:
+        """Starts the command inside the group; what it starts later belongs to the group too."""
+        if os.name == "nt":
+            child = subprocess.Popen(command, env=env)
+            if self._job is not None:
+                self._k32.AssignProcessToJobObject(self._job, int(child._handle))  # type: ignore[attr-defined]
+        else:
+            child = subprocess.Popen(command, env=env, start_new_session=True)
+        self._child = child
+        return child
+
+    def end(self) -> None:
+        """Ends every process of the group that still runs (only what this tool started)."""
+        child = self._child
+        if os.name == "nt":
+            if self._job is not None:
+                self._k32.TerminateJobObject(self._job, 1)
+                self._k32.CloseHandle(self._job)
+                self._job = None
+            elif child is not None and child.poll() is None:
+                child.kill()
+        elif child is not None:
+            import signal
+
+            with contextlib.suppress(ProcessLookupError, PermissionError):
+                os.killpg(child.pid, signal.SIGKILL)  # type: ignore[attr-defined]
+        if child is not None:
+            with contextlib.suppress(subprocess.TimeoutExpired):
+                child.wait(timeout=10)
 
 
 def run_pass(
@@ -456,22 +565,21 @@ def run_pass(
     command = [bash, str(ROOT / "tools/benchmark.sh"), str(binary), resolution, str(out)]
     command += (["--fullscreen"] if mode == "fullscreen" else []) + extra
     sampler = Sampler(out / f"vram_{resolution}_{name}.csv")
-    child: subprocess.Popen[bytes] | None = None
+    group = ProcessGroup()
     try:
         # Everything after the sampler's start is inside the try: a stop during the baseline wait
         # or a bash that cannot start must not leave the nvidia-smi child running.
         sampler.start()
         time.sleep(BASELINE_S)
         sampler.game_starts()
-        child = subprocess.Popen(command, env={**os.environ, "BENCH_PASSES": name})
+        child = group.start(command, {**os.environ, "BENCH_PASSES": name})
         return child.wait(timeout=PASS_TIMEOUT_S)
     except subprocess.TimeoutExpired:
         return 124
     except OSError:
         return 127
     finally:
-        if child is not None:
-            end_tree(child)
+        group.end()
         sampler.stop()
 
 
@@ -531,15 +639,20 @@ def main(argv: list[str] | None = None) -> int:
             "extra": options.extra,
             "exit": codes,
         }
-        for resolution, mode in entries:
-            for name in marks.passes:
-                codes[f"{resolution}_{name}"] = run_pass(
-                    bash, binary, resolution, mode, name, out, options.extra
-                )
-                meta_file.write_text(json.dumps(meta, indent=2), encoding="utf-8")
+        for resolution, mode, name in [(r, m, n) for r, m in entries for n in marks.passes]:
+            code = run_pass(bash, binary, resolution, mode, name, out, options.extra)
+            codes[f"{resolution}_{name}"] = code
+            meta_file.write_text(json.dumps(meta, indent=2), encoding="utf-8")
+            if code == 124:
+                # A pass over its time: whatever state screen and card are in, no further pass
+                # is started on top of it. The remaining passes are reported as not measured.
+                print("BENCH_MEASURE_FAIL: a pass ran over its time, stopping", file=sys.stderr)
+                break
     known: dict[str, int] = meta.get("exit", {})
     results = [
-        judge(out, resolution, mode, name, marks, known.get(f"{resolution}_{name}"))
+        judge(
+            out, resolution, mode, name, marks, known.get(f"{resolution}_{name}"), meta.get("extra")
+        )
         for resolution, mode in entries
         for name in marks.passes
     ]
