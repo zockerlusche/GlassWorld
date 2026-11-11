@@ -13,6 +13,225 @@ namespace GlassWorld.Contracts
     #pragma warning disable // Disable all warnings
 
     /// <summary>
+    /// Memory (B4a R5, B7): the core keeps per inhabitant a summary and its remembered events. Which core events are remembered and which of them are formative is data (events). In the compute night the events not yet in the summary are condensed by the AI service (job memory) once there are condense_at of them; the core checks every answer itself. Without an AI service the events only pile up to max_events. Absent = nothing is remembered and the requests carry an empty memory. Values are placeholders.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class KnowledgeMemory
+    {
+
+        /// <summary>
+        /// A compute night condenses an inhabitant's memory once at least this many of its entries are not in the summary yet (new since the last condensing, or sent with a job that failed). Small on purpose: the summary is what the decider, the questions and the conversation read as the story so far, so it should follow every night that brought something new.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("condense_at")]
+        public int CondenseAt { get; set; } = default!;
+
+        /// <summary>
+        /// Most events in one memory job, oldest first; more go into further jobs. At most 32 (generation-job: memory.events holds 32).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("job_max_events")]
+        public int JobMaxEvents { get; set; } = default!;
+
+        /// <summary>
+        /// Most formative events in one memory job (each must stay in the summary, so the text budget limits them); a job ends before the next one. At most job_max_events (checked at load).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("job_max_formative")]
+        public int JobMaxFormative { get; set; } = default!;
+
+        /// <summary>
+        /// Text budget of the summary in characters (generation-job: memory.max_chars 100..1200).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max_chars")]
+        public int MaxChars { get; set; } = default!;
+
+        /// <summary>
+        /// Most remembered events per inhabitant. Beyond it the oldest event that is not formative is forgotten first, then the oldest formative one that is already in the summary, then the oldest. At least condense_at (checked at load).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max_events")]
+        public int MaxEvents { get; set; } = default!;
+
+        /// <summary>
+        /// Priority of memory jobs (generation-job: higher runs first).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("job_priority")]
+        public int JobPriority { get; set; } = default!;
+
+        /// <summary>
+        /// Which core events an inhabitant remembers. Every entry that fits an event gives one remembered event.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("events")]
+        public System.Collections.Generic.ICollection<KnowledgeMemoryEvent> Events { get; set; } = new System.Collections.ObjectModel.Collection<KnowledgeMemoryEvent>();
+
+    }
+
+    /// <summary>
+    /// A core event the inhabitant it is about remembers: its kind in the memory, and whether it is formative (it must stay in the summary). What it is about follows from the event's target: another inhabitant, the object type of a thing, or nothing.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class KnowledgeMemoryEvent
+    {
+
+        /// <summary>
+        /// Event kind (vocabulary event).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("event")]
+        public string Event { get; set; } = default!;
+
+        /// <summary>
+        /// Only events whose language-neutral detail ends with this text (as in event_effects). Omitted = every event of the kind.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("detail_ends_with")]
+        public string? DetailEndsWith { get; set; } = default!;
+
+        /// <summary>
+        /// Kind of the remembered event (a word the memory uses, e.g. felt_bad). Omitted = the event kind, or the action with action_as_kind.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("kind")]
+        public string? Kind { get; set; } = default!;
+
+        /// <summary>
+        /// True = the action of the event is the kind of the remembered event (e.g. eat, drink); not together with kind. Omitted = false.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("action_as_kind")]
+        public bool? ActionAsKind { get; set; } = default!;
+
+        /// <summary>
+        /// Events of these actions are not remembered by this entry.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("left_out_actions")]
+        public System.Collections.Generic.ICollection<string>? LeftOutActions { get; set; } = default!;
+
+        /// <summary>
+        /// never = an everyday event; first = formative the first time the inhabitant remembers this kind about this subject (with with_outcome: and with this outcome); always = formative every time.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("formative")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<KnowledgeMemoryEventFormative>))]
+        public KnowledgeMemoryEventFormative Formative { get; set; } = default!;
+
+        /// <summary>
+        /// True = the remembered event carries what came of the action (done, found_out, nothing; only finished actions have an outcome), so an attempt is not remembered as a deed. Each outcome then has its own first time and its own count. Omitted = false.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("with_outcome")]
+        public bool? WithOutcome { get; set; } = default!;
+
+        /// <summary>
+        /// Outcomes (done, found_out, nothing; checked at load) that are never formative for this entry, whatever formative says (e.g. nothing, if a first attempt without any effect should not shape). Omitted = none: the first time is formative with every outcome.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("everyday_outcomes")]
+        public System.Collections.Generic.ICollection<string>? EverydayOutcomes { get; set; } = default!;
+
+        /// <summary>
+        /// What a repetition does: add = every event is an entry of its own; counted = an event of the same kind (and outcome) about the same subject whose entry is still open (not yet sent to a condensing) is counted on that entry (times + 1, its tick becomes the last time, and it counts as the newest event) instead of added. A formative first time stays formative. Omitted = add.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("repeat")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<KnowledgeMemoryEventRepeat>))]
+        public KnowledgeMemoryEventRepeat? Repeat { get; set; } = default!;
+
+        /// <summary>
+        /// True = an event aimed at another inhabitant is remembered by that inhabitant too, about the actor (e.g. first_meeting, which the core reports once per pair). Omitted = false.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("both")]
+        public bool? Both { get; set; } = default!;
+
+        /// <summary>
+        /// True = only events that are about something (another inhabitant or a thing); what the inhabitant did without a target (looking around, sleeping) is not remembered by this entry. Omitted = false.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("only_with_subject")]
+        public bool? OnlyWithSubject { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("effect")]
+        public KnowledgeMemoryEffect? Effect { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Only events of an action that has such an effect on this target (the action's effects by the target's true properties, content/effects): how a meal that made sick or a drink that made thirstier becomes a memory of its own. The inhabitant remembers what it felt, never the property behind it.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class KnowledgeMemoryEffect
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("kind")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<KnowledgeMemoryEffectKind>))]
+        public KnowledgeMemoryEffectKind Kind { get; set; } = default!;
+
+        /// <summary>
+        /// Need or mood id; omitted = any need or mood; ignored for will_to_live.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public string? Id { get; set; } = default!;
+
+        /// <summary>
+        /// The effect's delta is at most this (e.g. -0.1 for a clear loss).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("delta_at_most")]
+        public double? DeltaAtMost { get; set; } = default!;
+
+        /// <summary>
+        /// The effect's delta is at least this (e.g. 0.2 for a clear gain).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("delta_at_least")]
+        public double? DeltaAtLeast { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Questions in the compute night (B7, W1764): for every open question about an object type the core asks the AI service for a guess (job question), per inhabitant after its memory job. The guesses become beliefs with source guessed, at most as sure as guessed_cap, and never replace a belief the inhabitant already has; an answer that did not understand leaves the question open. Absent = no question jobs.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class KnowledgeNightQuestions
+    {
+
+        /// <summary>
+        /// Priority of question jobs (generation-job: higher runs first).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("job_priority")]
+        public int JobPriority { get; set; } = default!;
+
+        /// <summary>
+        /// Which open questions get a guess; a trigger that is not listed gets none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("questions")]
+        public System.Collections.Generic.ICollection<KnowledgeNightQuestion> Questions { get; set; } = new System.Collections.ObjectModel.Collection<KnowledgeNightQuestion>();
+
+    }
+
+    /// <summary>
+    /// An open question of a trigger (decider settings) and what the inhabitant asks itself about the thing.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class KnowledgeNightQuestion
+    {
+
+        /// <summary>
+        /// Trigger kind of the open question (decider-settings: triggers); only questions about an object type are asked.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("trigger")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<KnowledgeNightQuestionTrigger>))]
+        public KnowledgeNightQuestionTrigger Trigger { get; set; } = default!;
+
+        /// <summary>
+        /// Question kind of the job (generation-job: payload.question.question).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("question")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<KnowledgeNightQuestionQuestion>))]
+        public KnowledgeNightQuestionQuestion Question { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// Relationships of the start inhabitants when the world begins (B4a R8, F5249): members of the same start group know each other (partners), members of another group are strangers. Set for every pair at the start; absent = everybody starts with relationship_start.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -455,6 +674,108 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("imprinting")]
         public KnowledgeImprinting? Imprinting { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("memory")]
+        public KnowledgeMemory? Memory { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("night_questions")]
+        public KnowledgeNightQuestions? NightQuestions { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public enum KnowledgeMemoryEventFormative
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("never")]
+        Never = 0,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("first")]
+        First = 1,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("always")]
+        Always = 2,
+
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public enum KnowledgeMemoryEventRepeat
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("add")]
+        Add = 0,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("counted")]
+        Counted = 1,
+
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public enum KnowledgeMemoryEffectKind
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("need")]
+        Need = 0,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("mood")]
+        Mood = 1,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("will_to_live")]
+        Will_to_live = 2,
+
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public enum KnowledgeNightQuestionTrigger
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("unknown_object")]
+        Unknown_object = 0,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("noticed_player")]
+        Noticed_player = 1,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("unknown_inhabitant")]
+        Unknown_inhabitant = 2,
+
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public enum KnowledgeNightQuestionQuestion
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("what_is")]
+        What_is = 0,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("can_i_eat")]
+        Can_i_eat = 1,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("is_dangerous")]
+        Is_dangerous = 2,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("what_can_i_do")]
+        What_can_i_do = 3,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("why")]
+        Why = 4,
+
 
     }
 }

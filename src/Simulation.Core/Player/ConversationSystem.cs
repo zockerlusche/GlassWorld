@@ -296,6 +296,9 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
             Speaker = new Speaker
             {
                 Id = inhabitant.Id,
+
+                // B4a R5: its memory, as in the decision request (the summary and the newest events).
+                Memory = InhabitantStates.MemoryOf(inhabitant, _inhabitants.LabelOf),
                 Needs = [.. inhabitant.Needs.Select(n => new Level { Id = n.Key, Value = n.Value })],
                 Mood = [.. inhabitant.Moods.Where(m => m.Value > 0).Select(m => new Level { Id = m.Key, Value = m.Value })],
                 Traits = [.. inhabitant.Traits.Select(t => new Level { Id = t.Key, Value = t.Value })],
