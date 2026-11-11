@@ -142,7 +142,7 @@ namespace GlassWorld.Contracts
         public double RecoverPerHour { get; set; } = default!;
 
         /// <summary>
-        /// The air alone never pushes the need below this value (a need already below it is left alone). Omitted = 0.
+        /// The air alone never pushes the need below this value, in the cold and in the heat (a need already below it is left alone). It stands in for the warming the inhabitants cannot do yet (nothing raises warmth so far; fire and shelter follow with B5) and goes once they can. Omitted = 0.
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("floor")]

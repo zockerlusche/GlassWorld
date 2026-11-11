@@ -82,7 +82,7 @@
         "cold_loss_per_hour_per_degree": { "description": "Loss of the need per hour for every degree Celsius the air is below the zone.", "type": "number", "minimum": 0, "maximum": 1 },
         "heat_loss_per_hour_per_degree": { "description": "Loss of the need per hour for every degree Celsius the air is above the zone.", "type": "number", "minimum": 0, "maximum": 1 },
         "recover_per_hour": { "description": "Gain of the need per hour while the air is inside the zone.", "type": "number", "minimum": 0, "maximum": 1 },
-        "floor": { "description": "The air alone never pushes the need below this value (a need already below it is left alone). Omitted = 0.", "type": "number", "minimum": 0, "maximum": 1 },
+        "floor": { "description": "The air alone never pushes the need below this value, in the cold and in the heat (a need already below it is left alone). It stands in for the warming the inhabitants cannot do yet (nothing raises warmth so far; fire and shelter follow with B5) and goes once they can. Omitted = 0.", "type": "number", "minimum": 0, "maximum": 1 },
         "precipitation_cold_factor": { "description": "Factor on the cold loss while precipitation falls (wet: rain, snow, storm). Omitted = 1.", "type": "number", "minimum": 0, "maximum": 10 },
         "action_factors": {
           "description": "Factors on the loss while an action runs (once it has started), e.g. lying still asleep. At most one entry per action.",

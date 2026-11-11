@@ -265,7 +265,7 @@ class ComfortZone(BaseModel):
     )
     floor: float | None = Field(
         None,
-        description='The air alone never pushes the need below this value (a need already below it is left alone). Omitted = 0.',
+        description='The air alone never pushes the need below this value, in the cold and in the heat (a need already below it is left alone). It stands in for the warming the inhabitants cannot do yet (nothing raises warmth so far; fire and shelter follow with B5) and goes once they can. Omitted = 0.',
         ge=0.0,
         le=1.0,
     )
