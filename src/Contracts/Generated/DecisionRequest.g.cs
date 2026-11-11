@@ -28,6 +28,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("known_properties")]
         public System.Collections.Generic.ICollection<KnownProperty> KnownProperties { get; set; } = new System.Collections.ObjectModel.Collection<KnownProperty>();
 
+        /// <summary>
+        /// What THIS inhabitant calls this kind of thing (type), by its own knowledge only: the inhabitants' name of an invention it believes anything about (it invented it, built it, tried it, looked at it, was told about it). Absent when it knows nothing of it, and for things the data name (the id is the vocabulary key, i18n key vocab.object.&lt;id&gt;). Never a truth the inhabitant does not know; resolved when the message is built. Optional (absent also from an older core).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("label")]
+        public LocalizedName? Label { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]

@@ -24,6 +24,33 @@ public sealed record InhabitantRow(string Id, int Number, int WillToLivePercent,
 /// <param name="AskedTick">When it was asked.</param>
 public sealed record QuestionRow(string Id, string InhabitantId, string Kind, string? TypeId, long AskedTick);
 
+/// <summary>
+/// Text keys that speak of one inhabitant ("something she does not know yet"): the text has a form per sex
+/// under <c>KEY.female</c> / <c>KEY.male</c> (D747 A4, TL #21085). A text that needs no such form has only
+/// its plain key, which is also what an unknown sex falls back to.
+/// </summary>
+public static class AddressKeys
+{
+    /// <summary>The key of the form for a sex; the plain key for null or anything else.</summary>
+    public static string For(string key, string? sex)
+    {
+        ArgumentNullException.ThrowIfNull(key);
+        return sex is "female" or "male" ? key + "." + sex : key;
+    }
+
+    /// <summary>The plain keys that have a form per sex in the catalogues (kept in step by a test).</summary>
+    public static IReadOnlyList<string> Sexed { get; } =
+    [
+        "ui.question.reason.unknown_object",
+        "ui.question.reason.unknown_inhabitant",
+        "ui.question.reason.noticed_player",
+        "ui.question.reason.other",
+        "ui.question.answer_hint",
+        "ui.card.questions",
+        "ui.card.musing",
+    ];
+}
+
 /// <summary>Text keys of the questions panel (W1696): per question kind its question and its reason; a kind without own texts uses the general ones.</summary>
 public static class QuestionKeys
 {
@@ -148,6 +175,9 @@ public sealed class WorldFeed
 
     /// <summary>The own name of an inhabitant (W1698), or null if it has none or is no longer there.</summary>
     public string? OwnName(string inhabitantId) => Snapshot.Inhabitants.FirstOrDefault(i => i.Id == inhabitantId)?.Name;
+
+    /// <summary>The inhabitant's sex (<c>female</c> or <c>male</c>), or null if it is no longer there; for texts that speak of it (she/he).</summary>
+    public string? SexOf(string inhabitantId) => Snapshot.Inhabitants.FirstOrDefault(i => i.Id == inhabitantId)?.Sex;
 
     /// <summary>The card of one inhabitant, or null if it is no longer there.</summary>
     public InhabitantCard? Card(string inhabitantId)

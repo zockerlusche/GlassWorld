@@ -211,11 +211,30 @@ public static class UiLayoutCheck
         await host.ToSignal(host.GetTree(), SceneTree.SignalName.ProcessFrame);
         // Dock first with the largest text size, then with the real one: a runtime change of the text
         // size must not leave the panel wider than its place (GW1 review W1).
-        panel.Dock(area, style.With(style.Settings with { TextScale = style.Tokens.TextScale.Max }), 0);
+        // Beside a side bar as in the game, and with the width the table asks for (review GW1 #243: with the
+        // whole width to itself the panel could not show that it leaves the picture).
+        var bar = new GwSideBar();
+        bar.Add("inhabitants", "ui.inhabitants.title");
+        bar.Add("questions", "ui.questions.title");
+        stage.AddChild(bar);
         await host.ToSignal(host.GetTree(), SceneTree.SignalName.ProcessFrame);
-        panel.Dock(area, style, 0);
+        var beside = bar.GetCombinedMinimumSize().X + style.Tokens.Window.Gap;
+        if (table.WantedWidth <= 0)
+        {
+            problems.Add("the table has not measured its headers in the tree (WantedWidth is 0)");
+        }
+
+        panel.Dock(area, style.With(style.Settings with { TextScale = style.Tokens.TextScale.Max }), beside, contentPx: table.WantedWidth);
         await host.ToSignal(host.GetTree(), SceneTree.SignalName.ProcessFrame);
-        panel.Dock(area, style, 0);
+        panel.Dock(area, style, beside, contentPx: table.WantedWidth);
+        await host.ToSignal(host.GetTree(), SceneTree.SignalName.ProcessFrame);
+        panel.Dock(area, style, beside, contentPx: table.WantedWidth);
+        foreach (var other in bar.Panels)
+        {
+            other.Free();
+        }
+
+        bar.QueueFree();
         var dockedSize = panel.Size;
         toasts.Size = new Vector2(Math.Min(style.Tokens.Window.SidePanelWidth, area.X - (2 * margin)), toasts.GetCombinedMinimumSize().Y);
         toasts.Position = area - toasts.Size - (Vector2.One * margin);
@@ -263,7 +282,11 @@ public static class UiLayoutCheck
         }
 
         var inner = panel.Size.X - (2 * (style.Tokens.Window.Padding + style.Frame(GlassWorld.Contracts.UiFrameId.Window).ContentPadding));
-        if (table.HeaderMinimumWidth() > inner + 0.5f)
+        // The header shows in full while the panel has room to grow; a panel that already takes all the room
+        // beside the side bar (smallest picture, largest text) lets the table scroll sideways instead of
+        // leaving the picture (review GW1 #243).
+        var atRoom = panel.Size.X + 0.5f >= area.X - (2 * margin) - beside;
+        if (table.HeaderMinimumWidth() > inner + 0.5f && !atRoom)
         {
             problems.Add($"table header needs {table.HeaderMinimumWidth():0} px, panel offers {inner:0} px");
         }

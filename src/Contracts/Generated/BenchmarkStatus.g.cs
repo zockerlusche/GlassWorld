@@ -178,6 +178,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("object")]
         public string? Object { get; set; } = default!;
 
+        /// <summary>
+        /// What THIS inhabitant calls the kind of thing the belief is about (subject of kind type), by its own knowledge only: the inhabitants' name of an invention it believes anything about (it invented it, built it, tried it, looked at it, was told about it). Absent when it knows nothing of it, and for things the data name (the id is the vocabulary key, i18n key vocab.object.&lt;id&gt;). Never a truth the inhabitant does not know; resolved when the message is built. Optional (absent also from an older core).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("label")]
+        public LocalizedName? Label { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -312,6 +319,13 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("strength")]
         public double Strength { get; set; } = default!;
+
+        /// <summary>
+        /// What THIS inhabitant calls the kind of thing the habit is about (about of kind type), by its own knowledge only: the inhabitants' name of an invention it believes anything about (it invented it, built it, tried it, looked at it, was told about it). Absent when it knows nothing of it, and for things the data name (the id is the vocabulary key, i18n key vocab.object.&lt;id&gt;). Never a truth the inhabitant does not know; resolved when the message is built. Optional (absent also from an older core).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("label")]
+        public LocalizedName? Label { get; set; } = default!;
 
     }
 
@@ -786,6 +800,13 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("observed")]
         public System.Collections.Generic.ICollection<string> Observed { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// What THIS inhabitant calls this kind of thing (type), by its own knowledge only: the inhabitants' name of an invention it believes anything about (it invented it, built it, tried it, looked at it, was told about it). Absent when it knows nothing of it, and for things the data name (the id is the vocabulary key, i18n key vocab.object.&lt;id&gt;). Never a truth the inhabitant does not know; resolved when the message is built. Optional (absent also from an older core).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("label")]
+        public LocalizedName? Label { get; set; } = default!;
 
     }
 

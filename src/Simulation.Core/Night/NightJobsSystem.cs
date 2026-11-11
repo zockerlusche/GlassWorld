@@ -138,6 +138,12 @@ public sealed class NightJobsSystem : IWorldSystem, IOptionalWorldState
     /// <inheritdoc/>
     public string Name => "night_jobs";
 
+    /// <summary>
+    /// Whether a request is validated against its schema before it leaves (ADR-0009; set by the host from
+    /// <see cref="SimulationHostOptions.ValidateRequests"/>): on in tests and check runs, off in the running game.
+    /// </summary>
+    public bool ValidateRequests { get; init; } = true;
+
     /// <summary>Language of the texts the jobs write (display_locale; set with the player's language).</summary>
     public string DisplayLocale
     {
@@ -402,7 +408,10 @@ public sealed class NightJobsSystem : IWorldSystem, IOptionalWorldState
                 {
                     Question = Enum.Parse<QuestionPayloadQuestion>(entry.Question.ToString()),
                     Subject = new Subject { Kind = SubjectKind.Type, Id = typeId },
-                    Inhabitant = InhabitantStates.Asking(inhabitant, knowledge, typeId, _inhabitants.LabelOf),
+
+                    // What the asker calls the kind of thing it asks about (an invention it knows something of).
+                    Label = _inhabitants.TypeLabelOf(inhabitant, typeId),
+                    Inhabitant = InhabitantStates.Asking(inhabitant, knowledge, typeId, _inhabitants.LabelOf, _inhabitants.TypeLabelOf),
 
                     // What it has seen of the thing by looking (source seen), never the truth: without a look it notices nothing.
                     Perception = [.. inhabitant.Beliefs.About(typeId)
@@ -441,7 +450,7 @@ public sealed class NightJobsSystem : IWorldSystem, IOptionalWorldState
 
     private void Send(World world, GenerationJob job)
     {
-        var json = ContractSerializer.Serialize(job);
+        var json = ContractSerializer.Serialize(job, ValidateRequests);
         Log.Add(new DecisionLogEntry(DecisionLogKind.JobRequest, job.RequestId, world.Tick, json, null));
         _port!.Submit(job.RequestId, json);
     }
@@ -464,7 +473,7 @@ public sealed class NightJobsSystem : IWorldSystem, IOptionalWorldState
         JobStatus? status = null;
         if (message.IsError)
         {
-            Log.Add(new DecisionLogEntry(DecisionLogKind.JobError, message.RequestId, world.Tick, message.Json, ReplayNotes.ServiceError));
+            Log.Add(new DecisionLogEntry(DecisionLogKind.JobError, message.RequestId, world.Tick, message.Json, ReplayNotes.OfError(message.Json)));
         }
         else
         {
