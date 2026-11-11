@@ -187,6 +187,13 @@ public partial class IslandScene : Node3D
             bool IsLand(int x, int z) => IslandView.GroundHeight(ground, terrain, (x + 0.5) * terrain.CellM, (z + 0.5) * terrain.CellM) > seaLevel;
             _cover = CloudCover.Create(exploration, IsLand, _nature.Data.Cover, palette, terrain.CellM, host.Content.WorldGen.Presets[preset].Exploration?.RevealRealSeconds ?? 0, _nature.Wind.DirectionX, _nature.Wind.DirectionZ);
             AddChild(_cover);
+
+            // --revealed=PERMILLE: at least this share of the land shown as seen from the start, whatever runs
+            // (a video of the benchmark's camera path, S2). Not what a player sees on the first day.
+            if (Arg("--revealed") is { } share)
+            {
+                _cover.ShowShare(int.Parse(share, CultureInfo.InvariantCulture));
+            }
         }
         _rig = CameraRig.Create(Look<LookCamera>("camera.json"), _width, _depth, () => _figures.Values.Select(f => (f.InhabitantId, f.Position)), (x, z) => Math.Max(seaLevel, IslandView.GroundHeight(ground, terrain, x, z)));
         _rig.FindFigure = id => _figures.TryGetValue(id, out var f) ? f.Position : null;
@@ -212,6 +219,12 @@ public partial class IslandScene : Node3D
             {
                 _rig.Model.Set(_width * point.TargetXPermille / 1000.0, _depth * point.TargetZPermille / 1000.0, point.YawDeg, point.DistanceM, point.PitchDeg);
                 _rig.Apply();
+            }
+            else
+            {
+                // The point names an inhabitant this world does not have (FigureOf warned): no picture of the
+                // wrong place - the run ends with an error (review GW3 #266).
+                throw new InvalidDataException($"Shot point '{follow}' for --follow names inhabitant {point.Inhabitant}, which this world does not have.");
             }
         }
 
