@@ -1908,16 +1908,37 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     public static bool HasPurpose(KnowledgeSettings knowledge, Inhabitant asker, Inhabitant other, string action)
     {
         ArgumentNullException.ThrowIfNull(knowledge);
+        return HasPurpose(knowledge, asker, other, action, MeetingOptionOf(knowledge, action), out _);
+    }
+
+    /// <summary>The meeting option of the knowledge data for an action, or null when it is none.</summary>
+    internal static KnowledgeMeetingOption? MeetingOptionOf(KnowledgeSettings knowledge, string action) =>
+        knowledge.Meeting?.Options.FirstOrDefault(o => string.Equals(o.Action, action, StringComparison.Ordinal));
+
+    /// <summary>
+    /// <see cref="HasPurpose(KnowledgeSettings, Inhabitant, Inhabitant, string)"/> for whoever asks about one
+    /// action towards several others (the options of a request): the action's meeting option is looked up
+    /// once by the caller (<see cref="MeetingOptionOf"/>), and the belief a passing action would carry is
+    /// handed back, so it need not be looked for a second time.
+    /// </summary>
+    internal static bool HasPurpose(KnowledgeSettings knowledge, Inhabitant asker, Inhabitant other, string action, KnowledgeMeetingOption? meeting, out (string TypeId, string PropertyId, Belief Belief)? passable)
+    {
+        ArgumentNullException.ThrowIfNull(knowledge);
         ArgumentNullException.ThrowIfNull(asker);
         ArgumentNullException.ThrowIfNull(other);
-        if (knowledge.Meeting?.Options.FirstOrDefault(o => string.Equals(o.Action, action, StringComparison.Ordinal)) is { } meeting)
+        passable = null;
+        if (meeting is not null)
         {
             return Offered(knowledge, meeting, asker, other);
         }
 
-        return knowledge.Naming is { } naming && string.Equals(naming.Action, action, StringComparison.Ordinal)
-            ? other.Name is not null && !asker.KnownNames.Contains(other.Id)
-            : PassableBelief(knowledge, asker, other, action) is not null;
+        if (knowledge.Naming is { } naming && string.Equals(naming.Action, action, StringComparison.Ordinal))
+        {
+            return other.Name is not null && !asker.KnownNames.Contains(other.Id);
+        }
+
+        passable = PassableBelief(knowledge, asker, other, action);
+        return passable is not null;
     }
 
     /// <summary>
@@ -1939,8 +1960,10 @@ public sealed partial class InhabitantsSystem : IWorldSystem
 
         var trust = listener.Relationships.Get(teller.Id, Start(knowledge)).Trust;
         (string TypeId, string PropertyId, Belief Belief)? best = null;
-        foreach (var b in teller.Beliefs.All)
+        var beliefs = teller.Beliefs.Ordered;
+        for (var i = 0; i < beliefs.Count; i++)
         {
+            var b = beliefs[i];
             if (b.Belief.Confidence < knowledge.MinTellerConfidence
                 || (rule.Properties.Count > 0 && !rule.Properties.Contains(b.PropertyId))
                 || (rule.Value is { } value && b.Belief.Value != value)

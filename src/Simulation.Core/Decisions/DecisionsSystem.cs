@@ -933,6 +933,12 @@ public sealed class DecisionsSystem : IWorldSystem
         _inhabitants.Report(new WorldEvent("question_opened", world.Tick, inhabitant.Id, null, question.Id));
     }
 
+    // What a passing action of the request that is being built would carry to each of the others it has
+    // something for: found when the options are built, read when the request names the topic of an option
+    // (what is not kept here is looked for there, as before). The asker's and the others' beliefs do not
+    // change in between. Empty outside Send.
+    private readonly Dictionary<(string Action, string OtherId), (string TypeId, string PropertyId, Objects.Belief Belief)> _passable = [];
+
     private OpenQuestion Send(World world, Inhabitant inhabitant, string questionId, string kind, string subject, WorldObject? target)
     {
         var probe = world.Probe;
@@ -945,10 +951,12 @@ public sealed class DecisionsSystem : IWorldSystem
         var things = Perceived(inhabitant);
         probe?.Leave(PartRequestLook);
         probe?.Enter(PartRequestOptions);
+        _passable.Clear();
         var options = BuildOptions(inhabitant, target, world.Tick, others);
         probe?.Leave(PartRequestOptions);
         probe?.Enter(PartRequestBuild);
         var request = BuildRequest(world, inhabitant, requestId, options, others, things);
+        _passable.Clear();
         probe?.Leave(PartRequestBuild);
         probe?.Enter(PartRequestJson);
         var json = ContractSerializer.Serialize(request, ValidateRequests);
@@ -1014,11 +1022,21 @@ public sealed class DecisionsSystem : IWorldSystem
                     // while the conditions of their data hold. Never towards a sleeper (W1744): the rule
                     // checker would cancel the answer, an AI call for nothing.
                     awake ??= [.. others.Where(o => !_inhabitants.IsAsleep(o)).Take(knowledge.RequestMaxInhabitants)];
+
+                    // What kind of action it is, is looked up once for all the others; what a passing action
+                    // would carry to each of them is kept for the request, which names it (TopicOf).
+                    var meetingOption = InhabitantsSystem.MeetingOptionOf(knowledge, action);
                     foreach (var other in awake)
                     {
-                        if (InhabitantsSystem.HasPurpose(knowledge, asker, other, action) && !Rests(asker, action, other.Id, tick))
+                        var purpose = InhabitantsSystem.HasPurpose(knowledge, asker, other, action, meetingOption, out var passable);
+                        if (passable is { } carried)
                         {
-                            (IsMeeting(knowledge, action) ? meeting : passOn).Add((action, other.Id));
+                            _passable[(action, other.Id)] = carried;
+                        }
+
+                        if (purpose && !Rests(asker, action, other.Id, tick))
+                        {
+                            (meetingOption is not null ? meeting : passOn).Add((action, other.Id));
                         }
                     }
 
@@ -1038,9 +1056,6 @@ public sealed class DecisionsSystem : IWorldSystem
         raw.AddRange(meeting);
         return [.. raw.Take(MaxOptions).Select((o, i) => (string.Create(CultureInfo.InvariantCulture, $"o{i + 1}"), o.Action, o.TargetId))];
     }
-
-    private static bool IsMeeting(KnowledgeSettings knowledge, string action) =>
-        knowledge.Meeting?.Options.Any(o => string.Equals(o.Action, action, StringComparison.Ordinal)) == true;
 
     /// <summary>W1696: an action that rests after repeats without effect (for this target, or here) is not offered.</summary>
     private bool Rests(Inhabitant asker, string action, string? targetId, long tick) =>
@@ -1106,7 +1121,7 @@ public sealed class DecisionsSystem : IWorldSystem
             || targetId is null
             || _actionTargets.GetValueOrDefault(action, VocabularyEntryTarget.None) != VocabularyEntryTarget.Inhabitant
             || _inhabitants.ResolveTarget(targetId)?.Inhabitant is not { } listener
-            || InhabitantsSystem.PassableBelief(knowledge, asker, listener, action) is not { } belief)
+            || (_passable.TryGetValue((action, listener.Id), out var kept) ? kept : InhabitantsSystem.PassableBelief(knowledge, asker, listener, action)) is not { } belief)
         {
             return null;
         }
