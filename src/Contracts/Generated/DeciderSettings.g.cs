@@ -37,6 +37,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TriggerAsk>))]
         public TriggerAsk? Ask { get; set; } = default!;
 
+        /// <summary>
+        /// Whether a question of this trigger goes to the decider even while its inhabitant is busy with another question or an accepted choice (choice_protection_hours); its answer then replaces that choice, as before. Omitted = false: the question waits.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("interrupts")]
+        public bool? Interrupts { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -56,7 +63,7 @@ namespace GlassWorld.Contracts
         public int DeadlineMs { get; set; } = default!;
 
         /// <summary>
-        /// Open questions per inhabitant at the same time.
+        /// Open questions per inhabitant at the same time, whether with the decider or waiting (held back, or for the night). A question of a trigger that interrupts is not kept out by questions that only wait.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("max_open_questions")]
         public int MaxOpenQuestions { get; set; } = default!;
@@ -72,6 +79,13 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("ask_cooldown_hours")]
         public int AskCooldownHours { get; set; } = default!;
+
+        /// <summary>
+        /// One thing at a time (A1487): while a question of an inhabitant is with the decider, or a choice the decider made for it is queued or under way (walking there or doing it), no further question of that inhabitant goes to the decider - it opens with its question mark and is asked once the inhabitant is free again, if what raised it still holds (the thing or the other still in sight and not understood); otherwise it lapses (question_failed, detail lapsed) and the trigger raises it anew when it sees the thing again. This value is the time limit in game hours: it bounds what has no end of its own - a question that is out with the decider, the walk to a chosen target, a choice queued behind a walk; older than this they no longer hold anything back. An action that runs ends by its duration, and with it the wait of a choice queued behind it, so these need no limit. Exceptions: triggers with interrupts, and a choice that serves none of the needs below their neglect_below (inhabitant model). Omitted or 0 = questions are never held back (as before).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("choice_protection_hours")]
+        public double? ChoiceProtectionHours { get; set; } = default!;
 
         /// <summary>
         /// How often an inhabitant asks who the same other inhabitant is (trigger unknown_inhabitant) while it never learns the name; omitted = no limit.

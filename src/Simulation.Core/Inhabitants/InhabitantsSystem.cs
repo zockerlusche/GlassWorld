@@ -736,6 +736,21 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     /// <summary>Reason of a queued answer dropped because a need fell below its neglect threshold while it waited.</summary>
     public const string NeedNeglected = "need_neglected";
 
+    /// <summary>
+    /// Whether an answer of the decider has gone stale by neglect (the one definition, F5275 B): a need of the
+    /// inhabitant is below its neglect threshold (neglect_below of the inhabitant model) and the action - one
+    /// the decider may be offered - serves none of the neglected needs. A queued answer is dropped by it when
+    /// its turn comes, and an accepted choice no longer keeps further questions back (A1487).
+    /// </summary>
+    public bool StaleByNeglect(Inhabitant inhabitant, string action)
+    {
+        ArgumentNullException.ThrowIfNull(inhabitant);
+        var neglected = _model.Needs.Where(n => n.NeglectBelow > 0 && inhabitant.Needs.GetValueOrDefault(n.Id, 1.0) < n.NeglectBelow).Select(n => n.Id).ToList();
+        return neglected.Count > 0
+            && _actions.OfferedActions.Contains(action, StringComparer.Ordinal)
+            && !neglected.Any(need => _brain.Serves(action, need));
+    }
+
     private void Act(World world, Inhabitant inhabitant)
     {
         if (inhabitant.Activity is null && inhabitant.Planned is { } planned)
@@ -746,15 +761,14 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             // and the answer serves none of the neglected needs (F5275 B, review GW3 #137): it is dropped
             // and logged, and the routine or the decider decides anew. A thirsty inhabitant keeps a queued
             // drink.
-            var neglected = _model.Needs.Where(n => n.NeglectBelow > 0 && inhabitant.Needs.GetValueOrDefault(n.Id, 1.0) < n.NeglectBelow).Select(n => n.Id).ToList();
-            if (_actions.OfferedActions.Contains(planned.Action, StringComparer.Ordinal)
-                && neglected.Count > 0 && !neglected.Any(need => _brain.Serves(planned.Action, need)))
+            if (StaleByNeglect(inhabitant, planned.Action))
             {
                 Report(new WorldEvent(AnswerExpired, world.Tick, inhabitant.Id, planned.Action, planned.TargetId) { Detail = NeedNeglected });
             }
             else
             {
-                inhabitant.Activity = planned;
+                // A choice of the decider keeps its mark; the time limit of its walk counts from now (A1487).
+                inhabitant.Activity = planned.DecidedTick is null ? planned : planned with { DecidedTick = world.Tick };
             }
         }
 

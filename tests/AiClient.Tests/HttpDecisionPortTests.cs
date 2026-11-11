@@ -106,8 +106,10 @@ public sealed class HttpDecisionPortTests
             Assert.True(await port.WhenIdleAsync(IdleLimit), "the port did not finish its requests in time");
         }
 
-        Assert.NotEmpty(host.Decisions.Open);
-        Assert.All(host.Decisions.Open, q => Assert.NotNull(q.RetryAtTick));
+        // Every question that went out waits to be sent again; further ones were not sent after it at all
+        // (A1487: one thing at a time), they wait behind it with their question marks.
+        Assert.Contains(host.Decisions.Open, q => q.RetryAtTick is not null);
+        Assert.All(host.Decisions.Open, q => Assert.True(q.RetryAtTick is not null || q.RequestId.Length == 0));
         Assert.Contains(host.Inhabitants.All, i => i.Activity is not null);
         Assert.DoesNotContain(host.Decisions.Log.Entries, e => e.Kind == DecisionLogKind.Response);
 
