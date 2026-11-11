@@ -14,9 +14,10 @@ import contextlib
 import hashlib
 import itertools
 import json
+import secrets
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Protocol, cast
 
 from glassworld_contracts import CONTRACT_VERSION, GenerationJob, JobStatus
 
@@ -119,6 +120,13 @@ class JobRunner:
         self._worker: asyncio.Task[None] | None = None
         self._current: tuple[str, asyncio.Task[JobOutcome]] | None = None
         self._closed = False
+        # Night items (B7 R10, D637): every state change of a job during the night, numbered;
+        # only in memory, like the queue, and only for the current night.
+        self._night = False
+        self._night_items: list[dict[str, object]] = []
+        self._night_seq = 0
+        # A new id at every start: the caller sees that the numbers began again (review GW3 #206).
+        self.session = secrets.token_hex(8)
 
     def register(self, kind: str, handler: Handler) -> None:
         """Add the handler of a kind that needs resources from the app start (model client)."""
@@ -148,6 +156,7 @@ class JobRunner:
         record = _Record(job, next(self._sequence), digest)
         self._records[job_id] = record
         self._defer_if_waiting(record)
+        self._note(record)
         self._wake()
         return record.state, True
 
@@ -155,13 +164,42 @@ class JobRunner:
         """After a phase change: deferred jobs that may run now become queued, and night-only jobs
         that may not run now become deferred; then the worker continues."""
         for record in self._records.values():
+            before = record.state
             if record.state == "deferred" and (
                 self._gate is None or self._gate.allowed(record.kind)
             ):
                 record.state = "queued"
             elif record.state == "queued":
                 self._defer_if_waiting(record)
+            if record.state != before:
+                self._note(record)
         self._wake()
+
+    def start_night(self, night: bool) -> None:
+        """The phase changed (POST /phase). A new night starts its list of items with every job
+        still open, so the dream scene can show at once what is to come; by day nothing is noted,
+        and the numbers go on (B7 R10)."""
+        if night and not self._night:
+            self._night_items.clear()
+            self._night = True
+            for record in sorted(self._records.values(), key=_Record.order):
+                if record.state in OPEN_STATES:
+                    self._note(record)
+        elif not night:
+            self._night = False
+
+    def night_items(self, since: int) -> list[dict[str, object]]:
+        """Items with a number greater than `since`, oldest first (at most 512). A `since` above
+        the newest number means the caller knew an earlier service session: all items."""
+        if since > self._night_seq:
+            since = 0
+        return [i for i in self._night_items if cast(int, i["seq"]) > since][:512]
+
+    def _note(self, record: _Record) -> None:
+        if not self._night or len(self._night_items) >= 4096:
+            return
+        self._night_seq += 1
+        self._night_items.append(_night_item(self._night_seq, record))
 
     def hold(self) -> None:
         """No new job starts until resume() (the measurement run, B7 S7); a running one ends."""
@@ -240,6 +278,8 @@ class JobRunner:
         queued = [r for r in self._records.values() if r.state == "queued"]
         for record in queued:  # e.g. the night budget ran out meanwhile
             self._defer_if_waiting(record)
+            if record.state == "deferred":
+                self._note(record)
         ready = [r for r in queued if r.state == "queued"]
         if not ready:
             return None
@@ -252,6 +292,7 @@ class JobRunner:
     async def _drain(self) -> None:
         while (record := self._next()) is not None:
             record.state = "running"
+            self._note(record)
             if self._gate is not None:
                 try:
                     await self._gate.prepare(record.kind)  # make the model resident (B7 S2)
@@ -288,6 +329,8 @@ class JobRunner:
                 record.state = "failed"
             finally:
                 self._current = None
+                if record.state in ("done", "failed"):
+                    self._note(record)
                 if self._gate is not None:
                     self._gate.done(record.kind)  # the job's model may be unloaded again
 
@@ -316,6 +359,25 @@ def _status(record: _Record) -> JobStatus:
         },
     }
     return JobStatus.model_validate(data)
+
+
+def _night_item(seq: int, record: _Record) -> dict[str, object]:
+    """One item of the night list (schema night-items): the job's own references, no wording."""
+    payload: object = getattr(record.job.payload, record.kind, None)
+    object_type = getattr(payload, "object_type", None)
+    outcome = record.outcome
+    made: object = outcome.result.get("image") if outcome is not None else None
+    image = cast(dict[str, object], made).get("file") if isinstance(made, dict) else None
+    inhabitant = record.job.inhabitant
+    return {
+        "seq": seq,
+        "job_id": record.job_id,
+        "kind": record.kind,
+        "state": record.state,
+        "inhabitant": None if inhabitant is None else _text(inhabitant),
+        "object_type": None if object_type is None else _text(object_type),
+        "image": image if record.state == "done" and isinstance(image, str) else None,
+    }
 
 
 def _summary(record: _Record) -> dict[str, object]:
