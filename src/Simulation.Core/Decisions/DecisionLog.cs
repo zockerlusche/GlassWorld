@@ -108,6 +108,29 @@ public static class ReplayNotes
     /// </summary>
     public const string RequestRejected = "request_rejected";
 
+    /// <summary>
+    /// What the service said in an error message (its <c>message</c>), or null when it cannot be read. A
+    /// log entry keeps the whole error message as its JSON; for a refused request these words say what was
+    /// wrong with it - the only place that does, since the running game does not validate what it sends.
+    /// </summary>
+    public static string? MessageOf(string errorJson)
+    {
+        ArgumentNullException.ThrowIfNull(errorJson);
+        try
+        {
+            using var document = System.Text.Json.JsonDocument.Parse(errorJson);
+            return document.RootElement.ValueKind == System.Text.Json.JsonValueKind.Object
+                && document.RootElement.TryGetProperty("message", out var message)
+                && message.ValueKind == System.Text.Json.JsonValueKind.String
+                    ? message.GetString()
+                    : null;
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return null;
+        }
+    }
+
     /// <summary>The note for an error message of the service: <see cref="RequestRejected"/> or <see cref="ServiceError"/>.</summary>
     public static string OfError(string errorJson) => IsRejection(errorJson) ? RequestRejected : ServiceError;
 

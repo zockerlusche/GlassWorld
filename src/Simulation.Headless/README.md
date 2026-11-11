@@ -37,7 +37,8 @@ are unchanged. On an island the line `explored  land <shown>/<all> cells (<p> %)
 Before the `needs` lines the line `requests  decisions <n>  jobs <n>  conversations <n>  rejected <n>` counts what
 the world sent to the AI and how many of those requests the service refused as invalid (`request_rejected` in the
 logs, ADR-0009). A run validates every request before it leaves, so `rejected` is 0 unless the core and the
-service disagree about the contract. New:
+service disagree about the contract; each refused request follows as a line `REQUEST_REJECTED tick=<t>
+request=<id> message=<what the service said was wrong>` (values escaped like the event lines). New:
 
 ```
 EVENT tick=<t> kind=<kind> inhabitant=<id> action=<a> target=<id> detail=<d>

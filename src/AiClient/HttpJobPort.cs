@@ -312,7 +312,7 @@ public sealed class HttpJobPort : IJobPort, IDisposable
             return body;
         }
 
-        var message = string.Create(CultureInfo.InvariantCulture, $"AI service answered HTTP {status} without a valid error body.");
+        var message = ServiceErrors.WithoutValidBody(status, body);
         return status >= 500
             ? Synthesize(jobJson, ServiceErrorCode.Internal, message, retryable: true)
             : Synthesize(jobJson, ServiceErrorCode.Bad_request, message, retryable: false);

@@ -64,10 +64,25 @@ time, and none of them holds for incoming answers:
    the headless runner prints the count in its summary (`requests .. rejected
    N`, `perf`: `REQUESTS .. rejected=N`). The number should stay 0; anything
    else means a request form and its contract have come apart.
+   The log entry keeps the service's whole error message, so what the service
+   said was wrong stays readable (`ReplayNotes.MessageOf`,
+   `SimulationHost.Rejections`; the runner prints a `REQUEST_REJECTED` line per
+   refused request). Where the service answered with an error status but no
+   `ServiceError`, the port keeps the beginning of that body in the message.
 3. **A port reports a failure also for a request that is not valid** (not
    reachable, an unusable error body): it no longer reads the request with
    validation to write the error, so a question never waits for an answer
    that cannot come.
+4. **A validating check run is a gate of every release build.**
+   `tools/release/build_release.sh` - the one script that builds a release,
+   locally and in the release workflow - runs `tools/release/check_requests.sh`
+   before the export: the headless runner for two game days with the mock
+   decider. It fails the build when a request violates its contract (the run
+   ends with an exception), when a request was refused, or when none was sent.
+   With the mock only decision requests travel; the other request forms are
+   held by their contract tests (condition 1), which CI runs on every pull
+   request and on main. The release workflow does not run the test suite
+   itself: it relies on CI having run on the commit of main that is tagged.
 
 ## Consequences
 

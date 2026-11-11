@@ -16,6 +16,45 @@ internal static class ServiceErrors
     /// <summary>Stands in for a request id that cannot be read; the port hands the real one on beside the body.</summary>
     public const string UnreadableRequestId = "00000000-0000-4000-8000-000000000000";
 
+    /// <summary>Most characters of a service's own words that <see cref="WithoutValidBody"/> keeps (a ServiceError message holds 500).</summary>
+    public const int ExcerptLength = 300;
+
+    /// <summary>
+    /// The message for an answer with an error status whose body is no valid ServiceError: the status and
+    /// the beginning of what the service did say, on one line. For a refused request these words are the
+    /// only place that says what was wrong with it (ADR-0009), so they are not thrown away.
+    /// </summary>
+    public static string WithoutValidBody(int status, string body)
+    {
+        ArgumentNullException.ThrowIfNull(body);
+        var said = new System.Text.StringBuilder(ExcerptLength);
+        var gap = false;
+        foreach (var c in body)
+        {
+            if (said.Length >= ExcerptLength)
+            {
+                break;
+            }
+
+            if (char.IsWhiteSpace(c) || char.IsControl(c))
+            {
+                gap = said.Length > 0;
+                continue;
+            }
+
+            if (gap)
+            {
+                said.Append(' ');
+                gap = false;
+            }
+
+            said.Append(c);
+        }
+
+        var prefix = string.Create(System.Globalization.CultureInfo.InvariantCulture, $"AI service answered HTTP {status} without a valid error body");
+        return said.Length == 0 ? prefix + "." : prefix + ": " + said;
+    }
+
     /// <summary>A ServiceError for the request or job in <paramref name="requestJson"/> (contract version, request id and tick from it where readable).</summary>
     public static string For(string requestJson, ServiceErrorCode code, string message, bool retryable)
     {

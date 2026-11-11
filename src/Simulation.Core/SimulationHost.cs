@@ -585,6 +585,19 @@ public sealed class SimulationHost
         Decisions.Log.CountOf(ReplayNotes.RequestRejected) + Inventions.Log.CountOf(ReplayNotes.RequestRejected)
         + Conversation.Log.Count(e => e.Kind == Simulation.Player.ConversationLogKind.Error && ReplayNotes.IsRejection(e.Json));
 
+    /// <summary>
+    /// The requests the service refused, oldest first: the request, the tick the refusal took effect and
+    /// what the service said was wrong (read from the log entries, which keep the service's whole message).
+    /// </summary>
+    public IReadOnlyList<(string RequestId, long Tick, string? Message)> Rejections =>
+        [.. Decisions.Log.Entries.Concat(Inventions.Log.Entries)
+            .Where(e => string.Equals(e.Note, ReplayNotes.RequestRejected, StringComparison.Ordinal))
+            .Select(e => (e.RequestId, e.Tick, ReplayNotes.MessageOf(e.Json)))
+            .Concat(Conversation.Log
+                .Where(e => e.Kind == Simulation.Player.ConversationLogKind.Error && ReplayNotes.IsRejection(e.Json))
+                .Select(e => (e.RequestId, e.Tick, ReplayNotes.MessageOf(e.Json))))
+            .OrderBy(r => r.Tick)];
+
     /// <summary>Read-only snapshot for the UI.</summary>
     public WorldSnapshot Snapshot() => WorldView.Snapshot(World, Inhabitants, Objects, Decisions) with { Weather = WeatherSystem?.Read(World), LookEpoch = LookEpoch.Current, Tide = Map?.TideAt(World.Tick), ExploredVersion = Exploration?.Version, ComputeNight = Inventions.IsComputeNight };
 

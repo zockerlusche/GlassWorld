@@ -80,6 +80,69 @@ public sealed class HttpDecisionPortTests
         Assert.True(await refusing.WhenIdleAsync(IdleLimit), "the port did not finish its requests in time");
         var refused = ContractSerializer.Deserialize<ServiceError>(Assert.Single(refusing.Receive(0)).Json);
         Assert.Equal((ServiceErrorCode.Bad_request, false), (refused.Code, refused.Retryable));
+
+        // What the service did say is kept, also when it was no ServiceError.
+        Assert.Equal("AI service answered HTTP 422 without a valid error body: {\"detail\":\"invalid\"}", refused.Message);
+    }
+
+    /// <summary>
+    /// Review GW2 #244: the service refuses an invalid request with a ServiceError that names the first
+    /// problems. With the request no longer validated on the way out (ADR-0009), those words are the only
+    /// place that says what was wrong: they must be readable in the log entry of the counted refusal.
+    /// </summary>
+    [Fact]
+    public async Task WhatTheServiceSaidWasWrongStaysInTheLogEntryOfARefusedRequest()
+    {
+        const string Problems = "Invalid DecisionRequest: $.perception.objects[3].distance_m: -1 is less than the minimum of 0; $.options: [] should be non-empty";
+        var service = new FakeService(request =>
+        {
+            // As the service does: 422 and a ServiceError bad_request with the request's id and tick and the problems.
+            var sent = ContractSerializer.Deserialize<DecisionRequest>(request.Content!.ReadAsStringAsync().GetAwaiter().GetResult());
+            var body = ContractSerializer.Serialize(new ServiceError
+            {
+                ContractVersion = ContractInfo.Version,
+                RequestId = sent.RequestId,
+                Tick = sent.Tick,
+                Code = ServiceErrorCode.Bad_request,
+                Message = Problems,
+                Retryable = false,
+            });
+            return new HttpResponseMessage((HttpStatusCode)422) { Content = new StringContent(body, Encoding.UTF8, "application/json") };
+        });
+        using var port = NewPort(service);
+        var host = SimulationHost.CreatePlaceholderWorld(Content, 3, port, "de", options: new SimulationHostOptions { ValidateRequests = false });
+        for (var i = 0; i < 20; i++)
+        {
+            host.World.Step();
+            Assert.True(await port.WhenIdleAsync(IdleLimit), "the port did not finish its requests in time");
+        }
+
+        var refused = host.Decisions.Log.Entries.Where(e => e.Kind == DecisionLogKind.Error).ToList();
+        Assert.NotEmpty(refused);
+        Assert.All(refused, e =>
+        {
+            Assert.Equal(ReplayNotes.RequestRejected, e.Note);
+            Assert.Equal(Problems, ReplayNotes.MessageOf(e.Json));
+            Assert.Equal(e.RequestId, ContractSerializer.Deserialize<ServiceError>(e.Json).RequestId);
+        });
+        Assert.Equal(refused.Count, host.RejectedRequests);
+        Assert.Equal(refused.Select(e => (e.RequestId, e.Tick, (string?)Problems)), host.Rejections);
+    }
+
+    [Theory]
+    [InlineData(404, "<html>\n  <body>Not   Found</body>\r\n</html>", "AI service answered HTTP 404 without a valid error body: <html> <body>Not Found</body> </html>")]
+    [InlineData(502, "", "AI service answered HTTP 502 without a valid error body.")]
+    [InlineData(500, " \n\t ", "AI service answered HTTP 500 without a valid error body.")]
+    public void TheBeginningOfABodyThatIsNoServiceErrorIsKeptOnOneLine(int status, string body, string message) =>
+        Assert.Equal(message, ServiceErrors.WithoutValidBody(status, body));
+
+    [Fact]
+    public void ALongBodyIsCutSoTheMessageFitsAServiceError()
+    {
+        var message = ServiceErrors.WithoutValidBody(422, new string('x', 5000));
+        Assert.EndsWith(": " + new string('x', ServiceErrors.ExcerptLength), message, StringComparison.Ordinal);
+        Assert.True(message.Length <= 500);
+        Assert.Equal(message, ContractSerializer.Deserialize<ServiceError>(ServiceErrors.For(SampleRequest(), ServiceErrorCode.Bad_request, message, retryable: false)).Message);
     }
 
     [Fact]

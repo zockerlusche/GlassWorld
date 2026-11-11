@@ -62,6 +62,20 @@ public sealed class RunTests : IDisposable
     }
 
     [Fact]
+    public void ARefusedRequestIsNamedInTheSummaryWithWhatTheServiceSaid()
+    {
+        // A decider that refuses every request as the service refuses an invalid one.
+        var (_, lines) = Run(new RunCommand { Connect = (_, _) => new RefusingConnection("Invalid DecisionRequest: options is empty") }, "--days", "1", "--quiet");
+        var requests = Assert.Single(lines, l => l.StartsWith("requests  ", StringComparison.Ordinal));
+        var rejected = int.Parse(requests.Split("rejected ")[1], System.Globalization.CultureInfo.InvariantCulture);
+        Assert.True(rejected > 0);
+        var named = lines.Where(l => l.StartsWith("REQUEST_REJECTED ", StringComparison.Ordinal)).ToList();
+        Assert.Equal(rejected, named.Count);
+        Assert.All(named, l => Assert.Matches("^REQUEST_REJECTED tick=[0-9]+ request=[0-9a-f-]{36} message=Invalid%20DecisionRequest:%20options%20is%20empty$", l));
+        Assert.StartsWith("FINAL hash=", lines[^1], StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void UntilNotReachedWithinTheDaysGivesExitCodeThree()
     {
         // The mock decider never sends a thought.
@@ -293,6 +307,43 @@ public sealed class RunTests : IDisposable
     /// Answers like the mock, but only <c>delayTicks</c> ticks after the question, from the pending queue (as the
     /// HTTP port hands over what has arrived). Busy while an answer is out; counts the busy ticks the runner saw.
     /// </summary>
+    /// <summary>A decider that refuses every request with a ServiceError bad_request and the given words.</summary>
+    private sealed class RefusingConnection(string message) : IAiConnection, IDecisionPort
+    {
+        private readonly Queue<PortMessage> _ready = new();
+
+        public IDecisionPort Decisions => this;
+
+        public IJobPort? Jobs => null;
+
+        public bool Busy => false;
+
+        public void Send(string requestId, string requestJson)
+        {
+            var request = GlassWorld.Contracts.Validation.ContractSerializer.Deserialize<GlassWorld.Contracts.DecisionRequest>(requestJson);
+            _ready.Enqueue(new PortMessage(requestId, GlassWorld.Contracts.Validation.ContractSerializer.Serialize(new GlassWorld.Contracts.ServiceError
+            {
+                ContractVersion = request.ContractVersion,
+                RequestId = request.RequestId,
+                Tick = request.Tick,
+                Code = GlassWorld.Contracts.ServiceErrorCode.Bad_request,
+                Message = message,
+                Retryable = false,
+            }), IsError: true));
+        }
+
+        public IReadOnlyList<PortMessage> Receive(long tick)
+        {
+            var messages = _ready.ToList();
+            _ready.Clear();
+            return messages;
+        }
+
+        public void Dispose()
+        {
+        }
+    }
+
     private sealed class DelayedConnection(int delayTicks) : IAiConnection, IDecisionPort
     {
         private readonly MockDecisionPort _mock = new();

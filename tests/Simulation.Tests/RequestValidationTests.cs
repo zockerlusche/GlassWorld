@@ -124,6 +124,10 @@ public sealed partial class RequestValidationTests
         Assert.Equal(refused.Count, host.RejectedRequests);
         Assert.Equal(refused.Count, host.Decisions.Log.CountOf(ReplayNotes.RequestRejected));
 
+        // What the service said was wrong is read from the log entry.
+        Assert.All(refused, e => Assert.Equal("from the test", ReplayNotes.MessageOf(e.Json)));
+        Assert.Equal(refused.Select(e => (e.RequestId, e.Tick, (string?)"from the test")), host.Rejections);
+
         // The question closes, and its event says why.
         var failed = host.Inhabitants.EventsSince(seen).Where(e => e.Event.Kind == "question_failed").ToList();
         Assert.Equal(refused.Count, failed.Count);
@@ -163,6 +167,14 @@ public sealed partial class RequestValidationTests
         Assert.False(ReplayNotes.IsServiceError(ReplayNotes.UnknownOption));
         Assert.False(ReplayNotes.IsServiceError(null));
     }
+
+    [Theory]
+    [InlineData("{\"code\":\"bad_request\",\"message\":\"Invalid DecisionRequest: x\"}", "Invalid DecisionRequest: x")]
+    [InlineData("{\"code\":\"bad_request\"}", null)]
+    [InlineData("{\"message\":12}", null)]
+    [InlineData("no json", null)]
+    public void TheServicesWordsAreReadFromAnErrorMessage(string errorJson, string? message) =>
+        Assert.Equal(message, ReplayNotes.MessageOf(errorJson));
 
     private static string Error(DecisionRequest request, ServiceErrorCode code, bool retryable) => ContractSerializer.Serialize(new ServiceError
     {

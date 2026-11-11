@@ -254,6 +254,12 @@ internal sealed class RunCommand
         var asked = host.Decisions.Log.Entries.Count(e => e.Kind == DecisionLogKind.Request);
         var jobs = host.Inventions.Log.Entries.Count(e => e.Kind == DecisionLogKind.JobRequest);
         output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"requests  decisions {asked}  jobs {jobs}  conversations {host.Conversation.Log.Count(e => e.Kind == Simulation.Player.ConversationLogKind.Request)}  rejected {host.RejectedRequests}"));
+        foreach (var (requestId, tick, message) in host.Rejections)
+        {
+            // What the service said was wrong with the request: nothing else tells (ADR-0009).
+            output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"REQUEST_REJECTED tick={tick} request={EventLines.Escape(requestId)} message={EventLines.Escape(message)}"));
+        }
+
         WriteNeeds(host, lowestNeeds, output);
         WriteSocial(host, output);
         if (host.Exploration is { } exploration && host.Map is { } island)
