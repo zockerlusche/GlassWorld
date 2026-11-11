@@ -15,7 +15,8 @@
     "sleep_actions",
     "zzz_above_head_m",
     "zzz_sway_s",
-    "zzz_rise_px"
+    "zzz_rise_px",
+    "dreams"
   ],
   "properties": {
     "contract_version": {
@@ -76,6 +77,105 @@
       "type": "number",
       "minimum": 0,
       "maximum": 200
+    },
+    "dreams": {
+      "$ref": "#/$defs/NightDreams"
+    }
+  },
+  "$defs": {
+    "NightDreams": {
+      "description": "Dream images of the night scene (B2579, D637 R11/R13): things the night's jobs are about appear softly, spread over the screen, and fade again. Only real jobs of this night are shown; an empty queue shows none. The limits keep it calm: with min_gap_s at least 0.7 s there are never more than three changes of brightness per second (protection for light-sensitive players), whatever the other values say.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fade_in_s",
+        "hold_s",
+        "fade_out_s",
+        "max_at_once",
+        "min_gap_s",
+        "size_px",
+        "brightness",
+        "reduce_motion_factor",
+        "appearances"
+      ],
+      "properties": {
+        "fade_in_s": {
+          "description": "Real seconds an image takes to appear.",
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 20
+        },
+        "hold_s": {
+          "description": "Real seconds it stays.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 60
+        },
+        "fade_out_s": {
+          "description": "Real seconds it takes to fade.",
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 20
+        },
+        "max_at_once": {
+          "description": "Most images on screen at once; more wait their turn.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 6
+        },
+        "min_gap_s": {
+          "description": "Least real seconds between two images appearing.",
+          "type": "number",
+          "minimum": 0.7,
+          "maximum": 60
+        },
+        "size_px": {
+          "description": "Size of an image (pixels at the reference height, scaled with the UI).",
+          "type": "integer",
+          "minimum": 48,
+          "maximum": 600
+        },
+        "brightness": {
+          "description": "Greatest opacity of an image (soft, never glaring).",
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 1
+        },
+        "reduce_motion_factor": {
+          "description": "With 'reduce motion' the fades take this many times as long.",
+          "type": "number",
+          "minimum": 1,
+          "maximum": 10
+        },
+        "appearances": {
+          "description": "What a job kind shows: 'symbol' = the shape of the object type it is about, as soon as the job is seen; 'image' = that symbol and, once the job is done, the picture it made; 'none' = nothing. Kinds not listed show nothing.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/NightAppearance"
+          }
+        }
+      }
+    },
+    "NightAppearance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "show"
+      ],
+      "properties": {
+        "kind": {
+          "$ref": "common.schema.json#/$defs/JobKind"
+        },
+        "show": {
+          "type": "string",
+          "enum": [
+            "none",
+            "symbol",
+            "image"
+          ]
+        }
+      }
     }
   }
 }
