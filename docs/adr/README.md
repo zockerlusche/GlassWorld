@@ -13,3 +13,4 @@ A new decision gets the next free number; a changed decision gets a new ADR that
 | [0006](0006-ai-service-http-lifecycle.md) | AI service over HTTP on localhost, started and stopped by the game | accepted |
 | [0007](0007-data-files-and-localization.md) | Data file format, schema validation and DE/EN text keys | accepted |
 | [0008](0008-presentation-logic-in-csharp.md) | UI and presentation logic in a Godot-free C# library | accepted |
+| [0009](0009-outgoing-requests-validated-in-tests-not-in-the-game.md) | Outgoing requests are validated in tests and check runs, not in the running game | accepted |

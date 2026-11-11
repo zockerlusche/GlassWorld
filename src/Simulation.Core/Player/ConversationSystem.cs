@@ -146,6 +146,12 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
     /// <inheritdoc/>
     public string Name => "conversation";
 
+    /// <summary>
+    /// Whether a request is validated against its schema before it leaves (ADR-0009; set by the host from
+    /// <see cref="SimulationHostOptions.ValidateRequests"/>): on in tests and check runs, off in the running game.
+    /// </summary>
+    public bool ValidateRequests { get; init; } = true;
+
     /// <summary>Language of the player's sentences and the answers (display_locale; set with the player's language).</summary>
     public string DisplayLocale
     {
@@ -210,7 +216,7 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
         var request = Request(world, inhabitant, memory, text);
         _memories[inhabitant.Id] = Remember(memory, new ConversationLineState(true, world.Tick, _displayLocale, text));
         _open[request.RequestId] = new OpenConversation(request.RequestId, inhabitant.Id, world.Tick);
-        var json = ContractSerializer.Serialize(request);
+        var json = ContractSerializer.Serialize(request, ValidateRequests);
         Append(new ConversationLogEntry(ConversationLogKind.Request, request.RequestId, world.Tick, json));
         _inhabitants.Report(new WorldEvent("conversation_started", world.Tick, inhabitant.Id, null, null) { Text = text });
         Port?.Send(request.RequestId, json);
