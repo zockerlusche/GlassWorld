@@ -375,8 +375,11 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
     {
         var known = (InhabitantStates.Of(inhabitant, _knowledge, seen, []).Knowledge ?? []).Take(KnowledgeMax).ToList();
         var seenTypes = seen.ToHashSet(StringComparer.Ordinal);
+        var visible = _knowledge.Looking?.VisibleProperties.ToHashSet(StringComparer.Ordinal) ?? [];
         known.AddRange(inhabitant.Beliefs.All
-            .Where(b => !seenTypes.Contains(b.TypeId))
+
+            // As in the first part: what a thing is not by its look says little and would crowd out the rest.
+            .Where(b => !seenTypes.Contains(b.TypeId) && (b.Belief.Value || !visible.Contains(b.PropertyId)))
             .OrderByDescending(b => b.Belief.Tick)
             .ThenBy(b => b.TypeId, StringComparer.Ordinal)
             .ThenBy(b => b.PropertyId, StringComparer.Ordinal)
