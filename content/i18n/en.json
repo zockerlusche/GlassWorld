@@ -2537,6 +2537,10 @@
     {
       "key": "ui.question.reason.unknown_inhabitant",
       "text": "{name} sees someone whose name they do not know yet."
+    },
+    {
+      "key": "msg.hint.questions_many",
+      "text": "{name} is wondering about several things."
     }
   ]
 }

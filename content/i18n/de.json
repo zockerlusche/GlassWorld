@@ -2537,6 +2537,10 @@
     {
       "key": "ui.question.reason.unknown_inhabitant",
       "text": "{name} sieht jemanden, dessen Namen er noch nicht kennt."
+    },
+    {
+      "key": "msg.hint.questions_many",
+      "text": "{name} fragt sich mehreres."
     }
   ]
 }
