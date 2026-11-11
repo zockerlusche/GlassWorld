@@ -34,6 +34,9 @@ public static class ScreenZones
     /// <summary>Text key of a side window's title (also its tab).</summary>
     public static string TitleKey(string panel) => "ui." + panel + ".title";
 
+    /// <summary>Text key of a panel's tab inside its theme (D705 B9: the tab "Bewohner" inside the theme "Bewohner").</summary>
+    public static string TabKey(string panel) => "ui.zone.tab." + panel;
+
     /// <summary>The theme a side window belongs to, or null (the pinned log, unknown keys).</summary>
     public static ScreenTheme? ThemeOf(string? panel) =>
         panel is null ? null : Themes.FirstOrDefault(t => t.Panels.Contains(panel, StringComparer.Ordinal));
