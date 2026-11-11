@@ -37,6 +37,12 @@ class DeadlineExpiredError(Exception):
 
 
 Clock = Callable[[], float]
+# A call that still has this share of the time it came with is always begun, whatever the
+# estimate says: only waiting in the queue may cost a call its start. Without it a slow phase
+# of the model pushes the estimate up to the deadline, every call is refused, none comes
+# through to bring the estimate down again, and the caller is locked out until a restart
+# (review GW1 #239). A technical share, not a balancing value.
+FULL_BUDGET_SHARE = 0.9
 
 
 class TypicalDuration:
@@ -105,12 +111,14 @@ class ModelQueue:
         Raises QueueFullError if too many calls wait, DeadlineExpiredError if the deadline passes
         while waiting (work is then never started) or while working (work is cancelled). With
         `needs_s` (how long such a call usually takes) the work is also not started when less
-        than that is left at its turn: the model would run for an answer that comes too late
-        and keep the next caller waiting (A1487).
+        than that is left at its turn because it had to wait: the model would run for an answer
+        that comes too late and keep the next caller waiting (A1487). A call that did not wait
+        is always begun (FULL_BUDGET_SHARE), so the estimate can always come down again.
         """
         if self._closed:
             raise QueueClosedError("service is stopping")
-        if self._remaining(deadline) <= 0:
+        budget = self._remaining(deadline)  # what the call came with, before any waiting
+        if budget <= 0:
             raise DeadlineExpiredError("deadline already passed")
         if len(self._waiting) >= self._max_waiting:
             raise QueueFullError(f"{len(self._waiting)} calls waiting")
@@ -143,7 +151,7 @@ class ModelQueue:
             remaining = self._remaining(deadline)
             if remaining <= 0:
                 raise DeadlineExpiredError("deadline passed while waiting")
-            if remaining < needs_s:
+            if remaining < needs_s and remaining < FULL_BUDGET_SHARE * budget:
                 raise DeadlineExpiredError(
                     f"not begun: {remaining:.1f} s left, such a call takes about {needs_s:.1f} s"
                 )

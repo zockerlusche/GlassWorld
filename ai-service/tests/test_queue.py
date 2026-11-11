@@ -221,9 +221,28 @@ def test_a_call_is_not_begun_when_its_usual_duration_does_not_fit_any_more() -> 
         started.append("x")
         return "done"
 
+    release = asyncio.Event()
+
+    async def blocker() -> str:
+        await release.wait()
+        return "blocked"
+
     async def scenario() -> None:
+        # It came with 4 s and waited 3 of them behind another call (the clock moves on).
+        async def waited() -> str:
+            task = asyncio.ensure_future(queue.run(Priority.DECISION, 104.0, work, needs_s=1.5))
+            await asyncio.sleep(0)
+            now[0] = 103.0
+            release.set()
+            return await task
+
+        first = asyncio.ensure_future(queue.run(Priority.DECISION, 200.0, blocker))
+        await asyncio.sleep(0)
         with pytest.raises(DeadlineExpiredError, match=r"not begun: 1\.0 s left"):
-            await queue.run(Priority.DECISION, 101.0, work, needs_s=1.5)
+            await waited()
+        assert await first == "blocked"
+        started.clear()
+        now[0] = 100.0
         assert started == [] and not queue.busy
         assert await queue.run(Priority.DECISION, 102.0, work, needs_s=1.5) == "done"
         assert await queue.run(Priority.DECISION, 100.5, work) == "done"  # no estimate: as before
@@ -242,3 +261,28 @@ def test_the_usual_duration_is_the_median_of_the_last_calls() -> None:
     assert typical.seconds == 2.0
     typical.note(3.0)  # the oldest (1.0) falls out
     assert typical.seconds == 3.0
+
+
+def test_a_slow_phase_cannot_lock_the_caller_out() -> None:
+    """Review GW1 #239: with the estimate pushed up to the deadline every call was refused, none
+    came through to bring it down again - dead until a restart. A call that did not wait runs."""
+    from glassworld_ai.queue import ModelQueue, Priority, TypicalDuration
+
+    now = [0.0]
+    queue = ModelQueue(4, clock=lambda: now[0])
+    typical = TypicalDuration()
+    for _ in range(21):
+        typical.note(3.98)  # the model was slow: only calls just under the 4 s deadline got through
+
+    async def fast() -> str:
+        typical.note(1.0)
+        return "done"
+
+    async def scenario() -> None:
+        for _ in range(11):  # the model is fast again: every call runs, the estimate comes down
+            now[0] += 0.03  # the few milliseconds between setting the deadline and the turn
+            deadline = now[0] - 0.03 + 4.0
+            assert await queue.run(Priority.DECISION, deadline, fast, typical.seconds) == "done"
+
+    asyncio.run(scenario())
+    assert typical.seconds == 1.0
