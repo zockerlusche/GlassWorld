@@ -11,6 +11,9 @@ Usage (from the repository root):
     uv run python tools/survey/make_survey.py ../survey/w7.sqlite content/look/shots_survey.json
     <godot> --path game res://world/island.tscn -- --seed=7 --shot-set=survey --shots=<folder>
 
+The shot set belongs to the seed of the save (content/look/shots_survey.json: seed 7, start
+island, 192 m); with another seed or map size, write a new one (--extent-m).
+
 A window run belongs in the AMW run queue (`amw lauf start --schirm --gpu --warten`).
 """
 
@@ -19,6 +22,7 @@ from __future__ import annotations
 import argparse
 import json
 import sqlite3
+from contextlib import closing
 from pathlib import Path
 from typing import Any
 
@@ -38,7 +42,8 @@ def permille(value: float, extent_m: float) -> int:
 def points(save: Path, extent_m: float, close_m: float) -> list[dict[str, Any]]:
     """The survey's shots; object types and inhabitants come from the save, the rest is fixed."""
     found: list[dict[str, Any]] = []
-    with sqlite3.connect(save) as db:
+    # Read only: a wrong path fails clearly instead of creating an empty file (review GW3 #217).
+    with closing(sqlite3.connect(f"file:{save.resolve().as_posix()}?mode=ro", uri=True)) as db:
         kinds = [row[0] for row in db.execute("select distinct type from objects order by type")]
         for kind in kinds:
             rows = db.execute("select x, z from objects where type = ? order by id", (kind,))
