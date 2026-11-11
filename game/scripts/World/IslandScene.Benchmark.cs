@@ -19,7 +19,9 @@ namespace GlassWorld.Game.World;
 /// the same clips through the same figure code, and never enter the core or its state hash. A pass shows its
 /// day phase, season, weather and wind through the look jumps of the screenshot tool (the core has no
 /// season or time jump, and its weather table would replace a set weather within a pass); the core world
-/// runs on unchanged. Prints <c>BENCH_PASS …</c> per pass and <c>BENCH_DONE …</c>, writes the CSV and quits.
+/// runs on unchanged. Prints <c>BENCH_ENV …</c> when the first measuring begins (what the run really runs on:
+/// size, window mode, VSync, driver, build), <c>BENCH_PASS …</c> per pass and <c>BENCH_DONE …</c>, writes the
+/// CSV and quits. The clock starts with the first frame drawn.
 /// </summary>
 public partial class IslandScene
 {
@@ -31,8 +33,11 @@ public partial class IslandScene
     private readonly BenchmarkRecorder _recorder = new();
     private FigureShared? _crowdShared;
     private string _benchCsv = string.Empty;
+    private readonly BenchmarkClock _benchClock = new();
     private double _benchElapsed;
-    private ulong _benchLastUsec;
+    private int _benchWarmupFrames;
+    private bool _benchEnvShown;
+    private string _benchDriver = string.Empty;
     private int _benchPass = -1;
     private (double X, double Z) _crowdCentre;
     private WeatherReading? _benchWeather;
@@ -105,25 +110,26 @@ public partial class IslandScene
 
         _benchCsv = Path.GetFullPath(csv);
         GD.Print(string.Create(CultureInfo.InvariantCulture, $"BENCH_START seed={seed} quality={quality} passes={string.Join(",", _schedule.Passes.Select(p => p.Id))} warmup_s={_schedule.WarmupS} duration_s={_schedule.DurationS} figures={_figures.Count + _crowdFigures.Count} size={Size()} csv={_benchCsv}"));
-        _benchLastUsec = Time.GetTicksUsec();
+
+        // Asked once, before the clock runs (the query can take a moment); empty without a driver (headless).
+        _benchDriver = string.Join(' ', OS.GetVideoAdapterDriverInfo());
     }
 
     /// <summary>One benchmark frame: time it, run the schedule, the world, the crowd, the look and the camera.</summary>
     private void StepBenchmark(double delta)
     {
-        var now = Time.GetTicksUsec();
-        var frameMs = (now - _benchLastUsec) / 1000.0;
-        _benchLastUsec = now;
-        _benchElapsed += frameMs / 1000.0;
+        var frameMs = _benchClock.Step(Time.GetTicksUsec());
+        _benchElapsed = _benchClock.ElapsedS;
         var moment = _schedule.At(_benchElapsed);
         if (moment.Pass != _benchPass)
         {
             if (_benchPass >= 0)
             {
-                GD.Print(_recorder.Summary(_schedule.Passes[_benchPass].Id).Line(_benchmark!.TargetMeanFps, _benchmark.TargetP95FrameMs) + " size=" + Size());
+                GD.Print(_recorder.Summary(_schedule.Passes[_benchPass].Id).Line(_benchmark!.TargetMeanFps, _benchmark.TargetP95FrameMs) + string.Create(CultureInfo.InvariantCulture, $" size={Size()} warmup_frames={_benchWarmupFrames}"));
             }
 
             _benchPass = moment.Pass;
+            _benchWarmupFrames = 0;
             if (moment.Stage == BenchmarkStage.Done)
             {
                 FinishBenchmark();
@@ -136,7 +142,18 @@ public partial class IslandScene
         var pass = _schedule.Passes[moment.Pass];
         if (moment.Stage == BenchmarkStage.Measure)
         {
+            if (!_benchEnvShown)
+            {
+                // Read back after the warm-up, when window mode and size have settled.
+                _benchEnvShown = true;
+                GD.Print(BenchEnvironment().Line());
+            }
+
             _recorder.Add(pass.Id, moment.MeasureS, frameMs);
+        }
+        else
+        {
+            _benchWarmupFrames++;
         }
 
         StepWorld(delta);
@@ -227,6 +244,22 @@ public partial class IslandScene
             Facing = null,
             Topic = null,
         };
+    }
+
+    /// <summary>What the run really runs on, read back from the window, the renderer and the export.</summary>
+    private BenchmarkEnvironment BenchEnvironment()
+    {
+        var beside = Path.Combine(Path.GetDirectoryName(OS.GetExecutablePath()) ?? string.Empty, "build.txt");
+        var build = OS.HasFeature("editor") || !File.Exists(beside) ? "dev" : File.ReadAllText(beside);
+        return new BenchmarkEnvironment(
+            Size(),
+            DisplayServer.WindowGetMode().ToString(),
+            DisplayServer.WindowGetVsyncMode().ToString(),
+            Engine.MaxFps,
+            RenderingServer.GetVideoAdapterName(),
+            _benchDriver,
+            RenderingServer.GetVideoAdapterApiVersion(),
+            build);
     }
 
     private static string Size()
