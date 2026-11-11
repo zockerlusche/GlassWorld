@@ -2569,6 +2569,62 @@
     {
       "key": "msg.hint.questions_many",
       "text": "{name} is wondering about several things."
+    },
+    {
+      "key": "ui.question.reason.unknown_object.female",
+      "text": "In front of {name} lies something they do not know yet: {thing}."
+    },
+    {
+      "key": "ui.question.reason.unknown_object.male",
+      "text": "In front of {name} lies something they do not know yet: {thing}."
+    },
+    {
+      "key": "ui.question.reason.unknown_inhabitant.female",
+      "text": "{name} sees someone whose name they do not know yet."
+    },
+    {
+      "key": "ui.question.reason.unknown_inhabitant.male",
+      "text": "{name} sees someone whose name they do not know yet."
+    },
+    {
+      "key": "ui.question.reason.noticed_player.female",
+      "text": "{name} noticed you - you clicked on them or spoke to them."
+    },
+    {
+      "key": "ui.question.reason.noticed_player.male",
+      "text": "{name} noticed you - you clicked on them or spoke to them."
+    },
+    {
+      "key": "ui.question.reason.other.female",
+      "text": "They will find the answer themselves - in the computing night at the latest."
+    },
+    {
+      "key": "ui.question.reason.other.male",
+      "text": "They will find the answer themselves - in the computing night at the latest."
+    },
+    {
+      "key": "ui.question.answer_hint.female",
+      "text": "Whisper something to them …"
+    },
+    {
+      "key": "ui.question.answer_hint.male",
+      "text": "Whisper something to them …"
+    },
+    {
+      "key": "ui.card.questions.female",
+      "text": "On their mind right now: {count}"
+    },
+    {
+      "key": "ui.card.questions.male",
+      "text": "On their mind right now: {count}"
+    },
+    {
+      "key": "ui.card.musing.female",
+      "text": "What occupies them"
+    },
+    {
+      "key": "ui.card.musing.male",
+      "text": "What occupies them"
     }
   ]
 }
