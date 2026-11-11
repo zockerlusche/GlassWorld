@@ -92,9 +92,32 @@ public sealed class DecisionsSystem : IWorldSystem
     /// </summary>
     public Func<string, LocalizedName?>? InventedName { get; set; }
 
-    /// <summary>Whether the inhabitant has an open question about a type (W1595; the routine waits for the answer).</summary>
+    /// <summary>Whether the inhabitant has an open question about a type, out with the decider or waiting.</summary>
     public bool HasOpenQuestion(string inhabitantId, string typeId) =>
         _openOf.TryGetValue(inhabitantId, out var questions) && HasSubject(questions, TypeSubject, typeId);
+
+    /// <summary>
+    /// Whether a question of the inhabitant about a type is out with the decider right now (W1595: the routine
+    /// waits for that answer, A1551). A question that only waits - held back, for the night, or for its next
+    /// try after an error - is not out: nobody is working on an answer, so the routine is not kept waiting.
+    /// </summary>
+    public bool IsAskingAbout(string inhabitantId, string typeId)
+    {
+        if (!_openOf.TryGetValue(inhabitantId, out var questions))
+        {
+            return false;
+        }
+
+        foreach (var question in questions)
+        {
+            if (question.RequestId.Length > 0 && question.RetryAtTick is null && IsSubject(question.Subject, TypeSubject, typeId))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     /// <summary>Trigger: an object type without any belief.</summary>
     public const string UnknownObject = "unknown_object";
@@ -412,7 +435,7 @@ public sealed class DecisionsSystem : IWorldSystem
                     continue;
                 }
 
-                var unknown = NearestUnknown(inhabitant);
+                var unknown = NearestUnknown(world, inhabitant);
                 if (unknown is not null)
                 {
                     Ask(world, inhabitant, UnknownObject, "type:" + unknown.TypeId, unknown);
@@ -656,12 +679,14 @@ public sealed class DecisionsSystem : IWorldSystem
     }
 
     /// <summary>
-    /// The nearest perceived object whose type the inhabitant has no belief about (ties by id). This runs
+    /// The nearest perceived object whose type the inhabitant has no belief about and may ask about now (ties by
+    /// id): a type it is already asking about or cooling down on does not hide a second unknown thing a little
+    /// farther away (A1551, as for strangers since #207). This runs
     /// every tick for every inhabitant that has room for a question, so it walks only the objects of the
     /// types the inhabitant knows nothing about (none at all once it knows something about every kind of
     /// thing there is), without sorting.
     /// </summary>
-    private WorldObject? NearestUnknown(Inhabitant inhabitant)
+    private WorldObject? NearestUnknown(World world, Inhabitant inhabitant)
     {
         var radiusSquared = _inhabitants.SightRadiusM * _inhabitants.SightRadiusM;
         WorldObject? best = null;
@@ -676,17 +701,27 @@ public sealed class DecisionsSystem : IWorldSystem
                 continue;
             }
 
+            WorldObject? nearest = null;
+            var nearestDistance = double.MaxValue;
             for (var i = 0; i < objects.Count; i++)
             {
                 var obj = objects[i];
                 var dx = obj.Position.X - position.X;
                 var dz = obj.Position.Z - position.Z;
                 var d = (dx * dx) + (dz * dz);
-                if (d <= radiusSquared && (d < bestDistance || (d == bestDistance && string.CompareOrdinal(obj.Id, best!.Id) < 0)))
+                if (d <= radiusSquared && (d < nearestDistance || (d == nearestDistance && string.CompareOrdinal(obj.Id, nearest!.Id) < 0)))
                 {
-                    best = obj;
-                    bestDistance = d;
+                    nearest = obj;
+                    nearestDistance = d;
                 }
+            }
+
+            if (nearest is not null
+                && (nearestDistance < bestDistance || (nearestDistance == bestDistance && string.CompareOrdinal(nearest.Id, best!.Id) < 0))
+                && MayAsk(world, inhabitant, TypeSubject + nearest.TypeId, UnknownObject))
+            {
+                best = nearest;
+                bestDistance = nearestDistance;
             }
         }
 
@@ -798,8 +833,7 @@ public sealed class DecisionsSystem : IWorldSystem
     {
         foreach (var question in questions)
         {
-            var subject = question.Subject;
-            if (subject.Length == prefix.Length + id.Length && subject.StartsWith(prefix, StringComparison.Ordinal) && subject.EndsWith(id, StringComparison.Ordinal))
+            if (IsSubject(question.Subject, prefix, id))
             {
                 return true;
             }
@@ -807,6 +841,10 @@ public sealed class DecisionsSystem : IWorldSystem
 
         return false;
     }
+
+    /// <summary>Whether a subject is <paramref name="prefix"/> followed by <paramref name="id"/> (without building that string).</summary>
+    private static bool IsSubject(string subject, string prefix, string id) =>
+        subject.Length == prefix.Length + id.Length && subject.StartsWith(prefix, StringComparison.Ordinal) && subject.EndsWith(id, StringComparison.Ordinal);
 
     /// <summary>Adds an open question. With <see cref="SetOpen"/> and <see cref="RemoveOpen"/> the only way to write <see cref="_open"/>.</summary>
     private void AddOpen(OpenQuestion question)

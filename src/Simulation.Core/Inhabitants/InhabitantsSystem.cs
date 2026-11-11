@@ -422,8 +422,9 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     public IReadOnlySet<string> EventKinds { get; init; } = new HashSet<string>(StringComparer.Ordinal);
 
     /// <summary>
-    /// Whether an inhabitant has an open question to the AI about a type (W1595); set by the decisions
-    /// system. While it is open the routine leaves the listed actions on that type alone.
+    /// Whether a question of an inhabitant about a type is out with the AI right now (W1595, A1551); set by the
+    /// decisions system. While it is out the routine leaves the listed actions on that type alone; a question
+    /// that only waits (held back, for the night, for its next try) keeps nothing back.
     /// </summary>
     public Func<string, string, bool>? QuestionOpen { get; set; }
 
