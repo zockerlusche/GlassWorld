@@ -308,7 +308,8 @@ def test_extra_scene_arguments_are_shown_and_never_the_acceptance_run(tmp_path: 
     assert r.invalid == ["zusätzliche Szenen-Argumente: --preset=small --speed=4"]
     text = BM.report([r], MARKS, {"extra": ["--preset=small", "--speed=4"]})
     assert "**Zusätzliche Szenen-Argumente:** --preset=small --speed=4" in text
-    assert "**Zusätzliche Szenen-Argumente:** keine" in BM.report([r], MARKS, {})
+    assert "**Zusätzliche Szenen-Argumente:** keine" in BM.report([r], MARKS, {"extra": []})
+    assert "**Zusätzliche Szenen-Argumente:** nicht bekannt" in BM.report([r], MARKS, {})
 
 
 def _runs(pid: int) -> bool:
@@ -384,3 +385,19 @@ def test_no_further_pass_is_started_after_one_ran_over_its_time(
     )
     assert code == BM.EXIT_FAILED and len(started) == 1
     assert "Lauf endete mit Fehler (124)" in (out / "report.md").read_text("utf-8")
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="job objects are a Windows matter")
+def test_without_the_job_the_tool_says_so_and_still_ends_its_child(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Review GW1 #232 A: a failed assignment went unnoticed, and end() ended nothing."""
+    import os
+
+    group = BM.ProcessGroup()
+    monkeypatch.setattr(group._k32, "AssignProcessToJobObject", lambda job, handle: 0)
+    child = group.start([sys.executable, "-c", "import time; time.sleep(120)"], dict(os.environ))
+    assert "BENCH_MEASURE_WARN" in capsys.readouterr().err
+    assert child.poll() is None
+    group.end()
+    assert child.poll() is not None

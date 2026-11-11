@@ -15,9 +15,9 @@ It writes `report.md` for an AMW document. A window on the screen: only as an AM
         --note "export of main <sha>"
     uv run python tools/bench/measure.py --evaluate-only --out ../bench   # judge again
 
-Arguments for the scene go after `--` (e.g. `-- --quality=high`, or `-- --bench-seconds=5` for a
-dry run, which is reported as shortened and never passes). The output folder must be outside the
-repository; an earlier run's folder or report is kept under a new name (rule PR4).
+Arguments for the scene go after `--` (e.g. `-- --bench-seconds=5` for a dry run). Any such
+argument is shown in the report and makes every pass invalid: the acceptance run has none.
+The output folder must be outside the repository; an earlier run's folder or report is kept under a new name (rule PR4).
 Exit code 0: every pass measured and within marks and budget. 3: measured, but a mark or the budget
 is missed. 1: a run failed or something was not measured as required. (2 is a usage error.)
 """
@@ -331,7 +331,8 @@ def report(results: list[PassResult], marks: Marks, meta: dict[str, Any]) -> str
         + (", ".join(dict.fromkeys(r.build for r in results if r.build != "?")) or "?")
         + "; "
         + (", ".join(dict.fromkeys(r.driver for r in results if r.driver != "?")) or "?"),
-        "- **Zusätzliche Szenen-Argumente:** " + (" ".join(meta.get("extra") or []) or "keine"),
+        "- **Zusätzliche Szenen-Argumente:** "
+        + (" ".join(meta.get("extra") or []) or ("keine" if "extra" in meta else "nicht bekannt")),
         f"- **Szene laut Daten:** Seed {marks.seed}, Qualität {marks.quality}, Aufwärmzeit "
         f"{marks.warmup_s:g} s. Die erste Auflösung der Liste ist die Abnahme-Auflösung.",
         f"- **Marken:** im Mittel mindestens {marks.mean_fps:g} Bilder je Sekunde, 95 % der "
@@ -519,6 +520,9 @@ class ProcessGroup:
             self._k32.AssignProcessToJobObject.argtypes = [wintypes.HANDLE, wintypes.HANDLE]
             self._k32.TerminateJobObject.argtypes = [wintypes.HANDLE, wintypes.UINT]
             self._k32.CloseHandle.argtypes = [wintypes.HANDLE]
+            self._ntdll = ctypes.WinDLL("ntdll")
+            self._ntdll.NtResumeProcess.argtypes = [wintypes.HANDLE]
+            self._ntdll.NtResumeProcess.restype = ctypes.c_long
             job = self._k32.CreateJobObjectW(None, None)
             info = Extended()
             info.BasicLimitInformation.LimitFlags = 0x2000  # JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
@@ -530,9 +534,23 @@ class ProcessGroup:
     def start(self, command: list[str], env: dict[str, str]) -> subprocess.Popen[bytes]:
         """Starts the command inside the group; what it starts later belongs to the group too."""
         if os.name == "nt":
-            child = subprocess.Popen(command, env=env)
-            if self._job is not None:
-                self._k32.AssignProcessToJobObject(self._job, int(child._handle))  # type: ignore[attr-defined]
+            # Started suspended, put into the job, then resumed: nothing it starts can be outside
+            # the job (with an assignment after a running start a quick child escaped, review
+            # GW1 #232 B).
+            child = subprocess.Popen(command, env=env, creationflags=0x00000004)  # CREATE_SUSPENDED
+            handle = int(child._handle)  # type: ignore[attr-defined]
+            if self._job is not None and not self._k32.AssignProcessToJobObject(self._job, handle):
+                # Without the job only the old way is left (taskkill by parent ids): say so.
+                print(
+                    "BENCH_MEASURE_WARN: no job object for the benchmark, ending it may leave "
+                    "the game running",
+                    file=sys.stderr,
+                )
+                self._k32.CloseHandle(self._job)
+                self._job = None
+            if self._ntdll.NtResumeProcess(handle) != 0:
+                child.kill()
+                raise OSError("the benchmark could not be resumed after its suspended start")
         else:
             child = subprocess.Popen(command, env=env, start_new_session=True)
         self._child = child
@@ -547,7 +565,10 @@ class ProcessGroup:
                 self._k32.CloseHandle(self._job)
                 self._job = None
             elif child is not None and child.poll() is None:
-                child.kill()
+                command = ["taskkill", "/T", "/F", "/PID", str(child.pid)]
+                subprocess.run(command, capture_output=True, check=False)
+                if child.poll() is None:
+                    child.kill()
         elif child is not None:
             import signal
 
