@@ -201,7 +201,10 @@ public sealed class OneThingAtATimeTests : IDisposable
         thirsty.Objects.Spawn(Second, new Position(3, 0));
         thirsty.World.Run(5);
         Assert.Equal(0, thirsty.Requests);
-        Assert.Equal(string.Empty, Assert.Single(thirsty.Decisions.Open).RequestId);
+
+        // Every question waits - the one about the thing nearby, and (A1551) the one about the spring as well.
+        Assert.Contains(thirsty.Decisions.Open, q => q.Subject == "type:" + Second);
+        Assert.All(thirsty.Decisions.Open, q => Assert.Equal(string.Empty, q.RequestId));
     }
 
     [Fact]

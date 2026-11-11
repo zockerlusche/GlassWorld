@@ -378,18 +378,21 @@ public sealed class BuildingTests : IDisposable
         var port = new ScriptedJobPort();
         var host = World(port, seed);
         var limit = (Content.Value.Inventions.Settings.Trigger.HoursBelow + 2) * host.World.Calendar.Settings.TicksPerHour;
-        for (var i = 0; i < limit && port.Submitted.Count == 0; i++)
+        // Other jobs may go out first (a memory job about what the inventor tried); the invention job is the one.
+        for (var i = 0; i < limit && !port.Submitted.Any(j => j.Kind == JobKind.Invention); i++)
         {
             host.World.Step();
         }
 
-        var job = Assert.Single(port.Submitted);
+        var job = Assert.Single(port.Submitted, j => j.Kind == JobKind.Invention);
         var approved = Approved(job);
         approved.Result!.Invention!.Sound!.Needed = needsSound;
         port.Answer(job, approved);
         host.World.Step();
         var typeId = InventionSystem.TypeIdFor(job.RequestId);
-        Assert.True(host.Types.Contains(typeId));
+        Assert.True(
+            host.Types.Contains(typeId),
+            "not registered; job log: " + string.Join(" | ", host.Inventions.Log.Entries.Select(e => $"{e.Kind}:{e.Note}")));
         return (host, port, typeId);
     }
 

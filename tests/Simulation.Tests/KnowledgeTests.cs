@@ -125,6 +125,25 @@ public sealed class KnowledgeTests : IDisposable
     }
 
     [Fact]
+    public void AQuestionThatOnlyWaitsForItsNextTryDoesNotKeepTheRoutineFromEating()
+    {
+        // A1551: the decider answers every request with a retryable error, so the question is out only for a
+        // moment and then waits for its next try - nobody is working on an answer, so the routine is free.
+        var w = Hungry(NewWorld(new ErrorPort()));
+        var started = new List<WorldEvent>();
+        w.Inhabitants.Reported += started.Add;
+        RunUntil(w.World, () => started.Any(e => e.Kind == InhabitantsSystem.ActionStarted && e.Action == "eat"), 2_000);
+
+        var eat = Assert.Single(started, e => e.Kind == InhabitantsSystem.ActionStarted && e.Action == "eat");
+        Assert.Equal("inh-000001", eat.InhabitantId);
+        Assert.Contains(w.Decisions.Log.Entries, e => e.Kind == DecisionLogKind.Error);
+        var question = Assert.Single(w.Decisions.Open, q => q.InhabitantId == "inh-000001" && q.Subject == "type:blue_berry");
+        Assert.NotNull(question.RetryAtTick);
+        Assert.True(w.Decisions.HasOpenQuestion("inh-000001", "blue_berry"));
+        Assert.False(w.Decisions.IsAskingAbout("inh-000001", "blue_berry"));
+    }
+
+    [Fact]
     public void TheDeciderGetsBeliefsWithTheirSourceButNeverTheTruth()
     {
         var w = NewWorld(new SilentPort());
@@ -362,7 +381,7 @@ public sealed class KnowledgeTests : IDisposable
         {
             Knowledge = knowledge,
         };
-        inhabitants.QuestionOpen = decisions.HasOpenQuestion;
+        inhabitants.QuestionOpen = decisions.IsAskingAbout;
         world.Add(objects).Add(decisions).Add(inhabitants);
         inhabitants.SpawnStartInhabitants(world, [new Position(0, 0), new Position(4, 0), new Position(1000, 0), new Position(0, 1000)]);
         return (world, objects, inhabitants, decisions);
@@ -419,6 +438,26 @@ public sealed class KnowledgeTests : IDisposable
                 return [];
             }
 
+            var ready = _ready.ToList();
+            _ready.Clear();
+            return ready;
+        }
+    }
+
+    /// <summary>A decider that answers every request with a retryable error at the next tick.</summary>
+    private sealed class ErrorPort : IDecisionPort
+    {
+        private readonly List<PortMessage> _ready = [];
+
+        public void Send(string requestId, string requestJson)
+        {
+            var request = ContractSerializer.Deserialize<DecisionRequest>(requestJson);
+            var error = new ServiceError { ContractVersion = ContractInfo.Version, RequestId = requestId, Tick = request.Tick, Code = ServiceErrorCode.Overloaded, Message = "busy", Retryable = true };
+            _ready.Add(new PortMessage(requestId, ContractSerializer.Serialize(error), true));
+        }
+
+        public IReadOnlyList<PortMessage> Receive(long tick)
+        {
             var ready = _ready.ToList();
             _ready.Clear();
             return ready;

@@ -401,7 +401,7 @@ public sealed class SpacingTests
         {
             Knowledge = Content.Knowledge,
         };
-        inhabitants.QuestionOpen = decisions.HasOpenQuestion;
+        inhabitants.QuestionOpen = decisions.IsAskingAbout;
         world.Add(objects).Add(decisions).Add(inhabitants);
         inhabitants.SpawnStartInhabitants(world, [first, second, new Position(1000, 0), new Position(0, 1000)]);
         Stand(inhabitants.Get("inh-000003"));
