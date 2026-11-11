@@ -1,0 +1,16 @@
+{
+  "contract_version": "0.2",
+  "session": "3f9a1c0b7e2d4a65",
+  "phase": "night",
+  "items": [
+    {
+      "seq": 1,
+      "job_id": "0b9e6c1a-2d3f-4a4b-9c5d-6e7f8091a2b3",
+      "kind": "image",
+      "state": "done",
+      "inhabitant": null,
+      "object_type": "basket",
+      "image": "../outside/basket.png"
+    }
+  ]
+}
