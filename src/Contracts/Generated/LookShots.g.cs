@@ -94,6 +94,13 @@ namespace GlassWorld.Contracts
         public int? TidePermille { get; set; } = default!;
 
         /// <summary>
+        /// Optional: this point is shot with at least this share of the land and coast shown as seen by the player (0..1000), the cloud cover settled; the seen land grows as a round patch around what the inhabitants see. Points are shot in their order and a cover never closes again, so a forced share stays for the points after it. Without it the cover shows what the world has revealed.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("revealed_permille")]
+        public int? RevealedPermille { get; set; } = default!;
+
+        /// <summary>
         /// Optional: the scene finder picks the target near a start instead of the map target (the permille target is the fallback when no spot fits).
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]

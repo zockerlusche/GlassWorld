@@ -8,7 +8,9 @@ namespace GlassWorld.Presentation.World;
 /// optionally an epoch, season and weather. <see cref="SeasonHasLook"/> and <see cref="WeatherHasLook"/>
 /// say whether the presentation data can show that season or weather yet; if not, the picture is
 /// rendered without it and its file name carries <see cref="ShotPlan.NoLookNote"/>. A tide level the
-/// point forces (<c>tide_permille</c>) is read from the point; such points differ by their id.
+/// point forces (<c>tide_permille</c>) and a share of seen land under the cloud cover
+/// (<c>revealed_permille</c>, R25: <see cref="RevealMap.ShowShare"/>) are read from the point; such points
+/// differ by their id.
 /// </summary>
 public sealed record Shot(
     ShotPoint Point,
