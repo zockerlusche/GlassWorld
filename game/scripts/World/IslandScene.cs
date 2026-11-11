@@ -189,11 +189,24 @@ public partial class IslandScene : Node3D
         AddChild(_rig);
         if (Arg("--follow") is { } follow && _shotDirectory is null)
         {
+            // The running world seen like a shot of the point (videos for the visual check, S2): its view and
+            // its share of revealed land; with an inhabitant the camera goes along, without one it stands still.
             var point = _shots.Points.FirstOrDefault(p => p.Id == follow) ?? throw new InvalidDataException($"Unknown shot point '{follow}' for --follow.");
+            if (point.RevealedPermille is { } revealed)
+            {
+                _cover?.ShowShare(revealed);
+            }
+
+            _rig.Model.FovOverride = point.FovDeg;
             if (FigureOf(point) is { } figure)
             {
-                _rig.Model.Set(figure.Position.X, figure.Position.Z, point.YawDeg, point.DistanceM);
+                _rig.Model.Set(figure.Position.X, figure.Position.Z, point.YawDeg, point.DistanceM, point.PitchDeg);
                 _rig.FollowFigure(figure.InhabitantId, point.DistanceM);
+                _rig.Apply();
+            }
+            else if (point.Inhabitant is null)
+            {
+                _rig.Model.Set(_width * point.TargetXPermille / 1000.0, _depth * point.TargetZPermille / 1000.0, point.YawDeg, point.DistanceM, point.PitchDeg);
                 _rig.Apply();
             }
         }
