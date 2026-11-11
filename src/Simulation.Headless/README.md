@@ -178,6 +178,11 @@ holds only as many open questions as the data allows and asks again when one is 
 --answer-every N` measures that: one model that hands over one answer every N ticks (N = 1 is 1.2 answers
 per second at normal speed and 19 per second at x16; N = 16 is 1.2 per second at x16).
 
+When this command was added (11.11.2026, development machine, start island seed 1, one game day) the step
+with 100 inhabitants took 1.14 ms with the silent decider (p95 2.23), 1.49 ms with one answer per 16 ticks (p95 3.77),
+4.72 ms with one answer per tick and 28.30 ms with the mock's flood; one request cost about 3.2 ms, most of
+it the validation of the outgoing JSON against the schema.
+
 ### The report
 
 ```
