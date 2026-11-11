@@ -1,0 +1,1361 @@
+{
+  "id": "b4a-testset",
+  "version": 2,
+  "purpose": "B4a R10 (A1403): knowledge with source and trust, passing it on, first encounter; x N runs with the real model, content-valid >= 95 %, plausibility reported.",
+  "cases": [
+    {
+      "id": "heard_warning_trusted",
+      "description": "Hungry; a trusted person warned that the red berries close by are poisonous; a known apple is further away.",
+      "request": {
+        "contract_version": "0.2",
+        "request_id": "00000000-000b-1403-0000-000000000001",
+        "tick": 1001,
+        "seed": 14031,
+        "deadline_ms": 60000,
+        "display_locale": "de",
+        "inhabitant": {
+          "id": "inh-000001",
+          "needs": [
+            {
+              "id": "company",
+              "value": 0.6
+            },
+            {
+              "id": "fun",
+              "value": 0.6
+            },
+            {
+              "id": "hunger",
+              "value": 0.15
+            },
+            {
+              "id": "purpose",
+              "value": 0.6
+            },
+            {
+              "id": "safety",
+              "value": 0.8
+            },
+            {
+              "id": "sleep",
+              "value": 0.7
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            },
+            {
+              "id": "warmth",
+              "value": 0.8
+            }
+          ],
+          "mood": [],
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.5
+            },
+            {
+              "id": "creativity",
+              "value": 0.5
+            },
+            {
+              "id": "curiosity",
+              "value": 0.5
+            },
+            {
+              "id": "diligence",
+              "value": 0.5
+            },
+            {
+              "id": "kindness",
+              "value": 0.5
+            },
+            {
+              "id": "orderliness",
+              "value": 0.5
+            },
+            {
+              "id": "patience",
+              "value": 0.5
+            },
+            {
+              "id": "sociability",
+              "value": 0.5
+            }
+          ],
+          "will_to_live": 0.7,
+          "memory": {
+            "summary": "",
+            "recent": []
+          },
+          "knowledge": [
+            {
+              "subject": {
+                "kind": "type",
+                "id": "red_berry"
+              },
+              "property": "poisonous",
+              "value": true,
+              "confidence": 0.81,
+              "source": "heard",
+              "told_by": "inh-000002",
+              "tick": 900
+            }
+          ],
+          "relationships": [
+            {
+              "other": "inh-000002",
+              "affection": 0.5,
+              "trust": 0.9,
+              "respect": 0.5
+            }
+          ],
+          "habits": []
+        },
+        "environment": {
+          "time_of_day": "day",
+          "temperature_c": 18.0,
+          "weather": [
+            "clear"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-0001",
+              "type": "red_berry",
+              "distance_m": 3.0,
+              "known_properties": [
+                {
+                  "property": "poisonous",
+                  "value": true,
+                  "confidence": 0.81
+                }
+              ]
+            },
+            {
+              "id": "obj-0002",
+              "type": "apple",
+              "distance_m": 25.0,
+              "known_properties": [
+                {
+                  "property": "edible",
+                  "value": true,
+                  "confidence": 1.0
+                }
+              ]
+            }
+          ],
+          "inhabitants": []
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "eat",
+            "target": "obj-0001",
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "move_to",
+            "target": "obj-0002",
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "inspect",
+            "target": "obj-0001",
+            "partners": []
+          },
+          {
+            "option_id": "o4",
+            "action": "idle",
+            "target": null,
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o2"
+      ]
+    },
+    {
+      "id": "heard_warning_mistrusted",
+      "description": "Hungry; someone it hardly trusts said the red berries are poisonous; a known apple is further away.",
+      "request": {
+        "contract_version": "0.2",
+        "request_id": "00000000-000b-1403-0000-000000000002",
+        "tick": 1002,
+        "seed": 14032,
+        "deadline_ms": 60000,
+        "display_locale": "en",
+        "inhabitant": {
+          "id": "inh-000001",
+          "needs": [
+            {
+              "id": "company",
+              "value": 0.6
+            },
+            {
+              "id": "fun",
+              "value": 0.6
+            },
+            {
+              "id": "hunger",
+              "value": 0.15
+            },
+            {
+              "id": "purpose",
+              "value": 0.6
+            },
+            {
+              "id": "safety",
+              "value": 0.8
+            },
+            {
+              "id": "sleep",
+              "value": 0.7
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            },
+            {
+              "id": "warmth",
+              "value": 0.8
+            }
+          ],
+          "mood": [],
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.5
+            },
+            {
+              "id": "creativity",
+              "value": 0.5
+            },
+            {
+              "id": "curiosity",
+              "value": 0.5
+            },
+            {
+              "id": "diligence",
+              "value": 0.5
+            },
+            {
+              "id": "kindness",
+              "value": 0.5
+            },
+            {
+              "id": "orderliness",
+              "value": 0.5
+            },
+            {
+              "id": "patience",
+              "value": 0.5
+            },
+            {
+              "id": "sociability",
+              "value": 0.5
+            }
+          ],
+          "will_to_live": 0.7,
+          "memory": {
+            "summary": "",
+            "recent": []
+          },
+          "knowledge": [
+            {
+              "subject": {
+                "kind": "type",
+                "id": "red_berry"
+              },
+              "property": "poisonous",
+              "value": true,
+              "confidence": 0.09,
+              "source": "heard",
+              "told_by": "inh-000002",
+              "tick": 900
+            }
+          ],
+          "relationships": [
+            {
+              "other": "inh-000002",
+              "affection": 0.5,
+              "trust": 0.1,
+              "respect": 0.5
+            }
+          ],
+          "habits": []
+        },
+        "environment": {
+          "time_of_day": "day",
+          "temperature_c": 18.0,
+          "weather": [
+            "clear"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-0001",
+              "type": "red_berry",
+              "distance_m": 3.0,
+              "known_properties": [
+                {
+                  "property": "poisonous",
+                  "value": true,
+                  "confidence": 0.09
+                }
+              ]
+            },
+            {
+              "id": "obj-0002",
+              "type": "apple",
+              "distance_m": 25.0,
+              "known_properties": [
+                {
+                  "property": "edible",
+                  "value": true,
+                  "confidence": 1.0
+                }
+              ]
+            }
+          ],
+          "inhabitants": []
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "eat",
+            "target": "obj-0001",
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "move_to",
+            "target": "obj-0002",
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "inspect",
+            "target": "obj-0001",
+            "partners": []
+          },
+          {
+            "option_id": "o4",
+            "action": "idle",
+            "target": null,
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o1",
+        "o2",
+        "o3"
+      ]
+    },
+    {
+      "id": "warn_friend_about_poison",
+      "description": "Knows from own bad experience that red berries are poisonous; a trusted person is next to red berries.",
+      "request": {
+        "contract_version": "0.2",
+        "request_id": "00000000-000b-1403-0000-000000000003",
+        "tick": 1003,
+        "seed": 14033,
+        "deadline_ms": 60000,
+        "display_locale": "de",
+        "inhabitant": {
+          "id": "inh-000001",
+          "needs": [
+            {
+              "id": "company",
+              "value": 0.6
+            },
+            {
+              "id": "fun",
+              "value": 0.6
+            },
+            {
+              "id": "hunger",
+              "value": 0.7
+            },
+            {
+              "id": "purpose",
+              "value": 0.6
+            },
+            {
+              "id": "safety",
+              "value": 0.8
+            },
+            {
+              "id": "sleep",
+              "value": 0.7
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            },
+            {
+              "id": "warmth",
+              "value": 0.8
+            }
+          ],
+          "mood": [],
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.5
+            },
+            {
+              "id": "creativity",
+              "value": 0.5
+            },
+            {
+              "id": "curiosity",
+              "value": 0.5
+            },
+            {
+              "id": "diligence",
+              "value": 0.5
+            },
+            {
+              "id": "kindness",
+              "value": 0.8
+            },
+            {
+              "id": "orderliness",
+              "value": 0.5
+            },
+            {
+              "id": "patience",
+              "value": 0.5
+            },
+            {
+              "id": "sociability",
+              "value": 0.5
+            }
+          ],
+          "will_to_live": 0.7,
+          "memory": {
+            "summary": "",
+            "recent": []
+          },
+          "knowledge": [
+            {
+              "subject": {
+                "kind": "type",
+                "id": "red_berry"
+              },
+              "property": "poisonous",
+              "value": true,
+              "confidence": 1.0,
+              "source": "experienced",
+              "told_by": null,
+              "tick": 900
+            }
+          ],
+          "relationships": [
+            {
+              "other": "inh-000002",
+              "affection": 0.5,
+              "trust": 0.8,
+              "respect": 0.5
+            }
+          ],
+          "habits": []
+        },
+        "environment": {
+          "time_of_day": "day",
+          "temperature_c": 18.0,
+          "weather": [
+            "clear"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-0001",
+              "type": "red_berry",
+              "distance_m": 3.0,
+              "known_properties": []
+            }
+          ],
+          "inhabitants": [
+            {
+              "id": "inh-000002",
+              "distance_m": 4.0
+            }
+          ]
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "warn",
+            "target": "inh-000002",
+            "partners": [],
+            "topic": {
+              "object_type": "red_berry",
+              "name": null,
+              "property": "poisonous",
+              "value": true
+            }
+          },
+          {
+            "option_id": "o2",
+            "action": "approach",
+            "target": "inh-000002",
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "wander",
+            "target": null,
+            "partners": []
+          },
+          {
+            "option_id": "o4",
+            "action": "idle",
+            "target": null,
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o1",
+        "o2"
+      ]
+    },
+    {
+      "id": "show_food_to_hungry_friend",
+      "description": "Knows blue berries are edible; a liked person is nearby; blue berries close.",
+      "request": {
+        "contract_version": "0.2",
+        "request_id": "00000000-000b-1403-0000-000000000004",
+        "tick": 1004,
+        "seed": 14034,
+        "deadline_ms": 60000,
+        "display_locale": "en",
+        "inhabitant": {
+          "id": "inh-000001",
+          "needs": [
+            {
+              "id": "company",
+              "value": 0.6
+            },
+            {
+              "id": "fun",
+              "value": 0.6
+            },
+            {
+              "id": "hunger",
+              "value": 0.7
+            },
+            {
+              "id": "purpose",
+              "value": 0.6
+            },
+            {
+              "id": "safety",
+              "value": 0.8
+            },
+            {
+              "id": "sleep",
+              "value": 0.7
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            },
+            {
+              "id": "warmth",
+              "value": 0.8
+            }
+          ],
+          "mood": [],
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.5
+            },
+            {
+              "id": "creativity",
+              "value": 0.5
+            },
+            {
+              "id": "curiosity",
+              "value": 0.5
+            },
+            {
+              "id": "diligence",
+              "value": 0.5
+            },
+            {
+              "id": "kindness",
+              "value": 0.8
+            },
+            {
+              "id": "orderliness",
+              "value": 0.5
+            },
+            {
+              "id": "patience",
+              "value": 0.5
+            },
+            {
+              "id": "sociability",
+              "value": 0.7
+            }
+          ],
+          "will_to_live": 0.7,
+          "memory": {
+            "summary": "",
+            "recent": []
+          },
+          "knowledge": [
+            {
+              "subject": {
+                "kind": "type",
+                "id": "blue_berry"
+              },
+              "property": "edible",
+              "value": true,
+              "confidence": 1.0,
+              "source": "experienced",
+              "told_by": null,
+              "tick": 900
+            }
+          ],
+          "relationships": [
+            {
+              "other": "inh-000002",
+              "affection": 0.5,
+              "trust": 0.7,
+              "respect": 0.5
+            }
+          ],
+          "habits": []
+        },
+        "environment": {
+          "time_of_day": "day",
+          "temperature_c": 18.0,
+          "weather": [
+            "clear"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-0003",
+              "type": "blue_berry",
+              "distance_m": 2.0,
+              "known_properties": [
+                {
+                  "property": "edible",
+                  "value": true,
+                  "confidence": 1.0
+                }
+              ]
+            }
+          ],
+          "inhabitants": [
+            {
+              "id": "inh-000002",
+              "distance_m": 5.0
+            }
+          ]
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "show",
+            "target": "inh-000002",
+            "partners": [],
+            "topic": {
+              "object_type": "blue_berry",
+              "name": null,
+              "property": "edible",
+              "value": true
+            }
+          },
+          {
+            "option_id": "o2",
+            "action": "teach",
+            "target": "inh-000002",
+            "partners": [],
+            "topic": {
+              "object_type": "blue_berry",
+              "name": null,
+              "property": "edible",
+              "value": true
+            }
+          },
+          {
+            "option_id": "o3",
+            "action": "eat",
+            "target": "obj-0003",
+            "partners": []
+          },
+          {
+            "option_id": "o4",
+            "action": "idle",
+            "target": null,
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o1",
+        "o2",
+        "o3"
+      ]
+    },
+    {
+      "id": "heard_but_tried_otherwise",
+      "description": "Was told blue berries are poisonous, but ate them itself without harm; hungry, blue berries close.",
+      "request": {
+        "contract_version": "0.2",
+        "request_id": "00000000-000b-1403-0000-000000000005",
+        "tick": 1005,
+        "seed": 14035,
+        "deadline_ms": 60000,
+        "display_locale": "de",
+        "inhabitant": {
+          "id": "inh-000001",
+          "needs": [
+            {
+              "id": "company",
+              "value": 0.6
+            },
+            {
+              "id": "fun",
+              "value": 0.6
+            },
+            {
+              "id": "hunger",
+              "value": 0.15
+            },
+            {
+              "id": "purpose",
+              "value": 0.6
+            },
+            {
+              "id": "safety",
+              "value": 0.8
+            },
+            {
+              "id": "sleep",
+              "value": 0.7
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            },
+            {
+              "id": "warmth",
+              "value": 0.8
+            }
+          ],
+          "mood": [],
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.5
+            },
+            {
+              "id": "creativity",
+              "value": 0.5
+            },
+            {
+              "id": "curiosity",
+              "value": 0.5
+            },
+            {
+              "id": "diligence",
+              "value": 0.5
+            },
+            {
+              "id": "kindness",
+              "value": 0.5
+            },
+            {
+              "id": "orderliness",
+              "value": 0.5
+            },
+            {
+              "id": "patience",
+              "value": 0.5
+            },
+            {
+              "id": "sociability",
+              "value": 0.5
+            }
+          ],
+          "will_to_live": 0.7,
+          "memory": {
+            "summary": "",
+            "recent": []
+          },
+          "knowledge": [
+            {
+              "subject": {
+                "kind": "type",
+                "id": "blue_berry"
+              },
+              "property": "edible",
+              "value": true,
+              "confidence": 1.0,
+              "source": "experienced",
+              "told_by": null,
+              "tick": 900
+            }
+          ],
+          "relationships": [],
+          "habits": []
+        },
+        "environment": {
+          "time_of_day": "day",
+          "temperature_c": 18.0,
+          "weather": [
+            "clear"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-0003",
+              "type": "blue_berry",
+              "distance_m": 2.0,
+              "known_properties": [
+                {
+                  "property": "edible",
+                  "value": true,
+                  "confidence": 1.0
+                }
+              ]
+            },
+            {
+              "id": "obj-0002",
+              "type": "apple",
+              "distance_m": 25.0,
+              "known_properties": [
+                {
+                  "property": "edible",
+                  "value": true,
+                  "confidence": 1.0
+                }
+              ]
+            }
+          ],
+          "inhabitants": []
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "eat",
+            "target": "obj-0003",
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "idle",
+            "target": null,
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "move_to",
+            "target": "obj-0002",
+            "partners": []
+          },
+          {
+            "option_id": "o4",
+            "action": "wander",
+            "target": null,
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o1",
+        "o3"
+      ]
+    },
+    {
+      "id": "first_encounter_sociable",
+      "description": "Sociable and curious; sees another person for the first time.",
+      "request": {
+        "contract_version": "0.2",
+        "request_id": "00000000-000b-1403-0000-000000000006",
+        "tick": 1006,
+        "seed": 14036,
+        "deadline_ms": 60000,
+        "display_locale": "en",
+        "inhabitant": {
+          "id": "inh-000001",
+          "needs": [
+            {
+              "id": "company",
+              "value": 0.6
+            },
+            {
+              "id": "fun",
+              "value": 0.6
+            },
+            {
+              "id": "hunger",
+              "value": 0.7
+            },
+            {
+              "id": "purpose",
+              "value": 0.6
+            },
+            {
+              "id": "safety",
+              "value": 0.8
+            },
+            {
+              "id": "sleep",
+              "value": 0.7
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            },
+            {
+              "id": "warmth",
+              "value": 0.8
+            }
+          ],
+          "mood": [],
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.5
+            },
+            {
+              "id": "creativity",
+              "value": 0.5
+            },
+            {
+              "id": "curiosity",
+              "value": 0.8
+            },
+            {
+              "id": "diligence",
+              "value": 0.5
+            },
+            {
+              "id": "kindness",
+              "value": 0.5
+            },
+            {
+              "id": "orderliness",
+              "value": 0.5
+            },
+            {
+              "id": "patience",
+              "value": 0.5
+            },
+            {
+              "id": "sociability",
+              "value": 0.85
+            }
+          ],
+          "will_to_live": 0.7,
+          "memory": {
+            "summary": "",
+            "recent": []
+          },
+          "knowledge": [],
+          "relationships": [],
+          "habits": []
+        },
+        "environment": {
+          "time_of_day": "day",
+          "temperature_c": 18.0,
+          "weather": [
+            "clear"
+          ]
+        },
+        "perception": {
+          "objects": [],
+          "inhabitants": [
+            {
+              "id": "inh-000002",
+              "distance_m": 12.0
+            }
+          ]
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "approach",
+            "target": "inh-000002",
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "introduce",
+            "target": "inh-000002",
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "talk_to",
+            "target": "inh-000002",
+            "partners": []
+          },
+          {
+            "option_id": "o4",
+            "action": "idle",
+            "target": null,
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o1",
+        "o2",
+        "o3"
+      ]
+    },
+    {
+      "id": "only_food_warning_trusted",
+      "description": "Very hungry; a trusted person said the red berries close by are poisonous; no other food in sight.",
+      "request": {
+        "contract_version": "0.2",
+        "request_id": "00000000-000b-1403-0000-000000000007",
+        "tick": 1007,
+        "seed": 14037,
+        "deadline_ms": 60000,
+        "display_locale": "de",
+        "inhabitant": {
+          "id": "inh-000001",
+          "needs": [
+            {
+              "id": "company",
+              "value": 0.6
+            },
+            {
+              "id": "fun",
+              "value": 0.6
+            },
+            {
+              "id": "hunger",
+              "value": 0.05
+            },
+            {
+              "id": "purpose",
+              "value": 0.6
+            },
+            {
+              "id": "safety",
+              "value": 0.8
+            },
+            {
+              "id": "sleep",
+              "value": 0.7
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            },
+            {
+              "id": "warmth",
+              "value": 0.8
+            }
+          ],
+          "mood": [],
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.5
+            },
+            {
+              "id": "creativity",
+              "value": 0.5
+            },
+            {
+              "id": "curiosity",
+              "value": 0.5
+            },
+            {
+              "id": "diligence",
+              "value": 0.5
+            },
+            {
+              "id": "kindness",
+              "value": 0.5
+            },
+            {
+              "id": "orderliness",
+              "value": 0.5
+            },
+            {
+              "id": "patience",
+              "value": 0.5
+            },
+            {
+              "id": "sociability",
+              "value": 0.5
+            }
+          ],
+          "will_to_live": 0.7,
+          "memory": {
+            "summary": "",
+            "recent": []
+          },
+          "knowledge": [
+            {
+              "subject": {
+                "kind": "type",
+                "id": "red_berry"
+              },
+              "property": "poisonous",
+              "value": true,
+              "confidence": 0.81,
+              "source": "heard",
+              "told_by": "inh-000002",
+              "tick": 900
+            }
+          ],
+          "relationships": [
+            {
+              "other": "inh-000002",
+              "affection": 0.5,
+              "trust": 0.9,
+              "respect": 0.5
+            }
+          ],
+          "habits": []
+        },
+        "environment": {
+          "time_of_day": "day",
+          "temperature_c": 18.0,
+          "weather": [
+            "clear"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-0001",
+              "type": "red_berry",
+              "distance_m": 3.0,
+              "known_properties": [
+                {
+                  "property": "poisonous",
+                  "value": true,
+                  "confidence": 0.81
+                }
+              ]
+            }
+          ],
+          "inhabitants": []
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "eat",
+            "target": "obj-0001",
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "inspect",
+            "target": "obj-0001",
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "wander",
+            "target": null,
+            "partners": []
+          },
+          {
+            "option_id": "o4",
+            "action": "idle",
+            "target": null,
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o2",
+        "o3"
+      ]
+    },
+    {
+      "id": "only_food_warning_mistrusted",
+      "description": "Very hungry; someone it hardly trusts said the red berries close by are poisonous; no other food in sight.",
+      "request": {
+        "contract_version": "0.2",
+        "request_id": "00000000-000b-1403-0000-000000000008",
+        "tick": 1008,
+        "seed": 14038,
+        "deadline_ms": 60000,
+        "display_locale": "de",
+        "inhabitant": {
+          "id": "inh-000001",
+          "needs": [
+            {
+              "id": "company",
+              "value": 0.6
+            },
+            {
+              "id": "fun",
+              "value": 0.6
+            },
+            {
+              "id": "hunger",
+              "value": 0.05
+            },
+            {
+              "id": "purpose",
+              "value": 0.6
+            },
+            {
+              "id": "safety",
+              "value": 0.8
+            },
+            {
+              "id": "sleep",
+              "value": 0.7
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            },
+            {
+              "id": "warmth",
+              "value": 0.8
+            }
+          ],
+          "mood": [],
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.5
+            },
+            {
+              "id": "creativity",
+              "value": 0.5
+            },
+            {
+              "id": "curiosity",
+              "value": 0.5
+            },
+            {
+              "id": "diligence",
+              "value": 0.5
+            },
+            {
+              "id": "kindness",
+              "value": 0.5
+            },
+            {
+              "id": "orderliness",
+              "value": 0.5
+            },
+            {
+              "id": "patience",
+              "value": 0.5
+            },
+            {
+              "id": "sociability",
+              "value": 0.5
+            }
+          ],
+          "will_to_live": 0.7,
+          "memory": {
+            "summary": "",
+            "recent": []
+          },
+          "knowledge": [
+            {
+              "subject": {
+                "kind": "type",
+                "id": "red_berry"
+              },
+              "property": "poisonous",
+              "value": true,
+              "confidence": 0.09,
+              "source": "heard",
+              "told_by": "inh-000002",
+              "tick": 900
+            }
+          ],
+          "relationships": [
+            {
+              "other": "inh-000002",
+              "affection": 0.5,
+              "trust": 0.1,
+              "respect": 0.5
+            }
+          ],
+          "habits": []
+        },
+        "environment": {
+          "time_of_day": "day",
+          "temperature_c": 18.0,
+          "weather": [
+            "clear"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-0001",
+              "type": "red_berry",
+              "distance_m": 3.0,
+              "known_properties": [
+                {
+                  "property": "poisonous",
+                  "value": true,
+                  "confidence": 0.09
+                }
+              ]
+            }
+          ],
+          "inhabitants": []
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "eat",
+            "target": "obj-0001",
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "inspect",
+            "target": "obj-0001",
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "wander",
+            "target": null,
+            "partners": []
+          },
+          {
+            "option_id": "o4",
+            "action": "idle",
+            "target": null,
+            "partners": []
+          }
+        ]
+      },
+      "plausible_option_ids": [
+        "o1",
+        "o2",
+        "o3"
+      ]
+    }
+  ]
+}
