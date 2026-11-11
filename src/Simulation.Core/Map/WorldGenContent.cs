@@ -38,16 +38,33 @@ public sealed class WorldGenContent
     /// <summary>Climates by id (content/climate).</summary>
     public IReadOnlyDictionary<string, ClimateSettings> Climates { get; }
 
+    /// <summary>
+    /// The personal space of the inhabitants in centimetres (spacing.min_separation_m of
+    /// content/behaviour/gaits.json, W1695): the two start cells of a pair lie at least this far apart, so
+    /// nobody starts inside the other. 0 = different cells only.
+    /// </summary>
+    public int StartSeparationCm { get; private init; }
+
     /// <summary>Biome ids in table order (the index a <see cref="MapCell"/> stores).</summary>
     public IReadOnlyList<string> BiomeIds => [.. Biomes.Biomes.Select(b => b.Id)];
 
     /// <summary>Loads and cross-checks the world data of a content folder.</summary>
+    /// <param name="contentDirectory">The content folder.</param>
+    /// <param name="vocabularies">The vocabularies the data refers to.</param>
+    /// <param name="objects">The object catalogue.</param>
+    /// <param name="calendar">The calendar (weather events).</param>
+    /// <param name="minSeparationM">
+    /// The personal space of the inhabitants in metres (spacing.min_separation_m of the gaits data; 0 =
+    /// none). Required, so no caller builds the world data without it.
+    /// </param>
     public static WorldGenContent Load(
         string contentDirectory,
         IReadOnlyDictionary<VocabularyKind, Vocabulary> vocabularies,
         ObjectCatalog objects,
-        WorldCalendar calendar)
+        WorldCalendar calendar,
+        double minSeparationM)
     {
+        ArgumentOutOfRangeException.ThrowIfNegative(minSeparationM);
         ArgumentNullException.ThrowIfNull(vocabularies);
         ArgumentNullException.ThrowIfNull(objects);
         ArgumentNullException.ThrowIfNull(calendar);
@@ -153,7 +170,11 @@ public sealed class WorldGenContent
             presets.ToDictionary(p => p.Id, StringComparer.Ordinal),
             biomes,
             spawns,
-            climates.ToDictionary(c => c.Id, StringComparer.Ordinal));
+            climates.ToDictionary(c => c.Id, StringComparer.Ordinal))
+        {
+            // Rounded up to whole centimetres, so the cells lie at least the data distance apart.
+            StartSeparationCm = (int)Math.Ceiling((minSeparationM * 100) - 1e-9),
+        };
     }
 
     private static HashSet<string> Ids(IReadOnlyDictionary<VocabularyKind, Vocabulary> vocabularies, VocabularyKind kind) =>

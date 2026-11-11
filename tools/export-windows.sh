@@ -72,6 +72,13 @@ if ! "$GODOT" --headless --path "$GAME" --export-release "Windows Desktop" "$OUT
 fi
 rm -rf "$OUT/content"
 cp -r "$ROOT/content" "$OUT/content"
+# Build id beside the executable: the commit, marked when the working tree differs from it. The benchmark
+# prints it (BENCH_ENV build=…), so a measurement names the build it ran on.
+BUILD="$(git -C "$ROOT" rev-parse --short=12 HEAD 2>/dev/null || echo unknown)"
+if [[ -n "$(git -C "$ROOT" status --porcelain 2>/dev/null)" ]]; then
+  BUILD="$BUILD-dirty"
+fi
+printf '%s\n' "$BUILD" > "$OUT/build.txt"
 
 LOG="$(mktemp)"
 GLASSWORLD_WORLD="$WORLD" timeout 120 "$OUT/GlassWorld.exe" --headless -- --smoke-frames=120 >"$LOG" 2>&1 || true

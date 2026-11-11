@@ -183,4 +183,38 @@ public sealed class BenchmarkTests
 
     private static LookBenchmark Data() =>
         ContractSerializer.Deserialize<LookBenchmark>(File.ReadAllText(Path.Combine(TestPaths.Root, "content", "look", "benchmark.json")));
+
+    [Fact]
+    public void TheClockStartsWithTheFirstFrameSoASlowStartIsNoWarmUp()
+    {
+        var clock = new BenchmarkClock();
+
+        // The first frame comes eight seconds after the process began: nothing has passed yet.
+        Assert.Equal(0, clock.Step(8_000_000));
+        Assert.Equal(0, clock.ElapsedS);
+
+        Assert.Equal(12.5, clock.Step(8_012_500));
+        Assert.Equal(20, clock.Step(8_032_500));
+        Assert.Equal(0.0325, clock.ElapsedS, 9);
+
+        // A time that does not move on is no frame time.
+        Assert.Equal(0, clock.Step(8_032_500));
+    }
+
+    [Fact]
+    public void TheEnvironmentLineSplitsAtSpacesWhateverTheDriverIsCalled()
+    {
+        var line = new BenchmarkEnvironment("3840x1600", "ExclusiveFullscreen", "Disabled", 0, "NVIDIA GeForce RTX 3080", "nvidia 32.0.15.6094", "1.3.280", "661e11f5\n").Line();
+
+        Assert.Equal("BENCH_ENV size=3840x1600 mode=ExclusiveFullscreen vsync=Disabled max_fps=0 adapter=NVIDIA_GeForce_RTX_3080 driver=nvidia_32.0.15.6094 api=1.3.280 build=661e11f5", line);
+        Assert.All(line.Split(' ')[1..], pair => Assert.Single(pair, '='));
+    }
+
+    [Fact]
+    public void AnEnvironmentValueThatIsMissingReadsUnknown()
+    {
+        var line = new BenchmarkEnvironment("1920x1080", "Windowed", "Disabled", 0, string.Empty, " ", "a=b", "dev").Line();
+
+        Assert.Contains(" adapter=unknown driver=unknown api=a-b build=dev", line, StringComparison.Ordinal);
+    }
 }
