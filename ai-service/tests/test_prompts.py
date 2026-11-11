@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pytest
 
@@ -297,7 +297,7 @@ def test_no_prompt_in_use_names_a_thing_of_the_world() -> None:
     flat: dict[str, object] = {}
     for key, value in config.items():
         if isinstance(value, dict):
-            flat.update(value)
+            flat.update(cast(dict[str, object], value))
         else:
             flat[key] = value
     catalog = json.loads((REPO / "content/objects/start-catalog.json").read_text(encoding="utf-8"))
