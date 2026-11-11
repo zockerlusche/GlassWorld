@@ -112,7 +112,7 @@ def points(save: Path, extent_m: float, close_m: float) -> list[dict[str, Any]]:
         }
     )
     # The survey looks at the land itself: every shot shows it without the cloud cover that lies
-    # over what nobody has explored yet (otherwise the shot tool shows the cover as the world has it).
+    # over what nobody has explored yet (otherwise the shot tool shows the cover as it is).
     for point in found:
         point.setdefault("revealed_permille", 1000)
     return found
