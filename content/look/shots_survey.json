@@ -30,8 +30,8 @@
     },
     {
       "id": "obj_blue_berry",
-      "target_x_permille": 112,
-      "target_z_permille": 430,
+      "target_x_permille": 122,
+      "target_z_permille": 435,
       "yaw_deg": 30,
       "distance_m": 3.0,
       "pitch_deg": 24,
@@ -39,8 +39,8 @@
     },
     {
       "id": "obj_brown_mushroom",
-      "target_x_permille": 195,
-      "target_z_permille": 622,
+      "target_x_permille": 117,
+      "target_z_permille": 633,
       "yaw_deg": 30,
       "distance_m": 3.0,
       "pitch_deg": 24,
@@ -147,8 +147,8 @@
     },
     {
       "id": "obj_hazelnut",
-      "target_x_permille": 846,
-      "target_z_permille": 331,
+      "target_x_permille": 60,
+      "target_z_permille": 383,
       "yaw_deg": 30,
       "distance_m": 3.0,
       "pitch_deg": 24,
@@ -156,8 +156,8 @@
     },
     {
       "id": "obj_healing_herb",
-      "target_x_permille": 190,
-      "target_z_permille": 477,
+      "target_x_permille": 133,
+      "target_z_permille": 534,
       "yaw_deg": 30,
       "distance_m": 3.0,
       "pitch_deg": 24,
