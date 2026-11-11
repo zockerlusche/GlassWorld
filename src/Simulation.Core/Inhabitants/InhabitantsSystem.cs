@@ -29,6 +29,38 @@ public sealed record WorldEvent(string Kind, long Tick, string InhabitantId, str
     /// itself may be used up by then); null for other events and for actions without a thing.
     /// </summary>
     public string? TargetType { get; init; }
+
+    /// <summary>
+    /// What came of a finished action (<see cref="ActionOutcomes"/>), by the measure of the repetition guard
+    /// (W1696); null for every other event.
+    /// </summary>
+    public string? Outcome { get; init; }
+}
+
+/// <summary>
+/// What the core knows came of a finished action - the two parts of the one measure the repetition guard
+/// uses (W1696): the action's own effect, and what was learned through it. Without both it was "without
+/// effect", which is what the guard counts.
+/// </summary>
+public static class ActionOutcomes
+{
+    /// <summary>The action had its effect: a need, a mood or the will to live changed (by at least the data's min_effect), or the thing was used up.</summary>
+    public const string Done = "done";
+
+    /// <summary>The action changed nothing itself, but something was learned through it (knowledge gained, a name learned).</summary>
+    public const string FoundOut = "found_out";
+
+    /// <summary>Neither: without any effect (what the repetition guard counts).</summary>
+    public const string Nothing = "nothing";
+
+    /// <summary>The outcome for the two parts of the measure.</summary>
+    public static string Of(bool effect, bool learned) => effect ? Done : learned ? FoundOut : Nothing;
+
+    /// <summary>Whether an outcome is one the repetition guard counts as without effect.</summary>
+    public static bool WithoutEffect(string outcome) => string.Equals(outcome, Nothing, StringComparison.Ordinal);
+
+    /// <summary>All outcomes.</summary>
+    public static IReadOnlyList<string> All { get; } = [Done, FoundOut, Nothing];
 }
 
 /// <summary>What an activity or a decider option is aimed at: another inhabitant or an object of the world.</summary>
@@ -309,6 +341,37 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     /// system. While it is open the routine leaves the listed actions on that type alone.
     /// </summary>
     public Func<string, string, bool>? QuestionOpen { get; set; }
+
+    /// <summary>
+    /// The inhabitants' name of an invented type as far as one inhabitant knows it (set by the host once the
+    /// invention system exists); null from it = it knows no name for that type.
+    /// </summary>
+    public Func<Inhabitant, string, LocalizedName?>? InventionNameKnownTo { get; set; }
+
+    /// <summary>
+    /// What an inhabitant calls the subject of a remembered event, by its own knowledge only (GW2 #227):
+    /// another inhabitant's own name once it has learned it (W1698), the name of an invention it knows;
+    /// null when it knows none and for things the data name. Asked when a request or job is built, so a
+    /// name learned after the event is there; never a truth the inhabitant does not know.
+    /// </summary>
+    public LocalizedName? LabelOf(Inhabitant inhabitant, MemoryEntry entry)
+    {
+        ArgumentNullException.ThrowIfNull(inhabitant);
+        ArgumentNullException.ThrowIfNull(entry);
+        if (entry.AboutId is not { } id)
+        {
+            return null;
+        }
+
+        if (entry.AboutKind == AboutInhabitant)
+        {
+            return inhabitant.KnownNames.Contains(id) && _inhabitants.TryGetValue(id, out var other) && other.Name is { } name
+                ? new LocalizedName { De = name, En = name }
+                : null;
+        }
+
+        return entry.AboutKind == AboutType ? InventionNameKnownTo?.Invoke(inhabitant, id) : null;
+    }
 
     /// <summary>Event: an inhabitant now knows or believes something new (B4a R3).</summary>
     public const string KnowledgeGained = "knowledge_gained";
@@ -740,7 +803,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         }
 
         var seq = LastEventSeq;
-        var changed = Finish(world, inhabitant, activity, target);
+        var effect = Finish(world, inhabitant, activity, target);
         if (listener is not null)
         {
             Share(listener, activity.Action);
@@ -749,9 +812,12 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             BondByAction(inhabitant, listener, activity.Action);
         }
 
-        changed |= _history.Reverse().TakeWhile(e => e.Seq > seq).Any(e => e.Event.Kind is KnowledgeGained or NameLearned);
-        var limit = CountRepeat(world, inhabitant, activity, changed);
-        Report(new WorldEvent(ActionFinished, world.Tick, inhabitant.Id, activity.Action, activity.TargetId) { Detail = limit ? RepeatLimit : null, TargetType = target?.TypeId });
+        var learned = _history.Reverse().TakeWhile(e => e.Seq > seq).Any(e => e.Event.Kind is KnowledgeGained or NameLearned);
+
+        // One measure for the repetition guard and for what the inhabitant remembers of the action.
+        var outcome = ActionOutcomes.Of(effect, learned);
+        var limit = CountRepeat(world, inhabitant, activity, changed: !ActionOutcomes.WithoutEffect(outcome));
+        Report(new WorldEvent(ActionFinished, world.Tick, inhabitant.Id, activity.Action, activity.TargetId) { Detail = limit ? RepeatLimit : null, TargetType = target?.TypeId, Outcome = outcome });
         inhabitant.Activity = null;
     }
 

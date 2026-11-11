@@ -95,7 +95,8 @@ internal static class ReplayCommand
             jobLog.Add(entry);
         }
 
-        var jobs = HadJobs(saved.Inventions) ? new ReplayJobPort(jobLog) : null;
+        // Questions that wait for the night (never sent, A1487) exist only in a run with a job port.
+        var jobs = HadJobs(saved.Inventions) || saved.Questions.Any(q => q.RequestId.Length == 0) ? new ReplayJobPort(jobLog) : null;
         var port = new ReplayDecisionPort(decisionLog);
         var host = saved.WorldPreset is null
             ? SimulationHost.CreatePlaceholderWorld(contentDirectory, saved.Seed, port, DecisionsSystem.DefaultDisplayLocale, jobs)

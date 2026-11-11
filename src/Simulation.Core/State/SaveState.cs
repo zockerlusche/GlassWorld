@@ -18,8 +18,11 @@ public sealed record SavedRelation(string Other, double Affection, double Trust,
 /// <summary>An imprinting counter as saved (B4a R6); empty kind and id for an action without a target.</summary>
 public sealed record SavedImprint(string Action, string AboutKind, string AboutId, string TimeOfDay, double Count);
 
-/// <summary>An inhabitant's memory as saved (B4a R5): summary, running number, events and what it has remembered for the first time.</summary>
-public sealed record SavedMemory(string Summary, long LastSeq, IReadOnlyList<MemoryEntry> Events, IReadOnlyList<string> Firsts);
+/// <summary>
+/// An inhabitant's memory as saved (B4a R5): summary, running number, events, what it has remembered for the
+/// first time, and up to which running number its events have gone out to a condensing.
+/// </summary>
+public sealed record SavedMemory(string Summary, long LastSeq, IReadOnlyList<MemoryEntry> Events, IReadOnlyList<string> Firsts, long SealedSeq = 0);
 
 /// <summary>An inhabitant as saved.</summary>
 public sealed record SavedInhabitant(
@@ -178,7 +181,7 @@ public static class StateCodec
                 i.KnownNames.Count > 0 ? [.. i.KnownNames] : null,
                 i.Met.Count > 0 ? [.. i.Met] : null,
                 i.Imprints.Count > 0 ? [.. i.Imprints.Select(p => new SavedImprint(p.Key.Action, p.Key.AboutKind, p.Key.AboutId, p.Key.TimeOfDay, p.Value))] : null,
-                i.Memory.HasState ? new SavedMemory(i.Memory.Summary, i.Memory.LastSeq, [.. i.Memory.Events], [.. i.Memory.Firsts]) : null))],
+                i.Memory.HasState ? new SavedMemory(i.Memory.Summary, i.Memory.LastSeq, [.. i.Memory.Events], [.. i.Memory.Firsts], i.Memory.SealedSeq) : null))],
             counter,
             [.. questions.Select(q => new SavedQuestion(q.Id, q.InhabitantId, q.Kind, q.Subject, q.RequestId, q.AskedTick, [.. q.Options.Select(o => new SavedOption(o.OptionId, o.Action, o.TargetId))], q.RetryAtTick))],
             lastAsked,
@@ -287,7 +290,7 @@ public static class StateCodec
 
             if (saved.Memory is { } memory)
             {
-                inhabitant.Memory.Restore(memory.Summary, memory.LastSeq, memory.Events, memory.Firsts);
+                inhabitant.Memory.Restore(memory.Summary, memory.LastSeq, memory.Events, memory.Firsts, memory.SealedSeq);
             }
 
             inhabitant.Repeat = saved.Repeat;

@@ -232,10 +232,14 @@ public sealed class SimulationHost
                 map?.CellOf(at) is { } cell ? map.Map.BiomeAt(cell.X, cell.Z) : null,
                 content.Inventions.Settings.TechLevel),
         };
+        CheckNightTriggers(settings, content.Knowledge);
         var decisions = new DecisionsSystem(settings, inhabitants, objects, actions, content.Brain, content.Vocabularies[VocabularyKind.Action], port, displayLocale)
         {
             WeatherSource = weather,
             Knowledge = content.Knowledge,
+
+            // A1487: questions wait for the night only where the night can answer them (a job port).
+            NightAnswers = jobPort is not null && content.Knowledge.NightQuestions is not null,
         };
         inhabitants.QuestionOpen = decisions.HasOpenQuestion;
 
@@ -271,6 +275,7 @@ public sealed class SimulationHost
         var jobs = jobPort is null ? null : new JobRouter(jobPort);
         var inventions = new InventionSystem(content.Inventions, inhabitants, objects, types, content.Brain.Weights.PerceptionRadiusM, jobs?.Rest, displayLocale);
         decisions.InventedName = typeId => inventions.Invention(typeId)?.Name;
+        inhabitants.InventionNameKnownTo = inventions.NameKnownTo;
 
         // Memory (B4a R5): what the inhabitants remember comes from the core's events, by data; the compute
         // night condenses it and guesses at open questions (dormant without a job port).
@@ -369,6 +374,25 @@ public sealed class SimulationHost
         }
 
         UseDisplayLocale(locale);
+    }
+
+    /// <summary>
+    /// A trigger that asks at night (decider settings, A1487) needs a night that can answer it: its questions
+    /// are about an object type and the knowledge data list it under night_questions. Otherwise its questions
+    /// would stay open for good.
+    /// </summary>
+    private static void CheckNightTriggers(DeciderSettings settings, KnowledgeSettings knowledge)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+        foreach (var trigger in settings.Triggers.Where(t => t.Ask == TriggerAsk.Night))
+        {
+            var kind = trigger.Kind.ToString().ToLowerInvariant();
+            if (!DecisionsSystem.NightCanAnswer(kind)
+                || knowledge?.NightQuestions?.Questions.Any(q => string.Equals(q.Trigger.ToString(), kind, StringComparison.OrdinalIgnoreCase)) != true)
+            {
+                throw new InvalidDataException($"Decider settings: trigger '{kind}' asks at night, but the night cannot answer it (only questions about an object type that knowledge night_questions lists).");
+            }
+        }
     }
 
     private static CommandResult CheckDisplayLocale(PlayerCommand command) =>

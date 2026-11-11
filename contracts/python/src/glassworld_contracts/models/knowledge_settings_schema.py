@@ -17,6 +17,11 @@ class Formative(StrEnum):
     always = 'always'
 
 
+class Repeat(StrEnum):
+    add = 'add'
+    counted = 'counted'
+
+
 class Kind(StrEnum):
     need = 'need'
     mood = 'mood'
@@ -272,7 +277,20 @@ class KnowledgeMemoryEvent(BaseModel):
     )
     formative: Formative = Field(
         ...,
-        description='never = an everyday event; first = formative the first time the inhabitant remembers this kind about this subject; always = formative every time.',
+        description='never = an everyday event; first = formative the first time the inhabitant remembers this kind about this subject (with with_outcome: and with this outcome); always = formative every time.',
+    )
+    with_outcome: bool | None = Field(
+        None,
+        description='True = the remembered event carries what came of the action (done, found_out, nothing; only finished actions have an outcome), so an attempt is not remembered as a deed. Each outcome then has its own first time and its own count. Omitted = false.',
+    )
+    everyday_outcomes: list[common_schema.VocabId] | None = Field(
+        None,
+        description='Outcomes (done, found_out, nothing; checked at load) that are never formative for this entry, whatever formative says (e.g. nothing, if a first attempt without any effect should not shape). Omitted = none: the first time is formative with every outcome.',
+        max_length=3,
+    )
+    repeat: Repeat | None = Field(
+        None,
+        description='What a repetition does: add = every event is an entry of its own; counted = an event of the same kind (and outcome) about the same subject whose entry is still open (not yet sent to a condensing) is counted on that entry (times + 1, its tick becomes the last time, and it counts as the newest event) instead of added. A formative first time stays formative. Omitted = add.',
     )
     both: bool | None = Field(
         None,

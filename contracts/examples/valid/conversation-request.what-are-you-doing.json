@@ -94,7 +94,9 @@
           "about": {
             "kind": "type",
             "id": "spring_water"
-          }
+          },
+          "times": 3,
+          "outcome": "done"
         },
         {
           "tick": 89800,
@@ -102,6 +104,18 @@
           "about": {
             "kind": "type",
             "id": "red_berry"
+          }
+        },
+        {
+          "tick": 89900,
+          "kind": "name_learned",
+          "about": {
+            "kind": "inhabitant",
+            "id": "inh-000002"
+          },
+          "label": {
+            "de": "Mira",
+            "en": "Mira"
           }
         }
       ]

@@ -49,6 +49,19 @@ class MemoryFact(BaseModel):
     )
     about: common_schema.Subject | None
     formative: bool
+    times: int | None = Field(
+        None,
+        description='How often it happened: an everyday event that repeats about the same subject is counted on one entry instead of listed again (data in the core); tick is then the last time. Optional: absent = 1.',
+        ge=1,
+    )
+    outcome: common_schema.MemoryOutcome | None = Field(
+        None,
+        description="What came of it, for a remembered action (absent for other events): done, found_out or nothing. An attempt is not a deed: 'drink' about flint with found_out or nothing means it tried and nothing happened.",
+    )
+    label: common_schema.LocalizedName | None = Field(
+        None,
+        description="What THIS inhabitant calls the subject (about), by its own knowledge only: the own name of another inhabitant once it has learned it, the inhabitants' name of an invention it knows. Absent when it knows none, and for things the data name (the id is the vocabulary key). Never a truth the inhabitant does not know; resolved when the message is built, so a name learned later shows in earlier events.",
+    )
 
 
 class SoundPayload(BaseModel):

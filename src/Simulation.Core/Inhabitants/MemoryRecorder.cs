@@ -10,8 +10,9 @@ namespace GlassWorld.Simulation.Inhabitants;
 /// events are remembered, under which kind, and which are formative (always, or the first time for this
 /// kind and subject) comes from the knowledge data (memory.events); the code names no event, action or
 /// effect. What an event is about follows from its target: another inhabitant, the object type of a thing
-/// (a type is what knowledge is about; the thing itself may be gone), or nothing. Not a world system: the
-/// memory is part of each inhabitant's state.
+/// (a type is what knowledge is about; the thing itself may be gone), or nothing. An entry with
+/// <c>repeat: counted</c> counts repetitions on the open entry instead of adding them, so the daily routine
+/// does not crowd out what matters. Not a world system: the memory is part of each inhabitant's state.
 /// </summary>
 public sealed class MemoryRecorder
 {
@@ -58,10 +59,18 @@ public sealed class MemoryRecorder
             }
 
             var kind = entry.ActionAsKind == true ? worldEvent.Action ?? worldEvent.Kind : entry.Kind ?? worldEvent.Kind;
-            Add(notes, new Note(actor, kind, about?.Kind, about?.Id, entry.Formative));
+            var count = entry.Repeat == KnowledgeMemoryEventRepeat.Counted;
+
+            // What came of the action (data: with_outcome), so an attempt is not remembered as a deed; an
+            // outcome the data call everyday is never formative.
+            var outcome = entry.WithOutcome == true ? worldEvent.Outcome : null;
+            var formative = outcome is not null && entry.EverydayOutcomes?.Contains(outcome) == true
+                ? KnowledgeMemoryEventFormative.Never
+                : entry.Formative;
+            Add(notes, new Note(actor, kind, about?.Kind, about?.Id, formative, count, outcome));
             if (entry.Both == true && other is not null)
             {
-                Add(notes, new Note(other, kind, InhabitantsSystem.AboutInhabitant, actor.Id, entry.Formative));
+                Add(notes, new Note(other, kind, InhabitantsSystem.AboutInhabitant, actor.Id, formative, count, outcome));
             }
         }
 
@@ -70,17 +79,17 @@ public sealed class MemoryRecorder
             var formative = note.Formative switch
             {
                 KnowledgeMemoryEventFormative.Always => true,
-                KnowledgeMemoryEventFormative.First => note.Who.Memory.First(note.Kind, note.AboutKind, note.AboutId),
+                KnowledgeMemoryEventFormative.First => note.Who.Memory.First(note.Kind, note.AboutKind, note.AboutId, note.Outcome),
                 _ => false,
             };
-            note.Who.Memory.Remember(worldEvent.Tick, note.Kind, note.AboutKind, note.AboutId, formative, _settings.MaxEvents);
+            note.Who.Memory.Remember(worldEvent.Tick, note.Kind, note.AboutKind, note.AboutId, formative, _settings.MaxEvents, note.Count, note.Outcome);
         }
     }
 
     /// <summary>One event gives one memory per inhabitant, kind and subject; of two entries the more formative counts.</summary>
     private static void Add(List<Note> notes, Note note)
     {
-        var index = notes.FindIndex(n => ReferenceEquals(n.Who, note.Who) && n.Kind == note.Kind && n.AboutKind == note.AboutKind && n.AboutId == note.AboutId);
+        var index = notes.FindIndex(n => ReferenceEquals(n.Who, note.Who) && n.Kind == note.Kind && n.AboutKind == note.AboutKind && n.AboutId == note.AboutId && n.Outcome == note.Outcome);
         if (index < 0)
         {
             notes.Add(note);
@@ -147,5 +156,5 @@ public sealed class MemoryRecorder
             && (wanted.DeltaAtLeast is not { } least || effect.Delta >= least);
     }
 
-    private readonly record struct Note(Inhabitant Who, string Kind, string? AboutKind, string? AboutId, KnowledgeMemoryEventFormative Formative);
+    private readonly record struct Note(Inhabitant Who, string Kind, string? AboutKind, string? AboutId, KnowledgeMemoryEventFormative Formative, bool Count, string? Outcome);
 }

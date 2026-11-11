@@ -29,8 +29,11 @@ public sealed class MemoryTests
         Do(world, a, "eat", objects.Spawn("apple", new Position(1, 0)));
         var first = Assert.Single(a.Memory.Events);
         Assert.Equal(("eat", InhabitantsSystem.AboutType, "apple", true, false), (first.Kind, first.AboutKind, first.AboutId, first.Formative, first.Condensed));
+        Assert.Equal(ActionOutcomes.Done, first.Outcome);
         Assert.Equal(1, first.Seq);
 
+        // Once the first time is in the summary, the next time is an everyday event of its own.
+        a.Memory.Condense("Ate an apple.", new HashSet<long> { first.Seq }, new HashSet<long> { first.Tick });
         Do(world, a, "eat", objects.Spawn("apple", new Position(1, 0)));
         Assert.Equal(2, a.Memory.Events.Count);
         Assert.False(a.Memory.Events[1].Formative);
@@ -40,6 +43,184 @@ public sealed class MemoryTests
         Do(world, a, "eat", objects.Spawn("blue_berry", new Position(1, 0)));
         Assert.True(a.Memory.Events[2].Formative);
         Assert.Empty(inhabitants.Get("inh-000002").Memory.Events);
+    }
+
+    [Fact]
+    public void ARepeatedEverydayEventIsCountedOnItsOpenEntryInsteadOfAdded()
+    {
+        // GW2 #227: a day of drinking must not crowd out what matters (data: repeat counted).
+        var (world, objects, inhabitants) = NewWorld(Settings);
+        var a = inhabitants.Get("inh-000001");
+        Assert.Equal(KnowledgeMemoryEventRepeat.Counted, Settings.Events.First(e => e.ActionAsKind == true).Repeat);
+
+        Do(world, a, "eat", objects.Spawn("apple", new Position(1, 0)));
+        var firstTick = a.Memory.Events[0].Tick;
+        Do(world, a, "drink", objects.Spawn("spring_water", new Position(1, 0)));
+        Do(world, a, "eat", objects.Spawn("apple", new Position(1, 0)));
+        Do(world, a, "eat", objects.Spawn("apple", new Position(1, 0)));
+        Do(world, a, "drink", objects.Spawn("spring_water", new Position(1, 0)));
+
+        // One entry per action and thing: how often, when last (it is the newest event then), since when;
+        // the first time stays formative. Running numbers are never reused.
+        Assert.Equal([("eat", "apple", 3, true), ("drink", "spring_water", 2, true)], a.Memory.Events.Select(e => (e.Kind, e.AboutId!, e.Times, e.Formative)));
+        var eat = a.Memory.Events[0];
+        Assert.Equal(firstTick, eat.Since);
+        Assert.True(eat.Tick > firstTick);
+        Assert.True(a.Memory.Events[1].Tick > eat.Tick);
+        Assert.Equal(5, a.Memory.LastSeq);
+        Assert.Equal([4L, 5L], a.Memory.Events.Select(e => e.Seq));
+
+        // Another thing is an entry of its own.
+        Do(world, a, "eat", objects.Spawn("blue_berry", new Position(1, 0)));
+        Assert.Equal(3, a.Memory.Events.Count);
+
+        // What has gone out to a condensing stays what it was: a repetition starts a new entry, not formative.
+        var before = a.Memory.Events.ToList();
+        a.Memory.Seal(a.Memory.LastSeq);
+        Do(world, a, "eat", objects.Spawn("apple", new Position(1, 0)));
+        Do(world, a, "eat", objects.Spawn("apple", new Position(1, 0)));
+        Assert.Equal(before, a.Memory.Events.Take(3));
+        var again = Assert.Single(a.Memory.Events.Skip(3));
+        Assert.Equal(("eat", "apple", 2, false), (again.Kind, again.AboutId, again.Times, again.Formative));
+
+        // The requests say how often (absent for once).
+        var recent = InhabitantStates.Of(a).Memory.Recent.ToList();
+        Assert.Equal([3, 2, null, 2], recent.Select(e => e.Times));
+        Assert.Equal(a.Memory.Events.Select(e => e.Tick), recent.Select(e => e.Tick));
+    }
+
+    [Fact]
+    public void AnAttemptIsNotRememberedAsADeed()
+    {
+        // GW2 #227: 'drink flint' was stored like a real drink ('Drank flint'). The event carries what came
+        // of the action, by the measure the repetition guard uses (data: with_outcome).
+        var (world, objects, inhabitants) = NewWorld(Settings);
+        var a = inhabitants.Get("inh-000001");
+        var flint = objects.Spawn("flint", new Position(1, 0));
+        var spring = objects.Spawn("spring_water", new Position(1, 0));
+        var everyday = Settings.Events.First(e => e.ActionAsKind == true);
+        Assert.True(everyday.WithOutcome);
+        Assert.Equal([ActionOutcomes.Nothing], everyday.EverydayOutcomes);
+
+        // The first try changes nothing, but it finds out (not drinkable): a first time worth remembering.
+        // Trying again brings nothing at all: an everyday event of its own, counted from then on.
+        Do(world, a, "drink", flint);
+        Do(world, a, "drink", flint);
+        Do(world, a, "drink", flint);
+        Assert.Equal(
+            [("drink", "flint", ActionOutcomes.FoundOut, true, 1), ("drink", "flint", ActionOutcomes.Nothing, false, 2)],
+            a.Memory.Events.Select(e => (e.Kind, e.AboutId!, e.Outcome!, e.Formative, e.Times)));
+
+        // A real drink is a deed - and drinking the same water without being thirsty is not counted with it.
+        Do(world, a, "drink", spring);
+        Do(world, a, "drink", spring);
+        Do(world, a, "drink", spring, satisfied: true);
+        Assert.Equal(
+            [("spring_water", ActionOutcomes.Done, true, 2), ("spring_water", ActionOutcomes.Nothing, false, 1)],
+            a.Memory.Events.Skip(2).Select(e => (e.AboutId!, e.Outcome!, e.Formative, e.Times)));
+
+        // What it felt like stays an event of its own without an outcome; so does everything that is no action.
+        Do(world, a, "eat", objects.Spawn("red_berry", new Position(1, 0)));
+        inhabitants.Report(new WorldEvent(InhabitantsSystem.FirstMeeting, world.Tick, a.Id, null, "inh-000003"));
+        Assert.Equal(
+            [("eat", ActionOutcomes.Done), ("felt_bad", null), (InhabitantsSystem.FirstMeeting, null)],
+            a.Memory.Events.Skip(4).Select(e => (e.Kind, e.Outcome)));
+
+        // The requests carry it as the contract's ids.
+        var recent = InhabitantStates.Of(a).Memory.Recent.ToList();
+        Assert.Equal(
+            [MemoryOutcome.Found_out, MemoryOutcome.Nothing, MemoryOutcome.Done, MemoryOutcome.Nothing, MemoryOutcome.Done, null, null],
+            recent.Select(e => e.Outcome));
+    }
+
+    [Fact]
+    public void WhetherTheOutcomeIsRememberedAndWhichOneIsEverydayIsData()
+    {
+        var data = ContractSerializer.Deserialize<KnowledgeSettings>(File.ReadAllText(Path.Combine(ContentDirectory, "knowledge", "settings.json"))).Memory!;
+        var entry = data.Events.First(e => e.ActionAsKind == true);
+
+        // Without everyday outcomes the first attempt without any effect is a first time as well.
+        entry.EverydayOutcomes = null;
+        var (world, objects, inhabitants) = NewWorld(data);
+        var a = inhabitants.Get("inh-000001");
+        var flint = objects.Spawn("flint", new Position(1, 0));
+        Do(world, a, "drink", flint);
+        Do(world, a, "drink", flint);
+        Assert.Equal([(ActionOutcomes.FoundOut, true), (ActionOutcomes.Nothing, true)], a.Memory.Events.Select(e => (e.Outcome!, e.Formative)));
+
+        // Without with_outcome the event is the action alone, as before: attempt and deed are one entry.
+        entry.WithOutcome = null;
+        (world, objects, inhabitants) = NewWorld(data);
+        a = inhabitants.Get("inh-000001");
+        flint = objects.Spawn("flint", new Position(1, 0));
+        Do(world, a, "drink", flint);
+        Do(world, a, "drink", flint);
+        var only = Assert.Single(a.Memory.Events);
+        Assert.Null(only.Outcome);
+        Assert.Equal((2, true), (only.Times, only.Formative));
+    }
+
+    [Fact]
+    public void WhatHappenedEveryTimeItHappensIsNeverCounted()
+    {
+        // felt_bad and the other always-formative kinds stay entries of their own (data: repeat add).
+        var memory = new InhabitantMemory();
+        memory.Remember(10, "felt_bad", "type", "red_berry", formative: true, max: 8);
+        memory.Remember(20, "felt_bad", "type", "red_berry", formative: true, max: 8);
+        memory.Remember(30, "drink", "type", "spring_water", formative: false, max: 8, count: true);
+        memory.Remember(40, "drink", "type", "sea_water", formative: false, max: 8, count: true);
+        memory.Remember(50, "drink", "type", "spring_water", formative: false, max: 8, count: true);
+
+        Assert.Equal(
+            [("felt_bad", "red_berry", 1, 10L), ("felt_bad", "red_berry", 1, 20L), ("drink", "sea_water", 1, 40L), ("drink", "spring_water", 2, 50L)],
+            memory.Events.Select(e => (e.Kind, e.AboutId!, e.Times, e.Tick)));
+        Assert.All(Settings.Events.Where(e => e.Formative == KnowledgeMemoryEventFormative.Always), e => Assert.NotEqual(KnowledgeMemoryEventRepeat.Counted, e.Repeat));
+
+        // Counting changes the hash, and an entry the summary holds is not counted on.
+        static string Hash(InhabitantMemory m)
+        {
+            using var hasher = new State.StateHasher();
+            m.WriteState(hasher);
+            return hasher.Finish();
+        }
+
+        var before = Hash(memory);
+        memory.Condense("Summary.", new HashSet<long> { memory.Events[3].Seq }, new HashSet<long> { 50 });
+        memory.Remember(60, "drink", "type", "spring_water", formative: false, max: 8, count: true);
+        Assert.Equal([(2, true), (1, false)], memory.Events.Where(e => e.AboutId == "spring_water").Select(e => (e.Times, e.Condensed)));
+        Assert.NotEqual(before, Hash(memory));
+    }
+
+    [Fact]
+    public void ALabelIsWhatTheInhabitantCallsTheSubjectNowAndOnlyWhatItKnows()
+    {
+        // GW2 #227: 'Learned the name inh-000004' - the event needs the name, by the inhabitant's own knowledge.
+        var (world, _, inhabitants) = NewWorld(Settings);
+        var a = inhabitants.Get("inh-000001");
+        var c = inhabitants.Get("inh-000003");
+        Assert.NotNull(c.Name);
+        inhabitants.Report(new WorldEvent(InhabitantsSystem.FirstMeeting, world.Tick, a.Id, null, c.Id));
+        inhabitants.Report(new WorldEvent(InhabitantsSystem.KnowledgeGained, world.Tick, a.Id, "warn", "red_berry") { Detail = "poisonous/" + KnowledgeSources.Heard });
+
+        // It has met the other but knows no name yet: no label, for neither of them.
+        Assert.All(InhabitantStates.MemoryOf(a, inhabitants.LabelOf).Recent, e => Assert.Null(e.Label));
+        Assert.All(InhabitantStates.MemoryOf(c, inhabitants.LabelOf).Recent, e => Assert.Null(e.Label));
+
+        // The name is learned after the event: the earlier event carries it from now on - for the one who
+        // learned it only, and never for a thing the data name.
+        a.KnownNames.Add(c.Id);
+        var recent = InhabitantStates.Of(a, Content.Knowledge, [], [], inhabitants.LabelOf).Memory.Recent.ToList();
+        Assert.Equal((InhabitantsSystem.FirstMeeting, c.Name, c.Name), (recent[0].Kind, recent[0].Label!.De, recent[0].Label!.En));
+        Assert.Equal("was_told", recent[1].Kind);
+        Assert.Null(recent[1].Label);
+        Assert.All(InhabitantStates.MemoryOf(c, inhabitants.LabelOf).Recent, e => Assert.Null(e.Label));
+
+        // Without the resolver (no world at hand) there are no labels, and the name of someone who is gone is not made up.
+        Assert.All(InhabitantStates.MemoryOf(a).Recent, e => Assert.Null(e.Label));
+        Assert.Null(inhabitants.LabelOf(a, new MemoryEntry(9, 0, "first_meeting", InhabitantsSystem.AboutInhabitant, "inh-000099", true)));
+        a.KnownNames.Add("inh-000099");
+        Assert.Null(inhabitants.LabelOf(a, new MemoryEntry(9, 0, "first_meeting", InhabitantsSystem.AboutInhabitant, "inh-000099", true)));
+        Assert.Null(inhabitants.LabelOf(a, new MemoryEntry(9, 0, "help_needed", null, null, true)));
     }
 
     [Fact]
@@ -54,9 +235,10 @@ public sealed class MemoryTests
         Do(world, a, "eat", objects.Spawn("red_berry", new Position(1, 0)));
         Do(world, a, "drink", objects.Spawn("sea_water", new Position(1, 0)));
 
+        // The eating itself is counted (twice); what it felt like is an event of its own every time.
         Assert.Equal(
-            [("eat", "red_berry", true), ("felt_bad", "red_berry", true), ("eat", "red_berry", false), ("felt_bad", "red_berry", true), ("drink", "sea_water", true), ("felt_bad", "sea_water", true)],
-            a.Memory.Events.Select(e => (e.Kind, e.AboutId!, e.Formative)));
+            [("felt_bad", "red_berry", true, 1), ("eat", "red_berry", true, 2), ("felt_bad", "red_berry", true, 1), ("drink", "sea_water", true, 1), ("felt_bad", "sea_water", true, 1)],
+            a.Memory.Events.Select(e => (e.Kind, e.AboutId!, e.Formative, e.Times)));
 
         // What did no harm leaves no such memory.
         Do(world, a, "drink", objects.Spawn("spring_water", new Position(1, 0)));
@@ -277,6 +459,7 @@ public sealed class MemoryTests
         Assert.Contains("action_as_kind", Refused(m => m.Events.First().Kind = "did"));
         Assert.Contains("not_a_need", Refused(m => m.Events.First(e => e.Effect?.Kind == KnowledgeMemoryEffectKind.Need).Effect!.Id = "not_a_need"));
         Assert.Contains("delta_at_most", Refused(m => m.Events.First(e => e.Effect is not null).Effect!.DeltaAtMost = null));
+        Assert.Contains("not_an_outcome", Refused(m => m.Events.First().EverydayOutcomes = ["not_an_outcome"]));
         Assert.Contains("unknown_object", Refused(s => s.NightQuestions!.Questions.Add(new KnowledgeNightQuestion { Trigger = KnowledgeNightQuestionTrigger.Unknown_object, Question = KnowledgeNightQuestionQuestion.Why })));
     }
 
@@ -310,9 +493,14 @@ public sealed class MemoryTests
         }
     }
 
-    /// <summary>Lets the inhabitant do one action to its end.</summary>
-    private static void Do(World world, Inhabitant inhabitant, string action, WorldObject? target)
+    /// <summary>Lets the inhabitant do one action to its end; hungry and thirsty unless <paramref name="satisfied"/>, so eating and drinking do something.</summary>
+    private static void Do(World world, Inhabitant inhabitant, string action, WorldObject? target, bool satisfied = false)
     {
+        foreach (var need in inhabitant.Needs.Keys.ToList())
+        {
+            inhabitant.Needs[need] = satisfied ? 1.0 : 0.3;
+        }
+
         inhabitant.Activity = new Activity(action, target?.Id, target?.Position ?? inhabitant.Position, null);
         for (var t = 0; t < 2_000 && inhabitant.Activity is { } running && running.Action == action && running.TargetId == target?.Id; t++)
         {
@@ -331,6 +519,8 @@ public sealed class MemoryTests
         var inhabitants = new InhabitantsSystem(Content.InhabitantModel, Content.Actions, Content.Brain, Content.Gaits, objects, world.Calendar.Settings.TicksPerHour)
         {
             EventKinds = Content.EventKinds,
+            Names = Content.InhabitantNames,
+            Knowledge = Content.Knowledge,
         };
         world.Add(objects).Add(inhabitants);
         inhabitants.SpawnStartInhabitants(world, [new(0, 0), new(300, 0), new(0, 300), new(300, 300)]);

@@ -134,6 +134,12 @@ class Subject(BaseModel):
     id: str = Field(..., max_length=64, pattern='^[a-z][a-z0-9_.-]*$')
 
 
+class MemoryOutcome(StrEnum):
+    done = 'done'
+    found_out = 'found_out'
+    nothing = 'nothing'
+
+
 class Relationship(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -532,6 +538,19 @@ class MemoryEvent(BaseModel):
     object: EntityId | None = Field(
         None,
         description='The object instance it was about (B2533), null if none. Optional: absent = unknown.',
+    )
+    times: int | None = Field(
+        None,
+        description='How often it happened: an everyday event that repeats about the same subject is counted on one entry instead of listed again (data in the core); tick is then the last time. Optional: absent = 1.',
+        ge=1,
+    )
+    outcome: MemoryOutcome | None = Field(
+        None,
+        description="What came of it, for a remembered action (absent for other events): done, found_out or nothing. An attempt is not a deed: 'drink' about flint with found_out or nothing means it tried and nothing happened.",
+    )
+    label: LocalizedName | None = Field(
+        None,
+        description="What THIS inhabitant calls the subject (about), by its own knowledge only: the own name of another inhabitant once it has learned it, the inhabitants' name of an invention it knows. Absent when it knows none, and for things the data name (the id is the vocabulary key). Never a truth the inhabitant does not know; resolved when the message is built, so a name learned later shows in earlier events.",
     )
 
 

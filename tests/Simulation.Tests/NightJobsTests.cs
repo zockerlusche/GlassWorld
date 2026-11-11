@@ -266,7 +266,7 @@ public sealed class NightJobsTests : IDisposable
     [Fact]
     public void AGuessBecomesAGuessedBeliefCappedByTheDataAndSettlesTheQuestion()
     {
-        var (host, a, port) = World();
+        var (host, a, port) = World(looked: false);
         host.World.Step();
         var question = Assert.Single(host.Decisions.Open);
         Assert.Equal((DecisionsSystem.UnknownObject, "type:" + Thing), (question.Kind, question.Subject));
@@ -325,7 +325,7 @@ public sealed class NightJobsTests : IDisposable
         var (host, a, port) = World();
         RunIntoTheNight(host);
         var job = Assert.Single(port.Submitted);
-        Assert.Empty(job.Payload.Question!.Perception);
+        Assert.Equal(["stone"], job.Payload.Question!.Perception);
         var question = Assert.Single(host.Decisions.Open);
 
         // Guesses of an answer that did not understand count for nothing.
@@ -333,7 +333,7 @@ public sealed class NightJobsTests : IDisposable
         port.Answer(job, status);
         host.World.Step();
 
-        Assert.Empty(a.Beliefs.About(Thing));
+        Assert.DoesNotContain(a.Beliefs.About(Thing), b => b.Belief.Source == KnowledgeSources.Guessed);
         Assert.Equal(question, Assert.Single(host.Decisions.Open));
         Assert.Empty(host.NightJobs.QuestionJobs);
         Assert.Contains(host.Inventions.Log.Entries, e => e.Kind == DecisionLogKind.JobResult && e.RequestId == job.RequestId && e.Note == NightJobsSystem.NotUnderstood);
@@ -359,7 +359,7 @@ public sealed class NightJobsTests : IDisposable
         port.Answer(job, Guess(job, understood: true, ("hard", true, 0.5), (second, true, 0.5)));
         host.World.Step();
 
-        Assert.Empty(a.Beliefs.About(Thing));
+        Assert.DoesNotContain(a.Beliefs.About(Thing), b => b.Belief.Source == KnowledgeSources.Guessed);
         Assert.Single(host.Decisions.Open);
         Assert.Empty(host.NightJobs.QuestionJobs);
         Assert.Contains(host.Inventions.Log.Entries, e => e.Kind == DecisionLogKind.JobResult && e.RequestId == job.RequestId && e.Note == NightJobsSystem.Rejected + reason);
@@ -394,7 +394,7 @@ public sealed class NightJobsTests : IDisposable
         port.Answer(job, Guess(job, understood: true, ("hard", true, 0.5)));
         host.World.Step();
 
-        Assert.Empty(a.Beliefs.About(Thing));
+        Assert.DoesNotContain(a.Beliefs.About(Thing), b => b.Belief.Source == KnowledgeSources.Guessed);
         Assert.Contains(host.Inventions.Log.Entries, e => e.Kind == DecisionLogKind.JobDiscarded && e.RequestId == job.RequestId && e.Note == ReplayNotes.QuestionClosed);
         Assert.False(host.Decisions.Settle(host.World, "q-999999", "test"));
     }
@@ -479,8 +479,13 @@ public sealed class NightJobsTests : IDisposable
         RunIntoTheNight(host);
         var job = Assert.Single(port.Submitted);
 
-        // Something about nothing happens while the job is out (no subject in the save).
+        // Something about nothing happens while the job is out (no subject in the save), and a counted
+        // attempt (how often, since when, what came of it).
         a.Memory.Remember(host.World.Tick, "help_needed", null, null, formative: true, Settings.MaxEvents);
+        a.Memory.Remember(host.World.Tick, "drink", InhabitantsSystem.AboutType, Thing, formative: false, Settings.MaxEvents, count: true, outcome: ActionOutcomes.Nothing);
+        a.Memory.Remember(host.World.Tick + 7, "drink", InhabitantsSystem.AboutType, Thing, formative: false, Settings.MaxEvents, count: true, outcome: ActionOutcomes.Nothing);
+        Assert.Equal((2, host.World.Tick, ActionOutcomes.Nothing), (a.Memory.Events[^1].Times, a.Memory.Events[^1].Since, a.Memory.Events[^1].Outcome));
+        Assert.True(a.Memory.SealedSeq > 0);
 
         var path = Path.Combine(_directory, "night.db");
         SaveGameStore.Save(path, StateCodec.Capture(host));
@@ -490,7 +495,7 @@ public sealed class NightJobsTests : IDisposable
 
         Assert.Equal(host.World.StateHash(), loaded.World.StateHash());
         var b = loaded.Inhabitants.Get(a.Id);
-        Assert.Equal((a.Memory.Summary, a.Memory.LastSeq), (b.Memory.Summary, b.Memory.LastSeq));
+        Assert.Equal((a.Memory.Summary, a.Memory.LastSeq, a.Memory.SealedSeq), (b.Memory.Summary, b.Memory.LastSeq, b.Memory.SealedSeq));
         Assert.Equal(a.Memory.Events, b.Memory.Events);
         Assert.Equal(a.Memory.Firsts, b.Memory.Firsts);
         var open = Assert.Single(loaded.NightJobs.MemoryJobs);
@@ -581,7 +586,7 @@ public sealed class NightJobsTests : IDisposable
         Assert.Equal(3, port.Submitted.Count);
 
         var (replay, b) = Start(new ReplayJobPort(original.Inventions.Log));
-        replay.World.Run(original.World.Tick);
+        replay.World.Run(original.World.Tick - replay.World.Tick);
 
         Assert.Equal(original.World.StateHash(), replay.World.StateHash());
         Assert.Equal(original.Inventions.Log.Entries, replay.Inventions.Log.Entries);
@@ -641,6 +646,215 @@ public sealed class NightJobsTests : IDisposable
     }
 
     [Fact]
+    public void AQuestionWithNothingToGuessFromWaitsUntilTheInhabitantHasLookedOrTried()
+    {
+        // GW2 #227: asked about a thing it had never looked at, the model guessed from memories of other things.
+        var (host, a, port) = World(looked: false);
+        a.Beliefs.Set("apple", "edible", true, 1.0, KnowledgeSources.Experienced, null, 0);
+        var events = new List<WorldEvent>();
+        host.Inhabitants.Reported += events.Add;
+        RunIntoTheNight(host);
+
+        // No job, the question stays open, and the night says so.
+        Assert.Empty(port.Submitted);
+        Assert.False(host.NightJobs.HasState);
+        var question = Assert.Single(host.Decisions.Open);
+        var skipped = Assert.Single(events, e => e.Kind == NightJobsSystem.NightQuestions);
+        Assert.Equal((a.Id, "asked=0,skipped=1"), (skipped.InhabitantId, skipped.Detail));
+
+        // It looks at the thing the next day (what it sees is not a fruit: no perception, but a belief
+        // about the kind): the next night asks.
+        a.Beliefs.Set(Thing, "fruit", false, 0.8, KnowledgeSources.Seen, null, host.World.Tick);
+        events.Clear();
+        RunIntoTheNight(host);
+
+        var job = Assert.Single(port.Submitted);
+        Assert.Equal(question.Id, host.NightJobs.QuestionJobs.Single().QuestionId);
+        Assert.Empty(job.Payload.Question!.Perception);
+        Assert.Equal("asked=1,skipped=0", Assert.Single(events, e => e.Kind == NightJobsSystem.NightQuestions).Detail);
+    }
+
+    [Fact]
+    public void TheMemoryJobSaysHowOftenWhatCameOfItAndWhatTheInhabitantCallsTheSubjectNow()
+    {
+        var (host, a, port) = World(question: false);
+        var b = Person(host, "inh-000002", new Position(500, 0));
+        a.Name = "Hano";
+        b.Name = "Mira";
+        Remember(a, Settings.CondenseAt);
+        a.Memory.Remember(200, "first_meeting", InhabitantsSystem.AboutInhabitant, b.Id, formative: true, Settings.MaxEvents);
+        a.Memory.Remember(210, "drink", InhabitantsSystem.AboutType, Thing, formative: true, Settings.MaxEvents, count: true, outcome: ActionOutcomes.FoundOut);
+        a.Memory.Remember(220, "drink", InhabitantsSystem.AboutType, "sea_water", formative: false, Settings.MaxEvents, count: true, outcome: ActionOutcomes.Done);
+        a.Memory.Remember(230, "drink", InhabitantsSystem.AboutType, "sea_water", formative: false, Settings.MaxEvents, count: true, outcome: ActionOutcomes.Done);
+        a.Memory.Remember(240, "drink", InhabitantsSystem.AboutType, "sea_water", formative: false, Settings.MaxEvents, count: true, outcome: ActionOutcomes.Done);
+
+        // The name is learned long after the meeting, before the night.
+        host.World.Run(300);
+        a.KnownNames.Add(b.Id);
+        RunIntoTheNight(host);
+
+        var job = Assert.Single(port.Submitted, j => j.Inhabitant == a.Id);
+        Assert.Empty(ContractValidator.Validate("generation-job", port.Json[job.RequestId]));
+        var facts = job.Payload.Memory!.Events.ToList();
+        var met = facts.Single(e => e.Kind == "first_meeting");
+        Assert.Equal(("Mira", "Mira"), (met.Label!.De, met.Label.En));
+        Assert.Null(met.Times);
+        Assert.Null(met.Outcome);
+        var tried = facts.Single(e => e.About!.Id == Thing);
+        Assert.Equal(MemoryOutcome.Found_out, tried.Outcome);
+        Assert.True(tried.Formative);
+        Assert.Null(tried.Times);
+        Assert.Null(tried.Label);
+        var drunk = facts.Single(e => e.About!.Id == "sea_water");
+        Assert.Equal(240L, drunk.Tick);
+        Assert.Equal(3, drunk.Times);
+        Assert.Equal(MemoryOutcome.Done, drunk.Outcome);
+        Assert.All(facts.Take(Settings.CondenseAt), e =>
+        {
+            Assert.Null(e.Times);
+            Assert.Null(e.Outcome);
+            Assert.Null(e.Label);
+        });
+        Assert.Contains("\"times\":3", port.Json[job.RequestId], StringComparison.Ordinal);
+        Assert.Equal(1, port.Json[job.RequestId].Split("\"times\"").Length - 1);
+
+        // What is out with the job stays what it was: the next drink is a new entry, and the answer takes
+        // the sent one away without it.
+        a.Memory.Remember(host.World.Tick, "drink", InhabitantsSystem.AboutType, "sea_water", formative: false, Settings.MaxEvents, count: true, outcome: ActionOutcomes.Done);
+        Assert.Equal([3, 1], a.Memory.Events.Where(e => e.AboutId == "sea_water").Select(e => e.Times));
+        port.Answer(job, Condensed(job, "Met Mira. Tried to drink flint, nothing happened.", [.. facts.Where(e => e.Formative).Select(e => e.Tick)]));
+        host.World.Step();
+
+        Assert.Equal([1], a.Memory.Events.Where(e => e.AboutId == "sea_water").Select(e => e.Times));
+        Assert.Equal(2, a.Memory.Events.Count(e => e.Condensed));
+
+        // The other inhabitant never learned a name: its requests carry no label.
+        b.Memory.Remember(200, "first_meeting", InhabitantsSystem.AboutInhabitant, a.Id, formative: true, Settings.MaxEvents);
+        Assert.Null(InhabitantStates.MemoryOf(b, host.Inhabitants.LabelOf).Recent.Single().Label);
+    }
+
+    [Fact]
+    public void ATriggerThatAsksAtNightOpensItsQuestionWithoutTheDeciderAndTheNightAnswersIt()
+    {
+        // A1487: data per trigger; all triggers of the content ask at once, as before.
+        Assert.All(Asking(TriggerKind.Unknown_object, null).Triggers, t => Assert.Null(t.Ask));
+        var decider = new SilentDecisionPort();
+        var (host, a, port) = World(looked: false, settings: Asking(TriggerKind.Unknown_object, TriggerAsk.Night), decisions: decider);
+        var events = new List<WorldEvent>();
+        host.Inhabitants.Reported += events.Add;
+        host.World.Run(60);
+
+        // The question is open with its question mark; nobody was asked, nothing was logged.
+        var question = Assert.Single(host.Decisions.Open);
+        Assert.Equal((DecisionsSystem.UnknownObject, "type:" + Thing, string.Empty), (question.Kind, question.Subject, question.RequestId));
+        Assert.Empty(question.Options);
+        Assert.Equal(0, decider.Sent);
+        Assert.Empty(host.Decisions.Log.Entries);
+        Assert.True(host.Decisions.HasOpenQuestion(a.Id, Thing));
+        Assert.Equal([question.Id], host.Decisions.OpenQuestionIds(a.Id));
+        Assert.Single(events, e => e.Kind == "question_opened" && e.TargetId == question.Id);
+
+        // Loading with a live decider does not send it either (it was never sent).
+        host.Decisions.ResendPendingAfterLoad(host.World);
+        a.Beliefs.Set(Thing, "stone", true, 0.8, KnowledgeSources.Seen, null, host.World.Tick);
+        RunIntoTheNight(host);
+        Assert.Equal(0, decider.Sent);
+
+        // The night's question job answers it.
+        var job = Assert.Single(port.Submitted);
+        Assert.Equal((JobKind.Question, Thing), (job.Kind, job.Payload.Question!.Subject.Id));
+        port.Answer(job, Guess(job, understood: true, ("hard", true, 0.5)));
+        host.World.Step();
+
+        Assert.Empty(host.Decisions.Open);
+        Assert.True(a.Beliefs.TryGet(Thing, "hard", out var hard));
+        Assert.Equal(KnowledgeSources.Guessed, hard.Source);
+        Assert.Contains(events, e => e.Kind == "question_answered" && e.TargetId == question.Id && e.Detail == NightJobsSystem.Guessed);
+        Assert.Equal(0, decider.Sent);
+
+        // The open question survives save and load as it is.
+        var (saved, _, _) = World(looked: false, settings: Asking(TriggerKind.Unknown_object, TriggerAsk.Night));
+        saved.World.Run(5);
+        var path = Path.Combine(_directory, "night-question.db");
+        SaveGameStore.Save(path, StateCodec.Capture(saved));
+        var factory = new SimulationHostFactory(Content.Value, Asking(TriggerKind.Unknown_object, TriggerAsk.Night), new SilentDecisionPort(), "de", new ScriptedJobPort());
+        var loaded = StateCodec.Restore(factory, SaveGameStore.Load(path));
+        Assert.Equal(saved.World.StateHash(), loaded.World.StateHash());
+        Assert.Equal(string.Empty, Assert.Single(loaded.Decisions.Open).RequestId);
+    }
+
+    [Fact]
+    public void AskingAtNightNeedsANightThatCanAnswer()
+    {
+        // Without a job port nobody would ever answer: the question goes to the decider at once, as before.
+        var decider = new SilentDecisionPort();
+        var settings = Asking(TriggerKind.Unknown_object, TriggerAsk.Night);
+        var host = SimulationHost.Assemble(Content.Value, settings, new World(21, Content.Value.Calendar), decider, "de");
+        Person(host, "inh-000001", new Position(0, 0));
+        host.Objects.Spawn(Thing, new Position(1, 0));
+        host.World.Run(5);
+        Assert.Equal(1, decider.Sent);
+        Assert.NotEqual(string.Empty, Assert.Single(host.Decisions.Open).RequestId);
+
+        // A trigger whose questions are not about a type cannot ask at night: refused when the world is assembled.
+        var refused = Assert.Throws<InvalidDataException>(() => World(settings: Asking(TriggerKind.Noticed_player, TriggerAsk.Night)));
+        Assert.Contains("noticed_player", refused.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AskingAtOnceIsTheDefaultAndLeavesARunAsItWas()
+    {
+        // The same world three ways: the content as it is (no ask), ask immediate spelled out, and ask
+        // night without a night that could answer. Same requests at the same ticks, same state.
+        static (string Hash, IReadOnlyList<DecisionLogEntry> Log, int MemoryEvents) Run(DeciderSettings? settings, bool jobs)
+        {
+            var host = settings is null
+                ? SimulationHost.CreateEmpty(ContentDirectory, 9, MockDecisionPort.FromContent(ContentDirectory), "de", jobs ? new ScriptedJobPort() : null)
+                : SimulationHost.Assemble(Content.Value, settings, new World(9, Content.Value.Calendar), MockDecisionPort.FromContent(ContentDirectory), "de", null, jobs ? new ScriptedJobPort() : null);
+            var model = Content.Value.InhabitantModel;
+            host.Inhabitants.Add(new Inhabitant(
+                "inh-000001",
+                "female",
+                1,
+                new Position(0, 0),
+                model.Needs.ToDictionary(n => n.Id, _ => 0.5, StringComparer.Ordinal),
+                model.Moods.ToDictionary(m => m.Id, m => m.Baseline, StringComparer.Ordinal),
+                model.Start.Traits.ToDictionary(t => t.Id, t => (t.Min + t.Max) / 2, StringComparer.Ordinal),
+                model.WillToLive.Start));
+            foreach (var (type, x) in new[] { ("flint", 1), ("apple", 2), ("spring_water", 3), ("red_berry", 4), ("dry_grass", 5) })
+            {
+                host.Objects.Spawn(type, new Position(x, 0));
+            }
+
+            host.World.Run(1_000);
+            return (host.World.StateHash(), host.Decisions.Log.Entries, host.Inhabitants.All.Single().Memory.Events.Count);
+        }
+
+        var asItIs = Run(null, jobs: true);
+        var withoutPort = Run(null, jobs: false);
+        var immediate = Asking(TriggerKind.Unknown_object, TriggerAsk.Immediate);
+        foreach (var trigger in immediate.Triggers)
+        {
+            trigger.Ask = TriggerAsk.Immediate;
+        }
+
+        var spelledOut = Run(immediate, jobs: true);
+        var nightWithoutPort = Run(Asking(TriggerKind.Unknown_object, TriggerAsk.Night), jobs: false);
+
+        Assert.NotEmpty(asItIs.Log);
+        Assert.True(asItIs.MemoryEvents > 0);
+        Assert.Equal(asItIs.Hash, spelledOut.Hash);
+        Assert.Equal(asItIs.Log, spelledOut.Log);
+        Assert.Equal(withoutPort.Hash, nightWithoutPort.Hash);
+        Assert.Equal(withoutPort.Log, nightWithoutPort.Log);
+
+        // With a night that answers, the same trigger asks nobody by day.
+        var night = Run(Asking(TriggerKind.Unknown_object, TriggerAsk.Night), jobs: true);
+        Assert.DoesNotContain(night.Log, e => e.Kind == DecisionLogKind.Request);
+        Assert.NotEqual(asItIs.Hash, night.Hash);
+    }
+
+    [Fact]
     public void TheRouterGivesEverySystemItsOwnOutcomesOnce()
     {
         var inner = new ScriptedJobPort();
@@ -681,18 +895,37 @@ public sealed class NightJobsTests : IDisposable
         Assert.Equal([(JobPhase.Night, 7L, true)], inner.Phases);
     }
 
-    /// <summary>One inhabitant that does nothing by itself, with a thing it does not know next to it (an open question).</summary>
-    private static (SimulationHost Host, Inhabitant A, ScriptedJobPort Port) World(bool question = true, IJobPort? jobs = null)
+    /// <summary>
+    /// One inhabitant that does nothing by itself, with a thing it does not know next to it (an open
+    /// question). With <paramref name="looked"/> it has looked at the thing since it asked (it sees a stone),
+    /// so there is something to guess from.
+    /// </summary>
+    private static (SimulationHost Host, Inhabitant A, ScriptedJobPort Port) World(bool question = true, IJobPort? jobs = null, bool looked = true, DeciderSettings? settings = null, IDecisionPort? decisions = null)
     {
         var port = jobs as ScriptedJobPort ?? new ScriptedJobPort();
-        var host = SimulationHost.CreateEmpty(ContentDirectory, 21, new SilentDecisionPort(), "de", jobs ?? port);
+        var host = settings is null
+            ? SimulationHost.CreateEmpty(ContentDirectory, 21, decisions ?? new SilentDecisionPort(), "de", jobs ?? port)
+            : SimulationHost.Assemble(Content.Value, settings, new World(21, Content.Value.Calendar), decisions ?? new SilentDecisionPort(), "de", null, jobs ?? port);
         var a = Person(host, "inh-000001", new Position(0, 0));
         if (question)
         {
             host.Objects.Spawn(Thing, new Position(1, 0));
+            if (looked)
+            {
+                host.World.Step();
+                a.Beliefs.Set(Thing, "stone", true, 0.8, KnowledgeSources.Seen, null, host.World.Tick);
+            }
         }
 
         return (host, a, port);
+    }
+
+    /// <summary>The decider settings of the content with another way of asking for one trigger (A1487).</summary>
+    private static DeciderSettings Asking(TriggerKind kind, TriggerAsk? ask)
+    {
+        var settings = ContractSerializer.Deserialize<DeciderSettings>(File.ReadAllText(Path.Combine(ContentDirectory, "decider", "settings.json")));
+        settings.Triggers.Single(t => t.Kind == kind).Ask = ask;
+        return settings;
     }
 
     private static Inhabitant Person(SimulationHost host, string id, Position position)
@@ -802,9 +1035,9 @@ public sealed class NightJobsTests : IDisposable
     /// <summary>Keeps the requests and never answers: the questions stay open.</summary>
     private sealed class SilentDecisionPort : IDecisionPort
     {
-        public void Send(string requestId, string requestJson)
-        {
-        }
+        public int Sent { get; private set; }
+
+        public void Send(string requestId, string requestJson) => Sent++;
 
         public IReadOnlyList<PortMessage> Receive(long tick) => [];
     }

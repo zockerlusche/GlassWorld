@@ -1,4 +1,5 @@
 using System.Collections.Frozen;
+using System.Globalization;
 using GlassWorld.Contracts;
 using GlassWorld.Contracts.Validation;
 using GlassWorld.Simulation.Decisions;
@@ -79,6 +80,12 @@ public sealed class NightJobsSystem : IWorldSystem, IOptionalWorldState
 
     /// <summary>Detail of <c>question_answered</c> when the compute night settled the question with a guess.</summary>
     public const string Guessed = "guessed";
+
+    /// <summary>
+    /// Event: the night went through an inhabitant's open questions about things. Detail =
+    /// <c>asked=N,skipped=M</c>; skipped = questions that wait because there is nothing to guess from.
+    /// </summary>
+    public const string NightQuestions = "night_questions";
 
     /// <summary>Most noticed properties in a question job (contract generation-job: perception maxItems).</summary>
     public const int MaxPerception = 16;
@@ -333,15 +340,35 @@ public sealed class NightJobsSystem : IWorldSystem, IOptionalWorldState
             Memory = new MemoryPayload
             {
                 Summary = inhabitant.Memory.Summary,
-                Events = [.. batch.Select(e => new MemoryFact { Tick = e.Tick, Kind = e.Kind, About = InhabitantStates.About(e), Formative = e.Formative })],
+                Events = [.. batch.Select(e => new MemoryFact
+                {
+                    Tick = e.Tick,
+                    Kind = e.Kind,
+                    About = InhabitantStates.About(e),
+                    Formative = e.Formative,
+                    Times = InhabitantStates.TimesOf(e),
+                    Outcome = InhabitantStates.OutcomeOf(e),
+
+                    // What the inhabitant calls the subject now: a name learned after the event is there.
+                    Label = _inhabitants.LabelOf(inhabitant, e),
+                })],
                 MaxChars = settings.MaxChars,
             },
         };
         Send(world, job);
+
+        // What is out with a job stays what it was: a repetition from now on starts a new entry.
+        inhabitant.Memory.Seal(batch[^1].Seq);
         _memoryJobs[job.RequestId] = new MemoryJob(job.RequestId, inhabitant.Id, world.Tick, settings.MaxChars, [.. batch.Select(e => new SentEvent(e.Seq, e.Tick, e.Formative))]);
     }
 
-    /// <summary>A question job for every open question of the inhabitant about an object type that the data list and that has none yet.</summary>
+    /// <summary>
+    /// A question job for every open question of the inhabitant about an object type that the data list and
+    /// that has none yet - unless the inhabitant has nothing to guess from: it has neither noticed anything
+    /// about the thing nor believes anything about its kind. Such a question waits (it stays open) until the
+    /// inhabitant has looked at the thing or tried it; a guess from nothing would only echo other memories.
+    /// How many were asked and how many wait is reported as one event per inhabitant.
+    /// </summary>
     private void SubmitQuestions(World world, Inhabitant inhabitant)
     {
         if (_knowledge is not { NightQuestions: { } night } knowledge)
@@ -349,6 +376,8 @@ public sealed class NightJobsSystem : IWorldSystem, IOptionalWorldState
             return;
         }
 
+        var asked = 0;
+        var skipped = 0;
         foreach (var question in _decisions.Open.Where(q => q.InhabitantId == inhabitant.Id && q.Subject.StartsWith(TypeSubject, StringComparison.Ordinal)).ToList())
         {
             if (night.Questions.FirstOrDefault(n => string.Equals(n.Trigger.ToString(), question.Kind, StringComparison.OrdinalIgnoreCase)) is not { } entry
@@ -358,6 +387,14 @@ public sealed class NightJobsSystem : IWorldSystem, IOptionalWorldState
             }
 
             var typeId = question.Subject[TypeSubject.Length..];
+            if (!inhabitant.Beliefs.About(typeId).Any())
+            {
+                // What it notices about the thing is among its beliefs (seen by looking): none at all = nothing to guess from.
+                skipped++;
+                continue;
+            }
+
+            asked++;
             var job = NewJob(world, inhabitant, JobKind.Question, "/question", night.JobPriority);
             job.Payload = new JobPayload
             {
@@ -365,7 +402,7 @@ public sealed class NightJobsSystem : IWorldSystem, IOptionalWorldState
                 {
                     Question = Enum.Parse<QuestionPayloadQuestion>(entry.Question.ToString()),
                     Subject = new Subject { Kind = SubjectKind.Type, Id = typeId },
-                    Inhabitant = InhabitantStates.Asking(inhabitant, knowledge, typeId),
+                    Inhabitant = InhabitantStates.Asking(inhabitant, knowledge, typeId, _inhabitants.LabelOf),
 
                     // What it has seen of the thing by looking (source seen), never the truth: without a look it notices nothing.
                     Perception = [.. inhabitant.Beliefs.About(typeId)
@@ -376,6 +413,11 @@ public sealed class NightJobsSystem : IWorldSystem, IOptionalWorldState
             };
             Send(world, job);
             _questionJobs[job.RequestId] = new QuestionJob(job.RequestId, inhabitant.Id, world.Tick, question.Id, typeId);
+        }
+
+        if (asked + skipped > 0)
+        {
+            _inhabitants.Report(new WorldEvent(NightQuestions, world.Tick, inhabitant.Id, null, null) { Detail = string.Create(CultureInfo.InvariantCulture, $"asked={asked},skipped={skipped}") });
         }
     }
 

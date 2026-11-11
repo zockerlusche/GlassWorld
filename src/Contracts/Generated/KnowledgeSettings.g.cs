@@ -105,11 +105,33 @@ namespace GlassWorld.Contracts
         public System.Collections.Generic.ICollection<string>? LeftOutActions { get; set; } = default!;
 
         /// <summary>
-        /// never = an everyday event; first = formative the first time the inhabitant remembers this kind about this subject; always = formative every time.
+        /// never = an everyday event; first = formative the first time the inhabitant remembers this kind about this subject (with with_outcome: and with this outcome); always = formative every time.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("formative")]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<KnowledgeMemoryEventFormative>))]
         public KnowledgeMemoryEventFormative Formative { get; set; } = default!;
+
+        /// <summary>
+        /// True = the remembered event carries what came of the action (done, found_out, nothing; only finished actions have an outcome), so an attempt is not remembered as a deed. Each outcome then has its own first time and its own count. Omitted = false.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("with_outcome")]
+        public bool? WithOutcome { get; set; } = default!;
+
+        /// <summary>
+        /// Outcomes (done, found_out, nothing; checked at load) that are never formative for this entry, whatever formative says (e.g. nothing, if a first attempt without any effect should not shape). Omitted = none: the first time is formative with every outcome.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("everyday_outcomes")]
+        public System.Collections.Generic.ICollection<string>? EverydayOutcomes { get; set; } = default!;
+
+        /// <summary>
+        /// What a repetition does: add = every event is an entry of its own; counted = an event of the same kind (and outcome) about the same subject whose entry is still open (not yet sent to a condensing) is counted on that entry (times + 1, its tick becomes the last time, and it counts as the newest event) instead of added. A formative first time stays formative. Omitted = add.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("repeat")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<KnowledgeMemoryEventRepeat>))]
+        public KnowledgeMemoryEventRepeat? Repeat { get; set; } = default!;
 
         /// <summary>
         /// True = an event aimed at another inhabitant is remembered by that inhabitant too, about the actor (e.g. first_meeting, which the core reports once per pair). Omitted = false.
@@ -677,6 +699,20 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("always")]
         Always = 2,
+
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public enum KnowledgeMemoryEventRepeat
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("add")]
+        Add = 0,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("counted")]
+        Counted = 1,
 
 
     }

@@ -1647,6 +1647,10 @@
       "text": "No answer"
     },
     {
+      "key": "vocab.event.night_questions",
+      "text": "Open questions in the night"
+    },
+    {
       "key": "msg.command.text_refused",
       "text": "The inhabitants do not say things like that – please put it differently."
     },

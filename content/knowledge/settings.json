@@ -109,7 +109,7 @@
     "max_events": 64,
     "job_priority": 10,
     "events": [
-      { "event": "action_finished", "action_as_kind": true, "only_with_subject": true, "left_out_actions": ["approach", "build_step"], "formative": "first" },
+      { "event": "action_finished", "action_as_kind": true, "only_with_subject": true, "left_out_actions": ["approach", "build_step"], "formative": "first", "repeat": "counted", "with_outcome": true, "everyday_outcomes": ["nothing"] },
       { "event": "action_finished", "kind": "felt_bad", "formative": "always", "effect": { "kind": "will_to_live", "delta_at_most": -0.01 } },
       { "event": "action_finished", "kind": "felt_bad", "formative": "always", "effect": { "kind": "need", "delta_at_most": -0.1 } },
       { "event": "first_meeting", "formative": "always", "both": true },

@@ -29,6 +29,14 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("enabled")]
         public bool Enabled { get; set; } = default!;
 
+        /// <summary>
+        /// When the question goes to the AI (A1487): immediate = to the decider the moment it opens (as before); night = it opens with its question mark, is not sent to the decider by day and is answered by the compute night's question job (knowledge settings: night_questions must list the trigger; only for questions about an object type). Omitted = immediate. A later value will follow the day's contingent (D713).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("ask")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TriggerAsk>))]
+        public TriggerAsk? Ask { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -94,6 +102,20 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("unknown_inhabitant")]
         Unknown_inhabitant = 2,
+
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public enum TriggerAsk
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("immediate")]
+        Immediate = 0,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("night")]
+        Night = 1,
 
 
     }

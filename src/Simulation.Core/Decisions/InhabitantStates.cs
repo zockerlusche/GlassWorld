@@ -14,11 +14,16 @@ public static class InhabitantStates
     /// source and confidence; never the truth) and its relationships to the inhabitants in sight (B4a R3/R7,
     /// contract 0.2). Limits from the knowledge data keep the text budget.
     /// </summary>
-    public static InhabitantState Of(Inhabitant inhabitant, KnowledgeSettings? knowledge, IEnumerable<string> perceivedTypes, IEnumerable<string> perceivedInhabitants)
+    /// <param name="inhabitant">The inhabitant.</param>
+    /// <param name="knowledge">Knowledge data; null = needs, moods, traits and memory only.</param>
+    /// <param name="perceivedTypes">Object types in sight.</param>
+    /// <param name="perceivedInhabitants">Inhabitants in sight.</param>
+    /// <param name="label">What the inhabitant calls the subject of a remembered event (<see cref="InhabitantsSystem.LabelOf"/>); null = no labels.</param>
+    public static InhabitantState Of(Inhabitant inhabitant, KnowledgeSettings? knowledge, IEnumerable<string> perceivedTypes, IEnumerable<string> perceivedInhabitants, Func<Inhabitant, MemoryEntry, LocalizedName?>? label = null)
     {
         ArgumentNullException.ThrowIfNull(perceivedTypes);
         ArgumentNullException.ThrowIfNull(perceivedInhabitants);
-        var state = Basic(inhabitant);
+        var state = Basic(inhabitant, label);
         if (knowledge is null)
         {
             return state;
@@ -84,7 +89,7 @@ public static class InhabitantStates
         return latest;
     }
 
-    private static InhabitantState Basic(Inhabitant inhabitant)
+    private static InhabitantState Basic(Inhabitant inhabitant, Func<Inhabitant, MemoryEntry, LocalizedName?>? label)
     {
         ArgumentNullException.ThrowIfNull(inhabitant);
         return new InhabitantState
@@ -99,7 +104,7 @@ public static class InhabitantStates
             Name = inhabitant.Name,
 
             // Contract 0.2 (B4a): knowledge, relationships and habits are filled above when there is knowledge data.
-            Memory = MemoryOf(inhabitant),
+            Memory = MemoryOf(inhabitant, label),
             Knowledge = [],
             Relationships = [],
             Habits = [],
@@ -111,16 +116,46 @@ public static class InhabitantStates
 
     /// <summary>
     /// The inhabitant's memory as the AI sees it (B4a R5): the summary and the newest remembered events,
-    /// oldest first, at most <see cref="MaxRecent"/>. Empty while it remembers nothing.
+    /// oldest first, at most <see cref="MaxRecent"/>. Empty while it remembers nothing. A counted event
+    /// carries how often it happened; <paramref name="label"/> gives what the inhabitant calls the subject
+    /// now (null = no labels).
     /// </summary>
-    public static Memory MemoryOf(Inhabitant inhabitant)
+    public static Memory MemoryOf(Inhabitant inhabitant, Func<Inhabitant, MemoryEntry, LocalizedName?>? label = null)
     {
         ArgumentNullException.ThrowIfNull(inhabitant);
         return new Memory
         {
             Summary = inhabitant.Memory.Summary,
-            Recent = [.. inhabitant.Memory.Events.TakeLast(MaxRecent).Select(e => new MemoryEvent { Tick = e.Tick, Kind = e.Kind, About = About(e) })],
+            Recent = [.. inhabitant.Memory.Events.TakeLast(MaxRecent).Select(e => new MemoryEvent
+            {
+                Tick = e.Tick,
+                Kind = e.Kind,
+                About = About(e),
+                Times = TimesOf(e),
+                Outcome = OutcomeOf(e),
+                Label = label?.Invoke(inhabitant, e),
+            })],
         };
+    }
+
+    /// <summary>What came of a remembered action as the contract carries it; null for other events.</summary>
+    public static MemoryOutcome? OutcomeOf(MemoryEntry entry)
+    {
+        ArgumentNullException.ThrowIfNull(entry);
+        return entry.Outcome switch
+        {
+            null => null,
+            ActionOutcomes.Done => MemoryOutcome.Done,
+            ActionOutcomes.FoundOut => MemoryOutcome.Found_out,
+            _ => MemoryOutcome.Nothing,
+        };
+    }
+
+    /// <summary>How often a remembered event happened as the contract carries it: absent for once.</summary>
+    public static int? TimesOf(MemoryEntry entry)
+    {
+        ArgumentNullException.ThrowIfNull(entry);
+        return entry.Times > 1 ? entry.Times : null;
     }
 
     /// <summary>What a remembered event is about as a contract subject (an object type or an inhabitant), or null.</summary>
@@ -136,12 +171,12 @@ public static class InhabitantStates
     /// The inhabitant asking itself about one object type (job question): what it believes about that type
     /// first, then its newest other beliefs, within the knowledge data's limit. Beliefs only, never the truth.
     /// </summary>
-    public static InhabitantState Asking(Inhabitant inhabitant, KnowledgeSettings knowledge, string typeId)
+    public static InhabitantState Asking(Inhabitant inhabitant, KnowledgeSettings knowledge, string typeId, Func<Inhabitant, MemoryEntry, LocalizedName?>? label = null)
     {
         ArgumentNullException.ThrowIfNull(inhabitant);
         ArgumentNullException.ThrowIfNull(knowledge);
         ArgumentException.ThrowIfNullOrEmpty(typeId);
-        var state = Of(inhabitant, knowledge, [typeId], []);
+        var state = Of(inhabitant, knowledge, [typeId], [], label);
         var known = state.Knowledge.ToList();
         var visible = knowledge.Looking?.VisibleProperties.ToHashSet(StringComparer.Ordinal) ?? [];
         known.AddRange(inhabitant.Beliefs.All

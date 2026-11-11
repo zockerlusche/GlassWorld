@@ -427,6 +427,11 @@ public sealed class ContentSet
                 yield return $"memory event '{entry.Event}' leaves out unknown action '{action}'";
             }
 
+            foreach (var outcome in (entry.EverydayOutcomes ?? []).Where(o => !Inhabitants.ActionOutcomes.All.Contains(o, StringComparer.Ordinal)))
+            {
+                yield return $"memory event '{entry.Event}' names unknown outcome '{outcome}' in everyday_outcomes";
+            }
+
             if (entry.Effect is not { } effect)
             {
                 continue;
