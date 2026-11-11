@@ -401,3 +401,25 @@ def test_v8_shows_the_tone_only_with_made_up_things() -> None:
     system = _render(_request("hungry-berries"), version=8).split("=== user ===")[0]
     assert "Knubbel" in system and "Knolle" in system
     assert "never use these two words" in system
+
+
+def test_v8_calls_an_invention_what_its_inhabitant_calls_it() -> None:
+    """#251: the request carries the inhabitants' own name of an invention (label). v8 shows it in
+    the player's language wherever the thing is named - thing, belief, habit, option - and never
+    the runtime id."""
+    text = _render(_request("own-invention"), version=8)
+    user = text.split("=== user ===")[1]
+    assert '- made thing [obj-0077] (you call it "Wasserschale"), 3.0 m away' in user
+    assert "- thing 'Wasserschale' is crafted (sure 1.0; you tried it yourself)" in user
+    assert "(thing 'Wasserschale')" in user  # the habit
+    assert '-> made thing [obj-0077] ("Wasserschale")' in user  # the option
+    assert "inv_" not in user and "inv 3fa" not in user
+    english = DecisionRequest.model_validate(
+        {
+            **json.loads(
+                (EXAMPLES / "decision-request.own-invention.json").read_text(encoding="utf-8")
+            ),
+            "display_locale": "en",
+        }
+    )
+    assert '(you call it "water bowl")' in _render(english, version=8)

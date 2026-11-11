@@ -158,9 +158,18 @@ def build_values(
         lines.append(f"- ... and {hidden} more things further away")
     values["objects"] = "\n".join(lines) or NOTHING
     if isinstance(made, str):
-        # A runtime type id says nothing to the model and is no word of the inhabitant.
-        values = {key: _RUNTIME_TYPE.sub(made, text) for key, text in values.items()}
+        return {key: _without_runtime_ids(text, labels, made) for key, text in values.items()}
     return values
+
+
+def _without_runtime_ids(text: str, labels: dict[str, str], made: str) -> str:
+    """A runtime type id says nothing to the model and is no word of the inhabitant. Where a line
+    names the kind in quotes (beliefs, habits), the inhabitant's own name stands there; everywhere
+    else the kind is the neutral word (the object line adds the name itself)."""
+    for type_id, label in labels.items():
+        for shown in (type_id, type_id.replace("_", " ")):
+            text = text.replace(f"'{shown}'", f"'{label}'")
+    return _RUNTIME_TYPE.sub(made, text)
 
 
 _RUNTIME_TYPE = re.compile(r"\binv[_ ][0-9a-f]{6,}\b")
