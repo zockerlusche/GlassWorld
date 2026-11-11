@@ -43,6 +43,10 @@ class Trigger(BaseModel):
         None,
         description="When the question goes to the AI (A1487): immediate = to the decider the moment it opens (as before); night = it opens with its question mark, is not sent to the decider by day and is answered by the compute night's question job (knowledge settings: night_questions must list the trigger; only for questions about an object type). Omitted = immediate. A later value will follow the day's contingent (D713).",
     )
+    interrupts: bool | None = Field(
+        None,
+        description='Whether a question of this trigger goes to the decider even while its inhabitant is busy with another question or an accepted choice (choice_protection_hours); its answer then replaces that choice, as before. Omitted = false: the question waits.',
+    )
 
 
 class DeciderSettings(BaseModel):
@@ -60,7 +64,10 @@ class DeciderSettings(BaseModel):
         le=60000,
     )
     max_open_questions: int = Field(
-        ..., description='Open questions per inhabitant at the same time.', ge=1, le=16
+        ...,
+        description='Open questions per inhabitant at the same time, whether with the decider or waiting (held back, or for the night). A question of a trigger that interrupts is not kept out by questions that only wait.',
+        ge=1,
+        le=16,
     )
     retry_after_minutes: int = Field(
         ...,
@@ -73,6 +80,12 @@ class DeciderSettings(BaseModel):
         description='Game hours before the same inhabitant asks about the same subject again.',
         ge=0,
         le=1000,
+    )
+    choice_protection_hours: float | None = Field(
+        None,
+        description='One thing at a time (A1487): while a question of an inhabitant is with the decider, or a choice the decider made for it is queued or under way (walking there or doing it), no further question of that inhabitant goes to the decider - it opens with its question mark and is asked once the inhabitant is free again, if what raised it still holds (the thing or the other still in sight and not understood); otherwise it lapses (question_failed, detail lapsed) and the trigger raises it anew when it sees the thing again. This value is the time limit in game hours: it bounds what has no end of its own - a question that is out with the decider, the walk to a chosen target, a choice queued behind a walk; older than this they no longer hold anything back. An action that runs ends by its duration, and with it the wait of a choice queued behind it, so these need no limit. Exceptions: triggers with interrupts, and a choice that serves none of the needs below their neglect_below (inhabitant model). Omitted or 0 = questions are never held back (as before).',
+        ge=0.0,
+        le=1000.0,
     )
     unknown_inhabitant_max_asks: int | None = Field(
         None,
