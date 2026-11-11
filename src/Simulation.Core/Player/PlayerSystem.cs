@@ -307,7 +307,10 @@ public sealed class PlayerSystem : IWorldSystem
 
     /// <summary>Needs that something in the world can satisfy (considerations with a target property).</summary>
     private IEnumerable<string> PressingCandidates() =>
-        _weights.Considerations.Where(c => c.Need is not null && c.TargetProperty is not null).Select(c => c.Need!).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal);
+        // Only a need the routine searches for (search_action): a call for help follows futile searching,
+        // and without a search action nothing the inhabitant does is a search for the need (D9: a made
+        // thing is used for purpose where it stands; no gift could help with it either).
+        _weights.Considerations.Where(c => c.Need is not null && c.TargetProperty is not null && c.SearchAction is not null).Select(c => c.Need!).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal);
 
     /// <summary>
     /// By its own beliefs: can the inhabitant aim at anything that might help with the need? The same things

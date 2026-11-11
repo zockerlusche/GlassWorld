@@ -12,6 +12,7 @@
     { "action": "drink", "target_property": "drinkable", "avoid_properties": ["salty", "poisonous"], "search_action": "wander", "need": "thirst", "weight": 1.0, "curve": [[0.0, 1.0], [0.5, 0.4], [0.8, 0.0], [1.0, 0.0]] },
     { "action": "sleep", "target_property": null, "avoid_properties": [], "need": "sleep", "weight": 1.0, "curve": [[0.0, 1.0], [0.3, 0.6], [0.5, 0.0], [1.0, 0.0]] },
     { "action": "talk_to", "target_property": null, "avoid_properties": [], "target_inhabitant": { "relation": "familiar" }, "search_action": "wander", "need": "company", "weight": 0.8, "curve": [[0.0, 1.0], [0.3, 0.6], [0.7, 0.0], [1.0, 0.0]], "yields_to_needs": true },
+    { "action": "use", "target_property": "crafted", "avoid_properties": [], "need": "purpose", "weight": 0.3, "curve": [[0.0, 1.0], [0.6, 0.8], [0.85, 0.0], [1.0, 0.0]], "yields_to_needs": true },
     { "action": "inspect", "target_property": null, "avoid_properties": [], "need": "fun", "weight": 0.3, "curve": [[0.0, 0.8], [0.6, 0.2], [1.0, 0.0]] },
     { "action": "inspect", "target_property": null, "avoid_properties": [], "need": null, "weight": 0.3, "curve": [[0.0, 1.0], [1.0, 1.0]], "trait": "curiosity", "novelty_curve": [[0.0, 0.0], [0.4, 0.0], [1.0, 1.0]] },
     { "action": "explore", "target_property": null, "avoid_properties": [], "need": null, "weight": 0.25, "curve": [[0.0, 1.0], [1.0, 1.0]], "trait": "curiosity", "yields_to_needs": true },

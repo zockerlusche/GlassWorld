@@ -357,6 +357,30 @@ public sealed partial class InventionSystem
         var built = _objects.Spawn(task.TypeId, new Position(task.SiteX, task.SiteZ));
         _builds[task.TypeId] = task with { BuiltObjectId = built.Id };
         _inhabitants.Report(new WorldEvent(Built, e.Tick, task.InhabitantId, null, built.Id));
+        KnowOwnWork(e.Tick, task);
+    }
+
+    /// <summary>
+    /// What the makers of a thing know of it once it stands (D9). <b>Whoever built it</b> knows by its own
+    /// doing that it is made: what every invention is by being made (the data's implied properties), as
+    /// experience, by the same path as any experience (<see cref="InhabitantsSystem.Experience"/>; the
+    /// doing is the building step). The building task knows one builder; there are no helpers yet.
+    /// <b>Whoever had the idea</b> (the inventor, whose wish it came from) has its own idea of what the
+    /// thing is: the properties the invention introduces, as guesses - as sure as a guess can be, never
+    /// over a belief it has (<see cref="InhabitantsSystem.Guess"/>). Whether the thing is what the
+    /// inventor thinks and whether using it helps is the world's matter (true properties, effect rules);
+    /// looking and trying replace the guesses like every other guess. Nobody else learns anything here.
+    /// </summary>
+    private void KnowOwnWork(long tick, BuildTask task)
+    {
+        var made = _rules.Settings.ImpliedProperties;
+        _inhabitants.Experience(tick, _inhabitants.Get(task.InhabitantId), Build.Settings.StepAction, task.TypeId, made);
+        var record = _inventions[task.TypeId];
+        var inventor = _inhabitants.Get(record.InhabitantId);
+        foreach (var property in Parse(record).Introduces.Except(made, StringComparer.Ordinal).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal))
+        {
+            _inhabitants.Guess(tick, inventor, null, task.TypeId, property, value: true);
+        }
     }
 
     private static SoundDecision? SoundOf(InventionRecord record) =>

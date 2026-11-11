@@ -162,15 +162,17 @@ public sealed partial class InventionSystem : IWorldSystem, IOptionalWorldState,
 
     /// <summary>
     /// The name of an invention as far as one inhabitant knows it: its inventor does, and so does whoever
-    /// was told about the thing (a belief it heard; telling names it). Null for everybody else and for
-    /// content types. Used for the labels of remembered events; never the truth an inhabitant does not know.
+    /// believes anything about the thing - built it, tried it, looked at it, was told about it, guessed
+    /// (any belief about the type, whatever its source; review GW2 #245: a builder holds an experienced
+    /// belief, and a remembered event must not read "inv_..."). Null for whoever knows nothing of it and
+    /// for content types. Used for the labels of remembered events.
     /// </summary>
     public LocalizedName? NameKnownTo(Inhabitant inhabitant, string typeId)
     {
         ArgumentNullException.ThrowIfNull(inhabitant);
         ArgumentNullException.ThrowIfNull(typeId);
         return _inventions.TryGetValue(typeId, out var record)
-            && (record.InhabitantId == inhabitant.Id || inhabitant.Beliefs.About(typeId).Any(b => b.Belief.Source == KnowledgeSources.Heard))
+            && (record.InhabitantId == inhabitant.Id || inhabitant.Beliefs.Knows(typeId))
             ? Parse(record).Name
             : null;
     }
