@@ -32,6 +32,7 @@ from glassworld_ai.config import load_settings
 from glassworld_ai.conversation import Conversationalist, OllamaConversation
 from glassworld_ai.decider.backends import Decider, DecisionError, ModelSettings, OllamaDecider
 from glassworld_ai.decider.output import readable_name
+from glassworld_ai.grounding import load_names
 from glassworld_ai.jobs import JobFailedError
 from glassworld_ai.llm.jobcall import ModelCallSettings
 from glassworld_ai.llm.ollama import OllamaClient
@@ -336,6 +337,7 @@ async def _main(args: argparse.Namespace) -> int:
             guard=guard,
             expressions={e: vocab.describe("expression", e) or e for e in vocab.ids("expression")},
             texts=texts,
+            names=load_names(settings.content_dir),
         )
         started = time.perf_counter()
         b9 = args.kind == "b9"

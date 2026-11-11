@@ -15,7 +15,8 @@ namespace GlassWorld.Game.World;
 /// tool (B2 R32: every point × projection × phase, and the epochs, seasons and weather it lists, from
 /// <c>content/look/shots.json</c>, see <see cref="ShotPlan"/>, then quits; <c>--shot-set=NAME</c> takes
 /// <c>content/look/shots_NAME.json</c> instead, e.g. <c>dimensions</c>: epochs × seasons × weather; the world
-/// pauses while a shot is pending and a point with an inhabitant follows that figure);
+/// pauses while a shot is pending and a point with an inhabitant follows that figure; <c>clouds</c>: the
+/// cloud cover over unseen land, R25);
 /// <c>--follow=POINT</c> follows the inhabitant of a shot point with its yaw and distance while the world runs
 /// (with Godot's <c>--write-movie</c> and <c>--fixed-fps</c> a repeatable clip); <c>--speed=F</c> is the time
 /// factor, <c>--warm-ticks=N</c> runs the world N ticks before the first picture;
@@ -40,6 +41,7 @@ public partial class IslandScene : Node3D
     private string? _epoch;
     private GlassWorld.Simulation.Map.TideReading? _tide;
     private GrassView? _grass;
+    private CloudCover? _cover;
     private string _season = string.Empty;
     private Func<double, double, double> _heightAt = (_, _) => 0;
     private readonly Dictionary<string, DaylightMix> _phases = new(StringComparer.Ordinal);
@@ -168,6 +170,14 @@ public partial class IslandScene : Node3D
         // The camera target follows the ground, but never sinks below the sea surface.
         var seaLevel = host.Content.WorldGen.Presets[preset].Terrain.SeaLevel * terrain.UnitM;
         _heightAt = (x, z) => Math.Max(seaLevel, IslandView.GroundHeight(ground, terrain, x, z));
+
+        // Cloud cover over what the player has not seen yet (B2-6 R25); what is seen by now is clear at once.
+        if (host.Exploration is { } exploration)
+        {
+            bool IsLand(int x, int z) => IslandView.GroundHeight(ground, terrain, (x + 0.5) * terrain.CellM, (z + 0.5) * terrain.CellM) > seaLevel;
+            _cover = CloudCover.Create(exploration, IsLand, _nature.Data.Cover, palette, terrain.CellM, host.Content.WorldGen.Presets[preset].Exploration?.RevealRealSeconds ?? 0, _nature.Wind.DirectionX, _nature.Wind.DirectionZ);
+            AddChild(_cover);
+        }
         _rig = CameraRig.Create(Look<LookCamera>("camera.json"), _width, _depth, () => _figures.Values.Select(f => (f.InhabitantId, f.Position)), (x, z) => Math.Max(seaLevel, IslandView.GroundHeight(ground, terrain, x, z)));
         _rig.FindFigure = id => _figures.TryGetValue(id, out var f) ? f.Position : null;
         AddChild(_rig);
@@ -193,6 +203,7 @@ public partial class IslandScene : Node3D
         {
             GD.Print($"ISLAND_OK seed={seed} chunks={view.GroundChunks} ground_triangles={view.GroundTriangles} water_triangles={view.WaterTriangles} figures={_figures.Count} objects={_objects!.Drawn} decor={decor.Count}");
             GD.Print($"ISLAND_NATURE seed={seed} grass_plants={_grass.Plants} grass_layers={_grass.Layers} season_colors={_nature.Season.Slots.Ids.Count} weather_looks={_nature.WeatherWithLook.Count}");
+            GD.Print(_cover is null ? $"ISLAND_COVER seed={seed} none" : $"ISLAND_COVER seed={seed} cells={_cover.Map.Width}x{_cover.Map.Depth} version={_cover.Map.Version} seen_permille={(int)(_cover.Map.SeenShare * 1000)}");
             GD.Print($"ISLAND_LOD seed={seed} ground={string.Join(",", view.LevelTriangles.Select(l => $"{l.CellStep}:{l.Ground}"))} water={view.WaterTriangles}");
             GetTree().Quit(view.GroundChunks == island.Map.ChunksX * island.Map.ChunksZ && view.GroundTriangles > 0 && view.WaterTriangles > 0 && _figures.Count == host.Inhabitants.All.Count() ? 0 : 1);
             return;
@@ -230,6 +241,7 @@ public partial class IslandScene : Node3D
                 var time = _host.World.Calendar;
                 _view?.FollowTide(_tide, delta);
                 _nature.Follow(_season, _epoch, _weather, delta, Focus(_rig.Model.Target.X, _rig.Model.Target.Z), _ticksPerSecond * time.RealSecondsPerTickAtNormalSpeed, time.RealSecondsPerTickAtNormalSpeed * time.Settings.TicksPerHour / 60.0);
+                _cover?.Advance(delta);
                 ApplyPhase(_phase);
             }
 
@@ -301,6 +313,12 @@ public partial class IslandScene : Node3D
             _view!.ShowTide(next.Point.TidePermille is { } permille && _tide is { } tide ? TideFollower.AtPermille(tide.Amplitude, permille) : TideFollower.Level(_tide));
             ApplyPhase(next.Phase);
 
+            // The cloud cover as the world has it, or with the share of seen land the point asks for (R25).
+            if (next.Point.RevealedPermille is { } revealed)
+            {
+                _cover?.ShowShare(revealed);
+            }
+
             _wait = _shots.SettleFrames;
             return;
         }
@@ -349,6 +367,11 @@ public partial class IslandScene : Node3D
     {
         var snapshot = _host.Snapshot();
         (_season, _weather, _epoch, _tide) = (snapshot.Time.SeasonId, snapshot.Weather, snapshot.LookEpoch, snapshot.Tide);
+        if (_host.Exploration is { } exploration)
+        {
+            _cover?.Take(exploration, snapshot.ExploredVersion);
+        }
+
         foreach (var inhabitant in snapshot.Inhabitants)
         {
             if (_figures.TryGetValue(inhabitant.Id, out var figure))

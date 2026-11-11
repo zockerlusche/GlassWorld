@@ -43,5 +43,21 @@
     "length_m": 0.12,
     "spin_deg_per_s": 120,
     "opacity": 1.0
+  },
+  "cover": {
+    "color": "cloud_cover",
+    "shade_color": "cloud_cover_shade",
+    "puff_m": 26.0,
+    "layer_height_m": 4.0,
+    "drift_m_per_s": 0.5,
+    "softness_cells": 2.5,
+    "edge_softness": 0.22,
+    "edge_puff": 0.6,
+    "band": 0.5,
+    "band_softness": 0.16,
+    "opacity": 1.0,
+    "daylight_share": 0.85,
+    "sea_margin_cells": 10,
+    "cells_per_frame": 400
   }
 }

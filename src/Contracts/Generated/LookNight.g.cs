@@ -13,6 +13,83 @@ namespace GlassWorld.Contracts
     #pragma warning disable // Disable all warnings
 
     /// <summary>
+    /// Dream images of the night scene (B2579, D637 R11/R13): things the night's jobs are about appear softly, spread over the screen, and fade again. Only real jobs of this night are shown; an empty queue shows none. The limits keep it calm: with min_gap_s at least 0.7 s there are never more than three changes of brightness per second (protection for light-sensitive players), whatever the other values say.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class NightDreams
+    {
+
+        /// <summary>
+        /// Real seconds an image takes to appear.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("fade_in_s")]
+        public double FadeInS { get; set; } = default!;
+
+        /// <summary>
+        /// Real seconds it stays.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("hold_s")]
+        public double HoldS { get; set; } = default!;
+
+        /// <summary>
+        /// Real seconds it takes to fade.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("fade_out_s")]
+        public double FadeOutS { get; set; } = default!;
+
+        /// <summary>
+        /// Most images on screen at once; more wait their turn.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max_at_once")]
+        public int MaxAtOnce { get; set; } = default!;
+
+        /// <summary>
+        /// Least real seconds between two images appearing.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("min_gap_s")]
+        public double MinGapS { get; set; } = default!;
+
+        /// <summary>
+        /// Size of an image (pixels at the reference height, scaled with the UI).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("size_px")]
+        public int SizePx { get; set; } = default!;
+
+        /// <summary>
+        /// Greatest opacity of an image (soft, never glaring).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("brightness")]
+        public double Brightness { get; set; } = default!;
+
+        /// <summary>
+        /// With 'reduce motion' the fades take this many times as long.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("reduce_motion_factor")]
+        public double ReduceMotionFactor { get; set; } = default!;
+
+        /// <summary>
+        /// What a job kind shows: 'symbol' = the shape of the object type it is about, as soon as the job is seen; 'image' = that symbol and, once the job is done, the picture it made; 'none' = nothing. Kinds not listed show nothing.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("appearances")]
+        public System.Collections.Generic.ICollection<NightAppearance> Appearances { get; set; } = new System.Collections.ObjectModel.Collection<NightAppearance>();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class NightAppearance
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("kind")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<JobKind>))]
+        public JobKind Kind { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("show")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<NightAppearanceShow>))]
+        public NightAppearanceShow Show { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// How the game shows the compute night (B7, B2579/B2580, D637 R12-R14): the picture darkens into the dream scene when the night begins and the morning fades in once the AI service is done. Presentation only; all values are placeholders until Marcel's word.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -75,6 +152,27 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("zzz_rise_px")]
         public double ZzzRisePx { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("dreams")]
+        public NightDreams Dreams { get; set; } = new NightDreams();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public enum NightAppearanceShow
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("none")]
+        None = 0,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("symbol")]
+        Symbol = 1,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("image")]
+        Image = 2,
+
 
     }
 }
