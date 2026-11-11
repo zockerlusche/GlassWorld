@@ -132,6 +132,10 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("rock_slopes")]
         public WorldPresetRockSlopes? RockSlopes { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("rock_faces")]
+        public WorldPresetRockFaces? RockFaces { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -203,6 +207,51 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("rounds")]
         public int Rounds { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Rock faces instead of step stacks (generator version 4, TL #20548, W1726): where the terraces form a stack of one-step ledges (each a narrow walkable tread with a wall of cliff_min_drop), the ledges sink to the level below until the stack is one higher face with level ground in front; the kept walls of rock_slopes keep that level ground for foot_cells. Absent = version-3 terraces.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class WorldPresetRockFaces
+    {
+
+        /// <summary>
+        /// Widest tread (cells, between a wall above and a wall below) that counts as a ledge of a step stack and sinks to the level below.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("ledge_max_cells")]
+        public int LedgeMaxCells { get; set; } = default!;
+
+        /// <summary>
+        /// Highest rock face in cliff steps (cliff_min_drop): a ledge sinks only while the face above it stays within this height.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max_steps")]
+        public int MaxSteps { get; set; } = default!;
+
+        /// <summary>
+        /// Level ground in front of the kept walls: terraced cells of the foot's exact level within this distance (cells) keep that level (no tread relief, no scree). 0 = only the foot cell, as in version 3.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("foot_cells")]
+        public int FootCells { get; set; } = default!;
+
+        /// <summary>
+        /// Largest level group of terraced cells (cells) that stands as a lone block one cliff step above all its surroundings and sinks with the ledges (leftover of a sunk stack). 0 = none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("block_max_cells")]
+        public int BlockMaxCells { get; set; } = default!;
+
+        /// <summary>
+        /// Rounds of sinking ledges (each lowers the ledges of a round by one cliff step).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("rounds")]
+        public int Rounds { get; set; } = default!;
+
+        /// <summary>
+        /// Rounds in which land away from the kept walls that still stands a cliff step or more above its lowest land neighbour (scree that did not settle, steep coasts) comes down to one below the cliff step, so only the kept faces are walls. 0 = off.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("scree_rounds")]
+        public int ScreeRounds { get; set; } = default!;
 
     }
 
