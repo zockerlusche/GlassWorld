@@ -7,8 +7,10 @@ the reference PC has 10 GB VRAM, so model calls never run in parallel (ADR-0006)
 from __future__ import annotations
 
 import asyncio
+import collections
 import heapq
 import itertools
+import statistics
 import time
 from collections.abc import Awaitable, Callable
 from enum import IntEnum
@@ -35,6 +37,25 @@ class DeadlineExpiredError(Exception):
 
 
 Clock = Callable[[], float]
+
+
+class TypicalDuration:
+    """How long a call of one kind usually takes: the median of the last calls that came through.
+
+    Measured, not configured (A1487, D713 f): with it the queue does not begin a call that could
+    not finish before its deadline. Empty = 0, so nothing is held back before the first calls.
+    The window is a technical size, not a balancing value.
+    """
+
+    def __init__(self, window: int = 21) -> None:
+        self._seconds: collections.deque[float] = collections.deque(maxlen=window)
+
+    def note(self, seconds: float) -> None:
+        self._seconds.append(seconds)
+
+    @property
+    def seconds(self) -> float:
+        return statistics.median(self._seconds) if self._seconds else 0.0
 
 
 class ModelQueue:
@@ -73,12 +94,19 @@ class ModelQueue:
         return deadline - self._clock()
 
     async def run[T](
-        self, priority: Priority, deadline: float, work: Callable[[], Awaitable[T]]
+        self,
+        priority: Priority,
+        deadline: float,
+        work: Callable[[], Awaitable[T]],
+        needs_s: float = 0.0,
     ) -> T:
         """Wait for the turn, then run `work`. `deadline` is an absolute time of `clock`.
 
         Raises QueueFullError if too many calls wait, DeadlineExpiredError if the deadline passes
-        while waiting (work is then never started) or while working (work is cancelled).
+        while waiting (work is then never started) or while working (work is cancelled). With
+        `needs_s` (how long such a call usually takes) the work is also not started when less
+        than that is left at its turn: the model would run for an answer that comes too late
+        and keep the next caller waiting (A1487).
         """
         if self._closed:
             raise QueueClosedError("service is stopping")
@@ -115,6 +143,10 @@ class ModelQueue:
             remaining = self._remaining(deadline)
             if remaining <= 0:
                 raise DeadlineExpiredError("deadline passed while waiting")
+            if remaining < needs_s:
+                raise DeadlineExpiredError(
+                    f"not begun: {remaining:.1f} s left, such a call takes about {needs_s:.1f} s"
+                )
             try:
                 return await asyncio.wait_for(work(), timeout=remaining)
             except TimeoutError:

@@ -206,3 +206,39 @@ def test_close_ends_waiting_calls_and_rejects_new_ones() -> None:
         await busy  # the running call finishes normally
 
     asyncio.run(scenario())
+
+
+def test_a_call_is_not_begun_when_its_usual_duration_does_not_fit_any_more() -> None:
+    """A1487 (D713 f): 12 % of the answers in a live run came too late and were thrown away; a
+    call that cannot finish in time must not occupy the model."""
+    from glassworld_ai.queue import DeadlineExpiredError, ModelQueue, Priority
+
+    now = [100.0]
+    queue = ModelQueue(4, clock=lambda: now[0])
+    started: list[str] = []
+
+    async def work() -> str:
+        started.append("x")
+        return "done"
+
+    async def scenario() -> None:
+        with pytest.raises(DeadlineExpiredError, match=r"not begun: 1\.0 s left"):
+            await queue.run(Priority.DECISION, 101.0, work, needs_s=1.5)
+        assert started == [] and not queue.busy
+        assert await queue.run(Priority.DECISION, 102.0, work, needs_s=1.5) == "done"
+        assert await queue.run(Priority.DECISION, 100.5, work) == "done"  # no estimate: as before
+
+    asyncio.run(scenario())
+    assert started == ["x", "x"]
+
+
+def test_the_usual_duration_is_the_median_of_the_last_calls() -> None:
+    from glassworld_ai.queue import TypicalDuration
+
+    typical = TypicalDuration(window=3)
+    assert typical.seconds == 0.0  # nothing measured: nothing is held back
+    for seconds in (1.0, 9.0, 2.0):
+        typical.note(seconds)
+    assert typical.seconds == 2.0
+    typical.note(3.0)  # the oldest (1.0) falls out
+    assert typical.seconds == 3.0
