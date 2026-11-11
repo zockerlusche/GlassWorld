@@ -313,6 +313,10 @@ public sealed class BuiltThingsGetUsedTests : IDisposable
         var events = Record(host);
         var hour = host.World.Calendar.Settings.TicksPerHour;
 
+        // The thing's name belongs to what one knows of it: the builder has it, a newcomer does not.
+        Assert.NotNull(host.Inventions.NameKnownTo(builder, typeId));
+        Assert.Null(host.Inventions.NameKnownTo(other, typeId));
+
         host.World.Run(hour * 12);
         Assert.Contains(events, e => e.Kind == InventionSystem.FirstUse && e.InhabitantId == builder.Id);
         Assert.DoesNotContain(events, e => e.InhabitantId == other.Id && e.Action == Use.Action);
@@ -327,6 +331,11 @@ public sealed class BuiltThingsGetUsedTests : IDisposable
         RunUntil(host, () => events.Any(e => e.Kind == InhabitantsSystem.ActionFinished && e.InhabitantId == other.Id && e.Action == Use.Action && e.TargetId == builtId), hour * 6);
         Assert.True(other.Beliefs.TryGet(typeId, Made, out var tried));
         Assert.Equal((true, knowledge.ExperiencedConfidence, KnowledgeSources.Experienced), (tried.Value, tried.Confidence, tried.Source));
+
+        // Who knows the thing by its own experience calls it by its name in what it remembers (GW2 #245),
+        // without being its inventor.
+        var remembered = other.Memory.Events.Last(e => e.Kind == Use.Action && e.AboutId == typeId);
+        Assert.Equal(host.Inventions.Invention(typeId)!.Name.En, host.Inhabitants.LabelOf(other, remembered)!.En);
         Assert.Single(events, e => e.Kind == InventionSystem.FirstUse); // the first use stays the builder's
     }
 
