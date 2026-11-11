@@ -344,8 +344,9 @@ internal static class PerfCommand
             var started = Stopwatch.GetTimestamp();
             world.Step();
             var whole = Stopwatch.GetTimestamp() - started;
-            withPort[t] = Stopwatch.GetElapsedTime(0, whole).TotalMilliseconds;
-            step[t] = Stopwatch.GetElapsedTime(0, whole - timer.InStep(TimedDecisionPort.Part)).TotalMilliseconds;
+            // The step and its parts in one time base: stopwatch ticks, turned into milliseconds by the timer.
+            withPort[t] = timer.Ms(whole);
+            step[t] = timer.Ms(whole - timer.InStep(TimedDecisionPort.Part));
             perStep?.Add(timer.StepMs());
             timer.Keep();
             foreach (var inhabitant in everyone)

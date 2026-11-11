@@ -115,13 +115,28 @@ public sealed class PerfTests
         Assert.Equal(12, Value(act, "calls"));
         Assert.Contains(lines, l => l.StartsWith("PART name=inhabitants/(rest) ", StringComparison.Ordinal));
 
-        // The parts never overlap: together the systems take no more time than the step they are part of.
-        var inSystems = lines.Where(l => l.StartsWith("SYSTEM ", StringComparison.Ordinal)).Sum(l => Value(l, "mean_ms"));
-        Assert.True(inSystems <= Value(step, "mean_ms") + 0.001, $"systems {inSystems} ms, step {Value(step, "mean_ms")} ms");
         Assert.Contains(lines, l => l.StartsWith("REQUESTS sent=", StringComparison.Ordinal));
         Assert.Contains(lines, l => l.StartsWith("ALLOC kb_per_step=", StringComparison.Ordinal));
         Assert.Matches("^FINAL hash=[0-9a-f]{64} tick=90$", lines[^1]);
         Assert.DoesNotContain(lines, l => l.StartsWith("PERF_", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void ThePartsOfAStepNeverOverlap()
+    {
+        // Asked of the result itself, not of the rounded lines: the systems together take no more time than
+        // the step they are part of, the parts of a system add up to the system, and every step that ran
+        // took time (a clock read with the wrong rate gives zeros or nonsense here).
+        var result = PerfCommand.Measure(PerfOptions.Parse(
+            ["--inhabitants", "12", "--ticks", "90", "--warmup-ticks", "30", "--runtime-warmup-seconds", "0", "--content", Content]));
+        Assert.True(result.Step.Mean > 0 && double.IsFinite(result.Step.Mean));
+        Assert.True(result.Step.Median > 0);
+        Assert.True(result.Step.Mean <= result.StepWithPort.Mean);
+        Assert.True(result.Systems.Sum(s => s.MeanMs) <= result.Step.Mean + 1e-9, $"systems {result.Systems.Sum(s => s.MeanMs)} ms, step {result.Step.Mean} ms");
+        Assert.True(result.Systems.Sum(s => s.MeanMs) > 0.5 * result.Step.Mean);
+        Assert.All(result.Systems, s => Assert.True(double.IsFinite(s.MeanMs) && s.MeanMs >= 0 && s.MaxMs >= s.MeanMs - 1e-9));
+        Assert.All(result.Systems.Where(s => s.Parts.Count > 0), s => Assert.Equal(s.MeanMs, s.Parts.Sum(p => p.MeanMs), 9));
+        Assert.Equal(1.0, result.Systems.Sum(s => s.Share) + ((result.Step.Mean - result.Systems.Sum(s => s.MeanMs)) / result.Step.Mean), 9);
     }
 
     [Fact]
@@ -174,7 +189,10 @@ public sealed class PerfTests
                 // The parts never overlap: together no more than the step with the port (rounded to 4 places each).
                 Assert.True(values.Skip(2).Sum() <= values[1] + (0.0001 * values.Count));
             });
-            Assert.Equal(Value(LinesOf(text).Single(l => l.StartsWith("STEP ", StringComparison.Ordinal)), "max_ms"), rows.Skip(1).Max(r => double.Parse(r.Split(',')[1], CultureInfo.InvariantCulture)), 3);
+            // The slowest step of the report (three places) and of the csv (four places) are the same value,
+            // each rounded once: they differ by less than the two rounding steps together.
+            var slowest = Value(LinesOf(text).Single(l => l.StartsWith("STEP ", StringComparison.Ordinal)), "max_ms");
+            Assert.InRange(rows.Skip(1).Max(r => double.Parse(r.Split(',')[1], CultureInfo.InvariantCulture)), slowest - 0.00056, slowest + 0.00056);
         }
         finally
         {
@@ -215,10 +233,11 @@ public sealed class PerfTests
     [Fact]
     public void PartsCountTheirOwnTimeOnly()
     {
-        // A clock the test moves: 10 in the system before its part, 5 in the part, 3 in the port inside the
-        // part, 2 after the port, 7 after the part.
+        // A clock the test moves, a thousand ticks to the second (one tick = one millisecond, whatever the
+        // stopwatch of the machine counts): 10 in the system before its part, 5 in the part, 3 in the port
+        // inside the part, 2 after the port, 7 after the part.
         long now = 0;
-        var timer = new StepTimer(() => now);
+        var timer = new StepTimer(new TickClock(() => now, 1000));
         void Step()
         {
             timer.Enter("system");
@@ -247,17 +266,47 @@ public sealed class PerfTests
         timer.Keep();
         Assert.Equal(2, timer.Steps);
         Assert.Equal(["system", "system/part", TimedDecisionPort.Part], timer.Parts);
-        var unit = timer.MeanMs(TimedDecisionPort.Part) / 3;
-        Assert.Equal(17, timer.MeanMs("system") / unit, 6);
-        Assert.Equal(7, timer.MeanMs("system/part") / unit, 6);
-        Assert.Equal(24, timer.GroupMeanMs("system") / unit, 6);
-        Assert.Equal(24, timer.GroupMaxMs("system") / unit, 6);
+        Assert.Equal(3, timer.MeanMs(TimedDecisionPort.Part));
+        Assert.Equal(17, timer.MeanMs("system"));
+        Assert.Equal(7, timer.MeanMs("system/part"));
+        Assert.Equal(7, timer.MaxMs("system/part"));
+        Assert.Equal(24, timer.GroupMeanMs("system"));
+        Assert.Equal(24, timer.GroupMaxMs("system"));
         Assert.Equal(1, timer.MeanCalls("system/part"));
         Assert.Throws<InvalidOperationException>(() =>
         {
             timer.Enter("a");
             timer.Leave("b");
         });
+    }
+
+    [Theory]
+    [InlineData(10_000_000)]
+    [InlineData(1_000_000_000)]
+    [InlineData(3)]
+    public void TicksBecomeMillisecondsByTheClocksOwnRate(long ticksPerSecond)
+    {
+        // The stopwatch counts 10^7 ticks per second on Windows and 10^9 on Linux; a part of a few ticks
+        // must not vanish on either (it did: 3 ticks of a nanosecond were rounded to no time at all).
+        long now = 0;
+        var timer = new StepTimer(new TickClock(() => now, ticksPerSecond));
+        timer.Enter("part");
+        now += 3;
+        timer.Leave("part");
+        Assert.Equal(3000.0 / ticksPerSecond, timer.StepMs()[0], 12);
+        timer.Keep();
+        Assert.Equal(3000.0 / ticksPerSecond, timer.MeanMs("part"), 12);
+        Assert.Equal(3000.0 / ticksPerSecond, timer.MaxMs("part"), 12);
+        Assert.Equal(1000.0, timer.Ms(ticksPerSecond));
+        Assert.True(timer.MeanMs("part") > 0);
+    }
+
+    [Fact]
+    public void TheMachinesStopwatchIsReadWithItsOwnRate()
+    {
+        var timer = new StepTimer();
+        Assert.Equal(1000.0, timer.Ms(System.Diagnostics.Stopwatch.Frequency));
+        Assert.Equal(System.Diagnostics.Stopwatch.Frequency, TickClock.Machine.TicksPerSecond);
     }
 
     [Fact]

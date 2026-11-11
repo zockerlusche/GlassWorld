@@ -4,6 +4,19 @@ using GlassWorld.Simulation.Decisions;
 namespace GlassWorld.Simulation.Headless;
 
 /// <summary>
+/// A monotonic clock that counts ticks, together with how many of its ticks make a second: the two belong
+/// together, because the stopwatch counts differently from machine to machine (10^7 ticks per second on
+/// Windows, 10^9 on Linux), and a clock of a test counts as the test likes.
+/// </summary>
+/// <param name="Now">The ticks counted so far.</param>
+/// <param name="TicksPerSecond">Ticks per second (at least 1).</param>
+internal sealed record TickClock(Func<long> Now, long TicksPerSecond)
+{
+    /// <summary>The stopwatch of the machine.</summary>
+    public static TickClock Machine { get; } = new(Stopwatch.GetTimestamp, Stopwatch.Frequency);
+}
+
+/// <summary>
 /// Times the parts of the world's steps (<see cref="IStepProbe"/>) with the monotonic clock. Every part
 /// counts its own time only: a part that begins inside another one (the decider port inside the decisions
 /// system, a part <c>system/part</c> inside its system) is taken out of the enclosing one, so the parts of a
@@ -11,10 +24,11 @@ namespace GlassWorld.Simulation.Headless;
 /// the first slash (a system with the parts it names). A step is kept with <see cref="Keep"/> or dropped
 /// with <see cref="Drop"/> (warm-up).
 /// </summary>
-/// <param name="clock">Monotonic clock in stopwatch ticks (tests pass their own); null = the stopwatch.</param>
-internal sealed class StepTimer(Func<long>? clock = null) : IStepProbe
+/// <param name="clock">The clock (tests pass their own); null = the stopwatch of the machine.</param>
+internal sealed class StepTimer(TickClock? clock = null) : IStepProbe
 {
-    private readonly Func<long> _clock = clock ?? Stopwatch.GetTimestamp;
+    private readonly Func<long> _clock = (clock ?? TickClock.Machine).Now;
+    private readonly long _ticksPerSecond = (clock ?? TickClock.Machine).TicksPerSecond;
     private readonly Dictionary<string, int> _index = new(StringComparer.Ordinal);
     private readonly List<string> _names = [];
     private readonly List<Times> _parts = [];
@@ -87,7 +101,7 @@ internal sealed class StepTimer(Func<long>? clock = null) : IStepProbe
         return ms;
     }
 
-    /// <summary>Time of a group in the step that is running or just ended (stopwatch ticks).</summary>
+    /// <summary>Time of a group in the step that is running or just ended, in ticks of the timer's clock (see <see cref="Ms"/>).</summary>
     public long InStep(string group) => _groups.TryGetValue(group, out var times) ? times.Step : 0;
 
     /// <summary>Keeps the step that just ended in the sums and starts the next one.</summary>
@@ -132,7 +146,11 @@ internal sealed class StepTimer(Func<long>? clock = null) : IStepProbe
 
     private double Mean(Times times) => Steps == 0 ? 0 : Ms(times.Sum) / Steps;
 
-    private static double Ms(long stopwatchTicks) => Stopwatch.GetElapsedTime(0, stopwatchTicks).TotalMilliseconds;
+    /// <summary>
+    /// Ticks of this timer's clock in milliseconds. Worked out with the clock's own ticks per second and
+    /// without rounding to a coarser unit: a stopwatch tick is 100 ns on Windows and 1 ns on Linux.
+    /// </summary>
+    public double Ms(long ticks) => ticks * 1000.0 / _ticksPerSecond;
 
     private sealed class Times
     {
