@@ -83,7 +83,20 @@ public sealed class MeetingTests
         host.World.Run(ticksPerDay);
         Assert.Single(meetings, e => e.InhabitantId == one.Id && e.TargetId == other.Id);
         var strangers = Of(Starts.Strangers);
-        Assert.Contains(all.SelectMany(x => all.Where(y => y.Group != x.Group).Select(y => x.Relationships.Get(y.Id, strangers))), r => r != strangers);
+        bool Changed() => all.SelectMany(x => all.Where(y => y.Group != x.Group).Select(y => x.Relationships.Get(y.Id, strangers))).Any(r => r != strangers);
+
+        // W1744: since the routine seeks company, the partners talk to each other first and the pairs meet
+        // earlier (seed 1: tick 24 instead of 90). The decider's first choice towards a stranger (talk_to,
+        // answered at tick 25) waited behind the running talk and was replaced at tick 31 by the decider's
+        // answer to the next question (who the second stranger is) - decider over decider, as before this
+        // change. Which answer then leads to the first shared experience is a matter of the run, so it gets
+        // the same days as the meeting.
+        for (var t = 0; t < 2 * ticksPerDay && !Changed(); t++)
+        {
+            host.World.Step();
+        }
+
+        Assert.True(Changed(), "a relationship between the pairs changed");
     }
 
     [Fact]
@@ -185,6 +198,36 @@ public sealed class MeetingTests
         Assert.Contains(request.Options, o => o.Action == "introduce" && o.Target == "inh-000003");
         var seen = Assert.Single(request.Inhabitant.Relationships, r => r.Other == "inh-000003");
         Assert.Equal(Starts.Strangers.Trust, seen.Trust);
+    }
+
+    [Fact]
+    public void ASleeperIsNeitherAskedAboutNorOfferedAsATarget()
+    {
+        // W1744 (review GW2 #228): an answer aimed at a sleeper is cancelled by the rule checker, so offering
+        // it would be an AI call for nothing. The sleeper is still seen; it is asked about once it is awake.
+        var port = new SilentPort();
+        var (world, inhabitants, decisions) = AskingWorld(Settings, port, [new(0, 0), new(5, 0), new(10, 0), new(-500, -500)]);
+        var (asker, partner, stranger) = (inhabitants.Get("inh-000001"), inhabitants.Get("inh-000002"), inhabitants.Get("inh-000003"));
+        partner.Activity = new Activity(Content.InhabitantModel.Togetherness!.SleepAction, null, partner.Position, 100_000);
+        Assert.True(inhabitants.IsAsleep(partner));
+        Assert.False(inhabitants.IsAsleep(stranger));
+        asker.Needs["company"] = 0.1;
+        world.Step();
+
+        // The nearer one sleeps: the question is about the waking stranger, and no option is aimed at the sleeper.
+        Assert.Contains(decisions.Open, q => q.InhabitantId == asker.Id && q.Subject == "inhabitant:" + stranger.Id);
+        Assert.DoesNotContain(decisions.Open, q => q.InhabitantId == asker.Id && q.Subject == "inhabitant:" + partner.Id);
+        var asked = port.Requests.Where(r => r.Inhabitant.Id == asker.Id).ToList();
+        Assert.NotEmpty(asked);
+        Assert.All(asked, r => Assert.DoesNotContain(r.Options, o => o.Target == partner.Id));
+        Assert.All(asked, r => Assert.Contains(r.Perception.Inhabitants, i => i.Id == partner.Id));
+        Assert.Contains(asked.SelectMany(r => r.Options), o => o.Target == stranger.Id);
+
+        // On its way to bed it is still awake; once awake and seen again the question comes, with its options.
+        partner.Activity = new Activity("idle", null, partner.Position, 100_000);
+        world.Step();
+        Assert.Contains(decisions.Open, q => q.InhabitantId == asker.Id && q.Subject == "inhabitant:" + partner.Id);
+        Assert.Contains(port.Requests.Last(r => r.Inhabitant.Id == asker.Id).Options, o => o.Target == partner.Id);
     }
 
     [Fact]
