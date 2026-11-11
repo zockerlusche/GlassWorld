@@ -113,8 +113,25 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
     /// </summary>
     private int[]? TideCosts() => TideWalk is { } layer && Clock is { } clock ? layer.CostsAt(clock()) : null;
 
+    /// <summary>Most searches kept at a time (<see cref="_paths"/>); beyond it all are forgotten.</summary>
+    internal const int MostKeptPaths = 4096;
+
     private int? _minWalkCost;
     private PathFinder.Scratch? _scratch;
+
+    // The searches of the tide level that holds now, by start and goal cell. A search is a pure function of
+    // the map, the two cells, the budget and the walk costs; the costs change only when the tide level
+    // changes by a whole unit (TideWalkLayer), so until then the same two cells give the same path - found,
+    // unreachable or over budget - and it is taken from here instead of being searched again. Derived only:
+    // never saved, never hashed, and a world that forgets it searches the same paths anew.
+    private readonly Dictionary<(int From, int Goal), PathResult> _paths = [];
+    private int _pathsLevel;
+
+    /// <summary>Path searches really run so far (not taken from the kept ones); for tests and measurements.</summary>
+    internal long Searches { get; private set; }
+
+    /// <summary>Forgets the kept searches (tests: a world that keeps none walks the same ways).</summary>
+    internal void ForgetPaths() => _paths.Clear();
 
     /// <summary>The cell that contains a world position, or null outside the map.</summary>
     public (int X, int Z)? CellOf(Position position)
@@ -140,14 +157,43 @@ public sealed class WorldMapSystem : IWorldSystem, IRouteFinder
         _scratch ??= new PathFinder.Scratch(Map.WidthCells * Map.DepthCells);
 
         // With tides the shallow sea costs what the water level makes of it (never blocked, see TideWalkLayer).
-        var costs = TideCosts();
-        var path = PathFinder.Find(Map, from, goal, NodeBudget, costs is null ? _minWalkCost.Value : Math.Min(_minWalkCost.Value, TideWalk!.MinCost), _scratch, costs);
+        int[]? costs = null;
+        var level = 0;
+        if (TideWalk is { } layer && Clock is { } clock)
+        {
+            var tick = clock();
+            costs = layer.CostsAt(tick);
+            level = layer.Tides.LevelUnitsAt(tick);
+        }
+
+        if (level != _pathsLevel || _paths.Count >= MostKeptPaths)
+        {
+            _paths.Clear();
+            _pathsLevel = level;
+        }
+
+        var w = Map.WidthCells;
+        var key = ((from.Z * w) + from.X, (goal.Z * w) + goal.X);
+        if (!_paths.TryGetValue(key, out var path))
+        {
+            Searches++;
+            path = PathFinder.Find(Map, from, goal, NodeBudget, costs is null ? _minWalkCost.Value : Math.Min(_minWalkCost.Value, TideWalk!.MinCost), _scratch, costs);
+            _paths.Add(key, path);
+        }
+
         if (path.Status != PathStatus.Found)
         {
             return new Route(path.Status, []);
         }
 
-        var points = path.Cells.Take(Math.Max(0, path.Cells.Count - 1)).Select(c => CentreOf(c.X, c.Z)).ToList();
+        // Cell centres, the last one the exact destination. The kept cells are only read.
+        var cells = path.Cells;
+        var points = new List<Position>(Math.Max(1, cells.Count));
+        for (var i = 0; i < cells.Count - 1; i++)
+        {
+            points.Add(CentreOf(cells[i].X, cells[i].Z));
+        }
+
         points.Add(destination);
         return new Route(PathStatus.Found, points);
     }
