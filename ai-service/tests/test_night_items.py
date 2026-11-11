@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import copy
 import json
 from pathlib import Path
 from typing import Any
@@ -127,3 +128,37 @@ def test_the_endpoint_answers_by_the_contract(settings: Settings) -> None:
             assert bad.status_code == 422
 
     asyncio.run(scenario())
+
+
+def test_a_question_job_names_the_thing_it_is_about_and_a_memory_job_names_none() -> None:
+    """GW3 #20970: the dream scene draws the thing an inhabitant wonders about; the type comes
+    unchanged from the question's subject. A memory job is about no thing."""
+    data: dict[str, Any] = json.loads(
+        (EXAMPLES / "generation-job.question-berries.json").read_text("utf-8")
+    )
+    data["request_id"] = "00000000-0000-8000-8000-000000000003"
+    data["payload"]["question"]["subject"] = {"kind": "type", "id": "red_berry"}
+    question = GenerationJob.model_validate(data)
+    person = copy.deepcopy(data)
+    person["request_id"] = "00000000-0000-8000-8000-000000000004"
+    person["payload"]["question"]["subject"] = {"kind": "inhabitant", "id": "inh-000002"}
+    about_person = GenerationJob.model_validate(person)
+    memory = _job("memory-condense", "00000000-0000-8000-8000-000000000005")
+
+    async def handler(job: GenerationJob) -> JobOutcome:
+        return JobOutcome({str(job.kind.value): {}}, "mock", "mock", None, 0, 1)
+
+    runner = JobRunner({"question": handler, "memory": handler}, 8)
+
+    async def scenario() -> None:
+        runner.start_night(True)
+        for job in (question, about_person, memory):
+            runner.submit(job)
+        await asyncio.sleep(0.05)
+
+    asyncio.run(scenario())
+    by_job = {str(i["job_id"]): i for i in runner.night_items(0)}
+    assert by_job[str(question.request_id)]["object_type"] == "red_berry"
+    assert by_job[str(question.request_id)]["inhabitant"] is not None
+    assert by_job[str(about_person.request_id)]["object_type"] is None  # a person is no thing type
+    assert by_job[str(memory.request_id)]["object_type"] is None
