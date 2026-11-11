@@ -19,7 +19,10 @@ namespace GlassWorld.Game;
 /// at once: <c>--smoke-frames=N</c> (headless smoke, prints marker lines and quits after N frames),
 /// <c>--ui-shots=&lt;dir&gt;</c> (screenshots) and <c>--seed=N</c> (world seed, default 1).
 /// <c>--debug</c> lets the core accept debug commands (the debug jumps of the debug view, B2-6 R31);
-/// without it they are refused.
+/// without it they are refused. <c>--benchmark=CSV</c> or <c>--island</c> hand over to the island scene
+/// (world/island.tscn: benchmark, shot tool, checks) with the same arguments: an exported build takes no
+/// scene path on the command line, so this is the way in for it. These two are for measurements and
+/// checks only, not a feature for players: the island scene has no menu and saves nothing.
 /// </summary>
 public partial class Main : Node3D
 {
@@ -28,8 +31,15 @@ public partial class Main : Node3D
     private const string DebugArgument = "--debug";
 
     private const string TourArgument = "--ui-tour=";
+    private const string NightShotsArgument = "--night-shots=";
+    private const string NightLimitArgument = "--night-limit=";
+    private const string BenchmarkArgument = "--benchmark=";
+    private const string IslandArgument = "--island";
+    private const string IslandScene = "res://world/island.tscn";
     private string? _shotsFolder;
     private bool _tour;
+    private bool _nightShots;
+    private double _nightLimitS = 900;
     private string _contentDirectory = string.Empty;
     private int _smokeFrames;
     private int _frame;
@@ -62,6 +72,15 @@ public partial class Main : Node3D
     /// <inheritdoc/>
     public override void _Ready()
     {
+        if (OS.GetCmdlineUserArgs().Any(a => a == IslandArgument || a.StartsWith(BenchmarkArgument, StringComparison.Ordinal)))
+        {
+            // The export templates refuse a scene path on the command line ("compiled without support for
+            // path overrides"), so the island scene's runs start here; it reads the same arguments itself.
+            GD.Print($"MAIN_TO_ISLAND {IslandScene}");
+            GetTree().CallDeferred(SceneTree.MethodName.ChangeSceneToFile, IslandScene);
+            return;
+        }
+
         if (TimedShots.FromEnvironment() is { } shots)
         {
             AddChild(shots);
@@ -94,13 +113,13 @@ public partial class Main : Node3D
             var spatialReady = StartWorld(presenter => presenter.Start(_contentDirectory, _seed), null);
             if (_shotsFolder is not null && _style is not null)
             {
-                _ = _tour ? TourAsync(_style) : TakeShotsAsync(_style);
+                _ = _nightShots ? NightShotsAsync() : _tour ? TourAsync(_style) : TakeShotsAsync(_style);
             }
-            else if (_tour)
+            else if (_tour || _nightShots)
             {
                 // Without the UI style there is nothing to tour: say so and end the run (review GW1 #214),
                 // instead of an open window that prints nothing.
-                GD.PushError("UI_TOUR_FAIL the UI style did not load");
+                GD.PushError($"{(_nightShots ? "NIGHT_SHOTS_FAIL" : "UI_TOUR_FAIL")} the UI style did not load");
                 GetTree().Quit(1);
             }
 
@@ -138,6 +157,19 @@ public partial class Main : Node3D
             if (arg.StartsWith(UiShots.Argument, StringComparison.Ordinal))
             {
                 _shotsFolder = arg[UiShots.Argument.Length..];
+            }
+
+            // The compute night in pictures (B7-S8/S10): one picture per stage of the night scene.
+            if (arg.StartsWith(NightShotsArgument, StringComparison.Ordinal))
+            {
+                _shotsFolder = arg[NightShotsArgument.Length..];
+                _nightShots = true;
+            }
+
+            if (arg.StartsWith(NightLimitArgument, StringComparison.Ordinal)
+                && double.TryParse(arg[NightLimitArgument.Length..], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var limit) && limit > 0)
+            {
+                _nightLimitS = limit;
             }
 
             // The UI tour (W1757): every menu and window, in both layouts, one picture each.
