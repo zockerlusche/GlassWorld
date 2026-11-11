@@ -68,6 +68,9 @@ class Marks:
     figures: int
     vram_mib: int
     passes: tuple[str, ...]
+    warmup_s: float = 0.0
+    seed: str = ""
+    quality: str = ""
 
 
 @dataclass
@@ -83,6 +86,10 @@ class PassResult:
     quality: str = "?"
     figures: str = "?"
     vsync: str = "?"
+    window: str = "?"
+    build: str = "?"
+    driver: str = "?"
+    warmup_frames: str = "?"
     baseline_mib: int | None = None
     peak_mib: int | None = None
     samples: int = 0
@@ -104,6 +111,7 @@ class PassResult:
 def load_marks(root: Path = ROOT) -> Marks:
     bench = json.loads((root / "content/look/benchmark.json").read_text("utf-8"))
     hardware = json.loads((root / "content/hardware/models.json").read_text("utf-8"))
+    quality = json.loads((root / "content/look/quality.json").read_text("utf-8"))
     return Marks(
         float(bench["target_mean_fps"]),
         float(bench["target_p95_frame_ms"]),
@@ -111,7 +119,50 @@ def load_marks(root: Path = ROOT) -> Marks:
         int(bench["crowd"]["count"]),
         int(hardware["game_vram_mib"]),
         tuple(p["id"] for p in bench["passes"]),
+        float(bench["warmup_s"]),
+        str(bench["seed"]),
+        str(quality["default_level"]),
     )
+
+
+def judge_setup(
+    result: PassResult,
+    start: dict[str, str],
+    done: dict[str, str],
+    env: dict[str, str],
+    marks: Marks,
+) -> None:
+    """What the run really ran on (BENCH_ENV of the game, review GW1 #224): anything else than the
+    data's scene at the requested size, in the requested window mode, without VSync or a frame cap,
+    from a named build is not a measurement for the acceptance."""
+    result.window = env.get("mode", "?")
+    result.vsync = env.get("vsync", "?")
+    result.build = env.get("build", "?")
+    result.driver = " ".join(v for v in (env.get("adapter"), env.get("driver")) if v) or "?"
+    result.warmup_frames = done.get("warmup_frames", "?")
+    if not env:
+        result.invalid.append("Log ohne BENCH_ENV (Export ohne diese Zeile)")
+        return
+    wanted = "ExclusiveFullscreen" if result.mode == "fullscreen" else "Windowed"
+    checks = [
+        (env.get("size") == result.resolution, f"Fenster in {env.get('size')}"),
+        (result.window == wanted, f"Modus {result.window} statt {wanted}"),
+        (result.vsync == "Disabled", f"VSync {result.vsync}"),
+        (env.get("max_fps") == "0", f"Bildraten-Grenze {env.get('max_fps')}"),
+        (result.build not in ("?", "dev"), f"Build '{result.build}' ist kein benannter Stand"),
+        (result.warmup_frames not in ("?", "0"), f"Aufwärm-Bilder {result.warmup_frames}"),
+        (
+            start.get("quality") == marks.quality,
+            f"Qualität {start.get('quality')} statt {marks.quality}",
+        ),
+        (start.get("seed") == marks.seed, f"Seed {start.get('seed')} statt {marks.seed}"),
+    ]
+    result.invalid += [reason for good, reason in checks if not good]
+    try:
+        if float(start["warmup_s"]) != marks.warmup_s:
+            result.invalid.append(f"Aufwärmzeit {start['warmup_s']} s statt {marks.warmup_s:g} s")
+    except (KeyError, ValueError):
+        result.invalid.append("Aufwärmzeit nicht im Log")
 
 
 def parse_entries(entries: list[str]) -> list[tuple[str, str]] | None:
@@ -200,7 +251,7 @@ def judge(
     done = log_line(out / f"bench_{stem}.log", "BENCH_PASS")
     result.quality = start.get("quality", "?")
     result.figures = start.get("figures", "?")
-    result.vsync = start.get("vsync", "?")
+    judge_setup(result, start, done, log_line(out / f"bench_{stem}.log", "BENCH_ENV"), marks)
     # The size of the BENCH_PASS line: BENCH_START is printed right after the mode switch is asked.
     result.size = done.get("size", "?")
     if not start or not done:
@@ -228,6 +279,9 @@ def judge(
     game = result.game_mib
     if game is None:
         result.invalid.append("Grafikspeicher nicht gemessen")
+    elif result.samples < marks.duration_s / 2:
+        # One sample a second is asked for: fewer than half of them do not cover the pass.
+        result.invalid.append(f"Grafikspeicher nur {result.samples} Messpunkte")
     elif game > marks.vram_mib:
         result.missed.append(f"Grafikspeicher {game} MiB über {marks.vram_mib} MiB")
     return result
@@ -243,6 +297,12 @@ def report(results: list[PassResult], marks: Marks, meta: dict[str, Any]) -> str
         f"- **Programm:** `{meta.get('binary', 'nicht bekannt')}`",
         f"- **Gemessen am:** {meta.get('started', 'nicht bekannt')}",
         f"- **Grafikkarte, Treiber:** {meta.get('card', 'nicht bekannt')}",
+        "- **Laut Spiel (BENCH_ENV):** Build "
+        + (", ".join(dict.fromkeys(r.build for r in results if r.build != "?")) or "?")
+        + "; "
+        + (", ".join(dict.fromkeys(r.driver for r in results if r.driver != "?")) or "?"),
+        f"- **Szene laut Daten:** Seed {marks.seed}, Qualität {marks.quality}, Aufwärmzeit "
+        f"{marks.warmup_s:g} s. Die erste Auflösung der Liste ist die Abnahme-Auflösung.",
         f"- **Marken:** im Mittel mindestens {marks.mean_fps:g} Bilder je Sekunde, 95 % der "
         f"Bilder in höchstens {marks.p95_ms:g} ms, Grafikspeicher des Spiels höchstens "
         f"{marks.vram_mib} MiB, Messdauer {marks.duration_s:g} s je Durchgang.",
@@ -261,21 +321,18 @@ def report(results: list[PassResult], marks: Marks, meta: dict[str, Any]) -> str
         )
     lines += [
         "",
-        "| Verlangt | Durchgang | Grundlast Karte (MiB) | Spitze Karte (MiB) | Messpunkte "
-        "| Lesefehler |",
-        "|---|---|---|---|---|---|",
+        "| Verlangt | Durchgang | Modus | Aufwärm-Bilder | Grundlast Karte (MiB) "
+        "| Spitze Karte (MiB) | Messpunkte | Lesefehler |",
+        "|---|---|---|---|---|---|---|---|",
     ]
     lines += [
-        f"| {r.resolution} | {r.name} | {NONE if r.baseline_mib is None else r.baseline_mib} | "
+        f"| {r.resolution} | {r.name} | {r.window} | {r.warmup_frames} | "
+        f"{NONE if r.baseline_mib is None else r.baseline_mib} | "
         f"{NONE if r.peak_mib is None else r.peak_mib} | {r.samples} | {r.sample_errors} |"
         for r in results
     ]
-    vsync = next((r.vsync for r in results if r.vsync != "?"), None)
-    vsync_text = (
-        f"laut Log `vsync={vsync}`."
-        if vsync
-        else "die Szene schaltet es ab; im Log dieses Stands steht es noch nicht."
-    )
+    vsync = ", ".join(dict.fromkeys(r.vsync for r in results if r.vsync != "?"))
+    vsync_text = f"laut Spiel `{vsync}`." if vsync else "vom Spiel nicht gemeldet."
     lines += [
         "",
         "**Verfahren Grafikspeicher:** einmal je Sekunde die Belegung der ganzen Karte "
@@ -399,16 +456,22 @@ def run_pass(
     command = [bash, str(ROOT / "tools/benchmark.sh"), str(binary), resolution, str(out)]
     command += (["--fullscreen"] if mode == "fullscreen" else []) + extra
     sampler = Sampler(out / f"vram_{resolution}_{name}.csv")
-    sampler.start()
-    time.sleep(BASELINE_S)
-    sampler.game_starts()
-    child = subprocess.Popen(command, env={**os.environ, "BENCH_PASSES": name})
+    child: subprocess.Popen[bytes] | None = None
     try:
+        # Everything after the sampler's start is inside the try: a stop during the baseline wait
+        # or a bash that cannot start must not leave the nvidia-smi child running.
+        sampler.start()
+        time.sleep(BASELINE_S)
+        sampler.game_starts()
+        child = subprocess.Popen(command, env={**os.environ, "BENCH_PASSES": name})
         return child.wait(timeout=PASS_TIMEOUT_S)
     except subprocess.TimeoutExpired:
         return 124
+    except OSError:
+        return 127
     finally:
-        end_tree(child)
+        if child is not None:
+            end_tree(child)
         sampler.stop()
 
 

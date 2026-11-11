@@ -23,8 +23,14 @@ def _module() -> ModuleType:
 
 
 BM = _module()
-MARKS = BM.Marks(60.0, 16.7, 120.0, 100, 2560, ("day", "night"))
+MARKS = BM.Marks(60.0, 16.7, 120.0, 100, 2560, ("day", "night"), 10.0, "7", "high")
 RES = "800x600"
+
+
+ENV = (
+    "BENCH_ENV size=800x600 mode=Windowed vsync=Disabled max_fps=0 adapter=Karte driver=d_1 "
+    "api=1.3 build=abc1234\n"
+)
 
 
 def _pass(
@@ -36,6 +42,10 @@ def _pass(
     duration: str = "120",
     base: int = 1500,
     peak: int = 3000,
+    env: str = ENV,
+    warmup: str = "10",
+    quality: str = "high",
+    run_samples: int = 70,
 ) -> None:
     """A complete, good pass: CSV, log with the game's own lines, memory samples."""
     rows = ["pass,time_s,frame_ms"] + [f"{name},{i * 0.01:.2f},{ms}" for i, ms in enumerate(frames)]
@@ -43,17 +53,21 @@ def _pass(
     mean = 1000.0 * len(frames) / sum(frames)
     p95 = BM.percentile(frames, 0.95)
     (out / f"bench_{RES}_{name}.log").write_text(
-        f"BENCH_START seed=7 quality=high passes={name} warmup_s=10 duration_s={duration} "
-        f"figures=100 size=640x480 csv=x\n"
+        f"BENCH_START seed=7 quality={quality} passes={name} warmup_s={warmup} "
+        f"duration_s={duration} "
+        f"figures=104 size=640x480 csv=x\n{env}"
         f"BENCH_PASS pass={name} frames={len(frames)} mean_fps={mean:.2f} p95_ms={p95:.3f} "
-        f"max_ms={max(frames)} ok=yes size={size}\n",
+        f"max_ms={max(frames)} ok=yes size={size} warmup_frames=600\n",
         encoding="utf-8",
     )
-    (out / f"vram_{RES}_{name}.csv").write_text(
-        f"time_s,phase,used_mib,total_mib\n0.0,baseline,{base},10240\n1.0,baseline,{base},10240\n"
-        f"5.0,run,{base + 100},10240\n6.0,run,{peak},10240\n7.0,run,,\n",
-        encoding="utf-8",
-    )
+    rows = [
+        "time_s,phase,used_mib,total_mib",
+        f"0.0,baseline,{base},10240",
+        f"1.0,baseline,{base},10240",
+    ]
+    rows += [f"{5 + i}.0,run,{base + 100},10240" for i in range(run_samples - 1)]
+    rows += [f"200.0,run,{peak},10240", "201.0,run,,"]
+    (out / f"vram_{RES}_{name}.csv").write_text("\n".join(rows) + "\n", encoding="utf-8")
 
 
 GOOD = [10.0] * 95 + [20.0] * 5
@@ -79,10 +93,16 @@ def test_a_good_pass_is_judged_from_csv_log_and_memory(tmp_path: Path) -> None:
         1500,
         3000,
         1500,
-        2,
+        70,
         1,
     )
-    assert r.size == RES and r.quality == "high" and r.verdict == "erfüllt"
+    assert r.size == RES and r.quality == "high" and r.verdict == "erfüllt", r.invalid
+    assert (r.window, r.vsync, r.build, r.warmup_frames) == (
+        "Windowed",
+        "Disabled",
+        "abc1234",
+        "600",
+    )
 
 
 def test_missed_marks_and_budget_are_missed_not_invalid(tmp_path: Path) -> None:
@@ -136,9 +156,9 @@ def test_the_games_own_numbers_must_agree_with_the_csv(tmp_path: Path) -> None:
 
 def test_the_report_counts_against_the_expected_passes_and_names_the_method(tmp_path: Path) -> None:
     _pass(tmp_path, "day", GOOD)
-    results = [BM.judge(tmp_path, RES, "fullscreen", name, MARKS, 0) for name in MARKS.passes]
+    results = [BM.judge(tmp_path, RES, "window", name, MARKS, 0) for name in MARKS.passes]
     text = BM.report(results, MARKS, {"note": "Export abc", "card": "Karte, 1.0"})
-    row = "| 800x600 Vollbild | 800x600 | day | high | 100 | 95.24 | 10.00 | 20.00 | 1500 "
+    row = "| 800x600 Fenster | 800x600 | day | high | 100 | 95.24 | 10.00 | 20.00 | 1500 "
     assert row + "| erfüllt | - |" in text
     assert "| nicht gemessen | ungültig |" in text
     assert (
@@ -146,7 +166,8 @@ def test_the_report_counts_against_the_expected_passes_and_names_the_method(tmp_
         in text
     )
     assert "Export abc" in text and "Karte, 1.0" in text and "Spitze minus" in text
-    assert "mit 100 Figuren" in text
+    assert "mit 104 Figuren" in text and "Build abc1234; Karte d_1" in text
+    assert "| 800x600 | day | Windowed | 600 | 1500 | 3000 | 70 | 1 |" in text
 
 
 def test_evaluate_only_end_to_end_keeps_the_earlier_report(tmp_path: Path) -> None:
@@ -231,3 +252,42 @@ def test_guards(tmp_path: Path) -> None:
     assert check(foreign, "--evaluate-only") is None
     assert "does not exist" in (check(tmp_path / "nowhere", "--evaluate-only") or "")
     assert BM.archive_name(foreign) == tmp_path / "foreign.alt-1"
+
+
+@pytest.mark.parametrize(
+    ("change", "mode", "reason"),
+    [
+        ({"env": ""}, "window", "Log ohne BENCH_ENV (Export ohne diese Zeile)"),
+        ({}, "fullscreen", "Modus Windowed statt ExclusiveFullscreen"),
+        ({"env": ENV.replace("vsync=Disabled", "vsync=Enabled")}, "window", "VSync Enabled"),
+        ({"env": ENV.replace("max_fps=0", "max_fps=60")}, "window", "Bildraten-Grenze 60"),
+        (
+            {"env": ENV.replace("build=abc1234", "build=dev")},
+            "window",
+            "Build 'dev' ist kein benannter Stand",
+        ),
+        ({"env": ENV.replace("size=800x600", "size=640x480")}, "window", "Fenster in 640x480"),
+        ({"warmup": "0"}, "window", "Aufwärmzeit 0 s statt 10 s"),
+        ({"quality": "low"}, "window", "Qualität low statt high"),
+        ({"run_samples": 3}, "window", "Grafikspeicher nur 3 Messpunkte"),
+    ],
+)
+def test_what_the_run_really_ran_on_must_be_the_acceptance_setup(
+    tmp_path: Path, change: dict[str, object], mode: str, reason: str
+) -> None:
+    _pass(tmp_path, "day", GOOD, **change)  # type: ignore[arg-type]
+    r = BM.judge(tmp_path, RES, mode, "day", MARKS, 0)
+    assert reason in r.invalid and r.verdict == "ungültig"
+
+
+def test_a_bash_that_cannot_start_leaves_no_sampler_running(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    stopped: list[bool] = []
+    monkeypatch.setattr(BM, "BASELINE_S", 0.0)
+    monkeypatch.setattr(BM.Sampler, "start", lambda self: None)
+    monkeypatch.setattr(BM.Sampler, "stop", lambda self: stopped.append(True))
+    code = BM.run_pass(
+        "no-such-bash-glassworld", tmp_path / "x.exe", RES, "window", "day", tmp_path, []
+    )
+    assert code == 127 and stopped == [True]

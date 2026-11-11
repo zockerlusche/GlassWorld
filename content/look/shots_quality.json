@@ -1,0 +1,35 @@
+{
+  "contract_version": "0.2",
+  "points": [
+    {
+      "id": "quality_trees",
+      "target_x_permille": 500,
+      "target_z_permille": 500,
+      "yaw_deg": 30,
+      "distance_m": 60
+    },
+    {
+      "id": "quality_close",
+      "target_x_permille": 500,
+      "target_z_permille": 500,
+      "yaw_deg": 120,
+      "distance_m": 30
+    },
+    {
+      "id": "quality_figures",
+      "target_x_permille": 500,
+      "target_z_permille": 500,
+      "yaw_deg": 30,
+      "distance_m": 14,
+      "inhabitant": 0
+    }
+  ],
+  "projections": [
+    "perspective"
+  ],
+  "phases": [
+    "day",
+    "dawn"
+  ],
+  "settle_frames": 12
+}
