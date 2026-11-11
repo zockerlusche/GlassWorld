@@ -37,6 +37,7 @@ from glassworld_ai.words import (
     quote,
     subject_name,
     table,
+    without_runtime_ids,
 )
 from glassworld_contracts import GenerationJob
 
@@ -113,6 +114,10 @@ def build_values(job: GenerationJob, template: PromptTemplate) -> dict[str, str]
         parts = [_event_text(e, settings) for e in events]
         mark = " - FORMATIVE, keep it" if any(e.formative for e in events) else ""
         lines.append(f"- [tick {events[0].tick}] {'; '.join(parts)}{mark}")
+    made: object = cast(dict[str, Any], settings.get("events", {})).get("made_thing")
+    if isinstance(made, str):
+        # v6: a kind of thing that came into being in the game, without a name of its own.
+        lines = [without_runtime_ids(line, {}, made) for line in lines]
     formative = formative_ticks(job)
     summary = payload.summary.strip()
     return {

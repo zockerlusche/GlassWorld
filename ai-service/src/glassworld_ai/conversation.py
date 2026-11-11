@@ -21,7 +21,13 @@ from typing import Any, ClassVar, Protocol, cast
 from jsonschema import Draft202012Validator
 
 from glassworld_ai.calllog import CallLog
-from glassworld_ai.grounding import checks_nouns, known_words, settings_words, unknown_nouns
+from glassworld_ai.grounding import (
+    checks_nouns,
+    known_words,
+    settings_words,
+    spoken_names,
+    unknown_nouns,
+)
 from glassworld_ai.llm.jobcall import (
     InvalidOutputError,
     ModelCallSettings,
@@ -42,6 +48,7 @@ from glassworld_ai.words import (
     plain_id,
     quote,
     subject_name,
+    without_runtime_ids,
     word,
 )
 from glassworld_contracts import CONTRACT_VERSION
@@ -178,6 +185,14 @@ def values(
     ]
     understanding = word(bands(settings, "understanding_words"), float(speaker.understanding))
     grounded = _grounded_values(request, settings, texts, locale) if template.version >= 3 else {}
+    made: object = settings.get("made_thing")
+    if isinstance(made, str):
+        # v5 (#251): an invention by the speaker's own name, never by its runtime id.
+        own = spoken_names(request, locale)
+        grounded = {
+            key: without_runtime_ids(text, own, made, everywhere=True)
+            for key, text in grounded.items()
+        }
     return grounded | {
         "language": language,
         "understanding": understanding,

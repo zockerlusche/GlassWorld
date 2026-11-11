@@ -18,11 +18,13 @@ from glassworld_ai.words import (
     bands,
     humanize,
     knowledge_line,
+    own_names,
     plain_id,
     quote,
     subject_name,
     table,
     vocab_line,
+    without_runtime_ids,
     word,
 )
 from glassworld_contracts import GenerationJob
@@ -107,7 +109,7 @@ def build_values(job: GenerationJob, template: PromptTemplate, vocab: Vocabulary
             else line
         )
 
-    return {
+    values = {
         "question": Template(question_text).safe_substitute(
             subject=unnamed or subject_name(payload.subject, settings)
         ),
@@ -142,3 +144,16 @@ def build_values(job: GenerationJob, template: PromptTemplate, vocab: Vocabulary
         "max_guesses": str(max_guesses),
         "thought_language": language,
     }
+    made: object = settings.get("made_thing")
+    if isinstance(made, str):
+        # v3 (#251): other invented things by the inhabitant's own name; never the name of
+        # the thing asked about, and never a runtime id.
+        own = own_names(
+            ((k.subject.id, getattr(k, "label", None)) for k in inhabitant.knowledge), locale
+        )
+        own.pop(subject_key[1], None)
+        values = {
+            key: without_runtime_ids(text, own, made, everywhere=True)
+            for key, text in values.items()
+        }
+    return values
