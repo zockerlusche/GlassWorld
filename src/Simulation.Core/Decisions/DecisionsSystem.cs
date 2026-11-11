@@ -358,9 +358,11 @@ public sealed class DecisionsSystem : IWorldSystem
             // options (approach, talk to, introduce ...) are the core's, the choice the decider's.
             // The nearest stranger (ties by id) it may ask about now: one cooling down or asked about
             // unknown_inhabitant_max_asks times already does not hide a second one (review GW3 #207).
+            // Nobody asks who a sleeper is (W1744): every answer would be an action on a sleeper, which the
+            // rule checker cancels; the question comes when the other is awake and in sight again.
             foreach (var inhabitant in _inhabitants.All)
             {
-                if (PerceivedInhabitants(inhabitant).FirstOrDefault(o => o.Name is not null && !inhabitant.KnownNames.Contains(o.Id)
+                if (PerceivedInhabitants(inhabitant).FirstOrDefault(o => o.Name is not null && !inhabitant.KnownNames.Contains(o.Id) && !_inhabitants.IsAsleep(o)
                     && MayAsk(world, inhabitant, InhabitantSubject + o.Id) && AsksAbout(inhabitant, o) < (_settings.UnknownInhabitantMaxAsks ?? int.MaxValue)) is { } stranger)
                 {
                     var subject = InhabitantSubject + stranger.Id;
@@ -573,8 +575,9 @@ public sealed class DecisionsSystem : IWorldSystem
                     // Passing on knowledge (B4a R4): offered towards someone in sight when the asker knows
                     // something this action carries and the other has not experienced it. The naming action
                     // (W1698) only while the asker does not know the other's name; meeting actions (B4a R8)
-                    // while the conditions of their data hold.
-                    foreach (var other in PerceivedInhabitants(asker).Take(knowledge.RequestMaxInhabitants))
+                    // while the conditions of their data hold. Never towards a sleeper (W1744): the rule
+                    // checker would cancel the answer, an AI call for nothing.
+                    foreach (var other in PerceivedInhabitants(asker).Where(o => !_inhabitants.IsAsleep(o)).Take(knowledge.RequestMaxInhabitants))
                     {
                         if (InhabitantsSystem.HasPurpose(knowledge, asker, other, action) && !Rests(asker, action, other.Id, tick))
                         {
