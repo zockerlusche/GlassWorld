@@ -371,6 +371,39 @@ public sealed class DecisionTests
         Assert.Equal(("inh-000001", "Was ist das?"), (thought.InhabitantId, thought.Text));
     }
 
+    /// <summary>
+    /// Youth protection (B2466; found while reviewing #247): the thought of a decision is text of the AI
+    /// that the player sees in the thought bubble. It passes the content guard like every other visible
+    /// AI text; a thought the guard does not allow is not shown, nothing replaces it, and the decision
+    /// itself stands.
+    /// </summary>
+    [Fact]
+    public void AThoughtTheContentGuardDoesNotAllowIsNotShownAndTheDecisionStands()
+    {
+        using var rules = System.Text.Json.JsonDocument.Parse(File.ReadAllText(Path.Combine(TestData.Root, "content", "safety", "rules.json")));
+        var word = rules.RootElement.GetProperty("categories")[0].GetProperty("terms_en")[0].GetString()!;
+        var text = $"Dafür ein {word}.";
+        Assert.False(Content.Inventions.Guard.Check(text).Allowed);
+        var port = new ScriptedPort(request => ContractSerializer.Serialize(new DecisionResponse
+        {
+            ContractVersion = ContractInfo.Version,
+            RequestId = request.RequestId,
+            Tick = request.Tick,
+            OptionId = request.Options.First().OptionId,
+            Rationale = "x",
+            Thought = new Thought { Locale = Locale.De, Text = text },
+            Meta = new ResponseMeta { Source = ResponseMetaSource.Mock, Model = "mock", LatencyMs = 0, Attempts = 1 },
+        }));
+        var w = NewWorld(1, port);
+        w.Objects.Spawn("blue_berry", new Position(2, 0));
+        w.World.Run(3);
+
+        var events = w.Inhabitants.EventsSince(0).Select(e => e.Event).ToList();
+        Assert.DoesNotContain(events, e => e.Kind == "thought");
+        Assert.DoesNotContain(events, e => e.Text is { } shown && shown.Contains(word, StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(events, e => e.Kind == "question_answered");
+    }
+
     [Fact]
     public void RequestIdsAreDeterministicUuidV8()
     {
@@ -395,7 +428,7 @@ public sealed class DecisionTests
             Triggers = [],
             FallbackEnvironment = Settings.FallbackEnvironment,
         };
-        var decisions = new DecisionsSystem(settings, inhabitants, objects, Content.Actions, Content.Brain, Content.Vocabularies[VocabularyKind.Action], port, "de");
+        var decisions = new DecisionsSystem(settings, inhabitants, objects, Content.Actions, Content.Brain, Content.Vocabularies[VocabularyKind.Action], port, Content.Inventions.Guard, "de");
         world.Add(objects).Add(decisions).Add(inhabitants);
         inhabitants.SpawnStartInhabitants(world, [new Position(0, 0), new Position(500, 500), new Position(1000, 0), new Position(0, 1000)]);
         return (world, objects, inhabitants, decisions);

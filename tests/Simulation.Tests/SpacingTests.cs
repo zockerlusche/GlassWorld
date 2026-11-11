@@ -397,7 +397,7 @@ public sealed class SpacingTests
             EventKinds = Content.EventKinds,
             Routes = routes,
         };
-        var decisions = new DecisionsSystem(Settings, inhabitants, objects, Content.Actions, Content.Brain, Content.Vocabularies[VocabularyKind.Action], new SilentPort(), "de")
+        var decisions = new DecisionsSystem(Settings, inhabitants, objects, Content.Actions, Content.Brain, Content.Vocabularies[VocabularyKind.Action], new SilentPort(), Content.Inventions.Guard, "de")
         {
             Knowledge = Content.Knowledge,
         };

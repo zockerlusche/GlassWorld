@@ -4,6 +4,7 @@ using GlassWorld.Contracts.Validation;
 using GlassWorld.Simulation.Behaviour;
 using GlassWorld.Simulation.Inhabitants;
 using GlassWorld.Simulation.Objects;
+using GlassWorld.Simulation.Safety;
 using GlassWorld.Simulation.State;
 
 namespace GlassWorld.Simulation.Decisions;
@@ -149,15 +150,17 @@ public sealed class DecisionsSystem : IWorldSystem
     private readonly ActionRules _actions;
     private readonly UtilityBrain _brain;
     private readonly IDecisionPort _port;
+    private readonly TextGuard _guard;
     private string _displayLocale;
     private readonly IReadOnlyDictionary<string, VocabularyEntryTarget> _actionTargets;
     private ILookup<long, PlayerCommand>? _replayCommands;
     private long _counter;
 
     /// <summary>Creates the system.</summary>
-    public DecisionsSystem(DeciderSettings settings, InhabitantsSystem inhabitants, WorldObjects objects, ActionRules actions, UtilityBrain brain, Vocabulary actionVocabulary, IDecisionPort port, string displayLocale)
+    public DecisionsSystem(DeciderSettings settings, InhabitantsSystem inhabitants, WorldObjects objects, ActionRules actions, UtilityBrain brain, Vocabulary actionVocabulary, IDecisionPort port, TextGuard guard, string displayLocale)
     {
         ArgumentNullException.ThrowIfNull(actionVocabulary);
+        _guard = guard ?? throw new ArgumentNullException(nameof(guard));
         _actionTargets = actionVocabulary.Entries.ToDictionary(e => e.Id, e => e.Target ?? VocabularyEntryTarget.None, StringComparer.Ordinal);
         _settings = settings;
         _inhabitants = inhabitants;
@@ -1123,9 +1126,12 @@ public sealed class DecisionsSystem : IWorldSystem
         }
 
         Close(world, question, "question_answered");
-        if (response.Thought is { } thought)
+        if (response.Thought is { } thought && _guard.Check(thought.Text).Allowed)
         {
             // Thought bubble (B3): the only player-visible text of a decision, in the display language.
+            // It is text of the AI, so it passes the content guard like every other visible AI text
+            // (youth protection, B2466); a thought the guard does not allow is not shown and nothing
+            // replaces it. The decision itself stands: the guard judges words, not the choice.
             _inhabitants.Report(new WorldEvent("thought", world.Tick, inhabitant.Id, action, targetId) { Text = thought.Text });
         }
     }

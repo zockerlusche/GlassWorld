@@ -241,7 +241,7 @@ public sealed class SimulationHost
                 content.Inventions.Settings.TechLevel),
         };
         CheckNightTriggers(settings, content.Knowledge);
-        var decisions = new DecisionsSystem(settings, inhabitants, objects, actions, content.Brain, content.Vocabularies[VocabularyKind.Action], port, displayLocale)
+        var decisions = new DecisionsSystem(settings, inhabitants, objects, actions, content.Brain, content.Vocabularies[VocabularyKind.Action], port, content.Inventions.Guard, displayLocale)
         {
             WeatherSource = weather,
             Knowledge = content.Knowledge,
