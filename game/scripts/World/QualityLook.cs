@@ -20,8 +20,9 @@ public static class QualityLook
     private static bool _fallbackReported;
 
     /// <summary>
-    /// Applies the level's shadow rendering to the sun and the renderer (nothing when the level has no
-    /// shadows) and reports an outline method that is not built yet, once per run.
+    /// Applies the level's shadow rendering to the sun and the renderer and reports an outline method that
+    /// is not built yet, once per run. A level without shadows puts the global renderer settings back to
+    /// the project's, so nothing of the level before it stays (switching levels at runtime).
     /// </summary>
     public static void Apply(QualityPlan plan, DirectionalLight3D sun)
     {
@@ -33,7 +34,8 @@ public static class QualityLook
             {
                 ShadowRenderingMode.Orthogonal => DirectionalLight3D.ShadowMode.Orthogonal,
                 ShadowRenderingMode.Parallel_2_splits => DirectionalLight3D.ShadowMode.Parallel2Splits,
-                _ => DirectionalLight3D.ShadowMode.Parallel4Splits,
+                ShadowRenderingMode.Parallel_4_splits => DirectionalLight3D.ShadowMode.Parallel4Splits,
+                _ => throw new InvalidDataException($"Quality level '{plan.Level.Id}': unknown shadow mode '{shadows.Mode}' (content/look/quality.json)."),
             };
             sun.DirectionalShadowMaxDistance = (float)shadows.MaxDistanceM;
             RenderingServer.DirectionalShadowAtlasSetSize((int)shadows.AtlasSize, ProjectSettings.GetSetting(Atlas16BitsSetting).AsBool());
@@ -41,11 +43,16 @@ public static class QualityLook
             {
                 ShadowRenderingSoftFilter.Hard => RenderingServer.ShadowQuality.Hard,
                 ShadowRenderingSoftFilter.Soft_very_low => RenderingServer.ShadowQuality.SoftVeryLow,
+                ShadowRenderingSoftFilter.Soft_low => RenderingServer.ShadowQuality.SoftLow,
                 ShadowRenderingSoftFilter.Soft_medium => RenderingServer.ShadowQuality.SoftMedium,
                 ShadowRenderingSoftFilter.Soft_high => RenderingServer.ShadowQuality.SoftHigh,
                 ShadowRenderingSoftFilter.Soft_ultra => RenderingServer.ShadowQuality.SoftUltra,
-                _ => RenderingServer.ShadowQuality.SoftLow,
+                _ => throw new InvalidDataException($"Quality level '{plan.Level.Id}': unknown soft filter '{shadows.SoftFilter}' (content/look/quality.json)."),
             });
+        }
+        else
+        {
+            RestoreRenderer();
         }
 
         if (plan.OutlineFallback && !_fallbackReported)

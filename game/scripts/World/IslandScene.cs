@@ -116,7 +116,8 @@ public partial class IslandScene : Node3D
         DaylightLook.ApplyRendering(_daylight, _sun, _environment.Environment);
 
         // The quality level (B2-7 R30): grass, the sun's shadow and the ink outline.
-        _quality = QualityPlan.From(Look<LookQuality>("quality.json"), Arg("--quality"));
+        var qualityData = Look<LookQuality>("quality.json");
+        _quality = QualityPlan.From(qualityData, Arg("--quality"));
         QualityLook.Apply(_quality, _sun);
         GD.Print($"ISLAND_QUALITY seed={seed} {_quality.Describe()}");
         ApplyPhase("day");
@@ -213,6 +214,17 @@ public partial class IslandScene : Node3D
 
             // What the quality level left in the scene, read back from the nodes (not from the plan).
             GD.Print(string.Create(CultureInfo.InvariantCulture, $"ISLAND_QUALITY_STATE seed={seed} sun_shadow={(_sun.ShadowEnabled ? 1 : 0)} shadow_mode={(int)_sun.DirectionalShadowMode} shadow_distance_m={_sun.DirectionalShadowMaxDistance:0.#} hull_meshes={HullMeshes()}"));
+
+            // Every level of the data on this sun by day, one after the other (as a switch at runtime
+            // would): a level without shadows must leave the light's shadow off, the others on.
+            var day = DaylightMix.Of(_daylight, "day");
+            foreach (var level in qualityData.Levels)
+            {
+                var plan = QualityPlan.From(qualityData, level.Id);
+                QualityLook.Apply(plan, _sun);
+                DaylightLook.Apply(_daylight, plan.Light(day), _sun, _environment.Environment);
+                GD.Print(string.Create(CultureInfo.InvariantCulture, $"ISLAND_QUALITY_LEVEL seed={seed} {plan.Describe()} sun_shadow={(_sun.ShadowEnabled ? 1 : 0)} shadow_mode={(int)_sun.DirectionalShadowMode} shadow_distance_m={_sun.DirectionalShadowMaxDistance:0.#}"));
+            }
             GetTree().Quit(view.GroundChunks == island.Map.ChunksX * island.Map.ChunksZ && view.GroundTriangles > 0 && view.WaterTriangles > 0 && _figures.Count == host.Inhabitants.All.Count() ? 0 : 1);
             return;
         }

@@ -191,4 +191,11 @@ if ! grep -Eq '^ISLAND_QUALITY seed=7 level=[a-z_]+ shadows=(off|low|high) outli
   echo "SMOKE_FAIL: the island applies no quality level (marker 'ISLAND_QUALITY ...' or 'ISLAND_QUALITY_STATE ...' missing)" >&2
   exit 1
 fi
+# Every level of the data on the scene's sun by day: a level without shadows leaves the light's shadow
+# off (sun_shadow=0, so the renderer has no shadow pass to pay for), every other level leaves it on.
+if ! grep -Eq '^ISLAND_QUALITY_LEVEL seed=7 level=[a-z_]+ shadows=(off|low|high) outline=(off|inverted_hull) sun_shadow=[01] shadow_mode=[0-2] shadow_distance_m=[0-9.]+$' "$ISLAND_LOG" || grep -Eq '^ISLAND_QUALITY_LEVEL .* shadows=off .* sun_shadow=1 ' "$ISLAND_LOG" || grep -Eq '^ISLAND_QUALITY_LEVEL .* shadows=(low|high) .* sun_shadow=0 ' "$ISLAND_LOG" || { grep -Eq '^ISLAND_QUALITY .* shadows=off ' "$ISLAND_LOG" && grep -Eq '^ISLAND_QUALITY_STATE .* sun_shadow=1 ' "$ISLAND_LOG"; }; then
+  cat "$ISLAND_LOG" >&2
+  echo "SMOKE_FAIL: a quality level without shadows leaves the sun's shadow on, or one with shadows leaves it off (marker 'ISLAND_QUALITY_LEVEL ...')" >&2
+  exit 1
+fi
 echo "SMOKE_PASS: $FRAMES frames without errors"

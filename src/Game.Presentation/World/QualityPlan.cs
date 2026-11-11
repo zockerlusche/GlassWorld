@@ -54,7 +54,9 @@ public sealed record QualityPlan(QualityLevel Level, ShadowRendering? Shadows, b
 
     /// <summary>
     /// The light of a moment at this level: without shadows the main light casts none in any day phase.
-    /// A moment that has no shadow anyway (daylight data, weather) stays as it is.
+    /// The returned moment has <see cref="DaylightMix.Shadows"/> false (it is derived from the shadow
+    /// opacity), so the view switches the light's shadow off and the renderer has no shadow pass to pay
+    /// for. A moment that has no shadow anyway (daylight data, weather) stays as it is.
     /// </summary>
     public DaylightMix Light(DaylightMix mix)
     {

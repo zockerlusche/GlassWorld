@@ -101,6 +101,45 @@ public sealed class QualityPlanTests
     }
 
     [Fact]
+    public void WithoutShadowsTheLightsShadowIsSwitchedOffNotOnlyInvisible()
+    {
+        // The view sets the light's shadow from DaylightMix.Shadows: an invisible shadow (opacity 0) that
+        // is still switched on would cost the whole shadow pass. This pins that the flag is off.
+        var off = QualityPlan.From(With(QualityLevelShadows.Off, QualityLevelOutline.Inverted_hull));
+        Assert.All(Mixes.Values, mix => Assert.False(off.Light(mix).Shadows));
+        foreach (var level in Quality.Levels)
+        {
+            var plan = QualityPlan.From(Quality, level.Id);
+            Assert.Equal(plan.Shadows is not null, plan.Light(Mixes["day"]).Shadows);
+        }
+    }
+
+    [Fact]
+    public void BlendsBetweenDayPhasesStillWorkWithoutShadows()
+    {
+        var off = QualityPlan.From(Quality, "low");
+        Assert.Null(off.Shadows);
+        var phases = Daylight.Phases.Select(p => p.Phase).ToList();
+        foreach (var (from, to) in phases.Zip(phases.Skip(1).Append(phases[0])))
+        {
+            foreach (var t in new[] { 0.0, 0.1, 0.25, 0.5, 0.75, 0.9, 1.0 })
+            {
+                // Blending first and taking the shadow out after (what the views do) ...
+                var lit = Mixes[from].Lerp(Mixes[to], t);
+                var shown = off.Light(lit);
+                Assert.False(shown.Shadows);
+                Assert.Equal(lit with { ShadowOpacity = 0 }, shown);
+
+                // ... gives the same moment as blending two moments that have no shadow, also across the
+                // hand-over from sun to moon: only the shadow is gone, the light fades and turns as before.
+                var blended = off.Light(Mixes[from]).Lerp(off.Light(Mixes[to]), t);
+                Assert.False(blended.Shadows);
+                Assert.Equal(shown, blended);
+            }
+        }
+    }
+
+    [Fact]
     public void AMomentWithoutShadowStaysWithoutOneAtEveryLevel()
     {
         // The daylight data (the moon casts no shadow) and the weather (thick clouds) still win.
