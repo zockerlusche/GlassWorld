@@ -596,11 +596,44 @@
           "maximum": 1000
         },
         "biome": {
-          "description": "Biome of the start cells (by the sea).",
+          "description": "Biome of the start cells (by the sea); with dry_ground the biome of the beach the start cells lie just above.",
           "$ref": "common.schema.json#/$defs/VocabId"
         },
         "supply": {
           "$ref": "#/$defs/StartSupply"
+        },
+        "dry_ground": {
+          "$ref": "#/$defs/WorldPresetStartGround"
+        }
+      }
+    },
+    "WorldPresetStartGround": {
+      "description": "Optional: the start cells stand on dry ground that no tide reaches (generator version 5, TL #20750, findings 17 and 18 of the visual survey D704). A start cell and every cell within radius_cells is dry land (no sea, no fresh water) whose ground lies at least margin above the highest tide (sea_level plus tides.amplitude times the highest level of the tide curve). The start cells are then no longer the beach itself (dry walkable cells of start.biome within three cells of the sea; below the high-tide line they flood) but the ground just above it, at most shore_distance_cells from such a beach cell. The two start cells of a pair lie side by side, and only a cell with room for the partner is chosen. The mandatory check carries the line start_dry_ground; an island that cannot satisfy it is rejected like any other failed check. Absent = start cells on start.biome within three cells of the sea, as up to generator version 4.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "margin",
+        "radius_cells",
+        "shore_distance_cells"
+      ],
+      "properties": {
+        "margin": {
+          "description": "Height units the ground lies above the highest tide, at a start cell and on every cell within radius_cells (0 = at the high-tide line).",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "radius_cells": {
+          "description": "Cells around a start cell (distance between cell centres) that must be dry ground above the highest tide plus the margin as well; 0 = only the start cell itself.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 64
+        },
+        "shore_distance_cells": {
+          "description": "Largest distance (cell centres) from a start cell to a beach cell (a dry walkable cell of start.biome within three cells of the sea), so the pairs still start by the sea.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
         }
       }
     },

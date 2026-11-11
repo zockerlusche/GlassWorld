@@ -458,13 +458,44 @@ namespace GlassWorld.Contracts
         public int MaxAttempts { get; set; } = default!;
 
         /// <summary>
-        /// Biome of the start cells (by the sea).
+        /// Biome of the start cells (by the sea); with dry_ground the biome of the beach the start cells lie just above.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("biome")]
         public string Biome { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("supply")]
         public StartSupply Supply { get; set; } = new StartSupply();
+
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("dry_ground")]
+        public WorldPresetStartGround? DryGround { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Optional: the start cells stand on dry ground that no tide reaches (generator version 5, TL #20750, findings 17 and 18 of the visual survey D704). A start cell and every cell within radius_cells is dry land (no sea, no fresh water) whose ground lies at least margin above the highest tide (sea_level plus tides.amplitude times the highest level of the tide curve). The start cells are then no longer the beach itself (dry walkable cells of start.biome within three cells of the sea; below the high-tide line they flood) but the ground just above it, at most shore_distance_cells from such a beach cell. The two start cells of a pair lie side by side, and only a cell with room for the partner is chosen. The mandatory check carries the line start_dry_ground; an island that cannot satisfy it is rejected like any other failed check. Absent = start cells on start.biome within three cells of the sea, as up to generator version 4.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class WorldPresetStartGround
+    {
+
+        /// <summary>
+        /// Height units the ground lies above the highest tide, at a start cell and on every cell within radius_cells (0 = at the high-tide line).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("margin")]
+        public int Margin { get; set; } = default!;
+
+        /// <summary>
+        /// Cells around a start cell (distance between cell centres) that must be dry ground above the highest tide plus the margin as well; 0 = only the start cell itself.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("radius_cells")]
+        public int RadiusCells { get; set; } = default!;
+
+        /// <summary>
+        /// Largest distance (cell centres) from a start cell to a beach cell (a dry walkable cell of start.biome within three cells of the sea), so the pairs still start by the sea.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("shore_distance_cells")]
+        public int ShoreDistanceCells { get; set; } = default!;
 
     }
 

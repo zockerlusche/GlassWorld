@@ -214,6 +214,30 @@ class WorldPresetClimate(BaseModel):
     )
 
 
+class WorldPresetStartGround(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    margin: int = Field(
+        ...,
+        description='Height units the ground lies above the highest tide, at a start cell and on every cell within radius_cells (0 = at the high-tide line).',
+        ge=0,
+        le=100000,
+    )
+    radius_cells: int = Field(
+        ...,
+        description='Cells around a start cell (distance between cell centres) that must be dry ground above the highest tide plus the margin as well; 0 = only the start cell itself.',
+        ge=0,
+        le=64,
+    )
+    shore_distance_cells: int = Field(
+        ...,
+        description='Largest distance (cell centres) from a start cell to a beach cell (a dry walkable cell of start.biome within three cells of the sea), so the pairs still start by the sea.',
+        ge=1,
+        le=100000,
+    )
+
+
 class WorldPresetNeighbours(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -853,11 +877,12 @@ class WorldPresetStart(BaseModel):
     )
     biome: str = Field(
         ...,
-        description='Biome of the start cells (by the sea).',
+        description='Biome of the start cells (by the sea); with dry_ground the biome of the beach the start cells lie just above.',
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
     supply: StartSupply
+    dry_ground: WorldPresetStartGround | None = None
 
 
 class WorldPreset(BaseModel):
