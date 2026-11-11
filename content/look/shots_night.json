@@ -9,7 +9,8 @@
       "distance_m": 260,
       "pitch_deg": 4,
       "fov_deg": 56,
-      "phase": "night"
+      "phase": "night",
+      "revealed_permille": 1000
     },
     {
       "id": "dusk_view",
@@ -19,7 +20,8 @@
       "distance_m": 60,
       "pitch_deg": 8,
       "fov_deg": 40,
-      "phase": "dusk"
+      "phase": "dusk",
+      "revealed_permille": 1000
     }
   ],
   "projections": [

@@ -14,21 +14,24 @@
         "spring": true,
         "min_relief": 15,
         "face_hill": true
-      }
+      },
+      "revealed_permille": 1000
     },
     {
       "id": "spring_close",
       "target_x_permille": 300,
       "target_z_permille": 154,
       "yaw_deg": 210,
-      "distance_m": 9
+      "distance_m": 9,
+      "revealed_permille": 1000
     },
     {
       "id": "stream_bend",
       "target_x_permille": 372,
       "target_z_permille": 161,
       "yaw_deg": 30,
-      "distance_m": 14
+      "distance_m": 14,
+      "revealed_permille": 1000
     },
     {
       "id": "sea_clear",
@@ -37,7 +40,8 @@
       "yaw_deg": 30,
       "distance_m": 35,
       "tide_permille": 0,
-      "weather": "clear"
+      "weather": "clear",
+      "revealed_permille": 1000
     },
     {
       "id": "sea_storm",
@@ -46,7 +50,8 @@
       "yaw_deg": 30,
       "distance_m": 35,
       "tide_permille": 0,
-      "weather": "storm"
+      "weather": "storm",
+      "revealed_permille": 1000
     },
     {
       "id": "lake_clear",
@@ -54,7 +59,8 @@
       "target_z_permille": 365,
       "yaw_deg": 30,
       "distance_m": 40,
-      "weather": "clear"
+      "weather": "clear",
+      "revealed_permille": 1000
     },
     {
       "id": "lake_storm",
@@ -62,7 +68,8 @@
       "target_z_permille": 365,
       "yaw_deg": 30,
       "distance_m": 40,
-      "weather": "storm"
+      "weather": "storm",
+      "revealed_permille": 1000
     }
   ],
   "projections": [

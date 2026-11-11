@@ -8,7 +8,8 @@
       "yaw_deg": 30,
       "distance_m": 6,
       "pitch_deg": 25,
-      "inhabitant": 0
+      "inhabitant": 0,
+      "revealed_permille": 1000
     },
     {
       "id": "sleep_steep_side",
@@ -17,7 +18,8 @@
       "yaw_deg": 120,
       "distance_m": 6,
       "pitch_deg": 12,
-      "inhabitant": 0
+      "inhabitant": 0,
+      "revealed_permille": 1000
     },
     {
       "id": "sleep_gentle",
@@ -26,7 +28,8 @@
       "yaw_deg": 200,
       "distance_m": 5,
       "pitch_deg": 20,
-      "inhabitant": 2
+      "inhabitant": 2,
+      "revealed_permille": 1000
     },
     {
       "id": "sleep_slope",
@@ -35,7 +38,8 @@
       "yaw_deg": 300,
       "distance_m": 5,
       "pitch_deg": 15,
-      "inhabitant": 3
+      "inhabitant": 3,
+      "revealed_permille": 1000
     }
   ],
   "projections": [

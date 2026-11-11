@@ -14,7 +14,8 @@
         "spring": true,
         "min_relief": 15,
         "face_hill": true
-      }
+      },
+      "revealed_permille": 1000
     }
   ],
   "projections": [

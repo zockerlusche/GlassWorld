@@ -8,7 +8,8 @@
       "yaw_deg": 215,
       "distance_m": 60,
       "pitch_deg": 8,
-      "fov_deg": 40
+      "fov_deg": 40,
+      "revealed_permille": 1000
     },
     {
       "id": "frost_view",
@@ -19,7 +20,8 @@
       "pitch_deg": 8,
       "fov_deg": 40,
       "season": "winter",
-      "weather": "frost"
+      "weather": "frost",
+      "revealed_permille": 1000
     },
     {
       "id": "snow_cover_view",
@@ -30,7 +32,8 @@
       "pitch_deg": 8,
       "fov_deg": 40,
       "season": "winter",
-      "weather": "snow"
+      "weather": "snow",
+      "revealed_permille": 1000
     },
     {
       "id": "heat_view",
@@ -41,7 +44,8 @@
       "pitch_deg": 8,
       "fov_deg": 40,
       "season": "summer",
-      "weather": "heat"
+      "weather": "heat",
+      "revealed_permille": 1000
     },
     {
       "id": "drought_view",
@@ -52,7 +56,8 @@
       "pitch_deg": 8,
       "fov_deg": 40,
       "season": "summer",
-      "weather": "drought"
+      "weather": "drought",
+      "revealed_permille": 1000
     }
   ],
   "projections": [
