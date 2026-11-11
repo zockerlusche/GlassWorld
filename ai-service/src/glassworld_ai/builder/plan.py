@@ -150,7 +150,10 @@ def _check_extent(
             hi[axis] = max(hi[axis], centre + reach)
     for axis, name in enumerate("xyz"):
         if hi[axis] - lo[axis] > box[axis] * tolerance:
-            raise InvalidOutputError(f"the parts reach {name} beyond the invention's size")
+            raise InvalidOutputError(
+                f"the parts reach {name} beyond the invention's size: together they span "
+                f"{hi[axis] - lo[axis]:.2f} m in {name}, the room is {box[axis]:g} m"
+            )
 
 
 def plan_values(job: GenerationJob, template: PromptTemplate) -> dict[str, str]:
@@ -163,6 +166,12 @@ def plan_values(job: GenerationJob, template: PromptTemplate) -> dict[str, str]:
             f"materials: {', '.join(plain_id(m) for m in invention.materials)}"
         ),
         "size": f"width x {sx:g}, height y {sy:g}, depth z {sz:g}",
+        # v2: the room as numbers per axis (a sufficient reading of the checker's rule).
+        "ranges": (
+            f"x from {-sx / 2:g} to {sx / 2:g}; y from 0 to {sy:g}; "
+            f"z from {-sz / 2:g} to {sz / 2:g}"
+        ),
+        "step_numbers": ", ".join(str(n) for n in range(1, len(invention.steps) + 1)),
         "steps": "\n".join(
             f"{n}. {humanize(plain_id(s.process))} ({', '.join(plain_id(m) for m in s.materials)})"
             for n, s in enumerate(invention.steps, start=1)
@@ -210,6 +219,7 @@ class OllamaBuilder:
             rendered=rendered,
             schema=schema,
             parse=lambda raw: parse_plan(raw, schema, payload, self._tolerance),
+            feedback=cast(dict[str, Any], self._template.settings.get("retry", {})).get("feedback"),
             client=self._client,
             queue=self._queue,
             settings=self._settings,

@@ -331,7 +331,9 @@ def test_v3_a_sentence_naming_unknown_things_becomes_the_stand_in(
     talker = _v3_talker(settings, log, [_raw({**GOOD, "reply": said})])
     answer = asyncio.run(talker.answer(DOING, time.monotonic() + 8))
     assert answer.reply is not None
-    expected = said if kept else TEXTS.get("de", "msg.thought.move_to")
+    # The stand-in belongs to the outcome the model chose, not to the current action (D763 G1).
+    expected = said if kept else TEXTS.get("de", "msg.converse.reply")
+    assert answer.outcome.value == "reply"
     assert answer.reply.text == expected
     if not kept:
         assert "[replaced, unknown: Buch, Ecke]" in answer.rationale
@@ -341,6 +343,37 @@ def test_v3_a_sentence_naming_unknown_things_becomes_the_stand_in(
         ).answer(DOING, time.monotonic() + 8)
     )
     assert replayed.reply == answer.reply  # a replay says the same
+
+
+def test_the_service_keeps_the_outcome_the_model_chose(settings: Settings) -> None:
+    """PR2 check D763 G1: a decline that named an unknown thing became a 'reply' with a sentence
+    about the current action, and the core applied the effects of an answer."""
+    log = CallLog(settings.log_dir / "conversation.jsonl")
+    declined = {**GOOD, "outcome": "decline", "reply": "Nein, ich lese gerade ein Buch."}
+    talker = _v3_talker(settings, log, [_raw(declined)])
+    answer = asyncio.run(talker.answer(DOING, time.monotonic() + 8))
+    assert answer.outcome.value == "decline"
+    assert answer.reply is not None
+    assert answer.reply.text == TEXTS.get("de", "msg.converse.decline")
+
+
+def test_a_word_the_player_said_may_be_said_back(settings: Settings) -> None:
+    """PR2 check D763 G2: asked about a bed, the inhabitant asks back what that is - the prompt
+    wants exactly that, and the noun check replaced the sentence."""
+    asked = ConversationRequest.model_validate(
+        {**DOING_DATA, "player_text": "Bau dir doch ein Bett aus Schilf!"}
+    )
+    log = CallLog(settings.log_dir / "conversation.jsonl")
+    back = {**GOOD, "outcome": "not_understood", "reply": "Ein Bett? Was ist das?"}
+    talker = _v3_talker(settings, log, [_raw(back)])
+    answer = asyncio.run(talker.answer(asked, time.monotonic() + 8))
+    assert answer.reply is not None and answer.reply.text == "Ein Bett? Was ist das?"
+    assert answer.outcome.value == "not_understood"
+    # A thing nobody mentioned is still taken back.
+    other = {**GOOD, "reply": "Ich habe schon ein Sofa."}
+    talker = _v3_talker(settings, log, [_raw(other)])
+    answer = asyncio.run(talker.answer(asked, time.monotonic() + 8))
+    assert answer.reply is not None and answer.reply.text == TEXTS.get("de", "msg.converse.reply")
 
 
 def test_v3_checks_nouns_only_where_the_language_shows_them(settings: Settings) -> None:

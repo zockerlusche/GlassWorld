@@ -1726,10 +1726,23 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     /// what really happened (the property was there or not). With knowledge data the belief is
     /// "experienced" and certain (B4a R3); without it confidence grows with repeated experience (B1).
     /// </summary>
-    private void Learn(World world, Inhabitant inhabitant, string action, string typeId)
+    private void Learn(World world, Inhabitant inhabitant, string action, string typeId) =>
+        Experience(world.Tick, inhabitant, action, typeId, _actions.Rules(action).Select(r => r.RequiresProperty).OfType<string>().Distinct(StringComparer.Ordinal));
+
+    /// <summary>
+    /// What an inhabitant finds out about a type by its own doing (<paramref name="action"/>) at
+    /// <paramref name="tick"/>: for each of <paramref name="properties"/> it now believes the truth of the
+    /// world (the type has it or not), by the one path of experience - source experienced, as sure as the
+    /// knowledge data says, over what it heard (with the trust change for the teller), reported as
+    /// <see cref="KnowledgeGained"/> when it is new. A finished action learns through it what its rules
+    /// depend on; other systems name what their doing shows (building: that the thing is made, D9).
+    /// </summary>
+    public void Experience(long tick, Inhabitant inhabitant, string action, string typeId, IEnumerable<string> properties)
     {
+        ArgumentNullException.ThrowIfNull(inhabitant);
+        ArgumentNullException.ThrowIfNull(properties);
         var step = _brain.Weights.LearningStep;
-        foreach (var property in _actions.Rules(action).Select(r => r.RequiresProperty).OfType<string>().Distinct(StringComparer.Ordinal))
+        foreach (var property in properties)
         {
             var truth = _objects.Catalog.HasProperty(typeId, property);
             var known = inhabitant.Beliefs.TryGet(typeId, property, out var old);
@@ -1752,12 +1765,33 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             }
 
             var confidence = Math.Max(knowledge.ExperiencedConfidence, known && old.Value == truth && old.Source == KnowledgeSources.Experienced ? old.Confidence : 0);
-            inhabitant.Beliefs.Set(typeId, property, truth, confidence, KnowledgeSources.Experienced, null, world.Tick);
+            inhabitant.Beliefs.Set(typeId, property, truth, confidence, KnowledgeSources.Experienced, null, tick);
             if (!known || old.Value != truth || old.Source != KnowledgeSources.Experienced)
             {
-                Report(new WorldEvent(KnowledgeGained, world.Tick, inhabitant.Id, action, typeId) { Detail = property + "/" + KnowledgeSources.Experienced });
+                Report(new WorldEvent(KnowledgeGained, tick, inhabitant.Id, action, typeId) { Detail = property + "/" + KnowledgeSources.Experienced });
             }
         }
+    }
+
+    /// <summary>
+    /// A guess of an inhabitant about a type at <paramref name="tick"/>: it now believes the type has
+    /// <paramref name="property"/> (or not), source guessed, as sure as <paramref name="confidence"/> but
+    /// at most as sure as the knowledge data lets a guess be (<c>guessed_cap</c>; without a confidence:
+    /// that cap), never replacing a belief it has; reported as <see cref="KnowledgeGained"/>. A guess may
+    /// be wrong: looking and trying replace it by what is seen or found out. Without knowledge data
+    /// nothing is guessed (B1 knows no sources). Returns whether the guess was taken.
+    /// </summary>
+    public bool Guess(long tick, Inhabitant inhabitant, string? action, string typeId, string property, bool value, double? confidence = null)
+    {
+        ArgumentNullException.ThrowIfNull(inhabitant);
+        if (Knowledge is not { } knowledge || inhabitant.Beliefs.TryGet(typeId, property, out _))
+        {
+            return false;
+        }
+
+        inhabitant.Beliefs.Set(typeId, property, value, Math.Min(confidence ?? knowledge.GuessedCap, knowledge.GuessedCap), KnowledgeSources.Guessed, null, tick);
+        Report(new WorldEvent(KnowledgeGained, tick, inhabitant.Id, action, typeId) { Detail = property + "/" + KnowledgeSources.Guessed });
+        return true;
     }
 
     /// <summary>

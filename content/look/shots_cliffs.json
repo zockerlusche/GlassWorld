@@ -8,7 +8,8 @@
       "yaw_deg": 68,
       "distance_m": 24,
       "pitch_deg": 26,
-      "phase": "day"
+      "phase": "day",
+      "revealed_permille": 1000
     },
     {
       "id": "cliffs_cave",
@@ -17,7 +18,68 @@
       "yaw_deg": 99,
       "distance_m": 16,
       "pitch_deg": 20,
-      "phase": "day"
+      "phase": "day",
+      "revealed_permille": 1000
+    },
+    {
+      "id": "cliffs_cave_front",
+      "target_x_permille": 539,
+      "target_z_permille": 768,
+      "yaw_deg": 99,
+      "distance_m": 7,
+      "pitch_deg": 18,
+      "phase": "day",
+      "revealed_permille": 1000
+    },
+    {
+      "id": "cliffs_cave_side",
+      "target_x_permille": 539,
+      "target_z_permille": 768,
+      "yaw_deg": 40,
+      "distance_m": 8,
+      "pitch_deg": 25,
+      "phase": "day",
+      "revealed_permille": 1000
+    },
+    {
+      "id": "cliffs_cave_play",
+      "target_x_permille": 539,
+      "target_z_permille": 768,
+      "yaw_deg": 99,
+      "distance_m": 30,
+      "pitch_deg": 50,
+      "phase": "day",
+      "revealed_permille": 1000
+    },
+    {
+      "id": "cliffs_cave_night",
+      "target_x_permille": 539,
+      "target_z_permille": 768,
+      "yaw_deg": 99,
+      "distance_m": 9,
+      "pitch_deg": 20,
+      "phase": "night",
+      "revealed_permille": 1000
+    },
+    {
+      "id": "cliffs_fieldstone",
+      "target_x_permille": 909,
+      "target_z_permille": 539,
+      "yaw_deg": 30,
+      "distance_m": 3,
+      "pitch_deg": 24,
+      "phase": "day",
+      "revealed_permille": 1000
+    },
+    {
+      "id": "cliffs_flint",
+      "target_x_permille": 706,
+      "target_z_permille": 633,
+      "yaw_deg": 30,
+      "distance_m": 3,
+      "pitch_deg": 24,
+      "phase": "day",
+      "revealed_permille": 1000
     },
     {
       "id": "cliffs_face_night",
@@ -26,7 +88,8 @@
       "yaw_deg": 68,
       "distance_m": 40,
       "pitch_deg": 30,
-      "phase": "night"
+      "phase": "night",
+      "revealed_permille": 1000
     }
   ],
   "projections": [

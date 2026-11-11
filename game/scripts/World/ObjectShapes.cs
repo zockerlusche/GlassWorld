@@ -1,5 +1,6 @@
 using GlassWorld.Contracts;
 using GlassWorld.Game.Prototype.Look;
+using GlassWorld.Presentation.World;
 using Godot;
 
 namespace GlassWorld.Game.World;
@@ -7,8 +8,12 @@ namespace GlassWorld.Game.World;
 /// <summary>
 /// The simple low-poly shapes of the look prototype (D569) as single meshes with vertex colours, one per
 /// object look (trees, bushes, stones, water sources, small finds). Sizes are in metres at size factor 1;
-/// the colours come from the palette by role (<see cref="Presentation.World.ObjectLook.Color"/>). No
-/// new assets: primitives and the prototype's cone and rock builders. Presentation only.
+/// the colours come from the palette by role (<see cref="ObjectLook.Color"/>). No
+/// new assets: primitives and the prototype's cone and rock builders; the rock niche comes as triangles
+/// from <see cref="RockNiche"/>. Every vertex carries in CUSTOM2 the direction the ink outline pushes it
+/// out along (TL #20750): its normal, or for the flat-shaded rocks the common direction of all corners at
+/// its place (<see cref="OutlineHull"/>), so the outline stays one closed skin on the body.
+/// Presentation only.
 /// </summary>
 public static class ObjectShapes
 {
@@ -16,15 +21,22 @@ public static class ObjectShapes
     /// Builds the mesh of a shape; <paramref name="paint"/> gives the linear colour of a role and
     /// <paramref name="tint"/> the shares of the movable palette colours in it (tint slots 0..3 and 4..7,
     /// each as r, g, b, a; B2-5 R24, R16), stored per vertex in CUSTOM0 and CUSTOM1 for the warm comic shader.
+    /// A rock niche takes its measures from <paramref name="niche"/> and gets a second surface: its dark
+    /// inside (<see cref="RockNiche.InsideRole"/>), which the view draws unlit.
+    /// <paramref name="outlineMitreLimit"/> caps the outline directions of the flat-shaded rocks
+    /// (<c>outline_mitre_limit</c> of the object look data); every other part is pushed out along its
+    /// own normals by one outline width, exactly as before the directions were there.
     /// </summary>
-    public static ArrayMesh Build(ObjectLookShape shape, Func<int, Color> paint, Func<int, (Color First, Color More)>? tint = null)
+    public static ArrayMesh Build(ObjectLookShape shape, Func<int, Color> paint, double outlineMitreLimit, Func<int, (Color First, Color More)>? tint = null, RockNicheShape? niche = null)
     {
         ArgumentNullException.ThrowIfNull(paint);
         var tool = new SurfaceTool();
         tool.Begin(Mesh.PrimitiveType.Triangles);
         tool.SetCustomFormat(0, SurfaceTool.CustomFormat.Rgba8Unorm);
         tool.SetCustomFormat(1, SurfaceTool.CustomFormat.Rgba8Unorm);
-        var parts = new Parts(tool, paint, tint ?? (_ => (new Color(0, 0, 0, 0), new Color(0, 0, 0, 0))));
+        tool.SetCustomFormat(2, SurfaceTool.CustomFormat.RgbFloat);
+        var parts = new Parts(tool, paint, tint ?? (_ => (new Color(0, 0, 0, 0), new Color(0, 0, 0, 0))), outlineMitreLimit);
+        IReadOnlyList<ShapeTriangle> inside = [];
 
         // The shapes below name a part by its colour role; Parts turns the role into colour and weights.
         Func<int, Color> color = role => new Color(role, 0, 0);
@@ -82,10 +94,19 @@ public static class ObjectShapes
 
                 break;
             case ObjectLookShape.Rock:
-                parts.Add(IslandPiece.Rock(7, new Vector3(1.4f, 0.9f, 1.2f), Colors.White), Transform3D.Identity, color(0));
+                parts.Add(IslandPiece.Rock(7, new Vector3(1.4f, 0.9f, 1.2f), Colors.White), Transform3D.Identity, color(0), closedHull: true);
+                break;
+            case ObjectLookShape.Rock_niche:
+                var triangles = RockNiche.Build(niche ?? throw new InvalidDataException("The shape rock_niche needs the niche measures of its visual."), outlineMitreLimit);
+                foreach (var triangle in triangles.Where(t => t.Role != RockNiche.InsideRole))
+                {
+                    parts.Add(triangle);
+                }
+
+                inside = [.. triangles.Where(t => t.Role == RockNiche.InsideRole)];
                 break;
             case ObjectLookShape.Stone:
-                parts.Add(IslandPiece.Rock(13, new Vector3(0.38f, 0.24f, 0.32f), Colors.White), Transform3D.Identity, color(0));
+                parts.Add(IslandPiece.Rock(13, new Vector3(0.38f, 0.24f, 0.32f), Colors.White), Transform3D.Identity, color(0), closedHull: true);
                 break;
             case ObjectLookShape.Tuft:
                 Blades(parts, 0.32f, color(0));
@@ -145,8 +166,31 @@ public static class ObjectShapes
         }
 
         tool.Index();
-        return tool.Commit();
+        var mesh = tool.Commit();
+        if (inside.Count > 0)
+        {
+            // The inside as a surface of its own: plain vertex colours, no weights, no outline direction.
+            var dark = new SurfaceTool();
+            dark.Begin(Mesh.PrimitiveType.Triangles);
+            foreach (var triangle in inside)
+            {
+                // Godot treats clockwise triangles as front faces: a, c, b.
+                foreach (var p in new[] { triangle.A, triangle.C, triangle.B })
+                {
+                    dark.SetColor(paint(triangle.Role));
+                    dark.SetNormal(ToVector(triangle.Normal));
+                    dark.AddVertex(ToVector(p));
+                }
+            }
+
+            dark.Index();
+            dark.Commit(mesh);
+        }
+
+        return mesh;
     }
+
+    private static Vector3 ToVector(Point3 p) => new((float)p.X, (float)p.Y, (float)p.Z);
 
     /// <summary>Irregular outline of a spring pool: radius factor per corner.</summary>
     private static readonly float[] PoolOutline = [1.0f, 0.86f, 0.95f, 0.8f, 0.92f, 1.0f, 0.84f, 0.9f, 0.97f];
@@ -186,7 +230,7 @@ public static class ObjectShapes
         {
             var (angle, radius, lift, size, darker) = stones[i];
             var place = new Vector3(Mathf.Cos(angle) * radius, lift - (size.Y * 0.3f), Mathf.Sin(angle) * radius);
-            parts.Add(IslandPiece.Rock(51 + i, size, Colors.White), new Transform3D(new Basis(Vector3.Up, angle * 1.3f), place), darker ? dark : stone);
+            parts.Add(IslandPiece.Rock(51 + i, size, Colors.White), new Transform3D(new Basis(Vector3.Up, angle * 1.3f), place), darker ? dark : stone, closedHull: true);
         }
     }
 
@@ -230,7 +274,7 @@ public static class ObjectShapes
         {
             var (angle, radius, size) = stones[i];
             var place = new Vector3(Mathf.Cos(angle) * radius, -size.Y * 0.35f, Mathf.Sin(angle) * radius);
-            parts.Add(IslandPiece.Rock(31 + i, size, Colors.White), new Transform3D(new Basis(Vector3.Up, angle * 1.7f), place), stone);
+            parts.Add(IslandPiece.Rock(31 + i, size, Colors.White), new Transform3D(new Basis(Vector3.Up, angle * 1.7f), place), stone, closedHull: true);
         }
 
         // Two clumps of reeds at the downhill edge, so the pool reads as "water here" from afar.
@@ -270,42 +314,52 @@ public static class ObjectShapes
 
     /// <summary>
     /// Appends meshes with one colour each into one surface. The colour argument carries the colour role in
-    /// its red channel; every vertex gets the role's colour and its seasonal weights.
+    /// its red channel; every vertex gets the role's colour, its seasonal weights and its outline direction.
     /// </summary>
-    private sealed class Parts(SurfaceTool tool, Func<int, Color> paint, Func<int, (Color First, Color More)> tint)
+    private sealed class Parts(SurfaceTool tool, Func<int, Color> paint, Func<int, (Color First, Color More)> tint, double outlineMitreLimit)
     {
-        public void Add(Mesh mesh, Transform3D transform, Color role)
+        /// <summary>
+        /// Appends a mesh. With <paramref name="closedHull"/> (a flat-shaded stone) the outline directions
+        /// are the common ones of all corners at a place, so the ink hull does not fall apart into loose
+        /// faces; otherwise every vertex is pushed out along its own normal.
+        /// </summary>
+        public void Add(Mesh mesh, Transform3D transform, Color role, bool closedHull = false)
         {
             var (color, weights) = Role(role);
             var arrays = mesh.SurfaceGetArrays(0);
             var vertices = arrays[(int)Mesh.ArrayType.Vertex].AsVector3Array();
             var normals = arrays[(int)Mesh.ArrayType.Normal].AsVector3Array();
             var indexArray = arrays[(int)Mesh.ArrayType.Index];
-            var indices = indexArray.VariantType == Variant.Type.Nil ? [] : indexArray.AsInt32Array();
+            var indices = indexArray.VariantType == Variant.Type.Nil ? [.. Enumerable.Range(0, vertices.Length)] : indexArray.AsInt32Array();
             var normalBasis = transform.Basis.Inverse().Transposed();
-            void Vertex(int i)
+            var placed = new Vector3[indices.Length];
+            var turned = new Vector3[indices.Length];
+            for (var k = 0; k < indices.Length; k++)
             {
-                tool.SetColor(color);
-                tool.SetCustom(0, weights.First);
-                tool.SetCustom(1, weights.More);
-                tool.SetNormal(normals.Length > i ? (normalBasis * normals[i]).Normalized() : Vector3.Up);
-                tool.AddVertex(transform * vertices[i]);
+                var i = indices[k];
+                placed[k] = transform * vertices[i];
+                turned[k] = normals.Length > i ? (normalBasis * normals[i]).Normalized() : Vector3.Up;
             }
 
-            if (indices.Length > 0)
+            var hull = closedHull
+                ? OutlineHull.Directions([.. placed.Select(ToPoint)], [.. turned.Select(ToPoint)], outlineMitreLimit)
+                : null;
+            for (var k = 0; k < indices.Length; k++)
             {
-                foreach (var i in indices)
-                {
-                    Vertex(i);
-                }
+                Vertex(placed[k], turned[k], hull is null ? turned[k] : ToVector(hull[k]), color, weights);
             }
-            else
-            {
-                for (var i = 0; i < vertices.Length; i++)
-                {
-                    Vertex(i);
-                }
-            }
+        }
+
+        /// <summary>Appends a triangle that was built without Godot (counter-clockwise seen from its normal), with its own outline directions.</summary>
+        public void Add(ShapeTriangle triangle)
+        {
+            var (color, weights) = Role(new Color(triangle.Role, 0, 0));
+            var normal = ToVector(triangle.Normal);
+
+            // Godot treats clockwise triangles as front faces: a, c, b.
+            Vertex(ToVector(triangle.A), normal, ToVector(triangle.HullA), color, weights);
+            Vertex(ToVector(triangle.C), normal, ToVector(triangle.HullC), color, weights);
+            Vertex(ToVector(triangle.B), normal, ToVector(triangle.HullB), color, weights);
         }
 
         public void Triangle(Vector3 a, Vector3 b, Vector3 c, Color role)
@@ -314,13 +368,21 @@ public static class ObjectShapes
             var normal = (c - a).Cross(b - a).Normalized();
             foreach (var p in new[] { a, b, c })
             {
-                tool.SetColor(color);
-                tool.SetCustom(0, weights.First);
-                tool.SetCustom(1, weights.More);
-                tool.SetNormal(normal);
-                tool.AddVertex(p);
+                Vertex(p, normal, normal, color, weights);
             }
         }
+
+        private void Vertex(Vector3 position, Vector3 normal, Vector3 hull, Color color, (Color First, Color More) weights)
+        {
+            tool.SetColor(color);
+            tool.SetCustom(0, weights.First);
+            tool.SetCustom(1, weights.More);
+            tool.SetCustom(2, new Color(hull.X, hull.Y, hull.Z));
+            tool.SetNormal(normal);
+            tool.AddVertex(position);
+        }
+
+        private static Point3 ToPoint(Vector3 v) => new(v.X, v.Y, v.Z);
 
         private (Color Color, (Color First, Color More) Weights) Role(Color role)
         {

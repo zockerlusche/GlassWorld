@@ -185,6 +185,43 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("swamp_as_ground")]
         public bool? SwampAsGround { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("stream_mouth")]
+        public TerrainStreamMouth? StreamMouth { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// How a stream band ends in standing water (TL #20750, W1738). At the sea the band thins out to a film on the ground before the coast and runs on over the beach the low tide leaves dry, down to the low-tide line, where it ends under the lowest water; the sea surface, which follows the tide, covers whatever lies below it, so the stream ends at the waterline at every tide. In a lake the band never lies above the lake's surface. Absent = the band ends in the first cell of standing water as before.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class TerrainStreamMouth
+    {
+
+        /// <summary>
+        /// Length in metres before the coast over which the water of a stream that runs into the sea thins from its depth to a film on the ground (the height of stream_shore_lift_mm), so it meets the beach without a step.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("fade_m")]
+        public double FadeM { get; set; } = default!;
+
+        /// <summary>
+        /// Most sea cells a stream runs on over, down the sea floor, to reach ground that lies under the lowest tide.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("reach_cells")]
+        public int ReachCells { get; set; } = default!;
+
+        /// <summary>
+        /// How far below the receiving water the band ends, in millimetres: below the lowest tide at the sea, below the surface in a lake.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("under_mm")]
+        public int UnderMm { get; set; } = default!;
+
+        /// <summary>
+        /// How much wider the band is at its end in the sea than at the coast, as a share of its width (0 = it keeps its width): the stream fans out over the beach.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("widen_share")]
+        public double WidenShare { get; set; } = default!;
+
     }
 
     /// <summary>

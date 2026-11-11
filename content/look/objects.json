@@ -2,6 +2,7 @@
   "contract_version": "0.2",
   "outline": true,
   "outline_width_m": 0.03,
+  "outline_mitre_limit": 2.0,
   "ground_tolerance_m": 0.06,
   "turn_tries": 8,
   "min_footprint_m": 0.05,
@@ -146,16 +147,32 @@
       "types": [
         "rock_niche"
       ],
-      "shape": "rock",
+      "shape": "rock_niche",
       "colors": [
-        "rock_dark"
+        "rock_dark",
+        "rock",
+        "cave_inside"
       ],
-      "size_m": 2.4,
-      "size_jitter": 0.1,
-      "lift_m": -0.2,
-      "rest": "centre",
-      "align": "upright",
-      "footprint_m": 0.0
+      "size_m": 1.0,
+      "size_jitter": 0.08,
+      "lift_m": 0.0,
+      "rest": "lowest",
+      "align": "wall",
+      "footprint_m": 0.9,
+      "niche": {
+        "opening_width_m": 1.7,
+        "opening_height_m": 1.8,
+        "front_m": 0.6,
+        "depth_m": 0.5,
+        "side_rock_m": 0.7,
+        "lintel_m": 0.5,
+        "overhang_m": 0.18,
+        "back_m": 2.2,
+        "sink_m": 0.7,
+        "roughness": 0.16,
+        "wall_probe_m": 1.6,
+        "wall_min_rise_m": 0.5
+      }
     },
     {
       "id": "fieldstone",

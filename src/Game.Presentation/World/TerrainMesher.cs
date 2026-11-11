@@ -97,6 +97,7 @@ public readonly record struct Rgb(float R, float G, float B)
 /// <param name="StreamMaxShiftM">How far the relaxing may move a point of the centre line from where the cells put it (metres).</param>
 /// <param name="StreamCoverM">Every cell of a stream keeps the relaxed line within this distance of its centre (metres).</param>
 /// <param name="SwampAsGround">Whether swamp water is drawn as wet ground that blends into its surroundings instead of as a water plate (W1724).</param>
+/// <param name="Mouth">How a stream band ends in standing water (TL #20750), or null: it ends in the first cell of standing water.</param>
 public sealed record TerrainLook(
     IReadOnlyList<Rgb> BiomeColors,
     Rgb Cliff,
@@ -124,7 +125,8 @@ public sealed record TerrainLook(
     float StreamCellToleranceM = 0.25f,
     float StreamMaxShiftM = 0.5f,
     float StreamCoverM = 1.2f,
-    bool SwampAsGround = false)
+    bool SwampAsGround = false,
+    StreamMouthLook? Mouth = null)
 {
     /// <summary>Resolves the look data against the palette, the map's biome order and the preset.</summary>
     /// <param name="terrain">The terrain look data.</param>
@@ -190,11 +192,33 @@ public sealed record TerrainLook(
             (float)(terrain.Water.StreamCellToleranceM ?? 0.25),
             (float)(terrain.Water.StreamMaxShiftM ?? 0.5),
             (float)(terrain.Water.StreamCoverM ?? 1.2),
-            terrain.Water.SwampAsGround ?? false);
+            terrain.Water.SwampAsGround ?? false,
+            terrain.Water.StreamMouth is { } mouth
+                ? new StreamMouthLook((float)mouth.FadeM, mouth.ReachCells, mouth.UnderMm / 1000f, (float)mouth.WidenShare, preset.Terrain.SeaLevel, preset.Tides.Amplitude)
+                : null);
     }
 
     /// <summary>Whether a cell holds swamp water that is drawn as wet ground (<see cref="SwampAsGround"/>): still fresh water no deeper than the swamp depth.</summary>
     public bool IsSwampGround(MapCell cell) => SwampAsGround && cell is { Water: WaterKind.Fresh, Flow: < 0 } && cell.WaterDepth <= SwampMaxUnits;
+}
+
+/// <summary>
+/// How a stream band ends in standing water (TL #20750, W1738), resolved from the look data and the preset.
+/// The sea level and the tidal range are the preset's, so the band can be built once for every tide: it
+/// runs on to ground under the lowest water, and the sea surface, which follows the tide, covers whatever
+/// lies below it.
+/// </summary>
+/// <param name="FadeM">Length before the coast over which a stream that runs into the sea thins from its depth to a film on the ground (metres).</param>
+/// <param name="ReachCells">Most sea cells a stream runs on over to reach ground under the lowest tide.</param>
+/// <param name="UnderM">How far below the receiving water the band ends (metres).</param>
+/// <param name="WidenShare">How much wider the band is at its end in the sea than at the coast (share of its width).</param>
+/// <param name="SeaLevelUnits">Mean sea level in height units (preset).</param>
+/// <param name="TideAmplitudeUnits">Half the tidal range in height units (preset; 0 = no tides).</param>
+public sealed record StreamMouthLook(float FadeM, int ReachCells, float UnderM, float WidenShare, int SeaLevelUnits, int TideAmplitudeUnits)
+{
+    /// <summary>Height in metres of the sea surface at a place on the tide curve (−1000 lowest … 1000 highest).</summary>
+    public float SeaLevelM(float unitM, int tidePermille = 0) =>
+        (SeaLevelUnits + (TideAmplitudeUnits * Math.Clamp(tidePermille, -1000, 1000) / 1000f)) * unitM;
 }
 
 /// <summary>Natural rock colours (TL #19984), resolved from the look data.</summary>
