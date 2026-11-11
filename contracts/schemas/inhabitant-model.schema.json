@@ -19,7 +19,8 @@
     },
     "skill_rules": { "$ref": "#/$defs/SkillRules" },
     "togetherness": { "$ref": "#/$defs/Togetherness" },
-    "diary": { "$ref": "#/$defs/Diary" }
+    "diary": { "$ref": "#/$defs/Diary" },
+    "comfort_zone": { "$ref": "#/$defs/ComfortZone" }
   },
   "$defs": {
     "NeedModel": {
@@ -66,6 +67,37 @@
           "description": "Actions that get no entry (resting in place).",
           "type": "array", "maxItems": 64, "uniqueItems": true, "items": { "$ref": "common.schema.json#/$defs/VocabId" }
         }
+      }
+    },
+    "ComfortZone": {
+      "description": "Comfort zone (B2582, W1745): the air temperature at the inhabitant's place (climate: season, weather, time of day, height of its cell) moves a need. Inside the zone the need recovers per hour; below the zone it sinks per hour by the cold loss times the degrees below, above the zone by the heat loss times the degrees above. Only a need effect, no behaviour: what warms or cools an inhabitant otherwise stays the business of the action effects. Worlds without a climate have no air temperature, there nothing moves. Omitted = the air moves no need. Temperatures in tenths of a degree Celsius like the climate data.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["need", "min_tenth_c", "max_tenth_c", "cold_loss_per_hour_per_degree", "heat_loss_per_hour_per_degree", "recover_per_hour"],
+      "properties": {
+        "need": { "$ref": "common.schema.json#/$defs/VocabId" },
+        "min_tenth_c": { "description": "Lower edge of the zone; colder air is too cold.", "type": "integer", "minimum": -500, "maximum": 600 },
+        "max_tenth_c": { "description": "Upper edge of the zone (not below min_tenth_c, checked at load); warmer air is too warm.", "type": "integer", "minimum": -500, "maximum": 600 },
+        "individual_shift_tenth_c": { "description": "Every inhabitant's zone lies a little differently (B2582): its zone is shifted as a whole by a fixed value between minus and plus this, drawn from the world seed and its id (not saved, the same in every run). Omitted = 0, all alike.", "type": "integer", "minimum": 0, "maximum": 200 },
+        "cold_loss_per_hour_per_degree": { "description": "Loss of the need per hour for every degree Celsius the air is below the zone.", "type": "number", "minimum": 0, "maximum": 1 },
+        "heat_loss_per_hour_per_degree": { "description": "Loss of the need per hour for every degree Celsius the air is above the zone.", "type": "number", "minimum": 0, "maximum": 1 },
+        "recover_per_hour": { "description": "Gain of the need per hour while the air is inside the zone.", "type": "number", "minimum": 0, "maximum": 1 },
+        "floor": { "description": "The air alone never pushes the need below this value, in the cold and in the heat (a need already below it is left alone). It stands in for the warming the inhabitants cannot do yet (nothing raises warmth so far; fire and shelter follow with B5) and goes once they can. Omitted = 0.", "type": "number", "minimum": 0, "maximum": 1 },
+        "precipitation_cold_factor": { "description": "Factor on the cold loss while precipitation falls (wet: rain, snow, storm). Omitted = 1.", "type": "number", "minimum": 0, "maximum": 10 },
+        "action_factors": {
+          "description": "Factors on the loss while an action runs (once it has started), e.g. lying still asleep. At most one entry per action.",
+          "type": "array", "maxItems": 64, "items": { "$ref": "#/$defs/ComfortZoneActionFactor" }
+        }
+      }
+    },
+    "ComfortZoneActionFactor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["action"],
+      "properties": {
+        "action": { "$ref": "common.schema.json#/$defs/VocabId" },
+        "cold_factor": { "description": "Factor on the cold loss during the action. Omitted = 1.", "type": "number", "minimum": 0, "maximum": 10 },
+        "heat_factor": { "description": "Factor on the heat loss during the action. Omitted = 1.", "type": "number", "minimum": 0, "maximum": 10 }
       }
     },
     "Togetherness": {
