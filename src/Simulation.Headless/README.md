@@ -142,7 +142,9 @@ reaches neither the sea nor a lake when followed downstream (0 on a sound island
 The seed series of the acceptance is `tools/worldgen/seed_series.py`: it runs a range of seeds through
 `worldgen --seeds FROM-TO --json` and writes the figures and a short German report with a verdict per
 acceptance point (mandatory check and each of its lines, distinct hashes, biomes, cliffs and caves, streams,
-time against `generation_budget_ms`). Build once, then run; the 1,000 seeds belong in the AMW run queue:
+time against `generation_budget_ms`). The error output of each process goes into a file beside the report; a
+process that ends early or with an error fails the run (exit code 1) and the report names the missing seeds.
+Build once, then run; the 1,000 seeds belong in the AMW run queue:
 
 ```
 dotnet build src/Simulation.Headless -c Release -m:1

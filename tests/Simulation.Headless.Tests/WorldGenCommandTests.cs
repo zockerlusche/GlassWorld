@@ -75,6 +75,9 @@ public sealed class WorldGenCommandTests : IDisposable
         Assert.StartsWith("check spark_striker ", fail, StringComparison.Ordinal);
         Assert.Matches("reachable +0 total +0 \\(min 1, ", fail);
         Assert.DoesNotContain(lines, l => l.StartsWith("objects ", StringComparison.Ordinal) && l.Contains("flint", StringComparison.Ordinal));
+
+        // The text form carries the hydrology figure of the seed series too.
+        Assert.Matches(" stream dead ends [0-9]+$", Assert.Single(lines, l => l.StartsWith("hydrology ", StringComparison.Ordinal)));
     }
 
     /// <summary>
@@ -99,7 +102,7 @@ public sealed class WorldGenCommandTests : IDisposable
     }
 
     [Fact]
-    public void ASeedRangePrintsOneJsonLinePerSeedWithTheHashesOfSingleRuns()
+    public void ASeedInARangeGivesTheSameJsonLineAsTheSeedAlone()
     {
         var (code, lines) = Run("--seeds", "7-8", "--json", "--content", Content);
         Assert.Equal(ExitCodes.Ok, code);
@@ -116,11 +119,21 @@ public sealed class WorldGenCommandTests : IDisposable
             Assert.Contains(r.GetProperty("check").EnumerateArray(), c => c.GetProperty("id").GetString() == "start_dry_ground");
         });
 
-        // A range of one seed is that seed; the text form carries the new hydrology figure too.
-        var (_, single) = Run("--seeds", "8-8", "--content", Content);
-        Assert.StartsWith("worldgen seed 8 ", single[0], StringComparison.Ordinal);
-        Assert.Contains(reports[1].GetProperty("hash").GetString()!, single[0], StringComparison.Ordinal);
-        Assert.Contains(single, l => l.StartsWith("hydrology ", StringComparison.Ordinal) && l.EndsWith(" stream dead ends 0", StringComparison.Ordinal));
+        // A range loads the content once and generates one island after the other with it. Nothing of
+        // an island may leak into the next: seed 8, generated after seed 7 in the range, gives the very
+        // line of seed 8 generated alone - the hash and every figure; only the measured time differs.
+        var (alone, single) = Run("--seed", "8", "--json", "--content", Content);
+        Assert.Equal(ExitCodes.Ok, alone);
+        Assert.Equal(WithoutTime(Assert.Single(single)), WithoutTime(lines[1]));
+        Assert.NotEqual(WithoutTime(lines[0]), WithoutTime(lines[1]));
+    }
+
+    /// <summary>A JSON line of the command without its one measured value, the generation time.</summary>
+    private static string WithoutTime(string line)
+    {
+        var report = JsonNode.Parse(line)!.AsObject();
+        Assert.True(report.Remove("time_ms"));
+        return report.ToJsonString();
     }
 
     [Theory]

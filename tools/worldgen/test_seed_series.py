@@ -6,6 +6,7 @@ import argparse
 import importlib.util
 import json
 import sys
+import threading
 from pathlib import Path
 from types import ModuleType
 from typing import Any
@@ -290,80 +291,154 @@ def test_the_output_folder_must_be_outside_the_repository_and_exist_for_judging(
     assert SS.main(["--out", str(tmp_path / "nothing"), "--evaluate-only"]) == SS.EXIT_FAILED
 
 
-class _FakeWorldgen:
-    """Stands in for `dotnet <dll> worldgen --seeds A-B --json`: prints one line per seed."""
+STUB = """\
+import json
+import sys
+from pathlib import Path
 
-    codes: dict[int, int]
-    commands: list[list[str]]
-
-    def __init__(self, command: list[str], **_: Any) -> None:
-        type(self).commands.append(command)
-        first, last = (int(n) for n in command[command.index("--seeds") + 1].split("-"))
-        self.first = first
-        self.stdout = iter([json.dumps(island(s)) + "\n" for s in range(first, last + 1)])
-        self.stderr = self
-
-    def __enter__(self) -> _FakeWorldgen:
-        return self
-
-    def __exit__(self, *_: object) -> None:
-        return None
-
-    def read(self) -> str:
-        return "boom"
-
-    def wait(self) -> int:
-        return type(self).codes.get(self.first, 0)
-
-
-def _dotnet(_: str) -> str:
-    return "dotnet"
+here = Path(__file__)
+plan = json.loads(here.with_name("plan.json").read_text("utf-8"))
+args = sys.argv[1:]
+first, last = (int(n) for n in args[args.index("--seeds") + 1].split("-"))
+here.with_name(f"argv-{first}.json").write_text(json.dumps(args), encoding="utf-8")
+part = plan["parts"].get(str(first), {})
+for seed in range(first, last + 1):
+    sys.stderr.write("x" * part.get("noise", 0))
+    sys.stderr.flush()
+    if seed == part.get("die_at"):
+        sys.stderr.write("boom")
+        sys.exit(part["code"])
+    print(plan["lines"][str(seed)], flush=True)
+sys.exit(part.get("code", 0))
+"""
 
 
 def _run(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, codes: dict[int, int]
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    parts: dict[str, dict[str, int]],
+    jobs: int = 2,
 ) -> tuple[int, Path]:
-    assembly = tmp_path / SS.ASSEMBLY
-    assembly.write_text("", encoding="utf-8")
-    _FakeWorldgen.codes, _FakeWorldgen.commands = codes, []
-    monkeypatch.setattr(SS.subprocess, "Popen", _FakeWorldgen)
-    monkeypatch.setattr(SS.shutil, "which", _dotnet)
+    """A run of seeds 1-6 whose child is a stub in place of `dotnet <dll>`: a real process that
+    prints one canned line per seed and, per part of the range (named by its first seed), may write
+    `noise` characters to its error output before every line, stop before the seed `die_at`, and
+    end with `code`."""
+    stub = tmp_path / "worldgen_stub.py"
+    stub.write_text(STUB, encoding="utf-8")
+    lines = {str(s): json.dumps(island(s)) for s in range(1, 7)}
+    plan = {"parts": parts, "lines": lines}
+    (tmp_path / "plan.json").write_text(json.dumps(plan), encoding="utf-8")
+    monkeypatch.setattr(SS, "RUNTIME", [sys.executable])
     out = tmp_path / "out"
-    arguments = ["--out", str(out), "--seeds", "1-6", "--jobs", "2", "--assembly", str(assembly)]
-    return SS.main([*arguments, "--note", "test"]), out
+    arguments = ["--out", str(out), "--seeds", "1-6", "--jobs", str(jobs), "--note", "test"]
+    done: list[int] = []
+    worker = threading.Thread(
+        target=lambda: done.append(SS.main([*arguments, "--assembly", str(stub)])), daemon=True
+    )
+    worker.start()
+    worker.join(120)
+    assert done, "the run did not end within two minutes"
+    return done[0], out
 
 
 def test_a_run_splits_the_range_keeps_the_raw_lines_and_an_earlier_report(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     # Exit code 2 of worldgen only says that an island failed its check; the lines carry that.
-    code, out = _run(tmp_path, monkeypatch, {1: 2})
+    code, out = _run(tmp_path, monkeypatch, {"1": {"code": 2}})
     assert code == SS.EXIT_OK
-    ranges = sorted(c[c.index("--seeds") + 1] for c in _FakeWorldgen.commands)
-    assert ranges == ["1-3", "4-6"]
-    program = ["dotnet", str((tmp_path / SS.ASSEMBLY).resolve()), "worldgen"]
-    assert all(c[:3] == program for c in _FakeWorldgen.commands)
-    assert all("--json" in c and "--preset" in c for c in _FakeWorldgen.commands)
+    commands = [json.loads(p.read_text("utf-8")) for p in sorted(tmp_path.glob("argv-*.json"))]
+    assert [c[:4] for c in commands] == [
+        ["worldgen", "--seeds", "1-3", "--json"],
+        ["worldgen", "--seeds", "4-6", "--json"],
+    ]
+    assert all(c[4:6] == ["--preset", "start_island"] and c[6] == "--content" for c in commands)
     raw = (out / SS.RAW).read_text("utf-8").splitlines()
     assert sorted(json.loads(line)["seed"] for line in raw) == [1, 2, 3, 4, 5, 6]
     figures = json.loads((out / SS.FIGURES).read_text("utf-8"))
     assert figures["run"]["warm_up_seeds"] == [1, 4]
     assert (figures["run"]["jobs"], figures["run"]["note"]) == (2, "test")
-    assert "Erster Seed je Prozess" in (out / SS.REPORT).read_text("utf-8")
+    assert figures["problems"] == []
+    text = (out / SS.REPORT).read_text("utf-8")
+    assert "Erster Seed je Prozess" in text
+    assert "fehlgeschlagen" not in text
+    logs = ["seed_series.stderr.1-3.log", "seed_series.stderr.4-6.log"]
+    assert sorted(p.name for p in out.glob("*.log")) == logs
 
     # A second run keeps the first one's files under a new name.
     assert _run(tmp_path, monkeypatch, {})[0] == SS.EXIT_OK
-    kept = sorted(p.name for p in out.iterdir() if ".before-" in p.name)
-    assert [name.split(".before-")[0] for name in kept] == ["seed_series"] * 3
-    assert {Path(name).suffix for name in kept} == {".json", ".jsonl", ".md"}
+    kept = sorted(p.name.split(".before-")[0] for p in out.iterdir() if ".before-" in p.name)
+    assert kept == ["seed_series"] * 3 + [Path(log).stem for log in logs]
+    assert sorted(p.name for p in out.iterdir() if ".before-" not in p.name) == sorted(
+        [SS.RAW, SS.FIGURES, SS.REPORT, *logs]
+    )
 
 
-def test_a_crashed_process_fails_the_run(
+def test_a_process_that_writes_much_to_its_error_output_does_not_block_the_run(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Far more than a pipe holds (64 KiB on Linux, less on Windows), before every single line: read
+    # as a pipe after the standard output, this child would wait for ever on its first write.
+    noise = 300_000
+    code, out = _run(tmp_path, monkeypatch, {"1": {"noise": noise}}, jobs=1)
+    assert code == SS.EXIT_OK
+    assert (out / "seed_series.stderr.1-6.log").stat().st_size == 6 * noise
+    figures = json.loads((out / SS.FIGURES).read_text("utf-8"))
+    assert (figures["seeds"]["reported"], figures["seeds"]["missing"]) == (6, [])
+    assert figures["all_hold"]
+
+
+def test_a_process_that_dies_in_its_range_fails_the_run_and_the_missing_seeds_are_named(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    code, _ = _run(tmp_path, monkeypatch, {4: 1})
+    # The second process prints seed 4 of its range 4-6 and dies before seed 5.
+    code, out = _run(tmp_path, monkeypatch, {"4": {"die_at": 5, "code": 1, "noise": 1000}})
     assert code == SS.EXIT_FAILED
-    assert "seeds 4-6: worldgen ended with 1: boom" in capsys.readouterr().err
+    problem = "seeds 4-6: worldgen ended with 1 (see seed_series.stderr.4-6.log): "
+    assert f"SEED_SERIES_FAIL: {problem}" in capsys.readouterr().err
+    figures = json.loads((out / SS.FIGURES).read_text("utf-8"))
+    assert (figures["seeds"]["reported"], figures["seeds"]["missing"]) == (4, [5, 6])
+    assert [p[: len(problem)] for p in figures["problems"]] == [problem]
+    assert figures["problems"][0].endswith("xboom")
+    assert len(figures["problems"][0]) == len(problem) + SS.ERROR_TAIL
+    assert {v["holds"] for v in figures["verdicts"]} == {None}
+    text = (out / SS.REPORT).read_text("utf-8")
+    assert "- Seeds: 1 bis 6 (4 von 6 gemeldet)" in text
+    assert "**Unvollständig: es fehlen die Seeds 5, 6.**" in text
+    assert f"**Der Lauf ist fehlgeschlagen:**\n\n- {problem}" in text
+    assert text.count("| nicht gemessen |") == len(figures["verdicts"]) == 7
+    # What did arrive is kept, and so is everything the dead process wrote to its error output.
+    raw = (out / SS.RAW).read_text("utf-8").splitlines()
+    assert sorted(json.loads(line)["seed"] for line in raw) == [1, 2, 3, 4]
+    assert (out / "seed_series.stderr.4-6.log").read_text("utf-8") == "x" * 2000 + "boom"
+
+
+def test_a_process_that_ends_early_without_an_error_still_fails_the_run(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    code, out = _run(tmp_path, monkeypatch, {"1": {"die_at": 3, "code": 0}})
+    assert code == SS.EXIT_FAILED
+    figures = json.loads((out / SS.FIGURES).read_text("utf-8"))
+    assert (figures["seeds"]["missing"], figures["problems"]) == ([3], [])
+    assert "**Unvollständig: es fehlen die Seeds 3.**" in (out / SS.REPORT).read_text("utf-8")
+
+
+def test_a_runtime_that_cannot_be_started_fails_the_run_with_its_reason(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    assembly = tmp_path / SS.ASSEMBLY
+    assembly.write_text("", encoding="utf-8")
+    monkeypatch.setattr(SS, "RUNTIME", [str(tmp_path / "no-such-runtime")])
+    monkeypatch.setattr(SS.shutil, "which", _found)
+    arguments = ["--out", str(tmp_path / "out"), "--seeds", "1-2", "--assembly", str(assembly)]
+    assert SS.main(arguments) == SS.EXIT_FAILED
+    assert "SEED_SERIES_FAIL: seeds 1-2: worldgen could not be run: " in capsys.readouterr().err
+    figures = json.loads((tmp_path / "out" / SS.FIGURES).read_text("utf-8"))
+    assert figures["seeds"]["missing"] == [1, 2]
+
+
+def _found(name: str) -> str:
+    return name
 
 
 def test_without_a_build_the_tool_says_how_to_build(

@@ -10,7 +10,8 @@ processes side by side) and judges what it printed against the acceptance of B2:
 - streams exist and end in the sea or a lake (`hydrology.stream_dead_ends`);
 - the generation time (p50, p95, max of `time_ms`) against `generation_budget_ms` of the preset.
 It writes `seed_series.jsonl` (the raw lines), `seed_series.json` (the figures) and
-`seed_series.md` (a short German report for an AMW document) into the output folder.
+`seed_series.md` (a short German report for an AMW document) into the output folder, and what
+each process wrote to its error output into `seed_series.stderr.FROM-TO.log` beside them.
 
 Build once, then run (from the repository root; the output folder must be outside the repository):
 
@@ -20,7 +21,10 @@ Build once, then run (from the repository root; the output folder must be outsid
     uv run python tools/worldgen/seed_series.py --out ../series --evaluate-only    # judge again
 
 The 1,000 seeds are a long run: register it in the AMW run queue (`amw lauf start --warten`).
-`--jobs` above 1 is only for a machine that is free; times measured side by side are slower.
+`--jobs` above 1 is only for a machine that is free; times measured side by side are slower,
+and the raw lines then come in the order the processes print them (the figures sort by seed).
+The tool has no timeout of its own: a process that hangs is ended by the queue's time limit.
+A process that ends early or with an error fails the run; the report names the missing seeds.
 The first island of every process pays the start-up of the runtime (JIT) in its `time_ms`; the
 report names those seeds, and the verdict on the time counts them like every other.
 An earlier report in the output folder is kept under a new name, never overwritten.
@@ -46,7 +50,10 @@ from typing import Any, TextIO
 
 ROOT = Path(__file__).resolve().parents[2]
 ASSEMBLY = "GlassWorld.Simulation.Headless.dll"
+RUNTIME = ["dotnet"]
 RAW, FIGURES, REPORT = "seed_series.jsonl", "seed_series.json", "seed_series.md"
+ERRORS = "seed_series.stderr.{first}-{last}.log"
+ERROR_TAIL = 400
 EXIT_OK, EXIT_FAILED, EXIT_MISSED = 0, 1, 3
 LISTED = 20
 YES, NO, UNKNOWN = "erfüllt", "NICHT erfüllt", "nicht gemessen"
@@ -272,6 +279,10 @@ def report(figures: dict[str, Any], run: dict[str, Any]) -> str:
     ]
     if seeds["missing"]:
         out += [f"**Unvollständig: es fehlen die Seeds {listed(seeds['missing'])}.**", ""]
+    if figures.get("problems"):
+        out += ["**Der Lauf ist fehlgeschlagen:**", ""]
+        out += [f"- {' '.join(str(problem).split())}" for problem in figures["problems"]]
+        out += [""]
     out += ["## Urteil je Abnahmepunkt", "", "| Abnahmepunkt | Urteil | Zahlen |", "|---|---|---|"]
     for v in figures["verdicts"]:
         word = UNKNOWN if v["holds"] is None else YES if v["holds"] else NO
@@ -336,19 +347,35 @@ def generate(
     content: Path,
     raw: Path,
 ) -> tuple[list[dict[str, Any]], list[str]]:
-    """Runs one process per part, side by side; the raw lines go to `raw` as they come."""
+    """Runs one process per part, side by side; the raw lines go to `raw` as they come.
+
+    Only the standard output is a pipe (read line by line until the process ends). The error output
+    of each process goes straight into its own file beside `raw`, so a process that writes much
+    there never waits for a reader, and the whole text is kept.
+    """
     reports: list[dict[str, Any]] = []
     problems: list[str] = []
     lock = threading.Lock()
     wanted = sum(last - first + 1 for first, last in parts)
 
     def one(first: int, last: int, sink: TextIO) -> None:
-        command = ["dotnet", str(assembly), "worldgen", "--seeds", f"{first}-{last}", "--json"]
+        try:
+            run(first, last, sink)
+        except OSError as error:
+            with lock:
+                problems.append(f"seeds {first}-{last}: worldgen could not be run: {error}")
+
+    def run(first: int, last: int, sink: TextIO) -> None:
+        command = [*RUNTIME, str(assembly), "worldgen", "--seeds", f"{first}-{last}", "--json"]
         command += ["--preset", preset, "--content", str(content)]
-        with subprocess.Popen(
-            command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8"
-        ) as process:
-            assert process.stdout is not None and process.stderr is not None
+        log = raw.with_name(ERRORS.format(first=first, last=last))
+        with (
+            log.open("wb") as errors,
+            subprocess.Popen(
+                command, stdout=subprocess.PIPE, stderr=errors, text=True, encoding="utf-8"
+            ) as process,
+        ):
+            assert process.stdout is not None
             for line in process.stdout:
                 if not line.strip():
                     continue
@@ -364,13 +391,13 @@ def generate(
                     sink.flush()
                     if len(reports) % 25 == 0 or len(reports) == wanted:
                         print(f"  {len(reports)} of {wanted} seeds", file=sys.stderr, flush=True)
-            errors = process.stderr.read()
             code = process.wait()
         # 0: every island passed; 2: at least one did not (the lines say which); else it failed.
         if code not in (0, 2):
+            tail = log.read_bytes()[-ERROR_TAIL:].decode("utf-8", errors="replace").strip()
             with lock:
                 problems.append(
-                    f"seeds {first}-{last}: worldgen ended with {code}: {errors[-400:]}"
+                    f"seeds {first}-{last}: worldgen ended with {code} (see {log.name}): {tail}"
                 )
 
     with raw.open("w", encoding="utf-8", newline="\n") as sink:
@@ -385,8 +412,8 @@ def generate(
 def keep_earlier(out: Path) -> None:
     """An earlier series in the folder is kept under a new name (never overwritten)."""
     stamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-    for name in (RAW, FIGURES, REPORT):
-        file = out / name
+    logs = [p for p in out.glob(ERRORS.format(first="*", last="*")) if ".before-" not in p.name]
+    for file in [out / RAW, out / FIGURES, out / REPORT, *sorted(logs)]:
         if file.exists():
             file.rename(file.with_name(f"{file.stem}.before-{stamp}{file.suffix}"))
 
@@ -436,8 +463,8 @@ def main(argv: list[str] | None = None) -> int:
                 file=sys.stderr,
             )
             return EXIT_FAILED
-        if shutil.which("dotnet") is None:
-            print("SEED_SERIES_FAIL: dotnet not found", file=sys.stderr)
+        if shutil.which(RUNTIME[0]) is None:
+            print(f"SEED_SERIES_FAIL: {RUNTIME[0]} not found", file=sys.stderr)
             return EXIT_FAILED
         expected = options.seeds
         parts = chunks(expected[0], expected[1], options.jobs)
