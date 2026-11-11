@@ -567,6 +567,21 @@ public partial class Main
                 {
                     await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
                 }
+
+                // The pictures show the game by day: if the run ended inside the compute night (the scene
+                // darkens everything, first island run L854), the world runs on until the morning.
+                var morningBy = Time.GetTicksMsec() + 600_000;
+                var waited = false;
+                while (_screen!.NightNow.Stage != NightStage.Day && Time.GetTicksMsec() < morningBy)
+                {
+                    waited = true;
+                    await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+                }
+
+                if (waited)
+                {
+                    GD.Print($"UI_TOUR_NIGHT waited for the morning, stage now {_screen.NightNow.Stage}");
+                }
             }
             else
             {
