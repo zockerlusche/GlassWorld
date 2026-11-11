@@ -45,6 +45,9 @@ public partial class WorldPresenter : Node3D
     /// <summary>Help suggestions from the AI (A1341); null without the live service (the window uses the data).</summary>
     public HttpHelpPort? HelpPort => _helpPort;
 
+    /// <summary>The content folder of the running world.</summary>
+    public string ContentDirectory => _contentDirectory;
+
     /// <summary>Self-check and diagnostics of the AI service (W1703); null without the live service.</summary>
     public HttpSetupPort? SetupPort => _setupPort;
 
