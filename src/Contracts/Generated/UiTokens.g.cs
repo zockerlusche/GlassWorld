@@ -142,6 +142,18 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("diary_lines")]
         public int DiaryLines { get; set; } = default!;
 
+        /// <summary>
+        /// Least width of a text field in a form (new world, settings), so its hint text is not cut off.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("field_min_width")]
+        public int FieldMinWidth { get; set; } = default!;
+
+        /// <summary>
+        /// Least width of the label column in the settings, so a long word does not break inside.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("settings_label_width")]
+        public int SettingsLabelWidth { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]

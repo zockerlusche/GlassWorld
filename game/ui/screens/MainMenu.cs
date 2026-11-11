@@ -263,6 +263,12 @@ public partial class MainMenu : CanvasLayer
         // The seed is drawn at once and shown, so the world code exists before the world (B2534).
         var seed = new LineEdit { PlaceholderText = "ui.new_world.seed_hint", Text = NewWorldModel.DrawSeed(DateTimeOffset.UtcNow).ToString(CultureInfo.InvariantCulture) };
         var code = new LineEdit { PlaceholderText = "ui.new_world.code_hint" };
+        // Wide enough for their hint texts (D705 A5: "Name der Wel").
+        foreach (var field in new[] { name, seed, code })
+        {
+            field.CustomMinimumSize = new Vector2(style.Tokens.Window.FieldMinWidth, 0);
+        }
+
         var copy = new Button { Text = "ui.common.copy" };
         var size = Options(data.Options.Sizes.Select(s => s.Id), "ui.new_world.size.", data.Options.DefaultSize);
         var climate = Options(data.Options.Climates.Select(c => c.Id), "ui.new_world.climate.", data.Options.DefaultClimate);

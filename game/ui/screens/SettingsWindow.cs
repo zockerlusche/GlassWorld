@@ -38,7 +38,7 @@ public partial class SettingsWindow : GwWindow
         // One tab per section (TL #19986): the window stays short, each page shows only its own controls.
         _tabs = new HFlowContainer { Name = "Tabs" };
         Content.AddChild(_tabs);
-        _labelWidth = style.Tokens.Window.CardBarWidth;
+        _labelWidth = style.Tokens.Window.SettingsLabelWidth;
         _settings = settings;
 
         Section("ui.settings.section.player");

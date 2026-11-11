@@ -2533,6 +2533,34 @@
     {
       "key": "ui.question.reason.unknown_inhabitant",
       "text": "{name} sieht jemanden, dessen Namen er noch nicht kennt."
+    },
+    {
+      "key": "ui.zone.tab.inhabitants",
+      "text": "Liste"
+    },
+    {
+      "key": "ui.zone.tab.card",
+      "text": "Karte"
+    },
+    {
+      "key": "ui.zone.tab.chronicle",
+      "text": "Chronik"
+    },
+    {
+      "key": "ui.zone.tab.timeline",
+      "text": "Zeitleiste"
+    },
+    {
+      "key": "ui.zone.tab.questions",
+      "text": "Was sie beschäftigt"
+    },
+    {
+      "key": "ui.zone.tab.help",
+      "text": "Hilfe"
+    },
+    {
+      "key": "ui.zone.tab.mailbox",
+      "text": "Postfach"
     }
   ]
 }

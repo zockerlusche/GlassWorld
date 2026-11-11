@@ -160,6 +160,18 @@ class UiWindowTokens(BaseModel):
         ge=5,
         le=1000,
     )
+    field_min_width: int = Field(
+        ...,
+        description='Least width of a text field in a form (new world, settings), so its hint text is not cut off.',
+        ge=80,
+        le=800,
+    )
+    settings_label_width: int = Field(
+        ...,
+        description='Least width of the label column in the settings, so a long word does not break inside.',
+        ge=80,
+        le=800,
+    )
 
 
 class UiButtonTokens(BaseModel):

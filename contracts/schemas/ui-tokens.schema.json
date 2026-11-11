@@ -226,7 +226,9 @@
         "modal_dim",
         "log_lines",
         "questions_shown",
-        "diary_lines"
+        "diary_lines",
+        "field_min_width",
+        "settings_label_width"
       ],
       "properties": {
         "settings_apply_ms": {
@@ -343,6 +345,18 @@
           "type": "integer",
           "minimum": 5,
           "maximum": 1000
+        },
+        "field_min_width": {
+          "description": "Least width of a text field in a form (new world, settings), so its hint text is not cut off.",
+          "type": "integer",
+          "minimum": 80,
+          "maximum": 800
+        },
+        "settings_label_width": {
+          "description": "Least width of the label column in the settings, so a long word does not break inside.",
+          "type": "integer",
+          "minimum": 80,
+          "maximum": 800
         }
       }
     },
