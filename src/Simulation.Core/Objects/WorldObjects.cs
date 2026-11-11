@@ -50,6 +50,9 @@ public sealed class WorldObjects : IWorldSystem
     /// <summary>All objects in id order.</summary>
     public IEnumerable<WorldObject> All => _ordered;
 
+    /// <summary>All objects in id order, for a pass by index (no enumerator).</summary>
+    internal IReadOnlyList<WorldObject> Ordered => _ordered;
+
     /// <summary>Number of objects.</summary>
     public int Count => _ordered.Count;
 

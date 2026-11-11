@@ -716,15 +716,53 @@ public sealed class DecisionsSystem : IWorldSystem
     /// <summary>The type of a thing in the world by its id; null when there is no such thing (any more).</summary>
     internal string? TypeOf(string objectId) => _objects.TryGet(objectId, out var thing) ? thing.TypeId : null;
 
+    // Scratch of a look around (one at a time, on the simulation thread): who or what lies in sight, with
+    // its distance, before it is put in order.
+    private readonly List<(double Distance, WorldObject Thing)> _thingsInSight = [];
+    private readonly List<(double Distance, Inhabitant Other)> _othersInSight = [];
+
+    private static readonly Comparison<(double Distance, WorldObject Thing)> NearestThingFirst = (a, b) =>
+    {
+        var byDistance = a.Distance.CompareTo(b.Distance);
+        return byDistance != 0 ? byDistance : string.CompareOrdinal(a.Thing.Id, b.Thing.Id);
+    };
+
+    private static readonly Comparison<(double Distance, Inhabitant Other)> NearestOtherFirst = (a, b) =>
+    {
+        var byDistance = a.Distance.CompareTo(b.Distance);
+        return byDistance != 0 ? byDistance : string.CompareOrdinal(a.Other.Id, b.Other.Id);
+    };
+
+    /// <summary>
+    /// The objects within the perception radius as it is right now (B2594), nearest first, ties by id. Only
+    /// what lies in sight is put in order, not every object of the world; ids are unique, so the order is
+    /// the same whatever sorts it.
+    /// </summary>
     private List<WorldObject> Perceived(Inhabitant inhabitant)
     {
         var radius = _inhabitants.SightRadiusM;
-        return [.. _objects.All
-            .Select(o => (o, d: Distance(inhabitant.Position, o.Position)))
-            .Where(x => x.d <= radius)
-            .OrderBy(x => x.d)
-            .ThenBy(x => x.o.Id, StringComparer.Ordinal)
-            .Select(x => x.o)];
+        var position = inhabitant.Position;
+        var all = _objects.Ordered;
+        var inSight = _thingsInSight;
+        inSight.Clear();
+        for (var i = 0; i < all.Count; i++)
+        {
+            var distance = Distance(position, all[i].Position);
+            if (distance <= radius)
+            {
+                inSight.Add((distance, all[i]));
+            }
+        }
+
+        inSight.Sort(NearestThingFirst);
+        var things = new List<WorldObject>(inSight.Count);
+        foreach (var (_, thing) in inSight)
+        {
+            things.Add(thing);
+        }
+
+        inSight.Clear();
+        return things;
     }
 
     private const string InhabitantSubject = "inhabitant:";
@@ -1217,13 +1255,34 @@ public sealed class DecisionsSystem : IWorldSystem
     private List<Inhabitant> PerceivedInhabitants(Inhabitant inhabitant)
     {
         var radius = _inhabitants.SightRadiusM;
-        return [.. _inhabitants.All
-            .Where(i => i.Id != inhabitant.Id)
-            .Select(i => (i, d: Distance(inhabitant.Position, i.Position)))
-            .Where(x => x.d <= radius)
-            .OrderBy(x => x.d)
-            .ThenBy(x => x.i.Id, StringComparer.Ordinal)
-            .Select(x => x.i)];
+        var position = inhabitant.Position;
+        var everyone = _inhabitants.Ordered;
+        var inSight = _othersInSight;
+        inSight.Clear();
+        for (var i = 0; i < everyone.Count; i++)
+        {
+            var other = everyone[i];
+            if (other.Id == inhabitant.Id)
+            {
+                continue;
+            }
+
+            var distance = Distance(position, other.Position);
+            if (distance <= radius)
+            {
+                inSight.Add((distance, other));
+            }
+        }
+
+        inSight.Sort(NearestOtherFirst);
+        var others = new List<Inhabitant>(inSight.Count);
+        foreach (var (_, other) in inSight)
+        {
+            others.Add(other);
+        }
+
+        inSight.Clear();
+        return others;
     }
 
     private static double Distance(Position a, Position b)
