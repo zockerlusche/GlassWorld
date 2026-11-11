@@ -2569,6 +2569,62 @@
     {
       "key": "msg.hint.questions_many",
       "text": "{name} fragt sich mehreres."
+    },
+    {
+      "key": "ui.question.reason.unknown_object.female",
+      "text": "Vor {name} liegt etwas, das sie noch nicht kennt: {thing}."
+    },
+    {
+      "key": "ui.question.reason.unknown_object.male",
+      "text": "Vor {name} liegt etwas, das er noch nicht kennt: {thing}."
+    },
+    {
+      "key": "ui.question.reason.unknown_inhabitant.female",
+      "text": "{name} sieht jemanden, dessen Namen sie noch nicht kennt."
+    },
+    {
+      "key": "ui.question.reason.unknown_inhabitant.male",
+      "text": "{name} sieht jemanden, dessen Namen er noch nicht kennt."
+    },
+    {
+      "key": "ui.question.reason.noticed_player.female",
+      "text": "{name} hat dich bemerkt – du hast sie angeklickt oder angesprochen."
+    },
+    {
+      "key": "ui.question.reason.noticed_player.male",
+      "text": "{name} hat dich bemerkt – du hast ihn angeklickt oder angesprochen."
+    },
+    {
+      "key": "ui.question.reason.other.female",
+      "text": "Die Antwort findet sie selbst – spätestens in der Rechennacht."
+    },
+    {
+      "key": "ui.question.reason.other.male",
+      "text": "Die Antwort findet er selbst – spätestens in der Rechennacht."
+    },
+    {
+      "key": "ui.question.answer_hint.female",
+      "text": "Ihr etwas zuflüstern …"
+    },
+    {
+      "key": "ui.question.answer_hint.male",
+      "text": "Ihm etwas zuflüstern …"
+    },
+    {
+      "key": "ui.card.questions.female",
+      "text": "Beschäftigt sie gerade: {count}"
+    },
+    {
+      "key": "ui.card.questions.male",
+      "text": "Beschäftigt ihn gerade: {count}"
+    },
+    {
+      "key": "ui.card.musing.female",
+      "text": "Was sie beschäftigt"
+    },
+    {
+      "key": "ui.card.musing.male",
+      "text": "Was ihn beschäftigt"
     }
   ]
 }

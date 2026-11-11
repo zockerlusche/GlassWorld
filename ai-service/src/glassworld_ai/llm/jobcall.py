@@ -13,6 +13,7 @@ import asyncio
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
+from string import Template
 from typing import Any, Protocol
 
 import httpx
@@ -89,11 +90,14 @@ async def ask_model[T](
     log: CallLog,
     priority: Priority = Priority.BACKGROUND,
     deadline: float | None = None,
+    feedback: str | None = None,
 ) -> Answer[T]:
     """Ask until `parse` accepts an answer (1 + max_retries attempts) or a hard error occurs.
 
     Jobs wait without limit (background, B2487); a player request passes priority PLAYER and its
-    absolute deadline (time.monotonic()).
+    absolute deadline (time.monotonic()). With `feedback` (a sentence with $problem, from the
+    prompt's settings) a refused answer and the reason go back to the model on the next
+    attempt instead of asking the same question again with another seed only.
     """
     started = time.monotonic()
     messages = [ChatMessage("system", rendered.system), ChatMessage("user", rendered.user)]
@@ -134,7 +138,7 @@ async def ask_model[T](
                 )
             )
 
-        async def call(seed: int = seed) -> ChatResult:
+        async def call(seed: int = seed, messages: list[ChatMessage] = messages) -> ChatResult:
             return await client.chat(
                 messages,
                 schema=schema,
@@ -182,6 +186,13 @@ async def ask_model[T](
         except InvalidOutputError as error:
             record("invalid", result.content, str(error), usage)
             last_problem = str(error)
+            if feedback is not None:
+                messages = [
+                    ChatMessage("system", rendered.system),
+                    ChatMessage("user", rendered.user),
+                    ChatMessage("assistant", result.content),
+                    ChatMessage("user", Template(feedback).safe_substitute(problem=last_problem)),
+                ]
             continue
         record("ok", result.content, None, usage)
         return Answer(value, attempt, int((time.monotonic() - started) * 1000))

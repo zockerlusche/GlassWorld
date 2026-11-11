@@ -372,17 +372,16 @@ public sealed class DecisionTests
     }
 
     /// <summary>
-    /// Youth protection (B2466; found while reviewing #247): the thought of a decision is text of the AI
-    /// that the player sees in the thought bubble. It passes the content guard like every other visible
-    /// AI text; a thought the guard does not allow is not shown, nothing replaces it, and the decision
-    /// itself stands.
+    /// Youth protection (B2466; TL #21181): the thought of a decision is the most frequent AI text the
+    /// player sees and had no content guard at all, neither in the service nor in the core. A thought the
+    /// guard does not allow is not shown; the decision itself is carried out as before.
     /// </summary>
     [Fact]
-    public void AThoughtTheContentGuardDoesNotAllowIsNotShownAndTheDecisionStands()
+    public void AThoughtTheContentGuardRefusesIsNotShownButTheDecisionStands()
     {
         using var rules = System.Text.Json.JsonDocument.Parse(File.ReadAllText(Path.Combine(TestData.Root, "content", "safety", "rules.json")));
-        var word = rules.RootElement.GetProperty("categories")[0].GetProperty("terms_en")[0].GetString()!;
-        var text = $"Dafür ein {word}.";
+        var blocked = rules.RootElement.GetProperty("categories")[0].GetProperty("terms_de")[0].GetString()!;
+        var text = $"Ich denke an {blocked}.";
         Assert.False(Content.Inventions.Guard.Check(text).Allowed);
         var port = new ScriptedPort(request => ContractSerializer.Serialize(new DecisionResponse
         {
@@ -398,10 +397,9 @@ public sealed class DecisionTests
         w.Objects.Spawn("blue_berry", new Position(2, 0));
         w.World.Run(3);
 
-        var events = w.Inhabitants.EventsSince(0).Select(e => e.Event).ToList();
-        Assert.DoesNotContain(events, e => e.Kind == "thought");
-        Assert.DoesNotContain(events, e => e.Text is { } shown && shown.Contains(word, StringComparison.OrdinalIgnoreCase));
-        Assert.Contains(events, e => e.Kind == "question_answered");
+        var events = w.Inhabitants.EventsSince(0);
+        Assert.DoesNotContain(events, e => e.Event.Kind == "thought");
+        Assert.Contains(events, e => e.Event.Kind == "question_answered");
     }
 
     [Fact]

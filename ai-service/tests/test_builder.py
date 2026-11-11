@@ -46,10 +46,17 @@ GOOD: dict[str, Any] = json.loads(
 )["result"]["build_plan"]
 
 
-def _handler(settings: Settings, answers: list[str]) -> tuple[OllamaBuilder, CallLog]:
+def _handler(
+    settings: Settings,
+    answers: list[str],
+    version: int = 1,
+    sent: list[dict[str, Any]] | None = None,
+) -> tuple[OllamaBuilder, CallLog]:
     queue = iter(answers)
 
-    def fake(_: httpx.Request) -> httpx.Response:
+    def fake(request: httpx.Request) -> httpx.Response:
+        if sent is not None:
+            sent.append(json.loads(request.content))
         return httpx.Response(200, json={"message": {"role": "assistant", "content": next(queue)}})
 
     log = CallLog(settings.log_dir / "builder.jsonl")
@@ -62,7 +69,7 @@ def _handler(settings: Settings, answers: list[str]) -> tuple[OllamaBuilder, Cal
     handler = OllamaBuilder(
         client=client,
         queue=ModelQueue(8),
-        template=load_prompt(settings.prompts_dir, "builder/plan", 1),
+        template=load_prompt(settings.prompts_dir, "builder/plan", version),
         settings=ModelCallSettings(temperature=0.7, num_ctx=8192, max_retries=1, call_timeout_s=30),
         log=log,
         tolerance=TOLERANCE,
@@ -221,3 +228,55 @@ def test_replay_without_a_recording_is_not_retryable(settings: Settings) -> None
     with pytest.raises(JobFailedError) as error:
         asyncio.run(ReplayBuilder(CallLog(settings.log_dir / "none.jsonl"), TOLERANCE)(JOB))
     assert error.value.retryable is False
+
+
+def test_v2_tells_the_model_why_its_plan_was_refused(settings: Settings) -> None:
+    """D9 live run L863 (D761): 33 of 40 plans were invalid and a retry only changed the seed -
+    the model made the same mistake again. v2 sends the refused plan and the reason back."""
+    bad = json.dumps({"parts": [_part(), _part()]})
+    sent: list[dict[str, Any]] = []
+    handler, _ = _handler(settings, [bad, json.dumps(GOOD)], version=2, sent=sent)
+    outcome = asyncio.run(handler(JOB))
+    assert outcome.attempts == 2 and outcome.prompt_version == "builder/plan.v2"
+    first, second = sent[0]["messages"], sent[1]["messages"]
+    assert [m["role"] for m in first] == ["system", "user"]
+    assert [m["role"] for m in second] == ["system", "user", "assistant", "user"]
+    assert second[2]["content"] == bad
+    assert "That plan was refused: steps without a part: [2]." in second[3]["content"]
+    # v1 asks the same question again, as before.
+    sent.clear()
+    handler, _ = _handler(settings, [bad, json.dumps(GOOD)], version=1, sent=sent)
+    asyncio.run(handler(JOB))
+    assert [m["role"] for m in sent[1]["messages"]] == ["system", "user"]
+
+
+def test_v2_gives_the_room_per_axis_and_names_every_step(settings: Settings) -> None:
+    template = load_prompt(settings.prompts_dir, "builder/plan", 2)
+    values = plan_values(JOB, template)
+    assert PAYLOAD is not None
+    size = PAYLOAD.invention.size_m
+    assert values["ranges"] == (
+        f"x from {-size.x / 2:g} to {size.x / 2:g}; y from 0 to {size.y:g}; "
+        f"z from {-size.z / 2:g} to {size.z / 2:g}"
+    )
+    steps = len(PAYLOAD.invention.steps)
+    assert values["step_numbers"] == ", ".join(str(n) for n in range(1, steps + 1))
+    rendered = template.render(values)
+    assert "Step numbers that each need at least one part:" in rendered.user
+    text = f"=== SYSTEM ===\n{rendered.system}\n\n=== USER ===\n{rendered.user}\n"
+    snapshot = Path(__file__).resolve().parent / "snapshots" / "builder-plan.v2.bowl.txt"
+    if os.environ.get("GW_UPDATE_SNAPSHOTS") == "1":
+        snapshot.write_text(text, encoding="utf-8", newline="\n")
+    assert text == snapshot.read_text(encoding="utf-8")
+
+
+def test_the_refusal_says_how_far_the_parts_reach() -> None:
+    schema = plan_schema(PAYLOAD)
+    parts = [
+        _part(position_m={"x": -0.2, "y": 0.05, "z": 0}),
+        _part(step=2, position_m={"x": 0.2, "y": 0.05, "z": 0}),
+    ]
+    with pytest.raises(
+        InvalidOutputError, match=r"together they span \d+\.\d\d m in x, the room is"
+    ):
+        parse_plan(json.dumps({"parts": parts}), schema, PAYLOAD, TOLERANCE)
