@@ -174,7 +174,7 @@ timeout "$TIMEOUT_S" "$GODOT" --headless --path "$GAME" --quit-after 1200 res://
 ISLAND_EXIT=$?
 set -e
 if [[ $ISLAND_EXIT -ne 0 ]]; then
-  tail -n 80 "$ISLAND_LOG" >&2
+  cat "$ISLAND_LOG" >&2
   if grep -Eq '^ISLAND_OK seed=7 ' "$ISLAND_LOG"; then
     echo "SMOKE_FAIL: the island check ended with exit code $ISLAND_EXIT AFTER it had printed ISLAND_OK (the engine died on its way out)" >&2
   else
