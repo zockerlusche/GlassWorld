@@ -38,6 +38,15 @@ public static class InhabitantStates
             var r = inhabitant.Relationships.Get(other, start);
             return new Relationship { Other = other, Affection = r.Affection, Trust = r.Trust, Respect = r.Respect };
         })];
+
+        // B4a R6: habits grown from repeated experience, strongest first (information only).
+        state.Habits = [.. InhabitantsSystem.Habits(knowledge, inhabitant).Select(h => new Habit
+        {
+            Action = h.Key.Action,
+            TimeOfDay = h.Key.TimeOfDay,
+            About = h.Key.AboutKind.Length == 0 ? null : new Subject { Kind = Enum.Parse<SubjectKind>(h.Key.AboutKind, ignoreCase: true), Id = h.Key.AboutId },
+            Strength = h.Strength,
+        })];
         return state;
     }
 
@@ -89,7 +98,7 @@ public static class InhabitantStates
             // W1698: its own name, so it can introduce itself; absent while it has none.
             Name = inhabitant.Name,
 
-            // Contract 0.2 (B4a): filled with real memory, knowledge, relationships and habits in B4a-S5.
+            // Contract 0.2 (B4a): knowledge, relationships and habits are filled above when there is knowledge data.
             Memory = new Memory { Summary = string.Empty, Recent = [] },
             Knowledge = [],
             Relationships = [],

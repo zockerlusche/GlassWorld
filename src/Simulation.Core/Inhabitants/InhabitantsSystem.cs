@@ -45,7 +45,7 @@ public sealed record SequencedEvent(long Seq, WorldEvent Event);
 /// TRUE properties of the target. Experience updates beliefs (the frame for learning, extended in B4a).
 /// Every number comes from data; the code names no need, mood or action.
 /// </summary>
-public sealed class InhabitantsSystem : IWorldSystem
+public sealed partial class InhabitantsSystem : IWorldSystem
 {
     /// <summary>Event: an action started (after walking to the target).</summary>
     public const string ActionStarted = "action_started";
@@ -179,6 +179,7 @@ public sealed class InhabitantsSystem : IWorldSystem
             Add(inhabitant);
         }
 
+        MeetStartGroups();
         GiveNames(world.Seed);
     }
 
@@ -348,8 +349,11 @@ public sealed class InhabitantsSystem : IWorldSystem
         }
 
         var together = Together();
+        Meet(world);
+        Bond();
         foreach (var inhabitant in _inhabitants.Values)
         {
+            FadeImprints(world, inhabitant);
             DecayNeeds(inhabitant);
             if (together.Contains(inhabitant.Id))
             {
@@ -382,8 +386,10 @@ public sealed class InhabitantsSystem : IWorldSystem
     /// inhabitants at once. A move that would come closer than the minimum separation to another on the way
     /// (the other standing, or walking its own straight move of this tick) is shortened to the longest part
     /// that stays clear; if hardly anything is left, the walker steps aside (right, else left) when that is
-    /// clear, else it waits. Pairs already closer at the start of the tick are left to the separation.
-    /// Deterministic: fixed bisection, no random draw.
+    /// clear. Where there is no room aside (a path one cell wide, W1726 seed 2), the walker gives way to a
+    /// walking inhabitant with the lower id that blocks it: it steps back its move, so the other walks on
+    /// and both can pass where the way is wider; otherwise it waits. Pairs already closer at the start of
+    /// the tick are left to the separation. Deterministic: fixed bisection, id order, no random draw.
     /// </summary>
     private void KeepClearOnTheWay(Inhabitant mover, Position from)
     {
@@ -423,44 +429,49 @@ public sealed class InhabitantsSystem : IWorldSystem
             }
         }
 
+        // No room aside: give way to a walker with the lower id in the way (never to one standing still,
+        // which would only send it back and forth).
+        var back = new Position(from.X - dx, from.Z - dz);
+        if (_inhabitants.Values.Any(other => !ReferenceEquals(other, mover) && string.CompareOrdinal(other.Id, mover.Id) < 0 && Walking(other) && !Clear(mover, other, from, to))
+            && Walkable(from, back) && PathClear(mover, from, back))
+        {
+            mover.Position = back;
+            return;
+        }
+
         mover.Position = part;
     }
+
+    /// <summary>Whether the inhabitant is on its way somewhere (an action without a running duration and a destination elsewhere).</summary>
+    private static bool Walking(Inhabitant inhabitant) =>
+        inhabitant.Activity is { RemainingTicks: null } activity && Distance(inhabitant.Position, activity.Destination) > 1e-9;
 
     /// <summary>
     /// Whether a straight move of <paramref name="mover"/> from <paramref name="from"/> to <paramref name="to"/>
     /// over this tick stays at least the minimum separation from every other inhabitant moving straight from
     /// where it began the tick to where it is now (pairs closer already at the start do not count).
     /// </summary>
-    private bool PathClear(Inhabitant mover, Position from, Position to)
+    private bool PathClear(Inhabitant mover, Position from, Position to) =>
+        _inhabitants.Values.All(other => ReferenceEquals(other, mover) || Clear(mover, other, from, to));
+
+    /// <summary>Whether the straight move of <paramref name="mover"/> stays clear of <paramref name="other"/> (see <see cref="PathClear"/>).</summary>
+    private bool Clear(Inhabitant mover, Inhabitant other, Position from, Position to)
     {
         var limit = Space!.MinSeparationM - 1e-9;
-        foreach (var other in _inhabitants.Values)
+        var start = _tickStart.GetValueOrDefault(other.Id, other.Position);
+
+        // Relative position p + t·v for t in [0, 1]; its closest approach to zero.
+        var (px, pz) = (from.X - start.X, from.Z - start.Z);
+        var (vx, vz) = ((to.X - from.X) - (other.Position.X - start.X), (to.Z - from.Z) - (other.Position.Z - start.Z));
+        if ((px * px) + (pz * pz) < limit * limit)
         {
-            if (ReferenceEquals(other, mover))
-            {
-                continue;
-            }
-
-            var start = _tickStart.GetValueOrDefault(other.Id, other.Position);
-
-            // Relative position p + t·v for t in [0, 1]; its closest approach to zero.
-            var (px, pz) = (from.X - start.X, from.Z - start.Z);
-            var (vx, vz) = ((to.X - from.X) - (other.Position.X - start.X), (to.Z - from.Z) - (other.Position.Z - start.Z));
-            if ((px * px) + (pz * pz) < limit * limit)
-            {
-                continue;
-            }
-
-            var vv = (vx * vx) + (vz * vz);
-            var t = vv < 1e-12 ? 0 : Math.Clamp(-((px * vx) + (pz * vz)) / vv, 0, 1);
-            var (cx, cz) = (px + (vx * t), pz + (vz * t));
-            if ((cx * cx) + (cz * cz) < limit * limit)
-            {
-                return false;
-            }
+            return true;
         }
 
-        return true;
+        var vv = (vx * vx) + (vz * vz);
+        var t = vv < 1e-12 ? 0 : Math.Clamp(-((px * vx) + (pz * vz)) / vv, 0, 1);
+        var (cx, cz) = (px + (vx * t), pz + (vz * t));
+        return (cx * cx) + (cz * cz) >= limit * limit;
     }
 
     /// <summary>
@@ -701,6 +712,7 @@ public sealed class InhabitantsSystem : IWorldSystem
 
             inhabitant.Activity = activity with { RemainingTicks = timing.DurationTicks, Route = null };
             Report(new WorldEvent(ActionStarted, world.Tick, inhabitant.Id, activity.Action, activity.TargetId));
+            Imprint(world, inhabitant, activity, target, listener);
             return;
         }
 
@@ -718,6 +730,7 @@ public sealed class InhabitantsSystem : IWorldSystem
             Share(listener, activity.Action);
             Pass(world, inhabitant, listener, activity.Action);
             Introduce(world, inhabitant, listener, activity.Action);
+            BondByAction(inhabitant, listener, activity.Action);
         }
 
         changed |= _history.Reverse().TakeWhile(e => e.Seq > seq).Any(e => e.Event.Kind is KnowledgeGained or NameLearned);
@@ -1217,6 +1230,7 @@ public sealed class InhabitantsSystem : IWorldSystem
                 var relation = inhabitant.Relationships.Get(teller, start);
                 var change = old.Value == truth ? knowledge.TrustTrueHeardGain : -knowledge.TrustFalseHeardLoss;
                 inhabitant.Relationships.Set(teller, relation with { Trust = relation.Trust + change });
+                BondByProof(inhabitant, teller, old.Value == truth);
             }
 
             var confidence = Math.Max(knowledge.ExperiencedConfidence, known && old.Value == truth && old.Source == KnowledgeSources.Experienced ? old.Confidence : 0);
@@ -1317,13 +1331,19 @@ public sealed class InhabitantsSystem : IWorldSystem
 
     /// <summary>
     /// Whether an action aimed at another inhabitant still has something to bring (an option the decider may
-    /// take): knowledge to pass on (B4a R4) or, for the naming action, a name the asker does not know yet (W1698).
+    /// take): knowledge to pass on (B4a R4), for the naming action a name the asker does not know yet (W1698),
+    /// for a meeting action (approach, talk to ...) the conditions of its data (B4a R8, <see cref="Offered"/>).
     /// </summary>
     public static bool HasPurpose(KnowledgeSettings knowledge, Inhabitant asker, Inhabitant other, string action)
     {
         ArgumentNullException.ThrowIfNull(knowledge);
         ArgumentNullException.ThrowIfNull(asker);
         ArgumentNullException.ThrowIfNull(other);
+        if (knowledge.Meeting?.Options.FirstOrDefault(o => string.Equals(o.Action, action, StringComparison.Ordinal)) is { } meeting)
+        {
+            return Offered(knowledge, meeting, asker, other);
+        }
+
         return knowledge.Naming is { } naming && string.Equals(naming.Action, action, StringComparison.Ordinal)
             ? other.Name is not null && !asker.KnownNames.Contains(other.Id)
             : PassableBelief(knowledge, asker, other, action) is not null;

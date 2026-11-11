@@ -263,6 +263,10 @@
       "schema": "look-world"
     },
     {
+      "pattern": "look/night.json",
+      "schema": "look-night"
+    },
+    {
       "pattern": "look/objects.json",
       "schema": "look-objects"
     },

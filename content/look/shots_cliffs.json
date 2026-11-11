@@ -1,0 +1,40 @@
+{
+  "contract_version": "0.2",
+  "points": [
+    {
+      "id": "cliffs_face",
+      "target_x_permille": 855,
+      "target_z_permille": 736,
+      "yaw_deg": 68,
+      "distance_m": 24,
+      "pitch_deg": 26,
+      "phase": "day"
+    },
+    {
+      "id": "cliffs_cave",
+      "target_x_permille": 539,
+      "target_z_permille": 768,
+      "yaw_deg": 99,
+      "distance_m": 16,
+      "pitch_deg": 20,
+      "phase": "day"
+    },
+    {
+      "id": "cliffs_face_night",
+      "target_x_permille": 855,
+      "target_z_permille": 736,
+      "yaw_deg": 68,
+      "distance_m": 40,
+      "pitch_deg": 30,
+      "phase": "night"
+    }
+  ],
+  "projections": [
+    "perspective"
+  ],
+  "phases": [
+    "day",
+    "night"
+  ],
+  "settle_frames": 12
+}

@@ -516,6 +516,12 @@ class LookFigures(BaseModel):
         gt=0.0,
         le=3600.0,
     )
+    turn_back_after_steps: int | None = Field(
+        None,
+        description='A walking figure whose step points backwards (more than 90 degrees from its facing, e.g. when it gives way on a narrow path, W1726) turns round only from this many such steps in a row; a step forward in between resets the count, a first step after standing turns at once. Absent = 1 (every step turns the figure).',
+        ge=1,
+        le=1000,
+    )
     gait_time_scale: GaitTimeScale = Field(
         ...,
         description='Range of the gait playback factor: the gait clips play faster or slower so the feet roughly match the on-screen speed, but never beyond this range (calm world, B2466).',

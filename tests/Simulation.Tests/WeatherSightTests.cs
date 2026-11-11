@@ -363,6 +363,12 @@ public sealed class WeatherSightTests : IDisposable
     {
         var host = Island(7);
         host.World.Run(400);
+        while (host.Decisions.Open.Any())
+        {
+            // An open question would be answered by the first world's port only.
+            host.World.Step();
+        }
+
         var path = Path.Combine(_directory, "v7.db");
         SaveGameStore.Save(path, StateCodec.Capture(host));
         Assert.Equal(host.Inhabitants.All.Count(), StateCodec.Capture(host).Exploration!.Looks!.Count);
