@@ -104,6 +104,53 @@ public sealed class ShotPlanTests
         Assert.Equal(["rock"], epochs.Epochs.SelectMany(e => e.Colors).Select(c => c.Id).Where(used.Contains).Distinct());
     }
 
+    /// <summary>
+    /// B2 acceptance 4 (R33): a changed table changes the look without code. The palette file with one
+    /// colour value changed (the colour the terrain data name for the meadow), the same island and the
+    /// same program: the meadow's ground colour and the vertex colours of the ground meshes change, the
+    /// biomes drawn with other palette colours keep theirs.
+    /// </summary>
+    [Fact]
+    public void AChangedPaletteColourReachesTheTerrainColoursWithoutCodeChange()
+    {
+        var content = ContentSet.Load(Path.Combine(TestPaths.Root, "content"));
+        var island = WorldGenerator.Generate(content.WorldGen, content.Objects, "start_island", 7);
+        var preset = content.WorldGen.Presets["start_island"];
+        var terrain = Read<LookTerrain>("terrain.json");
+        var file = File.ReadAllText(Path.Combine(TestPaths.Root, "content", "look", "palette.json")).ReplaceLineEndings("\n");
+        var id = terrain.BiomeColors.Single(b => b.Biome == "meadow").Color;
+        var value = ContractSerializer.Deserialize<LookPalette>(file).Colors.Single(c => c.Id == id).Color;
+        var entry = $"\"id\": \"{id}\",\n      \"color\": \"{value}\"";
+        Assert.Contains(entry, file, StringComparison.Ordinal);
+        var changedFile = file.Replace(entry, $"\"id\": \"{id}\",\n      \"color\": \"#b0306a\"", StringComparison.Ordinal);
+        Assert.NotEqual("#b0306a", value);
+
+        TerrainLook LookOf(string palette) => TerrainLook.From(terrain, ContractSerializer.Deserialize<LookPalette>(palette), island.Map, preset);
+        List<float> Colors(TerrainLook look) => [.. Enumerable.Range(0, island.Map.ChunksZ)
+            .SelectMany(z => Enumerable.Range(0, island.Map.ChunksX).Select(x => (x, z)))
+            .SelectMany(c => TerrainMesher.Ground(island.Map, c.x, c.z, look).Colors)];
+        var (before, after) = (LookOf(file), LookOf(changedFile));
+        var drawnWithIt = terrain.BiomeColors.Where(b => b.Color == id).Select(b => b.Biome).ToHashSet(StringComparer.Ordinal);
+        Assert.Contains("meadow", drawnWithIt);
+        for (var biome = 0; biome < island.Map.BiomeIds.Count; biome++)
+        {
+            if (drawnWithIt.Contains(island.Map.BiomeIds[biome]))
+            {
+                Assert.NotEqual(before.BiomeColors[biome], after.BiomeColors[biome]);
+            }
+            else
+            {
+                Assert.Equal(before.BiomeColors[biome], after.BiomeColors[biome]);
+            }
+        }
+
+        // The island has meadow, so the changed colour is in the meshes; the same file gives the same meshes.
+        var (plain, recoloured) = (Colors(before), Colors(after));
+        Assert.Equal(plain.Count, recoloured.Count);
+        Assert.NotEqual(plain, recoloured);
+        Assert.Equal(plain, Colors(LookOf(file)));
+    }
+
     [Fact]
     public void APointWithItsOwnPhaseIsShotOnlyInThatPhase()
     {

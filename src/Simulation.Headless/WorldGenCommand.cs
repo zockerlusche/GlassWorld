@@ -8,11 +8,14 @@ using GlassWorld.Simulation.Map;
 namespace GlassWorld.Simulation.Headless;
 
 /// <summary>
-/// <c>worldgen --seed N [--preset P] [--content DIR] [--json] [--png FILE] [--png-flow FILE]</c> (B2 R12):
+/// <c>worldgen --seed N | --seeds FROM-TO [--preset P] [--content DIR] [--json] [--png FILE] [--png-flow FILE]</c> (B2 R12):
 /// generates the start island and prints the world hash and key figures (biome shares, mandatory check,
 /// attempts, time, hydrology, underground, start ground against the highest tide). <c>--json</c> is machine-readable for GW2's seed series;
 /// <c>--png</c> writes an overview map with the biome colours, <c>--png-flow</c> a map of the drainage
 /// (hill shade, flow accumulation, streams, lakes, springs; own minimal PNG writer, no extra library).
+/// <c>--seeds FROM-TO</c> generates every seed of the range one after the other in this process (the
+/// content is loaded once; with <c>--json</c> one line per seed, for <c>tools/worldgen/seed_series.py</c>).
+/// The exit code is 0 when every island passed its mandatory check, else 2.
 /// </summary>
 internal static class WorldGenCommand
 {
@@ -21,9 +24,13 @@ internal static class WorldGenCommand
 
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower };
 
-    public static int Run(string[] args)
+    public static int Run(string[] args) => Run(args, Console.Out);
+
+    /// <summary>Runs the command and writes its lines to <paramref name="output"/> (tests read them there).</summary>
+    public static int Run(string[] args, TextWriter output)
     {
         ulong seed = 1;
+        ulong? last = null;
         var preset = "start_island";
         var content = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "content");
         var json = false;
@@ -35,6 +42,10 @@ internal static class WorldGenCommand
             {
                 case "--seed":
                     seed = ulong.Parse(args[++i], CultureInfo.InvariantCulture);
+                    last = null;
+                    break;
+                case "--seeds":
+                    (seed, last) = SeedRange(args[++i]);
                     break;
                 case "--preset":
                     preset = args[++i];
@@ -56,7 +67,43 @@ internal static class WorldGenCommand
             }
         }
 
+        if (last is not null && (png is not null || pngFlow is not null))
+        {
+            throw new ArgumentException("--png and --png-flow draw one island: use them with --seed, not with --seeds");
+        }
+
         var set = ContentSet.Load(Path.GetFullPath(content));
+        var passed = true;
+        for (var s = seed; ; s++)
+        {
+            passed &= One(set, preset, s, json, png, pngFlow, output);
+            if (s >= (last ?? seed))
+            {
+                break;
+            }
+        }
+
+        return passed ? 0 : 2;
+    }
+
+    /// <summary>A seed range <c>FROM-TO</c> (both included, FROM not above TO).</summary>
+    private static (ulong From, ulong To) SeedRange(string text)
+    {
+        var parts = text.Split('-');
+        if (parts.Length != 2
+            || !ulong.TryParse(parts[0], NumberStyles.None, CultureInfo.InvariantCulture, out var from)
+            || !ulong.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out var to)
+            || from > to)
+        {
+            throw new ArgumentException($"--seeds wants FROM-TO with FROM not above TO, got '{text}'");
+        }
+
+        return (from, to);
+    }
+
+    /// <summary>Generates one island, prints its figures and says whether it passed its mandatory check.</summary>
+    private static bool One(ContentSet set, string preset, ulong seed, bool json, string? png, string? pngFlow, TextWriter output)
+    {
         var watch = Stopwatch.StartNew();
         var island = WorldGenerator.Generate(set.WorldGen, set.Objects, preset, seed);
         watch.Stop();
@@ -93,29 +140,29 @@ internal static class WorldGenCommand
             StartGround(island, set.WorldGen.Presets[preset]));
         if (json)
         {
-            Console.WriteLine(JsonSerializer.Serialize(report, JsonOptions));
+            output.WriteLine(JsonSerializer.Serialize(report, JsonOptions));
         }
         else
         {
-            Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"worldgen seed {seed} preset {preset} v{island.GeneratorVersion} hash {report.Hash}"));
-            Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"  passed {island.Passed} attempts {island.Attempts} time {watch.ElapsedMilliseconds} ms cliffs {island.CliffCells} neighbours {island.Neighbours.Count}"));
-            Console.WriteLine("  biomes ‰ " + string.Join(", ", report.BiomesPermille.Select(b => $"{b.Key} {b.Value}")));
-            Console.WriteLine("  biome cells " + string.Join(", ", report.BiomeCells.Select(b => $"{b.Key} {b.Value}")));
+            output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"worldgen seed {seed} preset {preset} v{island.GeneratorVersion} hash {report.Hash}"));
+            output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"  passed {island.Passed} attempts {island.Attempts} time {watch.ElapsedMilliseconds} ms cliffs {island.CliffCells} neighbours {island.Neighbours.Count}"));
+            output.WriteLine("  biomes ‰ " + string.Join(", ", report.BiomesPermille.Select(b => $"{b.Key} {b.Value}")));
+            output.WriteLine("  biome cells " + string.Join(", ", report.BiomeCells.Select(b => $"{b.Key} {b.Value}")));
             foreach (var c in island.Check)
             {
-                Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"  check {c.Id,-14} reachable {c.Reachable,4} total {c.Total,4} (min {c.Min}, max {c.Max}) {Verdict(c)}"));
+                output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"  check {c.Id,-14} reachable {c.Reachable,4} total {c.Total,4} (min {c.Min}, max {c.Max}) {Verdict(c)}"));
             }
 
-            Console.WriteLine("  objects " + string.Join(", ", report.Objects.Select(o => $"{o.Key} {o.Value}")));
+            output.WriteLine("  objects " + string.Join(", ", report.Objects.Select(o => $"{o.Key} {o.Value}")));
             var h = report.Hydrology;
-            Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"  hydrology springs {h.Springs} stream cells {h.StreamCells} mouths {h.Mouths} lakes {h.Lakes} (cells {h.LakeCells}, largest {h.LargestLake}) max accumulation {h.MaxAccumulation} blocked {h.BlockedCells}"));
-            Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"  drink per start [{string.Join(", ", h.DrinkPerStart)}] springs within radius per start [{string.Join(", ", h.SpringsPerStart)}]"));
-            Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"  relief land cells {report.Relief.LandCells} height p10 {report.Relief.P10} p50 {report.Relief.P50} p90 {report.Relief.P90} max {report.Relief.Max} mean slope x100 {report.Relief.MeanSlopeX100} steep cells (slope >= 5) {report.Relief.SteepCells}"));
+            output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"  hydrology springs {h.Springs} stream cells {h.StreamCells} mouths {h.Mouths} lakes {h.Lakes} (cells {h.LakeCells}, largest {h.LargestLake}) max accumulation {h.MaxAccumulation} blocked {h.BlockedCells} stream dead ends {h.StreamDeadEnds}"));
+            output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"  drink per start [{string.Join(", ", h.DrinkPerStart)}] springs within radius per start [{string.Join(", ", h.SpringsPerStart)}]"));
+            output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"  relief land cells {report.Relief.LandCells} height p10 {report.Relief.P10} p50 {report.Relief.P50} p90 {report.Relief.P90} max {report.Relief.Max} mean slope x100 {report.Relief.MeanSlopeX100} steep cells (slope >= 5) {report.Relief.SteepCells}"));
             var f = report.Faces;
-            Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"  faces one-steps {f.OneSteps} stacked {f.StackedSteps} runs {f.StackRuns} (rock {f.RockStackedSteps} / {f.RockStackRuns}) max drop {f.MaxFaceDrop} caves {f.Caves} reachable {f.CavesReachable}"));
+            output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"  faces one-steps {f.OneSteps} stacked {f.StackedSteps} runs {f.StackRuns} (rock {f.RockStackedSteps} / {f.RockStackRuns}) max drop {f.MaxFaceDrop} caves {f.Caves} reachable {f.CavesReachable}"));
             var g = report.StartGround;
-            Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"  start ground above the highest tide (tenths, line {g.HighTideTenths}) [{string.Join(", ", g.AboveHighTideTenths)}] dry with surroundings [{string.Join(", ", g.Dry)}] pair distance cm [{string.Join(", ", g.PairDistanceCm)}]"));
-            Console.WriteLine("  underground soils " + string.Join(", ", report.Underground.Soils.Select(s => $"{s.Key} {s.Value}")) + string.Create(CultureInfo.InvariantCulture, $"; ore cells {report.Underground.OreCells}; groundwater at surface {report.Underground.SurfaceWaterCells}"));
+            output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"  start ground above the highest tide (tenths, line {g.HighTideTenths}) [{string.Join(", ", g.AboveHighTideTenths)}] dry with surroundings [{string.Join(", ", g.Dry)}] pair distance cm [{string.Join(", ", g.PairDistanceCm)}]"));
+            output.WriteLine("  underground soils " + string.Join(", ", report.Underground.Soils.Select(s => $"{s.Key} {s.Value}")) + string.Create(CultureInfo.InvariantCulture, $"; ore cells {report.Underground.OreCells}; groundwater at surface {report.Underground.SurfaceWaterCells}"));
         }
 
         if (png is not null)
@@ -128,7 +175,7 @@ internal static class WorldGenCommand
             WriteFlowPng(pngFlow, island);
         }
 
-        return island.Passed ? 0 : 2;
+        return island.Passed;
     }
 
     // Report-only lines (start supply) never fail the island, so they read ok / short instead of FAIL.
@@ -201,7 +248,7 @@ internal static class WorldGenCommand
         var map = island.Map;
         if (map.Hydrology is not { } h)
         {
-            return new WaterReport(0, 0, 0, 0, 0, 0, 0, 0, [], []);
+            return new WaterReport(0, 0, 0, 0, 0, 0, 0, 0, 0, [], []);
         }
 
         int streams = 0, mouths = 0, lakeCells = 0, max = 0, blocked = 0;
@@ -239,7 +286,65 @@ internal static class WorldGenCommand
         bool Near(StartPosition s, int x, int z) => ((x - s.X) * (x - s.X)) + ((z - s.Z) * (z - s.Z)) <= radius * radius;
         var drink = island.Starts.Select(s => island.Objects.Count(o => Near(s, o.X, o.Z) && set.Objects.HasProperty(o.TypeId, "drinkable") && !set.Objects.HasProperty(o.TypeId, "salty"))).ToList();
         var springsNear = island.Starts.Select(s => springs.Count(c => Near(s, c.X, c.Z))).ToList();
-        return new WaterReport(springs.Count, streams, mouths, sizes.Count, lakeCells, sizes.Count == 0 ? 0 : sizes.Max(), max, blocked, drink, springsNear);
+        return new WaterReport(springs.Count, streams, mouths, sizes.Count, lakeCells, sizes.Count == 0 ? 0 : sizes.Max(), max, blocked, StreamDeadEnds(map), drink, springsNear);
+    }
+
+    /// <summary>
+    /// Stream cells whose water does not reach the sea or a lake (B2 acceptance: every stream ends in the
+    /// sea or a lake; 0 on a sound island). A running cell (flow direction set) is followed downstream:
+    /// every cell on the way must be a running stream cell until the sea or a lake is reached; dry land,
+    /// other water, a still cell or a loop on the way is a dead end. A still stream cell (the side cell of
+    /// a wide stream, no flow direction) is sound when it lies beside a running stream cell.
+    /// </summary>
+    internal static int StreamDeadEnds(WorldMap map)
+    {
+        if (map.Hydrology is not { } h)
+        {
+            return 0;
+        }
+
+        bool Stream(int x, int z) => map.Contains(x, z) && (h.Feature(x, z) & WaterFeature.Stream) != 0;
+        bool Ends(int x, int z) => map.Contains(x, z) && (map.Cell(x, z).Water == WaterKind.Salt || (h.Feature(x, z) & WaterFeature.Lake) != 0);
+        (int Dx, int Dz)[] sides = [(1, 0), (-1, 0), (0, 1), (0, -1)];
+        var dead = 0;
+        for (var z = 0; z < map.DepthCells; z++)
+        {
+            for (var x = 0; x < map.WidthCells; x++)
+            {
+                if (!Stream(x, z) || Ends(x, z))
+                {
+                    continue;
+                }
+
+                if (map.Cell(x, z).Flow < 0)
+                {
+                    dead += sides.Any(n => Stream(x + n.Dx, z + n.Dz) && map.Cell(x + n.Dx, z + n.Dz).Flow >= 0) ? 0 : 1;
+                    continue;
+                }
+
+                int cx = x, cz = z;
+                var reached = false;
+                for (var guard = 0; guard < map.WidthCells * map.DepthCells; guard++)
+                {
+                    var (dx, dz) = FlowDirections.All[map.Cell(cx, cz).Flow];
+                    (cx, cz) = (cx + dx, cz + dz);
+                    if (Ends(cx, cz))
+                    {
+                        reached = true;
+                        break;
+                    }
+
+                    if (!Stream(cx, cz) || map.Cell(cx, cz).Flow < 0)
+                    {
+                        break;
+                    }
+                }
+
+                dead += reached ? 0 : 1;
+            }
+        }
+
+        return dead;
     }
 
     /// <summary>How hilly the land is: height percentiles above the sea and the mean slope.</summary>
@@ -484,7 +589,7 @@ internal static class WorldGenCommand
         return ~crc;
     }
 
-    private sealed record WaterReport(int Springs, int StreamCells, int Mouths, int Lakes, int LakeCells, int LargestLake, int MaxAccumulation, int BlockedCells, List<int> DrinkPerStart, List<int> SpringsPerStart);
+    private sealed record WaterReport(int Springs, int StreamCells, int Mouths, int Lakes, int LakeCells, int LargestLake, int MaxAccumulation, int BlockedCells, int StreamDeadEnds, List<int> DrinkPerStart, List<int> SpringsPerStart);
 
     private sealed record ReliefReport(int LandCells, int P10, int P50, int P90, int Max, int MeanSlopeX100, int SteepCells);
 

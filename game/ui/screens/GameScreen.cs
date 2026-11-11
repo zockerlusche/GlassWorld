@@ -26,7 +26,7 @@ public partial class GameScreen : CanvasLayer
     private readonly VBoxContainer _themeBar = new() { Name = "ThemeBar", Visible = false };
     private readonly ColorRect _nightShade = new() { Name = "NightShade", Color = new Color(0, 0, 0, 0), MouseFilter = Control.MouseFilterEnum.Ignore };
     private readonly VBoxContainer _nightText = new() { Name = "NightText", Visible = false, MouseFilter = Control.MouseFilterEnum.Ignore };
-    private readonly Label _nightProgress = new() { AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled, HorizontalAlignment = HorizontalAlignment.Center, MouseFilter = Control.MouseFilterEnum.Ignore };
+    private readonly Label _nightProgress = new() { ThemeTypeVariation = UiTheme.OnDarkLabel, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled, HorizontalAlignment = HorizontalAlignment.Center, MouseFilter = Control.MouseFilterEnum.Ignore };
     private NightScene? _night;
     private DreamImages? _dreams;
     private readonly Dictionary<string, Control> _dreamNodes = new(StringComparer.Ordinal);
@@ -130,7 +130,7 @@ public partial class GameScreen : CanvasLayer
         (_nightPollS, _nightDarkness) = (nightLook.PollS, nightLook.Darkness);
         _root.AddChild(_nightShade);
         _nightShade.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
-        _nightText.AddChild(new Label { Text = "ui.night.title", ThemeTypeVariation = UiTheme.HeaderLabel, HorizontalAlignment = HorizontalAlignment.Center, MouseFilter = Control.MouseFilterEnum.Ignore });
+        _nightText.AddChild(new Label { Text = "ui.night.title", ThemeTypeVariation = UiTheme.OnDarkHeaderLabel, HorizontalAlignment = HorizontalAlignment.Center, MouseFilter = Control.MouseFilterEnum.Ignore });
         _nightText.AddChild(_nightProgress);
         _root.AddChild(_nightText);
         _nightText.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.Center);
@@ -1932,7 +1932,7 @@ public partial class GameScreen : CanvasLayer
 
                 if (!_zzz.TryGetValue(who.Id, out var label))
                 {
-                    label = new Label { Text = "ui.night.zzz", ThemeTypeVariation = UiTheme.HeaderLabel, MouseFilter = Control.MouseFilterEnum.Ignore };
+                    label = new Label { Text = "ui.night.zzz", ThemeTypeVariation = UiTheme.OnDarkHeaderLabel, MouseFilter = Control.MouseFilterEnum.Ignore };
                     _root.AddChild(label);
                     _root.MoveChild(label, _nightShade.GetIndex() + 1);
                     _zzz[who.Id] = label;
@@ -2067,6 +2067,15 @@ public partial class GameScreen : CanvasLayer
         var shaded = _nightShade.Size.X >= view.X - 1 && _nightShade.Size.Y >= view.Y - 1;
         probe.Close();
         await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        // The words of the night scene stand on the shade: they must be light (seen dark on dark in run L854).
+        foreach (var words in _nightText.GetChildren().OfType<Label>())
+        {
+            if (words.GetThemeColor("font_color").Luminance < 0.5f)
+            {
+                return $"the night scene's text '{words.Text}' is dark on the dark shade (luminance {words.GetThemeColor("font_color").Luminance:0.00})";
+            }
+        }
+
         if (!dimmed || !shaded)
         {
             return $"the picture behind a modal window is not dimmed (dim {dimSize}, night shade {_nightShade.Size}, view {view})";
