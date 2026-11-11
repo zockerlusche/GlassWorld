@@ -70,6 +70,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("sees")]
         public System.Collections.Generic.ICollection<string>? Sees { get; set; } = default!;
 
+        /// <summary>
+        /// The speaker's memory (B4a R5), the same as in the decision request: its summary and its latest remembered events. Optional: absent = not sent (older cores).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("memory")]
+        public Memory? Memory { get; set; } = default!;
+
     }
 
     /// <summary>

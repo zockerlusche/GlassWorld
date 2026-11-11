@@ -185,6 +185,10 @@
     {
       "id": "look_epoch_changed",
       "description": "The look epoch of the world changed (B2-5 R16, commands set_look_epoch and debug_set_look_epoch; Detail = the epoch)."
+    },
+    {
+      "id": "night_questions",
+      "description": "The compute night went through an inhabitant's open questions about things (Detail = 'asked=N,skipped=M'; skipped = nothing to guess from yet, the question waits)."
     }
   ]
 }

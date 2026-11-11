@@ -25,6 +25,11 @@ class Kind(StrEnum):
     unknown_inhabitant = 'unknown_inhabitant'
 
 
+class Ask(StrEnum):
+    immediate = 'immediate'
+    night = 'night'
+
+
 class Trigger(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -34,6 +39,10 @@ class Trigger(BaseModel):
         description='unknown_object: a thing of a type without any belief in sight; noticed_player: the player noticed (click); unknown_inhabitant: another inhabitant in sight whose own name it does not know (B4a R8).',
     )
     enabled: bool
+    ask: Ask | None = Field(
+        None,
+        description="When the question goes to the AI (A1487): immediate = to the decider the moment it opens (as before); night = it opens with its question mark, is not sent to the decider by day and is answered by the compute night's question job (knowledge settings: night_questions must list the trigger; only for questions about an object type). Omitted = immediate. A later value will follow the day's contingent (D713).",
+    )
 
 
 class DeciderSettings(BaseModel):

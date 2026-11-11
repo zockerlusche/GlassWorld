@@ -195,6 +195,12 @@ public sealed class Inhabitant
     /// </summary>
     public SortedDictionary<ImprintKey, double> Imprints { get; } = new(ImprintKey.Order);
 
+    /// <summary>
+    /// What the inhabitant remembers (B4a R5): its summary and its remembered events (data: knowledge memory).
+    /// The requests to the AI carry it; the core itself decides nothing by it.
+    /// </summary>
+    public InhabitantMemory Memory { get; } = new();
+
     /// <summary>Writes the complete state in canonical order.</summary>
     public void WriteState(StateHasher hasher)
     {
@@ -282,6 +288,13 @@ public sealed class Inhabitant
             {
                 hasher.Write(key.Action).Write(key.AboutKind).Write(key.AboutId).Write(key.TimeOfDay).Write(count);
             }
+        }
+
+        // The memory only once it holds anything (B4a R5), so worlds without memory data keep their hashes.
+        if (Memory.HasState)
+        {
+            hasher.Write("memory");
+            Memory.WriteState(hasher);
         }
     }
 
