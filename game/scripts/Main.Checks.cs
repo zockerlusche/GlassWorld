@@ -523,7 +523,9 @@ public partial class Main
     /// The UI tour (Marcel W1757, B2603: agents look at the running game themselves): opens every menu and
     /// window once, in the layout so far and in the zones preview, and saves a picture of each into the shots
     /// folder (German, the size of the window as started). The pictures are the basis of the list of what can
-    /// get better. Then quits.
+    /// get better. Then quits. By default the world is stepped 600 ticks at once (stand-in AI);
+    /// <c>--tour-run-s=SECONDS</c> lets it run that long in fast-forward instead, which is what the island
+    /// world with the real AI service needs (<c>GLASSWORLD_WORLD=island</c>, <c>GLASSWORLD_AI=live</c>).
     /// </summary>
     private async Task TourAsync(UiStyle style)
     {
@@ -552,10 +554,26 @@ public partial class Main
         try
         {
             // Let the world live a little, so lists, log, questions and chronicle have something to show.
-            _world!.Host!.Conversation.Port ??= new Simulation.Player.MockConversationPort();
-            for (var i = 0; i < 600; i++)
+            var live = string.Equals(System.Environment.GetEnvironmentVariable("GLASSWORLD_AI"), "live", StringComparison.Ordinal);
+            GD.Print($"UI_TOUR_START world={_world!.Mode} live={(live ? 1 : 0)} run_s={_tourRunS.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
+            _world.Host!.Conversation.Port ??= new Simulation.Player.MockConversationPort();
+            if (_tourRunS > 0)
             {
-                _world.Host.World.Step();
+                // As a player sees it (A1516: island world, real AI): the world runs in fast-forward for
+                // real seconds, so the AI service answers on its own time and its lines reach the screen.
+                _world.Speed = ScreenModel.TimeChoices(_world.Host.World.Calendar.Settings).Max(c => c.Speed);
+                var until = Time.GetTicksMsec() + (ulong)(_tourRunS * 1000);
+                while (Time.GetTicksMsec() < until)
+                {
+                    await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+                }
+            }
+            else
+            {
+                for (var i = 0; i < 600; i++)
+                {
+                    _world.Host.World.Step();
+                }
             }
 
             _world.Speed = 0;
