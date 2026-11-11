@@ -214,6 +214,12 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("max_duration_factor")]
         public int MaxDurationFactor { get; set; } = default!;
 
+        /// <summary>
+        /// A shown hint whose reason is gone (its question is settled) still stays this long in all, so it can be read and does not flicker.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("settled_min_seconds")]
+        public int SettledMinSeconds { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
