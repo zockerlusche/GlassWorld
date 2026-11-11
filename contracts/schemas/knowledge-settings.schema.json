@@ -107,9 +107,223 @@
     },
     "imprinting": {
       "$ref": "#/$defs/KnowledgeImprinting"
+    },
+    "memory": {
+      "$ref": "#/$defs/KnowledgeMemory"
+    },
+    "night_questions": {
+      "$ref": "#/$defs/KnowledgeNightQuestions"
     }
   },
   "$defs": {
+    "KnowledgeMemory": {
+      "description": "Memory (B4a R5, B7): the core keeps per inhabitant a summary and its remembered events. Which core events are remembered and which of them are formative is data (events). In the compute night the events not yet in the summary are condensed by the AI service (job memory) once there are condense_at of them; the core checks every answer itself. Without an AI service the events only pile up to max_events. Absent = nothing is remembered and the requests carry an empty memory. Values are placeholders.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "condense_at",
+        "job_max_events",
+        "job_max_formative",
+        "max_chars",
+        "max_events",
+        "job_priority",
+        "events"
+      ],
+      "properties": {
+        "condense_at": {
+          "description": "A compute night condenses an inhabitant's memory once this many of its events are not in the summary yet.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 512
+        },
+        "job_max_events": {
+          "description": "Most events in one memory job, oldest first; more go into further jobs. At most 32 (generation-job: memory.events holds 32).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 32
+        },
+        "job_max_formative": {
+          "description": "Most formative events in one memory job (each must stay in the summary, so the text budget limits them); a job ends before the next one. At most job_max_events (checked at load).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 32
+        },
+        "max_chars": {
+          "description": "Text budget of the summary in characters (generation-job: memory.max_chars 100..1200).",
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 1200
+        },
+        "max_events": {
+          "description": "Most remembered events per inhabitant. Beyond it the oldest event that is not formative is forgotten first, then the oldest formative one that is already in the summary, then the oldest. At least condense_at (checked at load).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 512
+        },
+        "job_priority": {
+          "description": "Priority of memory jobs (generation-job: higher runs first).",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "events": {
+          "description": "Which core events an inhabitant remembers. Every entry that fits an event gives one remembered event.",
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "$ref": "#/$defs/KnowledgeMemoryEvent"
+          }
+        }
+      }
+    },
+    "KnowledgeMemoryEvent": {
+      "description": "A core event the inhabitant it is about remembers: its kind in the memory, and whether it is formative (it must stay in the summary). What it is about follows from the event's target: another inhabitant, the object type of a thing, or nothing.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event",
+        "formative"
+      ],
+      "properties": {
+        "event": {
+          "description": "Event kind (vocabulary event).",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "detail_ends_with": {
+          "description": "Only events whose language-neutral detail ends with this text (as in event_effects). Omitted = every event of the kind.",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "kind": {
+          "description": "Kind of the remembered event (a word the memory uses, e.g. felt_bad). Omitted = the event kind, or the action with action_as_kind.",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "action_as_kind": {
+          "description": "True = the action of the event is the kind of the remembered event (e.g. eat, drink); not together with kind. Omitted = false.",
+          "type": "boolean"
+        },
+        "left_out_actions": {
+          "description": "Events of these actions are not remembered by this entry.",
+          "type": "array",
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          }
+        },
+        "formative": {
+          "description": "never = an everyday event; first = formative the first time the inhabitant remembers this kind about this subject; always = formative every time.",
+          "type": "string",
+          "enum": [
+            "never",
+            "first",
+            "always"
+          ]
+        },
+        "both": {
+          "description": "True = an event aimed at another inhabitant is remembered by that inhabitant too, about the actor (e.g. first_meeting, which the core reports once per pair). Omitted = false.",
+          "type": "boolean"
+        },
+        "only_with_subject": {
+          "description": "True = only events that are about something (another inhabitant or a thing); what the inhabitant did without a target (looking around, sleeping) is not remembered by this entry. Omitted = false.",
+          "type": "boolean"
+        },
+        "effect": {
+          "$ref": "#/$defs/KnowledgeMemoryEffect"
+        }
+      }
+    },
+    "KnowledgeMemoryEffect": {
+      "description": "Only events of an action that has such an effect on this target (the action's effects by the target's true properties, content/effects): how a meal that made sick or a drink that made thirstier becomes a memory of its own. The inhabitant remembers what it felt, never the property behind it.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "need",
+            "mood",
+            "will_to_live"
+          ]
+        },
+        "id": {
+          "description": "Need or mood id; omitted = any need or mood; ignored for will_to_live.",
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "delta_at_most": {
+          "description": "The effect's delta is at most this (e.g. -0.1 for a clear loss).",
+          "type": "number",
+          "minimum": -1,
+          "maximum": 1
+        },
+        "delta_at_least": {
+          "description": "The effect's delta is at least this (e.g. 0.2 for a clear gain).",
+          "type": "number",
+          "minimum": -1,
+          "maximum": 1
+        }
+      }
+    },
+    "KnowledgeNightQuestions": {
+      "description": "Questions in the compute night (B7, W1764): for every open question about an object type the core asks the AI service for a guess (job question), per inhabitant after its memory job. The guesses become beliefs with source guessed, at most as sure as guessed_cap, and never replace a belief the inhabitant already has; an answer that did not understand leaves the question open. Absent = no question jobs.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "job_priority",
+        "questions"
+      ],
+      "properties": {
+        "job_priority": {
+          "description": "Priority of question jobs (generation-job: higher runs first).",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "questions": {
+          "description": "Which open questions get a guess; a trigger that is not listed gets none.",
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/KnowledgeNightQuestion"
+          }
+        }
+      }
+    },
+    "KnowledgeNightQuestion": {
+      "description": "An open question of a trigger (decider settings) and what the inhabitant asks itself about the thing.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "trigger",
+        "question"
+      ],
+      "properties": {
+        "trigger": {
+          "description": "Trigger kind of the open question (decider-settings: triggers); only questions about an object type are asked.",
+          "type": "string",
+          "enum": [
+            "unknown_object",
+            "noticed_player",
+            "unknown_inhabitant"
+          ]
+        },
+        "question": {
+          "description": "Question kind of the job (generation-job: payload.question.question).",
+          "type": "string",
+          "enum": [
+            "what_is",
+            "can_i_eat",
+            "is_dangerous",
+            "what_can_i_do",
+            "why"
+          ]
+        }
+      }
+    },
     "KnowledgeStartRelationships": {
       "description": "Relationships of the start inhabitants when the world begins (B4a R8, F5249): members of the same start group know each other (partners), members of another group are strangers. Set for every pair at the start; absent = everybody starts with relationship_start.",
       "type": "object",

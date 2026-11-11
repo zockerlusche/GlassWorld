@@ -21,7 +21,7 @@ public static class SaveGameStore
     public const string ContentFingerprintKey = "content_fingerprint";
 
     /// <summary>Schema version written by this code.</summary>
-    public const int SchemaVersion = 10;
+    public const int SchemaVersion = 11;
 
     private static readonly JsonSerializerOptions Json = new() { IncludeFields = true };
 
@@ -109,6 +109,15 @@ public static class SaveGameStore
           PRIMARY KEY(inhabitant, action, about_kind, about_id, time_of_day));
         CREATE TABLE IF NOT EXISTS met(inhabitant TEXT NOT NULL, other TEXT NOT NULL, PRIMARY KEY(inhabitant, other));
         INSERT OR IGNORE INTO met SELECT a.id, b.id FROM inhabitants a JOIN inhabitants b ON a.grp = b.grp AND a.id <> b.id;
+        """,
+
+        // 11 (memory, B4a R5): each inhabitant's summary with its running number and what it has remembered
+        // for the first time, and its remembered events. Files from before have no rows: their inhabitants
+        // start with an empty memory and remember from then on.
+        """
+        CREATE TABLE IF NOT EXISTS memories(inhabitant TEXT PRIMARY KEY, summary TEXT NOT NULL, last_seq INTEGER NOT NULL, firsts TEXT NOT NULL);
+        CREATE TABLE IF NOT EXISTS memory_events(inhabitant TEXT NOT NULL, seq INTEGER NOT NULL, tick INTEGER NOT NULL, kind TEXT NOT NULL, about_kind TEXT, about_id TEXT,
+          formative INTEGER NOT NULL, condensed INTEGER NOT NULL, PRIMARY KEY(inhabitant, seq));
         """,
     ];
 
@@ -357,6 +366,12 @@ public static class SaveGameStore
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("conversation", JsonSerializer.Serialize(s.Conversation, Json)));
         }
 
+        if (s.NightJobs is not null)
+        {
+            // Open memory and question jobs of the compute night (schema 11); no entry = none.
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("night_jobs", JsonSerializer.Serialize(s.NightJobs, Json)));
+        }
+
         if (s.ContentFingerprint is not null)
         {
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", (ContentFingerprintKey, s.ContentFingerprint));
@@ -397,6 +412,15 @@ public static class SaveGameStore
             foreach (var m in i.Imprints ?? [])
             {
                 Insert(c, tx, "INSERT INTO imprints VALUES($a,$b,$c,$d,$e,$f)", (i.Id, m.Action, m.AboutKind, m.AboutId, m.TimeOfDay, m.Count));
+            }
+
+            if (i.Memory is { } memory)
+            {
+                Insert(c, tx, "INSERT INTO memories VALUES($a,$b,$c,$d)", (i.Id, memory.Summary, memory.LastSeq, JsonSerializer.Serialize(memory.Firsts)));
+                foreach (var e in memory.Events)
+                {
+                    Insert(c, tx, "INSERT INTO memory_events VALUES($a,$b,$c,$d,$e,$f,$g,$h)", (i.Id, e.Seq, e.Tick, e.Kind, e.AboutKind, e.AboutId, e.Formative ? 1 : 0, e.Condensed ? 1 : 0));
+                }
             }
         }
 
@@ -521,6 +545,12 @@ public static class SaveGameStore
         var imprints = Query(c, "SELECT inhabitant, action, about_kind, about_id, time_of_day, count FROM imprints ORDER BY inhabitant, action, about_kind, about_id, time_of_day",
                 r => (Inhabitant: r.GetString(0), Imprint: new SavedImprint(r.GetString(1), r.GetString(2), r.GetString(3), r.GetString(4), r.GetDouble(5))))
             .ToLookup(x => x.Inhabitant, x => x.Imprint, StringComparer.Ordinal);
+        var memoryEvents = Query(c, "SELECT inhabitant, seq, tick, kind, about_kind, about_id, formative, condensed FROM memory_events ORDER BY inhabitant, seq",
+                r => (Inhabitant: r.GetString(0), Entry: new MemoryEntry(r.GetInt64(1), r.GetInt64(2), r.GetString(3), r.IsDBNull(4) ? null : r.GetString(4), r.IsDBNull(5) ? null : r.GetString(5), r.GetInt64(6) != 0, r.GetInt64(7) != 0)))
+            .ToLookup(x => x.Inhabitant, x => x.Entry, StringComparer.Ordinal);
+        var memories = Query(c, "SELECT inhabitant, summary, last_seq, firsts FROM memories ORDER BY inhabitant",
+                r => (Inhabitant: r.GetString(0), Summary: r.GetString(1), LastSeq: r.GetInt64(2), Firsts: JsonSerializer.Deserialize<List<string>>(r.GetString(3)) ?? []))
+            .ToDictionary(x => x.Inhabitant, x => new SavedMemory(x.Summary, x.LastSeq, [.. memoryEvents[x.Inhabitant]], x.Firsts), StringComparer.Ordinal);
         var appearances = meta.TryGetValue("appearances", out var appearanceJson)
             ? JsonSerializer.Deserialize<Dictionary<string, Appearance>>(appearanceJson, Json) ?? []
             : [];
@@ -566,7 +596,8 @@ public static class SaveGameStore
                     names.GetValueOrDefault(r.GetString(0))?.Name,
                     names.GetValueOrDefault(r.GetString(0))?.KnownNames,
                     met[r.GetString(0)].ToList() is { Count: > 0 } metList ? metList : null,
-                    imprints[r.GetString(0)].ToList() is { Count: > 0 } imprintList ? imprintList : null)),
+                    imprints[r.GetString(0)].ToList() is { Count: > 0 } imprintList ? imprintList : null,
+                    memories.GetValueOrDefault(r.GetString(0)))),
             long.Parse(meta["question_counter"], CultureInfo.InvariantCulture),
             Query(c, "SELECT data FROM questions ORDER BY id", r => JsonSerializer.Deserialize<SavedQuestion>(r.GetString(0))!),
             Query(c, "SELECT key, tick FROM last_asked ORDER BY key", r => new KeyValuePair<string, long>(r.GetString(0), r.GetInt64(1))),
@@ -593,6 +624,7 @@ public static class SaveGameStore
             NamesSaved = meta.ContainsKey("names"),
             Conversation = meta.TryGetValue("conversation", out var conversation) ? JsonSerializer.Deserialize<Simulation.Player.ConversationState>(conversation, Json) : null,
             ContentFingerprint = meta.GetValueOrDefault(ContentFingerprintKey),
+            NightJobs = meta.TryGetValue("night_jobs", out var nightJobs) ? JsonSerializer.Deserialize<Simulation.Night.NightJobsState>(nightJobs, Json) : null,
             DiaryVersion = meta.TryGetValue("diary_version", out var diaryVersion) ? long.Parse(diaryVersion, CultureInfo.InvariantCulture) : null,
             Diary = Query(c, "SELECT seq, tick, inhabitant, action, target, target_type, topic FROM diary ORDER BY seq",
                 r => new Simulation.Inhabitants.DiaryEntry(r.GetInt64(0), r.GetInt64(1), r.GetString(2), r.GetString(3), r.IsDBNull(4) ? null : r.GetString(4), r.IsDBNull(5) ? null : r.GetString(5), r.IsDBNull(6) ? null : r.GetString(6))),

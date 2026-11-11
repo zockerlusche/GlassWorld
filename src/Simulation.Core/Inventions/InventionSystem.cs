@@ -288,8 +288,7 @@ public sealed partial class InventionSystem : IWorldSystem, IOptionalWorldState,
         return new InventionInfo(record.TypeId, invention.Name, invention.Category, invention.Purpose, record.InhabitantId, record.Tick, file, decision?.Needed == true ? decision.Description : null);
     }
 
-    private static int SeedOf(string requestId) =>
-        (int)(BitConverter.ToUInt32(SHA256.HashData(Encoding.UTF8.GetBytes(requestId)), 0) & 0x7FFFFFFF);
+    private static int SeedOf(string requestId) => DecisionIds.SeedOf(requestId);
 
     private static bool IsRetryable(string json)
     {

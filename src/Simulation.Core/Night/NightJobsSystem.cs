@@ -1,0 +1,564 @@
+using System.Collections.Frozen;
+using GlassWorld.Contracts;
+using GlassWorld.Contracts.Validation;
+using GlassWorld.Simulation.Decisions;
+using GlassWorld.Simulation.Inhabitants;
+using GlassWorld.Simulation.Objects;
+using GlassWorld.Simulation.Safety;
+using GlassWorld.Simulation.State;
+
+namespace GlassWorld.Simulation.Night;
+
+/// <summary>An event that went out with a memory job.</summary>
+/// <param name="Seq">Its running number in the inhabitant's memory.</param>
+/// <param name="Tick">Its tick (the answer names kept events by tick).</param>
+/// <param name="Formative">Whether it was sent as formative.</param>
+public sealed record SentEvent(long Seq, long Tick, bool Formative);
+
+/// <summary>An open memory job (B4a R5): the events it carries and the text budget it asked for.</summary>
+/// <param name="RequestId">The job.</param>
+/// <param name="InhabitantId">Whose memory.</param>
+/// <param name="Tick">Tick it was sent.</param>
+/// <param name="MaxChars">The text budget sent with it (the answer is checked against this, not against later data).</param>
+/// <param name="Sent">The events sent, oldest first.</param>
+public sealed record MemoryJob(string RequestId, string InhabitantId, long Tick, int MaxChars, IReadOnlyList<SentEvent> Sent);
+
+/// <summary>An open question job: a guess for an open question about an object type.</summary>
+/// <param name="RequestId">The job.</param>
+/// <param name="InhabitantId">Who asks.</param>
+/// <param name="Tick">Tick it was sent.</param>
+/// <param name="QuestionId">The open question (decisions system).</param>
+/// <param name="TypeId">The object type it is about.</param>
+public sealed record QuestionJob(string RequestId, string InhabitantId, long Tick, string QuestionId, string TypeId);
+
+/// <summary>Complete state of the night jobs (save games).</summary>
+/// <param name="Counter">Request counter.</param>
+/// <param name="MemoryJobs">Open memory jobs in request id order.</param>
+/// <param name="QuestionJobs">Open question jobs in request id order.</param>
+/// <param name="QuestionsWaiting">Inhabitants whose questions of this night wait for their memory job.</param>
+public sealed record NightJobsState(long Counter, IReadOnlyList<MemoryJob> MemoryJobs, IReadOnlyList<QuestionJob> QuestionJobs, IReadOnlyList<string> QuestionsWaiting);
+
+/// <summary>
+/// The inhabitants' work of the compute night (B7, W1764; a world system): when the night begins, every
+/// inhabitant first has its memory condensed (job <c>memory</c>, once enough events are not in the summary
+/// yet), then gets a guess for each of its open questions about an object type (job <c>question</c>) - in
+/// this order, because the question reads the summary. The AI only proposes (B2462): the core checks every
+/// answer itself and drops one that does not fit without changing anything. A guess becomes a belief with
+/// source <c>guessed</c>, at most as sure as the data's <c>guessed_cap</c>, and never replaces a belief the
+/// inhabitant already has. Requests and outcomes go through the world's job log, so a replay gives the same
+/// state. Without a job port the system is dormant and stays out of the world hash; every value is data.
+/// </summary>
+public sealed class NightJobsSystem : IWorldSystem, IOptionalWorldState
+{
+    /// <summary>Note of an answer the core refused; the reasons follow after the colon.</summary>
+    public const string Rejected = "rejected:";
+
+    /// <summary>Refused memory answer: the summary is empty.</summary>
+    public const string SummaryEmpty = "summary_empty";
+
+    /// <summary>Refused memory answer: the summary is longer than the text budget of the job.</summary>
+    public const string SummaryTooLong = "summary_too_long";
+
+    /// <summary>Refused memory answer: it keeps an event that was not sent.</summary>
+    public const string KeptNotSent = "kept_not_sent";
+
+    /// <summary>Refused memory answer: it drops a formative event.</summary>
+    public const string FormativeDropped = "formative_dropped";
+
+    /// <summary>Refused question answer: it guesses a property the vocabulary does not know.</summary>
+    public const string UnknownProperty = "unknown_property";
+
+    /// <summary>Refused question answer: it guesses the same property twice.</summary>
+    public const string PropertyTwice = "property_twice";
+
+    /// <summary>Note of a question answer that did not understand: the question stays open.</summary>
+    public const string NotUnderstood = "not_understood";
+
+    /// <summary>Note of an outcome that is not the final state of the job the core sent.</summary>
+    public const string NotFinal = "not_final";
+
+    /// <summary>Detail of <c>question_answered</c> when the compute night settled the question with a guess.</summary>
+    public const string Guessed = "guessed";
+
+    /// <summary>Most noticed properties in a question job (contract generation-job: perception maxItems).</summary>
+    public const int MaxPerception = 16;
+
+    private const string TypeSubject = "type:";
+
+    private readonly SortedDictionary<string, MemoryJob> _memoryJobs = new(StringComparer.Ordinal);
+    private readonly SortedDictionary<string, QuestionJob> _questionJobs = new(StringComparer.Ordinal);
+    private readonly SortedSet<string> _questionsWaiting = new(StringComparer.Ordinal);
+    private readonly SortedSet<string> _resume = new(StringComparer.Ordinal);
+    private readonly KnowledgeSettings? _knowledge;
+    private readonly FrozenSet<string> _nightPhases;
+    private readonly FrozenSet<string> _properties;
+    private readonly TextGuard _guard;
+    private readonly InhabitantsSystem _inhabitants;
+    private readonly DecisionsSystem _decisions;
+    private readonly IJobPort? _port;
+    private string _displayLocale;
+    private long _counter;
+
+    /// <summary>Creates the system. <paramref name="jobs"/> null = dormant (no AI connected).</summary>
+    /// <param name="knowledge">Knowledge data (memory, night_questions, guessed_cap); null = nothing to do.</param>
+    /// <param name="nightPhases">Day phases that are the compute night (content/jobs/phases.json).</param>
+    /// <param name="properties">The property vocabulary: a guess may only name these.</param>
+    /// <param name="guard">The content guard for the thought of an answer.</param>
+    /// <param name="inhabitants">The inhabitants.</param>
+    /// <param name="decisions">The open questions.</param>
+    /// <param name="jobs">The world's job port, shared with the other job systems.</param>
+    /// <param name="log">The world's job log (requests and the outcomes that took effect).</param>
+    /// <param name="displayLocale">Language of the texts the jobs write.</param>
+    public NightJobsSystem(KnowledgeSettings? knowledge, FrozenSet<string> nightPhases, FrozenSet<string> properties, TextGuard guard, InhabitantsSystem inhabitants, DecisionsSystem decisions, JobRouter? jobs, DecisionLog log, string displayLocale)
+    {
+        ArgumentNullException.ThrowIfNull(nightPhases);
+        ArgumentNullException.ThrowIfNull(properties);
+        ArgumentNullException.ThrowIfNull(guard);
+        ArgumentNullException.ThrowIfNull(inhabitants);
+        ArgumentNullException.ThrowIfNull(decisions);
+        ArgumentNullException.ThrowIfNull(log);
+        _knowledge = knowledge;
+        _nightPhases = nightPhases;
+        _properties = properties;
+        _guard = guard;
+        _inhabitants = inhabitants;
+        _decisions = decisions;
+        _port = jobs?.Claim(id => _memoryJobs.ContainsKey(id) || _questionJobs.ContainsKey(id));
+        Log = log;
+        _displayLocale = displayLocale;
+    }
+
+    /// <inheritdoc/>
+    public string Name => "night_jobs";
+
+    /// <summary>Language of the texts the jobs write (display_locale; set with the player's language).</summary>
+    public string DisplayLocale
+    {
+        get => _displayLocale;
+        internal set => _displayLocale = value;
+    }
+
+    /// <inheritdoc/>
+    public bool HasState => _counter > 0 || _memoryJobs.Count > 0 || _questionJobs.Count > 0 || _questionsWaiting.Count > 0;
+
+    /// <summary>The world's job log (shared with the invention system).</summary>
+    public DecisionLog Log { get; }
+
+    /// <summary>Open memory jobs in request id order.</summary>
+    public IEnumerable<MemoryJob> MemoryJobs => _memoryJobs.Values;
+
+    /// <summary>Open question jobs in request id order.</summary>
+    public IEnumerable<QuestionJob> QuestionJobs => _questionJobs.Values;
+
+    /// <summary>Whether the compute night begins with this tick: its day phase is a night phase and the one of the tick before was not.</summary>
+    public bool NightBegins(World world)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        return world.Tick > 0 && IsNight(world, world.Tick) && !IsNight(world, world.Tick - 1);
+    }
+
+    /// <inheritdoc/>
+    public void Advance(World world)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        if (_port is null)
+        {
+            return;
+        }
+
+        foreach (var message in _port.Receive(world.Tick))
+        {
+            Apply(world, message);
+        }
+
+        var begins = NightBegins(world);
+        if (!begins && _resume.Count == 0)
+        {
+            return;
+        }
+
+        // In id order (the inhabitants are kept sorted).
+        foreach (var inhabitant in _inhabitants.All.ToList())
+        {
+            if (begins || _resume.Contains(inhabitant.Id))
+            {
+                Begin(world, inhabitant);
+            }
+        }
+
+        _resume.Clear();
+    }
+
+    /// <inheritdoc/>
+    public void WriteState(StateHasher hasher)
+    {
+        ArgumentNullException.ThrowIfNull(hasher);
+        hasher.Write(_counter).Write(_memoryJobs.Count);
+        foreach (var job in _memoryJobs.Values)
+        {
+            hasher.Write(job.RequestId).Write(job.InhabitantId).Write(job.Tick).Write(job.MaxChars).Write(job.Sent.Count);
+            foreach (var sent in job.Sent)
+            {
+                hasher.Write(sent.Seq).Write(sent.Tick).Write(sent.Formative);
+            }
+        }
+
+        hasher.Write(_questionJobs.Count);
+        foreach (var job in _questionJobs.Values)
+        {
+            hasher.Write(job.RequestId).Write(job.InhabitantId).Write(job.Tick).Write(job.QuestionId).Write(job.TypeId);
+        }
+
+        hasher.Write(_questionsWaiting.Count);
+        foreach (var id in _questionsWaiting)
+        {
+            hasher.Write(id);
+        }
+    }
+
+    /// <summary>Takes the complete state.</summary>
+    public NightJobsState Capture() => new(_counter, [.. _memoryJobs.Values], [.. _questionJobs.Values], [.. _questionsWaiting]);
+
+    /// <summary>Restores a captured state (null = a save game from before: nothing is open).</summary>
+    public void Restore(NightJobsState? state)
+    {
+        if (state is null)
+        {
+            return;
+        }
+
+        _counter = state.Counter;
+        foreach (var job in state.MemoryJobs)
+        {
+            _memoryJobs[job.RequestId] = job;
+        }
+
+        foreach (var job in state.QuestionJobs)
+        {
+            _questionJobs[job.RequestId] = job;
+        }
+
+        _questionsWaiting.UnionWith(state.QuestionsWaiting);
+    }
+
+    /// <summary>
+    /// After loading with a live AI service: jobs that went to the previous process will never be answered, so
+    /// they are given up and their inhabitants begin anew at the next tick, memory first (B2487). Not used
+    /// for hash comparisons or replays.
+    /// </summary>
+    public void ResendPendingAfterLoad()
+    {
+        _resume.UnionWith(_memoryJobs.Values.Select(j => j.InhabitantId));
+        _resume.UnionWith(_questionJobs.Values.Select(j => j.InhabitantId));
+        _resume.UnionWith(_questionsWaiting);
+        _memoryJobs.Clear();
+        _questionJobs.Clear();
+        _questionsWaiting.Clear();
+    }
+
+    private bool IsNight(World world, long tick) =>
+        _nightPhases.Contains(world.Calendar.At(tick).Phase.ToString().ToLowerInvariant());
+
+    /// <summary>One inhabitant's night: the memory first; its questions follow once no memory job of it is open.</summary>
+    private void Begin(World world, Inhabitant inhabitant)
+    {
+        if (!HasMemoryJob(inhabitant) && Due(inhabitant))
+        {
+            SubmitMemory(world, inhabitant);
+        }
+
+        if (HasMemoryJob(inhabitant))
+        {
+            _questionsWaiting.Add(inhabitant.Id);
+            return;
+        }
+
+        SubmitQuestions(world, inhabitant);
+    }
+
+    /// <summary>After a memory job: the next batch if the memory is still due and the last one was taken, else the questions that waited.</summary>
+    private void Proceed(World world, Inhabitant inhabitant, bool condensed)
+    {
+        if (condensed && Due(inhabitant))
+        {
+            SubmitMemory(world, inhabitant);
+            return;
+        }
+
+        if (_questionsWaiting.Remove(inhabitant.Id))
+        {
+            SubmitQuestions(world, inhabitant);
+        }
+    }
+
+    private bool HasMemoryJob(Inhabitant inhabitant) => _memoryJobs.Values.Any(j => j.InhabitantId == inhabitant.Id);
+
+    private bool Due(Inhabitant inhabitant) =>
+        _knowledge?.Memory is { } memory && inhabitant.Memory.Uncondensed.Count() >= memory.CondenseAt;
+
+    /// <summary>
+    /// The next batch for a memory job: the oldest events the summary does not hold yet, at most
+    /// job_max_events, ending before a formative event beyond job_max_formative.
+    /// </summary>
+    private static List<MemoryEntry> Batch(InhabitantMemory memory, KnowledgeMemory settings)
+    {
+        var batch = new List<MemoryEntry>();
+        var formative = 0;
+        foreach (var entry in memory.Uncondensed)
+        {
+            if (batch.Count >= settings.JobMaxEvents || (entry.Formative && formative >= settings.JobMaxFormative))
+            {
+                break;
+            }
+
+            formative += entry.Formative ? 1 : 0;
+            batch.Add(entry);
+        }
+
+        return batch;
+    }
+
+    private void SubmitMemory(World world, Inhabitant inhabitant)
+    {
+        var settings = _knowledge!.Memory!;
+        var batch = Batch(inhabitant.Memory, settings);
+        if (batch.Count == 0)
+        {
+            return;
+        }
+
+        var job = NewJob(world, inhabitant, JobKind.Memory, "/memory", settings.JobPriority);
+        job.Payload = new JobPayload
+        {
+            Memory = new MemoryPayload
+            {
+                Summary = inhabitant.Memory.Summary,
+                Events = [.. batch.Select(e => new MemoryFact { Tick = e.Tick, Kind = e.Kind, About = InhabitantStates.About(e), Formative = e.Formative })],
+                MaxChars = settings.MaxChars,
+            },
+        };
+        Send(world, job);
+        _memoryJobs[job.RequestId] = new MemoryJob(job.RequestId, inhabitant.Id, world.Tick, settings.MaxChars, [.. batch.Select(e => new SentEvent(e.Seq, e.Tick, e.Formative))]);
+    }
+
+    /// <summary>A question job for every open question of the inhabitant about an object type that the data list and that has none yet.</summary>
+    private void SubmitQuestions(World world, Inhabitant inhabitant)
+    {
+        if (_knowledge is not { NightQuestions: { } night } knowledge)
+        {
+            return;
+        }
+
+        foreach (var question in _decisions.Open.Where(q => q.InhabitantId == inhabitant.Id && q.Subject.StartsWith(TypeSubject, StringComparison.Ordinal)).ToList())
+        {
+            if (night.Questions.FirstOrDefault(n => string.Equals(n.Trigger.ToString(), question.Kind, StringComparison.OrdinalIgnoreCase)) is not { } entry
+                || _questionJobs.Values.Any(j => j.QuestionId == question.Id))
+            {
+                continue;
+            }
+
+            var typeId = question.Subject[TypeSubject.Length..];
+            var job = NewJob(world, inhabitant, JobKind.Question, "/question", night.JobPriority);
+            job.Payload = new JobPayload
+            {
+                Question = new QuestionPayload
+                {
+                    Question = Enum.Parse<QuestionPayloadQuestion>(entry.Question.ToString()),
+                    Subject = new Subject { Kind = SubjectKind.Type, Id = typeId },
+                    Inhabitant = InhabitantStates.Asking(inhabitant, knowledge, typeId),
+
+                    // What it has seen of the thing by looking (source seen), never the truth: without a look it notices nothing.
+                    Perception = [.. inhabitant.Beliefs.About(typeId)
+                        .Where(b => b.Belief.Value && b.Belief.Source == KnowledgeSources.Seen)
+                        .Select(b => b.PropertyId)
+                        .Take(MaxPerception)],
+                },
+            };
+            Send(world, job);
+            _questionJobs[job.RequestId] = new QuestionJob(job.RequestId, inhabitant.Id, world.Tick, question.Id, typeId);
+        }
+    }
+
+    private GenerationJob NewJob(World world, Inhabitant inhabitant, JobKind kind, string purpose, int priority)
+    {
+        _counter++;
+        var requestId = DecisionIds.RequestId(world.Seed, world.Tick, inhabitant.Id + purpose, _counter);
+        return new GenerationJob
+        {
+            ContractVersion = ContractInfo.Version,
+            RequestId = requestId,
+            Tick = world.Tick,
+            Seed = DecisionIds.SeedOf(requestId),
+            DisplayLocale = Enum.Parse<Locale>(_displayLocale, ignoreCase: true),
+            Kind = kind,
+            Priority = priority,
+            Inhabitant = inhabitant.Id,
+            Object = null,
+        };
+    }
+
+    private void Send(World world, GenerationJob job)
+    {
+        var json = ContractSerializer.Serialize(job);
+        Log.Add(new DecisionLogEntry(DecisionLogKind.JobRequest, job.RequestId, world.Tick, json, null));
+        _port!.Submit(job.RequestId, json);
+    }
+
+    private void Apply(World world, PortMessage message)
+    {
+        _memoryJobs.TryGetValue(message.RequestId, out var memoryJob);
+        _questionJobs.TryGetValue(message.RequestId, out var questionJob);
+        if (memoryJob is null && questionJob is null)
+        {
+            // The router hands over only outcomes of open jobs; anything else is not ours to judge.
+            return;
+        }
+
+        // Every outcome closes its job: nothing is asked twice under the same id.
+        _memoryJobs.Remove(message.RequestId);
+        _questionJobs.Remove(message.RequestId);
+
+        var wanted = memoryJob is not null ? JobKind.Memory : JobKind.Question;
+        JobStatus? status = null;
+        if (message.IsError)
+        {
+            Log.Add(new DecisionLogEntry(DecisionLogKind.JobError, message.RequestId, world.Tick, message.Json, ReplayNotes.ServiceError));
+        }
+        else
+        {
+            try
+            {
+                status = ContractSerializer.Deserialize<JobStatus>(message.Json);
+            }
+            catch (ContractViolationException)
+            {
+                Log.Add(new DecisionLogEntry(DecisionLogKind.JobDiscarded, message.RequestId, world.Tick, message.Json, ReplayNotes.ContractViolation));
+            }
+        }
+
+        if (status is not null && status.State == JobState.Failed && status.JobId == message.RequestId && status.Kind == wanted)
+        {
+            Log.Add(new DecisionLogEntry(DecisionLogKind.JobError, message.RequestId, world.Tick, message.Json, status.Error?.Code.ToString()));
+            status = null;
+        }
+        else if (status is not null && !(status.State == JobState.Done && status.JobId == message.RequestId && status.Kind == wanted
+            && (memoryJob is not null ? status.Result?.Memory is not null : status.Result?.Question is not null)))
+        {
+            Log.Add(new DecisionLogEntry(DecisionLogKind.JobDiscarded, message.RequestId, world.Tick, message.Json, NotFinal));
+            status = null;
+        }
+
+        if (memoryJob is not null)
+        {
+            var condensed = status is not null && Condense(world, memoryJob, status.Result!.Memory!, message.Json);
+            if (_inhabitants.ResolveTarget(memoryJob.InhabitantId)?.Inhabitant is { } inhabitant)
+            {
+                // A failed or refused job is not sent again tonight: the next night tries anew (no loop, B2487).
+                Proceed(world, inhabitant, condensed);
+            }
+        }
+        else if (status is not null)
+        {
+            Answer(world, questionJob!, status.Result!.Question!, message.Json);
+        }
+    }
+
+    /// <summary>Checks a memory answer and takes it if it fits; false when it was refused (nothing changes).</summary>
+    private bool Condense(World world, MemoryJob job, MemoryResult result, string json)
+    {
+        var inhabitant = _inhabitants.ResolveTarget(job.InhabitantId)?.Inhabitant;
+        if (inhabitant is null)
+        {
+            Log.Add(new DecisionLogEntry(DecisionLogKind.JobDiscarded, job.RequestId, world.Tick, json, ReplayNotes.QuestionClosed));
+            return false;
+        }
+
+        var sentTicks = job.Sent.Select(s => s.Tick).ToHashSet();
+        var kept = result.Kept.ToHashSet();
+        var reasons = new List<string>();
+        if (string.IsNullOrWhiteSpace(result.Summary))
+        {
+            reasons.Add(SummaryEmpty);
+        }
+
+        // Characters as the contract counts them (code points), so the core and the service agree on the budget.
+        if (result.Summary.EnumerateRunes().Count() > job.MaxChars)
+        {
+            reasons.Add(SummaryTooLong);
+        }
+
+        if (kept.Any(tick => !sentTicks.Contains(tick)))
+        {
+            reasons.Add(KeptNotSent);
+        }
+
+        if (job.Sent.Any(s => s.Formative && !kept.Contains(s.Tick)))
+        {
+            reasons.Add(FormativeDropped);
+        }
+
+        Log.Add(new DecisionLogEntry(DecisionLogKind.JobResult, job.RequestId, world.Tick, json, reasons.Count == 0 ? null : Rejected + string.Join(',', reasons)));
+        if (reasons.Count > 0)
+        {
+            return false;
+        }
+
+        inhabitant.Memory.Condense(result.Summary, job.Sent.Select(s => s.Seq).ToHashSet(), kept);
+        return true;
+    }
+
+    /// <summary>Checks a question answer; its guesses become beliefs and settle the question, unless it did not understand.</summary>
+    private void Answer(World world, QuestionJob job, QuestionResult result, string json)
+    {
+        var inhabitant = _inhabitants.ResolveTarget(job.InhabitantId)?.Inhabitant;
+        if (inhabitant is null || _knowledge is not { } knowledge || !_decisions.Open.Any(q => q.Id == job.QuestionId))
+        {
+            // Settled another way in the meantime (the decider answered): a late guess changes nothing.
+            Log.Add(new DecisionLogEntry(DecisionLogKind.JobDiscarded, job.RequestId, world.Tick, json, ReplayNotes.QuestionClosed));
+            return;
+        }
+
+        var reasons = new List<string>();
+        if (result.Guesses.Any(g => !_properties.Contains(g.Property)))
+        {
+            reasons.Add(UnknownProperty);
+        }
+
+        if (result.Guesses.GroupBy(g => g.Property, StringComparer.Ordinal).Any(g => g.Count() > 1))
+        {
+            reasons.Add(PropertyTwice);
+        }
+
+        if (reasons.Count > 0)
+        {
+            Log.Add(new DecisionLogEntry(DecisionLogKind.JobResult, job.RequestId, world.Tick, json, Rejected + string.Join(',', reasons)));
+            return;
+        }
+
+        Log.Add(new DecisionLogEntry(DecisionLogKind.JobResult, job.RequestId, world.Tick, json, result.Understood ? null : NotUnderstood));
+        if (result.Thought is { } thought && _guard.Check(thought.Text).Allowed)
+        {
+            _inhabitants.Report(new WorldEvent("thought", world.Tick, inhabitant.Id, null, null) { Text = thought.Text });
+        }
+
+        if (!result.Understood)
+        {
+            // Not understanding is allowed (W1595): the question stays open and is asked again another night.
+            return;
+        }
+
+        foreach (var guess in result.Guesses)
+        {
+            // A guess never replaces a belief the inhabitant already has (as with guesses from looking).
+            if (inhabitant.Beliefs.TryGet(job.TypeId, guess.Property, out _))
+            {
+                continue;
+            }
+
+            inhabitant.Beliefs.Set(job.TypeId, guess.Property, guess.Value, Math.Min(guess.Confidence, knowledge.GuessedCap), KnowledgeSources.Guessed, null, world.Tick);
+            _inhabitants.Report(new WorldEvent(InhabitantsSystem.KnowledgeGained, world.Tick, inhabitant.Id, null, job.TypeId) { Detail = guess.Property + "/" + KnowledgeSources.Guessed });
+        }
+
+        _decisions.Settle(world, job.QuestionId, Guessed);
+    }
+}

@@ -23,6 +23,12 @@ public sealed record WorldEvent(string Kind, long Tick, string InhabitantId, str
 
     /// <summary>Language-neutral detail of the event (e.g. the need of a call for help, the type of a gift).</summary>
     public string? Detail { get; init; }
+
+    /// <summary>
+    /// The object type of the thing an action is aimed at (set for started and finished actions; the thing
+    /// itself may be used up by then); null for other events and for actions without a thing.
+    /// </summary>
+    public string? TargetType { get; init; }
 }
 
 /// <summary>What an activity or a decider option is aimed at: another inhabitant or an object of the world.</summary>
@@ -721,7 +727,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             }
 
             inhabitant.Activity = activity with { RemainingTicks = timing.DurationTicks, Route = null };
-            Report(new WorldEvent(ActionStarted, world.Tick, inhabitant.Id, activity.Action, activity.TargetId));
+            Report(new WorldEvent(ActionStarted, world.Tick, inhabitant.Id, activity.Action, activity.TargetId) { TargetType = target?.TypeId });
             Imprint(world, inhabitant, activity, target, listener);
             return;
         }
@@ -745,7 +751,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
 
         changed |= _history.Reverse().TakeWhile(e => e.Seq > seq).Any(e => e.Event.Kind is KnowledgeGained or NameLearned);
         var limit = CountRepeat(world, inhabitant, activity, changed);
-        Report(new WorldEvent(ActionFinished, world.Tick, inhabitant.Id, activity.Action, activity.TargetId) { Detail = limit ? RepeatLimit : null });
+        Report(new WorldEvent(ActionFinished, world.Tick, inhabitant.Id, activity.Action, activity.TargetId) { Detail = limit ? RepeatLimit : null, TargetType = target?.TypeId });
         inhabitant.Activity = null;
     }
 

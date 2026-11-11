@@ -742,6 +742,24 @@ public sealed class DecisionsSystem : IWorldSystem
         }
     }
 
+    /// <summary>
+    /// Settles an open question that was answered another way than by the decider (the compute night's guess,
+    /// B7): it closes as answered, with <paramref name="reason"/> as the event's detail. An answer of the
+    /// decider that comes later is dropped like every answer to a closed question. False if it is not open.
+    /// </summary>
+    public bool Settle(World world, string questionId, string reason)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(questionId);
+        if (!_open.TryGetValue(questionId, out var question))
+        {
+            return false;
+        }
+
+        Close(world, question, "question_answered", reason);
+        return true;
+    }
+
     private void Close(World world, OpenQuestion? question, string eventKind, string? reason = null)
     {
         if (question is null)

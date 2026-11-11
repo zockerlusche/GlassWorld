@@ -99,10 +99,61 @@ public static class InhabitantStates
             Name = inhabitant.Name,
 
             // Contract 0.2 (B4a): knowledge, relationships and habits are filled above when there is knowledge data.
-            Memory = new Memory { Summary = string.Empty, Recent = [] },
+            Memory = MemoryOf(inhabitant),
             Knowledge = [],
             Relationships = [],
             Habits = [],
         };
+    }
+
+    /// <summary>Most recent events a request may carry (contract <c>Memory</c>: recent maxItems).</summary>
+    public const int MaxRecent = 12;
+
+    /// <summary>
+    /// The inhabitant's memory as the AI sees it (B4a R5): the summary and the newest remembered events,
+    /// oldest first, at most <see cref="MaxRecent"/>. Empty while it remembers nothing.
+    /// </summary>
+    public static Memory MemoryOf(Inhabitant inhabitant)
+    {
+        ArgumentNullException.ThrowIfNull(inhabitant);
+        return new Memory
+        {
+            Summary = inhabitant.Memory.Summary,
+            Recent = [.. inhabitant.Memory.Events.TakeLast(MaxRecent).Select(e => new MemoryEvent { Tick = e.Tick, Kind = e.Kind, About = About(e) })],
+        };
+    }
+
+    /// <summary>What a remembered event is about as a contract subject (an object type or an inhabitant), or null.</summary>
+    public static Subject? About(MemoryEntry entry)
+    {
+        ArgumentNullException.ThrowIfNull(entry);
+        return entry.AboutKind is null || entry.AboutId is null
+            ? null
+            : new Subject { Kind = Enum.Parse<SubjectKind>(entry.AboutKind, ignoreCase: true), Id = entry.AboutId };
+    }
+
+    /// <summary>
+    /// The inhabitant asking itself about one object type (job question): what it believes about that type
+    /// first, then its newest other beliefs, within the knowledge data's limit. Beliefs only, never the truth.
+    /// </summary>
+    public static InhabitantState Asking(Inhabitant inhabitant, KnowledgeSettings knowledge, string typeId)
+    {
+        ArgumentNullException.ThrowIfNull(inhabitant);
+        ArgumentNullException.ThrowIfNull(knowledge);
+        ArgumentException.ThrowIfNullOrEmpty(typeId);
+        var state = Of(inhabitant, knowledge, [typeId], []);
+        var known = state.Knowledge.ToList();
+        var visible = knowledge.Looking?.VisibleProperties.ToHashSet(StringComparer.Ordinal) ?? [];
+        known.AddRange(inhabitant.Beliefs.All
+
+            // As for the type itself: what a thing is not by its look says little and would crowd out the rest.
+            .Where(b => b.TypeId != typeId && (b.Belief.Value || !visible.Contains(b.PropertyId)))
+            .OrderByDescending(b => b.Belief.Tick)
+            .ThenBy(b => b.TypeId, StringComparer.Ordinal)
+            .ThenBy(b => b.PropertyId, StringComparer.Ordinal)
+            .Take(Math.Max(0, knowledge.RequestMaxKnowledge - known.Count))
+            .Select(b => Entry(inhabitant, b.TypeId, b.PropertyId, b.Belief)));
+        state.Knowledge = known;
+        return state;
     }
 }

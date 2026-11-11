@@ -84,7 +84,28 @@
     "sees": [
       "dry_grass",
       "spring_water"
-    ]
+    ],
+    "memory": {
+      "summary": "Woke up alone on a beach. Found a stream with fresh water. Met another person.",
+      "recent": [
+        {
+          "tick": 89600,
+          "kind": "drink",
+          "about": {
+            "kind": "type",
+            "id": "spring_water"
+          }
+        },
+        {
+          "tick": 89800,
+          "kind": "was_told",
+          "about": {
+            "kind": "type",
+            "id": "red_berry"
+          }
+        }
+      ]
+    }
   },
   "player_text": "Was machst du?",
   "recent_lines": []

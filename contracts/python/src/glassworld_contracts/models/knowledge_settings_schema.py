@@ -3,11 +3,77 @@
 
 from __future__ import annotations
 
+from enum import StrEnum
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from . import common_schema
+
+
+class Formative(StrEnum):
+    never = 'never'
+    first = 'first'
+    always = 'always'
+
+
+class Kind(StrEnum):
+    need = 'need'
+    mood = 'mood'
+    will_to_live = 'will_to_live'
+
+
+class KnowledgeMemoryEffect(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    kind: Kind
+    id: str | None = Field(
+        None,
+        description='Need or mood id; omitted = any need or mood; ignored for will_to_live.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    delta_at_most: float | None = Field(
+        None,
+        description="The effect's delta is at most this (e.g. -0.1 for a clear loss).",
+        ge=-1.0,
+        le=1.0,
+    )
+    delta_at_least: float | None = Field(
+        None,
+        description="The effect's delta is at least this (e.g. 0.2 for a clear gain).",
+        ge=-1.0,
+        le=1.0,
+    )
+
+
+class Trigger(StrEnum):
+    unknown_object = 'unknown_object'
+    noticed_player = 'noticed_player'
+    unknown_inhabitant = 'unknown_inhabitant'
+
+
+class Question(StrEnum):
+    what_is = 'what_is'
+    can_i_eat = 'can_i_eat'
+    is_dangerous = 'is_dangerous'
+    what_can_i_do = 'what_can_i_do'
+    why = 'why'
+
+
+class KnowledgeNightQuestion(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    trigger: Trigger = Field(
+        ...,
+        description='Trigger kind of the open question (decider-settings: triggers); only questions about an object type are asked.',
+    )
+    question: Question = Field(
+        ...,
+        description='Question kind of the job (generation-job: payload.question.question).',
+    )
 
 
 class KnowledgeRelationChange(BaseModel):
@@ -173,6 +239,69 @@ class KnowledgePassing(BaseModel):
     )
 
 
+class KnowledgeMemoryEvent(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    event: str = Field(
+        ...,
+        description='Event kind (vocabulary event).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    detail_ends_with: str | None = Field(
+        None,
+        description='Only events whose language-neutral detail ends with this text (as in event_effects). Omitted = every event of the kind.',
+        max_length=64,
+        min_length=1,
+    )
+    kind: str | None = Field(
+        None,
+        description='Kind of the remembered event (a word the memory uses, e.g. felt_bad). Omitted = the event kind, or the action with action_as_kind.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    action_as_kind: bool | None = Field(
+        None,
+        description='True = the action of the event is the kind of the remembered event (e.g. eat, drink); not together with kind. Omitted = false.',
+    )
+    left_out_actions: list[common_schema.VocabId] | None = Field(
+        None,
+        description='Events of these actions are not remembered by this entry.',
+        max_length=32,
+    )
+    formative: Formative = Field(
+        ...,
+        description='never = an everyday event; first = formative the first time the inhabitant remembers this kind about this subject; always = formative every time.',
+    )
+    both: bool | None = Field(
+        None,
+        description='True = an event aimed at another inhabitant is remembered by that inhabitant too, about the actor (e.g. first_meeting, which the core reports once per pair). Omitted = false.',
+    )
+    only_with_subject: bool | None = Field(
+        None,
+        description='True = only events that are about something (another inhabitant or a thing); what the inhabitant did without a target (looking around, sleeping) is not remembered by this entry. Omitted = false.',
+    )
+    effect: KnowledgeMemoryEffect | None = None
+
+
+class KnowledgeNightQuestions(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    job_priority: int = Field(
+        ...,
+        description='Priority of question jobs (generation-job: higher runs first).',
+        ge=0,
+        le=100,
+    )
+    questions: list[KnowledgeNightQuestion] = Field(
+        ...,
+        description='Which open questions get a guess; a trigger that is not listed gets none.',
+        max_length=8,
+    )
+
+
 class KnowledgeStartRelationships(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -267,6 +396,53 @@ class KnowledgeLooking(BaseModel):
     )
 
 
+class KnowledgeMemory(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    condense_at: int = Field(
+        ...,
+        description="A compute night condenses an inhabitant's memory once this many of its events are not in the summary yet.",
+        ge=1,
+        le=512,
+    )
+    job_max_events: int = Field(
+        ...,
+        description='Most events in one memory job, oldest first; more go into further jobs. At most 32 (generation-job: memory.events holds 32).',
+        ge=1,
+        le=32,
+    )
+    job_max_formative: int = Field(
+        ...,
+        description='Most formative events in one memory job (each must stay in the summary, so the text budget limits them); a job ends before the next one. At most job_max_events (checked at load).',
+        ge=1,
+        le=32,
+    )
+    max_chars: int = Field(
+        ...,
+        description='Text budget of the summary in characters (generation-job: memory.max_chars 100..1200).',
+        ge=100,
+        le=1200,
+    )
+    max_events: int = Field(
+        ...,
+        description='Most remembered events per inhabitant. Beyond it the oldest event that is not formative is forgotten first, then the oldest formative one that is already in the summary, then the oldest. At least condense_at (checked at load).',
+        ge=1,
+        le=512,
+    )
+    job_priority: int = Field(
+        ...,
+        description='Priority of memory jobs (generation-job: higher runs first).',
+        ge=0,
+        le=100,
+    )
+    events: list[KnowledgeMemoryEvent] = Field(
+        ...,
+        description='Which core events an inhabitant remembers. Every entry that fits an event gives one remembered event.',
+        max_length=64,
+    )
+
+
 class KnowledgeSettings(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -333,3 +509,5 @@ class KnowledgeSettings(BaseModel):
     relationship_changes: KnowledgeRelationshipChanges | None = None
     meeting: KnowledgeMeeting | None = None
     imprinting: KnowledgeImprinting | None = None
+    memory: KnowledgeMemory | None = None
+    night_questions: KnowledgeNightQuestions | None = None

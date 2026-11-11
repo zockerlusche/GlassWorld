@@ -373,6 +373,7 @@ public sealed class ContentSet
         }
 
         problems.AddRange(SocialProblems(data, actions, effects, model));
+        problems.AddRange(MemoryProblems(data, actions, Ids(vocabularies, VocabularyKind.Event), model));
 
         if (problems.Count > 0)
         {
@@ -380,6 +381,69 @@ public sealed class ContentSet
         }
 
         return data;
+    }
+
+    /// <summary>
+    /// Memory and night questions (B4a R5, B7): the limits fit each other and the job contract; every
+    /// remembered event names a known event, known actions and, for an effect, a known need or mood with a
+    /// bound; a trigger is listed for at most one question.
+    /// </summary>
+    private static IEnumerable<string> MemoryProblems(KnowledgeSettings data, Dictionary<string, VocabularyEntry> actions, HashSet<string> events, InhabitantModel model)
+    {
+        foreach (var twice in (data.NightQuestions?.Questions ?? []).GroupBy(q => q.Trigger).Where(g => g.Count() > 1))
+        {
+            yield return $"night_questions lists trigger '{twice.Key.ToString().ToLowerInvariant()}' twice";
+        }
+
+        if (data.Memory is not { } memory)
+        {
+            yield break;
+        }
+
+        if (memory.JobMaxFormative > memory.JobMaxEvents)
+        {
+            yield return "memory.job_max_formative is above job_max_events";
+        }
+
+        if (memory.MaxEvents < memory.CondenseAt)
+        {
+            yield return "memory.max_events is below condense_at (the memory would never be condensed)";
+        }
+
+        foreach (var entry in memory.Events)
+        {
+            if (!events.Contains(entry.Event))
+            {
+                yield return $"memory event '{entry.Event}' is not in vocabulary 'event'";
+            }
+
+            if (entry.Kind is not null && entry.ActionAsKind == true)
+            {
+                yield return $"memory event '{entry.Event}' has both kind and action_as_kind";
+            }
+
+            foreach (var action in (entry.LeftOutActions ?? []).Where(a => !actions.ContainsKey(a)))
+            {
+                yield return $"memory event '{entry.Event}' leaves out unknown action '{action}'";
+            }
+
+            if (entry.Effect is not { } effect)
+            {
+                continue;
+            }
+
+            if (effect.DeltaAtMost is null && effect.DeltaAtLeast is null)
+            {
+                yield return $"memory event '{entry.Event}' has an effect without delta_at_most or delta_at_least";
+            }
+
+            if (effect.Id is { } id
+                && ((effect.Kind == KnowledgeMemoryEffectKind.Need && !model.Needs.Any(n => n.Id == id))
+                    || (effect.Kind == KnowledgeMemoryEffectKind.Mood && !model.Moods.Any(m => m.Id == id))))
+            {
+                yield return $"memory event '{entry.Event}' names unknown {effect.Kind.ToString().ToLowerInvariant()} '{id}'";
+            }
+        }
     }
 
     /// <summary>
