@@ -32,12 +32,44 @@ public static class InhabitantStates
 
         var types = perceivedTypes.Distinct(StringComparer.Ordinal).ToList();
         var visible = knowledge.Looking?.VisibleProperties.ToHashSet(StringComparer.Ordinal) ?? [];
-        state.Knowledge = [.. types
+        var known = new List<KnowledgeEntry>();
+        foreach (var type in types)
+        {
+            if (known.Count >= knowledge.RequestMaxKnowledge)
+            {
+                break;
+            }
 
-            // What a thing is not by its look (not a stone ...) says little and would crowd out the rest.
-            .SelectMany(type => inhabitant.Beliefs.About(type).Where(b => b.Belief.Value || !visible.Contains(b.PropertyId)).Select(b => (Type: type, b.PropertyId, b.Belief)))
-            .Take(knowledge.RequestMaxKnowledge)
-            .Select(b => Entry(inhabitant, b.Type, b.PropertyId, b.Belief, typeLabel))];
+            // Where it last saw a thing of the type and what it calls the type are the same for every belief
+            // about it: looked up once per type, and only if a belief about the type is carried at all.
+            var looked = false;
+            (string ObjectId, PlaceMemory Place)? seen = null;
+            LocalizedName? called = null;
+            foreach (var (property, belief) in inhabitant.Beliefs.About(type))
+            {
+                // What a thing is not by its look (not a stone ...) says little and would crowd out the rest.
+                if (!belief.Value && visible.Contains(property))
+                {
+                    continue;
+                }
+
+                if (known.Count >= knowledge.RequestMaxKnowledge)
+                {
+                    break;
+                }
+
+                if (!looked)
+                {
+                    seen = LatestPlace(inhabitant, type);
+                    called = typeLabel?.Invoke(inhabitant, type);
+                    looked = true;
+                }
+
+                known.Add(Entry(type, property, belief, seen, called));
+            }
+        }
+
+        state.Knowledge = known;
         var start = new Objects.Relation(knowledge.RelationshipStart.Affection, knowledge.RelationshipStart.Trust, knowledge.RelationshipStart.Respect);
         state.Relationships = [.. perceivedInhabitants.Take(knowledge.RequestMaxInhabitants).Select(other =>
         {
@@ -59,9 +91,16 @@ public static class InhabitantStates
         return state;
     }
 
-    internal static KnowledgeEntry Entry(Inhabitant inhabitant, string type, string property, Objects.Belief belief, Func<Inhabitant, string, LocalizedName?>? typeLabel = null)
+    internal static KnowledgeEntry Entry(Inhabitant inhabitant, string type, string property, Objects.Belief belief, Func<Inhabitant, string, LocalizedName?>? typeLabel = null) =>
+        Entry(type, property, belief, LatestPlace(inhabitant, type), typeLabel?.Invoke(inhabitant, type));
+
+    /// <summary>
+    /// A belief as the contract carries it, with what belongs to its type and is the same for all beliefs
+    /// about it: <paramref name="seen"/>, the most recent remembered place of the type, and
+    /// <paramref name="called"/>, what the inhabitant itself calls it.
+    /// </summary>
+    private static KnowledgeEntry Entry(string type, string property, Objects.Belief belief, (string ObjectId, PlaceMemory Place)? seen, LocalizedName? called)
     {
-        var seen = LatestPlace(inhabitant, type);
         return new KnowledgeEntry
         {
             Subject = new Subject { Kind = SubjectKind.Type, Id = type },
@@ -77,7 +116,7 @@ public static class InhabitantStates
             Object = seen?.ObjectId,
 
             // What the inhabitant itself calls this kind of thing (an invention it knows); absent for what the data name.
-            Label = typeLabel?.Invoke(inhabitant, type),
+            Label = called,
         };
     }
 

@@ -37,17 +37,38 @@ public static class PathFinder
     /// </summary>
     public sealed class Scratch(int size)
     {
-        internal long[] G { get; } = new long[size];
-
-        internal int[] Came { get; } = new int[size];
-
-        internal int[] Seen { get; } = new int[size];
-
-        internal int[] Closed { get; } = new int[size];
+        internal Node[] Nodes { get; } = new Node[size];
 
         internal int Stamp { get; set; }
 
         internal int Size { get; } = size;
+
+        /// <summary>The open list of the search that is running: a binary heap, smallest first.</summary>
+        internal Open[] Heap { get; set; } = new Open[256];
+    }
+
+    /// <summary>
+    /// What a search knows about a cell, kept together so that looking at a neighbour touches one place in
+    /// memory: the cost so far, the cell it was reached from, and a mark - twice the stamp of the search that
+    /// saw it, plus one once that search has closed it. Any other mark is an older search's and counts as unseen.
+    /// </summary>
+    internal struct Node
+    {
+        public long G;
+        public int Came;
+        public int Mark;
+    }
+
+    /// <summary>
+    /// An entry of the open list: a cell with its total (cost so far + estimate) and its estimate. The order
+    /// is the search's fixed rule - lower total, then lower estimate, then lower cell index - and it is
+    /// strict: two entries are never equal in it unless they are the same cell at the same cost, so every
+    /// heap that keeps this order hands the cells out in the same sequence.
+    /// </summary>
+    internal readonly record struct Open(long F, long H, int Index)
+    {
+        public bool Before(in Open other) =>
+            F != other.F ? F < other.F : H != other.H ? H < other.H : Index < other.Index;
     }
 
     private const long Straight = 1000;
@@ -120,14 +141,16 @@ public static class PathFinder
     {
         ArgumentNullException.ThrowIfNull(map);
         var w = map.WidthCells;
-        var size = w * map.DepthCells;
+        var d = map.DepthCells;
+        var size = w * d;
         if (costs is not null && costs.Length != size)
         {
             throw new ArgumentException($"The walk costs have {costs.Length} entries, the map has {size} cells.", nameof(costs));
         }
 
-        int CostOf(int x, int z) => costs is null ? map.Cell(x, z).WalkCost : costs[(z * w) + x];
-        if (!map.Contains(from.X, from.Z) || !map.Contains(to.X, to.Z) || CostOf(to.X, to.Z) == MapCell.Blocked)
+        // One flat array of walk costs, whoever gives them: the run-time layer or the map itself.
+        var cost = costs ?? map.WalkCosts;
+        if (!map.Contains(from.X, from.Z) || !map.Contains(to.X, to.Z) || cost[(to.Z * w) + to.X] == MapCell.Blocked)
         {
             return new PathResult(PathStatus.Unreachable, [], 0);
         }
@@ -138,46 +161,65 @@ public static class PathFinder
         }
 
         var s = scratch is { } given && given.Size == size ? given : new Scratch(size);
-        if (++s.Stamp == int.MaxValue)
+        if (++s.Stamp >= int.MaxValue / 2)
         {
-            Array.Clear(s.Seen);
-            Array.Clear(s.Closed);
+            Array.Clear(s.Nodes);
             s.Stamp = 1;
         }
 
-        var stamp = s.Stamp;
-        var g = s.G;
-        var came = s.Came;
-        bool IsClosed(int i) => s.Closed[i] == stamp;
-        long G(int i) => s.Seen[i] == stamp ? g[i] : long.MaxValue;
+        var seenMark = s.Stamp * 2;
+        var closedMark = seenMark + 1;
+        var nodes = s.Nodes;
+        var heap = s.Heap;
+        var count = 0;
         var start = (from.Z * w) + from.X;
         var goal = (to.Z * w) + to.X;
-        var unit = Math.Max(0, minWalkCost);
+        long unit = Math.Max(0, minWalkCost);
+        int toX = to.X, toZ = to.Z;
 
-        long Estimate(int index)
-        {
-            int dx = Math.Abs((index % w) - to.X), dz = Math.Abs((index / w) - to.Z);
-            // Straight steps for the difference, diagonal steps for the overlap: max·1000 + min·414.
-            var octile = (Straight * Math.Max(dx, dz)) + ((Diagonal - Straight) * Math.Min(dx, dz));
-            return octile * unit;
-        }
-
-        var open = new PriorityQueue<int, (long F, long H, int Index)>();
-        g[start] = 0;
-        s.Seen[start] = stamp;
-        came[start] = -1;
-        open.Enqueue(start, (Estimate(start), Estimate(start), start));
+        nodes[start] = new Node { G = 0, Came = -1, Mark = seenMark };
+        var first = Estimate(from.X, from.Z, toX, toZ) * unit;
+        heap[count++] = new Open(first, first, start);
         var expanded = 0;
-        while (open.TryDequeue(out var current, out _))
+        var steps = Steps;
+        while (count > 0)
         {
-            if (IsClosed(current))
+            // Take the smallest entry out: the last one moves to the top and sinks to its place.
+            var current = heap[0].Index;
+            var last = heap[--count];
+            var hole = 0;
+            while (true)
+            {
+                var child = (2 * hole) + 1;
+                if (child >= count)
+                {
+                    break;
+                }
+
+                if (child + 1 < count && heap[child + 1].Before(heap[child]))
+                {
+                    child++;
+                }
+
+                if (!heap[child].Before(last))
+                {
+                    break;
+                }
+
+                heap[hole] = heap[child];
+                hole = child;
+            }
+
+            heap[hole] = last;
+            ref var here = ref nodes[current];
+            if (here.Mark == closedMark)
             {
                 continue;
             }
 
             if (current == goal)
             {
-                return new PathResult(PathStatus.Found, Trace(came, goal, start, w), expanded, g[goal]);
+                return new PathResult(PathStatus.Found, Trace(nodes, goal, start, w), expanded, here.G);
             }
 
             if (++expanded > nodeBudget)
@@ -185,50 +227,85 @@ public static class PathFinder
                 return new PathResult(PathStatus.BudgetExceeded, [], expanded);
             }
 
-            s.Closed[current] = stamp;
+            here.Mark = closedMark;
             int cx = current % w, cz = current / w;
-            foreach (var (dx, dz, step) in Steps)
+            var soFar = here.G;
+            for (var i = 0; i < steps.Length; i++)
             {
+                var (dx, dz, step) = steps[i];
                 int nx = cx + dx, nz = cz + dz;
-                if (!map.Contains(nx, nz))
-                {
-                    continue;
-                }
-
-                var cost = CostOf(nx, nz);
-                if (cost == MapCell.Blocked)
-                {
-                    continue;
-                }
-
-                // No corner cutting: a diagonal step needs both orthogonal neighbours walkable.
-                if (dx != 0 && dz != 0 && (CostOf(cx + dx, cz) == MapCell.Blocked || CostOf(cx, cz + dz) == MapCell.Blocked))
+                if (nx < 0 || nz < 0 || nx >= w || nz >= d)
                 {
                     continue;
                 }
 
                 var next = (nz * w) + nx;
-                var tentative = g[current] + (step * cost);
-                if (IsClosed(next) || tentative >= G(next))
+                var there = cost[next];
+                if (there == MapCell.Blocked)
                 {
                     continue;
                 }
 
-                g[next] = tentative;
-                s.Seen[next] = stamp;
-                came[next] = current;
-                var h = Estimate(next);
-                open.Enqueue(next, (tentative + h, h, next));
+                // No corner cutting: a diagonal step needs both orthogonal neighbours walkable.
+                if (dx != 0 && dz != 0 && (cost[current + dx] == MapCell.Blocked || cost[next - dx] == MapCell.Blocked))
+                {
+                    continue;
+                }
+
+                var tentative = soFar + (step * there);
+                ref var node = ref nodes[next];
+                if (node.Mark == closedMark || (node.Mark == seenMark && tentative >= node.G))
+                {
+                    continue;
+                }
+
+                node.G = tentative;
+                node.Mark = seenMark;
+                node.Came = current;
+                var h = Estimate(nx, nz, toX, toZ) * unit;
+
+                // Put the entry in: it rises from the end to its place.
+                if (count == heap.Length)
+                {
+                    Array.Resize(ref heap, heap.Length * 2);
+                    s.Heap = heap;
+                }
+
+                var entry = new Open(tentative + h, h, next);
+                var at = count++;
+                while (at > 0)
+                {
+                    var parent = (at - 1) / 2;
+                    if (!entry.Before(heap[parent]))
+                    {
+                        break;
+                    }
+
+                    heap[at] = heap[parent];
+                    at = parent;
+                }
+
+                heap[at] = entry;
             }
         }
 
         return new PathResult(PathStatus.Unreachable, [], expanded);
     }
 
-    private static List<(int X, int Z)> Trace(int[] came, int goal, int start, int w)
+    /// <summary>
+    /// The octile distance between two cells in thousandths of a straight step: straight steps for the
+    /// difference, diagonal steps for the overlap (max x 1000 + min x 414).
+    /// </summary>
+    private static long Estimate(int x, int z, int toX, int toZ)
+    {
+        int dx = Math.Abs(x - toX), dz = Math.Abs(z - toZ);
+        return (Straight * Math.Max(dx, dz)) + ((Diagonal - Straight) * Math.Min(dx, dz));
+    }
+
+    private static List<(int X, int Z)> Trace(Node[] nodes, int goal, int start, int w)
     {
         var cells = new List<(int X, int Z)>();
-        for (var c = goal; c != start; c = came[c])
+        for (var c = goal; c != start; c = nodes[c].Came)
         {
             cells.Add((c % w, c / w));
         }

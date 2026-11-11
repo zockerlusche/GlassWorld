@@ -222,7 +222,19 @@ public sealed class TideTests : IDisposable
     [Fact]
     public void ARouteAlongTheShoreStaysOutOfTheFloodAtHighWater()
     {
-        // A corridor along a wall: the short way leads through depth 7, the long way stays at depth 2.
+        var map = Corridor();
+        var layer = new TideWalkLayer(map, Wave(), Shallow, ShallowCost, 2000);
+        (int X, int Z) from = (0, 3), to = (8, 3);
+        var atMean = PathFinder.Find(map, from, to, 1000, layer.MinCost, null, layer.CostsAt(250));
+        var atHigh = PathFinder.Find(map, from, to, 1000, layer.MinCost, null, layer.CostsAt(0));
+        Assert.All(atMean.Cells, c => Assert.True(c.Z >= 3));
+        Assert.Contains(atHigh.Cells, c => c.Z < 2);
+        Assert.Equal(PathStatus.Found, atHigh.Status);
+    }
+
+    /// <summary>A corridor along a wall: the short way leads through depth 7, the long way stays at depth 2.</summary>
+    private static WorldMap Corridor()
+    {
         var builder = new WorldMapBuilder(1, 9, 5, Biomes);
         for (var z = 0; z < 5; z++)
         {
@@ -235,14 +247,55 @@ public sealed class TideTests : IDisposable
             }
         }
 
-        var map = builder.Build();
-        var layer = new TideWalkLayer(map, Wave(), Shallow, ShallowCost, 2000);
-        (int X, int Z) from = (0, 3), to = (8, 3);
-        var atMean = PathFinder.Find(map, from, to, 1000, layer.MinCost, null, layer.CostsAt(250));
-        var atHigh = PathFinder.Find(map, from, to, 1000, layer.MinCost, null, layer.CostsAt(0));
-        Assert.All(atMean.Cells, c => Assert.True(c.Z >= 3));
-        Assert.Contains(atHigh.Cells, c => c.Z < 2);
-        Assert.Equal(PathStatus.Found, atHigh.Status);
+        return builder.Build();
+    }
+
+    [Fact]
+    public void ASearchIsKeptOnlyWhileTheTideLevelHolds()
+    {
+        // The map system keeps the searches of the tide level that holds: the same two cells are not
+        // searched twice. With another level the costs are other ones - and here the path as well - so
+        // nothing kept may be used.
+        var map = Corridor();
+        var island = SimulationHost.CreateGeneratedWorld(ContentDirectory, 7, new MockDecisionPort(), "de", Preset).Map!.Island with { Map = map };
+        var tick = 250L;
+        var system = new WorldMapSystem(island, 100) { TideWalk = new TideWalkLayer(map, Wave(), Shallow, ShallowCost, 2000), Clock = () => tick };
+        WorldMapSystem Fresh() => new(island, 100) { TideWalk = new TideWalkLayer(map, Wave(), Shallow, ShallowCost, 2000), Clock = () => tick };
+        var from = system.CentreOf(0, 3);
+        var to = system.CentreOf(8, 3);
+
+        var atMean = system.Find(from, to);
+        Assert.Equal(PathStatus.Found, atMean.Status);
+        Assert.Equal(1, system.Searches);
+        Assert.Equal(atMean.Waypoints, system.Find(from, to).Waypoints);
+        Assert.Equal(1, system.Searches);
+        Assert.Equal(Fresh().Find(from, to).Waypoints, atMean.Waypoints);
+
+        // Another place in the same goal cell: the same cells, and the walk ends exactly there.
+        var beside = new Simulation.Objects.Position(to.X + 0.2, to.Z - 0.3);
+        var toBeside = system.Find(from, beside);
+        Assert.Equal(1, system.Searches);
+        Assert.Equal(beside, toBeside.Waypoints[^1]);
+        Assert.Equal(atMean.Waypoints.SkipLast(1), toBeside.Waypoints.SkipLast(1));
+        Assert.Equal(to, atMean.Waypoints[^1]);
+
+        // High water: searched anew, and the way is another one (around the flood).
+        tick = 0;
+        var atHigh = system.Find(from, to);
+        Assert.Equal(2, system.Searches);
+        Assert.NotEqual(atMean.Waypoints, atHigh.Waypoints);
+        Assert.Equal(Fresh().Find(from, to).Waypoints, atHigh.Waypoints);
+
+        // Back at mean water: what was kept for the high water is gone as well.
+        tick = 250;
+        Assert.Equal(atMean.Waypoints, system.Find(from, to).Waypoints);
+        Assert.Equal(3, system.Searches);
+
+        // What cannot be reached is kept like a path: no second search for the same answer.
+        var wall = system.CentreOf(4, 2);
+        Assert.Equal(PathStatus.Unreachable, system.Find(from, wall).Status);
+        Assert.Equal(PathStatus.Unreachable, system.Find(from, wall).Status);
+        Assert.Equal(4, system.Searches);
     }
 
     [Fact]
