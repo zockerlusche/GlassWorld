@@ -55,17 +55,30 @@ public sealed class WeatherTests : IDisposable
         Assert.All(Year(3), p => Assert.Equal(0, p.Tick % step));
     }
 
-    [Fact]
-    public void EveryWeatherOfTheTableOccursOver20SeedsAndSeasonsShapeIt()
+    /// <summary>
+    /// The weather of 20 seeds over a year each (28 days): every condition seen, the conditions seen per
+    /// season, and the longest spell without precipitation in ticks with its seed. Run once for the tests that read it.
+    /// </summary>
+    private static readonly Lazy<(HashSet<string> Seen, Dictionary<string, HashSet<string>> BySeason, long LongestDry, ulong DrySeed)> TwentyYears = new(() =>
     {
         var seen = new HashSet<string>(StringComparer.Ordinal);
         var bySeason = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+        var precipitation = Climate().Weather.States.ToDictionary(s => s.Weather, s => s.PrecipitationPermille, StringComparer.Ordinal);
+        var longestDry = 0L;
+        var drySeed = 0UL;
         for (ulong seed = 1; seed <= 20; seed++)
         {
             var (world, weather) = Bare(seed);
+            var dry = 0L;
             for (var t = 0L; t < world.Calendar.TicksPerDay * 28; t++)
             {
                 world.Step();
+                dry = precipitation[weather.Current] == 0 ? dry + 1 : 0;
+                if (dry > longestDry)
+                {
+                    (longestDry, drySeed) = (dry, seed);
+                }
+
                 foreach (var condition in weather.Conditions)
                 {
                     seen.Add(condition);
@@ -80,24 +93,70 @@ public sealed class WeatherTests : IDisposable
             }
         }
 
-        // Acceptance 3 of the spec: every weather id of the table at least once over 20 seeds. The drought
-        // weather needs drought_after_dry_days in a row without precipitation, which the placeholder
-        // transitions practically never give within a year (open value question); its rule is tested in
-        // DryDaysAddTheDroughtConditionFromTheData.
-        var missing = Climate().Weather.States.Select(s => s.Weather).Where(w => !seen.Contains(w)).ToList();
-        Assert.True(missing.Count == 0 || (missing.Count == 1 && missing[0] == Climate().Weather.DroughtWeather), $"never seen: {string.Join(", ", missing)}");
+        return (seen, bySeason, longestDry, drySeed);
+    });
+
+    /// <summary>
+    /// The weather ids of the seasons' transition table: every weather a row starts from or leads to, and
+    /// the snow weather (precipitation below the snow temperature falls as snow).
+    /// </summary>
+    private static HashSet<string> TableWeathers() =>
+        Climate().Weather.Seasons.SelectMany(s => s.Transitions).SelectMany(t => t.To.Select(x => x.Weather).Append(t.FromWeather))
+            .Append(Climate().Weather.SnowWeather).ToHashSet(StringComparer.Ordinal);
+
+    [Fact]
+    public void EveryWeatherOfTheTableOccursOver20SeedsAndSeasonsShapeIt()
+    {
+        var (seen, bySeason, longestDry, _) = TwentyYears.Value;
+
+        // Acceptance 3 of the spec: every weather id of the table at least once over 20 seeds - every
+        // weather the seasons' transition table names, without exemption.
+        var data = Climate().Weather;
+        var table = TableWeathers();
+        var missing = table.Where(w => !seen.Contains(w)).Order(StringComparer.Ordinal).ToList();
+        Assert.True(missing.Count == 0, $"never seen in 20 seeds x 28 days: {string.Join(", ", missing)}");
+
+        // The drought weather is the one state that is no weather of the table: no row leads to it and it
+        // never becomes the main weather by itself. It is a condition that joins the main weather after
+        // drought_after_dry_days days in a row without precipitation (the rule:
+        // DryDaysAddTheDroughtConditionFromTheData). So it is seen exactly when a dry spell was that long;
+        // whether one is, with the repository's values, is TheDroughtConditionOccursOver20Seeds.
+        Assert.Equal([data.DroughtWeather], data.States.Select(s => s.Weather).Where(w => !table.Contains(w)));
+        var droughtTicks = (long)data.DroughtAfterDryDays * Content.Value.Calendar.TicksPerDay;
+        Assert.True(
+            seen.Contains(data.DroughtWeather) == (longestDry >= droughtTicks),
+            $"drought seen: {seen.Contains(data.DroughtWeather)}, longest dry spell {longestDry} ticks, drought after {droughtTicks}");
 
         // The season tables decide: no weather appears in a season whose table never leads to it.
-        foreach (var table in Climate().Weather.Seasons)
+        foreach (var seasonTable in data.Seasons)
         {
-            var reachable = table.Transitions.SelectMany(t => t.To.Select(x => x.Weather).Append(t.FromWeather))
-                .Append(Climate().Weather.DroughtWeather).ToHashSet(StringComparer.Ordinal);
-            var season = bySeason.GetValueOrDefault(table.Season, []);
+            var reachable = seasonTable.Transitions.SelectMany(t => t.To.Select(x => x.Weather).Append(t.FromWeather))
+                .Append(data.DroughtWeather).ToHashSet(StringComparer.Ordinal);
+            var season = bySeason.GetValueOrDefault(seasonTable.Season, []);
             var strangers = season.Where(w => !reachable.Contains(w)).ToList();
 
             // A weather carried over from the season before may last until its first change step.
-            Assert.True(strangers.Count <= 2, $"{table.Season}: {string.Join(", ", strangers)}");
+            Assert.True(strangers.Count <= 2, $"{seasonTable.Season}: {string.Join(", ", strangers)}");
         }
+    }
+
+    /// <summary>
+    /// Acceptance 3 of the spec read by the letter: every weather id, the drought too, at least once over
+    /// 20 seeds. With the repository's values it does not: see the skip reason. The test is kept, skipped,
+    /// so the finding stays visible until the values (or the wording of the acceptance) are decided.
+    /// </summary>
+    [Fact(Skip = "Finding (B2 acceptance 3, evidence audit): the drought condition never occurs in 20 seeds x 28 days. "
+        + "The longest spell without precipitation is 7.75 days (11160 ticks, seed 3), drought_after_dry_days is 10, and a year has 28 days "
+        + "(content/climate/temperate.json, placeholder values). A value question for Marcel, not a code error: "
+        + "the rule itself is tested in DryDaysAddTheDroughtConditionFromTheData.")]
+    public void TheDroughtConditionOccursOver20Seeds()
+    {
+        var (seen, _, longestDry, drySeed) = TwentyYears.Value;
+        var data = Climate().Weather;
+        var days = longestDry / (double)Content.Value.Calendar.TicksPerDay;
+        Assert.True(
+            seen.Contains(data.DroughtWeather),
+            $"the drought condition never occurs in 20 seeds x 28 days: longest spell without precipitation {days:F2} days ({longestDry} ticks, seed {drySeed}), drought after {data.DroughtAfterDryDays}");
     }
 
     [Fact]

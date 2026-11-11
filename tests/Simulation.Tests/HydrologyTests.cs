@@ -20,43 +20,53 @@ public sealed class HydrologyTests
     private static GeneratedIsland Generate(ulong seed) =>
         WorldGenerator.Generate(Content.Value.WorldGen, Content.Value.Objects, "start_island", seed);
 
+    /// <summary>
+    /// B2 acceptance: every stream ends in the sea or a lake. From every running stream cell the water is
+    /// followed downstream; it never runs uphill, and the way ends on sea or lake water - not on dry land,
+    /// not in a loop and not on a stream cell that leads nowhere. A stream cell without a direction is the
+    /// side cell of a wide stream (it lies still beside its channel): it must lie beside a running stream
+    /// cell, whose way is followed like every other.
+    /// </summary>
     [Theory]
-    [InlineData(1UL)]
-    [InlineData(7UL)]
-    [InlineData(42UL)]
+    [MemberData(nameof(AcceptanceIslands.Seeds), MemberType = typeof(AcceptanceIslands))]
     public void EveryStreamRunsDownhillIntoTheSeaOrALake(ulong seed)
     {
-        var map = Generate(seed).Map;
+        var map = AcceptanceIslands.Of(seed).Map;
         var hydrology = Assert.IsType<HydrologyLayer>(map.Hydrology);
+        bool Stream(int x, int z) => map.Contains(x, z) && (hydrology.Feature(x, z) & WaterFeature.Stream) != 0;
+        bool SeaOrLake(int x, int z) => map.Cell(x, z).Water == WaterKind.Salt || (hydrology.Feature(x, z) & WaterFeature.Lake) != 0;
         var streams = 0;
         for (var z = 0; z < map.DepthCells; z++)
         {
             for (var x = 0; x < map.WidthCells; x++)
             {
-                if ((hydrology.Feature(x, z) & WaterFeature.Stream) == 0 || map.Cell(x, z).Flow < 0)
+                if (!Stream(x, z))
                 {
+                    continue;
+                }
+
+                if (map.Cell(x, z).Flow < 0)
+                {
+                    var running = new[] { (1, 0), (-1, 0), (0, 1), (0, -1) }.Any(n => Stream(x + n.Item1, z + n.Item2) && map.Cell(x + n.Item1, z + n.Item2).Flow >= 0);
+                    Assert.True(running || SeaOrLake(x, z), $"seed {seed}: the still stream cell ({x},{z}) lies beside no running stream");
                     continue;
                 }
 
                 streams++;
                 int cx = x, cz = z;
-                for (var guard = 0; guard < map.WidthCells * map.DepthCells; guard++)
+                var steps = 0;
+                while (!SeaOrLake(cx, cz))
                 {
                     var c = map.Cell(cx, cz);
-                    if (c.Water == WaterKind.Salt || (hydrology.Feature(cx, cz) & WaterFeature.Lake) != 0 || c.Flow < 0)
-                    {
-                        break;
-                    }
-
+                    Assert.True(Stream(cx, cz) && c.Flow >= 0, $"seed {seed}: the stream from ({x},{z}) ends at ({cx},{cz}), which is neither sea nor lake");
+                    Assert.True(++steps <= map.WidthCells * map.DepthCells, $"seed {seed}: the stream from ({x},{z}) runs in a circle");
                     var (dx, dz) = FlowDirections.All[c.Flow];
+                    Assert.True(map.Contains(cx + dx, cz + dz), $"seed {seed}: the stream from ({x},{z}) leaves the map at ({cx},{cz})");
                     var next = map.Cell(cx + dx, cz + dz);
                     Assert.True(next.Height <= c.Height, $"seed {seed}: ({cx},{cz}) flows uphill");
                     Assert.NotEqual(WaterKind.None, next.Water);
                     (cx, cz) = (cx + dx, cz + dz);
                 }
-
-                var end = map.Cell(cx, cz);
-                Assert.True(end.Water == WaterKind.Salt || (hydrology.Feature(cx, cz) & WaterFeature.Lake) != 0 || (hydrology.Feature(cx, cz) & WaterFeature.Stream) != 0, $"seed {seed}: the stream from ({x},{z}) ends at ({cx},{cz})");
             }
         }
 
@@ -226,26 +236,105 @@ public sealed class HydrologyTests
         Assert.All(springs, s => Assert.True(island.Objects.Count(o => (o.X, o.Z) == s) <= 1));
     }
 
-    [Fact]
-    public void LakesAreFedHollowsLargeEnough()
+    /// <summary>
+    /// B2 acceptance: lakes lie in hollows. What a hollow is comes from how the generator makes a lake
+    /// (<c>WorldGenerator.Hydrology</c>): the priority flood from the sea finds the ground that lies below
+    /// its spill level; such a hollow, if a stream or spring feeds it and it has the data size and depth,
+    /// is filled to that level (or, larger than its inflow fills, holds a closed lake that grows from its
+    /// deepest cell, lowest ground first). Either way the lake is a depression of the ground: no cell of
+    /// its bed stands higher than the lowest dry land at its shore, the water stands above every bed cell
+    /// by the data's least depth, and above the lowest shore by no more than that depth (shallow rim cells
+    /// are given the least depth, so the surface is not perfectly level). Every lake (8-connected cells,
+    /// as the generator groups a hollow) has at least the data's cells.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(AcceptanceIslands.Seeds), MemberType = typeof(AcceptanceIslands))]
+    public void LakesAreFedHollowsLargeEnough(ulong seed)
     {
-        var map = Generate(7).Map;
+        var map = AcceptanceIslands.Of(seed).Map;
         var hydrology = map.Hydrology!;
-        var lake = new bool[map.WidthCells * map.DepthCells];
-        for (var z = 0; z < map.DepthCells; z++)
+        int w = map.WidthCells, d = map.DepthCells;
+        var lake = new bool[w * d];
+        for (var z = 0; z < d; z++)
         {
-            for (var x = 0; x < map.WidthCells; x++)
+            for (var x = 0; x < w; x++)
             {
                 if ((hydrology.Feature(x, z) & WaterFeature.Lake) != 0)
                 {
-                    lake[(z * map.WidthCells) + x] = true;
+                    lake[(z * w) + x] = true;
                     Assert.Equal(WaterKind.Fresh, map.Cell(x, z).Water);
                     Assert.Equal(-1, map.Cell(x, z).Flow);
                 }
             }
         }
 
-        Assert.Contains(true, lake);
+        var water = Preset.Water;
+        var seen = new bool[w * d];
+        int lakes = 0, withShore = 0;
+        for (var first = 0; first < w * d; first++)
+        {
+            if (!lake[first] || seen[first])
+            {
+                continue;
+            }
+
+            // One lake: its cells, and the dry land that touches it (8 neighbours, as the flood sees them).
+            var cells = new List<(int X, int Z)>();
+            var shore = new HashSet<(int X, int Z)>();
+            var queue = new Queue<(int X, int Z)>([(first % w, first / w)]);
+            seen[first] = true;
+            while (queue.TryDequeue(out var c))
+            {
+                cells.Add(c);
+                foreach (var (dx, dz) in FlowDirections.All)
+                {
+                    int nx = c.X + dx, nz = c.Z + dz;
+                    if (!map.Contains(nx, nz))
+                    {
+                        continue;
+                    }
+
+                    if (lake[(nz * w) + nx])
+                    {
+                        if (!seen[(nz * w) + nx])
+                        {
+                            seen[(nz * w) + nx] = true;
+                            queue.Enqueue((nx, nz));
+                        }
+                    }
+                    else if (map.Cell(nx, nz).Water == WaterKind.None)
+                    {
+                        shore.Add((nx, nz));
+                    }
+                }
+            }
+
+            lakes++;
+            var at = $"seed {seed}: the lake at ({cells[0].X},{cells[0].Z}) with {cells.Count} cells";
+            Assert.True(cells.Count >= water.LakeMinCells, $"{at} is smaller than lake_min_cells {water.LakeMinCells}");
+            Assert.All(cells, c => Assert.True(map.Cell(c.X, c.Z).WaterDepth >= water.LakeWaterMinDepth, $"{at}: water depth {map.Cell(c.X, c.Z).WaterDepth} at ({c.X},{c.Z})"));
+            if (shore.Count == 0)
+            {
+                // Only other water around it (streams, swamp): no dry shore to compare with.
+                continue;
+            }
+
+            withShore++;
+            var brim = shore.Min(c => map.Cell(c.X, c.Z).Height);
+            var lowestShore = shore.First(c => map.Cell(c.X, c.Z).Height == brim);
+            var highestBed = cells.MaxBy(c => map.Cell(c.X, c.Z).Height);
+            Assert.True(
+                map.Cell(highestBed.X, highestBed.Z).Height <= brim,
+                $"{at} is no hollow: its bed at ({highestBed.X},{highestBed.Z}) has height {map.Cell(highestBed.X, highestBed.Z).Height}, the dry shore at ({lowestShore.X},{lowestShore.Z}) only {brim}");
+            var highestWater = cells.MaxBy(c => map.Cell(c.X, c.Z).Height + map.Cell(c.X, c.Z).WaterDepth);
+            var surface = map.Cell(highestWater.X, highestWater.Z).Height + map.Cell(highestWater.X, highestWater.Z).WaterDepth;
+            Assert.True(
+                surface <= brim + water.LakeWaterMinDepth,
+                $"{at} stands above its hollow: water surface {surface} at ({highestWater.X},{highestWater.Z}), the dry shore at ({lowestShore.X},{lowestShore.Z}) has height {brim}");
+        }
+
+        Assert.True(lakes > 0, $"seed {seed}: no lake");
+        Assert.True(withShore > 0, $"seed {seed}: no lake with a dry shore");
     }
 
     [Theory]
