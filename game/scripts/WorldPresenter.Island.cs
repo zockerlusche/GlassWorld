@@ -30,6 +30,7 @@ public partial class WorldPresenter
     private IslandView? _islandView;
     private ObjectsView? _objectsView;
     private GrassView? _grassView;
+    private CloudCover? _cover;
     private NatureLook? _nature;
     private string _seasonSeen = string.Empty;
     private Simulation.Weather.WeatherReading? _weatherSeen;
@@ -279,6 +280,16 @@ public partial class WorldPresenter
         AddChild(_grassView);
         AddChild(_nature);
 
+        // Cloud cover over what the player has not seen yet (B2-6 R25); the land a new or loaded world
+        // knows is clear at once, only land seen from now on clears slowly.
+        if (host.Exploration is { } exploration)
+        {
+            var seaLevelM = _seaLevelM;
+            bool IsLand(int x, int z) => IslandView.GroundHeight(ground, terrain, (x + 0.5) * terrain.CellM, (z + 0.5) * terrain.CellM) > seaLevelM;
+            _cover = CloudCover.Create(exploration, IsLand, _nature.Data.Cover, palette, terrain.CellM, preset.Exploration?.RevealRealSeconds ?? 0, _nature.Wind.DirectionX, _nature.Wind.DirectionZ);
+            AddChild(_cover);
+        }
+
         _figuresLook = Read<LookFigures>(content, "look", "figures.json");
         _objectsView.SetupCrownFade(_figuresLook.CrownFade);
         _appearanceLook = Read<LookAppearance>(content, "look", "appearance.json");
@@ -299,6 +310,7 @@ public partial class WorldPresenter
 
         LightTheScene(content, _look, "IslandPlaceholder", "WaterPlaceholder");
         GD.Print($"ISLAND_WORLD preset={map.Island.PresetId} chunks={_islandView.GroundChunks} figures={_islandFigures.Count} objects_drawn={_objectsView.Drawn} layers={_objectsView.Layers}");
+        GD.Print(_cover is null ? "ISLAND_COVER none" : $"ISLAND_COVER cells={_cover.Map.Width}x{_cover.Map.Depth} version={_cover.Map.Version} seen_permille={(int)(_cover.Map.SeenShare * 1000)}");
         GD.Print($"ISLAND_NATURE grass_plants={_grassView.Plants} grass_layers={_grassView.Layers} season={_seasonSeen} season_colors={_nature.Season.Slots.Ids.Count} weather_looks={_nature.WeatherWithLook.Count}");
     }
 
@@ -356,6 +368,7 @@ public partial class WorldPresenter
         _islandView = null;
         _objectsView = null;
         _grassView = null;
+        _cover = null;
         _nature = null;
         _rig = null;
         _figureShared = null;
@@ -461,6 +474,7 @@ public partial class WorldPresenter
         var calendar = _host!.World.Calendar;
         _islandView?.FollowTide(_tideSeen, _freeze.Frozen ? 0 : delta);
         _nature.Follow(_seasonSeen, _epochSeen, _weatherSeen, _freeze.Frozen ? 0 : delta, focus, Speed, calendar.RealSecondsPerTickAtNormalSpeed * calendar.Settings.TicksPerHour / 60.0);
+        _cover?.Advance(_freeze.Frozen ? 0 : delta);
     }
 
     /// <summary>Puts back what <see cref="LightTheScene"/> changed in the scene (back to the menu).</summary>
@@ -529,6 +543,11 @@ public partial class WorldPresenter
 
         var snapshot = _host.Snapshot();
         (_seasonSeen, _weatherSeen, _epochSeen, _tideSeen) = (snapshot.Time.SeasonId, snapshot.Weather, snapshot.LookEpoch, snapshot.Tide);
+        if (_host.Exploration is { } exploration)
+        {
+            // The player's view of the core (R25), asked where the snapshot is taken.
+            _cover?.Take(exploration, snapshot.ExploredVersion);
+        }
 
         // Seats (W1688) are taken from the objects only when they changed.
         if (_objectsView?.Refresh(snapshot.Objects) != false || _seats is null)

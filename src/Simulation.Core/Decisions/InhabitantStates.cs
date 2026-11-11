@@ -50,7 +50,7 @@ public static class InhabitantStates
         return state;
     }
 
-    private static KnowledgeEntry Entry(Inhabitant inhabitant, string type, string property, Objects.Belief belief)
+    internal static KnowledgeEntry Entry(Inhabitant inhabitant, string type, string property, Objects.Belief belief)
     {
         var seen = LatestPlace(inhabitant, type);
         return new KnowledgeEntry

@@ -188,6 +188,7 @@ internal sealed class RunCommand
 
         var stopwatch = Stopwatch.StartNew();
         var longestNeglect = new Dictionary<string, long>(StringComparer.Ordinal);
+        var lowestNeeds = new Dictionary<string, Dictionary<string, double>>(StringComparer.Ordinal);
         var reached = false;
         var interrupted = false;
         for (var day = 1; day <= options.Days && !reached && !interrupted; day++)
@@ -214,6 +215,15 @@ internal sealed class RunCommand
                 foreach (var i in host.Inhabitants.All)
                 {
                     longestNeglect[i.Id] = Math.Max(longestNeglect.GetValueOrDefault(i.Id), i.NeglectTicks);
+                    if (!lowestNeeds.TryGetValue(i.Id, out var lowest))
+                    {
+                        lowestNeeds[i.Id] = lowest = new Dictionary<string, double>(StringComparer.Ordinal);
+                    }
+
+                    foreach (var (need, value) in i.Needs)
+                    {
+                        lowest[need] = Math.Min(lowest.GetValueOrDefault(need, 1.0), value);
+                    }
                 }
 
                 json?.WriteNew(host.Decisions.Log, host.Inventions.Log);
@@ -237,6 +247,7 @@ internal sealed class RunCommand
         var fading = host.Inhabitants.All.Count(host.Inhabitants.IsFading);
         output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"done  seed {options.Seed}  days {options.Days}  inhabitants {host.Inhabitants.All.Count()}  ticks {ticks}  hash {host.World.StateHash()}"));
         output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"neglect  longest {worstHours} h (limit {limitHours} h)  fading {fading}"));
+        WriteNeeds(host, lowestNeeds, output);
         WriteSocial(host, output);
         if (host.Exploration is { } exploration && host.Map is { } island)
         {
@@ -285,6 +296,20 @@ internal sealed class RunCommand
             : !ok ? ExitCodes.AcceptanceFailed
             : options.Until is not null && !reached ? ExitCodes.UntilNotReached
             : ExitCodes.Ok;
+    }
+
+    /// <summary>
+    /// The needs at the end of a run: per inhabitant every need's value now and the lowest value it had at
+    /// the end of any tick of the run (e.g. how cold the winter got, W1745).
+    /// </summary>
+    private static void WriteNeeds(SimulationHost host, Dictionary<string, Dictionary<string, double>> lowestNeeds, TextWriter output)
+    {
+        foreach (var i in host.Inhabitants.All)
+        {
+            var lowest = lowestNeeds.GetValueOrDefault(i.Id);
+            var needs = i.Needs.Select(n => string.Create(CultureInfo.InvariantCulture, $"{n.Key} {n.Value:F2} (low {lowest?.GetValueOrDefault(n.Key, n.Value) ?? n.Value:F2})"));
+            output.WriteLine($"needs  {i.Id}  {string.Join("  ", needs)}");
+        }
     }
 
     /// <summary>

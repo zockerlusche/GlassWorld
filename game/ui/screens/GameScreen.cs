@@ -111,7 +111,7 @@ public partial class GameScreen : CanvasLayer
         _board = new ToastBoard(style.Tokens.Toast, new ToastSettings(1, UntilDismissed: false));
 
         AddChild(_root);
-        _root.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        _root.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
 
         // The compute night (B7, B2579/B2580): a shade over the world, behind every bar and window, and the
         // dream scene's words in the middle. Both let the mouse through.
@@ -129,17 +129,17 @@ public partial class GameScreen : CanvasLayer
         }
         (_nightPollS, _nightDarkness) = (nightLook.PollS, nightLook.Darkness);
         _root.AddChild(_nightShade);
-        _nightShade.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        _nightShade.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
         _nightText.AddChild(new Label { Text = "ui.night.title", ThemeTypeVariation = UiTheme.HeaderLabel, HorizontalAlignment = HorizontalAlignment.Center, MouseFilter = Control.MouseFilterEnum.Ignore });
         _nightText.AddChild(_nightProgress);
         _root.AddChild(_nightText);
-        _nightText.SetAnchorsPreset(Control.LayoutPreset.Center);
+        _nightText.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.Center);
         _nightText.GrowHorizontal = Control.GrowDirection.Both;
         _nightText.GrowVertical = Control.GrowDirection.Both;
 
         // Windows over the game (pause, settings) stay visible when the UI is hidden ("watch only").
         AddChild(_overlay);
-        _overlay.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+        _overlay.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
         UiSetup.Bind(_root);
         UiSetup.Bind(_overlay);
         (_topBar, _date, _time) = CreateTopBar(style, ScreenModel.TimeChoices(presenter.Host.World.Calendar.Settings), speed => presenter.Speed = speed);
@@ -646,9 +646,12 @@ public partial class GameScreen : CanvasLayer
         if (modal)
         {
             // The game behind a modal window (pause menu) is darkened a little (W1687, data: window.modal_dim).
-            var blocker = new ColorRect { MouseFilter = Control.MouseFilterEnum.Stop, Color = new Color(0, 0, 0, (float)(_style?.Tokens.Window.ModalDim ?? 0)) };
-            blocker.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+            var blocker = new ColorRect { Name = "ModalDim", MouseFilter = Control.MouseFilterEnum.Stop, Color = new Color(0, 0, 0, (float)(_style?.Tokens.Window.ModalDim ?? 0)) };
             _overlay.AddChild(blocker);
+
+            // Anchors and offsets once it has a parent: the picture of the pause menu showed no dimming
+            // (D705 B7) - the rectangle had no size.
+            blocker.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
             window.Closed += blocker.QueueFree;
         }
 
@@ -2042,6 +2045,23 @@ public partial class GameScreen : CanvasLayer
         if (puzzling == 0 && mark is { Visible: true })
         {
             return "question mark shown although nothing puzzles the inhabitant";
+        }
+
+        // D705 B7: a modal window darkens the whole picture behind it, and the night's shade spans it too.
+        var probe = new GwWindow();
+        probe.Setup("ui.pause.title", _style!);
+        ShowWindow(probe, modal: true);
+        await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        var view = GetViewport().GetVisibleRect().Size;
+        var dim = _overlay.GetNodeOrNull<ColorRect>("ModalDim");
+        var dimSize = dim?.Size ?? Vector2.Zero;
+        var dimmed = dim is not null && dimSize.X >= view.X - 1 && dimSize.Y >= view.Y - 1 && dim.Color.A > 0;
+        var shaded = _nightShade.Size.X >= view.X - 1 && _nightShade.Size.Y >= view.Y - 1;
+        probe.Close();
+        await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        if (!dimmed || !shaded)
+        {
+            return $"the picture behind a modal window is not dimmed (dim {dimSize}, night shade {_nightShade.Size}, view {view})";
         }
 
         // W1696: an open question shows its wording and an answer field in the questions panel.

@@ -37,7 +37,10 @@ public partial class GwWindow : PanelContainer
         var column = new VBoxContainer();
         var header = new HBoxContainer();
         _title.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-        _title.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+
+        // No wrapping until a title really does not fit (FitInto): a wrapping label that has no width yet
+        // measures itself one letter per line, which made windows too tall (D705: pause, new world).
+        _title.AutowrapMode = TextServer.AutowrapMode.Off;
         header.AddChild(_title);
         header.AddChild(_close);
         header.GuiInput += OnHeaderInput;
@@ -108,10 +111,14 @@ public partial class GwWindow : PanelContainer
         limit = new Vector2(Math.Min(limit.X, safe.X), Math.Min(limit.Y, safe.Y));
         // Measure with the title on one line; wrap it only if it cannot fit the allowed width.
         _title.AutowrapMode = TextServer.AutowrapMode.Off;
+        _title.CustomMinimumSize = Vector2.Zero;
         var wanted = Wanted();
         if (wanted.X > limit.X)
         {
+            // Wrap at a known width (the room the title has in the widest allowed window), never at none.
+            var others = wanted.X - _title.GetCombinedMinimumSize().X;
             _title.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+            _title.CustomMinimumSize = new Vector2(Math.Max(1, limit.X - others), 0);
             wanted = Wanted();
         }
 

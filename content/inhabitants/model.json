@@ -47,6 +47,20 @@
   },
   "togetherness": { "need": "company", "per_hour": 0.05, "cap": 0.6, "distance_m": 3.0, "min_trust": 0.5, "min_affection": 0.3, "sleep_action": "sleep" },
   "diary": { "capacity": 200, "left_out_actions": ["idle"] },
+  "comfort_zone": {
+    "need": "warmth",
+    "min_tenth_c": 80,
+    "max_tenth_c": 260,
+    "individual_shift_tenth_c": 20,
+    "cold_loss_per_hour_per_degree": 0.0001,
+    "heat_loss_per_hour_per_degree": 0.001,
+    "recover_per_hour": 0.05,
+    "floor": 0.3,
+    "precipitation_cold_factor": 1.5,
+    "action_factors": [
+      { "action": "sleep", "cold_factor": 1.5 }
+    ]
+  },
   "start": {
     "inhabitants": [
       { "sex": "female", "group": 1 },

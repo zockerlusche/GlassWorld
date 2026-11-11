@@ -8,6 +8,96 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class NatureCover(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    color: str = Field(
+        ...,
+        description='Palette colour id of the lit parts of the clouds.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    shade_color: str = Field(
+        ...,
+        description='Palette colour id of the shaded parts of the clouds (light and friendly too, never dark).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    puff_m: float = Field(
+        ...,
+        description='Size of one cloud billow on the ground (metres).',
+        gt=0.0,
+        le=500.0,
+    )
+    layer_height_m: float = Field(
+        ...,
+        description='Height above the island base of the flat layer the billow pattern lies on (metres). The pattern is read where the view ray meets this layer, so terrace steps and things under the cover never break it.',
+        ge=0.0,
+        le=100.0,
+    )
+    drift_m_per_s: float = Field(
+        ...,
+        description='How fast the cloud pattern drifts with the wind direction of this file (metres per real second; calm world: keep it slow). The cover itself never moves, only its pattern.',
+        ge=0.0,
+        le=5.0,
+    )
+    softness_cells: float = Field(
+        ...,
+        description='Blur of the edge between seen and unseen land (cells).',
+        ge=0.0,
+        le=16.0,
+    )
+    edge_softness: float = Field(
+        ...,
+        description='How gently the cloud thins out at its edge (share of the blurred edge, 0.01 hard .. 0.5 softest).',
+        ge=0.01,
+        le=0.5,
+    )
+    edge_puff: float = Field(
+        ...,
+        description='How far the billows push the edge in and out (0 = a smooth edge). Fully seen land always stays clear, unseen land always covered.',
+        ge=0.0,
+        le=1.0,
+    )
+    band: float = Field(
+        ...,
+        description='Share of the cloud pattern drawn in the shade colour (0..1).',
+        ge=0.0,
+        le=1.0,
+    )
+    band_softness: float = Field(
+        ...,
+        description='Softness of the step between shade and lit colour (0 = a hard comic step).',
+        ge=0.0,
+        le=0.5,
+    )
+    opacity: float = Field(
+        ...,
+        description='How much the cover hides (1 = everything; R25 wants unseen land hidden).',
+        ge=0.5,
+        le=1.0,
+    )
+    daylight_share: float = Field(
+        ...,
+        description='How far the clouds follow the tint of the day phase (water_light of content/look/daylight.json): 0 = always their own colour, 1 = fully tinted, so they do not glow at night.',
+        ge=0.0,
+        le=1.0,
+    )
+    sea_margin_cells: int = Field(
+        ...,
+        description='Open sea further than this from any land is never covered (cells): the cover is a bank over the island and its coast.',
+        ge=0,
+        le=64,
+    )
+    cells_per_frame: int = Field(
+        ...,
+        description='At most this many newly seen cells start clearing per frame; the rest wait their turn.',
+        ge=1,
+        le=100000,
+    )
+
+
 class NatureWind(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -179,3 +269,4 @@ class LookNature(BaseModel):
     snow: NatureSnow
     grass: NatureGrass
     leaf_fall: FallParticles
+    cover: NatureCover

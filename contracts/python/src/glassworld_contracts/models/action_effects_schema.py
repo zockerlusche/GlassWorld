@@ -70,6 +70,30 @@ class Effect(BaseModel):
     )
 
 
+class EventEffect(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    event: str = Field(
+        ...,
+        description='Event kind (event vocabulary).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    detail_ends_with: str | None = Field(
+        None,
+        description="Only events whose language-neutral detail ends with this text (e.g. '/experienced' for knowledge_gained, whose detail is property/source). Omitted = every event of the kind.",
+        max_length=64,
+        min_length=1,
+    )
+    effects: list[Effect] = Field(
+        ...,
+        description="Effects on the event's inhabitant; listener_share has no meaning here and is refused at load.",
+        max_length=16,
+        min_length=1,
+    )
+
+
 class EffectRule(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -98,3 +122,8 @@ class ActionEffects(BaseModel):
     )
     actions: list[ActionTiming] = Field(..., max_length=128)
     rules: list[EffectRule] = Field(..., max_length=512)
+    event_effects: list[EventEffect] | None = Field(
+        None,
+        description='What a core event does to the inhabitant it is about (W1744): when an event of the kind is reported, its effects reach that inhabitant right away. Events without an inhabitant (weather, player) reach nobody. Omitted = no event has an effect.',
+        max_length=128,
+    )
