@@ -160,7 +160,8 @@ public sealed class ContentSet
             Required(vocabularies, VocabularyKind.Action).Entries.Where(e => (e.Target ?? VocabularyEntryTarget.None) == VocabularyEntryTarget.None).Select(e => e.Id).ToFrozenSet(StringComparer.Ordinal),
             Ids(vocabularies, VocabularyKind.Trait),
             model.Needs.Where(n => n.NeglectBelow > 0).ToFrozenDictionary(n => n.Id, n => n.NeglectBelow, StringComparer.Ordinal));
-        var worldGen = WorldGenContent.Load(contentDirectory, vocabularies, objects, calendar);
+        var gaits = ContractSerializer.Deserialize<GaitSettings>(File.ReadAllText(Path.Combine(contentDirectory, "behaviour", "gaits.json")));
+        var worldGen = WorldGenContent.Load(contentDirectory, vocabularies, objects, calendar, gaits.Spacing?.MinSeparationM ?? 0);
         var inventionSettings = ContractSerializer.Deserialize<InventionSettings>(File.ReadAllText(Path.Combine(contentDirectory, "invention", "settings.json")));
         var inventions = new InventionRules(
             inventionSettings,
@@ -215,7 +216,7 @@ public sealed class ContentSet
                 Ids(vocabularies, VocabularyKind.Biome),
                 [.. inventions.TechLevels]),
             Gaits = GaitTable.Create(
-                ContractSerializer.Deserialize<GaitSettings>(File.ReadAllText(Path.Combine(contentDirectory, "behaviour", "gaits.json"))),
+                gaits,
                 Ids(vocabularies, VocabularyKind.Action),
                 brain.Weights,
                 model),

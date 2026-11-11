@@ -10,7 +10,7 @@ namespace GlassWorld.Simulation.Headless;
 /// <summary>
 /// <c>worldgen --seed N [--preset P] [--content DIR] [--json] [--png FILE] [--png-flow FILE]</c> (B2 R12):
 /// generates the start island and prints the world hash and key figures (biome shares, mandatory check,
-/// attempts, time, hydrology, underground). <c>--json</c> is machine-readable for GW2's seed series;
+/// attempts, time, hydrology, underground, start ground against the highest tide). <c>--json</c> is machine-readable for GW2's seed series;
 /// <c>--png</c> writes an overview map with the biome colours, <c>--png-flow</c> a map of the drainage
 /// (hill shade, flow accumulation, streams, lakes, springs; own minimal PNG writer, no extra library).
 /// </summary>
@@ -89,7 +89,8 @@ internal static class WorldGenCommand
             Water(island, set),
             Ground(island),
             Relief(island),
-            Faces(island, set.WorldGen.Presets[preset]));
+            Faces(island, set.WorldGen.Presets[preset]),
+            StartGround(island, set.WorldGen.Presets[preset]));
         if (json)
         {
             Console.WriteLine(JsonSerializer.Serialize(report, JsonOptions));
@@ -112,6 +113,8 @@ internal static class WorldGenCommand
             Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"  relief land cells {report.Relief.LandCells} height p10 {report.Relief.P10} p50 {report.Relief.P50} p90 {report.Relief.P90} max {report.Relief.Max} mean slope x100 {report.Relief.MeanSlopeX100} steep cells (slope >= 5) {report.Relief.SteepCells}"));
             var f = report.Faces;
             Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"  faces one-steps {f.OneSteps} stacked {f.StackedSteps} runs {f.StackRuns} (rock {f.RockStackedSteps} / {f.RockStackRuns}) max drop {f.MaxFaceDrop} caves {f.Caves} reachable {f.CavesReachable}"));
+            var g = report.StartGround;
+            Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"  start ground above the highest tide (tenths, line {g.HighTideTenths}) [{string.Join(", ", g.AboveHighTideTenths)}] dry with surroundings [{string.Join(", ", g.Dry)}] pair distance cm [{string.Join(", ", g.PairDistanceCm)}]"));
             Console.WriteLine("  underground soils " + string.Join(", ", report.Underground.Soils.Select(s => $"{s.Key} {s.Value}")) + string.Create(CultureInfo.InvariantCulture, $"; ore cells {report.Underground.OreCells}; groundwater at surface {report.Underground.SurfaceWaterCells}"));
         }
 
@@ -254,6 +257,24 @@ internal static class WorldGenCommand
         var reach = island.Starts.Count == 0 ? null : WorldGenerator.Reachable(island.Map, island.Starts[0].X, island.Starts[0].Z);
         var reachable = reach is null ? 0 : caves.Count(c => reach[(c.Z * island.Map.WidthCells) + c.X]);
         return new FacesReport(all.OneSteps, all.StackedSteps, all.StackRuns, rock.StackedSteps, rock.StackRuns, all.MaxFaceDrop, caves.Count, reachable);
+    }
+
+    /// <summary>
+    /// The start ground against the tide (TL #20750): the high-tide line (mean sea level plus the highest
+    /// tide, in tenths of a height unit), per start how far its ground lies above it and whether it and
+    /// its surroundings are dry by <c>start.dry_ground</c> (true without the data), and per pair the
+    /// distance between its two start cells.
+    /// </summary>
+    private static StartGroundReport StartGround(GeneratedIsland island, Contracts.WorldPreset preset)
+    {
+        var high = (preset.Terrain.SeaLevel * 10) + new Tides(preset.Tides).HighestLevelTenths;
+        var distances = island.Starts.GroupBy(s => s.Pair).OrderBy(p => p.Key).Select(p => p.ToList()).Where(p => p.Count == 2)
+            .Select(p => (int)Math.Round(Math.Sqrt(((p[0].X - p[1].X) * (p[0].X - p[1].X)) + ((p[0].Z - p[1].Z) * (p[0].Z - p[1].Z))) * preset.Grid.CellSizeCm));
+        return new StartGroundReport(
+            high,
+            [.. island.Starts.Select(s => (island.Map.Cell(s.X, s.Z).Height * 10) - high)],
+            [.. island.Starts.Select(s => island.Map.Cell(s.X, s.Z).Water == WaterKind.None && WorldGenerator.OnDryStartGround(preset, island.Map, s.X, s.Z))],
+            [.. distances]);
     }
 
     private static ReliefReport Relief(GeneratedIsland island)
@@ -471,6 +492,8 @@ internal static class WorldGenCommand
 
     private sealed record GroundReport(Dictionary<string, int> Soils, int OreCells, int SurfaceWaterCells);
 
+    private sealed record StartGroundReport(int HighTideTenths, List<int> AboveHighTideTenths, List<bool> Dry, List<int> PairDistanceCm);
+
     private sealed record CheckLine(string Id, int Reachable, int Total, int Min, int Max, bool Passed, bool ReportOnly);
 
     private sealed record Report(
@@ -491,5 +514,6 @@ internal static class WorldGenCommand
         WaterReport Hydrology,
         GroundReport Underground,
         ReliefReport Relief,
-        FacesReport Faces);
+        FacesReport Faces,
+        StartGroundReport StartGround);
 }
