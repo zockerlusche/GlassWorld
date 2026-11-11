@@ -6,7 +6,7 @@ with the live AI, and replays of save games.
 ```
 dotnet run --project src/Simulation.Headless -c Release -- [run options]
 dotnet run --project src/Simulation.Headless -c Release -- replay --save FILE [--content DIR]
-dotnet run --project src/Simulation.Headless -c Release -- worldgen --seed N [--preset P] [--json] [--png FILE]
+dotnet run --project src/Simulation.Headless -c Release -- worldgen --seed N | --seeds FROM-TO [--preset P] [--json] [--png FILE]
 ```
 
 ## Run options
@@ -122,12 +122,42 @@ without it (older ones) replay as before, with the current fingerprint printed.
 
 Jobs are replayed only if the saved run had a job port (non-empty invention state).
 
+## World generator (`worldgen`)
+
+`worldgen --seed N [--preset P] [--content DIR] [--json] [--png FILE] [--png-flow FILE]` generates the start
+island of a seed and prints its world hash and key figures: attempts, time, biome shares, every line of the
+mandatory check (`ok` / `FAIL`; start supply lines that only report read `ok (report only)` / `short (report only)`),
+objects, hydrology, relief, rock faces, start ground and underground. `--json` prints the same as one JSON
+line. Exit code 0: the island passed its mandatory check; 2: it did not (after all attempts of the preset;
+the `FAIL` lines name what was missing).
+
+`--seeds FROM-TO` generates every seed of the range one after the other in one process (the content is
+loaded once), one block or - with `--json` - one line per seed; exit code 2 if any island failed. The first
+island of a process carries the start-up of the runtime in its time. `--png` and `--png-flow` draw one
+island and need `--seed`.
+
+The hydrology figure `stream dead ends` (`hydrology.stream_dead_ends`) counts the stream cells whose water
+reaches neither the sea nor a lake when followed downstream (0 on a sound island; B2 acceptance).
+
+The seed series of the acceptance is `tools/worldgen/seed_series.py`: it runs a range of seeds through
+`worldgen --seeds FROM-TO --json` and writes the figures and a short German report with a verdict per
+acceptance point (mandatory check and each of its lines, distinct hashes, biomes, cliffs and caves, streams,
+time against `generation_budget_ms`). The error output of each process goes into a file beside the report; a
+process that ends early or with an error fails the run (exit code 1) and the report names the missing seeds.
+Build once, then run; the 1,000 seeds belong in the AMW run queue:
+
+```
+dotnet build src/Simulation.Headless -c Release -m:1
+uv run python tools/worldgen/seed_series.py --out ../series --seeds 1-1000 --note "main <sha>"
+```
+
 ## Tests and CI
 
 `tests/Simulation.Headless.Tests` covers the option parser, `--until`, event lines, the JSON log, replay
 (OK, a tampered answer → `REPLAY_DIFF`, changed content → exit 6 and `--force`), exit code 4 (also with a
 fake game lock), Ctrl+C and the live path with a fake connection
-that answers in real time on another thread. CI never starts the real AI service (no GPU); the live path
+that answers in real time on another thread; and `worldgen`: the report of an island without flint (exit 2, one
+`FAIL` line), the same hash in two processes, seed ranges and the dead-end count. CI never starts the real AI service (no GPU); the live path
 is checked by hand, only through the AMW GPU queue:
 
 ```
