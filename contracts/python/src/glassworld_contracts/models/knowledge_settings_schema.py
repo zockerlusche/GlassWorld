@@ -500,7 +500,7 @@ class KnowledgeSettings(BaseModel):
     passing: list[KnowledgePassing] = Field(..., max_length=16)
     wait_while_question_open: list[common_schema.VocabId] = Field(
         ...,
-        description='Actions the routine does not do on a thing while its question to the AI is open (W1595).',
+        description='Actions the routine does not do on a thing while its question to the AI is out - sent and not yet answered (W1595, A1551). A question that only waits (held back, for the night, or for its next try after an error) holds nothing back: nobody is working on its answer.',
         max_length=32,
     )
     request_max_knowledge: int = Field(

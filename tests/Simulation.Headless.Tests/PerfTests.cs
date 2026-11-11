@@ -72,7 +72,10 @@ public sealed class PerfTests
         Assert.True(flood.Answers > 20, $"{flood.Answers} answers");
         Assert.InRange(paced.Answers, 15, 20);
         Assert.True(paced.Requests < flood.Requests);
-        Assert.True(paced.OpenQuestions > flood.OpenQuestions);
+        // A slow model leaves more questions out with it (sent, not yet answered). Open questions as a whole can
+        // meet at the data's limit in both runs, since questions that only wait count there as well (A1551).
+        Assert.True(paced.Requests - paced.Answers > flood.Requests - flood.Answers);
+        Assert.True(paced.OpenQuestions >= flood.OpenQuestions);
         Assert.Equal(paced.Hash, PerfCommand.Measure(PerfOptions.Parse([.. run, "--answer-every", "5"])).Hash);
         Assert.Contains(" decider=mock answer_every=5 ", PerfCommand.Lines(paced), StringComparison.Ordinal);
         Assert.Throws<ArgumentException>(() => PerfOptions.Parse(["--ai", "silent", "--answer-every", "5"], () => "c"));

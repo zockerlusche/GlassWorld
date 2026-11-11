@@ -192,7 +192,9 @@ public sealed class DecisionTests
 
         w.World.Run(120);
         Assert.True(w.Decisions.OpenQuestionIds("inh-000001").Count <= Settings.MaxOpenQuestions);
-        Assert.Equal(w.Decisions.Log.Entries.Count(e => e.Kind == DecisionLogKind.Request), w.Decisions.Open.Count());
+        // Nothing is asked twice: every request belongs to a question that is still open. A second unknown thing
+        // is asked about too (A1551) - while the first is out, its question waits without a request (A1487).
+        Assert.Equal(w.Decisions.Log.Entries.Count(e => e.Kind == DecisionLogKind.Request), w.Decisions.Open.Count(q => q.RequestId.Length > 0));
     }
 
     [Fact]
