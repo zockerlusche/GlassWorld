@@ -277,3 +277,88 @@ def test_v2_snapshot(settings: Settings) -> None:
         snapshot.write_text(text, encoding="utf-8", newline="\n")
     assert text == snapshot.read_text(encoding="utf-8")
     assert "Fire? What's that?" in text and "Which glass?" in text
+
+
+# --- v3 (Marcel W1737, D675): talk only about what you do, know and see ---------------------
+
+DOING_DATA: dict[str, Any] = json.loads(
+    (REPO / "contracts/examples/valid/conversation-request.what-are-you-doing.json").read_text(
+        "utf-8"
+    )
+)
+DOING = ConversationRequest.model_validate(DOING_DATA)
+NAMES = ("Silo", "Yara")
+
+
+def _v3_talker(settings: Settings, log: CallLog, answers: list[str]) -> OllamaConversation:
+    return OllamaConversation(
+        client=_client(answers),
+        queue=ModelQueue(8),
+        template=load_prompt(settings.prompts_dir, "conversation/reply", 3),
+        settings=ModelCallSettings(temperature=0.7, num_ctx=8192, max_retries=0, call_timeout_s=30),
+        log=log,
+        guard=GUARD,
+        expressions=EXPRESSIONS,
+        texts=TEXTS,
+        names=NAMES,
+    )
+
+
+def test_v3_tells_the_model_what_it_does_knows_and_sees(settings: Settings) -> None:
+    template = load_prompt(settings.prompts_dir, "conversation/reply", 3)
+    user = template.render(values(DOING, template, EXPRESSIONS, TEXTS)).user
+    assert "## What you are doing\n- now: move to" in user
+    assert "- next: drink" in user
+    assert "is drinkable (sure 1.0; you tried it yourself)" in user
+    assert "## What you see\n" in user
+
+
+@pytest.mark.parametrize(
+    ("said", "kept"),
+    [
+        ("Ich lese ein Buch und male etwas in der Ecke.", False),  # D675: no books here
+        ("Ich gehe zum Quellwasser, ich hab Durst.", True),
+        ("Ich bin Silo. Und du?", True),  # a name is no invented thing
+        ("Heute ist ein ruhiger Tag.", True),
+        ("Wie geht es Ihnen? Ich zeige Dir gern das Quellwasser.", True),  # address (review GW1)
+        ("Ich hatte einen Traum und ein gutes Gefühl.", True),  # inner words
+    ],
+)
+def test_v3_a_sentence_naming_unknown_things_becomes_the_stand_in(
+    settings: Settings, said: str, kept: bool
+) -> None:
+    log = CallLog(settings.log_dir / "conversation.jsonl")
+    talker = _v3_talker(settings, log, [_raw({**GOOD, "reply": said})])
+    answer = asyncio.run(talker.answer(DOING, time.monotonic() + 8))
+    assert answer.reply is not None
+    expected = said if kept else TEXTS.get("de", "msg.thought.move_to")
+    assert answer.reply.text == expected
+    if not kept:
+        assert "[replaced, unknown: Buch, Ecke]" in answer.rationale
+    replayed = asyncio.run(
+        ReplayConversation(
+            log, GUARD, EXPRESSIONS, TEXTS, prompts_dir=settings.prompts_dir, names=NAMES
+        ).answer(DOING, time.monotonic() + 8)
+    )
+    assert replayed.reply == answer.reply  # a replay says the same
+
+
+def test_v3_checks_nouns_only_where_the_language_shows_them(settings: Settings) -> None:
+    english = ConversationRequest.model_validate({**DOING_DATA, "display_locale": "en"})
+    log = CallLog(settings.log_dir / "conversation.jsonl")
+    talker = _v3_talker(settings, log, [_raw({**GOOD, "reply": "I read a Book."})])
+    answer = asyncio.run(talker.answer(english, time.monotonic() + 8))
+    assert answer.reply is not None and answer.reply.text == "I read a Book."  # prompt rule only
+
+
+def test_v3_snapshot(settings: Settings) -> None:
+    template = load_prompt(settings.prompts_dir, "conversation/reply", 3)
+    rendered = template.render(values(DOING, template, EXPRESSIONS, TEXTS))
+    text = (
+        f"[{rendered.version}]\n\n=== system ===\n{rendered.system}\n\n"
+        f"=== user ===\n{rendered.user}\n"
+    )
+    snapshot = SNAPSHOTS / "conversation-reply.v3.what-are-you-doing.txt"
+    if os.environ.get("GW_UPDATE_SNAPSHOTS") == "1":
+        snapshot.write_text(text, encoding="utf-8", newline="\n")
+    assert text == snapshot.read_text(encoding="utf-8")

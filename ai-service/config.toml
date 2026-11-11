@@ -39,7 +39,7 @@ prompt_char_budget = 6000
 max_retries = 2            # engineering handbook: at most two retries
 queue_size = 64
 question_prompt = "question/ask"   # B4a S2; backend follows decider_backend (ollama/mock/replay)
-question_prompt_version = 1
+question_prompt_version = 2  # B4a R10: the thing asked about carries no name
 memory_prompt = "memory/condense"  # B4a S4: memory condensation (job kind memory)
 memory_prompt_version = 1
 invention_prompt = "invention/invent"   # D471 D2: inventor
@@ -53,7 +53,7 @@ dream_prompt_version = 1
 help_prompt = "help/suggest"            # B6 R8/R10 help suggestions for the player (F5238)
 help_prompt_version = 1
 conversation_prompt = "conversation/reply"  # B6 R13 talking with an inhabitant (A1342)
-conversation_prompt_version = 2  # W1701: every word gets an answer
+conversation_prompt_version = 3  # W1737: talks only about what it does, knows and sees
 builder_prompt = "builder/plan"     # D471 D3: building plan from kit parts
 builder_prompt_version = 1
 question_call_timeout_s = 60.0     # one model call (blocks the model like a decision, so <= the

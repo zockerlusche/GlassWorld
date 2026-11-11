@@ -192,6 +192,9 @@ public partial class FeelingSymbols : Node3D
             Billboard = BaseMaterial3D.BillboardModeEnum.Enabled,
             Shaded = false,
             Transparent = true,
+
+            // Above the cloud cover (R25): a symbol is never painted over by the clouds behind it.
+            RenderPriority = World.CloudCover.AbovePriority,
             TextureFilter = BaseMaterial3D.TextureFilterEnum.LinearWithMipmaps,
         };
         AddChild(sprite);
