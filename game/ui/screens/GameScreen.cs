@@ -1751,7 +1751,14 @@ public partial class GameScreen : CanvasLayer
         var done = setup is null ? (bool?)null : _nightStatus is { } status ? NightScene.Done(status) : false;
         _night.Update(night, done, _presenter.Speed > 0 ? delta : 0);
         _nightShade.Color = new Color(0, 0, 0, (float)_night.Darkness);
-        RaiseNight();
+
+        // Only while the night is dark: by day the shade is invisible and the order does not matter, so the
+        // screen's children are not walked every frame (review GW1 #258).
+        if (_night.Darkness > 0)
+        {
+            RaiseNight();
+        }
+
         _nightText.Visible = _night.SceneShown;
         _nightText.Modulate = new Color(1, 1, 1, (float)Math.Clamp(_night.Darkness / Math.Max(_nightDarkness, 0.01), 0, 1));
         ShowSleepers(_presenter.Speed > 0 ? delta : 0);
