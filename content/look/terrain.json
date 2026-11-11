@@ -50,7 +50,13 @@
     "stream_cell_tolerance_m": 0.3,
     "stream_max_shift_m": 0.6,
     "stream_cover_m": 1.05,
-    "swamp_as_ground": true
+    "swamp_as_ground": true,
+    "stream_mouth": {
+      "fade_m": 1.5,
+      "reach_cells": 12,
+      "under_mm": 60,
+      "widen_share": 0.4
+    }
   },
   "cliffs": {
     "biomes": [

@@ -1,0 +1,119 @@
+{
+  "contract_version": "0.2",
+  "points": [
+    {
+      "id": "mouth_sea_low",
+      "target_x_permille": 248,
+      "target_z_permille": 121,
+      "yaw_deg": 25,
+      "distance_m": 12,
+      "pitch_deg": 28,
+      "tide_permille": -1000,
+      "revealed_permille": 1000
+    },
+    {
+      "id": "mouth_sea_mean",
+      "target_x_permille": 248,
+      "target_z_permille": 121,
+      "yaw_deg": 25,
+      "distance_m": 12,
+      "pitch_deg": 28,
+      "tide_permille": 0,
+      "revealed_permille": 1000
+    },
+    {
+      "id": "mouth_sea_high",
+      "target_x_permille": 248,
+      "target_z_permille": 121,
+      "yaw_deg": 25,
+      "distance_m": 12,
+      "pitch_deg": 28,
+      "tide_permille": 1000,
+      "revealed_permille": 1000
+    },
+    {
+      "id": "mouth_sea_side_low",
+      "target_x_permille": 248,
+      "target_z_permille": 121,
+      "yaw_deg": 100,
+      "distance_m": 8,
+      "pitch_deg": 16,
+      "tide_permille": -1000,
+      "revealed_permille": 1000
+    },
+    {
+      "id": "mouth_sea_side_high",
+      "target_x_permille": 248,
+      "target_z_permille": 121,
+      "yaw_deg": 100,
+      "distance_m": 8,
+      "pitch_deg": 16,
+      "tide_permille": 1000,
+      "revealed_permille": 1000
+    },
+    {
+      "id": "mouth_survey_low",
+      "target_x_permille": 81,
+      "target_z_permille": 289,
+      "yaw_deg": 30,
+      "distance_m": 3,
+      "pitch_deg": 24,
+      "tide_permille": -1000,
+      "revealed_permille": 1000
+    },
+    {
+      "id": "mouth_survey_mean",
+      "target_x_permille": 81,
+      "target_z_permille": 289,
+      "yaw_deg": 30,
+      "distance_m": 3,
+      "pitch_deg": 24,
+      "tide_permille": 0,
+      "revealed_permille": 1000
+    },
+    {
+      "id": "mouth_survey_high",
+      "target_x_permille": 81,
+      "target_z_permille": 289,
+      "yaw_deg": 30,
+      "distance_m": 3,
+      "pitch_deg": 24,
+      "tide_permille": 1000,
+      "revealed_permille": 1000
+    },
+    {
+      "id": "mouth_lake",
+      "target_x_permille": 122,
+      "target_z_permille": 570,
+      "yaw_deg": 30,
+      "distance_m": 10,
+      "pitch_deg": 28,
+      "revealed_permille": 1000
+    },
+    {
+      "id": "mouth_lake_side",
+      "target_x_permille": 122,
+      "target_z_permille": 570,
+      "yaw_deg": 120,
+      "distance_m": 7,
+      "pitch_deg": 16,
+      "revealed_permille": 1000
+    },
+    {
+      "id": "mouth_lake_hill",
+      "target_x_permille": 595,
+      "target_z_permille": 546,
+      "yaw_deg": 315,
+      "distance_m": 10,
+      "pitch_deg": 28,
+      "revealed_permille": 1000
+    }
+  ],
+  "projections": [
+    "perspective"
+  ],
+  "phases": [
+    "day"
+  ],
+  "settle_frames": 12
+}

@@ -12,8 +12,32 @@ public readonly record struct StreamPoint(double X, double Z, double Depth, doub
 /// <summary>One stream as it is drawn: its smoothed centre line, whether it starts at a spring, and the cells it belongs to.</summary>
 /// <param name="Points">The centre line from the head down the flow.</param>
 /// <param name="Source">Whether the line starts at a source (a spring: nothing runs into its first cell and no lake lies behind it); such a line starts narrow (see the look's source taper).</param>
-/// <param name="Cells">The cells of the stream: its running cells, the cell it ends in and, for an outflow, the lake cell it leaves.</param>
-public sealed record StreamCourse(IReadOnlyList<StreamPoint> Points, bool Source, IReadOnlyList<(int X, int Z)> Cells);
+/// <param name="Cells">The cells of the stream: its running cells, the cell it ends in (at the sea also the sea cells it runs on over, see <see cref="StreamMouth"/>) and, for an outflow, the lake cell it leaves.</param>
+/// <param name="Mouth">Where the stream ends in standing water, or null: it joins another stream, leaves the map, or the look has no mouth data.</param>
+public sealed record StreamCourse(IReadOnlyList<StreamPoint> Points, bool Source, IReadOnlyList<(int X, int Z)> Cells, StreamMouth? Mouth = null);
+
+/// <summary>One cross-section of a stream band: its two edges and its centre, and how far along the line it lies.</summary>
+/// <param name="Left">The edge at band position 1 across.</param>
+/// <param name="Centre">The point on the centre line.</param>
+/// <param name="Right">The edge at band position -1 across.</param>
+/// <param name="AlongM">Metres along the centre line from its head.</param>
+public readonly record struct StreamSection((float X, float Y, float Z) Left, (float X, float Y, float Z) Centre, (float X, float Y, float Z) Right, float AlongM);
+
+/// <summary>What a stream runs into at its end.</summary>
+public enum StreamMouthKind
+{
+    /// <summary>The sea, whose surface follows the tide.</summary>
+    Sea,
+
+    /// <summary>Still fresh water: a lake, a pond, a swamp.</summary>
+    Lake,
+}
+
+/// <summary>The end of a stream in standing water (TL #20750).</summary>
+/// <param name="Kind">The sea or still fresh water.</param>
+/// <param name="LevelM">Height of the receiving surface in metres; for the sea its mean level.</param>
+/// <param name="LengthM">How much of the end of the centre line lies in the receiving water: from the edge of its first cell there to the end of the line, in metres along the cell centres.</param>
+public sealed record StreamMouth(StreamMouthKind Kind, float LevelM, double LengthM);
 
 /// <summary>The point where a stream band starts at a spring, and the unit direction it runs off in.</summary>
 /// <param name="X">X in metres.</param>
@@ -113,8 +137,12 @@ public static partial class TerrainMesher
     /// streams two cells wide: running cells beside a line belong to it, and the line runs between them;
     /// where the flow steps into such a side cell the line goes on through it instead of breaking off. A
     /// head with a lake behind it is an outflow: its line starts in the lake at full width. Every other
-    /// head is a source and starts narrow. The line is smoothed (<see cref="Relax"/>, then
-    /// <see cref="Chaikin"/>, then <see cref="Settle"/>); its ends stay where they are. Deterministic.
+    /// head is a source and starts narrow. With the look's mouth data (TL #20750) a line that reaches the
+    /// sea runs on down the sea floor, cell by cell to the lowest neighbour, until the ground lies under
+    /// the lowest tide (at most the look's number of cells), so at low water the stream crosses the beach
+    /// the sea left dry; the course then says where it ends (<see cref="StreamCourse.Mouth"/>). The line is
+    /// smoothed (<see cref="Relax"/>, then <see cref="Chaikin"/>, then <see cref="Settle"/>); its ends stay
+    /// where they are. Deterministic.
     /// </summary>
     public static IReadOnlyList<StreamCourse> StreamCourses(WorldMap map, TerrainLook look)
     {
@@ -208,6 +236,7 @@ public static partial class TerrainMesher
 
             // Per point how far the relaxing may move it: less where the cells it stands for lie far from it.
             var shifts = new List<double>();
+            StreamMouth? mouth = null;
             var source = !fed[(sz * w) + sx];
             if (source && !springs.Contains((sx, sz)) && LakeBehind(sx, sz) is { } lake)
             {
@@ -271,11 +300,32 @@ public static partial class TerrainMesher
                 if (!Running(nx, nz) || (taken != 0 && (taken != number || walked.Contains((nz * w) + nx))))
                 {
                     // Into still water, the sea or a stream drawn already: reach into that cell and end.
-                    if (map.Cell(nx, nz).Water != WaterKind.None)
+                    var into = map.Cell(nx, nz);
+                    if (into.Water != WaterKind.None)
                     {
                         points.Add(Centre(nx, nz, depth, width));
                         shifts.Add(look.StreamMaxShiftM);
                         cells.Add((nx, nz));
+                    }
+
+                    if (into.Water != WaterKind.None && !Running(nx, nz) && look.Mouth is { } data)
+                    {
+                        // Standing water: half a cell of the line lies in it, from the cell's edge to its centre.
+                        var inWater = cell / 2.0;
+                        if (into.Water == WaterKind.Salt)
+                        {
+                            foreach (var (bx, bz) in DownTheSeaFloor(map, look, data, (nx, nz), (nx - x, nz - z)))
+                            {
+                                inWater += Math.Sqrt(Math.Pow(bx - cells[^1].X, 2) + Math.Pow(bz - cells[^1].Z, 2)) * cell;
+                                points.Add(Centre(bx, bz, depth, width));
+                                shifts.Add(look.StreamMaxShiftM);
+                                cells.Add((bx, bz));
+                            }
+                        }
+
+                        mouth = into.Water == WaterKind.Salt
+                            ? new StreamMouth(StreamMouthKind.Sea, data.SeaLevelM(look.UnitM), inWater)
+                            : new StreamMouth(StreamMouthKind.Lake, (into.Height + into.WaterDepth) * look.UnitM, inWater);
                     }
 
                     break;
@@ -287,11 +337,57 @@ public static partial class TerrainMesher
             if (points.Count >= 2)
             {
                 var smooth = Settle(Chaikin(Relax(points, cells, look, shifts), look.StreamSmoothing), cells, look);
-                courses.Add(new StreamCourse(Taper(smooth, source ? look.StreamSourceTaperM : 0, look.StreamSourceWidthShare), source, cells));
+                courses.Add(new StreamCourse(Taper(smooth, source ? look.StreamSourceTaperM : 0, look.StreamSourceWidthShare), source, cells, mouth));
             }
         }
 
         return courses;
+    }
+
+    /// <summary>
+    /// The sea cells a stream runs on over after its first one (TL #20750): from cell to the lowest
+    /// neighbouring sea cell (among equals the one most ahead), as long as the drawn ground in the middle
+    /// of the cell still lies above the lowest tide less the look's margin and the film of the band, and at
+    /// most the look's number of cells. Over a flat it goes straight on (a cell as high as this one, ahead
+    /// of it), never back and never twice over a cell. So the band ends on ground that every tide covers;
+    /// where the sea floor neither falls nor runs on level ahead it ends there.
+    /// </summary>
+    private static List<(int X, int Z)> DownTheSeaFloor(WorldMap map, TerrainLook look, StreamMouthLook data, (int X, int Z) from, (int X, int Z) heading)
+    {
+        var path = new List<(int X, int Z)>();
+        var under = data.SeaLevelM(look.UnitM, -1000) - data.UnderM - look.ShoreLiftM;
+        var (x, z) = from;
+        while (path.Count < data.ReachCells && GroundHeight(map, look, (x + 0.5) * look.CellM, (z + 0.5) * look.CellM) > under)
+        {
+            ((int X, int Z) Cell, (int X, int Z) Step)? best = null;
+            var (lowest, mostAhead) = (int.MaxValue, int.MinValue);
+            foreach (var (dx, dz) in FlowDirections.All)
+            {
+                int bx = x + dx, bz = z + dz;
+                if (!map.Contains(bx, bz) || map.Cell(bx, bz) is not { Water: WaterKind.Salt } below || (bx, bz) == from || path.Contains((bx, bz)))
+                {
+                    continue;
+                }
+
+                // Down the floor, or level and ahead.
+                var ahead = (dx * heading.X) + (dz * heading.Z);
+                var here = map.Cell(x, z).Height;
+                if ((below.Height < here || (below.Height == here && ahead > 0)) && (below.Height < lowest || (below.Height == lowest && ahead > mostAhead)))
+                {
+                    (best, lowest, mostAhead) = (((bx, bz), (dx, dz)), below.Height, ahead);
+                }
+            }
+
+            if (best is not { } next)
+            {
+                break;
+            }
+
+            path.Add(next.Cell);
+            ((x, z), heading) = next;
+        }
+
+        return path;
     }
 
     /// <summary>
@@ -301,60 +397,199 @@ public static partial class TerrainMesher
     /// the ground under it plus the shore lift, so the band closes against its banks. Each face carries the
     /// direction the water runs; each vertex carries its place on the band (<see cref="MeshData.Band"/>:
     /// metres along the line, -1..1 across), so the shader can draw flow lines that run on without a seam
-    /// from face to face.
+    /// from face to face. Where a stream ends in standing water the band comes down to it
+    /// (<see cref="AtMouth"/>, TL #20750) instead of ending as a block above it.
     /// </summary>
     public static MeshData Streams(WorldMap map, TerrainLook look)
     {
         ArgumentNullException.ThrowIfNull(map);
         ArgumentNullException.ThrowIfNull(look);
         var mesh = new MeshData();
-        foreach (var line in StreamLines(map, look))
+        foreach (var course in StreamCourses(map, look))
         {
-            var sections = new (float X, float Y, float Z)[line.Count][];
-            var along = new float[line.Count];
-            for (var i = 0; i < line.Count; i++)
-            {
-                if (i > 0)
-                {
-                    along[i] = along[i - 1] + (float)Math.Sqrt(Math.Pow(line[i].X - line[i - 1].X, 2) + Math.Pow(line[i].Z - line[i - 1].Z, 2));
-                }
-
-                // Across the line: perpendicular to the mean direction of the neighbouring segments.
-                var before = line[Math.Max(0, i - 1)];
-                var after = line[Math.Min(line.Count - 1, i + 1)];
-                double tx = after.X - before.X, tz = after.Z - before.Z;
-                var length = Math.Sqrt((tx * tx) + (tz * tz));
-                (tx, tz) = length > 1e-9 ? (tx / length, tz / length) : (1, 0);
-                var p = line[i];
-                var half = p.WidthM / 2;
-                var surface = GroundHeight(map, look, p.X, p.Z) + (float)(p.Depth * look.UnitM);
-                (float X, float Y, float Z) Edge(double side)
-                {
-                    double ex = p.X - (tz * half * side), ez = p.Z + (tx * half * side);
-                    return ((float)ex, MathF.Min(surface, GroundHeight(map, look, ex, ez) + look.ShoreLiftM), (float)ez);
-                }
-
-                sections[i] = [Edge(1), ((float)p.X, surface, (float)p.Z), Edge(-1)];
-            }
-
+            var line = course.Points;
+            var sections = StreamSections(map, look, course);
             var color = line[0].Depth <= look.SwampMaxUnits ? look.Swamp : look.Fresh;
             for (var i = 0; i + 1 < line.Count; i++)
             {
                 double fx = line[i + 1].X - line[i].X, fz = line[i + 1].Z - line[i].Z;
                 var length = Math.Sqrt((fx * fx) + (fz * fz));
                 var flow = length > 1e-9 ? ((float)(fx / length), (float)(fz / length)) : default;
-                var (a, b) = (sections[i], sections[i + 1]);
+                (float X, float Y, float Z)[] a = [sections[i].Left, sections[i].Centre, sections[i].Right];
+                (float X, float Y, float Z)[] b = [sections[i + 1].Left, sections[i + 1].Centre, sections[i + 1].Right];
+                var (from, to) = (sections[i].AlongM, sections[i + 1].AlongM);
                 for (var k = 0; k < 2; k++)
                 {
                     // Across the band: 1 at the first edge, 0 on the centre line, -1 at the other edge.
                     float near = 1 - k, far = -k;
-                    Up(mesh, (a[k], (along[i], near)), (a[k + 1], (along[i], far)), (b[k], (along[i + 1], near)), color, flow);
-                    Up(mesh, (a[k + 1], (along[i], far)), (b[k + 1], (along[i + 1], far)), (b[k], (along[i + 1], near)), color, flow);
+                    Up(mesh, (a[k], (from, near)), (a[k + 1], (from, far)), (b[k], (to, near)), color, flow);
+                    Up(mesh, (a[k + 1], (from, far)), (b[k + 1], (to, far)), (b[k], (to, near)), color, flow);
                 }
             }
         }
 
         return mesh;
+    }
+
+    /// <summary>
+    /// The cross-sections of one stream band, one per point of its centre line (see <see cref="Streams"/>):
+    /// the centre at the height <see cref="AtMouth"/> gives over the drawn ground - at the sea settled so
+    /// that the water never rises on its way (<see cref="RunDownToTheSea"/>) -, the edges half the width to
+    /// either side, as high as the centre but never higher than the ground under them plus the shore lift.
+    /// </summary>
+    public static IReadOnlyList<StreamSection> StreamSections(WorldMap map, TerrainLook look, StreamCourse course)
+    {
+        ArgumentNullException.ThrowIfNull(map);
+        ArgumentNullException.ThrowIfNull(look);
+        ArgumentNullException.ThrowIfNull(course);
+        var line = course.Points;
+        var along = new float[line.Count];
+        for (var i = 1; i < line.Count; i++)
+        {
+            along[i] = along[i - 1] + (float)Math.Sqrt(Math.Pow(line[i].X - line[i - 1].X, 2) + Math.Pow(line[i].Z - line[i - 1].Z, 2));
+        }
+
+        var surfaces = new float[line.Count];
+        var widens = new float[line.Count];
+        var deepest = new float[line.Count];
+        for (var i = 0; i < line.Count; i++)
+        {
+            var ground = GroundHeight(map, look, line[i].X, line[i].Z);
+            var depth = (float)(line[i].Depth * look.UnitM);
+            (surfaces[i], widens[i]) = AtMouth(look, course.Mouth, ground, depth, along[^1] - along[i]);
+            deepest[i] = ground + depth;
+        }
+
+        if (course.Mouth is { Kind: StreamMouthKind.Sea } mouth && look.Mouth is { } data)
+        {
+            RunDownToTheSea(surfaces, deepest, along, mouth.LengthM, data.SeaLevelM(look.UnitM, 1000));
+        }
+
+        var sections = new StreamSection[line.Count];
+        for (var i = 0; i < line.Count; i++)
+        {
+            // Across the line: perpendicular to the mean direction of the neighbouring segments.
+            var before = line[Math.Max(0, i - 1)];
+            var after = line[Math.Min(line.Count - 1, i + 1)];
+            double tx = after.X - before.X, tz = after.Z - before.Z;
+            var length = Math.Sqrt((tx * tx) + (tz * tz));
+            (tx, tz) = length > 1e-9 ? (tx / length, tz / length) : (1, 0);
+            var p = line[i];
+            var surface = surfaces[i];
+            var half = p.WidthM * widens[i] / 2;
+            (float X, float Y, float Z) Edge(double side)
+            {
+                double ex = p.X - (tz * half * side), ez = p.Z + (tx * half * side);
+                return ((float)ex, MathF.Min(surface, GroundHeight(map, look, ex, ez) + look.ShoreLiftM), (float)ez);
+            }
+
+            sections[i] = new StreamSection(Edge(1), ((float)p.X, surface, (float)p.Z), Edge(-1), along[i]);
+        }
+
+        return sections;
+    }
+
+    /// <summary>
+    /// Settles the heights of a band's centre line towards the sea so that the water never rises on its way
+    /// (review of #222, seed 42 of generator version 5: the ground along a line does not only fall - the
+    /// cut bed of a stream lies lower than the beach it runs out onto, and the drawn ground has small
+    /// rises between cells. A film that follows such ground dips under the sea and comes up again beyond
+    /// its own waterline). Two passes over the heights <see cref="AtMouth"/> gave:
+    /// <list type="number">
+    /// <item>Before the coast (the last <paramref name="inWaterM"/> metres of the line lie beyond it) the
+    /// water stands behind a rise of the ground further down as water does: level with the water there,
+    /// but nowhere above <paramref name="deepest"/> (the ground plus the stream's depth, where it lay
+    /// before). So a cut bed is filled up to the beach before it and the stream runs on without a break.</item>
+    /// <item>From the first point the highest tide can reach (its water lies under
+    /// <paramref name="highestSeaM"/>) no point lies higher than the one before it. Where the ground rises
+    /// above the water that came down to it, the band passes under it instead of climbing it.</item>
+    /// </list>
+    /// So for every tide the centre line crosses the sea level once: what the sea has covered stays
+    /// covered. Heights are only ever lowered below what <see cref="AtMouth"/> gave beyond the coast, so the
+    /// film there still never lies above the ground plus the shore lift.
+    /// </summary>
+    /// <param name="surfaces">Heights of the centre line in metres from the head to the end; settled in place.</param>
+    /// <param name="deepest">Per point the ground plus the stream's full depth.</param>
+    /// <param name="along">Per point the metres along the line from its head.</param>
+    /// <param name="inWaterM">How much of the end of the line lies in the sea (<see cref="StreamMouth.LengthM"/>).</param>
+    /// <param name="highestSeaM">Height of the sea surface at the highest tide.</param>
+    public static void RunDownToTheSea(float[] surfaces, IReadOnlyList<float> deepest, IReadOnlyList<float> along, double inWaterM, float highestSeaM)
+    {
+        ArgumentNullException.ThrowIfNull(surfaces);
+        ArgumentNullException.ThrowIfNull(deepest);
+        ArgumentNullException.ThrowIfNull(along);
+        if (deepest.Count != surfaces.Length || along.Count != surfaces.Length)
+        {
+            throw new ArgumentException("one value per point expected", nameof(surfaces));
+        }
+
+        if (surfaces.Length == 0)
+        {
+            return;
+        }
+
+        // The first point beyond the coast; the last point of the line always is.
+        var total = along[^1];
+        var coast = surfaces.Length - 1;
+        while (coast > 0 && total - along[coast - 1] <= inWaterM)
+        {
+            coast--;
+        }
+
+        // Far up the stream this changes nothing: there the water lies at its full depth already.
+        for (var i = coast - 1; i >= 0; i--)
+        {
+            surfaces[i] = MathF.Min(deepest[i], MathF.Max(surfaces[i], surfaces[i + 1]));
+        }
+
+        var reached = Array.FindIndex(surfaces, y => y < highestSeaM);
+        for (var i = reached + 1; reached >= 0 && i < surfaces.Length; i++)
+        {
+            surfaces[i] = MathF.Min(surfaces[i], surfaces[i - 1]);
+        }
+    }
+
+    /// <summary>
+    /// Height of a band's centre and the factor of its width at a point <paramref name="toEndM"/> metres
+    /// before the end of its line, over the drawn <paramref name="ground"/> there (TL #20750, W1738).
+    /// Away from a mouth, and without mouth data, the centre lies at the ground plus the water depth.
+    /// <para>At the sea the water thins out over the look's fade length before the coast to a film on the
+    /// ground (the shore lift), and stays a film from the coast to the end of the line - which lies on
+    /// ground under the lowest tide (<see cref="DownTheSeaFloor"/>). The band is built once: the sea
+    /// surface follows the tide and covers whatever lies below it, so at high water the lower part of the
+    /// stream is simply under the sea, and at low water the film runs on over the wet beach to the
+    /// low-tide line. Nothing stands above the ground it runs over. The band widens from the coast to its
+    /// end by the look's share.</para>
+    /// <para>In still fresh water the band never lies above the surface less the look's margin (nor under
+    /// the ground plus the shore lift where the bank is still dry).</para>
+    /// </summary>
+    public static (float Surface, float Widen) AtMouth(TerrainLook look, StreamMouth? mouth, float ground, float depthM, double toEndM)
+    {
+        ArgumentNullException.ThrowIfNull(look);
+        if (mouth is null || look.Mouth is not { } data)
+        {
+            return (ground + depthM, 1);
+        }
+
+        if (mouth.Kind == StreamMouthKind.Lake)
+        {
+            return toEndM <= mouth.LengthM
+                ? (MathF.Min(ground + depthM, MathF.Max(mouth.LevelM - data.UnderM, ground + look.ShoreLiftM)), 1)
+                : (ground + depthM, 1);
+        }
+
+        // Metres before the coast (negative: beyond it, on the beach and the sea floor).
+        var before = toEndM - mouth.LengthM;
+        if (before >= data.FadeM)
+        {
+            return (ground + depthM, 1);
+        }
+
+        var film = MathF.Min(depthM, look.ShoreLiftM);
+        var t = before <= 0 ? 0f : (float)(before / data.FadeM);
+        var share = t * t * (3 - (2 * t));
+        var widen = before >= 0 || mouth.LengthM <= 0 ? 1f : 1 + (data.WidenShare * (float)Math.Min(1, -before / mouth.LengthM));
+        return (ground + film + ((depthM - film) * share), widen);
     }
 
     /// <summary>

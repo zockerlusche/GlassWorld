@@ -6,14 +6,16 @@
       "target_x_permille": 500,
       "target_z_permille": 500,
       "yaw_deg": 30,
-      "distance_m": 60
+      "distance_m": 60,
+      "revealed_permille": 1000
     },
     {
       "id": "quality_close",
       "target_x_permille": 500,
       "target_z_permille": 500,
       "yaw_deg": 120,
-      "distance_m": 30
+      "distance_m": 30,
+      "revealed_permille": 1000
     },
     {
       "id": "quality_figures",
@@ -21,7 +23,8 @@
       "target_z_permille": 500,
       "yaw_deg": 30,
       "distance_m": 14,
-      "inhabitant": 0
+      "inhabitant": 0,
+      "revealed_permille": 1000
     }
   ],
   "projections": [
