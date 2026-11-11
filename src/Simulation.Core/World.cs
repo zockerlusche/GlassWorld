@@ -44,6 +44,22 @@ public interface IOptionalWorldState
 }
 
 /// <summary>
+/// Watches the parts of a step from outside (measurement only, e.g. the perf command of the headless
+/// runner): the world says when a part begins and ends. The parts of a step are its systems, by
+/// <see cref="IWorldSystem.Name"/>, and <see cref="World.BoundariesPart"/>; a system may name parts of its
+/// own work as <c>system/part</c>, which begin and end inside the system's part (and inside each other).
+/// The core itself reads no clock (ADR-0002); a probe must not change the world.
+/// </summary>
+public interface IStepProbe
+{
+    /// <summary>A part of the step begins.</summary>
+    void Enter(string part);
+
+    /// <summary>The part that began last ends.</summary>
+    void Leave(string part);
+}
+
+/// <summary>
 /// The simulation world: fixed tick, world time, seeded random streams and a state hash. Systems run in
 /// the order they were registered (an explicit list, no reflection). No Godot, no wall clock (ADR-0002).
 /// </summary>
@@ -83,6 +99,15 @@ public sealed class World
     /// <summary>Raised after a tick when it crossed world-time boundaries (in order hour, day, season, year).</summary>
     public event Action<World, TimeBoundary>? BoundaryReached;
 
+    /// <summary>Part name a probe hears for the listeners of <see cref="BoundaryReached"/> (autosave, night work).</summary>
+    public const string BoundariesPart = "boundaries";
+
+    /// <summary>Watches the parts of every step (measurement); null = nobody. Not part of the world state.</summary>
+    public IStepProbe? Probe { get; set; }
+
+    /// <summary>The names of the systems in the order they run.</summary>
+    public IReadOnlyList<string> SystemNames => [.. _systems.Select(s => s.Name)];
+
     /// <summary>Registers a system; systems run in registration order.</summary>
     public World Add(IWorldSystem system)
     {
@@ -106,14 +131,18 @@ public sealed class World
     /// <summary>Advances the world by exactly one tick.</summary>
     public void Step()
     {
+        var probe = Probe;
         foreach (var system in _systems)
         {
+            probe?.Enter(system.Name);
             system.Advance(this);
+            probe?.Leave(system.Name);
         }
 
         var before = Now;
         Tick++;
         var after = Now;
+        probe?.Enter(BoundariesPart);
         if (after.Hour != before.Hour || after.Day != before.Day)
         {
             BoundaryReached?.Invoke(this, TimeBoundary.Hour);
@@ -133,6 +162,8 @@ public sealed class World
         {
             BoundaryReached?.Invoke(this, TimeBoundary.Year);
         }
+
+        probe?.Leave(BoundariesPart);
     }
 
     /// <summary>Advances the world by <paramref name="ticks"/> ticks.</summary>

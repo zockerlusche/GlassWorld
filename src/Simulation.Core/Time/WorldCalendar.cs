@@ -19,6 +19,15 @@ public enum DayPhase
     Night,
 }
 
+/// <summary>The ids of the day phases as the vocabulary <c>time_of_day</c> spells them.</summary>
+public static class DayPhases
+{
+    private static readonly string[] Ids = [.. Enum.GetValues<DayPhase>().Select(p => p.ToString().ToLowerInvariant())];
+
+    /// <summary>The vocabulary id of a phase: its name in lower case (the same string every time, nothing is built).</summary>
+    public static string IdOf(DayPhase phase) => Ids[(int)phase];
+}
+
 /// <summary>A point in world time, fully derived from the tick counter with integer arithmetic.</summary>
 /// <param name="Tick">Ticks since the founding of the world.</param>
 /// <param name="Year">World year, starting at 1.</param>

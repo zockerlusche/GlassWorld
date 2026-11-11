@@ -33,6 +33,9 @@ internal static class ExitCodes
     /// <summary>Replay: REPLAY_CONTENT_CHANGED (the save was made with other content data; nothing replayed).</summary>
     public const int ContentChanged = 6;
 
+    /// <summary>Perf: PERF_OVER_BUDGET (mean or p95 of the step is above <c>--budget-ms</c>).</summary>
+    public const int OverBudget = 7;
+
     /// <summary>Stopped with Ctrl+C (the AI service is stopped, FINAL is printed).</summary>
     public const int Interrupted = 130;
 }

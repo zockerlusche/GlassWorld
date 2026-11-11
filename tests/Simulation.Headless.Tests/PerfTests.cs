@@ -1,0 +1,324 @@
+using System.Globalization;
+using System.Text.Json;
+
+namespace GlassWorld.Simulation.Headless.Tests;
+
+/// <summary>
+/// The perf command (B2 acceptance 3: the step with 100 inhabitants). These tests check that the
+/// measurement runs, reports and adds up; they judge no time: a wall-clock limit in the test suite would
+/// fail on a busy machine (see the README of the runner for the budget check).
+/// </summary>
+public sealed class PerfTests
+{
+    private static readonly string Content = ContentFolder.Find();
+
+    private static (int Code, string Text) Perf(params string[] args)
+    {
+        var output = new StringWriter();
+        // No warm-up of the runtime: these tests judge no time (it would add seconds to each of them).
+        var code = PerfCommand.Run([.. args, "--runtime-warmup-seconds", "0", "--content", Content], output);
+        return (code, output.ToString());
+    }
+
+    private static string[] LinesOf(string text) => text.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+
+    private static double Value(string line, string key) =>
+        double.Parse(line.Split(' ').Single(p => p.StartsWith(key + "=", StringComparison.Ordinal))[(key.Length + 1)..], CultureInfo.InvariantCulture);
+
+    [Fact]
+    public void DefaultsAreTheAcceptanceRun()
+    {
+        var options = PerfOptions.Parse([], () => "content-dir");
+        Assert.Equal(100, options.Inhabitants);
+        Assert.Equal("start_island", options.Preset);
+        Assert.Equal(1UL, options.Seed);
+        Assert.Equal(1, options.Days);
+        Assert.Null(options.Ticks);
+        Assert.Equal(PerfDecider.Mock, options.Decider);
+        Assert.Equal(PerfOptions.DefaultWarmupTicks, options.WarmupTicks);
+        Assert.False(options.Json);
+        Assert.Null(options.BudgetMs);
+        Assert.Null(options.CsvPath);
+        Assert.Equal(PerfOptions.DefaultRuntimeWarmupSeconds, options.RuntimeWarmupSeconds);
+        Assert.Equal(0, options.AnswerEvery);
+    }
+
+    [Fact]
+    public void APacedMockHandsOverOneAnswerAtATime()
+    {
+        // Twelve inhabitants ask at once; one model answers one question every five ticks, oldest first.
+        string[] run = ["--inhabitants", "12", "--ticks", "100", "--warmup-ticks", "0", "--runtime-warmup-seconds", "0", "--content", Content];
+        var flood = PerfCommand.Measure(PerfOptions.Parse([.. run]));
+        var paced = PerfCommand.Measure(PerfOptions.Parse([.. run, "--answer-every", "5"]));
+        Assert.True(flood.Answers > 20, $"{flood.Answers} answers");
+        Assert.InRange(paced.Answers, 15, 20);
+        Assert.True(paced.Requests < flood.Requests);
+        Assert.True(paced.OpenQuestions > flood.OpenQuestions);
+        Assert.Equal(paced.Hash, PerfCommand.Measure(PerfOptions.Parse([.. run, "--answer-every", "5"])).Hash);
+        Assert.Contains(" decider=mock answer_every=5 ", PerfCommand.Lines(paced), StringComparison.Ordinal);
+        Assert.Throws<ArgumentException>(() => PerfOptions.Parse(["--ai", "silent", "--answer-every", "5"], () => "c"));
+    }
+
+    [Fact]
+    public void TheRuntimeIsWarmedUpOnAWorldOfItsOwn()
+    {
+        // The throwaway world runs for the given time, the measured world afterwards from its first tick:
+        // the same ticks, the same hash as without the warm-up.
+        string[] run = ["--inhabitants", "8", "--ticks", "60", "--warmup-ticks", "20", "--content", Content];
+        var cold = PerfCommand.Measure(PerfOptions.Parse([.. run, "--runtime-warmup-seconds", "0"]));
+        var warm = PerfCommand.Measure(PerfOptions.Parse([.. run, "--runtime-warmup-seconds", "0.3"]));
+        Assert.Equal(0, cold.RuntimeWarmupTicks);
+        Assert.True(warm.RuntimeWarmupTicks > 0);
+        Assert.Equal(cold.Hash, warm.Hash);
+        Assert.Equal((60, 20, 40), (warm.Ticks, warm.WarmupTicks, warm.MeasuredTicks));
+        Assert.Contains(" runtime_warmup_s=0.3 runtime_warmup_ticks=" + warm.RuntimeWarmupTicks.ToString(CultureInfo.InvariantCulture) + " ", PerfCommand.Lines(warm), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void EveryOptionIsRead()
+    {
+        var options = PerfOptions.Parse(
+            ["--preset", "p", "--seed", "42", "--inhabitants", "12", "--days", "3", "--ticks", "500", "--ai", "silent", "--warmup-ticks", "7", "--budget-ms", "4.5", "--json", "--content", "c", "--csv", "steps.csv", "--runtime-warmup-seconds", "2.5"]);
+        Assert.Equal(new PerfOptions(42, 3, 500, 12, "p", "c", PerfDecider.Silent, 7, true, 4.5) { CsvPath = "steps.csv", RuntimeWarmupSeconds = 2.5 }, options);
+        Assert.Null(PerfOptions.Parse(["--inhabitants", "data"], () => "c").Inhabitants);
+    }
+
+    [Theory]
+    [InlineData("--inhabitants", "0")]
+    [InlineData("--days", "0")]
+    [InlineData("--ticks", "0")]
+    [InlineData("--budget-ms", "0")]
+    [InlineData("--ai", "live")]
+    [InlineData("--nonsense", "1")]
+    public void BadArgumentsAreRefused(string option, string value) =>
+        Assert.Throws<ArgumentException>(() => PerfOptions.Parse([option, value], () => "c"));
+
+    [Fact]
+    public void TheReportNamesTheRunTheStepAndWhereTheTimeGoes()
+    {
+        var (code, text) = Perf("--inhabitants", "12", "--ticks", "90", "--warmup-ticks", "30", "--ai", "silent");
+        Assert.Equal(ExitCodes.Ok, code);
+        var lines = LinesOf(text);
+        Assert.StartsWith("PERF preset=start_island seed=1 inhabitants=12 decider=silent answer_every=0 ticks=90 warmup_ticks=30 measured_ticks=60 runtime_warmup_s=0 runtime_warmup_ticks=0 build=", lines[0], StringComparison.Ordinal);
+        var step = Assert.Single(lines, l => l.StartsWith("STEP ", StringComparison.Ordinal));
+        Assert.Matches("^STEP mean_ms=[0-9.]+ median_ms=[0-9.]+ p95_ms=[0-9.]+ p99_ms=[0-9.]+ max_ms=[0-9.]+ max_tick=[0-9]+$", step);
+        Assert.InRange(Value(step, "max_tick"), 30, 89);
+        Assert.True(Value(step, "median_ms") <= Value(step, "p95_ms") && Value(step, "p95_ms") <= Value(step, "p99_ms") && Value(step, "p99_ms") <= Value(step, "max_ms"));
+
+        // Every system of the world has its line, in the order the systems run; the inhabitants name their parts.
+        var systems = lines.Where(l => l.StartsWith("SYSTEM ", StringComparison.Ordinal)).Select(l => l.Split(' ')[1]["name=".Length..]).ToList();
+        Assert.Equal(["worldmap", "weather", "objects", "decisions", "inhabitants"], systems.Take(5));
+        Assert.Equal(World.BoundariesPart, systems[^1]);
+        var act = Assert.Single(lines, l => l.StartsWith("PART name=inhabitants/act ", StringComparison.Ordinal));
+
+        // The part "act" begins once per inhabitant and step.
+        Assert.Equal(12, Value(act, "calls"));
+        Assert.Contains(lines, l => l.StartsWith("PART name=inhabitants/(rest) ", StringComparison.Ordinal));
+
+        Assert.Contains(lines, l => l.StartsWith("REQUESTS sent=", StringComparison.Ordinal));
+        Assert.Contains(lines, l => l.StartsWith("ALLOC kb_per_step=", StringComparison.Ordinal));
+        Assert.Matches("^FINAL hash=[0-9a-f]{64} tick=90$", lines[^1]);
+        Assert.DoesNotContain(lines, l => l.StartsWith("PERF_", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void ThePartsOfAStepNeverOverlap()
+    {
+        // Asked of the result itself, not of the rounded lines: the systems together take no more time than
+        // the step they are part of, the parts of a system add up to the system, and every step that ran
+        // took time (a clock read with the wrong rate gives zeros or nonsense here).
+        var result = PerfCommand.Measure(PerfOptions.Parse(
+            ["--inhabitants", "12", "--ticks", "90", "--warmup-ticks", "30", "--runtime-warmup-seconds", "0", "--content", Content]));
+        Assert.True(result.Step.Mean > 0 && double.IsFinite(result.Step.Mean));
+        Assert.True(result.Step.Median > 0);
+        Assert.True(result.Step.Mean <= result.StepWithPort.Mean);
+        Assert.True(result.Systems.Sum(s => s.MeanMs) <= result.Step.Mean + 1e-9, $"systems {result.Systems.Sum(s => s.MeanMs)} ms, step {result.Step.Mean} ms");
+        Assert.True(result.Systems.Sum(s => s.MeanMs) > 0.5 * result.Step.Mean);
+        Assert.All(result.Systems, s => Assert.True(double.IsFinite(s.MeanMs) && s.MeanMs >= 0 && s.MaxMs >= s.MeanMs - 1e-9));
+        Assert.All(result.Systems.Where(s => s.Parts.Count > 0), s => Assert.Equal(s.MeanMs, s.Parts.Sum(p => p.MeanMs), 9));
+        Assert.Equal(1.0, result.Systems.Sum(s => s.Share) + ((result.Step.Mean - result.Systems.Sum(s => s.MeanMs)) / result.Step.Mean), 9);
+    }
+
+    [Fact]
+    public void JsonCarriesTheSameReport()
+    {
+        var (code, text) = Perf("--inhabitants", "12", "--ticks", "90", "--warmup-ticks", "30", "--json");
+        Assert.Equal(ExitCodes.Ok, code);
+        using var json = JsonDocument.Parse(text);
+        var root = json.RootElement;
+        Assert.Equal("start_island", root.GetProperty("preset").GetString());
+        Assert.Equal(12, root.GetProperty("inhabitants").GetInt32());
+        Assert.Equal("mock", root.GetProperty("decider").GetString());
+        Assert.Equal(60, root.GetProperty("measured_ticks").GetInt32());
+        foreach (var key in new[] { "mean", "median", "p95", "p99", "max" })
+        {
+            Assert.True(root.GetProperty("step_ms").GetProperty(key).GetDouble() > 0);
+            Assert.True(root.GetProperty("step_with_port_ms").GetProperty(key).GetDouble() > 0);
+        }
+
+        var systems = root.GetProperty("systems").EnumerateArray().ToList();
+        var inhabitants = Assert.Single(systems, s => s.GetProperty("name").GetString() == "inhabitants");
+        Assert.NotEmpty(inhabitants.GetProperty("parts").EnumerateArray());
+        Assert.True(root.GetProperty("requests").GetProperty("sent").GetInt64() > 0);
+        Assert.Equal(JsonValueKind.Null, root.GetProperty("budget_ms").ValueKind);
+        Assert.Matches("^[0-9a-f]{64}$", root.GetProperty("hash").GetString()!);
+    }
+
+    [Fact]
+    public void TheCsvHasOneLinePerMeasuredStepWithEveryPart()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "gw-perf-" + Guid.NewGuid().ToString("N") + ".csv");
+        try
+        {
+            var (code, text) = Perf("--inhabitants", "12", "--ticks", "90", "--warmup-ticks", "30", "--csv", path);
+            Assert.Equal(ExitCodes.Ok, code);
+            var rows = File.ReadAllLines(path);
+            Assert.Equal(61, rows.Length);
+            var header = rows[0].Split(',');
+            Assert.Equal(["tick", "step_ms", "step_with_port_ms"], header.Take(3));
+            Assert.Contains("inhabitants", header);
+            Assert.Contains("inhabitants/act", header);
+            Assert.Contains(TimedDecisionPort.Part, header);
+            Assert.Equal(header.Length, header.Distinct().Count());
+            Assert.Equal(Enumerable.Range(30, 60).Select(t => t.ToString(CultureInfo.InvariantCulture)), rows.Skip(1).Select(r => r.Split(',')[0]));
+            Assert.All(rows.Skip(1), row =>
+            {
+                var values = row.Split(',').Skip(1).Select(v => double.Parse(v, CultureInfo.InvariantCulture)).ToList();
+                Assert.Equal(header.Length - 1, values.Count);
+
+                // The parts never overlap: together no more than the step with the port (rounded to 4 places each).
+                Assert.True(values.Skip(2).Sum() <= values[1] + (0.0001 * values.Count));
+            });
+            // The slowest step of the report (three places) and of the csv (four places) are the same value,
+            // each rounded once: they differ by less than the two rounding steps together.
+            var slowest = Value(LinesOf(text).Single(l => l.StartsWith("STEP ", StringComparison.Ordinal)), "max_ms");
+            Assert.InRange(rows.Skip(1).Max(r => double.Parse(r.Split(',')[1], CultureInfo.InvariantCulture)), slowest - 0.00056, slowest + 0.00056);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void MeasuringTheDatasWorldIsTheRunCommandsWorld()
+    {
+        // The probe and the timed port change nothing: after the same ticks the hash is the run command's.
+        var (_, text) = Perf("--inhabitants", "data", "--days", "1", "--warmup-ticks", "0");
+        var output = new StringWriter();
+        new RunCommand().Run(HeadlessOptions.Parse(["--days", "1", "--quiet", "--preset", "start_island", "--content", Content]), output, CancellationToken.None);
+        Assert.Equal(LinesOf(output.ToString())[^1].Trim(), LinesOf(text)[^1]);
+    }
+
+    [Fact]
+    public void TheSameMeasurementEndsWithTheSameHash()
+    {
+        string Hash() => LinesOf(Perf("--inhabitants", "20", "--ticks", "120", "--seed", "7").Text)[^1];
+        Assert.Equal(Hash(), Hash());
+    }
+
+    [Fact]
+    public void ABudgetDecidesTheExitCode()
+    {
+        // Two budgets no machine can miss or meet: a million milliseconds, and a millionth of one.
+        var (ok, kept) = Perf("--inhabitants", "8", "--ticks", "40", "--warmup-ticks", "10", "--budget-ms", "1000000");
+        Assert.Equal(ExitCodes.Ok, ok);
+        Assert.Contains(LinesOf(kept), l => l.StartsWith("PERF_OK budget_ms=1000000.000 ", StringComparison.Ordinal));
+
+        var (over, missed) = Perf("--inhabitants", "8", "--ticks", "40", "--warmup-ticks", "10", "--budget-ms", "0.000001");
+        Assert.Equal(ExitCodes.OverBudget, over);
+        Assert.Contains(LinesOf(missed), l => l.StartsWith("PERF_OVER_BUDGET budget_ms=0.000 ", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void PartsCountTheirOwnTimeOnly()
+    {
+        // A clock the test moves, a thousand ticks to the second (one tick = one millisecond, whatever the
+        // stopwatch of the machine counts): 10 in the system before its part, 5 in the part, 3 in the port
+        // inside the part, 2 after the port, 7 after the part.
+        long now = 0;
+        var timer = new StepTimer(new TickClock(() => now, 1000));
+        void Step()
+        {
+            timer.Enter("system");
+            now += 10;
+            timer.Enter("system/part");
+            now += 5;
+            timer.Enter(TimedDecisionPort.Part);
+            now += 3;
+            timer.Leave(TimedDecisionPort.Part);
+            now += 2;
+            timer.Leave("system/part");
+            now += 7;
+            timer.Leave("system");
+        }
+
+        Step();
+        Assert.Equal(3, timer.InStep(TimedDecisionPort.Part));
+        Assert.Equal(24, timer.InStep("system"));
+        timer.Drop();
+        Assert.Equal(0, timer.InStep("system"));
+        Assert.Equal(0, timer.Steps);
+
+        Step();
+        timer.Keep();
+        Step();
+        timer.Keep();
+        Assert.Equal(2, timer.Steps);
+        Assert.Equal(["system", "system/part", TimedDecisionPort.Part], timer.Parts);
+        Assert.Equal(3, timer.MeanMs(TimedDecisionPort.Part));
+        Assert.Equal(17, timer.MeanMs("system"));
+        Assert.Equal(7, timer.MeanMs("system/part"));
+        Assert.Equal(7, timer.MaxMs("system/part"));
+        Assert.Equal(24, timer.GroupMeanMs("system"));
+        Assert.Equal(24, timer.GroupMaxMs("system"));
+        Assert.Equal(1, timer.MeanCalls("system/part"));
+        Assert.Throws<InvalidOperationException>(() =>
+        {
+            timer.Enter("a");
+            timer.Leave("b");
+        });
+    }
+
+    [Theory]
+    [InlineData(10_000_000)]
+    [InlineData(1_000_000_000)]
+    [InlineData(3)]
+    public void TicksBecomeMillisecondsByTheClocksOwnRate(long ticksPerSecond)
+    {
+        // The stopwatch counts 10^7 ticks per second on Windows and 10^9 on Linux; a part of a few ticks
+        // must not vanish on either (it did: 3 ticks of a nanosecond were rounded to no time at all).
+        long now = 0;
+        var timer = new StepTimer(new TickClock(() => now, ticksPerSecond));
+        timer.Enter("part");
+        now += 3;
+        timer.Leave("part");
+        Assert.Equal(3000.0 / ticksPerSecond, timer.StepMs()[0], 12);
+        timer.Keep();
+        Assert.Equal(3000.0 / ticksPerSecond, timer.MeanMs("part"), 12);
+        Assert.Equal(3000.0 / ticksPerSecond, timer.MaxMs("part"), 12);
+        Assert.Equal(1000.0, timer.Ms(ticksPerSecond));
+        Assert.True(timer.MeanMs("part") > 0);
+    }
+
+    [Fact]
+    public void TheMachinesStopwatchIsReadWithItsOwnRate()
+    {
+        var timer = new StepTimer();
+        Assert.Equal(1000.0, timer.Ms(System.Diagnostics.Stopwatch.Frequency));
+        Assert.Equal(System.Diagnostics.Stopwatch.Frequency, TickClock.Machine.TicksPerSecond);
+    }
+
+    [Fact]
+    public void StatisticsUseTheNearestRank()
+    {
+        var stats = StepStats.Of([.. Enumerable.Range(1, 100).Select(n => (double)n).Reverse()], 500);
+        Assert.Equal(50.5, stats.Mean);
+        Assert.Equal(50, stats.Median);
+        Assert.Equal(95, stats.P95);
+        Assert.Equal(99, stats.P99);
+        Assert.Equal(100, stats.Max);
+        Assert.Equal(500, stats.MaxTick);
+        Assert.Equal(new StepStats(0, 0, 0, 0, 0, 3), StepStats.Of([], 3));
+    }
+}
