@@ -62,6 +62,10 @@ public sealed record SoundTask(string TypeId, string RequestId, string? ResultJs
 /// <param name="Smaller">True when the builder finished it smaller: the thing stands as far as it was built.</param>
 /// <param name="Chosen">True while an answer about this stuck building is under way (the chosen action not finished yet).</param>
 /// <param name="Quality">Quality tier of the built thing (data id, D827 R19), or null while unbuilt or without the data.</param>
+/// <param name="Helper">The inhabitant who builds along after being asked for help (A1376, B2663), or null.</param>
+/// <param name="HelperPendingObjectId">Material object the helper is on the way to, or null.</param>
+/// <param name="HelperPendingType">The plan type that material stands for.</param>
+/// <param name="HelpSinceTick">When the helper was asked (its help ends after the data's help_hours), or null.</param>
 public sealed record BuildTask(
     string TypeId,
     string InhabitantId,
@@ -84,7 +88,11 @@ public sealed record BuildTask(
     IReadOnlyDictionary<string, string>? Substitutes = null,
     bool Smaller = false,
     bool Chosen = false,
-    string? Quality = null);
+    string? Quality = null,
+    string? Helper = null,
+    string? HelperPendingObjectId = null,
+    string? HelperPendingType = null,
+    long? HelpSinceTick = null);
 
 /// <content>Building inventions from a plan and their first use (D471 D5, part 2).</content>
 public sealed partial class InventionSystem
@@ -125,6 +133,12 @@ public sealed partial class InventionSystem
 
     /// <summary>Event: a substitute truly has what was missing (target = invention type, detail = substitute type).</summary>
     public const string SubstituteTaken = "substitute_taken";
+
+    /// <summary>Event: a stuck builder asked another for help (target = the helper, detail = the missing properties, A1376).</summary>
+    public const string AskedForHelp = "asked_for_help";
+
+    /// <summary>Event: the helper showed the builder where it knows a missing material (target = the thing, A1376).</summary>
+    public const string MaterialShown = "material_shown";
 
     /// <summary>Event: a substitute lacks what was missing (target = invention type, detail = substitute type); the builder learned it.</summary>
     public const string SubstituteFailed = "substitute_failed";
@@ -352,13 +366,13 @@ public sealed partial class InventionSystem
             var radius = _inhabitants.Sight.Metres(_perceptionRadiusM);
             var radiusSquared = radius * radius;
             var material = _objects.All
-                .Where(o => standsFor.ContainsKey(o.TypeId))
+                .Where(o => standsFor.ContainsKey(o.TypeId) && o.Id != task.HelperPendingObjectId)
                 .Select(o => (o, d: Square(o.Position.X - inhabitant.Position.X) + Square(o.Position.Z - inhabitant.Position.Z)))
                 .Where(x => x.d <= radiusSquared)
                 .OrderBy(x => x.d)
                 .ThenBy(x => x.o.Id, StringComparer.Ordinal)
                 .Select(x => x.o)
-                .FirstOrDefault();
+                .FirstOrDefault() ?? Remembered(inhabitant, standsFor, task.HelperPendingObjectId);
             if (material is null)
             {
                 // No material in sight: the building waits (no substitute, B2487) while the inhabitant looks about
@@ -369,6 +383,108 @@ public sealed partial class InventionSystem
 
             inhabitant.Planned = new Activity(Build.Settings.StepAction, material.Id, material.Position, null);
             _builds[task.TypeId] = _builds[task.TypeId] with { PendingObjectId = material.Id, PendingType = standsFor[material.TypeId], WaitingSinceTick = null, NeedsHelp = false, LookedTicks = 0 };
+        }
+
+        AdvanceHelpers(world);
+    }
+
+    /// <summary>
+    /// A material the inhabitant remembers where it lies (place memory - its own, or shown by a helper, A1376), nearest
+    /// first, still there; null if it knows none. The building then walks there.
+    /// </summary>
+    private WorldObject? Remembered(Inhabitant inhabitant, Dictionary<string, string> standsFor, string? taken)
+    {
+        WorldObject? best = null;
+        var bestD = double.MaxValue;
+        foreach (var (objectId, place) in inhabitant.Places)
+        {
+            if (objectId == taken || !standsFor.ContainsKey(place.TypeId) || !_objects.TryGet(objectId, out var thing) || thing.TypeId != place.TypeId)
+            {
+                continue;
+            }
+
+            var d = Square(thing.Position.X - inhabitant.Position.X) + Square(thing.Position.Z - inhabitant.Position.Z);
+            if (d < bestD || (d == bestD && string.CompareOrdinal(thing.Id, best!.Id) < 0))
+            {
+                (best, bestD) = (thing, d);
+            }
+        }
+
+        return best;
+    }
+
+    /// <summary>
+    /// A1376 (B2663 (3)): the helper builds along - while it is free and its needs allow it, it fetches a missing material
+    /// it sees or remembers (not the one the builder is on the way to) and works it in at the building.
+    /// </summary>
+    private void AdvanceHelpers(World world)
+    {
+        var helpTicks = Build.Settings.Escalation?.HelpHours is { } hours ? (long)(hours * world.Calendar.Settings.TicksPerHour) : (long?)null;
+        foreach (var task in _builds.Values.Where(b => b.Helper is not null && b.PlanJson is not null && b.BuiltObjectId is null && !b.GaveUp).ToList())
+        {
+            // Help ends after the data's hours (review GW3 #312): the helper goes back to its own day.
+            if ((helpTicks is { } limit && task.HelpSinceTick is { } since && world.Tick - since >= limit && task.HelperPendingObjectId is null)
+                || !_inhabitants.TryGet(task.Helper!, out var helper) || _inhabitants.IsAsleep(helper))
+            {
+                continue;
+            }
+
+            if (task.HelperPendingObjectId is { } pending)
+            {
+                if (helper.Activity?.TargetId == pending || helper.Planned?.TargetId == pending)
+                {
+                    continue;
+                }
+
+                _builds[task.TypeId] = task with { HelperPendingObjectId = null, HelperPendingType = null };
+            }
+
+            if (helper.Planned is not null || Build.NeglectableNeeds.Any(n => helper.Needs.GetValueOrDefault(n, 1.0) < Build.Settings.MinNeedToBuild))
+            {
+                continue;
+            }
+
+            var current = _builds[task.TypeId];
+            var missing = StepMaterials(ParsePlan(current), current.StepsDone + 1).Except(current.Gathered, StringComparer.Ordinal).ToHashSet(StringComparer.Ordinal);
+            if (current.PendingType is { } builderFetches)
+            {
+                missing.Remove(builderFetches);
+            }
+
+            var standsFor = StandsFor(current, missing);
+            var radius = _inhabitants.Sight.Metres(_perceptionRadiusM);
+            var radiusSquared = radius * radius;
+            var material = _objects.All
+                .Where(o => standsFor.ContainsKey(o.TypeId) && o.Id != current.PendingObjectId)
+                .Select(o => (o, d: Square(o.Position.X - helper.Position.X) + Square(o.Position.Z - helper.Position.Z)))
+                .Where(x => x.d <= radiusSquared)
+                .OrderBy(x => x.d)
+                .ThenBy(x => x.o.Id, StringComparer.Ordinal)
+                .Select(x => x.o)
+                .FirstOrDefault() ?? Remembered(helper, standsFor, current.PendingObjectId);
+            if (material is null)
+            {
+                continue;
+            }
+
+            helper.Planned = new Activity(Build.Settings.StepAction, material.Id, material.Position, null);
+            _builds[task.TypeId] = current with { HelperPendingObjectId = material.Id, HelperPendingType = standsFor[material.TypeId] };
+        }
+    }
+
+    /// <summary>Builder and helper grow fonder of each other with every material the helper works in (data, A1376).</summary>
+    private void GrowFond(string builderId, string helperId)
+    {
+        if (Build.Settings.Escalation?.HelpAffectionPerStep is not { } step || step <= 0
+            || !_inhabitants.TryGet(builderId, out var builder) || !_inhabitants.TryGet(helperId, out var helper))
+        {
+            return;
+        }
+
+        foreach (var (who, other) in new[] { (builder, helperId), (helper, builderId) })
+        {
+            var r = who.Relationships.Get(other, new Relation(0, 0, 0));
+            who.Relationships.Set(other, r with { Affection = Math.Min(1, r.Affection + step) });
         }
     }
 
@@ -470,6 +586,24 @@ public sealed partial class InventionSystem
             options.AddRange(candidates.Select(o => (escalation.UseInsteadAction, (string?)o.Id)));
         }
 
+        // Ask for help (A1376, B2663 (3)): the nearest awake inhabitant in sight whose name the builder knows.
+        if (escalation.HelpAction is { } help && task.Helper is null)
+        {
+            var radius = _inhabitants.Sight.Metres(_perceptionRadiusM);
+            var helper = _inhabitants.All
+                .Where(o => o.Id != inhabitant.Id && inhabitant.KnownNames.Contains(o.Id) && !_inhabitants.IsAsleep(o))
+                .Select(o => (o, d: Square(o.Position.X - inhabitant.Position.X) + Square(o.Position.Z - inhabitant.Position.Z)))
+                .Where(x => x.d <= radius * radius)
+                .OrderBy(x => x.d)
+                .ThenBy(x => x.o.Id, StringComparer.Ordinal)
+                .Select(x => x.o)
+                .FirstOrDefault();
+            if (helper is not null)
+            {
+                options.Add((help, helper.Id));
+            }
+        }
+
         if (task.StepsDone >= 1)
         {
             options.Add((escalation.SmallerAction, null));
@@ -511,6 +645,12 @@ public sealed partial class InventionSystem
             _builds[task.TypeId] = task with { BuiltObjectId = built.Id, Smaller = true, NeedsHelp = false, WaitingSinceTick = null, LookedTicks = 0, PendingObjectId = null, PendingType = null, Quality = QualityOf(task) };
             _inhabitants.Report(new WorldEvent(Built, e.Tick, task.InhabitantId, null, built.Id) { Detail = FinishedSmaller });
             KnowOwnWork(e.Tick, task);
+            return;
+        }
+
+        if (e.Action == escalation.HelpAction && e.TargetId is { } helperId && _inhabitants.TryGet(helperId, out var asked))
+        {
+            AskedForHelpBy(e, task, asked);
             return;
         }
 
@@ -571,7 +711,8 @@ public sealed partial class InventionSystem
             return null;
         }
 
-        var level = skillOf(task.InhabitantId, quality.Skill);
+        // Built along (A1376): the better hand of the two counts.
+        var level = Math.Max(skillOf(task.InhabitantId, quality.Skill), task.Helper is { } helper ? skillOf(helper, quality.Skill) : 0);
         return quality.Tiers.Where(t => level >= t.FromLevel).OrderBy(t => t.FromLevel).LastOrDefault()?.Id;
     }
 
@@ -589,6 +730,32 @@ public sealed partial class InventionSystem
 
         var missing = StepMaterials(ParsePlan(task), task.StepsDone + 1).Except(task.Gathered, StringComparer.Ordinal).ToHashSet(StringComparer.Ordinal);
         return EscalationOptions(task, missing);
+    }
+
+    /// <summary>
+    /// The builder asked another for help (A1376, B2663 (3), D827 R19): the helper shows where it knows a missing
+    /// material (it passes its place memory on), and from now on builds along. The builder looks again at once.
+    /// </summary>
+    private void AskedForHelpBy(WorldEvent e, BuildTask task, Inhabitant helper)
+    {
+        var builder = _inhabitants.Get(task.InhabitantId);
+        var missing = StepMaterials(ParsePlan(task), task.StepsDone + 1).Except(task.Gathered, StringComparer.Ordinal).ToHashSet(StringComparer.Ordinal);
+        var standsFor = StandsFor(task, missing);
+        _inhabitants.Report(new WorldEvent(AskedForHelp, e.Tick, builder.Id, e.Action, helper.Id) { Detail = string.Join(',', MissingProperties(missing)) });
+        var max = _inhabitants.Knowledge?.Looking?.PlaceMemoryMax ?? 0;
+        if (max > 0)
+        {
+            foreach (var (objectId, place) in helper.Places.Where(p => standsFor.ContainsKey(p.Value.TypeId)).ToList())
+            {
+                if (_objects.TryGet(objectId, out var thing) && thing.TypeId == place.TypeId && !builder.Places.ContainsKey(objectId))
+                {
+                    builder.RememberPlace(objectId, place, max);
+                    _inhabitants.Report(new WorldEvent(MaterialShown, e.Tick, helper.Id, e.Action, objectId) { Detail = builder.Id });
+                }
+            }
+        }
+
+        _builds[task.TypeId] = task with { Helper = helper.Id, HelpSinceTick = e.Tick, NeedsHelp = false, WaitingSinceTick = null, LookedTicks = 0 };
     }
 
     /// <summary>What a stuck building's question tells the decider (A1373 step 2), or null if the building is not stuck.</summary>
@@ -623,11 +790,16 @@ public sealed partial class InventionSystem
                 _builds[task.TypeId] = task with { PendingObjectId = null, PendingType = null };
             }
 
+            foreach (var task in _builds.Values.Where(b => b.HelperPendingObjectId is not null && b.HelperPendingObjectId == e.TargetId).ToList())
+            {
+                _builds[task.TypeId] = task with { HelperPendingObjectId = null, HelperPendingType = null };
+            }
+
             return;
         }
 
         if (e.Kind == InhabitantsSystem.ActionFinished && Build.Settings.Escalation is { } escalation
-            && e.Action is { } chosen && (chosen == escalation.GiveUpAction || chosen == escalation.SmallerAction || chosen == escalation.UseInsteadAction))
+            && e.Action is { } chosen && (chosen == escalation.GiveUpAction || chosen == escalation.SmallerAction || chosen == escalation.UseInsteadAction || chosen == escalation.HelpAction))
         {
             Escalated(e, escalation);
             return;
@@ -643,7 +815,13 @@ public sealed partial class InventionSystem
             var task = _builds.Values.FirstOrDefault(b => b.PendingObjectId == e.TargetId && b.InhabitantId == e.InhabitantId);
             if (task is not null)
             {
-                WorkIn(e, task);
+                WorkIn(e, task with { PendingObjectId = null, PendingType = null }, task.PendingType!);
+            }
+            else if (_builds.Values.FirstOrDefault(b => b.HelperPendingObjectId == e.TargetId && b.Helper == e.InhabitantId) is { } helped)
+            {
+                // Built along (A1376): the helper's material counts like the builder's, and they grow fonder of each other.
+                WorkIn(e, helped with { HelperPendingObjectId = null, HelperPendingType = null }, helped.HelperPendingType!);
+                GrowFond(helped.InhabitantId, e.InhabitantId);
             }
 
             return;
@@ -658,12 +836,12 @@ public sealed partial class InventionSystem
         }
     }
 
-    private void WorkIn(WorldEvent e, BuildTask task)
+    private void WorkIn(WorldEvent e, BuildTask task, string planType)
     {
         var plan = ParsePlan(task);
         var step = task.StepsDone + 1;
-        var gathered = task.Gathered.Append(task.PendingType!).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToList();
-        task = task with { Gathered = gathered, PendingObjectId = null, PendingType = null };
+        var gathered = task.Gathered.Append(planType).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToList();
+        task = task with { Gathered = gathered };
         if (StepMaterials(plan, step).Except(gathered, StringComparer.Ordinal).Any())
         {
             _builds[task.TypeId] = task;
@@ -954,6 +1132,12 @@ public sealed partial class InventionSystem
             {
                 // A1376 (R19), only when there is one: worlds without the data hash as before.
                 hasher.Write(quality);
+            }
+
+            if (b.Helper is { } helpedBy)
+            {
+                // A1376, only when there is a helper.
+                hasher.Write(helpedBy).Write(b.HelperPendingObjectId ?? string.Empty).Write(b.HelperPendingType ?? string.Empty).Write(b.HelpSinceTick ?? -1);
             }
 
             if (b.Escalations > 0 || b.Smaller || b.Chosen || b.Substitutes is { Count: > 0 })

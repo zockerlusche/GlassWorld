@@ -58,6 +58,15 @@
       { "kind": "need", "id": "purpose", "delta": 0.15 },
       { "kind": "mood", "id": "joy", "delta": 0.05 }
     ] },
+    { "action": "use", "requires_property": "sheltering", "requires_also": "crafted", "consumes_target": false, "effects": [
+      { "kind": "need", "id": "safety", "delta": 0.2 }
+    ] },
+    { "action": "use", "requires_property": "insulating", "requires_also": "crafted", "consumes_target": false, "effects": [
+      { "kind": "need", "id": "warmth", "delta": 0.15 }
+    ] },
+    { "action": "use", "requires_property": "hot", "requires_also": "crafted", "consumes_target": false, "effects": [
+      { "kind": "need", "id": "warmth", "delta": 0.2 }
+    ] },
     { "action": "build_step", "requires_property": null, "consumes_target": true, "effects": [
       { "kind": "need", "id": "purpose", "delta": 0.05 }
     ] },

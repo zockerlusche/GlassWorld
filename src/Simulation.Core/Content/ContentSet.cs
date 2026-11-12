@@ -665,7 +665,7 @@ public sealed class ContentSet
 
         if (build.Escalation is { } escalation)
         {
-            foreach (var action in new[] { escalation.UseInsteadAction, escalation.SmallerAction, escalation.GiveUpAction })
+            foreach (var action in new[] { escalation.UseInsteadAction, escalation.SmallerAction, escalation.GiveUpAction, escalation.HelpAction }.OfType<string>())
             {
                 if (!actions.Actions.Contains(action, StringComparer.Ordinal))
                 {

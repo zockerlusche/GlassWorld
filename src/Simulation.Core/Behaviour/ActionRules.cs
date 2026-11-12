@@ -67,6 +67,7 @@ public sealed class ActionRules
         {
             Require(timing.ContainsKey(rule.Action), $"effect rule for action '{rule.Action}' without timing");
             Require(rule.RequiresProperty is null || catalog.PropertyVocabulary.Contains(rule.RequiresProperty), $"effect rule uses unknown property '{rule.RequiresProperty}'");
+            Require(rule.RequiresAlso is null || (rule.RequiresProperty is not null && catalog.PropertyVocabulary.Contains(rule.RequiresAlso)), $"effect rule for '{rule.Action}': requires_also '{rule.RequiresAlso}' needs a requires_property and a known property");
             foreach (var effect in rule.Effects)
             {
                 Require(Known(effect), $"effect on unknown {effect.Kind} '{effect.Id}'");
@@ -124,11 +125,13 @@ public sealed class ActionRules
 
     /// <summary>
     /// The rules that apply to <paramref name="action"/> on an object of <paramref name="targetTypeId"/>:
-    /// rules without a required property always, the others only if the target truly has the property.
+    /// rules without a required property always, the others only if the target truly has the property (and the
+    /// second one, requires_also, B2668: e.g. only a made thing).
     /// </summary>
     public IReadOnlyList<EffectRule> Applying(string action, string? targetTypeId) =>
-        [.. Rules(action).Where(r => r.RequiresProperty is null
-            || (targetTypeId is not null && _catalog.HasProperty(targetTypeId, r.RequiresProperty)))];
+        [.. Rules(action).Where(r => (r.RequiresProperty is null
+            || (targetTypeId is not null && _catalog.HasProperty(targetTypeId, r.RequiresProperty)))
+            && (r.RequiresAlso is null || (targetTypeId is not null && _catalog.HasProperty(targetTypeId, r.RequiresAlso))))];
 
     /// <summary>
     /// The effects a reported core event has on the inhabitant it is about (data: <c>event_effects</c>, W1744),

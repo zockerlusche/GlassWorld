@@ -1399,6 +1399,14 @@
       "text": "Favour grows back slowly. Gifts cost favour."
     },
     {
+      "key": "msg.mail.build_missing",
+      "text": "{name} knocks at the glass: stuck building {thing}, looking for something – {properties}. There is nothing like it anywhere on the island – perhaps you can give it."
+    },
+    {
+      "key": "msg.mail.build_stuck",
+      "text": "{name} knocks at the glass: stuck building {thing}, looking for something – {properties}. There is such a thing on the island; a little more searching may find it."
+    },
+    {
       "key": "msg.mail.knock",
       "text": "{name} knocks at the glass: finds nothing for {need}."
     },
@@ -1585,6 +1593,14 @@
     {
       "key": "vocab.event.substitute_failed",
       "text": "Substitute does not fit"
+    },
+    {
+      "key": "vocab.event.asked_for_help",
+      "text": "Asked for help"
+    },
+    {
+      "key": "vocab.event.material_shown",
+      "text": "Material shown"
     },
     {
       "key": "vocab.event.built",

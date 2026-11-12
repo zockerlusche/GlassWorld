@@ -28,7 +28,7 @@ public sealed class BuiltThingsGetUsedTests : IDisposable
     private static readonly ContentSet Shipped = ContentSet.Load(ShippedDirectory);
     private static readonly UtilityWeights Weights = Shipped.Brain.Weights;
     private static readonly BuildSettings Build = Shipped.Inventions.Build.Settings;
-    private static readonly Consideration Use = Weights.Considerations.Single(c => c.Action == Build.UseAction);
+    private static readonly Consideration Use = Weights.Considerations.Single(c => c.Action == Build.UseAction && c.RequiresAlso is null); // the kit's rows (B2668) have requires_also
     private static readonly Curve UseCurve = new(Use.Curve);
     private static readonly string Need = Use.Need!;
     private static readonly string Made = Use.TargetProperty!;
@@ -65,7 +65,8 @@ public sealed class BuiltThingsGetUsedTests : IDisposable
         Assert.Null(Use.SearchAction);
         Assert.True(Use.YieldsToNeeds, "using a made thing gives way to the body's needs");
         Assert.Empty(Use.AvoidProperties);
-        Assert.Equal(0.0, UseCurve.At(1.0), 9);
+        // B2668 (2): open up to 1.0 with a small weight - made things are tried out in calm hours.
+        Assert.Equal(0.1, Use.Weight * UseCurve.At(1.0), 3);
         Assert.True(UseCurve.At(0.0) > 0);
         Assert.Empty(ContractValidator.Validate("utility-weights", File.ReadAllText(Path.Combine(ShippedDirectory, "behaviour", "utility.json"))));
     }
@@ -134,9 +135,9 @@ public sealed class BuiltThingsGetUsedTests : IDisposable
         Assert.True(builder.Beliefs.TryGet(typeId, guessed, out var seen));
         Assert.Equal((host.Types.HasProperty(typeId, guessed), looking.InspectConfidence, KnowledgeSources.Seen), (seen.Value, seen.Confidence, seen.Source));
 
-        // The use itself teaches what its effect rules depend on (today: that the thing is made) and
-        // nothing about the other properties - they have no effect rule for it yet (data).
-        Assert.Equal([Made], Quiet.Value.Actions.Rules(Use.Action).Select(r => r.RequiresProperty).OfType<string>().Distinct());
+        // The use itself teaches what its effect rules depend on: that the thing is made and the kit's base
+        // functions (B2668) - nothing about the other properties.
+        Assert.Equal([Made, "hot", "insulating", "sheltering"], Quiet.Value.Actions.Rules(Use.Action).Select(r => r.RequiresProperty).OfType<string>().Distinct().Order(StringComparer.Ordinal));
     }
 
     [Fact]
@@ -167,7 +168,8 @@ public sealed class BuiltThingsGetUsedTests : IDisposable
         Assert.DoesNotContain(events, e => e.Kind == InventionSystem.FirstUse);
 
         // Nothing came of the use itself: what the need gained is what finding out is worth (event effects).
-        var foundOut = Quiet.Value.Actions.EventEffects(InhabitantsSystem.KnowledgeGained, Made + "/" + KnowledgeSources.Experienced).Where(e => e.Kind == EffectKind.Need && e.Id == Need).Sum(e => e.Delta);
+        var foundOut = events.Where(e => e.Kind == InhabitantsSystem.KnowledgeGained && e.InhabitantId == misled.Id)
+            .Sum(g => Quiet.Value.Actions.EventEffects(g.Kind, g.Detail).Where(e => e.Kind == EffectKind.Need && e.Id == Need).Sum(e => e.Delta));
         Assert.True(misled.Needs[Need] <= before + foundOut + 1e-9);
     }
 
@@ -244,8 +246,9 @@ public sealed class BuiltThingsGetUsedTests : IDisposable
         maker.Needs[Need] = 1.0;
         var met = Shipped.Brain.Score(maker, [thing]);
         Assert.NotEqual(Use.Action, met[0].Action);
-        Assert.Equal(0.0, met.Single(o => o.Action == Use.Action).Score, 9);
-        Assert.False(Shipped.Brain.NeedSuggests(maker, Use.Action, thing.TypeId));
+        // B2668 (2): with the need met only the calm hours' trying out is left - small, below a wish.
+        Assert.Equal(Use.Weight * UseCurve.At(1.0) * DistanceFactor(1), BestUse(met, thing.Id), 9);
+        Assert.True(BestUse(met, thing.Id) < Use.Weight * UseCurve.At(0.0) * DistanceFactor(1));
 
         // A neglected body need comes first (yields_to_needs): nothing is left of the wish, and the decider
         // is not offered the action either (F5275 A).
@@ -253,7 +256,7 @@ public sealed class BuiltThingsGetUsedTests : IDisposable
         Assert.True(Shipped.Brain.NeedSuggests(maker, Use.Action, thing.TypeId));
         var neglected = Shipped.InhabitantModel.Needs.First(n => n.NeglectBelow > 0);
         maker.Needs[neglected.Id] = neglected.NeglectBelow / 2;
-        Assert.Equal(0.0, Shipped.Brain.Score(maker, [thing]).Single(o => o.Action == Use.Action).Score, 9);
+        Assert.Equal(0.0, BestUse(Shipped.Brain.Score(maker, [thing]), thing.Id), 9);
         Assert.False(Shipped.Brain.NeedSuggests(maker, Use.Action, thing.TypeId));
     }
 
@@ -264,12 +267,12 @@ public sealed class BuiltThingsGetUsedTests : IDisposable
         maker.Needs[Need] = 0.2;
         var far = thing with { Id = "obj-000002", Position = new Position(30, 0) };
         var options = Shipped.Brain.Score(maker, [thing, far]);
-        Assert.Equal(Use.Weight * UseCurve.At(0.2) * DistanceFactor(1), options.Single(o => o.Action == Use.Action && o.TargetId == thing.Id).Score, 9);
-        Assert.Equal(Use.Weight * UseCurve.At(0.2) * DistanceFactor(30), options.Single(o => o.Action == Use.Action && o.TargetId == far.Id).Score, 9);
+        Assert.Equal(Use.Weight * UseCurve.At(0.2) * DistanceFactor(1), BestUse(options, thing.Id), 9);
+        Assert.Equal(Use.Weight * UseCurve.At(0.2) * DistanceFactor(30), BestUse(options, far.Id), 9);
 
         // Told about it, not tried: as sure as the teller was times the trust in the teller.
         maker.Beliefs.Set(thing.TypeId, Made, true, 0.7, KnowledgeSources.Heard, "inh-000002");
-        Assert.Equal(Use.Weight * UseCurve.At(0.2) * 0.7 * DistanceFactor(1), Shipped.Brain.Score(maker, [thing]).Single(o => o.Action == Use.Action).Score, 9);
+        Assert.Equal(Use.Weight * UseCurve.At(0.2) * 0.7 * DistanceFactor(1), BestUse(Shipped.Brain.Score(maker, [thing]), thing.Id), 9);
 
         // Found out that it is not made: no wish for it.
         maker.Beliefs.Set(thing.TypeId, Made, false, 1.0);
@@ -290,7 +293,7 @@ public sealed class BuiltThingsGetUsedTests : IDisposable
         var unknown = Use.Weight * UseCurve.At(0.0) * Weights.UnknownTargetBelief * DistanceFactor(1);
         Assert.Equal(unknown, scored.Single(o => o.Action == Use.Action && o.TargetId == thing.Id).Score, 9);
         Assert.Equal(unknown, scored.Single(o => o.Action == Use.Action && o.TargetId == stone.Id).Score, 9);
-        Assert.True(Shipped.Brain.Score(maker, [thing, stone]).Single(o => o.TargetId == thing.Id && o.Action == Use.Action).Score > unknown);
+        Assert.True(BestUse(Shipped.Brain.Score(maker, [thing, stone]), thing.Id) > unknown);
 
         // This pins a decision of the proposal values, not a rule of the frame: with the shipped weight the
         // routine does not try the use on things it knows nothing about (the wish for an unknown thing stays
@@ -482,11 +485,17 @@ public sealed class BuiltThingsGetUsedTests : IDisposable
             model.WillToLive.Start);
     }
 
+    /// <summary>The best score of a use of the thing (the kit, B2668, offers one per base function).</summary>
+    private static double BestUse(IEnumerable<ScoredOption> options, string thingId) =>
+        options.Where(o => o.Action == Use.Action && o.TargetId == thingId).Select(o => o.Score).DefaultIfEmpty(0).Max();
+
     /// <summary>For the brain alone: someone with the need at 0 who believes by experience that the thing one metre away is made.</summary>
     private static (Inhabitant Maker, WorldObject Thing) MakerNextToItsThing()
     {
         var maker = Person("inh-000001", new Position(0, 0));
         maker.Needs[Need] = 0.0;
+        maker.Needs["safety"] = 1.0;
+        maker.Needs["warmth"] = 1.0;
         var thing = new WorldObject("obj-000001", InventionSystem.TypePrefix + "000000000000", new Position(1, 0));
         maker.Beliefs.Set(thing.TypeId, Made, true, Shipped.Knowledge.ExperiencedConfidence);
         return (maker, thing);

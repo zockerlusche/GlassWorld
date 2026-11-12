@@ -370,7 +370,11 @@ public sealed class SimulationHost
             Inhabitants = inhabitants,
             PerceptionRadiusM = content.Brain.Weights.PerceptionRadiusM,
         };
-        var mailbox = new Simulation.Player.MailboxSystem(content.MessageKinds, inhabitants, player, world.Calendar.Settings.TicksPerHour);
+        var mailbox = new Simulation.Player.MailboxSystem(content.MessageKinds, inhabitants, player, world.Calendar.Settings.TicksPerHour)
+        {
+            // A builder's knock calms down once it is no longer stuck (A1602).
+            StillStuck = (who, type) => inventions.Builds.Any(b => b.InhabitantId == who && b.TypeId == type && b.NeedsHelp),
+        };
         decisions.RegisterCommand(Simulation.Player.MailboxSystem.Acknowledge, mailbox.Check, mailbox.Apply);
 
         // The player's favourites (B6 R19): the player's own marks, never part of a request to the AI.

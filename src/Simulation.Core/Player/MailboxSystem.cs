@@ -21,6 +21,12 @@ public sealed record MailMessage(string Id, string? InhabitantId, string Kind, l
     /// <summary>True once the reason is over (a knock whose call ended): it stays calm and never repeats again.</summary>
     public bool Settled { get; init; }
 
+    /// <summary>
+    /// What the message is about beyond its detail: the invention type a stuck builder knocks about (A1602); null
+    /// for every other message.
+    /// </summary>
+    public string? Subject { get; init; }
+
     /// <summary>True while the player has not acknowledged it.</summary>
     public bool IsOpen => AcknowledgedTick is null;
 }
@@ -51,6 +57,12 @@ public sealed class MailboxSystem : IWorldSystem, IOptionalWorldState
     /// <summary>Message kind of a knock at the glass (data id).</summary>
     public const string KnockKind = "knock";
 
+    /// <summary>Text key of a builder's knock when what it misses lies somewhere on the island (A1602, B2502: look further).</summary>
+    public const string BuildStuckText = "msg.mail.build_stuck";
+
+    /// <summary>Text key of a builder's knock when nothing like it lies anywhere on the island (A1602, B2502: a gift may help).</summary>
+    public const string BuildMissingText = "msg.mail.build_missing";
+
     /// <summary>Reason: no open message with this id.</summary>
     public const string ReasonNoMessage = "msg.command.no_message";
 
@@ -72,6 +84,12 @@ public sealed class MailboxSystem : IWorldSystem, IOptionalWorldState
         _player = player ?? throw new ArgumentNullException(nameof(player));
         _ticksPerHour = ticksPerHour;
     }
+
+    /// <summary>
+    /// Whether an inhabitant is still stuck building an invention type (set by the host from the inventions, A1602);
+    /// null = a builder's knock stays open until read.
+    /// </summary>
+    public Func<string, string, bool>? StillStuck { get; set; }
 
     /// <inheritdoc/>
     public string Name => "mailbox";
@@ -125,6 +143,17 @@ public sealed class MailboxSystem : IWorldSystem, IOptionalWorldState
             }
         }
 
+        // A builder that looked long enough by itself knocks too (A1602, D850, A1373): about the invention, with the
+        // missing properties (never a type name); whether such a thing lies on the island picks the text (B2502).
+        foreach (var stuck in _inhabitants.Events.Where(e => e.Tick == world.Tick && e.Kind == Inventions.InventionSystem.NeedsHelpEvent && e.TargetId is not null).ToList())
+        {
+            if (_kinds.ContainsKey(KnockKind))
+            {
+                var text = stuck.Text == Inventions.InventionSystem.InWorld ? BuildStuckText : BuildMissingText;
+                Add(world, stuck.InhabitantId, KnockKind, text, stuck.Detail, stuck.TargetId);
+            }
+        }
+
         for (var i = 0; i < _messages.Count; i++)
         {
             var message = _messages[i];
@@ -141,7 +170,7 @@ public sealed class MailboxSystem : IWorldSystem, IOptionalWorldState
                 continue;
             }
 
-            if (message.Kind == KnockKind && !CallStillOpen(message))
+            if (message.Kind == KnockKind && !(message.Subject is null ? CallStillOpen(message) : BuilderStillStuck(message)))
             {
                 // A later call for the same need brings its own knock.
                 _messages[i] = message with { Urgency = 0, Settled = true };
@@ -170,6 +199,11 @@ public sealed class MailboxSystem : IWorldSystem, IOptionalWorldState
         {
             hasher.Write(m.Id).Write(m.InhabitantId ?? string.Empty).Write(m.Kind).Write(m.CreatedTick).Write(m.TextKey).Write(m.Detail ?? string.Empty)
                 .Write(m.Urgency).Write(m.Repeats).Write(m.AcknowledgedTick ?? -1).Write(m.LastShownTick).Write(m.Settled);
+            if (m.Subject is { } subject)
+            {
+                // A1602, only when there is one: worlds without a builder's knock hash as before.
+                hasher.Write(subject);
+            }
         }
     }
 
@@ -208,14 +242,19 @@ public sealed class MailboxSystem : IWorldSystem, IOptionalWorldState
         && _inhabitants.All.Any(i => i.Id == who)
         && _player.Open.Any(c => c.InhabitantId == who && c.Need == message.Detail);
 
-    private void Add(World world, string? inhabitantId, string kind, string textKey, string? detail)
+    private bool BuilderStillStuck(MailMessage message) =>
+        message.InhabitantId is { } who
+        && _inhabitants.All.Any(i => i.Id == who)
+        && (StillStuck is not { } stuck || stuck(who, message.Subject!));
+
+    private void Add(World world, string? inhabitantId, string kind, string textKey, string? detail, string? subject = null)
     {
-        // A new knock replaces an unread earlier one for the same inhabitant and need, so an unmet need
-        // does not pile up knocks (review #86).
-        _messages.RemoveAll(m => m.IsOpen && m.Kind == kind && kind == KnockKind && m.InhabitantId == inhabitantId && m.Detail == detail);
+        // A new knock replaces an unread earlier one for the same inhabitant and need (or invention), so an unmet
+        // need does not pile up knocks (review #86).
+        _messages.RemoveAll(m => m.IsOpen && m.Kind == kind && kind == KnockKind && m.InhabitantId == inhabitantId && m.Detail == detail && m.Subject == subject);
         _counter++;
         var id = "m-" + _counter.ToString("D6", System.Globalization.CultureInfo.InvariantCulture);
-        _messages.Add(new MailMessage(id, inhabitantId, kind, world.Tick, textKey, detail, 0, 0, null, world.Tick));
+        _messages.Add(new MailMessage(id, inhabitantId, kind, world.Tick, textKey, detail, 0, 0, null, world.Tick) { Subject = subject });
         _inhabitants.Report(new WorldEvent(MailArrived, world.Tick, inhabitantId ?? string.Empty, null, id) { Detail = kind });
     }
 }

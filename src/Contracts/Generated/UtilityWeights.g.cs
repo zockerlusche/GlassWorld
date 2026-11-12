@@ -107,6 +107,13 @@ namespace GlassWorld.Contracts
         public string? TargetProperty { get; set; } = default!;
 
         /// <summary>
+        /// B2668: a second true property the target must have as well (e.g. crafted: only made things); omitted or null = none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("requires_also")]
+        public string? RequiresAlso { get; set; } = default!;
+
+        /// <summary>
         /// Properties that make the option worse when the inhabitant believes the target has them (factor 1 - confidence each), e.g. salty for drinking.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("avoid_properties")]

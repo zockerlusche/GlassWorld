@@ -1463,7 +1463,13 @@ public partial class GameScreen : CanvasLayer
     {
         ["number"] = Number(message.Number),
         ["name"] = message.InhabitantId is { } sender ? NameOfId(sender) : string.Empty,
-        ["need"] = message.Detail is null ? string.Empty : Tr(VocabKeys.Need(message.Detail)),
+        ["need"] = message.Detail is null || message.AboutBuilding ? string.Empty : Tr(VocabKeys.Need(message.Detail)),
+
+        // A stuck builder's knock (A1602): the invention by its name, what it looks for as property words.
+        ["thing"] = message.SubjectName is { } name
+            ? TranslationServer.GetLocale().StartsWith("en", StringComparison.OrdinalIgnoreCase) ? name.En : name.De
+            : Tr("ui.chronicle.something"),
+        ["properties"] = string.Join(", ", message.PropertyKeys.Select(k => Tr(k).ToString())),
     });
 
     /// <summary>
