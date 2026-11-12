@@ -112,6 +112,13 @@ namespace GlassWorld.Contracts
         public double FadeInS { get; set; } = default!;
 
         /// <summary>
+        /// B2680: the scene begins when every inhabitant sleeps, at the latest this many game hours after the night phase began (then the core lets those still awake lie down). Absent = the scene begins at nightfall, as before.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("wait_for_sleepers_max_h")]
+        public double? WaitForSleepersMaxH { get; set; } = default!;
+
+        /// <summary>
         /// The dream scene stays at least this long (real seconds), also when the service has nothing to do - short, but without a jolt.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("min_scene_s")]

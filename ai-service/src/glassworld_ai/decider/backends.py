@@ -23,6 +23,13 @@ from glassworld_ai.decider.output import (
     readable_name,
 )
 from glassworld_ai.decider.thoughts import ThoughtMemory, thought_problem
+from glassworld_ai.grounding import (
+    checks_nouns,
+    request_words,
+    settings_words,
+    unknown_nouns,
+    world_things,
+)
 from glassworld_ai.llm.ollama import (
     ChatMessage,
     ChatResult,
@@ -160,6 +167,22 @@ class OllamaDecider:
         problem = thought_problem(choice.thought, locale, settings)
         if problem is not None:
             return replace(choice, thought=None), f"thought left out ({problem}): {choice.thought}"
+        # v11 (TL #22567, W1937): a thought names only what the inhabitant knows or sees - 'Ich
+        # zeige ihm, wie man Feuer macht' from someone who knows nothing about fire is not shown.
+        if checks_nouns(settings, locale):
+            words = request_words(
+                request.model_dump(mode="json"),
+                self._texts,
+                locale,
+                settings_words(settings, "general_words", locale),
+            )
+            unknown = unknown_nouns(
+                choice.thought, words, heads=True, only=world_things(self._texts, locale)
+            )
+            if unknown:
+                return replace(choice, thought=None), (
+                    f"thought left out (unknown: {', '.join(unknown[:3])}): {choice.thought}"
+                )
         if choice.thought:
             # W1696: the same inhabitant does not say the same thing again soon - silence instead.
             who = _plain(request.inhabitant.id)

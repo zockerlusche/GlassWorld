@@ -47,7 +47,7 @@ def _render(request: DecisionRequest, budget: int = BUDGET, version: int = 1) ->
     )
 
 
-@pytest.mark.parametrize("version", [1, 2, 3, 4, 6, 7, 8, 9, 10])
+@pytest.mark.parametrize("version", [1, 2, 3, 4, 6, 7, 8, 9, 10, 11])
 @pytest.mark.parametrize("case", ["hungry-berries", "stormy-dusk"])
 def test_decider_prompt_snapshot(case: str, version: int) -> None:
     text = _render(_request(case), version=version)
@@ -205,6 +205,7 @@ def test_every_knowledge_source_has_words_in_the_prompts_that_name_sources() -> 
         "decider/decide.v8",
         "decider/decide.v9",
         "decider/decide.v10",
+        "decider/decide.v11",
         "question/ask.v1",
         "question/ask.v2",
         "question/ask.v3",
