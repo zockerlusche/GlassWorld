@@ -3,7 +3,7 @@
 The player reads the thought, so a sentence that slipped into English, shows an id or rambles is
 not shown. The model is not asked again (costly), and no fixed stand-in takes its place: the
 thought is left out and the action runs (B2644, Marcel F5296 = B; before, the data's
-msg.thought.<action> was shown - those texts stay in content/i18n, unused, PR4).
+msg.thought.<action> was shown - those texts are archived in docs/archive, PR4).
 The rules (word limit, blocked words per language) are prompt settings: data, not code.
 """
 
