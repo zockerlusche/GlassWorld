@@ -143,6 +143,9 @@ public sealed class DecisionsSystem : IWorldSystem
     /// <summary>A1373 step 2 (set by the host): what a stuck building's request tells the decider (inhabitant, invention type).</summary>
     public Func<string, string, StuckBuilding?>? StuckContext { get; set; }
 
+    /// <summary>A1373 step 2 (set by the host): a stuck building's question was answered (inhabitant, invention type).</summary>
+    public Action<string, string>? StuckAnswered { get; set; }
+
     /// <summary>Player command: an inhabitant was clicked.</summary>
     public const string InhabitantClicked = "inhabitant_clicked";
 
@@ -1401,6 +1404,11 @@ public sealed class DecisionsSystem : IWorldSystem
         }
 
         Close(world, question, "question_answered");
+        if (question.Kind == BuildStuck)
+        {
+            StuckAnswered?.Invoke(question.InhabitantId, question.Subject);
+        }
+
         if (response.Thought is { } thought && _guard.Check(thought.Text).Allowed)
         {
             // Thought bubble (B3): the only player-visible text of a decision, in the display language.
