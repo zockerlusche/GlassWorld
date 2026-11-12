@@ -58,7 +58,8 @@ public partial class InventionsView : Node3D
             }
 
             drawn.Node.Position = new Vector3((float)s.X, (float)_ground(s.X, s.Z), (float)s.Z);
-            drawn.Node.ShowUpToStep(s.Finished ? drawn.Node.LastStep : s.Step);
+            // Up to the step the model says: a whole thing says int.MaxValue, one finished smaller its last step (review GW3 #295).
+            drawn.Node.ShowUpToStep(Math.Min(s.Step, drawn.Node.LastStep));
         }
 
         foreach (var key in _drawn.Keys.Where(k => !keep.Contains(k)).ToList())

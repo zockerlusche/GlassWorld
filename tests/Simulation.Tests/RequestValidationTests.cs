@@ -75,7 +75,7 @@ public sealed partial class RequestValidationTests
         ("Player/ConversationSystem.cs", 1, "ConversationTests (conversation-request)"),
         ("Night/NightJobsSystem.cs", 1, "NightJobsTests (generation-job: memory and question jobs)"),
         ("Inventions/InventionSystem.cs", 1, "InventionTests.ALastingLackBecomesAnInventionJobWithTheInhabitantsViewOfTheMaterials (generation-job: invention)"),
-        ("Inventions/InventionSystem.Building.cs", 2, "BuildingTests: AnApprovedInventionAsksForAPlanWithTheConstructionKit (build plan), AFinishedInventionThatNeedsASoundGetsASoundJobAndKeepsTheFile (sound)"),
+        ("Inventions/InventionSystem.Building.cs", 3, "BuildingTests: AnApprovedInventionAsksForAPlanWithTheConstructionKit (build plan), AFinishedInventionThatNeedsASoundGetsASoundJobAndKeepsTheFile (sound), ANewInventionAsksForItsIconAndKeepsThePicture (image, A1564)"),
     ];
 
     [GeneratedRegex(@"ContractSerializer\.Serialize\((?<arguments>[^()]*(?:\([^()]*\)[^()]*)*)\)")]

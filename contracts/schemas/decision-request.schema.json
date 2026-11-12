@@ -59,9 +59,24 @@
       "items": {
         "$ref": "#/$defs/Option"
       }
+    },
+    "building": {
+      "description": "Only when a building is stuck and the builder asks what to do (A1373 step 2, D850): which invention, what is missing (properties by vocabulary id), and how often it asked already. The options then hold only the ways the core leaves open. Absent otherwise, and from an older core.",
+      "$ref": "#/$defs/StuckBuilding"
     }
   },
   "$defs": {
+    "StuckBuilding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "missing_properties", "escalation", "max_escalations"],
+      "properties": {
+        "name": { "description": "The invention's name in both languages.", "$ref": "common.schema.json#/$defs/LocalizedName" },
+        "missing_properties": { "description": "Properties of the material the current step lacks (vocabulary ids, sorted).", "type": "array", "maxItems": 32, "uniqueItems": true, "items": { "$ref": "common.schema.json#/$defs/VocabId" } },
+        "escalation": { "description": "Which question this is (1 = the first).", "type": "integer", "minimum": 1, "maximum": 10 },
+        "max_escalations": { "description": "Most questions for this building (data).", "type": "integer", "minimum": 1, "maximum": 10 }
+      }
+    },
     "PerceivedObject": {
       "type": "object",
       "additionalProperties": false,

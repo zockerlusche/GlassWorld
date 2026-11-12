@@ -13,6 +13,36 @@ namespace GlassWorld.Contracts
     #pragma warning disable // Disable all warnings
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class StuckBuilding
+    {
+
+        /// <summary>
+        /// The invention's name in both languages.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        public LocalizedName Name { get; set; } = new LocalizedName();
+
+        /// <summary>
+        /// Properties of the material the current step lacks (vocabulary ids, sorted).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("missing_properties")]
+        public System.Collections.Generic.ICollection<string> MissingProperties { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// Which question this is (1 = the first).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("escalation")]
+        public int Escalation { get; set; } = default!;
+
+        /// <summary>
+        /// Most questions for this building (data).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max_escalations")]
+        public int MaxEscalations { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class PerceivedObject
     {
 
@@ -245,6 +275,13 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("options")]
         public System.Collections.Generic.ICollection<Option> Options { get; set; } = new System.Collections.ObjectModel.Collection<Option>();
+
+        /// <summary>
+        /// Only when a building is stuck and the builder asks what to do (A1373 step 2, D850): which invention, what is missing (properties by vocabulary id), and how often it asked already. The options then hold only the ways the core leaves open. Absent otherwise, and from an older core.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("building")]
+        public StuckBuilding? Building { get; set; } = default!;
 
     }
 }

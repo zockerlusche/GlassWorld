@@ -523,6 +523,22 @@
       "text": "Bauen"
     },
     {
+      "key": "vocab.action.use_instead",
+      "text": "Stattdessen nehmen"
+    },
+    {
+      "key": "vocab.action.build_smaller",
+      "text": "Kleiner fertigstellen"
+    },
+    {
+      "key": "vocab.action.ask_for_help",
+      "text": "Um Hilfe bitten"
+    },
+    {
+      "key": "vocab.action.give_up",
+      "text": "Aufgeben"
+    },
+    {
       "key": "vocab.action.combine",
       "text": "Kombinieren"
     },
@@ -1529,6 +1545,14 @@
     {
       "key": "vocab.event.needs_help",
       "text": "Braucht Hilfe beim Bauen"
+    },
+    {
+      "key": "vocab.event.substitute_taken",
+      "text": "Ersatz genommen"
+    },
+    {
+      "key": "vocab.event.substitute_failed",
+      "text": "Ersatz passt nicht"
     },
     {
       "key": "vocab.event.built",

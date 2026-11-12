@@ -60,11 +60,32 @@
     },
     {
       "action": "use",
-      "sound": "action.use"
+      "sound": "action.use",
+      "group": "using"
     },
     {
       "action": "build_step",
-      "sound": "action.build_step"
+      "sound": "action.build_step",
+      "group": "building"
+    },
+    {
+      "action": "use_instead",
+      "sound": "action.use",
+      "group": "using"
+    },
+    {
+      "action": "build_smaller",
+      "sound": "action.build_step",
+      "group": "building"
+    },
+    {
+      "action": "ask_for_help",
+      "sound": "action.talk_to",
+      "group": "speaking"
+    },
+    {
+      "action": "give_up",
+      "sound": null
     },
     {
       "action": "warn",

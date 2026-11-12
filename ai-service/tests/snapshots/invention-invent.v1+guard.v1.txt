@@ -59,7 +59,7 @@ hut
 alkaline, braidable, building_material, burnable, container, cooked, cooling, crafted, drinkable, edible, fatty, fibrous, fine_grained, fruit, hard, hardens_in_fire, healing, hot, insulating, long_lasting, malleable, milky, mushroom, poisonous, portable, salty, scratchable, sharp, sheltering, smoulders, sparks, splittable, sticky, stone, transparent, water
 
 ## Actions a thing can be used for
-approach, build_step, combine, drink, drop, eat, explore, idle, inspect, introduce, move_to, pick_up, show, sleep, talk_to, teach, use, wander, warn
+approach, ask_for_help, build_smaller, build_step, combine, drink, drop, eat, explore, give_up, idle, inspect, introduce, move_to, pick_up, show, sleep, talk_to, teach, use, use_instead, wander, warn
 
 
 Describe one idea.

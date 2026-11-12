@@ -36,8 +36,16 @@ public partial class Main : Node3D
     private const string NightLimitArgument = "--night-limit=";
     private const string BenchmarkArgument = "--benchmark=";
     private const string IslandArgument = "--island";
+    private const string LoadSaveArgument = "--load-save=";
+    private const string LookAtArgument = "--look-at=";
     private const string IslandScene = "res://world/island.tscn";
     private string? _shotsFolder;
+
+    // A save game a check run starts from (debug builds only, A1375): pictures of a world that has come far.
+    private string? _loadSave;
+
+    // Where a check run's camera looks (x, z, distance in m; debug builds only, A1375).
+    private (double X, double Z, double Distance)? _lookAt;
     private bool _tour;
     private double _tourRunS;
     private bool _nightShots;
@@ -110,9 +118,22 @@ public partial class Main : Node3D
             ApplySettings(_settings);
         }
 
-        if (_smokeFrames > 0 || _shotsFolder is not null || _seedGiven || _baseStyle is null)
+        // A check run's save that is not there ends the run with a clear line (review GW3 #292), not a stack trace.
+        if (_loadSave is { } missing && !System.IO.File.Exists(missing))
         {
-            var spatialReady = StartWorld(presenter => presenter.Start(_contentDirectory, _seed), null);
+            GD.PushError($"LOAD_SAVE_FAIL no save game at '{missing}'");
+            GetTree().Quit(1);
+            return;
+        }
+
+        if (_smokeFrames > 0 || _shotsFolder is not null || _seedGiven || _loadSave is not null || _baseStyle is null)
+        {
+            var spatialReady = StartWorld(_loadSave is { } save ? presenter => presenter.Load(_contentDirectory, CheckCopy(save)) : presenter => presenter.Start(_contentDirectory, _seed), null);
+            if (_lookAt is { } look && _world is not null)
+            {
+                GD.Print($"LOOK_AT x={look.X} z={look.Z} distance={look.Distance} ok={_world.LookAt(look.X, look.Z, look.Distance)}");
+            }
+
             if (_shotsFolder is not null && _style is not null)
             {
                 _ = _nightShots ? NightShotsAsync() : _tour ? TourAsync(_style) : TakeShotsAsync(_style);
@@ -194,6 +215,26 @@ public partial class Main : Node3D
                 _seedGiven = true;
             }
 
+            // Check runs only (A1375): never in an exported game, so a player's world list stays the only way in.
+            if (arg.StartsWith(LookAtArgument, StringComparison.Ordinal) && OS.IsDebugBuild())
+            {
+                var parts = arg[LookAtArgument.Length..].Split(',');
+                var numbers = parts.Select(p => double.TryParse(p, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var v) ? v : double.NaN).ToList();
+                if (numbers.Count is 2 or 3 && numbers.All(double.IsFinite))
+                {
+                    _lookAt = (numbers[0], numbers[1], numbers.Count == 3 ? numbers[2] : 12);
+                }
+                else
+                {
+                    GD.PushWarning($"LOOK_AT ignored '{arg}' (expected --look-at=X,Z[,DISTANCE])");
+                }
+            }
+
+            if (arg.StartsWith(LoadSaveArgument, StringComparison.Ordinal) && OS.IsDebugBuild())
+            {
+                _loadSave = arg[LoadSaveArgument.Length..];
+            }
+
             if (arg == DebugArgument)
             {
                 _debugCommands = true;
@@ -222,6 +263,18 @@ public partial class Main : Node3D
         }
         _screen?.ApplySettings(settings, _style);
         WorldAudio.ApplyVolumes(_mix, settings.BusVolumesDb);
+    }
+
+    /// <summary>
+    /// A copy of a check run's save game in the user folder: the world saves into the file it was loaded from
+    /// (autosave, closing), and a check must not change its input.
+    /// </summary>
+    private static string CheckCopy(string save)
+    {
+        var copy = System.IO.Path.Combine(ProjectSettings.GlobalizePath("user://"), "check-load.db");
+        System.IO.File.Copy(save, copy, overwrite: true);
+        GD.Print($"LOAD_SAVE {save} -> {copy}");
+        return copy;
     }
 
     private void ShowMenu()
