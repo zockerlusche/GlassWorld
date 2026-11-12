@@ -465,6 +465,25 @@ def test_v2_takes_the_name_out_of_the_memory_summary_too(settings: Settings) -> 
     assert "Saw the sea water" in v1.render(build_values(job, v1, _vocab(settings))).user
 
 
+def test_v4_names_properties_without_cause_and_effect(settings: Settings) -> None:
+    """A1556 (D763 Z21): the vocabulary's descriptions tell what a property does ('throws sparks
+    when struck against a suitable stone', 'helps sand melt into glass') - world knowledge the
+    inhabitant has not found out. v4 names a property only; what it notices, too."""
+    data = JOB.model_dump(mode="json")
+    data["payload"]["question"]["perception"] = ["sparks", "hard"]
+    job = GenerationJob.model_validate(data)
+    vocab = _vocab(settings)
+    template = load_prompt(settings.prompts_dir, "question/ask", 4)
+    user = template.render(build_values(job, template, vocab)).user
+    for p in vocab.ids("property"):
+        description = vocab.describe("property", p)
+        assert description is None or description not in user, p
+    assert "- sparks\n" in user and "- alkaline\n" in user and "- hard\n" in user
+    assert "glass" not in user and "suitable stone" not in user
+    v3 = load_prompt(settings.prompts_dir, "question/ask", 3)
+    assert "helps sand melt into glass" in v3.render(build_values(job, v3, vocab)).user  # as it was
+
+
 def test_an_empty_unnamed_subject_setting_is_an_error_not_a_silent_name(
     settings: Settings,
 ) -> None:
