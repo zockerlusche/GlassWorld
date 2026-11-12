@@ -774,7 +774,7 @@ public partial class Main
                     await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
                 }
 
-                GD.Print(string.Create(System.Globalization.CultureInfo.InvariantCulture, $"NIGHT_SHOT {name} stage={_screen.NightNow.Stage} darkness={_screen.NightNow.Darkness:0.00} dreams={_screen.DreamsShownForShots} text='{_screen.NightTextForShots}'"));
+                GD.Print(string.Create(System.Globalization.CultureInfo.InvariantCulture, $"NIGHT_SHOT {name} stage={_screen.NightNow.Stage} darkness={_screen.NightNow.Darkness:0.00} dreams={_screen.DreamsShownForShots} pictures={_screen.DreamPicturesShownForShots} text='{_screen.NightTextForShots}'"));
                 // The name is the stage that triggered the picture; if the scene moved on during the wait,
                 // the file says which stage it really shows (review GW1 #235).
                 var now = _screen.NightNow.Stage;

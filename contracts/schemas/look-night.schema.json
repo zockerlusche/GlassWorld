@@ -52,6 +52,12 @@
       "minimum": 0.5,
       "maximum": 60
     },
+    "lost_after_polls": {
+      "description": "A1586 (B7 R16): after this many questions in a row that the service did not answer (gone, or not ready), the night is taken as unknown and the scene ends after its minimum time instead of waiting for the morning. Omitted = the scene waits for an answer (as before).",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 60
+    },
     "sleep_actions": {
       "description": "Actions during which an inhabitant counts as asleep and shows 'Zzz' in the dream scene (vocabulary ids).",
       "type": "array",
