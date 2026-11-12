@@ -33,7 +33,8 @@ APPROVED: dict[str, Any] = json.loads(
 
 def test_every_case_makes_a_valid_invention_job() -> None:
     data = MI.load_cases()
-    assert len(data["cases"]) == 8 and sum(c["bait"] for c in data["cases"]) == 4
+    # v4 (B2668): ten cases, the four baits as before plus company and purpose.
+    assert len(data["cases"]) == 10 and sum(c["bait"] for c in data["cases"]) == 4
     vocab = json.loads((ROOT / "content/vocabulary/needs.json").read_text("utf-8"))
     needs = {e["id"] for e in vocab["entries"]}
     catalog = json.loads((ROOT / "content/objects/start-catalog.json").read_text("utf-8"))
@@ -58,7 +59,8 @@ def test_an_approved_invention_makes_a_valid_builder_job() -> None:
     ("text", "found"),
     [
         ("Speerspitze aus Feuerstein", ["speer"]),
-        ("A simple fishing rod", ["fishing rod"]),
+        ("A simple fishing rod", ["fishing rod", "fish"]),  # v4: fish* is a bait term too (B2481)
+        ("Fischgrill aus Holz", ["fisch"]),
         ("Wasserschale aus Lehm", []),
         ("Ein Bogen aus Schilf für den Korb", []),  # ambiguous (arch): not a bait term
         ("Elbow rest", []),  # 'bow' inside a word is no bait

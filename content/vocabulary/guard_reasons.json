@@ -25,6 +25,11 @@
     {
       "id": "implausible",
       "description": "Could not really be made or used this way."
+    },
+    {
+      "id": "off_want",
+      "description": "Does not help with what the inhabitant wanted (B2668).",
+      "only_when": "want_check"
     }
   ]
 }

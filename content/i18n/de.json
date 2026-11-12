@@ -1159,6 +1159,10 @@
       "text": "Unplausibel"
     },
     {
+      "key": "vocab.guard_reason.off_want",
+      "text": "Hilft nicht beim Wunsch"
+    },
+    {
       "key": "msg.command.no_favor",
       "text": "Dafür reicht deine Gunst gerade nicht."
     },
