@@ -136,16 +136,15 @@ def parse(
 
 
 def with_words(data: dict[str, Any], texts: TextCatalog | None, locale: str) -> dict[str, Any]:
-    """W1701: the voice always gets an answer - an outcome other than a gesture for which the model
-    wrote no sentence gets the data's stand-in msg.converse.<outcome> (DE/EN). A sentence the
-    checks rejected is NOT replaced (B2644, Marcel F5296 = B): nothing is shown, the outcome
-    stays."""
+    """No fixed sentence in the inhabitant's mouth (B2644, D763 Z26, TL #21712): an outcome without
+    a sentence - the model wrote none, or the checks took it back - stays without words. W1701 (the
+    voice always gets an answer) is kept by a visible reaction without words that the game shows
+    for the outcome (decline, not understood); before, the data's msg.converse.<outcome> was said.
+    `texts` and `locale` are kept for the callers; nothing is looked up any more."""
+    del texts, locale
     data = dict(data)
-    if data.pop("left_out", False):
-        return data
-    if data["outcome"] == "gesture" or data["reply"] or texts is None:
-        return data
-    return {**data, "reply": texts.get(locale, f"msg.converse.{data['outcome']}")}
+    data.pop("left_out", None)
+    return data
 
 
 def values(
