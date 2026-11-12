@@ -36,8 +36,12 @@ public partial class Main : Node3D
     private const string NightLimitArgument = "--night-limit=";
     private const string BenchmarkArgument = "--benchmark=";
     private const string IslandArgument = "--island";
+    private const string LoadSaveArgument = "--load-save=";
     private const string IslandScene = "res://world/island.tscn";
     private string? _shotsFolder;
+
+    // A save game a check run starts from (debug builds only, A1375): pictures of a world that has come far.
+    private string? _loadSave;
     private bool _tour;
     private double _tourRunS;
     private bool _nightShots;
@@ -110,9 +114,9 @@ public partial class Main : Node3D
             ApplySettings(_settings);
         }
 
-        if (_smokeFrames > 0 || _shotsFolder is not null || _seedGiven || _baseStyle is null)
+        if (_smokeFrames > 0 || _shotsFolder is not null || _seedGiven || _loadSave is not null || _baseStyle is null)
         {
-            var spatialReady = StartWorld(presenter => presenter.Start(_contentDirectory, _seed), null);
+            var spatialReady = StartWorld(_loadSave is { } save ? presenter => presenter.Load(_contentDirectory, CheckCopy(save)) : presenter => presenter.Start(_contentDirectory, _seed), null);
             if (_shotsFolder is not null && _style is not null)
             {
                 _ = _nightShots ? NightShotsAsync() : _tour ? TourAsync(_style) : TakeShotsAsync(_style);
@@ -194,6 +198,12 @@ public partial class Main : Node3D
                 _seedGiven = true;
             }
 
+            // Check runs only (A1375): never in an exported game, so a player's world list stays the only way in.
+            if (arg.StartsWith(LoadSaveArgument, StringComparison.Ordinal) && OS.IsDebugBuild())
+            {
+                _loadSave = arg[LoadSaveArgument.Length..];
+            }
+
             if (arg == DebugArgument)
             {
                 _debugCommands = true;
@@ -222,6 +232,18 @@ public partial class Main : Node3D
         }
         _screen?.ApplySettings(settings, _style);
         WorldAudio.ApplyVolumes(_mix, settings.BusVolumesDb);
+    }
+
+    /// <summary>
+    /// A copy of a check run's save game in the user folder: the world saves into the file it was loaded from
+    /// (autosave, closing), and a check must not change its input.
+    /// </summary>
+    private static string CheckCopy(string save)
+    {
+        var copy = System.IO.Path.Combine(ProjectSettings.GlobalizePath("user://"), "check-load.db");
+        System.IO.File.Copy(save, copy, overwrite: true);
+        GD.Print($"LOAD_SAVE {save} -> {copy}");
+        return copy;
     }
 
     private void ShowMenu()
