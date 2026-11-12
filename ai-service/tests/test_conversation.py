@@ -529,3 +529,16 @@ def test_naming_is_checked_for_when_it_is_switched_on() -> None:
     blocked = {**voice, "word": "Koks"}  # B2466: a word that lives on passes the content guard
     said = _said("Das ist Koks.")
     assert checked_voice(said, {"outcome": "reply", "voice": blocked}, names, GUARD, on) is None
+
+
+def test_two_kinds_with_one_name_cannot_be_named() -> None:
+    """Review GW1 #320: when two kinds share a name, which one was meant is unclear."""
+    data = json.loads(json.dumps(DOING_DATA))
+    data["speaker"]["sees"] = ["inv_aaaaaaaaaaaa", "inv_bbbbbbbbbbbb"]
+    label = {"de": "Bank", "en": "Bench"}
+    data["speaker"]["sees_labels"] = [
+        {"type": "inv_aaaaaaaaaaaa", "label": label},
+        {"type": "inv_bbbbbbbbbbbb", "label": label},
+    ]
+    names = seen_names(ConversationRequest.model_validate(data), TEXTS, {})
+    assert "Bank" not in names

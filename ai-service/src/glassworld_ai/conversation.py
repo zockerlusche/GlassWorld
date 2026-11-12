@@ -330,14 +330,19 @@ def seen_names(
     locale = plain_id(request.display_locale)
     own = spoken_names(request, locale)
     out: dict[str, str] = {}
+    twice: set[str] = set()
     for t in request.speaker.sees or []:
         type_id = plain_id(t)
         name = own.get(type_id) or (texts.thing(locale, type_id) if texts else None)
         if name is None and not type_id.startswith("inv_"):
             name = humanize(type_id)
         if name:
+            if name in out and out[name] != type_id:
+                twice.add(name)
             out.setdefault(name, type_id)
-    return out
+    # Two kinds with the same name: which one was meant is unclear, so neither can be named
+    # (review GW1 #320).
+    return {name: type_id for name, type_id in out.items() if name not in twice}
 
 
 def voice_sent(template: PromptTemplate) -> tuple[str, ...]:
