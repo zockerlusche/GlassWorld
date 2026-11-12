@@ -101,8 +101,14 @@ public sealed class UtilityBrain
                 }
             }
 
+            if (c.RequiresAlso is not null && (c.TargetProperty is null || c.SearchAction is not null))
+            {
+                throw new InvalidDataException($"Utility consideration for '{c.Action}': requires_also needs a target_property and no search_action.");
+            }
+
             if ((c.Need is not null && !needs.Contains(c.Need))
                 || (c.TargetProperty is not null && !properties.Contains(c.TargetProperty))
+                || (c.RequiresAlso is not null && !properties.Contains(c.RequiresAlso))
                 || c.AvoidProperties.Any(p => !properties.Contains(p)))
             {
                 throw new InvalidDataException($"Utility consideration for '{c.Action}' uses an unknown need or property.");
@@ -349,7 +355,7 @@ public sealed class UtilityBrain
 
             for (var type = 0; type < typeIds.Count; type++)
             {
-                perType[type] = BeliefFactor(inhabitant, typeIds[type], c.TargetProperty) * AvoidFactor(inhabitant, typeIds[type], c.AvoidProperties);
+                perType[type] = BeliefFactor(inhabitant, typeIds[type], c.TargetProperty) * AvoidFactor(inhabitant, typeIds[type], c.AvoidProperties) * AlsoFactor(inhabitant, typeIds[type], c.RequiresAlso);
             }
 
             var bestInSight = 0.0;
@@ -541,6 +547,13 @@ public sealed class UtilityBrain
             .Select(b => b.Belief.Confidence * AvoidFactor(inhabitant, b.TypeId, avoid))
             .DefaultIfEmpty(0.0)
             .Max();
+
+    /// <summary>
+    /// B2668: the second property a consideration needs (requires_also) counts only when the inhabitant believes the
+    /// type has it (its confidence); unknown or believed absent = 0, so a natural thing is never taken for a made one.
+    /// </summary>
+    private static double AlsoFactor(Inhabitant inhabitant, string typeId, string? also) =>
+        also is null ? 1.0 : inhabitant.Beliefs.TryGet(typeId, also, out var belief) && belief.Value ? belief.Confidence : 0.0;
 
     /// <summary>For each avoided property the inhabitant believes the type has: factor 1 - confidence.</summary>
     private static double AvoidFactor(Inhabitant inhabitant, string typeId, IEnumerable<string> avoid)

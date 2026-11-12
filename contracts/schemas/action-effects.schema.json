@@ -48,6 +48,7 @@
           "description": "True property the target must have; null for actions without a target.",
           "anyOf": [{ "$ref": "common.schema.json#/$defs/VocabId" }, { "type": "null" }]
         },
+        "requires_also": { "description": "B2668: a second true property the target must have as well (e.g. crafted: only made things); omitted or null = none.", "anyOf": [{ "$ref": "common.schema.json#/$defs/VocabId" }, { "type": "null" }] },
         "consumes_target": { "type": "boolean" },
         "effects": { "type": "array", "maxItems": 16, "items": { "$ref": "#/$defs/Effect" } }
       }
