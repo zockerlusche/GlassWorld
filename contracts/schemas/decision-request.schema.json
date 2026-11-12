@@ -63,6 +63,10 @@
     "building": {
       "description": "Only when a building is stuck and the builder asks what to do (A1373 step 2, D850): which invention, what is missing (properties by vocabulary id), and how often it asked already. The options then hold only the ways the core leaves open. Absent otherwise, and from an older core.",
       "$ref": "#/$defs/StuckBuilding"
+    },
+    "occasion": {
+      "description": "Why the core asks, when it is not something new or a stuck building (B2663): today only 'leisure' - the inhabitant is awake, no need presses and it is bored. A prompt may say so in a line of its own; it never tells which option to take. Absent otherwise, and from an older core.",
+      "$ref": "common.schema.json#/$defs/VocabId"
     }
   },
   "$defs": {
