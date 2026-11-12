@@ -195,6 +195,20 @@ class ReviewIdea(BaseModel):
     strength: float = Field(..., ge=0.0, le=1.0)
 
 
+class InventionIdea(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    id: str = Field(
+        ...,
+        description='Id of an object or inhabitant instance in the world, assigned by the core.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_-]*$',
+    )
+    text: str = Field(..., max_length=160, min_length=1)
+    roots: list[common_schema.Subject] = Field(..., max_length=8, min_length=1)
+
+
 class QuestionPayload(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -244,6 +258,10 @@ class InventionPayload(BaseModel):
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
     limits: InventionLimits
+    idea: InventionIdea | None = Field(
+        None,
+        description="Only with trigger 'idea' (B2578, B4b R28 ripe idea, A1585): the inhabitant's own idea that is ripe - its id, the short English text and what it is built on (subjects of its own knowledge). The inventor answers it and the guard checks the answer against it. Absent otherwise.",
+    )
 
 
 class BuildPlanPayload(BaseModel):

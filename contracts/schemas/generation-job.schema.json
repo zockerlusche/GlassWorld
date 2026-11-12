@@ -237,6 +237,10 @@
         },
         "limits": {
           "$ref": "#/$defs/InventionLimits"
+        },
+        "idea": {
+          "description": "Only with trigger 'idea' (B2578, B4b R28 ripe idea, A1585): the inhabitant's own idea that is ripe - its id, the short English text and what it is built on (subjects of its own knowledge). The inventor answers it and the guard checks the answer against it. Absent otherwise.",
+          "$ref": "#/$defs/InventionIdea"
         }
       }
     },
@@ -754,6 +758,33 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 3
+        }
+      }
+    },
+    "InventionIdea": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "text",
+        "roots"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/EntityId"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "roots": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": {
+            "$ref": "common.schema.json#/$defs/Subject"
+          }
         }
       }
     }

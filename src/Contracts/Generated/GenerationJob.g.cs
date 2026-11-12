@@ -158,6 +158,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("limits")]
         public InventionLimits Limits { get; set; } = new InventionLimits();
 
+        /// <summary>
+        /// Only with trigger 'idea' (B2578, B4b R28 ripe idea, A1585): the inhabitant's own idea that is ripe - its id, the short English text and what it is built on (subjects of its own knowledge). The inventor answers it and the guard checks the answer against it. Absent otherwise.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("idea")]
+        public InventionIdea? Idea { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -532,6 +539,21 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("max_intentions")]
         public int MaxIntentions { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class InventionIdea
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public string Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("text")]
+        public string Text { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("roots")]
+        public System.Collections.Generic.ICollection<Subject> Roots { get; set; } = new System.Collections.ObjectModel.Collection<Subject>();
 
     }
 

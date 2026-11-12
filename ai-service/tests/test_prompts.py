@@ -47,7 +47,7 @@ def _render(request: DecisionRequest, budget: int = BUDGET, version: int = 1) ->
     )
 
 
-@pytest.mark.parametrize("version", [1, 2, 3, 4, 6, 7, 8, 9, 10, 11])
+@pytest.mark.parametrize("version", [1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12])
 @pytest.mark.parametrize("case", ["hungry-berries", "stormy-dusk"])
 def test_decider_prompt_snapshot(case: str, version: int) -> None:
     text = _render(_request(case), version=version)
@@ -206,6 +206,7 @@ def test_every_knowledge_source_has_words_in_the_prompts_that_name_sources() -> 
         "decider/decide.v9",
         "decider/decide.v10",
         "decider/decide.v11",
+        "decider/decide.v12",
         "question/ask.v1",
         "question/ask.v2",
         "question/ask.v3",
@@ -568,3 +569,21 @@ def test_no_prompt_in_use_names_a_season() -> None:
         if hits:
             found[f"{name}.v{version}"] = hits
     assert found == {}, found
+
+
+def test_v12_says_the_intention_in_its_own_morning_words() -> None:
+    """B2687: in a free moment the core offers the morning's intention; the prompt says it, the
+    options stay the core's, and without an intention the block is left out."""
+    data = json.loads((EXAMPLES / "decision-request.hungry-berries.json").read_text("utf-8"))
+    data["occasion"] = "intention"
+    data["intention"] = {
+        "action": "show",
+        "about": {"kind": "type", "id": "apple_tree"},
+        "thought": {"locale": "de", "text": "Heute zeige ich ihr den Baum."},
+    }
+    user = _render(DecisionRequest.model_validate(data), version=12).split("=== user ===")[1]
+    assert 'This morning you meant to: "Heute zeige ich ihr den Baum."' in user
+    assert user.index("## Right now") < user.index("## Options")
+    data.pop("intention")
+    plain = _render(DecisionRequest.model_validate(data), version=12).split("=== user ===")[1]
+    assert "This morning you meant to" not in plain
