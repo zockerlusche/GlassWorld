@@ -22,7 +22,7 @@ from glassworld_ai.decider.output import (
     parse_choice,
     readable_name,
 )
-from glassworld_ai.decider.thoughts import ThoughtMemory, stand_in, thought_problem
+from glassworld_ai.decider.thoughts import ThoughtMemory, thought_problem
 from glassworld_ai.llm.ollama import (
     ChatMessage,
     ChatResult,
@@ -149,8 +149,9 @@ class OllamaDecider:
         return replace(choice, name_text=name, gossip=gossip)
 
     def _natural(self, request: DecisionRequest, choice: ModelChoice) -> tuple[ModelChoice, str]:
-        """Prompt v4 (W1687): a thought with foreign words, ids or too many words is replaced
-        by the data's stand-in for the chosen action (or left out). Returns the note for the log."""
+        """Prompt v4 (W1687): a thought with foreign words, ids or too many words is left out
+        (B2644, Marcel F5296 = B: no fixed stand-in sentence; the action runs). Returns the note
+        for the log."""
         if self._template.version < 4 or not choice.thought:
             return choice, ""
         locale = _plain(request.display_locale)
@@ -158,12 +159,7 @@ class OllamaDecider:
         note = ""
         problem = thought_problem(choice.thought, locale, settings)
         if problem is not None:
-            option = next(
-                (o for o in request.options if _plain(o.option_id) == choice.option_id), None
-            )
-            action = _plain(option.action) if option is not None else ""
-            note = f"thought replaced ({problem}): {choice.thought}"
-            choice = replace(choice, thought=stand_in(self._texts, locale, action))
+            return replace(choice, thought=None), f"thought left out ({problem}): {choice.thought}"
         if choice.thought:
             # W1696: the same inhabitant does not say the same thing again soon - silence instead.
             who = _plain(request.inhabitant.id)
