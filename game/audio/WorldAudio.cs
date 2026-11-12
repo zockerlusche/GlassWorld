@@ -48,9 +48,10 @@ public partial class WorldAudio : Node3D
 
     /// <summary>
     /// Island mode: where the mix listens and the zoom (0..1), read every frame (the camera rig's target on
-    /// the ground and its distance in the zoom range); null = the camera listens and Zoom stays as set.
+    /// the ground and its distance in the zoom range) and, while following, the picture's reach around the
+    /// inhabitant as the hearing limit (B2605); null = the camera listens and Zoom stays as set.
     /// </summary>
-    public Func<(Position Listener, double Zoom)?>? Hearing { get; set; }
+    public Func<(Position Listener, double Zoom, double? LimitM)?>? Hearing { get; set; }
 
     /// <summary>Zoom 0 (fully in) .. 1 (fully out); set by the camera control.</summary>
     public double Zoom { get; set; } = 0.5;
@@ -539,7 +540,17 @@ public partial class WorldAudio : Node3D
         if (Hearing?.Invoke() is { } hearing)
         {
             Zoom = hearing.Zoom;
+            if (_mixer is not null)
+            {
+                _mixer.HearingLimitM = hearing.LimitM;
+            }
+
             return hearing.Listener;
+        }
+
+        if (_mixer is not null)
+        {
+            _mixer.HearingLimitM = null;
         }
 
         var camera = GetViewport()?.GetCamera3D();

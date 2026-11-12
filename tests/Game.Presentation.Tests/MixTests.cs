@@ -103,6 +103,29 @@ public sealed class MixTests
     }
 
     [Fact]
+    public void WhileFollowingNothingBeyondThePicturesReachIsHeard()
+    {
+        // B2605, B8 R7: the camera follows an inhabitant; what lies outside the picture is silent.
+        var mixer = SoundMixer.FromJson(MixJson);
+        var silent = mixer.SilentDistance(MixBusId.Ambience, 0.5);
+        var limit = silent / 4;
+        Assert.True(mixer.Gain(MixBusId.Ambience, limit * 2, 0.5) > 0);
+
+        mixer.HearingLimitM = limit;
+
+        Assert.Equal(0, mixer.Gain(MixBusId.Ambience, limit * 2, 0.5));
+        Assert.Equal(0, mixer.Gain(MixBusId.Ambience, limit, 0.5));
+        Assert.True(mixer.Gain(MixBusId.Ambience, limit / 10, 0.5) > 0);
+        Assert.Equal(limit, mixer.SilentDistance(MixBusId.Ambience, 0.5), 6);
+
+        // A limit beyond the bus's own range changes nothing; without one the range is the bus's again.
+        mixer.HearingLimitM = silent * 3;
+        Assert.Equal(silent, mixer.SilentDistance(MixBusId.Ambience, 0.5), 6);
+        mixer.HearingLimitM = null;
+        Assert.True(mixer.Gain(MixBusId.Ambience, limit * 2, 0.5) > 0);
+    }
+
+    [Fact]
     public void VariantStaysWithinTheRecipeVariants()
     {
         var director = new SoundDirector(Library, Mixer);

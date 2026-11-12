@@ -99,6 +99,17 @@ public sealed class CameraModel
     /// <summary>Whether the camera follows a figure.</summary>
     public bool Following => _follow is not null;
 
+    /// <summary>
+    /// How far from the target the picture reaches sideways, in metres on the ground at the target's distance:
+    /// half the visible width for a picture of <paramref name="aspect"/> (width / height). What lies farther
+    /// out to the side is not on screen (B2605: while following, nothing is heard that cannot be seen).
+    /// </summary>
+    public double SeenRadiusM(double aspect)
+    {
+        var halfHeight = Orthographic ? OrthoSize / 2 : _distance * Math.Tan(FovDeg * Math.PI / 360);
+        return halfHeight * Math.Max(aspect, 1);
+    }
+
     /// <summary>Whether a key move or turn is still running (speeding up, at speed or gliding out).</summary>
     public bool KeyMoving => _moveRight != 0 || _moveForward != 0 || _turn != 0;
 
