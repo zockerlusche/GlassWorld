@@ -581,6 +581,60 @@ namespace GlassWorld.Contracts
 
     }
 
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class KnowledgeReview
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("enabled")]
+        public bool Enabled { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("job_priority")]
+        public int JobPriority { get; set; } = default!;
+
+        /// <summary>
+        /// Most beliefs in the Fundbuch (experienced and heard first, newest first).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("knowledge_max")]
+        public int KnowledgeMax { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("max_new_ideas")]
+        public int MaxNewIdeas { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("max_intentions")]
+        public int MaxIntentions { get; set; } = default!;
+
+        /// <summary>
+        /// Most ideas an inhabitant keeps; beyond, the weakest is forgotten.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max_ideas")]
+        public int MaxIdeas { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("dream_max_chars")]
+        public int DreamMaxChars { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("tones")]
+        public System.Collections.Generic.ICollection<string> Tones { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// Strength of a new idea.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("idea_start")]
+        public double IdeaStart { get; set; } = default!;
+
+        /// <summary>
+        /// Strength an idea gains each time a look back takes it up.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("idea_grow")]
+        public double IdeaGrow { get; set; } = default!;
+
+        /// <summary>
+        /// Actions an intention may name (vocabulary); the core offers an intention later only with these.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("intention_actions")]
+        public System.Collections.Generic.ICollection<string> IntentionActions { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+    }
+
     /// <summary>
     /// Data file content/knowledge/settings.json: how knowledge with its source behaves in the core (B4a R3, R4, R7, W1595): confidence by source, trust between inhabitants, which actions pass on what, what the routine leaves alone while a question is open, and how much goes to the decider. Values are placeholders (F5262: placeholders count as start values).
     /// </summary>
@@ -682,6 +736,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("night_questions")]
         public KnowledgeNightQuestions? NightQuestions { get; set; } = default!;
+
+        /// <summary>
+        /// The nightly look back (A1584/A1585, B7 R18-R22, B2687): when enabled, the night sends one review job per inhabitant instead of the memory job (same batch rule: due when memory.condense_at events wait). Absent or enabled false = memory jobs as before.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("review")]
+        public KnowledgeReview? Review { get; set; } = default!;
 
     }
 
