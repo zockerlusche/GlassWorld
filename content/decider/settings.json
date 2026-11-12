@@ -4,6 +4,7 @@
   "max_open_questions": 2,
   "ask_cooldown_hours": 6,
   "choice_protection_hours": 3,
+  "max_requests_per_step": 4,
   "unknown_inhabitant_max_asks": 4,
   "retry_after_minutes": 30,
   "triggers": [

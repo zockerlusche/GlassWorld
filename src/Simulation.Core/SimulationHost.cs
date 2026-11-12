@@ -260,7 +260,7 @@ public sealed class SimulationHost
             NightAnswers = jobPort is not null && content.Knowledge.NightQuestions is not null,
             ValidateRequests = options.ValidateRequests,
         };
-        inhabitants.QuestionOpen = decisions.HasOpenQuestion;
+        inhabitants.QuestionOpen = decisions.IsAskingAbout;
 
         // Cloud cover and exploring (B2-6 R14): islands only, the placeholder world has no cells to see.
         // The sight range is the preset's (its exploration section, the same values the start check uses).

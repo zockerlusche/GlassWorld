@@ -290,7 +290,7 @@ public sealed class CuriosityTests : IDisposable
         {
             Knowledge = knowledge,
         };
-        inhabitants.QuestionOpen = decisions.HasOpenQuestion;
+        inhabitants.QuestionOpen = decisions.IsAskingAbout;
         world.Add(objects).Add(decisions).Add(inhabitants);
         inhabitants.SpawnStartInhabitants(world, [new Position(0, 0), new Position(4, 0), new Position(1000, 0), new Position(0, 1000)]);
         return (world, objects, inhabitants, decisions);
