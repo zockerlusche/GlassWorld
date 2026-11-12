@@ -526,3 +526,44 @@ def test_v10_is_v9_without_an_occasion_and_ignores_one_it_has_no_words_for() -> 
     assert plain == _render(_leisure(None), version=9).split("=== user ===")[1]
     assert _render(_leisure("festival"), version=10).split("=== user ===")[1] == plain
     assert "Right now" not in _render(_leisure(), version=9)  # v9 does not read it
+
+
+def test_no_prompt_in_use_names_a_season() -> None:
+    """B5 R2 (Spec Bogen 30 v2, GW4 #22461): the seasons are no knowledge of the inhabitants -
+    no prompt in use names one (the ids of content/world/time.json and their DE/EN names), so
+    the model cannot hand the inhabitants a word they never learned. The core checks that no
+    request carries a season (GW4's short run)."""
+    import re
+    import tomllib
+
+    config = tomllib.loads((REPO / "ai-service/config.toml").read_text(encoding="utf-8"))
+    flat: dict[str, object] = {}
+    for key, value in config.items():
+        if isinstance(value, dict):
+            flat.update(cast(dict[str, object], value))
+        else:
+            flat[key] = value
+    time = json.loads((REPO / "content/world/time.json").read_text(encoding="utf-8"))
+    words = {str(s["id"]) for s in time["seasons"]}
+    for locale in ("de", "en"):
+        data = json.loads((REPO / f"content/i18n/{locale}.json").read_text(encoding="utf-8"))
+        words |= {
+            e["text"].strip().lower()
+            for e in data["entries"]
+            if e["key"].startswith("time.season.") and e["text"].strip()
+        }
+    words |= {"season", "seasons", "jahreszeit", "jahreszeiten"}
+    assert len(words) >= 8
+    found: dict[str, list[str]] = {}
+    for key, name in sorted(flat.items()):
+        if not key.endswith("_prompt") or not isinstance(name, str):
+            continue
+        version = flat[f"{key}_version"]
+        prompt = tomllib.loads((PROMPTS / f"{name}.v{version}.toml").read_text(encoding="utf-8"))
+        text = "\n".join(
+            [prompt["system"], prompt["user"], *_setting_texts(prompt.get("settings", {}))]
+        ).lower()
+        hits = sorted(w for w in words if re.search(rf"\b{re.escape(w)}\b", text))
+        if hits:
+            found[f"{name}.v{version}"] = hits
+    assert found == {}, found
