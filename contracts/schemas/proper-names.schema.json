@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://glassworld.local/contracts/v0/proper-names.schema.json",
   "title": "ProperNames",
-  "description": "Own names of the inhabitants (Marcel W1698): the core picks one per inhabitant from this list, deterministically by the world seed, distinct while the list allows. Placeholder list; where the names come from is decided later. Each name is a ProperName (one word in Latin letters, the same in DE and EN).",
+  "description": "Own names of the inhabitants (Marcel W1698): the core picks one per inhabitant, deterministically by the world seed, distinct while the lists allow. An inhabitant gets a name of its sex (female, male) or one that fits anybody (names); without the lists of a sex it picks from all names (A1557, D809 M2). Placeholder lists; where the names come from is decided later. Each name is a ProperName (one word in Latin letters, the same in DE and EN) and appears in only one of the lists.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -14,8 +14,27 @@
       "$ref": "common.schema.json#/$defs/ContractVersion"
     },
     "names": {
+      "description": "Names that fit an inhabitant of either sex; at least one, so that a sex without a list of its own still finds a name that is not only for the other sex.",
       "type": "array",
       "minItems": 1,
+      "maxItems": 512,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "common.schema.json#/$defs/ProperName"
+      }
+    },
+    "female": {
+      "description": "Names only for female inhabitants (omitted = none of its own).",
+      "type": "array",
+      "maxItems": 512,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "common.schema.json#/$defs/ProperName"
+      }
+    },
+    "male": {
+      "description": "Names only for male inhabitants (omitted = none of its own).",
+      "type": "array",
       "maxItems": 512,
       "uniqueItems": true,
       "items": {

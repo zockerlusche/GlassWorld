@@ -118,6 +118,14 @@ def build_values(job: GenerationJob, template: PromptTemplate, vocab: Vocabulary
             else line
         )
 
+    def prop(p: str) -> str:
+        # v4 (A1556, D763 Z21): a property by its name only. The descriptions of the vocabulary
+        # tell cause and effect ('throws sparks when struck against a suitable stone', 'helps
+        # sand melt into glass') - world knowledge the inhabitant has not found out.
+        if settings.get("property_words") == "name":
+            return humanize(p)
+        return vocab_line(vocab, "property", p)
+
     values = {
         "question": Template(question_text).safe_substitute(
             subject=unnamed or subject_name(payload.subject, settings)
@@ -142,13 +150,10 @@ def build_values(job: GenerationJob, template: PromptTemplate, vocab: Vocabulary
         "memory": quote(summary) if summary else "(you remember nothing special yet)",
         "knowledge": "\n".join(about(k) for k in knowledge) or "- (you know nothing about it yet)",
         "perception": "\n".join(
-            f"- {vocab_line(vocab, 'property', plain_id(p))}"
-            for p in sorted(payload.perception, key=plain_id)
+            f"- {prop(plain_id(p))}" for p in sorted(payload.perception, key=plain_id)
         )
         or "- (nothing special)",
-        "properties": "\n".join(
-            f"- {vocab_line(vocab, 'property', p)}" for p in vocab.ids("property")
-        ),
+        "properties": "\n".join(f"- {prop(p)}" for p in vocab.ids("property")),
         "actions": ", ".join(vocab.ids("action")) or "(none)",
         "max_guesses": str(max_guesses),
         "thought_language": language,

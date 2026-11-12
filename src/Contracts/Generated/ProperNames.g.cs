@@ -13,7 +13,7 @@ namespace GlassWorld.Contracts
     #pragma warning disable // Disable all warnings
 
     /// <summary>
-    /// Own names of the inhabitants (Marcel W1698): the core picks one per inhabitant from this list, deterministically by the world seed, distinct while the list allows. Placeholder list; where the names come from is decided later. Each name is a ProperName (one word in Latin letters, the same in DE and EN).
+    /// Own names of the inhabitants (Marcel W1698): the core picks one per inhabitant, deterministically by the world seed, distinct while the lists allow. An inhabitant gets a name of its sex (female, male) or one that fits anybody (names); without the lists of a sex it picks from all names (A1557, D809 M2). Placeholder lists; where the names come from is decided later. Each name is a ProperName (one word in Latin letters, the same in DE and EN) and appears in only one of the lists.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class ProperNames
@@ -22,8 +22,25 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("contract_version")]
         public string ContractVersion { get; set; } = default!;
 
+        /// <summary>
+        /// Names that fit an inhabitant of either sex; at least one, so that a sex without a list of its own still finds a name that is not only for the other sex.
+        /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("names")]
         public System.Collections.Generic.ICollection<string> Names { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// Names only for female inhabitants (omitted = none of its own).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("female")]
+        public System.Collections.Generic.ICollection<string>? Female { get; set; } = default!;
+
+        /// <summary>
+        /// Names only for male inhabitants (omitted = none of its own).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("male")]
+        public System.Collections.Generic.ICollection<string>? Male { get; set; } = default!;
 
     }
 }
