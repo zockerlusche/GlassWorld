@@ -189,7 +189,12 @@ public partial class SettingsWindow : GwWindow
     /// never throw; null (no service, e.g. in the main menu) shows the calm "not running" text.
     /// The report is also copied into <paramref name="reportFolder"/>, a folder the player can open.
     /// </summary>
-    public void AddAi(Func<Task<AiClient.SelfCheckAnswer>>? check, Func<Task<AiClient.DiagnosticsAnswer>>? report, string reportFolder)
+    /// <param name="check">The service's self-check, or null without a running world.</param>
+    /// <param name="report">Makes a diagnostics report, or null.</param>
+    /// <param name="reportFolder">Where the player's copy of a report goes.</param>
+    /// <param name="learnByDay">Whether the world learns by day now (A1568, B2652), or null without a world.</param>
+    /// <param name="setLearnByDay">Switches learning by day on or off (a logged command of the core), or null.</param>
+    public void AddAi(Func<Task<AiClient.SelfCheckAnswer>>? check, Func<Task<AiClient.DiagnosticsAnswer>>? report, string reportFolder, Func<bool>? learnByDay = null, Action<bool>? setLearnByDay = null)
     {
         Section("ui.settings.section.ai");
 
@@ -248,7 +253,36 @@ public partial class SettingsWindow : GwWindow
                 return;
             }
 
-            Show(SelfCheckView.Lines(answer.Check).SelectMany(AiLine));
+            // Not offered (any more): a world that learned by day goes back to the night - done here, before the
+            // controls are built, not as a side effect of building them (review GW2 #293).
+            if (answer.Check.LearnByDay is { Offered: false } && learnByDay?.Invoke() == true)
+            {
+                setLearnByDay?.Invoke(false);
+            }
+
+            Show([.. SelfCheckView.Lines(answer.Check).SelectMany(AiLine), .. LearnByDayControls(answer.Check.LearnByDay)]);
+        }
+
+        // "Auch tagsüber lernen" (A1568, B2652): offered only when the service says the PC is strong enough; then a
+        // switch (off by default) with the hint what it costs. Not offered: the reason in words.
+        IEnumerable<Control> LearnByDayControls(Contracts.LearnByDayOffer? offer)
+        {
+            if (offer is null || learnByDay is null || setLearnByDay is null)
+            {
+                yield break;
+            }
+
+            yield return new Label { Text = "ui.settings.learn_by_day", ThemeTypeVariation = UiTheme.SubheaderLabel };
+            if (!offer.Offered)
+            {
+                yield return Text(offer.MessageKey);
+                yield break;
+            }
+
+            var toggle = new CheckButton { Text = "ui.settings.learn_by_day_switch", ButtonPressed = learnByDay() };
+            toggle.Toggled += on => setLearnByDay(on);
+            yield return toggle;
+            yield return Text(offer.HintKey);
         }
 
         IEnumerable<Control> AiLine(SelfCheckLine line)
