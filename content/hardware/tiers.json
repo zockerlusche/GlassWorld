@@ -8,7 +8,11 @@
         {
           "min_largest_gpu_vram_mib": 7680
         }
-      ]
+      ],
+      "learn_by_day": {
+        "offered": false,
+        "max_language_seconds_per_job": null
+      }
     },
     {
       "id": "standard",
@@ -17,7 +21,11 @@
         {
           "min_largest_gpu_vram_mib": 9728
         }
-      ]
+      ],
+      "learn_by_day": {
+        "offered": true,
+        "max_language_seconds_per_job": 2.5
+      }
     },
     {
       "id": "comfort",
@@ -30,7 +38,11 @@
           "min_largest_gpu_vram_mib": 7680,
           "min_second_largest_gpu_vram_mib": 7680
         }
-      ]
+      ],
+      "learn_by_day": {
+        "offered": true,
+        "max_language_seconds_per_job": null
+      }
     }
   ]
 }

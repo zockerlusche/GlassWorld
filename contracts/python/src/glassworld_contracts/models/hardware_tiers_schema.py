@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -24,6 +24,28 @@ class Requirement(BaseModel):
     )
     min_ram_mib: int | None = Field(
         None, description='Installed system RAM in MiB.', ge=0
+    )
+
+
+type MaxLanguageSecondsPerJob = Annotated[
+    float,
+    Field(
+        ...,
+        description='If set: offered only when the measurement run (B7 R6) found the language model at most this many seconds per job; without a measurement it is not offered. Null: no measured condition.',
+        gt=0.0,
+        le=60.0,
+    ),
+]
+
+
+class LearnByDay(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    offered: bool = Field(..., description='The tier offers the switch at all.')
+    max_language_seconds_per_job: MaxLanguageSecondsPerJob | None = Field(
+        ...,
+        description='If set: offered only when the measurement run (B7 R6) found the language model at most this many seconds per job; without a measurement it is not offered. Null: no measured condition.',
     )
 
 
@@ -48,6 +70,7 @@ class Tier(BaseModel):
         description='The tier applies if at least one of these requirement sets is fully met.',
         min_length=1,
     )
+    learn_by_day: LearnByDay | None = None
 
 
 class HardwareTiers(BaseModel):

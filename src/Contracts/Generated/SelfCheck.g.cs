@@ -57,6 +57,37 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
+    /// B2652 (A1568): whether the game offers the switch 'learn by day as well', and why (i18n keys). The game shows the switch only when offered; default off.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class LearnByDayOffer
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("offered")]
+        public bool Offered { get; set; } = default!;
+
+        /// <summary>
+        /// ok; tier (this hardware tier does not offer it); too_slow (the measurement run found the language model slower than the tier allows); not_measured (no measurement run yet).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("reason")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<LearnByDayOfferReason>))]
+        public LearnByDayOfferReason Reason { get; set; } = default!;
+
+        /// <summary>
+        /// i18n key of the short state text (msg.selfcheck.learn_by_day.&lt;reason&gt;).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("message_key")]
+        public string MessageKey { get; set; } = default!;
+
+        /// <summary>
+        /// i18n key of the hint the settings show next to the switch: by day the AI uses computing power during play; switched off, all learning moves to the night and the game goes slower.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("hint_key")]
+        public string HintKey { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// Self-check of the AI parts at start (W1703 rule 2, Bogen 35 R11): per AI one state with a clear text and a fix hint as i18n keys. The game shows it calmly and always keeps running (rule 3). GET /setup/check.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -68,6 +99,10 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("checks")]
         public System.Collections.Generic.ICollection<AiCheck> Checks { get; set; } = new System.Collections.ObjectModel.Collection<AiCheck>();
+
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("learn_by_day")]
+        public LearnByDayOffer? LearnByDay { get; set; } = default!;
 
     }
 
@@ -111,6 +146,28 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("not_planned")]
         Not_planned = 4,
+
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public enum LearnByDayOfferReason
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("ok")]
+        Ok = 0,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("tier")]
+        Tier = 1,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("too_slow")]
+        Too_slow = 2,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("not_measured")]
+        Not_measured = 3,
 
 
     }
