@@ -45,6 +45,7 @@ public sealed record SoundTask(string TypeId, string RequestId, string? ResultJs
 /// <param name="BuiltObjectId">The finished object, or null.</param>
 /// <param name="GaveUp">True when no acceptable plan came after the allowed attempts, or no material after waiting too long.</param>
 /// <param name="WaitingSinceTick">Since when no material of the current step was in sight, or null (A1373).</param>
+/// <param name="LookedTicks">Ticks of this wait in which the builder was free and looked about (asleep, eating or busy do not count).</param>
 /// <param name="NeedsHelp">True once the builder looked long enough by itself and needs help (A1373, R15).</param>
 public sealed record BuildTask(
     string TypeId,
@@ -62,7 +63,8 @@ public sealed record BuildTask(
     string? BuiltObjectId,
     bool GaveUp,
     long? WaitingSinceTick = null,
-    bool NeedsHelp = false);
+    bool NeedsHelp = false,
+    long LookedTicks = 0);
 
 /// <content>Building inventions from a plan and their first use (D471 D5, part 2).</content>
 public sealed partial class InventionSystem
@@ -268,7 +270,8 @@ public sealed partial class InventionSystem
             }
         }
 
-        foreach (var task in _builds.Values.Where(b => b.PlanJson is not null && b.BuiltObjectId is null).ToList())
+        // A building given up stays given up (review GW3 #283): no new wait, no further step.
+        foreach (var task in _builds.Values.Where(b => b.PlanJson is not null && b.BuiltObjectId is null && !b.GaveUp).ToList())
         {
             var inhabitant = _inhabitants.Get(task.InhabitantId);
             if (task.PendingObjectId is { } pending)
@@ -308,24 +311,24 @@ public sealed partial class InventionSystem
             }
 
             inhabitant.Planned = new Activity(Build.Settings.StepAction, material.Id, material.Position, null);
-            _builds[task.TypeId] = _builds[task.TypeId] with { PendingObjectId = material.Id, PendingType = material.TypeId, WaitingSinceTick = null, NeedsHelp = false };
+            _builds[task.TypeId] = _builds[task.TypeId] with { PendingObjectId = material.Id, PendingType = material.TypeId, WaitingSinceTick = null, NeedsHelp = false, LookedTicks = 0 };
         }
     }
 
     /// <summary>
-    /// One tick of waiting for material (A1373): the wait starts now if it has not; after help_after_hours the builder
-    /// needs help (once per wait), after give_up_after_hours it gives the building up. Whether the material lies
-    /// elsewhere in the world is said, not decided: help means looking further then, a gift only when there is none.
+    /// One tick of waiting for material (A1373): the wait starts now if it has not, and this tick counts as one of
+    /// looking by itself (only ticks in which the builder is free get here - not asleep, eating or busy, review GW3
+    /// #283). After help_after_hours of looking the builder needs help (once per wait), after give_up_after_hours it
+    /// gives the building up. Whether the material lies elsewhere in the world is said, not decided.
     /// </summary>
     private void Wait(World world, BuildTask task, HashSet<string> missing)
     {
-        var since = task.WaitingSinceTick ?? world.Tick;
-        var waited = world.Tick - since;
+        task = task with { WaitingSinceTick = task.WaitingSinceTick ?? world.Tick, LookedTicks = task.LookedTicks + 1 };
+        var waited = task.LookedTicks;
         var ticksPerHour = world.Calendar.Settings.TicksPerHour;
-        task = task with { WaitingSinceTick = since };
         if (Build.Settings.GiveUpAfterHours is { } giveUp && waited >= (long)(giveUp * ticksPerHour))
         {
-            _builds[task.TypeId] = task with { GaveUp = true, NeedsHelp = false, WaitingSinceTick = null };
+            _builds[task.TypeId] = task with { GaveUp = true, NeedsHelp = false, WaitingSinceTick = null, LookedTicks = 0 };
             _inhabitants.Report(new WorldEvent(BuildFailed, world.Tick, task.InhabitantId, null, task.TypeId) { Detail = NoMaterial });
             return;
         }
@@ -565,7 +568,7 @@ public sealed partial class InventionSystem
             }
 
             hasher.Write(b.PendingObjectId ?? string.Empty).Write(b.PendingType ?? string.Empty).Write(b.BuiltObjectId ?? string.Empty).Write(b.GaveUp)
-                .Write(b.WaitingSinceTick ?? -1).Write(b.NeedsHelp);
+                .Write(b.WaitingSinceTick ?? -1).Write(b.NeedsHelp).Write(b.LookedTicks);
         }
 
         hasher.Write(_firstUsed.Count);

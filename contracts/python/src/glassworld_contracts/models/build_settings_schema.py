@@ -27,13 +27,13 @@ class BuildSettings(BaseModel):
     )
     help_after_hours: float | None = Field(
         None,
-        description="Game hours the builder goes on looking by itself while no material of the current step is in sight; then it needs help (event needs_help with the missing material's properties, R15). Omitted = it never asks.",
+        description="Game hours the builder goes on looking by itself while no material of the current step is in sight (only hours in which it is free count - not asleep, eating or busy); then it needs help (event needs_help with the missing material's properties, R15). Omitted = it never asks.",
         gt=0.0,
         le=10000.0,
     )
     give_up_after_hours: float | None = Field(
         None,
-        description='Game hours without any material of the current step in sight after which the builder gives up the building (event build_failed, detail no_material; loop brake R17). Omitted = it waits without a limit, as before.',
+        description='Game hours of looking without any material of the current step in sight (counted like help_after_hours) after which the builder gives up the building (event build_failed, detail no_material; loop brake R17). Omitted = it waits without a limit, as before.',
         gt=0.0,
         le=100000.0,
     )

@@ -109,6 +109,7 @@ public sealed class BuildingTests : IDisposable
         Assert.DoesNotContain(NearbyTypes[^1], help.Detail!, StringComparison.Ordinal);
         Assert.Equal(string.Empty, help.Text);
         Assert.True(host.World.Tick - since >= (long)(settings.HelpAfterHours.Value * perHour));
+        Assert.True(host.Inventions.Builds.Single().LookedTicks >= (long)(settings.HelpAfterHours.Value * perHour));
         Assert.True(host.Inventions.Builds.Single().NeedsHelp);
 
         // Saved and loaded while waiting: the same hash, and the wait goes on from where it was.
@@ -118,11 +119,19 @@ public sealed class BuildingTests : IDisposable
         Assert.Equal(host.World.StateHash(), loaded.World.StateHash());
         Assert.Equal(since, loaded.Inventions.Builds.Single().WaitingSinceTick);
 
-        RunUntil(host, () => host.Inventions.Builds.Single().GaveUp, (int)(settings.GiveUpAfterHours!.Value * perHour) + 10);
+        // Only ticks of looking count (asleep or eating do not), so the limit may take longer than its hours.
+        RunUntil(host, () => host.Inventions.Builds.Single().GaveUp, (int)(settings.GiveUpAfterHours!.Value * perHour * 3));
+        Assert.True(host.Inventions.Builds.Single().GaveUp);
         var failed = Assert.Single(events, e => e.Kind == InventionSystem.BuildFailed);
         Assert.Equal((typeId, InventionSystem.NoMaterial), (failed.TargetId, failed.Detail));
+
+        // Given up is final (review GW3 #283): material in sight again starts nothing, no second failure or call.
+        host.Objects.Spawn(NearbyTypes[^1], stepMaterial.Position);
+        host.World.Run((int)(settings.GiveUpAfterHours.Value * perHour * 2));
+        Assert.Single(events, e => e.Kind == InventionSystem.BuildFailed);
         Assert.Single(events, e => e.Kind == InventionSystem.NeedsHelpEvent);
-        Assert.Null(host.Inventions.Builds.Single().BuiltObjectId);
+        var after = host.Inventions.Builds.Single();
+        Assert.Equal((null, null, 1), (after.BuiltObjectId, after.PendingObjectId, after.StepsDone));
     }
 
     [Fact]
