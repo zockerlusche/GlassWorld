@@ -23,6 +23,7 @@
     { "id": "writing", "start_level_min": 0, "start_level_max": 0 }
   ],
   "skill_rules": { "runtime_start_level_min": 0, "runtime_start_level_max": 0.3, "runtime_gain": 0.01, "max_runtime_skills": 8 },
+  "need_rules": { "runtime_decay_per_day_min": 0.05, "runtime_decay_per_day_max": 0.5, "fill_per_use": 0.4, "max_runtime_needs": 4 },
   "moods": [
     { "id": "joy", "baseline": 0.4, "return_per_hour": 0.02 },
     { "id": "sadness", "baseline": 0.1, "return_per_hour": 0.02 },

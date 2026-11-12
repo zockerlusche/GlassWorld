@@ -407,6 +407,61 @@ public sealed class BuiltThingsGetUsedTests : IDisposable
         Assert.Equal(first.World.StateHash(), replay.World.StateHash());
     }
 
+    [Fact]
+    public void ANeedTheInventionBringsIsGainedOnFirstUseFilledByUseSoughtWhenLowAndKeptBySaving()
+    {
+        // A1372 (TL B2658): the need is bound to the invention's type - nothing about properties.
+        var brought = new NewNeed { Id = "tidiness", NameDe = "Ordnung", NameEn = "tidiness", DecayPerDay = 0.2, Actions = [Use.Action] };
+        var (host, _, typeId, builtId) = Built(49, brought);
+        var builder = host.Inhabitants.All.Single();
+        var need = Assert.Single(host.Needs.Added);
+        Assert.Equal((brought.Id, typeId), (need.Id, need.SourceTypeId));
+        Assert.Equal([Use.Action], need.Actions);
+        Assert.True(host.Objects.TryGet(builtId, out var thing));
+        var events = Record(host);
+
+        // Gained the first time the thing is used with one of the need's actions: full, it was just met.
+        builder.Needs[Need] = 1.0;
+        if (!builder.Needs.ContainsKey(need.Id))
+        {
+            builder.Planned = new Activity(Use.Action, builtId, thing.Position, null);
+            RunUntil(host, () => builder.Needs.ContainsKey(need.Id), 600);
+            var gained = Assert.Single(events, e => e.Kind == NeedRegister.NeedGained);
+            Assert.Equal((builder.Id, Use.Action, typeId, need.Id), (gained.InhabitantId, gained.Action, gained.TargetId, gained.Detail));
+        }
+
+        // It falls by its own decay per day while nothing fills it.
+        builder.Needs[need.Id] = 1.0;
+        builder.Needs[Need] = 1.0;
+        var ticks = host.World.Calendar.TicksPerDay / 4;
+        host.World.Run(ticks);
+        Assert.Equal(1.0 - (ticks * need.DecayPerDay / host.World.Calendar.TicksPerDay), builder.Needs[need.Id], 6);
+
+        // Low, it is what the routine does with the thing in sight (the purpose need is met): a use fills it.
+        builder.Needs[need.Id] = 0.0;
+        builder.Needs[Need] = 1.0;
+        events.Clear();
+        RunUntil(host, () => events.Any(e => e.Kind == InhabitantsSystem.ActionFinished && e.Action == Use.Action && e.TargetId == builtId), 600);
+        Assert.True(builder.Needs[need.Id] >= host.Needs.FillPerUse - 0.01, $"filled to {builder.Needs[need.Id]}");
+        Assert.DoesNotContain(events, e => e.Kind == NeedRegister.NeedGained);
+
+        // A request about the builder names the new need (GW2 #21960); vocabulary needs carry no label.
+        var state = InhabitantStates.Of(builder, null, [], [], needLabel: host.Inhabitants.NeedLabelOf);
+        var entry = Assert.Single(state.Needs, n => n.Id == need.Id);
+        Assert.Equal(("Ordnung", "tidiness"), (entry.Label!.De, entry.Label.En));
+        Assert.All(state.Needs.Where(n => n.Id != need.Id), n => Assert.Null(n.Label));
+
+        // Saved and loaded: the register and the inhabitant's value come back, the world hashes the same.
+        var path = Path.Combine(_directory, "need.db");
+        SaveGameStore.Save(path, StateCodec.Capture(host));
+        var loaded = Restore(path, host);
+        var back = Assert.Single(loaded.Needs.Added);
+        Assert.Equal((need.Id, need.SourceTypeId, need.DecayPerDay), (back.Id, back.SourceTypeId, back.DecayPerDay));
+        Assert.Equal(need.Actions, back.Actions);
+        Assert.Equal(builder.Needs[need.Id], loaded.Inhabitants.All.Single().Needs[need.Id]);
+        Assert.Equal(host.World.StateHash(), loaded.World.StateHash());
+    }
+
     // ------------------------------------------------------------------ helpers (test data only)
 
     private static double DistanceFactor(double metres) =>
@@ -438,18 +493,18 @@ public sealed class BuiltThingsGetUsedTests : IDisposable
     }
 
     /// <summary>The chain up to the standing thing: lasting lack, wish, approved invention, plan, building.</summary>
-    private static (SimulationHost Host, ScriptedJobPort Port, string TypeId, string BuiltId) Built(ulong seed)
+    private static (SimulationHost Host, ScriptedJobPort Port, string TypeId, string BuiltId) Built(ulong seed, NewNeed? need = null)
     {
         var port = new ScriptedJobPort();
         var host = World(port, seed);
-        var typeId = Invent(host, port);
+        var typeId = Invent(host, port, need);
         AnswerPlan(port, Plan());
         RunUntil(host, () => host.Inventions.Builds.Single().BuiltObjectId is not null, 3000);
         return (host, port, typeId, host.Inventions.Builds.Single().BuiltObjectId!);
     }
 
     /// <summary>Runs until the lasting lack has become a wish and answers it with an approved invention.</summary>
-    private static string Invent(SimulationHost host, ScriptedJobPort port)
+    private static string Invent(SimulationHost host, ScriptedJobPort port, NewNeed? need = null)
     {
         var trigger = Quiet.Value.Inventions.Settings.Trigger;
         RunUntil(host, () => port.Submitted.Any(j => j.Kind == JobKind.Invention), (trigger.HoursBelow + 2) * host.World.Calendar.Settings.TicksPerHour);
@@ -457,7 +512,7 @@ public sealed class BuiltThingsGetUsedTests : IDisposable
         // (The night's own jobs share the port; they stay unanswered here.)
         var job = Assert.Single(port.Submitted, j => j.Kind == JobKind.Invention);
         Assert.Equal(Need, job.Payload.Invention!.Want);
-        port.Answer(job, Approved(job));
+        port.Answer(job, Approved(job, need));
         host.World.Step();
         var typeId = InventionSystem.TypeIdFor(job.RequestId);
         Assert.True(host.Types.Contains(typeId));
@@ -565,13 +620,18 @@ public sealed class BuiltThingsGetUsedTests : IDisposable
         return invention;
     }
 
-    private static JobStatus Approved(GenerationJob job)
+    private static JobStatus Approved(GenerationJob job, NewNeed? need = null)
     {
         var example = File.ReadAllText(Path.Combine(TestData.Root, "contracts", "examples", "valid", "job-status.invention-approved.json"));
         var status = ContractSerializer.Deserialize<JobStatus>(example);
         status.JobId = job.RequestId;
         status.Tick = job.Tick;
         status.Result!.Invention!.Invention = Invention();
+        if (need is not null)
+        {
+            status.Result.Invention.Invention.IntroducesNeeds = [need];
+        }
+
         status.Result.Invention.Sound!.Needed = false;
         return status;
     }

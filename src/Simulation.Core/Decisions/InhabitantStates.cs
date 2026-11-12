@@ -20,11 +20,12 @@ public static class InhabitantStates
     /// <param name="perceivedInhabitants">Inhabitants in sight.</param>
     /// <param name="label">What the inhabitant calls the subject of a remembered event (<see cref="InhabitantsSystem.LabelOf"/>); null = no labels.</param>
     /// <param name="typeLabel">What the inhabitant calls a kind of thing its knowledge or a habit is about (<see cref="InhabitantsSystem.TypeLabelOf"/>); null = no labels.</param>
-    public static InhabitantState Of(Inhabitant inhabitant, KnowledgeSettings? knowledge, IEnumerable<string> perceivedTypes, IEnumerable<string> perceivedInhabitants, Func<Inhabitant, MemoryEntry, LocalizedName?>? label = null, Func<Inhabitant, string, LocalizedName?>? typeLabel = null)
+    /// <param name="needLabel">The name of a need an invention brought (<see cref="InhabitantsSystem.NeedLabelOf"/>, A1372); null = no labels.</param>
+    public static InhabitantState Of(Inhabitant inhabitant, KnowledgeSettings? knowledge, IEnumerable<string> perceivedTypes, IEnumerable<string> perceivedInhabitants, Func<Inhabitant, MemoryEntry, LocalizedName?>? label = null, Func<Inhabitant, string, LocalizedName?>? typeLabel = null, Func<string, LocalizedName?>? needLabel = null)
     {
         ArgumentNullException.ThrowIfNull(perceivedTypes);
         ArgumentNullException.ThrowIfNull(perceivedInhabitants);
-        var state = Basic(inhabitant, label);
+        var state = Basic(inhabitant, label, needLabel);
         if (knowledge is null)
         {
             return state;
@@ -135,13 +136,14 @@ public static class InhabitantStates
         return latest;
     }
 
-    private static InhabitantState Basic(Inhabitant inhabitant, Func<Inhabitant, MemoryEntry, LocalizedName?>? label)
+    private static InhabitantState Basic(Inhabitant inhabitant, Func<Inhabitant, MemoryEntry, LocalizedName?>? label, Func<string, LocalizedName?>? needLabel = null)
     {
         ArgumentNullException.ThrowIfNull(inhabitant);
         return new InhabitantState
         {
             Id = inhabitant.Id,
-            Needs = [.. inhabitant.Needs.Select(n => new LevelEntry { Id = n.Key, Value = n.Value })],
+            // A need an invention brought carries its name (A1372, GW2 #21960): the vocabulary has none for it.
+            Needs = [.. inhabitant.Needs.Select(n => new LevelEntry { Id = n.Key, Value = n.Value, Label = needLabel?.Invoke(n.Key) })],
             Mood = [.. inhabitant.Moods.Where(m => m.Value > 0).Select(m => new LevelEntry { Id = m.Key, Value = m.Value })],
             Traits = [.. inhabitant.Traits.Select(t => new LevelEntry { Id = t.Key, Value = t.Value })],
             WillToLive = inhabitant.WillToLive,

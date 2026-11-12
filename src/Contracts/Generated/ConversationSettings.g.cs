@@ -81,6 +81,13 @@ namespace GlassWorld.Contracts
         public int RecentLinesMax { get; set; } = default!;
 
         /// <summary>
+        /// How many lines of its conversations with the player an inhabitant keeps for its memory page (B8 R16, B2518: old conversations, nothing invented), oldest dropped first; kept in the save game. Omitted or 0 = no history beyond the recent lines.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("history_lines_max")]
+        public int? HistoryLinesMax { get; set; } = default!;
+
+        /// <summary>
         /// Understanding of the player at the start (gestures before words, D333).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("understanding_start")]
