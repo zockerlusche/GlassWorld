@@ -35,6 +35,9 @@ public partial class IslandScene : Node3D
     private LookShots _shots = null!;
     private string? _shotDirectory;
     private bool _check;
+
+    // --clock-light: the light follows the world clock (day, dusk, night) as in the game, not a fixed phase.
+    private bool _clockLight;
     private int _wait;
     private Shot? _current;
     private IslandView? _view;
@@ -93,6 +96,7 @@ public partial class IslandScene : Node3D
         var preset = Arg("--preset") ?? benchmark?.Preset ?? "start_island";
         _shotDirectory = benchmark is null ? Arg("--shots") : null;
         _check = args.Contains("--check");
+        _clockLight = args.Contains("--clock-light");
         var host = SimulationHost.CreateGeneratedWorld(content, seed, MockDecisionPort.FromContent(content), "de", preset);
         _host = host;
         var speed = double.Parse(Arg("--speed") ?? "1", CultureInfo.InvariantCulture);
@@ -183,18 +187,44 @@ public partial class IslandScene : Node3D
             bool IsLand(int x, int z) => IslandView.GroundHeight(ground, terrain, (x + 0.5) * terrain.CellM, (z + 0.5) * terrain.CellM) > seaLevel;
             _cover = CloudCover.Create(exploration, IsLand, _nature.Data.Cover, palette, terrain.CellM, host.Content.WorldGen.Presets[preset].Exploration?.RevealRealSeconds ?? 0, _nature.Wind.DirectionX, _nature.Wind.DirectionZ);
             AddChild(_cover);
+
+            // --revealed=PERMILLE: at least this share of the land shown as seen from the start, whatever runs
+            // (a video of the benchmark's camera path, S2). Not what a player sees on the first day.
+            if (Arg("--revealed") is { } share)
+            {
+                _cover.ShowShare(int.Parse(share, CultureInfo.InvariantCulture));
+            }
         }
         _rig = CameraRig.Create(Look<LookCamera>("camera.json"), _width, _depth, () => _figures.Values.Select(f => (f.InhabitantId, f.Position)), (x, z) => Math.Max(seaLevel, IslandView.GroundHeight(ground, terrain, x, z)));
         _rig.FindFigure = id => _figures.TryGetValue(id, out var f) ? f.Position : null;
         AddChild(_rig);
         if (Arg("--follow") is { } follow && _shotDirectory is null)
         {
+            // The running world seen like a shot of the point (videos for the visual check, S2): its view and
+            // its share of revealed land; with an inhabitant the camera goes along, without one it stands still.
             var point = _shots.Points.FirstOrDefault(p => p.Id == follow) ?? throw new InvalidDataException($"Unknown shot point '{follow}' for --follow.");
+            if (point.RevealedPermille is { } revealed)
+            {
+                _cover?.ShowShare(revealed);
+            }
+
+            _rig.Model.FovOverride = point.FovDeg;
             if (FigureOf(point) is { } figure)
             {
-                _rig.Model.Set(figure.Position.X, figure.Position.Z, point.YawDeg, point.DistanceM);
+                _rig.Model.Set(figure.Position.X, figure.Position.Z, point.YawDeg, point.DistanceM, point.PitchDeg);
                 _rig.FollowFigure(figure.InhabitantId, point.DistanceM);
                 _rig.Apply();
+            }
+            else if (point.Inhabitant is null)
+            {
+                _rig.Model.Set(_width * point.TargetXPermille / 1000.0, _depth * point.TargetZPermille / 1000.0, point.YawDeg, point.DistanceM, point.PitchDeg);
+                _rig.Apply();
+            }
+            else
+            {
+                // The point names an inhabitant this world does not have (FigureOf warned): no picture of the
+                // wrong place - the run ends with an error (review GW3 #266).
+                throw new InvalidDataException($"Shot point '{follow}' for --follow names inhabitant {point.Inhabitant}, which this world does not have.");
             }
         }
 
@@ -262,7 +292,14 @@ public partial class IslandScene : Node3D
                 _view?.FollowTide(_tide, delta);
                 _nature.Follow(_season, _epoch, _weather, delta, Focus(_rig.Model.Target.X, _rig.Model.Target.Z), _ticksPerSecond * time.RealSecondsPerTickAtNormalSpeed, time.RealSecondsPerTickAtNormalSpeed * time.Settings.TicksPerHour / 60.0);
                 _cover?.Advance(delta);
-                ApplyPhase(_phase);
+                if (_clockLight)
+                {
+                    ApplyLight(DaylightClock.At(_daylight, time, _host.World.Tick, _tickDebt));
+                }
+                else
+                {
+                    ApplyPhase(_phase);
+                }
             }
 
             return;
@@ -453,6 +490,12 @@ public partial class IslandScene : Node3D
             _phases[phase] = day = DaylightMix.Of(_daylight, phase);
         }
 
+        ApplyLight(day);
+    }
+
+    /// <summary>A daylight mix under the shown weather and the quality level; applied only when it changed.</summary>
+    private void ApplyLight(DaylightMix day)
+    {
         // Under the shown weather (B2-5 R23): dimmer or tinted light, clouds and fog; applied only when it changed.
         WeatherSky? sky = null;
         if (_nature is not null)
