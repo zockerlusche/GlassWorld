@@ -136,6 +136,15 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("rock_faces")]
         public WorldPresetRockFaces? RockFaces { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("coast_wobble")]
+        public WorldPresetCoastWobble CoastWobble { get; set; } = new WorldPresetCoastWobble();
+
+        [System.Text.Json.Serialization.JsonPropertyName("terraces")]
+        public WorldPresetTerraces Terraces { get; set; } = new WorldPresetTerraces();
+
+        [System.Text.Json.Serialization.JsonPropertyName("rock_bumps")]
+        public WorldPresetRockBumps RockBumps { get; set; } = new WorldPresetRockBumps();
+
     }
 
     /// <summary>
@@ -373,6 +382,12 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("drink_spots")]
         public System.Collections.Generic.ICollection<WorldPresetDrinkSpot> DrinkSpots { get; set; } = new System.Collections.ObjectModel.Collection<WorldPresetDrinkSpot>();
 
+        [System.Text.Json.Serialization.JsonPropertyName("swamp_band")]
+        public WorldPresetSwampBand SwampBand { get; set; } = new WorldPresetSwampBand();
+
+        [System.Text.Json.Serialization.JsonPropertyName("swamp_fallback")]
+        public WorldPresetSwampFallback SwampFallback { get; set; } = new WorldPresetSwampFallback();
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -426,6 +441,27 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("moisture_noise_wavelength_cells")]
         public int MoistureNoiseWavelengthCells { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("sea_moisture")]
+        public WorldPresetSeaMoisture SeaMoisture { get; set; } = new WorldPresetSeaMoisture();
+
+        /// <summary>
+        /// D763 Z7: a cell this much lower than the mean around it counts as a valley (valley_moisture_bonus_permille).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("valley_depth_units")]
+        public int ValleyDepthUnits { get; set; } = default!;
+
+        /// <summary>
+        /// D763 Z7: radius of that mean.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("valley_radius_cells")]
+        public int ValleyRadiusCells { get; set; } = default!;
+
+        /// <summary>
+        /// D763 Z7: weight of the closeness to fresh water in the moisture.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("near_water_weight_permille")]
+        public int NearWaterWeightPermille { get; set; } = default!;
 
     }
 
@@ -1078,6 +1114,180 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("noise_wavelength_cells")]
         public int NoiseWavelengthCells { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// How the coastline wanders (D763 Z4): a coarse noise shifts the distance from the centre by up to amplitude_permille of the half size, so the coast is no circle.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class WorldPresetCoastWobble
+    {
+
+        /// <summary>
+        /// Wavelength of the noise.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("wavelength_cells")]
+        public int WavelengthCells { get; set; } = default!;
+
+        /// <summary>
+        /// Largest shift, in permille of the half size.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("amplitude_permille")]
+        public int AmplitudePermille { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Where rock ground becomes cliff terraces (D763 Z5, D576): from the cliff biome's own height, or without such a rule from default_from_share_permille of the height range above the sea; only where a coarse noise mask is above mask_threshold_permille.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class WorldPresetTerraces
+    {
+
+        /// <summary>
+        /// Share of the height range above the sea from which terraces start when no cliff biome rule names a height.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("default_from_share_permille")]
+        public int DefaultFromSharePermille { get; set; } = default!;
+
+        /// <summary>
+        /// Wavelength of the mask noise.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("mask_wavelength_cells")]
+        public int MaskWavelengthCells { get; set; } = default!;
+
+        /// <summary>
+        /// Mask value above which a cell is terraced.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("mask_threshold_permille")]
+        public int MaskThresholdPermille { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Single rocks as small round bumps (D763 Z6): the centre cell rises by peak_units, its eight neighbours by rim_units; not on ground at most min_height_above_sea above the sea.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class WorldPresetRockBumps
+    {
+
+        /// <summary>
+        /// Height added at the rock's centre.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("peak_units")]
+        public int PeakUnits { get; set; } = default!;
+
+        /// <summary>
+        /// Height added around it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("rim_units")]
+        public int RimUnits { get; set; } = default!;
+
+        /// <summary>
+        /// A rock needs ground higher than this above the sea.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("min_height_above_sea")]
+        public int MinHeightAboveSea { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Damp air by the sea (D763 Z7): ground below height_above_sea above the sea gets bonus_permille more moisture.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class WorldPresetSeaMoisture
+    {
+
+        /// <summary>
+        /// Height above the sea below which the bonus applies.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("height_above_sea")]
+        public int HeightAboveSea { get; set; } = default!;
+
+        /// <summary>
+        /// Extra moisture.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("bonus_permille")]
+        public int BonusPermille { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Where swamp may form (D763 Z7): flat wet hollows between min and max height above the sea, lower than the mean of the cells within hollow_radius_cells.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class WorldPresetSwampBand
+    {
+
+        /// <summary>
+        /// Swamp only above this height above the sea.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("min_height_above_sea")]
+        public int MinHeightAboveSea { get; set; } = default!;
+
+        /// <summary>
+        /// Swamp only up to this height above the sea.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max_height_above_sea")]
+        public int MaxHeightAboveSea { get; set; } = default!;
+
+        /// <summary>
+        /// Radius of the mean a hollow must lie below.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("hollow_radius_cells")]
+        public int HollowRadiusCells { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// D763 Z8 (kept as it is; whether it stays is the TL's): with fewer than min_cells swamp cells, the lowest flat cell (slope at most max_slope, higher than min_height_above_sea) within near_fresh_cells of fresh water but not within not_near_fresh_cells is levelled into a small swamp: cells within radius_cells up to level_up_to_units higher take its height.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class WorldPresetSwampFallback
+    {
+
+        /// <summary>
+        /// Fewer swamp cells than this start the fallback.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("min_cells")]
+        public int MinCells { get; set; } = default!;
+
+        /// <summary>
+        /// The hollow lies higher than this above the sea.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("min_height_above_sea")]
+        public int MinHeightAboveSea { get; set; } = default!;
+
+        /// <summary>
+        /// Largest slope of the hollow's cell.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max_slope")]
+        public int MaxSlope { get; set; } = default!;
+
+        /// <summary>
+        /// Fresh water within this many cells.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("near_fresh_cells")]
+        public int NearFreshCells { get; set; } = default!;
+
+        /// <summary>
+        /// But none within this many cells.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("not_near_fresh_cells")]
+        public int NotNearFreshCells { get; set; } = default!;
+
+        /// <summary>
+        /// Radius of the levelled swamp.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("radius_cells")]
+        public int RadiusCells { get; set; } = default!;
+
+        /// <summary>
+        /// Cells up to this much higher are levelled to the hollow's height.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("level_up_to_units")]
+        public int LevelUpToUnits { get; set; } = default!;
 
     }
 

@@ -161,7 +161,10 @@
         "noise",
         "rocks",
         "cliff_min_run_cells",
-        "cliff_smoothing_rounds"
+        "cliff_smoothing_rounds",
+        "coast_wobble",
+        "terraces",
+        "rock_bumps"
       ],
       "properties": {
         "sea_level": {
@@ -226,6 +229,15 @@
         },
         "rock_faces": {
           "$ref": "#/$defs/WorldPresetRockFaces"
+        },
+        "coast_wobble": {
+          "$ref": "#/$defs/WorldPresetCoastWobble"
+        },
+        "terraces": {
+          "$ref": "#/$defs/WorldPresetTerraces"
+        },
+        "rock_bumps": {
+          "$ref": "#/$defs/WorldPresetRockBumps"
         }
       }
     },
@@ -407,7 +419,9 @@
         "stream_min_accumulation",
         "channel",
         "springs",
-        "drink_spots"
+        "drink_spots",
+        "swamp_band",
+        "swamp_fallback"
       ],
       "properties": {
         "shallow_max_depth": {
@@ -493,6 +507,12 @@
           "items": {
             "$ref": "#/$defs/WorldPresetDrinkSpot"
           }
+        },
+        "swamp_band": {
+          "$ref": "#/$defs/WorldPresetSwampBand"
+        },
+        "swamp_fallback": {
+          "$ref": "#/$defs/WorldPresetSwampFallback"
         }
       },
       "description": "Hydrology (B2 R4, TL #19722): depressions are filled from the sea inwards (priority flood), every cell drains to its steepest lower neighbour on the filled surface (D8), the flow accumulation sums rain and springs downstream; streams run where it is large enough, fed hollows become ponds and lakes that overflow towards the sea."
@@ -508,7 +528,11 @@
         "moisture_water_radius_cells",
         "valley_moisture_bonus_permille",
         "moisture_noise_permille",
-        "moisture_noise_wavelength_cells"
+        "moisture_noise_wavelength_cells",
+        "sea_moisture",
+        "valley_depth_units",
+        "valley_radius_cells",
+        "near_water_weight_permille"
       ],
       "properties": {
         "climate_id": {
@@ -555,6 +579,27 @@
           "description": "Wavelength of the moisture noise in cells.",
           "type": "integer",
           "minimum": 2,
+          "maximum": 1000
+        },
+        "sea_moisture": {
+          "$ref": "#/$defs/WorldPresetSeaMoisture"
+        },
+        "valley_depth_units": {
+          "description": "D763 Z7: a cell this much lower than the mean around it counts as a valley (valley_moisture_bonus_permille).",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "valley_radius_cells": {
+          "description": "D763 Z7: radius of that mean.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16
+        },
+        "near_water_weight_permille": {
+          "description": "D763 Z7: weight of the closeness to fresh water in the moisture.",
+          "type": "integer",
+          "minimum": 0,
           "maximum": 1000
         }
       }
@@ -1310,6 +1355,200 @@
           "description": "Wavelength of the ore noise in cells (veins and pockets).",
           "type": "integer",
           "minimum": 2,
+          "maximum": 1000
+        }
+      }
+    },
+    "WorldPresetCoastWobble": {
+      "description": "How the coastline wanders (D763 Z4): a coarse noise shifts the distance from the centre by up to amplitude_permille of the half size, so the coast is no circle.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "wavelength_cells",
+        "amplitude_permille"
+      ],
+      "properties": {
+        "wavelength_cells": {
+          "description": "Wavelength of the noise.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1024
+        },
+        "amplitude_permille": {
+          "description": "Largest shift, in permille of the half size.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        }
+      }
+    },
+    "WorldPresetTerraces": {
+      "description": "Where rock ground becomes cliff terraces (D763 Z5, D576): from the cliff biome's own height, or without such a rule from default_from_share_permille of the height range above the sea; only where a coarse noise mask is above mask_threshold_permille.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "default_from_share_permille",
+        "mask_wavelength_cells",
+        "mask_threshold_permille"
+      ],
+      "properties": {
+        "default_from_share_permille": {
+          "description": "Share of the height range above the sea from which terraces start when no cliff biome rule names a height.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "mask_wavelength_cells": {
+          "description": "Wavelength of the mask noise.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1024
+        },
+        "mask_threshold_permille": {
+          "description": "Mask value above which a cell is terraced.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        }
+      }
+    },
+    "WorldPresetRockBumps": {
+      "description": "Single rocks as small round bumps (D763 Z6): the centre cell rises by peak_units, its eight neighbours by rim_units; not on ground at most min_height_above_sea above the sea.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "peak_units",
+        "rim_units",
+        "min_height_above_sea"
+      ],
+      "properties": {
+        "peak_units": {
+          "description": "Height added at the rock's centre.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "rim_units": {
+          "description": "Height added around it.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "min_height_above_sea": {
+          "description": "A rock needs ground higher than this above the sea.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        }
+      }
+    },
+    "WorldPresetSeaMoisture": {
+      "description": "Damp air by the sea (D763 Z7): ground below height_above_sea above the sea gets bonus_permille more moisture.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "height_above_sea",
+        "bonus_permille"
+      ],
+      "properties": {
+        "height_above_sea": {
+          "description": "Height above the sea below which the bonus applies.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "bonus_permille": {
+          "description": "Extra moisture.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        }
+      }
+    },
+    "WorldPresetSwampBand": {
+      "description": "Where swamp may form (D763 Z7): flat wet hollows between min and max height above the sea, lower than the mean of the cells within hollow_radius_cells.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "min_height_above_sea",
+        "max_height_above_sea",
+        "hollow_radius_cells"
+      ],
+      "properties": {
+        "min_height_above_sea": {
+          "description": "Swamp only above this height above the sea.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "max_height_above_sea": {
+          "description": "Swamp only up to this height above the sea.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "hollow_radius_cells": {
+          "description": "Radius of the mean a hollow must lie below.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16
+        }
+      }
+    },
+    "WorldPresetSwampFallback": {
+      "description": "D763 Z8 (kept as it is; whether it stays is the TL's): with fewer than min_cells swamp cells, the lowest flat cell (slope at most max_slope, higher than min_height_above_sea) within near_fresh_cells of fresh water but not within not_near_fresh_cells is levelled into a small swamp: cells within radius_cells up to level_up_to_units higher take its height.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "min_cells",
+        "min_height_above_sea",
+        "max_slope",
+        "near_fresh_cells",
+        "not_near_fresh_cells",
+        "radius_cells",
+        "level_up_to_units"
+      ],
+      "properties": {
+        "min_cells": {
+          "description": "Fewer swamp cells than this start the fallback.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "min_height_above_sea": {
+          "description": "The hollow lies higher than this above the sea.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "max_slope": {
+          "description": "Largest slope of the hollow's cell.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "near_fresh_cells": {
+          "description": "Fresh water within this many cells.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 64
+        },
+        "not_near_fresh_cells": {
+          "description": "But none within this many cells.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 64
+        },
+        "radius_cells": {
+          "description": "Radius of the levelled swamp.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 64
+        },
+        "level_up_to_units": {
+          "description": "Cells up to this much higher are levelled to the hollow's height.",
+          "type": "integer",
+          "minimum": 0,
           "maximum": 1000
         }
       }
