@@ -319,10 +319,12 @@ def _runs(pid: int) -> bool:
     if sys.platform == "win32":
         import subprocess
 
+        # Bytes, not text: a German Windows writes tasklist in the OEM code page (umlauts as 0x81
+        # ...), which the cp1252 reader cannot decode - stdout became None (review GW1 #22109).
         listed = subprocess.run(
-            ["tasklist", "/FI", f"PID eq {pid}", "/NH"], capture_output=True, text=True, check=False
+            ["tasklist", "/FI", f"PID eq {pid}", "/NH"], capture_output=True, check=False
         )
-        return str(pid) in listed.stdout
+        return str(pid).encode() in listed.stdout
     import os
 
     try:
