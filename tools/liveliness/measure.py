@@ -13,7 +13,9 @@ target=.. detail=..`. Per game day and inhabitant it counts what a viewer would 
                 is contact, not only talk (review GW3 #305);
 - discoveries:  knowledge gained, names learned, first meetings;
 - making:       inventions wanted, invented, built, first used;
-- thoughts and questions (opened, answered, failed).
+- thoughts and questions (opened, answered, failed);
+- free moments: the core asked the AI what to do in a free moment (leisure_opened, B2663, #313) -
+                counted apart, they are no questions.
 
 It judges nothing on its own: the numbers are a measurement for the TL and the M2 runs; a day is
 only *marked* "quiet" when it has fewer distinct actions than `--quiet-below` (a reading aid, not
@@ -35,6 +37,7 @@ ROOT = Path(__file__).resolve().parents[2]
 DISCOVERY = ("knowledge_gained", "name_learned", "first_meeting")
 MAKING = ("invention_wanted", "invented", "built", "first_use")
 QUESTIONS = ("question_opened", "question_answered", "question_failed")
+LEISURE = "leisure_opened"
 
 
 def ticks_per_day(root: Path = ROOT) -> int:
@@ -78,6 +81,7 @@ class Day:
     discoveries: int = 0
     making: int = 0
     thoughts: int = 0
+    leisure: int = 0
     questions: Counter[str] = field(default_factory=Counter[str])
 
     def row(self) -> dict[str, object]:
@@ -89,6 +93,7 @@ class Day:
             "discoveries": self.discoveries,
             "making": self.making,
             "thoughts": self.thoughts,
+            "free_moments": self.leisure,
             "questions_opened": self.questions["question_opened"],
             "questions_answered": self.questions["question_answered"],
             "questions_failed": self.questions["question_failed"],
@@ -121,6 +126,8 @@ def measure(
             day.making += 1
         elif kind == "thought":
             day.thoughts += 1
+        elif kind == LEISURE:
+            day.leisure += 1
         elif kind in QUESTIONS:
             day.questions[kind] += 1
     # A row for every inhabitant on every day of the run, also without a single event: such a
@@ -153,7 +160,7 @@ def report(days: dict[tuple[int, str], Day], quiet_below: int, source: str) -> s
         "|---|---|---|---|",
     ]
     for key in ("actions", "distinct_actions", "spread", "contacts", "discoveries", "making",
-                "thoughts", "questions_opened", "questions_answered"):  # fmt: skip
+                "thoughts", "free_moments", "questions_opened", "questions_answered"):  # fmt: skip
         values = [float(r[key]) for r in rows.values()]  # type: ignore[arg-type]
         if values:
             lines.append(f"| {key} | {median(values):g} | {min(values):g} | {max(values):g} |")
@@ -166,8 +173,8 @@ def report(days: dict[tuple[int, str], Day], quiet_below: int, source: str) -> s
         "## Je Spieltag (alle Bewohner zusammen)",
         "",
         "| Tag | Bewohner | Handlungen | verschieden | Kontakte | Entdeckungen | Gemachtes "
-        "| Gedanken | Fragen offen/beantwortet |",
-        "|---|---|---|---|---|---|---|---|---|",
+        "| Gedanken | Freie Momente | Fragen offen/beantwortet |",
+        "|---|---|---|---|---|---|---|---|---|---|",
     ]
     by_day: dict[int, list[dict[str, object]]] = defaultdict(list)
     kinds_of_day: dict[int, set[str]] = defaultdict(set)
@@ -183,7 +190,7 @@ def report(days: dict[tuple[int, str], Day], quiet_below: int, source: str) -> s
         lines.append(
             f"| {d} | {len(rs)} | {total('actions')} | {len(distinct)} | {total('contacts')} | "
             f"{total('discoveries')} | {total('making')} | {total('thoughts')} | "
-            f"{total('questions_opened')}/{total('questions_answered')} |"
+            f"{total('free_moments')} | {total('questions_opened')}/{total('questions_answered')} |"
         )
     return "\n".join(lines) + "\n"
 
