@@ -545,7 +545,12 @@ def create_app(
         result: dict[str, Any] = run.result or {}
         language = cast(dict[str, object], result.get("language") or {})
         seconds = language.get("seconds_per_job")
-        measured = float(seconds) if isinstance(seconds, (int, float)) else None
+        # A JSON true is an int in Python: only real numbers count (review GW1 #284).
+        measured = (
+            float(seconds)
+            if isinstance(seconds, (int, float)) and not isinstance(seconds, bool)
+            else None
+        )
         return learn_by_day(tiers, app.state.tier, measured)
 
     @app.get("/setup/check")
