@@ -1,4 +1,5 @@
-"""Natural thoughts (W1687/W1688, decider prompt v4): the check and the stand-in from data."""
+"""Natural thoughts (W1687/W1688, decider prompt v4): the check; a failing thought is left out
+(B2644)."""
 
 from __future__ import annotations
 
@@ -13,7 +14,7 @@ from conftest import make_app, post
 from glassworld_ai.calllog import CallLog
 from glassworld_ai.config import Settings
 from glassworld_ai.decider.backends import ModelSettings, OllamaDecider
-from glassworld_ai.decider.thoughts import stand_in, thought_problem
+from glassworld_ai.decider.thoughts import thought_problem
 from glassworld_ai.llm.ollama import OllamaClient
 from glassworld_ai.prompts import load_prompt
 from glassworld_ai.queue import ModelQueue
@@ -59,14 +60,6 @@ def test_older_prompts_have_no_check() -> None:
     assert thought_problem("the object hearby", "de", v3) is None
 
 
-def test_every_action_has_a_stand_in_in_both_languages() -> None:
-    texts = TextCatalog.load(REPO / "content/i18n")
-    vocab = Vocabulary.load(REPO / "content/vocabulary")
-    for action in vocab.ids("action"):
-        for locale in ("de", "en"):
-            assert stand_in(texts, locale, action), (locale, action)
-
-
 def _decider(settings: Settings, content: str) -> tuple[Any, CallLog]:
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(200, json={"message": {"role": "assistant", "content": content}})
@@ -89,8 +82,8 @@ def _decider(settings: Settings, content: str) -> tuple[Any, CallLog]:
     return make_app(settings, decider=decider), log
 
 
-def test_a_bad_thought_is_replaced_without_asking_again(settings: Settings) -> None:
-    """One model call, the decision stays, only the bubble text is the data's stand-in."""
+def test_a_bad_thought_is_left_out_without_asking_again(settings: Settings) -> None:
+    """One model call, the decision stays, the bubble stays empty - no fixed stand-in (B2644)."""
     answer = json.dumps(
         {
             "rationale": "Check the berries.",
@@ -101,12 +94,10 @@ def test_a_bad_thought_is_replaced_without_asking_again(settings: Settings) -> N
     )
     app, log = _decider(settings, answer)
     body = post(app, "/decide", REQUEST).json()
-    action = next(o["action"] for o in REQUEST["options"] if o["option_id"] == "o1")
-    texts = TextCatalog.load(settings.content_dir / "i18n")
     assert body["option_id"] == "o1"
-    assert body["thought"]["text"] == stand_in(texts, "de", action)
+    assert body["thought"] is None
     rows = list(log.read())
-    assert len(rows) == 1 and "thought replaced (blocked_word)" in str(rows[0]["detail"])
+    assert len(rows) == 1 and "thought left out (blocked_word)" in str(rows[0]["detail"])
     assert rows[0]["prompt_digest"] == load_prompt(settings.prompts_dir, "decider/decide", 4).digest
 
 

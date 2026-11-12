@@ -105,7 +105,7 @@ def parse(
     grounding: Callable[[str], list[str]] | None = None,
 ) -> dict[str, Any]:
     """Validate the model answer. With `answer_all` (prompt v2, Marcel W1701) decline and not
-    understood keep their sentence too; a blocked one is dropped and replaced by a stand-in."""
+    understood keep their sentence too; a blocked one is dropped (B2644: nothing is shown)."""
     try:
         data: Any = json.loads(raw)
     except json.JSONDecodeError as error:
@@ -126,6 +126,7 @@ def parse(
     elif answer_all and values["outcome"] != "gesture" and values["reply"]:
         if not guard.check(values["reply"]).allowed:
             values["reply"] = None
+            values["left_out"] = True  # B2644: no stand-in for a rejected sentence
     else:
         values["reply"] = None  # v1: a sentence only with outcome reply
     if grounding is not None and values["reply"]:
@@ -135,8 +136,13 @@ def parse(
 
 
 def with_words(data: dict[str, Any], texts: TextCatalog | None, locale: str) -> dict[str, Any]:
-    """W1701: the voice always gets an answer - an outcome other than a gesture without a sentence
-    gets the data's stand-in msg.converse.<outcome> (DE/EN)."""
+    """W1701: the voice always gets an answer - an outcome other than a gesture for which the model
+    wrote no sentence gets the data's stand-in msg.converse.<outcome> (DE/EN). A sentence the
+    checks rejected is NOT replaced (B2644, Marcel F5296 = B): nothing is shown, the outcome
+    stays."""
+    data = dict(data)
+    if data.pop("left_out", False):
+        return data
     if data["outcome"] == "gesture" or data["reply"] or texts is None:
         return data
     return {**data, "reply": texts.get(locale, f"msg.converse.{data['outcome']}")}
@@ -297,23 +303,19 @@ def grounding_check(
 def grounded(
     request: ConversationRequest, data: dict[str, Any], texts: TextCatalog | None
 ) -> dict[str, Any]:
-    """A sentence that names unknown things is replaced by the data's stand-in for the outcome
-    the MODEL chose (msg.converse.<outcome>). The choice itself - reply, decline, not
-    understood - stays the model's: the service only takes back words (PR2 check D763 G1;
-    before, a decline became a reply with a sentence about the current action, and the core
-    applied the effects of an answer)."""
+    """A sentence that names unknown things is left out (B2644, Marcel F5296 = B: a rejected AI
+    sentence shows nothing; before, the data's stand-in msg.converse.<outcome> took its place).
+    The choice itself - reply, decline, not understood - stays the model's: the service only
+    takes back words (PR2 check D763 G1). A reply without a sentence is shown by the core as a
+    gesture."""
     unknown = data.pop("ungrounded", None)
     if not unknown or texts is None:
         return data
-    locale = plain_id(request.display_locale)
-    outcome = str(data.get("outcome", "reply"))
-    stand_in = texts.get(locale, f"msg.converse.{outcome}") or texts.get(
-        locale, "msg.converse.reply"
-    )
-    note = f" [replaced, unknown: {', '.join(unknown[:3])}]"
+    note = f" [left out, unknown: {', '.join(unknown[:3])}]"
     return {
         **data,
-        "reply": stand_in,
+        "reply": None,
+        "left_out": True,
         "rationale": (str(data.get("rationale", "")) + note)[-280:],
     }
 
