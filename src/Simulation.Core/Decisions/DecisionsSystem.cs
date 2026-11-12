@@ -1543,7 +1543,8 @@ public sealed class DecisionsSystem : IWorldSystem
     {
         "question_opened" => LeisureOpened,
         "question_answered" => LeisureAnswered,
-        _ => LeisureFailed,
+        "question_failed" => LeisureFailed,
+        _ => questionEvent,
     };
 
     /// <summary>Other inhabitants within the perception radius as it is right now (B2594), nearest first, ties by id.</summary>
