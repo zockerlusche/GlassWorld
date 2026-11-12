@@ -49,5 +49,6 @@
       "fear": 0.0
     }
   ],
-  "log_max_entries": 500
+  "log_max_entries": 500,
+  "history_lines_max": 200
 }

@@ -68,6 +68,12 @@ class ConversationSettings(BaseModel):
         ge=0,
         le=8,
     )
+    history_lines_max: int | None = Field(
+        None,
+        description='How many lines of its conversations with the player an inhabitant keeps for its memory page (B8 R16, B2518: old conversations, nothing invented), oldest dropped first; kept in the save game. Omitted or 0 = no history beyond the recent lines.',
+        ge=0,
+        le=2000,
+    )
     understanding_start: float = Field(
         ...,
         description='Understanding of the player at the start (gestures before words, D333).',

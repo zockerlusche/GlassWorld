@@ -62,7 +62,11 @@ public sealed record OpenConversation(string RequestId, string InhabitantId, lon
 /// <param name="Open">Sentences waiting for an answer.</param>
 /// <param name="Counter">Request counter (ids).</param>
 /// <param name="Log">Requests and answers (replay).</param>
-public sealed record ConversationState(IReadOnlyDictionary<string, ConversationMemory> Memories, IReadOnlyList<OpenConversation> Open, long Counter, IReadOnlyList<ConversationLogEntry> Log);
+public sealed record ConversationState(IReadOnlyDictionary<string, ConversationMemory> Memories, IReadOnlyList<OpenConversation> Open, long Counter, IReadOnlyList<ConversationLogEntry> Log)
+{
+    /// <summary>The conversation history per inhabitant for its memory page (B8 R16); null in save games from before.</summary>
+    public IReadOnlyDictionary<string, IReadOnlyList<ConversationLineState>>? History { get; init; }
+}
 
 /// <summary>
 /// Talking with an inhabitant (B6 R13, A1342; D333). The player's sentence becomes the command send_text:
@@ -107,6 +111,10 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
     private string _displayLocale;
     private readonly int _ticksPerHour;
     private readonly SortedDictionary<string, ConversationMemory> _memories = new(StringComparer.Ordinal);
+
+    // The conversation history per inhabitant for its memory page (B8 R16): every remembered line, at most the data's
+    // history_lines_max, oldest dropped first. State like the memories (hashed, saved).
+    private readonly SortedDictionary<string, List<ConversationLineState>> _history = new(StringComparer.Ordinal);
     private readonly SortedDictionary<string, OpenConversation> _open = new(StringComparer.Ordinal);
     private readonly List<ConversationLogEntry> _log = [];
     private long _counter;
@@ -160,10 +168,17 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
     }
 
     /// <inheritdoc/>
-    public bool HasState => _memories.Count > 0 || _open.Count > 0;
+    public bool HasState => _memories.Count > 0 || _open.Count > 0 || _history.Count > 0;
 
     /// <summary>Logged requests and answers.</summary>
     public IReadOnlyList<ConversationLogEntry> Log => _log;
+
+    /// <summary>
+    /// The inhabitant's conversations with the player, oldest first, at most the data's history_lines_max (B8 R16): the
+    /// player's sentences and the inhabitant's spoken answers as they were said, nothing added.
+    /// </summary>
+    public IReadOnlyList<ConversationLineState> HistoryOf(string inhabitantId) =>
+        _history.TryGetValue(inhabitantId, out var lines) ? [.. lines] : [];
 
     /// <summary>What an inhabitant keeps from talking with the player (start values if never spoken to).</summary>
     public ConversationMemory MemoryOf(string inhabitantId) =>
@@ -214,7 +229,7 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
         _player.Spend(Intervention);
         var memory = MemoryOf(inhabitant.Id);
         var request = Request(world, inhabitant, memory, text);
-        _memories[inhabitant.Id] = Remember(memory, new ConversationLineState(true, world.Tick, _displayLocale, text));
+        _memories[inhabitant.Id] = Remember(inhabitant.Id, memory, new ConversationLineState(true, world.Tick, _displayLocale, text));
         _open[request.RequestId] = new OpenConversation(request.RequestId, inhabitant.Id, world.Tick);
         var json = ContractSerializer.Serialize(request, ValidateRequests);
         Append(new ConversationLogEntry(ConversationLogKind.Request, request.RequestId, world.Tick, json));
@@ -253,6 +268,20 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
             }
         }
 
+        // The memory pages' history only when there is one: worlds without it hash as before.
+        if (_history.Count > 0)
+        {
+            hasher.Write(_history.Count);
+            foreach (var (id, lines) in _history)
+            {
+                hasher.Write(id).Write(lines.Count);
+                foreach (var line in lines)
+                {
+                    hasher.Write(line.FromPlayer ? 1 : 0).Write(line.Tick).Write(line.Locale).Write(line.Text);
+                }
+            }
+        }
+
         hasher.Write(_open.Count);
         foreach (var open in _open.Values)
         {
@@ -261,12 +290,16 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
     }
 
     /// <summary>The state to save.</summary>
-    public ConversationState Capture() => new(new SortedDictionary<string, ConversationMemory>(_memories, StringComparer.Ordinal), [.. _open.Values], _counter, [.. _log]);
+    public ConversationState Capture() => new(new SortedDictionary<string, ConversationMemory>(_memories, StringComparer.Ordinal), [.. _open.Values], _counter, [.. _log])
+    {
+        History = _history.Count == 0 ? null : _history.ToDictionary(h => h.Key, h => (IReadOnlyList<ConversationLineState>)[.. h.Value], StringComparer.Ordinal),
+    };
 
     /// <summary>Restores saved state (null = a save game from before conversations).</summary>
     public void Restore(ConversationState? state)
     {
         _memories.Clear();
+        _history.Clear();
         _open.Clear();
         _log.Clear();
         _counter = state?.Counter ?? 0;
@@ -281,6 +314,10 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
         }
 
         _log.AddRange(state?.Log ?? []);
+        foreach (var (id, lines) in state?.History ?? new Dictionary<string, IReadOnlyList<ConversationLineState>>())
+        {
+            _history[id] = [.. lines];
+        }
     }
 
     private ConversationRequest Request(World world, Inhabitant inhabitant, ConversationMemory memory, string text)
@@ -514,7 +551,7 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
             Understanding = Math.Clamp(memory.Understanding + rule.Understanding, 0, _settings.UnderstandingMax),
             Fear = Math.Clamp(memory.Fear + rule.Fear, 0, 1),
         };
-        _memories[inhabitant.Id] = line is null ? memory : Remember(memory, line);
+        _memories[inhabitant.Id] = line is null ? memory : Remember(inhabitant.Id, memory, line);
         if (rule.Affection != 0 || rule.Trust != 0 || rule.Respect != 0)
         {
             var start = new Relation(_knowledge.RelationshipStart.Affection, _knowledge.RelationshipStart.Trust, _knowledge.RelationshipStart.Respect);
@@ -546,8 +583,22 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
         }
     }
 
-    private ConversationMemory Remember(ConversationMemory memory, ConversationLineState line)
+    private ConversationMemory Remember(string inhabitantId, ConversationMemory memory, ConversationLineState line)
     {
+        if (_settings.HistoryLinesMax is > 0 and var most)
+        {
+            if (!_history.TryGetValue(inhabitantId, out var history))
+            {
+                _history[inhabitantId] = history = [];
+            }
+
+            history.Add(line);
+            if (history.Count > most)
+            {
+                history.RemoveRange(0, history.Count - most);
+            }
+        }
+
         var lines = memory.Lines.Append(line).TakeLast(_settings.RecentLinesMax).ToList();
         return memory with { Lines = lines };
     }
