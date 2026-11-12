@@ -13,6 +13,39 @@ namespace GlassWorld.Contracts
     #pragma warning disable // Disable all warnings
 
     /// <summary>
+    /// D827 R19 (A1376): every built thing carries a quality tier from the builder's skill when it is finished - the highest tier whose from_level the skill reaches (tiers in ascending from_level, the first from 0). Text keys ui.build.quality.&lt;id&gt; (DE/EN). Omitted = no quality.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class BuildQuality
+    {
+
+        /// <summary>
+        /// The skill that decides the quality (vocabulary skill).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("skill")]
+        public string Skill { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("tiers")]
+        public System.Collections.Generic.ICollection<BuildQualityTier> Tiers { get; set; } = new System.Collections.ObjectModel.Collection<BuildQualityTier>();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class BuildQualityTier
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public string Id { get; set; } = default!;
+
+        /// <summary>
+        /// Skill level from which this tier is reached.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("from_level")]
+        public double FromLevel { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// A1373 step 2 (D827 R15/R17c, D850, B2658): when the help does not come, the builder asks the decider what to do, with options only the core offers: take a thing it believes has the missing properties instead, finish smaller (leave the thing as far as it is built), give up. First after_hours of looking after needs_help, then every after_hours again, at most max times per building. Omitted = the builder never asks, as before.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -140,6 +173,10 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("escalation")]
         public BuildEscalation? Escalation { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("quality")]
+        public BuildQuality? Quality { get; set; } = default!;
 
     }
 }

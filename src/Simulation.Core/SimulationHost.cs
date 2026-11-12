@@ -323,6 +323,9 @@ public sealed class SimulationHost
 
         // Skill levels per inhabitant (B5 part): finished actions practise their skills.
         var skillLevels = new SkillLevelsSystem(content.SkillLevels, skills, world.Seed, world.Calendar.TicksPerDay);
+
+        // A built thing's quality comes from the builder's skill (A1376, D827 R19).
+        inventions.SkillOf = skillLevels.Level;
         inhabitants.Reported += skillLevels.Observe;
 
         // A stuck building asks the decider what to do (A1373 step 2, D850): the core offers, the decider chooses.
