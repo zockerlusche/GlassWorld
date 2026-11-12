@@ -544,7 +544,69 @@
           "time_of_day": "night",
           "offset_tenth_c": -50
         }
-      ]
+      ],
+      "hourly": [
+        {
+          "season": "spring",
+          "points": [
+            {
+              "hour": 5,
+              "offset_tenth_c": -40
+            },
+            {
+              "hour": 15,
+              "offset_tenth_c": 40
+            }
+          ]
+        },
+        {
+          "season": "summer",
+          "points": [
+            {
+              "hour": 5,
+              "offset_tenth_c": -50
+            },
+            {
+              "hour": 15,
+              "offset_tenth_c": 50
+            }
+          ]
+        },
+        {
+          "season": "autumn",
+          "points": [
+            {
+              "hour": 5,
+              "offset_tenth_c": -35
+            },
+            {
+              "hour": 15,
+              "offset_tenth_c": 35
+            }
+          ]
+        },
+        {
+          "season": "winter",
+          "points": [
+            {
+              "hour": 5,
+              "offset_tenth_c": -25
+            },
+            {
+              "hour": 15,
+              "offset_tenth_c": 25
+            }
+          ]
+        }
+      ],
+      "biomes": [
+        {
+          "biome": "forest",
+          "season": "summer",
+          "offset_tenth_c": -10
+        }
+      ],
+      "season_transition_hours": 24
     }
   }
 }

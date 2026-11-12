@@ -34,6 +34,9 @@ public sealed class AirTemperatureTests
     public void WithoutTheOptionalPartsTheTemperatureIsAsBefore()
     {
         var data = Shipped();
+        data.Hourly = null;
+        data.Biomes = null;
+        data.SeasonTransitionHours = null;
         var air = new AirTemperature(data, HoursPerDay);
         foreach (var season in Seasons)
         {
@@ -124,6 +127,29 @@ public sealed class AirTemperatureTests
         var winter = Hard("winter", 12);
         var spring = Hard("spring", 12);
         Assert.Equal(winter + ((spring - winter) * 720 / 1440), soft.At(At("spring", 1, 12), "clear"));
+    }
+
+    [Fact]
+    public void TheShippedClimatesFollowTheValuesOfTheTlAndDifferFromEachOther()
+    {
+        // B2676 (D905): temperate swings 5 degrees around the mean in summer, 2.5 in winter; warm is warmer all year.
+        var climates = Content.Value.WorldGen.Climates;
+        var temperate = new AirTemperature(climates["temperate"].Weather.Temperature, HoursPerDay);
+        var warm = new AirTemperature(climates["warm"].Weather.Temperature, HoursPerDay);
+        Assert.Equal(100, temperate.At(At("summer", 3, 15), "clear") - temperate.At(At("summer", 3, 5), "clear"));
+        Assert.Equal(50, temperate.At(At("winter", 3, 15), "clear") - temperate.At(At("winter", 3, 5), "clear"));
+        Assert.Equal(temperate.At(At("summer", 3, 15), "clear") - 10, temperate.At(At("summer", 3, 15), "clear", "forest"));
+        foreach (var season in Seasons)
+        {
+            for (var hour = 0; hour < HoursPerDay; hour++)
+            {
+                Assert.True(warm.At(At(season, 3, hour), "clear") > temperate.At(At(season, 3, hour), "clear"), $"{season} {hour} h");
+            }
+        }
+
+        // No frost and no snow in a warm winter's weather table (B2676: no frost).
+        var winter = climates["warm"].Weather.Seasons.Single(s => s.Season == "winter");
+        Assert.DoesNotContain(winter.Transitions.SelectMany(t => t.To), to => to.Weather is "frost" or "snow");
     }
 
     [Theory]
