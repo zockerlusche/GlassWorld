@@ -1,0 +1,18 @@
+{
+  "contract_version": "0.2",
+  "kind": "voice_kind",
+  "entries": [
+    {
+      "id": "naming",
+      "description": "The player tells what a thing in sight is called ('Das ist Feuer') (B2597)."
+    },
+    {
+      "id": "praise",
+      "description": "The player praises or encourages the inhabitant (B2597)."
+    },
+    {
+      "id": "other",
+      "description": "Anything else: a question, advice, chatter."
+    }
+  ]
+}

@@ -22,6 +22,7 @@ from glassworld_ai.conversation import (
     ReplayConversation,
     output_schema,
     parse,
+    seen_names,
     values,
 )
 from glassworld_ai.decider.backends import MockDecider
@@ -395,3 +396,111 @@ def test_v3_snapshot(settings: Settings) -> None:
     if os.environ.get("GW_UPDATE_SNAPSHOTS") == "1":
         snapshot.write_text(text, encoding="utf-8", newline="\n")
     assert text == snapshot.read_text(encoding="utf-8")
+
+
+# --- v6 (A1538, B6 R21, D891 v2): what the voice's words are ------------------------------------
+
+VOICE_KINDS = tuple(VOCAB.ids("voice_kind"))
+
+
+def _v6_talker(settings: Settings, log: CallLog, answers: list[str]) -> OllamaConversation:
+    return OllamaConversation(
+        client=_client(answers),
+        queue=ModelQueue(8),
+        template=load_prompt(settings.prompts_dir, "conversation/reply", 6),
+        settings=ModelCallSettings(temperature=0.7, num_ctx=8192, max_retries=0, call_timeout_s=30),
+        log=log,
+        guard=GUARD,
+        expressions=EXPRESSIONS,
+        texts=TEXTS,
+        names=NAMES,
+        voice_kinds=VOICE_KINDS,
+    )
+
+
+def _said(text: str) -> ConversationRequest:
+    return ConversationRequest.model_validate({**DOING_DATA, "player_text": text})
+
+
+def _named() -> str:
+    """The first thing the speaker sees, by the name 'What you see' gives it."""
+    template = load_prompt(REPO / "prompts", "conversation/reply", 6)
+    names = seen_names(DOING, TEXTS, template.settings)
+    assert names, "the example speaker sees something"
+    return sorted(names)[0]
+
+
+@pytest.mark.parametrize(
+    ("said", "voice", "sent"),
+    [
+        ("Das ist Glitzerwasser.", {"kind": "naming", "word": "Glitzerwasser"}, "naming"),
+        ("Das ist Glitzerwasser.", {"kind": "naming", "word": "Funkelsaft"}, None),  # not said
+        ("Gut gemacht!", {"kind": "praise", "word": None}, "praise"),
+        (
+            "Was machst du?",
+            {"kind": "other", "word": None},
+            None,
+        ),  # only naming/praise reach the core
+        (
+            "Das ist ein sehr langer Name hier.",
+            {"kind": "naming", "word": "ein sehr langer Name"},
+            None,
+        ),
+    ],
+)
+def test_v6_the_voice_is_classified_and_checked(
+    settings: Settings, said: str, voice: dict[str, Any], sent: str | None
+) -> None:
+    """The model says what the text IS; the service passes it on only if the thing is in sight and
+    the word stands in the voice's text (1-3 words); the core decides what follows (PR2)."""
+    thing = _named() if voice["kind"] == "naming" else None
+    answer_data = {**GOOD, "voice": {"kind": voice["kind"], "thing": thing, "word": voice["word"]}}
+    log = CallLog(settings.log_dir / "conversation.jsonl")
+    talker = _v6_talker(settings, log, [_raw(answer_data)])
+    request = _said(said)
+    answer = asyncio.run(talker.answer(request, time.monotonic() + 8))
+    got = answer.voice
+    assert (got.kind if got else None) == sent
+    if sent == "naming":
+        assert got is not None and got.naming is not None
+        assert got.naming.word == "Glitzerwasser"
+        assert got.naming.type in {str(t) for t in DOING.speaker.sees or []}
+    replayed = asyncio.run(
+        ReplayConversation(
+            log,
+            GUARD,
+            EXPRESSIONS,
+            TEXTS,
+            prompts_dir=settings.prompts_dir,
+            names=NAMES,
+            voice_kinds=VOICE_KINDS,
+        ).answer(request, time.monotonic() + 8)
+    )
+    assert replayed.voice == answer.voice  # a replay says the same
+
+
+def test_v6_no_voice_without_understanding_or_with_a_blocked_word(settings: Settings) -> None:
+    thing = _named()
+    log = CallLog(settings.log_dir / "conversation.jsonl")
+    not_understood = {
+        **GOOD,
+        "outcome": "not_understood",
+        "voice": {"kind": "naming", "thing": thing, "word": "Glitzerwasser"},
+    }
+    talker = _v6_talker(settings, log, [_raw(not_understood)])
+    answer = asyncio.run(talker.answer(_said("Das ist Glitzerwasser."), time.monotonic() + 8))
+    assert answer.voice is None  # who did not understand learns no word
+    blocked = {**GOOD, "voice": {"kind": "naming", "thing": thing, "word": "Koks"}}
+    talker = _v6_talker(settings, log, [_raw(blocked)])
+    answer = asyncio.run(talker.answer(_said("Das ist Koks."), time.monotonic() + 8))
+    assert answer.voice is None  # B2466: a word that lives on passes the content guard
+
+
+def test_v6_prompt_asks_what_the_words_are_and_v5_does_not(settings: Settings) -> None:
+    v6 = load_prompt(settings.prompts_dir, "conversation/reply", 6)
+    assert '"naming"' in v6.system and "never invent a word" in v6.system.lower()
+    schema = output_schema(sorted(EXPRESSIONS), list(VOICE_KINDS), [_named()])
+    assert "voice" in schema["required"]
+    assert "inv_" not in json.dumps(schema)  # names, never runtime ids
+    v5 = load_prompt(settings.prompts_dir, "conversation/reply", 5)
+    assert '"naming"' not in v5.system  # v5 as it was

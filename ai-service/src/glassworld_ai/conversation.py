@@ -59,6 +59,12 @@ ROLE_PROMPT = "conversation/reply"
 ROLE = "conversation"
 REPLY_MAX = 200
 OUTCOMES = ("reply", "gesture", "not_understood", "decline")
+# A1538 (B6 R21, D891): what the voice's text IS - only these reach the core; 'other' and
+# everything that fails a check is dropped.
+VOICE_KINDS_SENT = ("naming", "praise")
+VOICE_UNDERSTOOD = ("reply", "gesture")
+VOICE_WORD_MAX = 32
+VOICE_WORDS_MAX = 3
 
 
 class Conversationalist(Protocol):
@@ -74,7 +80,39 @@ def _table(settings: dict[str, Any], key: str) -> dict[str, str]:
     return {str(k): str(v) for k, v in cast(dict[object, object], raw).items()}
 
 
-def output_schema(expressions: list[str]) -> dict[str, Any]:
+def output_schema(
+    expressions: list[str],
+    voice_kinds: list[str] | None = None,
+    seen_names: list[str] | None = None,
+) -> dict[str, Any]:
+    schema = _base_schema(expressions)
+    if voice_kinds:
+        # v6 (A1538): the model names the thing as listed under 'What you see' - never an id.
+        thing: dict[str, Any] = (
+            {"anyOf": [{"type": "string", "enum": seen_names}, {"type": "null"}]}
+            if seen_names
+            else {"type": "null"}
+        )
+        schema["required"] = [*schema["required"], "voice"]
+        schema["properties"]["voice"] = {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["kind", "thing", "word"],
+            "properties": {
+                "kind": {"type": "string", "enum": voice_kinds},
+                "thing": thing,
+                "word": {
+                    "anyOf": [
+                        {"type": "string", "minLength": 1, "maxLength": VOICE_WORD_MAX},
+                        {"type": "null"},
+                    ]
+                },
+            },
+        }
+    return schema
+
+
+def _base_schema(expressions: list[str]) -> dict[str, Any]:
     return {
         "type": "object",
         "additionalProperties": False,
@@ -272,6 +310,7 @@ def _response(
             "reply": {"locale": locale, "text": data["reply"]} if data["reply"] else None,
             "expression": data["expression"],
             "rationale": data["rationale"][:280],
+            "voice": data.get("voice"),
             "meta": {
                 "source": source,
                 "model": model[:64],
@@ -280,6 +319,62 @@ def _response(
             },
         }
     )
+
+
+def seen_names(
+    request: ConversationRequest, texts: TextCatalog | None, settings: dict[str, Any]
+) -> dict[str, str]:
+    """v6 (A1538): the name of every kind the speaker sees, as "What you see" lists it -> its
+    type id. An invented kind by the speaker's own name (or the prompt's 'made thing', which
+    names no single kind and is left out), never by its runtime id (#251)."""
+    locale = plain_id(request.display_locale)
+    own = spoken_names(request, locale)
+    out: dict[str, str] = {}
+    for t in request.speaker.sees or []:
+        type_id = plain_id(t)
+        name = own.get(type_id) or (texts.thing(locale, type_id) if texts else None)
+        if name is None and not type_id.startswith("inv_"):
+            name = humanize(type_id)
+        if name:
+            out.setdefault(name, type_id)
+    return out
+
+
+def checked_voice(
+    request: ConversationRequest,
+    data: dict[str, Any],
+    names: dict[str, str],
+    guard: TextGuard,
+) -> dict[str, Any] | None:
+    """A1538 (D891 v2): the model only says what the voice's text IS; the service passes it on
+    only when the inhabitant understood (reply or gesture) and, for naming, the thing is one it
+    sees, the word stands in the player's text (1-3 words) and passes the content guard. The
+    core checks again and decides the effect from its data (PR2)."""
+    raw: object = data.get("voice")
+    if not isinstance(raw, dict) or data.get("outcome") not in VOICE_UNDERSTOOD:
+        return None
+    voice = cast(dict[str, Any], raw)
+    kind = voice.get("kind")
+    if kind not in VOICE_KINDS_SENT:
+        return None
+    if kind == "praise":
+        return {"kind": "praise", "naming": None}
+    thing, word = voice.get("thing"), voice.get("word")
+    if not isinstance(thing, str) or not isinstance(word, str):
+        return None
+    word = " ".join(word.split()).strip(" .,!?;:'\"«»„“”")
+    type_id = names.get(thing)
+    said = " ".join(request.player_text.split()).casefold()
+    if (
+        type_id is None
+        or not word
+        or len(word) > VOICE_WORD_MAX
+        or len(word.split()) > VOICE_WORDS_MAX
+        or word.casefold() not in said
+        or not guard.check(word).allowed
+    ):
+        return None
+    return {"kind": "naming", "naming": {"type": type_id, "word": word}}
 
 
 def grounding_check(
@@ -330,6 +425,7 @@ class OllamaConversation:
         expressions: dict[str, str],
         texts: TextCatalog | None = None,
         names: tuple[str, ...] = (),
+        voice_kinds: tuple[str, ...] = (),
     ) -> None:
         self._client, self._queue, self._template = client, queue, template
         self._settings, self._log, self._guard = settings, log, guard
@@ -337,9 +433,14 @@ class OllamaConversation:
         # Prompt v2 (W1701): every outcome except a gesture carries a sentence.
         self._texts = texts if template.version >= 2 else None
         self._names = names
+        # v6 (A1538): the voice's text is classified when the prompt asks for it.
+        self._voice = voice_kinds if template.settings.get("voice") is True else ()
 
     async def answer(self, request: ConversationRequest, deadline: float) -> ConversationResponse:
-        schema = output_schema(sorted(self._expressions))
+        seen = seen_names(request, self._texts, self._template.settings) if self._voice else {}
+        schema = output_schema(
+            sorted(self._expressions), list(self._voice) or None, sorted(seen) or None
+        )
         rendered = self._template.render(
             values(request, self._template, self._expressions, self._texts)
         )
@@ -359,6 +460,7 @@ class OllamaConversation:
             deadline=deadline,
         )
         data = with_words(grounded(request, answer.value), self._texts, locale)
+        data["voice"] = checked_voice(request, data, seen, self._guard) if self._voice else None
         return _response(
             request, data, "model", self._client.model, answer.latency_ms, answer.attempts
         )
@@ -399,8 +501,10 @@ class ReplayConversation:
         texts: TextCatalog | None = None,
         prompts_dir: Path | None = None,
         names: tuple[str, ...] = (),
+        voice_kinds: tuple[str, ...] = (),
     ) -> None:
         self._log, self._guard, self._expressions = log, guard, expressions
+        self._voice_kinds = voice_kinds  # v6 rows (A1538) are read with their voice field
         # v3 rows (W1737) are checked with their own prompt's settings, as when they were played.
         self._prompts_dir, self._names = prompts_dir, names
         self._texts = texts  # used for rows recorded with prompt v2 or later (W1701)
@@ -416,18 +520,24 @@ class ReplayConversation:
         recorded = str(row.get("prompt_version", "")).rpartition(".v")[2]
         texts = self._texts if recorded.isdigit() and int(recorded) >= 2 else None
         check = None
+        voice: tuple[str, ...] = ()
+        seen: dict[str, str] = {}
         if recorded.isdigit() and int(recorded) >= 3 and self._prompts_dir is not None:
             template = load_prompt(self._prompts_dir, ROLE_PROMPT, int(recorded))
             check = grounding_check(request, template, texts, self._names)
+            if template.settings.get("voice") is True:  # v6 (A1538): as when it was played
+                voice = self._voice_kinds
+                seen = seen_names(request, texts, template.settings)
         try:
             data = parse(
                 str(row["raw_output"]),
-                output_schema(sorted(self._expressions)),
+                output_schema(sorted(self._expressions), list(voice) or None, sorted(seen) or None),
                 self._guard,
                 texts is not None,
                 check,
             )
             data = with_words(grounded(request, data), texts, plain_id(request.display_locale))
+            data["voice"] = checked_voice(request, data, seen, self._guard) if voice else None
         except InvalidOutputError as error:
             raise fail(
                 "model_unavailable", f"recorded answer does not fit request {request_id}"

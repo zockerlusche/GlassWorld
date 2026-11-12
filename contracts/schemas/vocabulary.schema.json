@@ -36,7 +36,8 @@
         "skill",
         "event",
         "knowledge_source",
-        "soil"
+        "soil",
+        "voice_kind"
       ]
     },
     "entries": {

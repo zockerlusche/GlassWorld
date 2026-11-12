@@ -1163,6 +1163,18 @@
       "text": "Hilft nicht beim Wunsch"
     },
     {
+      "key": "vocab.voice_kind.naming",
+      "text": "Benennt etwas"
+    },
+    {
+      "key": "vocab.voice_kind.praise",
+      "text": "Lob"
+    },
+    {
+      "key": "vocab.voice_kind.other",
+      "text": "Anderes"
+    },
+    {
       "key": "msg.command.no_favor",
       "text": "Dafür reicht deine Gunst gerade nicht."
     },
