@@ -1,8 +1,14 @@
 {
   "contract_version": "0.2",
   "names": [
-    "Ada", "Bela", "Cato", "Dara", "Elin", "Faro", "Gina", "Hano",
-    "Ilka", "Joro", "Kira", "Lino", "Mira", "Nilo", "Oda", "Pera",
-    "Rena", "Silo", "Tova", "Ulme", "Vela", "Wido", "Yara", "Zeno"
+    "Bela", "Pera", "Ulme"
+  ],
+  "female": [
+    "Ada", "Dara", "Elin", "Gina", "Ilka", "Kira", "Mira", "Oda",
+    "Rena", "Tova", "Vela", "Yara"
+  ],
+  "male": [
+    "Cato", "Faro", "Hano", "Joro", "Lino", "Nilo", "Silo", "Wido",
+    "Zeno"
   ]
 }

@@ -192,6 +192,9 @@ public partial class SettingsWindow : GwWindow
     public void AddAi(Func<Task<AiClient.SelfCheckAnswer>>? check, Func<Task<AiClient.DiagnosticsAnswer>>? report, string reportFolder)
     {
         Section("ui.settings.section.ai");
+
+        // What the language AI does and what it does not (D763 Z30): familiar things out of habit, new ones ask it.
+        _page.AddChild(new Label { Text = "ui.selfcheck.how", AutowrapMode = TextServer.AutowrapMode.WordSmart });
         var lines = new VBoxContainer { Name = "AiLines" };
         _page.AddChild(lines);
         var buttons = new HBoxContainer();
@@ -312,6 +315,9 @@ public partial class SettingsWindow : GwWindow
         open.Pressed += () => OS.ShellOpen(reportFolder);
         Run();
     }
+
+    /// <summary>The text keys of the tabs, in their order (layout check: every tab is looked at).</summary>
+    public IReadOnlyList<string> TabKeys => [.. _pages.Keys];
 
     /// <summary>Shows the tab of a section (its text key); the window fits itself again.</summary>
     public void ShowTab(string key)

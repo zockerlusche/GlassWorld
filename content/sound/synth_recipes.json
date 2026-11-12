@@ -1229,6 +1229,95 @@
       "variants": 4,
       "pitch_variation": 0.08,
       "gain_variation": 0.1
+    },
+    {
+      "id": "signal.knock_glass",
+      "bus": "effects",
+      "duration_s": 0.5,
+      "loop": false,
+      "layers": [
+        {
+          "wave": "sine",
+          "start_hz": 2350,
+          "end_hz": 2300,
+          "gain": 0.5,
+          "attack_s": 0.002,
+          "decay_s": 0.12,
+          "sustain": 0.0,
+          "release_s": 0.05,
+          "lowpass_hz": null,
+          "offset_s": 0.0,
+          "tremolo_hz": null
+        },
+        {
+          "wave": "sine",
+          "start_hz": 3700,
+          "end_hz": 3650,
+          "gain": 0.22,
+          "attack_s": 0.002,
+          "decay_s": 0.07,
+          "sustain": 0.0,
+          "release_s": 0.03,
+          "lowpass_hz": null,
+          "offset_s": 0.0,
+          "tremolo_hz": null
+        },
+        {
+          "wave": "noise",
+          "start_hz": 4000,
+          "end_hz": 4000,
+          "gain": 0.08,
+          "attack_s": 0.001,
+          "decay_s": 0.015,
+          "sustain": 0.0,
+          "release_s": 0.01,
+          "lowpass_hz": 8000,
+          "offset_s": 0.0,
+          "tremolo_hz": null
+        },
+        {
+          "wave": "sine",
+          "start_hz": 2350,
+          "end_hz": 2300,
+          "gain": 0.5,
+          "attack_s": 0.002,
+          "decay_s": 0.12,
+          "sustain": 0.0,
+          "release_s": 0.05,
+          "lowpass_hz": null,
+          "offset_s": 0.2,
+          "tremolo_hz": null
+        },
+        {
+          "wave": "sine",
+          "start_hz": 3700,
+          "end_hz": 3650,
+          "gain": 0.22,
+          "attack_s": 0.002,
+          "decay_s": 0.07,
+          "sustain": 0.0,
+          "release_s": 0.03,
+          "lowpass_hz": null,
+          "offset_s": 0.2,
+          "tremolo_hz": null
+        },
+        {
+          "wave": "noise",
+          "start_hz": 4000,
+          "end_hz": 4000,
+          "gain": 0.08,
+          "attack_s": 0.001,
+          "decay_s": 0.015,
+          "sustain": 0.0,
+          "release_s": 0.01,
+          "lowpass_hz": 8000,
+          "offset_s": 0.2,
+          "tremolo_hz": null
+        }
+      ],
+      "variants": 4,
+      "pitch_variation": 0.04,
+      "gain_variation": 0.08
     }
   ]
 }

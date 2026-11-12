@@ -28,6 +28,20 @@ public sealed class ConversationLogTests
     }
 
     [Fact]
+    public void AKnockAtTheGlassIsALineOfItsOwn()
+    {
+        // B8 R17 (B2608): "Hano klopft an die Scheibe" in the log; other mail is no line.
+        var log = new ConversationLog(10);
+        log.Add([
+            new WorldEvent(Simulation.Player.MailboxSystem.MailArrived, 4, "i-1", null, "mail-1") { Detail = Simulation.Player.MailboxSystem.KnockKind },
+            new WorldEvent(Simulation.Player.MailboxSystem.MailArrived, 4, "i-2", null, "mail-2") { Detail = "gift" },
+        ]);
+
+        var line = Assert.Single(log.Newest());
+        Assert.Equal(("i-1", LogLineKind.Knock, string.Empty), (line.InhabitantId, line.Kind, line.Text));
+    }
+
+    [Fact]
     public void KeepsOnlyTheNewestLines()
     {
         var log = new ConversationLog(2);
