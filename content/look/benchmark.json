@@ -2,6 +2,7 @@
   "contract_version": "0.2",
   "seed": 7,
   "preset": "start_island",
+  "revealed_permille": 1000,
   "warmup_s": 10.0,
   "duration_s": 120.0,
   "target_mean_fps": 60.0,
@@ -18,37 +19,108 @@
         "id": "walking",
         "weight": 40,
         "walks": true,
-        "actions": ["wander"]
+        "actions": [
+          "wander"
+        ]
       },
       {
         "id": "idle",
         "weight": 30,
         "walks": false,
-        "actions": ["idle"]
+        "actions": [
+          "idle"
+        ]
       },
       {
         "id": "expressions",
         "weight": 30,
         "walks": false,
-        "actions": ["talk_to", "build_step", "eat", "inspect", "drink"],
+        "actions": [
+          "talk_to",
+          "build_step",
+          "eat",
+          "inspect",
+          "drink"
+        ],
         "wave_s": 2.0,
         "talk_s": 3.0
       }
     ]
   },
   "camera": [
-    { "at_s": 0, "yaw_deg": 0, "pitch_deg": 60, "distance_m": 140 },
-    { "at_s": 20, "yaw_deg": 40, "pitch_deg": 55, "distance_m": 110 },
-    { "at_s": 50, "yaw_deg": 220, "pitch_deg": 40, "distance_m": 60 },
-    { "at_s": 68, "yaw_deg": 270, "pitch_deg": 30, "distance_m": 16 },
-    { "at_s": 78, "yaw_deg": 290, "pitch_deg": 28, "distance_m": 12, "follow": 0 },
-    { "at_s": 104, "yaw_deg": 350, "pitch_deg": 35, "distance_m": 14, "follow": 0 },
-    { "at_s": 120, "yaw_deg": 360, "pitch_deg": 55, "distance_m": 90 }
+    {
+      "at_s": 0,
+      "yaw_deg": 0,
+      "pitch_deg": 60,
+      "distance_m": 140
+    },
+    {
+      "at_s": 20,
+      "yaw_deg": 40,
+      "pitch_deg": 55,
+      "distance_m": 110
+    },
+    {
+      "at_s": 50,
+      "yaw_deg": 220,
+      "pitch_deg": 40,
+      "distance_m": 60
+    },
+    {
+      "at_s": 68,
+      "yaw_deg": 270,
+      "pitch_deg": 30,
+      "distance_m": 16
+    },
+    {
+      "at_s": 78,
+      "yaw_deg": 290,
+      "pitch_deg": 28,
+      "distance_m": 12,
+      "follow": 0
+    },
+    {
+      "at_s": 104,
+      "yaw_deg": 350,
+      "pitch_deg": 35,
+      "distance_m": 14,
+      "follow": 0
+    },
+    {
+      "at_s": 120,
+      "yaw_deg": 360,
+      "pitch_deg": 55,
+      "distance_m": 90
+    }
   ],
   "passes": [
-    { "id": "day", "phase": "day", "season": "summer", "weather": "clear", "wind_permille": 150 },
-    { "id": "night", "phase": "night", "season": "summer", "weather": "clear", "wind_permille": 150 },
-    { "id": "storm", "phase": "day", "season": "autumn", "weather": "storm", "wind_permille": 850 },
-    { "id": "winter", "phase": "day", "season": "winter", "weather": "snow", "wind_permille": 250 }
+    {
+      "id": "day",
+      "phase": "day",
+      "season": "summer",
+      "weather": "clear",
+      "wind_permille": 150
+    },
+    {
+      "id": "night",
+      "phase": "night",
+      "season": "summer",
+      "weather": "clear",
+      "wind_permille": 150
+    },
+    {
+      "id": "storm",
+      "phase": "day",
+      "season": "autumn",
+      "weather": "storm",
+      "wind_permille": 850
+    },
+    {
+      "id": "winter",
+      "phase": "day",
+      "season": "winter",
+      "weather": "snow",
+      "wind_permille": 250
+    }
   ]
 }
