@@ -47,6 +47,23 @@ public sealed class CatalogTests
     }
 
     /// <summary>
+    /// Every need of the inhabitant model has its bar label on the card (W1938, review GW1 #324): the bar names
+    /// what it shows (Satt, Ausgeruht ...), so a missing key would show the raw key on the card.
+    /// </summary>
+    [Theory]
+    [InlineData("de")]
+    [InlineData("en")]
+    public void EveryModelNeedHasACardBarLabel(string locale)
+    {
+        var keys = Catalogs.Value[locale].Keys.ToHashSet(StringComparer.Ordinal);
+        var needs = JsonDocument.Parse(File.ReadAllText(Path.Combine(RepoPaths.Root, "content", "inhabitants", "model.json"))).RootElement
+            .GetProperty("needs").EnumerateArray().Select(n => n.GetProperty("id").GetString()!).ToList();
+        Assert.NotEmpty(needs);
+        var missing = needs.Select(id => "ui.card.need." + id).Where(k => !keys.Contains(k)).ToList();
+        Assert.True(missing.Count == 0, $"{locale}.json: no card bar label for {string.Join(", ", missing)}");
+    }
+
+    /// <summary>
     /// Values shown side by side on the inhabitant card (needs, moods, traits) need different texts;
     /// "Freude" for both fun and joy was found in the A1335 screenshots.
     /// </summary>
@@ -56,7 +73,7 @@ public sealed class CatalogTests
     public void CardValuesHaveDistinctTexts(string locale)
     {
         var shown = Catalogs.Value[locale].Entries
-            .Where(e => e.Key.StartsWith("vocab.need.", StringComparison.Ordinal) || e.Key.StartsWith("vocab.mood.", StringComparison.Ordinal) || e.Key.StartsWith("vocab.trait.", StringComparison.Ordinal));
+            .Where(e => e.Key.StartsWith("ui.card.need.", StringComparison.Ordinal) || e.Key.StartsWith("vocab.mood.", StringComparison.Ordinal) || e.Key.StartsWith("vocab.trait.", StringComparison.Ordinal));
         var clashes = shown.GroupBy(e => e.Value, StringComparer.OrdinalIgnoreCase).Where(g => g.Count() > 1).Select(g => $"'{g.Key}': {string.Join(", ", g.Select(e => e.Key))}").ToList();
         Assert.True(clashes.Count == 0, $"{locale}.json: same text for different card values: {string.Join("; ", clashes)}");
     }

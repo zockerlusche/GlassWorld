@@ -91,6 +91,38 @@
       "text": "Winter"
     },
     {
+      "key": "ui.card.need.hunger",
+      "text": "Satt"
+    },
+    {
+      "key": "ui.card.need.thirst",
+      "text": "Getrunken"
+    },
+    {
+      "key": "ui.card.need.sleep",
+      "text": "Ausgeruht"
+    },
+    {
+      "key": "ui.card.need.warmth",
+      "text": "Warm"
+    },
+    {
+      "key": "ui.card.need.safety",
+      "text": "Sicher"
+    },
+    {
+      "key": "ui.card.need.company",
+      "text": "Gesellschaft"
+    },
+    {
+      "key": "ui.card.need.fun",
+      "text": "Spaß"
+    },
+    {
+      "key": "ui.card.need.purpose",
+      "text": "Sinn"
+    },
+    {
       "key": "ui.card.character",
       "text": "Charakter"
     },
