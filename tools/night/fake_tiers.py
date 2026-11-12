@@ -6,6 +6,9 @@ below it need nothing, and every tier above it needs more than any card has - so
 service runs in that tier and plans its computing night like it. Only the copy is written; the
 repository's data stay as they are.
 
+For check runs only: GW_AI_HARDWARE_TIERS_FILE is an ordinary service setting, so a forced tier
+also claims hardware the PC may not have (a model too big for the card loads slowly or fails).
+
 Usage (from the repository root):
     uv run python tools/night/fake_tiers.py minimum OUT.json
     set GW_AI_HARDWARE_TIERS_FILE=OUT.json, then start the game with the live AI as usual
