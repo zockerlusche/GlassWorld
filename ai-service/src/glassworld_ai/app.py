@@ -1276,6 +1276,9 @@ def _build_conversation(
             texts,
             prompts_dir=settings.prompts_dir,
             names=load_names(settings.content_dir),
+            voice_kinds=tuple(
+                Vocabulary.load(settings.content_dir / "vocabulary").ids("voice_kind")
+            ),
         )
     return OllamaConversation(
         client=ollama,
@@ -1289,6 +1292,8 @@ def _build_conversation(
         expressions=expressions,
         texts=texts,
         names=load_names(settings.content_dir),  # W1737: names are no invented things
+        # A1538: what the voice's text is, from the vocabulary (only a v6 prompt asks for it)
+        voice_kinds=tuple(Vocabulary.load(settings.content_dir / "vocabulary").ids("voice_kind")),
     )
 
 

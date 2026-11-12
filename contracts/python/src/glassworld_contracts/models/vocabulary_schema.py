@@ -30,6 +30,7 @@ class Kind(StrEnum):
     event = 'event'
     knowledge_source = 'knowledge_source'
     soil = 'soil'
+    voice_kind = 'voice_kind'
 
 
 class Target(StrEnum):
