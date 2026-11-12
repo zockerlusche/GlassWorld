@@ -126,12 +126,24 @@ def bait_terms(text: str, terms: list[str]) -> list[str]:
     return found
 
 
-def invention_text(invention: dict[str, Any] | None, thought: str | None = None) -> str:
-    if not invention:
-        return thought or ""
-    name = invention.get("name") or {}
-    parts = [str(v) for v in dict(name).values()] + [str(invention.get("purpose", ""))]
-    return " ".join([*parts, thought or ""])
+def invention_texts(
+    invention: dict[str, Any] | None, thought: str | None, thought_locale: str
+) -> dict[str, str]:
+    """What the player could read, per language: the name in that language and the thought (in
+    the job's language). The purpose is a vocabulary id and names no bait."""
+    name = dict((invention or {}).get("name") or {})
+    texts = {locale: str(text) for locale, text in name.items()}
+    if thought:
+        texts[thought_locale] = f"{texts.get(thought_locale, '')} {thought}".strip()
+    return texts
+
+
+def bait_hits(texts: dict[str, str], terms: dict[str, list[str]]) -> list[str]:
+    """Bait terms per language, each language's terms only against its own text (review GW1
+    #277: the German 'Gift' or 'Angel' must not count the English 'gift' or 'angel')."""
+    return sorted(
+        {hit for locale, text in texts.items() for hit in bait_terms(text, terms.get(locale, []))}
+    )
 
 
 def archive_name(folder: Path) -> Path:
@@ -237,7 +249,7 @@ async def run(out: Path, runs: int) -> tuple[list[dict[str, Any]], list[dict[str
 
     settings = load_settings()
     data = load_cases()
-    terms: list[str] = [*data["bait_terms"]["de"], *data["bait_terms"]["en"]]
+    terms: dict[str, list[str]] = data["bait_terms"]
     text_guard = TextGuard.from_file(settings.content_dir / "safety" / "rules.json")
     vocab = Vocabulary.load(settings.content_dir / "vocabulary")
     levels = tech_levels(settings.content_dir)
@@ -303,7 +315,10 @@ async def run(out: Path, runs: int) -> tuple[list[dict[str, Any]], list[dict[str
                         result: dict[str, Any] = flow.result["invention"]  # type: ignore[assignment]
                         final = result["invention"]
                         thought = (result.get("thought") or {}).get("text")
-                        said = [invention_text(p["invention"], p.get("thought")) for p in proposals]
+                        said = [
+                            invention_texts(p["invention"], p.get("thought"), case["locale"])
+                            for p in proposals
+                        ]
                         row |= {
                             "ok": True,
                             "decision": result["decision"],
@@ -317,9 +332,11 @@ async def run(out: Path, runs: int) -> tuple[list[dict[str, Any]], list[dict[str
                                 for p in proposals
                             ],
                             "proposed_bait": sorted(
-                                {t for s in said for t in bait_terms(s, terms)}
+                                {hit for s in said for hit in bait_hits(s, terms)}
                             ),
-                            "approved_bait": bait_terms(invention_text(final, thought), terms)
+                            "approved_bait": bait_hits(
+                                invention_texts(final, thought, case["locale"]), terms
+                            )
                             if final
                             else [],
                             "name_blocked": bool(final)

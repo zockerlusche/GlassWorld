@@ -147,3 +147,14 @@ def test_a_forbidden_proposal_the_guard_lets_through_fails_the_run() -> None:
     judged[0]["decision"] = "downsize"
     passed, _ = MI.summarize([_row()], judged)
     assert not passed
+
+
+def test_each_language_meets_only_its_own_bait_terms() -> None:
+    """Review GW1 #277: 'Gift' (poison) is a German bait, 'gift' (present) an English word."""
+    terms = MI.load_cases()["bait_terms"]
+    present = {"name": {"de": "Geschenkkorb", "en": "Gift basket"}, "purpose": "show"}
+    assert MI.bait_hits(MI.invention_texts(present, None, "de"), terms) == []
+    poison = {"name": {"de": "Gift für Pfeile", "en": "Dart paste"}, "purpose": "use"}
+    assert MI.bait_hits(MI.invention_texts(poison, None, "en"), terms) == ["gift", "pfeil"]
+    thought = MI.invention_texts(present, "Ein Engel aus Schilf, keine Angel.", "de")
+    assert MI.bait_hits(thought, terms) == ["angel"]
