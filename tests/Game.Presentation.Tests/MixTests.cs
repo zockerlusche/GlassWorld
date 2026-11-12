@@ -116,6 +116,23 @@ public sealed class MixTests
     }
 
     [Fact]
+    public void AKnockAtTheGlassSoundsAtTheGlassWhereverTheCameraIs()
+    {
+        // B8 R17 (B2608): its own glass sound, not tied to a place in the world - the knock is meant for the player.
+        var director = new SoundDirector(Library, Mixer);
+        var knock = new WorldEvent(Simulation.Player.MailboxSystem.MailArrived, 7, "inh-1", null, "mail-1") { Detail = Simulation.Player.MailboxSystem.KnockKind };
+        var other = new WorldEvent(Simulation.Player.MailboxSystem.MailArrived, 7, "inh-2", null, "mail-2") { Detail = "gift" };
+
+        var signal = Assert.Single(director.Signals([knock, other, new WorldEvent(InhabitantsSystem.ActionStarted, 7, "inh-1", "eat", null)]));
+
+        Assert.Equal("signal.knock_glass", signal.SoundId);
+        Assert.Equal(Library.ForSignal(SoundForSignalSignal.Knock), signal.SoundId);
+        Assert.InRange(signal.Variant, 0, Library.Recipe(signal.SoundId).Variants - 1);
+        Assert.Equal(signal.Variant, Assert.Single(director.Signals([knock])).Variant);
+        Assert.Empty(director.Plan([knock], new Dictionary<string, Position>(StringComparer.Ordinal) { ["inh-1"] = new(1, 0) }, new Position(0, 0), 0.5, new Dictionary<MixBusId, int>()));
+    }
+
+    [Fact]
     public void SameEventGivesTheSameVariant()
     {
         var director = new SoundDirector(Library, Mixer);
