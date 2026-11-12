@@ -88,6 +88,65 @@ public sealed class BuildingTests : IDisposable
     }
 
     [Fact]
+    public void WithoutMaterialForLongTheBuilderNeedsHelpOnceAndThenGivesUp()
+    {
+        // A1373 (D827 R15, R17): looking by itself first, then needs_help with the material's properties (never its
+        // type name), then giving up - each after the data's hours, counted from the moment no material was in sight.
+        var (host, port, typeId) = Invented(23);
+        var settings = ContractSerializer.Deserialize<BuildSettings>(File.ReadAllText(Path.Combine(EagerContent.Value, "build", "settings.json")));
+        var perHour = host.World.Calendar.Settings.TicksPerHour;
+        var stepMaterial = host.Objects.All.Single(o => o.TypeId == NearbyTypes[^1]);
+        host.Objects.Remove(stepMaterial.Id);
+        var events = Record(host);
+        AnswerPlan(port, Plan());
+        RunUntil(host, () => host.Inventions.Builds.Single().WaitingSinceTick is not null, 3000);
+        var since = host.Inventions.Builds.Single().WaitingSinceTick!.Value;
+
+        RunUntil(host, () => events.Any(e => e.Kind == InventionSystem.NeedsHelpEvent), (int)(settings.HelpAfterHours!.Value * perHour) + 10);
+        var help = Assert.Single(events, e => e.Kind == InventionSystem.NeedsHelpEvent);
+        Assert.Equal(typeId, help.TargetId);
+        Assert.Equal(string.Join(',', host.Types.TrueProperties(NearbyTypes[^1]).Order(StringComparer.Ordinal)), help.Detail);
+        Assert.DoesNotContain(NearbyTypes[^1], help.Detail!, StringComparison.Ordinal);
+        Assert.Equal(string.Empty, help.Text);
+        Assert.True(host.World.Tick - since >= (long)(settings.HelpAfterHours.Value * perHour));
+        Assert.True(host.Inventions.Builds.Single().NeedsHelp);
+
+        // Saved and loaded while waiting: the same hash, and the wait goes on from where it was.
+        var path = Path.Combine(_directory, "waiting.db");
+        SaveGameStore.Save(path, StateCodec.Capture(host));
+        var loaded = Restore(path, host);
+        Assert.Equal(host.World.StateHash(), loaded.World.StateHash());
+        Assert.Equal(since, loaded.Inventions.Builds.Single().WaitingSinceTick);
+
+        RunUntil(host, () => host.Inventions.Builds.Single().GaveUp, (int)(settings.GiveUpAfterHours!.Value * perHour) + 10);
+        var failed = Assert.Single(events, e => e.Kind == InventionSystem.BuildFailed);
+        Assert.Equal((typeId, InventionSystem.NoMaterial), (failed.TargetId, failed.Detail));
+        Assert.Single(events, e => e.Kind == InventionSystem.NeedsHelpEvent);
+        Assert.Null(host.Inventions.Builds.Single().BuiltObjectId);
+    }
+
+    [Fact]
+    public void MaterialElsewhereIsSaidAndFoundMaterialEndsTheWait()
+    {
+        // Material out of sight but on the island: the call says so (looking further helps); once some is in sight
+        // the wait is over and the building goes on.
+        var (host, port, _) = Invented(23);
+        var stepMaterial = host.Objects.All.Single(o => o.TypeId == NearbyTypes[^1]);
+        host.Objects.Remove(stepMaterial.Id);
+        host.Objects.Spawn(NearbyTypes[^1], new Position(5000, 5000));
+        var events = Record(host);
+        AnswerPlan(port, Plan());
+        RunUntil(host, () => events.Any(e => e.Kind == InventionSystem.NeedsHelpEvent), 3000 + (int)(24 * host.World.Calendar.Settings.TicksPerHour));
+        Assert.Equal(InventionSystem.InWorld, Assert.Single(events, e => e.Kind == InventionSystem.NeedsHelpEvent).Text);
+
+        host.Objects.Spawn(NearbyTypes[^1], stepMaterial.Position);
+        RunUntil(host, () => host.Inventions.Builds.Single().BuiltObjectId is not null, 3000);
+        var done = host.Inventions.Builds.Single();
+        Assert.Equal((null, false), (done.WaitingSinceTick, done.NeedsHelp));
+        Assert.DoesNotContain(events, e => e.Kind == InventionSystem.BuildFailed);
+    }
+
+    [Fact]
     public void TheFirstUseOfAnInventionIsAChronicleEventOnlyOnce()
     {
         var (host, port, typeId) = Invented(24);

@@ -25,6 +25,18 @@ class BuildSettings(BaseModel):
         ge=1,
         le=100000,
     )
+    help_after_hours: float | None = Field(
+        None,
+        description="Game hours the builder goes on looking by itself while no material of the current step is in sight; then it needs help (event needs_help with the missing material's properties, R15). Omitted = it never asks.",
+        gt=0.0,
+        le=10000.0,
+    )
+    give_up_after_hours: float | None = Field(
+        None,
+        description='Game hours without any material of the current step in sight after which the builder gives up the building (event build_failed, detail no_material; loop brake R17). Omitted = it waits without a limit, as before.',
+        gt=0.0,
+        le=100000.0,
+    )
     max_plan_attempts: int = Field(
         ...,
         description='Most plans asked for one invention; after that it stays unbuilt.',

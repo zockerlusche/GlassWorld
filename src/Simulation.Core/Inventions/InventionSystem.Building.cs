@@ -43,7 +43,9 @@ public sealed record SoundTask(string TypeId, string RequestId, string? ResultJs
 /// <param name="PendingObjectId">Material object the inventor is on the way to, or null.</param>
 /// <param name="PendingType">Type of that object.</param>
 /// <param name="BuiltObjectId">The finished object, or null.</param>
-/// <param name="GaveUp">True when no acceptable plan came after the allowed attempts.</param>
+/// <param name="GaveUp">True when no acceptable plan came after the allowed attempts, or no material after waiting too long.</param>
+/// <param name="WaitingSinceTick">Since when no material of the current step was in sight, or null (A1373).</param>
+/// <param name="NeedsHelp">True once the builder looked long enough by itself and needs help (A1373, R15).</param>
 public sealed record BuildTask(
     string TypeId,
     string InhabitantId,
@@ -58,7 +60,9 @@ public sealed record BuildTask(
     string? PendingObjectId,
     string? PendingType,
     string? BuiltObjectId,
-    bool GaveUp);
+    bool GaveUp,
+    long? WaitingSinceTick = null,
+    bool NeedsHelp = false);
 
 /// <content>Building inventions from a plan and their first use (D471 D5, part 2).</content>
 public sealed partial class InventionSystem
@@ -75,8 +79,21 @@ public sealed partial class InventionSystem
     /// <summary>The invention stands (target = the new object).</summary>
     public const string Built = "built";
 
-    /// <summary>No acceptable plan after the allowed attempts (target = runtime type).</summary>
+    /// <summary>No acceptable plan after the allowed attempts, or no material after waiting too long - detail <see cref="NoMaterial"/> (target = runtime type).</summary>
     public const string BuildFailed = "build_failed";
+
+    /// <summary>Detail of <see cref="BuildFailed"/> when the builder waited too long without material in sight.</summary>
+    public const string NoMaterial = "no_material";
+
+    /// <summary>
+    /// A builder looked for the material of the current step by itself long enough without finding any (A1373, R15):
+    /// target = runtime type, detail = the missing material's true properties (ordinal, comma-separated; never its
+    /// type name), text = <see cref="InWorld"/> when some of it lies elsewhere in the world, else empty.
+    /// </summary>
+    public const string NeedsHelpEvent = "needs_help";
+
+    /// <summary>Text of <see cref="NeedsHelpEvent"/>: the material exists in the world, out of the builder's sight.</summary>
+    public const string InWorld = "in_world";
 
     /// <summary>An inhabitant used an invention for the first time (target = object).</summary>
     public const string FirstUse = "first_use";
@@ -284,13 +301,48 @@ public sealed partial class InventionSystem
                 .FirstOrDefault();
             if (material is null)
             {
-                // No material in sight: the building waits (no substitute, B2487).
+                // No material in sight: the building waits (no substitute, B2487) while the inhabitant looks about
+                // by its routine; after the data's hours it needs help, after more it gives up (A1373, R15, R17).
+                Wait(world, _builds[task.TypeId], missing);
                 continue;
             }
 
             inhabitant.Planned = new Activity(Build.Settings.StepAction, material.Id, material.Position, null);
-            _builds[task.TypeId] = _builds[task.TypeId] with { PendingObjectId = material.Id, PendingType = material.TypeId };
+            _builds[task.TypeId] = _builds[task.TypeId] with { PendingObjectId = material.Id, PendingType = material.TypeId, WaitingSinceTick = null, NeedsHelp = false };
         }
+    }
+
+    /// <summary>
+    /// One tick of waiting for material (A1373): the wait starts now if it has not; after help_after_hours the builder
+    /// needs help (once per wait), after give_up_after_hours it gives the building up. Whether the material lies
+    /// elsewhere in the world is said, not decided: help means looking further then, a gift only when there is none.
+    /// </summary>
+    private void Wait(World world, BuildTask task, HashSet<string> missing)
+    {
+        var since = task.WaitingSinceTick ?? world.Tick;
+        var waited = world.Tick - since;
+        var ticksPerHour = world.Calendar.Settings.TicksPerHour;
+        task = task with { WaitingSinceTick = since };
+        if (Build.Settings.GiveUpAfterHours is { } giveUp && waited >= (long)(giveUp * ticksPerHour))
+        {
+            _builds[task.TypeId] = task with { GaveUp = true, NeedsHelp = false, WaitingSinceTick = null };
+            _inhabitants.Report(new WorldEvent(BuildFailed, world.Tick, task.InhabitantId, null, task.TypeId) { Detail = NoMaterial });
+            return;
+        }
+
+        if (!task.NeedsHelp && Build.Settings.HelpAfterHours is { } help && waited >= (long)(help * ticksPerHour))
+        {
+            task = task with { NeedsHelp = true };
+            var properties = missing.SelectMany(m => _types.Contains(m) ? _types.TrueProperties(m) : []).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal);
+            var elsewhere = _objects.All.Any(o => missing.Contains(o.TypeId));
+            _inhabitants.Report(new WorldEvent(NeedsHelpEvent, world.Tick, task.InhabitantId, null, task.TypeId)
+            {
+                Detail = string.Join(',', properties),
+                Text = elsewhere ? InWorld : string.Empty,
+            });
+        }
+
+        _builds[task.TypeId] = task;
     }
 
     private static List<string> StepMaterials(BuildPlan plan, int step) =>
@@ -512,7 +564,8 @@ public sealed partial class InventionSystem
                 hasher.Write(g);
             }
 
-            hasher.Write(b.PendingObjectId ?? string.Empty).Write(b.PendingType ?? string.Empty).Write(b.BuiltObjectId ?? string.Empty).Write(b.GaveUp);
+            hasher.Write(b.PendingObjectId ?? string.Empty).Write(b.PendingType ?? string.Empty).Write(b.BuiltObjectId ?? string.Empty).Write(b.GaveUp)
+                .Write(b.WaitingSinceTick ?? -1).Write(b.NeedsHelp);
         }
 
         hasher.Write(_firstUsed.Count);
