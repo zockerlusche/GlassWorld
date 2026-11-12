@@ -143,6 +143,6 @@
     ],
     "idea_start": 0.3,
     "idea_grow": 0.2,
-    "intention_actions": ["inspect", "show", "teach", "explore", "use", "talk_to", "eat", "drink"]
+    "intention_actions": ["inspect", "show", "teach", "explore", "use", "talk_to"]
   }
 }
