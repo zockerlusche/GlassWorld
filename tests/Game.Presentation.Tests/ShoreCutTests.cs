@@ -90,6 +90,15 @@ public sealed class ShoreCutTests
         Assert.False(TerrainMesher.IsShore([2, 2, 2, 2], 2)); // level with the water: nothing below it
         Assert.False(TerrainMesher.IsShore([3, 4, 5, 3], 2)); // wholly above
         Assert.False(TerrainMesher.IsShore([0, 1, 1, 0], 2)); // wholly below: would look flooded
+
+        // A1455: with a flood margin, a cell wholly at or below the surface by at most that much carries the water
+        // (a shallow margin instead of a notch); a deeper hollow stays bare; level with the water stays bare.
+        Assert.True(TerrainMesher.IsShore([2, 2, 2, 1], 2, floodUnits: 3));
+        Assert.True(TerrainMesher.IsShore([0, 1, 1, 0], 2, floodUnits: 3));
+        Assert.False(TerrainMesher.IsShore([0, 1, 1, 0], 5, floodUnits: 3));
+        Assert.False(TerrainMesher.IsShore([2, 2, 2, 2], 2, floodUnits: 3));
+        Assert.True(TerrainMesher.IsShore([0, 0, 4, 4], 2, floodUnits: 3));
+        Assert.False(TerrainMesher.IsShore([3, 4, 5, 3], 2, floodUnits: 3));
     }
 
     /// <summary>Area of a polygon in cell coordinates (shoelace formula, orientation ignored).</summary>
@@ -117,5 +126,65 @@ public sealed class ShoreCutTests
         }
 
         return total;
+    }
+
+    [Theory]
+    [InlineData(7UL)]
+    [InlineData(1UL)]
+    [InlineData(42UL)]
+    public void OnRealIslandsAlmostEveryLowDryCellBesideALakeCarriesTheWater(ulong seed)
+    {
+        // A1455: the generator leaves dry cells beside lakes whose ground lies a little below the surface (their
+        // corners share the lower lake bed). Left bare, each pulls the lake plate down to its ground: the notches
+        // of D740. With the shipped flood margin nearly all of them carry the water.
+        var content = GlassWorld.Simulation.Content.ContentSet.Load(Path.Combine(TestPaths.Root, "content"));
+        var map = GlassWorld.Simulation.Map.WorldGenerator.Generate(content.WorldGen, content.Objects, "start_island", seed).Map;
+        var look = TerrainLook.From(Read<GlassWorld.Contracts.LookTerrain>("look", "terrain.json"), Read<GlassWorld.Contracts.LookPalette>("look", "palette.json"), map, content.WorldGen.Presets["start_island"]);
+        Assert.True(look.BankFloodUnits > 0);
+        int low = 0, carried = 0;
+        for (var z = 0; z < map.DepthCells; z++)
+        {
+            for (var x = 0; x < map.WidthCells; x++)
+            {
+                if (map.Cell(x, z).Water != GlassWorld.Simulation.Map.WaterKind.None || StillSurfaceBeside(map, look, x, z) is not { } surface)
+                {
+                    continue;
+                }
+
+                var h = TerrainMesher.CornerHeights(map, x, z, look);
+                if (h.Max() <= surface && h.Min() < surface)
+                {
+                    low++;
+                    carried += TerrainMesher.IsShore(h, surface, look.BankFloodUnits) ? 1 : 0;
+                }
+            }
+        }
+
+        Assert.True(low > 0, "the islands still have low dry cells beside lakes (else this test checks nothing)");
+        Assert.True(carried * 100 >= low * 95, $"seed {seed}: {carried} of {low} low cells carry the water");
+    }
+
+    private static T Read<T>(params string[] path)
+        where T : class => GlassWorld.Contracts.Validation.ContractSerializer.Deserialize<T>(File.ReadAllText(Path.Combine([TestPaths.Root, "content", .. path])));
+
+    /// <summary>The highest still, non-swamp fresh water surface among the eight neighbours, as the mesher's banks see it.</summary>
+    private static int? StillSurfaceBeside(GlassWorld.Simulation.Map.WorldMap map, TerrainLook look, int x, int z)
+    {
+        int? best = null;
+        foreach (var (dx, dz) in GlassWorld.Simulation.Map.FlowDirections.All)
+        {
+            if (!map.Contains(x + dx, z + dz))
+            {
+                continue;
+            }
+
+            var n = map.Cell(x + dx, z + dz);
+            if (n.Water == GlassWorld.Simulation.Map.WaterKind.Fresh && n.Flow < 0 && !look.IsSwampGround(n))
+            {
+                best = Math.Max(best ?? int.MinValue, n.Height + n.WaterDepth);
+            }
+        }
+
+        return best;
     }
 }

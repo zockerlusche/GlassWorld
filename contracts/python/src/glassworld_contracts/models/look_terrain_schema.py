@@ -262,6 +262,12 @@ class TerrainWater(BaseModel):
         ge=0,
         le=100,
     )
+    bank_flood_max_mm: int | None = Field(
+        None,
+        description='A1455: a dry cell beside still fresh water whose ground lies wholly at or below the water surface, by at most this much (millimetres), is drawn under that water too - a shallow margin instead of a notch where the lake plate would be pulled down to the low ground. The cell stays dry land in the core. Omitted or 0 = only cells the shore line crosses carry water.',
+        ge=0,
+        le=2000,
+    )
     stream_shore_lift_mm: int = Field(
         ...,
         description='Where a stream borders dry ground its edge comes down to the ground and lies this far above it (millimetres), so the edge closes against the bank without flickering into it.',
