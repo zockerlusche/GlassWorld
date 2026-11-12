@@ -15,7 +15,7 @@ namespace GlassWorld.Simulation.Tests;
 /// by step with materials from perception → the object stands → first use; save, load, replay; compute
 /// night signal. Inventions and plans are test data built from the contract examples.
 /// </summary>
-public sealed class BuildingTests : IDisposable
+public sealed partial class BuildingTests : IDisposable
 {
     private const string Need = "thirst";
     // A copy of the content in which the inventor builds even while thirsty (min_need_to_build 0), so no

@@ -7,6 +7,20 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+
+class InventionIcons(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    style: str = Field(
+        ...,
+        description='Style id of the image prompt (settings.styles, e.g. warm_comic, B2501).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    max_attempts: int = Field(..., ge=1, le=10)
+
+
 type ReferenceImage = Annotated[
     str,
     Field(
@@ -93,4 +107,8 @@ class ImageGeneration(BaseModel):
         description='Job priority of image jobs (B7 O2); when they run is in content/hardware/night.json.',
         ge=0,
         le=100,
+    )
+    invention_icons: InventionIcons | None = Field(
+        None,
+        description='A1564 (B4b/B7 R7): the core asks for an icon of every new invention (purpose icon, size from sizes.icon), painted in the computing night. A retryable failure is tried again in the next night up to max_attempts; after that the thing keeps the colours of the construction kit. Omitted = no picture jobs.',
     )
