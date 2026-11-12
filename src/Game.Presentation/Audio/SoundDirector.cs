@@ -89,6 +89,34 @@ public sealed class SoundDirector(SoundLibrary library, SoundMixer mixer, IReadO
                 .Take(Math.Max(0, mixer.Bus(g.Key).MaxVoices - playing.GetValueOrDefault(g.Key))))];
     }
 
+    /// <summary>
+    /// The signals to the player among the events of one frame (B8 R17, B2608): an inhabitant knocking at the
+    /// glass sounds at the glass, not at its place in the world, so it is heard wherever the camera is - the
+    /// knock is meant for the player. One sound per knock; its variant is seeded by the event, like actions.
+    /// With "reduce motion" the sound stays (only the tremor goes).
+    /// </summary>
+    public IReadOnlyList<PlayRequest> Signals(IEnumerable<WorldEvent> events)
+    {
+        ArgumentNullException.ThrowIfNull(events);
+        var requests = new List<PlayRequest>();
+        if (library.ForSignal(SoundForSignalSignal.Knock) is not { } sound)
+        {
+            return requests;
+        }
+
+        var recipe = library.Recipe(sound);
+        var variants = fileVariants is not null && fileVariants.TryGetValue(sound, out var files) ? files : recipe.Variants;
+        foreach (var e in events)
+        {
+            if (e.Kind == Simulation.Player.MailboxSystem.MailArrived && e.Detail == Simulation.Player.MailboxSystem.KnockKind)
+            {
+                requests.Add(new PlayRequest(sound, (int)(SplitMix64.SeedOf($"{e.Tick}/{e.InhabitantId}/knock") % (ulong)Math.Max(1, variants)), BusOf(recipe.Bus), default, 1.0));
+            }
+        }
+
+        return requests;
+    }
+
     /// <summary>Bus of a recipe.</summary>
     public static MixBusId BusOf(SynthRecipeBus bus) => bus switch
     {
