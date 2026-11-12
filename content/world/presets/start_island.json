@@ -305,7 +305,9 @@
           "mandatory": true
         }
       ]
-    }
+    },
+    "beach_within_sea_cells": 3,
+    "partner_within_cells": 2
   },
   "neighbours": {
     "islands": {

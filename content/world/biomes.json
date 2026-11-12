@@ -38,6 +38,15 @@
       "map_color": "#6f7f4a"
     }
   ],
+  "required_biomes": [
+    "beach_sea",
+    "meadow",
+    "field",
+    "forest",
+    "freshwater",
+    "rocks_hills",
+    "swamp"
+  ],
   "rules": [
     {
       "biome": "beach_sea",

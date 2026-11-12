@@ -506,6 +506,18 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("dry_ground")]
         public WorldPresetStartGround? DryGround { get; set; } = default!;
 
+        /// <summary>
+        /// D763 Z11: a start beach cell has the sea within this many cells.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("beach_within_sea_cells")]
+        public int BeachWithinSeaCells { get; set; } = default!;
+
+        /// <summary>
+        /// D763 Z11: the partner of a pair starts within this many cells of the first (each axis; on a finer grid at least as far as the personal space needs).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("partner_within_cells")]
+        public int PartnerWithinCells { get; set; } = default!;
+
     }
 
     /// <summary>

@@ -8,7 +8,9 @@
   "required": [
     "contract_version",
     "spawns",
-    "mandatory"
+    "mandatory",
+    "scatter_cells",
+    "min_per_rule"
   ],
   "properties": {
     "contract_version": {
@@ -31,6 +33,18 @@
         "$ref": "#/$defs/MandatoryResource"
       },
       "maxItems": 64
+    },
+    "scatter_cells": {
+      "description": "D763 Z10: how far a thing of a cluster lies from the cluster's centre, at most, in cells (each axis).",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 16
+    },
+    "min_per_rule": {
+      "description": "D763 Z10: least number of things a rule with a density above zero places, however few cells its biome has.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
     }
   },
   "$defs": {

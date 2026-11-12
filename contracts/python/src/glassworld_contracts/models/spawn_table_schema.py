@@ -121,3 +121,15 @@ class SpawnTable(BaseModel):
         max_length=64,
         min_length=1,
     )
+    scatter_cells: int = Field(
+        ...,
+        description="D763 Z10: how far a thing of a cluster lies from the cluster's centre, at most, in cells (each axis).",
+        ge=0,
+        le=16,
+    )
+    min_per_rule: int = Field(
+        ...,
+        description='D763 Z10: least number of things a rule with a density above zero places, however few cells its biome has.',
+        ge=0,
+        le=100,
+    )
