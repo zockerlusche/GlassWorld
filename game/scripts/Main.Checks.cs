@@ -224,14 +224,17 @@ public partial class Main
             nodes.Detail.Add("UnetLoaderGGUF");
             check.Checks.Add(nodes);
             check.Checks.Add(new AiCheck { Ai = AiCheckAi.Sound, State = AiCheckState.Not_planned, Reason = "not_planned", MessageKey = "msg.selfcheck.sound.not_planned" });
-            settings.AddAi(() => Task.FromResult(new GlassWorld.AiClient.SelfCheckAnswer(check, null)), null, ProjectSettings.GlobalizePath("user://smoke/diagnostics"));
+
+            // The switch "learn by day as well" with its long hint (A1568), so the layout check covers it too.
+            check.LearnByDay = new LearnByDayOffer { Offered = true, Reason = LearnByDayOfferReason.Ok, MessageKey = "msg.selfcheck.learn_by_day.ok", HintKey = "msg.selfcheck.learn_by_day.hint" };
+            settings.AddAi(() => Task.FromResult(new GlassWorld.AiClient.SelfCheckAnswer(check, null)), null, ProjectSettings.GlobalizePath("user://smoke/diagnostics"), () => false, _ => { });
 
             // Every tab is laid out in every case: one window per tab.
             SettingsWindow Tab(string key)
             {
                 var window = new SettingsWindow();
                 window.Build(_settings, _limits, _mix, style, data.Guard);
-                window.AddAi(() => Task.FromResult(new GlassWorld.AiClient.SelfCheckAnswer(check, null)), null, ProjectSettings.GlobalizePath("user://smoke/diagnostics"));
+                window.AddAi(() => Task.FromResult(new GlassWorld.AiClient.SelfCheckAnswer(check, null)), null, ProjectSettings.GlobalizePath("user://smoke/diagnostics"), () => false, _ => { });
                 window.ShowTab(key);
                 return window;
             }

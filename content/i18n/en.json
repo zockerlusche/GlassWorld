@@ -2279,6 +2279,14 @@
       "text": "Switched on, the inhabitants talk new things over with the AI during the day as well - it then uses computing power while you play. Switched off, everything happens in the computing night and the inhabitants learn more slowly."
     },
     {
+      "key": "ui.settings.learn_by_day",
+      "text": "Learning by day"
+    },
+    {
+      "key": "ui.settings.learn_by_day_switch",
+      "text": "Learn by day as well"
+    },
+    {
       "key": "ui.settings.section.ai",
       "text": "AI"
     },
