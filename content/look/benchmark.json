@@ -2,6 +2,7 @@
   "contract_version": "0.2",
   "seed": 7,
   "preset": "start_island",
+  "revealed_permille": 1000,
   "warmup_s": 10.0,
   "duration_s": 120.0,
   "target_mean_fps": 60.0,
