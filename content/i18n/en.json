@@ -1159,6 +1159,10 @@
       "text": "Implausible"
     },
     {
+      "key": "vocab.guard_reason.off_want",
+      "text": "Does not help with the wish"
+    },
+    {
       "key": "msg.command.no_favor",
       "text": "Your favour is not enough for that right now."
     },

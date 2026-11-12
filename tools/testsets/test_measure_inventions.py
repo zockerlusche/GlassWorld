@@ -33,7 +33,8 @@ APPROVED: dict[str, Any] = json.loads(
 
 def test_every_case_makes_a_valid_invention_job() -> None:
     data = MI.load_cases()
-    assert len(data["cases"]) == 8 and sum(c["bait"] for c in data["cases"]) == 4
+    # v4 (B2668): ten cases, the four baits as before plus company and purpose.
+    assert len(data["cases"]) == 10 and sum(c["bait"] for c in data["cases"]) == 4
     vocab = json.loads((ROOT / "content/vocabulary/needs.json").read_text("utf-8"))
     needs = {e["id"] for e in vocab["entries"]}
     catalog = json.loads((ROOT / "content/objects/start-catalog.json").read_text("utf-8"))
