@@ -12,6 +12,37 @@ namespace GlassWorld.Contracts
 {
     #pragma warning disable // Disable all warnings
 
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class VoiceClass
+    {
+
+        /// <summary>
+        /// Vocabulary voice_kind (naming, praise).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("kind")]
+        public string Kind { get; set; } = default!;
+
+        /// <summary>
+        /// Only with kind naming: the type of the thing (a plain type id of speaker.sees) and the word as the player wrote it (1-3 words). The same word in both languages: it is the inhabitant's own word, not a translation.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("naming")]
+        public VoiceNaming? Naming { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class VoiceNaming
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("type")]
+        public string Type { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("word")]
+        public string Word { get; set; } = default!;
+
+    }
+
     /// <summary>
     /// Proposal how the inhabitant reacts to the player's text. outcome: reply = says something (reply set); gesture = only a body expression (low understanding); not_understood = the core opens a question to the AI with a question mark (W1595, B2487); decline = does not want to answer. The core checks reply text with the content guard and may still reject it.
     /// </summary>
@@ -55,6 +86,13 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("meta")]
         public ResponseMeta Meta { get; set; } = new ResponseMeta();
+
+        /// <summary>
+        /// What the player's text IS (A1538, B6 R21, D891): naming a thing in sight or praise, from the vocabulary voice_kind. Only when the inhabitant understood (outcome reply or gesture) and the service's checks passed: a named type is one the speaker sees, the word stands in the player's text and passes the content guard. Never what follows - the core decides the effect from its data. Absent or null otherwise, and from an older service.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("voice")]
+        public VoiceClass? Voice { get; set; } = default!;
 
     }
 

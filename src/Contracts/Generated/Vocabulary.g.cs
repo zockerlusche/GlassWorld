@@ -163,5 +163,9 @@ namespace GlassWorld.Contracts
         Soil = 19,
 
 
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("voice_kind")]
+        Voice_kind = 20,
+
+
     }
 }

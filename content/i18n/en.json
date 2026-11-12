@@ -1163,6 +1163,18 @@
       "text": "Does not help with the wish"
     },
     {
+      "key": "vocab.voice_kind.naming",
+      "text": "Names something"
+    },
+    {
+      "key": "vocab.voice_kind.praise",
+      "text": "Praise"
+    },
+    {
+      "key": "vocab.voice_kind.other",
+      "text": "Other"
+    },
+    {
       "key": "msg.command.no_favor",
       "text": "Your favour is not enough for that right now."
     },
