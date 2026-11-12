@@ -3,5 +3,7 @@
 // COLOR.r that picks one of the region colours below (skin, top, bottom, shoes, hair).
 shader_type spatial;
 render_mode diffuse_lambert, specular_disabled, cull_back;
+// Cover for the see-through silhouette (A1569): trees, rocks, objects and built things mark their pixels 3.
+stencil_mode write, compare_always, 3;
 
 #include "res://shaders/warm_comic.gdshaderinc"

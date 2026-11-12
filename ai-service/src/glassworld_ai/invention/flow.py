@@ -117,7 +117,7 @@ def invention_schema(
                     "en": {"type": "string", "minLength": 1, "maxLength": 40},
                 },
             },
-            "purpose": _strings(vocab.ids("action")),
+            "purpose": _strings(vocab.general_ids("action")),
             "category": {"type": "string", "enum": ["object", "building"]},
             "materials": {
                 "type": "array",
@@ -339,7 +339,7 @@ def inventor_values(
             f"- {vocab_line(vocab, 'process', p)}" for p in vocab.ids("process")
         ),
         "properties": ", ".join(vocab.ids("property")),
-        "actions": ", ".join(vocab.ids("action")),
+        "actions": ", ".join(vocab.general_ids("action")),
         "max_size": f"{payload.limits.max_size_m:g}",
         "thought_language": language,
         "feedback": feedback,

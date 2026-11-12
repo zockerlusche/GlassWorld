@@ -21,7 +21,8 @@ namespace GlassWorld.Game.World;
 /// </summary>
 public partial class IslandView : Node3D
 {
-    private static readonly Shader Comic = GD.Load<Shader>("res://shaders/warm_comic.gdshader");
+    // The ground in the same look, but no cover for the see-through silhouette (A1569, stencil 2).
+    private static readonly Shader Ground = GD.Load<Shader>("res://shaders/warm_comic_ground.gdshader");
     private static readonly Shader Sea = GD.Load<Shader>("res://shaders/sea.gdshader");
     private static readonly Shader Fresh = GD.Load<Shader>("res://shaders/island_water.gdshader");
 
@@ -76,7 +77,7 @@ public partial class IslandView : Node3D
         };
         view.AddChild(view._sea);
 
-        view._groundMaterial = new ShaderMaterial { Shader = Comic };
+        view._groundMaterial = new ShaderMaterial { Shader = Ground };
         view._groundMaterial.SetShaderParameter("use_vertex_color", true);
         view._groundMaterial.SetShaderParameter("use_regions", false);
         view._groundMaterial.SetShaderParameter("use_nature", true);

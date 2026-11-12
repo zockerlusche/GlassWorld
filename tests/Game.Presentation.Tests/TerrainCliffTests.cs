@@ -85,6 +85,70 @@ public sealed class TerrainCliffTests
         AssertWallTopsAreTerraceEdges(map, Look);
     }
 
+    [Fact]
+    public void WhereThreeLevelsMeetTheGroundIsClosedTheWallsShareOneColourAndTheMiddleGetsScree()
+    {
+        // A1571 (D843 c): a step on a step - meadow 30, rock 50 (x >= 4), rock 70 (x >= 4, z >= 2). At the grid
+        // corner (4, 2) three levels meet.
+        var map = Map((x, z) => (x, z) switch
+        {
+            ( >= 4, >= 2) => (70, Rock),
+            ( >= 4, _) => (50, Rock),
+            _ => (30, Meadow),
+        }, chunksX: 2, chunksZ: 1);
+        AssertClosed(map, Look);
+
+        // Every vertex of a wall has one colour, whichever wall it belongs to (no seam down a corner line).
+        var colours = new Dictionary<(int, int, int), HashSet<(int, int, int)>>();
+        for (var cx = 0; cx < map.ChunksX; cx++)
+        {
+            var mesh = TerrainMesher.Ground(map, cx, 0, Look);
+            for (var v = 0; v < mesh.Positions.Count / 3; v++)
+            {
+                if (MathF.Abs(mesh.Normals[(v * 3) + 1]) > 0.01f)
+                {
+                    continue;
+                }
+
+                var key = Key((mesh.Positions[v * 3], mesh.Positions[(v * 3) + 1], mesh.Positions[(v * 3) + 2]));
+                var colour = ((int)MathF.Round(mesh.Colors[v * 3] * 1000), (int)MathF.Round(mesh.Colors[(v * 3) + 1] * 1000), (int)MathF.Round(mesh.Colors[(v * 3) + 2] * 1000));
+                (colours.TryGetValue(key, out var set) ? set : colours[key] = []).Add(colour);
+            }
+        }
+
+        Assert.NotEmpty(colours);
+        Assert.All(colours, c => Assert.True(c.Value.Count == 1, $"wall vertex {c.Key} has {c.Value.Count} colours"));
+
+        // The middle level (50) at the corner where 70 stands beside it takes on scree like the 30 does (a look with
+        // scree and no brightness patches; the rock ground lighter than the cliff, so the lean shows).
+        var scree = Look with { Rock = new RockLook(0f, 4, 0.2f, 0.5f), BiomeColors = [new Rgb(0.2f, 0.8f, 0.2f), new Rgb(0.8f, 0.8f, 0.8f)] };
+        var middle = GroundColourAt(map, scree, 4, 2, 50);
+        var plain = GroundColourAt(map, scree, 6, 1, 50);
+        Assert.True(Distance(middle, scree.Cliff) < Distance(plain, scree.Cliff) - 0.01f, $"middle {middle} is no closer to the rock colour than {plain}");
+    }
+
+    /// <summary>The colour of the top (not wall) vertex of the ground at grid corner (gx, gz) and height units.</summary>
+    private static (float R, float G, float B) GroundColourAt(WorldMap map, TerrainLook look, int gx, int gz, int height)
+    {
+        var key = ((int)MathF.Round(gx * look.CellM * 1000), (int)MathF.Round(height * look.UnitM * 1000), (int)MathF.Round(gz * look.CellM * 1000));
+        for (var cx = 0; cx < map.ChunksX; cx++)
+        {
+            var mesh = TerrainMesher.Ground(map, cx, 0, look);
+            for (var v = 0; v < mesh.Positions.Count / 3; v++)
+            {
+                if (mesh.Normals[(v * 3) + 1] > 0.9f && Key((mesh.Positions[v * 3], mesh.Positions[(v * 3) + 1], mesh.Positions[(v * 3) + 2])) == key)
+                {
+                    return (mesh.Colors[v * 3], mesh.Colors[(v * 3) + 1], mesh.Colors[(v * 3) + 2]);
+                }
+            }
+        }
+
+        throw new InvalidOperationException($"no ground vertex at ({gx}, {gz}) height {height}");
+    }
+
+    private static float Distance((float R, float G, float B) a, Rgb b) =>
+        MathF.Sqrt(((a.R - b.R) * (a.R - b.R)) + ((a.G - b.G) * (a.G - b.G)) + ((a.B - b.B) * (a.B - b.B)));
+
     [Theory]
     [InlineData(7UL)]
     [InlineData(42UL)]
