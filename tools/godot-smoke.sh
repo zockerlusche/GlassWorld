@@ -164,6 +164,11 @@ if ! grep -Eq '^BUILD_PLAN_OK plans=[1-9][0-9]* parts=[1-9][0-9]* shapes=[1-9][0
   echo "SMOKE_FAIL: a building plan is not drawn part by part (marker 'BUILD_PLAN_OK ... failures=0' missing)" >&2
   exit 1
 fi
+if ! grep -Eq '^INVENTIONS_VIEW_OK site_parts=[1-9][0-9]* thing_parts=[1-9][0-9]*$' "$BUILD_LOG"; then
+  tail -n 40 "$BUILD_LOG" >&2
+  echo "SMOKE_FAIL: inventions are not drawn from their plans in the running world (marker 'INVENTIONS_VIEW_OK' missing, A1375)" >&2
+  exit 1
+fi
 # Island (B2-3): terrain and water meshes of the generated start island, one per chunk; objects and decorative plants (TL #19722).
 ISLAND_LOG="$(mktemp)"
 # The exit code is taken by hand: with `set -e` a run that dies (exit 134, "Aborted", seen twice in CI on
