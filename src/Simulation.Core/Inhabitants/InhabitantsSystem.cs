@@ -157,6 +157,12 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     /// </summary>
     public NeedRegister? RuntimeNeeds { get; set; }
 
+    /// <summary>The name of a need an invention brought (both languages), or null for every other need (A1372).</summary>
+    public LocalizedName? NeedLabelOf(string needId) =>
+        RuntimeNeeds?.Added.FirstOrDefault(n => string.Equals(n.Id, needId, StringComparison.Ordinal)) is { } need
+            ? new LocalizedName { De = need.NameDe, En = need.NameEn }
+            : null;
+
     /// <inheritdoc/>
     public string Name => "inhabitants";
 

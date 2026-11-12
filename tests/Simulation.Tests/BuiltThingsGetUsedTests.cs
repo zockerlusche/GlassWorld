@@ -445,6 +445,12 @@ public sealed class BuiltThingsGetUsedTests : IDisposable
         Assert.True(builder.Needs[need.Id] >= host.Needs.FillPerUse - 0.01, $"filled to {builder.Needs[need.Id]}");
         Assert.DoesNotContain(events, e => e.Kind == NeedRegister.NeedGained);
 
+        // A request about the builder names the new need (GW2 #21960); vocabulary needs carry no label.
+        var state = InhabitantStates.Of(builder, null, [], [], needLabel: host.Inhabitants.NeedLabelOf);
+        var entry = Assert.Single(state.Needs, n => n.Id == need.Id);
+        Assert.Equal(("Ordnung", "tidiness"), (entry.Label!.De, entry.Label.En));
+        Assert.All(state.Needs.Where(n => n.Id != need.Id), n => Assert.Null(n.Label));
+
         // Saved and loaded: the register and the inhabitant's value come back, the world hashes the same.
         var path = Path.Combine(_directory, "need.db");
         SaveGameStore.Save(path, StateCodec.Capture(host));
