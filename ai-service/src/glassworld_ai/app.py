@@ -88,6 +88,7 @@ from glassworld_ai.residency import (
     budget_mib,
     load_footprints,
 )
+from glassworld_ai.review import MockReviews, OllamaReviews, ReplayReviews
 from glassworld_ai.safety import TextGuard
 from glassworld_ai.security import make_access_guard
 from glassworld_ai.selfcheck import learn_by_day, self_check
@@ -181,6 +182,7 @@ def create_app(
                 app.state.jobs.register("question", _ollama_questions(settings, ollama, app))
                 app.state.jobs.register("memory", _ollama_memory(settings, ollama, app))
                 app.state.jobs.register("dream", _ollama_dreams(settings, ollama, app))
+                app.state.jobs.register("review", _ollama_reviews(settings, ollama, app))
                 app.state.jobs.register("process", _ollama_processes(settings, ollama, app))
                 app.state.jobs.register("invention", _ollama_inventions(settings, ollama, app))
                 app.state.jobs.register("build_plan", _ollama_builder(settings, ollama, app))
@@ -1097,6 +1099,7 @@ def _offline_handlers(settings: Settings) -> dict[str, Handler]:
             "question": MockQuestions(vocab),
             "memory": MockMemory(),
             "dream": MockDreams(),
+            "review": MockReviews(),
             "process": MockProcesses(),
             "invention": MockInventions(vocab),
             "build_plan": MockBuilder(),
@@ -1109,6 +1112,15 @@ def _offline_handlers(settings: Settings) -> dict[str, Handler]:
             "question": ReplayQuestions(_question_log(settings), template, vocab),
             "memory": ReplayMemory(_memory_log(settings)),
             "dream": ReplayDreams(_dream_log(settings), _text_guard(settings)),
+            "review": ReplayReviews(
+                _review_log(settings),
+                _text_guard(settings),
+                vocab.ids("mood"),
+                _texts(settings),
+                load_prompt(
+                    settings.prompts_dir, settings.review_prompt, settings.review_prompt_version
+                ).settings,
+            ),
             "process": ReplayProcesses(_process_log(settings), _judge_context(settings)),
             "invention": ReplayInventions(
                 _invention_log(settings),
@@ -1194,6 +1206,29 @@ def _ollama_dreams(settings: Settings, ollama: OllamaClient, app: FastAPI) -> Ol
         settings=_call_settings(settings),
         log=_dream_log(settings),
         guard=_text_guard(settings),
+    )
+
+
+def _review_log(settings: Settings) -> CallLog:
+    return CallLog(settings.log_dir / "review.jsonl")
+
+
+def _texts(settings: Settings) -> TextCatalog:
+    return TextCatalog.load(settings.content_dir / "i18n")
+
+
+def _ollama_reviews(settings: Settings, ollama: OllamaClient, app: FastAPI) -> OllamaReviews:
+    return OllamaReviews(
+        client=ollama,
+        queue=app.state.queue,
+        template=load_prompt(
+            settings.prompts_dir, settings.review_prompt, settings.review_prompt_version
+        ),
+        settings=_call_settings(settings),
+        log=_review_log(settings),
+        guard=_text_guard(settings),
+        moods=Vocabulary.load(settings.content_dir / "vocabulary").ids("mood"),
+        texts=_texts(settings),
     )
 
 

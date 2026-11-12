@@ -98,6 +98,9 @@
         },
         "model3d": {
           "$ref": "#/$defs/Model3dResult"
+        },
+        "review": {
+          "$ref": "#/$defs/ReviewResult"
         }
       },
       "minProperties": 1,
@@ -689,6 +692,149 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 2147483647
+        }
+      }
+    },
+    "ReviewIdeaResult": {
+      "description": "A new idea (id null) or a grown one (id of an idea of the input): English text (internal), roots only from the input's knowledge and ideas (checked by the service), and the thought 'What if I ...?' in the player's language for the morning (content guard and word check; null when left out).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "text",
+        "roots",
+        "thought"
+      ],
+      "properties": {
+        "id": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/EntityId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "roots": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": {
+            "$ref": "common.schema.json#/$defs/Subject"
+          }
+        },
+        "thought": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/GeneratedText"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "ReviewIntention": {
+      "description": "Something the inhabitant means to do tomorrow: an action of the input's list, about a subject of its knowledge or nothing, and its morning thought in the player's language (content guard and word check; null when left out). The core offers it as an option in a free moment (B2687); it never forces it.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action",
+        "about",
+        "thought"
+      ],
+      "properties": {
+        "action": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "about": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/Subject"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "thought": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/GeneratedText"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "ReviewResult": {
+      "description": "The nightly look back (A1584): the new memory summary with the formative events it keeps, the dream (null when the content guard took it back; the rest still holds, R19), new or grown ideas, intentions and the morning mood. Everything is checked by the service against the input; the core checks again and decides the effects from data.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "summary",
+        "kept",
+        "dream",
+        "ideas",
+        "intentions",
+        "morning_mood"
+      ],
+      "properties": {
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1200
+        },
+        "kept": {
+          "type": "array",
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/Tick"
+          }
+        },
+        "dream": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DreamResult"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ideas": {
+          "type": "array",
+          "maxItems": 3,
+          "items": {
+            "$ref": "#/$defs/ReviewIdeaResult"
+          }
+        },
+        "intentions": {
+          "type": "array",
+          "maxItems": 3,
+          "items": {
+            "$ref": "#/$defs/ReviewIntention"
+          }
+        },
+        "morning_mood": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/VocabId"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
     }

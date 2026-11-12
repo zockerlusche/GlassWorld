@@ -266,6 +266,42 @@ class Model3dResult(BaseModel):
     seed_used: int = Field(..., ge=0, le=2147483647)
 
 
+class ReviewIdeaResult(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    id: common_schema.EntityId | None
+    text: str = Field(..., max_length=160, min_length=1)
+    roots: list[common_schema.Subject] = Field(..., max_length=8, min_length=1)
+    thought: common_schema.GeneratedText | None
+
+
+class ReviewIntention(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    action: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    about: common_schema.Subject | None
+    thought: common_schema.GeneratedText | None
+
+
+class ReviewResult(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    summary: str = Field(..., max_length=1200, min_length=1)
+    kept: list[common_schema.Tick] = Field(..., max_length=32)
+    dream: DreamResult | None
+    ideas: list[ReviewIdeaResult] = Field(..., max_length=3)
+    intentions: list[ReviewIntention] = Field(..., max_length=3)
+    morning_mood: common_schema.VocabId | None
+
+
 class QuestionResult(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -316,6 +352,7 @@ class JobResult(BaseModel):
     image: ImageResult | None = None
     dream: DreamResult | None = None
     model3d: Model3dResult | None = None
+    review: ReviewResult | None = None
 
 
 class JobStatus(BaseModel):
