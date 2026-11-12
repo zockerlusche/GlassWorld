@@ -3,11 +3,24 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from . import common_schema
+
+type DeItem = Annotated[str, Field(..., pattern='^\\*?[a-zäöüß]{2,32}\\*?$')]
+
+
+type EnItem = Annotated[str, Field(..., pattern='^\\*?[a-z]{2,32}\\*?$')]
+
+
+class ForbiddenTerms(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    de: list[DeItem] = Field(..., max_length=256)
+    en: list[EnItem] = Field(..., max_length=256)
 
 
 class InventionTrigger(BaseModel):
@@ -74,6 +87,10 @@ class InventionSettings(BaseModel):
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
     limits: InventionLimitSettings
+    forbidden_terms: ForbiddenTerms | None = Field(
+        None,
+        description='Youth protection for inventions (B4b R16, B2481): what an invention, a new need or a new ability must not be - a weapon, a trap, hunting or fishing gear, poison. A name holding one of these terms is refused by the core whatever the AI guard said (reason forbidden_purpose). Per language; a term matches a whole word, * at its start lets the word begin otherwise (German compounds: *falle matches Tierfalle), * at its end lets it go on (jagd* matches Jagdspeer). Kept apart from the content guard of all AI text, so a thought may still name a spear. Omitted = no such check.',
+    )
     max_materials: int = Field(
         ...,
         description='At most this many perceived things are sent as materials (contract maximum 16).',
