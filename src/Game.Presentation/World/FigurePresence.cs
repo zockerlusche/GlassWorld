@@ -114,7 +114,9 @@ public sealed class PlaybackFreeze
 /// <param name="LookS">Look up and turn to the voice.</param>
 /// <param name="WaveS">Raise the arm and wave.</param>
 /// <param name="TalkS">Move the mouth (a spoken answer).</param>
-public readonly record struct Reaction(double LookS, double WaveS, double TalkS);
+/// <param name="Expression">The expression of the answer to show instead of the idle behaviour, or null (TL #21712).</param>
+/// <param name="ExpressS">Show that expression.</param>
+public readonly record struct Reaction(double LookS, double WaveS, double TalkS, string? Expression = null, double ExpressS = 0);
 
 /// <summary>
 /// Visible reaction to the player's voice (W1688), without Godot: who hears a sentence (the one spoken to
@@ -157,13 +159,45 @@ public static class GreetingReaction
     {
         ArgumentNullException.ThrowIfNull(data);
         var wave = expression is not null && data.WaveExpressions.Contains(expression) ? data.WaveS : 0;
-        return kind switch
+        var reaction = kind switch
         {
             "conversation_started" => new Reaction(data.ReactS, 0, 0),
             "said" => new Reaction(data.AfterAnswerS, wave, hasText ? data.TalkS : 0),
             "gestured" or "declined" => new Reaction(data.AfterAnswerS, wave, 0),
             "not_understood" => new Reaction(data.AfterAnswerS, wave, hasText ? data.TalkS : 0),
-            "no_answer" when hasText => new Reaction(data.AfterAnswerS, 0, data.TalkS),
+
+            // No answer came (the service was away or too slow): the figure keeps looking, says nothing (TL #21712).
+            "no_answer" => new Reaction(data.AfterAnswerS, 0, 0),
+            _ => (Reaction?)null,
+        };
+
+        return reaction is { } r && kind != "conversation_started" && Expression(data, kind, expression, hasText) is { } shown
+            ? r with { Expression = shown, ExpressS = data.ExpressS ?? 0 }
+            : reaction;
+    }
+
+    /// <summary>
+    /// The expression an answering figure shows (TL #21712, D763 Z26: a reaction without words instead of a fixed
+    /// sentence): the one the model chose, unless it is a wave (the wave has its own motion); for a decline or a
+    /// not-understanding without words and without a chosen expression the quiet default of the data. Null = none.
+    /// </summary>
+    public static string? Expression(FigureGreeting data, string kind, string? expression, bool hasText)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+        if ((data.ExpressS ?? 0) <= 0 || kind is not ("said" or "gestured" or "declined" or "not_understood"))
+        {
+            return null;
+        }
+
+        if (expression is not null)
+        {
+            return data.WaveExpressions.Contains(expression) ? null : expression;
+        }
+
+        return hasText ? null : kind switch
+        {
+            "declined" => data.DeclineExpression,
+            "not_understood" => data.NotUnderstoodExpression,
             _ => null,
         };
     }
@@ -235,13 +269,6 @@ public static class TalkBubble
     /// <summary>How long the thinking dots of a sentence stay at most (the answer replaces them).</summary>
     public const double WaitingS = 120;
 
-    /// <summary>
-    /// Turns the text key of the no-answer line into the player's language; the game sets it to its translation
-    /// at start (the key itself until then, e.g. in tests). An empty result (key not in the catalogs) shows no
-    /// bubble, never a raw key.
-    /// </summary>
-    public static Func<string, string> Translate { get; set; } = key => key;
-
     /// <summary>Text and real seconds of the bubble for an event, or null.</summary>
     public static (string Text, double Seconds)? For(string kind, string? text, double speechS) => kind switch
     {
@@ -249,11 +276,11 @@ public static class TalkBubble
         "said" or "declined" or "not_understood" when text is { Length: > 0 } => (text, speechS),
         "gestured" or "declined" => ("…", 2.0),
         "not_understood" => ("?", speechS),
-        "no_answer" when text is { Length: > 0 } && Translate(text) is { Length: > 0 } line => (line, speechS),
-        "no_answer" => (string.Empty, 0.0),
+        // No answer came: no fixed sentence in the inhabitant's mouth (TL #21712), only that it is still thinking.
+        "no_answer" => ("…", speechS),
         _ => null,
     };
 
     /// <summary>Whether a spoken answer must stay (a thought of the same figure does not replace it).</summary>
-    public static bool IsSpeech(string kind, string? text) => kind is "said" or "declined" or "not_understood" or "no_answer" && text is { Length: > 0 };
+    public static bool IsSpeech(string kind, string? text) => kind is "said" or "declined" or "not_understood" && text is { Length: > 0 };
 }

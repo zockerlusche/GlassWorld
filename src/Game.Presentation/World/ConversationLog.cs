@@ -20,6 +20,9 @@ public enum LogLineKind
     /// <summary>The player got no answer (service off or too slow); the favour is back.</summary>
     NoAnswer,
 
+    /// <summary>An inhabitant declined without a word (TL #21712): the log says what was seen.</summary>
+    Declined,
+
     /// <summary>An inhabitant knocked at the glass (B8 R17, B2608): it found nothing for a need and calls the player.</summary>
     Knock,
 }
@@ -63,6 +66,7 @@ public sealed class ConversationLog
             {
                 "thought" when e.Text is { Length: > 0 } => LogLineKind.Thought,
                 "said" or "declined" when e.Text is { Length: > 0 } => LogLineKind.Said,
+                "declined" => LogLineKind.Declined,
                 "conversation_started" when e.Text is { Length: > 0 } => LogLineKind.Player,
                 "not_understood" => LogLineKind.NotUnderstood,
                 "no_answer" => LogLineKind.NoAnswer,
@@ -73,7 +77,7 @@ public sealed class ConversationLog
             {
                 // The text of "no answer" is a key for the bubble, not words, and a knock has none: the log has
                 // its own sentence for both.
-                Add(e.InhabitantId, k, k is LogLineKind.NoAnswer or LogLineKind.Knock ? string.Empty : e.Text ?? string.Empty, e.Tick);
+                Add(e.InhabitantId, k, k is LogLineKind.NoAnswer or LogLineKind.Knock or LogLineKind.Declined ? string.Empty : e.Text ?? string.Empty, e.Tick);
             }
         }
     }

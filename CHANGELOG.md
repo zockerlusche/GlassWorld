@@ -210,6 +210,7 @@ Each release gets its own section (version and date); until then changes collect
 
 ### Changed
 
+- An answer without words is shown, not put into words (TL #21712, D763 Z26, with GW2's service change): an answering figure shows the expression the model chose (until now only the wave was ever shown), or for a decline / not-understanding without words a quiet default from `look/figures.json` (`decline_expression` look_around - it looks away; back_away has no made clip yet, `not_understood_expression` ponder, `express_s` 3 - **proposal values**); the bubble shows "…" / "?". No answer from the service shows "…" instead of the fixed sentence "Hm ... da muss ich erst nachdenken."; a decline without words gets the log line "{name} lehnt ab, ohne etwas zu sagen."
 <<<<<<< HEAD
 - Every kind of action sounds like itself (A1542, B8 R2, B2608 / W1741 "das Holzklopfen erklingt fuer Verbinden, Benutzen und jeden Bauschritt"): using a thing and a building step get their own sounds (`action.use` - scraping strokes, `action.build_step` - a dull thump set down twice; retro recipes, **placeholders** until the sound rework R18). Actions of one kind may share a sound only with a common `group` in the sound map (moving: wander, explore, move_to, approach; speaking: talk_to, warn, introduce, show, teach); a test refuses any other sharing.
 =======
