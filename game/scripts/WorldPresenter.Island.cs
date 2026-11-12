@@ -198,6 +198,24 @@ public partial class WorldPresenter
         _rig.Model.StopFollowing();
     }
 
+    /// <summary>
+    /// Check runs (A1375): the camera looks at a spot of the island from <paramref name="distanceM"/>, as if the
+    /// player had taken it (the observer stands back). False on the placeholder.
+    /// </summary>
+    public bool LookAt(double x, double z, double distanceM)
+    {
+        if (_rig is null || _observer is null)
+        {
+            return false;
+        }
+
+        _observer.PlayerTookCamera(_clock);
+        _rig.Model.StopFollowing();
+        _rig.Model.Set(x, z, _rig.Model.Yaw, distanceM);
+        _rig.Apply();
+        return true;
+    }
+
     /// <summary>Screenshot runs: a close view of one inhabitant (island: the rig follows it near). False on the placeholder.</summary>
     public bool CloseLook(string inhabitantId, double distanceM)
     {

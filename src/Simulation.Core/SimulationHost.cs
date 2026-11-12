@@ -325,6 +325,13 @@ public sealed class SimulationHost
         var skillLevels = new SkillLevelsSystem(content.SkillLevels, skills, world.Seed, world.Calendar.TicksPerDay);
         inhabitants.Reported += skillLevels.Observe;
 
+        // A stuck building asks the decider what to do (A1373 step 2, D850): the core offers, the decider chooses.
+        inventions.Escalate = (w, inhabitantId, typeId, _) => decisions.AskBuildStuck(w, inhabitantId, typeId);
+        inventions.EscalationOpen = decisions.IsAskingAboutBuilding;
+        decisions.StuckOptions = inventions.EscalationOptionsOf;
+        decisions.StuckContext = inventions.StuckOf;
+        decisions.StuckAnswered = inventions.EscalationAnswered;
+
         // New needs of an approved invention (A1372, TL B2658): bound to its type, gained on first use.
         var needs = new NeedRegister(content.InhabitantModel.Needs, content.InhabitantModel.NeedRules, world.Calendar.TicksPerDay);
         inhabitants.RuntimeNeeds = needs;
