@@ -55,6 +55,10 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("model3d")]
         public Model3dResult? Model3d { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("review")]
+        public ReviewResult? Review { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -431,6 +435,72 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("seed_used")]
         public int SeedUsed { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// A new idea (id null) or a grown one (id of an idea of the input): English text (internal), roots only from the input's knowledge and ideas (checked by the service), and the thought 'What if I ...?' in the player's language for the morning (content guard and word check; null when left out).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ReviewIdeaResult
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public string? Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("text")]
+        public string Text { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("roots")]
+        public System.Collections.Generic.ICollection<Subject> Roots { get; set; } = new System.Collections.ObjectModel.Collection<Subject>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("thought")]
+        public GeneratedText? Thought { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Something the inhabitant means to do tomorrow: an action of the input's list, about a subject of its knowledge or nothing, and its morning thought in the player's language (content guard and word check; null when left out). The core offers it as an option in a free moment (B2687); it never forces it.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ReviewIntention
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("action")]
+        public string Action { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("about")]
+        public Subject? About { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("thought")]
+        public GeneratedText? Thought { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// The nightly look back (A1584): the new memory summary with the formative events it keeps, the dream (null when the content guard took it back; the rest still holds, R19), new or grown ideas, intentions and the morning mood. Everything is checked by the service against the input; the core checks again and decides the effects from data.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ReviewResult
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("summary")]
+        public string Summary { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("kept")]
+        public System.Collections.Generic.ICollection<long> Kept { get; set; } = new System.Collections.ObjectModel.Collection<long>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("dream")]
+        public DreamResult? Dream { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("ideas")]
+        public System.Collections.Generic.ICollection<ReviewIdeaResult> Ideas { get; set; } = new System.Collections.ObjectModel.Collection<ReviewIdeaResult>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("intentions")]
+        public System.Collections.Generic.ICollection<ReviewIntention> Intentions { get; set; } = new System.Collections.ObjectModel.Collection<ReviewIntention>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("morning_mood")]
+        public string? MorningMood { get; set; } = default!;
 
     }
 
