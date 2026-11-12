@@ -443,6 +443,27 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("talk_s")]
         public double TalkS { get; set; } = default!;
 
+        /// <summary>
+        /// Real seconds an answering figure shows the expression of its answer (one the model chose, or the quiet default of a wordless answer below) instead of its idle behaviour; 0 or omitted = only the wave is shown.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("express_s")]
+        public double? ExpressS { get; set; } = default!;
+
+        /// <summary>
+        /// Expression shown when an inhabitant declines without words and the model chose none (TL #21712, D763 Z26: a reaction without words instead of a fixed sentence). Proposal value.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("decline_expression")]
+        public string? DeclineExpression { get; set; } = default!;
+
+        /// <summary>
+        /// Expression shown when an inhabitant did not understand the player and the model chose none (TL #21712). Proposal value.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("not_understood_expression")]
+        public string? NotUnderstoodExpression { get; set; } = default!;
+
     }
 
     /// <summary>

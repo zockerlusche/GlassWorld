@@ -1491,6 +1491,10 @@
       "text": "Building failed"
     },
     {
+      "key": "vocab.event.needs_help",
+      "text": "Needs help with building"
+    },
+    {
       "key": "vocab.event.built",
       "text": "Built"
     },
@@ -2361,6 +2365,10 @@
     {
       "key": "ui.log.knock",
       "text": "{name} knocks at the glass."
+    },
+    {
+      "key": "ui.log.declined",
+      "text": "{name} declines without a word."
     },
     {
       "key": "ui.log.no_answer",

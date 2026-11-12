@@ -48,9 +48,6 @@ public static class TextCatalogs
 
         ok &= SameKeys();
 
-        // The no-answer line arrives as a key (W1701); the bubble shows it in the current language, or
-        // nothing while the catalogs lack the key (never a raw key).
-        GlassWorld.Presentation.World.TalkBubble.Translate = key => TranslationServer.Translate(key).ToString() is var text && text != key ? text : string.Empty;
         KeyCount = Loaded.Count > 0 ? Loaded.Values.First().Count : 0;
         var system = OS.GetLocaleLanguage();
         SetLanguage(SupportedLocales.Contains(system, StringComparer.Ordinal) ? system : SupportedLocales[0]);
