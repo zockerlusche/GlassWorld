@@ -1,6 +1,6 @@
 """Player-language texts from content/i18n (B2470), for what the AI service itself shows or hands to
-the model in the player's language: the names of things (`vocab.object.<type>`) and the stand-in
-thoughts (`msg.thought.<action>`, W1687) when the model's sentence does not pass the checks.
+the model in the player's language, e.g. the names of things (`vocab.object.<type>`). The former
+stand-in thoughts (`msg.thought.<action>`) are archived in docs/archive (B2644).
 """
 
 from __future__ import annotations

@@ -215,14 +215,15 @@ def test_v2_keeps_the_sentence_of_a_decline_or_not_understood(outcome: str) -> N
 @pytest.mark.parametrize(
     ("answer", "expected"),
     [
-        ({"outcome": "decline", "reply": None}, "No, I'd rather not."),
-        ({"outcome": "not_understood", "reply": None}, "Hm? I don't understand."),
+        # TL #21712 (D763 Z26): no fixed sentence - the game shows a reaction without words.
+        ({"outcome": "decline", "reply": None}, None),
+        ({"outcome": "not_understood", "reply": None}, None),
         # B2644: a sentence the content guard rejected is left out, not replaced.
         ({"outcome": "not_understood", "reply": "Then kill it."}, None),
         ({"outcome": "gesture", "reply": None}, None),
     ],
 )
-def test_v2_without_a_sentence_says_the_datas_stand_in(
+def test_v2_without_a_sentence_says_nothing(
     settings: Settings, answer: dict[str, Any], expected: str | None
 ) -> None:
     log = CallLog(settings.log_dir / "conversation.jsonl")

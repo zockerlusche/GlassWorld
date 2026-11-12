@@ -95,6 +95,14 @@
       "text": "Character"
     },
     {
+      "key": "ui.card.favourite",
+      "text": "Favourite"
+    },
+    {
+      "key": "ui.inhabitants.favourite_name",
+      "text": "{name} – favourite"
+    },
+    {
       "key": "ui.card.doing",
       "text": "Doing now"
     },
@@ -2007,82 +2015,6 @@
       "text": "is building with: {thing}"
     },
     {
-      "key": "msg.thought.approach",
-      "text": "Let me go over there."
-    },
-    {
-      "key": "msg.thought.build_step",
-      "text": "Back to building."
-    },
-    {
-      "key": "msg.thought.combine",
-      "text": "Let's see if these fit together."
-    },
-    {
-      "key": "msg.thought.drink",
-      "text": "First, something to drink."
-    },
-    {
-      "key": "msg.thought.drop",
-      "text": "I'll put this down."
-    },
-    {
-      "key": "msg.thought.eat",
-      "text": "Time to eat something."
-    },
-    {
-      "key": "msg.thought.idle",
-      "text": "Just a little rest."
-    },
-    {
-      "key": "msg.thought.inspect",
-      "text": "What is that?"
-    },
-    {
-      "key": "msg.thought.move_to",
-      "text": "I want to go there."
-    },
-    {
-      "key": "msg.thought.pick_up",
-      "text": "I'll take this."
-    },
-    {
-      "key": "msg.thought.show",
-      "text": "Look at this!"
-    },
-    {
-      "key": "msg.thought.sleep",
-      "text": "I'm so tired."
-    },
-    {
-      "key": "msg.thought.talk_to",
-      "text": "Let me say something."
-    },
-    {
-      "key": "msg.thought.teach",
-      "text": "Come, I'll show you."
-    },
-    {
-      "key": "msg.thought.wander",
-      "text": "Let's look around a bit."
-    },
-    {
-      "key": "msg.thought.explore",
-      "text": "What might lie beyond?"
-    },
-    {
-      "key": "msg.thought.use",
-      "text": "Let me try this."
-    },
-    {
-      "key": "msg.thought.warn",
-      "text": "Watch out!"
-    },
-    {
-      "key": "msg.thought.introduce",
-      "text": "What is your name?"
-    },
-    {
       "key": "ui.menu.loading_title",
       "text": "One moment"
     },
@@ -2169,18 +2101,6 @@
     {
       "key": "ui.settings.volume.off_tip",
       "text": "Off for now - these sounds are being remade."
-    },
-    {
-      "key": "msg.converse.reply",
-      "text": "Hm, yes."
-    },
-    {
-      "key": "msg.converse.not_understood",
-      "text": "Hm? I don't understand."
-    },
-    {
-      "key": "msg.converse.decline",
-      "text": "No, I'd rather not."
     },
     {
       "key": "msg.converse.no_answer",
@@ -2425,6 +2345,10 @@
     {
       "key": "ui.log.knock",
       "text": "{name} knocks at the glass."
+    },
+    {
+      "key": "ui.log.declined",
+      "text": "{name} declines without a word."
     },
     {
       "key": "ui.log.no_answer",

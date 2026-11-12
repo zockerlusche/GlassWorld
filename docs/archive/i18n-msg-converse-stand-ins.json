@@ -1,0 +1,37 @@
+{
+  "what": "Former stand-in answers msg.converse.<outcome> (W1701). Since B2644 / TL #21712 (D763 Z26) no conversation outcome puts a fixed sentence into an inhabitant's mouth: a rejected sentence is left out (#269), an outcome without a sentence stays without words and the game shows a reaction without words (#282, #281). Kept here, outside content/, so nothing loads them (rule PR4). msg.converse.no_answer stays in content/i18n: the core still names it.",
+  "removed_from": [
+    "content/i18n/de.json",
+    "content/i18n/en.json"
+  ],
+  "entries": {
+    "de": [
+      {
+        "key": "msg.converse.reply",
+        "text": "Hm, ja."
+      },
+      {
+        "key": "msg.converse.not_understood",
+        "text": "Hm? Das versteh ich nicht."
+      },
+      {
+        "key": "msg.converse.decline",
+        "text": "Nee, lieber nicht."
+      }
+    ],
+    "en": [
+      {
+        "key": "msg.converse.reply",
+        "text": "Hm, yes."
+      },
+      {
+        "key": "msg.converse.not_understood",
+        "text": "Hm? I don't understand."
+      },
+      {
+        "key": "msg.converse.decline",
+        "text": "No, I'd rather not."
+      }
+    ]
+  }
+}

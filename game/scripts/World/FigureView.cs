@@ -76,6 +76,10 @@ public partial class FigureView : Node3D
     private double _seatShare;
     private bool _frozen;
     private double _lookLeft;
+
+    // The expression of an answer (TL #21712): shown instead of the idle behaviour for its seconds.
+    private string? _expression;
+    private double _expressLeft;
     private double _waveLeft;
     private double _talkLeft;
 
@@ -245,7 +249,12 @@ public partial class FigureView : Node3D
             return;
         }
 
-        if (_lookLeft > 0 && !clip.Walking && _standsIdle)
+        if (_expressLeft > 0 && _expression is { } shown && !clip.Walking && _standsIdle)
+        {
+            // Its answer without words (or with them): the expression it shows, standing where it is (TL #21712).
+            clip = new FigureClip(chooser.ForExpression(shown), Walking: false, clip.Missing);
+        }
+        else if (_lookLeft > 0 && !clip.Walking && _standsIdle)
         {
             // Hearing the player it stands and looks up instead of its idle behaviour (no ducking, W1688).
             clip = new FigureClip(chooser.ForClip(figures.Greeting.ListenClip), Walking: false, clip.Missing);
@@ -320,6 +329,11 @@ public partial class FigureView : Node3D
         _lookLeft = Math.Max(_lookLeft, reaction.LookS);
         _waveLeft = Math.Max(_waveLeft, reaction.WaveS);
         _talkLeft = Math.Max(_talkLeft, reaction.TalkS);
+        if (reaction.Expression is { } expression && reaction.ExpressS > 0)
+        {
+            _expression = expression;
+            _expressLeft = reaction.ExpressS;
+        }
     }
 
     /// <inheritdoc/>
@@ -470,6 +484,7 @@ public partial class FigureView : Node3D
     private void HearAndAnswer(double delta, FigureGreeting greeting)
     {
         _lookLeft = Math.Max(0, _lookLeft - delta);
+        _expressLeft = Math.Max(0, _expressLeft - delta);
         _waveLeft = Math.Max(0, _waveLeft - delta);
         _talkLeft = Math.Max(0, _talkLeft - delta);
         var ease = greeting.EasePerS;
