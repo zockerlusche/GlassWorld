@@ -194,7 +194,10 @@ public partial class WorldAudio : Node3D
 
         Speak(events, listener);
 
-        // A knock at the glass: heard wherever the camera is (the tremor and the mail show where).
+        // A knock at the glass: heard wherever the camera is (the tremor and the mail show where). There is
+        // one glass player: two knocks in the same frame sound as one, which is what the player would hear.
+        // A knock also sounds during the computing night's scene - a call for help is not swallowed; it comes
+        // only from an inhabitant whose action just ended, so sleepers do not knock (review GW1 #273).
         foreach (var signal in _director.Signals(events))
         {
             if (_glass is not null && !Off(signal.Bus))
