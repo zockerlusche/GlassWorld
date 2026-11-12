@@ -86,7 +86,7 @@ public sealed class WorldGenContent
         CheckSpawns(spawns, biomes, objects, problems);
         foreach (var climate in climates)
         {
-            CheckClimate(climate, weatherVocabulary, Ids(vocabularies, VocabularyKind.Event), calendar, problems);
+            CheckClimate(climate, weatherVocabulary, Ids(vocabularies, VocabularyKind.Event), biomeVocabulary, calendar, problems);
         }
 
         var biomeIds = biomes.Biomes.Select(b => b.Id).ToHashSet(StringComparer.Ordinal);
@@ -276,7 +276,49 @@ public sealed class WorldGenContent
         }
     }
 
-    private static void CheckClimate(ClimateSettings climate, HashSet<string> weatherVocabulary, HashSet<string> eventVocabulary, WorldCalendar calendar, List<string> problems)
+    /// <summary>
+    /// The optional parts of a climate's temperature (B5 R1/R28): hourly curves of known seasons, one per
+    /// season, hours ascending within a day; biome offsets of known biomes and seasons, one per pair; a season
+    /// transition needs the temperature table in calendar order (the previous season is the one before).
+    /// </summary>
+    private static void CheckTemperatureExtras(string climateId, ClimateTemperature temperature, IReadOnlySet<string> biomeVocabulary, WorldCalendar calendar, List<string> problems)
+    {
+        var c = $"climate '{climateId}'";
+        var seasons = calendar.Settings.Seasons.Select(s => s.Id).ToList();
+        var hoursPerDay = calendar.Settings.HoursPerDay;
+        var curves = temperature.Hourly ?? [];
+        Duplicates(curves.Select(h => h.Season), $"{c} hourly curve of season", problems);
+        foreach (var curve in curves)
+        {
+            if (!seasons.Contains(curve.Season))
+            {
+                problems.Add($"{c}: hourly curve for unknown season '{curve.Season}'");
+            }
+
+            var hours = curve.Points.Select(pt => pt.Hour).ToList();
+            if (hours.Zip(hours.Skip(1)).Any(pair => pair.Second <= pair.First))
+            {
+                problems.Add($"{c}: hourly curve of '{curve.Season}' needs strictly ascending hours");
+            }
+
+            if (hours.Any(h => h >= hoursPerDay))
+            {
+                problems.Add($"{c}: hourly curve of '{curve.Season}' has an hour at or after {hoursPerDay}");
+            }
+        }
+
+        var biomes = temperature.Biomes ?? [];
+        Duplicates(biomes.Select(b => $"{b.Biome}/{b.Season ?? "*"}"), $"{c} biome temperature offset", problems);
+        problems.AddRange(biomes.Where(b => !biomeVocabulary.Contains(b.Biome)).Select(b => $"{c}: biome temperature offset for '{b.Biome}' not in vocabulary 'biome'"));
+        problems.AddRange(biomes.Where(b => b.Season is { } s && !seasons.Contains(s)).Select(b => $"{c}: biome temperature offset for unknown season '{b.Season}'"));
+
+        if ((temperature.SeasonTransitionHours ?? 0) > 0 && !temperature.Seasons.Select(s => s.Season).SequenceEqual(seasons, StringComparer.Ordinal))
+        {
+            problems.Add($"{c}: season_transition_hours needs the temperature seasons in calendar order ({string.Join(", ", seasons)})");
+        }
+    }
+
+    private static void CheckClimate(ClimateSettings climate, HashSet<string> weatherVocabulary, HashSet<string> eventVocabulary, IReadOnlySet<string> biomeVocabulary, WorldCalendar calendar, List<string> problems)
     {
         var weather = climate.Weather;
         var states = weather.States.Select(s => s.Weather).ToHashSet(StringComparer.Ordinal);
@@ -292,6 +334,7 @@ public sealed class WorldGenContent
         problems.AddRange(calendar.Settings.Seasons.Select(s => s.Id).Where(s => !temperature.Seasons.Any(t => t.Season == s)).Select(s => $"climate '{climate.Id}': no temperature offset for season '{s}'"));
         problems.AddRange(states.Where(s => !temperature.Weathers.Any(t => t.Weather == s)).Select(s => $"climate '{climate.Id}': no temperature offset for weather '{s}'"));
         problems.AddRange(Enum.GetNames<Time.DayPhase>().Select(p => p.ToLowerInvariant()).Where(p => !temperature.TimesOfDay.Any(t => t.TimeOfDay == p)).Select(p => $"climate '{climate.Id}': no temperature offset for time of day '{p}'"));
+        CheckTemperatureExtras(climate.Id, temperature, biomeVocabulary, calendar, problems);
         foreach (var (what, id) in new[] { ("snow", weather.SnowWeather), ("drought", weather.DroughtWeather) })
         {
             if (!states.Contains(id))

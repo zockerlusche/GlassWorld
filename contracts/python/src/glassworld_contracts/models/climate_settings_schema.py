@@ -8,6 +8,14 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class TemperatureHourPoint(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    hour: int = Field(..., ge=0, le=47)
+    offset_tenth_c: int = Field(..., ge=-1000, le=1000)
+
+
 class ClimateSignal(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -118,6 +126,43 @@ class TemperatureTimeOffset(BaseModel):
     offset_tenth_c: int = Field(..., ge=-1000, le=1000)
 
 
+class TemperatureHourlyCurve(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    season: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    points: list[TemperatureHourPoint] = Field(
+        ...,
+        description='Points of the curve; hours strictly ascending and below the hours of a day (load check).',
+        max_length=48,
+        min_length=1,
+    )
+
+
+class TemperatureBiomeOffset(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    biome: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    season: str | None = Field(
+        None,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    offset_tenth_c: int = Field(..., ge=-1000, le=1000)
+
+
 class ClimateTransition(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -152,6 +197,22 @@ class ClimateTemperature(BaseModel):
         description='Offset per time of day (dawn, day, dusk, night).',
         max_length=32,
         min_length=1,
+    )
+    hourly: list[TemperatureHourlyCurve] | None = Field(
+        None,
+        description='Optional daily curve per season (B5 R28): points by hour, interpolated linearly by the minute and around midnight. A season with a curve uses it instead of times_of_day. At most one curve per season (load check).',
+        max_length=32,
+    )
+    biomes: list[TemperatureBiomeOffset] | None = Field(
+        None,
+        description='Optional offsets per biome (B5 R28), for one season or, without season, for all; matching entries add up. A pair of biome and season appears at most once (load check).',
+        max_length=256,
+    )
+    season_transition_hours: int | None = Field(
+        None,
+        description="Optional: during the first hours of a season its part (season offset, daily curve or time-of-day offset, biome offsets) blends linearly from the previous season's part (B5 R1). 0 or absent = a hard change at the boundary.",
+        ge=0,
+        le=1000,
     )
 
 

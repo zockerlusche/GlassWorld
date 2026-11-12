@@ -195,7 +195,7 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
-    /// Air temperature in tenths of a degree (B2 R13, B5 R1): base value of the climate plus an offset for the season, the weather and the time of day; the preset's height drop applies on top. Every season, weather state and time of day needs an entry (load check).
+    /// Air temperature in tenths of a degree (B2 R13, B5 R1/R28): base value of the climate plus an offset for the season, the weather and the time of day; the preset's height drop applies on top. Every season, weather state and time of day needs an entry (load check). Optional: an hourly curve per season replaces the time-of-day offset for that season, biome offsets add per cell, and a season transition blends the season's part in linearly. Without the optional fields the temperature is exactly as before.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class ClimateTemperature
@@ -221,6 +221,27 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("times_of_day")]
         public System.Collections.Generic.ICollection<TemperatureTimeOffset> TimesOfDay { get; set; } = new System.Collections.ObjectModel.Collection<TemperatureTimeOffset>();
+
+        /// <summary>
+        /// Optional daily curve per season (B5 R28): points by hour, interpolated linearly by the minute and around midnight. A season with a curve uses it instead of times_of_day. At most one curve per season (load check).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("hourly")]
+        public System.Collections.Generic.ICollection<TemperatureHourlyCurve>? Hourly { get; set; } = default!;
+
+        /// <summary>
+        /// Optional offsets per biome (B5 R28), for one season or, without season, for all; matching entries add up. A pair of biome and season appears at most once (load check).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("biomes")]
+        public System.Collections.Generic.ICollection<TemperatureBiomeOffset>? Biomes { get; set; } = default!;
+
+        /// <summary>
+        /// Optional: during the first hours of a season its part (season offset, daily curve or time-of-day offset, biome offsets) blends linearly from the previous season's part (B5 R1). 0 or absent = a hard change at the boundary.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("season_transition_hours")]
+        public int? SeasonTransitionHours { get; set; } = default!;
 
     }
 
@@ -254,6 +275,49 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("time_of_day")]
         public string TimeOfDay { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("offset_tenth_c")]
+        public int OffsetTenthC { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class TemperatureHourlyCurve
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("season")]
+        public string Season { get; set; } = default!;
+
+        /// <summary>
+        /// Points of the curve; hours strictly ascending and below the hours of a day (load check).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("points")]
+        public System.Collections.Generic.ICollection<TemperatureHourPoint> Points { get; set; } = new System.Collections.ObjectModel.Collection<TemperatureHourPoint>();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class TemperatureHourPoint
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("hour")]
+        public int Hour { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("offset_tenth_c")]
+        public int OffsetTenthC { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class TemperatureBiomeOffset
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("biome")]
+        public string Biome { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("season")]
+        public string? Season { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("offset_tenth_c")]
         public int OffsetTenthC { get; set; } = default!;

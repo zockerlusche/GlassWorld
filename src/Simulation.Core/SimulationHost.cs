@@ -224,9 +224,17 @@ public sealed class SimulationHost
                 return null;
             }
 
-            var cellDropTenthC = map.CellOf(at) is { } cell
+            var cellAt = map.CellOf(at);
+            var cellDropTenthC = cellAt is { } cell
                 ? -(dropPer100Height * Math.Max(0, map.Map.Cell(cell.X, cell.Z).Height - seaLevel) / 100)
                 : startDropTenthC;
+
+            // Biome offsets of the climate (B5 R28): then the temperature depends on the cell's biome as well.
+            if (weather.HasBiomeTemperatures && cellAt is { } biomeCell)
+            {
+                var biome = map.Map.BiomeAt(biomeCell.X, biomeCell.Z);
+                return new Air(weather.TemperatureAt(w.Now, weather.Current, biome) - startDropTenthC + cellDropTenthC, weather.PrecipitationPermille > 0);
+            }
             if (islandAir is not { } known || known.Tick != w.Tick || !string.Equals(known.Weather, weather.Current, StringComparison.Ordinal))
             {
                 islandAir = known = (w.Tick, weather.Current, weather.TemperatureAt(w.Now, weather.Current));
