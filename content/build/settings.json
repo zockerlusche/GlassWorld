@@ -9,6 +9,5 @@
   "step_action": "build_step",
   "use_action": "use",
   "min_need_to_build": 0.3,
-  "sound_max_attempts": 3,
-  "escalation": { "after_hours": 12, "max": 3, "use_instead_action": "use_instead", "smaller_action": "build_smaller", "give_up_action": "give_up", "help_action": "ask_for_help", "max_use_instead": 2 }
+  "sound_max_attempts": 3
 }

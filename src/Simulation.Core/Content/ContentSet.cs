@@ -175,8 +175,8 @@ public sealed class ContentSet
         var inventions = new InventionRules(
             inventionSettings,
             objects.PropertyVocabulary,
-            // The actions of a stuck building (A1373 step 2) are the core's own: no invention serves them.
-            Ids(vocabularies, VocabularyKind.Action).Except(EscalationActions(contentDirectory), StringComparer.Ordinal).ToFrozenSet(StringComparer.Ordinal),
+            // An action that exists only in one situation (only_when, e.g. a stuck building) is no invention's purpose.
+            Required(vocabularies, VocabularyKind.Action).Entries.Where(e => e.OnlyWhen is null).Select(e => e.Id).ToFrozenSet(StringComparer.Ordinal),
             Ids(vocabularies, VocabularyKind.Process).ToFrozenSet(StringComparer.Ordinal),
             [.. Required(vocabularies, VocabularyKind.Tech_level).Entries.Select(e => e.Id)],
             TextGuard.FromJson(File.ReadAllText(Path.Combine(contentDirectory, "safety", "rules.json"))),
@@ -648,13 +648,6 @@ public sealed class ContentSet
 
     private static IEnumerable<string> Unknown(ICollection<string>? ids, HashSet<string> known, string outfit, string what) =>
         (ids ?? []).Where(id => !known.Contains(id)).Select(id => $"outfit '{outfit}' names unknown {what} '{id}'");
-
-    /// <summary>The actions of a stuck building (content/build/settings.json escalation; none without it).</summary>
-    private static IEnumerable<string> EscalationActions(string contentDirectory)
-    {
-        var settings = ContractSerializer.Deserialize<BuildSettings>(File.ReadAllText(Path.Combine(contentDirectory, "build", "settings.json")));
-        return settings.Escalation is { } e ? new[] { e.UseInsteadAction, e.SmallerAction, e.GiveUpAction, e.HelpAction }.OfType<string>() : [];
-    }
 
     private static void CheckInventions(InventionRules rules, ActionRules actions, HashSet<string> shapes, HashSet<string> dayPhases)
     {

@@ -497,6 +497,10 @@ public sealed partial class BuildingTests : IDisposable
         var settings = Path.Combine(target, "build", "settings.json");
         var build = ContractSerializer.Deserialize<BuildSettings>(File.ReadAllText(settings));
         build.MinNeedToBuild = 0;
+
+        // A1373 step 2: the shipped data keep the escalation off until the decider prompt reads 'building' (review
+        // GW2 #295); here it is on with the TL's values (B2658).
+        build.Escalation = new BuildEscalation { AfterHours = 12, Max = 3, UseInsteadAction = "use_instead", SmallerAction = "build_smaller", GiveUpAction = "give_up", HelpAction = "ask_for_help", MaxUseInstead = 2 };
         File.WriteAllText(settings, ContractSerializer.Serialize(build));
         return target;
     }
