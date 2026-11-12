@@ -1138,6 +1138,12 @@ public sealed class DecisionsSystem : IWorldSystem
             request.Building = StuckContext?.Invoke(inhabitant.Id, subject);
         }
 
+        // Why the core asks (B2663, GW2 #308): a free moment says so, so the prompt can name it (v10 'Right now').
+        if (kind == Leisure)
+        {
+            request.Occasion = Leisure;
+        }
+
         _passable.Clear();
         probe?.Leave(PartRequestBuild);
         probe?.Enter(PartRequestJson);

@@ -70,6 +70,9 @@ public sealed class LeisureTests
         Assert.Equal(1, port.Sent);
         Assert.Empty(host.Decisions.OpenQuestionIds(a.Id));
 
+        // The request says why it is asked (GW2 #308), so the prompt can name the free moment.
+        Assert.Equal("leisure", port.Requests.Single().Occasion);
+
         var (busy, busyPort, b) = Alone();
         b.Planned = new Activity(Content.Value.InhabitantModel.Togetherness!.SleepAction, null, b.Position, null);
         busy.World.Step();
@@ -137,9 +140,12 @@ public sealed class LeisureTests
 
         public int Sent { get; private set; }
 
+        public List<DecisionRequest> Requests { get; } = [];
+
         public void Send(string requestId, string requestJson)
         {
             Sent++;
+            Requests.Add(ContractSerializer.Deserialize<DecisionRequest>(requestJson));
             _mock.Send(requestId, requestJson);
         }
 
