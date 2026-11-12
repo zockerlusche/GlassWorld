@@ -95,6 +95,14 @@
       "text": "Character"
     },
     {
+      "key": "ui.card.favourite",
+      "text": "Favourite"
+    },
+    {
+      "key": "ui.inhabitants.favourite_name",
+      "text": "{name} – favourite"
+    },
+    {
       "key": "ui.card.doing",
       "text": "Doing now"
     },

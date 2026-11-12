@@ -14,7 +14,8 @@ namespace GlassWorld.Presentation.World;
 /// <param name="OpenQuestions">Number of open questions (B2487: that, not what).</param>
 /// <param name="PuzzlingQuestions">Open questions that still puzzle the inhabitant, for the mark over its head (TL #19921: not those about a thing it has looked at since, where only the effect is open).</param>
 /// <param name="Name">The inhabitant's own name (W1698), or null while it has none.</param>
-public sealed record InhabitantRow(string Id, int Number, int WillToLivePercent, bool Fading, string? ActionKey, int OpenQuestions, int PuzzlingQuestions = 0, string? Name = null);
+/// <param name="Favourite">Whether the player marked it as a favourite (B6 R19); the player's own mark.</param>
+public sealed record InhabitantRow(string Id, int Number, int WillToLivePercent, bool Fading, string? ActionKey, int OpenQuestions, int PuzzlingQuestions = 0, string? Name = null, bool Favourite = false);
 
 /// <summary>An open question of an inhabitant, as the questions window shows it (Marcel W1696: which question, and why).</summary>
 /// <param name="Id">Question id.</param>
@@ -248,8 +249,8 @@ public sealed class WorldFeed
         return digits.Length == 0 ? 0 : int.Parse(digits, NumberStyles.None, CultureInfo.InvariantCulture);
     }
 
-    private static InhabitantRow Row(InhabitantSnapshot i) =>
-        new(i.Id, NumberOf(i.Id), Percent(i.WillToLive), i.Fading, i.Action is null ? null : $"vocab.action.{i.Action}", i.OpenQuestionIds.Count, i.PuzzlingQuestionIds.Count, i.Name);
+    private InhabitantRow Row(InhabitantSnapshot i) =>
+        new(i.Id, NumberOf(i.Id), Percent(i.WillToLive), i.Fading, i.Action is null ? null : $"vocab.action.{i.Action}", i.OpenQuestionIds.Count, i.PuzzlingQuestionIds.Count, i.Name, _host.Favourites.IsFavourite(i.Id));
 
     private static List<CardValue> Values(string kind, IReadOnlyDictionary<string, double> values) =>
         [.. values.OrderBy(v => v.Key, StringComparer.Ordinal).Select(v => new CardValue($"vocab.{kind}.{v.Key}", Percent(v.Value)))];

@@ -113,6 +113,9 @@ public sealed record SaveState(
     /// <summary>The mailbox (B6 R11); null in save games from before.</summary>
     public Player.MailboxState? Mailbox { get; init; }
 
+    /// <summary>The player's favourites (B6 R19); null in save games from before or with none marked.</summary>
+    public Player.FavouritesState? Favourites { get; init; }
+
     /// <summary>
     /// True when the save game knows own names (W1698), even if nobody has one; false in save games from before,
     /// whose inhabitants get their names from the seed on load and know nobody's name.
@@ -202,6 +205,7 @@ public static class StateCodec
             Skills = host.Skills.HasState ? host.Skills.Capture() : null,
             SkillGains = host.SkillLevels.HasState ? host.SkillLevels.Capture() : null,
             Mailbox = host.Mailbox.Capture(),
+            Favourites = host.Favourites.HasState ? host.Favourites.Capture() : null,
             NamesSaved = true,
             Conversation = host.Conversation.HasState || host.Conversation.Log.Count > 0 ? host.Conversation.Capture() : null,
             Diary = host.Diary.All,
@@ -321,6 +325,7 @@ public static class StateCodec
             state.DecisionLog);
         host.Player.Restore(state.Player);
         host.Mailbox.Restore(state.Mailbox);
+        host.Favourites.Restore(state.Favourites);
         host.Conversation.Restore(state.Conversation);
         if (state.Weather is not null)
         {
