@@ -61,6 +61,7 @@ public sealed class NightReviewTests
             [
                 new ReviewIdeaResult { Id = null, Text = "The sharp stone might open a nut.", Roots = [Type("flint"), Type("hazelnut")], Thought = new GeneratedText { Locale = Locale.De, Text = "Was, wenn ich die Nuss mit dem Stein öffne?" } },
                 new ReviewIdeaResult { Id = null, Text = "Fire from nothing.", Roots = [Type("fire")], Thought = null },
+                new ReviewIdeaResult { Id = null, Text = "A known type posing as someone.", Roots = [new Subject { Kind = SubjectKind.Inhabitant, Id = "flint" }], Thought = null }, // review GW1 #328: roots by kind
             ],
             Intentions =
             [

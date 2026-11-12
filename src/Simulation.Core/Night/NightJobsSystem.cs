@@ -99,6 +99,9 @@ public sealed class NightJobsSystem : IWorldSystem, IOptionalWorldState
     /// <summary>Event: a look back brought a new idea or let one grow (target = idea id; detail new / grew).</summary>
     public const string IdeaEvent = "idea";
 
+    /// <summary>Event of a shown thought (the same kind the decider's and the question's thoughts report).</summary>
+    public const string ThoughtEvent = "thought";
+
     /// <summary>Event: the inhabitant dreamed (text = the dream, detail = its tone, target = what it was about).</summary>
     public const string DreamEvent = "dreamed";
 
@@ -467,8 +470,9 @@ public sealed class NightJobsSystem : IWorldSystem, IOptionalWorldState
         {
             var roots = idea.Roots.Select(r => new IdeaRoot(r.Kind.ToString().ToLowerInvariant(), r.Id)).ToList();
             var grows = idea.Id is { } id && ideaIds.Contains(id) ? id : null;
-            if (roots.Count == 0 || roots.Any(r => !(known.Contains(r.Id) || ideaIds.Contains(r.Id) || r.Kind == "inhabitant" && inhabitant.KnownNames.Contains(r.Id)))
-                || (grows is null && ++newIdeas > review.MaxNewIdeas) || string.IsNullOrWhiteSpace(idea.Text))
+            // Each root by its kind (review GW1 #328): a type it believes something about, one of its ideas, someone whose name it knows.
+            if (string.IsNullOrWhiteSpace(idea.Text) || roots.Count == 0 || roots.Any(r => !RootKnown(r, known, ideaIds, inhabitant))
+                || (grows is null && ++newIdeas > review.MaxNewIdeas))
             {
                 dropped.Add("idea");
                 continue;
@@ -478,7 +482,7 @@ public sealed class NightJobsSystem : IWorldSystem, IOptionalWorldState
             _inhabitants.Report(new WorldEvent(IdeaEvent, world.Tick, inhabitant.Id, null, kept.Id) { Detail = grows is null ? "new" : "grew" });
             if (idea.Thought is { } thought && _guard.Check(thought.Text).Allowed)
             {
-                _inhabitants.Report(new WorldEvent("thought", world.Tick, inhabitant.Id, null, null) { Text = thought.Text });
+                _inhabitants.Report(new WorldEvent(ThoughtEvent, world.Tick, inhabitant.Id, null, null) { Text = thought.Text });
             }
         }
 
@@ -496,7 +500,7 @@ public sealed class NightJobsSystem : IWorldSystem, IOptionalWorldState
             intentions.Add(new Intention(intention.Action, aboutKind, intention.About?.Id, world.Tick));
             if (intention.Thought is { } thought && _guard.Check(thought.Text).Allowed)
             {
-                _inhabitants.Report(new WorldEvent("thought", world.Tick, inhabitant.Id, null, null) { Text = thought.Text });
+                _inhabitants.Report(new WorldEvent(ThoughtEvent, world.Tick, inhabitant.Id, null, null) { Text = thought.Text });
             }
         }
 
@@ -511,6 +515,14 @@ public sealed class NightJobsSystem : IWorldSystem, IOptionalWorldState
             Log.Add(new DecisionLogEntry(DecisionLogKind.JobDiscarded, job.RequestId, world.Tick, json, Rejected + string.Join(',', dropped)));
         }
     }
+
+    private static bool RootKnown(IdeaRoot root, HashSet<string> types, HashSet<string> ideas, Inhabitant inhabitant) => root.Kind switch
+    {
+        "type" => types.Contains(root.Id),
+        IdeaKind => ideas.Contains(root.Id),
+        "inhabitant" => inhabitant.KnownNames.Contains(root.Id),
+        _ => false,
+    };
 
     /// <summary>
     /// A question job for every open question of the inhabitant about an object type that the data list and
@@ -742,7 +754,7 @@ public sealed class NightJobsSystem : IWorldSystem, IOptionalWorldState
         Log.Add(new DecisionLogEntry(DecisionLogKind.JobResult, job.RequestId, world.Tick, json, result.Understood ? null : NotUnderstood));
         if (result.Thought is { } thought && _guard.Check(thought.Text).Allowed)
         {
-            _inhabitants.Report(new WorldEvent("thought", world.Tick, inhabitant.Id, null, null) { Text = thought.Text });
+            _inhabitants.Report(new WorldEvent(ThoughtEvent, world.Tick, inhabitant.Id, null, null) { Text = thought.Text });
         }
 
         if (!result.Understood)
