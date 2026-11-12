@@ -322,6 +322,16 @@ public static class CrownFade
         return data.Alpha + ((1 - data.Alpha) * share * share);
     }
 
+    /// <summary>
+    /// The spot the camera looks at, as one more point crowns must not hide (A1599): its target on the ground while the
+    /// camera is no farther than the data's <c>focus_within_m</c>; null in the wide view or without the value.
+    /// </summary>
+    public static Point3? Focus(FigureCrownFade data, double cameraDistanceM, Point3 targetOnGround)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+        return data.FocusWithinM is { } within && cameraDistanceM <= within ? targetOnGround : null;
+    }
+
     /// <summary>Quick test before <see cref="Alpha"/>: whether a point lies in the box around the line, widened by the radius.</summary>
     public static bool NearLine(FigureCrownFade data, Point3 point, Point3 camera, Point3 figure)
     {

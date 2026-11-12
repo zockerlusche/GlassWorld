@@ -2574,7 +2574,7 @@ public partial class GameScreen : CanvasLayer
         values.AddRange(card.Needs.Select(v => (v.Key, v.Percent)));
         values.AddRange(card.Feelings.Select(v => (v.Key, v.Percent)));
         values.AddRange(card.Traits.Select(v => (v.Key, v.Percent)));
-        var shape = $"{inhabitantId}|{string.Join(',', card.Needs.Select(v => v.Key))}|{string.Join(',', card.Feelings.Select(v => v.Key))}|{string.Join(',', card.Traits.Select(v => v.Key))}";
+        var shape = $"{inhabitantId}|{string.Join(',', card.Needs.Select(v => v.Faded ? v.Key + "~" : v.Key))}|{string.Join(',', card.Feelings.Select(v => v.Key))}|{string.Join(',', card.Traits.Select(v => v.Key))}";
         if (shape != _cardShape)
         {
             // Build only when the set of values changes (other inhabitant, a feeling appears/fades).
@@ -2642,7 +2642,7 @@ public partial class GameScreen : CanvasLayer
             Bar(wellbeing, "ui.card.will_to_live");
             foreach (var need in card.Needs)
             {
-                Bar(wellbeing, need.Key);
+                Bar(wellbeing, need.Key, need);
             }
 
             var feelings = Fold("ui.card.feelings", folded: true);
@@ -2742,10 +2742,21 @@ public partial class GameScreen : CanvasLayer
             return rows;
         }
 
-        void Bar(VBoxContainer into, string key)
+        void Bar(VBoxContainer into, string key, CardValue? value = null)
         {
             var row = new HBoxContainer();
-            row.AddChild(new Label { Text = key, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
+
+            // A need an invention brought has no text key: its name from the need register, in the player's
+            // language (A1595); run empty it is shown greyed (not met lately - it can do no harm, #290).
+            var label = value?.Name is { } name
+                ? new Label { Text = TranslationServer.GetLocale().StartsWith("de", StringComparison.Ordinal) ? name.De : name.En, AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled }
+                : new Label { Text = key };
+            label.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+            row.AddChild(label);
+            if (value?.Faded == true)
+            {
+                row.Modulate = new Color(1, 1, 1, (float)(_style!.Tokens.Window.FadedAlpha ?? 0.5));
+            }
             var bar = new ProgressBar { MinValue = 0, MaxValue = 100, ShowPercentage = true, CustomMinimumSize = new Vector2(_style!.Tokens.Window.CardBarWidth, 0) };
             row.AddChild(bar);
             into.AddChild(row);

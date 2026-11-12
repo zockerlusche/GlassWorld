@@ -243,4 +243,20 @@ public sealed class FigurePresenceTests
         Assert.True(CrownFade.NearLine(fade, onLine, camera, figure));
         Assert.False(CrownFade.NearLine(fade, new Point3(50, 0, 0), camera, figure));
     }
+
+    [Fact]
+    public void WhatTheCameraLooksAtNearByIsNotHiddenByACrown()
+    {
+        // A1599 (D855): a built thing under the crown of the tree it was made from - the crown over the camera's
+        // target fades while the camera is near; the wide view keeps its trees.
+        var data = Figures.CrownFade;
+        var target = new Point3(10, 0, 10);
+        Assert.Equal(target, CrownFade.Focus(data, data.FocusWithinM!.Value, target));
+        Assert.Null(CrownFade.Focus(data, data.FocusWithinM.Value + 1, target));
+        Assert.Null(CrownFade.Focus(new FigureCrownFade { Enabled = true, Visuals = data.Visuals, CrownHeightM = data.CrownHeightM, RadiusM = data.RadiusM, Alpha = data.Alpha }, 1, target));
+
+        var camera = new Point3(10, 8, 16);
+        var crownOverTheThing = new Point3(10, data.CrownHeightM, 10.5);
+        Assert.True(CrownFade.Alpha(data, crownOverTheThing, camera, target) < 1);
+    }
 }
