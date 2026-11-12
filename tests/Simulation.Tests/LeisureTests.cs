@@ -66,6 +66,22 @@ public sealed class LeisureTests
     }
 
     [Fact]
+    public void AFreeMomentIsNoQuestionTheGameListsAndABusyInhabitantHasNone()
+    {
+        // Review GW2 #309: the inhabitant wonders about nothing - the leisure request is not an open question of the
+        // game's questions window; and while something is planned it has no free moment.
+        var (host, port, a) = Alone();
+        host.World.Step();
+        Assert.Equal(1, port.Sent);
+        Assert.Empty(host.Decisions.OpenQuestionIds(a.Id));
+
+        var (busy, busyPort, b) = Alone();
+        b.Planned = new Activity(Content.Value.InhabitantModel.Togetherness!.SleepAction, null, b.Position, null);
+        busy.World.Step();
+        Assert.Equal(0, busyPort.Sent);
+    }
+
+    [Fact]
     public void LowFunDoesNotKeepItFromLeisureItIsWhatMakesItBored()
     {
         // Boredom rises while fun is low (mood driver); fun, company and purpose are no pressing needs.

@@ -266,9 +266,12 @@ public sealed class DecisionsSystem : IWorldSystem
     /// <summary>Open questions in id order.</summary>
     public IEnumerable<OpenQuestion> Open => _open.Values;
 
-    /// <summary>Open questions of one inhabitant (ids only for the UI window, no wording).</summary>
+    /// <summary>
+    /// Open questions of one inhabitant (ids only for the UI window, no wording). A leisure request is none: the inhabitant
+    /// wonders about nothing, it only has a free moment (review GW2 #309).
+    /// </summary>
     public IReadOnlyList<string> OpenQuestionIds(string inhabitantId) =>
-        [.. _open.Values.Where(q => q.InhabitantId == inhabitantId).Select(q => q.Id)];
+        [.. _open.Values.Where(q => q.InhabitantId == inhabitantId && q.Kind != Leisure).Select(q => q.Id)];
 
     /// <summary>
     /// Open questions that still puzzle the inhabitant (TL #19921, for the question mark): a question about
@@ -597,7 +600,11 @@ public sealed class DecisionsSystem : IWorldSystem
         var every = (long)(leisure.EveryHours * world.Calendar.Settings.TicksPerHour);
         foreach (var inhabitant in _inhabitants.Ordered)
         {
+            // Busy is no free moment (review GW2 #309): something planned, a choice of the decider under way, or an
+            // action only the core plans (decider_option false, e.g. a building step).
             if (_openOf.GetValueOrDefault(inhabitant.Id) is { Count: > 0 } || _inhabitants.IsAsleep(inhabitant)
+                || inhabitant.Planned is not null || HeldBack(world, inhabitant, Leisure)
+                || (inhabitant.Activity is { } doing && !_actions.Timing(doing.Action).Offered)
                 || (_lastAsked.TryGetValue(inhabitant.Id + "|" + LeisureSubject, out var last) && world.Tick - last < every)
                 || (leisure.Mood is { } moodId && (!inhabitant.Moods.TryGetValue(moodId, out var mood) || mood < (leisure.MoodAtLeast ?? 0))))
             {
