@@ -47,7 +47,7 @@ def _render(request: DecisionRequest, budget: int = BUDGET, version: int = 1) ->
     )
 
 
-@pytest.mark.parametrize("version", [1, 2, 3, 4, 6, 7, 8])
+@pytest.mark.parametrize("version", [1, 2, 3, 4, 6, 7, 8, 9])
 @pytest.mark.parametrize("case", ["hungry-berries", "stormy-dusk"])
 def test_decider_prompt_snapshot(case: str, version: int) -> None:
     text = _render(_request(case), version=version)
@@ -203,6 +203,7 @@ def test_every_knowledge_source_has_words_in_the_prompts_that_name_sources() -> 
         "decider/decide.v6",
         "decider/decide.v7",
         "decider/decide.v8",
+        "decider/decide.v9",
         "question/ask.v1",
         "question/ask.v2",
         "question/ask.v3",
@@ -444,3 +445,56 @@ def test_v8_a_name_cannot_break_the_quotes_of_a_line() -> None:
     user = _render(DecisionRequest.model_validate(data), version=8).split("=== user ===")[1]
     assert "- thing 'Miras Schale gross' is crafted" in user
     assert '(you call it "Miras Schale gross")' in user
+
+
+def _stuck(locale: str = "de") -> DecisionRequest:
+    """The own-invention example as a stuck building (A1373 step 2, D850): the options the core
+    leaves open and the building block."""
+    data = json.loads((EXAMPLES / "decision-request.own-invention.json").read_text("utf-8"))
+    data["display_locale"] = locale
+    data["building"] = {
+        "name": {"de": "Wasserschale", "en": "water bowl"},
+        "missing_properties": ["container", "hard"],
+        "escalation": 2,
+        "max_escalations": 3,
+    }
+    data["options"] = [
+        {"option_id": "o1", "action": "build_smaller", "target": None, "partners": []},
+        {"option_id": "o2", "action": "give_up", "target": None, "partners": []},
+    ]
+    return DecisionRequest.model_validate(data)
+
+
+def test_v9_tells_a_stuck_building_by_names_only() -> None:
+    """D850: which invention (the player's language, one name per prompt), the missing properties
+    by name - never their descriptions (D763 Z21) - and how often; nothing says which way to
+    take."""
+    user = _render(_stuck(), version=9).split("=== user ===")[1]
+    assert "## Your building is stuck" in user
+    assert 'You are building "Wasserschale".' in user
+    assert "a material that is container and hard" in user
+    assert "This is time 2 of 3" in user
+    assert "Can hold other things" not in user and "Solid and hard to break" not in user
+    assert "water bowl" not in user
+    assert (
+        "Stop building and leave the thing as far as it is built" in user
+    )  # the option's own text
+    english = _render(_stuck("en"), version=9).split("=== user ===")[1]
+    assert 'You are building "water bowl".' in english
+    v8 = _render(_stuck(), version=8)
+    assert "Your building is stuck" not in v8  # v8 does not read the block
+
+
+def test_v9_shows_no_building_block_without_one() -> None:
+    assert "Your building is stuck" not in _render(_request("hungry-berries"), version=9)
+
+
+def test_v9_names_a_need_from_an_invention() -> None:
+    """#290: a need that came with an invention has no vocabulary entry - its English name."""
+    data = json.loads((EXAMPLES / "decision-request.hungry-berries.json").read_text("utf-8"))
+    data["inhabitant"]["needs"].append(
+        {"id": "tidiness", "value": 0.4, "label": {"de": "Ordnungssinn", "en": "sense of order"}}
+    )
+    request = DecisionRequest.model_validate(data)
+    assert "- sense of order: 0.40" in _render(request, version=9)
+    assert "- tidiness: 0.40" in _render(request, version=8)  # v8 as it was

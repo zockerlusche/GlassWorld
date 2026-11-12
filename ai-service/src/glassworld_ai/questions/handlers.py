@@ -51,7 +51,7 @@ def _schema(template: PromptTemplate, vocab: Vocabulary, job: GenerationJob) -> 
     # A person has no thing properties: no guesses about inhabitants (live probe L663).
     person = plain_id(question_payload(job).subject.kind) == "inhabitant"
     max_guesses = 0 if person else int(template.settings.get("max_guesses", 4))
-    return output_schema(vocab.ids("property"), vocab.ids("action"), max_guesses)
+    return output_schema(vocab.ids("property"), vocab.general_ids("action"), max_guesses)
 
 
 def _hidden_ids(job: GenerationJob) -> frozenset[str]:

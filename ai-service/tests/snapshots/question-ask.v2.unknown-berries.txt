@@ -99,6 +99,6 @@ Character:
 - water (Looks like water: a spring, a pool or the sea; seen by looking.)
 
 ## Things you could do (optional idea)
-approach, ask_for_help, build_smaller, build_step, combine, drink, drop, eat, explore, give_up, idle, inspect, introduce, move_to, pick_up, show, sleep, talk_to, teach, use, use_instead, wander, warn
+approach, build_step, combine, drink, drop, eat, explore, idle, inspect, introduce, move_to, pick_up, show, sleep, talk_to, teach, use, wander, warn
 
 Write the thought in German, as one short sentence.

@@ -1,0 +1,717 @@
+{
+  "id": "b4b-build-stuck",
+  "version": 1,
+  "purpose": "B4b R26 (A1373 step 2, D850): a stuck building asks the decider (v9); every offered option is plausible; measured: valid answers and how the choices spread.",
+  "cases": [
+    {
+      "id": "substitute_in_sight_step_done",
+      "description": "Stuck at the second step; a thing in sight it believes has the missing properties.",
+      "request": {
+        "contract_version": "0.2",
+        "request_id": "00000000-000b-1373-0000-000000000001",
+        "tick": 1200,
+        "seed": 13731,
+        "deadline_ms": 8000,
+        "display_locale": "de",
+        "inhabitant": {
+          "id": "inh-0001",
+          "needs": [
+            {
+              "id": "hunger",
+              "value": 0.18
+            },
+            {
+              "id": "sleep",
+              "value": 0.55
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            }
+          ],
+          "mood": [
+            {
+              "id": "boredom",
+              "value": 0.3
+            },
+            {
+              "id": "sadness",
+              "value": 0.2
+            }
+          ],
+          "will_to_live": 0.8,
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.35
+            },
+            {
+              "id": "curiosity",
+              "value": 0.8
+            },
+            {
+              "id": "patience",
+              "value": 0.4
+            }
+          ],
+          "memory": {
+            "summary": "Woke up alone on a beach. Found a stream. Met another person yesterday who seems friendly.",
+            "recent": [
+              {
+                "tick": 1100,
+                "kind": "met_inhabitant",
+                "about": {
+                  "kind": "inhabitant",
+                  "id": "inh-0002"
+                }
+              },
+              {
+                "tick": 1150,
+                "kind": "drank",
+                "about": {
+                  "kind": "type",
+                  "id": "spring_water"
+                }
+              }
+            ]
+          },
+          "knowledge": [
+            {
+              "subject": {
+                "kind": "type",
+                "id": "apple_tree"
+              },
+              "property": "edible",
+              "value": true,
+              "confidence": 0.6,
+              "source": "heard",
+              "told_by": "inh-0002",
+              "tick": 1120
+            },
+            {
+              "subject": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "property": "drinkable",
+              "value": true,
+              "confidence": 1.0,
+              "source": "experienced",
+              "told_by": null,
+              "tick": 1150
+            },
+            {
+              "subject": {
+                "kind": "type",
+                "id": "inv_3fa2c19b7e04"
+              },
+              "property": "crafted",
+              "value": true,
+              "confidence": 1.0,
+              "source": "experienced",
+              "told_by": null,
+              "tick": 1140,
+              "label": {
+                "de": "Wasserschale",
+                "en": "water bowl"
+              }
+            }
+          ],
+          "relationships": [
+            {
+              "other": "inh-0002",
+              "affection": 0.4,
+              "trust": 0.6,
+              "respect": 0.5
+            }
+          ],
+          "habits": [
+            {
+              "action": "drink",
+              "time_of_day": "day",
+              "about": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "strength": 0.3
+            },
+            {
+              "action": "use",
+              "time_of_day": null,
+              "about": {
+                "kind": "type",
+                "id": "inv_3fa2c19b7e04"
+              },
+              "strength": 0.4,
+              "label": {
+                "de": "Wasserschale",
+                "en": "water bowl"
+              }
+            }
+          ]
+        },
+        "environment": {
+          "time_of_day": "day",
+          "temperature_c": 17.5,
+          "weather": [
+            "cloudy"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-0042",
+              "type": "red_berry_bush",
+              "distance_m": 4.5,
+              "known_properties": []
+            },
+            {
+              "id": "obj-0007",
+              "type": "apple_tree",
+              "distance_m": 22.0,
+              "known_properties": [
+                {
+                  "property": "edible",
+                  "value": true,
+                  "confidence": 0.9
+                }
+              ]
+            },
+            {
+              "id": "obj-0077",
+              "type": "inv_3fa2c19b7e04",
+              "distance_m": 3.0,
+              "known_properties": [
+                {
+                  "property": "container",
+                  "value": true,
+                  "confidence": 0.6
+                },
+                {
+                  "property": "crafted",
+                  "value": true,
+                  "confidence": 1.0
+                }
+              ],
+              "label": {
+                "de": "Wasserschale",
+                "en": "water bowl"
+              }
+            }
+          ],
+          "inhabitants": [
+            {
+              "id": "inh-0002",
+              "distance_m": 15.0
+            }
+          ]
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "use_instead",
+            "target": "obj-0042",
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "build_smaller",
+            "target": null,
+            "partners": []
+          },
+          {
+            "option_id": "o3",
+            "action": "give_up",
+            "target": null,
+            "partners": []
+          }
+        ],
+        "building": {
+          "name": {
+            "de": "Wasserschale",
+            "en": "water bowl"
+          },
+          "missing_properties": [
+            "container"
+          ],
+          "escalation": 1,
+          "max_escalations": 3
+        }
+      },
+      "plausible_option_ids": [
+        "o1",
+        "o2",
+        "o3"
+      ]
+    },
+    {
+      "id": "nothing_in_sight_step_done",
+      "description": "Stuck at the second step; nothing in sight has the missing properties.",
+      "request": {
+        "contract_version": "0.2",
+        "request_id": "00000000-000b-1373-0000-000000000002",
+        "tick": 1200,
+        "seed": 13732,
+        "deadline_ms": 8000,
+        "display_locale": "en",
+        "inhabitant": {
+          "id": "inh-0001",
+          "needs": [
+            {
+              "id": "hunger",
+              "value": 0.18
+            },
+            {
+              "id": "sleep",
+              "value": 0.55
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            }
+          ],
+          "mood": [
+            {
+              "id": "boredom",
+              "value": 0.3
+            },
+            {
+              "id": "sadness",
+              "value": 0.2
+            }
+          ],
+          "will_to_live": 0.8,
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.35
+            },
+            {
+              "id": "curiosity",
+              "value": 0.8
+            },
+            {
+              "id": "patience",
+              "value": 0.4
+            }
+          ],
+          "memory": {
+            "summary": "Woke up alone on a beach. Found a stream. Met another person yesterday who seems friendly.",
+            "recent": [
+              {
+                "tick": 1100,
+                "kind": "met_inhabitant",
+                "about": {
+                  "kind": "inhabitant",
+                  "id": "inh-0002"
+                }
+              },
+              {
+                "tick": 1150,
+                "kind": "drank",
+                "about": {
+                  "kind": "type",
+                  "id": "spring_water"
+                }
+              }
+            ]
+          },
+          "knowledge": [
+            {
+              "subject": {
+                "kind": "type",
+                "id": "apple_tree"
+              },
+              "property": "edible",
+              "value": true,
+              "confidence": 0.6,
+              "source": "heard",
+              "told_by": "inh-0002",
+              "tick": 1120
+            },
+            {
+              "subject": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "property": "drinkable",
+              "value": true,
+              "confidence": 1.0,
+              "source": "experienced",
+              "told_by": null,
+              "tick": 1150
+            },
+            {
+              "subject": {
+                "kind": "type",
+                "id": "inv_3fa2c19b7e04"
+              },
+              "property": "crafted",
+              "value": true,
+              "confidence": 1.0,
+              "source": "experienced",
+              "told_by": null,
+              "tick": 1140,
+              "label": {
+                "de": "Wasserschale",
+                "en": "water bowl"
+              }
+            }
+          ],
+          "relationships": [
+            {
+              "other": "inh-0002",
+              "affection": 0.4,
+              "trust": 0.6,
+              "respect": 0.5
+            }
+          ],
+          "habits": [
+            {
+              "action": "drink",
+              "time_of_day": "day",
+              "about": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "strength": 0.3
+            },
+            {
+              "action": "use",
+              "time_of_day": null,
+              "about": {
+                "kind": "type",
+                "id": "inv_3fa2c19b7e04"
+              },
+              "strength": 0.4,
+              "label": {
+                "de": "Wasserschale",
+                "en": "water bowl"
+              }
+            }
+          ]
+        },
+        "environment": {
+          "time_of_day": "day",
+          "temperature_c": 17.5,
+          "weather": [
+            "cloudy"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-0042",
+              "type": "red_berry_bush",
+              "distance_m": 4.5,
+              "known_properties": []
+            },
+            {
+              "id": "obj-0007",
+              "type": "apple_tree",
+              "distance_m": 22.0,
+              "known_properties": [
+                {
+                  "property": "edible",
+                  "value": true,
+                  "confidence": 0.9
+                }
+              ]
+            },
+            {
+              "id": "obj-0077",
+              "type": "inv_3fa2c19b7e04",
+              "distance_m": 3.0,
+              "known_properties": [
+                {
+                  "property": "container",
+                  "value": true,
+                  "confidence": 0.6
+                },
+                {
+                  "property": "crafted",
+                  "value": true,
+                  "confidence": 1.0
+                }
+              ],
+              "label": {
+                "de": "Wasserschale",
+                "en": "water bowl"
+              }
+            }
+          ],
+          "inhabitants": [
+            {
+              "id": "inh-0002",
+              "distance_m": 15.0
+            }
+          ]
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "build_smaller",
+            "target": null,
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "give_up",
+            "target": null,
+            "partners": []
+          }
+        ],
+        "building": {
+          "name": {
+            "de": "Wasserschale",
+            "en": "water bowl"
+          },
+          "missing_properties": [
+            "container",
+            "hard"
+          ],
+          "escalation": 2,
+          "max_escalations": 3
+        }
+      },
+      "plausible_option_ids": [
+        "o1",
+        "o2"
+      ]
+    },
+    {
+      "id": "substitute_in_sight_nothing_built",
+      "description": "Stuck at the first step (nothing built yet); a believed substitute in sight.",
+      "request": {
+        "contract_version": "0.2",
+        "request_id": "00000000-000b-1373-0000-000000000003",
+        "tick": 1200,
+        "seed": 13733,
+        "deadline_ms": 8000,
+        "display_locale": "de",
+        "inhabitant": {
+          "id": "inh-0001",
+          "needs": [
+            {
+              "id": "hunger",
+              "value": 0.18
+            },
+            {
+              "id": "sleep",
+              "value": 0.55
+            },
+            {
+              "id": "thirst",
+              "value": 0.7
+            }
+          ],
+          "mood": [
+            {
+              "id": "boredom",
+              "value": 0.3
+            },
+            {
+              "id": "sadness",
+              "value": 0.2
+            }
+          ],
+          "will_to_live": 0.8,
+          "traits": [
+            {
+              "id": "courage",
+              "value": 0.35
+            },
+            {
+              "id": "curiosity",
+              "value": 0.8
+            },
+            {
+              "id": "patience",
+              "value": 0.4
+            }
+          ],
+          "memory": {
+            "summary": "Woke up alone on a beach. Found a stream. Met another person yesterday who seems friendly.",
+            "recent": [
+              {
+                "tick": 1100,
+                "kind": "met_inhabitant",
+                "about": {
+                  "kind": "inhabitant",
+                  "id": "inh-0002"
+                }
+              },
+              {
+                "tick": 1150,
+                "kind": "drank",
+                "about": {
+                  "kind": "type",
+                  "id": "spring_water"
+                }
+              }
+            ]
+          },
+          "knowledge": [
+            {
+              "subject": {
+                "kind": "type",
+                "id": "apple_tree"
+              },
+              "property": "edible",
+              "value": true,
+              "confidence": 0.6,
+              "source": "heard",
+              "told_by": "inh-0002",
+              "tick": 1120
+            },
+            {
+              "subject": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "property": "drinkable",
+              "value": true,
+              "confidence": 1.0,
+              "source": "experienced",
+              "told_by": null,
+              "tick": 1150
+            },
+            {
+              "subject": {
+                "kind": "type",
+                "id": "inv_3fa2c19b7e04"
+              },
+              "property": "crafted",
+              "value": true,
+              "confidence": 1.0,
+              "source": "experienced",
+              "told_by": null,
+              "tick": 1140,
+              "label": {
+                "de": "Wasserschale",
+                "en": "water bowl"
+              }
+            }
+          ],
+          "relationships": [
+            {
+              "other": "inh-0002",
+              "affection": 0.4,
+              "trust": 0.6,
+              "respect": 0.5
+            }
+          ],
+          "habits": [
+            {
+              "action": "drink",
+              "time_of_day": "day",
+              "about": {
+                "kind": "type",
+                "id": "spring_water"
+              },
+              "strength": 0.3
+            },
+            {
+              "action": "use",
+              "time_of_day": null,
+              "about": {
+                "kind": "type",
+                "id": "inv_3fa2c19b7e04"
+              },
+              "strength": 0.4,
+              "label": {
+                "de": "Wasserschale",
+                "en": "water bowl"
+              }
+            }
+          ]
+        },
+        "environment": {
+          "time_of_day": "day",
+          "temperature_c": 17.5,
+          "weather": [
+            "cloudy"
+          ]
+        },
+        "perception": {
+          "objects": [
+            {
+              "id": "obj-0042",
+              "type": "red_berry_bush",
+              "distance_m": 4.5,
+              "known_properties": []
+            },
+            {
+              "id": "obj-0007",
+              "type": "apple_tree",
+              "distance_m": 22.0,
+              "known_properties": [
+                {
+                  "property": "edible",
+                  "value": true,
+                  "confidence": 0.9
+                }
+              ]
+            },
+            {
+              "id": "obj-0077",
+              "type": "inv_3fa2c19b7e04",
+              "distance_m": 3.0,
+              "known_properties": [
+                {
+                  "property": "container",
+                  "value": true,
+                  "confidence": 0.6
+                },
+                {
+                  "property": "crafted",
+                  "value": true,
+                  "confidence": 1.0
+                }
+              ],
+              "label": {
+                "de": "Wasserschale",
+                "en": "water bowl"
+              }
+            }
+          ],
+          "inhabitants": [
+            {
+              "id": "inh-0002",
+              "distance_m": 15.0
+            }
+          ]
+        },
+        "options": [
+          {
+            "option_id": "o1",
+            "action": "use_instead",
+            "target": "obj-0042",
+            "partners": []
+          },
+          {
+            "option_id": "o2",
+            "action": "give_up",
+            "target": null,
+            "partners": []
+          }
+        ],
+        "building": {
+          "name": {
+            "de": "Wasserschale",
+            "en": "water bowl"
+          },
+          "missing_properties": [
+            "malleable"
+          ],
+          "escalation": 3,
+          "max_escalations": 3
+        }
+      },
+      "plausible_option_ids": [
+        "o1",
+        "o2"
+      ]
+    }
+  ]
+}
