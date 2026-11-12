@@ -217,6 +217,31 @@ class SkillRules(BaseModel):
     max_runtime_skills: int = Field(..., ge=0, le=64)
 
 
+class NeedRules(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    runtime_decay_per_day_min: float = Field(
+        ...,
+        description='Lowest decay per game day a new need may have.',
+        ge=0.0,
+        le=1.0,
+    )
+    runtime_decay_per_day_max: float = Field(
+        ...,
+        description='Highest decay per game day a new need may have.',
+        ge=0.0,
+        le=1.0,
+    )
+    fill_per_use: float = Field(
+        ...,
+        description="How much one use of a thing of the invention's type with one of the need's actions fills it.",
+        ge=0.0,
+        le=1.0,
+    )
+    max_runtime_needs: int = Field(..., ge=0, le=64)
+
+
 class ComfortZone(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -316,6 +341,7 @@ class InhabitantModel(BaseModel):
         min_length=1,
     )
     skill_rules: SkillRules
+    need_rules: NeedRules | None = None
     togetherness: Togetherness | None = None
     diary: Diary | None = None
     comfort_zone: ComfortZone | None = None
