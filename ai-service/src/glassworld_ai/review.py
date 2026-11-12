@@ -8,8 +8,9 @@ what the inhabitant knows (its Fundbuch, B2589) and its ideas, the model writes 
 summary, a dream, new or grown ideas ("What if I ...?", B2578), intentions for the morning and the
 morning mood. What ideas and intentions do is data in the core (frame, not outcome).
 
-The model never sees an id: things it knows are k1, k2, ..., its ideas i1, i2, ... (as the dream
-names the day's things t1, t2, ...). The service checks before anything goes out:
+The model never sees an id: it names the things it knows and the day's things by their names as the
+prompt lists them (measurement L1287: with neutral keys k1, k2 ... it mixed them up), its ideas by
+keys i1, i2, .... The service maps names back and checks before anything goes out:
 - the summary keeps the budget and names every formative event (as memory; else ask again);
 - roots of an idea and the subject of an intention come only from the input - only its own
   knowledge, its own ideas (R29 "can it come up with it"); an idea or intention that names
@@ -69,14 +70,40 @@ def review_payload(job: GenerationJob) -> Any:
     return payload
 
 
-def known(job: GenerationJob) -> dict[str, dict[str, str]]:
-    """What the inhabitant knows, by a neutral key (k1, k2, ... in the order of the Fundbuch)."""
+def _keyed(
+    pairs: list[tuple[str, str]],
+    prefix: str,
+    job: GenerationJob,
+    texts: TextCatalog | None,
+    settings: dict[str, Any] | None,
+) -> dict[str, dict[str, str]]:
+    """Subjects by the name the prompt shows (player's language); a name two subjects share, or
+    none, falls back to a neutral key (prefix + number), so every key names exactly one subject."""
+    locale = plain_id(job.display_locale)
+    named = [
+        (_name(k, i, settings, texts, locale) if settings is not None else "", k, i)
+        for k, i in pairs
+    ]
+    counts: dict[str, int] = {}
+    for name, _, _ in named:
+        counts[name] = counts.get(name, 0) + 1
+    out: dict[str, dict[str, str]] = {}
+    for n, (name, k, i) in enumerate(named, start=1):
+        key = name if name and counts[name] == 1 else f"{prefix}{n}"
+        out[key] = {"kind": k, "id": i}
+    return out
+
+
+def known(
+    job: GenerationJob, texts: TextCatalog | None = None, settings: dict[str, Any] | None = None
+) -> dict[str, dict[str, str]]:
+    """What the inhabitant knows, by name (or k1, k2, ... where a name is missing or shared)."""
     seen: list[tuple[str, str]] = []
     for entry in review_payload(job).knowledge:
         pair = (plain_id(entry.subject.kind), plain_id(entry.subject.id))
         if pair not in seen:
             seen.append(pair)
-    return {f"k{n}": {"kind": k, "id": i} for n, (k, i) in enumerate(seen, start=1)}
+    return _keyed(seen, "k", job, texts, settings)
 
 
 def ideas(job: GenerationJob) -> dict[str, Any]:
@@ -84,15 +111,17 @@ def ideas(job: GenerationJob) -> dict[str, Any]:
     return {f"i{n}": idea for n, idea in enumerate(review_payload(job).ideas, start=1)}
 
 
-def day_things(job: GenerationJob) -> dict[str, dict[str, str]]:
-    """The day's subjects (t1, t2, ...) for the dream's 'about' (as the dream job)."""
+def day_things(
+    job: GenerationJob, texts: TextCatalog | None = None, settings: dict[str, Any] | None = None
+) -> dict[str, dict[str, str]]:
+    """The day's subjects for the dream's 'about', by name (or t1, t2, ...)."""
     seen: list[tuple[str, str]] = []
     for event in review_payload(job).events:
         if event.about is not None:
             pair = (plain_id(event.about.kind), plain_id(event.about.id))
             if pair not in seen:
                 seen.append(pair)
-    return {f"t{n}": {"kind": k, "id": i} for n, (k, i) in enumerate(seen, start=1)}
+    return _keyed(seen, "t", job, texts, settings)
 
 
 def _table(settings: dict[str, Any], key: str) -> dict[str, str]:
@@ -103,8 +132,9 @@ def _table(settings: dict[str, Any], key: str) -> dict[str, str]:
 
 
 def _name(
-    kind: str, ident: str, settings: dict[str, Any], texts: TextCatalog | None, locale: str
+    kind: str, ident: str, settings: dict[str, Any] | None, texts: TextCatalog | None, locale: str
 ) -> str:
+    settings = settings or {}
     if kind == "inhabitant":
         return _table(settings, "subject_kinds").get("inhabitant", "another person")
     found = texts.thing(locale, ident) if texts is not None and kind == "type" else None
@@ -140,26 +170,19 @@ def build_values(
         came = f", {humanize(plain_id(outcome))}" if outcome is not None else ""
         mark = " - FORMATIVE, keep it" if event.formative else ""
         events.append(f"- [tick {event.tick}] {humanize(plain_id(event.kind))}{about}{came}{mark}")
-    keys = known(job)
+    keys = known(job, texts, settings)
     beliefs: dict[str, list[str]] = {}
     for entry in payload.knowledge:
         pair = {"kind": plain_id(entry.subject.kind), "id": plain_id(entry.subject.id)}
         key = next(k for k, s in keys.items() if s == pair)
         word = "is" if entry.value else "is not"
         beliefs.setdefault(key, []).append(f"{word} {humanize(plain_id(entry.property))}")
-    knowledge = [
-        f"- {key}: {_name(s['kind'], s['id'], settings, texts, locale)}"
-        f" - {', '.join(beliefs.get(key, []))}"
-        for key, s in keys.items()
-    ]
+    knowledge = [f"- {key}: {', '.join(beliefs.get(key, []))}" for key in keys]
     own = [
         f"- {key}: {idea.text} (grown {float(idea.strength):.1f})"
         for key, idea in ideas(job).items()
     ]
-    things = [
-        f"- {key}: {_name(s['kind'], s['id'], settings, texts, locale)}"
-        for key, s in day_things(job).items()
-    ]
+    things = [f"- {key}" for key in day_things(job, texts, settings)]
     needs = ", ".join(f"{humanize(plain_id(n.id))} {_level(float(n.value))}" for n in payload.needs)
     traits = ", ".join(
         f"{humanize(plain_id(t.id))} {_level(float(t.value))}" for t in payload.traits
@@ -186,11 +209,16 @@ def build_values(
     }
 
 
-def output_schema(job: GenerationJob, moods: list[str]) -> dict[str, Any]:
+def output_schema(
+    job: GenerationJob,
+    moods: list[str],
+    texts: TextCatalog | None = None,
+    settings: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     payload = review_payload(job)
     formative = sorted({e.tick for e in payload.events if e.formative})
-    roots = list(known(job)) + list(ideas(job))
-    day = list(day_things(job))
+    roots = list(known(job, texts, settings)) + list(ideas(job))
+    day = list(day_things(job, texts, settings))
     kept: dict[str, Any] = (
         {
             "type": "array",
@@ -270,7 +298,7 @@ def output_schema(job: GenerationJob, moods: list[str]) -> dict[str, Any]:
                             "type": "string",
                             "enum": [plain_id(a) for a in payload.actions],
                         },
-                        "about": one_of(list(known(job))),
+                        "about": one_of(list(known(job, texts, settings))),
                         "thought": {"type": "string", "minLength": 1, "maxLength": 160},
                     },
                 },
@@ -330,7 +358,7 @@ def parse_review(
     settings: dict[str, Any] | None = None,
 ) -> tuple[dict[str, Any], list[str]]:
     """The checked result and notes on what was left out (for the log)."""
-    schema = output_schema(job, moods)
+    schema = output_schema(job, moods, texts, settings)
     try:
         data: Any = json.loads(raw)
     except json.JSONDecodeError as error:
@@ -366,7 +394,7 @@ def parse_review(
 
     dream_raw = cast(dict[str, Any], values["dream"])
     dream_text = text(str(dream_raw["text"]), "dream")
-    things = day_things(job)
+    things = day_things(job, texts, settings)
     dream = (
         {
             "text": dream_text,
@@ -376,7 +404,7 @@ def parse_review(
         if dream_text is not None
         else None
     )
-    keys, own = known(job), ideas(job)
+    keys, own = known(job, texts, settings), ideas(job)
     out_ideas: list[dict[str, Any]] = []
     new = 0
     for item in cast(list[dict[str, Any]], values["ideas"]):
@@ -450,7 +478,7 @@ class OllamaReviews:
             role=ROLE,
             job=job,
             rendered=rendered,
-            schema=output_schema(job, self._moods),
+            schema=output_schema(job, self._moods, self._texts, settings),
             parse=lambda raw: parse_review(
                 raw, job, self._guard, self._moods, self._texts, settings
             ),

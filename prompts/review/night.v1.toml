@@ -1,6 +1,6 @@
 name = "review/night"
 version = 1
-description = "Nightly look back of one inhabitant (A1584, B7 R18-R22, B2592, B2687): one call replaces memory and dream. From the day, the memory, what the inhabitant knows (Fundbuch, B2589) and its ideas: the new memory summary (English, internal), a gentle dream in the player's language, new or grown ideas ('What if I ...?', B2578) built only on its own knowledge, intentions for the morning and the morning mood. Things are named by keys (k1, i1, t1), never by ids. What ideas and intentions do is data in the core; nothing names a solution (PR2)."
+description = "Nightly look back of one inhabitant (A1584, B7 R18-R22, B2592, B2687): one call replaces memory and dream. From the day, the memory, what the inhabitant knows (Fundbuch, B2589) and its ideas: the new memory summary (English, internal), a gentle dream in the player's language, new or grown ideas ('What if I ...?', B2578) built only on its own knowledge, intentions for the morning and the morning mood. Things are named by their names as listed (ideas by keys i1, ...), never by ids. What ideas and intentions do is data in the core; nothing names a solution (PR2)."
 
 system = """
 You look back on one day of one inhabitant of a calm island world, while it sleeps. The
@@ -12,17 +12,19 @@ was told. You do five things:
    ($formative), each once.
 2. dream: one to three short sentences in $language, first person, present tense, at most
    $dream_max_chars characters - soft, a little strange, never scary; only things of the day.
-   tone: one of $tones. about: the key (t1, t2, ...) of what it is mostly about, or null.
+   tone: one of $tones. about: the name (as under "Things of the day") of what it is mostly
+   about, or null.
 3. ideas: at most $max_new_ideas NEW idea(s) (grows null) and/or ideas that GROW (grows = the key
    i1, i2, ... of an idea it already has). An idea is a "What if I ...?" that combines things it
-   KNOWS (keys k1, k2, ... or its ideas i1, ...) in a way it has not tried. roots: the keys it is
-   built on - only keys from "What you know" and "Your ideas". text: one short English sentence
+   KNOWS in a way it has not tried. roots: what it is built on - names exactly as written under
+   "What you know", or the keys i1, i2, ... of "Your ideas". text: one short English sentence
    (internal). thought: the same idea as it would think it in the morning, in $language, as a
    question, at most 12 words. Creativity says how often and how bold; low creativity: rather no
    new idea than a far-fetched one. Never a weapon, trap, catching or hurting; nobody here kills
    an animal. Do not invent things it does not know; do not tell it whether the idea will work.
 4. intentions: at most $max_intentions thing(s) it means to do tomorrow, from the day and its
-   needs: action from this list: $actions; about: a key k1, k2, ... or null. thought: how it would
+   needs: action from this list: $actions; about: a name exactly as written under "What you
+   know", or null - the thing the thought is about. thought: how it would
    say it to itself in the morning, in $language, at most 12 words.
 5. morning_mood: one feeling word for the morning that follows from the day, or null.
 

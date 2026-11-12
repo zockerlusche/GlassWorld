@@ -39,17 +39,21 @@ def _answer(**changes: Any) -> str:
     base: dict[str, Any] = {
         "summary": "Woke on the beach, met Mira. Hazelnuts are good to eat.",
         "kept": [1900],
-        "dream": {"text": "Ich laufe über den Strand.", "tone": "joyful", "about": "t2"},
+        "dream": {"text": "Ich laufe über den Strand.", "tone": "joyful", "about": "Haselnuss"},
         "ideas": [
             {
                 "grows": None,
                 "text": "The sharp stone might open a hazelnut.",
-                "roots": ["k1", "k2"],
+                "roots": ["Feuerstein", "Haselnuss"],
                 "thought": "Was, wenn ich die Haselnuss mit dem Stein öffne?",
             }
         ],
         "intentions": [
-            {"action": "show", "about": "k2", "thought": "Heute zeige ich ihr die Haselnüsse."}
+            {
+                "action": "show",
+                "about": "Haselnuss",
+                "thought": "Heute zeige ich ihr die Haselnüsse.",
+            }
         ],
         "morning_mood": "joy",
     }
@@ -94,7 +98,7 @@ def test_the_model_never_sees_an_id() -> None:
     values = build_values(JOB, TEMPLATE, TEXTS)
     text = "\n".join(values.values())
     assert "flint" not in text and "hazelnut" not in text
-    assert "k1:" in values["knowledge"] and "t1:" in values["things"]
+    assert "- Feuerstein: is sharp" in values["knowledge"] and "- Feuerstein" in values["things"]
 
 
 def test_roots_come_only_from_its_own_knowledge() -> None:
@@ -109,7 +113,12 @@ def test_roots_come_only_from_its_own_knowledge() -> None:
 
 
 def test_more_new_ideas_than_allowed_are_left_out() -> None:
-    idea = {"grows": None, "text": "Stone on nut.", "roots": ["k1"], "thought": "Was, wenn ich?"}
+    idea = {
+        "grows": None,
+        "text": "Stone on nut.",
+        "roots": ["Feuerstein"],
+        "thought": "Was, wenn ich?",
+    }
     result, notes = _parse(_answer(ideas=[idea, {**idea, "text": "Another."}]))
     assert len(result["ideas"]) == 1  # max_new_ideas = 1
     assert any("more than 1 new" in n for n in notes)
@@ -120,7 +129,7 @@ def test_a_thought_naming_an_unknown_thing_of_the_world_is_left_out_the_idea_sta
     idea = {
         "grows": None,
         "text": "Make fire with the stone.",
-        "roots": ["k1"],
+        "roots": ["Feuerstein"],
         "thought": "Was, wenn ich mit dem Stein Feuer mache?",
     }
     result, notes = _parse(_answer(ideas=[idea]))
