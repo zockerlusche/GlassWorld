@@ -82,6 +82,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("requires_property")]
         public string? RequiresProperty { get; set; } = default!;
 
+        /// <summary>
+        /// B2668: a second true property the target must have as well (e.g. crafted: only made things); omitted or null = none.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("requires_also")]
+        public string? RequiresAlso { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("consumes_target")]
         public bool ConsumesTarget { get; set; } = default!;
 

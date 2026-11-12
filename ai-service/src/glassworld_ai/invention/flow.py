@@ -312,10 +312,13 @@ def inventor_values(
     payload = _payload(job)
     settings = template.settings
     trigger = plain_id(payload.trigger)
+    want = plain_id(payload.want)
+    # v4 (B2668): a need is said with what it is about, so the idea can answer it.
+    about = vocab.describe("need", want) if settings.get("want_about") is True else None
     why = (
         table(settings, "trigger_words")
         .get(trigger, "$want")
-        .replace("$want", humanize(plain_id(payload.want)))
+        .replace("$want", humanize(want) + (f" ({about.rstrip('.')})" if about else ""))
     )
     language = table(settings, "language_names").get(plain_id(job.display_locale))
     if language is None:
@@ -357,12 +360,23 @@ def safety_categories(content_dir: Path, examples: int = 6) -> str:
 
 
 def guard_values(
-    job: GenerationJob, invention: dict[str, Any], round_no: int, vocab: Vocabulary, safety: str
+    job: GenerationJob,
+    invention: dict[str, Any],
+    round_no: int,
+    vocab: Vocabulary,
+    safety: str,
+    settings: dict[str, Any] | None = None,
 ) -> dict[str, str]:
     payload = _payload(job)
     data = json.dumps(invention, ensure_ascii=False, indent=1)
-    reasons = vocab.ids("guard_reason")
+    # v3 (B2668): reasons bound to an occasion are listed only by a prompt that names it.
+    occasions = set((settings or {}).get("reason_occasions", []))
+    bound = vocab.occasions.get("guard_reason", {})
+    reasons = [r for r in vocab.ids("guard_reason") if r not in bound or bound[r] in occasions]
+    want = plain_id(payload.want)
+    about = vocab.describe("need", want)
     return {
+        "want": humanize(want) + (f" ({about.rstrip('.')})" if about else ""),
         "reasons": "\n".join(f"- {r}: {vocab.describe('guard_reason', r)}" for r in reasons),
         "safety": safety,
         "invention": "\n".join("> " + line for line in data.splitlines()),
@@ -417,7 +431,9 @@ async def run_flow(
         )
         invention = proposal["invention"]
         thought = proposal["thought"] or thought
-        g_rendered = guard.render(guard_values(job, invention, round_no, vocab, safety))
+        g_rendered = guard.render(
+            guard_values(job, invention, round_no, vocab, safety, guard.settings)
+        )
         verdict, _ = await ask(
             GUARD_ROLE, g_rendered, g_schema, lambda raw: parse_guard(raw, g_schema)
         )
