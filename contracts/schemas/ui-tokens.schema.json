@@ -329,6 +329,12 @@
           "minimum": 0,
           "maximum": 0.9
         },
+        "faded_alpha": {
+          "description": "Opacity of a card value shown greyed - a need an invention brought that has run empty (A1595); 1 = not greyed. Omitted = 0.5.",
+          "type": "number",
+          "minimum": 0.2,
+          "maximum": 1
+        },
         "log_lines": {
           "description": "Lines the conversation log keeps (W1696: who said or thought what), newest first.",
           "type": "integer",
