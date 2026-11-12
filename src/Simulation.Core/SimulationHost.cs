@@ -381,6 +381,9 @@ public sealed class SimulationHost
 
         // The player's language (#20043): a logged command, so replays ask in the same language at the same tick.
         decisions.RegisterCommand(DecisionsSystem.SetDisplayLocale, CheckDisplayLocale, (_, command) => host.UseDisplayLocale(command.Text!));
+
+        // Learning by day as well (B2652, A1568): a logged command, so a replay switches at the same tick.
+        decisions.RegisterCommand(DecisionsSystem.SetLearnByDay, CheckLearnByDay, (_, command) => decisions.LearnByDay = command.Text == DecisionsSystem.LearnByDayOn);
         return host;
     }
 
@@ -388,13 +391,14 @@ public sealed class SimulationHost
     public string DisplayLocale => Decisions.DisplayLocale;
 
     /// <summary>
-    /// After a restore: the language the saved log ends with (the last <see cref="DecisionsSystem.SetDisplayLocale"/>,
+    /// After a restore: the player's settings the saved log ends with - the language (the last <see cref="DecisionsSystem.SetDisplayLocale"/>,
     /// else <see cref="DecisionsSystem.DefaultDisplayLocale"/>), so the world goes on as it was saved. A
-    /// different player language then follows as a logged command.
+    /// different player language then follows as a logged command. The same for the switch 'learn by day as well'
+    /// (the last <see cref="DecisionsSystem.SetLearnByDay"/>, off without one).
     /// </summary>
     /// <remarks>Relies on the full command log: trimming or compacting the decision log must keep the
     /// <see cref="DecisionsSystem.SetDisplayLocale"/> commands (SaveGameTests pin this through a save file).</remarks>
-    internal void UseLoggedDisplayLocale()
+    internal void UseLoggedPlayerSettings()
     {
         var locale = DecisionsSystem.DefaultDisplayLocale;
         foreach (var entry in Decisions.Log.Entries)
@@ -407,6 +411,19 @@ public sealed class SimulationHost
         }
 
         UseDisplayLocale(locale);
+
+        // The switch 'learn by day as well' the same way (A1568): the last logged one counts, off without any.
+        var learnByDay = false;
+        foreach (var entry in Decisions.Log.Entries)
+        {
+            if (entry.Kind == DecisionLogKind.Command && entry.Json.Contains(DecisionsSystem.SetLearnByDay, StringComparison.Ordinal)
+                && System.Text.Json.JsonSerializer.Deserialize<PlayerCommand>(entry.Json) is { Kind: DecisionsSystem.SetLearnByDay, Text: { } text })
+            {
+                learnByDay = text == DecisionsSystem.LearnByDayOn;
+            }
+        }
+
+        Decisions.LearnByDay = learnByDay;
     }
 
     /// <summary>
@@ -427,6 +444,11 @@ public sealed class SimulationHost
             }
         }
     }
+
+    private static CommandResult CheckLearnByDay(PlayerCommand command) =>
+        command.Text is DecisionsSystem.LearnByDayOn or DecisionsSystem.LearnByDayOff
+            ? new CommandResult(true, null)
+            : new CommandResult(false, DecisionsSystem.ReasonUnknownCommand);
 
     private static CommandResult CheckDisplayLocale(PlayerCommand command) =>
         Enum.GetValues<Locale>().Any(l => string.Equals(l.ToString().ToLowerInvariant(), command.Text, StringComparison.Ordinal))
