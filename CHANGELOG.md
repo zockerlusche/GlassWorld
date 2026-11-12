@@ -9,6 +9,7 @@ Each release gets its own section (version and date); until then changes collect
 
 ### Added
 
+- The island generator's settings are data (A1552, D763 D1/Z4-Z8, PR2): coastline wobble, terraces, single rocks, moisture by the sea and in valleys, the swamp band and the swamp fallback moved from `WorldGenerator.cs` into `content/world/presets/start_island.json` (schema `world-preset`) with the values they had - the islands are the same (golden island hashes unchanged).
 - Seats (A1570, D843 b): two inhabitants no longer sit on the same stone - a seat belongs to the one who sat down until it gets up, lies down or leaves - and changing seat gets up first and then sits down on the new place, instead of jumping there in one frame. Presentation only.
 - Terrain details (A1571, D843 c): a rock wall is shaded by the height of its grid corner from the corner's highest to its lowest level, so two walls that meet at a corner line give it one colour (no vertical seam); and every level with a higher one beside it gets scree at its foot, also the middle level where three meet. New test of a three-level corner (closed ground, one colour per wall vertex, scree on the middle).
 - The see-through outline of an inhabitant shows only behind trees, rocks and objects, no longer through the ground or the water (A1569, D843 a): ground and water mark their pixels as no cover in the stencil buffer (new `warm_comic_ground` shader for the ground), cover marks its own, and the outline draws only there.

@@ -172,48 +172,6 @@ class WorldPresetNoiseOctave(BaseModel):
     )
 
 
-class WorldPresetClimate(BaseModel):
-    model_config = ConfigDict(
-        extra='forbid',
-    )
-    climate_id: str = Field(
-        ...,
-        description='Climate of this world (file id in content/climate): weather states and their change per season (B2 R13).',
-        max_length=64,
-        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
-    )
-    base_temperature_tenth_c: int = Field(
-        ...,
-        description='Base temperature at sea level in tenths of a degree Celsius.',
-        ge=-500,
-        le=600,
-    )
-    temperature_drop_per_100_height: int = Field(
-        ...,
-        description='Cooling in tenths of a degree per 100 height units (higher is colder, R5).',
-        ge=0,
-        le=1000,
-    )
-    moisture_base_permille: int = Field(
-        ..., description='Moisture far from water.', ge=0, le=1000
-    )
-    moisture_water_radius_cells: int = Field(
-        ..., description='Distance over which water raises the moisture.', ge=0, le=1000
-    )
-    valley_moisture_bonus_permille: int = Field(
-        ..., description='Extra moisture in hollows and valleys.', ge=0, le=1000
-    )
-    moisture_noise_permille: int = Field(
-        ...,
-        description='Strength of the moisture noise, so wet zones (forest, swamp) have natural edges instead of even rings around the water.',
-        ge=0,
-        le=1000,
-    )
-    moisture_noise_wavelength_cells: int = Field(
-        ..., description='Wavelength of the moisture noise in cells.', ge=2, le=1000
-    )
-
-
 class WorldPresetStartGround(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -636,6 +594,116 @@ class WorldPresetUndergroundOre(BaseModel):
     )
 
 
+class WorldPresetCoastWobble(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    wavelength_cells: int = Field(
+        ..., description='Wavelength of the noise.', ge=1, le=1024
+    )
+    amplitude_permille: int = Field(
+        ..., description='Largest shift, in permille of the half size.', ge=0, le=1000
+    )
+
+
+class WorldPresetTerraces(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    default_from_share_permille: int = Field(
+        ...,
+        description='Share of the height range above the sea from which terraces start when no cliff biome rule names a height.',
+        ge=0,
+        le=1000,
+    )
+    mask_wavelength_cells: int = Field(
+        ..., description='Wavelength of the mask noise.', ge=1, le=1024
+    )
+    mask_threshold_permille: int = Field(
+        ..., description='Mask value above which a cell is terraced.', ge=0, le=1000
+    )
+
+
+class WorldPresetRockBumps(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    peak_units: int = Field(
+        ..., description="Height added at the rock's centre.", ge=0, le=100
+    )
+    rim_units: int = Field(..., description='Height added around it.', ge=0, le=100)
+    min_height_above_sea: int = Field(
+        ...,
+        description='A rock needs ground higher than this above the sea.',
+        ge=0,
+        le=1000,
+    )
+
+
+class WorldPresetSeaMoisture(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    height_above_sea: int = Field(
+        ...,
+        description='Height above the sea below which the bonus applies.',
+        ge=0,
+        le=1000,
+    )
+    bonus_permille: int = Field(..., description='Extra moisture.', ge=0, le=1000)
+
+
+class WorldPresetSwampBand(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    min_height_above_sea: int = Field(
+        ..., description='Swamp only above this height above the sea.', ge=0, le=1000
+    )
+    max_height_above_sea: int = Field(
+        ..., description='Swamp only up to this height above the sea.', ge=0, le=1000
+    )
+    hollow_radius_cells: int = Field(
+        ..., description='Radius of the mean a hollow must lie below.', ge=1, le=16
+    )
+
+
+class WorldPresetSwampFallback(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    min_cells: int = Field(
+        ...,
+        description='Fewer swamp cells than this start the fallback.',
+        ge=0,
+        le=100000,
+    )
+    min_height_above_sea: int = Field(
+        ...,
+        description='The hollow lies higher than this above the sea.',
+        ge=0,
+        le=1000,
+    )
+    max_slope: int = Field(
+        ..., description="Largest slope of the hollow's cell.", ge=0, le=100
+    )
+    near_fresh_cells: int = Field(
+        ..., description='Fresh water within this many cells.', ge=0, le=64
+    )
+    not_near_fresh_cells: int = Field(
+        ..., description='But none within this many cells.', ge=0, le=64
+    )
+    radius_cells: int = Field(
+        ..., description='Radius of the levelled swamp.', ge=0, le=64
+    )
+    level_up_to_units: int = Field(
+        ...,
+        description="Cells up to this much higher are levelled to the hollow's height.",
+        ge=0,
+        le=1000,
+    )
+
+
 class WorldPresetTerrain(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -692,6 +760,9 @@ class WorldPresetTerrain(BaseModel):
     coast_cliffs: WorldPresetCoastCliffs | None = None
     rock_slopes: WorldPresetRockSlopes | None = None
     rock_faces: WorldPresetRockFaces | None = None
+    coast_wobble: WorldPresetCoastWobble
+    terraces: WorldPresetTerraces
+    rock_bumps: WorldPresetRockBumps
 
 
 class WorldPresetWater(BaseModel):
@@ -771,6 +842,66 @@ class WorldPresetWater(BaseModel):
         description='Where drinkable water objects lie: at the springs, along lake and pond edges, along stream banks. Each kind is its own entry; a kind without an entry gets no objects.',
         max_length=8,
         min_length=1,
+    )
+    swamp_band: WorldPresetSwampBand
+    swamp_fallback: WorldPresetSwampFallback
+
+
+class WorldPresetClimate(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    climate_id: str = Field(
+        ...,
+        description='Climate of this world (file id in content/climate): weather states and their change per season (B2 R13).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    base_temperature_tenth_c: int = Field(
+        ...,
+        description='Base temperature at sea level in tenths of a degree Celsius.',
+        ge=-500,
+        le=600,
+    )
+    temperature_drop_per_100_height: int = Field(
+        ...,
+        description='Cooling in tenths of a degree per 100 height units (higher is colder, R5).',
+        ge=0,
+        le=1000,
+    )
+    moisture_base_permille: int = Field(
+        ..., description='Moisture far from water.', ge=0, le=1000
+    )
+    moisture_water_radius_cells: int = Field(
+        ..., description='Distance over which water raises the moisture.', ge=0, le=1000
+    )
+    valley_moisture_bonus_permille: int = Field(
+        ..., description='Extra moisture in hollows and valleys.', ge=0, le=1000
+    )
+    moisture_noise_permille: int = Field(
+        ...,
+        description='Strength of the moisture noise, so wet zones (forest, swamp) have natural edges instead of even rings around the water.',
+        ge=0,
+        le=1000,
+    )
+    moisture_noise_wavelength_cells: int = Field(
+        ..., description='Wavelength of the moisture noise in cells.', ge=2, le=1000
+    )
+    sea_moisture: WorldPresetSeaMoisture
+    valley_depth_units: int = Field(
+        ...,
+        description='D763 Z7: a cell this much lower than the mean around it counts as a valley (valley_moisture_bonus_permille).',
+        ge=0,
+        le=1000,
+    )
+    valley_radius_cells: int = Field(
+        ..., description='D763 Z7: radius of that mean.', ge=1, le=16
+    )
+    near_water_weight_permille: int = Field(
+        ...,
+        description='D763 Z7: weight of the closeness to fresh water in the moisture.',
+        ge=0,
+        le=1000,
     )
 
 

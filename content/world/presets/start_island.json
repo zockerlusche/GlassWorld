@@ -69,6 +69,20 @@
       "block_max_cells": 24,
       "rounds": 16,
       "scree_rounds": 32
+    },
+    "coast_wobble": {
+      "wavelength_cells": 40,
+      "amplitude_permille": 200
+    },
+    "terraces": {
+      "default_from_share_permille": 400,
+      "mask_wavelength_cells": 24,
+      "mask_threshold_permille": 600
+    },
+    "rock_bumps": {
+      "peak_units": 6,
+      "rim_units": 3,
+      "min_height_above_sea": 2
     }
   },
   "water": {
@@ -157,7 +171,21 @@
         "hollow_radius_cells": 3,
         "regrow_hours": 6
       }
-    ]
+    ],
+    "swamp_band": {
+      "min_height_above_sea": 1,
+      "max_height_above_sea": 40,
+      "hollow_radius_cells": 2
+    },
+    "swamp_fallback": {
+      "min_cells": 80,
+      "min_height_above_sea": 2,
+      "max_slope": 4,
+      "near_fresh_cells": 8,
+      "not_near_fresh_cells": 3,
+      "radius_cells": 8,
+      "level_up_to_units": 10
+    }
   },
   "underground": {
     "groundwater": {
@@ -225,7 +253,14 @@
     "moisture_water_radius_cells": 12,
     "valley_moisture_bonus_permille": 200,
     "moisture_noise_permille": 180,
-    "moisture_noise_wavelength_cells": 14
+    "moisture_noise_wavelength_cells": 14,
+    "sea_moisture": {
+      "height_above_sea": 4,
+      "bonus_permille": 120
+    },
+    "valley_depth_units": 2,
+    "valley_radius_cells": 3,
+    "near_water_weight_permille": 800
   },
   "caves": {
     "min": 1,

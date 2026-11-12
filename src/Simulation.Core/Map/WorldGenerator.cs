@@ -217,7 +217,8 @@ public static partial class WorldGenerator
                 var dx = Math.Abs((2 * x) + 1 - w) * 1000 / w;
                 var dz = Math.Abs((2 * z) + 1 - d) * 1000 / d;
                 var r = Isqrt((dx * dx) + (dz * dz));
-                r += (ValueNoise(seed ^ 0xC0A57, 9, x, z, 40) - 500) * 2 / 5;
+                // The coast wanders by the data (D763 Z4): x * a / 500 is the old x * 2 / 5 for a = 200, same truncation.
+                r += (ValueNoise(seed ^ 0xC0A57, 9, x, z, terrain.CoastWobble.WavelengthCells) - 500) * terrain.CoastWobble.AmplitudePermille / 500;
                 var fall = falloff == 0 ? (r >= 1000 ? 1000 : 0) : Math.Clamp((r - (1000 - falloff)) * 1000 / falloff, 0, 1000);
                 var h = (raw + terrain.SeaLevel) * (1000 - fall) / 1000;
 
@@ -279,7 +280,8 @@ public static partial class WorldGenerator
     private static int Terraces(WorldPreset preset, int[] heights, int w, int d, ulong seed, int? rockHeight)
     {
         var step = preset.Terrain.CliffMinDrop;
-        var from = preset.Terrain.SeaLevel + (rockHeight ?? ((preset.Terrain.MaxHeight - preset.Terrain.SeaLevel) * 2 / 5));
+        var terraces = preset.Terrain.Terraces;
+        var from = preset.Terrain.SeaLevel + (rockHeight ?? ((preset.Terrain.MaxHeight - preset.Terrain.SeaLevel) * terraces.DefaultFromSharePermille / 1000));
         var tread = new int[w * d];
         var terraced = new bool[w * d];
         for (var z = 0; z < d; z++)
@@ -287,7 +289,7 @@ public static partial class WorldGenerator
             for (var x = 0; x < w; x++)
             {
                 var i = (z * w) + x;
-                if (heights[i] > from && ValueNoise(seed ^ 0x7E44AC, 7, x, z, 24) > 600)
+                if (heights[i] > from && ValueNoise(seed ^ 0x7E44AC, 7, x, z, terraces.MaskWavelengthCells) > terraces.MaskThresholdPermille)
                 {
                     tread[i] = (heights[i] - from) % step;
                     heights[i] -= tread[i];
@@ -543,7 +545,8 @@ public static partial class WorldGenerator
         for (var k = 0; k < count; k++)
         {
             int x = rng.NextInt(2, w - 2), z = rng.NextInt(2, d - 2);
-            if (heights[(z * w) + x] <= sea + 2 || (preset.Terrain.RockFaces is not null && BumpMakesWall(heights, w, x, z, preset.Terrain.CliffMinDrop)))
+            var bump = preset.Terrain.RockBumps;
+            if (heights[(z * w) + x] <= sea + bump.MinHeightAboveSea || (preset.Terrain.RockFaces is not null && BumpMakesWall(heights, w, x, z, preset.Terrain.CliffMinDrop)))
             {
                 continue;
             }
@@ -552,7 +555,7 @@ public static partial class WorldGenerator
             {
                 for (var dx = -1; dx <= 1; dx++)
                 {
-                    heights[((z + dz) * w) + x + dx] += dx == 0 && dz == 0 ? 6 : 3;
+                    heights[((z + dz) * w) + x + dx] += dx == 0 && dz == 0 ? bump.PeakUnits : bump.RimUnits;
                 }
             }
         }
@@ -608,13 +611,14 @@ public static partial class WorldGenerator
                     continue;
                 }
 
-                var nearSea = heights[i] < preset.Terrain.SeaLevel + 4 ? 120 : 0;
+                var nearSea = heights[i] < preset.Terrain.SeaLevel + climate.SeaMoisture.HeightAboveSea ? climate.SeaMoisture.BonusPermille : 0;
 
                 var near = distance[i] == int.MaxValue || radius == 0 ? 0 : Math.Max(0, radius - distance[i]) * (1000 - climate.MoistureBasePermille) / radius;
-                var valley = heights[i] + 2 < LocalMean(heights, w, d, x, z, 3) ? climate.ValleyMoistureBonusPermille : 0;
+                var valley = heights[i] + climate.ValleyDepthUnits < LocalMean(heights, w, d, x, z, climate.ValleyRadiusCells) ? climate.ValleyMoistureBonusPermille : 0;
                 // Noise gives wet zones natural edges instead of even rings around the water.
                 var noise = (ValueNoise(seed ^ 0x3015E, 11, x, z, climate.MoistureNoiseWavelengthCells) - 500) * climate.MoistureNoisePermille / 500;
-                moisture[i] = Math.Clamp(climate.MoistureBasePermille + (near * 4 / 5) + valley + nearSea + noise, 0, 1000);
+                // near * w / 1000 is the old near * 4 / 5 for w = 800 (near >= 0, same truncation).
+                moisture[i] = Math.Clamp(climate.MoistureBasePermille + (near * climate.NearWaterWeightPermille / 1000) + valley + nearSea + noise, 0, 1000);
             }
         }
 
@@ -625,6 +629,8 @@ public static partial class WorldGenerator
     private static void Swamp(WorldPreset preset, int[] heights, WaterKind[] water, int[] depth, int[] moisture, int w, int d)
     {
         var sea = preset.Terrain.SeaLevel;
+        var band = preset.Water.SwampBand;
+        var fallback = preset.Water.SwampFallback;
         var marked = new List<int>();
         for (var z = 1; z < d - 1; z++)
         {
@@ -632,10 +638,10 @@ public static partial class WorldGenerator
             {
                 var i = (z * w) + x;
                 if (water[i] == WaterKind.None
-                    && heights[i] > sea + 1 && heights[i] <= sea + 40
+                    && heights[i] > sea + band.MinHeightAboveSea && heights[i] <= sea + band.MaxHeightAboveSea
                     && Slope(heights, w, d, x, z) <= preset.Water.SwampMaxSlope
                     && moisture[i] >= preset.Water.SwampMinMoisturePermille
-                    && heights[i] < LocalMean(heights, w, d, x, z, 2))
+                    && heights[i] < LocalMean(heights, w, d, x, z, band.HollowRadiusCells))
                 {
                     marked.Add(i);
                 }
@@ -643,7 +649,7 @@ public static partial class WorldGenerator
         }
 
         // Too few flat wet hollows: the lowest flat cell next to fresh water grows into a small swamp.
-        if (marked.Count < 80)
+        if (marked.Count < fallback.MinCells)
         {
             var best = -1;
             for (var z = 2; z < d - 2; z++)
@@ -651,8 +657,8 @@ public static partial class WorldGenerator
                 for (var x = 2; x < w - 2; x++)
                 {
                     var i = (z * w) + x;
-                    if (water[i] == WaterKind.None && heights[i] > sea + 2 && heights[i] <= sea + 40
-                        && Slope(heights, w, d, x, z) <= 4 && NearFresh(water, w, d, x, z, 8) && !NearFresh(water, w, d, x, z, 3)
+                    if (water[i] == WaterKind.None && heights[i] > sea + fallback.MinHeightAboveSea && heights[i] <= sea + band.MaxHeightAboveSea
+                        && Slope(heights, w, d, x, z) <= fallback.MaxSlope && NearFresh(water, w, d, x, z, fallback.NearFreshCells) && !NearFresh(water, w, d, x, z, fallback.NotNearFreshCells)
                         && (best < 0 || heights[i] < heights[best]))
                     {
                         best = i;
@@ -664,9 +670,10 @@ public static partial class WorldGenerator
             {
                 int bx = best % w, bz = best / w;
                 // A flat hollow: cells around the point up to a little higher are levelled to its height.
-                for (var dz = -8; dz <= 8; dz++)
+                var radius = fallback.RadiusCells;
+                for (var dz = -radius; dz <= radius; dz++)
                 {
-                    for (var dx = -8; dx <= 8; dx++)
+                    for (var dx = -radius; dx <= radius; dx++)
                     {
                         int px = bx + dx, pz = bz + dz;
                         if (px < 0 || pz < 0 || px >= w || pz >= d)
@@ -675,7 +682,7 @@ public static partial class WorldGenerator
                         }
 
                         var i = (pz * w) + px;
-                        if ((dx * dx) + (dz * dz) <= 64 && water[i] == WaterKind.None && heights[i] <= heights[best] + 10)
+                        if ((dx * dx) + (dz * dz) <= radius * radius && water[i] == WaterKind.None && heights[i] <= heights[best] + fallback.LevelUpToUnits)
                         {
                             heights[i] = heights[best];
                             marked.Add(i);
