@@ -67,6 +67,12 @@ public sealed class FigurePresenceTests
         Assert.True(reachedB);
         Assert.Equal(b.X, lastX);
 
+        // Sitting on the ground and nudged a few centimetres by the core, it stays seated (review GW3 #300).
+        SeatPose ground = new(false, 3, 3, -0.4, 0.8);
+        var (onGround, groundShare) = SeatEasing.Step(ground with { X = 3.05, Z = 2.97 }, ground, 1.0, 2.0, 0.1);
+        Assert.Equal(1.0, groundShare);
+        Assert.Equal(3.05, onGround.X);
+
         // Standing up keeps the place it got up from; sitting down again at the same place does not move it.
         (shown, share) = SeatEasing.Step(null, b, 1.0, 2.0, 0.1);
         Assert.True(SeatEasing.SamePlace(shown, b));

@@ -153,9 +153,12 @@ public static class SeatEasing
         return (shown, GreetingReaction.Ease(share, goal, perSecond, seconds));
     }
 
-    /// <summary>Whether two poses sit at the same place (a seat, or the same spot on the ground).</summary>
+    /// <summary>
+    /// Whether two poses sit at the same place: the same seat, or both on the ground. On the ground the hips follow
+    /// the figure wherever it stands, so a small nudge by the core is no new place (review GW3 #300).
+    /// </summary>
     public static bool SamePlace(SeatPose a, SeatPose b) =>
-        a.OnSeat == b.OnSeat && Math.Abs(a.X - b.X) < 0.01 && Math.Abs(a.Z - b.Z) < 0.01 && Math.Abs(a.LiftM - b.LiftM) < 0.01;
+        a.OnSeat == b.OnSeat && (!a.OnSeat || (Math.Abs(a.X - b.X) < 0.01 && Math.Abs(a.Z - b.Z) < 0.01 && Math.Abs(a.LiftM - b.LiftM) < 0.01));
 }
 
 /// <summary>
