@@ -398,6 +398,12 @@ class FigureCrownFade(BaseModel):
         ...,
         description='True: crowns fade for every inhabitant; false: only for the chosen (followed) one.',
     )
+    focus_within_m: float | None = Field(
+        None,
+        description='While the camera is at most this far from what it looks at (following, a spot the player looks at), crowns between it and that spot on the ground fade too, so a thing under a tree is seen (A1599, finding D855). Omitted = only figures keep crowns faded; the wide view keeps its trees.',
+        ge=0.0,
+        le=200.0,
+    )
 
 
 class FigureLying(BaseModel):

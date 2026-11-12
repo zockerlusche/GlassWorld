@@ -43,6 +43,9 @@ public sealed class FigureShared
     /// <summary>The scene's pose gate: one figure changes its pose per frame (W1697).</summary>
     public PoseGate Gate { get; }
 
+    /// <summary>Who sits where (A1570): one figure per seat.</summary>
+    public SeatBook Seats { get; } = new();
+
     /// <summary>Reused buffer for the core values of the figure being updated.</summary>
     public Dictionary<string, double> Values { get; } = new(StringComparer.Ordinal);
 

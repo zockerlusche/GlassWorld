@@ -15,6 +15,71 @@ public sealed class FigurePresenceTests
         ContractSerializer.Deserialize<AnimationLibrary>(File.ReadAllText(Path.Combine(TestPaths.Root, "content", "animation", "library.json")));
 
     [Fact]
+    public void TwoFiguresNeverShareOneSeat()
+    {
+        // A1570 (D843 b): the first takes the stone, the second the next free one or the ground.
+        var sitting = Figures.Sitting;
+        var book = new SeatBook();
+        Seat stone = new(0.3, 0, sitting.Seats.First().SeatHeightM);
+        Seat other = new(-0.5, 0, sitting.Seats.First().SeatHeightM);
+        var first = SeatChoice.Choose(sitting, 0, 0, 1, [stone, other], s => book.TakenByOther("inh-000001", s));
+        book.Sit("inh-000001", first);
+        Assert.Equal((true, stone.X), (first.OnSeat, first.X));
+
+        var second = SeatChoice.Choose(sitting, 0, 0, 1, [stone, other], s => book.TakenByOther("inh-000002", s));
+        book.Sit("inh-000002", second);
+        Assert.Equal((true, other.X), (second.OnSeat, second.X));
+
+        var third = SeatChoice.Choose(sitting, 0, 0, 1, [stone, other], s => book.TakenByOther("inh-000003", s));
+        Assert.False(third.OnSeat);
+
+        // Its own seat stays its own; getting up or leaving frees it.
+        Assert.Equal(stone.X, SeatChoice.Choose(sitting, 0, 0, 1, [stone, other], s => book.TakenByOther("inh-000001", s)).X);
+        book.Sit("inh-000001", null);
+        Assert.Equal(stone.X, SeatChoice.Choose(sitting, 0, 0, 1, [stone, other], s => book.TakenByOther("inh-000003", s)).X);
+        book.Leave("inh-000002");
+        Assert.False(book.TakenByOther("inh-000003", other));
+    }
+
+    [Fact]
+    public void ChangingSeatGetsUpFirstAndNeverJumps()
+    {
+        // A1570 (D843 b): seated on one stone, told to sit on another, the figure eases up at the old place first.
+        SeatPose a = new(true, 0, 0, -0.1, 0.2);
+        SeatPose b = new(true, 0.9, 0, -0.1, 0.2);
+        var (shown, share) = (a, 1.0);
+        var lastX = shown.X * share;
+        var reachedB = false;
+        for (var frame = 0; frame < 600; frame++)
+        {
+            (shown, share) = SeatEasing.Step(b, shown, share, 2.0, 1.0 / 60);
+
+            // While it is still (partly) seated it is seated at one place: it never slides along with the share.
+            if (share > SeatEasing.Standing && !SeatEasing.SamePlace(shown, b))
+            {
+                Assert.True(SeatEasing.SamePlace(shown, a));
+            }
+
+            reachedB |= SeatEasing.SamePlace(shown, b) && share > 0.99;
+            lastX = shown.X;
+        }
+
+        Assert.True(reachedB);
+        Assert.Equal(b.X, lastX);
+
+        // Sitting on the ground and nudged a few centimetres by the core, it stays seated (review GW3 #300).
+        SeatPose ground = new(false, 3, 3, -0.4, 0.8);
+        var (onGround, groundShare) = SeatEasing.Step(ground with { X = 3.05, Z = 2.97 }, ground, 1.0, 2.0, 0.1);
+        Assert.Equal(1.0, groundShare);
+        Assert.Equal(3.05, onGround.X);
+
+        // Standing up keeps the place it got up from; sitting down again at the same place does not move it.
+        (shown, share) = SeatEasing.Step(null, b, 1.0, 2.0, 0.1);
+        Assert.True(SeatEasing.SamePlace(shown, b));
+        Assert.True(share < 1.0);
+    }
+
+    [Fact]
     public void ASeatedClipSitsOnAStoneAtItsSeatHeight()
     {
         var sitting = Figures.Sitting;
@@ -177,5 +242,21 @@ public sealed class FigurePresenceTests
         Assert.Equal(1, CrownFade.Alpha(fade, new Point3(0, -5, 10), camera, figure)); // behind the figure
         Assert.True(CrownFade.NearLine(fade, onLine, camera, figure));
         Assert.False(CrownFade.NearLine(fade, new Point3(50, 0, 0), camera, figure));
+    }
+
+    [Fact]
+    public void WhatTheCameraLooksAtNearByIsNotHiddenByACrown()
+    {
+        // A1599 (D855): a built thing under the crown of the tree it was made from - the crown over the camera's
+        // target fades while the camera is near; the wide view keeps its trees.
+        var data = Figures.CrownFade;
+        var target = new Point3(10, 0, 10);
+        Assert.Equal(target, CrownFade.Focus(data, data.FocusWithinM!.Value, target));
+        Assert.Null(CrownFade.Focus(data, data.FocusWithinM.Value + 1, target));
+        Assert.Null(CrownFade.Focus(new FigureCrownFade { Enabled = true, Visuals = data.Visuals, CrownHeightM = data.CrownHeightM, RadiusM = data.RadiusM, Alpha = data.Alpha }, 1, target));
+
+        var camera = new Point3(10, 8, 16);
+        var crownOverTheThing = new Point3(10, data.CrownHeightM, 10.5);
+        Assert.True(CrownFade.Alpha(data, crownOverTheThing, camera, target) < 1);
     }
 }

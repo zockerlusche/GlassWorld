@@ -788,6 +788,13 @@ public partial class WorldPresenter
             }
         }
 
+        // What the camera looks at is never hidden either (A1599): a built thing under the tree it was made from.
+        var (tx, tz) = _rig.Model.Target;
+        if (CrownFade.Focus(look.CrownFade, _rig.Model.Distance, new Point3(tx, _ground(tx, tz), tz)) is { } focus)
+        {
+            _fadeFor.Add(new Vector3((float)focus.X, (float)focus.Y, (float)focus.Z));
+        }
+
         _objectsView.FadeCrowns(_rig.Camera.GlobalPosition, _fadeFor);
     }
 
