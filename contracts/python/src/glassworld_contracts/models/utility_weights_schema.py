@@ -119,6 +119,10 @@ class Consideration(BaseModel):
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
     target_property: common_schema.VocabId | None
+    requires_also: common_schema.VocabId | None = Field(
+        None,
+        description='B2668: a second true property the target must have as well (e.g. crafted: only made things); omitted or null = none.',
+    )
     avoid_properties: list[common_schema.VocabId] = Field(
         ...,
         description='Properties that make the option worse when the inhabitant believes the target has them (factor 1 - confidence each), e.g. salty for drinking.',
