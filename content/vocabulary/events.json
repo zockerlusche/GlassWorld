@@ -91,6 +91,14 @@
       "description": "A builder tried a thing of another kind for the missing material, but it lacks what was missing; the builder learned that."
     },
     {
+      "id": "asked_for_help",
+      "description": "A stuck builder asked another to help (target: the helper, detail: the missing properties); the helper builds along."
+    },
+    {
+      "id": "material_shown",
+      "description": "A helper showed the builder where it knows a missing material (target: the thing)."
+    },
+    {
       "id": "built",
       "description": "An invention was built."
     },

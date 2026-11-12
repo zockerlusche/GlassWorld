@@ -1571,6 +1571,14 @@
       "text": "Substitute does not fit"
     },
     {
+      "key": "vocab.event.asked_for_help",
+      "text": "Asked for help"
+    },
+    {
+      "key": "vocab.event.material_shown",
+      "text": "Material shown"
+    },
+    {
       "key": "vocab.event.built",
       "text": "Built"
     },

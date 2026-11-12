@@ -111,7 +111,8 @@
         "smaller_action": { "description": "Action of the option 'finish smaller' (no target; offered once a step is done).", "$ref": "common.schema.json#/$defs/VocabId" },
         "give_up_action": { "description": "Action of the option 'give up' (no target; always offered).", "$ref": "common.schema.json#/$defs/VocabId" },
         "help_action": { "description": "Action of the option 'ask another for help' (target: an inhabitant; comes with the next step, not offered yet). Like the others never an invention's purpose.", "$ref": "common.schema.json#/$defs/VocabId" },
-        "max_use_instead": { "description": "Most 'take this instead' options in one question (nearest kinds first). Omitted = 2.", "type": "integer", "minimum": 0, "maximum": 8 }
+        "max_use_instead": { "description": "Most 'take this instead' options in one question (nearest kinds first). Omitted = 2.", "type": "integer", "minimum": 0, "maximum": 8 },
+        "help_affection_per_step": { "description": "A1376 (D827 R19, B2663): how much the affection of builder and helper for each other grows with every material the helper works in. Omitted = 0.", "type": "number", "minimum": 0, "maximum": 1 }
       }
     }
   }
