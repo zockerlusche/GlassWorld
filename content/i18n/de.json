@@ -1395,6 +1395,14 @@
       "text": "Gunst wächst langsam nach. Gaben kosten Gunst."
     },
     {
+      "key": "msg.mail.build_missing",
+      "text": "{name} klopft an die Scheibe: kommt beim Bauen von {thing} nicht weiter und sucht etwas – {properties}. So etwas liegt nirgends auf der Insel – vielleicht kannst du es schenken."
+    },
+    {
+      "key": "msg.mail.build_stuck",
+      "text": "{name} klopft an die Scheibe: kommt beim Bauen von {thing} nicht weiter und sucht etwas – {properties}. So etwas gibt es auf der Insel; mit etwas Suchen findet es sich."
+    },
+    {
       "key": "msg.mail.knock",
       "text": "{name} klopft an die Scheibe: findet nichts gegen {need}."
     },
