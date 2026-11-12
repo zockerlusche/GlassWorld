@@ -29,6 +29,7 @@ public static class InventionLooks
         ArgumentNullException.ThrowIfNull(builds);
         ArgumentNullException.ThrowIfNull(objects);
         var tasks = builds.Where(b => b.PlanJson is not null).ToList();
+        // One building task per type (the core keeps them by type): a second build of a built type would need its own key here.
         var finished = tasks.Where(b => b.BuiltObjectId is not null).ToDictionary(b => b.TypeId, b => b.PlanJson!, StringComparer.Ordinal);
         var shown = new List<InventionShown>();
         foreach (var obj in objects.Where(o => finished.ContainsKey(o.TypeId)).OrderBy(o => o.Id, StringComparer.Ordinal))
@@ -59,7 +60,9 @@ public static class InventionLooks
         var text = new StringBuilder();
         foreach (var s in shown)
         {
+            // The plan too (review GW3 #280): a replaced plan at the same step and place is drawn anew.
             text.Append(s.Key).Append('|').Append(s.Step.ToString(CultureInfo.InvariantCulture)).Append('|')
+                .Append(System.Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(s.PlanJson)))[..16]).Append('|')
                 .Append(s.X.ToString("R", CultureInfo.InvariantCulture)).Append('|').Append(s.Z.ToString("R", CultureInfo.InvariantCulture)).Append(';');
         }
 

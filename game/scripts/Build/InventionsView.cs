@@ -69,7 +69,11 @@ public partial class InventionsView : Node3D
             _drawn.Remove(key);
         }
 
-        GD.Print($"INVENTIONS_DRAWN things={shown.Count(s => s.Finished)} sites={shown.Count(s => !s.Finished)} parts={VisibleParts}");
+        if (OS.IsDebugBuild())
+        {
+            GD.Print($"INVENTIONS_DRAWN things={shown.Count(s => s.Finished)} sites={shown.Count(s => !s.Finished)} parts={VisibleParts}");
+        }
+
         return true;
     }
 }
