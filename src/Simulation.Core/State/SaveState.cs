@@ -93,6 +93,11 @@ public sealed record SaveState(
     public Weather.WeatherState? Weather { get; init; }
 
     /// <summary>
+    /// The climate the player chose (B5 R1, B2676); null = the preset's climate (also every older save game).
+    /// </summary>
+    public string? Climate { get; init; }
+
+    /// <summary>
     /// The look epoch (B2-5 R16); null while the world is in its first epoch and in save games from before,
     /// which load in the first epoch.
     /// </summary>
@@ -203,6 +208,7 @@ public static class StateCodec
             WritingSeen = host.Writing.Seen.Count > 0 ? host.Writing.Seen : null,
             IslandData = host.Map is { } map ? Map.IslandCodec.Encode(map.Island, map.CellSizeCm) : null,
             Weather = host.WeatherSystem?.Capture(),
+            Climate = host.Options.Climate,
             LookEpoch = host.LookEpoch.Capture(),
             Exploration = host.Exploration?.Capture(),
             Skills = host.Skills.HasState ? host.Skills.Capture() : null,
@@ -226,7 +232,7 @@ public static class StateCodec
         var world = World.Restore(state.Seed, factory.Content.Calendar, state.Tick, state.Streams);
         // Saves with island data load that island (B2 R11); older saves generate it again and are
         // checked against their island hash below.
-        var host = factory.Assemble(world, state.WorldPreset, state.IslandData is { } data ? Map.IslandCodec.Decode(data) : null);
+        var host = factory.Assemble(world, state.WorldPreset, state.IslandData is { } data ? Map.IslandCodec.Decode(data) : null, state.Climate);
 
         // The island is generated again from the current data; if data or generator changed since the
         // save, the world would differ silently, so such a save is refused (review GW2 #56).
@@ -376,5 +382,13 @@ public sealed class SimulationHostFactory(Content.ContentSet content, Contracts.
 
     /// <summary>Assembles the systems around <paramref name="world"/>, on a saved island if one is given (B2 R11).</summary>
     public SimulationHost Assemble(World world, string? worldPreset, (Map.GeneratedIsland Island, int CellSizeCm)? savedIsland) =>
-        SimulationHost.Assemble(Content, settings, world, port, displayLocale, worldPreset, jobPort, savedIsland, options);
+        Assemble(world, worldPreset, savedIsland, null);
+
+    /// <summary>
+    /// Assembles the systems around <paramref name="world"/> with the climate of a save game (B5 R1); null keeps
+    /// the factory's choice, which itself falls back to the preset's climate.
+    /// </summary>
+    public SimulationHost Assemble(World world, string? worldPreset, (Map.GeneratedIsland Island, int CellSizeCm)? savedIsland, string? climate) =>
+        SimulationHost.Assemble(Content, settings, world, port, displayLocale, worldPreset, jobPort, savedIsland,
+            climate is null ? options : (options ?? new SimulationHostOptions()) with { Climate = climate });
 }

@@ -25,6 +25,13 @@ public sealed record SimulationHostOptions(bool DebugCommands = false)
     /// from the AI is validated in any case. Not part of the world state: the same requests leave either way.
     /// </summary>
     public bool ValidateRequests { get; init; } = true;
+
+    /// <summary>
+    /// The climate the player chose for a new world (B5 R1, B2676; an id of content/climate), in place of the
+    /// preset's climate. Null = the preset's climate (also every save from before the choice). Part of the
+    /// world: the host keeps it and the save game carries it.
+    /// </summary>
+    public string? Climate { get; init; }
 }
 
 /// <summary>
@@ -193,17 +200,22 @@ public sealed class SimulationHost
             };
             world.Add(map);
 
-            climate = preset.Climate.ClimateId;
+            climate = options.Climate ?? preset.Climate.ClimateId;
+            if (!content.WorldGen.Climates.ContainsKey(climate))
+            {
+                throw new InvalidDataException($"Unknown climate '{climate}' (content/climate).");
+            }
+
             seaLevel = preset.Terrain.SeaLevel;
             sight = preset.Exploration;
 
-            // Weather of the preset's climate (B2 R13); worlds without a preset (placeholder) have none.
+            // Weather of the world's climate (B2 R13; the chosen one, else the preset's); worlds without a preset (placeholder) have none.
             // The weather is island-wide for now; its height drop stands for the mean height of the start cells.
             var startHeight = island.Starts.Count == 0 ? 0 : island.Starts.Sum(s => Math.Max(0, island.Map.Cell(s.X, s.Z).Height - preset.Terrain.SeaLevel)) / island.Starts.Count;
             dropPer100Height = preset.Climate.TemperatureDropPer100Height;
             startDropTenthC = -(dropPer100Height * startHeight / 100);
             weather = new Weather.WeatherSystem(
-                content.WorldGen.Climates[preset.Climate.ClimateId],
+                content.WorldGen.Climates[climate],
                 startDropTenthC,
                 world.Calendar.Settings.TicksPerHour,
                 world.Calendar.Settings.HoursPerDay,

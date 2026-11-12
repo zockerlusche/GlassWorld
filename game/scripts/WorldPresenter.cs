@@ -98,7 +98,8 @@ public partial class WorldPresenter : Node3D
     /// <param name="seed">World seed.</param>
     /// <param name="startFavor">Start favour chosen in the new-world form (null = default of the data).</param>
     /// <param name="savePath">Save game, or null for an unsaved world.</param>
-    public void CreateWorld(string contentDirectory, ulong seed, int? startFavor, string? savePath)
+    /// <param name="climate">Climate chosen in the new-world form (B5 R1, B2676); null = the preset's climate.</param>
+    public void CreateWorld(string contentDirectory, ulong seed, int? startFavor, string? savePath, string? climate = null)
     {
         _contentDirectory = contentDirectory;
         var look = ReadLook(contentDirectory);
@@ -112,7 +113,7 @@ public partial class WorldPresenter : Node3D
         SimulationHost Make(WorldLookMode m)
         {
             var made = m == WorldLookMode.Island
-                ? SimulationHost.CreateGeneratedWorld(contentDirectory, seed, port, UiLocale(), look.IslandPreset, _jobPort, HostOptions())
+                ? SimulationHost.CreateGeneratedWorld(contentDirectory, seed, port, UiLocale(), look.IslandPreset, _jobPort, HostOptions() with { Climate = climate })
                 : SimulationHost.CreatePlaceholderWorld(contentDirectory, seed, port, UiLocale(), _jobPort, HostOptions());
             if (startFavor is { } favor)
             {
