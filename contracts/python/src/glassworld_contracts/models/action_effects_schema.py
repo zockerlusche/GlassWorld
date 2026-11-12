@@ -48,6 +48,10 @@ class ActionTiming(BaseModel):
         None,
         description='Whether the decider may offer this action as an option (default true). Actions the core plans itself, such as building steps, are false.',
     )
+    gradual: bool | None = Field(
+        None,
+        description="B2681 (W1938): the action's effects work while it lasts - an equal share every tick - instead of all at its end (sleep: the value rises while sleeping, and one woken early keeps what it slept). Default false.",
+    )
 
 
 class Effect(BaseModel):

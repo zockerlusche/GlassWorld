@@ -67,6 +67,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("decider_option")]
         public bool? DeciderOption { get; set; } = default!;
 
+        /// <summary>
+        /// B2681 (W1938): the action's effects work while it lasts - an equal share every tick - instead of all at its end (sleep: the value rises while sleeping, and one woken early keeps what it slept). Default false.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("gradual")]
+        public bool? Gradual { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]

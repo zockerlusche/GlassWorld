@@ -3,7 +3,7 @@
   "actions": [
     { "action": "eat", "destination": "here", "duration_minutes": 10, "reach_m": 1.5 },
     { "action": "drink", "destination": "here", "duration_minutes": 5, "reach_m": 1.5 },
-    { "action": "sleep", "destination": "here", "duration_minutes": 480, "reach_m": 0 },
+    { "action": "sleep", "destination": "here", "duration_minutes": 480, "reach_m": 0, "gradual": true, "wake_after_minutes": 60 },
     { "action": "inspect", "destination": "here", "duration_minutes": 5, "reach_m": 2 },
     { "action": "idle", "destination": "here", "duration_minutes": 15, "reach_m": 0 },
     { "action": "use", "destination": "here", "duration_minutes": 10, "reach_m": 1.5 },
