@@ -2343,6 +2343,10 @@
       "text": "{name} klopft an die Scheibe."
     },
     {
+      "key": "ui.log.declined",
+      "text": "{name} lehnt ab, ohne etwas zu sagen."
+    },
+    {
       "key": "ui.log.no_answer",
       "text": "{name} hat nicht geantwortet."
     },

@@ -288,7 +288,10 @@
       "wave"
     ],
     "wave_s": 2.5,
-    "talk_s": 2.0
+    "talk_s": 2.0,
+    "express_s": 3.0,
+    "decline_expression": "look_around",
+    "not_understood_expression": "ponder"
   },
   "silhouette": {
     "enabled": true,

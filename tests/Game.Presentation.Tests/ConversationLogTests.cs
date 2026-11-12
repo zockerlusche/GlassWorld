@@ -67,6 +67,16 @@ public sealed class ConversationLogTests
     }
 
     [Fact]
+    public void ADeclineWithoutWordsIsALineOfWhatWasSeen()
+    {
+        // TL #21712: no fixed sentence in the inhabitant's mouth; the log says it declined without a word.
+        var log = new ConversationLog(5);
+        log.Add([Event("declined", "i-1", null), Event("declined", "i-2", "Nein, danke.")]);
+        var lines = log.Newest();
+        Assert.Equal([(LogLineKind.Said, "Nein, danke."), (LogLineKind.Declined, string.Empty)], lines.Select(l => (l.Kind, l.Text)));
+    }
+
+    [Fact]
     public void NotUnderstoodKeepsItsTextWhenTheCoreSendsOne()
     {
         var log = new ConversationLog(5);

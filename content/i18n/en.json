@@ -2343,6 +2343,10 @@
       "text": "{name} knocks at the glass."
     },
     {
+      "key": "ui.log.declined",
+      "text": "{name} declines without a word."
+    },
+    {
       "key": "ui.log.no_answer",
       "text": "{name} did not answer."
     },
