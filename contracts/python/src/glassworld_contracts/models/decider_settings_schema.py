@@ -19,10 +19,33 @@ class FallbackEnvironment(BaseModel):
     weather: list[common_schema.VocabId] = Field(..., max_length=4, min_length=1)
 
 
+class LeisureSettings(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    needs_at_least: float = Field(
+        ..., description='No need below this (nothing presses).', ge=0.0, le=1.0
+    )
+    mood: str | None = Field(
+        None,
+        description='A mood that must be at least mood_at_least (e.g. boredom); omitted = any free moment counts.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    mood_at_least: float | None = Field(None, ge=0.0, le=1.0)
+    every_hours: float = Field(
+        ...,
+        description='Least game hours between two leisure questions of one inhabitant.',
+        gt=0.0,
+        le=240.0,
+    )
+
+
 class Kind(StrEnum):
     unknown_object = 'unknown_object'
     noticed_player = 'noticed_player'
     unknown_inhabitant = 'unknown_inhabitant'
+    leisure = 'leisure'
 
 
 class Ask(StrEnum):
@@ -36,7 +59,7 @@ class Trigger(BaseModel):
     )
     kind: Kind = Field(
         ...,
-        description='unknown_object: a thing of a type without any belief in sight; noticed_player: the player noticed (click); unknown_inhabitant: another inhabitant in sight whose own name it does not know (B4a R8).',
+        description='unknown_object: a thing of a type without any belief in sight; noticed_player: the player noticed (click); unknown_inhabitant: another inhabitant in sight whose own name it does not know (B4a R8); leisure: nothing presses the inhabitant and it is bored (B2663, conditions in leisure).',
     )
     enabled: bool
     ask: Ask | None = Field(
@@ -99,5 +122,6 @@ class DeciderSettings(BaseModel):
         ge=0,
         le=1000,
     )
+    leisure: LeisureSettings | None = None
     triggers: list[Trigger] = Field(..., max_length=32)
     fallback_environment: FallbackEnvironment
