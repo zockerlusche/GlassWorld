@@ -124,7 +124,7 @@ namespace GlassWorld.Contracts
         public System.Collections.Generic.ICollection<BiomeRule> Rules { get; set; } = new System.Collections.ObjectModel.Collection<BiomeRule>();
 
         /// <summary>
-        /// D763 Z9 (TL #22107): the biomes every generated island must have; an attempt without one of them fails and the next derived seed is tried. Each id must be one of biomes.
+        /// D763 Z9 (TL #22107): the biomes every generated island must have; an attempt without one of them fails and the next derived seed is tried. Each id must be one of biomes. A biome added to the table later is NOT required by itself - add it here if every island must have it (review GW2 #307).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("required_biomes")]
         public System.Collections.Generic.ICollection<string> RequiredBiomes { get; set; } = new System.Collections.ObjectModel.Collection<string>();
