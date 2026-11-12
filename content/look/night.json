@@ -3,6 +3,7 @@
   "fade_out_s": 4,
   "fade_in_s": 3,
   "min_scene_s": 6,
+  "wait_for_sleepers_max_h": 2,
   "darkness": 0.82,
   "poll_s": 2,
   "lost_after_polls": 3,

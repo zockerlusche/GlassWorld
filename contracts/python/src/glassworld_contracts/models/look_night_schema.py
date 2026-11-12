@@ -89,6 +89,12 @@ class LookNight(BaseModel):
     fade_in_s: float = Field(
         ..., description='Real seconds the morning takes to fade in.', ge=0.5, le=60.0
     )
+    wait_for_sleepers_max_h: float | None = Field(
+        None,
+        description='B2680: the scene begins when every inhabitant sleeps, at the latest this many game hours after the night phase began (then the core lets those still awake lie down). Absent = the scene begins at nightfall, as before.',
+        ge=0.0,
+        le=12.0,
+    )
     min_scene_s: float = Field(
         ...,
         description='The dream scene stays at least this long (real seconds), also when the service has nothing to do - short, but without a jolt.',

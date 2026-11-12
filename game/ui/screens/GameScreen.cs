@@ -75,6 +75,12 @@ public partial class GameScreen : CanvasLayer
     private readonly Dictionary<string, bool> _cardFolded = new(StringComparer.Ordinal);
     private string _cardShape = string.Empty;
     private readonly GwToasts _toasts = new();
+    private readonly List<Control> _restingUi = [];
+    private bool _worldHeld;
+    private bool _menuPaused;
+    private double _speedBeforeNight = 1;
+    private bool _cameraHeldBeforeNight;
+    private long? _nightfallTick;
     private PanelContainer? _topBar;
     private Label? _date;
     private Label? _favor;
@@ -554,6 +560,12 @@ public partial class GameScreen : CanvasLayer
             return;
         }
 
+        // B2680: in the compute night only Esc works - no time keys, no clicks into the world.
+        if (_worldHeld)
+        {
+            return;
+        }
+
         if (TimeKey(@event, beforeGui: false))
         {
             return;
@@ -575,7 +587,7 @@ public partial class GameScreen : CanvasLayer
     {
         // Moves and the release of a started press are read before the GUI, so a drag across a panel is
         // still a drag; nothing is consumed here (only a time key on a focused time button, GameScreen.Keys).
-        if (TimeKey(@event, beforeGui: true) || _click is not { Pressed: true } click)
+        if (_worldHeld || TimeKey(@event, beforeGui: true) || _click is not { Pressed: true } click)
         {
             return;
         }
@@ -641,6 +653,8 @@ public partial class GameScreen : CanvasLayer
     /// <summary>Time buttons on or off (off while the pause menu is open, GW1 review #50 K3).</summary>
     public void SetTimeControlsEnabled(bool enabled)
     {
+        // The pause menu calls this: while it is open the night scene's time stands too (a paused game holds the fade).
+        _menuPaused = !enabled;
         foreach (var (button, _) in _timeButtons)
         {
             button.Disabled = !enabled;
@@ -1769,6 +1783,88 @@ public partial class GameScreen : CanvasLayer
     /// day phase turns to night, shows how far the service is, and lets the morning fade in once it is done.
     /// Real time only: a paused game holds the fade.
     /// </summary>
+    /// <summary>
+    /// Real seconds for the night scene this frame: while the night holds the world it runs on its own clock
+    /// (the world's speed is 0 then), else only while the world runs; the pause menu stops it either way.
+    /// </summary>
+    private double NightDelta(double delta) =>
+        _menuPaused ? 0 : _worldHeld ? delta : _presenter?.Speed > 0 ? delta : 0;
+
+    /// <summary>
+    /// B2680 (Marcel W1939): in the compute night everything sleeps, only the AI works. While the scene stands the
+    /// world stands still (speed 0), the camera and the bars, side windows, card and hints rest; only Esc and the
+    /// pause menu stay. When the morning has faded in, all comes back as it was.
+    /// </summary>
+    private void HoldWorld(bool hold)
+    {
+        if (_presenter is null)
+        {
+            return;
+        }
+
+        if (hold == _worldHeld)
+        {
+            // Nothing else may start the world while it is held (a check run, a late button event).
+            if (hold && _presenter.Speed != 0 && !_menuPaused)
+            {
+                _presenter.Speed = 0;
+            }
+
+            return;
+        }
+
+        _worldHeld = hold;
+        if (hold)
+        {
+            _speedBeforeNight = _presenter.Speed;
+            _presenter.Speed = 0;
+            _cameraHeldBeforeNight = _presenter.CameraHeld;
+            _presenter.CameraHeld = true;
+            _restingUi.Clear();
+            foreach (var control in RestingControls().Where(c => c.Visible))
+            {
+                _restingUi.Add(control);
+                control.Visible = false;
+            }
+
+            return;
+        }
+
+        _presenter.CameraHeld = _cameraHeldBeforeNight;
+        if (!_menuPaused && _presenter.Speed == 0)
+        {
+            _presenter.Speed = _speedBeforeNight;
+        }
+
+        foreach (var control in _restingUi.Where(IsInstanceValid))
+        {
+            control.Visible = true;
+        }
+
+        _restingUi.Clear();
+    }
+
+    /// <summary>What rests in the compute night: the bars, the side windows (and the card) and the hints.</summary>
+    private IEnumerable<Control> RestingControls()
+    {
+        if (_topBar is not null)
+        {
+            yield return _topBar;
+        }
+
+        yield return _sideBar;
+        yield return _themeBar;
+        foreach (var panel in _sideBar.Panels)
+        {
+            yield return panel;
+        }
+
+        yield return _toasts;
+    }
+
+    /// <summary>Whether the compute night holds the world now (B2680).</summary>
+    public bool WorldHeldByNight => _worldHeld;
+
     private void UpdateNight(double delta)
     {
         if (_night is null || _feed is null || _presenter is null)
@@ -1793,7 +1889,15 @@ public partial class GameScreen : CanvasLayer
         }
 
         var done = NightScene.ServiceDone(_nightLook!, setup is not null, _nightStatus, _nightUnanswered);
-        _night.Update(night, done, _presenter.Speed > 0 ? delta : 0);
+
+        // B2680: the scene waits until everyone sleeps, at the latest the data's hours after nightfall.
+        var tick = _presenter.Host!.World.Tick;
+        _nightfallTick = night == true ? _nightfallTick ?? tick : null;
+        var hoursIntoNight = (tick - (_nightfallTick ?? tick)) / (double)Math.Max(1, _presenter.Host.World.Calendar.Settings.TicksPerHour);
+        var allAsleep = _feed.Snapshot.Inhabitants.All(i => i.Action is { } a && _nightLook!.SleepActions.Contains(a));
+        var sceneDelta = NightDelta(delta);
+        _night.Update(night, done, sceneDelta, allAsleep, hoursIntoNight);
+        HoldWorld(_night.HoldsWorld);
         _nightShade.Color = new Color(0, 0, 0, (float)_night.Darkness);
 
         // Only while the night is dark: by day the shade is invisible and the order does not matter, so the
@@ -1805,7 +1909,7 @@ public partial class GameScreen : CanvasLayer
 
         _nightText.Visible = _night.SceneShown;
         _nightText.Modulate = new Color(1, 1, 1, (float)Math.Clamp(_night.Darkness / Math.Max(_nightDarkness, 0.01), 0, 1));
-        ShowSleepers(_presenter.Speed > 0 ? delta : 0);
+        ShowSleepers(sceneDelta);
         if (_dreams is not null && _style is not null)
         {
             if (!_night.SceneShown)
@@ -1815,7 +1919,7 @@ public partial class GameScreen : CanvasLayer
             }
 
             var scene = (float)Math.Clamp(_night.Darkness / Math.Max(_nightDarkness, 0.01), 0, 1);
-            ShowDreams(_dreams.Update(_night.SceneShown && _presenter.Speed > 0 ? delta : 0, _style.Settings.ReduceMotion), scene);
+            ShowDreams(_dreams.Update(_night.SceneShown ? sceneDelta : 0, _style.Settings.ReduceMotion), scene);
         }
 
         if (_nightText.Visible)
