@@ -446,7 +446,7 @@ public static class SaveGameStore
         }
 
         // The whole log is saved, never trimmed: replays need every entry, and a restore takes the request
-        // language from the last set_display_locale command in it (SimulationHost.UseLoggedDisplayLocale).
+        // language from the last set_display_locale command in it (SimulationHost.UseLoggedPlayerSettings).
         // Any future trimming or compaction must keep the set_display_locale commands (#20043).
         var seq = 0;
         foreach (var e in s.DecisionLog)

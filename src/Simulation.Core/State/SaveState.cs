@@ -357,7 +357,7 @@ public static class StateCodec
 
         host.Diary.Restore(state.Diary ?? [], state.DiaryVersion);
         host.NightJobs.Restore(state.NightJobs);
-        host.UseLoggedDisplayLocale();
+        host.UseLoggedPlayerSettings();
         return host;
     }
 }
