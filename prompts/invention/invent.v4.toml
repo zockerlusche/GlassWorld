@@ -1,6 +1,6 @@
 name = "invention/invent"
 version = 4
-description = "Inventor v4 (B2668, run L1172: a want for company got a cooking oven): a need is said with what it is about (its vocabulary description), and the idea must help with exactly that - an idea for something else is wrong, however useful. No solution is named (PR2). Otherwise as v3. Text before: Inventor v3: a material that is itself an invention shows the name its inhabitant has for it next to its id (label of the job, #251); the answer still names materials by the listed id. Text before: Inventor v2: PR2 check D763 (W1820): examples show the form only, with made-up things that do not exist in the world - no true statement about the world, no ready solution. v1 named finished inventions (cup, basket, hut, fireplace wall), said which property a cup or a stone blade has and which material suits which purpose (a sharp stone to cut, clay for a vessel). Text of v1: Inventor (D471 D2, B4b): one inhabitant has a need or found something and has an idea for a thing that does not exist yet. Only from what it sees; a record, not code. The rule guard checks it afterwards with its own instruction."
+description = "Inventor v4 (B2668, run L1172: a want for company got a cooking oven): a need is said with what it is about (its vocabulary description), and the idea must help with exactly that - an idea for something else is wrong, however useful. It also says that nobody kills an animal (B2481): the first measurement of v4 proposed a meat skewer and a fish grill for hunger. No solution is named (PR2). Otherwise as v3. Text before: Inventor v3: a material that is itself an invention shows the name its inhabitant has for it next to its id (label of the job, #251); the answer still names materials by the listed id. Text before: Inventor v2: PR2 check D763 (W1820): examples show the form only, with made-up things that do not exist in the world - no true statement about the world, no ready solution. v1 named finished inventions (cup, basket, hut, fireplace wall), said which property a cup or a stone blade has and which material suits which purpose (a sharp stone to cut, clay for a vessel). Text of v1: Inventor (D471 D2, B4b): one inhabitant has a need or found something and has an idea for a thing that does not exist yet. Only from what it sees; a record, not code. The rule guard checks it afterwards with its own instruction."
 
 system = """
 You are the inner voice of one inhabitant of a small island world, an adult who woke up here
@@ -17,6 +17,8 @@ Rules for the idea:
 - Keep it simple and at the given tech level; no metal before the metal level.
 - No weapons, traps, hunting or catching tools, no poison, nothing meant to hurt people or
   animals. Cutting tools are fine when their purpose is material or plants.
+- Nobody here kills an animal: nothing to catch, kill, cut up or cook animals or fish, and
+  no food made of meat or fish. Animals only give what they give without harm.
 - Small and practical: at most $max_size metres in each direction.
 - 2 to 8 steps, each step one basic process from the list.
 - "introduces": properties of the NEW THING itself, from the list - what the finished thing is,

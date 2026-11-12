@@ -59,7 +59,8 @@ def test_an_approved_invention_makes_a_valid_builder_job() -> None:
     ("text", "found"),
     [
         ("Speerspitze aus Feuerstein", ["speer"]),
-        ("A simple fishing rod", ["fishing rod"]),
+        ("A simple fishing rod", ["fishing rod", "fish"]),  # v4: fish* is a bait term too (B2481)
+        ("Fischgrill aus Holz", ["fisch"]),
         ("Wasserschale aus Lehm", []),
         ("Ein Bogen aus Schilf für den Korb", []),  # ambiguous (arch): not a bait term
         ("Elbow rest", []),  # 'bow' inside a word is no bait
