@@ -125,6 +125,13 @@ namespace GlassWorld.Contracts
         public double ModalDim { get; set; } = default!;
 
         /// <summary>
+        /// Opacity of a card value shown greyed - a need an invention brought that has run empty (A1595); 1 = not greyed. Omitted = 0.5.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("faded_alpha")]
+        public double? FadedAlpha { get; set; } = default!;
+
+        /// <summary>
         /// Lines the conversation log keeps (W1696: who said or thought what), newest first.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("log_lines")]
