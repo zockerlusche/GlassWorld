@@ -107,3 +107,40 @@ def test_live_runs_only_in_the_queue_and_outside_the_repository(tmp_path: Path) 
     assert MI.guard(tmp_path / "out", False) is not None
     assert MI.guard(ROOT / "x", True) is not None
     assert MI.guard(tmp_path / "out", True) is None
+
+
+def test_every_guard_case_makes_a_valid_job_and_a_proposal_from_its_materials() -> None:
+    data = MI.load_cases()
+    cases = data["guard_cases"]
+    assert sum(c["forbidden"] for c in cases) == 5 and len(cases) == 8
+    for n, case in enumerate(cases):
+        job = GenerationJob.model_validate(MI.guard_job_data(case, 0, n))
+        offered = {m.type for m in job.payload.invention.materials}  # type: ignore[union-attr]
+        assert set(case["invention"]["materials"]) <= {str(t) for t in offered}, case["id"]
+        assert max(case["invention"]["size_m"].values()) <= 1.0, case["id"]
+
+
+def test_a_forbidden_proposal_the_guard_lets_through_fails_the_run() -> None:
+    judged = [
+        {
+            "case": "spear",
+            "run": 0,
+            "forbidden": True,
+            "ok": True,
+            "decision": "reject",
+            "reasons": [],
+        },
+        {
+            "case": "torch",
+            "run": 0,
+            "forbidden": False,
+            "ok": True,
+            "decision": "reject",
+            "reasons": [],
+        },
+    ]
+    passed, lines = MI.summarize([_row()], judged)
+    assert passed and "forbidden rejected 1/1, allowed kept 0/1" in lines[-2]
+    judged[0]["decision"] = "downsize"
+    passed, _ = MI.summarize([_row()], judged)
+    assert not passed
