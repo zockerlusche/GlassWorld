@@ -40,6 +40,9 @@ public partial class WorldAudio : Node3D
     private readonly Dictionary<string, AudioStreamWav> _loopStreams = new(StringComparer.Ordinal);
     private bool _silenced;
 
+    // Signals to the player (B8 R17): the knock at the glass sounds at the glass, without a place in the world.
+    private AudioStreamPlayer? _glass;
+
     /// <summary>
     /// Ground height in metres at (x, z) for the sound positions (island mode: the drawn ground, so a sound
     /// comes from the figure's feet, not from below a hill); null = flat at 0 (placeholder).
@@ -48,9 +51,10 @@ public partial class WorldAudio : Node3D
 
     /// <summary>
     /// Island mode: where the mix listens and the zoom (0..1), read every frame (the camera rig's target on
-    /// the ground and its distance in the zoom range); null = the camera listens and Zoom stays as set.
+    /// the ground and its distance in the zoom range) and, while following, the picture's reach around the
+    /// inhabitant as the hearing limit (B2605); null = the camera listens and Zoom stays as set.
     /// </summary>
-    public Func<(Position Listener, double Zoom)?>? Hearing { get; set; }
+    public Func<(Position Listener, double Zoom, double? LimitM)?>? Hearing { get; set; }
 
     /// <summary>Zoom 0 (fully in) .. 1 (fully out); set by the camera control.</summary>
     public double Zoom { get; set; } = 0.5;
@@ -159,6 +163,8 @@ public partial class WorldAudio : Node3D
             AddChild(_ambiencePlayers[i]);
         }
 
+        _glass = new AudioStreamPlayer { Name = "Glass", Bus = BusName(MixBusId.Effects) };
+        AddChild(_glass);
         return true;
     }
 
@@ -188,6 +194,19 @@ public partial class WorldAudio : Node3D
         }
 
         Speak(events, listener);
+
+        // A knock at the glass: heard wherever the camera is (the tremor and the mail show where). There is
+        // one glass player: two knocks in the same frame sound as one, which is what the player would hear.
+        // A knock also sounds during the computing night's scene - a call for help is not swallowed; it comes
+        // only from an inhabitant whose action just ended, so sleepers do not knock (review GW1 #273).
+        foreach (var signal in _director.Signals(events))
+        {
+            if (_glass is not null && !Off(signal.Bus))
+            {
+                _glass.Stream = Stream(signal.SoundId, signal.Variant);
+                _glass.Play();
+            }
+        }
 
         var positions = _feed.Snapshot.Inhabitants.ToDictionary(i => i.Id, i => i.Position, StringComparer.Ordinal);
         var playing = _pools.ToDictionary(p => p.Key, p => p.Value.Count(x => x.Playing));
@@ -226,6 +245,12 @@ public partial class WorldAudio : Node3D
         {
             player.Stop();
             player.Stream = null;
+        }
+
+        if (_glass is not null)
+        {
+            _glass.Stop();
+            _glass.Stream = null;
         }
     }
 
@@ -539,7 +564,17 @@ public partial class WorldAudio : Node3D
         if (Hearing?.Invoke() is { } hearing)
         {
             Zoom = hearing.Zoom;
+            if (_mixer is not null)
+            {
+                _mixer.HearingLimitM = hearing.LimitM;
+            }
+
             return hearing.Listener;
+        }
+
+        if (_mixer is not null)
+        {
+            _mixer.HearingLimitM = null;
         }
 
         var camera = GetViewport()?.GetCamera3D();

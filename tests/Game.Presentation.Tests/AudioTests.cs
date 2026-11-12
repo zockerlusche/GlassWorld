@@ -77,6 +77,22 @@ public sealed class AudioTests
     public void EverySoundHasARetroRecipe() => Assert.Empty(Library.Value.MissingRecipes());
 
     [Fact]
+    public void ActionsShareASoundOnlyWithinTheirGroup()
+    {
+        // B8 R2 (B2608, W1741): every action sounds like itself; actions of one kind (moving, speaking) may share a
+        // sound only when the data say so with a common group. Combining, using and building are not one kind.
+        var shared = Library.Value.Map.Actions
+            .Where(a => a.Sound is not null)
+            .GroupBy(a => a.Sound!, StringComparer.Ordinal)
+            .Where(g => g.Count() > 1 && (g.Any(a => a.Group is null) || g.Select(a => a.Group).Distinct(StringComparer.Ordinal).Count() > 1))
+            .Select(g => g.Key + ": " + string.Join(", ", g.Select(a => a.Action)))
+            .ToList();
+        Assert.True(shared.Count == 0, "actions of different kinds share a sound: " + string.Join("; ", shared));
+        var sounds = Library.Value.Map.Actions.Where(a => a.Action is "combine" or "use" or "build_step").Select(a => a.Sound).ToList();
+        Assert.Equal(3, sounds.Distinct(StringComparer.Ordinal).Count());
+    }
+
+    [Fact]
     public void MissingRecipeIsRejected()
     {
         var map = JsonNode.Parse(MapJson)!;

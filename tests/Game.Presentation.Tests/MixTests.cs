@@ -103,6 +103,34 @@ public sealed class MixTests
     }
 
     [Fact]
+    public void WhileFollowingNothingBeyondThePicturesReachIsHeard()
+    {
+        // B2605, B8 R7: the camera follows an inhabitant; what lies outside the picture is silent.
+        var mixer = SoundMixer.FromJson(MixJson);
+        var silent = mixer.SilentDistance(MixBusId.Ambience, 0.5);
+        var limit = silent / 4;
+        Assert.True(mixer.Gain(MixBusId.Ambience, limit * 2, 0.5) > 0);
+
+        mixer.HearingLimitM = limit;
+
+        Assert.Equal(0, mixer.Gain(MixBusId.Ambience, limit * 2, 0.5));
+        Assert.Equal(0, mixer.Gain(MixBusId.Ambience, limit, 0.5));
+        Assert.True(mixer.Gain(MixBusId.Ambience, limit / 10, 0.5) > 0);
+        Assert.Equal(limit, mixer.SilentDistance(MixBusId.Ambience, 0.5), 6);
+
+        // It fades out towards the edge, no hard cut (review GW1 #274).
+        var nearEdge = mixer.Gain(MixBusId.Ambience, limit * 0.95, 0.5);
+        Assert.InRange(nearEdge, 0.0001, 0.5);
+        Assert.True(mixer.Gain(MixBusId.Ambience, limit * 0.5, 0.5) > nearEdge);
+
+        // A limit beyond the bus's own range changes nothing; without one the range is the bus's again.
+        mixer.HearingLimitM = silent * 3;
+        Assert.Equal(silent, mixer.SilentDistance(MixBusId.Ambience, 0.5), 6);
+        mixer.HearingLimitM = null;
+        Assert.True(mixer.Gain(MixBusId.Ambience, limit * 2, 0.5) > 0);
+    }
+
+    [Fact]
     public void VariantStaysWithinTheRecipeVariants()
     {
         var director = new SoundDirector(Library, Mixer);
@@ -113,6 +141,23 @@ public sealed class MixTests
             .ToHashSet();
         Assert.All(seen, v => Assert.InRange(v, 0, variants - 1));
         Assert.Equal(variants, seen.Count);
+    }
+
+    [Fact]
+    public void AKnockAtTheGlassSoundsAtTheGlassWhereverTheCameraIs()
+    {
+        // B8 R17 (B2608): its own glass sound, not tied to a place in the world - the knock is meant for the player.
+        var director = new SoundDirector(Library, Mixer);
+        var knock = new WorldEvent(Simulation.Player.MailboxSystem.MailArrived, 7, "inh-1", null, "mail-1") { Detail = Simulation.Player.MailboxSystem.KnockKind };
+        var other = new WorldEvent(Simulation.Player.MailboxSystem.MailArrived, 7, "inh-2", null, "mail-2") { Detail = "gift" };
+
+        var signal = Assert.Single(director.Signals([knock, other, new WorldEvent(InhabitantsSystem.ActionStarted, 7, "inh-1", "eat", null)]));
+
+        Assert.Equal("signal.knock_glass", signal.SoundId);
+        Assert.Equal(Library.ForSignal(SoundForSignalSignal.Knock), signal.SoundId);
+        Assert.InRange(signal.Variant, 0, Library.Recipe(signal.SoundId).Variants - 1);
+        Assert.Equal(signal.Variant, Assert.Single(director.Signals([knock])).Variant);
+        Assert.Empty(director.Plan([knock], new Dictionary<string, Position>(StringComparer.Ordinal) { ["inh-1"] = new(1, 0) }, new Position(0, 0), 0.5, new Dictionary<MixBusId, int>()));
     }
 
     [Fact]

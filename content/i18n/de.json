@@ -2395,6 +2395,10 @@
       "text": "nicht dabei"
     },
     {
+      "key": "ui.selfcheck.how",
+      "text": "So leben die Bewohner: Gewohntes tun sie aus Gewohnheit. Begegnet ihnen etwas Neues – ein unbekanntes Ding, ein Fremder, deine Stimme –, fragen sie die Sprach-KI, sofort oder in der Rechennacht. Nachts ordnet die KI mit ihnen auch Erinnerungen und Ideen. Was sie lernen, prägt ihre Gewohnheiten."
+    },
+    {
       "key": "ui.selfcheck.again",
       "text": "Erneut prüfen"
     },
@@ -2421,6 +2425,10 @@
     {
       "key": "msg.hint.selfcheck",
       "text": "Eine KI braucht dich. In den Einstellungen unter „KI“ steht, was zu tun ist."
+    },
+    {
+      "key": "ui.log.knock",
+      "text": "{name} klopft an die Scheibe."
     },
     {
       "key": "ui.log.no_answer",

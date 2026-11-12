@@ -192,6 +192,9 @@ public partial class SettingsWindow : GwWindow
     public void AddAi(Func<Task<AiClient.SelfCheckAnswer>>? check, Func<Task<AiClient.DiagnosticsAnswer>>? report, string reportFolder)
     {
         Section("ui.settings.section.ai");
+
+        // What the language AI does and what it does not (D763 Z30): familiar things out of habit, new ones ask it.
+        _page.AddChild(new Label { Text = "ui.selfcheck.how", AutowrapMode = TextServer.AutowrapMode.WordSmart });
         var lines = new VBoxContainer { Name = "AiLines" };
         _page.AddChild(lines);
         var buttons = new HBoxContainer();

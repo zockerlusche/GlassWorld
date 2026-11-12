@@ -204,6 +204,13 @@ namespace GlassWorld.Contracts
         public string Preset { get; set; } = default!;
 
         /// <summary>
+        /// Share of the land shown as seen (cloud cover lifted) for the whole benchmark, in permille (A1559, TL #21633: the measurement shows the game with the island explored - the heavy case). Omitted = the cover as the start world has it (most of the island under clouds).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("revealed_permille")]
+        public int? RevealedPermille { get; set; } = default!;
+
+        /// <summary>
         /// Real seconds before each pass is measured (the look of the pass is already shown).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("warmup_s")]

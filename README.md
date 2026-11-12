@@ -14,6 +14,7 @@ local open-source AI only, until they grow a family and a culture.
 - **Data-driven** – values live in data files under `content/`, not in code.
 - **Everything local** – no online services or cloud AI at runtime.
 - **The world knows the truth, the AI guesses** – every AI proposal is checked against the world's rules.
+- **Habit for the familiar, the AI for the new** – everyday things (eating, drinking, sleeping, walking) follow habit, weighed by values in data files; when an inhabitant meets something new – an unknown thing, a stranger, the player's voice – it asks the language model, at once or in the computing night, when the model also sorts memories and ideas; what it learns shapes its habits. Not every step is an AI decision.
 - **Calm world** – no stress, no score, no game over. Suitable for ages 12+.
 - **Reproducible** – every run can be replayed from seed and log.
 - **Bilingual** – every visible text exists in German and English.

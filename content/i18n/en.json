@@ -2395,6 +2395,10 @@
       "text": "not included"
     },
     {
+      "key": "ui.selfcheck.how",
+      "text": "How the inhabitants live: they do familiar things out of habit. When they meet something new – an unknown thing, a stranger, your voice – they ask the language AI, at once or in the computing night. At night the AI also sorts their memories and ideas with them. What they learn shapes their habits."
+    },
+    {
       "key": "ui.selfcheck.again",
       "text": "Check again"
     },
@@ -2421,6 +2425,10 @@
     {
       "key": "msg.hint.selfcheck",
       "text": "An AI needs you. The settings say under \"AI\" what to do."
+    },
+    {
+      "key": "ui.log.knock",
+      "text": "{name} knocks at the glass."
     },
     {
       "key": "ui.log.no_answer",

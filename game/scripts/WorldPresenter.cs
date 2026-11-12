@@ -361,7 +361,9 @@ public partial class WorldPresenter : Node3D
 
         // The AI service runs from the repository (uv project). An exported build sits elsewhere, so
         // GLASSWORLD_AI_ROOT may name the folder that holds it (test package, until B10 packages the service).
-        var repository = LocalAiService.RepositoryRoot(contentDirectory, System.Environment.GetEnvironmentVariable(LocalAiService.RootVariable));
+        // A test variant of the data (GLASSWORLD_CONTENT) lies elsewhere; the service still starts from the real
+        // repository (A1558), unless GLASSWORLD_AI_ROOT names another.
+        var repository = LocalAiService.RepositoryRoot(ContentLocator.Variant is null ? contentDirectory : ContentLocator.RealContentDirectory(), System.Environment.GetEnvironmentVariable(LocalAiService.RootVariable));
         try
         {
             _service = LocalAiService.Start(repository, System.IO.Path.Combine(OS.GetUserDataDir(), "ai-service"));

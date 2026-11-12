@@ -51,6 +51,13 @@
       "items": {
         "$ref": "#/$defs/SoundForAnimal"
       }
+    },
+    "signals": {
+      "description": "Sounds of the world's signals to the player, heard at the glass rather than at a place in the world (B8 R17, B2608): an inhabitant knocking at the glass. Omitted = no signal sounds.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/SoundForSignal"
+      }
     }
   },
   "$defs": {
@@ -67,6 +74,41 @@
         },
         "sound": {
           "description": "Language-neutral sound id, e.g. step.grass; null = silent on purpose (waiting and sleeping make no sound, Marcel W1643).",
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*){1,3}$",
+              "maxLength": 64
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "group": {
+          "description": "Actions of one kind that share their sound on purpose carry the same group (B8 R2, B2608): e.g. moving for wander, explore, move_to, approach. Two actions with the same sound but no common group are a defect (Marcel W1741: one knock for combining, using and every building step).",
+          "type": "string",
+          "pattern": "^[a-z][a-z_]{1,31}$"
+        }
+      }
+    },
+    "SoundForSignal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "signal",
+        "sound"
+      ],
+      "properties": {
+        "signal": {
+          "description": "The signal: knock = an inhabitant knocks at the glass (mail kind knock, B6 R10).",
+          "type": "string",
+          "enum": [
+            "knock"
+          ]
+        },
+        "sound": {
+          "description": "Language-neutral sound id; null = silent on purpose.",
           "anyOf": [
             {
               "type": "string",
