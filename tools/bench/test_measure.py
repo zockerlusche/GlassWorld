@@ -23,7 +23,7 @@ def _module() -> ModuleType:
 
 
 BM = _module()
-MARKS = BM.Marks(60.0, 16.7, 120.0, 100, 2560, ("day", "night"), 10.0, "7", "high")
+MARKS = BM.Marks(60.0, 16.7, 120.0, 100, 2560, ("day", "night"), 10.0, "7", "high", "1000")
 RES = "800x600"
 
 
@@ -48,6 +48,7 @@ def _pass(
     run_samples: int = 70,
     last_sample_s: int = 200,
     figures: str = "104",
+    revealed: str = "1000",
 ) -> None:
     """A complete, good pass: CSV, log with the game's own lines, memory samples."""
     rows = ["pass,time_s,frame_ms"] + [f"{name},{i * 0.01:.2f},{ms}" for i, ms in enumerate(frames)]
@@ -57,7 +58,7 @@ def _pass(
     (out / f"bench_{RES}_{name}.log").write_text(
         f"BENCH_START seed=7 quality={quality} passes={name} warmup_s={warmup} "
         f"duration_s={duration} "
-        f"figures={figures} size=640x480 csv=x\n{env}"
+        f"figures={figures} revealed_permille={revealed} size=640x480 csv=x\n{env}"
         f"BENCH_PASS pass={name} frames={len(frames)} mean_fps={mean:.2f} p95_ms={p95:.3f} "
         f"max_ms={max(frames)} ok=yes size={size} warmup_frames=600\n",
         encoding="utf-8",
@@ -279,6 +280,8 @@ def test_guards(tmp_path: Path) -> None:
             "Build 'unknown' ist kein benannter Stand",
         ),
         ({"figures": "52"}, "window", "nur 52 Figuren statt mindestens 100"),
+        ({"revealed": "120"}, "window", "aufgedeckt 120 ‰ statt 1000 ‰"),
+        ({"revealed": "none"}, "window", "aufgedeckt none ‰ statt 1000 ‰"),
     ],
 )
 def test_what_the_run_really_ran_on_must_be_the_acceptance_setup(
@@ -401,3 +404,11 @@ def test_without_the_job_the_tool_says_so_and_still_ends_its_child(
     assert child.poll() is None
     group.end()
     assert child.poll() is not None
+
+
+def test_without_a_share_in_the_data_any_share_is_accepted(tmp_path: Path) -> None:
+    """An export or data from before A1559 (#268): nothing to compare, the report says '?'."""
+    old = BM.Marks(60.0, 16.7, 120.0, 100, 2560, ("day", "night"), 10.0, "7", "high")
+    _pass(tmp_path, "day", GOOD, revealed="120")
+    r = BM.judge(tmp_path, RES, "window", "day", old, 0)
+    assert r.revealed == "120" and r.verdict == "erfüllt", r.invalid

@@ -211,6 +211,9 @@ Each release gets its own section (version and date); until then changes collect
 
 ### Changed
 
+<<<<<<< HEAD
+- Every kind of action sounds like itself (A1542, B8 R2, B2608 / W1741 "das Holzklopfen erklingt fuer Verbinden, Benutzen und jeden Bauschritt"): using a thing and a building step get their own sounds (`action.use` - scraping strokes, `action.build_step` - a dull thump set down twice; retro recipes, **placeholders** until the sound rework R18). Actions of one kind may share a sound only with a common `group` in the sound map (moving: wander, explore, move_to, approach; speaking: talk_to, warn, introduce, show, teach); a test refuses any other sharing.
+=======
 - While the camera follows an inhabitant, nothing is heard that lies outside the picture (A1542, B8 R7, B2605: "beim Folgen keine Klänge ohne sichtbare Quelle"): the hearing range of every bus is capped at the picture's reach around the inhabitant - half the visible width at the camera's distance, from the field of view (`CameraModel.SeenRadiusM`, `SoundMixer.HearingLimitM`). No new value; the free camera hears as before.
 - Honest words about who decides (D763 Z30; A1561): the AI tab of the settings and the README say what the language AI does - familiar things out of habit, something new asks it.
 - Inhabitants get names that fit their sex (A1557, D809 M2): `content/inhabitants/names.json` has lists `female` and `male` besides `names` (now: names that fit anybody); the core picks from the inhabitant's own list and the names for anybody, deterministically by the world seed. The 24 names are only sorted into the lists, none added - **the sorting is a proposal** (Bela, Pera, Ulme for anybody). Without the lists the names are given as before. Changes the names of existing seeds.

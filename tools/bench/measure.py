@@ -73,6 +73,7 @@ class Marks:
     warmup_s: float = 0.0
     seed: str = ""
     quality: str = ""
+    revealed: str = ""  # A1559: share of the land shown as seen (permille); "" = not in the data
 
 
 @dataclass
@@ -87,6 +88,7 @@ class PassResult:
     size: str = "?"
     quality: str = "?"
     figures: str = "?"
+    revealed: str = "?"
     vsync: str = "?"
     window: str = "?"
     build: str = "?"
@@ -124,6 +126,7 @@ def load_marks(root: Path = ROOT) -> Marks:
         float(bench["warmup_s"]),
         str(bench["seed"]),
         str(quality["default_level"]),
+        str(bench["revealed_permille"]) if "revealed_permille" in bench else "",
     )
 
 
@@ -161,6 +164,12 @@ def judge_setup(
             f"Qualität {start.get('quality')} statt {marks.quality}",
         ),
         (start.get("seed") == marks.seed, f"Seed {start.get('seed')} statt {marks.seed}"),
+        # A1559 (#268): the island as explored as the data say - an export that does not
+        # name the share, or shows another, measured another island (D742/D774: covered).
+        (
+            not marks.revealed or start.get("revealed_permille") == marks.revealed,
+            f"aufgedeckt {start.get('revealed_permille', '?')} ‰ statt {marks.revealed} ‰",
+        ),
     ]
     result.invalid += [reason for good, reason in checks if not good]
     if not start.get("figures", "").isdigit() or int(start["figures"]) < marks.figures:
@@ -275,6 +284,7 @@ def judge(
     done = log_line(out / f"bench_{stem}.log", "BENCH_PASS")
     result.quality = start.get("quality", "?")
     result.figures = start.get("figures", "?")
+    result.revealed = start.get("revealed_permille", "?")
     judge_setup(result, start, done, log_line(out / f"bench_{stem}.log", "BENCH_ENV"), marks)
     # The size of the BENCH_PASS line: BENCH_START is printed right after the mode switch is asked.
     result.size = done.get("size", "?")
@@ -335,7 +345,10 @@ def report(results: list[PassResult], marks: Marks, meta: dict[str, Any]) -> str
         "- **Zusätzliche Szenen-Argumente:** "
         + (" ".join(meta.get("extra") or []) or ("keine" if "extra" in meta else "nicht bekannt")),
         f"- **Szene laut Daten:** Seed {marks.seed}, Qualität {marks.quality}, Aufwärmzeit "
-        f"{marks.warmup_s:g} s. Die erste Auflösung der Liste ist die Abnahme-Auflösung.",
+        f"{marks.warmup_s:g} s, Insel aufgedeckt "
+        f"{(marks.revealed + ' ‰') if marks.revealed else 'wie in der Startwelt'} "
+        f"(im Lauf: {next((r.revealed for r in results if r.revealed != '?'), '?')}). "
+        "Die erste Auflösung der Liste ist die Abnahme-Auflösung.",
         f"- **Marken:** im Mittel mindestens {marks.mean_fps:g} Bilder je Sekunde, 95 % der "
         f"Bilder in höchstens {marks.p95_ms:g} ms, Grafikspeicher des Spiels höchstens "
         f"{marks.vram_mib} MiB, Messdauer {marks.duration_s:g} s je Durchgang.",
