@@ -57,8 +57,11 @@ public static class SeatChoice
         return seats;
     }
 
-    /// <summary>How a figure of <paramref name="scale"/> standing at (x, z) sits.</summary>
-    public static SeatPose Choose(FigureSitting data, double x, double z, double scale, IReadOnlyList<Seat> seats)
+    /// <summary>
+    /// How a figure of <paramref name="scale"/> standing at (x, z) sits. A seat another figure holds
+    /// (<paramref name="taken"/>, A1570) is not offered: two figures never share one stone.
+    /// </summary>
+    public static SeatPose Choose(FigureSitting data, double x, double z, double scale, IReadOnlyList<Seat> seats, Func<Seat, bool>? taken = null)
     {
         ArgumentNullException.ThrowIfNull(data);
         ArgumentNullException.ThrowIfNull(seats);
@@ -67,6 +70,11 @@ public static class SeatChoice
         var bestDistance = data.SeatSearchM;
         foreach (var seat in seats)
         {
+            if (taken?.Invoke(seat) == true)
+            {
+                continue;
+            }
+
             var d = Math.Sqrt(((seat.X - x) * (seat.X - x)) + ((seat.Z - z) * (seat.Z - z)));
             if (d <= bestDistance)
             {
@@ -85,6 +93,69 @@ public static class SeatChoice
 
         return new SeatPose(false, x, z, -clipSeat, data.GroundKneeStraighten);
     }
+}
+
+/// <summary>
+/// Who sits where (A1570, D843 b): a seat belongs to the figure that sat down on it until it gets up or the seat is
+/// gone, so a second figure takes another seat or the ground. Presentation only; the core keeps its own spacing.
+/// </summary>
+public sealed class SeatBook
+{
+    private readonly Dictionary<string, Seat> _held = new(StringComparer.Ordinal);
+
+    /// <summary>Whether another figure than <paramref name="figureId"/> holds the seat.</summary>
+    public bool TakenByOther(string figureId, Seat seat) =>
+        _held.Any(h => !string.Equals(h.Key, figureId, StringComparison.Ordinal) && Same(h.Value, seat));
+
+    /// <summary>The figure sits on <paramref name="pose"/> (a seat) or not (ground or standing): it holds that seat or none.</summary>
+    public void Sit(string figureId, SeatPose? pose)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(figureId);
+        if (pose is { OnSeat: true } p)
+        {
+            _held[figureId] = new Seat(p.X, p.Z, 0);
+        }
+        else
+        {
+            _held.Remove(figureId);
+        }
+    }
+
+    /// <summary>The figure is gone (removed from the island): its seat is free.</summary>
+    public void Leave(string figureId) => _held.Remove(figureId);
+
+    private static bool Same(Seat a, Seat b) => Math.Abs(a.X - b.X) < 0.01 && Math.Abs(a.Z - b.Z) < 0.01;
+}
+
+/// <summary>
+/// Sitting down, getting up and changing seat at the data's pace (A1570, D843 b), without Godot: a figure that
+/// is to sit somewhere else first gets up from where it sits (the share eases to 0) and only then sits down on
+/// the new place - it never slides or jumps from one seat to the next.
+/// </summary>
+public static class SeatEasing
+{
+    /// <summary>Share below which a figure counts as standing (it may move to another seat).</summary>
+    public const double Standing = 0.001;
+
+    /// <summary>
+    /// One frame: <paramref name="wanted"/> is where the figure should sit now (null = standing),
+    /// <paramref name="shown"/> where it sits, <paramref name="share"/> how far (0 standing .. 1 seated).
+    /// Returns where it sits after this frame and how far.
+    /// </summary>
+    public static (SeatPose Shown, double Share) Step(SeatPose? wanted, SeatPose shown, double share, double perSecond, double seconds)
+    {
+        if (wanted is { } w && (share <= Standing || SamePlace(w, shown)))
+        {
+            shown = w;
+        }
+
+        var goal = wanted is { } g && SamePlace(g, shown) ? 1.0 : 0.0;
+        return (shown, GreetingReaction.Ease(share, goal, perSecond, seconds));
+    }
+
+    /// <summary>Whether two poses sit at the same place (a seat, or the same spot on the ground).</summary>
+    public static bool SamePlace(SeatPose a, SeatPose b) =>
+        a.OnSeat == b.OnSeat && Math.Abs(a.X - b.X) < 0.01 && Math.Abs(a.Z - b.Z) < 0.01 && Math.Abs(a.LiftM - b.LiftM) < 0.01;
 }
 
 /// <summary>

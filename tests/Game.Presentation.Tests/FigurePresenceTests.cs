@@ -15,6 +15,65 @@ public sealed class FigurePresenceTests
         ContractSerializer.Deserialize<AnimationLibrary>(File.ReadAllText(Path.Combine(TestPaths.Root, "content", "animation", "library.json")));
 
     [Fact]
+    public void TwoFiguresNeverShareOneSeat()
+    {
+        // A1570 (D843 b): the first takes the stone, the second the next free one or the ground.
+        var sitting = Figures.Sitting;
+        var book = new SeatBook();
+        Seat stone = new(0.3, 0, sitting.Seats.First().SeatHeightM);
+        Seat other = new(-0.5, 0, sitting.Seats.First().SeatHeightM);
+        var first = SeatChoice.Choose(sitting, 0, 0, 1, [stone, other], s => book.TakenByOther("inh-000001", s));
+        book.Sit("inh-000001", first);
+        Assert.Equal((true, stone.X), (first.OnSeat, first.X));
+
+        var second = SeatChoice.Choose(sitting, 0, 0, 1, [stone, other], s => book.TakenByOther("inh-000002", s));
+        book.Sit("inh-000002", second);
+        Assert.Equal((true, other.X), (second.OnSeat, second.X));
+
+        var third = SeatChoice.Choose(sitting, 0, 0, 1, [stone, other], s => book.TakenByOther("inh-000003", s));
+        Assert.False(third.OnSeat);
+
+        // Its own seat stays its own; getting up or leaving frees it.
+        Assert.Equal(stone.X, SeatChoice.Choose(sitting, 0, 0, 1, [stone, other], s => book.TakenByOther("inh-000001", s)).X);
+        book.Sit("inh-000001", null);
+        Assert.Equal(stone.X, SeatChoice.Choose(sitting, 0, 0, 1, [stone, other], s => book.TakenByOther("inh-000003", s)).X);
+        book.Leave("inh-000002");
+        Assert.False(book.TakenByOther("inh-000003", other));
+    }
+
+    [Fact]
+    public void ChangingSeatGetsUpFirstAndNeverJumps()
+    {
+        // A1570 (D843 b): seated on one stone, told to sit on another, the figure eases up at the old place first.
+        SeatPose a = new(true, 0, 0, -0.1, 0.2);
+        SeatPose b = new(true, 0.9, 0, -0.1, 0.2);
+        var (shown, share) = (a, 1.0);
+        var lastX = shown.X * share;
+        var reachedB = false;
+        for (var frame = 0; frame < 600; frame++)
+        {
+            (shown, share) = SeatEasing.Step(b, shown, share, 2.0, 1.0 / 60);
+
+            // While it is still (partly) seated it is seated at one place: it never slides along with the share.
+            if (share > SeatEasing.Standing && !SeatEasing.SamePlace(shown, b))
+            {
+                Assert.True(SeatEasing.SamePlace(shown, a));
+            }
+
+            reachedB |= SeatEasing.SamePlace(shown, b) && share > 0.99;
+            lastX = shown.X;
+        }
+
+        Assert.True(reachedB);
+        Assert.Equal(b.X, lastX);
+
+        // Standing up keeps the place it got up from; sitting down again at the same place does not move it.
+        (shown, share) = SeatEasing.Step(null, b, 1.0, 2.0, 0.1);
+        Assert.True(SeatEasing.SamePlace(shown, b));
+        Assert.True(share < 1.0);
+    }
+
+    [Fact]
     public void ASeatedClipSitsOnAStoneAtItsSeatHeight()
     {
         var sitting = Figures.Sitting;
