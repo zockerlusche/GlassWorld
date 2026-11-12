@@ -14,8 +14,13 @@ public static class ContentLocator
     /// <summary>The environment variable that names a test variant of the data folder.</summary>
     public const string Variable = "GLASSWORLD_CONTENT";
 
-    /// <summary>The test variant named by <see cref="Variable"/>, or null when none is named.</summary>
-    public static string? Variant => System.Environment.GetEnvironmentVariable(Variable) is { Length: > 0 } named ? System.IO.Path.GetFullPath(named) : null;
+    /// <summary>
+    /// The test variant named by <see cref="Variable"/>, or null when none is named. Only debug and editor
+    /// builds read it (review GW3 #272): an exported game never takes other data, whatever a player's
+    /// environment holds.
+    /// </summary>
+    public static string? Variant =>
+        OS.IsDebugBuild() && System.Environment.GetEnvironmentVariable(Variable) is { Length: > 0 } named ? System.IO.Path.GetFullPath(named) : null;
 
     /// <summary>Full path of the content folder; throws with both candidates if neither exists.</summary>
     public static string ContentDirectory()
