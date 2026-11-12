@@ -293,11 +293,18 @@ public sealed class WorldFeed
     private List<CardValue> NeedValues(IReadOnlyDictionary<string, double> needs)
     {
         var runtime = _host.Needs.Added.ToDictionary(n => n.Id, StringComparer.Ordinal);
-        return [.. Values("need", needs).Zip(needs.OrderBy(v => v.Key, StringComparer.Ordinal)).Select(pair =>
+        return [.. needs.OrderBy(v => v.Key, StringComparer.Ordinal).Select(v => new CardValue(NeedBarKey(v.Key), Percent(v.Value))).Zip(needs.OrderBy(v => v.Key, StringComparer.Ordinal)).Select(pair =>
             runtime.TryGetValue(pair.Second.Key, out var info)
                 ? pair.First with { Name = (info.NameDe, info.NameEn), Faded = pair.Second.Value <= 0 }
                 : pair.First)];
     }
+
+    /// <summary>
+    /// The label of a need's bar on the card (W1938, rule of B2642): it names what the bar shows, how much of it
+    /// is there - 'Satt', 'Ausgeruht' - so a full bar reads as good. The need's own word (Hunger, Schlaf) stays
+    /// where a sentence means the need itself (a call for help, the mailbox).
+    /// </summary>
+    public static string NeedBarKey(string needId) => "ui.card.need." + needId;
 
     private static List<CardValue> Values(string kind, IReadOnlyDictionary<string, double> values) =>
         [.. values.OrderBy(v => v.Key, StringComparer.Ordinal).Select(v => new CardValue($"vocab.{kind}.{v.Key}", Percent(v.Value)))];

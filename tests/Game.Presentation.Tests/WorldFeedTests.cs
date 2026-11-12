@@ -49,7 +49,7 @@ public sealed class WorldFeedTests
         var card = feed.Card(feed.Inhabitants()[0].Id);
         Assert.NotNull(card);
         Assert.NotEmpty(card.Needs);
-        Assert.All(card.Needs, v => Assert.StartsWith("vocab.need.", v.Key, StringComparison.Ordinal));
+        Assert.All(card.Needs, v => Assert.StartsWith("ui.card.need.", v.Key, StringComparison.Ordinal));
         Assert.All(card.Traits, v => Assert.StartsWith("vocab.trait.", v.Key, StringComparison.Ordinal));
         Assert.All(card.Feelings, v => Assert.True(v.Percent > 0));
         Assert.Equal(card.Needs.Select(v => v.Key).Order(StringComparer.Ordinal), card.Needs.Select(v => v.Key));
@@ -68,10 +68,10 @@ public sealed class WorldFeedTests
 
         var card = new WorldFeed(host).Card(inhabitant.Id)!;
 
-        var glow = Assert.Single(card.Needs, v => v.Key == "vocab.need.glow");
+        var glow = Assert.Single(card.Needs, v => v.Key == "ui.card.need.glow");
         Assert.Equal((("Leuchten", "Glow"), false, 60), (glow.Name!.Value, glow.Faded, glow.Percent));
-        Assert.True(Assert.Single(card.Needs, v => v.Key == "vocab.need.rhythm").Faded);
-        Assert.All(card.Needs.Where(v => v.Key is not ("vocab.need.glow" or "vocab.need.rhythm")), v => Assert.Equal(((string, string)?)null, v.Name));
+        Assert.True(Assert.Single(card.Needs, v => v.Key == "ui.card.need.rhythm").Faded);
+        Assert.All(card.Needs.Where(v => v.Key is not ("ui.card.need.glow" or "ui.card.need.rhythm")), v => Assert.Equal(((string, string)?)null, v.Name));
         Assert.DoesNotContain(card.Needs, v => v.Name is null && v.Faded);
     }
 
