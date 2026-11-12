@@ -35,6 +35,25 @@ namespace GlassWorld.Contracts
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class SoundForSignal
+    {
+
+        /// <summary>
+        /// The signal: knock = an inhabitant knocks at the glass (mail kind knock, B6 R10).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("signal")]
+        [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SoundForSignalSignal>))]
+        public SoundForSignalSignal Signal { get; set; } = default!;
+
+        /// <summary>
+        /// Language-neutral sound id; null = silent on purpose.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("sound")]
+        public string? Sound { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class SoundForSurface
     {
 
@@ -139,6 +158,23 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("animals")]
         public System.Collections.Generic.ICollection<SoundForAnimal> Animals { get; set; } = new System.Collections.ObjectModel.Collection<SoundForAnimal>();
+
+        /// <summary>
+        /// Sounds of the world's signals to the player, heard at the glass rather than at a place in the world (B8 R17, B2608): an inhabitant knocking at the glass. Omitted = no signal sounds.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("signals")]
+        public System.Collections.Generic.ICollection<SoundForSignal>? Signals { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public enum SoundForSignalSignal
+    {
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("knock")]
+        Knock = 0,
+
 
     }
 }

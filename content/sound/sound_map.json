@@ -410,5 +410,11 @@
       ],
       "per_hour": 3
     }
+  ],
+  "signals": [
+    {
+      "signal": "knock",
+      "sound": "signal.knock_glass"
+    }
   ]
 }
