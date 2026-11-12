@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pytest
 
@@ -143,7 +143,7 @@ def test_formative_events_must_be_kept() -> None:
 
 def test_the_mock_invents_no_idea_and_fits_the_contract() -> None:
     outcome = asyncio.run(MockReviews()(JOB))
-    review = outcome.result["review"]
+    review = cast(dict[str, Any], outcome.result["review"])
     assert review["ideas"] == [] and review["intentions"] == [] and review["kept"] == [1900]
     schema = output_schema(JOB, MOODS)
     assert schema["properties"]["ideas"]["items"]["properties"]["roots"]["items"]["enum"] == list(
