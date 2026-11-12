@@ -112,7 +112,22 @@ public sealed record ClockView(string SeasonKey, string PhaseKey, long Year, int
 /// <param name="TextKey">Text key.</param>
 /// <param name="Detail">Detail for the text (e.g. need id).</param>
 /// <param name="Urgency">0..3; shown as a warmer tint, never blinking.</param>
-public sealed record MailRow(string Id, string? InhabitantId, int Number, string Kind, string TextKey, string? Detail, int Urgency);
+public sealed record MailRow(string Id, string? InhabitantId, int Number, string Kind, string TextKey, string? Detail, int Urgency)
+{
+    /// <summary>
+    /// The name (DE, EN) of the invention a stuck builder knocks about (A1602); null for other messages, or when the
+    /// invention has no name. <see cref="Detail"/> then holds the missing properties, comma-separated.
+    /// </summary>
+    public (string De, string En)? SubjectName { get; init; }
+
+    /// <summary>True for a builder's knock (A1602): the detail is properties, not a need.</summary>
+    public bool AboutBuilding { get; init; }
+
+    /// <summary>The text keys of the properties a stuck builder looks for (A1602), in the order of the detail.</summary>
+    public IReadOnlyList<string> PropertyKeys => AboutBuilding && Detail is { Length: > 0 } detail
+        ? [.. detail.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Select(p => "vocab.property." + p)]
+        : [];
+}
 
 /// <summary>An open call for help as the screen shows it.</summary>
 /// <param name="InhabitantId">Who.</param>
@@ -237,8 +252,12 @@ public sealed class WorldFeed
     /// <summary>Open mailbox messages (most urgent first) and the newest read ones (B6 R11).</summary>
     public (IReadOnlyList<MailRow> Open, IReadOnlyList<MailRow> History) Mail(int historyCount)
     {
-        static MailRow Row(Simulation.Player.MailMessage m) =>
-            new(m.Id, m.InhabitantId, m.InhabitantId is null ? 0 : NumberOf(m.InhabitantId), m.Kind, m.TextKey, m.Detail, m.Urgency);
+        MailRow Row(Simulation.Player.MailMessage m) =>
+            new(m.Id, m.InhabitantId, m.InhabitantId is null ? 0 : NumberOf(m.InhabitantId), m.Kind, m.TextKey, m.Detail, m.Urgency)
+            {
+                AboutBuilding = m.Subject is not null,
+                SubjectName = m.Subject is { } type && _host.Inventions.Invention(type) is { } invention ? (invention.Name.De, invention.Name.En) : null,
+            };
         return ([.. _host.Mailbox.Open.Select(Row)], [.. _host.Mailbox.History.Take(historyCount).Select(Row)]);
     }
 
