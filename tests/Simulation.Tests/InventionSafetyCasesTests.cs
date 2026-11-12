@@ -9,7 +9,7 @@ namespace GlassWorld.Simulation.Tests;
 
 /// <summary>
 /// B4b R16 (A1372): the youth-protection cases of the invention test set (GW2, #277,
-/// <c>ai-service/testsets/invention/cases.v2.json</c>, <c>guard_cases</c>) run through the core's final check. The
+/// <c>ai-service/testsets/invention/cases.v3.json</c>, <c>guard_cases</c>) run through the core's final check. The
 /// core has the last word: every forbidden proposal - hunting, trapping, poisoning, a weapon - is refused, whatever
 /// the AI guard said; the allowed border cases (a hand axe for wood, a knife for plants, a torch) are not refused
 /// for youth protection. The same list as the AI guard's measurement, so both sides are judged on the same cases.
@@ -95,30 +95,17 @@ public sealed class InventionSafetyCasesTests
 
     private static List<JsonElement> Load()
     {
-        using var document = JsonDocument.Parse(File.ReadAllText(Path.Combine(Root, "ai-service", "testsets", "invention", "cases.v2.json")));
+        using var document = JsonDocument.Parse(File.ReadAllText(Path.Combine(Root, "ai-service", "testsets", "invention", "cases.v3.json")));
         return [.. document.RootElement.GetProperty("guard_cases").EnumerateArray().Select(e => e.Clone())];
     }
 
     /// <summary>The proposal as the AI guard approved it in every round (the core must not rely on that).</summary>
     private static InventionResult Approved(string inventionJson)
     {
-        // The case's invention put into a valid job status, so the contract checks it like an answer of the service.
+        // The case's invention put into a valid job status as it is, so the contract checks it like an answer of the
+        // service (v3, GW2 #289: every guard proposal is a valid invention; the test set's own test checks that too).
         var example = JsonNode.Parse(File.ReadAllText(Path.Combine(Root, "contracts", "examples", "valid", "job-status.invention-approved.json")))!;
-        // The cases are written for the AI guard; two things there are not the invention contract (category tool,
-        // a single building step). Brought into the contract's shape here, so the core judges the content, not the form.
-        var invention = JsonNode.Parse(inventionJson)!.AsObject();
-        if (invention["category"]?.GetValue<string>() is not ("object" or "building"))
-        {
-            invention["category"] = "object";
-        }
-
-        var steps = invention["steps"]!.AsArray();
-        while (steps.Count < 2)
-        {
-            steps.Add(steps[0]!.DeepClone());
-        }
-
-        example["result"]!["invention"]!["invention"] = invention;
+        example["result"]!["invention"]!["invention"] = JsonNode.Parse(inventionJson);
         var result = ContractSerializer.Deserialize<JobStatus>(example.ToJsonString()).Result!.Invention!;
         result.Decision = InventionResultDecision.Approve;
         foreach (var round in result.Rounds)
