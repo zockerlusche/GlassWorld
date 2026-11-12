@@ -71,7 +71,20 @@ public static class QuestionKeys
 /// <summary>A named value of the inhabitant card, as text key and percent.</summary>
 /// <param name="Key">Text key, e.g. <c>vocab.need.hunger</c>.</param>
 /// <param name="Percent">0-100.</param>
-public sealed record CardValue(string Key, int Percent);
+public sealed record CardValue(string Key, int Percent)
+{
+    /// <summary>
+    /// The value's own name in German and English when it has no text key - a need an invention brought (A1595,
+    /// #290): its name comes from the need register, not from the catalogs. Null for values with a key.
+    /// </summary>
+    public (string De, string En)? Name { get; init; }
+
+    /// <summary>
+    /// True for a need an invention brought that has run empty (A1595): the inhabitant has not met it for days (at
+    /// least the need's own decay time), so the card shows it greyed instead of as an alarming empty bar.
+    /// </summary>
+    public bool Faded { get; init; }
+}
 
 /// <summary>
 /// The inhabitant card (B6 R6), grouped by the player's questions (D366 1a): how is he
@@ -188,7 +201,7 @@ public sealed class WorldFeed
             ? null
             : new InhabitantCard(
                 Row(inhabitant),
-                Values("need", inhabitant.Needs),
+                NeedValues(inhabitant.Needs),
                 [.. Values("mood", inhabitant.Moods).Where(v => v.Percent > 0).OrderByDescending(v => v.Percent).ThenBy(v => v.Key, StringComparer.Ordinal)],
                 Values("trait", inhabitant.Traits));
     }
@@ -251,6 +264,19 @@ public sealed class WorldFeed
 
     private InhabitantRow Row(InhabitantSnapshot i) =>
         new(i.Id, NumberOf(i.Id), Percent(i.WillToLive), i.Fading, i.Action is null ? null : $"vocab.action.{i.Action}", i.OpenQuestionIds.Count, i.PuzzlingQuestionIds.Count, i.Name, _host.Favourites.IsFavourite(i.Id));
+
+    /// <summary>
+    /// The card's needs (A1595): needs an invention brought carry their names from the need register (they have no
+    /// text key), and when empty they are faded - a need is never neglected (#290), so empty only means not met lately.
+    /// </summary>
+    private List<CardValue> NeedValues(IReadOnlyDictionary<string, double> needs)
+    {
+        var runtime = _host.Needs.Added.ToDictionary(n => n.Id, StringComparer.Ordinal);
+        return [.. Values("need", needs).Zip(needs.OrderBy(v => v.Key, StringComparer.Ordinal)).Select(pair =>
+            runtime.TryGetValue(pair.Second.Key, out var info)
+                ? pair.First with { Name = (info.NameDe, info.NameEn), Faded = pair.Second.Value <= 0 }
+                : pair.First)];
+    }
 
     private static List<CardValue> Values(string kind, IReadOnlyDictionary<string, double> values) =>
         [.. values.OrderBy(v => v.Key, StringComparer.Ordinal).Select(v => new CardValue($"vocab.{kind}.{v.Key}", Percent(v.Value)))];
