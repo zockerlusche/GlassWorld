@@ -430,10 +430,13 @@ public sealed class TerrainMesherTests
         foreach (var ((x, z), vertices) in cells)
         {
             // At least one point of the plate lies at the ground (within the shore lift): the plate ends
-            // on the shore line, where ground and surface meet (A1455), so the dry cell never looks flooded.
+            // on the shore line, where ground and surface meet (A1455). The one exception (TL #22545, option A):
+            // a dry cell wholly below the surface by at most the data's flood margin is a shallow margin under
+            // water - then the plate lies at most that margin above its ground, never more.
             float Ground((float X, float Y, float Z) v) => TerrainMesher.GroundHeight(map, look, v.X, v.Z);
             var lowest = vertices.Min(v => v.Y - Ground(v));
-            Assert.True(lowest <= look.ShoreLiftM + 1e-4f, $"seed {seed}: bank plate at ({x},{z}) lies {lowest:0.00} m above its whole cell");
+            var allowed = MathF.Max(look.ShoreLiftM, look.BankFloodUnits * look.UnitM);
+            Assert.True(lowest <= allowed + 1e-4f, $"seed {seed}: bank plate at ({x},{z}) lies {lowest:0.00} m above its whole cell");
         }
     }
 

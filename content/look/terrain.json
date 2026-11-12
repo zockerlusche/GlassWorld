@@ -39,6 +39,7 @@
     "swamp": "swamp_water",
     "deep_from_units": 8,
     "swamp_max_units": 1,
+    "bank_flood_max_mm": 300,
     "stream_shore_lift_mm": 30,
     "stream_width_m": 1.9,
     "stream_smoothing": 3,

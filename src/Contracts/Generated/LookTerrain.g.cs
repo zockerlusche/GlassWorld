@@ -107,6 +107,13 @@ namespace GlassWorld.Contracts
         public int SwampMaxUnits { get; set; } = default!;
 
         /// <summary>
+        /// A1455: a dry cell beside still fresh water whose ground lies wholly at or below the water surface, by at most this much (millimetres), is drawn under that water too - a shallow margin instead of a notch where the lake plate would be pulled down to the low ground. The cell stays dry land in the core. Omitted or 0 = only cells the shore line crosses carry water.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("bank_flood_max_mm")]
+        public int? BankFloodMaxMm { get; set; } = default!;
+
+        /// <summary>
         /// Where a stream borders dry ground its edge comes down to the ground and lies this far above it (millimetres), so the edge closes against the bank without flickering into it.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("stream_shore_lift_mm")]
