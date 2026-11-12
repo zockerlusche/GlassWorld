@@ -314,9 +314,15 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
         }
 
         _log.AddRange(state?.Log ?? []);
+        // Kept to the data's bound also on load: data with a smaller history_lines_max (or none) trim an older save's
+        // history the same way talking would (review GW1 #285).
+        var most = _settings.HistoryLinesMax ?? 0;
         foreach (var (id, lines) in state?.History ?? new Dictionary<string, IReadOnlyList<ConversationLineState>>())
         {
-            _history[id] = [.. lines];
+            if (most > 0)
+            {
+                _history[id] = [.. lines.TakeLast(most)];
+            }
         }
     }
 
