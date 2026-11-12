@@ -195,6 +195,11 @@ public partial class GameScreen : CanvasLayer
         _toasts.Board = _board;
         _root.AddChild(_toasts);
 
+        // The hints grow upwards from the bottom edge (W1934, W1744): they were placed only on a new window
+        // size, when the area was empty, so every later hint hung below the screen edge with only its top
+        // border to see.
+        _toasts.MinimumSizeChanged += PlaceToasts;
+
         // Events never move the camera by themselves (TL #19976): a new thought is a hint, and only its
         // "look" button makes the camera follow that inhabitant (until the player moves it or presses Esc).
         presenter.Noticed += NoticeThought;
@@ -276,6 +281,28 @@ public partial class GameScreen : CanvasLayer
 
         ShowZoneState();
         ShowChronicleDay(_chronicleDay);
+    }
+
+    /// <summary>
+    /// Screenshots only (W1934): two hints in the hint area (<paramref name="on"/>), or none of them again.
+    /// </summary>
+    public void ShowHintsForShots(bool on)
+    {
+        if (_board is null)
+        {
+            return;
+        }
+
+        foreach (var toast in _board.Visible.Where(t => t.Message.Group is "shot-1" or "shot-2"))
+        {
+            _board.Dismiss(toast.Id);
+        }
+
+        if (on)
+        {
+            _board.Push(new ToastMessage("msg.mail.kind.knock", new Dictionary<string, string>(), "shot-1"), fastForward: false);
+            _board.Push(new ToastMessage("msg.mail.kind.knock", new Dictionary<string, string>(), "shot-2"), fastForward: false);
+        }
     }
 
     /// <summary>
@@ -2171,6 +2198,12 @@ public partial class GameScreen : CanvasLayer
             return chronicle;
         }
 
+        var hints = await CheckToastsInsideAsync();
+        if (hints.Length > 0)
+        {
+            return hints;
+        }
+
         // The theme must reach the screen below its CanvasLayer (frames, fonts, text size), not only the
         // root window (Godot does not pass themes through a CanvasLayer).
         if (UiSetup.CurrentTheme is { } theme && _card.GetThemeStylebox("panel", UiTheme.WindowPanel) != theme.GetStylebox("panel", UiTheme.WindowPanel))
@@ -2189,6 +2222,41 @@ public partial class GameScreen : CanvasLayer
         }
 
         return await CheckCardPlacementAsync();
+    }
+
+    /// <summary>
+    /// W1934/W1744: hints that come after the layout stand wholly inside the picture (they hung below the
+    /// bottom edge with only their top border to see). Pushes two hints, waits two frames, checks, closes them.
+    /// </summary>
+    private async Task<string> CheckToastsInsideAsync()
+    {
+        if (_board is null || _style is null)
+        {
+            return "hint board missing";
+        }
+
+        var before = _board.Visible.Select(t => t.Id).ToHashSet();
+        _board.Push(new ToastMessage("msg.mail.kind.knock", new Dictionary<string, string>(), "check-1"), fastForward: false);
+        _board.Push(new ToastMessage("msg.mail.kind.knock", new Dictionary<string, string>(), "check-2"), fastForward: false);
+        await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        var view = GetViewport().GetVisibleRect().Size;
+        var margin = _style.Tokens.Window.SafeMargin;
+        var rect = _toasts.GetRect();
+        var shown = _toasts.GetChildCount();
+        foreach (var toast in _board.Visible.Where(t => !before.Contains(t.Id)))
+        {
+            _board.Dismiss(toast.Id);
+        }
+
+        if (shown == 0 || rect.Size.Y <= 0)
+        {
+            return "the hint area shows no hint";
+        }
+
+        return rect.Position.Y >= margin - 1 && rect.End.Y <= view.Y - margin + 1 && rect.Position.X >= margin - 1 && rect.End.X <= view.X - margin + 1
+            ? string.Empty
+            : $"the hints leave the picture: {rect.Position}+{rect.Size} in {view} (safe margin {margin})";
     }
 
     /// <summary>
@@ -2410,9 +2478,7 @@ public partial class GameScreen : CanvasLayer
             panel.Dock(area, _style, _sideBar.GetCombinedMinimumSize().X + gap, contentPx: panel == list ? _inhabitants.WantedWidth : 0);
         }
 
-        var width = Math.Min(_style.Tokens.Window.SidePanelWidth, area.X - (2 * margin));
-        _toasts.Size = new Vector2(width, 0);
-        _toasts.Position = new Vector2(area.X - margin - width, area.Y - margin - _toasts.GetCombinedMinimumSize().Y);
+        PlaceToasts();
 
         // The card stays beside the side bar and its open panel and is re-fitted when the UI size changes.
         FitCard(area);
@@ -2443,10 +2509,27 @@ public partial class GameScreen : CanvasLayer
             }
         }
 
-        var width = Math.Min(_style!.Tokens.Window.SidePanelWidth, area.X - (2 * margin));
-        _toasts.Size = new Vector2(width, 0);
-        _toasts.Position = new Vector2(MathF.Floor((area.X - width) / 2), area.Y - margin - _toasts.GetCombinedMinimumSize().Y);
+        PlaceToasts();
         FitCard(area);
+    }
+
+    /// <summary>
+    /// The hints stand on the bottom edge inside the safe margin and grow upwards: at the bottom right in the
+    /// layout so far, at the bottom centre in the zones layout (D642 zone D).
+    /// </summary>
+    private void PlaceToasts()
+    {
+        if (_style is null)
+        {
+            return;
+        }
+
+        var area = GetViewport().GetVisibleRect().Size;
+        var margin = _style.Tokens.Window.SafeMargin;
+        var width = Math.Min(_style.Tokens.Window.SidePanelWidth, area.X - (2 * margin));
+        _toasts.Size = new Vector2(width, 0);
+        var x = _zones ? MathF.Floor((area.X - width) / 2) : area.X - margin - width;
+        _toasts.Position = new Vector2(x, area.Y - margin - _toasts.Size.Y);
     }
 
     /// <summary>Screen part the card is centred in (left of the side bar and its open panel, see <see cref="ScreenModel.CardRoom"/>).</summary>
