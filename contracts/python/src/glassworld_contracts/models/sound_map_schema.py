@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from enum import StrEnum
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -33,6 +34,39 @@ class SoundForAction(BaseModel):
     sound: Sound | None = Field(
         ...,
         description='Language-neutral sound id, e.g. step.grass; null = silent on purpose (waiting and sleeping make no sound, Marcel W1643).',
+    )
+    group: str | None = Field(
+        None,
+        description='Actions of one kind that share their sound on purpose carry the same group (B8 R2, B2608): e.g. moving for wander, explore, move_to, approach. Two actions with the same sound but no common group are a defect (Marcel W1741: one knock for combining, using and every building step).',
+        pattern='^[a-z][a-z_]{1,31}$',
+    )
+
+
+class Signal(StrEnum):
+    knock = 'knock'
+
+
+type Sound1 = Annotated[
+    str,
+    Field(
+        ...,
+        description='Language-neutral sound id; null = silent on purpose.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*){1,3}$',
+    ),
+]
+
+
+class SoundForSignal(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    signal: Signal = Field(
+        ...,
+        description='The signal: knock = an inhabitant knocks at the glass (mail kind knock, B6 R10).',
+    )
+    sound: Sound1 | None = Field(
+        ..., description='Language-neutral sound id; null = silent on purpose.'
     )
 
 
@@ -136,3 +170,7 @@ class SoundMap(BaseModel):
     weather: list[SoundForWeather] = Field(..., min_length=1)
     ambience: list[SoundForBiome] = Field(..., min_length=1)
     animals: list[SoundForAnimal] = Field(..., min_length=1)
+    signals: list[SoundForSignal] | None = Field(
+        None,
+        description="Sounds of the world's signals to the player, heard at the glass rather than at a place in the world (B8 R17, B2608): an inhabitant knocking at the glass. Omitted = no signal sounds.",
+    )

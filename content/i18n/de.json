@@ -2419,6 +2419,10 @@
       "text": "Eine KI braucht dich. In den Einstellungen unter „KI“ steht, was zu tun ist."
     },
     {
+      "key": "ui.log.knock",
+      "text": "{name} klopft an die Scheibe."
+    },
+    {
       "key": "ui.log.no_answer",
       "text": "{name} hat nicht geantwortet."
     },

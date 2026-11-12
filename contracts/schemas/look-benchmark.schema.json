@@ -31,6 +31,12 @@
       "description": "World preset of the island (content/world/presets).",
       "$ref": "common.schema.json#/$defs/VocabId"
     },
+    "revealed_permille": {
+      "description": "Share of the land shown as seen (cloud cover lifted) for the whole benchmark, in permille (A1559, TL #21633: the measurement shows the game with the island explored - the heavy case). Omitted = the cover as the start world has it (most of the island under clouds).",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000
+    },
     "warmup_s": {
       "description": "Real seconds before each pass is measured (the look of the pass is already shown).",
       "type": "number",

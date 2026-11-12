@@ -39,6 +39,13 @@ public sealed class SoundMixer
         return broken.Count == 0 ? new SoundMixer(mix) : throw new InvalidDataException("silent_m must be beyond full_volume_m: " + string.Join(", ", broken));
     }
 
+    /// <summary>
+    /// While the camera follows an inhabitant (B2605, B8 R7): nothing farther than this is heard, whatever the
+    /// bus's range - the picture's reach around the inhabitant (<c>CameraModel.SeenRadiusM</c>). Null = no limit
+    /// beyond the buses' own ranges (the free camera).
+    /// </summary>
+    public double? HearingLimitM { get; set; }
+
     /// <summary>A bus.</summary>
     public MixBus Bus(MixBusId id) => _buses[id];
 
@@ -47,7 +54,7 @@ public sealed class SoundMixer
         Mix.Zoom.NearFactor + ((Mix.Zoom.FarFactor - Mix.Zoom.NearFactor) * Math.Clamp(zoom, 0, 1));
 
     /// <summary>Distance from which a bus is silent at this zoom (0 = not spatial).</summary>
-    public double SilentDistance(MixBusId bus, double zoom) => Bus(bus).SilentM * ZoomFactor(zoom);
+    public double SilentDistance(MixBusId bus, double zoom) => Limited(Bus(bus).SilentM * ZoomFactor(zoom));
 
     /// <summary>Gain 0..1 of a sound on <paramref name="bus"/> at <paramref name="distance"/> metres.</summary>
     public double Gain(MixBusId bus, double distance, double zoom)
@@ -58,9 +65,12 @@ public sealed class SoundMixer
             return 1;
         }
 
+        // A hearing limit shrinks the whole fade in proportion, so a sound fades out towards the picture's edge
+        // instead of breaking off there (review GW1 #274).
         var factor = ZoomFactor(zoom);
-        var full = b.FullVolumeM * factor;
-        var silent = b.SilentM * factor;
+        var free = b.SilentM * factor;
+        var silent = Limited(free);
+        var full = b.FullVolumeM * factor * (silent / free);
         if (distance <= full)
         {
             return 1;
@@ -74,6 +84,8 @@ public sealed class SoundMixer
         var rest = 1 - ((distance - full) / (silent - full));
         return b.Curve == MixBusCurve.Smooth ? rest * rest : rest;
     }
+
+    private double Limited(double silent) => HearingLimitM is { } limit && limit > 0 ? Math.Min(silent, limit) : silent;
 
     /// <summary>Gain as decibels for Godot (silent = <see cref="SilentDb"/>).</summary>
     public static double ToDb(double gain) => gain <= 0 ? SilentDb : Math.Max(SilentDb, 20 * Math.Log10(gain));
