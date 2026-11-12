@@ -103,6 +103,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("help_affection_per_step")]
         public double? HelpAffectionPerStep { get; set; } = default!;
 
+        /// <summary>
+        /// A1376 (review GW3 #312): game hours the helper builds along after it was asked; then it goes back to its own day (it still counts for the quality). Omitted = until the thing is built or given up.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("help_hours")]
+        public double? HelpHours { get; set; } = default!;
+
     }
 
     /// <summary>

@@ -72,6 +72,12 @@ class BuildEscalation(BaseModel):
         ge=0.0,
         le=1.0,
     )
+    help_hours: float | None = Field(
+        None,
+        description='A1376 (review GW3 #312): game hours the helper builds along after it was asked; then it goes back to its own day (it still counts for the quality). Omitted = until the thing is built or given up.',
+        gt=0.0,
+        le=240.0,
+    )
 
 
 class BuildQuality(BaseModel):

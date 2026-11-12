@@ -65,6 +65,7 @@ public sealed record SoundTask(string TypeId, string RequestId, string? ResultJs
 /// <param name="Helper">The inhabitant who builds along after being asked for help (A1376, B2663), or null.</param>
 /// <param name="HelperPendingObjectId">Material object the helper is on the way to, or null.</param>
 /// <param name="HelperPendingType">The plan type that material stands for.</param>
+/// <param name="HelpSinceTick">When the helper was asked (its help ends after the data's help_hours), or null.</param>
 public sealed record BuildTask(
     string TypeId,
     string InhabitantId,
@@ -90,7 +91,8 @@ public sealed record BuildTask(
     string? Quality = null,
     string? Helper = null,
     string? HelperPendingObjectId = null,
-    string? HelperPendingType = null);
+    string? HelperPendingType = null,
+    long? HelpSinceTick = null);
 
 /// <content>Building inventions from a plan and their first use (D471 D5, part 2).</content>
 public sealed partial class InventionSystem
@@ -383,7 +385,7 @@ public sealed partial class InventionSystem
             _builds[task.TypeId] = _builds[task.TypeId] with { PendingObjectId = material.Id, PendingType = standsFor[material.TypeId], WaitingSinceTick = null, NeedsHelp = false, LookedTicks = 0 };
         }
 
-        AdvanceHelpers();
+        AdvanceHelpers(world);
     }
 
     /// <summary>
@@ -415,11 +417,14 @@ public sealed partial class InventionSystem
     /// A1376 (B2663 (3)): the helper builds along - while it is free and its needs allow it, it fetches a missing material
     /// it sees or remembers (not the one the builder is on the way to) and works it in at the building.
     /// </summary>
-    private void AdvanceHelpers()
+    private void AdvanceHelpers(World world)
     {
+        var helpTicks = Build.Settings.Escalation?.HelpHours is { } hours ? (long)(hours * world.Calendar.Settings.TicksPerHour) : (long?)null;
         foreach (var task in _builds.Values.Where(b => b.Helper is not null && b.PlanJson is not null && b.BuiltObjectId is null && !b.GaveUp).ToList())
         {
-            if (!_inhabitants.TryGet(task.Helper!, out var helper) || _inhabitants.IsAsleep(helper))
+            // Help ends after the data's hours (review GW3 #312): the helper goes back to its own day.
+            if ((helpTicks is { } limit && task.HelpSinceTick is { } since && world.Tick - since >= limit && task.HelperPendingObjectId is null)
+                || !_inhabitants.TryGet(task.Helper!, out var helper) || _inhabitants.IsAsleep(helper))
             {
                 continue;
             }
@@ -750,7 +755,7 @@ public sealed partial class InventionSystem
             }
         }
 
-        _builds[task.TypeId] = task with { Helper = helper.Id, NeedsHelp = false, WaitingSinceTick = null, LookedTicks = 0 };
+        _builds[task.TypeId] = task with { Helper = helper.Id, HelpSinceTick = e.Tick, NeedsHelp = false, WaitingSinceTick = null, LookedTicks = 0 };
     }
 
     /// <summary>What a stuck building's question tells the decider (A1373 step 2), or null if the building is not stuck.</summary>
@@ -1132,7 +1137,7 @@ public sealed partial class InventionSystem
             if (b.Helper is { } helpedBy)
             {
                 // A1376, only when there is a helper.
-                hasher.Write(helpedBy).Write(b.HelperPendingObjectId ?? string.Empty).Write(b.HelperPendingType ?? string.Empty);
+                hasher.Write(helpedBy).Write(b.HelperPendingObjectId ?? string.Empty).Write(b.HelperPendingType ?? string.Empty).Write(b.HelpSinceTick ?? -1);
             }
 
             if (b.Escalations > 0 || b.Smaller || b.Chosen || b.Substitutes is { Count: > 0 })

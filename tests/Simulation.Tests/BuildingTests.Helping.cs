@@ -78,6 +78,31 @@ public sealed partial class BuildingTests
         Assert.True(atEnd.Value.Helper >= atStart.Value.Helper + (step / 2), $"helper {atStart.Value.Helper} -> {atEnd.Value.Helper}");
     }
 
+    [Fact]
+    public void HelpEndsAfterTheDataHours()
+    {
+        // Review GW3 #312: after help_hours the helper no longer fetches material for the building.
+        var decider = new EscalationPort(r => r.Options.FirstOrDefault(o => o.Action == Escalation.HelpAction)?.OptionId ?? "o99");
+        var (host, _, _) = Stuck(decider);
+        var builder = host.Inhabitants.All.Single();
+        var helper = Helper(host, builder, new Position(builder.Position.X + 2, builder.Position.Z));
+        Awake(host, helper, () => host.Inventions.Builds.Single().Helper is not null, (int)(120 * host.World.Calendar.Settings.TicksPerHour));
+
+        // Past the hours, material right by the helper (out of the builder's sight) stays where it is.
+        host.World.Run((long)(Escalation.HelpHours!.Value * host.World.Calendar.Settings.TicksPerHour) + 1);
+        helper.Position = new Position(builder.Position.X + (host.Inhabitants.SightRadiusM * 2), builder.Position.Z);
+        var piece = host.Objects.Spawn(NearbyTypes[^1], new Position(helper.Position.X + 1, helper.Position.Z));
+        var events = Record(host);
+        for (var i = 0; i < 6 * host.World.Calendar.Settings.TicksPerHour; i++)
+        {
+            helper.Needs["sleep"] = 1.0;
+            host.World.Step();
+        }
+
+        Assert.DoesNotContain(events, e => e.InhabitantId == helper.Id && e.Action == Build.StepAction && e.Kind == InhabitantsSystem.ActionStarted);
+        Assert.True(host.Objects.TryGet(piece.Id, out _));
+    }
+
     private static BuildSettings BuildData => ContractSerializer.Deserialize<BuildSettings>(File.ReadAllText(Path.Combine(EagerContent.Value, "build", "settings.json")));
 
     private static BuildSettings Build => BuildData;
