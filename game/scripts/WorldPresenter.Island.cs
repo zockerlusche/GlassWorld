@@ -29,6 +29,9 @@ public partial class WorldPresenter
     private LookWorld? _look;
     private IslandView? _islandView;
     private ObjectsView? _objectsView;
+
+    // The inventions drawn from their building plans (A1375): built things and building sites.
+    private Build.InventionsView? _inventionsView;
     private GrassView? _grassView;
     private CloudCover? _cover;
     private NatureLook? _nature;
@@ -293,6 +296,8 @@ public partial class WorldPresenter
         var quality = _quality = ReadQuality(content);
         _objectsView = ObjectsView.Create(objectLooks, palette, _ground, otherDecor, _nature.Season.Slots, TerrainMesher.StreamSources(ground, terrain), quality.HullOutline);
         AddChild(_objectsView);
+        _inventionsView = Build.InventionsView.Create(Read<BuildKit>(content, "build", "kit.json"), _ground);
+        AddChild(_inventionsView);
         _grassView = GrassView.Create(_objectsView, grass, _ground, _nature.Data.Grass, quality.Level);
         AddChild(_grassView);
         AddChild(_nature);
@@ -385,6 +390,7 @@ public partial class WorldPresenter
         _look = null;
         _islandView = null;
         _objectsView = null;
+        _inventionsView = null;
         _grassView = null;
         _cover = null;
         _nature = null;
@@ -581,8 +587,19 @@ public partial class WorldPresenter
             _cover?.Take(exploration, snapshot.ExploredVersion);
         }
 
+        // Inventions with a building plan are drawn from it (A1375): their objects are not the object view's.
+        // A world without a building plan (most of the time) costs nothing here.
+        IReadOnlyList<Simulation.Objects.WorldObject> objects = snapshot.Objects;
+        var builds = _host.Inventions.Builds.Where(b => b.PlanJson is not null).ToList();
+        if (builds.Count > 0 || _inventionsView?.Drawn > 0)
+        {
+            _inventionsView?.Refresh(InventionLooks.Shown(builds, snapshot.Objects));
+            var planned = InventionLooks.DrawnTypes(builds);
+            objects = planned.Count == 0 ? snapshot.Objects : [.. snapshot.Objects.Where(o => !planned.Contains(o.TypeId))];
+        }
+
         // Seats (W1688) are taken from the objects only when they changed.
-        if (_objectsView?.Refresh(snapshot.Objects) != false || _seats is null)
+        if (_objectsView?.Refresh(objects) != false || _seats is null)
         {
             _seats = SeatChoice.Seats(_figuresLook!.Sitting, snapshot.Objects);
         }

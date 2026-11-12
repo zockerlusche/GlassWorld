@@ -108,6 +108,13 @@ public sealed partial class InventionSystem
     private static BuildPlan ParsePlan(BuildTask task) =>
         JsonSerializer.Deserialize<BuildPlan>(task.PlanJson!, RecordJson) ?? throw new InvalidDataException($"Building plan of '{task.TypeId}' is empty.");
 
+    /// <summary>A building plan as the core keeps it (<see cref="BuildTask.PlanJson"/>), for whoever draws it (A1375).</summary>
+    public static BuildPlan PlanOf(string planJson)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(planJson);
+        return JsonSerializer.Deserialize<BuildPlan>(planJson, RecordJson) ?? throw new InvalidDataException("A building plan is empty.");
+    }
+
     /// <summary>Starts building a just approved invention: the first plan job goes out right away.</summary>
     private void StartBuild(World world, string typeId, string inhabitantId)
     {
