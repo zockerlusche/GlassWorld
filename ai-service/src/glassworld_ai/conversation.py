@@ -300,16 +300,14 @@ def grounding_check(
     return lambda reply: unknown_nouns(reply, words)
 
 
-def grounded(
-    request: ConversationRequest, data: dict[str, Any], texts: TextCatalog | None
-) -> dict[str, Any]:
+def grounded(request: ConversationRequest, data: dict[str, Any]) -> dict[str, Any]:
     """A sentence that names unknown things is left out (B2644, Marcel F5296 = B: a rejected AI
     sentence shows nothing; before, the data's stand-in msg.converse.<outcome> took its place).
     The choice itself - reply, decline, not understood - stays the model's: the service only
     takes back words (PR2 check D763 G1). A reply without a sentence is shown by the core as a
-    gesture."""
+    gesture. Needs no text catalog any more (review GW1 #269): also left out without one."""
     unknown = data.pop("ungrounded", None)
-    if not unknown or texts is None:
+    if not unknown:
         return data
     note = f" [left out, unknown: {', '.join(unknown[:3])}]"
     return {
@@ -361,7 +359,7 @@ class OllamaConversation:
             priority=Priority.PLAYER,
             deadline=deadline,
         )
-        data = with_words(grounded(request, answer.value, self._texts), self._texts, locale)
+        data = with_words(grounded(request, answer.value), self._texts, locale)
         return _response(
             request, data, "model", self._client.model, answer.latency_ms, answer.attempts
         )
@@ -430,9 +428,7 @@ class ReplayConversation:
                 texts is not None,
                 check,
             )
-            data = with_words(
-                grounded(request, data, texts), texts, plain_id(request.display_locale)
-            )
+            data = with_words(grounded(request, data), texts, plain_id(request.display_locale))
         except InvalidOutputError as error:
             raise fail(
                 "model_unavailable", f"recorded answer does not fit request {request_id}"
