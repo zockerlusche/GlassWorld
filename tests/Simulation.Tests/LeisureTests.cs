@@ -45,7 +45,7 @@ public sealed class LeisureTests
     }
 
     [Fact]
-    public void APressingNeedOrNoBoredomOrSleepKeepsItFromAsking()
+    public void APressingNeedOrSleepKeepsItFromAsking()
     {
         var leisure = Settings.Value.Leisure!;
 
@@ -53,11 +53,6 @@ public sealed class LeisureTests
         h.Needs["hunger"] = leisure.NeedsAtLeast / 2;
         hungry.World.Step();
         Assert.Equal(0, hungryPort.Sent);
-
-        var (calm, calmPort, c) = Alone();
-        c.Moods[leisure.Mood!] = (leisure.MoodAtLeast ?? 0) / 2;
-        calm.World.Step();
-        Assert.Equal(0, calmPort.Sent);
 
         var (sleeping, sleepingPort, s) = Alone();
         s.Activity = new Activity(Content.Value.InhabitantModel.Togetherness!.SleepAction, null, s.Position, 10_000);
@@ -95,10 +90,11 @@ public sealed class LeisureTests
     [Fact]
     public void TheDataSwitchItOnWithTheTlsValues()
     {
-        // B2663: awake, every need at least 0.3, boredom at least 0.3, at most every 6 game hours.
+        // B2663 with the TL's choice A (#22240): awake, every pressing need at least 0.3, at most every 6 game hours -
+        // no mood condition (boredom >= 0.3 never came: the routine fills fun first, L1137).
         Assert.Contains(Settings.Value.Triggers, t => t.Kind == TriggerKind.Leisure && t.Enabled);
         var leisure = Settings.Value.Leisure!;
-        Assert.Equal((0.3, "boredom", 0.3, 6.0), (leisure.NeedsAtLeast, leisure.Mood, leisure.MoodAtLeast, leisure.EveryHours));
+        Assert.Equal((0.3, (string?)null, 6.0), (leisure.NeedsAtLeast, leisure.Mood, leisure.EveryHours));
     }
 
     /// <summary>One inhabitant alone on empty ground: no thing and nobody to ask about, every need met, bored.</summary>
