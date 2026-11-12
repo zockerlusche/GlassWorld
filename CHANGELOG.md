@@ -9,6 +9,7 @@ Each release gets its own section (version and date); until then changes collect
 
 ### Added
 
+- Seats (A1570, D843 b): two inhabitants no longer sit on the same stone - a seat belongs to the one who sat down until it gets up, lies down or leaves - and changing seat gets up first and then sits down on the new place, instead of jumping there in one frame. Presentation only.
 - Terrain details (A1571, D843 c): a rock wall is shaded by the height of its grid corner from the corner's highest to its lowest level, so two walls that meet at a corner line give it one colour (no vertical seam); and every level with a higher one beside it gets scree at its foot, also the middle level where three meet. New test of a three-level corner (closed ground, one colour per wall vertex, scree on the middle).
 - The see-through outline of an inhabitant shows only behind trees, rocks and objects, no longer through the ground or the water (A1569, D843 a): ground and water mark their pixels as no cover in the stencil buffer (new `warm_comic_ground` shader for the ground), cover marks its own, and the outline draws only there.
 - Switch "Auch tagsueber lernen" in the AI tab of the settings (A1568, B2652; game side to GW2's #284 and GW1's #288): shown only when the service's self-check offers it (`learn_by_day.offered`), off by default, with the hint what it costs; it sends the logged command `set_learn_by_day on/off`. Not offered, the tab says why, and a world that learned by day goes back to the night - in the tab and at the start of a world.
