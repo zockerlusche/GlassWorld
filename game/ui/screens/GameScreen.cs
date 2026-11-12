@@ -1162,6 +1162,13 @@ public partial class GameScreen : CanvasLayer
             var who = entry.InhabitantId;
             line.Pressed += () =>
             {
+                // One who has died has no card any more: its memory page opens (B8 R16).
+                if (!Lives(who))
+                {
+                    OpenMemory(who);
+                    return;
+                }
+
                 // Jump to the inhabitant: its card, and on the island the camera follows it.
                 OpenCard(who);
                 _presenter?.ChooseFigure(who);
@@ -2584,6 +2591,11 @@ public partial class GameScreen : CanvasLayer
             favourite.Toggled += on => _presenter?.Host?.Decisions.Submit(new Simulation.Decisions.PlayerCommand(
                 on ? Simulation.Player.FavouritesSystem.Mark : Simulation.Player.FavouritesSystem.Unmark, inhabitantId));
             content.AddChild(favourite);
+
+            // Its memory page (B8 R16, B6 R19): what the world kept about it.
+            var memories = new Button { Text = "ui.card.memory" };
+            memories.Pressed += () => OpenMemory(inhabitantId);
+            content.AddChild(memories);
 
             // Order of the card (W1688, TL #19983): first what the inhabitant does and the talk field, well
             // visible; the values below in sections the player can fold (the choice is kept while playing).

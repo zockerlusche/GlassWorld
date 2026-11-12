@@ -82,6 +82,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("priority")]
         public int Priority { get; set; } = default!;
 
+        /// <summary>
+        /// A1564 (B4b/B7 R7): the core asks for an icon of every new invention (purpose icon, size from sizes.icon), painted in the computing night. A retryable failure is tried again in the next night up to max_attempts; after that the thing keeps the colours of the construction kit. Omitted = no picture jobs.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("invention_icons")]
+        public InventionIcons? InventionIcons { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -117,6 +124,21 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("texture")]
         public Size Texture { get; set; } = new Size();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class InventionIcons
+    {
+
+        /// <summary>
+        /// Style id of the image prompt (settings.styles, e.g. warm_comic, B2501).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("style")]
+        public string Style { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("max_attempts")]
+        public int MaxAttempts { get; set; } = default!;
 
     }
 }
