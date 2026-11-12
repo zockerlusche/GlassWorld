@@ -433,7 +433,8 @@ def _named() -> str:
 @pytest.mark.parametrize(
     ("said", "voice", "sent"),
     [
-        ("Das ist Glitzerwasser.", {"kind": "naming", "word": "Glitzerwasser"}, "naming"),
+        # B2678: naming is classified but not passed on until the player can point (D915).
+        ("Das ist Glitzerwasser.", {"kind": "naming", "word": "Glitzerwasser"}, None),
         ("Das ist Glitzerwasser.", {"kind": "naming", "word": "Funkelsaft"}, None),  # not said
         ("Gut gemacht!", {"kind": "praise", "word": None}, "praise"),
         (
@@ -504,3 +505,27 @@ def test_v6_prompt_asks_what_the_words_are_and_v5_does_not(settings: Settings) -
     assert "inv_" not in json.dumps(schema)  # names, never runtime ids
     v5 = load_prompt(settings.prompts_dir, "conversation/reply", 5)
     assert '"naming"' not in v5.system  # v5 as it was
+
+
+def test_naming_is_checked_for_when_it_is_switched_on() -> None:
+    """B2678: naming stays off in v6 (voice_sent); the check for it is ready for the pointing."""
+    from glassworld_ai.conversation import checked_voice
+
+    names = seen_names(DOING, TEXTS, {})
+    thing = sorted(names)[0]
+    on = ("naming", "praise")
+    voice = {"kind": "naming", "thing": thing, "word": "Glitzerwasser"}
+    request = _said("Das ist Glitzerwasser.")
+    got = checked_voice(request, {"outcome": "reply", "voice": voice}, names, GUARD, on)
+    assert got == {"kind": "naming", "naming": {"type": names[thing], "word": "Glitzerwasser"}}
+    off = checked_voice(request, {"outcome": "reply", "voice": voice}, names, GUARD)
+    assert off is None  # the default passes praise only
+    missing = {**voice, "word": "Funkelsaft"}  # not in the voice's text
+    assert checked_voice(request, {"outcome": "reply", "voice": missing}, names, GUARD, on) is None
+    elsewhere = {**voice, "thing": "Feuer"}  # not in sight
+    assert (
+        checked_voice(request, {"outcome": "reply", "voice": elsewhere}, names, GUARD, on) is None
+    )
+    blocked = {**voice, "word": "Koks"}  # B2466: a word that lives on passes the content guard
+    said = _said("Das ist Koks.")
+    assert checked_voice(said, {"outcome": "reply", "voice": blocked}, names, GUARD, on) is None

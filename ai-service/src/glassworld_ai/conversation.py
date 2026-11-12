@@ -59,9 +59,9 @@ ROLE_PROMPT = "conversation/reply"
 ROLE = "conversation"
 REPLY_MAX = 200
 OUTCOMES = ("reply", "gesture", "not_understood", "decline")
-# A1538 (B6 R21, D891): what the voice's text IS - only these reach the core; 'other' and
+# A1538 (B6 R21, D891): what the voice's text IS. Which kinds reach the core is the prompt's
+# setting voice_sent (B2678: praise now, naming once the player can point); 'other' and
 # everything that fails a check is dropped.
-VOICE_KINDS_SENT = ("naming", "praise")
 VOICE_UNDERSTOOD = ("reply", "gesture")
 VOICE_WORD_MAX = 32
 VOICE_WORDS_MAX = 3
@@ -340,11 +340,20 @@ def seen_names(
     return out
 
 
+def voice_sent(template: PromptTemplate) -> tuple[str, ...]:
+    """B2678: the kinds a prompt passes on to the core (setting voice_sent)."""
+    raw: object = template.settings.get("voice_sent")
+    if not isinstance(raw, list):
+        return ()
+    return tuple(str(k) for k in cast(list[object], raw))
+
+
 def checked_voice(
     request: ConversationRequest,
     data: dict[str, Any],
     names: dict[str, str],
     guard: TextGuard,
+    sent: tuple[str, ...] = ("praise",),
 ) -> dict[str, Any] | None:
     """A1538 (D891 v2): the model only says what the voice's text IS; the service passes it on
     only when the inhabitant understood (reply or gesture) and, for naming, the thing is one it
@@ -355,7 +364,7 @@ def checked_voice(
         return None
     voice = cast(dict[str, Any], raw)
     kind = voice.get("kind")
-    if kind not in VOICE_KINDS_SENT:
+    if kind not in sent:
         return None
     if kind == "praise":
         return {"kind": "praise", "naming": None}
@@ -460,7 +469,11 @@ class OllamaConversation:
             deadline=deadline,
         )
         data = with_words(grounded(request, answer.value), self._texts, locale)
-        data["voice"] = checked_voice(request, data, seen, self._guard) if self._voice else None
+        data["voice"] = (
+            checked_voice(request, data, seen, self._guard, voice_sent(self._template))
+            if self._voice
+            else None
+        )
         return _response(
             request, data, "model", self._client.model, answer.latency_ms, answer.attempts
         )
@@ -522,11 +535,13 @@ class ReplayConversation:
         check = None
         voice: tuple[str, ...] = ()
         seen: dict[str, str] = {}
+        sent: tuple[str, ...] = ()
         if recorded.isdigit() and int(recorded) >= 3 and self._prompts_dir is not None:
             template = load_prompt(self._prompts_dir, ROLE_PROMPT, int(recorded))
             check = grounding_check(request, template, texts, self._names)
             if template.settings.get("voice") is True:  # v6 (A1538): as when it was played
                 voice = self._voice_kinds
+                sent = voice_sent(template)
                 seen = seen_names(request, texts, template.settings)
         try:
             data = parse(
@@ -537,7 +552,7 @@ class ReplayConversation:
                 check,
             )
             data = with_words(grounded(request, data), texts, plain_id(request.display_locale))
-            data["voice"] = checked_voice(request, data, seen, self._guard) if voice else None
+            data["voice"] = checked_voice(request, data, seen, self._guard, sent) if voice else None
         except InvalidOutputError as error:
             raise fail(
                 "model_unavailable", f"recorded answer does not fit request {request_id}"
