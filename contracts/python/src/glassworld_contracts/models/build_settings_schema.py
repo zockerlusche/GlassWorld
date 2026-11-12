@@ -66,6 +66,12 @@ class BuildEscalation(BaseModel):
         ge=0,
         le=8,
     )
+    help_affection_per_step: float | None = Field(
+        None,
+        description='A1376 (D827 R19, B2663): how much the affection of builder and helper for each other grows with every material the helper works in. Omitted = 0.',
+        ge=0.0,
+        le=1.0,
+    )
 
 
 class BuildQuality(BaseModel):

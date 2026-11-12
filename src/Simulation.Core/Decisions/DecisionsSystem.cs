@@ -1370,7 +1370,8 @@ public sealed class DecisionsSystem : IWorldSystem
 
         var inhabitant = _inhabitants.Get(question.InhabitantId);
         var (_, action, targetId) = chosen[0];
-        if (resolved?.Inhabitant is { } listener && (Knowledge is not { } knowledge || !InhabitantsSystem.HasPurpose(knowledge, inhabitant, listener, action)))
+        // A stuck building's options are the core's own (asking another for help passes no knowledge, A1376).
+        if (question.Kind != BuildStuck && resolved?.Inhabitant is { } listener && (Knowledge is not { } knowledge || !InhabitantsSystem.HasPurpose(knowledge, inhabitant, listener, action)))
         {
             // Between offer and answer the listener may have learned it themselves (or the asker the name):
             // no walk over for nothing.

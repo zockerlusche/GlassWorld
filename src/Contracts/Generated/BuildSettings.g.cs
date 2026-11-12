@@ -96,6 +96,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("max_use_instead")]
         public int? MaxUseInstead { get; set; } = default!;
 
+        /// <summary>
+        /// A1376 (D827 R19, B2663): how much the affection of builder and helper for each other grows with every material the helper works in. Omitted = 0.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("help_affection_per_step")]
+        public double? HelpAffectionPerStep { get; set; } = default!;
+
     }
 
     /// <summary>

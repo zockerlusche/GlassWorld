@@ -794,7 +794,7 @@ public sealed partial class InventionSystem
         }
 
         if (e.Kind == InhabitantsSystem.ActionFinished && Build.Settings.Escalation is { } escalation
-            && e.Action is { } chosen && (chosen == escalation.GiveUpAction || chosen == escalation.SmallerAction || chosen == escalation.UseInsteadAction))
+            && e.Action is { } chosen && (chosen == escalation.GiveUpAction || chosen == escalation.SmallerAction || chosen == escalation.UseInsteadAction || chosen == escalation.HelpAction))
         {
             Escalated(e, escalation);
             return;
