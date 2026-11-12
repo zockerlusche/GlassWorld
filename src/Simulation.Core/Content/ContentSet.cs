@@ -285,6 +285,9 @@ public sealed class ContentSet
         }
 
         var data = ContractSerializer.Deserialize<ProperNames>(File.ReadAllText(path));
+
+        // The keys are the sex ids of the inhabitant model (inhabitant-model.schema.json: female, male). A new sex
+        // id there needs its list here too; without one, its inhabitants pick from all names (review GW1 #267).
         if (data.Female is { Count: > 0 } female)
         {
             bySex["female"] = [.. female];

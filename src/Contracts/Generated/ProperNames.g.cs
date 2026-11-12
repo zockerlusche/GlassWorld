@@ -23,7 +23,7 @@ namespace GlassWorld.Contracts
         public string ContractVersion { get; set; } = default!;
 
         /// <summary>
-        /// Names that fit an inhabitant of either sex.
+        /// Names that fit an inhabitant of either sex; at least one, so that a sex without a list of its own still finds a name that is not only for the other sex.
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("names")]
         public System.Collections.Generic.ICollection<string> Names { get; set; } = new System.Collections.ObjectModel.Collection<string>();

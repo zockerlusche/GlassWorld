@@ -20,7 +20,7 @@ class ProperNames(BaseModel):
     )
     names: list[common_schema.ProperName] = Field(
         ...,
-        description='Names that fit an inhabitant of either sex.',
+        description='Names that fit an inhabitant of either sex; at least one, so that a sex without a list of its own still finds a name that is not only for the other sex.',
         max_length=512,
         min_length=1,
     )
