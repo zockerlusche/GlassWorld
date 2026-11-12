@@ -27,6 +27,18 @@
       "description": "A question could not be answered."
     },
     {
+      "id": "leisure_opened",
+      "description": "An inhabitant with a free moment asks the AI what it wants to do (no question)."
+    },
+    {
+      "id": "leisure_answered",
+      "description": "The AI answered a free moment."
+    },
+    {
+      "id": "leisure_failed",
+      "description": "A free moment brought no answer."
+    },
+    {
       "id": "answer_expired",
       "description": "A queued answer was dropped before it started because a need it does not serve fell below its neglect threshold."
     },
@@ -89,6 +101,14 @@
     {
       "id": "substitute_failed",
       "description": "A builder tried a thing of another kind for the missing material, but it lacks what was missing; the builder learned that."
+    },
+    {
+      "id": "asked_for_help",
+      "description": "A stuck builder asked another to help (target: the helper, detail: the missing properties); the helper builds along."
+    },
+    {
+      "id": "material_shown",
+      "description": "A helper showed the builder where it knows a missing material (target: the thing)."
     },
     {
       "id": "built",

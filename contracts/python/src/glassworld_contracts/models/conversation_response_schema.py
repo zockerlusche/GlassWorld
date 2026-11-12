@@ -18,6 +18,35 @@ class Outcome(StrEnum):
     decline = 'decline'
 
 
+class VoiceNaming(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    type: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    word: str = Field(..., max_length=32, min_length=1)
+
+
+class VoiceClass(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    kind: str = Field(
+        ...,
+        description='Vocabulary voice_kind (naming, praise).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    naming: VoiceNaming | None = Field(
+        None,
+        description="Only with kind naming: the type of the thing (a plain type id of speaker.sees) and the word as the player wrote it (1-3 words). The same word in both languages: it is the inhabitant's own word, not a translation.",
+    )
+
+
 class ConversationResponse(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -51,3 +80,7 @@ class ConversationResponse(BaseModel):
         max_length=280,
     )
     meta: common_schema.ResponseMeta
+    voice: VoiceClass | None = Field(
+        None,
+        description="What the player's text IS (A1538, B6 R21, D891): naming a thing in sight or praise, from the vocabulary voice_kind. Only when the inhabitant understood (outcome reply or gesture) and the service's checks passed: a named type is one the speaker sees, the word stands in the player's text and passes the content guard. Never what follows - the core decides the effect from its data. Absent or null otherwise, and from an older service.",
+    )

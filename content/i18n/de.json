@@ -91,6 +91,38 @@
       "text": "Winter"
     },
     {
+      "key": "ui.card.need.hunger",
+      "text": "Satt"
+    },
+    {
+      "key": "ui.card.need.thirst",
+      "text": "Getrunken"
+    },
+    {
+      "key": "ui.card.need.sleep",
+      "text": "Ausgeruht"
+    },
+    {
+      "key": "ui.card.need.warmth",
+      "text": "Warm"
+    },
+    {
+      "key": "ui.card.need.safety",
+      "text": "Sicher"
+    },
+    {
+      "key": "ui.card.need.company",
+      "text": "Gesellschaft"
+    },
+    {
+      "key": "ui.card.need.fun",
+      "text": "Spaß"
+    },
+    {
+      "key": "ui.card.need.purpose",
+      "text": "Sinn"
+    },
+    {
       "key": "ui.card.character",
       "text": "Charakter"
     },
@@ -1159,6 +1191,22 @@
       "text": "Unplausibel"
     },
     {
+      "key": "vocab.guard_reason.off_want",
+      "text": "Hilft nicht beim Wunsch"
+    },
+    {
+      "key": "vocab.voice_kind.naming",
+      "text": "Benennt etwas"
+    },
+    {
+      "key": "vocab.voice_kind.praise",
+      "text": "Lob"
+    },
+    {
+      "key": "vocab.voice_kind.other",
+      "text": "Anderes"
+    },
+    {
       "key": "msg.command.no_favor",
       "text": "Dafür reicht deine Gunst gerade nicht."
     },
@@ -1395,6 +1443,14 @@
       "text": "Gunst wächst langsam nach. Gaben kosten Gunst."
     },
     {
+      "key": "msg.mail.build_missing",
+      "text": "{name} klopft an die Scheibe: kommt beim Bauen von {thing} nicht weiter und sucht etwas – {properties}. So etwas liegt nirgends auf der Insel – vielleicht kannst du es schenken."
+    },
+    {
+      "key": "msg.mail.build_stuck",
+      "text": "{name} klopft an die Scheibe: kommt beim Bauen von {thing} nicht weiter und sucht etwas – {properties}. So etwas gibt es auf der Insel; mit etwas Suchen findet es sich."
+    },
+    {
       "key": "msg.mail.knock",
       "text": "{name} klopft an die Scheibe: findet nichts gegen {need}."
     },
@@ -1507,6 +1563,18 @@
       "text": "Frage beantwortet"
     },
     {
+      "key": "vocab.event.leisure_opened",
+      "text": "Freien Moment bedacht"
+    },
+    {
+      "key": "vocab.event.leisure_answered",
+      "text": "Freier Moment beantwortet"
+    },
+    {
+      "key": "vocab.event.leisure_failed",
+      "text": "Freier Moment ohne Antwort"
+    },
+    {
       "key": "vocab.event.question_failed",
       "text": "Frage unbeantwortet"
     },
@@ -1569,6 +1637,14 @@
     {
       "key": "vocab.event.substitute_failed",
       "text": "Ersatz passt nicht"
+    },
+    {
+      "key": "vocab.event.asked_for_help",
+      "text": "Um Hilfe gebeten"
+    },
+    {
+      "key": "vocab.event.material_shown",
+      "text": "Material gezeigt"
     },
     {
       "key": "vocab.event.built",

@@ -313,3 +313,32 @@ def test_repeated_ids_are_normalised_not_rejected(settings: Settings) -> None:
     result = _result(asyncio.run(handler(JOB)))
     assert result["invention"]["materials"] == ["clay_lump"]
     assert result["invention"]["steps"][0]["materials"] == ["clay_lump"]
+
+
+def test_v4_and_guard_v3_check_that_the_idea_answers_the_want(settings: Settings) -> None:
+    """B2668 (run L1172: a want for company got a cooking oven): the inventor hears the need with
+    what it is about and must answer exactly that; the guard sees the want and may send an idea
+    for something else back (off_want). Nothing names a solution (PR2)."""
+    from glassworld_ai.invention.flow import guard_values, inventor_values
+
+    vocab = _vocab(settings)
+    data = copy.deepcopy(JOB_DATA)
+    data["payload"]["invention"]["trigger"] = "need"
+    data["payload"]["invention"]["want"] = "company"
+    job = GenerationJob.model_validate(data)
+    about = (vocab.describe("need", "company") or "").rstrip(".")
+    v4 = load_prompt(settings.prompts_dir, "invention/invent", 4)
+    rendered = v4.render(inventor_values(job, v4, vocab, ""))
+    assert f"You need something: company ({about})." in rendered.user
+    assert "An idea for something else is wrong" in rendered.system
+    v3 = load_prompt(settings.prompts_dir, "invention/invent", 3)
+    assert f"({about})" not in v3.render(inventor_values(job, v3, vocab, "")).user  # v3 as it was
+
+    safety = safety_categories(settings.content_dir)
+    g3 = load_prompt(settings.prompts_dir, "guard/invention", 3)
+    guard = g3.render(guard_values(job, BOWL, 1, vocab, safety, g3.settings))
+    assert f"## What the inhabitant wanted\ncompany ({about})" in guard.user
+    assert "- off_want:" in guard.system and "off_want" in guard.system.split("Decide:")[0]
+    g2 = load_prompt(settings.prompts_dir, "guard/invention", 2)
+    old = g2.render(guard_values(job, BOWL, 1, vocab, safety, g2.settings))
+    assert "off_want" not in old.system and "What the inhabitant wanted" not in old.user

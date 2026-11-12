@@ -49,7 +49,7 @@ public sealed class WorldFeedTests
         var card = feed.Card(feed.Inhabitants()[0].Id);
         Assert.NotNull(card);
         Assert.NotEmpty(card.Needs);
-        Assert.All(card.Needs, v => Assert.StartsWith("vocab.need.", v.Key, StringComparison.Ordinal));
+        Assert.All(card.Needs, v => Assert.StartsWith("ui.card.need.", v.Key, StringComparison.Ordinal));
         Assert.All(card.Traits, v => Assert.StartsWith("vocab.trait.", v.Key, StringComparison.Ordinal));
         Assert.All(card.Feelings, v => Assert.True(v.Percent > 0));
         Assert.Equal(card.Needs.Select(v => v.Key).Order(StringComparer.Ordinal), card.Needs.Select(v => v.Key));
@@ -68,10 +68,10 @@ public sealed class WorldFeedTests
 
         var card = new WorldFeed(host).Card(inhabitant.Id)!;
 
-        var glow = Assert.Single(card.Needs, v => v.Key == "vocab.need.glow");
+        var glow = Assert.Single(card.Needs, v => v.Key == "ui.card.need.glow");
         Assert.Equal((("Leuchten", "Glow"), false, 60), (glow.Name!.Value, glow.Faded, glow.Percent));
-        Assert.True(Assert.Single(card.Needs, v => v.Key == "vocab.need.rhythm").Faded);
-        Assert.All(card.Needs.Where(v => v.Key is not ("vocab.need.glow" or "vocab.need.rhythm")), v => Assert.Equal(((string, string)?)null, v.Name));
+        Assert.True(Assert.Single(card.Needs, v => v.Key == "ui.card.need.rhythm").Faded);
+        Assert.All(card.Needs.Where(v => v.Key is not ("ui.card.need.glow" or "ui.card.need.rhythm")), v => Assert.Equal(((string, string)?)null, v.Name));
         Assert.DoesNotContain(card.Needs, v => v.Name is null && v.Faded);
     }
 
@@ -133,6 +133,24 @@ public sealed class WorldFeedTests
         Assert.Contains(window, q => q.InhabitantId == id && q.Count >= 1);
         Assert.Contains(feed.NewEvents(), e => e.Kind == "question_opened" && e.InhabitantId == id);
         Assert.True(feed.Inhabitants().Single(r => r.Id == id).OpenQuestions >= 1);
+    }
+
+    [Fact]
+    public void AFreeMomentIsNotListedAsAQuestion()
+    {
+        // #309 follow-up: the questions window listed every free moment with a whisper field.
+        var host = NewWorld();
+        var feed = new WorldFeed(host);
+        var seen = false;
+        for (var i = 0; i < 2000 && !seen; i++)
+        {
+            host.World.Step();
+            var open = host.Decisions.Open.Where(q => q.Kind == DecisionsSystem.Leisure).Select(q => q.Id).ToList();
+            seen = open.Count > 0;
+            Assert.DoesNotContain(feed.Questions(), q => open.Contains(q.Id));
+        }
+
+        Assert.True(seen);
     }
 
     [Fact]

@@ -30,6 +30,7 @@ class Kind(StrEnum):
     event = 'event'
     knowledge_source = 'knowledge_source'
     soil = 'soil'
+    voice_kind = 'voice_kind'
 
 
 class Target(StrEnum):
@@ -59,7 +60,7 @@ class VocabularyEntry(BaseModel):
     )
     only_when: str | None = Field(
         None,
-        description="Actions only: the action exists only in one situation the core names (e.g. build_stuck, A1373 step 2) and is offered only there. A prompt that lists actions in general leaves it out; it is never an invention's purpose. Absent = an action like any other.",
+        description="Actions and guard reasons: the entry exists only in one situation the core or a prompt names (e.g. build_stuck, A1373 step 2; want_check, B2668) and is offered or listed only there. A prompt that lists actions in general leaves it out; it is never an invention's purpose. Absent = an action like any other.",
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )

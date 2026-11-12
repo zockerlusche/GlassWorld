@@ -98,6 +98,7 @@ public readonly record struct Rgb(float R, float G, float B)
 /// <param name="StreamCoverM">Every cell of a stream keeps the relaxed line within this distance of its centre (metres).</param>
 /// <param name="SwampAsGround">Whether swamp water is drawn as wet ground that blends into its surroundings instead of as a water plate (W1724).</param>
 /// <param name="Mouth">How a stream band ends in standing water (TL #20750), or null: it ends in the first cell of standing water.</param>
+/// <param name="BankFloodUnits">A1455: a dry cell beside still water whose ground lies wholly at or below the surface by at most this many units carries the water too (0 = only cells the shore line crosses).</param>
 public sealed record TerrainLook(
     IReadOnlyList<Rgb> BiomeColors,
     Rgb Cliff,
@@ -126,7 +127,8 @@ public sealed record TerrainLook(
     float StreamMaxShiftM = 0.5f,
     float StreamCoverM = 1.2f,
     bool SwampAsGround = false,
-    StreamMouthLook? Mouth = null)
+    StreamMouthLook? Mouth = null,
+    int BankFloodUnits = 0)
 {
     /// <summary>Resolves the look data against the palette, the map's biome order and the preset.</summary>
     /// <param name="terrain">The terrain look data.</param>
@@ -195,7 +197,8 @@ public sealed record TerrainLook(
             terrain.Water.SwampAsGround ?? false,
             terrain.Water.StreamMouth is { } mouth
                 ? new StreamMouthLook((float)mouth.FadeM, mouth.ReachCells, mouth.UnderMm / 1000f, (float)mouth.WidenShare, preset.Terrain.SeaLevel, preset.Tides.Amplitude)
-                : null);
+                : null,
+            (terrain.Water.BankFloodMaxMm ?? 0) / unitMm);
     }
 
     /// <summary>Whether a cell holds swamp water that is drawn as wet ground (<see cref="SwampAsGround"/>): still fresh water no deeper than the swamp depth.</summary>
@@ -867,14 +870,17 @@ public static partial class TerrainMesher
 
     /// <summary>
     /// Shore test of a dry cell next to still water at <paramref name="surface"/>: the shore line crosses
-    /// the cell only where the surface lies between its lowest and highest ground corner. A bank wholly
-    /// above the water stays dry, and one at or below it everywhere would look flooded, so neither carries
-    /// a plate.
+    /// the cell where the surface lies between its lowest and highest ground corner. A bank wholly above
+    /// the water stays dry. One at or below it everywhere carries the water only when it lies at most
+    /// <paramref name="floodUnits"/> below (A1455): a shallow margin is drawn under water, because leaving it
+    /// bare pulls the lake plate down to its low ground and cuts a notch into the shore; a deeper hollow
+    /// stays bare.
     /// </summary>
-    public static bool IsShore(int[] ground, int surface)
+    public static bool IsShore(int[] ground, int surface, int floodUnits = 0)
     {
         ArgumentNullException.ThrowIfNull(ground);
-        return ground.Min() < surface && ground.Max() > surface;
+        var lowest = ground.Min();
+        return lowest < surface && (ground.Max() > surface || surface - lowest <= floodUnits);
     }
 
     /// <summary>
@@ -1163,7 +1169,7 @@ public static partial class TerrainMesher
             return (cell.Water == WaterKind.Fresh && cell.Flow >= 0 ? Carrier.Running : Carrier.Still, cell.Height + cell.WaterDepth, cell.WaterDepth);
         }
 
-        return BankWater(map, x, z, look) is { } bank && IsShore(CornerHeights(map, x, z, look), bank.Surface)
+        return BankWater(map, x, z, look) is { } bank && IsShore(CornerHeights(map, x, z, look), bank.Surface, look.BankFloodUnits)
             ? (Carrier.Bank, bank.Surface, bank.Depth)
             : (Carrier.Bare, 0, 0);
     }

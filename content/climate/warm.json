@@ -1,0 +1,596 @@
+{
+  "contract_version": "0.2",
+  "id": "warm",
+  "weather": {
+    "change_every_hours": 6,
+    "transition_minutes": 60,
+    "snow_below_tenth_c": 10,
+    "drought_after_dry_days": 10,
+    "snow_weather": "snow",
+    "drought_weather": "drought",
+    "gust_period_minutes": 15,
+    "signals": [
+      {
+        "condition": "storm",
+        "start_event": "storm_started",
+        "end_event": "storm_ended"
+      },
+      {
+        "condition": "drought",
+        "start_event": "drought_started",
+        "end_event": "drought_ended"
+      }
+    ],
+    "states": [
+      {
+        "weather": "clear",
+        "wind_permille": 150,
+        "gust_permille": 100,
+        "precipitation_permille": 0,
+        "cloud_permille": 100,
+        "sight_permille": 1000
+      },
+      {
+        "weather": "cloudy",
+        "wind_permille": 250,
+        "gust_permille": 150,
+        "precipitation_permille": 0,
+        "cloud_permille": 700,
+        "sight_permille": 1000
+      },
+      {
+        "weather": "rain",
+        "wind_permille": 300,
+        "gust_permille": 150,
+        "precipitation_permille": 500,
+        "cloud_permille": 900,
+        "sight_permille": 700
+      },
+      {
+        "weather": "storm",
+        "wind_permille": 850,
+        "gust_permille": 150,
+        "precipitation_permille": 850,
+        "cloud_permille": 1000,
+        "sight_permille": 500
+      },
+      {
+        "weather": "fog",
+        "wind_permille": 50,
+        "gust_permille": 30,
+        "precipitation_permille": 0,
+        "cloud_permille": 600,
+        "sight_permille": 300
+      },
+      {
+        "weather": "frost",
+        "wind_permille": 100,
+        "gust_permille": 50,
+        "precipitation_permille": 0,
+        "cloud_permille": 200,
+        "sight_permille": 1000
+      },
+      {
+        "weather": "snow",
+        "wind_permille": 250,
+        "gust_permille": 150,
+        "precipitation_permille": 450,
+        "cloud_permille": 900,
+        "sight_permille": 600
+      },
+      {
+        "weather": "heat",
+        "wind_permille": 50,
+        "gust_permille": 30,
+        "precipitation_permille": 0,
+        "cloud_permille": 0,
+        "sight_permille": 1000
+      },
+      {
+        "weather": "drought",
+        "wind_permille": 100,
+        "gust_permille": 80,
+        "precipitation_permille": 0,
+        "cloud_permille": 50,
+        "sight_permille": 1000
+      }
+    ],
+    "seasons": [
+      {
+        "season": "spring",
+        "transitions": [
+          {
+            "from_weather": "clear",
+            "to": [
+              {
+                "weather": "clear",
+                "weight": 5
+              },
+              {
+                "weather": "cloudy",
+                "weight": 3
+              },
+              {
+                "weather": "rain",
+                "weight": 2
+              },
+              {
+                "weather": "fog",
+                "weight": 1
+              }
+            ]
+          },
+          {
+            "from_weather": "cloudy",
+            "to": [
+              {
+                "weather": "clear",
+                "weight": 3
+              },
+              {
+                "weather": "cloudy",
+                "weight": 3
+              },
+              {
+                "weather": "rain",
+                "weight": 3
+              },
+              {
+                "weather": "storm",
+                "weight": 1
+              }
+            ]
+          },
+          {
+            "from_weather": "rain",
+            "to": [
+              {
+                "weather": "cloudy",
+                "weight": 4
+              },
+              {
+                "weather": "rain",
+                "weight": 3
+              },
+              {
+                "weather": "clear",
+                "weight": 2
+              },
+              {
+                "weather": "storm",
+                "weight": 1
+              }
+            ]
+          },
+          {
+            "from_weather": "storm",
+            "to": [
+              {
+                "weather": "rain",
+                "weight": 3
+              },
+              {
+                "weather": "cloudy",
+                "weight": 2
+              }
+            ]
+          },
+          {
+            "from_weather": "fog",
+            "to": [
+              {
+                "weather": "clear",
+                "weight": 3
+              },
+              {
+                "weather": "cloudy",
+                "weight": 2
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "season": "summer",
+        "transitions": [
+          {
+            "from_weather": "clear",
+            "to": [
+              {
+                "weather": "clear",
+                "weight": 6
+              },
+              {
+                "weather": "heat",
+                "weight": 4
+              },
+              {
+                "weather": "cloudy",
+                "weight": 2
+              },
+              {
+                "weather": "storm",
+                "weight": 1
+              }
+            ]
+          },
+          {
+            "from_weather": "heat",
+            "to": [
+              {
+                "weather": "heat",
+                "weight": 6
+              },
+              {
+                "weather": "clear",
+                "weight": 3
+              },
+              {
+                "weather": "storm",
+                "weight": 1
+              }
+            ]
+          },
+          {
+            "from_weather": "cloudy",
+            "to": [
+              {
+                "weather": "clear",
+                "weight": 4
+              },
+              {
+                "weather": "rain",
+                "weight": 1
+              },
+              {
+                "weather": "cloudy",
+                "weight": 2
+              }
+            ]
+          },
+          {
+            "from_weather": "rain",
+            "to": [
+              {
+                "weather": "clear",
+                "weight": 3
+              },
+              {
+                "weather": "cloudy",
+                "weight": 3
+              },
+              {
+                "weather": "rain",
+                "weight": 1
+              }
+            ]
+          },
+          {
+            "from_weather": "storm",
+            "to": [
+              {
+                "weather": "rain",
+                "weight": 1
+              },
+              {
+                "weather": "cloudy",
+                "weight": 2
+              },
+              {
+                "weather": "clear",
+                "weight": 1
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "season": "autumn",
+        "transitions": [
+          {
+            "from_weather": "clear",
+            "to": [
+              {
+                "weather": "clear",
+                "weight": 3
+              },
+              {
+                "weather": "cloudy",
+                "weight": 3
+              },
+              {
+                "weather": "fog",
+                "weight": 2
+              },
+              {
+                "weather": "rain",
+                "weight": 2
+              }
+            ]
+          },
+          {
+            "from_weather": "cloudy",
+            "to": [
+              {
+                "weather": "cloudy",
+                "weight": 3
+              },
+              {
+                "weather": "rain",
+                "weight": 3
+              },
+              {
+                "weather": "storm",
+                "weight": 1
+              },
+              {
+                "weather": "clear",
+                "weight": 2
+              }
+            ]
+          },
+          {
+            "from_weather": "rain",
+            "to": [
+              {
+                "weather": "rain",
+                "weight": 3
+              },
+              {
+                "weather": "cloudy",
+                "weight": 3
+              },
+              {
+                "weather": "storm",
+                "weight": 2
+              }
+            ]
+          },
+          {
+            "from_weather": "storm",
+            "to": [
+              {
+                "weather": "rain",
+                "weight": 3
+              },
+              {
+                "weather": "cloudy",
+                "weight": 2
+              }
+            ]
+          },
+          {
+            "from_weather": "fog",
+            "to": [
+              {
+                "weather": "fog",
+                "weight": 2
+              },
+              {
+                "weather": "cloudy",
+                "weight": 2
+              },
+              {
+                "weather": "clear",
+                "weight": 2
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "season": "winter",
+        "transitions": [
+          {
+            "from_weather": "clear",
+            "to": [
+              {
+                "weather": "clear",
+                "weight": 3
+              },
+              {
+                "weather": "cloudy",
+                "weight": 2
+              },
+              {
+                "weather": "rain",
+                "weight": 3
+              }
+            ]
+          },
+          {
+            "from_weather": "frost",
+            "to": [
+              {
+                "weather": "clear",
+                "weight": 2
+              },
+              {
+                "weather": "rain",
+                "weight": 5
+              }
+            ]
+          },
+          {
+            "from_weather": "cloudy",
+            "to": [
+              {
+                "weather": "cloudy",
+                "weight": 2
+              },
+              {
+                "weather": "rain",
+                "weight": 6
+              }
+            ]
+          },
+          {
+            "from_weather": "snow",
+            "to": [
+              {
+                "weather": "cloudy",
+                "weight": 2
+              },
+              {
+                "weather": "rain",
+                "weight": 5
+              }
+            ]
+          },
+          {
+            "from_weather": "rain",
+            "to": [
+              {
+                "weather": "cloudy",
+                "weight": 3
+              },
+              {
+                "weather": "rain",
+                "weight": 2
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "temperature": {
+      "base_tenth_c": 200,
+      "seasons": [
+        {
+          "season": "spring",
+          "offset_tenth_c": 0
+        },
+        {
+          "season": "summer",
+          "offset_tenth_c": 70
+        },
+        {
+          "season": "autumn",
+          "offset_tenth_c": 10
+        },
+        {
+          "season": "winter",
+          "offset_tenth_c": -60
+        }
+      ],
+      "weathers": [
+        {
+          "weather": "clear",
+          "offset_tenth_c": 0
+        },
+        {
+          "weather": "cloudy",
+          "offset_tenth_c": -15
+        },
+        {
+          "weather": "rain",
+          "offset_tenth_c": -30
+        },
+        {
+          "weather": "storm",
+          "offset_tenth_c": -40
+        },
+        {
+          "weather": "fog",
+          "offset_tenth_c": -20
+        },
+        {
+          "weather": "frost",
+          "offset_tenth_c": -150
+        },
+        {
+          "weather": "snow",
+          "offset_tenth_c": -60
+        },
+        {
+          "weather": "heat",
+          "offset_tenth_c": 100
+        },
+        {
+          "weather": "drought",
+          "offset_tenth_c": 60
+        }
+      ],
+      "times_of_day": [
+        {
+          "time_of_day": "dawn",
+          "offset_tenth_c": -30
+        },
+        {
+          "time_of_day": "day",
+          "offset_tenth_c": 20
+        },
+        {
+          "time_of_day": "dusk",
+          "offset_tenth_c": -10
+        },
+        {
+          "time_of_day": "night",
+          "offset_tenth_c": -50
+        }
+      ],
+      "hourly": [
+        {
+          "season": "spring",
+          "points": [
+            {
+              "hour": 5,
+              "offset_tenth_c": -50
+            },
+            {
+              "hour": 15,
+              "offset_tenth_c": 50
+            }
+          ]
+        },
+        {
+          "season": "summer",
+          "points": [
+            {
+              "hour": 5,
+              "offset_tenth_c": -60
+            },
+            {
+              "hour": 15,
+              "offset_tenth_c": 60
+            }
+          ]
+        },
+        {
+          "season": "autumn",
+          "points": [
+            {
+              "hour": 5,
+              "offset_tenth_c": -50
+            },
+            {
+              "hour": 15,
+              "offset_tenth_c": 50
+            }
+          ]
+        },
+        {
+          "season": "winter",
+          "points": [
+            {
+              "hour": 5,
+              "offset_tenth_c": -40
+            },
+            {
+              "hour": 15,
+              "offset_tenth_c": 40
+            }
+          ]
+        }
+      ],
+      "biomes": [
+        {
+          "biome": "forest",
+          "season": "summer",
+          "offset_tenth_c": -15
+        }
+      ],
+      "season_transition_hours": 24
+    }
+  }
+}

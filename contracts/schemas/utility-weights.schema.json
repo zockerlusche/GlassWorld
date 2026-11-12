@@ -70,6 +70,7 @@
       "properties": {
         "action": { "$ref": "common.schema.json#/$defs/VocabId" },
         "target_property": { "anyOf": [{ "$ref": "common.schema.json#/$defs/VocabId" }, { "type": "null" }] },
+        "requires_also": { "description": "B2668: a second true property the target must have as well (e.g. crafted: only made things); omitted or null = none.", "anyOf": [{ "$ref": "common.schema.json#/$defs/VocabId" }, { "type": "null" }] },
         "avoid_properties": {
           "description": "Properties that make the option worse when the inhabitant believes the target has them (factor 1 - confidence each), e.g. salty for drinking.",
           "type": "array",

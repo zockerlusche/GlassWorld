@@ -108,6 +108,10 @@ class EffectRule(BaseModel):
         ...,
         description='True property the target must have; null for actions without a target.',
     )
+    requires_also: common_schema.VocabId | None = Field(
+        None,
+        description='B2668: a second true property the target must have as well (e.g. crafted: only made things); omitted or null = none.',
+    )
     consumes_target: bool
     effects: list[Effect] = Field(..., max_length=16)
 

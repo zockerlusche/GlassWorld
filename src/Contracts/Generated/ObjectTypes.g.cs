@@ -31,6 +31,89 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("properties")]
         public System.Collections.Generic.ICollection<string> Properties { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("params")]
+        public ObjectParams? Params { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Optional number parameters of a type (B5 R8, D634): physics the core reads, never a behaviour. Integers only (determinism). A missing field means the type has no such effect. Placeholders until the TL sets them (B2649).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ObjectParams
+    {
+
+        /// <summary>
+        /// Felt temperature gained while worn or wrapped in it, in tenths of a degree (B5-2, R4).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("insulation_tenth_c")]
+        public int? InsulationTenthC { get; set; } = default!;
+
+        /// <summary>
+        /// Share of the wind kept off someone right next to it, in permille (B5-2, R4).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("wind_block_permille")]
+        public int? WindBlockPermille { get; set; } = default!;
+
+        /// <summary>
+        /// Height of the shade-casting part above the ground, in centimetres (B5-2, D634 R29).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("shade_height_cm")]
+        public int? ShadeHeightCm { get; set; } = default!;
+
+        /// <summary>
+        /// Radius of the shade-casting part, in centimetres (B5-2, D634 R29).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("crown_radius_cm")]
+        public int? CrownRadiusCm { get; set; } = default!;
+
+        /// <summary>
+        /// How long one piece burns as fuel, in game minutes (B5-2, R7, D634 R45).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("burn_minutes")]
+        public int? BurnMinutes { get; set; } = default!;
+
+        /// <summary>
+        /// Felt temperature added right at the source while it burns or glows, in tenths of a degree; it falls off with distance by a data table (B5-2, R4, R7).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("heat_tenth_c")]
+        public int? HeatTenthC { get; set; } = default!;
+
+        /// <summary>
+        /// Distance up to which the heat is felt, in centimetres (B5-2, R7).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("heat_radius_cm")]
+        public int? HeatRadiusCm { get; set; } = default!;
+
+        /// <summary>
+        /// Radius it lights, in centimetres (B5-2b, D634 R44).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("light_radius_cm")]
+        public int? LightRadiusCm { get; set; } = default!;
+
+        /// <summary>
+        /// Strength of the light at the source, in permille of daylight (B5-2b, D634 R44).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("light_permille")]
+        public int? LightPermille { get; set; } = default!;
+
+        /// <summary>
+        /// How good it is as a tool, in permille; an input of the build quality (B5-7, D634 R38).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("tool_value_permille")]
+        public int? ToolValuePermille { get; set; } = default!;
+
     }
 
     /// <summary>

@@ -64,6 +64,33 @@
     },
     "meta": {
       "$ref": "common.schema.json#/$defs/ResponseMeta"
+    },
+    "voice": {
+      "description": "What the player's text IS (A1538, B6 R21, D891): naming a thing in sight or praise, from the vocabulary voice_kind. Only when the inhabitant understood (outcome reply or gesture) and the service's checks passed: a named type is one the speaker sees, the word stands in the player's text and passes the content guard. Never what follows - the core decides the effect from its data. Absent or null otherwise, and from an older service.",
+      "anyOf": [{ "$ref": "#/$defs/VoiceClass" }, { "type": "null" }]
+    }
+  },
+  "$defs": {
+    "VoiceClass": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "kind": { "description": "Vocabulary voice_kind (naming, praise).", "$ref": "common.schema.json#/$defs/VocabId" },
+        "naming": {
+          "description": "Only with kind naming: the type of the thing (a plain type id of speaker.sees) and the word as the player wrote it (1-3 words). The same word in both languages: it is the inhabitant's own word, not a translation.",
+          "anyOf": [{ "$ref": "#/$defs/VoiceNaming" }, { "type": "null" }]
+        }
+      }
+    },
+    "VoiceNaming": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "word"],
+      "properties": {
+        "type": { "$ref": "common.schema.json#/$defs/VocabId" },
+        "word": { "type": "string", "minLength": 1, "maxLength": 32 }
+      }
     }
   }
 }

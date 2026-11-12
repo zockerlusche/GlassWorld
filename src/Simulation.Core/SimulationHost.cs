@@ -25,6 +25,13 @@ public sealed record SimulationHostOptions(bool DebugCommands = false)
     /// from the AI is validated in any case. Not part of the world state: the same requests leave either way.
     /// </summary>
     public bool ValidateRequests { get; init; } = true;
+
+    /// <summary>
+    /// The climate the player chose for a new world (B5 R1, B2676; an id of content/climate), in place of the
+    /// preset's climate. Null = the preset's climate (also every save from before the choice). Part of the
+    /// world: the host keeps it and the save game carries it.
+    /// </summary>
+    public string? Climate { get; init; }
 }
 
 /// <summary>
@@ -193,21 +200,29 @@ public sealed class SimulationHost
             };
             world.Add(map);
 
-            climate = preset.Climate.ClimateId;
+            climate = options.Climate ?? preset.Climate.ClimateId;
+            if (!content.WorldGen.Climates.ContainsKey(climate))
+            {
+                throw new InvalidDataException($"Unknown climate '{climate}' (content/climate).");
+            }
+
             seaLevel = preset.Terrain.SeaLevel;
             sight = preset.Exploration;
 
-            // Weather of the preset's climate (B2 R13); worlds without a preset (placeholder) have none.
+            // Weather of the world's climate (B2 R13; the chosen one, else the preset's); worlds without a preset (placeholder) have none.
             // The weather is island-wide for now; its height drop stands for the mean height of the start cells.
             var startHeight = island.Starts.Count == 0 ? 0 : island.Starts.Sum(s => Math.Max(0, island.Map.Cell(s.X, s.Z).Height - preset.Terrain.SeaLevel)) / island.Starts.Count;
             dropPer100Height = preset.Climate.TemperatureDropPer100Height;
             startDropTenthC = -(dropPer100Height * startHeight / 100);
             weather = new Weather.WeatherSystem(
-                content.WorldGen.Climates[preset.Climate.ClimateId],
+                content.WorldGen.Climates[climate],
                 startDropTenthC,
                 world.Calendar.Settings.TicksPerHour,
                 world.Calendar.Settings.HoursPerDay,
-                world.Seed);
+                world.Seed)
+            {
+                ChosenClimate = options.Climate,
+            };
             world.Add(weather);
         }
 
@@ -217,6 +232,10 @@ public sealed class SimulationHost
         // The weather's part of it is the same for everybody within a tick, so it is worked out once per
         // tick and main weather, not once per inhabitant.
         (long Tick, string Weather, int TemperatureTenthC)? islandAir = null;
+
+        // With biome offsets (B5 R28) the air also depends on the cell's biome: one value per biome and tick.
+        var biomeAir = new Dictionary<string, int>(StringComparer.Ordinal);
+        (long Tick, string Weather) biomeAirAt = (-1, string.Empty);
         Air? AirAt(World w, Position at)
         {
             if (weather is null || map is null)
@@ -224,9 +243,30 @@ public sealed class SimulationHost
                 return null;
             }
 
-            var cellDropTenthC = map.CellOf(at) is { } cell
+            var cellAt = map.CellOf(at);
+            var cellDropTenthC = cellAt is { } cell
                 ? -(dropPer100Height * Math.Max(0, map.Map.Cell(cell.X, cell.Z).Height - seaLevel) / 100)
                 : startDropTenthC;
+
+            // Biome offsets of the climate (B5 R28): then the temperature depends on the cell's biome as well.
+            if (weather.HasBiomeTemperatures && cellAt is { } biomeCell)
+            {
+                if (biomeAirAt.Tick != w.Tick || !string.Equals(biomeAirAt.Weather, weather.Current, StringComparison.Ordinal))
+                {
+                    biomeAir.Clear();
+                    biomeAirAt = (w.Tick, weather.Current);
+                }
+
+                var biome = map.Map.BiomeAt(biomeCell.X, biomeCell.Z);
+                if (!biomeAir.TryGetValue(biome, out var biomeTenthC))
+                {
+                    biomeTenthC = weather.TemperatureAt(w.Now, weather.Current, biome);
+                    biomeAir[biome] = biomeTenthC;
+                }
+
+                return new Air(biomeTenthC - startDropTenthC + cellDropTenthC, weather.PrecipitationPermille > 0);
+            }
+
             if (islandAir is not { } known || known.Tick != w.Tick || !string.Equals(known.Weather, weather.Current, StringComparison.Ordinal))
             {
                 islandAir = known = (w.Tick, weather.Current, weather.TemperatureAt(w.Now, weather.Current));
@@ -370,7 +410,11 @@ public sealed class SimulationHost
             Inhabitants = inhabitants,
             PerceptionRadiusM = content.Brain.Weights.PerceptionRadiusM,
         };
-        var mailbox = new Simulation.Player.MailboxSystem(content.MessageKinds, inhabitants, player, world.Calendar.Settings.TicksPerHour);
+        var mailbox = new Simulation.Player.MailboxSystem(content.MessageKinds, inhabitants, player, world.Calendar.Settings.TicksPerHour)
+        {
+            // A builder's knock calms down once it is no longer stuck (A1602).
+            StillStuck = (who, type) => inventions.Builds.Any(b => b.InhabitantId == who && b.TypeId == type && b.NeedsHelp),
+        };
         decisions.RegisterCommand(Simulation.Player.MailboxSystem.Acknowledge, mailbox.Check, mailbox.Apply);
 
         // The player's favourites (B6 R19): the player's own marks, never part of a request to the AI.

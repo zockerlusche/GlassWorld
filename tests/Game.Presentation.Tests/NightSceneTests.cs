@@ -16,6 +16,49 @@ public sealed class NightSceneTests
     }
 
     [Fact]
+    public void TheSceneWaitsUntilEveryoneSleepsAndThenHoldsTheWorld()
+    {
+        // B2680 (Marcel W1939): the scene begins when all sleep; until then the world goes on as usual.
+        var data = Data();
+        data.WaitForSleepersMaxH = 2;
+        var scene = new NightScene(data);
+        scene.Update(false, null, 0.1, allAsleep: false, hoursIntoNight: 0);
+        scene.Update(true, false, 0.1, allAsleep: false, hoursIntoNight: 0);
+        Assert.Equal((NightStage.Waiting, 0.0, false, false), (scene.Stage, scene.Darkness, scene.SceneShown, scene.HoldsWorld));
+
+        scene.Update(true, false, 0.1, allAsleep: false, hoursIntoNight: 1.5);
+        Assert.Equal(NightStage.Waiting, scene.Stage);
+
+        scene.Update(true, false, 0.1, allAsleep: true, hoursIntoNight: 1.6);
+        Assert.Equal((NightStage.FadingOut, true, true), (scene.Stage, scene.SceneShown, scene.HoldsWorld));
+    }
+
+    [Fact]
+    public void AtTheLimitAfterNightfallTheSceneBeginsEvenIfSomeoneIsAwake()
+    {
+        var data = Data();
+        data.WaitForSleepersMaxH = 2;
+        var scene = new NightScene(data);
+        scene.Update(false, null, 0.1, allAsleep: false, hoursIntoNight: 0);
+        scene.Update(true, false, 0.1, allAsleep: false, hoursIntoNight: 1.99);
+        Assert.Equal(NightStage.Waiting, scene.Stage);
+        scene.Update(true, false, 0.1, allAsleep: false, hoursIntoNight: 2);
+        Assert.Equal(NightStage.FadingOut, scene.Stage);
+    }
+
+    [Fact]
+    public void AMorningWhileStillWaitingShowsNoScene()
+    {
+        var data = Data();
+        data.WaitForSleepersMaxH = 2;
+        var scene = new NightScene(data);
+        scene.Update(false, null, 0.1, allAsleep: false, hoursIntoNight: 0);
+        scene.Update(true, false, 0.1, allAsleep: false, hoursIntoNight: 0.5);
+        scene.Update(false, null, 0.1, allAsleep: false, hoursIntoNight: 0);
+        Assert.Equal((NightStage.Day, false), (scene.Stage, scene.SceneShown));
+    }
+
+    [Fact]
     public void TheNightDarkensDreamsAndTheMorningFadesInWhenTheServiceIsDone()
     {
         var scene = new NightScene(Data());

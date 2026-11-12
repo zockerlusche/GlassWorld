@@ -60,7 +60,7 @@ def test_older_prompts_have_no_check() -> None:
     assert thought_problem("the object hearby", "de", v3) is None
 
 
-def _decider(settings: Settings, content: str) -> tuple[Any, CallLog]:
+def _decider(settings: Settings, content: str, version: int = 4) -> tuple[Any, CallLog]:
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(200, json={"message": {"role": "assistant", "content": content}})
 
@@ -73,7 +73,7 @@ def _decider(settings: Settings, content: str) -> tuple[Any, CallLog]:
             keep_alive="5m",
         ),
         queue=ModelQueue(8),
-        template=load_prompt(settings.prompts_dir, "decider/decide", 4),
+        template=load_prompt(settings.prompts_dir, "decider/decide", version),
         vocab=Vocabulary.load(settings.content_dir / "vocabulary"),
         settings=ModelSettings(temperature=0.7, num_ctx=8192, char_budget=6000, max_retries=0),
         log=log,
@@ -152,3 +152,51 @@ def test_a_repeated_thought_is_left_out_but_the_decision_stays(settings: Setting
     assert first["thought"]["text"] == "Hm, die Beeren sehen lecker aus."
     assert second["option_id"] == "o1" and second["thought"] is None
     assert "thought left out (repeat)" in str(list(log.read())[-1]["detail"])
+
+
+# --- v11 (TL #22567, Marcel W1937): a thought names only what is known or seen --------------------
+
+
+@pytest.mark.parametrize(
+    ("thought", "shown"),
+    [
+        ("Ich zeige ihm, wie man Feuer macht.", False),  # W1937: nothing about fire is known
+        ("Ob der Apfelbaum wohl trägt?", True),  # an apple tree in sight
+        ("Hm, das Quellwasser war gut.", True),  # known from before
+        ("Ich habe so einen Hunger.", True),  # a need is a general word
+        ("Ob hier irgendwo Pilze wachsen?", False),  # a thing of this world, not known or seen
+        ("Eine Bank wäre schön.", True),  # a wish for something the world does not have stays
+        ("Ich wünsche mir ein Gespräch.", True),  # an abstract word stays
+    ],
+)
+def test_v11_a_thought_naming_something_unknown_is_left_out(
+    settings: Settings, thought: str, shown: bool
+) -> None:
+    answer = json.dumps(
+        {"rationale": "x", "option_id": "o1", "expression": None, "thought": thought}
+    )
+    app, log = _decider(settings, answer, version=11)
+    body = post(app, "/decide", REQUEST).json()
+    assert body["option_id"] == "o1"  # the action runs either way (B2644)
+    said = body["thought"]["text"] if body["thought"] else None
+    assert (said == thought) is shown
+    if not shown:
+        assert "thought left out (unknown:" in str(list(log.read())[-1]["detail"])
+
+
+def test_v11_the_first_part_of_a_known_compound_is_not_known() -> None:
+    """'Feuer' is not known because 'Feuerstein' is; 'Stein' is (its head)."""
+    from glassworld_ai.grounding import _stem, unknown_nouns  # pyright: ignore[reportPrivateUsage]
+
+    words = {_stem("Feuerstein")}
+    assert unknown_nouns("Da liegt ein Feuer.", words, heads=True) == ["Feuer"]
+    assert unknown_nouns("Da liegt ein Stein.", words, heads=True) == []
+    assert unknown_nouns("Da liegt ein Feuer.", words) == []  # the conversation's rule as it was
+
+
+def test_v10_has_no_noun_check(settings: Settings) -> None:
+    answer = json.dumps(
+        {"rationale": "x", "option_id": "o1", "expression": None, "thought": "Ich mache Feuer."}
+    )
+    app, _ = _decider(settings, answer, version=10)
+    assert post(app, "/decide", REQUEST).json()["thought"]["text"] == "Ich mache Feuer."

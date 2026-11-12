@@ -66,7 +66,7 @@ public static class UiLayoutCheck
         host.AddChild(stage);
         var window = new GwWindow();
         window.Setup("ui.settings.title", style);
-        foreach (var key in new[] { "vocab.need.hunger", "vocab.need.thirst", "vocab.need.sleep", "vocab.need.warmth", "vocab.need.safety", "vocab.need.company", "vocab.need.fun", "vocab.need.purpose" })
+        foreach (var key in new[] { "ui.card.need.hunger", "ui.card.need.thirst", "ui.card.need.sleep", "ui.card.need.warmth", "ui.card.need.safety", "ui.card.need.company", "ui.card.need.fun", "ui.card.need.purpose" })
         {
             window.Content.AddChild(new Label { Text = key });
         }

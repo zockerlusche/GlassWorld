@@ -112,7 +112,22 @@ public sealed record ClockView(string SeasonKey, string PhaseKey, long Year, int
 /// <param name="TextKey">Text key.</param>
 /// <param name="Detail">Detail for the text (e.g. need id).</param>
 /// <param name="Urgency">0..3; shown as a warmer tint, never blinking.</param>
-public sealed record MailRow(string Id, string? InhabitantId, int Number, string Kind, string TextKey, string? Detail, int Urgency);
+public sealed record MailRow(string Id, string? InhabitantId, int Number, string Kind, string TextKey, string? Detail, int Urgency)
+{
+    /// <summary>
+    /// The name (DE, EN) of the invention a stuck builder knocks about (A1602); null for other messages, or when the
+    /// invention has no name. <see cref="Detail"/> then holds the missing properties, comma-separated.
+    /// </summary>
+    public (string De, string En)? SubjectName { get; init; }
+
+    /// <summary>True for a builder's knock (A1602): the detail is properties, not a need.</summary>
+    public bool AboutBuilding { get; init; }
+
+    /// <summary>The text keys of the properties a stuck builder looks for (A1602), in the order of the detail.</summary>
+    public IReadOnlyList<string> PropertyKeys => AboutBuilding && Detail is { Length: > 0 } detail
+        ? [.. detail.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Select(p => "vocab.property." + p)]
+        : [];
+}
 
 /// <summary>An open call for help as the screen shows it.</summary>
 /// <param name="InhabitantId">Who.</param>
@@ -220,6 +235,8 @@ public sealed class WorldFeed
     /// </summary>
     public IReadOnlyList<QuestionRow> Questions() =>
         [.. _host.Decisions.Open
+            // A free moment (leisure) is no question the player is shown (#309: the window listed it).
+            .Where(q => q.Kind != GlassWorld.Simulation.Decisions.DecisionsSystem.Leisure)
             .Select(q => new QuestionRow(q.Id, q.InhabitantId, q.Kind, q.Subject.StartsWith("type:", StringComparison.Ordinal) ? q.Subject[5..] : null, q.AskedTick))
             .OrderByDescending(q => q.AskedTick).ThenBy(q => q.Id, StringComparer.Ordinal)];
 
@@ -237,8 +254,12 @@ public sealed class WorldFeed
     /// <summary>Open mailbox messages (most urgent first) and the newest read ones (B6 R11).</summary>
     public (IReadOnlyList<MailRow> Open, IReadOnlyList<MailRow> History) Mail(int historyCount)
     {
-        static MailRow Row(Simulation.Player.MailMessage m) =>
-            new(m.Id, m.InhabitantId, m.InhabitantId is null ? 0 : NumberOf(m.InhabitantId), m.Kind, m.TextKey, m.Detail, m.Urgency);
+        MailRow Row(Simulation.Player.MailMessage m) =>
+            new(m.Id, m.InhabitantId, m.InhabitantId is null ? 0 : NumberOf(m.InhabitantId), m.Kind, m.TextKey, m.Detail, m.Urgency)
+            {
+                AboutBuilding = m.Subject is not null,
+                SubjectName = m.Subject is { } type && _host.Inventions.Invention(type) is { } invention ? (invention.Name.De, invention.Name.En) : null,
+            };
         return ([.. _host.Mailbox.Open.Select(Row)], [.. _host.Mailbox.History.Take(historyCount).Select(Row)]);
     }
 
@@ -272,11 +293,18 @@ public sealed class WorldFeed
     private List<CardValue> NeedValues(IReadOnlyDictionary<string, double> needs)
     {
         var runtime = _host.Needs.Added.ToDictionary(n => n.Id, StringComparer.Ordinal);
-        return [.. Values("need", needs).Zip(needs.OrderBy(v => v.Key, StringComparer.Ordinal)).Select(pair =>
+        return [.. needs.OrderBy(v => v.Key, StringComparer.Ordinal).Select(v => new CardValue(NeedBarKey(v.Key), Percent(v.Value))).Zip(needs.OrderBy(v => v.Key, StringComparer.Ordinal)).Select(pair =>
             runtime.TryGetValue(pair.Second.Key, out var info)
                 ? pair.First with { Name = (info.NameDe, info.NameEn), Faded = pair.Second.Value <= 0 }
                 : pair.First)];
     }
+
+    /// <summary>
+    /// The label of a need's bar on the card (W1938, rule of B2642): it names what the bar shows, how much of it
+    /// is there - 'Satt', 'Ausgeruht' - so a full bar reads as good. The need's own word (Hunger, Schlaf) stays
+    /// where a sentence means the need itself (a call for help, the mailbox).
+    /// </summary>
+    public static string NeedBarKey(string needId) => "ui.card.need." + needId;
 
     private static List<CardValue> Values(string kind, IReadOnlyDictionary<string, double> values) =>
         [.. values.OrderBy(v => v.Key, StringComparer.Ordinal).Select(v => new CardValue($"vocab.{kind}.{v.Key}", Percent(v.Value)))];

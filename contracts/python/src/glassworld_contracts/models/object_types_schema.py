@@ -10,6 +10,72 @@ from pydantic import BaseModel, ConfigDict, Field
 from . import common_schema
 
 
+class ObjectParams(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    insulation_tenth_c: int | None = Field(
+        None,
+        description='Felt temperature gained while worn or wrapped in it, in tenths of a degree (B5-2, R4).',
+        ge=0,
+        le=300,
+    )
+    wind_block_permille: int | None = Field(
+        None,
+        description='Share of the wind kept off someone right next to it, in permille (B5-2, R4).',
+        ge=0,
+        le=1000,
+    )
+    shade_height_cm: int | None = Field(
+        None,
+        description='Height of the shade-casting part above the ground, in centimetres (B5-2, D634 R29).',
+        ge=0,
+        le=5000,
+    )
+    crown_radius_cm: int | None = Field(
+        None,
+        description='Radius of the shade-casting part, in centimetres (B5-2, D634 R29).',
+        ge=0,
+        le=2000,
+    )
+    burn_minutes: int | None = Field(
+        None,
+        description='How long one piece burns as fuel, in game minutes (B5-2, R7, D634 R45).',
+        ge=0,
+        le=10080,
+    )
+    heat_tenth_c: int | None = Field(
+        None,
+        description='Felt temperature added right at the source while it burns or glows, in tenths of a degree; it falls off with distance by a data table (B5-2, R4, R7).',
+        ge=0,
+        le=600,
+    )
+    heat_radius_cm: int | None = Field(
+        None,
+        description='Distance up to which the heat is felt, in centimetres (B5-2, R7).',
+        ge=0,
+        le=5000,
+    )
+    light_radius_cm: int | None = Field(
+        None,
+        description='Radius it lights, in centimetres (B5-2b, D634 R44).',
+        ge=0,
+        le=5000,
+    )
+    light_permille: int | None = Field(
+        None,
+        description='Strength of the light at the source, in permille of daylight (B5-2b, D634 R44).',
+        ge=0,
+        le=1000,
+    )
+    tool_value_permille: int | None = Field(
+        None,
+        description='How good it is as a tool, in permille; an input of the build quality (B5-7, D634 R38).',
+        ge=0,
+        le=1000,
+    )
+
+
 class ObjectType(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -31,6 +97,7 @@ class ObjectType(BaseModel):
         description='True properties (ids from content/vocabulary/properties.json).',
         max_length=32,
     )
+    params: ObjectParams | None = None
 
 
 class ObjectTypes(BaseModel):
