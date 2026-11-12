@@ -2255,6 +2255,26 @@
       "text": "Klang-KI ist in dieser Version nicht dabei. Die Welt klingt mit ihren Grundklängen."
     },
     {
+      "key": "msg.selfcheck.learn_by_day.ok",
+      "text": "Dein PC kann auch tagsüber lernen lassen."
+    },
+    {
+      "key": "msg.selfcheck.learn_by_day.tier",
+      "text": "Auf diesem PC lernen die Bewohner Neues in der Rechennacht."
+    },
+    {
+      "key": "msg.selfcheck.learn_by_day.too_slow",
+      "text": "Die Messung zeigt: Tagsüber lernen wäre auf diesem PC zu langsam. Die Bewohner lernen Neues in der Rechennacht."
+    },
+    {
+      "key": "msg.selfcheck.learn_by_day.not_measured",
+      "text": "Noch keine Messung: Ob dein PC auch tagsüber lernen kann, zeigt der Messlauf."
+    },
+    {
+      "key": "msg.selfcheck.learn_by_day.hint",
+      "text": "Eingeschaltet besprechen die Bewohner Neues schon tagsüber mit der KI – sie nutzt dann während des Spiels Rechenleistung. Ausgeschaltet geschieht alles in der Rechennacht; die Bewohner lernen dann langsamer."
+    },
+    {
       "key": "ui.settings.section.ai",
       "text": "KI"
     },
