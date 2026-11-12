@@ -1511,6 +1511,18 @@
       "text": "Frage beantwortet"
     },
     {
+      "key": "vocab.event.leisure_opened",
+      "text": "Freien Moment bedacht"
+    },
+    {
+      "key": "vocab.event.leisure_answered",
+      "text": "Freier Moment beantwortet"
+    },
+    {
+      "key": "vocab.event.leisure_failed",
+      "text": "Freier Moment ohne Antwort"
+    },
+    {
       "key": "vocab.event.question_failed",
       "text": "Frage unbeantwortet"
     },

@@ -70,6 +70,11 @@ public sealed class LeisureTests
         Assert.Equal(1, port.Sent);
         Assert.Empty(host.Decisions.OpenQuestionIds(a.Id));
 
+        // Its own event (GW2 D895): a count of questions does not take it for one.
+        var events = host.Inhabitants.EventsSince(0).Select(s => s.Event).ToList();
+        Assert.Contains(events, e => e.Kind == DecisionsSystem.LeisureOpened && e.InhabitantId == a.Id);
+        Assert.DoesNotContain(events, e => e.Kind == "question_opened");
+
         // The request says why it is asked (GW2 #308), so the prompt can name the free moment.
         Assert.Equal("leisure", port.Requests.Single().Occasion);
 
