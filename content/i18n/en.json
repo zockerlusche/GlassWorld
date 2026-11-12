@@ -1575,6 +1575,14 @@
       "text": "Free moment unanswered"
     },
     {
+      "key": "vocab.event.idea",
+      "text": "Idea"
+    },
+    {
+      "key": "vocab.event.dreamed",
+      "text": "Dreamed"
+    },
+    {
       "key": "vocab.event.question_failed",
       "text": "Question unanswered"
     },

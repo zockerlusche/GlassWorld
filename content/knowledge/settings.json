@@ -126,5 +126,23 @@
     "questions": [
       { "trigger": "unknown_object", "question": "what_is" }
     ]
+  },
+  "review": {
+    "enabled": false,
+    "job_priority": 10,
+    "knowledge_max": 40,
+    "max_new_ideas": 1,
+    "max_intentions": 2,
+    "max_ideas": 8,
+    "dream_max_chars": 220,
+    "tones": [
+      "calm",
+      "joyful",
+      "curious",
+      "uneasy"
+    ],
+    "idea_start": 0.3,
+    "idea_grow": 0.2,
+    "intention_actions": ["inspect", "show", "teach", "explore", "use", "talk_to", "eat", "drink"]
   }
 }
