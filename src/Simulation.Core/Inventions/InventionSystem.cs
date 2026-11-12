@@ -178,6 +178,10 @@ public sealed partial class InventionSystem : IWorldSystem, IOptionalWorldState,
     }
 
     /// <summary>New skills an approved invention brings (B4b R11); empty for other types.</summary>
+    public IReadOnlyList<NewNeed> NeedsOf(string typeId) =>
+        _inventions.TryGetValue(typeId, out var record) ? [.. Parse(record).IntroducesNeeds ?? []] : [];
+
+    /// <summary>The new abilities an approved invention brings (none for an unknown type).</summary>
     public IReadOnlyList<NewAbility> AbilitiesOf(string typeId) =>
         _inventions.TryGetValue(typeId, out var record) ? [.. Parse(record).IntroducesAbilities ?? []] : [];
 

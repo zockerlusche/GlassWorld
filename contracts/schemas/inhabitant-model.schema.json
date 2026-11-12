@@ -18,6 +18,7 @@
       "type": "array", "minItems": 1, "maxItems": 64, "items": { "$ref": "#/$defs/SkillModel" }
     },
     "skill_rules": { "$ref": "#/$defs/SkillRules" },
+    "need_rules": { "$ref": "#/$defs/NeedRules" },
     "togetherness": { "$ref": "#/$defs/Togetherness" },
     "diary": { "$ref": "#/$defs/Diary" },
     "comfort_zone": { "$ref": "#/$defs/ComfortZone" }
@@ -182,6 +183,18 @@
         "runtime_start_level_max": { "type": "number", "minimum": 0, "maximum": 1 },
         "runtime_gain": { "description": "Practice gain per use of one of the new skill's actions.", "type": "number", "minimum": 0, "maximum": 1 },
         "max_runtime_skills": { "type": "integer", "minimum": 0, "maximum": 64 }
+      }
+    },
+    "NeedRules": {
+      "description": "New needs from inventions (B4b R11, NewNeed; TL B2658: bound to the invention's type). An inhabitant gains such a need the first time it uses a thing of that type with one of the need's actions; using it again fills it, and it falls by its own decay_per_day. A new need is never neglected (no harm from it). Omitted = inventions bring no needs.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["runtime_decay_per_day_min", "runtime_decay_per_day_max", "fill_per_use", "max_runtime_needs"],
+      "properties": {
+        "runtime_decay_per_day_min": { "description": "Lowest decay per game day a new need may have.", "type": "number", "minimum": 0, "maximum": 1 },
+        "runtime_decay_per_day_max": { "description": "Highest decay per game day a new need may have.", "type": "number", "minimum": 0, "maximum": 1 },
+        "fill_per_use": { "description": "How much one use of a thing of the invention's type with one of the need's actions fills it.", "type": "number", "minimum": 0, "maximum": 1 },
+        "max_runtime_needs": { "type": "integer", "minimum": 0, "maximum": 64 }
       }
     }
   }

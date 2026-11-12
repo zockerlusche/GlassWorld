@@ -151,6 +151,12 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         _moodDrivers = [.. model.MoodDrivers];
     }
 
+    /// <summary>
+    /// Needs inventions brought (A1372, TL B2658), set by the host: gained on the first use of a thing of the
+    /// invention's type, filled by using it again, falling by their own decay; null = none.
+    /// </summary>
+    public NeedRegister? RuntimeNeeds { get; set; }
+
     /// <inheritdoc/>
     public string Name => "inhabitants";
 
@@ -870,6 +876,54 @@ public sealed partial class InhabitantsSystem : IWorldSystem
                 inhabitant.Needs[need.Id] = Math.Clamp(value - PerTick(need.DecayPerHour), 0.0, 1.0);
             }
         }
+
+        // A1372: the needs of inventions the inhabitant has, by their own decay per day.
+        if (RuntimeNeeds is { Added.Count: > 0 } runtime)
+        {
+            foreach (var need in runtime.Added)
+            {
+                if (inhabitant.Needs.TryGetValue(need.Id, out var value))
+                {
+                    inhabitant.Needs[need.Id] = Math.Clamp(value - (need.DecayPerDay / runtime.TicksPerDay), 0.0, 1.0);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// A1372 (TL B2658): using a thing of an invention's type with one of the actions of a need it brought gives
+    /// the inhabitant that need the first time (full, it was just met) and fills it every time after. True if a
+    /// need was gained or changed.
+    /// </summary>
+    private bool FillRuntimeNeeds(World world, Inhabitant inhabitant, string action, string typeId)
+    {
+        if (RuntimeNeeds is not { Added.Count: > 0 } runtime)
+        {
+            return false;
+        }
+
+        var changed = false;
+        foreach (var need in runtime.Added)
+        {
+            if (!string.Equals(need.SourceTypeId, typeId, StringComparison.Ordinal) || !need.Actions.Contains(action, StringComparer.Ordinal))
+            {
+                continue;
+            }
+
+            if (inhabitant.Needs.TryGetValue(need.Id, out var value))
+            {
+                inhabitant.Needs[need.Id] = Math.Min(1.0, value + runtime.FillPerUse);
+                changed |= inhabitant.Needs[need.Id] > value;
+            }
+            else
+            {
+                inhabitant.Needs[need.Id] = 1.0;
+                Report(new WorldEvent(NeedRegister.NeedGained, world.Tick, inhabitant.Id, action, typeId) { Detail = need.Id });
+                changed = true;
+            }
+        }
+
+        return changed;
     }
 
     private void UpdateMoods(Inhabitant inhabitant)
@@ -1352,6 +1406,12 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         // looked for (UtilityBrain.Compare is the order a sorted list would have), and a rule is asked only
         // about an option that would be the best so far.
         var options = _brain.Candidates(inhabitant, perceived, givenUp, searching, _brain.AimsAtInhabitants ? InSight(inhabitant) : null, _scoring);
+        if (RuntimeNeeds is { Added.Count: > 0 } runtime)
+        {
+            // A1372: the needs inventions brought, for the things of their type in sight (data: runtime_need).
+            _brain.AddRuntimeNeeds(inhabitant, perceived, runtime.Added, options);
+        }
+
 
         // W1696: an action resting after repeats without effect is not chosen, and nothing is done in its
         // place that no need asks for (score 0): the inhabitant then just stands there instead of being
@@ -1701,6 +1761,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
 
         if (target is not null)
         {
+            changed |= FillRuntimeNeeds(world, inhabitant, activity.Action, target.TypeId);
             Learn(world, inhabitant, activity.Action, target.TypeId);
             if (Knowledge?.Looking is { } looking && string.Equals(activity.Action, looking.Action, StringComparison.Ordinal))
             {
