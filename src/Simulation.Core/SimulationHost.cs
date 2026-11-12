@@ -391,13 +391,14 @@ public sealed class SimulationHost
     public string DisplayLocale => Decisions.DisplayLocale;
 
     /// <summary>
-    /// After a restore: the language the saved log ends with (the last <see cref="DecisionsSystem.SetDisplayLocale"/>,
+    /// After a restore: the player's settings the saved log ends with - the language (the last <see cref="DecisionsSystem.SetDisplayLocale"/>,
     /// else <see cref="DecisionsSystem.DefaultDisplayLocale"/>), so the world goes on as it was saved. A
-    /// different player language then follows as a logged command.
+    /// different player language then follows as a logged command. The same for the switch 'learn by day as well'
+    /// (the last <see cref="DecisionsSystem.SetLearnByDay"/>, off without one).
     /// </summary>
     /// <remarks>Relies on the full command log: trimming or compacting the decision log must keep the
     /// <see cref="DecisionsSystem.SetDisplayLocale"/> commands (SaveGameTests pin this through a save file).</remarks>
-    internal void UseLoggedDisplayLocale()
+    internal void UseLoggedPlayerSettings()
     {
         var locale = DecisionsSystem.DefaultDisplayLocale;
         foreach (var entry in Decisions.Log.Entries)
