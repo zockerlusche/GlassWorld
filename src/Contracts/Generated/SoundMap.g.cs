@@ -25,6 +25,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("sound")]
         public string? Sound { get; set; } = default!;
 
+        /// <summary>
+        /// Actions of one kind that share their sound on purpose carry the same group (B8 R2, B2608): e.g. moving for wander, explore, move_to, approach. Two actions with the same sound but no common group are a defect (Marcel W1741: one knock for combining, using and every building step).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("group")]
+        public string? Group { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
