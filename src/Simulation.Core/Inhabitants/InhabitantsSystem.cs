@@ -858,6 +858,16 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     /// an action aimed at one, and the decider is neither offered such an action nor asked who a sleeper is.
     /// Always false without the togetherness data.
     /// </summary>
+    /// <summary>Detail of a sleep started at bedtime (B2680).</summary>
+    public const string Bedtime = "bedtime";
+
+    /// <summary>B2680: whether it is past the data's bedtime after nightfall (inhabitant model, togetherness).</summary>
+    public bool AtBedtime(World world)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        return _model.Togetherness?.BedtimeAfterNightfallHours is { } hours && world.Calendar.MinutesSinceNightfall(world.Tick) is { } since && since >= hours * 60;
+    }
+
     public bool IsAsleep(Inhabitant inhabitant)
     {
         ArgumentNullException.ThrowIfNull(inhabitant);
@@ -1150,7 +1160,11 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             }
 
             inhabitant.Activity = activity with { RemainingTicks = timing.DurationTicks, Route = null };
-            Report(new WorldEvent(ActionStarted, world.Tick, inhabitant.Id, activity.Action, activity.TargetId) { TargetType = target?.TypeId });
+            Report(new WorldEvent(ActionStarted, world.Tick, inhabitant.Id, activity.Action, activity.TargetId)
+            {
+                TargetType = target?.TypeId,
+                Detail = string.Equals(activity.Action, _model.Togetherness?.SleepAction, StringComparison.Ordinal) && AtBedtime(world) ? Bedtime : null,
+            });
             Imprint(world, inhabitant, activity, target, listener);
             return;
         }
@@ -1444,6 +1458,12 @@ public sealed partial class InhabitantsSystem : IWorldSystem
 
     private Activity? Choose(World world, Inhabitant inhabitant)
     {
+        // B2680: at bedtime an awake inhabitant lies down, unless a pressing need keeps it awake (B2681).
+        if (AtBedtime(world) && _model.Togetherness?.SleepAction is { } bed && PressingBelowNeglect(inhabitant, bed) is null)
+        {
+            return new Activity(bed, null, inhabitant.Position, null);
+        }
+
         // The radius of the data stays the measure for walking (distance falloff, a random spot nearby);
         // what the inhabitant can aim at ends where the weather lets it see, known places aside (B2594, InAim).
         var radius = _brain.Weights.PerceptionRadiusM;

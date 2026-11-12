@@ -2,5 +2,6 @@
   "contract_version": "0.2",
   "night_day_phases": [
     "night"
-  ]
+  ],
+  "wait_for_sleepers_hours": 2.5
 }
