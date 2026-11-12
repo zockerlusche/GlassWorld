@@ -237,6 +237,7 @@ public partial class FigureView : Node3D
             _lying = true;
             _lieClip = clip;
             _seat = null;
+            _shared.Seats.Sit(InhabitantId, null);
             Report(clip.Clip);
             return;
         }
@@ -261,8 +262,9 @@ public partial class FigureView : Node3D
         }
 
         _seat = !clip.Walking && SeatChoice.IsSeated(figures.Sitting, clip.Clip.ClipId)
-            ? SeatChoice.Choose(figures.Sitting, _to.X, _to.Z, _scale, _seats())
+            ? SeatChoice.Choose(figures.Sitting, _to.X, _to.Z, _scale, _seats(), seat => _shared.Seats.TakenByOther(InhabitantId, seat))
             : null;
+        _shared.Seats.Sit(InhabitantId, _seat);
         if (clip.Walking)
         {
             // The core's gait (stroll … run, #112) plays as it is; without one the gait follows the game-time
@@ -337,6 +339,14 @@ public partial class FigureView : Node3D
     }
 
     /// <inheritdoc/>
+    public override void _ExitTree()
+    {
+        // A figure that leaves the island frees its seat (A1570).
+        _shared.Seats.Leave(InhabitantId);
+        base._ExitTree();
+    }
+
+    /// <inheritdoc/>
     public override void _Process(double delta)
     {
         if (_frozen)
@@ -366,13 +376,9 @@ public partial class FigureView : Node3D
         var p = _motion.Position;
 
         // Seated: the hips move to the seat (or down to the ground) at the data's pace, never in the air.
-        if (_seat is { } seat)
-        {
-            _lastSeat = seat;
-        }
-
+        // Changing seat (A1570): it first gets up from where it sits, then sits down on the new place - no jump.
         var shareRate = figures.Sitting.SettleMS / Math.Max(0.05, figures.Sitting.ClipSeatHeightM * _scale);
-        _seatShare = GreetingReaction.Ease(_seatShare, _seat is null ? 0 : 1, shareRate, delta);
+        (_lastSeat, _seatShare) = SeatEasing.Step(_seat, _lastSeat, _seatShare, shareRate, delta);
         var (x, z) = _lastSeat.OnSeat ? (p.X + ((_lastSeat.X - p.X) * _seatShare), p.Z + ((_lastSeat.Z - p.Z) * _seatShare)) : (p.X, p.Z);
         var y = _ground(x, z) + (float)(_lastSeat.LiftM * _seatShare);
         var (knees, hips) = (_lastSeat.KneeShare * _seatShare, 0.0);

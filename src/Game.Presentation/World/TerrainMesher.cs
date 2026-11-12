@@ -1376,15 +1376,31 @@ public static partial class TerrainMesher
             var (members, all) = CornerGroup(map, look, gx, gz, Slot(gx, gz, x, z));
             result[k] = GroupColor(map, look, gx, gz, members);
 
-            // At the foot of a rock wall the ground takes on scree (TL #19984): the corner of the lower group
-            // leans towards the rock colour, so rock and grass blend instead of meeting at a hard line.
-            if (look.Rock is { Scree: > 0 } rock && members != all && GroupHeight(map, gx, gz, all & ~members) > GroupHeight(map, gx, gz, members))
+            // At the foot of a rock wall the ground takes on scree (TL #19984): the corner of a group that has a
+            // higher group beside it leans towards the rock colour, so rock and grass blend instead of meeting at a
+            // hard line - also a middle level where three meet (A1571, D843 c: 100/50/0 gave the 50 none).
+            if (look.Rock is { Scree: > 0 } rock && members != all && HigherBeside(map, look, gx, gz, members, all))
             {
                 result[k] = result[k].Lerp(look.Cliff, rock.Scree);
             }
         }
 
         return result;
+    }
+
+    /// <summary>Whether another group at the grid corner stands higher than the group of <paramref name="members"/>.</summary>
+    private static bool HigherBeside(WorldMap map, TerrainLook look, int gx, int gz, int members, int all)
+    {
+        var own = GroupHeight(map, gx, gz, members);
+        for (var s = 0; s < 4; s++)
+        {
+            if ((all & ~members & (1 << s)) != 0 && GroupHeight(map, gx, gz, CornerGroup(map, look, gx, gz, s).Members) > own)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static Rgb Scale(Rgb c, float f) => c.Scaled(f);
@@ -1465,17 +1481,20 @@ public static partial class TerrainMesher
 
     /// <summary>
     /// One vertical end of a wall at the grid corner (gx, gz): its top, every corner height of the cells
-    /// around the corner strictly between top and foot (descending), and its foot; colours from the wall top
-    /// to the darker foot (<see cref="WallColor"/>).
+    /// around the corner strictly between top and foot (descending), and its foot. The colour goes from the
+    /// corner's highest group down to its lowest (<see cref="WallColor"/>), by height alone: two walls that
+    /// share a vertex at the corner give it one colour, so no seam where they meet (A1571, D843 c).
     /// </summary>
     private static List<((float, float, float) P, Rgb C)> Side(WorldMap map, TerrainLook look, int gx, int gz, int top, int foot, float px, float pz)
     {
         var heights = new SortedSet<int>(Comparer<int>.Create((p, q) => q.CompareTo(p))) { top, foot };
+        int highest = top, lowest = foot;
         for (var s = 0; s < 4; s++)
         {
             if (map.Contains(gx - 1 + (s & 1), gz - 1 + (s >> 1)))
             {
                 var hs = GroupHeight(map, gx, gz, CornerGroup(map, look, gx, gz, s).Members);
+                (highest, lowest) = (Math.Max(highest, hs), Math.Min(lowest, hs));
                 if (hs < top && hs > foot)
                 {
                     heights.Add(hs);
@@ -1484,7 +1503,7 @@ public static partial class TerrainMesher
         }
 
         Rgb upper = WallColor(look, px, pz, foot: false), lower = WallColor(look, px, pz, foot: true);
-        return [.. heights.Select(hv => ((px, hv * look.UnitM, pz), top == foot ? upper : upper.Lerp(lower, (top - hv) / (float)(top - foot))))];
+        return [.. heights.Select(hv => ((px, hv * look.UnitM, pz), highest == lowest ? upper : upper.Lerp(lower, (highest - hv) / (float)(highest - lowest))))];
     }
 
     /// <summary>How a block of a coarser level may be drawn.</summary>
