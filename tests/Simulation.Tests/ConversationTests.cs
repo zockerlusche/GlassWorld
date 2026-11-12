@@ -253,6 +253,35 @@ public sealed class ConversationTests : IDisposable
     }
 
     [Fact]
+    public void TheHistoryKeepsMoreThanTheRecentLinesAndSurvivesSaveAndLoad()
+    {
+        // B8 R16: the memory page shows old conversations - more than the few lines sent as context, bounded by data.
+        var (host, id) = Host();
+        host.Conversation.Port = new MockConversationPort();
+        var settings = ContentSet.Load(ContentDirectory).Conversation;
+        var sentences = settings.RecentLinesMax + 3;
+        for (var i = 0; i < sentences; i++)
+        {
+            Say(host, id, $"Satz {i}");
+            host.World.Run(3);
+        }
+
+        var history = host.Conversation.HistoryOf(id);
+        Assert.True(history.Count > host.Conversation.MemoryOf(id).Lines.Count);
+        Assert.True(history.Count <= settings.HistoryLinesMax!.Value);
+        Assert.Equal("Satz 0", history.First(l => l.FromPlayer).Text);
+        Assert.Equal(history.OrderBy(l => l.Tick).Select(l => l.Tick), history.Select(l => l.Tick));
+        Assert.Empty(host.Conversation.HistoryOf("inh-999999"));
+
+        var path = Path.Combine(_directory, "history.sqlite");
+        SaveGameStore.Save(path, StateCodec.Capture(host));
+        var decider = ContractSerializer.Deserialize<DeciderSettings>(File.ReadAllText(Path.Combine(ContentDirectory, "decider", "settings.json")));
+        var loaded = StateCodec.Restore(new SimulationHostFactory(ContentSet.Load(ContentDirectory), decider, new ReplayDecisionPort(host.Decisions.Log), "de"), SaveGameStore.Load(path));
+        Assert.Equal(history, loaded.Conversation.HistoryOf(id));
+        Assert.Equal(host.World.StateHash(), loaded.World.StateHash());
+    }
+
+    [Fact]
     public void TheRequestSaysWhatTheSpeakerDoesKnowsAndSees()
     {
         // W1737 (Marcel: inhabitants invented activities like reading a book): the request carries the
