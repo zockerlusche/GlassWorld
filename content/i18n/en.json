@@ -1320,7 +1320,7 @@
     },
     {
       "key": "msg.mail.knock",
-      "text": "{name} knocks at the glass: finds nothing for {need}."
+      "text": "{name} finds nothing for {need} – perhaps you can help."
     },
     {
       "key": "msg.command.no_message",
@@ -2385,6 +2385,10 @@
     {
       "key": "ui.selfcheck.state.not_planned",
       "text": "not included"
+    },
+    {
+      "key": "ui.selfcheck.how",
+      "text": "How the inhabitants live: they do familiar things out of habit. When they meet something new – an unknown thing, a stranger, your voice – they ask the language AI. What they learn shapes their habits."
     },
     {
       "key": "ui.selfcheck.again",
