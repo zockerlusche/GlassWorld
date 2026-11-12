@@ -276,8 +276,9 @@ public static class TalkBubble
         "said" or "declined" or "not_understood" when text is { Length: > 0 } => (text, speechS),
         "gestured" or "declined" => ("…", 2.0),
         "not_understood" => ("?", speechS),
-        // No answer came: no fixed sentence in the inhabitant's mouth (TL #21712), only that it is still thinking.
-        "no_answer" => ("…", speechS),
+        // No answer came: no fixed sentence in the inhabitant's mouth (TL #21712). The dots stay only briefly, like
+        // a gesture's - no answer is coming, so they must not read as a wait that never ends (review GW1 #281).
+        "no_answer" => ("…", 2.0),
         _ => null,
     };
 

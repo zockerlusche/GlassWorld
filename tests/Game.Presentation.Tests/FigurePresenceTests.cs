@@ -148,8 +148,8 @@ public sealed class FigurePresenceTests
         Assert.Equal("?", TalkBubble.For("not_understood", null, 9.0)!.Value.Text);
         // W1701: asking back shows its sentence. No answer puts no fixed sentence in the mouth (TL #21712): only "…".
         Assert.Equal(("Feuer? Was ist das?", 9.0), TalkBubble.For("not_understood", "Feuer? Was ist das?", 9.0));
-        Assert.Equal(("…", 9.0), TalkBubble.For("no_answer", "msg.converse.no_answer", 9.0));
-        Assert.Equal(("…", 9.0), TalkBubble.For("no_answer", null, 9.0));
+        Assert.Equal(("…", 2.0), TalkBubble.For("no_answer", "msg.converse.no_answer", 9.0)); // briefly: none is coming
+        Assert.Equal(("…", 2.0), TalkBubble.For("no_answer", null, 9.0));
         Assert.Equal("…", TalkBubble.For("declined", null, 9.0)!.Value.Text);
         Assert.True(TalkBubble.IsSpeech("not_understood", "Feuer? Was ist das?"));
         Assert.False(TalkBubble.IsSpeech("no_answer", "msg.converse.no_answer"));
