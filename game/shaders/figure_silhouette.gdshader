@@ -5,6 +5,8 @@
 // (warm_comic_ground, sea, stream, island_water), cover 3 (warm_comic) - and the front-most surface's value
 // stays, whatever the drawing order. This pass draws only where it is 3: never through the ground or the
 // water (A1569, D843 a), never against another inhabitant or through the figure's own arms and head.
+// Shaders without a stencil line write nothing (ink hulls, faded crowns, the cave inside, clouds, the look
+// prototype's island_ground): with compare_equal 3 they can only hide an outline, never add one.
 // The surface is pulled towards the camera by min_cover_m first, so cover right at the body does not count.
 shader_type spatial;
 render_mode unshaded, cull_back, depth_draw_never, depth_test_inverted, blend_mix, shadows_disabled, fog_disabled, skip_vertex_transform;
