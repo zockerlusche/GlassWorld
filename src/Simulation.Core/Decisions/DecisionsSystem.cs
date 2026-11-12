@@ -134,6 +134,19 @@ public sealed class DecisionsSystem : IWorldSystem
     /// <summary>Trigger: the inhabitant noticed the player (e.g. was clicked).</summary>
     public const string NoticedPlayer = "noticed_player";
 
+    /// <summary>Trigger: nothing presses the inhabitant and it is bored - what will it do now? (B2663, A1601; data leisure).</summary>
+    public const string Leisure = "leisure";
+
+    /// <summary>
+    /// The needs that can press (the model's needs with a neglect threshold: hunger, thirst, sleep ...), set by the host.
+    /// A leisure question needs none of them below the data's value. Boredom itself rises while fun is low, so fun,
+    /// company and purpose do not count - otherwise a bored inhabitant could never be at leisure (B2663).
+    /// </summary>
+    public IReadOnlySet<string> PressingNeeds { get; set; } = new HashSet<string>(StringComparer.Ordinal);
+
+    // The subject of a leisure question: one per inhabitant at a time, cooled down by the data's every_hours.
+    private const string LeisureSubject = "leisure";
+
     /// <summary>Question kind: a building is stuck and the builder asks what to do (A1373 step 2, D850); subject = invention type.</summary>
     public const string BuildStuck = "build_stuck";
 
@@ -566,6 +579,46 @@ public sealed class DecisionsSystem : IWorldSystem
         }
 
         probe?.Leave(PartUnknownInhabitant);
+        if (Enabled(Leisure) && _settings.Leisure is { } leisure)
+        {
+            AskAtLeisure(world, leisure);
+        }
+    }
+
+    /// <summary>
+    /// B2663 (A1601, D871): an awake inhabitant without an open question, none of whose pressing needs is below the
+    /// data's needs_at_least (<see cref="PressingNeeds"/>) and whose mood (boredom) is at least the data's
+    /// value asks the decider what to do now - at most every every_hours game hours. The options are the core's as for
+    /// any question without a subject; the AI chooses and thinks. Before this, once everything in reach was known,
+    /// nobody asked any more and the days went silent.
+    /// </summary>
+    private void AskAtLeisure(World world, LeisureSettings leisure)
+    {
+        var every = (long)(leisure.EveryHours * world.Calendar.Settings.TicksPerHour);
+        foreach (var inhabitant in _inhabitants.Ordered)
+        {
+            if (_openOf.GetValueOrDefault(inhabitant.Id) is { Count: > 0 } || _inhabitants.IsAsleep(inhabitant)
+                || (_lastAsked.TryGetValue(inhabitant.Id + "|" + LeisureSubject, out var last) && world.Tick - last < every)
+                || (leisure.Mood is { } moodId && (!inhabitant.Moods.TryGetValue(moodId, out var mood) || mood < (leisure.MoodAtLeast ?? 0))))
+            {
+                continue;
+            }
+
+            var presses = false;
+            foreach (var (need, value) in inhabitant.Needs)
+            {
+                if (value < leisure.NeedsAtLeast && PressingNeeds.Contains(need))
+                {
+                    presses = true;
+                    break;
+                }
+            }
+
+            if (!presses)
+            {
+                Ask(world, inhabitant, Leisure, LeisureSubject, null);
+            }
+        }
     }
 
     /// <inheritdoc/>

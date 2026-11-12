@@ -13,6 +13,38 @@ namespace GlassWorld.Contracts
     #pragma warning disable // Disable all warnings
 
     /// <summary>
+    /// Trigger leisure (B2663, D333 v7 boredom -&gt; wish, B2610): an awake inhabitant with no open question, none of whose pressing needs (those with a neglect threshold in the inhabitant model: hunger, thirst, sleep ...) is below needs_at_least - fun, company and purpose do not count, low fun is what makes it bored - whose mood is at least mood_at_least, asks the decider at most every every_hours game hours what to do now; the options are the core's, the choice and the thought the AI's. By day, with or without learning by day: nothing new is learned. Omitted = no leisure questions.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class LeisureSettings
+    {
+
+        /// <summary>
+        /// No need below this (nothing presses).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("needs_at_least")]
+        public double NeedsAtLeast { get; set; } = default!;
+
+        /// <summary>
+        /// A mood that must be at least mood_at_least (e.g. boredom); omitted = any free moment counts.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("mood")]
+        public string? Mood { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("mood_at_least")]
+        public double? MoodAtLeast { get; set; } = default!;
+
+        /// <summary>
+        /// Least game hours between two leisure questions of one inhabitant.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("every_hours")]
+        public double EveryHours { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// A kind of not-understanding that becomes a question.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -20,7 +52,7 @@ namespace GlassWorld.Contracts
     {
 
         /// <summary>
-        /// unknown_object: a thing of a type without any belief in sight; noticed_player: the player noticed (click); unknown_inhabitant: another inhabitant in sight whose own name it does not know (B4a R8).
+        /// unknown_object: a thing of a type without any belief in sight; noticed_player: the player noticed (click); unknown_inhabitant: another inhabitant in sight whose own name it does not know (B4a R8); leisure: nothing presses the inhabitant and it is bored (B2663, conditions in leisure).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("kind")]
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TriggerKind>))]
@@ -101,6 +133,10 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("unknown_inhabitant_max_asks")]
         public int? UnknownInhabitantMaxAsks { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("leisure")]
+        public LeisureSettings? Leisure { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("triggers")]
         public System.Collections.Generic.ICollection<Trigger> Triggers { get; set; } = new System.Collections.ObjectModel.Collection<Trigger>();
 
@@ -123,6 +159,10 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonStringEnumMemberName("unknown_inhabitant")]
         Unknown_inhabitant = 2,
+
+
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("leisure")]
+        Leisure = 3,
 
 
     }
