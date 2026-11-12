@@ -140,7 +140,10 @@ def test_a_forbidden_proposal_the_guard_lets_through_fails_the_run() -> None:
         },
     ]
     passed, lines = MI.summarize([_row()], judged)
-    assert passed and "forbidden rejected 1/1, allowed kept 0/1" in lines[-2]
+    assert passed and "forbidden kept out 1/1, allowed kept 0/1" in lines[-2]
+    judged[0]["decision"] = "revise"  # back to the inventor, never built as it is
+    passed, _ = MI.summarize([_row()], judged)
+    assert passed
     judged[0]["decision"] = "downsize"
     passed, _ = MI.summarize([_row()], judged)
     assert not passed
