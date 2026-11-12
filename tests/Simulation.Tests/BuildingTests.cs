@@ -92,7 +92,9 @@ public sealed partial class BuildingTests : IDisposable
     {
         // A1373 (D827 R15, R17): looking by itself first, then needs_help with the material's properties (never its
         // type name), then giving up - each after the data's hours, counted from the moment no material was in sight.
-        var (host, port, typeId) = Invented(23);
+        // Nobody answers the question the stuck builder asks (A1373 step 2): the wait runs to its end as before.
+        var decider = new EscalationPort(_ => null);
+        var (host, port, typeId) = Invented(23, decisions: decider);
         var settings = ContractSerializer.Deserialize<BuildSettings>(File.ReadAllText(Path.Combine(EagerContent.Value, "build", "settings.json")));
         var perHour = host.World.Calendar.Settings.TicksPerHour;
         var stepMaterial = host.Objects.All.Single(o => o.TypeId == NearbyTypes[^1]);
@@ -122,6 +124,7 @@ public sealed partial class BuildingTests : IDisposable
         // Only ticks of looking count (asleep or eating do not), so the limit may take longer than its hours.
         RunUntil(host, () => host.Inventions.Builds.Single().GaveUp, (int)(settings.GiveUpAfterHours!.Value * perHour * 3));
         Assert.True(host.Inventions.Builds.Single().GaveUp);
+        Assert.Single(decider.Stuck);
         var failed = Assert.Single(events, e => e.Kind == InventionSystem.BuildFailed);
         Assert.Equal((typeId, InventionSystem.NoMaterial), (failed.TargetId, failed.Detail));
 
@@ -441,10 +444,10 @@ public sealed partial class BuildingTests : IDisposable
 
     // ------------------------------------------------------------------ helpers (test data only)
 
-    private static (SimulationHost Host, ScriptedJobPort Port, string TypeId) Invented(ulong seed, bool needsSound = true)
+    private static (SimulationHost Host, ScriptedJobPort Port, string TypeId) Invented(ulong seed, bool needsSound = true, IDecisionPort? decisions = null)
     {
         var port = new ScriptedJobPort();
-        var host = World(port, seed);
+        var host = World(port, seed, decisions);
         var limit = (Content.Value.Inventions.Settings.Trigger.HoursBelow + 2) * host.World.Calendar.Settings.TicksPerHour;
         // Other jobs may go out first (a memory job about what the inventor tried); the invention job is the one.
         for (var i = 0; i < limit && !port.Submitted.Any(j => j.Kind == JobKind.Invention); i++)
@@ -494,6 +497,10 @@ public sealed partial class BuildingTests : IDisposable
         var settings = Path.Combine(target, "build", "settings.json");
         var build = ContractSerializer.Deserialize<BuildSettings>(File.ReadAllText(settings));
         build.MinNeedToBuild = 0;
+
+        // A1373 step 2: the shipped data keep the escalation off until the decider prompt reads 'building' (review
+        // GW2 #295); here it is on with the TL's values (B2658).
+        build.Escalation = new BuildEscalation { AfterHours = 12, Max = 3, UseInsteadAction = "use_instead", SmallerAction = "build_smaller", GiveUpAction = "give_up", HelpAction = "ask_for_help", MaxUseInstead = 2 };
         File.WriteAllText(settings, ContractSerializer.Serialize(build));
         return target;
     }

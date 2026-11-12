@@ -175,7 +175,8 @@ public sealed class ContentSet
         var inventions = new InventionRules(
             inventionSettings,
             objects.PropertyVocabulary,
-            Ids(vocabularies, VocabularyKind.Action).ToFrozenSet(StringComparer.Ordinal),
+            // An action that exists only in one situation (only_when, e.g. a stuck building) is no invention's purpose.
+            Required(vocabularies, VocabularyKind.Action).Entries.Where(e => e.OnlyWhen is null).Select(e => e.Id).ToFrozenSet(StringComparer.Ordinal),
             Ids(vocabularies, VocabularyKind.Process).ToFrozenSet(StringComparer.Ordinal),
             [.. Required(vocabularies, VocabularyKind.Tech_level).Entries.Select(e => e.Id)],
             TextGuard.FromJson(File.ReadAllText(Path.Combine(contentDirectory, "safety", "rules.json"))),
@@ -659,6 +660,21 @@ public sealed class ContentSet
             if (!actions.Actions.Contains(action, StringComparer.Ordinal))
             {
                 problems.Add($"build action '{action}' has no timing in content/effects");
+            }
+        }
+
+        if (build.Escalation is { } escalation)
+        {
+            foreach (var action in new[] { escalation.UseInsteadAction, escalation.SmallerAction, escalation.GiveUpAction })
+            {
+                if (!actions.Actions.Contains(action, StringComparer.Ordinal))
+                {
+                    problems.Add($"escalation action '{action}' has no timing in content/effects");
+                }
+                else if (actions.OfferedActions.Contains(action, StringComparer.Ordinal))
+                {
+                    problems.Add($"escalation action '{action}' must not be a decider option (decider_option false): only a stuck building offers it");
+                }
             }
         }
 

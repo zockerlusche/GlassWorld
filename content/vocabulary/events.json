@@ -83,6 +83,14 @@
       "description": "A builder found no material for a building step for long and needs help (detail: the material's properties; text in_world when some lies elsewhere)."
     },
     {
+      "id": "substitute_taken",
+      "description": "A builder took a thing of another kind for the missing material, and it truly has what was missing."
+    },
+    {
+      "id": "substitute_failed",
+      "description": "A builder tried a thing of another kind for the missing material, but it lacks what was missing; the builder learned that."
+    },
+    {
       "id": "built",
       "description": "An invention was built."
     },

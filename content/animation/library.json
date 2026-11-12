@@ -319,6 +319,26 @@
     },
     {
       "kind": "action",
+      "id": "use_instead",
+      "clip": "handle"
+    },
+    {
+      "kind": "action",
+      "id": "build_smaller",
+      "clip": "hammer"
+    },
+    {
+      "kind": "action",
+      "id": "ask_for_help",
+      "clip": "talk"
+    },
+    {
+      "kind": "action",
+      "id": "give_up",
+      "clip": "stand"
+    },
+    {
+      "kind": "action",
       "id": "warn",
       "clip": "talk"
     },
