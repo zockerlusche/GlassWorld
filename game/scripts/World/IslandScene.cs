@@ -194,6 +194,12 @@ public partial class IslandScene : Node3D
             {
                 _cover.ShowShare(int.Parse(share, CultureInfo.InvariantCulture));
             }
+
+            // The benchmark measures the island explored, as its data say (A1559): the heavy case.
+            if (benchmark?.RevealedPermille is { } measured)
+            {
+                _cover.ShowShare(measured);
+            }
         }
         _rig = CameraRig.Create(Look<LookCamera>("camera.json"), _width, _depth, () => _figures.Values.Select(f => (f.InhabitantId, f.Position)), (x, z) => Math.Max(seaLevel, IslandView.GroundHeight(ground, terrain, x, z)));
         _rig.FindFigure = id => _figures.TryGetValue(id, out var f) ? f.Position : null;
