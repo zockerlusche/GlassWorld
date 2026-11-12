@@ -199,6 +199,7 @@ public sealed class ContentSet
         CheckWriting(writing, Ids(vocabularies, VocabularyKind.Writing_medium), Ids(vocabularies, VocabularyKind.Weather), Ids(vocabularies, VocabularyKind.Property), Ids(vocabularies, VocabularyKind.Trait), Ids(vocabularies, VocabularyKind.Biome));
         var skillPractice = ContractSerializer.Deserialize<SkillPractice>(File.ReadAllText(Path.Combine(contentDirectory, "skills", "practice.json")));
         CheckSkills(model, skillPractice, Ids(vocabularies, VocabularyKind.Skill), Ids(vocabularies, VocabularyKind.Action));
+        var names = LoadNames(contentDirectory);
         return new ContentSet(
             calendar,
             objects,
@@ -231,7 +232,8 @@ public sealed class ContentSet
                 model),
             Knowledge = knowledge,
             EventKinds = Required(vocabularies, VocabularyKind.Event).Entries.Select(e => e.Id).ToFrozenSet(StringComparer.Ordinal),
-            InhabitantNames = LoadNames(contentDirectory),
+            InhabitantNames = names.All,
+            InhabitantNamesBySex = names.BySex,
             LookEpochs = LoadLookEpochs(contentDirectory, Ids(vocabularies, VocabularyKind.Epoch), inventions.TechLevels.Count),
         };
     }
@@ -260,26 +262,47 @@ public sealed class ContentSet
         return data;
     }
 
-    /// <summary>Own names of the inhabitants (content/inhabitants/names.json, W1698); empty without the file.</summary>
+    /// <summary>
+    /// Own names of the inhabitants (content/inhabitants/names.json, W1698), all of them: those that fit anybody,
+    /// then the female and the male ones; empty without the file.
+    /// </summary>
     public IReadOnlyList<string> InhabitantNames { get; private init; } = [];
 
-    /// <summary>Reads the name list; every name must be a ProperName (^[A-Z][a-z]{1,15}$), each only once.</summary>
-    private static List<string> LoadNames(string contentDirectory)
+    /// <summary>The names only for one sex (<c>female</c>, <c>male</c>; A1557, D809 M2); empty without such lists.</summary>
+    public IReadOnlyDictionary<string, IReadOnlyList<string>> InhabitantNamesBySex { get; private init; } = new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal);
+
+    /// <summary>
+    /// Reads the name lists; every name must be a ProperName (^[A-Z][a-z]{1,15}$) and appear only once in all
+    /// lists together.
+    /// </summary>
+    private static (List<string> All, Dictionary<string, IReadOnlyList<string>> BySex) LoadNames(string contentDirectory)
     {
+        var bySex = new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal);
         var path = Path.Combine(contentDirectory, "inhabitants", "names.json");
         if (!File.Exists(path))
         {
-            return [];
+            return ([], bySex);
         }
 
-        var names = ContractSerializer.Deserialize<ProperNames>(File.ReadAllText(path)).Names.ToList();
+        var data = ContractSerializer.Deserialize<ProperNames>(File.ReadAllText(path));
+        if (data.Female is { Count: > 0 } female)
+        {
+            bySex["female"] = [.. female];
+        }
+
+        if (data.Male is { Count: > 0 } male)
+        {
+            bySex["male"] = [.. male];
+        }
+
+        List<string> names = [.. data.Names, .. bySex.Values.SelectMany(n => n)];
         var bad = names.Where(n => !IsProperName(n)).ToList();
         if (bad.Count > 0 || names.Distinct(StringComparer.Ordinal).Count() != names.Count)
         {
-            throw new InvalidDataException("Inhabitant names: every name must match ^[A-Z][a-z]{1,15}$ and appear once" + (bad.Count > 0 ? " ('" + string.Join("', '", bad) + "')." : "."));
+            throw new InvalidDataException("Inhabitant names: every name must match ^[A-Z][a-z]{1,15}$ and appear once in all lists" + (bad.Count > 0 ? " ('" + string.Join("', '", bad) + "')." : "."));
         }
 
-        return names;
+        return (names, bySex);
     }
 
     private static bool IsProperName(string name) =>

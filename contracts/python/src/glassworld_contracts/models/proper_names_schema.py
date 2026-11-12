@@ -18,4 +18,19 @@ class ProperNames(BaseModel):
         ...,
         description='Contract version. Incompatible changes require a new major version and an ADR.',
     )
-    names: list[common_schema.ProperName] = Field(..., max_length=512, min_length=1)
+    names: list[common_schema.ProperName] = Field(
+        ...,
+        description='Names that fit an inhabitant of either sex.',
+        max_length=512,
+        min_length=1,
+    )
+    female: list[common_schema.ProperName] | None = Field(
+        None,
+        description='Names only for female inhabitants (omitted = none of its own).',
+        max_length=512,
+    )
+    male: list[common_schema.ProperName] | None = Field(
+        None,
+        description='Names only for male inhabitants (omitted = none of its own).',
+        max_length=512,
+    )

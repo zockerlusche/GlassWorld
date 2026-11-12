@@ -300,8 +300,15 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     public IReadOnlyList<string> Names { get; init; } = [];
 
     /// <summary>
-    /// Gives every inhabitant without a name one from <see cref="Names"/> (W1698): in id order, drawn from the
-    /// world seed with an own stream (not kept among the world's streams), distinct while the list allows.
+    /// The names of <see cref="Names"/> that are only for one sex (A1557): an inhabitant of that sex picks from
+    /// these and the names in no such list; one of a sex without a list picks from all names.
+    /// </summary>
+    public IReadOnlyDictionary<string, IReadOnlyList<string>> NamesBySex { get; init; } = new Dictionary<string, IReadOnlyList<string>>(StringComparer.Ordinal);
+
+    /// <summary>
+    /// Gives every inhabitant without a name one from <see cref="Names"/> (W1698) that fits its sex (A1557,
+    /// <see cref="NamesBySex"/>): in id order, drawn from the world seed with an own stream (not kept among the
+    /// world's streams), distinct while the fitting names allow.
     /// Also used when a save game from before names is loaded.
     /// </summary>
     public void GiveNames(ulong seed)
@@ -312,17 +319,25 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         }
 
         var rng = RandomStreams.Create(seed, "inhabitant/names");
-        var pool = Names.Where(n => !_ordered.Any(i => i.Name == n)).ToList();
+        var sexed = NamesBySex.Values.SelectMany(n => n).ToHashSet(StringComparer.Ordinal);
+        var anybody = Names.Where(n => !sexed.Contains(n)).ToList();
+
+        // What an inhabitant of a sex may be called, in list order: its own names and those for anybody.
+        List<string> Fitting(string sex) => NamesBySex.TryGetValue(sex, out var own) ? [.. own, .. anybody] : [.. Names];
+        var used = _ordered.Where(i => i.Name is not null).Select(i => i.Name!).ToHashSet(StringComparer.Ordinal);
         foreach (var inhabitant in _ordered.Where(i => i.Name is null))
         {
+            // Distinct while the fitting names last; then they may repeat.
+            var fitting = Fitting(inhabitant.Sex);
+            var pool = fitting.Where(n => !used.Contains(n)).ToList();
             if (pool.Count == 0)
             {
-                pool.AddRange(Names);
+                pool = fitting;
             }
 
-            var index = rng.NextInt(0, pool.Count);
-            inhabitant.Name = pool[index];
-            pool.RemoveAt(index);
+            var name = pool[rng.NextInt(0, pool.Count)];
+            inhabitant.Name = name;
+            used.Add(name);
         }
     }
 
