@@ -91,6 +91,38 @@
       "text": "Winter"
     },
     {
+      "key": "ui.card.need.hunger",
+      "text": "Fed"
+    },
+    {
+      "key": "ui.card.need.thirst",
+      "text": "Watered"
+    },
+    {
+      "key": "ui.card.need.sleep",
+      "text": "Rested"
+    },
+    {
+      "key": "ui.card.need.warmth",
+      "text": "Warm"
+    },
+    {
+      "key": "ui.card.need.safety",
+      "text": "Safe"
+    },
+    {
+      "key": "ui.card.need.company",
+      "text": "Company"
+    },
+    {
+      "key": "ui.card.need.fun",
+      "text": "Fun"
+    },
+    {
+      "key": "ui.card.need.purpose",
+      "text": "Purpose"
+    },
+    {
       "key": "ui.card.character",
       "text": "Character"
     },
