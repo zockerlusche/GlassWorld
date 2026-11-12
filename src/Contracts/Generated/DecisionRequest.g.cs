@@ -283,5 +283,12 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("building")]
         public StuckBuilding? Building { get; set; } = default!;
 
+        /// <summary>
+        /// Why the core asks, when it is not something new or a stuck building (B2663): today only 'leisure' - the inhabitant is awake, no need presses and it is bored. A prompt may say so in a line of its own; it never tells which option to take. Absent otherwise, and from an older core.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("occasion")]
+        public string? Occasion { get; set; } = default!;
+
     }
 }
