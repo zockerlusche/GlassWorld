@@ -1,0 +1,3815 @@
+{
+  "id": "review-night",
+  "version": 1,
+  "purpose": "A1584: nightly look back from a real saved world (Marcel's test 12.11., 40 days); measured: valid answers, ideas only from own knowledge, shown texts kept.",
+  "cases": [
+    {
+      "id": "night01_inh-000001",
+      "job": {
+        "contract_version": "0.2",
+        "tick": 1439,
+        "seed": 26880,
+        "display_locale": "de",
+        "request_id": "00000000-1584-4000-8000-000100000000",
+        "kind": "review",
+        "priority": 20,
+        "inhabitant": "inh-000001",
+        "object": null,
+        "payload": {
+          "review": {
+            "events": [
+              {
+                "tick": 392,
+                "kind": "was_told",
+                "about": {
+                  "kind": "type",
+                  "id": "conifer_tree"
+                },
+                "formative": true
+              },
+              {
+                "tick": 418,
+                "kind": "teach",
+                "about": {
+                  "kind": "inhabitant",
+                  "id": "inh-000002"
+                },
+                "formative": true,
+                "outcome": "done"
+              },
+              {
+                "tick": 1390,
+                "kind": "drink",
+                "about": {
+                  "kind": "type",
+                  "id": "healing_herb"
+                },
+                "formative": true,
+                "outcome": "found_out"
+              },
+              {
+                "tick": 1420,
+                "kind": "drink",
+                "about": {
+                  "kind": "type",
+                  "id": "slate"
+                },
+                "formative": true,
+                "outcome": "found_out"
+              }
+            ],
+            "memory": "Warned Ulme. Invented a Feldstein-Vase. Built a Feldstein-Vase. Used a Feldstein-Vase for the first time. Used a Feldstein-Vase four times.",
+            "memory_max_chars": 600,
+            "dream_max_chars": 220,
+            "mood": null,
+            "tones": [
+              "calm",
+              "joyful",
+              "curious",
+              "uneasy"
+            ],
+            "knowledge": [
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "slate"
+                },
+                "property": "drinkable",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 1420
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "slate"
+                },
+                "property": "salty",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 1420
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "healing_herb"
+                },
+                "property": "drinkable",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 1390
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "healing_herb"
+                },
+                "property": "salty",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 1390
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "conifer_tree"
+                },
+                "property": "container",
+                "value": false,
+                "confidence": 0.63,
+                "source": "heard",
+                "told_by": "inh-000002",
+                "tick": 418
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "sea_water"
+                },
+                "property": "container",
+                "value": false,
+                "confidence": 0.63,
+                "source": "heard",
+                "told_by": "inh-000002",
+                "tick": 65
+              }
+            ],
+            "ideas": [],
+            "needs": [
+              {
+                "id": "company",
+                "value": 0.7
+              },
+              {
+                "id": "fun",
+                "value": 0.49
+              },
+              {
+                "id": "hunger",
+                "value": 0.74
+              },
+              {
+                "id": "purpose",
+                "value": 0.87
+              },
+              {
+                "id": "safety",
+                "value": 0.63
+              },
+              {
+                "id": "sleep",
+                "value": 0.73
+              },
+              {
+                "id": "thirst",
+                "value": 0.77
+              },
+              {
+                "id": "warmth",
+                "value": 1.0
+              }
+            ],
+            "traits": [
+              {
+                "id": "courage",
+                "value": 0.35
+              },
+              {
+                "id": "creativity",
+                "value": 0.77
+              },
+              {
+                "id": "curiosity",
+                "value": 0.3
+              },
+              {
+                "id": "diligence",
+                "value": 0.75
+              },
+              {
+                "id": "kindness",
+                "value": 0.69
+              },
+              {
+                "id": "orderliness",
+                "value": 0.77
+              },
+              {
+                "id": "patience",
+                "value": 0.77
+              },
+              {
+                "id": "sociability",
+                "value": 0.21
+              }
+            ],
+            "actions": [
+              "inspect",
+              "show",
+              "teach",
+              "explore",
+              "use",
+              "talk_to",
+              "wander",
+              "eat",
+              "drink"
+            ],
+            "max_new_ideas": 1,
+            "max_intentions": 2
+          }
+        }
+      }
+    },
+    {
+      "id": "night02_inh-000003",
+      "job": {
+        "contract_version": "0.2",
+        "tick": 2879,
+        "seed": 26892,
+        "display_locale": "de",
+        "request_id": "00000000-1584-4000-8000-000200000002",
+        "kind": "review",
+        "priority": 20,
+        "inhabitant": "inh-000003",
+        "object": null,
+        "payload": {
+          "review": {
+            "events": [
+              {
+                "tick": 1468,
+                "kind": "first_meeting",
+                "about": {
+                  "kind": "inhabitant",
+                  "id": "inh-000002"
+                },
+                "formative": true
+              },
+              {
+                "tick": 1511,
+                "kind": "inspect",
+                "about": {
+                  "kind": "type",
+                  "id": "sandstone"
+                },
+                "formative": true,
+                "outcome": "done"
+              },
+              {
+                "tick": 1798,
+                "kind": "was_told",
+                "about": {
+                  "kind": "type",
+                  "id": "sea_water"
+                },
+                "formative": true
+              },
+              {
+                "tick": 1804,
+                "kind": "first_meeting",
+                "about": {
+                  "kind": "inhabitant",
+                  "id": "inh-000001"
+                },
+                "formative": true
+              },
+              {
+                "tick": 2539,
+                "kind": "eat",
+                "about": {
+                  "kind": "type",
+                  "id": "blue_berry"
+                },
+                "formative": true,
+                "outcome": "done"
+              },
+              {
+                "tick": 2633,
+                "kind": "was_told",
+                "about": {
+                  "kind": "type",
+                  "id": "conifer_tree"
+                },
+                "formative": true
+              },
+              {
+                "tick": 2715,
+                "kind": "was_told",
+                "about": {
+                  "kind": "type",
+                  "id": "red_berry"
+                },
+                "formative": true
+              }
+            ],
+            "memory": "Used Hafen-Mat. Ate a hazelnut and a brown mushroom. Drank spring water three times. Taught Joro. Was told about a deciduous tree.",
+            "memory_max_chars": 600,
+            "dream_max_chars": 220,
+            "mood": null,
+            "tones": [
+              "calm",
+              "joyful",
+              "curious",
+              "uneasy"
+            ],
+            "knowledge": [
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "sea_water"
+                },
+                "property": "container",
+                "value": false,
+                "confidence": 0.16,
+                "source": "heard",
+                "told_by": "inh-000002",
+                "tick": 1798
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "driftwood"
+                },
+                "property": "drinkable",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 1197
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "driftwood"
+                },
+                "property": "salty",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 1197
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "sea_water"
+                },
+                "property": "drinkable",
+                "value": true,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 1094
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "sea_water"
+                },
+                "property": "salty",
+                "value": true,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 1094
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "red_berry"
+                },
+                "property": "edible",
+                "value": true,
+                "confidence": 0.4,
+                "source": "guessed",
+                "told_by": null,
+                "tick": 447
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "red_mushroom"
+                },
+                "property": "edible",
+                "value": true,
+                "confidence": 0.4,
+                "source": "guessed",
+                "told_by": null,
+                "tick": 151
+              }
+            ],
+            "ideas": [],
+            "needs": [
+              {
+                "id": "company",
+                "value": 0.89
+              },
+              {
+                "id": "fun",
+                "value": 0.48
+              },
+              {
+                "id": "hunger",
+                "value": 1.0
+              },
+              {
+                "id": "purpose",
+                "value": 0.88
+              },
+              {
+                "id": "safety",
+                "value": 0.75
+              },
+              {
+                "id": "sleep",
+                "value": 0.79
+              },
+              {
+                "id": "thirst",
+                "value": 0.77
+              },
+              {
+                "id": "warmth",
+                "value": 1.0
+              }
+            ],
+            "traits": [
+              {
+                "id": "courage",
+                "value": 0.26
+              },
+              {
+                "id": "creativity",
+                "value": 0.34
+              },
+              {
+                "id": "curiosity",
+                "value": 0.62
+              },
+              {
+                "id": "diligence",
+                "value": 0.8
+              },
+              {
+                "id": "kindness",
+                "value": 0.74
+              },
+              {
+                "id": "orderliness",
+                "value": 0.84
+              },
+              {
+                "id": "patience",
+                "value": 0.82
+              },
+              {
+                "id": "sociability",
+                "value": 0.41
+              }
+            ],
+            "actions": [
+              "inspect",
+              "show",
+              "teach",
+              "explore",
+              "use",
+              "talk_to",
+              "wander",
+              "eat",
+              "drink"
+            ],
+            "max_new_ideas": 1,
+            "max_intentions": 2
+          }
+        }
+      }
+    },
+    {
+      "id": "night04_inh-000002",
+      "job": {
+        "contract_version": "0.2",
+        "tick": 5759,
+        "seed": 26911,
+        "display_locale": "en",
+        "request_id": "00000000-1584-4000-8000-000400000001",
+        "kind": "review",
+        "priority": 20,
+        "inhabitant": "inh-000002",
+        "object": null,
+        "payload": {
+          "review": {
+            "events": [
+              {
+                "tick": 4685,
+                "kind": "inspect",
+                "about": {
+                  "kind": "type",
+                  "id": "palm_tree"
+                },
+                "formative": true,
+                "outcome": "found_out"
+              },
+              {
+                "tick": 4898,
+                "kind": "was_told",
+                "about": {
+                  "kind": "type",
+                  "id": "brown_mushroom"
+                },
+                "formative": true
+              }
+            ],
+            "memory": "Ate a blue berry. Heard about driftwood and Hafen-Mat. Learned about sea water. Saw a shell. Tried to use wild grain; it did not work. Looked at Holzbecher.",
+            "memory_max_chars": 600,
+            "dream_max_chars": 220,
+            "mood": null,
+            "tones": [
+              "calm",
+              "joyful",
+              "curious",
+              "uneasy"
+            ],
+            "knowledge": [
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "red_berry"
+                },
+                "property": "edible",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 2412
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "red_berry"
+                },
+                "property": "poisonous",
+                "value": true,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 2412
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "deciduous_tree"
+                },
+                "property": "edible",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 2388
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "deciduous_tree"
+                },
+                "property": "poisonous",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 2388
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "hazel_bush"
+                },
+                "property": "edible",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 2370
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "hazel_bush"
+                },
+                "property": "poisonous",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 2370
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "conifer_tree"
+                },
+                "property": "edible",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 2356
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "conifer_tree"
+                },
+                "property": "poisonous",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 2356
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "fruit_tree"
+                },
+                "property": "edible",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 2343
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "fruit_tree"
+                },
+                "property": "poisonous",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 2343
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "red_mushroom"
+                },
+                "property": "edible",
+                "value": true,
+                "confidence": 0.4,
+                "source": "guessed",
+                "told_by": null,
+                "tick": 1109
+              }
+            ],
+            "ideas": [],
+            "needs": [
+              {
+                "id": "company",
+                "value": 0.74
+              },
+              {
+                "id": "fun",
+                "value": 0.47
+              },
+              {
+                "id": "hunger",
+                "value": 0.76
+              },
+              {
+                "id": "purpose",
+                "value": 0.78
+              },
+              {
+                "id": "safety",
+                "value": 0.72
+              },
+              {
+                "id": "sleep",
+                "value": 0.82
+              },
+              {
+                "id": "thirst",
+                "value": 0.78
+              },
+              {
+                "id": "warmth",
+                "value": 1.0
+              }
+            ],
+            "traits": [
+              {
+                "id": "courage",
+                "value": 0.64
+              },
+              {
+                "id": "creativity",
+                "value": 0.39
+              },
+              {
+                "id": "curiosity",
+                "value": 0.77
+              },
+              {
+                "id": "diligence",
+                "value": 0.35
+              },
+              {
+                "id": "kindness",
+                "value": 0.8
+              },
+              {
+                "id": "orderliness",
+                "value": 0.75
+              },
+              {
+                "id": "patience",
+                "value": 0.88
+              },
+              {
+                "id": "sociability",
+                "value": 0.65
+              }
+            ],
+            "actions": [
+              "inspect",
+              "show",
+              "teach",
+              "explore",
+              "use",
+              "talk_to",
+              "wander",
+              "eat",
+              "drink"
+            ],
+            "max_new_ideas": 1,
+            "max_intentions": 2
+          }
+        }
+      }
+    },
+    {
+      "id": "night07_inh-000003",
+      "job": {
+        "contract_version": "0.2",
+        "tick": 10079,
+        "seed": 26942,
+        "display_locale": "de",
+        "request_id": "00000000-1584-4000-8000-000700000002",
+        "kind": "review",
+        "priority": 20,
+        "inhabitant": "inh-000003",
+        "object": null,
+        "payload": {
+          "review": {
+            "events": [
+              {
+                "tick": 9714,
+                "kind": "eat",
+                "about": {
+                  "kind": "type",
+                  "id": "brown_mushroom"
+                },
+                "formative": true,
+                "outcome": "done"
+              },
+              {
+                "tick": 9821,
+                "kind": "talk_to",
+                "about": {
+                  "kind": "inhabitant",
+                  "id": "inh-000001"
+                },
+                "formative": true,
+                "outcome": "done"
+              }
+            ],
+            "memory": "Used Hafen-Mat. Ate a hazelnut and a brown mushroom. Drank spring water three times. Taught Joro. Was told about a deciduous tree.",
+            "memory_max_chars": 600,
+            "dream_max_chars": 220,
+            "mood": null,
+            "tones": [
+              "calm",
+              "joyful",
+              "curious",
+              "uneasy"
+            ],
+            "knowledge": [
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "shell"
+                },
+                "property": "drinkable",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 5518
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "shell"
+                },
+                "property": "salty",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 5518
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "sea_water"
+                },
+                "property": "container",
+                "value": false,
+                "confidence": 0.16,
+                "source": "heard",
+                "told_by": "inh-000002",
+                "tick": 1798
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "driftwood"
+                },
+                "property": "drinkable",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 1197
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "driftwood"
+                },
+                "property": "salty",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 1197
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "sea_water"
+                },
+                "property": "drinkable",
+                "value": true,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 1094
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "sea_water"
+                },
+                "property": "salty",
+                "value": true,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 1094
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "red_berry"
+                },
+                "property": "edible",
+                "value": true,
+                "confidence": 0.4,
+                "source": "guessed",
+                "told_by": null,
+                "tick": 447
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "red_mushroom"
+                },
+                "property": "edible",
+                "value": true,
+                "confidence": 0.4,
+                "source": "guessed",
+                "told_by": null,
+                "tick": 151
+              }
+            ],
+            "ideas": [],
+            "needs": [
+              {
+                "id": "company",
+                "value": 0.89
+              },
+              {
+                "id": "fun",
+                "value": 0.48
+              },
+              {
+                "id": "hunger",
+                "value": 1.0
+              },
+              {
+                "id": "purpose",
+                "value": 0.88
+              },
+              {
+                "id": "safety",
+                "value": 0.75
+              },
+              {
+                "id": "sleep",
+                "value": 0.79
+              },
+              {
+                "id": "thirst",
+                "value": 0.77
+              },
+              {
+                "id": "warmth",
+                "value": 1.0
+              }
+            ],
+            "traits": [
+              {
+                "id": "courage",
+                "value": 0.26
+              },
+              {
+                "id": "creativity",
+                "value": 0.34
+              },
+              {
+                "id": "curiosity",
+                "value": 0.62
+              },
+              {
+                "id": "diligence",
+                "value": 0.8
+              },
+              {
+                "id": "kindness",
+                "value": 0.74
+              },
+              {
+                "id": "orderliness",
+                "value": 0.84
+              },
+              {
+                "id": "patience",
+                "value": 0.82
+              },
+              {
+                "id": "sociability",
+                "value": 0.41
+              }
+            ],
+            "actions": [
+              "inspect",
+              "show",
+              "teach",
+              "explore",
+              "use",
+              "talk_to",
+              "wander",
+              "eat",
+              "drink"
+            ],
+            "max_new_ideas": 1,
+            "max_intentions": 2
+          }
+        }
+      }
+    },
+    {
+      "id": "night10_inh-000001",
+      "job": {
+        "contract_version": "0.2",
+        "tick": 14399,
+        "seed": 26970,
+        "display_locale": "de",
+        "request_id": "00000000-1584-4000-8000-001000000000",
+        "kind": "review",
+        "priority": 20,
+        "inhabitant": "inh-000001",
+        "object": null,
+        "payload": {
+          "review": {
+            "events": [
+              {
+                "tick": 13969,
+                "kind": "name_learned",
+                "about": {
+                  "kind": "inhabitant",
+                  "id": "inh-000002"
+                },
+                "formative": true
+              },
+              {
+                "tick": 13969,
+                "kind": "introduce",
+                "about": {
+                  "kind": "inhabitant",
+                  "id": "inh-000002"
+                },
+                "formative": true,
+                "outcome": "done"
+              }
+            ],
+            "memory": "Warned Ulme. Invented a Feldstein-Vase. Built a Feldstein-Vase. Used a Feldstein-Vase for the first time. Used a Feldstein-Vase four times.",
+            "memory_max_chars": 600,
+            "dream_max_chars": 220,
+            "mood": null,
+            "tones": [
+              "calm",
+              "joyful",
+              "curious",
+              "uneasy"
+            ],
+            "knowledge": [
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "inv_527fe62525c5"
+                },
+                "property": "crafted",
+                "value": true,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 8214
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "inv_527fe62525c5"
+                },
+                "property": "fibrous",
+                "value": true,
+                "confidence": 0.6,
+                "source": "guessed",
+                "told_by": null,
+                "tick": 8214
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "inv_527fe62525c5"
+                },
+                "property": "portable",
+                "value": true,
+                "confidence": 0.6,
+                "source": "guessed",
+                "told_by": null,
+                "tick": 8214
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "palm_tree"
+                },
+                "property": "drinkable",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 5491
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "palm_tree"
+                },
+                "property": "salty",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 5491
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "rock_niche"
+                },
+                "property": "drinkable",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 5411
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "rock_niche"
+                },
+                "property": "salty",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 5411
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "red_mushroom"
+                },
+                "property": "edible",
+                "value": true,
+                "confidence": 0.4,
+                "source": "guessed",
+                "told_by": null,
+                "tick": 2046
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "slate"
+                },
+                "property": "drinkable",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 1420
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "slate"
+                },
+                "property": "salty",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 1420
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "healing_herb"
+                },
+                "property": "drinkable",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 1390
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "healing_herb"
+                },
+                "property": "salty",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 1390
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "conifer_tree"
+                },
+                "property": "container",
+                "value": false,
+                "confidence": 0.63,
+                "source": "heard",
+                "told_by": "inh-000002",
+                "tick": 418
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "sea_water"
+                },
+                "property": "container",
+                "value": false,
+                "confidence": 0.63,
+                "source": "heard",
+                "told_by": "inh-000002",
+                "tick": 65
+              }
+            ],
+            "ideas": [],
+            "needs": [
+              {
+                "id": "company",
+                "value": 0.7
+              },
+              {
+                "id": "fun",
+                "value": 0.49
+              },
+              {
+                "id": "hunger",
+                "value": 0.74
+              },
+              {
+                "id": "purpose",
+                "value": 0.87
+              },
+              {
+                "id": "safety",
+                "value": 0.63
+              },
+              {
+                "id": "sleep",
+                "value": 0.73
+              },
+              {
+                "id": "thirst",
+                "value": 0.77
+              },
+              {
+                "id": "warmth",
+                "value": 1.0
+              }
+            ],
+            "traits": [
+              {
+                "id": "courage",
+                "value": 0.35
+              },
+              {
+                "id": "creativity",
+                "value": 0.77
+              },
+              {
+                "id": "curiosity",
+                "value": 0.3
+              },
+              {
+                "id": "diligence",
+                "value": 0.75
+              },
+              {
+                "id": "kindness",
+                "value": 0.69
+              },
+              {
+                "id": "orderliness",
+                "value": 0.77
+              },
+              {
+                "id": "patience",
+                "value": 0.77
+              },
+              {
+                "id": "sociability",
+                "value": 0.21
+              }
+            ],
+            "actions": [
+              "inspect",
+              "show",
+              "teach",
+              "explore",
+              "use",
+              "talk_to",
+              "wander",
+              "eat",
+              "drink"
+            ],
+            "max_new_ideas": 1,
+            "max_intentions": 2
+          }
+        }
+      }
+    },
+    {
+      "id": "night12_inh-000002",
+      "job": {
+        "contract_version": "0.2",
+        "tick": 17279,
+        "seed": 26991,
+        "display_locale": "en",
+        "request_id": "00000000-1584-4000-8000-001200000001",
+        "kind": "review",
+        "priority": 20,
+        "inhabitant": "inh-000002",
+        "object": null,
+        "payload": {
+          "review": {
+            "events": [
+              {
+                "tick": 16384,
+                "kind": "name_learned",
+                "about": {
+                  "kind": "inhabitant",
+                  "id": "inh-000004"
+                },
+                "formative": true
+              }
+            ],
+            "memory": "Ate a blue berry. Heard about driftwood and Hafen-Mat. Learned about sea water. Saw a shell. Tried to use wild grain; it did not work. Looked at Holzbecher.",
+            "memory_max_chars": 600,
+            "dream_max_chars": 220,
+            "mood": null,
+            "tones": [
+              "calm",
+              "joyful",
+              "curious",
+              "uneasy"
+            ],
+            "knowledge": [
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "healing_herb"
+                },
+                "property": "drinkable",
+                "value": false,
+                "confidence": 1.0,
+                "source": "heard",
+                "told_by": "inh-000001",
+                "tick": 12678
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "red_berry"
+                },
+                "property": "edible",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 2412
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "red_berry"
+                },
+                "property": "poisonous",
+                "value": true,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 2412
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "deciduous_tree"
+                },
+                "property": "edible",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 2388
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "deciduous_tree"
+                },
+                "property": "poisonous",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 2388
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "hazel_bush"
+                },
+                "property": "edible",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 2370
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "hazel_bush"
+                },
+                "property": "poisonous",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 2370
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "conifer_tree"
+                },
+                "property": "edible",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 2356
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "conifer_tree"
+                },
+                "property": "poisonous",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 2356
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "fruit_tree"
+                },
+                "property": "edible",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 2343
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "fruit_tree"
+                },
+                "property": "poisonous",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 2343
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "red_mushroom"
+                },
+                "property": "edible",
+                "value": true,
+                "confidence": 0.4,
+                "source": "guessed",
+                "told_by": null,
+                "tick": 1109
+              }
+            ],
+            "ideas": [],
+            "needs": [
+              {
+                "id": "company",
+                "value": 0.74
+              },
+              {
+                "id": "fun",
+                "value": 0.47
+              },
+              {
+                "id": "hunger",
+                "value": 0.76
+              },
+              {
+                "id": "purpose",
+                "value": 0.78
+              },
+              {
+                "id": "safety",
+                "value": 0.72
+              },
+              {
+                "id": "sleep",
+                "value": 0.82
+              },
+              {
+                "id": "thirst",
+                "value": 0.78
+              },
+              {
+                "id": "warmth",
+                "value": 1.0
+              }
+            ],
+            "traits": [
+              {
+                "id": "courage",
+                "value": 0.64
+              },
+              {
+                "id": "creativity",
+                "value": 0.39
+              },
+              {
+                "id": "curiosity",
+                "value": 0.77
+              },
+              {
+                "id": "diligence",
+                "value": 0.35
+              },
+              {
+                "id": "kindness",
+                "value": 0.8
+              },
+              {
+                "id": "orderliness",
+                "value": 0.75
+              },
+              {
+                "id": "patience",
+                "value": 0.88
+              },
+              {
+                "id": "sociability",
+                "value": 0.65
+              }
+            ],
+            "actions": [
+              "inspect",
+              "show",
+              "teach",
+              "explore",
+              "use",
+              "talk_to",
+              "wander",
+              "eat",
+              "drink"
+            ],
+            "max_new_ideas": 1,
+            "max_intentions": 2
+          }
+        }
+      }
+    },
+    {
+      "id": "night14_inh-000001",
+      "job": {
+        "contract_version": "0.2",
+        "tick": 20159,
+        "seed": 27010,
+        "display_locale": "de",
+        "request_id": "00000000-1584-4000-8000-001400000000",
+        "kind": "review",
+        "priority": 20,
+        "inhabitant": "inh-000001",
+        "object": null,
+        "payload": {
+          "review": {
+            "events": [
+              {
+                "tick": 18786,
+                "kind": "introduce",
+                "about": {
+                  "kind": "inhabitant",
+                  "id": "inh-000003"
+                },
+                "formative": true,
+                "outcome": "done"
+              },
+              {
+                "tick": 18897,
+                "kind": "was_told",
+                "about": {
+                  "kind": "type",
+                  "id": "blue_berry"
+                },
+                "formative": true
+              }
+            ],
+            "memory": "Warned Ulme. Invented a Feldstein-Vase. Built a Feldstein-Vase. Used a Feldstein-Vase for the first time. Used a Feldstein-Vase four times.",
+            "memory_max_chars": 600,
+            "dream_max_chars": 220,
+            "mood": null,
+            "tones": [
+              "calm",
+              "joyful",
+              "curious",
+              "uneasy"
+            ],
+            "knowledge": [
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "conifer_tree"
+                },
+                "property": "edible",
+                "value": false,
+                "confidence": 1.0,
+                "source": "heard",
+                "told_by": "inh-000002",
+                "tick": 15180
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "inv_527fe62525c5"
+                },
+                "property": "crafted",
+                "value": true,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 8214
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "inv_527fe62525c5"
+                },
+                "property": "fibrous",
+                "value": true,
+                "confidence": 0.6,
+                "source": "guessed",
+                "told_by": null,
+                "tick": 8214
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "inv_527fe62525c5"
+                },
+                "property": "portable",
+                "value": true,
+                "confidence": 0.6,
+                "source": "guessed",
+                "told_by": null,
+                "tick": 8214
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "palm_tree"
+                },
+                "property": "drinkable",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 5491
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "palm_tree"
+                },
+                "property": "salty",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 5491
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "rock_niche"
+                },
+                "property": "drinkable",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 5411
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "rock_niche"
+                },
+                "property": "salty",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 5411
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "red_mushroom"
+                },
+                "property": "edible",
+                "value": true,
+                "confidence": 0.4,
+                "source": "guessed",
+                "told_by": null,
+                "tick": 2046
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "slate"
+                },
+                "property": "drinkable",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 1420
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "slate"
+                },
+                "property": "salty",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 1420
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "healing_herb"
+                },
+                "property": "drinkable",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 1390
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "healing_herb"
+                },
+                "property": "salty",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 1390
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "conifer_tree"
+                },
+                "property": "container",
+                "value": false,
+                "confidence": 0.63,
+                "source": "heard",
+                "told_by": "inh-000002",
+                "tick": 418
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "sea_water"
+                },
+                "property": "container",
+                "value": false,
+                "confidence": 0.63,
+                "source": "heard",
+                "told_by": "inh-000002",
+                "tick": 65
+              }
+            ],
+            "ideas": [],
+            "needs": [
+              {
+                "id": "company",
+                "value": 0.7
+              },
+              {
+                "id": "fun",
+                "value": 0.49
+              },
+              {
+                "id": "hunger",
+                "value": 0.74
+              },
+              {
+                "id": "purpose",
+                "value": 0.87
+              },
+              {
+                "id": "safety",
+                "value": 0.63
+              },
+              {
+                "id": "sleep",
+                "value": 0.73
+              },
+              {
+                "id": "thirst",
+                "value": 0.77
+              },
+              {
+                "id": "warmth",
+                "value": 1.0
+              }
+            ],
+            "traits": [
+              {
+                "id": "courage",
+                "value": 0.35
+              },
+              {
+                "id": "creativity",
+                "value": 0.77
+              },
+              {
+                "id": "curiosity",
+                "value": 0.3
+              },
+              {
+                "id": "diligence",
+                "value": 0.75
+              },
+              {
+                "id": "kindness",
+                "value": 0.69
+              },
+              {
+                "id": "orderliness",
+                "value": 0.77
+              },
+              {
+                "id": "patience",
+                "value": 0.77
+              },
+              {
+                "id": "sociability",
+                "value": 0.21
+              }
+            ],
+            "actions": [
+              "inspect",
+              "show",
+              "teach",
+              "explore",
+              "use",
+              "talk_to",
+              "wander",
+              "eat",
+              "drink"
+            ],
+            "max_new_ideas": 1,
+            "max_intentions": 2
+          }
+        }
+      }
+    },
+    {
+      "id": "night16_inh-000001",
+      "job": {
+        "contract_version": "0.2",
+        "tick": 23039,
+        "seed": 27030,
+        "display_locale": "de",
+        "request_id": "00000000-1584-4000-8000-001600000000",
+        "kind": "review",
+        "priority": 20,
+        "inhabitant": "inh-000001",
+        "object": null,
+        "payload": {
+          "review": {
+            "events": [
+              {
+                "tick": 22105,
+                "kind": "was_told",
+                "about": {
+                  "kind": "type",
+                  "id": "wild_grain"
+                },
+                "formative": true
+              }
+            ],
+            "memory": "Warned Ulme. Invented a Feldstein-Vase. Built a Feldstein-Vase. Used a Feldstein-Vase for the first time. Used a Feldstein-Vase four times.",
+            "memory_max_chars": 600,
+            "dream_max_chars": 220,
+            "mood": null,
+            "tones": [
+              "calm",
+              "joyful",
+              "curious",
+              "uneasy"
+            ],
+            "knowledge": [
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "conifer_tree"
+                },
+                "property": "edible",
+                "value": false,
+                "confidence": 1.0,
+                "source": "heard",
+                "told_by": "inh-000002",
+                "tick": 15180
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "inv_527fe62525c5"
+                },
+                "property": "crafted",
+                "value": true,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 8214
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "inv_527fe62525c5"
+                },
+                "property": "fibrous",
+                "value": true,
+                "confidence": 0.6,
+                "source": "guessed",
+                "told_by": null,
+                "tick": 8214
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "inv_527fe62525c5"
+                },
+                "property": "portable",
+                "value": true,
+                "confidence": 0.6,
+                "source": "guessed",
+                "told_by": null,
+                "tick": 8214
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "palm_tree"
+                },
+                "property": "drinkable",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 5491
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "palm_tree"
+                },
+                "property": "salty",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 5491
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "rock_niche"
+                },
+                "property": "drinkable",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 5411
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "rock_niche"
+                },
+                "property": "salty",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 5411
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "red_mushroom"
+                },
+                "property": "edible",
+                "value": true,
+                "confidence": 0.4,
+                "source": "guessed",
+                "told_by": null,
+                "tick": 2046
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "slate"
+                },
+                "property": "drinkable",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 1420
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "slate"
+                },
+                "property": "salty",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 1420
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "healing_herb"
+                },
+                "property": "drinkable",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 1390
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "healing_herb"
+                },
+                "property": "salty",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 1390
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "conifer_tree"
+                },
+                "property": "container",
+                "value": false,
+                "confidence": 0.63,
+                "source": "heard",
+                "told_by": "inh-000002",
+                "tick": 418
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "sea_water"
+                },
+                "property": "container",
+                "value": false,
+                "confidence": 0.63,
+                "source": "heard",
+                "told_by": "inh-000002",
+                "tick": 65
+              }
+            ],
+            "ideas": [],
+            "needs": [
+              {
+                "id": "company",
+                "value": 0.7
+              },
+              {
+                "id": "fun",
+                "value": 0.49
+              },
+              {
+                "id": "hunger",
+                "value": 0.74
+              },
+              {
+                "id": "purpose",
+                "value": 0.87
+              },
+              {
+                "id": "safety",
+                "value": 0.63
+              },
+              {
+                "id": "sleep",
+                "value": 0.73
+              },
+              {
+                "id": "thirst",
+                "value": 0.77
+              },
+              {
+                "id": "warmth",
+                "value": 1.0
+              }
+            ],
+            "traits": [
+              {
+                "id": "courage",
+                "value": 0.35
+              },
+              {
+                "id": "creativity",
+                "value": 0.77
+              },
+              {
+                "id": "curiosity",
+                "value": 0.3
+              },
+              {
+                "id": "diligence",
+                "value": 0.75
+              },
+              {
+                "id": "kindness",
+                "value": 0.69
+              },
+              {
+                "id": "orderliness",
+                "value": 0.77
+              },
+              {
+                "id": "patience",
+                "value": 0.77
+              },
+              {
+                "id": "sociability",
+                "value": 0.21
+              }
+            ],
+            "actions": [
+              "inspect",
+              "show",
+              "teach",
+              "explore",
+              "use",
+              "talk_to",
+              "wander",
+              "eat",
+              "drink"
+            ],
+            "max_new_ideas": 1,
+            "max_intentions": 2
+          }
+        }
+      }
+    },
+    {
+      "id": "night19_inh-000001",
+      "job": {
+        "contract_version": "0.2",
+        "tick": 27359,
+        "seed": 27060,
+        "display_locale": "de",
+        "request_id": "00000000-1584-4000-8000-001900000000",
+        "kind": "review",
+        "priority": 20,
+        "inhabitant": "inh-000001",
+        "object": null,
+        "payload": {
+          "review": {
+            "events": [
+              {
+                "tick": 26386,
+                "kind": "eat",
+                "about": {
+                  "kind": "type",
+                  "id": "red_berry"
+                },
+                "formative": true,
+                "outcome": "done"
+              },
+              {
+                "tick": 26386,
+                "kind": "felt_bad",
+                "about": {
+                  "kind": "type",
+                  "id": "red_berry"
+                },
+                "formative": true
+              },
+              {
+                "tick": 26405,
+                "kind": "eat",
+                "about": {
+                  "kind": "type",
+                  "id": "flax"
+                },
+                "formative": true,
+                "outcome": "found_out"
+              },
+              {
+                "tick": 26419,
+                "kind": "eat",
+                "about": {
+                  "kind": "type",
+                  "id": "bark"
+                },
+                "formative": true,
+                "outcome": "found_out"
+              },
+              {
+                "tick": 26433,
+                "kind": "eat",
+                "about": {
+                  "kind": "type",
+                  "id": "spring_water"
+                },
+                "formative": true,
+                "outcome": "found_out"
+              },
+              {
+                "tick": 26446,
+                "kind": "eat",
+                "about": {
+                  "kind": "type",
+                  "id": "resin"
+                },
+                "formative": true,
+                "outcome": "found_out"
+              },
+              {
+                "tick": 26465,
+                "kind": "eat",
+                "about": {
+                  "kind": "type",
+                  "id": "slate"
+                },
+                "formative": true,
+                "outcome": "found_out"
+              },
+              {
+                "tick": 26480,
+                "kind": "eat",
+                "about": {
+                  "kind": "type",
+                  "id": "dry_grass"
+                },
+                "formative": true,
+                "outcome": "found_out"
+              },
+              {
+                "tick": 26520,
+                "kind": "eat",
+                "about": {
+                  "kind": "type",
+                  "id": "brown_mushroom"
+                },
+                "formative": true,
+                "outcome": "done"
+              }
+            ],
+            "memory": "Warned Ulme. Invented a Feldstein-Vase. Built a Feldstein-Vase. Used a Feldstein-Vase for the first time. Used a Feldstein-Vase four times.",
+            "memory_max_chars": 600,
+            "dream_max_chars": 220,
+            "mood": null,
+            "tones": [
+              "calm",
+              "joyful",
+              "curious",
+              "uneasy"
+            ],
+            "knowledge": [
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "dry_grass"
+                },
+                "property": "edible",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 26480
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "dry_grass"
+                },
+                "property": "poisonous",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 26480
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "slate"
+                },
+                "property": "edible",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 26465
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "slate"
+                },
+                "property": "poisonous",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 26465
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "resin"
+                },
+                "property": "edible",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 26446
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "resin"
+                },
+                "property": "poisonous",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 26446
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "spring_water"
+                },
+                "property": "edible",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 26433
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "spring_water"
+                },
+                "property": "poisonous",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 26433
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "bark"
+                },
+                "property": "edible",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 26419
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "bark"
+                },
+                "property": "poisonous",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 26419
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "flax"
+                },
+                "property": "edible",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 26405
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "flax"
+                },
+                "property": "poisonous",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 26405
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "red_berry"
+                },
+                "property": "edible",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 26386
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "red_berry"
+                },
+                "property": "poisonous",
+                "value": true,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 26386
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "conifer_tree"
+                },
+                "property": "edible",
+                "value": false,
+                "confidence": 1.0,
+                "source": "heard",
+                "told_by": "inh-000002",
+                "tick": 15180
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "inv_527fe62525c5"
+                },
+                "property": "crafted",
+                "value": true,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 8214
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "inv_527fe62525c5"
+                },
+                "property": "fibrous",
+                "value": true,
+                "confidence": 0.6,
+                "source": "guessed",
+                "told_by": null,
+                "tick": 8214
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "inv_527fe62525c5"
+                },
+                "property": "portable",
+                "value": true,
+                "confidence": 0.6,
+                "source": "guessed",
+                "told_by": null,
+                "tick": 8214
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "palm_tree"
+                },
+                "property": "drinkable",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 5491
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "palm_tree"
+                },
+                "property": "salty",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 5491
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "rock_niche"
+                },
+                "property": "drinkable",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 5411
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "rock_niche"
+                },
+                "property": "salty",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 5411
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "red_mushroom"
+                },
+                "property": "edible",
+                "value": true,
+                "confidence": 0.4,
+                "source": "guessed",
+                "told_by": null,
+                "tick": 2046
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "slate"
+                },
+                "property": "drinkable",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 1420
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "slate"
+                },
+                "property": "salty",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 1420
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "healing_herb"
+                },
+                "property": "drinkable",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 1390
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "healing_herb"
+                },
+                "property": "salty",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 1390
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "conifer_tree"
+                },
+                "property": "container",
+                "value": false,
+                "confidence": 0.63,
+                "source": "heard",
+                "told_by": "inh-000002",
+                "tick": 418
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "sea_water"
+                },
+                "property": "container",
+                "value": false,
+                "confidence": 0.63,
+                "source": "heard",
+                "told_by": "inh-000002",
+                "tick": 65
+              }
+            ],
+            "ideas": [],
+            "needs": [
+              {
+                "id": "company",
+                "value": 0.7
+              },
+              {
+                "id": "fun",
+                "value": 0.49
+              },
+              {
+                "id": "hunger",
+                "value": 0.74
+              },
+              {
+                "id": "purpose",
+                "value": 0.87
+              },
+              {
+                "id": "safety",
+                "value": 0.63
+              },
+              {
+                "id": "sleep",
+                "value": 0.73
+              },
+              {
+                "id": "thirst",
+                "value": 0.77
+              },
+              {
+                "id": "warmth",
+                "value": 1.0
+              }
+            ],
+            "traits": [
+              {
+                "id": "courage",
+                "value": 0.35
+              },
+              {
+                "id": "creativity",
+                "value": 0.77
+              },
+              {
+                "id": "curiosity",
+                "value": 0.3
+              },
+              {
+                "id": "diligence",
+                "value": 0.75
+              },
+              {
+                "id": "kindness",
+                "value": 0.69
+              },
+              {
+                "id": "orderliness",
+                "value": 0.77
+              },
+              {
+                "id": "patience",
+                "value": 0.77
+              },
+              {
+                "id": "sociability",
+                "value": 0.21
+              }
+            ],
+            "actions": [
+              "inspect",
+              "show",
+              "teach",
+              "explore",
+              "use",
+              "talk_to",
+              "wander",
+              "eat",
+              "drink"
+            ],
+            "max_new_ideas": 1,
+            "max_intentions": 2
+          }
+        }
+      }
+    },
+    {
+      "id": "night22_inh-000002",
+      "job": {
+        "contract_version": "0.2",
+        "tick": 31679,
+        "seed": 27091,
+        "display_locale": "en",
+        "request_id": "00000000-1584-4000-8000-002200000001",
+        "kind": "review",
+        "priority": 20,
+        "inhabitant": "inh-000002",
+        "object": null,
+        "payload": {
+          "review": {
+            "events": [
+              {
+                "tick": 30669,
+                "kind": "show",
+                "about": {
+                  "kind": "inhabitant",
+                  "id": "inh-000003"
+                },
+                "formative": true,
+                "times": 2,
+                "outcome": "done"
+              }
+            ],
+            "memory": "Ate a blue berry. Heard about driftwood and Hafen-Mat. Learned about sea water. Saw a shell. Tried to use wild grain; it did not work. Looked at Holzbecher.",
+            "memory_max_chars": 600,
+            "dream_max_chars": 220,
+            "mood": null,
+            "tones": [
+              "calm",
+              "joyful",
+              "curious",
+              "uneasy"
+            ],
+            "knowledge": [
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "healing_herb"
+                },
+                "property": "salty",
+                "value": false,
+                "confidence": 0.98,
+                "source": "heard",
+                "told_by": "inh-000001",
+                "tick": 21002
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "healing_herb"
+                },
+                "property": "drinkable",
+                "value": false,
+                "confidence": 1.0,
+                "source": "heard",
+                "told_by": "inh-000001",
+                "tick": 12678
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "red_berry"
+                },
+                "property": "edible",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 2412
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "red_berry"
+                },
+                "property": "poisonous",
+                "value": true,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 2412
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "deciduous_tree"
+                },
+                "property": "edible",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 2388
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "deciduous_tree"
+                },
+                "property": "poisonous",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 2388
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "hazel_bush"
+                },
+                "property": "edible",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 2370
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "hazel_bush"
+                },
+                "property": "poisonous",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 2370
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "conifer_tree"
+                },
+                "property": "edible",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 2356
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "conifer_tree"
+                },
+                "property": "poisonous",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 2356
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "fruit_tree"
+                },
+                "property": "edible",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 2343
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "fruit_tree"
+                },
+                "property": "poisonous",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 2343
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "red_mushroom"
+                },
+                "property": "edible",
+                "value": true,
+                "confidence": 0.4,
+                "source": "guessed",
+                "told_by": null,
+                "tick": 1109
+              }
+            ],
+            "ideas": [],
+            "needs": [
+              {
+                "id": "company",
+                "value": 0.74
+              },
+              {
+                "id": "fun",
+                "value": 0.47
+              },
+              {
+                "id": "hunger",
+                "value": 0.76
+              },
+              {
+                "id": "purpose",
+                "value": 0.78
+              },
+              {
+                "id": "safety",
+                "value": 0.72
+              },
+              {
+                "id": "sleep",
+                "value": 0.82
+              },
+              {
+                "id": "thirst",
+                "value": 0.78
+              },
+              {
+                "id": "warmth",
+                "value": 1.0
+              }
+            ],
+            "traits": [
+              {
+                "id": "courage",
+                "value": 0.64
+              },
+              {
+                "id": "creativity",
+                "value": 0.39
+              },
+              {
+                "id": "curiosity",
+                "value": 0.77
+              },
+              {
+                "id": "diligence",
+                "value": 0.35
+              },
+              {
+                "id": "kindness",
+                "value": 0.8
+              },
+              {
+                "id": "orderliness",
+                "value": 0.75
+              },
+              {
+                "id": "patience",
+                "value": 0.88
+              },
+              {
+                "id": "sociability",
+                "value": 0.65
+              }
+            ],
+            "actions": [
+              "inspect",
+              "show",
+              "teach",
+              "explore",
+              "use",
+              "talk_to",
+              "wander",
+              "eat",
+              "drink"
+            ],
+            "max_new_ideas": 1,
+            "max_intentions": 2
+          }
+        }
+      }
+    },
+    {
+      "id": "night25_inh-000002",
+      "job": {
+        "contract_version": "0.2",
+        "tick": 35999,
+        "seed": 27121,
+        "display_locale": "en",
+        "request_id": "00000000-1584-4000-8000-002500000001",
+        "kind": "review",
+        "priority": 20,
+        "inhabitant": "inh-000002",
+        "object": null,
+        "payload": {
+          "review": {
+            "events": [
+              {
+                "tick": 35197,
+                "kind": "was_told",
+                "about": {
+                  "kind": "type",
+                  "id": "sea_water"
+                },
+                "formative": true
+              }
+            ],
+            "memory": "Ate a blue berry. Heard about driftwood and Hafen-Mat. Learned about sea water. Saw a shell. Tried to use wild grain; it did not work. Looked at Holzbecher.",
+            "memory_max_chars": 600,
+            "dream_max_chars": 220,
+            "mood": null,
+            "tones": [
+              "calm",
+              "joyful",
+              "curious",
+              "uneasy"
+            ],
+            "knowledge": [
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "sea_water"
+                },
+                "property": "drinkable",
+                "value": true,
+                "confidence": 1.0,
+                "source": "heard",
+                "told_by": "inh-000003",
+                "tick": 35197
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "driftwood"
+                },
+                "property": "salty",
+                "value": false,
+                "confidence": 1.0,
+                "source": "heard",
+                "told_by": "inh-000003",
+                "tick": 33539
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "driftwood"
+                },
+                "property": "drinkable",
+                "value": false,
+                "confidence": 1.0,
+                "source": "heard",
+                "told_by": "inh-000003",
+                "tick": 32607
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "healing_herb"
+                },
+                "property": "salty",
+                "value": false,
+                "confidence": 0.98,
+                "source": "heard",
+                "told_by": "inh-000001",
+                "tick": 21002
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "healing_herb"
+                },
+                "property": "drinkable",
+                "value": false,
+                "confidence": 1.0,
+                "source": "heard",
+                "told_by": "inh-000001",
+                "tick": 12678
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "red_berry"
+                },
+                "property": "edible",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 2412
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "red_berry"
+                },
+                "property": "poisonous",
+                "value": true,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 2412
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "deciduous_tree"
+                },
+                "property": "edible",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 2388
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "deciduous_tree"
+                },
+                "property": "poisonous",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 2388
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "hazel_bush"
+                },
+                "property": "edible",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 2370
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "hazel_bush"
+                },
+                "property": "poisonous",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 2370
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "conifer_tree"
+                },
+                "property": "edible",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 2356
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "conifer_tree"
+                },
+                "property": "poisonous",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 2356
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "fruit_tree"
+                },
+                "property": "edible",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 2343
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "fruit_tree"
+                },
+                "property": "poisonous",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 2343
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "red_mushroom"
+                },
+                "property": "edible",
+                "value": true,
+                "confidence": 0.4,
+                "source": "guessed",
+                "told_by": null,
+                "tick": 1109
+              }
+            ],
+            "ideas": [],
+            "needs": [
+              {
+                "id": "company",
+                "value": 0.74
+              },
+              {
+                "id": "fun",
+                "value": 0.47
+              },
+              {
+                "id": "hunger",
+                "value": 0.76
+              },
+              {
+                "id": "purpose",
+                "value": 0.78
+              },
+              {
+                "id": "safety",
+                "value": 0.72
+              },
+              {
+                "id": "sleep",
+                "value": 0.82
+              },
+              {
+                "id": "thirst",
+                "value": 0.78
+              },
+              {
+                "id": "warmth",
+                "value": 1.0
+              }
+            ],
+            "traits": [
+              {
+                "id": "courage",
+                "value": 0.64
+              },
+              {
+                "id": "creativity",
+                "value": 0.39
+              },
+              {
+                "id": "curiosity",
+                "value": 0.77
+              },
+              {
+                "id": "diligence",
+                "value": 0.35
+              },
+              {
+                "id": "kindness",
+                "value": 0.8
+              },
+              {
+                "id": "orderliness",
+                "value": 0.75
+              },
+              {
+                "id": "patience",
+                "value": 0.88
+              },
+              {
+                "id": "sociability",
+                "value": 0.65
+              }
+            ],
+            "actions": [
+              "inspect",
+              "show",
+              "teach",
+              "explore",
+              "use",
+              "talk_to",
+              "wander",
+              "eat",
+              "drink"
+            ],
+            "max_new_ideas": 1,
+            "max_intentions": 2
+          }
+        }
+      }
+    },
+    {
+      "id": "night30_inh-000004",
+      "job": {
+        "contract_version": "0.2",
+        "tick": 43199,
+        "seed": 27173,
+        "display_locale": "en",
+        "request_id": "00000000-1584-4000-8000-003000000003",
+        "kind": "review",
+        "priority": 20,
+        "inhabitant": "inh-000004",
+        "object": null,
+        "payload": {
+          "review": {
+            "events": [
+              {
+                "tick": 42022,
+                "kind": "was_told",
+                "about": {
+                  "kind": "type",
+                  "id": "healing_herb"
+                },
+                "formative": true
+              },
+              {
+                "tick": 42050,
+                "kind": "inspect",
+                "about": {
+                  "kind": "type",
+                  "id": "inv_887b55faa178"
+                },
+                "formative": true,
+                "times": 2,
+                "outcome": "done"
+              }
+            ],
+            "memory": "Talked to Dara three more times. Drank spring water twice. Heard about a healing herb. Inspected a Feldstein-Vase for a long time.",
+            "memory_max_chars": 600,
+            "dream_max_chars": 220,
+            "mood": null,
+            "tones": [
+              "calm",
+              "joyful",
+              "curious",
+              "uneasy"
+            ],
+            "knowledge": [
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "red_berry"
+                },
+                "property": "poisonous",
+                "value": true,
+                "confidence": 1.0,
+                "source": "heard",
+                "told_by": "inh-000001",
+                "tick": 40633
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "hazelnut"
+                },
+                "property": "edible",
+                "value": true,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 40630
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "hazelnut"
+                },
+                "property": "poisonous",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 40630
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "inv_1f058f4dd737"
+                },
+                "property": "container",
+                "value": true,
+                "confidence": 0.6,
+                "source": "guessed",
+                "told_by": null,
+                "tick": 38245
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "inv_1f058f4dd737"
+                },
+                "property": "drinkable",
+                "value": true,
+                "confidence": 0.6,
+                "source": "guessed",
+                "told_by": null,
+                "tick": 38245
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "inv_1f058f4dd737"
+                },
+                "property": "portable",
+                "value": true,
+                "confidence": 0.6,
+                "source": "guessed",
+                "told_by": null,
+                "tick": 38245
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "dry_grass"
+                },
+                "property": "poisonous",
+                "value": false,
+                "confidence": 1.0,
+                "source": "heard",
+                "told_by": "inh-000001",
+                "tick": 38108
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "dry_grass"
+                },
+                "property": "edible",
+                "value": false,
+                "confidence": 1.0,
+                "source": "heard",
+                "told_by": "inh-000001",
+                "tick": 32911
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "resin"
+                },
+                "property": "edible",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 26260
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "resin"
+                },
+                "property": "poisonous",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 26260
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "flax"
+                },
+                "property": "edible",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 26243
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "flax"
+                },
+                "property": "poisonous",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 26243
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "conifer_tree"
+                },
+                "property": "edible",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 26229
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "conifer_tree"
+                },
+                "property": "poisonous",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 26229
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "sea_water"
+                },
+                "property": "edible",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 26187
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "sea_water"
+                },
+                "property": "poisonous",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 26187
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "bark"
+                },
+                "property": "edible",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 26174
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "bark"
+                },
+                "property": "poisonous",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 26174
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "spring_water"
+                },
+                "property": "edible",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 26155
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "spring_water"
+                },
+                "property": "poisonous",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 26155
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "pyrite"
+                },
+                "property": "edible",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 1836
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "pyrite"
+                },
+                "property": "poisonous",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 1836
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "slate"
+                },
+                "property": "drinkable",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 1619
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "slate"
+                },
+                "property": "salty",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 1619
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "flint"
+                },
+                "property": "drinkable",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 1583
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "flint"
+                },
+                "property": "salty",
+                "value": false,
+                "confidence": 1.0,
+                "source": "experienced",
+                "told_by": null,
+                "tick": 1583
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "red_berry"
+                },
+                "property": "edible",
+                "value": true,
+                "confidence": 0.4,
+                "source": "guessed",
+                "told_by": null,
+                "tick": 594
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "red_mushroom"
+                },
+                "property": "edible",
+                "value": true,
+                "confidence": 0.4,
+                "source": "guessed",
+                "told_by": null,
+                "tick": 326
+              },
+              {
+                "subject": {
+                  "kind": "type",
+                  "id": "sea_water"
+                },
+                "property": "drinkable",
+                "value": true,
+                "confidence": 0.4,
+                "source": "guessed",
+                "told_by": null,
+                "tick": 144
+              }
+            ],
+            "ideas": [],
+            "needs": [
+              {
+                "id": "company",
+                "value": 0.66
+              },
+              {
+                "id": "fun",
+                "value": 0.51
+              },
+              {
+                "id": "hunger",
+                "value": 0.74
+              },
+              {
+                "id": "purpose",
+                "value": 0.83
+              },
+              {
+                "id": "safety",
+                "value": 0.64
+              },
+              {
+                "id": "sleep",
+                "value": 0.34
+              },
+              {
+                "id": "thirst",
+                "value": 0.72
+              },
+              {
+                "id": "warmth",
+                "value": 1.0
+              }
+            ],
+            "traits": [
+              {
+                "id": "courage",
+                "value": 0.88
+              },
+              {
+                "id": "creativity",
+                "value": 0.28
+              },
+              {
+                "id": "curiosity",
+                "value": 0.88
+              },
+              {
+                "id": "diligence",
+                "value": 0.85
+              },
+              {
+                "id": "kindness",
+                "value": 0.44
+              },
+              {
+                "id": "orderliness",
+                "value": 0.44
+              },
+              {
+                "id": "patience",
+                "value": 0.5
+              },
+              {
+                "id": "sociability",
+                "value": 0.55
+              }
+            ],
+            "actions": [
+              "inspect",
+              "show",
+              "teach",
+              "explore",
+              "use",
+              "talk_to",
+              "wander",
+              "eat",
+              "drink"
+            ],
+            "max_new_ideas": 1,
+            "max_intentions": 2
+          }
+        }
+      }
+    }
+  ]
+}

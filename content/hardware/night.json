@@ -33,6 +33,11 @@
       "model": "qwen3.5:9b"
     },
     {
+      "kind": "review",
+      "when": "night",
+      "model": "qwen3.5:9b"
+    },
+    {
       "kind": "chronicle",
       "when": "night",
       "model": "qwen3.5:9b"

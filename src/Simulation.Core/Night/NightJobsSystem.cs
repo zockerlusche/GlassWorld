@@ -22,7 +22,8 @@ public sealed record SentEvent(long Seq, long Tick, bool Formative);
 /// <param name="Tick">Tick it was sent.</param>
 /// <param name="MaxChars">The text budget sent with it (the answer is checked against this, not against later data).</param>
 /// <param name="Sent">The events sent, oldest first.</param>
-public sealed record MemoryJob(string RequestId, string InhabitantId, long Tick, int MaxChars, IReadOnlyList<SentEvent> Sent);
+/// <param name="Review">A1585: sent as a nightly look back (job kind review) instead of a memory job.</param>
+public sealed record MemoryJob(string RequestId, string InhabitantId, long Tick, int MaxChars, IReadOnlyList<SentEvent> Sent, bool Review = false);
 
 /// <summary>An open question job: a guess for an open question about an object type.</summary>
 /// <param name="RequestId">The job.</param>
@@ -91,6 +92,18 @@ public sealed class NightJobsSystem : IWorldSystem, IOptionalWorldState
     public const int MaxPerception = 16;
 
     private const string TypeSubject = "type:";
+
+    /// <summary>Root kind of an idea that grows from another idea.</summary>
+    public const string IdeaKind = "idea";
+
+    /// <summary>Event: a look back brought a new idea or let one grow (target = idea id; detail new / grew).</summary>
+    public const string IdeaEvent = "idea";
+
+    /// <summary>Event of a shown thought (the same kind the decider's and the question's thoughts report).</summary>
+    public const string ThoughtEvent = "thought";
+
+    /// <summary>Event: the inhabitant dreamed (text = the dream, detail = its tone, target = what it was about).</summary>
+    public const string DreamEvent = "dreamed";
 
     private readonly SortedDictionary<string, MemoryJob> _memoryJobs = new(StringComparer.Ordinal);
     private readonly SortedDictionary<string, QuestionJob> _questionJobs = new(StringComparer.Ordinal);
@@ -210,6 +223,12 @@ public sealed class NightJobsSystem : IWorldSystem, IOptionalWorldState
         foreach (var job in _memoryJobs.Values)
         {
             hasher.Write(job.RequestId).Write(job.InhabitantId).Write(job.Tick).Write(job.MaxChars).Write(job.Sent.Count);
+            if (job.Review)
+            {
+                // Only for review jobs, so states with memory jobs keep their hashes.
+                hasher.Write("review");
+            }
+
             foreach (var sent in job.Sent)
             {
                 hasher.Write(sent.Seq).Write(sent.Tick).Write(sent.Formative);
@@ -340,6 +359,12 @@ public sealed class NightJobsSystem : IWorldSystem, IOptionalWorldState
             return;
         }
 
+        if (_knowledge.Review is { Enabled: true } review)
+        {
+            SubmitReview(world, inhabitant, settings, review, batch);
+            return;
+        }
+
         var job = NewJob(world, inhabitant, JobKind.Memory, "/memory", settings.JobPriority);
         job.Payload = new JobPayload
         {
@@ -367,6 +392,137 @@ public sealed class NightJobsSystem : IWorldSystem, IOptionalWorldState
         inhabitant.Memory.Seal(batch[^1].Seq);
         _memoryJobs[job.RequestId] = new MemoryJob(job.RequestId, inhabitant.Id, world.Tick, settings.MaxChars, [.. batch.Select(e => new SentEvent(e.Seq, e.Tick, e.Formative))]);
     }
+
+    /// <summary>
+    /// A1585 (B7 R18, B2592, B2687): the nightly look back instead of the memory job - the same batch of events, plus
+    /// what the inhabitant believes (its Fundbuch: experienced and heard first, newest first, at most knowledge_max),
+    /// its ideas, needs, character and the actions an intention may name (all data).
+    /// </summary>
+    private void SubmitReview(World world, Inhabitant inhabitant, KnowledgeMemory memory, KnowledgeReview review, List<MemoryEntry> batch)
+    {
+        var fundbuch = inhabitant.Beliefs.All
+            .OrderBy(b => b.Belief.Source == KnowledgeSources.Seen ? 1 : 0)
+            .ThenByDescending(b => b.Belief.Tick)
+            .ThenBy(b => b.TypeId, StringComparer.Ordinal)
+            .ThenBy(b => b.PropertyId, StringComparer.Ordinal)
+            .Take(review.KnowledgeMax)
+            .Select(b => InhabitantStates.Entry(inhabitant, b.TypeId, b.PropertyId, b.Belief, _inhabitants.TypeLabelOf))
+            .ToList();
+        var job = NewJob(world, inhabitant, JobKind.Review, "/review", review.JobPriority);
+        job.Payload = new JobPayload
+        {
+            Review = new ReviewPayload
+            {
+                Events = [.. batch.Select(e => new MemoryFact
+                {
+                    Tick = e.Tick,
+                    Kind = e.Kind,
+                    About = InhabitantStates.About(e),
+                    Formative = e.Formative,
+                    Times = InhabitantStates.TimesOf(e),
+                    Outcome = InhabitantStates.OutcomeOf(e),
+                    Label = _inhabitants.LabelOf(inhabitant, e),
+                })],
+                Memory = inhabitant.Memory.Summary,
+                MemoryMaxChars = memory.MaxChars,
+                DreamMaxChars = review.DreamMaxChars,
+                Mood = inhabitant.Moods.Where(m => m.Value > 0).OrderByDescending(m => m.Value).ThenBy(m => m.Key, StringComparer.Ordinal).Select(m => m.Key).FirstOrDefault(),
+                Tones = [.. review.Tones],
+                Knowledge = fundbuch,
+                Ideas = [.. inhabitant.Ideas.Ideas.Select(i => new ReviewIdea
+                {
+                    Id = i.Id,
+                    Text = i.Text,
+                    Roots = [.. i.Roots.Where(r => r.Kind != IdeaKind).Select(r => new Subject { Kind = Enum.Parse<SubjectKind>(r.Kind, ignoreCase: true), Id = r.Id })],
+                    Strength = i.Strength,
+                })],
+                Needs = [.. inhabitant.Needs.Select(n => new LevelEntry { Id = n.Key, Value = n.Value })],
+                Traits = [.. inhabitant.Traits.Select(t => new LevelEntry { Id = t.Key, Value = t.Value })],
+                Actions = [.. review.IntentionActions],
+                MaxNewIdeas = review.MaxNewIdeas,
+                MaxIntentions = review.MaxIntentions,
+            },
+        };
+        Send(world, job);
+        inhabitant.Memory.Seal(batch[^1].Seq);
+        _memoryJobs[job.RequestId] = new MemoryJob(job.RequestId, inhabitant.Id, world.Tick, memory.MaxChars, [.. batch.Select(e => new SentEvent(e.Seq, e.Tick, e.Formative))], Review: true);
+    }
+
+    /// <summary>
+    /// A1585: what a look back leaves besides the memory - checked again by the core (GW1 #22713): an idea's roots must
+    /// be beliefs, ideas or made things of this inhabitant now, an intention's action one of the data's and its subject
+    /// a type it believes something about; anything else is dropped and logged. Thoughts and the dream pass the content
+    /// guard and become thought / dream events (the morning sees them); the morning mood rises by nothing the AI
+    /// sets - only the mood named is noted as an event (effects as data come later).
+    /// </summary>
+    private void Reflect(World world, MemoryJob job, ReviewResult result, string json)
+    {
+        if (_inhabitants.ResolveTarget(job.InhabitantId)?.Inhabitant is not { } inhabitant || _knowledge?.Review is not { } review)
+        {
+            return;
+        }
+
+        var dropped = new List<string>();
+        var known = inhabitant.Beliefs.All.Select(b => b.TypeId).ToHashSet(StringComparer.Ordinal);
+        var ideaIds = inhabitant.Ideas.Ideas.Select(i => i.Id).ToHashSet(StringComparer.Ordinal);
+        var newIdeas = 0;
+        foreach (var idea in result.Ideas)
+        {
+            var roots = idea.Roots.Select(r => new IdeaRoot(r.Kind.ToString().ToLowerInvariant(), r.Id)).ToList();
+            var grows = idea.Id is { } id && ideaIds.Contains(id) ? id : null;
+            // Each root by its kind (review GW1 #328): a type it believes something about, one of its ideas, someone whose name it knows.
+            if (string.IsNullOrWhiteSpace(idea.Text) || roots.Count == 0 || roots.Any(r => !RootKnown(r, known, ideaIds, inhabitant))
+                || (grows is null && ++newIdeas > review.MaxNewIdeas))
+            {
+                dropped.Add("idea");
+                continue;
+            }
+
+            var kept = inhabitant.Ideas.Take(grows, idea.Text.Trim(), roots, world.Tick, review.IdeaStart, review.IdeaGrow, review.MaxIdeas);
+            _inhabitants.Report(new WorldEvent(IdeaEvent, world.Tick, inhabitant.Id, null, kept.Id) { Detail = grows is null ? "new" : "grew" });
+            if (idea.Thought is { } thought && _guard.Check(thought.Text).Allowed)
+            {
+                _inhabitants.Report(new WorldEvent(ThoughtEvent, world.Tick, inhabitant.Id, null, null) { Text = thought.Text });
+            }
+        }
+
+        var actions = review.IntentionActions.ToHashSet(StringComparer.Ordinal);
+        var intentions = new List<Intention>();
+        foreach (var intention in result.Intentions.Take(review.MaxIntentions))
+        {
+            var aboutKind = intention.About?.Kind.ToString().ToLowerInvariant();
+            if (!actions.Contains(intention.Action) || (intention.About is { } about && (about.Kind != SubjectKind.Type || !known.Contains(about.Id))))
+            {
+                dropped.Add("intention");
+                continue;
+            }
+
+            intentions.Add(new Intention(intention.Action, aboutKind, intention.About?.Id, world.Tick));
+            if (intention.Thought is { } thought && _guard.Check(thought.Text).Allowed)
+            {
+                _inhabitants.Report(new WorldEvent(ThoughtEvent, world.Tick, inhabitant.Id, null, null) { Text = thought.Text });
+            }
+        }
+
+        inhabitant.Ideas.Intend(intentions);
+        if (result.Dream is { } dream && _guard.Check(dream.Text.Text).Allowed)
+        {
+            _inhabitants.Report(new WorldEvent(DreamEvent, world.Tick, inhabitant.Id, null, dream.About?.Id) { Text = dream.Text.Text, Detail = dream.Tone });
+        }
+
+        if (dropped.Count > 0)
+        {
+            Log.Add(new DecisionLogEntry(DecisionLogKind.JobDiscarded, job.RequestId, world.Tick, json, Rejected + string.Join(',', dropped)));
+        }
+    }
+
+    private static bool RootKnown(IdeaRoot root, HashSet<string> types, HashSet<string> ideas, Inhabitant inhabitant) => root.Kind switch
+    {
+        "type" => types.Contains(root.Id),
+        IdeaKind => ideas.Contains(root.Id),
+        "inhabitant" => inhabitant.KnownNames.Contains(root.Id),
+        _ => false,
+    };
 
     /// <summary>
     /// A question job for every open question of the inhabitant about an object type that the data list and
@@ -469,7 +625,7 @@ public sealed class NightJobsSystem : IWorldSystem, IOptionalWorldState
         _memoryJobs.Remove(message.RequestId);
         _questionJobs.Remove(message.RequestId);
 
-        var wanted = memoryJob is not null ? JobKind.Memory : JobKind.Question;
+        var wanted = memoryJob is not null ? (memoryJob.Review ? JobKind.Review : JobKind.Memory) : JobKind.Question;
         JobStatus? status = null;
         if (message.IsError)
         {
@@ -493,7 +649,7 @@ public sealed class NightJobsSystem : IWorldSystem, IOptionalWorldState
             status = null;
         }
         else if (status is not null && !(status.State == JobState.Done && status.JobId == message.RequestId && status.Kind == wanted
-            && (memoryJob is not null ? status.Result?.Memory is not null : status.Result?.Question is not null)))
+            && (memoryJob is not null ? (memoryJob.Review ? status.Result?.Review is not null : status.Result?.Memory is not null) : status.Result?.Question is not null)))
         {
             Log.Add(new DecisionLogEntry(DecisionLogKind.JobDiscarded, message.RequestId, world.Tick, message.Json, NotFinal));
             status = null;
@@ -501,7 +657,16 @@ public sealed class NightJobsSystem : IWorldSystem, IOptionalWorldState
 
         if (memoryJob is not null)
         {
-            var condensed = status is not null && Condense(world, memoryJob, status.Result!.Memory!, message.Json);
+            var memoryResult = status is null ? null
+                : memoryJob.Review ? new MemoryResult { Summary = status.Result!.Review!.Summary, Kept = status.Result.Review.Kept }
+                : status.Result!.Memory;
+            var condensed = memoryResult is not null && Condense(world, memoryJob, memoryResult, message.Json);
+            if (condensed && memoryJob.Review)
+            {
+                // The rest of a look back holds only with its memory: a refused summary refuses the night (asked anew).
+                Reflect(world, memoryJob, status!.Result!.Review!, message.Json);
+            }
+
             if (_inhabitants.ResolveTarget(memoryJob.InhabitantId)?.Inhabitant is { } inhabitant)
             {
                 // A failed or refused job is not sent again tonight: the next night tries anew (no loop, B2487).
@@ -589,7 +754,7 @@ public sealed class NightJobsSystem : IWorldSystem, IOptionalWorldState
         Log.Add(new DecisionLogEntry(DecisionLogKind.JobResult, job.RequestId, world.Tick, json, result.Understood ? null : NotUnderstood));
         if (result.Thought is { } thought && _guard.Check(thought.Text).Allowed)
         {
-            _inhabitants.Report(new WorldEvent("thought", world.Tick, inhabitant.Id, null, null) { Text = thought.Text });
+            _inhabitants.Report(new WorldEvent(ThoughtEvent, world.Tick, inhabitant.Id, null, null) { Text = thought.Text });
         }
 
         if (!result.Understood)
