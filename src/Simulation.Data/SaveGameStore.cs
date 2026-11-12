@@ -362,6 +362,11 @@ public static class SaveGameStore
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("mailbox", JsonSerializer.Serialize(s.Mailbox, Json)));
         }
 
+        if (s.Favourites is not null)
+        {
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("favourites", JsonSerializer.Serialize(s.Favourites, Json)));
+        }
+
         if (s.Conversation is not null)
         {
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("conversation", JsonSerializer.Serialize(s.Conversation, Json)));
@@ -622,6 +627,7 @@ public static class SaveGameStore
             Exploration = ReadExploration(c),
             Skills = meta.TryGetValue("skills", out var skills) ? JsonSerializer.Deserialize<Simulation.Inhabitants.SkillRegisterState>(skills, Json) : null,
             Mailbox = meta.TryGetValue("mailbox", out var mailbox) ? JsonSerializer.Deserialize<Simulation.Player.MailboxState>(mailbox, Json) : null,
+            Favourites = meta.TryGetValue("favourites", out var favourites) ? JsonSerializer.Deserialize<Simulation.Player.FavouritesState>(favourites, Json) : null,
             NamesSaved = meta.ContainsKey("names"),
             Conversation = meta.TryGetValue("conversation", out var conversation) ? JsonSerializer.Deserialize<Simulation.Player.ConversationState>(conversation, Json) : null,
             ContentFingerprint = meta.GetValueOrDefault(ContentFingerprintKey),

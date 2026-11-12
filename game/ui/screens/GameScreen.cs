@@ -2026,7 +2026,7 @@ public partial class GameScreen : CanvasLayer
         var rows = _feed.Inhabitants();
         _activities = Activities(rows);
         // The activity column is a text column: GwTable sorts it by its text in the game's language (the 0 is never read).
-        _inhabitants.SetRows([.. rows.Select(r => new GwRow(r.Id, [DisplayName(r), _activities[r.Id], Number(r.WillToLivePercent), Number(r.OpenQuestions)], [r.Number, 0, r.WillToLivePercent, r.OpenQuestions]))]);
+        _inhabitants.SetRows([.. rows.Select(r => new GwRow(r.Id, [ListName(r), _activities[r.Id], Number(r.WillToLivePercent), Number(r.OpenQuestions)], [r.Number, 0, r.WillToLivePercent, r.OpenQuestions]))]);
         RefreshQuestions(rows);
         RefreshLog(rows);
 
@@ -2579,6 +2579,12 @@ public partial class GameScreen : CanvasLayer
                 child.QueueFree();
             }
 
+            // The player's favourite (B6 R19): a switch at the top; a logged command, the player's own mark.
+            var favourite = new CheckButton { Text = "ui.card.favourite", ButtonPressed = card.Row.Favourite };
+            favourite.Toggled += on => _presenter?.Host?.Decisions.Submit(new Simulation.Decisions.PlayerCommand(
+                on ? Simulation.Player.FavouritesSystem.Mark : Simulation.Player.FavouritesSystem.Unmark, inhabitantId));
+            content.AddChild(favourite);
+
             // Order of the card (W1688, TL #19983): first what the inhabitant does and the talk field, well
             // visible; the values below in sections the player can fold (the choice is kept while playing).
             Section("ui.card.doing");
@@ -2849,6 +2855,10 @@ public partial class GameScreen : CanvasLayer
 
     /// <summary>The one name function of the screen (W1698): the inhabitant's own name, "Inhabitant N" only while it has none.</summary>
     private string DisplayName(InhabitantRow row) => ScreenModel.DisplayName(row, Tr("ui.inhabitant.unnamed"));
+
+    /// <summary>The name as the inhabitant list shows it: a favourite says so (B6 R19).</summary>
+    private string ListName(InhabitantRow row) =>
+        row.Favourite ? TextFill.Fill(Tr("ui.inhabitants.favourite_name"), new Dictionary<string, string> { ["name"] = DisplayName(row) }) : DisplayName(row);
 
     /// <summary>The shown name of an inhabitant known only by id (chronicle, hints, help calls, mail).</summary>
     private string NameOfId(string inhabitantId) =>
