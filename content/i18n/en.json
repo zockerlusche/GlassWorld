@@ -1507,6 +1507,18 @@
       "text": "Question answered"
     },
     {
+      "key": "vocab.event.leisure_opened",
+      "text": "Free moment considered"
+    },
+    {
+      "key": "vocab.event.leisure_answered",
+      "text": "Free moment answered"
+    },
+    {
+      "key": "vocab.event.leisure_failed",
+      "text": "Free moment unanswered"
+    },
+    {
       "key": "vocab.event.question_failed",
       "text": "Question unanswered"
     },
