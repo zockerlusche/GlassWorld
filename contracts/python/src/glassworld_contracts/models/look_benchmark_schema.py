@@ -191,6 +191,12 @@ class LookBenchmark(BaseModel):
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
+    revealed_permille: int | None = Field(
+        None,
+        description='Share of the land shown as seen (cloud cover lifted) for the whole benchmark, in permille (A1559, TL #21633: the measurement shows the game with the island explored - the heavy case). Omitted = the cover as the start world has it (most of the island under clouds).',
+        ge=0,
+        le=1000,
+    )
     warmup_s: float = Field(
         ...,
         description='Real seconds before each pass is measured (the look of the pass is already shown).',
