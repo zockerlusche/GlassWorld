@@ -335,6 +335,9 @@ public sealed class SimulationHost
         decisions.StuckContext = inventions.StuckOf;
         decisions.StuckAnswered = inventions.EscalationAnswered;
 
+        // A leisure question needs none of the pressing needs below the data's value (B2663).
+        decisions.PressingNeeds = content.InhabitantModel.Needs.Where(n => n.NeglectBelow > 0).Select(n => n.Id).ToHashSet(StringComparer.Ordinal);
+
         // New needs of an approved invention (A1372, TL B2658): bound to its type, gained on first use.
         var needs = new NeedRegister(content.InhabitantModel.Needs, content.InhabitantModel.NeedRules, world.Calendar.TicksPerDay);
         inhabitants.RuntimeNeeds = needs;

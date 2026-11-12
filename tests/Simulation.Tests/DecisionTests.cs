@@ -11,8 +11,15 @@ namespace GlassWorld.Simulation.Tests;
 public sealed class DecisionTests
 {
     private static readonly ContentSet Content = ContentSet.Load(Path.Combine(TestData.Root, "content"));
-    private static readonly DeciderSettings Settings = ContractSerializer.Deserialize<DeciderSettings>(
-        File.ReadAllText(Path.Combine(TestData.Root, "content", "decider", "settings.json")));
+    // These tests count the questions of the other triggers; the leisure trigger (B2663) has tests of its own.
+    private static readonly DeciderSettings Settings = WithoutLeisure(ContractSerializer.Deserialize<DeciderSettings>(
+        File.ReadAllText(Path.Combine(TestData.Root, "content", "decider", "settings.json"))));
+
+    private static DeciderSettings WithoutLeisure(DeciderSettings settings)
+    {
+        settings.Triggers = [.. settings.Triggers.Where(t => t.Kind != TriggerKind.Leisure)];
+        return settings;
+    }
 
     [Fact]
     public void UnknownObjectBecomesAValidatedRequest()

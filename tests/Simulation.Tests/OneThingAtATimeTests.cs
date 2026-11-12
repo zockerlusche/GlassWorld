@@ -405,6 +405,9 @@ public sealed class OneThingAtATimeTests : IDisposable
     private static DeciderSettings Settings(Action<DeciderSettings>? change = null)
     {
         var settings = ContractSerializer.Deserialize<DeciderSettings>(File.ReadAllText(Path.Combine(ContentDirectory, "decider", "settings.json")));
+
+        // These tests count the questions of the other triggers; the leisure trigger (B2663) has tests of its own.
+        settings.Triggers = [.. settings.Triggers.Where(t => t.Kind != TriggerKind.Leisure)];
         change?.Invoke(settings);
         return settings;
     }
