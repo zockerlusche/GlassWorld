@@ -253,12 +253,18 @@ public partial class SettingsWindow : GwWindow
                 return;
             }
 
+            // Not offered (any more): a world that learned by day goes back to the night - done here, before the
+            // controls are built, not as a side effect of building them (review GW2 #293).
+            if (answer.Check.LearnByDay is { Offered: false } && learnByDay?.Invoke() == true)
+            {
+                setLearnByDay?.Invoke(false);
+            }
+
             Show([.. SelfCheckView.Lines(answer.Check).SelectMany(AiLine), .. LearnByDayControls(answer.Check.LearnByDay)]);
         }
 
         // "Auch tagsüber lernen" (A1568, B2652): offered only when the service says the PC is strong enough; then a
-        // switch (off by default) with the hint what it costs. Not offered: the reason in words, and a switch that was
-        // on goes off - new things are learned at night again.
+        // switch (off by default) with the hint what it costs. Not offered: the reason in words.
         IEnumerable<Control> LearnByDayControls(Contracts.LearnByDayOffer? offer)
         {
             if (offer is null || learnByDay is null || setLearnByDay is null)
@@ -269,11 +275,6 @@ public partial class SettingsWindow : GwWindow
             yield return new Label { Text = "ui.settings.learn_by_day", ThemeTypeVariation = UiTheme.SubheaderLabel };
             if (!offer.Offered)
             {
-                if (learnByDay())
-                {
-                    setLearnByDay(false);
-                }
-
                 yield return Text(offer.MessageKey);
                 yield break;
             }
