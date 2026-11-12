@@ -1491,6 +1491,10 @@
       "text": "Bau gescheitert"
     },
     {
+      "key": "vocab.event.needs_help",
+      "text": "Braucht Hilfe beim Bauen"
+    },
+    {
       "key": "vocab.event.built",
       "text": "Gebaut"
     },
