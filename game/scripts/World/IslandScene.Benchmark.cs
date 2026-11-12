@@ -110,7 +110,7 @@ public partial class IslandScene
         _benchmark = data;
 
         _benchCsv = Path.GetFullPath(csv);
-        GD.Print(string.Create(CultureInfo.InvariantCulture, $"BENCH_START seed={seed} quality={quality} passes={string.Join(",", _schedule.Passes.Select(p => p.Id))} warmup_s={_schedule.WarmupS} duration_s={_schedule.DurationS} figures={_figures.Count + _crowdFigures.Count} size={Size()} csv={_benchCsv}"));
+        GD.Print(string.Create(CultureInfo.InvariantCulture, $"BENCH_START seed={seed} quality={quality} passes={string.Join(",", _schedule.Passes.Select(p => p.Id))} warmup_s={_schedule.WarmupS} duration_s={_schedule.DurationS} figures={_figures.Count + _crowdFigures.Count} revealed_permille={(_cover is null ? "none" : ((int)(_cover.Map.SeenShare * 1000)).ToString(CultureInfo.InvariantCulture))} size={Size()} csv={_benchCsv}"));
 
         // Asked once, before the clock runs (the query can take a moment); empty without a driver (headless).
         _benchDriver = string.Join(' ', OS.GetVideoAdapterDriverInfo());

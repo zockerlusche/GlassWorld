@@ -49,6 +49,9 @@ public sealed class SoundLibrary
     /// <summary>Sound id for an action, or null if the action is silent by data.</summary>
     public string? ForAction(string action) => Map.Actions.FirstOrDefault(a => a.Action == action)?.Sound;
 
+    /// <summary>Sound id for a signal to the player (B8 R17: knock at the glass), or null if silent or not in the data.</summary>
+    public string? ForSignal(SoundForSignalSignal signal) => Map.Signals?.FirstOrDefault(s => s.Signal == signal)?.Sound;
+
     /// <summary>Animals that can be heard in a biome, season and time of day (B2481 data table).</summary>
     public IReadOnlyList<SoundForAnimal> AudibleAnimals(string biome, string season, string timeOfDay) =>
         [.. Map.Animals.Where(a => a.Biomes.Contains(biome) && a.Seasons.Contains(season) && a.TimesOfDay.Contains(timeOfDay))];
@@ -60,6 +63,7 @@ public sealed class SoundLibrary
             .Concat(Map.Weather.Select(w => w.Sound))
             .Concat(Map.Ambience.Select(a => a.Sound))
             .Concat(Map.Animals.Select(a => a.Sound))
+            .Concat((Map.Signals ?? []).Select(s => s.Sound).OfType<string>())
             .Distinct(StringComparer.Ordinal);
 
     /// <summary>Sound ids used by the map that have no retro recipe (must be empty: every sound has a fallback).</summary>
