@@ -28,6 +28,12 @@ public sealed class FavouritesSystem : IWorldSystem, IOptionalWorldState
     /// <summary>Creates the favourites of a world.</summary>
     public FavouritesSystem(InhabitantsSystem inhabitants) => _inhabitants = inhabitants ?? throw new ArgumentNullException(nameof(inhabitants));
 
+    /// <summary>
+    /// Whether the world remembers an inhabitant who is not alive any more (the chronicle names it): such a one may be
+    /// marked too, from its memory page (A1565, review GW1 #276). Null = only the living.
+    /// </summary>
+    public Func<string, bool>? Remembered { get; init; }
+
     /// <inheritdoc/>
     public string Name => "favourites";
 
@@ -44,7 +50,7 @@ public sealed class FavouritesSystem : IWorldSystem, IOptionalWorldState
     public CommandResult Check(PlayerCommand command)
     {
         ArgumentNullException.ThrowIfNull(command);
-        var known = command.InhabitantId is { } id && (_ids.Contains(id) || _inhabitants.All.Any(i => i.Id == id));
+        var known = command.InhabitantId is { } id && (_ids.Contains(id) || _inhabitants.All.Any(i => i.Id == id) || Remembered?.Invoke(id) == true);
         return known ? new CommandResult(true, null) : new CommandResult(false, DecisionsSystem.ReasonNoInhabitant);
     }
 
