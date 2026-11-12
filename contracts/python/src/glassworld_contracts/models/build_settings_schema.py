@@ -8,6 +8,21 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class BuildQualityTier(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    id: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    from_level: float = Field(
+        ..., description='Skill level from which this tier is reached.', ge=0.0, le=1.0
+    )
+
+
 class BuildEscalation(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -51,6 +66,19 @@ class BuildEscalation(BaseModel):
         ge=0,
         le=8,
     )
+
+
+class BuildQuality(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    skill: str = Field(
+        ...,
+        description='The skill that decides the quality (vocabulary skill).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    tiers: list[BuildQualityTier] = Field(..., max_length=8, min_length=1)
 
 
 class BuildSettings(BaseModel):
@@ -119,3 +147,4 @@ class BuildSettings(BaseModel):
         le=20,
     )
     escalation: BuildEscalation | None = None
+    quality: BuildQuality | None = None
