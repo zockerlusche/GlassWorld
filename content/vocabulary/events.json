@@ -103,6 +103,14 @@
       "description": "A new skill from an invention was not taken into the register (duplicate, limit or invalid)."
     },
     {
+      "id": "need_refused",
+      "description": "A new need from an invention was not taken into the register (duplicate, limit or invalid)."
+    },
+    {
+      "id": "need_gained",
+      "description": "An inhabitant used a thing of an invention for the first time and now has the need it brings."
+    },
+    {
       "id": "mail_arrived",
       "description": "A message arrived in the player's mailbox (Detail = message kind)."
     },

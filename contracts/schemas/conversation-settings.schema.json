@@ -39,6 +39,12 @@
       "minimum": 0,
       "maximum": 8
     },
+    "history_lines_max": {
+      "description": "How many lines of its conversations with the player an inhabitant keeps for its memory page (B8 R16, B2518: old conversations, nothing invented), oldest dropped first; kept in the save game. Omitted or 0 = no history beyond the recent lines.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 2000
+    },
     "understanding_start": {
       "description": "Understanding of the player at the start (gestures before words, D333).",
       "type": "number",
