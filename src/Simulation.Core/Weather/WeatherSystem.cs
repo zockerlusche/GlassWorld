@@ -262,10 +262,21 @@ public sealed class WeatherSystem : IWorldSystem, IWeather
         SyncSignals(tick, announce: true);
     }
 
+    /// <summary>
+    /// The climate the player chose (B5 R1, B2676), or null for the preset's climate. Hashed only when set,
+    /// so worlds without a choice keep their hashes (review GW1 #318).
+    /// </summary>
+    public string? ChosenClimate { get; init; }
+
     /// <inheritdoc/>
     public void WriteState(StateHasher hasher)
     {
         ArgumentNullException.ThrowIfNull(hasher);
+        if (ChosenClimate is not null)
+        {
+            hasher.Write("climate").Write(ChosenClimate);
+        }
+
         hasher.Write(Current).Write(_dryTicks).Write(_history.Count);
         foreach (var (start, weather) in _history)
         {

@@ -219,7 +219,10 @@ public sealed class SimulationHost
                 startDropTenthC,
                 world.Calendar.Settings.TicksPerHour,
                 world.Calendar.Settings.HoursPerDay,
-                world.Seed);
+                world.Seed)
+            {
+                ChosenClimate = options.Climate,
+            };
             world.Add(weather);
         }
 
@@ -229,6 +232,10 @@ public sealed class SimulationHost
         // The weather's part of it is the same for everybody within a tick, so it is worked out once per
         // tick and main weather, not once per inhabitant.
         (long Tick, string Weather, int TemperatureTenthC)? islandAir = null;
+
+        // With biome offsets (B5 R28) the air also depends on the cell's biome: one value per biome and tick.
+        var biomeAir = new Dictionary<string, int>(StringComparer.Ordinal);
+        (long Tick, string Weather) biomeAirAt = (-1, string.Empty);
         Air? AirAt(World w, Position at)
         {
             if (weather is null || map is null)
@@ -244,9 +251,22 @@ public sealed class SimulationHost
             // Biome offsets of the climate (B5 R28): then the temperature depends on the cell's biome as well.
             if (weather.HasBiomeTemperatures && cellAt is { } biomeCell)
             {
+                if (biomeAirAt.Tick != w.Tick || !string.Equals(biomeAirAt.Weather, weather.Current, StringComparison.Ordinal))
+                {
+                    biomeAir.Clear();
+                    biomeAirAt = (w.Tick, weather.Current);
+                }
+
                 var biome = map.Map.BiomeAt(biomeCell.X, biomeCell.Z);
-                return new Air(weather.TemperatureAt(w.Now, weather.Current, biome) - startDropTenthC + cellDropTenthC, weather.PrecipitationPermille > 0);
+                if (!biomeAir.TryGetValue(biome, out var biomeTenthC))
+                {
+                    biomeTenthC = weather.TemperatureAt(w.Now, weather.Current, biome);
+                    biomeAir[biome] = biomeTenthC;
+                }
+
+                return new Air(biomeTenthC - startDropTenthC + cellDropTenthC, weather.PrecipitationPermille > 0);
             }
+
             if (islandAir is not { } known || known.Tick != w.Tick || !string.Equals(known.Weather, weather.Current, StringComparison.Ordinal))
             {
                 islandAir = known = (w.Tick, weather.Current, weather.TemperatureAt(w.Now, weather.Current));

@@ -382,13 +382,13 @@ public sealed class SimulationHostFactory(Content.ContentSet content, Contracts.
 
     /// <summary>Assembles the systems around <paramref name="world"/>, on a saved island if one is given (B2 R11).</summary>
     public SimulationHost Assemble(World world, string? worldPreset, (Map.GeneratedIsland Island, int CellSizeCm)? savedIsland) =>
-        Assemble(world, worldPreset, savedIsland, null);
+        SimulationHost.Assemble(Content, settings, world, port, displayLocale, worldPreset, jobPort, savedIsland, options);
 
     /// <summary>
-    /// Assembles the systems around <paramref name="world"/> with the climate of a save game (B5 R1); null keeps
-    /// the factory's choice, which itself falls back to the preset's climate.
+    /// Assembles the systems around <paramref name="world"/> with exactly the climate of a save game (B5 R1):
+    /// null means the preset's climate, whatever the factory's options say (review GW1 #318).
     /// </summary>
     public SimulationHost Assemble(World world, string? worldPreset, (Map.GeneratedIsland Island, int CellSizeCm)? savedIsland, string? climate) =>
         SimulationHost.Assemble(Content, settings, world, port, displayLocale, worldPreset, jobPort, savedIsland,
-            climate is null ? options : (options ?? new SimulationHostOptions()) with { Climate = climate });
+            (options ?? new SimulationHostOptions()) with { Climate = climate });
 }

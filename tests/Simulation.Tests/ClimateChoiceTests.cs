@@ -71,6 +71,29 @@ public sealed class ClimateChoiceTests : IDisposable
         Assert.Equal(older.World.StateHash(), olderLoaded.World.StateHash());
     }
 
+    [Fact]
+    public void TheChosenClimateIsInTheHashAndAWorldWithoutAChoiceKeepsItsHash()
+    {
+        // Review GW1 #318: two worlds that differ only in the choice differ in the hash from the start, and a
+        // world without a choice hashes as before (nothing is written for it).
+        Assert.NotEqual(Create(null).World.StateHash(), Create("temperate").World.StateHash());
+        Assert.Equal(Create(null).World.StateHash(), Create(null).World.StateHash());
+    }
+
+    [Fact]
+    public void ASaveWithoutAClimateKeepsThePresetClimateEvenIfTheFactoryCarriesOne()
+    {
+        // Review GW1 #318: null in the save means the preset's climate, whatever the factory's options say.
+        var older = Create(null);
+        older.World.Run(300);
+        var state = StateCodec.Capture(older);
+        var settings = ContractSerializer.Deserialize<DeciderSettings>(File.ReadAllText(Path.Combine(ContentDirectory, "decider", "settings.json")));
+        var factory = new SimulationHostFactory(ContentSet.Load(ContentDirectory), settings, new ReplayDecisionPort(older.Decisions.Log), "de", options: new SimulationHostOptions { Climate = "warm" });
+        var loaded = StateCodec.Restore(factory, state);
+        Assert.Null(loaded.Options.Climate);
+        Assert.Equal(older.World.StateHash(), loaded.World.StateHash());
+    }
+
     private static SimulationHost Restore(SaveState state, IDecisionPort port)
     {
         var settings = ContractSerializer.Deserialize<DeciderSettings>(File.ReadAllText(Path.Combine(ContentDirectory, "decider", "settings.json")));
