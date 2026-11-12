@@ -100,4 +100,44 @@ public sealed class NightSceneTests
         day.Phase = PhaseStatusPhase.Day;
         Assert.False(NightScene.Done(day));
     }
+
+    [Fact]
+    public void AServiceThatStopsAnsweringEndsTheSceneAfterItsMinimumTime()
+    {
+        // A1586 (B7 R16): the service gone or not ready during the night - after lost_after_polls questions in a row
+        // without an answer the night is unknown, and the scene ends after its minimum time, not at the morning.
+        var data = Data();
+        data.LostAfterPolls = 3;
+        var busy = new PhaseStatus { ContractVersion = ContractInfo.Version, Phase = PhaseStatusPhase.Night, Queued = 4, Running = 1, BudgetLeftS = 900 };
+        Assert.Null(NightScene.ServiceDone(data, hasService: false, busy, 0));
+        Assert.False(NightScene.ServiceDone(data, hasService: true, null, 0)); // no answer yet: wait
+        Assert.False(NightScene.ServiceDone(data, hasService: true, busy, 2)); // the last answer still holds
+        Assert.Null(NightScene.ServiceDone(data, hasService: true, busy, 3));
+
+        data.LostAfterPolls = null; // without the value the scene waits for an answer, as before
+        Assert.False(NightScene.ServiceDone(data, hasService: true, busy, 50));
+
+        data.LostAfterPolls = 3;
+        var scene = new NightScene(data);
+        scene.Update(false, null, 0.1);
+        Run(scene, true, NightScene.ServiceDone(data, true, busy, 0), 4.1 + 2);
+        Assert.Equal(NightStage.Dream, scene.Stage);
+        Run(scene, true, NightScene.ServiceDone(data, true, busy, 3), 4.2);
+        Assert.Equal(NightStage.FadingIn, scene.Stage);
+    }
+
+    [Fact]
+    public void ANightWithoutJobsShowsTheSceneForItsMinimumTimeOnly()
+    {
+        // A1586: nothing to compute (no jobs queued) - the scene still darkens and stands its minimum time.
+        var data = Data();
+        var empty = new PhaseStatus { ContractVersion = ContractInfo.Version, Phase = PhaseStatusPhase.Night, BudgetLeftS = 1800 };
+        Assert.True(NightScene.ServiceDone(data, hasService: true, empty, 0));
+        var scene = new NightScene(data);
+        scene.Update(false, null, 0.1);
+        Run(scene, true, true, 4.1 + 5.8);
+        Assert.Equal(NightStage.Dream, scene.Stage);
+        Run(scene, true, true, 0.4 + 3.2);
+        Assert.Equal(NightStage.Awake, scene.Stage);
+    }
 }
