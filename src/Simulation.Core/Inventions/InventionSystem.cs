@@ -59,6 +59,7 @@ public interface IRuntimeCatalog
 /// <param name="Builds">Building tasks (null in save games from before building).</param>
 /// <param name="FirstUsed">Runtime types already used once.</param>
 /// <param name="Sounds">Sound jobs of inventions and their results.</param>
+/// <param name="Images">Picture jobs of inventions and their results (A1564); null in saves from before.</param>
 public sealed record InventionState(
     long Counter,
     IReadOnlyList<KeyValuePair<string, long>> Below,
@@ -68,7 +69,8 @@ public sealed record InventionState(
     IReadOnlyList<DecisionLogEntry> Log,
     IReadOnlyList<BuildTask>? Builds = null,
     IReadOnlyList<string>? FirstUsed = null,
-    IReadOnlyList<SoundTask>? Sounds = null);
+    IReadOnlyList<SoundTask>? Sounds = null,
+    IReadOnlyList<ImageTask>? Images = null);
 
 /// <summary>
 /// Inventions in the core (D471 D5, a world system): a lasting lack becomes a wish, the wish becomes an
@@ -143,7 +145,7 @@ public sealed partial class InventionSystem : IWorldSystem, IOptionalWorldState,
     }
 
     /// <inheritdoc/>
-    public bool HasState => _counter > 0 || _below.Count > 0 || _cooldowns.Count > 0 || _wants.Count > 0 || _inventions.Count > 0 || _builds.Count > 0 || _firstUsed.Count > 0 || _sounds.Count > 0;
+    public bool HasState => _counter > 0 || _below.Count > 0 || _cooldowns.Count > 0 || _wants.Count > 0 || _inventions.Count > 0 || _builds.Count > 0 || _firstUsed.Count > 0 || _sounds.Count > 0 || _images.Count > 0;
 
     /// <summary>Job log (requests and the outcomes that took effect).</summary>
     public DecisionLog Log { get; } = new();
@@ -265,7 +267,7 @@ public sealed partial class InventionSystem : IWorldSystem, IOptionalWorldState,
 
     /// <summary>Takes the complete state.</summary>
     public InventionState Capture() =>
-        new(_counter, [.. _below], [.. _cooldowns], [.. _wants.Values], [.. _inventions.Values], [.. Log.Entries], [.. _builds.Values], [.. _firstUsed], [.. _sounds.Values]);
+        new(_counter, [.. _below], [.. _cooldowns], [.. _wants.Values], [.. _inventions.Values], [.. Log.Entries], [.. _builds.Values], [.. _firstUsed], [.. _sounds.Values], _images.Count == 0 ? null : [.. _images.Values]);
 
     /// <summary>Restores a captured state; registers the runtime types of the inventions.</summary>
     public void Restore(InventionState state)
@@ -442,7 +444,7 @@ public sealed partial class InventionSystem : IWorldSystem, IOptionalWorldState,
 
     private void Apply(World world, PortMessage message)
     {
-        if (ApplySound(world, message) || ApplyBuild(world, message))
+        if (ApplySound(world, message) || ApplyImage(world, message) || ApplyBuild(world, message))
         {
             return;
         }
@@ -525,6 +527,9 @@ public sealed partial class InventionSystem : IWorldSystem, IOptionalWorldState,
         Close(world, want, null);
         _inhabitants.Report(new WorldEvent(Invented, world.Tick, want.InhabitantId, invention.Purpose, typeId));
         StartBuild(world, typeId, want.InhabitantId);
+
+        // A1564: its picture is painted in the compute night (an icon; the kit's colours until then or without it).
+        SubmitImage(world, typeId);
     }
 
     /// <summary>B2487: a retryable failure keeps the wish and sends it again later with a new id; otherwise it closes.</summary>

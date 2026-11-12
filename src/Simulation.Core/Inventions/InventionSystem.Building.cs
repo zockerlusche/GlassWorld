@@ -16,7 +16,17 @@ namespace GlassWorld.Simulation.Inventions;
 /// <param name="NeglectableNeeds">Needs with a neglect threshold; the inventor builds only while they are high enough.</param>
 /// <param name="NightPhases">Day phases that are the compute night of the AI service (content/jobs/phases.json).</param>
 /// <param name="Sound">Lengths, steps and priority of sound jobs (content/sound/generation.json).</param>
-public sealed record BuildRules(BuildSettings Settings, BuildKit Kit, FrozenSet<string> NeglectableNeeds, FrozenSet<string> NightPhases, SoundGeneration Sound);
+/// <param name="Image">Sizes, style and priority of image jobs (content/image/generation.json; A1564); null = no picture jobs.</param>
+public sealed record BuildRules(BuildSettings Settings, BuildKit Kit, FrozenSet<string> NeglectableNeeds, FrozenSet<string> NightPhases, SoundGeneration Sound, ImageGeneration? Image = null);
+
+/// <summary>The picture job of a new invention (A1564, B7 R7) and its result.</summary>
+/// <param name="TypeId">Runtime type the picture belongs to.</param>
+/// <param name="RequestId">The image job.</param>
+/// <param name="ResultJson">ImageResult once the picture exists, else null.</param>
+/// <param name="Failed">True when the invention finally keeps no picture of its own (the kit's colours).</param>
+/// <param name="Attempts">Image jobs sent so far.</param>
+/// <param name="RetryAtNight">True while a retryable failure waits for the next compute night.</param>
+public sealed record ImageTask(string TypeId, string RequestId, string? ResultJson, bool Failed, int Attempts = 1, bool RetryAtNight = false);
 
 /// <summary>The sound job of a built invention (D471 D7) and its result.</summary>
 /// <param name="TypeId">Runtime type the sound belongs to.</param>
@@ -103,6 +113,7 @@ public sealed partial class InventionSystem
     private readonly SortedDictionary<string, BuildTask> _builds = new(StringComparer.Ordinal);
     private readonly SortedSet<string> _firstUsed = new(StringComparer.Ordinal);
     private readonly SortedDictionary<string, SoundTask> _sounds = new(StringComparer.Ordinal);
+    private readonly SortedDictionary<string, ImageTask> _images = new(StringComparer.Ordinal);
     private bool? _night;
 
     /// <summary>
@@ -118,6 +129,13 @@ public sealed partial class InventionSystem
 
     /// <summary>Sound jobs of built inventions (D471 D7).</summary>
     public IEnumerable<SoundTask> Sounds => _sounds.Values;
+
+    /// <summary>Picture jobs of inventions and their results (A1564).</summary>
+    public IEnumerable<ImageTask> Images => _images.Values;
+
+    /// <summary>The picture of an invention once it exists (A1564), else null.</summary>
+    public ImageResult? ImageOf(string typeId) =>
+        _images.TryGetValue(typeId, out var image) && image.ResultJson is { } json ? JsonSerializer.Deserialize<ImageResult>(json, RecordJson) : null;
 
     /// <summary>Runtime types that have been used at least once.</summary>
     public IEnumerable<string> FirstUsed => _firstUsed;
@@ -484,6 +502,117 @@ public sealed partial class InventionSystem
         _sounds[task.TypeId] = new SoundTask(task.TypeId, requestId, null, false, attempt);
     }
 
+    /// <summary>
+    /// A1564 (B7 R7): asks the image model for an icon of a new invention - what it is and what it is made of, in
+    /// the data's style and size; the job runs in the compute night like every image job. Without the data nothing.
+    /// </summary>
+    private void SubmitImage(World world, string typeId, int attempt = 1)
+    {
+        if (Build.Image is not { InventionIcons: { } icons } image || !_inventions.TryGetValue(typeId, out var record))
+        {
+            return;
+        }
+
+        _counter++;
+        var tick = world.Tick;
+        var requestId = DecisionIds.RequestId(world.Seed, tick, record.InhabitantId + "/image", _counter);
+        var job = new GenerationJob
+        {
+            ContractVersion = ContractInfo.Version,
+            RequestId = requestId,
+            Tick = tick,
+            Seed = SeedOf(requestId),
+            DisplayLocale = Enum.Parse<Locale>(_displayLocale, ignoreCase: true),
+            Kind = JobKind.Image,
+            Priority = image.Priority,
+            Inhabitant = record.InhabitantId,
+            Object = null,
+            Payload = new JobPayload
+            {
+                Image = new ImagePayload
+                {
+                    Subject = PictureSubject(Parse(record)),
+                    Purpose = ImagePayloadPurpose.Icon,
+                    Style = icons.Style,
+                    Width = image.Sizes.Icon.Width,
+                    Height = image.Sizes.Icon.Height,
+                    ObjectType = typeId,
+                },
+            },
+        };
+        var json = ContractSerializer.Serialize(job, ValidateRequests);
+        Log.Add(new DecisionLogEntry(DecisionLogKind.JobRequest, requestId, tick, json, null));
+        _port!.Submit(requestId, json);
+        _images[typeId] = new ImageTask(typeId, requestId, null, false, attempt);
+    }
+
+    /// <summary>
+    /// What the picture shows, in English (the image model's language): the invention's name and what it is made of.
+    /// A material that is itself an invention is named by its name; the data's types by their id in words.
+    /// </summary>
+    private string PictureSubject(Invention invention)
+    {
+        string Word(string typeId) =>
+            _inventions.TryGetValue(typeId, out var made) ? Parse(made).Name.En : typeId.Replace('_', ' ');
+        var materials = invention.Materials.Select(Word).Distinct(StringComparer.Ordinal).ToList();
+        var subject = materials.Count == 0 ? invention.Name.En : $"{invention.Name.En}, made of {string.Join(", ", materials)}";
+        return subject.Length <= 300 ? subject : subject[..300];
+    }
+
+    /// <summary>At the start of a compute night, waiting image jobs go out again with a new request id (A1564).</summary>
+    private void RetryImagesAtNight(World world)
+    {
+        foreach (var waiting in _images.Values.Where(i => i.RetryAtNight).ToList())
+        {
+            SubmitImage(world, waiting.TypeId, waiting.Attempts + 1);
+        }
+    }
+
+    /// <summary>Routes a job outcome to an image job; false if it belongs to none (A1564).</summary>
+    private bool ApplyImage(World world, PortMessage message)
+    {
+        var image = _images.Values.FirstOrDefault(i => i.RequestId == message.RequestId && i.ResultJson is null && !i.Failed && !i.RetryAtNight);
+        if (image is null)
+        {
+            return false;
+        }
+
+        JobStatus? status = null;
+        var retryable = message.IsError && IsRetryable(message.Json);
+        if (!message.IsError)
+        {
+            try
+            {
+                status = ContractSerializer.Deserialize<JobStatus>(message.Json);
+            }
+            catch (ContractViolationException)
+            {
+                status = null;
+            }
+        }
+
+        if (status is { State: JobState.Done, Kind: JobKind.Image, Result.Image: { } result } && status.JobId == image.RequestId)
+        {
+            Log.Add(new DecisionLogEntry(DecisionLogKind.JobResult, message.RequestId, world.Tick, message.Json, null));
+            _images[image.TypeId] = image with { ResultJson = JsonSerializer.Serialize(result, RecordJson) };
+            return true;
+        }
+
+        if (status is { State: JobState.Failed, Error: { } error })
+        {
+            retryable = error.Retryable;
+        }
+
+        Log.Add(new DecisionLogEntry(message.IsError ? DecisionLogKind.JobError : DecisionLogKind.JobDiscarded, message.RequestId, world.Tick, message.Json, message.IsError ? ReplayNotes.OfError(message.Json) : "image_failed"));
+
+        // A retryable failure is tried again in the next compute night (up to the data limit); anything else is
+        // final: the thing keeps the colours of the construction kit.
+        _images[image.TypeId] = retryable && image.Attempts < (Build.Image?.InventionIcons?.MaxAttempts ?? 1)
+            ? image with { RetryAtNight = true }
+            : image with { Failed = true };
+        return true;
+    }
+
     /// <summary>At the start of a compute night, waiting sound jobs go out again with a new request id.</summary>
     private void RetrySoundsAtNight(World world)
     {
@@ -559,6 +688,7 @@ public sealed partial class InventionSystem
         if (night && !first)
         {
             RetrySoundsAtNight(world);
+            RetryImagesAtNight(world);
         }
     }
 
@@ -589,6 +719,16 @@ public sealed partial class InventionSystem
         {
             hasher.Write(s.TypeId).Write(s.RequestId).Write(s.ResultJson ?? string.Empty).Write(s.Failed).Write(s.Attempts).Write(s.RetryAtNight);
         }
+
+        // A1564, only when there are picture jobs: worlds without them hash as before.
+        if (_images.Count > 0)
+        {
+            hasher.Write(_images.Count);
+            foreach (var i in _images.Values)
+            {
+                hasher.Write(i.TypeId).Write(i.RequestId).Write(i.ResultJson ?? string.Empty).Write(i.Failed).Write(i.Attempts).Write(i.RetryAtNight);
+            }
+        }
     }
 
     private void RestoreBuilds(InventionState state)
@@ -606,6 +746,11 @@ public sealed partial class InventionSystem
         foreach (var sound in state.Sounds ?? [])
         {
             _sounds[sound.TypeId] = sound;
+        }
+
+        foreach (var image in state.Images ?? [])
+        {
+            _images[image.TypeId] = image;
         }
     }
 }

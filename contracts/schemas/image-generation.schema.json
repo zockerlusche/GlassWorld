@@ -80,6 +80,16 @@
       "type": "integer",
       "minimum": 0,
       "maximum": 100
+    },
+    "invention_icons": {
+      "description": "A1564 (B4b/B7 R7): the core asks for an icon of every new invention (purpose icon, size from sizes.icon), painted in the computing night. A retryable failure is tried again in the next night up to max_attempts; after that the thing keeps the colours of the construction kit. Omitted = no picture jobs.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["style", "max_attempts"],
+      "properties": {
+        "style": { "description": "Style id of the image prompt (settings.styles, e.g. warm_comic, B2501).", "$ref": "common.schema.json#/$defs/VocabId" },
+        "max_attempts": { "type": "integer", "minimum": 1, "maximum": 10 }
+      }
     }
   },
   "$defs": {
