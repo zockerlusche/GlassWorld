@@ -27,6 +27,18 @@
       "description": "A question could not be answered."
     },
     {
+      "id": "leisure_opened",
+      "description": "An inhabitant with a free moment asks the AI what it wants to do (no question)."
+    },
+    {
+      "id": "leisure_answered",
+      "description": "The AI answered a free moment."
+    },
+    {
+      "id": "leisure_failed",
+      "description": "A free moment brought no answer."
+    },
+    {
       "id": "answer_expired",
       "description": "A queued answer was dropped before it started because a need it does not serve fell below its neglect threshold."
     },
