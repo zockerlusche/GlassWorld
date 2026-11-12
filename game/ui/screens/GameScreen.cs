@@ -32,6 +32,9 @@ public partial class GameScreen : CanvasLayer
     private readonly Dictionary<string, Control> _dreamNodes = new(StringComparer.Ordinal);
     private readonly HashSet<string> _dreamFailed = new(StringComparer.Ordinal);
     private string _dreamFolder = string.Empty;
+
+    // A1603: the textures of invention icons, by type, with what they were made from (a new picture replaces stripes).
+    private readonly Dictionary<string, (string Made, Texture2D Texture)> _inventionIcons = new(StringComparer.Ordinal);
     private LookNight? _nightLook;
     private readonly Dictionary<string, Label> _zzz = new(StringComparer.Ordinal);
     private double _nightClock;
@@ -69,6 +72,7 @@ public partial class GameScreen : CanvasLayer
     private readonly List<(Button Button, TimeChoice Choice)> _timeButtons = [];
     private readonly Dictionary<string, ProgressBar> _cardBars = new(StringComparer.Ordinal);
     private Label? _cardAction;
+    private TextureRect? _cardActionIcon;
     private Dictionary<string, string>? _activities;
     private Label? _cardQuestions;
     private LineEdit? _talkInput;
@@ -1069,6 +1073,76 @@ public partial class GameScreen : CanvasLayer
         return string.Empty;
     }
 
+    /// <summary>A small square for an invention's icon (A1603), the size of the data, kept in proportion.</summary>
+    private TextureRect IconRect() => new()
+    {
+        ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+        StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+        CustomMinimumSize = new Vector2(InventionIconPx, InventionIconPx),
+        SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
+        MouseFilter = Control.MouseFilterEnum.Ignore,
+        Visible = true,
+    };
+
+    private int InventionIconPx => (int)Math.Round((_style?.Tokens.Window.InventionIconPx ?? 24) * (_style?.ContentScaleFactor ?? 1));
+
+    /// <summary>
+    /// The icon of an invention (A1603) by its type id or the id of one of its objects: the painted picture of the
+    /// computing night, else stripes in the kit colours of its plan; null for anything else.
+    /// </summary>
+    private Texture2D? InventionIcon(string id)
+    {
+        if (_presenter?.Host is not { } host)
+        {
+            return null;
+        }
+
+        var type = host.Inventions.Invention(id) is not null ? id : host.Objects.TryGet(id, out var obj) ? obj.TypeId : null;
+        var source = InventionIconSource.Of(host.Inventions, host.Content.Inventions.Build.Kit, _dreamFolder, _style?.Tokens.Window.InventionIconColors ?? 3);
+        if (type is null || source.For(type) is not { } icon)
+        {
+            return null;
+        }
+
+        var made = icon.PicturePath ?? string.Join(',', icon.KitColors);
+        if (_inventionIcons.TryGetValue(type, out var known) && known.Made == made)
+        {
+            return known.Texture;
+        }
+
+        Texture2D? texture = null;
+        if (icon.PicturePath is { } path)
+        {
+            var picture = Image.LoadFromFile(path);
+            if (picture is not null && !picture.IsEmpty())
+            {
+                texture = ImageTexture.CreateFromImage(picture);
+            }
+        }
+
+        // No picture (or a broken one): one stripe per kit colour, the largest share first.
+        if (texture is null && icon.KitColors.Count > 0)
+        {
+            const int Size = 32;
+            var stripes = Image.CreateEmpty(Size, Size, false, Image.Format.Rgba8);
+            for (var x = 0; x < Size; x++)
+            {
+                var color = Color.FromHtml(icon.KitColors[Math.Min(icon.KitColors.Count - 1, x * icon.KitColors.Count / Size)]);
+                stripes.FillRect(new Rect2I(x, 0, 1, Size), color);
+            }
+
+            texture = ImageTexture.CreateFromImage(stripes);
+        }
+
+        if (texture is null)
+        {
+            return null;
+        }
+
+        _inventionIcons[type] = (made, texture);
+        return texture;
+    }
+
     private ChronicleNames ChronicleNamesNow() => new(
         NameOfId,
         id => _presenter?.Host is { } host
@@ -1201,6 +1275,13 @@ public partial class GameScreen : CanvasLayer
                 SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
                 TooltipText = "ui.chronicle.jump",
             };
+
+            // An invention named in the line shows its icon before it (A1603).
+            if (entry.TargetId is { } target && InventionIcon(target) is { } icon)
+            {
+                line.Icon = icon;
+                line.AddThemeConstantOverride("icon_max_width", InventionIconPx);
+            }
             var who = entry.InhabitantId;
             line.Pressed += () =>
             {
@@ -1469,6 +1550,15 @@ public partial class GameScreen : CanvasLayer
         foreach (var message in open)
         {
             var row = new HBoxContainer();
+
+            // A builder's knock shows the invention's icon (A1603), like the chronicle and the card.
+            if (message.SubjectType is { } subject && InventionIcon(subject) is { } subjectIcon)
+            {
+                var rect = IconRect();
+                rect.Texture = subjectIcon;
+                row.AddChild(rect);
+            }
+
             var text = new Label
             {
                 Text = MailText(message),
@@ -2800,9 +2890,15 @@ public partial class GameScreen : CanvasLayer
             // Order of the card (W1688, TL #19983): first what the inhabitant does and the talk field, well
             // visible; the values below in sections the player can fold (the choice is kept while playing).
             Section("ui.card.doing");
-            _cardAction = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
+            _cardAction = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
             _cardQuestions = new Label { AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled };
-            content.AddChild(_cardAction);
+
+            // An invention the inhabitant is busy with shows its icon before the line (A1603).
+            var doing = new HBoxContainer();
+            _cardActionIcon = IconRect();
+            doing.AddChild(_cardActionIcon);
+            doing.AddChild(_cardAction);
+            content.AddChild(doing);
             content.AddChild(_cardQuestions);
 
             // Talking (B6 R13): a sentence to this inhabitant; the core checks it and answers later.
@@ -2876,6 +2972,14 @@ public partial class GameScreen : CanvasLayer
         }
 
         var action = (_activities ?? Activities(_feed!.Inhabitants())).GetValueOrDefault(card.Row.Id) ?? Tr(InhabitantActivity.StandingKey);
+        if (_cardActionIcon is not null)
+        {
+            var target = _feed?.Snapshot?.Inhabitants.FirstOrDefault(i => i.Id == card.Row.Id)?.TargetId;
+            var icon = target is null ? null : InventionIcon(target);
+            _cardActionIcon.Texture = icon;
+            _cardActionIcon.Visible = icon is not null;
+        }
+
         if (_cardAction is not null && _cardAction.Text != action)
         {
             _cardAction.Text = action;
@@ -2905,12 +3009,28 @@ public partial class GameScreen : CanvasLayer
 
             foreach (var line in lines)
             {
-                _cardDiaryBox.AddChild(new Label
+                var text = new Label
                 {
                     Text = TextFill.Fill(Tr("ui.card.diary_line"), new Dictionary<string, string> { ["day"] = Number(line.Day), ["time"] = line.Time, ["text"] = line.Text }),
                     AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled,
                     AutowrapMode = TextServer.AutowrapMode.WordSmart,
-                });
+                    SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+                };
+
+                // A line about an invention shows its icon before it (A1603).
+                if (line.TargetType is { } type && InventionIcon(type) is { } icon)
+                {
+                    var row = new HBoxContainer();
+                    var rect = IconRect();
+                    rect.Texture = icon;
+                    row.AddChild(rect);
+                    row.AddChild(text);
+                    _cardDiaryBox.AddChild(row);
+                }
+                else
+                {
+                    _cardDiaryBox.AddChild(text);
+                }
             }
         }
 

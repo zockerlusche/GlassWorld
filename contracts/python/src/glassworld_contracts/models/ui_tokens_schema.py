@@ -142,6 +142,18 @@ class UiWindowTokens(BaseModel):
         ge=0.0,
         le=0.9,
     )
+    invention_icon_px: int | None = Field(
+        None,
+        description="Size of an invention's icon before its name (A1603): its painted picture, else stripes in the kit colours of its plan. Omitted = 24.",
+        ge=12,
+        le=96,
+    )
+    invention_icon_colors: int | None = Field(
+        None,
+        description='How many kit colours the stand-in icon of an invention without a painted picture shows at most, the largest share first (A1603). Omitted = 3.',
+        ge=1,
+        le=8,
+    )
     faded_alpha: float | None = Field(
         None,
         description='Opacity of a card value shown greyed - a need an invention brought that has run empty (A1595); 1 = not greyed. Omitted = 0.5.',
