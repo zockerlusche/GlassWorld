@@ -491,8 +491,8 @@ def test_v5_speaks_of_today_at_night_and_of_now_by_day(settings: Settings) -> No
     vocab = _vocab(settings)
     night = template.render(build_values(JOB, template, vocab, night=True))
     day = template.render(build_values(JOB, template, vocab, night=False))
-    assert "## What you noticed about it today" in night.user
-    assert "while it sleeps, the day is thought over" in night.system
+    assert "## What you noticed about it\n" in night.user
+    assert "Recently this person did not understand" in night.system  # may be more than a night ago
     assert "on waking in the morning" in night.system
     assert "## What you notice about it right now" in day.user
     assert "Right now this person does not understand something" in day.system
