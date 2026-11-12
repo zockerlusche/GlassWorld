@@ -91,6 +91,38 @@
       "text": "Winter"
     },
     {
+      "key": "ui.card.need.hunger",
+      "text": "Satt"
+    },
+    {
+      "key": "ui.card.need.thirst",
+      "text": "Getrunken"
+    },
+    {
+      "key": "ui.card.need.sleep",
+      "text": "Ausgeruht"
+    },
+    {
+      "key": "ui.card.need.warmth",
+      "text": "Warm"
+    },
+    {
+      "key": "ui.card.need.safety",
+      "text": "Sicher"
+    },
+    {
+      "key": "ui.card.need.company",
+      "text": "Gesellschaft"
+    },
+    {
+      "key": "ui.card.need.fun",
+      "text": "Spaß"
+    },
+    {
+      "key": "ui.card.need.purpose",
+      "text": "Sinn"
+    },
+    {
       "key": "ui.card.character",
       "text": "Charakter"
     },
@@ -1161,6 +1193,18 @@
     {
       "key": "vocab.guard_reason.off_want",
       "text": "Hilft nicht beim Wunsch"
+    },
+    {
+      "key": "vocab.voice_kind.naming",
+      "text": "Benennt etwas"
+    },
+    {
+      "key": "vocab.voice_kind.praise",
+      "text": "Lob"
+    },
+    {
+      "key": "vocab.voice_kind.other",
+      "text": "Anderes"
     },
     {
       "key": "msg.command.no_favor",

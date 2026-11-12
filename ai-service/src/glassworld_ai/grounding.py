@@ -90,14 +90,24 @@ def known_words(
     return words
 
 
-def unknown_nouns(text: str, words: set[str]) -> list[str]:
-    """Capitalised words inside a sentence that name nothing the inhabitant may name."""
+def unknown_nouns(
+    text: str, words: set[str], heads: bool = False, only: set[str] | None = None
+) -> list[str]:
+    """Capitalised words inside a sentence that name nothing the inhabitant may name. With
+    `heads` a word counts as known only as itself, as a compound containing a known word, or as
+    the head of a known compound ('Stein' for 'Feuerstein') - never as its first part ('Feuer'
+    for 'Feuerstein', W1937)."""
     found: list[str] = []
     start = True
     for match in re.finditer(r"\S+", text):
         token = match.group(0)
         for word in _WORD.findall(token):
-            if not start and word[:1].isupper() and not _known(word, words):
+            if (
+                not start
+                and word[:1].isupper()
+                and (only is None or _stem(word) in only)
+                and not _known(word, words, heads)
+            ):
                 found.append(word)
             start = False
         if _SENTENCE_END.search(token):
@@ -105,9 +115,73 @@ def unknown_nouns(text: str, words: set[str]) -> list[str]:
     return found
 
 
-def _known(word: str, words: set[str]) -> bool:
+def _known(word: str, words: set[str], heads: bool = False) -> bool:
     stem = _stem(word)
+    if heads:
+        return any(
+            stem == w or (len(w) >= 4 and w in stem) or (len(stem) >= 4 and w.endswith(stem))
+            for w in words
+        )
     return any(stem == w or (len(w) >= 4 and (w in stem or stem in w)) for w in words)
+
+
+_NAME_KEYS = frozenset({"name", "called", "own_name", "text", "summary", "label"})
+
+
+def world_things(texts: TextCatalog | None, locale: str) -> set[str]:
+    """Stems of the words in the names of every kind of thing of this world (content texts
+    vocab.object.*): 'Rote Beere' gives 'rot' and 'beere'. A thought's noun is judged only when it
+    is one of them (A1613): a thing of this world the inhabitant does not know is a leak of
+    knowledge; a wish for something the world does not have, or an abstract word, is not."""
+    if texts is None:
+        return set()
+    return {
+        _stem(w)
+        for key, text in texts.texts.get(locale, {}).items()
+        if key.startswith("vocab.object.")
+        for w in _WORD.findall(text)
+        if len(w) >= 3
+    }
+
+
+def request_words(
+    data: object, texts: TextCatalog | None, locale: str, general: Iterable[str]
+) -> set[str]:
+    """Stems of everything a decision request lets the inhabitant name (TL #22567, W1937): every
+    kind of thing the request mentions (seen, known, an option's target or topic, a building) by
+    its name in the player's language, every name it carries (own names of made things, people,
+    itself), the words of its memory, the world's general words (needs, moods, weather ...) and
+    the prompt's general words. Walks the request as JSON, so a new field is covered too."""
+    words: set[str] = set()
+
+    def add(text: str) -> None:
+        words.update(_stem(w) for w in _WORD.findall(text))
+
+    def walk(node: object, key: str = "") -> None:
+        if isinstance(node, dict):
+            table = cast(dict[str, object], node)
+            if set(table) >= {"de", "en"} and isinstance(table.get(locale), str):
+                add(str(table[locale]))  # a name in both languages
+            for k, v in table.items():
+                walk(v, k)
+        elif isinstance(node, list):
+            for v in cast(list[object], node):
+                walk(v, key)
+        elif isinstance(node, str):
+            thing = texts.thing(locale, node) if texts is not None else None
+            if thing:
+                add(thing)  # a kind of thing by its name
+            elif key in _NAME_KEYS:
+                add(node)
+
+    walk(data)
+    if texts is not None:
+        for key, text in texts.texts.get(locale, {}).items():
+            if key.startswith(tuple(f"vocab.{kind}." for kind in GENERAL_KINDS)):
+                add(text)
+    for g in general:
+        add(g)
+    return words
 
 
 def settings_words(settings: dict[str, Any], key: str, locale: str) -> list[str]:

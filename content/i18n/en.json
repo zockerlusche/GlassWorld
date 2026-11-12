@@ -91,6 +91,38 @@
       "text": "Winter"
     },
     {
+      "key": "ui.card.need.hunger",
+      "text": "Fed"
+    },
+    {
+      "key": "ui.card.need.thirst",
+      "text": "Watered"
+    },
+    {
+      "key": "ui.card.need.sleep",
+      "text": "Rested"
+    },
+    {
+      "key": "ui.card.need.warmth",
+      "text": "Warm"
+    },
+    {
+      "key": "ui.card.need.safety",
+      "text": "Safe"
+    },
+    {
+      "key": "ui.card.need.company",
+      "text": "Company"
+    },
+    {
+      "key": "ui.card.need.fun",
+      "text": "Fun"
+    },
+    {
+      "key": "ui.card.need.purpose",
+      "text": "Purpose"
+    },
+    {
       "key": "ui.card.character",
       "text": "Character"
     },
@@ -1161,6 +1193,18 @@
     {
       "key": "vocab.guard_reason.off_want",
       "text": "Does not help with the wish"
+    },
+    {
+      "key": "vocab.voice_kind.naming",
+      "text": "Names something"
+    },
+    {
+      "key": "vocab.voice_kind.praise",
+      "text": "Praise"
+    },
+    {
+      "key": "vocab.voice_kind.other",
+      "text": "Other"
     },
     {
       "key": "msg.command.no_favor",

@@ -625,6 +625,11 @@ public partial class Main
             {
                 _screen!.ShowZonesForShots(zones);
                 await Take($"10_{tag}_spiel");
+
+                // The hint area with two hints stands wholly inside the picture (W1934).
+                _screen.ShowHintsForShots(true);
+                await Take($"10_{tag}_hinweise");
+                _screen.ShowHintsForShots(false);
                 foreach (var key in GameScreen.PanelKeysForShots(zones))
                 {
                     _screen.OpenPanelForShots(key);
