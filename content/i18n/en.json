@@ -2167,18 +2167,6 @@
       "text": "Off for now - these sounds are being remade."
     },
     {
-      "key": "msg.converse.reply",
-      "text": "Hm, yes."
-    },
-    {
-      "key": "msg.converse.not_understood",
-      "text": "Hm? I don't understand."
-    },
-    {
-      "key": "msg.converse.decline",
-      "text": "No, I'd rather not."
-    },
-    {
       "key": "msg.converse.no_answer",
       "text": "Hm ... I have to think about that."
     },
