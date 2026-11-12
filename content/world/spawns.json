@@ -1,5 +1,7 @@
 {
   "contract_version": "0.2",
+  "scatter_cells": 2,
+  "min_per_rule": 1,
   "spawns": [
     {
       "biome": "beach_sea",

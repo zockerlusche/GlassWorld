@@ -189,7 +189,10 @@ public static partial class WorldGenerator
             check.Add(dryGround);
         }
 
-        var passed = starts.Count == preset.Start.Pairs * 2 && check.All(c => c.Passed || c.ReportOnly) && Connected(map, starts) && present.All(p => p);
+        // The biomes an island must have are data (D763 Z9, TL #22107; today every biome of the table).
+        var presentIds = biomeIds.Where((_, k) => present[k]).ToHashSet(StringComparer.Ordinal);
+        var required = content.Biomes.RequiredBiomes.All(presentIds.Contains);
+        var passed = starts.Count == preset.Start.Pairs * 2 && check.All(c => c.Passed || c.ReportOnly) && Connected(map, starts) && required;
         objects.Sort((a, b) => (a.Z, a.X, string.CompareOrdinal(a.TypeId, b.TypeId)).CompareTo((b.Z, b.X, 0)));
         return new GeneratedIsland(preset.Id, preset.GeneratorVersion, seed, attempt, passed, map, objects, starts, neighbours, check, cliffs);
     }
@@ -1037,7 +1040,7 @@ public static partial class WorldGenerator
             }
 
             var allowed = cells.ToHashSet();
-            var target = Math.Min(rule.MaxTotal, Math.Max(rule.Per1000Cells > 0 ? 1 : 0, cells.Count * rule.Per1000Cells / 1000));
+            var target = Math.Min(rule.MaxTotal, Math.Max(rule.Per1000Cells > 0 ? spawns.MinPerRule : 0, cells.Count * rule.Per1000Cells / 1000));
             var placed = 0;
             for (var guard = 0; placed < target && guard < target * 20; guard++)
             {
@@ -1045,7 +1048,7 @@ public static partial class WorldGenerator
                 var size = rng.NextInt(rule.Cluster.Min, rule.Cluster.Max + 1);
                 for (var k = 0; k < size && placed < target; k++)
                 {
-                    int x = cx + rng.NextInt(-2, 3), z = cz + rng.NextInt(-2, 3);
+                    int x = cx + rng.NextInt(-spawns.ScatterCells, spawns.ScatterCells + 1), z = cz + rng.NextInt(-spawns.ScatterCells, spawns.ScatterCells + 1);
                     if (!map.Contains(x, z) || taken.Contains((x, z)))
                     {
                         continue;
@@ -1153,7 +1156,7 @@ public static partial class WorldGenerator
         // Version 5 only: the partner stands within two cells, or as far as the personal space needs on a
         // finer grid, and at least the personal space away.
         var cellCm = preset.Grid.CellSizeCm;
-        var partnerReach = Math.Max(2, ((separationCm + cellCm - 1) / cellCm) + 1);
+        var partnerReach = Math.Max(preset.Start.PartnerWithinCells, ((separationCm + cellCm - 1) / cellCm) + 1);
         bool Apart((int X, int Z) a, (int X, int Z) b) =>
             a != b && (long)(Sq(a.X - b.X) + Sq(a.Z - b.Z)) * cellCm * cellCm >= (long)separationCm * separationCm;
 
@@ -1183,7 +1186,7 @@ public static partial class WorldGenerator
             var anchor = options[rng.NextInt(0, options.Count)];
             var partner = Feasible(ground is not null
                 ? [.. Partners(anchor)]
-                : beach.Where(b => b != anchor && Math.Abs(b.X - anchor.X) <= 2 && Math.Abs(b.Z - anchor.Z) <= 2).ToList());
+                : beach.Where(b => b != anchor && Math.Abs(b.X - anchor.X) <= preset.Start.PartnerWithinCells && Math.Abs(b.Z - anchor.Z) <= preset.Start.PartnerWithinCells).ToList());
             if (partner.Count == 0)
             {
                 continue;

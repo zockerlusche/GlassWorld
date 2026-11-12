@@ -8,6 +8,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from . import common_schema
+
 
 class Water(StrEnum):
     none = 'none'
@@ -113,4 +115,9 @@ class BiomeTable(BaseModel):
         description='Ordered rules; the first match decides.',
         max_length=256,
         min_length=1,
+    )
+    required_biomes: list[common_schema.VocabId] = Field(
+        ...,
+        description='D763 Z9 (TL #22107): the biomes every generated island must have; an attempt without one of them fails and the next derived seed is tried. Each id must be one of biomes. A biome added to the table later is NOT required by itself - add it here if every island must have it (review GW2 #307).',
+        min_length=0,
     )

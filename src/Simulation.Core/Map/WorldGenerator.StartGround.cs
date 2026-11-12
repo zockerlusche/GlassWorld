@@ -81,7 +81,7 @@ public static partial class WorldGenerator
         ArgumentNullException.ThrowIfNull(preset);
         ArgumentNullException.ThrowIfNull(map);
         return map.Contains(x, z) && map.Cell(x, z) is { Water: WaterKind.None } cell && cell.WalkCost != MapCell.Blocked
-            && map.BiomeIds[cell.Biome] == preset.Start.Biome && NearSalt(map, x, z, 3);
+            && map.BiomeIds[cell.Biome] == preset.Start.Biome && NearSalt(map, x, z, preset.Start.BeachWithinSeaCells);
     }
 
     /// <summary>
