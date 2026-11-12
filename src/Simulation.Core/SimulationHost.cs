@@ -38,6 +38,7 @@ public sealed class SimulationHost
     {
         Writing = writing;
         Skills = skills;
+        Needs = inhabitants.RuntimeNeeds!;
         Mailbox = mailbox;
         Map = map;
         Player = player;
@@ -84,6 +85,9 @@ public sealed class SimulationHost
 
     /// <summary>Skills the world knows (B4b R11, B5 R18).</summary>
     public SkillRegister Skills { get; }
+
+    /// <summary>Needs inventions brought (A1372).</summary>
+    public NeedRegister Needs { get; }
 
     /// <summary>Objects.</summary>
     public WorldObjects Objects { get; }
@@ -321,11 +325,23 @@ public sealed class SimulationHost
         var skillLevels = new SkillLevelsSystem(content.SkillLevels, skills, world.Seed, world.Calendar.TicksPerDay);
         inhabitants.Reported += skillLevels.Observe;
 
+        // New needs of an approved invention (A1372, TL B2658): bound to its type, gained on first use.
+        var needs = new NeedRegister(content.InhabitantModel.Needs, content.InhabitantModel.NeedRules, world.Calendar.TicksPerDay);
+        inhabitants.RuntimeNeeds = needs;
+
         // New skills of an approved invention enter the register right away (refused ones are dropped, the invention stays).
         inhabitants.Reported += e =>
         {
             if (e.Kind == InventionSystem.Invented && e.TargetId is { } typeId)
             {
+                foreach (var need in inventions.NeedsOf(typeId))
+                {
+                    if (needs.Add(need, typeId) is { } refused)
+                    {
+                        inhabitants.Report(new WorldEvent(NeedRegister.NeedRefused, e.Tick, e.InhabitantId, null, typeId) { Detail = refused });
+                    }
+                }
+
                 foreach (var ability in inventions.AbilitiesOf(typeId))
                 {
                     if (skills.Add(ability, typeId) is { } reason)
@@ -370,7 +386,7 @@ public sealed class SimulationHost
         }
 
         // The night jobs right after the inventions: both stay out of the hash while they hold nothing.
-        world.Add(player).Add(inventions).Add(nightJobs).Add(chronicle).Add(writing).Add(skills).Add(skillLevels).Add(mailbox).Add(favourites).Add(conversation).Add(lookEpoch);
+        world.Add(player).Add(inventions).Add(nightJobs).Add(chronicle).Add(writing).Add(skills).Add(needs).Add(skillLevels).Add(mailbox).Add(favourites).Add(conversation).Add(lookEpoch);
         var host = new SimulationHost(content, world, map, types, objects, decisions, inhabitants, player, inventions, chronicle, settings, writing, skills, mailbox)
         {
             WeatherSystem = weather,
@@ -387,6 +403,9 @@ public sealed class SimulationHost
 
         // The player's language (#20043): a logged command, so replays ask in the same language at the same tick.
         decisions.RegisterCommand(DecisionsSystem.SetDisplayLocale, CheckDisplayLocale, (_, command) => host.UseDisplayLocale(command.Text!));
+
+        // Learning by day as well (B2652, A1568): a logged command, so a replay switches at the same tick.
+        decisions.RegisterCommand(DecisionsSystem.SetLearnByDay, CheckLearnByDay, (_, command) => decisions.LearnByDay = command.Text == DecisionsSystem.LearnByDayOn);
         return host;
     }
 
@@ -394,13 +413,14 @@ public sealed class SimulationHost
     public string DisplayLocale => Decisions.DisplayLocale;
 
     /// <summary>
-    /// After a restore: the language the saved log ends with (the last <see cref="DecisionsSystem.SetDisplayLocale"/>,
+    /// After a restore: the player's settings the saved log ends with - the language (the last <see cref="DecisionsSystem.SetDisplayLocale"/>,
     /// else <see cref="DecisionsSystem.DefaultDisplayLocale"/>), so the world goes on as it was saved. A
-    /// different player language then follows as a logged command.
+    /// different player language then follows as a logged command. The same for the switch 'learn by day as well'
+    /// (the last <see cref="DecisionsSystem.SetLearnByDay"/>, off without one).
     /// </summary>
     /// <remarks>Relies on the full command log: trimming or compacting the decision log must keep the
     /// <see cref="DecisionsSystem.SetDisplayLocale"/> commands (SaveGameTests pin this through a save file).</remarks>
-    internal void UseLoggedDisplayLocale()
+    internal void UseLoggedPlayerSettings()
     {
         var locale = DecisionsSystem.DefaultDisplayLocale;
         foreach (var entry in Decisions.Log.Entries)
@@ -413,6 +433,19 @@ public sealed class SimulationHost
         }
 
         UseDisplayLocale(locale);
+
+        // The switch 'learn by day as well' the same way (A1568): the last logged one counts, off without any.
+        var learnByDay = false;
+        foreach (var entry in Decisions.Log.Entries)
+        {
+            if (entry.Kind == DecisionLogKind.Command && entry.Json.Contains(DecisionsSystem.SetLearnByDay, StringComparison.Ordinal)
+                && System.Text.Json.JsonSerializer.Deserialize<PlayerCommand>(entry.Json) is { Kind: DecisionsSystem.SetLearnByDay, Text: { } text })
+            {
+                learnByDay = text == DecisionsSystem.LearnByDayOn;
+            }
+        }
+
+        Decisions.LearnByDay = learnByDay;
     }
 
     /// <summary>
@@ -433,6 +466,11 @@ public sealed class SimulationHost
             }
         }
     }
+
+    private static CommandResult CheckLearnByDay(PlayerCommand command) =>
+        command.Text is DecisionsSystem.LearnByDayOn or DecisionsSystem.LearnByDayOff
+            ? new CommandResult(true, null)
+            : new CommandResult(false, DecisionsSystem.ReasonUnknownCommand);
 
     private static CommandResult CheckDisplayLocale(PlayerCommand command) =>
         Enum.GetValues<Locale>().Any(l => string.Equals(l.ToString().ToLowerInvariant(), command.Text, StringComparison.Ordinal))

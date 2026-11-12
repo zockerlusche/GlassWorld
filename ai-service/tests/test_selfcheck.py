@@ -12,8 +12,9 @@ from fastapi import FastAPI
 from conftest import TOKEN, get, make_app, post
 from glassworld_ai.config import Settings
 from glassworld_ai.diagnostics import scrub
-from glassworld_ai.selfcheck import all_keys, self_check
+from glassworld_ai.selfcheck import all_keys, learn_by_day, self_check
 from glassworld_ai.validation import ContractValidator
+from glassworld_contracts.models.hardware_tiers_schema import HardwareTiers
 
 REPO = Path(__file__).resolve().parents[2]
 VALIDATOR = ContractValidator(REPO / "contracts" / "schemas")
@@ -130,6 +131,36 @@ def test_setup_check_answers_with_the_contract(settings: Settings, tmp_path: Pat
     checks = _by_ai(response.json())
     assert set(checks) == {"language", "image", "sound"}
     assert checks["language"]["state"] in {"problem", "preparing"}  # no Ollama in the test
+    learn = response.json()["learn_by_day"]  # A1568: always answered, never offered without data
+    assert learn["hint_key"] == "msg.selfcheck.learn_by_day.hint"
+    assert learn["message_key"] == f"msg.selfcheck.learn_by_day.{learn['reason']}"
+
+
+TIERS = HardwareTiers.model_validate(
+    json.loads((REPO / "content/hardware/tiers.json").read_text(encoding="utf-8"))
+)
+
+
+@pytest.mark.parametrize(
+    ("tier", "seconds", "offered", "reason"),
+    [
+        (None, 1.0, False, "tier"),  # below the minimum tier
+        ("minimum", 1.0, False, "tier"),
+        ("standard", None, False, "not_measured"),
+        ("standard", 3.4, False, "too_slow"),
+        ("standard", 1.6, True, "ok"),
+        ("comfort", None, True, "ok"),  # no measured condition on this tier
+    ],
+)
+def test_the_learn_by_day_switch_is_offered_by_tier_and_measured_speed(
+    tier: str | None, seconds: float | None, offered: bool, reason: str
+) -> None:
+    """B2652 (A1568): by default everything new is learned at night; the switch is offered only
+    where the data say the PC is strong enough (values set by the TL, #21854)."""
+    learn = learn_by_day(TIERS, tier, seconds)
+    assert (learn["offered"], learn["reason"]) == (offered, reason)
+    check = self_check({"state": "running"}, _models(), tier, "done", learn)
+    assert ContractValidator(REPO / "contracts" / "schemas").errors("self-check", check) == []
 
 
 def test_the_diagnostics_report_hides_tokens_and_user_paths(

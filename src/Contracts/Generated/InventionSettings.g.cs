@@ -98,6 +98,13 @@ namespace GlassWorld.Contracts
         public InventionLimitSettings Limits { get; set; } = new InventionLimitSettings();
 
         /// <summary>
+        /// Youth protection for inventions (B4b R16, B2481): what an invention, a new need or a new ability must not be - a weapon, a trap, hunting or fishing gear, poison. A name holding one of these terms is refused by the core whatever the AI guard said (reason forbidden_purpose). Per language; a term matches a whole word, * at its start lets the word begin otherwise (German compounds: *falle matches Tierfalle), * at its end lets it go on (jagd* matches Jagdspeer). Kept apart from the content guard of all AI text, so a thought may still name a spear. Omitted = no such check.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("forbidden_terms")]
+        public ForbiddenTerms? ForbiddenTerms { get; set; } = default!;
+
+        /// <summary>
         /// At most this many perceived things are sent as materials (contract maximum 16).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("max_materials")]
@@ -114,6 +121,18 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("living_properties")]
         public System.Collections.Generic.ICollection<string> LivingProperties { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ForbiddenTerms
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("de")]
+        public System.Collections.Generic.ICollection<string> De { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("en")]
+        public System.Collections.Generic.ICollection<string> En { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
     }
 }

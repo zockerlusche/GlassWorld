@@ -13,6 +13,31 @@ namespace GlassWorld.Contracts
     #pragma warning disable // Disable all warnings
 
     /// <summary>
+    /// How the routine weighs a need an invention brought (A1372, TL B2658): the need's urgency (weight x curve of its value) for using a thing of the invention's type in sight with the need's first action that has timing. Only things in sight, no search. Omitted = the routine never seeks such a need.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class RuntimeNeedConsideration
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("weight")]
+        public double Weight { get; set; } = default!;
+
+        /// <summary>
+        /// Points [x, y] with ascending x in 0..1.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("curve")]
+        public System.Collections.Generic.ICollection<System.Collections.Generic.ICollection<double>> Curve { get; set; } = new System.Collections.ObjectModel.Collection<System.Collections.Generic.ICollection<double>>();
+
+        /// <summary>
+        /// The score yields to pressing needs, as for a consideration.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("yields_to_needs")]
+        public bool? YieldsToNeeds { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// Ends repeating without effect (W1696): when an inhabitant does the same action on the same target at about the same spot this many times in a row and none of them changed a need, mood, belief or relation by at least min_effect, the action rests for a while; it is neither chosen nor offered to the decider, and an answer still waiting for it is dropped. Optional: without it nothing rests.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -188,6 +213,10 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("considerations")]
         public System.Collections.Generic.ICollection<Consideration> Considerations { get; set; } = new System.Collections.ObjectModel.Collection<Consideration>();
+
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("runtime_need")]
+        public RuntimeNeedConsideration? RuntimeNeed { get; set; } = default!;
 
     }
 

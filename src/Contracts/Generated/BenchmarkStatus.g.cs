@@ -42,6 +42,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("value")]
         public double Value { get; set; } = default!;
 
+        /// <summary>
+        /// Only on a need an invention brought (A1372): its name in both languages from the core's need register, because the vocabulary has no entry for it. Absent for vocabulary needs, moods and traits (i18n key vocab.&lt;kind&gt;.&lt;id&gt;), and from an older core.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("label")]
+        public LocalizedName? Label { get; set; } = default!;
+
     }
 
     /// <summary>

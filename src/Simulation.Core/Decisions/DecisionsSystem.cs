@@ -81,6 +81,12 @@ public sealed class DecisionsSystem : IWorldSystem
     public bool NightAnswers { get; init; }
 
     /// <summary>
+    /// The player's switch 'learn by day as well' (B2652): while on, no trigger waits for the night. Set only by
+    /// the logged command <see cref="SetLearnByDay"/> (and on restore from the log).
+    /// </summary>
+    public bool LearnByDay { get; internal set; }
+
+    /// <summary>
     /// Whether the compute night can answer questions of a trigger at all: it guesses about object types, so
     /// only a trigger whose questions are about a type qualifies (checked when the world is assembled).
     /// </summary>
@@ -142,6 +148,20 @@ public sealed class DecisionsSystem : IWorldSystem
     /// #20043 asked in it, so replays and restores start with it.
     /// </summary>
     public const string DefaultDisplayLocale = "de";
+
+    /// <summary>
+    /// Player command (B2652, A1568, the switch 'learn by day as well'): Text <c>on</c> or <c>off</c>. While on,
+    /// questions of triggers that ask at night (<c>ask: night</c>) go to the decider at once, like any other; a
+    /// question already waiting for the night goes out the next tick. Logged like every command, so a replay
+    /// switches at the same tick; after a restore the last logged switch counts (as for the language).
+    /// </summary>
+    public const string SetLearnByDay = "set_learn_by_day";
+
+    /// <summary>Text of <see cref="SetLearnByDay"/> that switches learning by day on.</summary>
+    public const string LearnByDayOn = "on";
+
+    /// <summary>Text of <see cref="SetLearnByDay"/> that switches it off (the default: new things are learned at night).</summary>
+    public const string LearnByDayOff = "off";
 
     /// <summary>
     /// Detail of <c>question_failed</c> for a question that was held back (A1487) and never asked: when its
@@ -578,7 +598,7 @@ public sealed class DecisionsSystem : IWorldSystem
     /// going to the decider now. Omitted or immediate = now, as before.
     /// </summary>
     private bool WaitsForNight(string kind) =>
-        NightAnswers && _settings.Triggers.Any(t => t.Enabled && t.Ask == TriggerAsk.Night && string.Equals(t.Kind.ToString(), kind, StringComparison.OrdinalIgnoreCase));
+        NightAnswers && !LearnByDay && _settings.Triggers.Any(t => t.Enabled && t.Ask == TriggerAsk.Night && string.Equals(t.Kind.ToString(), kind, StringComparison.OrdinalIgnoreCase));
 
     /// <summary>
     /// A1487: whether a question of this trigger goes out even while its inhabitant is busy (data: interrupts).
@@ -1155,7 +1175,7 @@ public sealed class DecisionsSystem : IWorldSystem
             Seed = seed,
             DeadlineMs = _settings.DeadlineMs,
             DisplayLocale = Enum.Parse<Locale>(_displayLocale, ignoreCase: true),
-            Inhabitant = InhabitantStates.Of(inhabitant, Knowledge, things.Select(o => o.TypeId), others.Select(i => i.Id), _inhabitants.LabelOf, _inhabitants.TypeLabelOf),
+            Inhabitant = InhabitantStates.Of(inhabitant, Knowledge, things.Select(o => o.TypeId), others.Select(i => i.Id), _inhabitants.LabelOf, _inhabitants.TypeLabelOf, _inhabitants.NeedLabelOf),
             Environment = new EnvironmentState
             {
                 TimeOfDay = world.Now.Phase.ToString().ToLowerInvariant(),

@@ -110,7 +110,7 @@ def summarize(rows: list[dict[str, Any]], cap: float) -> tuple[bool, list[str]]:
     return len(ok) == len(rows) and not person, lines
 
 
-async def run(out: Path, runs: int) -> list[dict[str, Any]]:
+async def run(out: Path, runs: int, night: bool = False) -> list[dict[str, Any]]:
     import httpx  # the service is imported only for a real run, so the tests need no settings
 
     from glassworld_ai.calllog import CallLog
@@ -146,6 +146,7 @@ async def run(out: Path, runs: int) -> list[dict[str, Any]]:
                     call_timeout_s=settings.question_call_timeout_s,
                 ),
                 log=CallLog(out / "questions.jsonl"),
+                is_night=lambda: night,  # v5 (B2652): asked in the computing night
             )
             for index in range(runs):
                 for case in CASES:
@@ -175,6 +176,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", type=Path, required=True, help="folder outside the repository")
     parser.add_argument("--runs", type=int, default=5)
     parser.add_argument(
+        "--night", action="store_true", help="ask as in the computing night (question v5, B2652)"
+    )
+    parser.add_argument(
         "--gpu-queue", action="store_true", help="required: this is a GPU-queue run"
     )
     options = parser.parse_args(argv)
@@ -187,7 +191,7 @@ def main(argv: list[str] | None = None) -> int:
         out.rename(archive_name(out))  # rule PR4: an earlier run is kept, never overwritten
     out.mkdir(parents=True)
     (out / MARKER).write_text("made by tools/testsets/measure_questions.py", encoding="utf-8")
-    rows = asyncio.run(run(out, options.runs))
+    rows = asyncio.run(run(out, options.runs, options.night))
     (out / "questions.json").write_text(
         json.dumps(rows, ensure_ascii=False, indent=2), encoding="utf-8"
     )
