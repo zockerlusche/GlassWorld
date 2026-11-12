@@ -60,19 +60,6 @@ class Locale(StrEnum):
     en = 'en'
 
 
-class LevelEntry(BaseModel):
-    model_config = ConfigDict(
-        extra='forbid',
-    )
-    id: str = Field(
-        ...,
-        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
-        max_length=64,
-        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
-    )
-    value: float = Field(..., ge=0.0, le=1.0)
-
-
 class KnownProperty(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -461,6 +448,23 @@ type ProperName = Annotated[
         pattern='^[A-Z][a-z]{1,15}$',
     ),
 ]
+
+
+class LevelEntry(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    id: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    value: float = Field(..., ge=0.0, le=1.0)
+    label: LocalizedName | None = Field(
+        None,
+        description="Only on a need an invention brought (A1372): its name in both languages from the core's need register, because the vocabulary has no entry for it. Absent for vocabulary needs, moods and traits (i18n key vocab.<kind>.<id>), and from an older core.",
+    )
 
 
 class KnowledgeEntry(BaseModel):

@@ -357,6 +357,11 @@ public static class SaveGameStore
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("skills", JsonSerializer.Serialize(s.Skills, Json)));
         }
 
+        if (s.Needs is not null)
+        {
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("needs", JsonSerializer.Serialize(s.Needs, Json)));
+        }
+
         if (s.Mailbox is not null)
         {
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("mailbox", JsonSerializer.Serialize(s.Mailbox, Json)));
@@ -441,7 +446,7 @@ public static class SaveGameStore
         }
 
         // The whole log is saved, never trimmed: replays need every entry, and a restore takes the request
-        // language from the last set_display_locale command in it (SimulationHost.UseLoggedDisplayLocale).
+        // language from the last set_display_locale command in it (SimulationHost.UseLoggedPlayerSettings).
         // Any future trimming or compaction must keep the set_display_locale commands (#20043).
         var seq = 0;
         foreach (var e in s.DecisionLog)
@@ -626,6 +631,7 @@ public static class SaveGameStore
             LookEpoch = meta.GetValueOrDefault("look_epoch"),
             Exploration = ReadExploration(c),
             Skills = meta.TryGetValue("skills", out var skills) ? JsonSerializer.Deserialize<Simulation.Inhabitants.SkillRegisterState>(skills, Json) : null,
+            Needs = meta.TryGetValue("needs", out var needs) ? JsonSerializer.Deserialize<Simulation.Inhabitants.NeedRegisterState>(needs, Json) : null,
             Mailbox = meta.TryGetValue("mailbox", out var mailbox) ? JsonSerializer.Deserialize<Simulation.Player.MailboxState>(mailbox, Json) : null,
             Favourites = meta.TryGetValue("favourites", out var favourites) ? JsonSerializer.Deserialize<Simulation.Player.FavouritesState>(favourites, Json) : null,
             NamesSaved = meta.ContainsKey("names"),

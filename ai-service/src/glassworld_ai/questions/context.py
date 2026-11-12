@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import re
 from string import Template
-from typing import Any
+from typing import Any, cast
 
 from glassworld_ai.prompts import PromptTemplate
 from glassworld_ai.vocabulary import Vocabulary
@@ -48,7 +48,21 @@ def _unname(text: str, subject_id: str, instead: str) -> str:
     return re.sub(pattern, instead, text, flags=re.IGNORECASE)
 
 
-def build_values(job: GenerationJob, template: PromptTemplate, vocab: Vocabulary) -> dict[str, str]:
+def _moment(settings: dict[str, Any], night: bool) -> dict[str, str]:
+    """v5 (B2652): the words for the moment of the question, from [settings.moment.night|day].
+    Older versions have no such table and get nothing."""
+    raw: object = settings.get("moment")
+    if not isinstance(raw, dict):
+        return {}
+    part: object = cast(dict[str, object], raw).get("night" if night else "day")
+    if not isinstance(part, dict):
+        raise ContextError("prompt setting moment needs a night and a day table")
+    return {str(k): str(v) for k, v in cast(dict[object, object], part).items()}
+
+
+def build_values(
+    job: GenerationJob, template: PromptTemplate, vocab: Vocabulary, night: bool = False
+) -> dict[str, str]:
     """Values for every placeholder of the question prompt."""
     settings = template.settings
     payload = question_payload(job)
@@ -126,6 +140,7 @@ def build_values(job: GenerationJob, template: PromptTemplate, vocab: Vocabulary
             return humanize(p)
         return vocab_line(vocab, "property", p)
 
+    moment = _moment(settings, night)
     values = {
         "question": Template(question_text).safe_substitute(
             subject=unnamed or subject_name(payload.subject, settings)
@@ -157,6 +172,7 @@ def build_values(job: GenerationJob, template: PromptTemplate, vocab: Vocabulary
         "actions": ", ".join(vocab.ids("action")) or "(none)",
         "max_guesses": str(max_guesses),
         "thought_language": language,
+        **moment,
     }
     made: object = settings.get("made_thing")
     if isinstance(made, str):

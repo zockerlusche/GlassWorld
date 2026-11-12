@@ -7,6 +7,7 @@ JobFailedError with a ServiceError code. A handler never invents an answer when 
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import ClassVar
 
 from glassworld_ai.calllog import CallLog
@@ -77,16 +78,20 @@ class OllamaQuestions:
         vocab: Vocabulary,
         settings: ModelCallSettings,
         log: CallLog,
+        is_night: Callable[[], bool] = lambda: False,
     ) -> None:
         self._client = client
         self._queue = queue
+        self._is_night = is_night  # v5: the service's phase (B2652)
         self._template = template
         self._vocab = vocab
         self._settings = settings
         self._log = log
 
     async def __call__(self, job: GenerationJob) -> JobOutcome:
-        rendered = self._template.render(build_values(job, self._template, self._vocab))
+        rendered = self._template.render(
+            build_values(job, self._template, self._vocab, self._is_night())
+        )
         schema = _schema(self._template, self._vocab, job)
         hidden = _hidden_ids(job)
         answer = await ask_model(

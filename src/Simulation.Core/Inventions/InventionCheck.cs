@@ -85,6 +85,9 @@ public static class InventionCheck
     /// <summary>A name did not pass the content guard.</summary>
     public const string NameNotAllowed = "name_not_allowed";
 
+    /// <summary>A name names a weapon, a trap, hunting or fishing gear or poison (B4b R16, B2481; data forbidden_terms).</summary>
+    public const string ForbiddenPurpose = "forbidden_purpose";
+
     /// <summary>A new need or ability names an action that is not in the vocabulary.</summary>
     public const string UnknownAction = "unknown_action";
 
@@ -158,6 +161,15 @@ public static class InventionCheck
             reasons.Add(NameNotAllowed);
         }
 
+        // R16: the core refuses what is a weapon, a trap, hunting gear or poison, whatever the AI guard said.
+        var named = new List<(string De, string En)> { (invention.Name.De, invention.Name.En) };
+        named.AddRange((invention.IntroducesNeeds ?? []).Select(n => (n.NameDe, n.NameEn)));
+        named.AddRange((invention.IntroducesAbilities ?? []).Select(a => (a.NameDe, a.NameEn)));
+        if (settings.ForbiddenTerms is { } forbidden && named.Any(n => Holds(n.De, forbidden.De) || Holds(n.En, forbidden.En)))
+        {
+            reasons.Add(ForbiddenPurpose);
+        }
+
         // New needs and abilities (B4b R11): stored now, created in the core later; their actions must be
         // vocabulary and their names pass the content guard like the invention's name.
         var additions = (invention.IntroducesNeeds ?? []).Select(n => (n.NameDe, n.NameEn, n.Actions))
@@ -175,7 +187,40 @@ public static class InventionCheck
             }
         }
 
-        return [.. reasons];
+        return [.. reasons.Distinct(StringComparer.Ordinal)];
+    }
+
+    /// <summary>
+    /// Whether a name holds one of the terms: per word of the name (letters only, lower case), a term matches the
+    /// whole word; a leading <c>*</c> lets the word begin otherwise, a trailing <c>*</c> lets it go on.
+    /// </summary>
+    public static bool Holds(string name, IEnumerable<string> terms)
+    {
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(terms);
+        var words = System.Text.RegularExpressions.Regex.Split(name.ToLowerInvariant(), @"[^\p{L}]+").Where(w => w.Length > 0).ToList();
+        foreach (var term in terms)
+        {
+            var stem = term.Trim('*');
+            var anyStart = term.StartsWith('*');
+            var anyEnd = term.EndsWith('*');
+            foreach (var word in words)
+            {
+                var hit = (anyStart, anyEnd) switch
+                {
+                    (true, true) => word.Contains(stem, StringComparison.Ordinal),
+                    (true, false) => word.EndsWith(stem, StringComparison.Ordinal),
+                    (false, true) => word.StartsWith(stem, StringComparison.Ordinal),
+                    _ => word == stem,
+                };
+                if (hit)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private static int IndexOf(IReadOnlyList<string> list, string id)

@@ -10,7 +10,7 @@ import time
 from collections.abc import AsyncGenerator, Awaitable, Callable, Mapping
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import cast
+from typing import Any, cast
 
 import httpx
 from fastapi import FastAPI, Request
@@ -90,7 +90,7 @@ from glassworld_ai.residency import (
 )
 from glassworld_ai.safety import TextGuard
 from glassworld_ai.security import make_access_guard
-from glassworld_ai.selfcheck import self_check
+from glassworld_ai.selfcheck import learn_by_day, self_check
 from glassworld_ai.sound import MockSound, MossSound, MossWorker, load_generation_settings
 from glassworld_ai.texts import TextCatalog
 from glassworld_ai.validation import ContractValidator
@@ -539,12 +539,28 @@ def create_app(
             return error_response("model_unavailable", "Service is stopping."), {}
         return None, cast(dict[str, object], data)
 
+    def _learn_by_day() -> dict[str, object]:
+        """B2652 (A1568): the switch 'learn by day' is offered by tier and measured speed."""
+        run: Benchmark = app.state.benchmark
+        result: dict[str, Any] = run.result or {}
+        language = cast(dict[str, object], result.get("language") or {})
+        seconds = language.get("seconds_per_job")
+        # A JSON true is an int in Python: only real numbers count (review GW1 #284).
+        measured = (
+            float(seconds)
+            if isinstance(seconds, (int, float)) and not isinstance(seconds, bool)
+            else None
+        )
+        return learn_by_day(tiers, app.state.tier, measured)
+
     @app.get("/setup/check")
     async def setup_check() -> Response:
         """W1703 rule 2: per AI a state with text and fix hint (keys); answers at once."""
         ollama = (await app.state.ollama_setup.status()).model_dump(mode="json")
         models = (await app.state.model_setup.status()).model_dump(mode="json")
-        return JSONResponse(self_check(ollama, models, app.state.tier, app.state.warm_up))
+        return JSONResponse(
+            self_check(ollama, models, app.state.tier, app.state.warm_up, _learn_by_day())
+        )
 
     @app.post("/diagnostics")
     async def diagnostics_report() -> Response:
@@ -555,7 +571,7 @@ def create_app(
         fields = [getattr(settings, name) for name in type(settings).model_fields]
         known = [v for v in fields if isinstance(v, Path)]
         result = report(
-            check=self_check(ollama, models, app.state.tier, app.state.warm_up),
+            check=self_check(ollama, models, app.state.tier, app.state.warm_up, _learn_by_day()),
             health=current.model_dump(mode="json"),
             ollama=ollama,
             models=models,
@@ -1237,6 +1253,8 @@ def _ollama_questions(settings: Settings, ollama: OllamaClient, app: FastAPI) ->
         vocab=Vocabulary.load(settings.content_dir / "vocabulary"),
         settings=_call_settings(settings),
         log=_question_log(settings),
+        is_night=lambda: getattr(app.state, "planner", None) is not None
+        and app.state.planner.phase == "night",
     )
 
 

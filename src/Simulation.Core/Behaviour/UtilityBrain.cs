@@ -34,6 +34,8 @@ public sealed class UtilityBrain
     private readonly (Consideration Data, Curve Curve, Curve? Novelty)[] _considerations;
     private readonly IReadOnlyDictionary<string, double> _neglectBelow;
     private readonly Familiarity? _familiarity;
+    private readonly ActionRules _actions;
+    private readonly Curve? _runtimeCurve;
 
     /// <summary>
     /// Creates the brain and checks ids against the action rules and needs. A search action must be an
@@ -53,6 +55,8 @@ public sealed class UtilityBrain
         ArgumentNullException.ThrowIfNull(actions);
         Weights = weights;
         _familiarity = familiarity;
+        _actions = actions;
+        _runtimeCurve = weights.RuntimeNeed is { } runtime ? new Curve(runtime.Curve) : null;
         if (weights.SearchWeight > weights.UnknownTargetBelief)
         {
             // Trying something unknown close by is how inhabitants learn; searching far away must not outbid it.
@@ -380,6 +384,46 @@ public sealed class UtilityBrain
         }
 
         return options;
+    }
+
+    /// <summary>
+    /// A1372 (TL B2658): options for the needs inventions brought, after <see cref="Candidates"/>. For each such
+    /// need the inhabitant has, its urgency (data runtime_need: weight x curve of its value, yielding to pressing
+    /// needs if the data say so) for the need's first action with timing on every thing of the invention's type
+    /// in sight, nearer scores higher. No search: only things in sight. Without the data nothing is added.
+    /// </summary>
+    public void AddRuntimeNeeds(Inhabitant inhabitant, IReadOnlyList<WorldObject> perceived, IReadOnlyList<Inhabitants.NeedInfo> needs, List<Candidate> options)
+    {
+        ArgumentNullException.ThrowIfNull(inhabitant);
+        ArgumentNullException.ThrowIfNull(perceived);
+        ArgumentNullException.ThrowIfNull(needs);
+        ArgumentNullException.ThrowIfNull(options);
+        if (Weights.RuntimeNeed is not { } data || _runtimeCurve is null)
+        {
+            return;
+        }
+
+        foreach (var need in needs)
+        {
+            if (!inhabitant.Needs.TryGetValue(need.Id, out var value) || need.Actions.FirstOrDefault(_actions.HasTiming) is not { } action)
+            {
+                continue;
+            }
+
+            var urgency = data.Weight * _runtimeCurve.At(value) * (data.YieldsToNeeds ?? false ? Calm(inhabitant) : 1.0);
+            if (urgency <= 0)
+            {
+                continue;
+            }
+
+            foreach (var obj in perceived)
+            {
+                if (string.Equals(obj.TypeId, need.SourceTypeId, StringComparison.Ordinal))
+                {
+                    options.Add(new Candidate(action, obj.Id, urgency * DistanceFactor(inhabitant.Position, obj.Position)));
+                }
+            }
+        }
     }
 
     /// <summary>

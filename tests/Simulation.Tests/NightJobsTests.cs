@@ -814,6 +814,42 @@ public sealed class NightJobsTests : IDisposable
     }
 
     [Fact]
+    public void LearningByDayLetsANightQuestionGoOutAtOnceAndTheLastLoggedSwitchCountsAfterLoading()
+    {
+        // B2652 (A1568): the player's switch. Off (the default) the question waits for the night; switched on, the
+        // waiting question goes out the next tick and new ones go out at once; off again, they wait again.
+        var decider = new SilentDecisionPort();
+        var (host, a, _) = World(looked: false, settings: Asking(TriggerKind.Unknown_object, TriggerAsk.Night), decisions: decider);
+        host.World.Run(60);
+        Assert.False(host.Decisions.LearnByDay);
+        Assert.Equal(string.Empty, Assert.Single(host.Decisions.Open).RequestId);
+        Assert.Equal(0, decider.Sent);
+
+        // A command it does not know is refused.
+        Assert.False(host.Decisions.Submit(new PlayerCommand(DecisionsSystem.SetLearnByDay, null) { Text = "yes" }).Accepted);
+
+        Assert.True(host.Decisions.Submit(new PlayerCommand(DecisionsSystem.SetLearnByDay, null) { Text = DecisionsSystem.LearnByDayOn }).Accepted);
+        host.World.Run(2);
+        Assert.True(host.Decisions.LearnByDay);
+        Assert.Equal(1, decider.Sent);
+        Assert.NotEqual(string.Empty, Assert.Single(host.Decisions.Open).RequestId);
+
+        // Saved and loaded: the last logged switch counts, the world hashes the same.
+        var path = Path.Combine(_directory, "learn-by-day.db");
+        SaveGameStore.Save(path, StateCodec.Capture(host));
+        var factory = new SimulationHostFactory(Content.Value, Asking(TriggerKind.Unknown_object, TriggerAsk.Night), new SilentDecisionPort(), "de", new ScriptedJobPort());
+        var loaded = StateCodec.Restore(factory, SaveGameStore.Load(path));
+        Assert.True(loaded.Decisions.LearnByDay);
+        Assert.Equal(host.World.StateHash(), loaded.World.StateHash());
+
+        Assert.True(loaded.Decisions.Submit(new PlayerCommand(DecisionsSystem.SetLearnByDay, null) { Text = DecisionsSystem.LearnByDayOff }).Accepted);
+        loaded.World.Step();
+        Assert.False(loaded.Decisions.LearnByDay);
+        SaveGameStore.Save(path, StateCodec.Capture(loaded));
+        Assert.False(StateCodec.Restore(factory, SaveGameStore.Load(path)).Decisions.LearnByDay);
+    }
+
+    [Fact]
     public void AskingAtNightNeedsANightThatCanAnswer()
     {
         // Without a job port nobody would ever answer: the question goes to the decider at once, as before.

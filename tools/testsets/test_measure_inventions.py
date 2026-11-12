@@ -120,6 +120,15 @@ def test_every_guard_case_makes_a_valid_job_and_a_proposal_from_its_materials() 
         assert max(case["invention"]["size_m"].values()) <= 1.0, case["id"]
 
 
+def test_every_guard_proposal_is_a_contract_valid_invention() -> None:
+    """Review GW1 #21858: v2 had the category 'tool' (only object/building exist) and four proposals
+    with one step (at least two). The core test takes the same list, so it must be valid."""
+    from glassworld_contracts.models.common_schema import Invention
+
+    for case in MI.load_cases()["guard_cases"]:
+        Invention.model_validate(case["invention"])
+
+
 def test_a_forbidden_proposal_the_guard_lets_through_fails_the_run() -> None:
     judged = [
         {

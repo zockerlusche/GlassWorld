@@ -343,6 +343,36 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
+    /// New needs from inventions (B4b R11, NewNeed; TL B2658: bound to the invention's type). An inhabitant gains such a need the first time it uses a thing of that type with one of the need's actions; using it again fills it, and it falls by its own decay_per_day. A new need is never neglected (no harm from it). Omitted = inventions bring no needs.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class NeedRules
+    {
+
+        /// <summary>
+        /// Lowest decay per game day a new need may have.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("runtime_decay_per_day_min")]
+        public double RuntimeDecayPerDayMin { get; set; } = default!;
+
+        /// <summary>
+        /// Highest decay per game day a new need may have.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("runtime_decay_per_day_max")]
+        public double RuntimeDecayPerDayMax { get; set; } = default!;
+
+        /// <summary>
+        /// How much one use of a thing of the invention's type with one of the need's actions fills it.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("fill_per_use")]
+        public double FillPerUse { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("max_runtime_needs")]
+        public int MaxRuntimeNeeds { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// Data file content/inhabitants/model.json: how needs, moods and the will to live change over time, and the ranges for start inhabitants drawn from the world seed (B2503). All numbers are placeholders until Marcel decides. Rates are per game hour.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -375,6 +405,10 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("skill_rules")]
         public SkillRules SkillRules { get; set; } = new SkillRules();
+
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("need_rules")]
+        public NeedRules? NeedRules { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("togetherness")]

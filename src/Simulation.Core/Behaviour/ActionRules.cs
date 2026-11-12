@@ -113,6 +113,9 @@ public sealed class ActionRules
     public ActionTimingInfo Timing(string action) =>
         _timing.TryGetValue(action, out var timing) ? timing : throw new KeyNotFoundException($"No timing for action '{action}'.");
 
+    /// <summary>True if the action has timing data (it can be done).</summary>
+    public bool HasTiming(string action) => _timing.ContainsKey(action);
+
     /// <summary>True if the action has rules that need a target.</summary>
     public bool NeedsTarget(string action) => Rules(action).Any(r => r.RequiresProperty is not null);
 

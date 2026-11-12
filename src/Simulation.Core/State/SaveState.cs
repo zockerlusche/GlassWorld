@@ -107,6 +107,9 @@ public sealed record SaveState(
     /// <summary>New skills of inventions (A1372); null in save games from before or without any.</summary>
     public SkillRegisterState? Skills { get; init; }
 
+    /// <summary>Needs inventions brought (A1372); null in save games from before or without any.</summary>
+    public NeedRegisterState? Needs { get; init; }
+
     /// <summary>Practised skill gains per inhabitant (B5 part); null when nobody has practised.</summary>
     public IReadOnlyList<SkillGain>? SkillGains { get; init; }
 
@@ -203,6 +206,7 @@ public static class StateCodec
             LookEpoch = host.LookEpoch.Capture(),
             Exploration = host.Exploration?.Capture(),
             Skills = host.Skills.HasState ? host.Skills.Capture() : null,
+            Needs = host.Needs.HasState ? host.Needs.Capture() : null,
             SkillGains = host.SkillLevels.HasState ? host.SkillLevels.Capture() : null,
             Mailbox = host.Mailbox.Capture(),
             Favourites = host.Favourites.HasState ? host.Favourites.Capture() : null,
@@ -240,6 +244,7 @@ public static class StateCodec
 
         host.Chronicle.Restore(state.Chronicle ?? []);
         host.Skills.Restore(state.Skills);
+        host.Needs.Restore(state.Needs);
         host.SkillLevels.Restore(state.SkillGains);
         foreach (var obj in state.Objects)
         {
@@ -352,7 +357,7 @@ public static class StateCodec
 
         host.Diary.Restore(state.Diary ?? [], state.DiaryVersion);
         host.NightJobs.Restore(state.NightJobs);
-        host.UseLoggedDisplayLocale();
+        host.UseLoggedPlayerSettings();
         return host;
     }
 }

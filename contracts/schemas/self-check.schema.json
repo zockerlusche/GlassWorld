@@ -19,6 +19,9 @@
       "items": {
         "$ref": "#/$defs/AiCheck"
       }
+    },
+    "learn_by_day": {
+      "$ref": "#/$defs/LearnByDayOffer"
     }
   },
   "$defs": {
@@ -84,6 +87,42 @@
             "type": "string",
             "maxLength": 64
           }
+        }
+      }
+    },
+    "LearnByDayOffer": {
+      "description": "B2652 (A1568): whether the game offers the switch 'learn by day as well', and why (i18n keys). The game shows the switch only when offered; default off.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "offered",
+        "reason",
+        "message_key",
+        "hint_key"
+      ],
+      "properties": {
+        "offered": {
+          "type": "boolean"
+        },
+        "reason": {
+          "description": "ok; tier (this hardware tier does not offer it); too_slow (the measurement run found the language model slower than the tier allows); not_measured (no measurement run yet).",
+          "type": "string",
+          "enum": [
+            "ok",
+            "tier",
+            "too_slow",
+            "not_measured"
+          ]
+        },
+        "message_key": {
+          "description": "i18n key of the short state text (msg.selfcheck.learn_by_day.<reason>).",
+          "type": "string",
+          "maxLength": 96
+        },
+        "hint_key": {
+          "description": "i18n key of the hint the settings show next to the switch: by day the AI uses computing power during play; switched off, all learning moves to the night and the game goes slower.",
+          "type": "string",
+          "maxLength": 96
         }
       }
     }
