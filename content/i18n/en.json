@@ -1491,6 +1491,10 @@
       "text": "Building failed"
     },
     {
+      "key": "vocab.event.needs_help",
+      "text": "Needs help with building"
+    },
+    {
       "key": "vocab.event.built",
       "text": "Built"
     },

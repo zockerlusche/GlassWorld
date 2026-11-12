@@ -2,6 +2,8 @@
   "contract_version": "0.2",
   "job_priority": 30,
   "retry_after_minutes": 60,
+  "help_after_hours": 6,
+  "give_up_after_hours": 48,
   "max_plan_attempts": 3,
   "bounds_tolerance": 1.5,
   "step_action": "build_step",
