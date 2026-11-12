@@ -1583,6 +1583,14 @@
       "text": "Ersatz passt nicht"
     },
     {
+      "key": "vocab.event.asked_for_help",
+      "text": "Um Hilfe gebeten"
+    },
+    {
+      "key": "vocab.event.material_shown",
+      "text": "Material gezeigt"
+    },
+    {
       "key": "vocab.event.built",
       "text": "Gebaut"
     },
