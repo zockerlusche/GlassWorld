@@ -64,6 +64,12 @@ public sealed class InventionSafetyCasesTests
     [InlineData("Steinmesser für Pflanzen", "lanze*", false)]
     [InlineData("Gefallen", "*falle", false)]
     [InlineData("club", "club", true)]
+    [InlineData("Honigschleuder", "schleuder", false)]
+    [InlineData("Tragschlinge", "wurfschlinge*", false)]
+    [InlineData("Regenbogen", "bogen", false)]
+    [InlineData("Ein Bogen", "bogen", true)]
+    [InlineData("spearmint tea", "spear", false)]
+    [InlineData("trapdoor", "trap", false)]
     [InlineData("clubhouse", "club", false)]
     public void ATermMatchesWordsAsItsStarsSay(string name, string term, bool hit) =>
         Assert.Equal(hit, InventionCheck.Holds(name, [term]));
