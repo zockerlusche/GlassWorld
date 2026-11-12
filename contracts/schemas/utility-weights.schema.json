@@ -15,9 +15,21 @@
     "search_weight": { "description": "Score factor of looking further away (search_action) against a target in sight: the search scores urgency x the surest helpful belief x this value, so a weak or doubtful target in sight still competes. At most unknown_target_belief (checked at load): trying something unknown close by never loses to searching far away.", "type": "number", "minimum": 0, "maximum": 1 },
     "search_give_up_hours": { "description": "Game hours after which an inhabitant stops looking further away for a need, until the need is met or something believed helpful is in sight again (no endless search for what is gone or was heard wrongly).", "type": "number", "minimum": 0, "maximum": 10000 },
     "repetition": { "$ref": "#/$defs/RepetitionLimit" },
-    "considerations": { "type": "array", "minItems": 1, "maxItems": 256, "items": { "$ref": "#/$defs/Consideration" } }
+    "considerations": { "type": "array", "minItems": 1, "maxItems": 256, "items": { "$ref": "#/$defs/Consideration" } },
+    "runtime_need": { "$ref": "#/$defs/RuntimeNeedConsideration" }
   },
   "$defs": {
+    "RuntimeNeedConsideration": {
+      "description": "How the routine weighs a need an invention brought (A1372, TL B2658): the need's urgency (weight x curve of its value) for using a thing of the invention's type in sight with the need's first action that has timing. Only things in sight, no search. Omitted = the routine never seeks such a need.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["weight", "curve"],
+      "properties": {
+        "weight": { "type": "number", "minimum": 0, "maximum": 100 },
+        "curve": { "description": "Points [x, y] with ascending x in 0..1.", "type": "array", "minItems": 2, "maxItems": 16, "items": { "type": "array", "minItems": 2, "maxItems": 2, "items": { "type": "number", "minimum": 0, "maximum": 1 } } },
+        "yields_to_needs": { "description": "The score yields to pressing needs, as for a consideration.", "type": "boolean" }
+      }
+    },
     "RepetitionLimit": {
       "description": "Ends repeating without effect (W1696): when an inhabitant does the same action on the same target at about the same spot this many times in a row and none of them changed a need, mood, belief or relation by at least min_effect, the action rests for a while; it is neither chosen nor offered to the decider, and an answer still waiting for it is dropped. Optional: without it nothing rests.",
       "type": "object",

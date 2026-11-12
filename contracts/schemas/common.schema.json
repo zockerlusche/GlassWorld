@@ -63,6 +63,10 @@
         },
         "value": {
           "$ref": "#/$defs/UnitValue"
+        },
+        "label": {
+          "description": "Only on a need an invention brought (A1372): its name in both languages from the core's need register, because the vocabulary has no entry for it. Absent for vocabulary needs, moods and traits (i18n key vocab.<kind>.<id>), and from an older core.",
+          "$ref": "#/$defs/LocalizedName"
         }
       },
       "description": "A named level 0..1 (need satisfaction, emotion intensity or trait strength)."

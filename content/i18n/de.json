@@ -1579,6 +1579,14 @@
       "text": "Neue Fähigkeit abgelehnt"
     },
     {
+      "key": "vocab.event.need_refused",
+      "text": "Neues Bedürfnis abgelehnt"
+    },
+    {
+      "key": "vocab.event.need_gained",
+      "text": "Neues Bedürfnis"
+    },
+    {
       "key": "vocab.event.mail_arrived",
       "text": "Nachricht im Postfach"
     },

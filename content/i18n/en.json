@@ -1579,6 +1579,14 @@
       "text": "New skill refused"
     },
     {
+      "key": "vocab.event.need_refused",
+      "text": "New need refused"
+    },
+    {
+      "key": "vocab.event.need_gained",
+      "text": "New need"
+    },
+    {
       "key": "vocab.event.mail_arrived",
       "text": "Message in the mailbox"
     },

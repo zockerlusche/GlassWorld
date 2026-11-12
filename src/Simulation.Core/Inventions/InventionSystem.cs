@@ -178,6 +178,10 @@ public sealed partial class InventionSystem : IWorldSystem, IOptionalWorldState,
     }
 
     /// <summary>New skills an approved invention brings (B4b R11); empty for other types.</summary>
+    public IReadOnlyList<NewNeed> NeedsOf(string typeId) =>
+        _inventions.TryGetValue(typeId, out var record) ? [.. Parse(record).IntroducesNeeds ?? []] : [];
+
+    /// <summary>The new abilities an approved invention brings (none for an unknown type).</summary>
     public IReadOnlyList<NewAbility> AbilitiesOf(string typeId) =>
         _inventions.TryGetValue(typeId, out var record) ? [.. Parse(record).IntroducesAbilities ?? []] : [];
 
@@ -423,7 +427,7 @@ public sealed partial class InventionSystem : IWorldSystem, IOptionalWorldState,
                     Trigger = InventionPayloadTrigger.Need,
                     Want = want,
                     Subject = null,
-                    Inhabitant = InhabitantStates.Of(inhabitant, null, [], [], _inhabitants.LabelOf),
+                    Inhabitant = InhabitantStates.Of(inhabitant, null, [], [], _inhabitants.LabelOf, needLabel: _inhabitants.NeedLabelOf),
                     Materials = materials,
                     TechLevel = settings.TechLevel,
                     Limits = new InventionLimits { MaxSizeM = settings.Limits.MaxSizeM, MaxParts = settings.Limits.MaxParts, MaxRounds = settings.Limits.MaxRounds },

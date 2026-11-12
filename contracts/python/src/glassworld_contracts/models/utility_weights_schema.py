@@ -10,6 +10,27 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from . import common_schema
 
+type CurveItemItem = Annotated[float, Field(..., ge=0.0, le=1.0)]
+
+
+type CurveItem = Annotated[list[CurveItemItem], Field(..., max_length=2, min_length=2)]
+
+
+class RuntimeNeedConsideration(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    weight: float = Field(..., ge=0.0, le=100.0)
+    curve: list[CurveItem] = Field(
+        ...,
+        description='Points [x, y] with ascending x in 0..1.',
+        max_length=16,
+        min_length=2,
+    )
+    yields_to_needs: bool | None = Field(
+        None, description='The score yields to pressing needs, as for a consideration.'
+    )
+
 
 class RepetitionLimit(BaseModel):
     model_config = ConfigDict(
@@ -79,10 +100,12 @@ type NoveltyCurve = Annotated[
 ]
 
 
-type CurveItemItem = Annotated[float, Field(..., ge=0.0, le=1.0)]
+type CurveItem1Item = Annotated[float, Field(..., ge=0.0, le=1.0)]
 
 
-type CurveItem = Annotated[list[CurveItemItem], Field(..., max_length=2, min_length=2)]
+type CurveItem1 = Annotated[
+    list[CurveItem1Item], Field(..., max_length=2, min_length=2)
+]
 
 
 class Consideration(BaseModel):
@@ -125,7 +148,7 @@ class Consideration(BaseModel):
         None,
         description="Exploring (TL #19921): the action is offered on every perceived object, scaled by this curve over the novelty of the object's type (1 - the inhabitant's surest belief about it; 1 = knows nothing). It yields to pressing needs: scaled by 1 - the highest urgency of the needs that can be neglected, and 0 while one is below its neglect threshold. Needs target_property and search_action null. Absent or null = no exploring.",
     )
-    curve: list[CurveItem] = Field(
+    curve: list[CurveItem1] = Field(
         ...,
         description='Points [x, y] with ascending x in 0..1.',
         max_length=16,
@@ -174,3 +197,4 @@ class UtilityWeights(BaseModel):
     )
     repetition: RepetitionLimit | None = None
     considerations: list[Consideration] = Field(..., max_length=256, min_length=1)
+    runtime_need: RuntimeNeedConsideration | None = None
