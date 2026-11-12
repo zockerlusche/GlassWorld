@@ -428,4 +428,20 @@ public sealed class CameraModelTests
             camera.Update(1 / 60d);
         }
     }
+
+    [Fact]
+    public void ThePictureReachesFartherTheFartherOutTheCameraIs()
+    {
+        // B2605: while following, the hearing range is the picture's reach around the inhabitant.
+        var camera = new CameraModel(Data(), 0, 0, 192, 192);
+        camera.Set(96, 96, 30, 20);
+        var near = camera.SeenRadiusM(16d / 9);
+        camera.Set(96, 96, 30, 80);
+        var far = camera.SeenRadiusM(16d / 9);
+
+        Assert.True(near > 0);
+        Assert.Equal(near * 4, far, 6);
+        Assert.Equal(20 * Math.Tan(camera.FovDeg * Math.PI / 360) * 16 / 9, near, 6);
+        Assert.Equal(camera.SeenRadiusM(1), camera.SeenRadiusM(0.5), 6);
+    }
 }
