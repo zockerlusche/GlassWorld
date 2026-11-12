@@ -1014,6 +1014,18 @@ class WorldPresetStart(BaseModel):
     )
     supply: StartSupply
     dry_ground: WorldPresetStartGround | None = None
+    beach_within_sea_cells: int = Field(
+        ...,
+        description='D763 Z11: a start beach cell has the sea within this many cells.',
+        ge=1,
+        le=64,
+    )
+    partner_within_cells: int = Field(
+        ...,
+        description='D763 Z11: the partner of a pair starts within this many cells of the first (each axis; on a finer grid at least as far as the personal space needs).',
+        ge=1,
+        le=64,
+    )
 
 
 class WorldPreset(BaseModel):

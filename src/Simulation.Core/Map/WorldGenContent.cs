@@ -203,6 +203,7 @@ public sealed class WorldGenContent
         var defined = table.Biomes.Select(b => b.Id).ToHashSet(StringComparer.Ordinal);
         Duplicates(table.Biomes.Select(b => b.Id), "biome", problems);
         problems.AddRange(defined.Where(id => !vocabulary.Contains(id)).Select(id => $"biome '{id}' not in vocabulary 'biome'"));
+        problems.AddRange(table.RequiredBiomes.Where(id => !defined.Contains(id)).Select(id => $"required biome '{id}' is no biome of the table"));
         if (!defined.Contains(table.FallbackBiome))
         {
             problems.Add($"fallback biome '{table.FallbackBiome}' not in the biome list");

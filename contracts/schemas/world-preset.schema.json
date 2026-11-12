@@ -613,7 +613,9 @@
         "max_pair_distance_cells",
         "max_attempts",
         "biome",
-        "supply"
+        "supply",
+        "beach_within_sea_cells",
+        "partner_within_cells"
       ],
       "properties": {
         "pairs": {
@@ -649,6 +651,18 @@
         },
         "dry_ground": {
           "$ref": "#/$defs/WorldPresetStartGround"
+        },
+        "beach_within_sea_cells": {
+          "description": "D763 Z11: a start beach cell has the sea within this many cells.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        },
+        "partner_within_cells": {
+          "description": "D763 Z11: the partner of a pair starts within this many cells of the first (each axis; on a finer grid at least as far as the personal space needs).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
         }
       }
     },

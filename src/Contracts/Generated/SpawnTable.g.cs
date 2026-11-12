@@ -129,6 +129,18 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("mandatory")]
         public System.Collections.Generic.ICollection<MandatoryResource> Mandatory { get; set; } = new System.Collections.ObjectModel.Collection<MandatoryResource>();
 
+        /// <summary>
+        /// D763 Z10: how far a thing of a cluster lies from the cluster's centre, at most, in cells (each axis).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("scatter_cells")]
+        public int ScatterCells { get; set; } = default!;
+
+        /// <summary>
+        /// D763 Z10: least number of things a rule with a density above zero places, however few cells its biome has.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("min_per_rule")]
+        public int MinPerRule { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]

@@ -123,6 +123,12 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("rules")]
         public System.Collections.Generic.ICollection<BiomeRule> Rules { get; set; } = new System.Collections.ObjectModel.Collection<BiomeRule>();
 
+        /// <summary>
+        /// D763 Z9 (TL #22107): the biomes every generated island must have; an attempt without one of them fails and the next derived seed is tried. Each id must be one of biomes.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("required_biomes")]
+        public System.Collections.Generic.ICollection<string> RequiredBiomes { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
