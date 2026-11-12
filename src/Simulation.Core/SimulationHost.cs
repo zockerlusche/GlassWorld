@@ -330,6 +330,7 @@ public sealed class SimulationHost
         inventions.EscalationOpen = decisions.IsAskingAboutBuilding;
         decisions.StuckOptions = inventions.EscalationOptionsOf;
         decisions.StuckContext = inventions.StuckOf;
+        decisions.StuckAnswered = inventions.EscalationAnswered;
 
         // New needs of an approved invention (A1372, TL B2658): bound to its type, gained on first use.
         var needs = new NeedRegister(content.InhabitantModel.Needs, content.InhabitantModel.NeedRules, world.Calendar.TicksPerDay);

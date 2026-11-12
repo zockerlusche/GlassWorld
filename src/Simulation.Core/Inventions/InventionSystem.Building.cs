@@ -50,6 +50,7 @@ public sealed record SoundTask(string TypeId, string RequestId, string? ResultJs
 /// <param name="Escalations">Questions to the decider for this building so far (A1373 step 2, R17c).</param>
 /// <param name="Substitutes">Material types taken instead of a plan material (plan type to substitute type), or null.</param>
 /// <param name="Smaller">True when the builder finished it smaller: the thing stands as far as it was built.</param>
+/// <param name="Chosen">True while an answer about this stuck building is under way (the chosen action not finished yet).</param>
 public sealed record BuildTask(
     string TypeId,
     string InhabitantId,
@@ -70,7 +71,8 @@ public sealed record BuildTask(
     long LookedTicks = 0,
     int Escalations = 0,
     IReadOnlyDictionary<string, string>? Substitutes = null,
-    bool Smaller = false);
+    bool Smaller = false,
+    bool Chosen = false);
 
 /// <content>Building inventions from a plan and their first use (D471 D5, part 2).</content>
 public sealed partial class InventionSystem
@@ -460,11 +462,15 @@ public sealed partial class InventionSystem
     /// <summary>What the builder chose for its stuck building is done (A1373 step 2, D850; the decider chose among the core's options).</summary>
     private void Escalated(WorldEvent e, BuildEscalation escalation)
     {
-        var task = _builds.Values.FirstOrDefault(b => b.InhabitantId == e.InhabitantId && b.PlanJson is not null && b.BuiltObjectId is null && !b.GaveUp);
+        // The building whose question was answered (review GW3 #295), not just any of the builder's.
+        var task = _builds.Values.FirstOrDefault(b => b.InhabitantId == e.InhabitantId && b.Chosen && b.PlanJson is not null && b.BuiltObjectId is null && !b.GaveUp);
         if (task is null)
         {
             return;
         }
+
+        task = task with { Chosen = false };
+        _builds[task.TypeId] = task;
 
         if (e.Action == escalation.GiveUpAction)
         {
@@ -517,6 +523,18 @@ public sealed partial class InventionSystem
 
         _builds[task.TypeId] = task with { Substitutes = substitutes, NeedsHelp = false, WaitingSinceTick = null, LookedTicks = 0 };
         _inhabitants.Report(new WorldEvent(SubstituteTaken, e.Tick, task.InhabitantId, e.Action, task.TypeId) { Detail = thing.TypeId });
+    }
+
+    /// <summary>
+    /// The decider answered the question about this stuck building (set by the host): the chosen action, when it
+    /// finishes, belongs to THIS building, even if its builder has another one (review GW3 #295).
+    /// </summary>
+    public void EscalationAnswered(string inhabitantId, string typeId)
+    {
+        if (_builds.TryGetValue(typeId, out var task) && task.InhabitantId == inhabitantId && task.BuiltObjectId is null && !task.GaveUp)
+        {
+            _builds[typeId] = task with { Chosen = true };
+        }
     }
 
     /// <summary>The options of a stuck building as they are now (A1373 step 2): none if the building is not stuck.</summary>
@@ -779,10 +797,10 @@ public sealed partial class InventionSystem
 
             hasher.Write(b.PendingObjectId ?? string.Empty).Write(b.PendingType ?? string.Empty).Write(b.BuiltObjectId ?? string.Empty).Write(b.GaveUp)
                 .Write(b.WaitingSinceTick ?? -1).Write(b.NeedsHelp).Write(b.LookedTicks);
-            if (b.Escalations > 0 || b.Smaller || b.Substitutes is { Count: > 0 })
+            if (b.Escalations > 0 || b.Smaller || b.Chosen || b.Substitutes is { Count: > 0 })
             {
                 // A1373 step 2, only when used: worlds without escalations hash as before.
-                hasher.Write(b.Escalations).Write(b.Smaller).Write(b.Substitutes?.Count ?? 0);
+                hasher.Write(b.Escalations).Write(b.Smaller).Write(b.Chosen).Write(b.Substitutes?.Count ?? 0);
                 foreach (var (planType, substitute) in (b.Substitutes ?? new Dictionary<string, string>()).OrderBy(s => s.Key, StringComparer.Ordinal))
                 {
                     hasher.Write(planType).Write(substitute);
