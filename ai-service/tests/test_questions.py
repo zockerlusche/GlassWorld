@@ -484,6 +484,26 @@ def test_v4_names_properties_without_cause_and_effect(settings: Settings) -> Non
     assert "helps sand melt into glass" in v3.render(build_values(job, v3, vocab)).user  # as it was
 
 
+def test_v5_speaks_of_today_at_night_and_of_now_by_day(settings: Settings) -> None:
+    """TL #21854, B2652: by default a question is answered in the computing night - what was
+    noticed today, and the thought is the one on waking. By day (switch on, A1568) as before."""
+    template = load_prompt(settings.prompts_dir, "question/ask", 5)
+    vocab = _vocab(settings)
+    night = template.render(build_values(JOB, template, vocab, night=True))
+    day = template.render(build_values(JOB, template, vocab, night=False))
+    assert "## What you noticed about it today" in night.user
+    assert "while it sleeps, the day is thought over" in night.system
+    assert "on waking in the morning" in night.system
+    assert "## What you notice about it right now" in day.user
+    assert "Right now this person does not understand something" in day.system
+    for rendered in (night, day):
+        assert "$" not in rendered.system + rendered.user  # every placeholder filled
+    v4 = load_prompt(settings.prompts_dir, "question/ask", 4)
+    assert v4.render(build_values(JOB, v4, vocab, night=True)).user == (
+        v4.render(build_values(JOB, v4, vocab)).user
+    )  # v4 knows no moment
+
+
 def test_an_empty_unnamed_subject_setting_is_an_error_not_a_silent_name(
     settings: Settings,
 ) -> None:

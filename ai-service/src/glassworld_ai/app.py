@@ -1237,6 +1237,8 @@ def _ollama_questions(settings: Settings, ollama: OllamaClient, app: FastAPI) ->
         vocab=Vocabulary.load(settings.content_dir / "vocabulary"),
         settings=_call_settings(settings),
         log=_question_log(settings),
+        is_night=lambda: getattr(app.state, "planner", None) is not None
+        and app.state.planner.phase == "night",
     )
 
 
