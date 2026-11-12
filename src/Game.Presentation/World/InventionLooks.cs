@@ -30,11 +30,13 @@ public static class InventionLooks
         ArgumentNullException.ThrowIfNull(objects);
         var tasks = builds.Where(b => b.PlanJson is not null).ToList();
         // One building task per type (the core keeps them by type): a second build of a built type would need its own key here.
-        var finished = tasks.Where(b => b.BuiltObjectId is not null).ToDictionary(b => b.TypeId, b => b.PlanJson!, StringComparer.Ordinal);
+        var finished = tasks.Where(b => b.BuiltObjectId is not null).ToDictionary(b => b.TypeId, b => b, StringComparer.Ordinal);
         var shown = new List<InventionShown>();
         foreach (var obj in objects.Where(o => finished.ContainsKey(o.TypeId)).OrderBy(o => o.Id, StringComparer.Ordinal))
         {
-            shown.Add(new InventionShown(obj.Id, obj.TypeId, finished[obj.TypeId], obj.Position.X, obj.Position.Z, int.MaxValue, true));
+            // A thing finished smaller (A1373 step 2) stands as far as it was built.
+            var task = finished[obj.TypeId];
+            shown.Add(new InventionShown(obj.Id, obj.TypeId, task.PlanJson!, obj.Position.X, obj.Position.Z, task.Smaller ? task.StepsDone : int.MaxValue, true));
         }
 
         // A site shows once its first step is done: before that there is nothing built to see.

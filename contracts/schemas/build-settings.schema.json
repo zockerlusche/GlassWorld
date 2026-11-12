@@ -75,6 +75,24 @@
       "type": "integer",
       "minimum": 1,
       "maximum": 20
+    },
+    "escalation": { "$ref": "#/$defs/BuildEscalation" }
+  },
+  "$defs": {
+    "BuildEscalation": {
+      "description": "A1373 step 2 (D827 R15/R17c, D850, B2658): when the help does not come, the builder asks the decider what to do, with options only the core offers: take a thing it believes has the missing properties instead, finish smaller (leave the thing as far as it is built), give up. First after_hours of looking after needs_help, then every after_hours again, at most max times per building. Omitted = the builder never asks, as before.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["after_hours", "max", "use_instead_action", "smaller_action", "give_up_action"],
+      "properties": {
+        "after_hours": { "description": "Game hours of looking (counted like help_after_hours) from needs_help to the first question, and between two questions.", "type": "number", "exclusiveMinimum": 0, "maximum": 240 },
+        "max": { "description": "Most questions per building (loop brake R17c).", "type": "integer", "minimum": 1, "maximum": 10 },
+        "use_instead_action": { "description": "Action of the option 'take this thing instead' (target: a thing in sight).", "$ref": "common.schema.json#/$defs/VocabId" },
+        "smaller_action": { "description": "Action of the option 'finish smaller' (no target; offered once a step is done).", "$ref": "common.schema.json#/$defs/VocabId" },
+        "give_up_action": { "description": "Action of the option 'give up' (no target; always offered).", "$ref": "common.schema.json#/$defs/VocabId" },
+        "help_action": { "description": "Action of the option 'ask another for help' (target: an inhabitant; comes with the next step, not offered yet). Like the others never an invention's purpose.", "$ref": "common.schema.json#/$defs/VocabId" },
+        "max_use_instead": { "description": "Most 'take this instead' options in one question (nearest kinds first). Omitted = 2.", "type": "integer", "minimum": 0, "maximum": 8 }
+      }
     }
   }
 }

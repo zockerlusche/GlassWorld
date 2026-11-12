@@ -10,6 +10,26 @@ from pydantic import BaseModel, ConfigDict, Field
 from . import common_schema
 
 
+class StuckBuilding(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    name: common_schema.LocalizedName = Field(
+        ..., description="The invention's name in both languages."
+    )
+    missing_properties: list[common_schema.VocabId] = Field(
+        ...,
+        description='Properties of the material the current step lacks (vocabulary ids, sorted).',
+        max_length=32,
+    )
+    escalation: int = Field(
+        ..., description='Which question this is (1 = the first).', ge=1, le=10
+    )
+    max_escalations: int = Field(
+        ..., description='Most questions for this building (data).', ge=1, le=10
+    )
+
+
 class PerceivedObject(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -204,4 +224,8 @@ class DecisionRequest(BaseModel):
         description='Actions the core currently allows. The decider must pick exactly one of them.',
         max_length=32,
         min_length=1,
+    )
+    building: StuckBuilding | None = Field(
+        None,
+        description='Only when a building is stuck and the builder asks what to do (A1373 step 2, D850): which invention, what is missing (properties by vocabulary id), and how often it asked already. The options then hold only the ways the core leaves open. Absent otherwise, and from an older core.',
     )

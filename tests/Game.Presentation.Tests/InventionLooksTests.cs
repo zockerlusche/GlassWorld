@@ -55,6 +55,17 @@ public sealed class InventionLooksTests
     }
 
     [Fact]
+    public void AThingFinishedSmallerIsDrawnWithTheStepsItHas()
+    {
+        // A1373 step 2: the builder left it as far as it was built.
+        var smaller = Task(steps: 1) with { BuiltObjectId = "obj-7", Smaller = true };
+        var shown = Assert.Single(InventionLooks.Shown([smaller], [new("obj-7", Type, new Position(10, 20))]));
+        Assert.Equal((true, 1), (shown.Finished, shown.Step));
+        var whole = Assert.Single(InventionLooks.Shown([smaller with { Smaller = false }], [new("obj-7", Type, new Position(10, 20))]));
+        Assert.Equal(int.MaxValue, whole.Step);
+    }
+
+    [Fact]
     public void TheSignatureChangesWithEveryNewStepAndNotOtherwise()
     {
         var two = InventionLooks.Signature(InventionLooks.Shown([Task(steps: 2)], []));

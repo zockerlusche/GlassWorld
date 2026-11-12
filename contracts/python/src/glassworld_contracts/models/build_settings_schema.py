@@ -8,6 +8,51 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class BuildEscalation(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    after_hours: float = Field(
+        ...,
+        description='Game hours of looking (counted like help_after_hours) from needs_help to the first question, and between two questions.',
+        gt=0.0,
+        le=240.0,
+    )
+    max: int = Field(
+        ..., description='Most questions per building (loop brake R17c).', ge=1, le=10
+    )
+    use_instead_action: str = Field(
+        ...,
+        description="Action of the option 'take this thing instead' (target: a thing in sight).",
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    smaller_action: str = Field(
+        ...,
+        description="Action of the option 'finish smaller' (no target; offered once a step is done).",
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    give_up_action: str = Field(
+        ...,
+        description="Action of the option 'give up' (no target; always offered).",
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    help_action: str | None = Field(
+        None,
+        description="Action of the option 'ask another for help' (target: an inhabitant; comes with the next step, not offered yet). Like the others never an invention's purpose.",
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    max_use_instead: int | None = Field(
+        None,
+        description="Most 'take this instead' options in one question (nearest kinds first). Omitted = 2.",
+        ge=0,
+        le=8,
+    )
+
+
 class BuildSettings(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -73,3 +118,4 @@ class BuildSettings(BaseModel):
         ge=1,
         le=20,
     )
+    escalation: BuildEscalation | None = None

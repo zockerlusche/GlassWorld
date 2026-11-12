@@ -33,6 +33,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<VocabularyEntryTarget>))]
         public VocabularyEntryTarget? Target { get; set; } = default!;
 
+        /// <summary>
+        /// Actions only: the action exists only in one situation the core names (e.g. build_stuck, A1373 step 2) and is offered only there. A prompt that lists actions in general leaves it out; it is never an invention's purpose. Absent = an action like any other.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("only_when")]
+        public string? OnlyWhen { get; set; } = default!;
+
     }
 
     /// <summary>

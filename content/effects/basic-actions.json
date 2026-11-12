@@ -8,6 +8,10 @@
     { "action": "idle", "destination": "here", "duration_minutes": 15, "reach_m": 0 },
     { "action": "use", "destination": "here", "duration_minutes": 10, "reach_m": 1.5 },
     { "action": "build_step", "destination": "here", "duration_minutes": 30, "reach_m": 1.5, "decider_option": false },
+    { "action": "use_instead", "destination": "here", "duration_minutes": 10, "reach_m": 1.5, "decider_option": false },
+    { "action": "build_smaller", "destination": "here", "duration_minutes": 10, "reach_m": 0, "decider_option": false },
+    { "action": "ask_for_help", "destination": "here", "duration_minutes": 5, "reach_m": 2, "decider_option": false },
+    { "action": "give_up", "destination": "here", "duration_minutes": 5, "reach_m": 0, "decider_option": false },
     { "action": "wander", "destination": "random_nearby", "duration_minutes": 30, "reach_m": 0 },
     { "action": "explore", "destination": "frontier", "duration_minutes": 10, "reach_m": 1 },
     { "action": "warn", "destination": "here", "duration_minutes": 5, "reach_m": 2 },
@@ -78,6 +82,9 @@
     ] }
   ],
   "event_effects": [
+    { "event": "build_failed", "detail_ends_with": "gave_up", "effects": [
+      { "kind": "mood", "id": "frustration", "delta": 0.15 }
+    ] },
     { "event": "knowledge_gained", "detail_ends_with": "/experienced", "effects": [
       { "kind": "need", "id": "purpose", "delta": 0.05 }
     ] },

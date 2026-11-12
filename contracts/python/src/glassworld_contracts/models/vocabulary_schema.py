@@ -57,6 +57,12 @@ class VocabularyEntry(BaseModel):
     target: Target | None = Field(
         None, description='Actions only: what kind of target the action takes.'
     )
+    only_when: str | None = Field(
+        None,
+        description="Actions only: the action exists only in one situation the core names (e.g. build_stuck, A1373 step 2) and is offered only there. A prompt that lists actions in general leaves it out; it is never an invention's purpose. Absent = an action like any other.",
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
 
 
 class Vocabulary(BaseModel):
