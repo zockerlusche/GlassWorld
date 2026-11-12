@@ -543,6 +543,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("all_inhabitants")]
         public bool AllInhabitants { get; set; } = default!;
 
+        /// <summary>
+        /// While the camera is at most this far from what it looks at (following, a spot the player looks at), crowns between it and that spot on the ground fade too, so a thing under a tree is seen (A1599, finding D855). Omitted = only figures keep crowns faded; the wide view keeps its trees.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("focus_within_m")]
+        public double? FocusWithinM { get; set; } = default!;
+
     }
 
     /// <summary>

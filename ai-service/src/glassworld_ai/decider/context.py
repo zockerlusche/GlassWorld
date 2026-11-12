@@ -8,6 +8,7 @@ to a character budget; options are never cut.
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
+from string import Template
 from typing import Any, cast
 
 from glassworld_ai.prompts import PromptTemplate
@@ -88,10 +89,14 @@ def build_values(
         key=lambda o: (_id(o.id) not in targets, o.distance_m, _id(o.id)),
     )
 
-    need_lines = [
-        f"- {_vocab_line(vocab, 'need', _id(n.id))}: {n.value:.2f} ({_word(need_words, n.value)})"
-        for n in needs
-    ]
+    def need_name(entry: Any) -> str:
+        """v9 (#290): a need from an invention has no vocabulary entry - its English name."""
+        label: Any = getattr(entry, "label", None)
+        if _table_flag(settings, "needs", "use_labels") and label is not None and label.en:
+            return " ".join(str(label.en).replace('"', "").split())
+        return _vocab_line(vocab, "need", _id(entry.id))
+
+    need_lines = [f"- {need_name(n)}: {n.value:.2f} ({_word(need_words, n.value)})" for n in needs]
     mood_lines = [
         f"- {_humanize(_id(m.id))}: {_word(mood_words, m.value)} ({m.value:.2f})" for m in moods
     ]
@@ -111,6 +116,7 @@ def build_values(
         ),
         "expressions": ", ".join(vocab.ids("expression")) or "(none)",
         "thought_language": language,
+        "building": _building(request, settings, locale),
     }
 
     if template.version >= 2:
@@ -165,6 +171,31 @@ def build_values(
     if isinstance(made, str):
         return {key: without_runtime_ids(text, labels, made) for key, text in values.items()}
     return values
+
+
+def _table_flag(settings: dict[str, Any], table: str, key: str) -> bool:
+    raw: object = settings.get(table)
+    return isinstance(raw, dict) and cast(dict[str, object], raw).get(key) is True
+
+
+def _building(request: DecisionRequest, settings: dict[str, Any], locale: str) -> str:
+    """v9 (A1373 step 2, D850): the stuck building, only when the request carries one and the
+    prompt has words for it. Property NAMES only (never their descriptions, D763 Z21); the
+    invention by its name in the player's language (one name per prompt, #256)."""
+    stuck: Any = getattr(request, "building", None)
+    raw: object = settings.get("building")
+    if stuck is None or not isinstance(raw, dict):
+        return ""
+    words = {str(k): str(v) for k, v in cast(dict[object, object], raw).items()}
+    name = own_names([("building", stuck.name)], locale).get("building", "")
+    missing = words.get("joiner", " and ").join(_humanize(_id(p)) for p in stuck.missing_properties)
+    line = Template(words["line"]).safe_substitute(
+        name=f'"{name}"' if name else "a new thing",
+        missing=missing or "something",
+        n=stuck.escalation,
+        max=stuck.max_escalations,
+    )
+    return f"{words['heading']}\n{line}\n\n"
 
 
 def _labels(request: DecisionRequest, locale: str) -> dict[str, str]:

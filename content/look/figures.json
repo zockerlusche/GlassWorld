@@ -311,6 +311,7 @@
     "crown_height_m": 3.2,
     "radius_m": 3.0,
     "alpha": 0.3,
-    "all_inhabitants": false
+    "all_inhabitants": false,
+    "focus_within_m": 30
   }
 }
