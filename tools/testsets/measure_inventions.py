@@ -38,7 +38,7 @@ from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
-CASES_FILE = ROOT / "ai-service/testsets/invention/cases.v2.json"
+CASES_FILE = ROOT / "ai-service/testsets/invention/cases.v3.json"
 MARKER = ".glassworld-b4b-inventions"
 
 

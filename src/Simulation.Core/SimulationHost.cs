@@ -38,6 +38,7 @@ public sealed class SimulationHost
     {
         Writing = writing;
         Skills = skills;
+        Needs = inhabitants.RuntimeNeeds!;
         Mailbox = mailbox;
         Map = map;
         Player = player;
@@ -84,6 +85,9 @@ public sealed class SimulationHost
 
     /// <summary>Skills the world knows (B4b R11, B5 R18).</summary>
     public SkillRegister Skills { get; }
+
+    /// <summary>Needs inventions brought (A1372).</summary>
+    public NeedRegister Needs { get; }
 
     /// <summary>Objects.</summary>
     public WorldObjects Objects { get; }
@@ -321,11 +325,23 @@ public sealed class SimulationHost
         var skillLevels = new SkillLevelsSystem(content.SkillLevels, skills, world.Seed, world.Calendar.TicksPerDay);
         inhabitants.Reported += skillLevels.Observe;
 
+        // New needs of an approved invention (A1372, TL B2658): bound to its type, gained on first use.
+        var needs = new NeedRegister(content.InhabitantModel.Needs, content.InhabitantModel.NeedRules, world.Calendar.TicksPerDay);
+        inhabitants.RuntimeNeeds = needs;
+
         // New skills of an approved invention enter the register right away (refused ones are dropped, the invention stays).
         inhabitants.Reported += e =>
         {
             if (e.Kind == InventionSystem.Invented && e.TargetId is { } typeId)
             {
+                foreach (var need in inventions.NeedsOf(typeId))
+                {
+                    if (needs.Add(need, typeId) is { } refused)
+                    {
+                        inhabitants.Report(new WorldEvent(NeedRegister.NeedRefused, e.Tick, e.InhabitantId, null, typeId) { Detail = refused });
+                    }
+                }
+
                 foreach (var ability in inventions.AbilitiesOf(typeId))
                 {
                     if (skills.Add(ability, typeId) is { } reason)
@@ -345,7 +361,13 @@ public sealed class SimulationHost
         decisions.RegisterCommand(Simulation.Player.MailboxSystem.Acknowledge, mailbox.Check, mailbox.Apply);
 
         // The player's favourites (B6 R19): the player's own marks, never part of a request to the AI.
-        var favourites = new Simulation.Player.FavouritesSystem(inhabitants);
+        var favourites = new Simulation.Player.FavouritesSystem(inhabitants)
+        {
+            // One who has died may be marked from its memory page as long as the chronicle names it (A1565) - as the
+            // inhabitant of an entry, which is always an inhabitant (its own death at least); a target may be a thing
+            // or a type and must not count (review GW1 #291).
+            Remembered = id => chronicle.Since(0).Any(r => r.InhabitantId == id),
+        };
         decisions.RegisterCommand(Simulation.Player.FavouritesSystem.Mark, favourites.Check, favourites.Apply);
         decisions.RegisterCommand(Simulation.Player.FavouritesSystem.Unmark, favourites.Check, favourites.Apply);
 
@@ -364,7 +386,7 @@ public sealed class SimulationHost
         }
 
         // The night jobs right after the inventions: both stay out of the hash while they hold nothing.
-        world.Add(player).Add(inventions).Add(nightJobs).Add(chronicle).Add(writing).Add(skills).Add(skillLevels).Add(mailbox).Add(favourites).Add(conversation).Add(lookEpoch);
+        world.Add(player).Add(inventions).Add(nightJobs).Add(chronicle).Add(writing).Add(skills).Add(needs).Add(skillLevels).Add(mailbox).Add(favourites).Add(conversation).Add(lookEpoch);
         var host = new SimulationHost(content, world, map, types, objects, decisions, inhabitants, player, inventions, chronicle, settings, writing, skills, mailbox)
         {
             WeatherSystem = weather,

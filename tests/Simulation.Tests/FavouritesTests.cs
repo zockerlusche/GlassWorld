@@ -47,6 +47,19 @@ public sealed class FavouritesTests : IDisposable
     }
 
     [Fact]
+    public void OneWhoHasDiedMayBeMarkedWhileTheWorldRemembersIt()
+    {
+        // A1565 (review GW1 #276): from its memory page an inhabitant that is not alive any more may be marked, as long
+        // as the chronicle names it; an id nobody knows still cannot.
+        var host = SimulationHost.CreatePlaceholderWorld(ContentDirectory, 3, new MockDecisionPort(), "de");
+        var favourites = new FavouritesSystem(host.Inhabitants) { Remembered = id => id == "inh-000099" };
+
+        Assert.True(favourites.Check(new PlayerCommand(FavouritesSystem.Mark, "inh-000099")).Accepted);
+        Assert.False(favourites.Check(new PlayerCommand(FavouritesSystem.Mark, "inh-999999")).Accepted);
+        Assert.True(favourites.Check(new PlayerCommand(FavouritesSystem.Mark, "inh-000001")).Accepted);
+    }
+
+    [Fact]
     public void AWorldWithoutFavouritesHashesAsBeforeAndAMarkChangesTheHash()
     {
         var a = SimulationHost.CreatePlaceholderWorld(ContentDirectory, 9, new MockDecisionPort(), "de");
