@@ -169,7 +169,7 @@ def build_values(
         )
         or "- (nothing special)",
         "properties": "\n".join(f"- {prop(p)}" for p in vocab.ids("property")),
-        "actions": ", ".join(vocab.ids("action")) or "(none)",
+        "actions": ", ".join(vocab.general_ids("action")) or "(none)",
         "max_guesses": str(max_guesses),
         "thought_language": language,
         **moment,

@@ -5,6 +5,8 @@
 // anew when the clock wraps. Presentation only.
 shader_type spatial;
 render_mode unshaded, cull_disabled;
+// Water is no cover for the see-through silhouette (A1569): it marks its pixels 2, like the ground.
+stencil_mode write, compare_always, 2;
 
 #include "res://shaders/water_time.gdshaderinc"
 

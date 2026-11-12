@@ -535,7 +535,12 @@ public partial class Main : Node3D
 
         // The AI self-check (W1703): with a running world's service; in the main menu the calm "not running" text.
         var setup = _world?.SetupPort;
-        window.AddAi(setup is null ? null : () => setup.CheckAsync(), setup is null ? null : () => setup.DiagnosticsAsync(), DiagnosticsFolder());
+        window.AddAi(
+            setup is null ? null : () => setup.CheckAsync(),
+            setup is null ? null : () => setup.DiagnosticsAsync(),
+            DiagnosticsFolder(),
+            _world?.Host is null ? null : () => _world?.Host?.Decisions.LearnByDay == true,
+            _world?.Host is null ? null : SetLearnByDay);
         show(window);
     }
 
@@ -559,7 +564,21 @@ public partial class Main : Node3D
         {
             _screen?.ShowHint(new ToastMessage("msg.hint.selfcheck", new Dictionary<string, string>(), "selfcheck"));
         }
+
+        // A world that learned by day on a PC that no longer offers it (other card, new measurement) learns at night
+        // again from the start (A1568, review GW2 #288).
+        if (answer.Check?.LearnByDay is { Offered: false } && IsInstanceValid(this) && _world == world && world?.Host?.Decisions.LearnByDay == true)
+        {
+            SetLearnByDay(false);
+        }
     }
+
+    /// <summary>Switches learning by day (A1568, B2652): a logged command, so a replay switches at the same tick.</summary>
+    private void SetLearnByDay(bool on) =>
+        _world?.Host?.Decisions.Submit(new Simulation.Decisions.PlayerCommand(Simulation.Decisions.DecisionsSystem.SetLearnByDay, null)
+        {
+            Text = on ? Simulation.Decisions.DecisionsSystem.LearnByDayOn : Simulation.Decisions.DecisionsSystem.LearnByDayOff,
+        });
 
     private void SaveSettings()
     {

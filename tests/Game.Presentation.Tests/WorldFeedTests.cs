@@ -56,6 +56,26 @@ public sealed class WorldFeedTests
     }
 
     [Fact]
+    public void ANeedAnInventionBroughtShowsItsNameAndFadesWhenEmpty()
+    {
+        // A1595 (#290): such a need has no text key - the card takes its name from the need register; empty, it fades.
+        var host = NewWorld();
+        Assert.Null(host.Needs.Add(new GlassWorld.Contracts.NewNeed { Id = "glow", NameDe = "Leuchten", NameEn = "Glow", DecayPerDay = 0.2, Actions = ["use"] }, "inv_lamp"));
+        Assert.Null(host.Needs.Add(new GlassWorld.Contracts.NewNeed { Id = "rhythm", NameDe = "Takt", NameEn = "Rhythm", DecayPerDay = 0.2, Actions = ["use"] }, "inv_drum"));
+        var inhabitant = host.Inhabitants.All.First();
+        inhabitant.Needs["glow"] = 0.6;
+        inhabitant.Needs["rhythm"] = 0.0;
+
+        var card = new WorldFeed(host).Card(inhabitant.Id)!;
+
+        var glow = Assert.Single(card.Needs, v => v.Key == "vocab.need.glow");
+        Assert.Equal((("Leuchten", "Glow"), false, 60), (glow.Name!.Value, glow.Faded, glow.Percent));
+        Assert.True(Assert.Single(card.Needs, v => v.Key == "vocab.need.rhythm").Faded);
+        Assert.All(card.Needs.Where(v => v.Key is not ("vocab.need.glow" or "vocab.need.rhythm")), v => Assert.Equal(((string, string)?)null, v.Name));
+        Assert.DoesNotContain(card.Needs, v => v.Name is null && v.Faded);
+    }
+
+    [Fact]
     public void CardOfUnknownInhabitantIsNull() => Assert.Null(new WorldFeed(NewWorld()).Card("inh-999999"));
 
     [Fact]

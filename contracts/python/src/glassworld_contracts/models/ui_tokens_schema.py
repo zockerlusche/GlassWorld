@@ -142,6 +142,12 @@ class UiWindowTokens(BaseModel):
         ge=0.0,
         le=0.9,
     )
+    faded_alpha: float | None = Field(
+        None,
+        description='Opacity of a card value shown greyed - a need an invention brought that has run empty (A1595); 1 = not greyed. Omitted = 0.5.',
+        ge=0.2,
+        le=1.0,
+    )
     log_lines: int = Field(
         ...,
         description='Lines the conversation log keeps (W1696: who said or thought what), newest first.',
