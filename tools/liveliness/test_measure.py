@@ -40,7 +40,7 @@ def test_events_are_counted_per_day_and_inhabitant() -> None:
     days = LM.measure(LM.parse_events(LOG), 1440, {"talk_to"})
     first = days[(1, "inh-1")].row()
     assert first["actions"] == 3 and first["distinct_actions"] == 2
-    assert first["talks"] == 1 and first["discoveries"] == 1 and first["thoughts"] == 1
+    assert first["contacts"] == 1 and first["discoveries"] == 1 and first["thoughts"] == 1
     assert first["questions_opened"] == 1
     second = days[(2, "inh-1")].row()
     assert second["actions"] == 1 and second["making"] == 1
@@ -64,7 +64,26 @@ def test_the_report_names_quiet_days_without_judging(tmp_path: Path) -> None:
     assert LM.main([str(log), "--out", str(tmp_path / "out"), "--quiet-below", "2"]) == 0
     text = (tmp_path / "out" / "report.md").read_text(encoding="utf-8")
     assert "Ruhige Tage: 1 von 2" in text and "Tag 2 inh-1" in text
+    assert "| Kontakte |" in text
     assert (tmp_path / "out" / "liveliness.json").is_file()
     empty = tmp_path / "empty.log"
     empty.write_text("nothing\n", encoding="utf-8")
     assert LM.main([str(empty)]) == 1
+
+
+def test_a_day_without_events_is_a_row_and_counts_as_quiet() -> None:
+    """Review GW3 #305: an inhabitant with nothing finished on a day still gets that day."""
+    log = [
+        "EVENT tick=10 kind=action_finished inhabitant=inh-1 action=eat target=obj-1 detail=-",
+        "EVENT tick=3000 kind=action_finished inhabitant=inh-2 action=eat target=obj-1 detail=-",
+    ]
+    days = LM.measure(LM.parse_events(log), 1440, set())
+    assert set(days) == {
+        (1, "inh-1"),
+        (1, "inh-2"),
+        (2, "inh-1"),
+        (2, "inh-2"),
+        (3, "inh-1"),
+        (3, "inh-2"),
+    }
+    assert days[(2, "inh-1")].row()["actions"] == 0

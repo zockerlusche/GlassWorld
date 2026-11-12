@@ -8,8 +8,9 @@ target=.. detail=..`. Per game day and inhabitant it counts what a viewer would 
 
 - actions:      finished actions, how many different ones, and their spread (normalised Shannon
                 entropy 0..1: 0 = always the same, 1 = all kinds equally often);
-- talks:        finished actions with an inhabitant as target (from the action vocabulary: target
-                "inhabitant" - no list in this tool);
+- contacts:     finished actions with an inhabitant as target (from the action vocabulary: target
+                "inhabitant" - no list in this tool). That includes walking up to someone, so it
+                is contact, not only talk (review GW3 #305);
 - discoveries:  knowledge gained, names learned, first meetings;
 - making:       inventions wanted, invented, built, first used;
 - thoughts and questions (opened, answered, failed).
@@ -73,7 +74,7 @@ def spread(counts: Counter[str]) -> float:
 @dataclass
 class Day:
     actions: Counter[str] = field(default_factory=Counter[str])
-    talks: int = 0
+    contacts: int = 0
     discoveries: int = 0
     making: int = 0
     thoughts: int = 0
@@ -84,7 +85,7 @@ class Day:
             "actions": sum(self.actions.values()),
             "distinct_actions": len(self.actions),
             "spread": round(spread(self.actions), 2),
-            "talks": self.talks,
+            "contacts": self.contacts,
             "discoveries": self.discoveries,
             "making": self.making,
             "thoughts": self.thoughts,
@@ -98,17 +99,22 @@ def measure(
     events: list[dict[str, str]], per_day: int, social: set[str]
 ) -> dict[tuple[int, str], Day]:
     days: dict[tuple[int, str], Day] = defaultdict(Day)
+    seen: set[str] = set()
+    last_day = 1
     for e in events:
         who = e.get("inhabitant", "-")
         if who in ("", "-"):
             continue
-        day = days[(int(e.get("tick", "0")) // per_day + 1, who)]
+        number = int(e.get("tick", "0")) // per_day + 1
+        seen.add(who)
+        last_day = max(last_day, number)
+        day = days[(number, who)]
         kind = e.get("kind", "")
         if kind == "action_finished":
             action = e.get("action", "-")
             day.actions[action] += 1
             if action in social:
-                day.talks += 1
+                day.contacts += 1
         elif kind in DISCOVERY:
             day.discoveries += 1
         elif kind in MAKING:
@@ -117,6 +123,11 @@ def measure(
             day.thoughts += 1
         elif kind in QUESTIONS:
             day.questions[kind] += 1
+    # A row for every inhabitant on every day of the run, also without a single event: such a
+    # day is the quietest of all (review GW3 #305).
+    for number in range(1, last_day + 1):
+        for who in seen:
+            _ = days[(number, who)]
     return dict(days)
 
 
@@ -141,7 +152,7 @@ def report(days: dict[tuple[int, str], Day], quiet_below: int, source: str) -> s
         "| Messgröße | Median | Minimum | Maximum |",
         "|---|---|---|---|",
     ]
-    for key in ("actions", "distinct_actions", "spread", "talks", "discoveries", "making",
+    for key in ("actions", "distinct_actions", "spread", "contacts", "discoveries", "making",
                 "thoughts", "questions_opened", "questions_answered"):  # fmt: skip
         values = [float(r[key]) for r in rows.values()]  # type: ignore[arg-type]
         if values:
@@ -154,21 +165,23 @@ def report(days: dict[tuple[int, str], Day], quiet_below: int, source: str) -> s
         "",
         "## Je Spieltag (alle Bewohner zusammen)",
         "",
-        "| Tag | Bewohner | Handlungen | verschieden | Gespräche | Entdeckungen | Gemachtes "
+        "| Tag | Bewohner | Handlungen | verschieden | Kontakte | Entdeckungen | Gemachtes "
         "| Gedanken | Fragen offen/beantwortet |",
         "|---|---|---|---|---|---|---|---|---|",
     ]
     by_day: dict[int, list[dict[str, object]]] = defaultdict(list)
-    for (d, _), r in rows.items():
+    kinds_of_day: dict[int, set[str]] = defaultdict(set)
+    for (d, w), r in rows.items():
         by_day[d].append(r)
+        kinds_of_day[d].update(days[(d, w)].actions)  # one pass (review GW3 #305)
     for d, rs in sorted(by_day.items()):
-        distinct = {a for (dd, _), day in days.items() if dd == d for a in day.actions}
+        distinct = kinds_of_day[d]
 
         def total(key: str, rs: list[dict[str, object]] = rs) -> int:
             return sum(int(r[key]) for r in rs)  # type: ignore[call-overload]
 
         lines.append(
-            f"| {d} | {len(rs)} | {total('actions')} | {len(distinct)} | {total('talks')} | "
+            f"| {d} | {len(rs)} | {total('actions')} | {len(distinct)} | {total('contacts')} | "
             f"{total('discoveries')} | {total('making')} | {total('thoughts')} | "
             f"{total('questions_opened')}/{total('questions_answered')} |"
         )
