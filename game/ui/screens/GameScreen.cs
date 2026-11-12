@@ -1550,6 +1550,15 @@ public partial class GameScreen : CanvasLayer
         foreach (var message in open)
         {
             var row = new HBoxContainer();
+
+            // A builder's knock shows the invention's icon (A1603), like the chronicle and the card.
+            if (message.SubjectType is { } subject && InventionIcon(subject) is { } subjectIcon)
+            {
+                var rect = IconRect();
+                rect.Texture = subjectIcon;
+                row.AddChild(rect);
+            }
+
             var text = new Label
             {
                 Text = MailText(message),
