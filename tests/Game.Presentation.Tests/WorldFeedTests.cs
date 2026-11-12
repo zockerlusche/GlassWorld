@@ -136,6 +136,24 @@ public sealed class WorldFeedTests
     }
 
     [Fact]
+    public void AFreeMomentIsNotListedAsAQuestion()
+    {
+        // #309 follow-up: the questions window listed every free moment with a whisper field.
+        var host = NewWorld();
+        var feed = new WorldFeed(host);
+        var seen = false;
+        for (var i = 0; i < 2000 && !seen; i++)
+        {
+            host.World.Step();
+            var open = host.Decisions.Open.Where(q => q.Kind == DecisionsSystem.Leisure).Select(q => q.Id).ToList();
+            seen = open.Count > 0;
+            Assert.DoesNotContain(feed.Questions(), q => open.Contains(q.Id));
+        }
+
+        Assert.True(seen);
+    }
+
+    [Fact]
     public void EveryDayPhaseHasATextKeyAndAVocabularyId()
     {
         var keys = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(Path.Combine(TestPaths.Root, "content", "i18n", "en.json")))!["entries"]!.AsArray()
