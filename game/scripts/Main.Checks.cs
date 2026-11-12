@@ -625,6 +625,11 @@ public partial class Main
             {
                 _screen!.ShowZonesForShots(zones);
                 await Take($"10_{tag}_spiel");
+
+                // The hint area with two hints stands wholly inside the picture (W1934).
+                _screen.ShowHintsForShots(true);
+                await Take($"10_{tag}_hinweise");
+                _screen.ShowHintsForShots(false);
                 foreach (var key in GameScreen.PanelKeysForShots(zones))
                 {
                     _screen.OpenPanelForShots(key);
@@ -731,7 +736,7 @@ public partial class Main
 
                 // The night is watched at the speed a player sees it; once the scene is over the rest of the
                 // calendar night runs in fast-forward again (it took seven minutes of waiting otherwise).
-                var wanted = stage is NightStage.Day or NightStage.Awake ? fastest : 1;
+                var wanted = stage is NightStage.Day or NightStage.Awake or NightStage.Waiting ? fastest : 1;
                 if (_world.Speed != wanted)
                 {
                     _world.Speed = wanted;
