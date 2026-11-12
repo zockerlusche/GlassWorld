@@ -103,6 +103,42 @@
       "text": "{name} – favourite"
     },
     {
+      "key": "ui.memory.title",
+      "text": "Memories of {name}"
+    },
+    {
+      "key": "ui.memory.intro",
+      "text": "What the world has kept: events with this inhabitant and your conversations. What you say stays in the save game."
+    },
+    {
+      "key": "ui.memory.empty",
+      "text": "No memories yet."
+    },
+    {
+      "key": "ui.memory.player_said",
+      "text": "You: “{text}”"
+    },
+    {
+      "key": "ui.memory.inhabitant_said",
+      "text": "{name}: “{text}”"
+    },
+    {
+      "key": "ui.memory.export",
+      "text": "Export"
+    },
+    {
+      "key": "ui.card.memory",
+      "text": "Memories"
+    },
+    {
+      "key": "msg.hint.memory_exported",
+      "text": "The memories are now in {folder}."
+    },
+    {
+      "key": "msg.hint.memory_export_failed",
+      "text": "The memories could not be saved."
+    },
+    {
       "key": "ui.card.doing",
       "text": "Doing now"
     },

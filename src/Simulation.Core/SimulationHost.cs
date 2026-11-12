@@ -345,7 +345,11 @@ public sealed class SimulationHost
         decisions.RegisterCommand(Simulation.Player.MailboxSystem.Acknowledge, mailbox.Check, mailbox.Apply);
 
         // The player's favourites (B6 R19): the player's own marks, never part of a request to the AI.
-        var favourites = new Simulation.Player.FavouritesSystem(inhabitants);
+        var favourites = new Simulation.Player.FavouritesSystem(inhabitants)
+        {
+            // One who has died may be marked from its memory page as long as the chronicle names it (A1565).
+            Remembered = id => chronicle.Since(0).Any(r => r.InhabitantId == id || r.TargetId == id),
+        };
         decisions.RegisterCommand(Simulation.Player.FavouritesSystem.Mark, favourites.Check, favourites.Apply);
         decisions.RegisterCommand(Simulation.Player.FavouritesSystem.Unmark, favourites.Check, favourites.Apply);
 
