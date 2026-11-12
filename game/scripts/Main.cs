@@ -136,7 +136,7 @@ public partial class Main : Node3D
 
             if (_shotsFolder is not null && _style is not null)
             {
-                _ = _nightShots ? NightShotsAsync() : _tour ? TourAsync(_style) : TakeShotsAsync(_style);
+                _ = _nightShots ? NightShotsAsync() : _actionShots ? ActionShotsAsync() : _tour ? TourAsync(_style) : TakeShotsAsync(_style);
             }
             else if (_tour || _nightShots)
             {
@@ -199,6 +199,12 @@ public partial class Main : Node3D
                 && double.TryParse(arg[TourRunArgument.Length..], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var run) && run > 0)
             {
                 _tourRunS = run;
+            }
+
+            // Pictures at look/pick moments (W1936), check runs only.
+            if (OS.IsDebugBuild() && ReadActionShotsArgument(arg))
+            {
+                continue;
             }
 
             // The UI tour (W1757): every menu and window, in both layouts, one picture each.
