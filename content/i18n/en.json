@@ -1320,7 +1320,7 @@
     },
     {
       "key": "msg.mail.knock",
-      "text": "{name} finds nothing for {need} – perhaps you can help."
+      "text": "{name} knocks at the glass: finds nothing for {need}."
     },
     {
       "key": "msg.command.no_message",
