@@ -131,6 +131,22 @@
       "text": "Erinnerungen"
     },
     {
+      "key": "ui.build.quality.scrap",
+      "text": "Schrott"
+    },
+    {
+      "key": "ui.build.quality.simple",
+      "text": "einfach"
+    },
+    {
+      "key": "ui.build.quality.solid",
+      "text": "solide"
+    },
+    {
+      "key": "ui.build.quality.masterful",
+      "text": "meisterhaft"
+    },
+    {
       "key": "msg.hint.memory_exported",
       "text": "Die Erinnerungen liegen jetzt in {folder}."
     },

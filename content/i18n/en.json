@@ -131,6 +131,22 @@
       "text": "Memories"
     },
     {
+      "key": "ui.build.quality.scrap",
+      "text": "scrap"
+    },
+    {
+      "key": "ui.build.quality.simple",
+      "text": "simple"
+    },
+    {
+      "key": "ui.build.quality.solid",
+      "text": "solid"
+    },
+    {
+      "key": "ui.build.quality.masterful",
+      "text": "masterful"
+    },
+    {
       "key": "msg.hint.memory_exported",
       "text": "The memories are now in {folder}."
     },
