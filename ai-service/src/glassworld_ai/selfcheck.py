@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 from glassworld_contracts import CONTRACT_VERSION
+from glassworld_contracts.models.hardware_tiers_schema import HardwareTiers
 
 PREPARING = {"downloading", "verifying", "installing", "starting", "queued"}
 
@@ -80,11 +81,47 @@ def _image(models: dict[str, Any]) -> dict[str, Any]:
     return _check("image", "ok", "ready")
 
 
-def self_check(
-    ollama: dict[str, Any], models: dict[str, Any], tier: str | None, warm_up: str
+LEARN_BY_DAY_HINT = "msg.selfcheck.learn_by_day.hint"
+LEARN_BY_DAY_REASONS = ("ok", "tier", "too_slow", "not_measured")
+
+
+def learn_by_day(
+    tiers: HardwareTiers, tier: str | None, language_seconds_per_job: float | None
 ) -> dict[str, Any]:
-    """The SelfCheck contract message (statuses as their JSON dumps)."""
+    """B2652 (A1568): whether the game offers the switch 'learn by day as well'. The rule is
+    data (content/hardware/tiers.json, learn_by_day per tier); the measured seconds per
+    language job come from the measurement run (B7 R6). By default everything new is learned
+    in the computing night (B2650/B2652); this only says whether the switch may be shown."""
+    entry = next((t for t in tiers.tiers if t.id == tier), None) if tier else None
+    rule = entry.learn_by_day if entry is not None else None
+    if rule is None or not rule.offered:
+        reason = "tier"
+    elif rule.max_language_seconds_per_job is None:
+        reason = "ok"
+    elif language_seconds_per_job is None:
+        reason = "not_measured"
+    elif language_seconds_per_job > float(rule.max_language_seconds_per_job):
+        reason = "too_slow"
+    else:
+        reason = "ok"
     return {
+        "offered": reason == "ok",
+        "reason": reason,
+        "message_key": f"msg.selfcheck.learn_by_day.{reason}",
+        "hint_key": LEARN_BY_DAY_HINT,
+    }
+
+
+def self_check(
+    ollama: dict[str, Any],
+    models: dict[str, Any],
+    tier: str | None,
+    warm_up: str,
+    learn: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """The SelfCheck contract message (statuses as their JSON dumps); `learn` from
+    learn_by_day() when the service knows the tiers (A1568)."""
+    check: dict[str, Any] = {
         "contract_version": CONTRACT_VERSION,
         "checks": [
             _language(ollama, models, tier, warm_up),
@@ -92,6 +129,9 @@ def self_check(
             _check("sound", "not_planned", "not_planned"),  # W1703: no sound AI for players yet
         ],
     }
+    if learn is not None:
+        check["learn_by_day"] = learn
+    return check
 
 
 def all_keys() -> list[str]:
@@ -118,4 +158,6 @@ def all_keys() -> list[str]:
         ]
     for ai, reasons in others.items():
         keys += [f"msg.selfcheck.{ai}.{r}" for r in reasons]
+    keys += [f"msg.selfcheck.learn_by_day.{r}" for r in LEARN_BY_DAY_REASONS]
+    keys.append(LEARN_BY_DAY_HINT)
     return keys

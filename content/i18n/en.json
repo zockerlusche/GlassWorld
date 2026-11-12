@@ -1491,6 +1491,10 @@
       "text": "Building failed"
     },
     {
+      "key": "vocab.event.needs_help",
+      "text": "Needs help with building"
+    },
+    {
       "key": "vocab.event.built",
       "text": "Built"
     },
@@ -2253,6 +2257,26 @@
     {
       "key": "msg.selfcheck.sound.not_planned",
       "text": "Sound AI is not part of this version. The world uses its basic sounds."
+    },
+    {
+      "key": "msg.selfcheck.learn_by_day.ok",
+      "text": "Your PC can also let them learn by day."
+    },
+    {
+      "key": "msg.selfcheck.learn_by_day.tier",
+      "text": "On this PC the inhabitants learn new things in the computing night."
+    },
+    {
+      "key": "msg.selfcheck.learn_by_day.too_slow",
+      "text": "The measurement shows that learning by day would be too slow on this PC. The inhabitants learn new things in the computing night."
+    },
+    {
+      "key": "msg.selfcheck.learn_by_day.not_measured",
+      "text": "Not measured yet: the measurement run shows whether your PC can also learn by day."
+    },
+    {
+      "key": "msg.selfcheck.learn_by_day.hint",
+      "text": "Switched on, the inhabitants talk new things over with the AI during the day as well - it then uses computing power while you play. Switched off, everything happens in the computing night and the inhabitants learn more slowly."
     },
     {
       "key": "ui.settings.section.ai",

@@ -43,6 +43,27 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
+    /// B2652 (A1568): whether this tier offers the switch 'learn by day as well'. By default new things are learned in the computing night on every PC (B2650); the switch is offered only where the PC is strong enough. Omitted: not offered.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class LearnByDay
+    {
+
+        /// <summary>
+        /// The tier offers the switch at all.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("offered")]
+        public bool Offered { get; set; } = default!;
+
+        /// <summary>
+        /// If set: offered only when the measurement run (B7 R6) found the language model at most this many seconds per job; without a measurement it is not offered. Null: no measured condition.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max_language_seconds_per_job")]
+        public double? MaxLanguageSecondsPerJob { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// Data file content/hardware/tiers.json: hardware tiers and their thresholds. Tiers are listed from lowest to highest; the highest tier whose requirements are all met applies. Below the first tier the PC is not supported.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]

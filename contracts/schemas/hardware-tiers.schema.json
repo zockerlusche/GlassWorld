@@ -47,6 +47,9 @@
           "items": {
             "$ref": "#/$defs/Requirement"
           }
+        },
+        "learn_by_day": {
+          "$ref": "#/$defs/LearnByDay"
         }
       }
     },
@@ -70,6 +73,34 @@
           "description": "Installed system RAM in MiB.",
           "type": "integer",
           "minimum": 0
+        }
+      }
+    },
+    "LearnByDay": {
+      "description": "B2652 (A1568): whether this tier offers the switch 'learn by day as well'. By default new things are learned in the computing night on every PC (B2650); the switch is offered only where the PC is strong enough. Omitted: not offered.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "offered",
+        "max_language_seconds_per_job"
+      ],
+      "properties": {
+        "offered": {
+          "description": "The tier offers the switch at all.",
+          "type": "boolean"
+        },
+        "max_language_seconds_per_job": {
+          "description": "If set: offered only when the measurement run (B7 R6) found the language model at most this many seconds per job; without a measurement it is not offered. Null: no measured condition.",
+          "anyOf": [
+            {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 60
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
     }

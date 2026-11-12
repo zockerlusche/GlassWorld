@@ -13,6 +13,16 @@
     "retry_after_minutes": { "description": "After a retryable error the wish stays open and is sent again with a new request id after this many game minutes (B2487).", "type": "integer", "minimum": 1, "maximum": 10080 },
     "tech_level": { "description": "Highest tech level the world allows now (vocabulary tech_level; order of the vocabulary = order of the levels).", "$ref": "common.schema.json#/$defs/VocabId" },
     "limits": { "$ref": "#/$defs/InventionLimitSettings" },
+    "forbidden_terms": {
+      "description": "Youth protection for inventions (B4b R16, B2481): what an invention, a new need or a new ability must not be - a weapon, a trap, hunting or fishing gear, poison. A name holding one of these terms is refused by the core whatever the AI guard said (reason forbidden_purpose). Per language; a term matches a whole word, * at its start lets the word begin otherwise (German compounds: *falle matches Tierfalle), * at its end lets it go on (jagd* matches Jagdspeer). Kept apart from the content guard of all AI text, so a thought may still name a spear. Omitted = no such check.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["de", "en"],
+      "properties": {
+        "de": { "type": "array", "maxItems": 256, "uniqueItems": true, "items": { "type": "string", "pattern": "^\\*?[a-zäöüß]{2,32}\\*?$" } },
+        "en": { "type": "array", "maxItems": 256, "uniqueItems": true, "items": { "type": "string", "pattern": "^\\*?[a-z]{2,32}\\*?$" } }
+      }
+    },
     "max_materials": { "description": "At most this many perceived things are sent as materials (contract maximum 16).", "type": "integer", "minimum": 1, "maximum": 16 },
     "implied_properties": {
       "description": "Properties every runtime type from an invention has besides its own introduces (e.g. that inhabitants made it, so the routine layer can offer to use it).",
