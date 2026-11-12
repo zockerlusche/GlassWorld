@@ -240,7 +240,7 @@
       }
     },
     "ClimateTemperature": {
-      "description": "Air temperature in tenths of a degree (B2 R13, B5 R1): base value of the climate plus an offset for the season, the weather and the time of day; the preset's height drop applies on top. Every season, weather state and time of day needs an entry (load check).",
+      "description": "Air temperature in tenths of a degree (B2 R13, B5 R1/R28): base value of the climate plus an offset for the season, the weather and the time of day; the preset's height drop applies on top. Every season, weather state and time of day needs an entry (load check). Optional: an hourly curve per season replaces the time-of-day offset for that season, biome offsets add per cell, and a season transition blends the season's part in linearly. Without the optional fields the temperature is exactly as before.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -281,6 +281,28 @@
           "items": {
             "$ref": "#/$defs/TemperatureTimeOffset"
           }
+        },
+        "hourly": {
+          "description": "Optional daily curve per season (B5 R28): points by hour, interpolated linearly by the minute and around midnight. A season with a curve uses it instead of times_of_day. At most one curve per season (load check).",
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "$ref": "#/$defs/TemperatureHourlyCurve"
+          }
+        },
+        "biomes": {
+          "description": "Optional offsets per biome (B5 R28), for one season or, without season, for all; matching entries add up. A pair of biome and season appears at most once (load check).",
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "$ref": "#/$defs/TemperatureBiomeOffset"
+          }
+        },
+        "season_transition_hours": {
+          "description": "Optional: during the first hours of a season its part (season offset, daily curve or time-of-day offset, biome offsets) blends linearly from the previous season's part (B5 R1). 0 or absent = a hard change at the boundary.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
         }
       }
     },
@@ -329,6 +351,69 @@
       ],
       "properties": {
         "time_of_day": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "offset_tenth_c": {
+          "type": "integer",
+          "minimum": -1000,
+          "maximum": 1000
+        }
+      }
+    },
+    "TemperatureHourlyCurve": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "season",
+        "points"
+      ],
+      "properties": {
+        "season": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "points": {
+          "description": "Points of the curve; hours strictly ascending and below the hours of a day (load check).",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 48,
+          "items": {
+            "$ref": "#/$defs/TemperatureHourPoint"
+          }
+        }
+      }
+    },
+    "TemperatureHourPoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hour",
+        "offset_tenth_c"
+      ],
+      "properties": {
+        "hour": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 47
+        },
+        "offset_tenth_c": {
+          "type": "integer",
+          "minimum": -1000,
+          "maximum": 1000
+        }
+      }
+    },
+    "TemperatureBiomeOffset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "biome",
+        "offset_tenth_c"
+      ],
+      "properties": {
+        "biome": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "season": {
           "$ref": "common.schema.json#/$defs/VocabId"
         },
         "offset_tenth_c": {

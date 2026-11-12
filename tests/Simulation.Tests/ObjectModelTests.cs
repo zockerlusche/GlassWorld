@@ -151,6 +151,42 @@ public sealed class ObjectModelTests
         Assert.Throws<InvalidDataException>(() => Rules(catalog, actions, new CombinationRule { Id = "r", Action = "combine", Inputs = [Slot("hard")], Creates = [], Consumes = [3] }));
     }
 
+    [Fact]
+    public void NumberParamsComeFromTheDataAndAreEmptyWhenAbsent()
+    {
+        var file = Types(("campfire", ["hot", "burnable"]), ("pebble", ["hard"]));
+        file.Types.First().Params = new ObjectParams { HeatTenthC = 80, HeatRadiusCm = 300, LightRadiusCm = 600, LightPermille = 400, BurnMinutes = 90 };
+        var catalog = ObjectCatalog.Create([file], Content.Vocabularies[VocabularyKind.Property]);
+
+        var fire = catalog.Params("campfire");
+        Assert.Equal(80, fire.HeatTenthC);
+        Assert.Equal(300, fire.HeatRadiusCm);
+        Assert.Equal(90, fire.BurnMinutes);
+        Assert.Null(fire.InsulationTenthC);
+
+        var pebble = catalog.Params("pebble");
+        Assert.Null(pebble.HeatTenthC);
+        Assert.Null(pebble.ToolValuePermille);
+        Assert.Throws<KeyNotFoundException>(() => catalog.Params("unicorn"));
+    }
+
+    [Theory]
+    [InlineData("shade")]
+    [InlineData("heat")]
+    [InlineData("light")]
+    public void ParamsThatBelongTogetherAreRejectedAlone(string pair)
+    {
+        var file = Types(("x", ["hard"]));
+        file.Types.First().Params = pair switch
+        {
+            "shade" => new ObjectParams { ShadeHeightCm = 400 },
+            "heat" => new ObjectParams { HeatRadiusCm = 300 },
+            _ => new ObjectParams { LightPermille = 200 },
+        };
+
+        Assert.Throws<InvalidDataException>(() => ObjectCatalog.Create([file], Content.Vocabularies[VocabularyKind.Property]));
+    }
+
     private static ObjectTypes Types(params (string Id, string[] Properties)[] types) => new()
     {
         ContractVersion = ContractInfo.Version,

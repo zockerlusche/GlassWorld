@@ -200,7 +200,10 @@ public sealed class WeatherTests : IDisposable
             var seasonIndex = calendar.Settings.Seasons.Select(s => s.Id).ToList().IndexOf(table.Season);
             for (var hour = 0; hour < calendar.Settings.HoursPerDay; hour++)
             {
-                var tick = (seasonIndex * calendar.Settings.DaysPerSeason * calendar.TicksPerDay) + ((long)hour * calendar.Settings.TicksPerHour);
+                // The season's own temperature: after its transition from the previous season (season_transition_hours,
+                // B2676), so the middle day of the season.
+                var day = calendar.Settings.DaysPerSeason / 2;
+                var tick = (((seasonIndex * calendar.Settings.DaysPerSeason) + day) * calendar.TicksPerDay) + ((long)hour * calendar.Settings.TicksPerHour);
                 var time = calendar.At(tick);
                 if (reachable.Contains("frost"))
                 {

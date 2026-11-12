@@ -334,6 +334,12 @@ public static class SaveGameStore
             Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("weather", JsonSerializer.Serialize(s.Weather, Json)));
         }
 
+        if (s.Climate is not null)
+        {
+            // The chosen climate (B5 R1, B2676): no entry = the preset's climate, as in every older save.
+            Insert(c, tx, "INSERT INTO meta VALUES($a,$b)", ("climate", s.Climate));
+        }
+
         if (s.Exploration is { } explored)
         {
             // Seen cells (B2-6 R14): the player's view under the empty owner, then one row per inhabitant.
@@ -635,6 +641,7 @@ public static class SaveGameStore
             IslandData = ReadIsland(c, meta),
             Weather = meta.TryGetValue("weather", out var weather) ? JsonSerializer.Deserialize<Weather.WeatherState>(weather, Json) : null,
             LookEpoch = meta.GetValueOrDefault("look_epoch"),
+            Climate = meta.GetValueOrDefault("climate"),
             Exploration = ReadExploration(c),
             Skills = meta.TryGetValue("skills", out var skills) ? JsonSerializer.Deserialize<Simulation.Inhabitants.SkillRegisterState>(skills, Json) : null,
             Needs = meta.TryGetValue("needs", out var needs) ? JsonSerializer.Deserialize<Simulation.Inhabitants.NeedRegisterState>(needs, Json) : null,

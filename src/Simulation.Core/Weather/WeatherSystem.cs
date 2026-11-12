@@ -72,9 +72,7 @@ public sealed class WeatherSystem : IWorldSystem, IWeather
     private readonly ClimateWeather _data;
     private readonly Dictionary<string, ClimateWeatherState> _states;
     private readonly int _heightOffsetTenthC;
-    private readonly Dictionary<string, int> _seasonOffsets;
-    private readonly Dictionary<string, int> _weatherOffsets;
-    private readonly Dictionary<string, int> _timeOffsets;
+    private readonly AirTemperature _air;
     private readonly long _changeTicks;
     private readonly long _droughtTicks;
     private readonly long _gustTicks;
@@ -101,10 +99,7 @@ public sealed class WeatherSystem : IWorldSystem, IWeather
         _data = climate.Weather;
         _states = _data.States.ToDictionary(s => s.Weather, StringComparer.Ordinal);
         _heightOffsetTenthC = heightOffsetTenthC;
-        var temperature = _data.Temperature;
-        _seasonOffsets = temperature.Seasons.ToDictionary(s => s.Season, s => s.OffsetTenthC, StringComparer.Ordinal);
-        _weatherOffsets = temperature.Weathers.ToDictionary(w => w.Weather, w => w.OffsetTenthC, StringComparer.Ordinal);
-        _timeOffsets = temperature.TimesOfDay.ToDictionary(t => t.TimeOfDay, t => t.OffsetTenthC, StringComparer.Ordinal);
+        _air = new AirTemperature(_data.Temperature, hoursPerDay);
         _changeTicks = Math.Max(1L, (long)_data.ChangeEveryHours * ticksPerHour);
         _droughtTicks = (long)_data.DroughtAfterDryDays * hoursPerDay * ticksPerHour;
         _gustTicks = Math.Max(1L, (long)_data.GustPeriodMinutes * ticksPerHour / 60);
@@ -214,17 +209,16 @@ public sealed class WeatherSystem : IWorldSystem, IWeather
     }
 
     /// <summary>
-    /// Air temperature in tenths of a degree: climate base + offset of the season + offset of the weather
-    /// (none when <paramref name="weather"/> is null) + offset of the time of day + the height drop.
-    /// Integers only; every season, weather and time of day has an entry (checked at load).
+    /// Air temperature in tenths of a degree (see <see cref="AirTemperature"/>): climate base + season part
+    /// (season offset, daily curve or time-of-day offset, biome offsets of <paramref name="biome"/>, blended
+    /// at the start of a season) + offset of the weather (none when <paramref name="weather"/> is null) +
+    /// the height drop of the start cells. Integers only.
     /// </summary>
-    public int TemperatureAt(Time.WorldTime time, string? weather)
-    {
-        var sum = _data.Temperature.BaseTenthC + _heightOffsetTenthC
-            + _seasonOffsets.GetValueOrDefault(time.SeasonId)
-            + _timeOffsets.GetValueOrDefault(Time.DayPhases.IdOf(time.Phase));
-        return weather is null ? sum : sum + _weatherOffsets.GetValueOrDefault(weather);
-    }
+    public int TemperatureAt(Time.WorldTime time, string? weather, string? biome = null) =>
+        _air.At(time, weather, biome) + _heightOffsetTenthC;
+
+    /// <summary>True if the climate has biome offsets (the per-cell temperature then depends on the biome).</summary>
+    public bool HasBiomeTemperatures => _air.HasBiomeOffsets;
 
     /// <summary>
     /// Sets the main weather now (debug jumps, R23; the player's intervention goes through the logged command
@@ -268,10 +262,21 @@ public sealed class WeatherSystem : IWorldSystem, IWeather
         SyncSignals(tick, announce: true);
     }
 
+    /// <summary>
+    /// The climate the player chose (B5 R1, B2676), or null for the preset's climate. Hashed only when set,
+    /// so worlds without a choice keep their hashes (review GW1 #318).
+    /// </summary>
+    public string? ChosenClimate { get; init; }
+
     /// <inheritdoc/>
     public void WriteState(StateHasher hasher)
     {
         ArgumentNullException.ThrowIfNull(hasher);
+        if (ChosenClimate is not null)
+        {
+            hasher.Write("climate").Write(ChosenClimate);
+        }
+
         hasher.Write(Current).Write(_dryTicks).Write(_history.Count);
         foreach (var (start, weather) in _history)
         {
