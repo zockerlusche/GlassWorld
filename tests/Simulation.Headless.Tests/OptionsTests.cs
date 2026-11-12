@@ -27,7 +27,7 @@ public sealed class OptionsTests
     public void EveryOptionIsRead()
     {
         var options = Parse(
-            "--seed", "42", "--days", "3", "--content", "c", "--save", "s.db", "--preset", "start_island", "--quiet",
+            "--seed", "42", "--days", "3", "--content", "c", "--save", "s.db", "--preset", "start_island", "--climate", "warm", "--quiet",
             "--trace", "inh-000001", "--trace-days", "2", "--ai", "live", "--tick-ms", "52", "--until", "thought:5",
             "--events", "thought,invented", "--log-json", "log.jsonl");
         Assert.Equal(42UL, options.Seed);
@@ -35,6 +35,7 @@ public sealed class OptionsTests
         Assert.Equal("c", options.ContentDirectory);
         Assert.Equal("s.db", options.SavePath);
         Assert.Equal("start_island", options.Preset);
+        Assert.Equal("warm", options.Climate);
         Assert.True(options.Quiet);
         Assert.Equal("inh-000001", options.Trace);
         Assert.Equal(2, options.TraceDays);

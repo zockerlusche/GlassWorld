@@ -560,6 +560,14 @@
               "type": "null"
             }
           ]
+        },
+        "vitals": {
+          "description": "Vital values 0..1 by id of the vocabulary 'vital' (B5 R22: air; 1 = full). Sorted by id by the core. Optional; absent = not stated.",
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/LevelEntry"
+          }
         }
       },
       "description": "Everything the AI may know about the inhabitant it speaks for (shared by decider and questions)."

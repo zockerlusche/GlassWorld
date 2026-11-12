@@ -2019,6 +2019,110 @@
       "text": "seen"
     },
     {
+      "key": "vocab.comfort_level.cold",
+      "text": "Cold"
+    },
+    {
+      "key": "vocab.comfort_level.cool",
+      "text": "Cool"
+    },
+    {
+      "key": "vocab.comfort_level.comfortable",
+      "text": "Comfortable"
+    },
+    {
+      "key": "vocab.comfort_level.warm",
+      "text": "Warm"
+    },
+    {
+      "key": "vocab.comfort_level.hot",
+      "text": "Hot"
+    },
+    {
+      "key": "vocab.light_level.day",
+      "text": "Day"
+    },
+    {
+      "key": "vocab.light_level.dusk",
+      "text": "Dusk"
+    },
+    {
+      "key": "vocab.light_level.night",
+      "text": "Night"
+    },
+    {
+      "key": "vocab.light_level.lit",
+      "text": "Lit"
+    },
+    {
+      "key": "vocab.water_depth.none",
+      "text": "Not in water"
+    },
+    {
+      "key": "vocab.water_depth.shallow",
+      "text": "Shallow water"
+    },
+    {
+      "key": "vocab.water_depth.deep",
+      "text": "Deep water"
+    },
+    {
+      "key": "vocab.direction.north",
+      "text": "North"
+    },
+    {
+      "key": "vocab.direction.northeast",
+      "text": "Northeast"
+    },
+    {
+      "key": "vocab.direction.east",
+      "text": "East"
+    },
+    {
+      "key": "vocab.direction.southeast",
+      "text": "Southeast"
+    },
+    {
+      "key": "vocab.direction.south",
+      "text": "South"
+    },
+    {
+      "key": "vocab.direction.southwest",
+      "text": "Southwest"
+    },
+    {
+      "key": "vocab.direction.west",
+      "text": "West"
+    },
+    {
+      "key": "vocab.direction.northwest",
+      "text": "Northwest"
+    },
+    {
+      "key": "vocab.outline_size.large",
+      "text": "Large"
+    },
+    {
+      "key": "vocab.outline_size.medium",
+      "text": "Medium"
+    },
+    {
+      "key": "vocab.vital.air",
+      "text": "Air"
+    },
+    {
+      "key": "vocab.condition.cold",
+      "text": "Cold"
+    },
+    {
+      "key": "vocab.condition.belly_ache",
+      "text": "Belly ache"
+    },
+    {
+      "key": "vocab.condition.fever",
+      "text": "Fever"
+    },
+    {
       "key": "ui.toast.look",
       "text": "Look"
     },

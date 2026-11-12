@@ -82,7 +82,7 @@ internal sealed class RunCommand
         {
             var created = options.Preset is null
                 ? SimulationHost.CreatePlaceholderWorld(options.ContentDirectory, options.Seed, connection.Decisions, "de", connection.Jobs)
-                : SimulationHost.CreateGeneratedWorld(options.ContentDirectory, options.Seed, connection.Decisions, "de", options.Preset, connection.Jobs);
+                : SimulationHost.CreateGeneratedWorld(options.ContentDirectory, options.Seed, connection.Decisions, "de", options.Preset, connection.Jobs, new SimulationHostOptions { Climate = options.Climate });
             CheckKinds(options, created);
 
             // From here on the run counts: FINAL is printed even if it ends with an exception.
