@@ -61,6 +61,7 @@ public sealed record SoundTask(string TypeId, string RequestId, string? ResultJs
 /// <param name="Substitutes">Material types taken instead of a plan material (plan type to substitute type), or null.</param>
 /// <param name="Smaller">True when the builder finished it smaller: the thing stands as far as it was built.</param>
 /// <param name="Chosen">True while an answer about this stuck building is under way (the chosen action not finished yet).</param>
+/// <param name="Quality">Quality tier of the built thing (data id, D827 R19), or null while unbuilt or without the data.</param>
 public sealed record BuildTask(
     string TypeId,
     string InhabitantId,
@@ -82,7 +83,8 @@ public sealed record BuildTask(
     int Escalations = 0,
     IReadOnlyDictionary<string, string>? Substitutes = null,
     bool Smaller = false,
-    bool Chosen = false);
+    bool Chosen = false,
+    string? Quality = null);
 
 /// <content>Building inventions from a plan and their first use (D471 D5, part 2).</content>
 public sealed partial class InventionSystem
@@ -506,7 +508,7 @@ public sealed partial class InventionSystem
 
             // The thing stands as far as it was built: built, not finished in full.
             var built = _objects.Spawn(task.TypeId, new Position(task.SiteX, task.SiteZ));
-            _builds[task.TypeId] = task with { BuiltObjectId = built.Id, Smaller = true, NeedsHelp = false, WaitingSinceTick = null, LookedTicks = 0, PendingObjectId = null, PendingType = null };
+            _builds[task.TypeId] = task with { BuiltObjectId = built.Id, Smaller = true, NeedsHelp = false, WaitingSinceTick = null, LookedTicks = 0, PendingObjectId = null, PendingType = null, Quality = QualityOf(task) };
             _inhabitants.Report(new WorldEvent(Built, e.Tick, task.InhabitantId, null, built.Id) { Detail = FinishedSmaller });
             KnowOwnWork(e.Tick, task);
             return;
@@ -554,6 +556,27 @@ public sealed partial class InventionSystem
             _builds[typeId] = task with { Chosen = true };
         }
     }
+
+    /// <summary>The skill level of an inhabitant (set by the host from the skill levels, A1376); null = no quality.</summary>
+    public Func<string, string, double>? SkillOf { get; set; }
+
+    /// <summary>
+    /// D827 R19 (A1376): the quality tier of a thing finished now - the highest tier of the data whose from_level the
+    /// builder's skill reaches; null without the data or the skill levels.
+    /// </summary>
+    private string? QualityOf(BuildTask task)
+    {
+        if (Build.Settings.Quality is not { } quality || SkillOf is not { } skillOf)
+        {
+            return null;
+        }
+
+        var level = skillOf(task.InhabitantId, quality.Skill);
+        return quality.Tiers.Where(t => level >= t.FromLevel).OrderBy(t => t.FromLevel).LastOrDefault()?.Id;
+    }
+
+    /// <summary>The quality tier of a built invention (data id, A1376), or null.</summary>
+    public string? QualityOfBuilt(string typeId) => _builds.TryGetValue(typeId, out var task) ? task.Quality : null;
 
     /// <summary>The options of a stuck building as they are now (A1373 step 2): none if the building is not stuck.</summary>
     public IReadOnlyList<(string Action, string? TargetId)> EscalationOptionsOf(string inhabitantId, string typeId)
@@ -656,7 +679,7 @@ public sealed partial class InventionSystem
         }
 
         var built = _objects.Spawn(task.TypeId, new Position(task.SiteX, task.SiteZ));
-        _builds[task.TypeId] = task with { BuiltObjectId = built.Id };
+        _builds[task.TypeId] = task with { BuiltObjectId = built.Id, Quality = QualityOf(task) };
         _inhabitants.Report(new WorldEvent(Built, e.Tick, task.InhabitantId, null, built.Id));
         KnowOwnWork(e.Tick, task);
     }
@@ -927,6 +950,12 @@ public sealed partial class InventionSystem
 
             hasher.Write(b.PendingObjectId ?? string.Empty).Write(b.PendingType ?? string.Empty).Write(b.BuiltObjectId ?? string.Empty).Write(b.GaveUp)
                 .Write(b.WaitingSinceTick ?? -1).Write(b.NeedsHelp).Write(b.LookedTicks);
+            if (b.Quality is { } quality)
+            {
+                // A1376 (R19), only when there is one: worlds without the data hash as before.
+                hasher.Write(quality);
+            }
+
             if (b.Escalations > 0 || b.Smaller || b.Chosen || b.Substitutes is { Count: > 0 })
             {
                 // A1373 step 2, only when used: worlds without escalations hash as before.

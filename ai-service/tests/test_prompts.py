@@ -47,7 +47,7 @@ def _render(request: DecisionRequest, budget: int = BUDGET, version: int = 1) ->
     )
 
 
-@pytest.mark.parametrize("version", [1, 2, 3, 4, 6, 7, 8, 9])
+@pytest.mark.parametrize("version", [1, 2, 3, 4, 6, 7, 8, 9, 10])
 @pytest.mark.parametrize("case", ["hungry-berries", "stormy-dusk"])
 def test_decider_prompt_snapshot(case: str, version: int) -> None:
     text = _render(_request(case), version=version)
@@ -204,6 +204,7 @@ def test_every_knowledge_source_has_words_in_the_prompts_that_name_sources() -> 
         "decider/decide.v7",
         "decider/decide.v8",
         "decider/decide.v9",
+        "decider/decide.v10",
         "question/ask.v1",
         "question/ask.v2",
         "question/ask.v3",
@@ -498,3 +499,30 @@ def test_v9_names_a_need_from_an_invention() -> None:
     request = DecisionRequest.model_validate(data)
     assert "- sense of order: 0.40" in _render(request, version=9)
     assert "- tidiness: 0.40" in _render(request, version=8)  # v8 as it was
+
+
+def _leisure(occasion: str | None = "leisure") -> DecisionRequest:
+    """B2663: a free moment - the core names the occasion, the options are the usual ones."""
+    data = json.loads((EXAMPLES / "decision-request.hungry-berries.json").read_text("utf-8"))
+    if occasion is not None:
+        data["occasion"] = occasion
+    return DecisionRequest.model_validate(data)
+
+
+def test_v10_says_a_free_moment_without_naming_an_option() -> None:
+    """B2663/B2610: the block says the situation (and that talk may be light chatter), never
+    which option to take (PR2); it sits before the options."""
+    user = _render(_leisure(), version=10).split("=== user ===")[1]
+    assert "## Right now" in user and "a free moment" in user
+    assert user.index("## Right now") < user.index("## Options")
+    block = user.split("## Right now")[1].split("## Options")[0]
+    for option in _leisure().options:
+        assert f"option {option.option_id}" not in block and option.option_id not in block.split()
+
+
+def test_v10_is_v9_without_an_occasion_and_ignores_one_it_has_no_words_for() -> None:
+    """An older core sends no occasion: the prompt is word for word v9 (only the name differs)."""
+    plain = _render(_leisure(None), version=10).split("=== user ===")[1]
+    assert plain == _render(_leisure(None), version=9).split("=== user ===")[1]
+    assert _render(_leisure("festival"), version=10).split("=== user ===")[1] == plain
+    assert "Right now" not in _render(_leisure(), version=9)  # v9 does not read it

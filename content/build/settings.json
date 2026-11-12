@@ -10,5 +10,6 @@
   "use_action": "use",
   "min_need_to_build": 0.3,
   "sound_max_attempts": 3,
-  "escalation": { "after_hours": 12, "max": 3, "use_instead_action": "use_instead", "smaller_action": "build_smaller", "give_up_action": "give_up", "help_action": "ask_for_help", "max_use_instead": 2 }
+  "escalation": { "after_hours": 12, "max": 3, "use_instead_action": "use_instead", "smaller_action": "build_smaller", "give_up_action": "give_up", "help_action": "ask_for_help", "max_use_instead": 2 },
+  "quality": { "skill": "building", "tiers": [{ "id": "scrap", "from_level": 0 }, { "id": "simple", "from_level": 0.15 }, { "id": "solid", "from_level": 0.4 }, { "id": "masterful", "from_level": 0.75 }] }
 }

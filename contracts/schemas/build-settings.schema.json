@@ -76,9 +76,29 @@
       "minimum": 1,
       "maximum": 20
     },
-    "escalation": { "$ref": "#/$defs/BuildEscalation" }
+    "escalation": { "$ref": "#/$defs/BuildEscalation" },
+    "quality": { "$ref": "#/$defs/BuildQuality" }
   },
   "$defs": {
+    "BuildQuality": {
+      "description": "D827 R19 (A1376): every built thing carries a quality tier from the builder's skill when it is finished - the highest tier whose from_level the skill reaches (tiers in ascending from_level, the first from 0). Text keys ui.build.quality.<id> (DE/EN). Omitted = no quality.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["skill", "tiers"],
+      "properties": {
+        "skill": { "description": "The skill that decides the quality (vocabulary skill).", "$ref": "common.schema.json#/$defs/VocabId" },
+        "tiers": { "type": "array", "minItems": 1, "maxItems": 8, "items": { "$ref": "#/$defs/BuildQualityTier" } }
+      }
+    },
+    "BuildQualityTier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "from_level"],
+      "properties": {
+        "id": { "$ref": "common.schema.json#/$defs/VocabId" },
+        "from_level": { "description": "Skill level from which this tier is reached.", "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
     "BuildEscalation": {
       "description": "A1373 step 2 (D827 R15/R17c, D850, B2658): when the help does not come, the builder asks the decider what to do, with options only the core offers: take a thing it believes has the missing properties instead, finish smaller (leave the thing as far as it is built), give up. First after_hours of looking after needs_help, then every after_hours again, at most max times per building. Omitted = the builder never asks, as before.",
       "type": "object",

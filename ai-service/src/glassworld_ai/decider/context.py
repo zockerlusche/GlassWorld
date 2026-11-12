@@ -117,6 +117,7 @@ def build_values(
         "expressions": ", ".join(vocab.ids("expression")) or "(none)",
         "thought_language": language,
         "building": _building(request, settings, locale),
+        "occasion": _occasion(request, settings),
     }
 
     if template.version >= 2:
@@ -196,6 +197,20 @@ def _building(request: DecisionRequest, settings: dict[str, Any], locale: str) -
         max=stuck.max_escalations,
     )
     return f"{words['heading']}\n{line}\n\n"
+
+
+def _occasion(request: DecisionRequest, settings: dict[str, Any]) -> str:
+    """v10 (B2663): why the core asks - only when the request names an occasion and the prompt
+    has words for it ([settings.occasion.<id>]); an occasion without words shows nothing."""
+    occasion: object = getattr(request, "occasion", None)
+    raw: object = settings.get("occasion")
+    if occasion is None or not isinstance(raw, dict):
+        return ""
+    words: object = cast(dict[object, object], raw).get(_id(occasion))
+    if not isinstance(words, dict):
+        return ""
+    table = {str(k): str(v) for k, v in cast(dict[object, object], words).items()}
+    return f"{table['heading']}\n{table['line']}\n\n"
 
 
 def _labels(request: DecisionRequest, locale: str) -> dict[str, str]:
