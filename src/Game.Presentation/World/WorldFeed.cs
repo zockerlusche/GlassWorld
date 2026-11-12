@@ -235,6 +235,8 @@ public sealed class WorldFeed
     /// </summary>
     public IReadOnlyList<QuestionRow> Questions() =>
         [.. _host.Decisions.Open
+            // A free moment (leisure) is no question the player is shown (#309: the window listed it).
+            .Where(q => q.Kind != GlassWorld.Simulation.Decisions.DecisionsSystem.Leisure)
             .Select(q => new QuestionRow(q.Id, q.InhabitantId, q.Kind, q.Subject.StartsWith("type:", StringComparison.Ordinal) ? q.Subject[5..] : null, q.AskedTick))
             .OrderByDescending(q => q.AskedTick).ThenBy(q => q.Id, StringComparer.Ordinal)];
 

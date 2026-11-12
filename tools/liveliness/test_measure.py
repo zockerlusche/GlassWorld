@@ -30,6 +30,7 @@ LOG = [
     "EVENT tick=40 kind=knowledge_gained inhabitant=inh-1 action=- target=obj-1 detail=-",
     "EVENT tick=50 kind=thought inhabitant=inh-1 action=- target=- detail=-",
     "EVENT tick=60 kind=question_opened inhabitant=inh-1 action=- target=q-1 detail=-",
+    "EVENT tick=70 kind=leisure_opened inhabitant=inh-1 action=- target=q-2 detail=-",
     "EVENT tick=1500 kind=action_finished inhabitant=inh-1 action=sleep target=- detail=-",
     "EVENT tick=1600 kind=invented inhabitant=inh-1 action=- target=inv_ab detail=-",
     "EVENT tick=0 kind=storm_started inhabitant=- action=- target=- detail=-",
@@ -42,6 +43,7 @@ def test_events_are_counted_per_day_and_inhabitant() -> None:
     assert first["actions"] == 3 and first["distinct_actions"] == 2
     assert first["contacts"] == 1 and first["discoveries"] == 1 and first["thoughts"] == 1
     assert first["questions_opened"] == 1
+    assert first["free_moments"] == 1  # #313: a free moment is no question
     second = days[(2, "inh-1")].row()
     assert second["actions"] == 1 and second["making"] == 1
     assert all(who != "-" for _, who in days)  # world events belong to nobody

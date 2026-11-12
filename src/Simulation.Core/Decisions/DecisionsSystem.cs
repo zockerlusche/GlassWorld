@@ -137,6 +137,15 @@ public sealed class DecisionsSystem : IWorldSystem
     /// <summary>Trigger: nothing presses the inhabitant and it is bored - what will it do now? (B2663, A1601; data leisure).</summary>
     public const string Leisure = "leisure";
 
+    /// <summary>Event of a free moment the decider is asked about (GW2 D895: no question, so not counted as one).</summary>
+    public const string LeisureOpened = "leisure_opened";
+
+    /// <summary>Event of a free moment the decider answered.</summary>
+    public const string LeisureAnswered = "leisure_answered";
+
+    /// <summary>Event of a free moment that brought no answer.</summary>
+    public const string LeisureFailed = "leisure_failed";
+
     /// <summary>
     /// The needs that can press (the model's needs with a neglect threshold: hunger, thirst, sleep ...), set by the host.
     /// A leisure question needs none of them below the data's value. Boredom itself rises while fun is low, so fun,
@@ -1084,7 +1093,7 @@ public sealed class DecisionsSystem : IWorldSystem
             NoteAsked(world, inhabitant, kind, subject);
         }
 
-        _inhabitants.Report(new WorldEvent("question_opened", world.Tick, inhabitant.Id, null, question.Id));
+        _inhabitants.Report(new WorldEvent(EventOf(question, "question_opened"), world.Tick, inhabitant.Id, null, question.Id));
     }
 
     // What a passing action of the request that is being built would carry to each of the others it has
@@ -1436,7 +1445,8 @@ public sealed class DecisionsSystem : IWorldSystem
 
         var inhabitant = _inhabitants.Get(question.InhabitantId);
         var (_, action, targetId) = chosen[0];
-        if (resolved?.Inhabitant is { } listener && (Knowledge is not { } knowledge || !InhabitantsSystem.HasPurpose(knowledge, inhabitant, listener, action)))
+        // A stuck building's options are the core's own (asking another for help passes no knowledge, A1376).
+        if (question.Kind != BuildStuck && resolved?.Inhabitant is { } listener && (Knowledge is not { } knowledge || !InhabitantsSystem.HasPurpose(knowledge, inhabitant, listener, action)))
         {
             // Between offer and answer the listener may have learned it themselves (or the asker the name):
             // no walk over for nothing.
@@ -1523,8 +1533,20 @@ public sealed class DecisionsSystem : IWorldSystem
         }
 
         RemoveOpen(question);
-        _inhabitants.Report(new WorldEvent(eventKind, world.Tick, question.InhabitantId, null, question.Id) { Detail = reason });
+        _inhabitants.Report(new WorldEvent(EventOf(question, eventKind), world.Tick, question.InhabitantId, null, question.Id) { Detail = reason });
     }
+
+    /// <summary>
+    /// The event a question reports: a free moment has its own kinds, so neither the player's hints nor a count of
+    /// questions take it for one (GW2 D895).
+    /// </summary>
+    private static string EventOf(OpenQuestion question, string questionEvent) => question.Kind != Leisure ? questionEvent : questionEvent switch
+    {
+        "question_opened" => LeisureOpened,
+        "question_answered" => LeisureAnswered,
+        "question_failed" => LeisureFailed,
+        _ => questionEvent,
+    };
 
     /// <summary>Other inhabitants within the perception radius as it is right now (B2594), nearest first, ties by id.</summary>
     private List<Inhabitant> PerceivedInhabitants(Inhabitant inhabitant)

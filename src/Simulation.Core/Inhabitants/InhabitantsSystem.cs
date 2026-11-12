@@ -535,6 +535,9 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     /// <summary>Looks up an inhabitant.</summary>
     public Inhabitant Get(string id) => _inhabitants[id];
 
+    /// <summary>The inhabitant with this id, if it lives here (A1376: a helper may have gone).</summary>
+    public bool TryGet(string id, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out Inhabitant? inhabitant) => _inhabitants.TryGetValue(id, out inhabitant);
+
     /// <summary>
     /// The one resolver for targets of activities and decider options (review GW3 #118): another
     /// inhabitant first, then an object; null when it no longer exists. Inhabitant and object ids never collide.
