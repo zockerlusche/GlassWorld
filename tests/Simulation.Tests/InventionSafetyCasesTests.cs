@@ -71,8 +71,25 @@ public sealed class InventionSafetyCasesTests
     [InlineData("spearmint tea", "spear", false)]
     [InlineData("trapdoor", "trap", false)]
     [InlineData("clubhouse", "club", false)]
+    [InlineData("Grillfischkorb", "*fisch*", true)]
+    [InlineData("erfrischend", "*fisch*", false)]
+    [InlineData("Rindfleischtopf", "*fleisch*", true)]
+    [InlineData("selfish", "fish*", false)]
     public void ATermMatchesWordsAsItsStarsSay(string name, string term, bool hit) =>
         Assert.Equal(hit, InventionCheck.Holds(name, [term]));
+
+    [Theory]
+    [InlineData("Fischgrill", "Fish Grill")]
+    [InlineData("Fleischspieß", "Meat Skewer")]
+    [InlineData("Fischbeutel", "Fish Bag")]
+    [InlineData("Räucherfisch-Gestell", "smoked fish rack")]
+    public void TheShippedListRefusesFishAndMeat(string de, string en)
+    {
+        // B2481 (TL #22389, GW2 #22366): the AI guard once let a fish grill through; the core's list has the last word.
+        var terms = Content.Value.Inventions.Settings.ForbiddenTerms!;
+        Assert.True(InventionCheck.Holds(de, terms.De), de);
+        Assert.True(InventionCheck.Holds(en, terms.En), en);
+    }
 
     [Fact]
     public void ANeedOrAbilityWithAForbiddenNameIsRefusedToo()
