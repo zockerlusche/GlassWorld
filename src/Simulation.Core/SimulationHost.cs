@@ -344,6 +344,11 @@ public sealed class SimulationHost
         var mailbox = new Simulation.Player.MailboxSystem(content.MessageKinds, inhabitants, player, world.Calendar.Settings.TicksPerHour);
         decisions.RegisterCommand(Simulation.Player.MailboxSystem.Acknowledge, mailbox.Check, mailbox.Apply);
 
+        // The player's favourites (B6 R19): the player's own marks, never part of a request to the AI.
+        var favourites = new Simulation.Player.FavouritesSystem(inhabitants);
+        decisions.RegisterCommand(Simulation.Player.FavouritesSystem.Mark, favourites.Check, favourites.Apply);
+        decisions.RegisterCommand(Simulation.Player.FavouritesSystem.Unmark, favourites.Check, favourites.Apply);
+
         // Talking with an inhabitant (B6 R13): the AI port is set by the game, the core decides.
         var expressions = content.Vocabularies[VocabularyKind.Expression].Entries.Select(e => e.Id).ToHashSet(StringComparer.Ordinal);
         var conversation = new Simulation.Player.ConversationSystem(content.Conversation, content.Knowledge, inhabitants, player, decisions, content.Inventions.Guard, expressions, displayLocale, world.Calendar.Settings.TicksPerHour) { Diary = diary, ValidateRequests = options.ValidateRequests };
@@ -359,7 +364,7 @@ public sealed class SimulationHost
         }
 
         // The night jobs right after the inventions: both stay out of the hash while they hold nothing.
-        world.Add(player).Add(inventions).Add(nightJobs).Add(chronicle).Add(writing).Add(skills).Add(skillLevels).Add(mailbox).Add(conversation).Add(lookEpoch);
+        world.Add(player).Add(inventions).Add(nightJobs).Add(chronicle).Add(writing).Add(skills).Add(skillLevels).Add(mailbox).Add(favourites).Add(conversation).Add(lookEpoch);
         var host = new SimulationHost(content, world, map, types, objects, decisions, inhabitants, player, inventions, chronicle, settings, writing, skills, mailbox)
         {
             WeatherSystem = weather,
@@ -371,6 +376,7 @@ public sealed class SimulationHost
             NightJobs = nightJobs,
             Conversation = conversation,
             Diary = diary,
+            Favourites = favourites,
         };
 
         // The player's language (#20043): a logged command, so replays ask in the same language at the same tick.
@@ -626,6 +632,9 @@ public sealed class SimulationHost
 
     /// <summary>Talking with inhabitants (B6 R13, A1342).</summary>
     public Player.ConversationSystem Conversation { get; private init; } = null!;
+
+    /// <summary>The player's favourites (B6 R19, B2518).</summary>
+    public Player.FavouritesSystem Favourites { get; private init; } = null!;
 
     /// <summary>Skill levels per inhabitant (start level, talent, practice; B5 part).</summary>
     public SkillLevelsSystem SkillLevels { get; private init; } = null!;

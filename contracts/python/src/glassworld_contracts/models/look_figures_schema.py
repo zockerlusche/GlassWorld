@@ -313,6 +313,24 @@ class FigureGreeting(BaseModel):
         ge=0.0,
         le=30.0,
     )
+    express_s: float | None = Field(
+        None,
+        description='Real seconds an answering figure shows the expression of its answer (one the model chose, or the quiet default of a wordless answer below) instead of its idle behaviour; 0 or omitted = only the wave is shown.',
+        ge=0.0,
+        le=30.0,
+    )
+    decline_expression: str | None = Field(
+        None,
+        description='Expression shown when an inhabitant declines without words and the model chose none (TL #21712, D763 Z26: a reaction without words instead of a fixed sentence). Proposal value.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    not_understood_expression: str | None = Field(
+        None,
+        description='Expression shown when an inhabitant did not understand the player and the model chose none (TL #21712). Proposal value.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
 
 
 class Color1(StrEnum):

@@ -1,8 +1,9 @@
-"""Natural thoughts (W1687, prompt v4): a check on the model's sentence and a stand-in from data.
+"""Natural thoughts (W1687, prompt v4): a check on the model's sentence.
 
 The player reads the thought, so a sentence that slipped into English, shows an id or rambles is
-not shown. Instead of asking the model again (costly), the thought is replaced by the stand-in of
-the chosen action from content/i18n (`msg.thought.<action>`), or left out if the data has none.
+not shown. The model is not asked again (costly), and no fixed stand-in takes its place: the
+thought is left out and the action runs (B2644, Marcel F5296 = B; before, the data's
+msg.thought.<action> was shown - those texts are archived in docs/archive, PR4).
 The rules (word limit, blocked words per language) are prompt settings: data, not code.
 """
 
@@ -10,8 +11,6 @@ from __future__ import annotations
 
 import re
 from typing import Any, cast
-
-from glassworld_ai.texts import TextCatalog
 
 _WORD = re.compile(r"[^\W\d_]+", re.UNICODE)
 # Ids and code words, not German compounds: "inh-0002", "obj-42", "red_berry".
@@ -38,11 +37,6 @@ def thought_problem(text: str, locale: str, settings: dict[str, Any]) -> str | N
     if any(w in blocked for w in words):
         return "blocked_word"
     return None
-
-
-def stand_in(texts: TextCatalog | None, locale: str, action: str) -> str | None:
-    """The data's stand-in thought for an action in the player's language, if there is one."""
-    return texts.get(locale, f"msg.thought.{action}") if texts is not None else None
 
 
 def _words(text: str) -> frozenset[str]:

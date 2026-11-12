@@ -95,6 +95,14 @@
       "text": "Charakter"
     },
     {
+      "key": "ui.card.favourite",
+      "text": "Liebling"
+    },
+    {
+      "key": "ui.inhabitants.favourite_name",
+      "text": "{name} – Liebling"
+    },
+    {
       "key": "ui.card.doing",
       "text": "Tut gerade"
     },
@@ -1483,6 +1491,10 @@
       "text": "Bau gescheitert"
     },
     {
+      "key": "vocab.event.needs_help",
+      "text": "Braucht Hilfe beim Bauen"
+    },
+    {
       "key": "vocab.event.built",
       "text": "Gebaut"
     },
@@ -2003,82 +2015,6 @@
       "text": "baut mit: {thing}"
     },
     {
-      "key": "msg.thought.approach",
-      "text": "Ich geh mal hin."
-    },
-    {
-      "key": "msg.thought.build_step",
-      "text": "Weiter bauen."
-    },
-    {
-      "key": "msg.thought.combine",
-      "text": "Mal sehen, ob das zusammenpasst."
-    },
-    {
-      "key": "msg.thought.drink",
-      "text": "Erst mal was trinken."
-    },
-    {
-      "key": "msg.thought.drop",
-      "text": "Das leg ich mal hin."
-    },
-    {
-      "key": "msg.thought.eat",
-      "text": "Jetzt was essen."
-    },
-    {
-      "key": "msg.thought.idle",
-      "text": "Kurz ausruhen."
-    },
-    {
-      "key": "msg.thought.inspect",
-      "text": "Was ist das denn?"
-    },
-    {
-      "key": "msg.thought.move_to",
-      "text": "Da will ich hin."
-    },
-    {
-      "key": "msg.thought.pick_up",
-      "text": "Das nehm ich mit."
-    },
-    {
-      "key": "msg.thought.show",
-      "text": "Guck mal!"
-    },
-    {
-      "key": "msg.thought.sleep",
-      "text": "Ich bin so müde."
-    },
-    {
-      "key": "msg.thought.talk_to",
-      "text": "Ich sag mal was."
-    },
-    {
-      "key": "msg.thought.teach",
-      "text": "Komm, ich zeig's dir."
-    },
-    {
-      "key": "msg.thought.wander",
-      "text": "Mal ein bisschen umschauen."
-    },
-    {
-      "key": "msg.thought.explore",
-      "text": "Was wohl dahinter liegt?"
-    },
-    {
-      "key": "msg.thought.use",
-      "text": "Das probier ich mal."
-    },
-    {
-      "key": "msg.thought.warn",
-      "text": "Pass auf!"
-    },
-    {
-      "key": "msg.thought.introduce",
-      "text": "Wie heißt du?"
-    },
-    {
       "key": "ui.menu.loading_title",
       "text": "Einen Moment"
     },
@@ -2165,18 +2101,6 @@
     {
       "key": "ui.settings.volume.off_tip",
       "text": "Gerade aus – diese Klänge werden neu gemacht."
-    },
-    {
-      "key": "msg.converse.reply",
-      "text": "Hm, ja."
-    },
-    {
-      "key": "msg.converse.not_understood",
-      "text": "Hm? Das versteh ich nicht."
-    },
-    {
-      "key": "msg.converse.decline",
-      "text": "Nee, lieber nicht."
     },
     {
       "key": "msg.converse.no_answer",
@@ -2421,6 +2345,10 @@
     {
       "key": "ui.log.knock",
       "text": "{name} klopft an die Scheibe."
+    },
+    {
+      "key": "ui.log.declined",
+      "text": "{name} lehnt ab, ohne etwas zu sagen."
     },
     {
       "key": "ui.log.no_answer",

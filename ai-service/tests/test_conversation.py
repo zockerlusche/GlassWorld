@@ -215,13 +215,15 @@ def test_v2_keeps_the_sentence_of_a_decline_or_not_understood(outcome: str) -> N
 @pytest.mark.parametrize(
     ("answer", "expected"),
     [
-        ({"outcome": "decline", "reply": None}, "No, I'd rather not."),
-        ({"outcome": "not_understood", "reply": None}, "Hm? I don't understand."),
-        ({"outcome": "not_understood", "reply": "Then kill it."}, "Hm? I don't understand."),
+        # TL #21712 (D763 Z26): no fixed sentence - the game shows a reaction without words.
+        ({"outcome": "decline", "reply": None}, None),
+        ({"outcome": "not_understood", "reply": None}, None),
+        # B2644: a sentence the content guard rejected is left out, not replaced.
+        ({"outcome": "not_understood", "reply": "Then kill it."}, None),
         ({"outcome": "gesture", "reply": None}, None),
     ],
 )
-def test_v2_without_a_sentence_says_the_datas_stand_in(
+def test_v2_without_a_sentence_says_nothing(
     settings: Settings, answer: dict[str, Any], expected: str | None
 ) -> None:
     log = CallLog(settings.log_dir / "conversation.jsonl")
@@ -324,19 +326,18 @@ def test_v3_tells_the_model_what_it_does_knows_and_sees(settings: Settings) -> N
         ("Ich hatte einen Traum und ein gutes Gefühl.", True),  # inner words
     ],
 )
-def test_v3_a_sentence_naming_unknown_things_becomes_the_stand_in(
+def test_v3_a_sentence_naming_unknown_things_is_left_out(
     settings: Settings, said: str, kept: bool
 ) -> None:
     log = CallLog(settings.log_dir / "conversation.jsonl")
     talker = _v3_talker(settings, log, [_raw({**GOOD, "reply": said})])
     answer = asyncio.run(talker.answer(DOING, time.monotonic() + 8))
-    assert answer.reply is not None
-    # The stand-in belongs to the outcome the model chose, not to the current action (D763 G1).
-    expected = said if kept else TEXTS.get("de", "msg.converse.reply")
+    # B2644 (Marcel F5296 = B): a rejected sentence shows nothing - no stand-in; the outcome
+    # stays the model's (D763 G1), the core shows a reply without a sentence as a gesture.
     assert answer.outcome.value == "reply"
-    assert answer.reply.text == expected
+    assert (answer.reply.text if answer.reply else None) == (said if kept else None)
     if not kept:
-        assert "[replaced, unknown: Buch, Ecke]" in answer.rationale
+        assert "[left out, unknown: Buch, Ecke]" in answer.rationale
     replayed = asyncio.run(
         ReplayConversation(
             log, GUARD, EXPRESSIONS, TEXTS, prompts_dir=settings.prompts_dir, names=NAMES
@@ -353,8 +354,7 @@ def test_the_service_keeps_the_outcome_the_model_chose(settings: Settings) -> No
     talker = _v3_talker(settings, log, [_raw(declined)])
     answer = asyncio.run(talker.answer(DOING, time.monotonic() + 8))
     assert answer.outcome.value == "decline"
-    assert answer.reply is not None
-    assert answer.reply.text == TEXTS.get("de", "msg.converse.decline")
+    assert answer.reply is None  # B2644: left out, no stand-in
 
 
 def test_a_word_the_player_said_may_be_said_back(settings: Settings) -> None:
@@ -373,7 +373,7 @@ def test_a_word_the_player_said_may_be_said_back(settings: Settings) -> None:
     other = {**GOOD, "reply": "Ich habe schon ein Sofa."}
     talker = _v3_talker(settings, log, [_raw(other)])
     answer = asyncio.run(talker.answer(asked, time.monotonic() + 8))
-    assert answer.reply is not None and answer.reply.text == TEXTS.get("de", "msg.converse.reply")
+    assert answer.reply is None  # B2644: left out, no stand-in
 
 
 def test_v3_checks_nouns_only_where_the_language_shows_them(settings: Settings) -> None:

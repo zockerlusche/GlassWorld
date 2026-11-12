@@ -105,7 +105,7 @@ def parse(
     grounding: Callable[[str], list[str]] | None = None,
 ) -> dict[str, Any]:
     """Validate the model answer. With `answer_all` (prompt v2, Marcel W1701) decline and not
-    understood keep their sentence too; a blocked one is dropped and replaced by a stand-in."""
+    understood keep their sentence too; a blocked one is dropped (B2644: nothing is shown)."""
     try:
         data: Any = json.loads(raw)
     except json.JSONDecodeError as error:
@@ -126,6 +126,7 @@ def parse(
     elif answer_all and values["outcome"] != "gesture" and values["reply"]:
         if not guard.check(values["reply"]).allowed:
             values["reply"] = None
+            values["left_out"] = True  # B2644: no stand-in for a rejected sentence
     else:
         values["reply"] = None  # v1: a sentence only with outcome reply
     if grounding is not None and values["reply"]:
@@ -135,11 +136,15 @@ def parse(
 
 
 def with_words(data: dict[str, Any], texts: TextCatalog | None, locale: str) -> dict[str, Any]:
-    """W1701: the voice always gets an answer - an outcome other than a gesture without a sentence
-    gets the data's stand-in msg.converse.<outcome> (DE/EN)."""
-    if data["outcome"] == "gesture" or data["reply"] or texts is None:
-        return data
-    return {**data, "reply": texts.get(locale, f"msg.converse.{data['outcome']}")}
+    """No fixed sentence in the inhabitant's mouth (B2644, D763 Z26, TL #21712): an outcome without
+    a sentence - the model wrote none, or the checks took it back - stays without words. W1701 (the
+    voice always gets an answer) is kept by a visible reaction without words that the game shows
+    for the outcome (decline, not understood); before, the data's msg.converse.<outcome> was said.
+    `texts` and `locale` are kept for the callers; nothing is looked up any more."""
+    del texts, locale
+    data = dict(data)
+    data.pop("left_out", None)
+    return data
 
 
 def values(
@@ -294,26 +299,20 @@ def grounding_check(
     return lambda reply: unknown_nouns(reply, words)
 
 
-def grounded(
-    request: ConversationRequest, data: dict[str, Any], texts: TextCatalog | None
-) -> dict[str, Any]:
-    """A sentence that names unknown things is replaced by the data's stand-in for the outcome
-    the MODEL chose (msg.converse.<outcome>). The choice itself - reply, decline, not
-    understood - stays the model's: the service only takes back words (PR2 check D763 G1;
-    before, a decline became a reply with a sentence about the current action, and the core
-    applied the effects of an answer)."""
+def grounded(request: ConversationRequest, data: dict[str, Any]) -> dict[str, Any]:
+    """A sentence that names unknown things is left out (B2644, Marcel F5296 = B: a rejected AI
+    sentence shows nothing; before, the data's stand-in msg.converse.<outcome> took its place).
+    The choice itself - reply, decline, not understood - stays the model's: the service only
+    takes back words (PR2 check D763 G1). A reply without a sentence is shown by the core as a
+    gesture. Needs no text catalog any more (review GW1 #269): also left out without one."""
     unknown = data.pop("ungrounded", None)
-    if not unknown or texts is None:
+    if not unknown:
         return data
-    locale = plain_id(request.display_locale)
-    outcome = str(data.get("outcome", "reply"))
-    stand_in = texts.get(locale, f"msg.converse.{outcome}") or texts.get(
-        locale, "msg.converse.reply"
-    )
-    note = f" [replaced, unknown: {', '.join(unknown[:3])}]"
+    note = f" [left out, unknown: {', '.join(unknown[:3])}]"
     return {
         **data,
-        "reply": stand_in,
+        "reply": None,
+        "left_out": True,
         "rationale": (str(data.get("rationale", "")) + note)[-280:],
     }
 
@@ -359,7 +358,7 @@ class OllamaConversation:
             priority=Priority.PLAYER,
             deadline=deadline,
         )
-        data = with_words(grounded(request, answer.value, self._texts), self._texts, locale)
+        data = with_words(grounded(request, answer.value), self._texts, locale)
         return _response(
             request, data, "model", self._client.model, answer.latency_ms, answer.attempts
         )
@@ -428,9 +427,7 @@ class ReplayConversation:
                 texts is not None,
                 check,
             )
-            data = with_words(
-                grounded(request, data, texts), texts, plain_id(request.display_locale)
-            )
+            data = with_words(grounded(request, data), texts, plain_id(request.display_locale))
         except InvalidOutputError as error:
             raise fail(
                 "model_unavailable", f"recorded answer does not fit request {request_id}"
