@@ -40,6 +40,9 @@ public partial class WorldAudio : Node3D
     private readonly Dictionary<string, AudioStreamWav> _loopStreams = new(StringComparer.Ordinal);
     private bool _silenced;
 
+    // Signals to the player (B8 R17): the knock at the glass sounds at the glass, without a place in the world.
+    private AudioStreamPlayer? _glass;
+
     /// <summary>
     /// Ground height in metres at (x, z) for the sound positions (island mode: the drawn ground, so a sound
     /// comes from the figure's feet, not from below a hill); null = flat at 0 (placeholder).
@@ -159,6 +162,8 @@ public partial class WorldAudio : Node3D
             AddChild(_ambiencePlayers[i]);
         }
 
+        _glass = new AudioStreamPlayer { Name = "Glass", Bus = BusName(MixBusId.Effects) };
+        AddChild(_glass);
         return true;
     }
 
@@ -188,6 +193,16 @@ public partial class WorldAudio : Node3D
         }
 
         Speak(events, listener);
+
+        // A knock at the glass: heard wherever the camera is (the tremor and the mail show where).
+        foreach (var signal in _director.Signals(events))
+        {
+            if (_glass is not null && !Off(signal.Bus))
+            {
+                _glass.Stream = Stream(signal.SoundId, signal.Variant);
+                _glass.Play();
+            }
+        }
 
         var positions = _feed.Snapshot.Inhabitants.ToDictionary(i => i.Id, i => i.Position, StringComparer.Ordinal);
         var playing = _pools.ToDictionary(p => p.Key, p => p.Value.Count(x => x.Playing));
@@ -226,6 +241,12 @@ public partial class WorldAudio : Node3D
         {
             player.Stop();
             player.Stream = null;
+        }
+
+        if (_glass is not null)
+        {
+            _glass.Stop();
+            _glass.Stream = null;
         }
     }
 
