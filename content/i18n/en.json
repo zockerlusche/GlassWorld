@@ -108,7 +108,7 @@
     },
     {
       "key": "ui.memory.intro",
-      "text": "What the world has kept: events with this inhabitant and your conversations. What you say stays in the save game."
+      "text": "What the world has kept: events with {name} and your conversations. What you say stays in the save game."
     },
     {
       "key": "ui.memory.empty",

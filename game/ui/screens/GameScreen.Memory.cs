@@ -29,7 +29,12 @@ public partial class GameScreen
         window.SetTitleText(TextFill.Fill(Tr("ui.memory.title"), new Dictionary<string, string> { ["name"] = name }));
 
         // What the page is, and that what the player says is kept (review GW1 #285).
-        window.Content.AddChild(new Label { Text = "ui.memory.intro", AutowrapMode = TextServer.AutowrapMode.WordSmart });
+        window.Content.AddChild(new Label
+        {
+            Text = TextFill.Fill(Tr("ui.memory.intro"), new Dictionary<string, string> { ["name"] = name }),
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled,
+        });
         if (items.Count == 0)
         {
             window.Content.AddChild(new Label { Text = "ui.memory.empty", AutowrapMode = TextServer.AutowrapMode.WordSmart });

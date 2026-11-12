@@ -108,7 +108,7 @@
     },
     {
       "key": "ui.memory.intro",
-      "text": "Was die Welt festgehalten hat: Ereignisse mit diesem Bewohner und eure Gespräche. Was du sagst, bleibt im Spielstand gespeichert."
+      "text": "Was die Welt festgehalten hat: Ereignisse mit {name} und eure Gespräche. Was du sagst, bleibt im Spielstand gespeichert."
     },
     {
       "key": "ui.memory.empty",
