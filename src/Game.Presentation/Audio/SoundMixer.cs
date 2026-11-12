@@ -65,9 +65,12 @@ public sealed class SoundMixer
             return 1;
         }
 
+        // A hearing limit shrinks the whole fade in proportion, so a sound fades out towards the picture's edge
+        // instead of breaking off there (review GW1 #274).
         var factor = ZoomFactor(zoom);
-        var silent = Limited(b.SilentM * factor);
-        var full = Math.Min(b.FullVolumeM * factor, silent);
+        var free = b.SilentM * factor;
+        var silent = Limited(free);
+        var full = b.FullVolumeM * factor * (silent / free);
         if (distance <= full)
         {
             return 1;

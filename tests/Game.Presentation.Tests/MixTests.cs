@@ -118,6 +118,11 @@ public sealed class MixTests
         Assert.True(mixer.Gain(MixBusId.Ambience, limit / 10, 0.5) > 0);
         Assert.Equal(limit, mixer.SilentDistance(MixBusId.Ambience, 0.5), 6);
 
+        // It fades out towards the edge, no hard cut (review GW1 #274).
+        var nearEdge = mixer.Gain(MixBusId.Ambience, limit * 0.95, 0.5);
+        Assert.InRange(nearEdge, 0.0001, 0.5);
+        Assert.True(mixer.Gain(MixBusId.Ambience, limit * 0.5, 0.5) > nearEdge);
+
         // A limit beyond the bus's own range changes nothing; without one the range is the bus's again.
         mixer.HearingLimitM = silent * 3;
         Assert.Equal(silent, mixer.SilentDistance(MixBusId.Ambience, 0.5), 6);
