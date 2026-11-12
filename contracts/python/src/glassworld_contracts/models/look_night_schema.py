@@ -107,6 +107,12 @@ class LookNight(BaseModel):
         ge=0.5,
         le=60.0,
     )
+    lost_after_polls: int | None = Field(
+        None,
+        description='A1586 (B7 R16): after this many questions in a row that the service did not answer (gone, or not ready), the night is taken as unknown and the scene ends after its minimum time instead of waiting for the morning. Omitted = the scene waits for an answer (as before).',
+        ge=1,
+        le=60,
+    )
     sleep_actions: list[common_schema.VocabId] = Field(
         ...,
         description="Actions during which an inhabitant counts as asleep and shows 'Zzz' in the dream scene (vocabulary ids).",

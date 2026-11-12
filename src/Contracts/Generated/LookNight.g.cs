@@ -130,6 +130,13 @@ namespace GlassWorld.Contracts
         public double PollS { get; set; } = default!;
 
         /// <summary>
+        /// A1586 (B7 R16): after this many questions in a row that the service did not answer (gone, or not ready), the night is taken as unknown and the scene ends after its minimum time instead of waiting for the morning. Omitted = the scene waits for an answer (as before).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("lost_after_polls")]
+        public int? LostAfterPolls { get; set; } = default!;
+
+        /// <summary>
         /// Actions during which an inhabitant counts as asleep and shows 'Zzz' in the dream scene (vocabulary ids).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("sleep_actions")]

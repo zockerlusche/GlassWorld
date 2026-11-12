@@ -5,6 +5,7 @@
   "min_scene_s": 6,
   "darkness": 0.82,
   "poll_s": 2,
+  "lost_after_polls": 3,
   "sleep_actions": [
     "sleep"
   ],

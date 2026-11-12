@@ -36,6 +36,7 @@ public partial class GameScreen : CanvasLayer
     private readonly Dictionary<string, Label> _zzz = new(StringComparer.Ordinal);
     private double _nightClock;
     private PhaseStatus? _nightStatus;
+    private int _nightUnanswered;
     private double _nightPoll;
     private double _nightPollS = 2;
     private double _nightDarkness = 1;
@@ -1755,9 +1756,10 @@ public partial class GameScreen : CanvasLayer
         if (!_night.SceneShown)
         {
             _nightStatus = null;
+            _nightUnanswered = 0;
         }
 
-        var done = setup is null ? (bool?)null : _nightStatus is { } status ? NightScene.Done(status) : false;
+        var done = NightScene.ServiceDone(_nightLook!, setup is not null, _nightStatus, _nightUnanswered);
         _night.Update(night, done, _presenter.Speed > 0 ? delta : 0);
         _nightShade.Color = new Color(0, 0, 0, (float)_night.Darkness);
 
@@ -1794,9 +1796,11 @@ public partial class GameScreen : CanvasLayer
     private async void AskNight(GlassWorld.AiClient.HttpSetupPort setup)
     {
         var answer = await setup.PhaseAsync();
-        if (IsInstanceValid(this) && answer.Status is { } status)
+        if (IsInstanceValid(this))
         {
-            _nightStatus = status;
+            // A question the service did not answer counts; enough of them in a row end the scene (A1586).
+            _nightUnanswered = answer.Status is null ? _nightUnanswered + 1 : 0;
+            _nightStatus = answer.Status ?? _nightStatus;
         }
 
         // What the night's jobs are about (GW2 #206), page by page while full pages come.
@@ -2011,6 +2015,9 @@ public partial class GameScreen : CanvasLayer
 
     /// <summary>Night pictures only: how many dream images are on screen.</summary>
     public int DreamsShownForShots => _dreamNodes.Count;
+
+    /// <summary>Night pictures only: how many of them are pictures a job made (the rest are object shapes; A1586).</summary>
+    public int DreamPicturesShownForShots => _dreamNodes.Values.Count(n => n is TextureRect);
 
     /// <summary>Night pictures only: the words of the night scene as shown (empty while hidden).</summary>
     public string NightTextForShots => _nightText.Visible ? _nightProgress.Text : string.Empty;

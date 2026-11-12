@@ -115,6 +115,23 @@ public sealed class NightScene(LookNight data)
         return status.Phase == PhaseStatusPhase.Night && ((status.Queued + status.Running == 0) || status.BudgetLeftS <= 0);
     }
 
+    /// <summary>
+    /// What the scene is told about the service (A1586, B7 R16): null without a service, or once the last
+    /// <c>lost_after_polls</c> questions in a row went unanswered (the service is gone or not ready - the scene then
+    /// ends after its minimum time instead of waiting for the morning); else whether its night is done, false while
+    /// no answer came yet.
+    /// </summary>
+    public static bool? ServiceDone(LookNight data, bool hasService, PhaseStatus? status, int unansweredPolls)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+        if (!hasService || (data.LostAfterPolls is { } lost && unansweredPolls >= lost))
+        {
+            return null;
+        }
+
+        return status is not null && Done(status);
+    }
+
     private void Enter(NightStage stage)
     {
         Stage = stage;
