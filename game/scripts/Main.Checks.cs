@@ -633,6 +633,11 @@ public partial class Main
                 await Take($"12_{tag}_karte");
                 _screen.ShowCardForShots(first, expand: true);
                 await Take($"13_{tag}_karte_aufgeklappt");
+
+                // The memory page of the same inhabitant (B8 R16), once per layout.
+                var memory = _screen.OpenMemory(first);
+                await Take($"13_{tag}_erinnerungen");
+                memory?.Close();
                 _screen.ShowCardForShots(null, expand: false);
 
                 OpenPause();

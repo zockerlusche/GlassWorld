@@ -103,6 +103,42 @@
       "text": "{name} – Liebling"
     },
     {
+      "key": "ui.memory.title",
+      "text": "Erinnerungen an {name}"
+    },
+    {
+      "key": "ui.memory.intro",
+      "text": "Was die Welt festgehalten hat: Ereignisse mit {name} und eure Gespräche. Was du sagst, bleibt im Spielstand gespeichert."
+    },
+    {
+      "key": "ui.memory.empty",
+      "text": "Noch keine Erinnerungen."
+    },
+    {
+      "key": "ui.memory.player_said",
+      "text": "Du: „{text}“"
+    },
+    {
+      "key": "ui.memory.inhabitant_said",
+      "text": "{name}: „{text}“"
+    },
+    {
+      "key": "ui.memory.export",
+      "text": "Exportieren"
+    },
+    {
+      "key": "ui.card.memory",
+      "text": "Erinnerungen"
+    },
+    {
+      "key": "msg.hint.memory_exported",
+      "text": "Die Erinnerungen liegen jetzt in {folder}."
+    },
+    {
+      "key": "msg.hint.memory_export_failed",
+      "text": "Die Erinnerungen konnten nicht gespeichert werden."
+    },
+    {
       "key": "ui.card.doing",
       "text": "Tut gerade"
     },

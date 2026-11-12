@@ -34,6 +34,9 @@ public static class MemoryPage
         return [.. items.OrderBy(x => x.Item.Tick).ThenBy(x => x.Order).Select(x => x.Item)];
     }
 
+    /// <summary>The text key of a season (<c>time.season.*</c>) for the day headings, as the chronicle has it.</summary>
+    public static string SeasonKey(string seasonId) => "time.season." + seasonId;
+
     /// <summary>The page as plain text, grouped by day.</summary>
     /// <param name="items">The page's items (<see cref="Items"/>).</param>
     /// <param name="title">Heading (e.g. "Erinnerungen an Hano").</param>
