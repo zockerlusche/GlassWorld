@@ -118,6 +118,14 @@ public partial class Main : Node3D
             ApplySettings(_settings);
         }
 
+        // A check run's save that is not there ends the run with a clear line (review GW3 #292), not a stack trace.
+        if (_loadSave is { } missing && !System.IO.File.Exists(missing))
+        {
+            GD.PushError($"LOAD_SAVE_FAIL no save game at '{missing}'");
+            GetTree().Quit(1);
+            return;
+        }
+
         if (_smokeFrames > 0 || _shotsFolder is not null || _seedGiven || _loadSave is not null || _baseStyle is null)
         {
             var spatialReady = StartWorld(_loadSave is { } save ? presenter => presenter.Load(_contentDirectory, CheckCopy(save)) : presenter => presenter.Start(_contentDirectory, _seed), null);
