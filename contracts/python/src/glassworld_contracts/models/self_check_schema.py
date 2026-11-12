@@ -69,6 +69,34 @@ class AiCheck(BaseModel):
     )
 
 
+class Reason(StrEnum):
+    ok = 'ok'
+    tier = 'tier'
+    too_slow = 'too_slow'
+    not_measured = 'not_measured'
+
+
+class LearnByDayOffer(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    offered: bool
+    reason: Reason = Field(
+        ...,
+        description='ok; tier (this hardware tier does not offer it); too_slow (the measurement run found the language model slower than the tier allows); not_measured (no measurement run yet).',
+    )
+    message_key: str = Field(
+        ...,
+        description='i18n key of the short state text (msg.selfcheck.learn_by_day.<reason>).',
+        max_length=96,
+    )
+    hint_key: str = Field(
+        ...,
+        description='i18n key of the hint the settings show next to the switch: by day the AI uses computing power during play; switched off, all learning moves to the night and the game goes slower.',
+        max_length=96,
+    )
+
+
 class SelfCheck(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -78,3 +106,4 @@ class SelfCheck(BaseModel):
         description='Contract version. Incompatible changes require a new major version and an ADR.',
     )
     checks: list[AiCheck] = Field(..., max_length=8)
+    learn_by_day: LearnByDayOffer | None = None
