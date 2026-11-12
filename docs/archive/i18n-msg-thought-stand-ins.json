@@ -1,0 +1,165 @@
+{
+  "what": "Former stand-in thoughts msg.thought.<action> (W1687, B2602). Since B2644 (Marcel F5296 = B, TL #21712) a rejected AI thought shows nothing; these texts are no longer used and are kept here, outside content/, so nothing loads them (rule PR4: archive, never delete).",
+  "removed_from": [
+    "content/i18n/de.json",
+    "content/i18n/en.json"
+  ],
+  "entries": {
+    "de": [
+      {
+        "key": "msg.thought.approach",
+        "text": "Ich geh mal hin."
+      },
+      {
+        "key": "msg.thought.build_step",
+        "text": "Weiter bauen."
+      },
+      {
+        "key": "msg.thought.combine",
+        "text": "Mal sehen, ob das zusammenpasst."
+      },
+      {
+        "key": "msg.thought.drink",
+        "text": "Erst mal was trinken."
+      },
+      {
+        "key": "msg.thought.drop",
+        "text": "Das leg ich mal hin."
+      },
+      {
+        "key": "msg.thought.eat",
+        "text": "Jetzt was essen."
+      },
+      {
+        "key": "msg.thought.idle",
+        "text": "Kurz ausruhen."
+      },
+      {
+        "key": "msg.thought.inspect",
+        "text": "Was ist das denn?"
+      },
+      {
+        "key": "msg.thought.move_to",
+        "text": "Da will ich hin."
+      },
+      {
+        "key": "msg.thought.pick_up",
+        "text": "Das nehm ich mit."
+      },
+      {
+        "key": "msg.thought.show",
+        "text": "Guck mal!"
+      },
+      {
+        "key": "msg.thought.sleep",
+        "text": "Ich bin so müde."
+      },
+      {
+        "key": "msg.thought.talk_to",
+        "text": "Ich sag mal was."
+      },
+      {
+        "key": "msg.thought.teach",
+        "text": "Komm, ich zeig's dir."
+      },
+      {
+        "key": "msg.thought.wander",
+        "text": "Mal ein bisschen umschauen."
+      },
+      {
+        "key": "msg.thought.explore",
+        "text": "Was wohl dahinter liegt?"
+      },
+      {
+        "key": "msg.thought.use",
+        "text": "Das probier ich mal."
+      },
+      {
+        "key": "msg.thought.warn",
+        "text": "Pass auf!"
+      },
+      {
+        "key": "msg.thought.introduce",
+        "text": "Wie heißt du?"
+      }
+    ],
+    "en": [
+      {
+        "key": "msg.thought.approach",
+        "text": "Let me go over there."
+      },
+      {
+        "key": "msg.thought.build_step",
+        "text": "Back to building."
+      },
+      {
+        "key": "msg.thought.combine",
+        "text": "Let's see if these fit together."
+      },
+      {
+        "key": "msg.thought.drink",
+        "text": "First, something to drink."
+      },
+      {
+        "key": "msg.thought.drop",
+        "text": "I'll put this down."
+      },
+      {
+        "key": "msg.thought.eat",
+        "text": "Time to eat something."
+      },
+      {
+        "key": "msg.thought.idle",
+        "text": "Just a little rest."
+      },
+      {
+        "key": "msg.thought.inspect",
+        "text": "What is that?"
+      },
+      {
+        "key": "msg.thought.move_to",
+        "text": "I want to go there."
+      },
+      {
+        "key": "msg.thought.pick_up",
+        "text": "I'll take this."
+      },
+      {
+        "key": "msg.thought.show",
+        "text": "Look at this!"
+      },
+      {
+        "key": "msg.thought.sleep",
+        "text": "I'm so tired."
+      },
+      {
+        "key": "msg.thought.talk_to",
+        "text": "Let me say something."
+      },
+      {
+        "key": "msg.thought.teach",
+        "text": "Come, I'll show you."
+      },
+      {
+        "key": "msg.thought.wander",
+        "text": "Let's look around a bit."
+      },
+      {
+        "key": "msg.thought.explore",
+        "text": "What might lie beyond?"
+      },
+      {
+        "key": "msg.thought.use",
+        "text": "Let me try this."
+      },
+      {
+        "key": "msg.thought.warn",
+        "text": "Watch out!"
+      },
+      {
+        "key": "msg.thought.introduce",
+        "text": "What is your name?"
+      }
+    ]
+  }
+}

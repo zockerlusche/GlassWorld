@@ -699,7 +699,7 @@ public partial class Main
         {
             DirAccess.MakeDirRecursiveAbsolute(_shotsFolder!);
             var live = string.Equals(System.Environment.GetEnvironmentVariable("GLASSWORLD_AI"), "live", StringComparison.Ordinal);
-            GD.Print($"NIGHT_SHOTS_START live={(live ? 1 : 0)} world={_world!.Mode} limit_s={_nightLimitS.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
+            GD.Print($"NIGHT_SHOTS_START live={(live ? 1 : 0)} world={_world!.Mode} limit_s={_nightLimitS.ToString(System.Globalization.CultureInfo.InvariantCulture)} content={(ContentLocator.Variant is null ? "repository" : "variant")}");
             var fastest = ScreenModel.TimeChoices(_world.Host!.World.Calendar.Settings).Max(c => c.Speed);
             _world.Speed = fastest;
             var started = Time.GetTicksMsec();
