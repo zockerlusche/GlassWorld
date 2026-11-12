@@ -236,6 +236,7 @@ public sealed class SimulationHost
             AirAt = AirAt,
             Looks = content.Appearance,
             Names = content.InhabitantNames,
+            NamesBySex = content.InhabitantNamesBySex,
             Routes = map,
 
             // B2594: the weather lowers how far the inhabitants see (exploring and perceiving alike).
