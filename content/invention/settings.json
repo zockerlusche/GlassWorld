@@ -68,7 +68,9 @@
       "angel*",
       "*angelrute",
       "reuse",
-      "*reuse"
+      "*reuse",
+      "*fisch*",
+      "*fleisch*"
     ],
     "en": [
       "weapon*",
@@ -97,7 +99,9 @@
       "kill*",
       "harpoon*",
       "fishing",
-      "fishhook*"
+      "fishhook*",
+      "fish*",
+      "meat*"
     ]
   },
   "max_materials": 12,
