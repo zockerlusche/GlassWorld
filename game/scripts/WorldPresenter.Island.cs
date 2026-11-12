@@ -96,11 +96,21 @@ public partial class WorldPresenter
             : null;
 
     /// <summary>
-    /// Island mode: where the sound mix listens (the point the camera looks at, on the ground) and how far
-    /// out the camera is zoomed (0..1); null on the placeholder (the camera itself listens there).
+    /// Island mode: where the sound mix listens (the point the camera looks at, on the ground), how far out the
+    /// camera is zoomed (0..1) and, while it follows an inhabitant, how far the picture reaches around it - beyond
+    /// that nothing is heard (B2605, B8 R7); null on the placeholder (the camera itself listens there).
     /// </summary>
-    public (Simulation.Objects.Position Listener, double Zoom)? Hearing() =>
-        _rig is null ? null : (new Simulation.Objects.Position(_rig.Model.Target.X, _rig.Model.Target.Z), _rig.Model.ZoomShare);
+    public (Simulation.Objects.Position Listener, double Zoom, double? LimitM)? Hearing()
+    {
+        if (_rig is null)
+        {
+            return null;
+        }
+
+        var size = GetViewport().GetVisibleRect().Size;
+        double? limit = _rig.Model.Following && size.Y > 0 ? _rig.Model.SeenRadiusM(size.X / size.Y) : null;
+        return (new Simulation.Objects.Position(_rig.Model.Target.X, _rig.Model.Target.Z), _rig.Model.ZoomShare, limit);
+    }
 
     /// <summary>
     /// Where the question marks of an inhabitant hang: below the head anchor at the island's label height,
