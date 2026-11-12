@@ -487,6 +487,22 @@
       "text": "Build"
     },
     {
+      "key": "vocab.action.use_instead",
+      "text": "Use instead"
+    },
+    {
+      "key": "vocab.action.build_smaller",
+      "text": "Finish smaller"
+    },
+    {
+      "key": "vocab.action.ask_for_help",
+      "text": "Ask for help"
+    },
+    {
+      "key": "vocab.action.give_up",
+      "text": "Give up"
+    },
+    {
       "key": "vocab.action.combine",
       "text": "Combine"
     },
@@ -1493,6 +1509,14 @@
     {
       "key": "vocab.event.needs_help",
       "text": "Needs help with building"
+    },
+    {
+      "key": "vocab.event.substitute_taken",
+      "text": "Substitute taken"
+    },
+    {
+      "key": "vocab.event.substitute_failed",
+      "text": "Substitute does not fit"
     },
     {
       "key": "vocab.event.built",

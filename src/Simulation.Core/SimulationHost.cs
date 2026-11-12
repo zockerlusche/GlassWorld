@@ -321,6 +321,12 @@ public sealed class SimulationHost
         var skillLevels = new SkillLevelsSystem(content.SkillLevels, skills, world.Seed, world.Calendar.TicksPerDay);
         inhabitants.Reported += skillLevels.Observe;
 
+        // A stuck building asks the decider what to do (A1373 step 2, D850): the core offers, the decider chooses.
+        inventions.Escalate = (w, inhabitantId, typeId, _) => decisions.AskBuildStuck(w, inhabitantId, typeId);
+        inventions.EscalationOpen = decisions.IsAskingAboutBuilding;
+        decisions.StuckOptions = inventions.EscalationOptionsOf;
+        decisions.StuckContext = inventions.StuckOf;
+
         // New skills of an approved invention enter the register right away (refused ones are dropped, the invention stays).
         inhabitants.Reported += e =>
         {

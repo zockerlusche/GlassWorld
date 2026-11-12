@@ -2,24 +2,120 @@
   "contract_version": "0.2",
   "kind": "action",
   "entries": [
-    { "id": "idle", "description": "Stay where you are and rest briefly.", "target": "none" },
-    { "id": "wander", "description": "Walk around without a fixed goal and look at the surroundings.", "target": "none" },
-    { "id": "explore", "description": "Walk to the nearest place not seen yet and look at the land there.", "target": "none" },
-    { "id": "move_to", "description": "Walk to a specific object.", "target": "object" },
-    { "id": "inspect", "description": "Look closely at an object to learn about its properties.", "target": "object" },
-    { "id": "pick_up", "description": "Pick up a small object and carry it.", "target": "object" },
-    { "id": "drop", "description": "Put down a carried object.", "target": "object" },
-    { "id": "eat", "description": "Eat an object.", "target": "object" },
-    { "id": "drink", "description": "Drink from an object or water source.", "target": "object" },
-    { "id": "sleep", "description": "Lie down and sleep to restore energy.", "target": "none" },
-    { "id": "approach", "description": "Walk towards another inhabitant.", "target": "inhabitant" },
-    { "id": "talk_to", "description": "Start a conversation with another inhabitant.", "target": "inhabitant" },
-    { "id": "combine", "description": "Use two or more objects together (strike, rub, tie, mix).", "target": "object" },
-    { "id": "warn", "description": "Warn another inhabitant about something believed dangerous (passes on knowledge, B4a).", "target": "inhabitant" },
-    { "id": "show", "description": "Show another inhabitant an object or how something works (passes on knowledge, B4a).", "target": "inhabitant" },
-    { "id": "teach", "description": "Teach another inhabitant what one knows about something (passes on knowledge, B4a).", "target": "inhabitant" },
-    { "id": "introduce", "description": "Tell another inhabitant one's own name on a first meeting; the other usually answers with theirs (W1698).", "target": "inhabitant" },
-    { "id": "use", "description": "Use a made thing for what it is for.", "target": "object" },
-    { "id": "build_step", "description": "Work one material into a building step of an invention (planned by the core).", "target": "object" }
+    {
+      "id": "idle",
+      "description": "Stay where you are and rest briefly.",
+      "target": "none"
+    },
+    {
+      "id": "wander",
+      "description": "Walk around without a fixed goal and look at the surroundings.",
+      "target": "none"
+    },
+    {
+      "id": "explore",
+      "description": "Walk to the nearest place not seen yet and look at the land there.",
+      "target": "none"
+    },
+    {
+      "id": "move_to",
+      "description": "Walk to a specific object.",
+      "target": "object"
+    },
+    {
+      "id": "inspect",
+      "description": "Look closely at an object to learn about its properties.",
+      "target": "object"
+    },
+    {
+      "id": "pick_up",
+      "description": "Pick up a small object and carry it.",
+      "target": "object"
+    },
+    {
+      "id": "drop",
+      "description": "Put down a carried object.",
+      "target": "object"
+    },
+    {
+      "id": "eat",
+      "description": "Eat an object.",
+      "target": "object"
+    },
+    {
+      "id": "drink",
+      "description": "Drink from an object or water source.",
+      "target": "object"
+    },
+    {
+      "id": "sleep",
+      "description": "Lie down and sleep to restore energy.",
+      "target": "none"
+    },
+    {
+      "id": "approach",
+      "description": "Walk towards another inhabitant.",
+      "target": "inhabitant"
+    },
+    {
+      "id": "talk_to",
+      "description": "Start a conversation with another inhabitant.",
+      "target": "inhabitant"
+    },
+    {
+      "id": "combine",
+      "description": "Use two or more objects together (strike, rub, tie, mix).",
+      "target": "object"
+    },
+    {
+      "id": "warn",
+      "description": "Warn another inhabitant about something believed dangerous (passes on knowledge, B4a).",
+      "target": "inhabitant"
+    },
+    {
+      "id": "show",
+      "description": "Show another inhabitant an object or how something works (passes on knowledge, B4a).",
+      "target": "inhabitant"
+    },
+    {
+      "id": "teach",
+      "description": "Teach another inhabitant what one knows about something (passes on knowledge, B4a).",
+      "target": "inhabitant"
+    },
+    {
+      "id": "introduce",
+      "description": "Tell another inhabitant one's own name on a first meeting; the other usually answers with theirs (W1698).",
+      "target": "inhabitant"
+    },
+    {
+      "id": "use",
+      "description": "Use a made thing for what it is for.",
+      "target": "object"
+    },
+    {
+      "id": "build_step",
+      "description": "Work one material into a building step of an invention (planned by the core).",
+      "target": "object"
+    },
+    {
+      "id": "use_instead",
+      "description": "Take this thing for the building in place of the missing material.",
+      "target": "object"
+    },
+    {
+      "id": "build_smaller",
+      "description": "Stop building and leave the thing as far as it is built.",
+      "target": "none"
+    },
+    {
+      "id": "ask_for_help",
+      "description": "Ask this person to bring the missing material.",
+      "target": "inhabitant"
+    },
+    {
+      "id": "give_up",
+      "description": "Stop building this thing for good.",
+      "target": "none"
+    }
   ]
 }

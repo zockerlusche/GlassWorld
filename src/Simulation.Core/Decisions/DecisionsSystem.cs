@@ -134,6 +134,15 @@ public sealed class DecisionsSystem : IWorldSystem
     /// <summary>Trigger: the inhabitant noticed the player (e.g. was clicked).</summary>
     public const string NoticedPlayer = "noticed_player";
 
+    /// <summary>Question kind: a building is stuck and the builder asks what to do (A1373 step 2, D850); subject = invention type.</summary>
+    public const string BuildStuck = "build_stuck";
+
+    /// <summary>A1373 step 2 (set by the host): the options of a stuck building (inhabitant, invention type), fresh each time a request is built.</summary>
+    public Func<string, string, IReadOnlyList<(string Action, string? TargetId)>>? StuckOptions { get; set; }
+
+    /// <summary>A1373 step 2 (set by the host): what a stuck building's request tells the decider (inhabitant, invention type).</summary>
+    public Func<string, string, StuckBuilding?>? StuckContext { get; set; }
+
     /// <summary>Player command: an inhabitant was clicked.</summary>
     public const string InhabitantClicked = "inhabitant_clicked";
 
@@ -1055,10 +1064,17 @@ public sealed class DecisionsSystem : IWorldSystem
         probe?.Leave(PartRequestLook);
         probe?.Enter(PartRequestOptions);
         _passable.Clear();
-        var options = BuildOptions(inhabitant, target, world.Tick, others);
+        var options = kind == BuildStuck && StuckOptions is { } stuck
+            ? [.. stuck(inhabitant.Id, subject).Take(MaxOptions).Select((o, i) => (string.Create(CultureInfo.InvariantCulture, $"o{i + 1}"), o.Action, o.TargetId))]
+            : BuildOptions(inhabitant, target, world.Tick, others);
         probe?.Leave(PartRequestOptions);
         probe?.Enter(PartRequestBuild);
         var request = BuildRequest(world, inhabitant, requestId, options, others, things);
+        if (kind == BuildStuck)
+        {
+            request.Building = StuckContext?.Invoke(inhabitant.Id, subject);
+        }
+
         _passable.Clear();
         probe?.Leave(PartRequestBuild);
         probe?.Enter(PartRequestJson);
@@ -1084,6 +1100,33 @@ public sealed class DecisionsSystem : IWorldSystem
         var resent = Send(world, _inhabitants.Get(question.InhabitantId), question.Id, question.Kind, question.Subject, target);
         SetOpen(resent with { AskedTick = question.AskedTick });
     }
+
+    /// <summary>
+    /// A1373 step 2 (D850): asks the decider what to do about a stuck building, with the options the core leaves
+    /// open (<see cref="StuckOptions"/>) and the building's lines (<see cref="StuckContext"/>). A day decision like
+    /// any other: it goes out only within the step's limit (max_requests_per_step); false if it did not go out now
+    /// (the building asks again in a later tick). Answered, the choice is an activity like every decision.
+    /// </summary>
+    public bool AskBuildStuck(World world, string inhabitantId, string typeId)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        if (!MaySend(world) || StuckOptions is null || _openOf.GetValueOrDefault(inhabitantId)?.Any(q => q.Kind == BuildStuck && q.Subject == typeId) == true)
+        {
+            return false;
+        }
+
+        _counter++;
+        var questionId = string.Create(CultureInfo.InvariantCulture, $"q-{_counter:000000}");
+        var inhabitant = _inhabitants.Get(inhabitantId);
+        var question = Send(world, inhabitant, questionId, BuildStuck, typeId, null);
+        AddOpen(question);
+        _inhabitants.Report(new WorldEvent("question_opened", world.Tick, inhabitant.Id, null, question.Id));
+        return true;
+    }
+
+    /// <summary>Whether a stuck-building question of an inhabitant about an invention type is open (A1373 step 2).</summary>
+    public bool IsAskingAboutBuilding(string inhabitantId, string typeId) =>
+        _openOf.GetValueOrDefault(inhabitantId)?.Any(q => q.Kind == BuildStuck && q.Subject == typeId) == true;
 
     /// <summary>Most options a decision request may hold (contract decision-request: options maxItems).</summary>
     public const int MaxOptions = 32;

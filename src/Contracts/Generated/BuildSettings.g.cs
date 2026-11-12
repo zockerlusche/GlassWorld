@@ -13,6 +13,59 @@ namespace GlassWorld.Contracts
     #pragma warning disable // Disable all warnings
 
     /// <summary>
+    /// A1373 step 2 (D827 R15/R17c, D850, B2658): when the help does not come, the builder asks the decider what to do, with options only the core offers: take a thing it believes has the missing properties instead, finish smaller (leave the thing as far as it is built), give up. First after_hours of looking after needs_help, then every after_hours again, at most max times per building. Omitted = the builder never asks, as before.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class BuildEscalation
+    {
+
+        /// <summary>
+        /// Game hours of looking (counted like help_after_hours) from needs_help to the first question, and between two questions.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("after_hours")]
+        public double AfterHours { get; set; } = default!;
+
+        /// <summary>
+        /// Most questions per building (loop brake R17c).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max")]
+        public int Max { get; set; } = default!;
+
+        /// <summary>
+        /// Action of the option 'take this thing instead' (target: a thing in sight).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("use_instead_action")]
+        public string UseInsteadAction { get; set; } = default!;
+
+        /// <summary>
+        /// Action of the option 'finish smaller' (no target; offered once a step is done).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("smaller_action")]
+        public string SmallerAction { get; set; } = default!;
+
+        /// <summary>
+        /// Action of the option 'give up' (no target; always offered).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("give_up_action")]
+        public string GiveUpAction { get; set; } = default!;
+
+        /// <summary>
+        /// Action of the option 'ask another for help' (target: an inhabitant; comes with the next step, not offered yet). Like the others never an invention's purpose.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("help_action")]
+        public string? HelpAction { get; set; } = default!;
+
+        /// <summary>
+        /// Most 'take this instead' options in one question (nearest kinds first). Omitted = 2.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("max_use_instead")]
+        public int? MaxUseInstead { get; set; } = default!;
+
+    }
+
+    /// <summary>
     /// Data file content/build/settings.json: how the core asks for a building plan for an approved invention, checks it (B4b R14) and lets the inventor build it step by step (D471 D5, stages 4, 5, 7). Values are placeholders until Marcel decides.
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
@@ -83,6 +136,10 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("sound_max_attempts")]
         public int SoundMaxAttempts { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("escalation")]
+        public BuildEscalation? Escalation { get; set; } = default!;
 
     }
 }

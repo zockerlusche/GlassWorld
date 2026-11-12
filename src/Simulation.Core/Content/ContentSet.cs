@@ -175,7 +175,8 @@ public sealed class ContentSet
         var inventions = new InventionRules(
             inventionSettings,
             objects.PropertyVocabulary,
-            Ids(vocabularies, VocabularyKind.Action).ToFrozenSet(StringComparer.Ordinal),
+            // The actions of a stuck building (A1373 step 2) are the core's own: no invention serves them.
+            Ids(vocabularies, VocabularyKind.Action).Except(EscalationActions(contentDirectory), StringComparer.Ordinal).ToFrozenSet(StringComparer.Ordinal),
             Ids(vocabularies, VocabularyKind.Process).ToFrozenSet(StringComparer.Ordinal),
             [.. Required(vocabularies, VocabularyKind.Tech_level).Entries.Select(e => e.Id)],
             TextGuard.FromJson(File.ReadAllText(Path.Combine(contentDirectory, "safety", "rules.json"))),
@@ -648,6 +649,13 @@ public sealed class ContentSet
     private static IEnumerable<string> Unknown(ICollection<string>? ids, HashSet<string> known, string outfit, string what) =>
         (ids ?? []).Where(id => !known.Contains(id)).Select(id => $"outfit '{outfit}' names unknown {what} '{id}'");
 
+    /// <summary>The actions of a stuck building (content/build/settings.json escalation; none without it).</summary>
+    private static IEnumerable<string> EscalationActions(string contentDirectory)
+    {
+        var settings = ContractSerializer.Deserialize<BuildSettings>(File.ReadAllText(Path.Combine(contentDirectory, "build", "settings.json")));
+        return settings.Escalation is { } e ? new[] { e.UseInsteadAction, e.SmallerAction, e.GiveUpAction, e.HelpAction }.OfType<string>() : [];
+    }
+
     private static void CheckInventions(InventionRules rules, ActionRules actions, HashSet<string> shapes, HashSet<string> dayPhases)
     {
         var problems = new List<string>();
@@ -658,6 +666,21 @@ public sealed class ContentSet
             if (!actions.Actions.Contains(action, StringComparer.Ordinal))
             {
                 problems.Add($"build action '{action}' has no timing in content/effects");
+            }
+        }
+
+        if (build.Escalation is { } escalation)
+        {
+            foreach (var action in new[] { escalation.UseInsteadAction, escalation.SmallerAction, escalation.GiveUpAction })
+            {
+                if (!actions.Actions.Contains(action, StringComparer.Ordinal))
+                {
+                    problems.Add($"escalation action '{action}' has no timing in content/effects");
+                }
+                else if (actions.OfferedActions.Contains(action, StringComparer.Ordinal))
+                {
+                    problems.Add($"escalation action '{action}' must not be a decider option (decider_option false): only a stuck building offers it");
+                }
             }
         }
 

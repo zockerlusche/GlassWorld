@@ -47,6 +47,9 @@ public sealed record SoundTask(string TypeId, string RequestId, string? ResultJs
 /// <param name="WaitingSinceTick">Since when no material of the current step was in sight, or null (A1373).</param>
 /// <param name="LookedTicks">Ticks of this wait in which the builder was free and looked about (asleep, eating or busy do not count).</param>
 /// <param name="NeedsHelp">True once the builder looked long enough by itself and needs help (A1373, R15).</param>
+/// <param name="Escalations">Questions to the decider for this building so far (A1373 step 2, R17c).</param>
+/// <param name="Substitutes">Material types taken instead of a plan material (plan type to substitute type), or null.</param>
+/// <param name="Smaller">True when the builder finished it smaller: the thing stands as far as it was built.</param>
 public sealed record BuildTask(
     string TypeId,
     string InhabitantId,
@@ -64,7 +67,10 @@ public sealed record BuildTask(
     bool GaveUp,
     long? WaitingSinceTick = null,
     bool NeedsHelp = false,
-    long LookedTicks = 0);
+    long LookedTicks = 0,
+    int Escalations = 0,
+    IReadOnlyDictionary<string, string>? Substitutes = null,
+    bool Smaller = false);
 
 /// <content>Building inventions from a plan and their first use (D471 D5, part 2).</content>
 public sealed partial class InventionSystem
@@ -96,6 +102,27 @@ public sealed partial class InventionSystem
 
     /// <summary>Text of <see cref="NeedsHelpEvent"/>: the material exists in the world, out of the builder's sight.</summary>
     public const string InWorld = "in_world";
+
+    /// <summary>Detail of <see cref="BuildFailed"/> when the builder chose to give up (A1373 step 2; data event_effects: frustration, R17f).</summary>
+    public const string GaveUpByChoice = "gave_up";
+
+    /// <summary>Detail of <see cref="Built"/> for a thing finished smaller (it stands as far as it was built).</summary>
+    public const string FinishedSmaller = "smaller";
+
+    /// <summary>Event: a substitute truly has what was missing (target = invention type, detail = substitute type).</summary>
+    public const string SubstituteTaken = "substitute_taken";
+
+    /// <summary>Event: a substitute lacks what was missing (target = invention type, detail = substitute type); the builder learned it.</summary>
+    public const string SubstituteFailed = "substitute_failed";
+
+    /// <summary>
+    /// A1373 step 2 (set by the host): asks the decider what to do about a stuck building, with the given options
+    /// (action, target); true if the question went out. Null = never asks.
+    /// </summary>
+    public Func<World, string, string, IReadOnlyList<(string Action, string? TargetId)>, bool>? Escalate { get; set; }
+
+    /// <summary>Whether a question about this building is open (inhabitant, invention type); set by the host.</summary>
+    public Func<string, string, bool>? EscalationOpen { get; set; }
 
     /// <summary>An inhabitant used an invention for the first time (target = object).</summary>
     public const string FirstUse = "first_use";
@@ -299,10 +326,11 @@ public sealed partial class InventionSystem
             }
 
             var missing = StepMaterials(ParsePlan(task), task.StepsDone + 1).Except(task.Gathered, StringComparer.Ordinal).ToHashSet(StringComparer.Ordinal);
+            var standsFor = StandsFor(task, missing);
             var radius = _inhabitants.Sight.Metres(_perceptionRadiusM);
             var radiusSquared = radius * radius;
             var material = _objects.All
-                .Where(o => missing.Contains(o.TypeId))
+                .Where(o => standsFor.ContainsKey(o.TypeId))
                 .Select(o => (o, d: Square(o.Position.X - inhabitant.Position.X) + Square(o.Position.Z - inhabitant.Position.Z)))
                 .Where(x => x.d <= radiusSquared)
                 .OrderBy(x => x.d)
@@ -318,7 +346,7 @@ public sealed partial class InventionSystem
             }
 
             inhabitant.Planned = new Activity(Build.Settings.StepAction, material.Id, material.Position, null);
-            _builds[task.TypeId] = _builds[task.TypeId] with { PendingObjectId = material.Id, PendingType = material.TypeId, WaitingSinceTick = null, NeedsHelp = false, LookedTicks = 0 };
+            _builds[task.TypeId] = _builds[task.TypeId] with { PendingObjectId = material.Id, PendingType = standsFor[material.TypeId], WaitingSinceTick = null, NeedsHelp = false, LookedTicks = 0 };
         }
     }
 
@@ -340,6 +368,21 @@ public sealed partial class InventionSystem
             return;
         }
 
+        if (task.NeedsHelp && Build.Settings.HelpAfterHours is { } helpAfter && Build.Settings.Escalation is { } escalation && Escalate is { } escalate
+            && task.Escalations < escalation.Max
+            && waited >= (long)((helpAfter + ((task.Escalations + 1) * escalation.AfterHours)) * ticksPerHour)
+            && EscalationOpen?.Invoke(task.InhabitantId, task.TypeId) != true)
+        {
+            // A1373 step 2 (D850): the help did not come - the builder asks what to do (the core's options only).
+            // Counted before the request is built, so the request says which question this is.
+            var asking = task with { Escalations = task.Escalations + 1 };
+            _builds[task.TypeId] = asking;
+            if (escalate(world, task.InhabitantId, task.TypeId, EscalationOptions(task, missing)))
+            {
+                task = asking;
+            }
+        }
+
         if (!task.NeedsHelp && Build.Settings.HelpAfterHours is { } help && waited >= (long)(help * ticksPerHour))
         {
             task = task with { NeedsHelp = true };
@@ -355,6 +398,159 @@ public sealed partial class InventionSystem
         _builds[task.TypeId] = task;
     }
 
+    /// <summary>
+    /// Which material type stands for which missing plan type: each missing type for itself, and a substitute the
+    /// builder took instead (A1373 step 2) for the plan type it replaces.
+    /// </summary>
+    private static Dictionary<string, string> StandsFor(BuildTask task, HashSet<string> missing)
+    {
+        var standsFor = missing.ToDictionary(m => m, m => m, StringComparer.Ordinal);
+        foreach (var (planType, substitute) in task.Substitutes ?? new Dictionary<string, string>())
+        {
+            if (missing.Contains(planType))
+            {
+                standsFor.TryAdd(substitute, planType);
+            }
+        }
+
+        return standsFor;
+    }
+
+    /// <summary>The properties the missing plan materials truly have (what the step lacks; sorted).</summary>
+    private List<string> MissingProperties(IEnumerable<string> missing) =>
+        [.. missing.SelectMany(m => _types.Contains(m) ? _types.TrueProperties(m) : []).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)];
+
+    /// <summary>
+    /// The ways the core leaves open for a stuck building (D850): a thing in sight of another kind that the builder
+    /// BELIEVES has every missing property (nearest kinds first, at most the data's number), finishing smaller once a
+    /// step is done, and giving up. Asking another for help comes with the next step.
+    /// </summary>
+    private List<(string Action, string? TargetId)> EscalationOptions(BuildTask task, HashSet<string> missing)
+    {
+        var escalation = Build.Settings.Escalation!;
+        var options = new List<(string Action, string? TargetId)>();
+        var inhabitant = _inhabitants.Get(task.InhabitantId);
+        var needed = MissingProperties(missing);
+        if (needed.Count > 0)
+        {
+            var radius = _inhabitants.Sight.Metres(_perceptionRadiusM);
+            var radiusSquared = radius * radius;
+            var candidates = _objects.All
+                .Where(o => !missing.Contains(o.TypeId) && o.TypeId != task.TypeId)
+                .Select(o => (o, d: Square(o.Position.X - inhabitant.Position.X) + Square(o.Position.Z - inhabitant.Position.Z)))
+                .Where(x => x.d <= radiusSquared)
+                .Where(x => needed.All(p => inhabitant.Beliefs.TryGet(x.o.TypeId, p, out var belief) && belief.Value))
+                .OrderBy(x => x.d)
+                .ThenBy(x => x.o.Id, StringComparer.Ordinal)
+                .GroupBy(x => x.o.TypeId, StringComparer.Ordinal)
+                .Select(g => g.First().o)
+                .Take(escalation.MaxUseInstead ?? 2);
+            options.AddRange(candidates.Select(o => (escalation.UseInsteadAction, (string?)o.Id)));
+        }
+
+        if (task.StepsDone >= 1)
+        {
+            options.Add((escalation.SmallerAction, null));
+        }
+
+        options.Add((escalation.GiveUpAction, null));
+        return options;
+    }
+
+    /// <summary>What the builder chose for its stuck building is done (A1373 step 2, D850; the decider chose among the core's options).</summary>
+    private void Escalated(WorldEvent e, BuildEscalation escalation)
+    {
+        var task = _builds.Values.FirstOrDefault(b => b.InhabitantId == e.InhabitantId && b.PlanJson is not null && b.BuiltObjectId is null && !b.GaveUp);
+        if (task is null)
+        {
+            return;
+        }
+
+        if (e.Action == escalation.GiveUpAction)
+        {
+            _builds[task.TypeId] = task with { GaveUp = true, NeedsHelp = false, WaitingSinceTick = null, LookedTicks = 0 };
+            _inhabitants.Report(new WorldEvent(BuildFailed, e.Tick, task.InhabitantId, null, task.TypeId) { Detail = GaveUpByChoice });
+            return;
+        }
+
+        if (e.Action == escalation.SmallerAction)
+        {
+            if (task.StepsDone < 1)
+            {
+                return;
+            }
+
+            // The thing stands as far as it was built: built, not finished in full.
+            var built = _objects.Spawn(task.TypeId, new Position(task.SiteX, task.SiteZ));
+            _builds[task.TypeId] = task with { BuiltObjectId = built.Id, Smaller = true, NeedsHelp = false, WaitingSinceTick = null, LookedTicks = 0, PendingObjectId = null, PendingType = null };
+            _inhabitants.Report(new WorldEvent(Built, e.Tick, task.InhabitantId, null, built.Id) { Detail = FinishedSmaller });
+            KnowOwnWork(e.Tick, task);
+            return;
+        }
+
+        if (e.TargetId is null || !_objects.TryGet(e.TargetId, out var thing))
+        {
+            return;
+        }
+
+        // Taking a thing instead: the world judges by the TRUE properties (the builder only believed them), and the
+        // builder learns them by trying either way.
+        var missing = StepMaterials(ParsePlan(task), task.StepsDone + 1).Except(task.Gathered, StringComparer.Ordinal).ToHashSet(StringComparer.Ordinal);
+        var needed = MissingProperties(missing);
+        _inhabitants.Experience(e.Tick, _inhabitants.Get(task.InhabitantId), e.Action!, thing.TypeId, needed);
+        if (needed.Count == 0 || !needed.All(p => _types.HasProperty(thing.TypeId, p)))
+        {
+            _inhabitants.Report(new WorldEvent(SubstituteFailed, e.Tick, task.InhabitantId, e.Action, task.TypeId) { Detail = thing.TypeId });
+            return;
+        }
+
+        var substitutes = new SortedDictionary<string, string>(StringComparer.Ordinal);
+        foreach (var (planType, substitute) in task.Substitutes ?? new Dictionary<string, string>())
+        {
+            substitutes[planType] = substitute;
+        }
+
+        foreach (var planType in missing)
+        {
+            substitutes[planType] = thing.TypeId;
+        }
+
+        _builds[task.TypeId] = task with { Substitutes = substitutes, NeedsHelp = false, WaitingSinceTick = null, LookedTicks = 0 };
+        _inhabitants.Report(new WorldEvent(SubstituteTaken, e.Tick, task.InhabitantId, e.Action, task.TypeId) { Detail = thing.TypeId });
+    }
+
+    /// <summary>The options of a stuck building as they are now (A1373 step 2): none if the building is not stuck.</summary>
+    public IReadOnlyList<(string Action, string? TargetId)> EscalationOptionsOf(string inhabitantId, string typeId)
+    {
+        if (!_builds.TryGetValue(typeId, out var task) || task.InhabitantId != inhabitantId || Build.Settings.Escalation is null
+            || task.PlanJson is null || task.BuiltObjectId is not null || task.GaveUp)
+        {
+            return [];
+        }
+
+        var missing = StepMaterials(ParsePlan(task), task.StepsDone + 1).Except(task.Gathered, StringComparer.Ordinal).ToHashSet(StringComparer.Ordinal);
+        return EscalationOptions(task, missing);
+    }
+
+    /// <summary>What a stuck building's question tells the decider (A1373 step 2), or null if the building is not stuck.</summary>
+    public StuckBuilding? StuckOf(string inhabitantId, string typeId)
+    {
+        if (!_builds.TryGetValue(typeId, out var task) || task.InhabitantId != inhabitantId || Build.Settings.Escalation is not { } escalation
+            || task.PlanJson is null || task.BuiltObjectId is not null || task.GaveUp || !_inventions.TryGetValue(typeId, out var record))
+        {
+            return null;
+        }
+
+        var missing = StepMaterials(ParsePlan(task), task.StepsDone + 1).Except(task.Gathered, StringComparer.Ordinal);
+        return new StuckBuilding
+        {
+            Name = Parse(record).Name,
+            MissingProperties = MissingProperties(missing),
+            Escalation = Math.Clamp(task.Escalations, 1, escalation.Max),
+            MaxEscalations = escalation.Max,
+        };
+    }
+
     private static List<string> StepMaterials(BuildPlan plan, int step) =>
         [.. plan.Parts.Where(p => p.Step == step).Select(p => p.Material).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)];
 
@@ -368,6 +564,13 @@ public sealed partial class InventionSystem
                 _builds[task.TypeId] = task with { PendingObjectId = null, PendingType = null };
             }
 
+            return;
+        }
+
+        if (e.Kind == InhabitantsSystem.ActionFinished && Build.Settings.Escalation is { } escalation
+            && e.Action is { } chosen && (chosen == escalation.GiveUpAction || chosen == escalation.SmallerAction || chosen == escalation.UseInsteadAction))
+        {
+            Escalated(e, escalation);
             return;
         }
 
@@ -576,6 +779,15 @@ public sealed partial class InventionSystem
 
             hasher.Write(b.PendingObjectId ?? string.Empty).Write(b.PendingType ?? string.Empty).Write(b.BuiltObjectId ?? string.Empty).Write(b.GaveUp)
                 .Write(b.WaitingSinceTick ?? -1).Write(b.NeedsHelp).Write(b.LookedTicks);
+            if (b.Escalations > 0 || b.Smaller || b.Substitutes is { Count: > 0 })
+            {
+                // A1373 step 2, only when used: worlds without escalations hash as before.
+                hasher.Write(b.Escalations).Write(b.Smaller).Write(b.Substitutes?.Count ?? 0);
+                foreach (var (planType, substitute) in (b.Substitutes ?? new Dictionary<string, string>()).OrderBy(s => s.Key, StringComparer.Ordinal))
+                {
+                    hasher.Write(planType).Write(substitute);
+                }
+            }
         }
 
         hasher.Write(_firstUsed.Count);
