@@ -55,6 +55,10 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("model3d")]
         public Model3dPayload? Model3d { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("review")]
+        public ReviewPayload? Review { get; set; } = default!;
+
     }
 
     /// <summary>
@@ -432,6 +436,102 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("max_triangles")]
         public int MaxTriangles { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// An idea the inhabitant already has (B2578, B4b R28): its id in the core, a short English text (internal, never shown as is), its roots (subjects of its own knowledge, or other ideas by id) and how grown it is.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ReviewIdea
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public string Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("text")]
+        public string Text { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("roots")]
+        public System.Collections.Generic.ICollection<Subject> Roots { get; set; } = new System.Collections.ObjectModel.Collection<Subject>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("strength")]
+        public double Strength { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// The nightly look back of one inhabitant (A1584, B7 R18-R22, B2592, B2687): it replaces memory and dream. From the day's events, the memory, what the inhabitant knows (its Fundbuch, B2589) and its ideas, the AI writes the new memory summary, a dream, new or grown ideas, intentions for the morning and the morning mood. What ideas and intentions do the core decides from data; the review never changes the character (R19).
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ReviewPayload
+    {
+
+        /// <summary>
+        /// The day's events, oldest first (as for memory and dream).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("events")]
+        public System.Collections.Generic.ICollection<MemoryFact> Events { get; set; } = new System.Collections.ObjectModel.Collection<MemoryFact>();
+
+        /// <summary>
+        /// The current memory summary (English, internal; may be empty).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("memory")]
+        public string Memory { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("memory_max_chars")]
+        public int MemoryMaxChars { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("dream_max_chars")]
+        public int DreamMaxChars { get; set; } = default!;
+
+        /// <summary>
+        /// Strongest mood at the end of the day, or null.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("mood")]
+        public string? Mood { get; set; } = default!;
+
+        /// <summary>
+        /// Tones the dream may have (data).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("tones")]
+        public System.Collections.Generic.ICollection<string> Tones { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// What the inhabitant believes (its Fundbuch, B2589), cut by relevance in the core; only beliefs, never the truth. Roots of ideas and the subjects of intentions must come from here.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("knowledge")]
+        public System.Collections.Generic.ICollection<KnowledgeEntry> Knowledge { get; set; } = new System.Collections.ObjectModel.Collection<KnowledgeEntry>();
+
+        /// <summary>
+        /// The inhabitant's current ideas (may be empty).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("ideas")]
+        public System.Collections.Generic.ICollection<ReviewIdea> Ideas { get; set; } = new System.Collections.ObjectModel.Collection<ReviewIdea>();
+
+        /// <summary>
+        /// Needs at the end of the day (0 = urgent, 1 = satisfied).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("needs")]
+        public System.Collections.Generic.ICollection<LevelEntry> Needs { get; set; } = new System.Collections.ObjectModel.Collection<LevelEntry>();
+
+        /// <summary>
+        /// Character traits (creativity: how often and how bold; curiosity: trying out - B2578, no new trait).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("traits")]
+        public System.Collections.Generic.ICollection<LevelEntry> Traits { get; set; } = new System.Collections.ObjectModel.Collection<LevelEntry>();
+
+        /// <summary>
+        /// Actions an intention may name (vocabulary, general ones).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("actions")]
+        public System.Collections.Generic.ICollection<string> Actions { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("max_new_ideas")]
+        public int MaxNewIdeas { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("max_intentions")]
+        public int MaxIntentions { get; set; } = default!;
 
     }
 

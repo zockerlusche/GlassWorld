@@ -616,7 +616,8 @@
         "chronicle",
         "image",
         "sound",
-        "model3d"
+        "model3d",
+        "review"
       ]
     },
     "JobState": {

@@ -1,0 +1,69 @@
+{
+  "contract_version": "0.2",
+  "job_id": "5b2e8c1d-7f40-4a6e-9c31-2d8e4f6a1584",
+  "tick": 2600,
+  "kind": "review",
+  "state": "done",
+  "result": {
+    "review": {
+      "summary": "Woke on the beach, met Mira. Spring water is good to drink. Hazelnuts are good to eat. Found a sharp stone.",
+      "kept": [
+        1900
+      ],
+      "dream": {
+        "text": {
+          "locale": "de",
+          "text": "Ich laufe über den Strand, und überall liegen Haselnüsse."
+        },
+        "tone": "joyful",
+        "about": {
+          "kind": "type",
+          "id": "hazelnut"
+        }
+      },
+      "ideas": [
+        {
+          "id": null,
+          "text": "The sharp stone might open a hazelnut.",
+          "roots": [
+            {
+              "kind": "type",
+              "id": "flint"
+            },
+            {
+              "kind": "type",
+              "id": "hazelnut"
+            }
+          ],
+          "thought": {
+            "locale": "de",
+            "text": "Was, wenn ich die Haselnuss mit dem scharfen Stein öffne?"
+          }
+        }
+      ],
+      "intentions": [
+        {
+          "action": "show",
+          "about": {
+            "kind": "type",
+            "id": "hazelnut"
+          },
+          "thought": {
+            "locale": "de",
+            "text": "Heute zeige ich Mira die Haselnüsse."
+          }
+        }
+      ],
+      "morning_mood": "joy"
+    }
+  },
+  "error": null,
+  "provenance": {
+    "source": "ollama",
+    "model": "qwen3.5:9b",
+    "prompt_version": "review/night.v1",
+    "seed": 4242,
+    "latency_ms": 9800,
+    "attempts": 1
+  }
+}

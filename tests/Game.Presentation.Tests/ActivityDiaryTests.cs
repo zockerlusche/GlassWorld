@@ -64,6 +64,9 @@ public sealed class ActivityDiaryTests
 
         Assert.Equal(["warnt Bo vor Brennnessel", "untersucht Brennnessel"], diary.Of("a", k => de.GetValueOrDefault(k, k), Name).Select(l => l.Text));
         Assert.Equal(["warns Bo about nettle", "inspects nettle"], diary.Of("a", k => en.GetValueOrDefault(k, k), Name).Select(l => l.Text));
+
+        // The thing's type rides along, for an invention's icon (A1603); a line about another inhabitant has none.
+        Assert.Equal([null, "nettle"], diary.Of("a", k => k, Name).Select(l => l.TargetType));
         Assert.Equal(before, diary.EntriesOf("a"));
         Assert.Single(diary.EntriesOf("b"));
         Assert.Empty(diary.Of("nobody", k => k, Name));

@@ -123,6 +123,9 @@ public sealed record MailRow(string Id, string? InhabitantId, int Number, string
     /// <summary>True for a builder's knock (A1602): the detail is properties, not a need.</summary>
     public bool AboutBuilding { get; init; }
 
+    /// <summary>The invented type a builder's knock is about (A1602), for its icon (A1603); null for other messages.</summary>
+    public string? SubjectType { get; init; }
+
     /// <summary>The text keys of the properties a stuck builder looks for (A1602), in the order of the detail.</summary>
     public IReadOnlyList<string> PropertyKeys => AboutBuilding && Detail is { Length: > 0 } detail
         ? [.. detail.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Select(p => "vocab.property." + p)]
@@ -258,6 +261,7 @@ public sealed class WorldFeed
             new(m.Id, m.InhabitantId, m.InhabitantId is null ? 0 : NumberOf(m.InhabitantId), m.Kind, m.TextKey, m.Detail, m.Urgency)
             {
                 AboutBuilding = m.Subject is not null,
+                SubjectType = m.Subject,
                 SubjectName = m.Subject is { } type && _host.Inventions.Invention(type) is { } invention ? (invention.Name.De, invention.Name.En) : null,
             };
         return ([.. _host.Mailbox.Open.Select(Row)], [.. _host.Mailbox.History.Take(historyCount).Select(Row)]);
