@@ -27,5 +27,9 @@
       "height": 512
     }
   },
-  "priority": 10
+  "priority": 10,
+  "invention_icons": {
+    "style": "warm_comic",
+    "max_attempts": 3
+  }
 }

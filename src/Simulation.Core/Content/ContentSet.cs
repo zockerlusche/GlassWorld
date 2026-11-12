@@ -185,7 +185,8 @@ public sealed class ContentSet
                 ContractSerializer.Deserialize<BuildKit>(File.ReadAllText(Path.Combine(contentDirectory, "build", "kit.json"))),
                 model.Needs.Where(n => n.NeglectBelow > 0).Select(n => n.Id).ToFrozenSet(StringComparer.Ordinal),
                 ContractSerializer.Deserialize<JobPhases>(File.ReadAllText(Path.Combine(contentDirectory, "jobs", "phases.json"))).NightDayPhases.ToFrozenSet(StringComparer.Ordinal),
-                ContractSerializer.Deserialize<SoundGeneration>(File.ReadAllText(Path.Combine(contentDirectory, "sound", "generation.json")))));
+                ContractSerializer.Deserialize<SoundGeneration>(File.ReadAllText(Path.Combine(contentDirectory, "sound", "generation.json"))),
+                ContractSerializer.Deserialize<ImageGeneration>(File.ReadAllText(Path.Combine(contentDirectory, "image", "generation.json")))));
         CheckInventions(inventions, actions, Ids(vocabularies, VocabularyKind.Shape), Ids(vocabularies, VocabularyKind.Time_of_day));
         var chronicle = ContractSerializer.Deserialize<ChronicleKinds>(File.ReadAllText(Path.Combine(contentDirectory, "chronicle", "kinds.json")));
         var events = Ids(vocabularies, VocabularyKind.Event);
