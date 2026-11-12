@@ -313,6 +313,9 @@ public partial class SettingsWindow : GwWindow
         Run();
     }
 
+    /// <summary>The text keys of the tabs, in their order (layout check: every tab is looked at).</summary>
+    public IReadOnlyList<string> TabKeys => [.. _pages.Keys];
+
     /// <summary>Shows the tab of a section (its text key); the window fits itself again.</summary>
     public void ShowTab(string key)
     {
