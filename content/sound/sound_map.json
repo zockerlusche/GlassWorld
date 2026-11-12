@@ -7,15 +7,18 @@
     },
     {
       "action": "wander",
-      "sound": "action.rustle"
+      "sound": "action.rustle",
+      "group": "moving"
     },
     {
       "action": "explore",
-      "sound": "action.rustle"
+      "sound": "action.rustle",
+      "group": "moving"
     },
     {
       "action": "move_to",
-      "sound": "action.rustle"
+      "sound": "action.rustle",
+      "group": "moving"
     },
     {
       "action": "inspect",
@@ -43,11 +46,13 @@
     },
     {
       "action": "approach",
-      "sound": "action.rustle"
+      "sound": "action.rustle",
+      "group": "moving"
     },
     {
       "action": "talk_to",
-      "sound": "action.talk_to"
+      "sound": "action.talk_to",
+      "group": "speaking"
     },
     {
       "action": "combine",
@@ -55,27 +60,31 @@
     },
     {
       "action": "use",
-      "sound": "action.combine"
+      "sound": "action.use"
     },
     {
       "action": "build_step",
-      "sound": "action.combine"
+      "sound": "action.build_step"
     },
     {
       "action": "warn",
-      "sound": "action.talk_to"
+      "sound": "action.talk_to",
+      "group": "speaking"
     },
     {
       "action": "introduce",
-      "sound": "action.talk_to"
+      "sound": "action.talk_to",
+      "group": "speaking"
     },
     {
       "action": "show",
-      "sound": "action.talk_to"
+      "sound": "action.talk_to",
+      "group": "speaking"
     },
     {
       "action": "teach",
-      "sound": "action.talk_to"
+      "sound": "action.talk_to",
+      "group": "speaking"
     }
   ],
   "surfaces": [
