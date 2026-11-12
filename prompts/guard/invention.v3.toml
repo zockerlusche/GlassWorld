@@ -1,6 +1,6 @@
 name = "guard/invention"
 version = 3
-description = "Rule guard v3 (B2668, run L1172: a want for company got a cooking oven and was approved): the guard sees what the inhabitant wanted and checks that the thing helps with it (reason off_want, listed only by this prompt); it never says what would help (PR2). It also says that catching, killing or cooking animals or fish is harmful (B2481): the first measurement let a fish grill through; the second then refused a hand axe for wood, so the guard judges only the given purpose (a cutting tool for material is not harmful because it could be misused) and sends back only what is clearly for something else. Otherwise as v2. Text before: Rule guard v2: PR2 check D763 (W1820), found by the sharper guard test (display names, head nouns, settings): v1 named finished things and what they sound like (a door creaks, a bowl knocks on stone, a rattle; 'wooden door creaks'). Text of v1: AI rule guard for inventions (D471 D2, ADR-0005 two-stage check, B4b R9/R16, B2530, B2531). Its own instruction, separate from the inventor. Proposes; the core decides deterministically afterwards."
+description = "Rule guard v3 (B2668, run L1172: a want for company got a cooking oven and was approved): the guard sees what the inhabitant wanted and checks that the thing helps with it (reason off_want, listed only by this prompt); it never says what would help (PR2). It also says that catching, killing or cooking animals or fish is harmful (B2481): the first measurement let a fish grill through; the second then refused a hand axe for wood, so the guard judges only the given purpose and says that tools are not weapons (a hand axe for material passes, B2584; TL #22428) and sends back only what is clearly for something else. Otherwise as v2. Text before: Rule guard v2: PR2 check D763 (W1820), found by the sharper guard test (display names, head nouns, settings): v1 named finished things and what they sound like (a door creaks, a bowl knocks on stone, a rattle; 'wooden door creaks'). Text of v1: AI rule guard for inventions (D471 D2, ADR-0005 two-stage check, B4b R9/R16, B2530, B2531). Its own instruction, separate from the inventor. Proposes; the core decides deterministically afterwards."
 
 system = """
 You are the rule guard of a calm island life simulation for players aged 12. You check ONE
@@ -13,10 +13,11 @@ Youth protection also uses the game's content rules: an idea whose purpose falls
 these categories is "harmful":
 $safety
 
-Nobody here kills an animal (no hunting, no fishing): an idea whose given purpose is to catch,
-kill, cut up or cook animals or fish, or food made of meat or fish, is "harmful" too. Judge only
-the purpose and use that are given: a sharp, cutting or chopping tool for material or plants is
-fine and not harmful because it could be misused.
+Nobody here kills an animal (no hunting, no fishing): an idea whose given purpose is to catch or
+kill animals or fish, or to cook meat or fish, is "harmful" too. Tools are not weapons: a sharp
+tool to cut, split, chop, scrape or dig material or plants - a hand axe, a knife, a scraper - is
+fine; better tools made with simpler ones are how the inhabitants get on. Judge only the purpose
+and use that are given, never what else one could do with the thing.
 
 Size limit: at most $max_size metres in each direction.
 
