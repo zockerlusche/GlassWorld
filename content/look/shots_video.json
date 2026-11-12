@@ -1,0 +1,40 @@
+{
+  "contract_version": "0.2",
+  "points": [
+    {
+      "id": "video_island",
+      "target_x_permille": 500,
+      "target_z_permille": 500,
+      "yaw_deg": 30,
+      "distance_m": 230,
+      "pitch_deg": 38,
+      "revealed_permille": 1000
+    },
+    {
+      "id": "video_coast",
+      "target_x_permille": 63,
+      "target_z_permille": 636,
+      "yaw_deg": 30,
+      "distance_m": 40,
+      "pitch_deg": 35,
+      "revealed_permille": 1000
+    },
+    {
+      "id": "video_inhabitant",
+      "target_x_permille": 500,
+      "target_z_permille": 500,
+      "yaw_deg": 200,
+      "distance_m": 9,
+      "pitch_deg": 22,
+      "inhabitant": 0,
+      "revealed_permille": 1000
+    }
+  ],
+  "projections": [
+    "perspective"
+  ],
+  "phases": [
+    "day"
+  ],
+  "settle_frames": 12
+}
