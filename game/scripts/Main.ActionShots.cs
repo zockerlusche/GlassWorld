@@ -75,13 +75,13 @@ public partial class Main
 
             // The moment is the core's own: an action on a thing has started (the inhabitant has arrived, within the
             // action's reach) - not a guess from the snapshot, which also shows one standing before it sets off.
-            var startedActions = new Queue<(string Who, string Action, string Target, double DistanceM)>();
+            var startedActions = new Queue<(string Who, string Action, string Target, double DistanceM, double X, double Z)>();
             void OnReported(Simulation.Inhabitants.WorldEvent e)
             {
                 if (e.Kind == Simulation.Inhabitants.InhabitantsSystem.ActionStarted && e.Action is { } a && wanted.Contains(a) && e.TargetId is { } t
                     && _world?.Host is { } h && h.Objects.TryGet(t, out var thing) && h.Inhabitants.All.FirstOrDefault(i => i.Id == e.InhabitantId) is { } who)
                 {
-                    startedActions.Enqueue((who.Id, a, t, Math.Sqrt(Math.Pow(thing.Position.X - who.Position.X, 2) + Math.Pow(thing.Position.Z - who.Position.Z, 2))));
+                    startedActions.Enqueue((who.Id, a, t, Math.Sqrt(Math.Pow(thing.Position.X - who.Position.X, 2) + Math.Pow(thing.Position.Z - who.Position.Z, 2)), who.Position.X, who.Position.Z));
                 }
             }
 
@@ -95,7 +95,7 @@ public partial class Main
                     continue;
                 }
 
-                var (whoId, startedAction, targetId, atStartM) = startedActions.Dequeue();
+                var (whoId, startedAction, targetId, atStartM, startX, startZ) = startedActions.Dequeue();
                 startedActions.Clear();
                 var snapshot = _world.Host.Snapshot();
                 var hit = snapshot.Inhabitants.FirstOrDefault(i => i.Id == whoId && i.Action == startedAction && i.TargetId == targetId);
@@ -133,7 +133,7 @@ public partial class Main
                     shots++;
                 }
 
-                GD.Print(System.FormattableString.Invariant($"ACTION_SHOT {shots} {hit.Name ?? hit.Id} action={hit.Action} target={type} at_start_m={atStartM:0.00} distance_m={distance:0.00} day={now.Time.Day} {now.Time.Hour:00}:{now.Time.Minute:00}"));
+                GD.Print(System.FormattableString.Invariant($"ACTION_SHOT {shots} {hit.Name ?? hit.Id} action={hit.Action} target={type} at_start_m={atStartM:0.00} distance_m={distance:0.00} core_start=({startX:0.00},{startZ:0.00}) core_now=({still.Position.X:0.00},{still.Position.Z:0.00}) gait={still.Gait ?? "-"} remaining={_world.Host.Inhabitants.All.FirstOrDefault(i => i.Id == still.Id)?.Activity?.RemainingTicks?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "walk"} day={now.Time.Day} {now.Time.Hour:00}:{now.Time.Minute:00}"));
             }
 
             _world.Host.Inhabitants.Reported -= OnReported;
