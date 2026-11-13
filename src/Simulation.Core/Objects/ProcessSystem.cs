@@ -26,7 +26,8 @@ public sealed record WorldProcessRule(string Id, bool Feasible, string? Rule, st
 /// <param name="Inputs">The true property sets of the things, in canonical order (to check the answer).</param>
 /// <param name="Candidates">The processes the judge may choose from.</param>
 /// <param name="TechLevel">The world's tech level (position) when it was sent; null without milestones.</param>
-public sealed record PendingProcess(string Id, string RequestId, long Tick, IReadOnlyList<IReadOnlyList<string>> Inputs, IReadOnlyList<string> Candidates, int? TechLevel = null);
+/// <param name="Heat">The heat level at the try (position, B2700), or null.</param>
+public sealed record PendingProcess(string Id, string RequestId, long Tick, IReadOnlyList<IReadOnlyList<string>> Inputs, IReadOnlyList<string> Candidates, int? TechLevel = null, int? Heat = null);
 
 /// <summary>A changed thing's type (a processed variant of a base type): its root type gives its look.</summary>
 /// <param name="Id">Variant type id.</param>
@@ -83,6 +84,15 @@ public sealed class ProcessSystem : IWorldSystem, IOptionalWorldState
         _port = jobs?.Claim(id => _pendingByRequest.ContainsKey(id));
     }
 
+    /// <summary>The heat level a thing gives as a heat source (a burning fire, B2700), position in the table, or null.</summary>
+    public Func<WorldObject, int?>? HeatOf { get; set; }
+
+    /// <summary>The highest heat level of burning things within reach of a place for an action (B2700), or null.</summary>
+    public Func<Position, string, int?>? HeatNear { get; set; }
+
+    /// <summary>Properties every made thing has (content/invention/settings.json implied_properties: crafted, B2700).</summary>
+    public IReadOnlyList<string> Implied { get; init; } = [];
+
     /// <summary>The world's one job log (shared with the inventions).</summary>
     public DecisionLog Log { get; }
 
@@ -119,12 +129,28 @@ public sealed class ProcessSystem : IWorldSystem, IOptionalWorldState
         }
 
         var truth = things.Select(t => _types.TrueProperties(t.TypeId)).ToList();
-        if (_data.Match(truth, Milestones?.TechLevelIndex) is { } known)
+
+        // B2700: the heat at the try - a burning thing put together with the other, or burning near the target.
+        int? heatSource = null;
+        int? heat = HeatNear?.Invoke(things[0].Position, action);
+        for (var i = 0; i < things.Count; i++)
+        {
+            if (HeatOf?.Invoke(things[i]) is { } own)
+            {
+                heatSource ??= i;
+                heat = Math.Max(heat ?? own, own);
+            }
+        }
+
+        if (_data.Match(truth, Milestones?.TechLevelIndex, heat, heatSource) is { } known)
         {
             return Apply(world, inhabitant, action, known, things, truth);
         }
 
-        var id = ProcessSignatures.RuleId(ProcessSignatures.CombineTrial, truth, null, null);
+        // With the fire as one of the two, the try is what happens to the other thing in that heat.
+        List<FrozenSet<string>> tried = heatSource is { } src ? [truth[1 - src]] : truth;
+        var heatLevel = heat is { } hl ? _data.HeatLevels[hl] : null;
+        var id = ProcessSignatures.RuleId(ProcessSignatures.CombineTrial, tried, null, heatLevel);
         if (_rules.TryGetValue(id, out var judged))
         {
             if (!judged.Feasible || judged.Rule is null)
@@ -139,7 +165,7 @@ public sealed class ProcessSystem : IWorldSystem, IOptionalWorldState
             }
             else if (Stored(judged.Rule) is { } rule)
             {
-                return _data.Applies(rule, Milestones?.TechLevelIndex) && ProcessRuleSet.Fit(rule, truth) is { } match && Apply(world, inhabitant, action, match, things, truth);
+                return _data.Applies(rule, Milestones?.TechLevelIndex, heat) && ProcessRuleSet.Fit(rule, truth, heatSource) is { } match && Apply(world, inhabitant, action, match, things, truth);
             }
 
             else
@@ -156,7 +182,7 @@ public sealed class ProcessSystem : IWorldSystem, IOptionalWorldState
             return false;
         }
 
-        var candidates = _data.Candidates(things.Count, Milestones?.TechLevelIndex);
+        var candidates = _data.Candidates(things.Count, Milestones?.TechLevelIndex, heat, heatSource is not null);
         if (candidates.Count == 0)
         {
             // Nothing could happen to such things at this level: nothing now, nothing kept (review GW1 #356) -
@@ -164,7 +190,7 @@ public sealed class ProcessSystem : IWorldSystem, IOptionalWorldState
             return false;
         }
 
-        Submit(world, inhabitant, id, things, truth, candidates);
+        Submit(world, inhabitant, id, heatSource is { } fire ? new[] { things[1 - fire] } : things, tried, candidates, heat);
         return false;
     }
 
@@ -260,6 +286,8 @@ public sealed class ProcessSystem : IWorldSystem, IOptionalWorldState
                 .Order(StringComparer.Ordinal).ToList();
             if (!properties.SequenceEqual(truth[first].Order(StringComparer.Ordinal), StringComparer.Ordinal) && !consumed.Contains(first))
             {
+                // B2700: what was processed is made - it carries the implied properties (crafted) like an invention.
+                properties = [.. properties.Union(Implied.Where(_types.PropertyVocabulary.Contains), StringComparer.Ordinal).Order(StringComparer.Ordinal)];
                 var thing = things[first];
                 var variant = VariantFor(thing.TypeId, rule.Id, properties);
                 _objects.ChangeType(thing.Id, variant);
@@ -277,7 +305,8 @@ public sealed class ProcessSystem : IWorldSystem, IOptionalWorldState
 
         if (result.Produces is { } produces && _types.Contains(produces))
         {
-            var made = _objects.Spawn(produces, inhabitant.Position);
+            // At the place of the thing worked on (things[first]), not under the actor's feet (GW3 D990).
+            var made = _objects.Spawn(produces, things[first].Position);
             _inhabitants.Experience(world.Tick, inhabitant, action, made.TypeId, _types.TrueProperties(made.TypeId));
             _inhabitants.Report(new WorldEvent(InhabitantsSystem.Combined, world.Tick, inhabitant.Id, action, made.Id) { TargetType = made.TypeId, Detail = rule.Id });
             changed = true;
@@ -311,7 +340,7 @@ public sealed class ProcessSystem : IWorldSystem, IOptionalWorldState
         return id;
     }
 
-    private void Submit(World world, Inhabitant inhabitant, string id, IReadOnlyList<WorldObject> things, List<FrozenSet<string>> truth, IReadOnlyList<string> candidates)
+    private void Submit(World world, Inhabitant inhabitant, string id, IReadOnlyList<WorldObject> things, List<FrozenSet<string>> truth, IReadOnlyList<string> candidates, int? heat)
     {
         _counter++;
         var requestId = DecisionIds.RequestId(world.Seed, world.Tick, inhabitant.Id + "/process", _counter);
@@ -338,7 +367,7 @@ public sealed class ProcessSystem : IWorldSystem, IOptionalWorldState
                         Observed = [.. inhabitant.Beliefs.About(t.TypeId).Where(b => b.Belief.Value).Select(b => b.PropertyId).Order(StringComparer.Ordinal).Take(12)],
                     })],
                     Tool = null,
-                    HeatLevel = null,
+                    HeatLevel = heat is { } h ? _data.HeatLevels[h] : null,
                     TechLevel = Milestones?.TechLevel ?? _data.TechLevel,
                     Inhabitant = InhabitantStates.Of(inhabitant, null, [], [], _inhabitants.LabelOf, needLabel: _inhabitants.NeedLabelOf),
                     Signature = new ProcessSignature
@@ -346,7 +375,7 @@ public sealed class ProcessSystem : IWorldSystem, IOptionalWorldState
                         Process = ProcessSignatures.CombineTrial,
                         Inputs = [.. canonical.Select(i => (ICollection<string>)[.. i])],
                         Tool = null,
-                        HeatLevel = null,
+                        HeatLevel = heat is { } sh ? _data.HeatLevels[sh] : null,
                     },
                     Candidates = [.. candidates],
                 },
@@ -354,7 +383,7 @@ public sealed class ProcessSystem : IWorldSystem, IOptionalWorldState
         };
         var json = ContractSerializer.Serialize(job, ValidateRequests);
         Log.Add(new DecisionLogEntry(DecisionLogKind.JobRequest, requestId, world.Tick, json, null));
-        var pending = new PendingProcess(id, requestId, world.Tick, [.. canonical.Select(i => (IReadOnlyList<string>)i)], candidates, Milestones?.TechLevelIndex);
+        var pending = new PendingProcess(id, requestId, world.Tick, [.. canonical.Select(i => (IReadOnlyList<string>)i)], candidates, Milestones?.TechLevelIndex, heat);
         _pending[id] = pending;
         _pendingByRequest[requestId] = id;
         _port!.Submit(requestId, json);
@@ -438,7 +467,7 @@ public sealed class ProcessSystem : IWorldSystem, IOptionalWorldState
             reasons.Add("not_a_candidate");
         }
 
-        if (!_data.Applies(rule, Milestones?.TechLevelIndex))
+        if (!_data.Applies(rule, Milestones?.TechLevelIndex, pending.Heat))
         {
             reasons.Add("heat_or_tech_level");
         }
@@ -460,7 +489,7 @@ public sealed class ProcessSystem : IWorldSystem, IOptionalWorldState
         }
 
         var truth = pending.Inputs.Select(i => i.ToFrozenSet(StringComparer.Ordinal)).ToList();
-        if (ProcessRuleSet.Fit(rule, truth) is null)
+        if (truth.Count == 1 ? !ProcessRuleSet.FitsOne(rule, truth[0]) : ProcessRuleSet.Fit(rule, truth) is null)
         {
             reasons.Add("does_not_fit");
         }

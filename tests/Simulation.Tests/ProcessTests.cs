@@ -53,7 +53,9 @@ public sealed class ProcessTests
         Assert.NotEqual("pyrite", changed.TypeId);
         Assert.Equal("pyrite", host.Processes!.RootOf(changed.TypeId));
         Assert.Contains("sharp", (IReadOnlySet<string>)host.Types.TrueProperties(changed.TypeId));
-        Assert.Equal(host.Types.TrueProperties("pyrite").Count + 1, host.Types.TrueProperties(changed.TypeId).Count);
+        // + sharp, + crafted (B2700: what was processed is made).
+        Assert.Equal(host.Types.TrueProperties("pyrite").Count + 2, host.Types.TrueProperties(changed.TypeId).Count);
+        Assert.Contains("crafted", (IReadOnlySet<string>)host.Types.TrueProperties(changed.TypeId));
         Assert.Equal("strike_hard_stone_to_edge", Assert.Single(events, e => e.Kind == InhabitantsSystem.Combined).Detail);
         Assert.True(host.Inhabitants.Get(Actor).Beliefs.TryGet(changed.TypeId, "sharp", out var sharp) && sharp.Value);
 
@@ -78,6 +80,44 @@ public sealed class ProcessTests
         Assert.Contains("long_lasting", (IReadOnlySet<string>)host.Types.TrueProperties(cord.TypeId));
         Assert.False(host.Objects.TryGet(other.Id, out _));
         Assert.Equal("braid_two_fibres_to_cord", Assert.Single(events, e => e.Kind == InhabitantsSystem.Combined).Detail);
+    }
+
+    [Fact]
+    public void ANutHeldToTheFireIsRoastedAndCountsAsMade()
+    {
+        // B2700: the fire gives its heat level (open_fire); roast_food needs embers, so it applies to the nut.
+        // A decider that never answers: the fire must burn a tick first, and no answer may replace the try.
+        var (host, events, _) = World(port: null, silent: true);
+        var nut = host.Objects.Spawn("hazelnut", new Position(1, 0));
+        var fire = host.Objects.Spawn("fire", new Position(1.5, 0));
+        host.World.Run(1);
+
+        // The fire burns and gives its heat level; at that level roast_food fits the nut with the fire as the heat.
+        var table = Content.Value.Processes!;
+        var level = host.Fire.HeatLevelOf(fire, table.HeatLevels);
+        Assert.Equal(table.HeatIndex("open_fire"), level);
+        var truth0 = new[] { nut, fire }.Select(t => host.Types.TrueProperties(t.TypeId)).ToList();
+        Assert.Equal("roast_food", table.Match(truth0, null, level, 1)?.Rule.Id);
+
+        RunCombine(host, nut, fire);
+        Assert.True(host.Objects.TryGet(nut.Id, out var roasted));
+        var truth = (IReadOnlySet<string>)host.Types.TrueProperties(roasted.TypeId);
+        Assert.Contains("cooked", truth);
+        Assert.Contains("crafted", truth);
+        Assert.Equal("roast_food", Assert.Single(events, e => e.Kind == InhabitantsSystem.Combined).Detail);
+        Assert.True(host.Objects.TryGet(fire.Id, out _));
+    }
+
+    [Fact]
+    public void WithoutAFireNothingIsRoasted()
+    {
+        var (host, _, _) = World(port: null);
+        var nut = host.Objects.Spawn("hazelnut", new Position(1, 0));
+        var flint = host.Objects.Spawn("flint", new Position(1.5, 0));
+
+        RunCombine(host, nut, flint);
+        Assert.True(host.Objects.TryGet(nut.Id, out var after));
+        Assert.DoesNotContain("cooked", (IReadOnlySet<string>)host.Types.TrueProperties(after.TypeId));
     }
 
     [Fact]
@@ -255,9 +295,9 @@ public sealed class ProcessTests
         };
     }
 
-    private static (SimulationHost Host, List<WorldEvent> Events, IJobPort? Port) World(IJobPort? port)
+    private static (SimulationHost Host, List<WorldEvent> Events, IJobPort? Port) World(IJobPort? port, bool silent = false)
     {
-        var host = SimulationHost.CreateEmpty(ContentDirectory, 13, new MockDecisionPort(), "de", port);
+        var host = SimulationHost.CreateEmpty(ContentDirectory, 13, silent ? new SilentPort() : new MockDecisionPort(), "de", port);
         var model = Content.Value.InhabitantModel;
         var needs = model.Needs.ToDictionary(n => n.Id, _ => 1.0, StringComparer.Ordinal);
         var moods = model.Moods.ToDictionary(m => m.Id, m => m.Baseline, StringComparer.Ordinal);
@@ -288,6 +328,15 @@ public sealed class ProcessTests
     {
         var settings = ContractSerializer.Deserialize<DeciderSettings>(File.ReadAllText(Path.Combine(ContentDirectory, "decider", "settings.json")));
         return new SimulationHostFactory(ContentSet.Load(ContentDirectory), settings, new MockDecisionPort(), "de", jobs);
+    }
+
+    private sealed class SilentPort : IDecisionPort
+    {
+        public void Send(string requestId, string requestJson)
+        {
+        }
+
+        public IReadOnlyList<PortMessage> Receive(long tick) => [];
     }
 
     private sealed class ScriptedJobPort : IJobPort
