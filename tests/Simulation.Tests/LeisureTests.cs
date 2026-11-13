@@ -146,6 +146,23 @@ public sealed class LeisureTests
         Assert.Empty(a.Ideas.Intentions);
     }
 
+    [Fact]
+    public void AnIntentionToUseAFoundThingIsNotForcedIntoTheOptions()
+    {
+        // Review GW2 #358: the intention bypasses the needs, not the rule for made things - a found thing is not
+        // offered for 'use' because the night review meant to use it.
+        var (host, port, a) = Alone();
+        host.Objects.Spawn("flint", new Position(2, 0));
+        a.Beliefs.Set("flint", "sharp", true, 0.8, KnowledgeSources.Seen, null, 0);
+        a.Ideas.Intend([new Intention("use", "type", "flint", 0, null)]);
+
+        host.World.Step();
+
+        var request = Assert.Single(port.Requests);
+        Assert.DoesNotContain(request.Options, o => o.Action == "use");
+        Assert.Single(a.Ideas.Intentions); // not offered, so not used up
+    }
+
     private static (SimulationHost Host, CountingPort Port, Inhabitant A) Alone()
     {
         var port = new CountingPort();
