@@ -9,6 +9,7 @@ Each release gets its own section (version and date); until then changes collect
 
 ### Added
 
+- A night question about a thing the inhabitant knows nothing about goes out only when the thing shows something at a glance (GW2 D999): a conifer shows none of the visible properties, and with an empty perception the model guessed from memories of other things. Such a question waits until the inhabitant has looked or tried, as before.
 - The core's final check of inventions refuses slings (TL TH143, GW2 L1546: guard v5 once approved a hunting sling): `wurfschleuder*`, `*wurfschleuder`, `schleuderstein*`, `*schleuderstein`, EN `slingstone*`. Harmless words stay allowed (Honigschleuder, Tragschlinge, a carrying or arm sling).
 - The inventor knows what it knows (R8, A1582): the invention job carries the inhabitant's own beliefs about the materials it sees (with source and confidence, never the truth), so the inventor prompt can work from 'what you know'.
 - Night questions are asked again, and the night look back is on (GW2 D971, B2698):
