@@ -65,6 +65,22 @@ public sealed class ProcessTests
     }
 
     [Fact]
+    public void TwoFibresBraidedTogetherBecomeACord()
+    {
+        // A1378 R10 (TL #23438): fibres to cord as a pair rule of the data - the one braided lasts, the other is used up.
+        var (host, events, _) = World(port: null);
+        var reed = host.Objects.Spawn("reed", new Position(1, 0));
+        var other = host.Objects.Spawn("reed", new Position(1.5, 0));
+
+        RunCombine(host, reed, other);
+        Assert.True(host.Objects.TryGet(reed.Id, out var cord));
+        Assert.Equal("reed", host.Processes!.RootOf(cord.TypeId));
+        Assert.Contains("long_lasting", (IReadOnlySet<string>)host.Types.TrueProperties(cord.TypeId));
+        Assert.False(host.Objects.TryGet(other.Id, out _));
+        Assert.Equal("braid_two_fibres_to_cord", Assert.Single(events, e => e.Kind == InhabitantsSystem.Combined).Detail);
+    }
+
+    [Fact]
     public void AnUnknownTryIsJudgedOnceAndTheAnswerBecomesWorldTruth()
     {
         var port = new ScriptedJobPort();
