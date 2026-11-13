@@ -250,7 +250,20 @@ def values(
         "expressions": "\n".join(f"- {k}: {v}" for k, v in sorted(expressions.items()))
         or "- (none)",
         "reply_max": str(REPLY_MAX),
+        "pointing": _pointing(request, texts, settings),
     }
+
+
+def _pointing(
+    request: ConversationRequest, texts: TextCatalog | None, settings: dict[str, Any]
+) -> str:
+    """v7 (A1617, B2678): what the voice points at, by the name it has under "What you see"."""
+    pointed: Any = getattr(request, "pointed_at", None)
+    if pointed is None:
+        return "(nothing)"
+    wanted = plain_id(pointed)
+    name = next((n for n, t in seen_names(request, texts, settings).items() if t == wanted), None)
+    return name if name is not None else "(something you cannot make out)"
 
 
 def _name(texts: TextCatalog | None, locale: str, subject: Any, settings: dict[str, Any]) -> str:
@@ -379,8 +392,13 @@ def checked_voice(
     word = " ".join(word.split()).strip(" .,!?;:'\"«»„“”")
     type_id = names.get(thing)
     said = " ".join(request.player_text.split()).casefold()
+    # B2678 (A1617): a name is taught only for the thing the voice points at - without pointing
+    # which thing was meant is a guess, so nothing is named.
+    pointed: Any = getattr(request, "pointed_at", None)
     if (
         type_id is None
+        or pointed is None
+        or type_id != plain_id(pointed)
         or not word
         or len(word) > VOICE_WORD_MAX
         or len(word.split()) > VOICE_WORDS_MAX

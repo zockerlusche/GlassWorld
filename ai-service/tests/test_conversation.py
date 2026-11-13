@@ -516,6 +516,15 @@ def test_naming_is_checked_for_when_it_is_switched_on() -> None:
     on = ("naming", "praise")
     voice = {"kind": "naming", "thing": thing, "word": "Glitzerwasser"}
     request = _said("Das ist Glitzerwasser.")
+    unpointed = checked_voice(request, {"outcome": "reply", "voice": voice}, names, GUARD, on)
+    assert unpointed is None  # A1617: without pointing nothing is named
+    other = next((t for t in names.values() if t != names[thing]), None)
+    if other is not None:
+        request.pointed_at = other  # pointing at another thing: not this one
+        assert (
+            checked_voice(request, {"outcome": "reply", "voice": voice}, names, GUARD, on) is None
+        )
+    request.pointed_at = names[thing]
     got = checked_voice(request, {"outcome": "reply", "voice": voice}, names, GUARD, on)
     assert got == {"kind": "naming", "naming": {"type": names[thing], "word": "Glitzerwasser"}}
     off = checked_voice(request, {"outcome": "reply", "voice": voice}, names, GUARD)
@@ -528,6 +537,7 @@ def test_naming_is_checked_for_when_it_is_switched_on() -> None:
     )
     blocked = {**voice, "word": "Koks"}  # B2466: a word that lives on passes the content guard
     said = _said("Das ist Koks.")
+    said.pointed_at = names[thing]
     assert checked_voice(said, {"outcome": "reply", "voice": blocked}, names, GUARD, on) is None
 
 
@@ -542,3 +552,22 @@ def test_two_kinds_with_one_name_cannot_be_named() -> None:
     ]
     names = seen_names(ConversationRequest.model_validate(data), TEXTS, {})
     assert "Bank" not in names
+
+
+def test_v7_says_what_the_voice_points_at(settings: Settings) -> None:
+    """A1617: the prompt names the thing pointed at as under 'What you see'; nothing without it."""
+    from glassworld_ai.conversation import voice_sent
+
+    v7 = load_prompt(settings.prompts_dir, "conversation/reply", 7)
+    assert "naming" in voice_sent(v7)
+    names = seen_names(DOING, TEXTS, {})
+    thing = sorted(names)[0]
+    request = _said("Das ist Glitzerwasser.")
+    request.pointed_at = names[thing]
+    user = v7.render(values(request, v7, EXPRESSIONS, TEXTS)).user
+    assert f"## The voice points at\n{thing}\n" in user
+    request.pointed_at = None
+    assert (
+        "## The voice points at\n(nothing)\n"
+        in v7.render(values(request, v7, EXPRESSIONS, TEXTS)).user
+    )
