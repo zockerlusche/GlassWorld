@@ -7,6 +7,16 @@ namespace GlassWorld.Simulation.Inhabitants;
 /// <param name="Id">The subject's or idea's id.</param>
 public sealed record IdeaRoot(string Kind, string Id);
 
+/// <summary>The root kinds an idea is built on.</summary>
+public static class IdeaRootKinds
+{
+    /// <summary>A type of thing.</summary>
+    public const string Type = "type";
+
+    /// <summary>Another idea.</summary>
+    public const string Idea = "idea";
+}
+
 /// <summary>
 /// An idea of an inhabitant (B2578, B4b R28): a "What if I ...?" from the nightly look back (A1584), built only on
 /// what it knows. The text is internal English for the AI, never shown as is; what an idea does (grow, ripen,
@@ -17,7 +27,8 @@ public sealed record IdeaRoot(string Kind, string Id);
 /// <param name="Roots">What it is built on, in the order the AI named it.</param>
 /// <param name="Strength">How grown it is, 0..1 (grows with each look back that takes it up; data).</param>
 /// <param name="Tick">When it came up or last grew.</param>
-public sealed record Idea(string Id, string Text, IReadOnlyList<IdeaRoot> Roots, double Strength, long Tick);
+/// <param name="Tried">True once it became a wish to invent (B2687 step 2): a ripe idea is tried once.</param>
+public sealed record Idea(string Id, string Text, IReadOnlyList<IdeaRoot> Roots, double Strength, long Tick, bool Tried = false);
 
 /// <summary>
 /// Something the inhabitant means to do (A1584, B2592 "Vorsätze"): an action and what it is about, from the nightly
@@ -27,7 +38,8 @@ public sealed record Idea(string Id, string Text, IReadOnlyList<IdeaRoot> Roots,
 /// <param name="AboutKind">Subject kind, or null.</param>
 /// <param name="AboutId">Subject id, or null.</param>
 /// <param name="Tick">When it was made (the night).</param>
-public sealed record Intention(string Action, string? AboutKind, string? AboutId, long Tick);
+/// <param name="Thought">Its morning thought in the player's language (passed the content guard), or null.</param>
+public sealed record Intention(string Action, string? AboutKind, string? AboutId, long Tick, string? Thought = null);
 
 /// <summary>The ideas and intentions of one inhabitant (A1584). Empty until the first look back with ideas.</summary>
 public sealed class InhabitantIdeas
@@ -85,6 +97,19 @@ public sealed class InhabitantIdeas
         _intentions.AddRange(intentions);
     }
 
+    /// <summary>An intention was offered (B2687 step 2): it is used up, whatever was chosen - it is not offered again.</summary>
+    public void Use(Intention intention) => _intentions.Remove(intention);
+
+    /// <summary>The idea became a wish to invent (B2687 step 2): it is not tried again.</summary>
+    public void MarkTried(string id)
+    {
+        var index = _ideas.FindIndex(i => i.Id == id);
+        if (index >= 0)
+        {
+            _ideas[index] = _ideas[index] with { Tried = true };
+        }
+    }
+
     /// <summary>Replaces everything with a saved state (save games).</summary>
     public void Restore(long counter, IEnumerable<Idea> ideas, IEnumerable<Intention> intentions)
     {
@@ -104,7 +129,7 @@ public sealed class InhabitantIdeas
         hasher.Write("ideas").Write(Counter).Write(_ideas.Count);
         foreach (var idea in _ideas)
         {
-            hasher.Write(idea.Id).Write(idea.Text).Write(idea.Strength).Write(idea.Tick).Write(idea.Roots.Count);
+            hasher.Write(idea.Id).Write(idea.Text).Write(idea.Strength).Write(idea.Tick).Write(idea.Tried).Write(idea.Roots.Count);
             foreach (var root in idea.Roots)
             {
                 hasher.Write(root.Kind).Write(root.Id);
@@ -114,7 +139,7 @@ public sealed class InhabitantIdeas
         hasher.Write(_intentions.Count);
         foreach (var intention in _intentions)
         {
-            hasher.Write(intention.Action).Write(intention.AboutKind ?? string.Empty).Write(intention.AboutId ?? string.Empty).Write(intention.Tick);
+            hasher.Write(intention.Action).Write(intention.AboutKind ?? string.Empty).Write(intention.AboutId ?? string.Empty).Write(intention.Tick).Write(intention.Thought ?? string.Empty);
         }
     }
 }

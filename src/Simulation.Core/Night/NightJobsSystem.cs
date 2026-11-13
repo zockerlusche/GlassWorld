@@ -497,7 +497,8 @@ public sealed class NightJobsSystem : IWorldSystem, IOptionalWorldState
                 continue;
             }
 
-            intentions.Add(new Intention(intention.Action, aboutKind, intention.About?.Id, world.Tick));
+            var shown = intention.Thought is { } said && _guard.Check(said.Text).Allowed ? said.Text : null;
+            intentions.Add(new Intention(intention.Action, aboutKind, intention.About?.Id, world.Tick, shown));
             if (intention.Thought is { } thought && _guard.Check(thought.Text).Allowed)
             {
                 _inhabitants.Report(new WorldEvent(ThoughtEvent, world.Tick, inhabitant.Id, null, null) { Text = thought.Text });

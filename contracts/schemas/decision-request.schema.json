@@ -67,18 +67,48 @@
     "occasion": {
       "description": "Why the core asks, when it is not something new or a stuck building (B2663): today only 'leisure' - the inhabitant is awake, no need presses and it is bored. A prompt may say so in a line of its own; it never tells which option to take. Absent otherwise, and from an older core.",
       "$ref": "common.schema.json#/$defs/VocabId"
+    },
+    "intention": {
+      "description": "Only with occasion 'intention' (B2687, A1584): what the inhabitant meant to do this morning (from its nightly look back) - an action, what it is about, and the morning thought it had. The core makes sure that action on a thing of that kind is among the options; the AI may take it up or do something else (PR2). Absent otherwise, and from an older core.",
+      "$ref": "#/$defs/MorningIntention"
     }
   },
   "$defs": {
     "StuckBuilding": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "missing_properties", "escalation", "max_escalations"],
+      "required": [
+        "name",
+        "missing_properties",
+        "escalation",
+        "max_escalations"
+      ],
       "properties": {
-        "name": { "description": "The invention's name in both languages.", "$ref": "common.schema.json#/$defs/LocalizedName" },
-        "missing_properties": { "description": "Properties of the material the current step lacks (vocabulary ids, sorted).", "type": "array", "maxItems": 32, "uniqueItems": true, "items": { "$ref": "common.schema.json#/$defs/VocabId" } },
-        "escalation": { "description": "Which question this is (1 = the first).", "type": "integer", "minimum": 1, "maximum": 10 },
-        "max_escalations": { "description": "Most questions for this building (data).", "type": "integer", "minimum": 1, "maximum": 10 }
+        "name": {
+          "description": "The invention's name in both languages.",
+          "$ref": "common.schema.json#/$defs/LocalizedName"
+        },
+        "missing_properties": {
+          "description": "Properties of the material the current step lacks (vocabulary ids, sorted).",
+          "type": "array",
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          }
+        },
+        "escalation": {
+          "description": "Which question this is (1 = the first).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10
+        },
+        "max_escalations": {
+          "description": "Most questions for this building (data).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10
+        }
       }
     },
     "PerceivedObject": {
@@ -320,6 +350,40 @@
           "anyOf": [
             {
               "$ref": "common.schema.json#/$defs/VocabId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "MorningIntention": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action",
+        "about",
+        "thought"
+      ],
+      "properties": {
+        "action": {
+          "$ref": "common.schema.json#/$defs/VocabId"
+        },
+        "about": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/Subject"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "thought": {
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/GeneratedText"
             },
             {
               "type": "null"
