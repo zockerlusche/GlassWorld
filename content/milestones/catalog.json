@@ -2,7 +2,7 @@
   "contract_version": "0.2",
   "milestones": [
     { "id": "first_edge", "text_key": "msg.milestone.first_edge", "made_with": ["sharp"], "raises_tech_level": "tool" },
-    { "id": "first_cord", "text_key": "msg.milestone.first_cord", "rule": "braid_fibres_to_cord" },
+    { "id": "first_cord", "text_key": "msg.milestone.first_cord", "rule": "braid_two_fibres_to_cord" },
     { "id": "first_handled_tool", "text_key": "msg.milestone.first_handled_tool", "rule": "bind_edge_to_handle" },
     { "id": "first_fire", "text_key": "msg.milestone.first_fire", "rule": "fire_from_spark_and_dry_grass" },
     { "id": "first_container", "text_key": "msg.milestone.first_container", "made_with": ["container"] },

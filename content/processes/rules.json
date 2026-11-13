@@ -318,6 +318,40 @@
       }
     },
     {
+      "id": "braid_two_fibres_to_cord",
+      "process": "braid",
+      "inputs": [
+        {
+          "properties_all": [
+            "fibrous",
+            "braidable"
+          ],
+          "properties_none": []
+        },
+        {
+          "properties_all": [
+            "fibrous",
+            "braidable"
+          ],
+          "properties_none": []
+        }
+      ],
+      "tool": null,
+      "heat_min": null,
+      "duration_ticks": 40,
+      "tech_level": "tool",
+      "result": {
+        "add_properties": [
+          "long_lasting"
+        ],
+        "remove_properties": [],
+        "produces": null,
+        "consumes": [
+          1
+        ]
+      }
+    },
+    {
       "id": "dry_fibres",
       "process": "dry",
       "inputs": [
