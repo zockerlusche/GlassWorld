@@ -11,6 +11,24 @@ from pydantic import BaseModel, ConfigDict, Field
 from . import common_schema
 
 
+class SpawnGrowsOn(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    object_type: str = Field(
+        ...,
+        description='The plant the thing grows on (a type another spawn rule places).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    within_cells: int = Field(
+        ...,
+        description='Largest distance from the plant in cells, each axis (the crown of a tree, the reach of a bush).',
+        ge=1,
+        le=8,
+    )
+
+
 class SpawnCountRange(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -99,6 +117,7 @@ class SpawnRule(BaseModel):
         ge=1,
         le=100000,
     )
+    grows_on: SpawnGrowsOn | None = None
 
 
 class SpawnTable(BaseModel):

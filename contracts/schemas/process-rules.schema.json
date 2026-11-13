@@ -31,6 +31,136 @@
       "items": {
         "$ref": "common.schema.json#/$defs/ProcessRule"
       }
+    },
+    "physics": {
+      "description": "Ground rules of physics for the judge of unknown tries (A1554, F5297 = A, B2616, D711): one place for all physics. The service checks every judgement against them and rules impossible tries out without a model call; the prompt reads the examples from here. Optional; absent = the prompt's own table (judge v1/v2).",
+      "$ref": "#/$defs/Physics"
+    }
+  },
+  "$defs": {
+    "Physics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "heat_processes",
+        "no_new",
+        "never_remove",
+        "needs_any",
+        "never_if",
+        "may_add",
+        "may_remove",
+        "examples"
+      ],
+      "properties": {
+        "heat_processes": {
+          "type": "array",
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          },
+          "description": "Processes that work by heat (vocabulary process): they need heat in reach and a heat_min."
+        },
+        "no_new": {
+          "type": "array",
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          },
+          "description": "Properties a process gives only if an input already has them (never food or drink from nothing)."
+        },
+        "never_remove": {
+          "type": "array",
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          },
+          "description": "Properties no process takes away."
+        },
+        "needs_any": {
+          "type": "object",
+          "maxProperties": 32,
+          "additionalProperties": {
+            "type": "array",
+            "maxItems": 32,
+            "uniqueItems": true,
+            "items": {
+              "$ref": "common.schema.json#/$defs/VocabId"
+            }
+          },
+          "description": "Per process: some input must have one of these properties. Keys are process ids (checked against the vocabulary when the service starts)."
+        },
+        "never_if": {
+          "type": "object",
+          "maxProperties": 32,
+          "additionalProperties": {
+            "type": "array",
+            "maxItems": 32,
+            "uniqueItems": true,
+            "items": {
+              "$ref": "common.schema.json#/$defs/VocabId"
+            }
+          },
+          "description": "Per process: no input may have any of these properties. Keys are process ids (checked against the vocabulary when the service starts)."
+        },
+        "may_add": {
+          "type": "object",
+          "maxProperties": 32,
+          "additionalProperties": {
+            "type": "array",
+            "maxItems": 32,
+            "uniqueItems": true,
+            "items": {
+              "$ref": "common.schema.json#/$defs/VocabId"
+            }
+          },
+          "description": "Per process: the only properties it can give (a process not listed: no limit). Keys are process ids (checked against the vocabulary when the service starts)."
+        },
+        "may_remove": {
+          "type": "object",
+          "maxProperties": 32,
+          "additionalProperties": {
+            "type": "array",
+            "maxItems": 32,
+            "uniqueItems": true,
+            "items": {
+              "$ref": "common.schema.json#/$defs/VocabId"
+            }
+          },
+          "description": "Per process: the only properties it can take away (not listed: no limit). Keys are process ids (checked against the vocabulary when the service starts)."
+        },
+        "examples": {
+          "description": "Short English sentences for the judge (internal, never shown to players; ADR-0007): tries that work and tries that do not. They show the strictness, not a list of answers. They do name things of the world (water, wood, stone...): physics as data is Marcel's choice (F5297 = A), so the judge prompt itself names none, the rendered prompt does (review GW3 #337).",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "works",
+            "does_not"
+          ],
+          "properties": {
+            "works": {
+              "type": "array",
+              "maxItems": 8,
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              }
+            },
+            "does_not": {
+              "type": "array",
+              "maxItems": 8,
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              }
+            }
+          }
+        }
+      }
     }
   }
 }
