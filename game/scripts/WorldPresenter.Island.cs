@@ -645,7 +645,7 @@ public partial class WorldPresenter
         {
             if (_islandFigures.TryGetValue(inhabitant.Id, out var figure))
             {
-                figure.Apply(inhabitant, snapshot.Time.Tick, ticks, place || fresh?.Contains(inhabitant.Id) == true, snapshot.Inhabitants);
+                figure.Apply(inhabitant, snapshot.Time.Tick, ticks, place || fresh?.Contains(inhabitant.Id) == true, snapshot.Inhabitants, snapshot.Objects);
             }
             else if (_islandNodes.TryGetValue(inhabitant.Id, out var standIn))
             {
