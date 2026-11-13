@@ -127,16 +127,24 @@ public sealed class ConversationTests : IDisposable
         var events = Collect(host);
         var before = host.Conversation.MemoryOf(id).Understanding;
         host.Conversation.Port = new FixedPort(ConversationResponseOutcome.Reply, "Stein.", null, ConversationSystem.NamingKind, (near.TypeId, "Feuerstein"));
-        Say(host, id, "Das ist ein Feuerstein.");
+        SayPointing(host, id, "Das ist ein Feuerstein.", near.TypeId);
         host.World.Run(2);
         var heard = Assert.Single(events, e => e.Kind == ConversationSystem.WordHeard);
         Assert.Equal((near.TypeId, "Feuerstein"), (heard.TargetId, heard.Detail));
         Assert.Equal(before + rule.Understanding + naming.Understanding, host.Conversation.MemoryOf(id).Understanding, 9);
 
-        // A thing it does not see is no naming.
+        // GW2 #352: a word for another thing than the one pointed at is no naming, even if that one is in sight too.
+        var other = host.Objects.Spawn("pyrite", new GlassWorld.Simulation.Objects.Position(inhabitant.Position.X, inhabitant.Position.Z + 1));
         host.World.Run(2);
-        host.Conversation.Port = new FixedPort(ConversationResponseOutcome.Reply, "Hm.", null, ConversationSystem.NamingKind, ("nothing_in_sight", "Ding"));
-        Say(host, id, "Das ist ein Ding.");
+        host.Conversation.Port = new FixedPort(ConversationResponseOutcome.Reply, "Hm.", null, ConversationSystem.NamingKind, (other.TypeId, "Glanzstein"));
+        SayPointing(host, id, "Das ist ein Glanzstein.", near.TypeId);
+        host.World.Run(2);
+        Assert.Single(events, e => e.Kind == ConversationSystem.WordHeard);
+
+        // Nothing pointed at: no naming either.
+        host.World.Run(2);
+        host.Conversation.Port = new FixedPort(ConversationResponseOutcome.Reply, "Hm.", null, ConversationSystem.NamingKind, (near.TypeId, "Feuerstein"));
+        Say(host, id, "Das ist ein Feuerstein.");
         host.World.Run(2);
         Assert.Single(events, e => e.Kind == ConversationSystem.WordHeard);
     }
@@ -503,6 +511,9 @@ public sealed class ConversationTests : IDisposable
 
     private static CommandResult Say(SimulationHost host, string id, string text) =>
         host.Decisions.Submit(new PlayerCommand(ConversationSystem.SendText, id) { Text = text });
+
+    private static CommandResult SayPointing(SimulationHost host, string id, string text, string typeId) =>
+        host.Decisions.Submit(new PlayerCommand(ConversationSystem.SendText, id) { Text = text, TypeId = typeId });
 
     private static List<WorldEvent> Collect(SimulationHost host)
     {
