@@ -85,6 +85,15 @@ namespace GlassWorld.Contracts
 
     }
 
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class NamingEffect
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("understanding")]
+        public double Understanding { get; set; } = default!;
+
+    }
+
     /// <summary>
     /// Talking with an inhabitant (B6 R13, A1342): limits of the exchange and how understanding and the relation to the player change by outcome. The core computes every change from these rules; the AI only proposes the answer (B2462). Values are placeholders until Marcel's word.
     /// </summary>
@@ -159,6 +168,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("praise")]
         public PraiseEffect? Praise { get; set; } = default!;
+
+        /// <summary>
+        /// A1538/A1617 (B2678): what a naming does when the service passes one (the player pointed at a thing the inhabitant sees and wrote its word) and the inhabitant understood (reply or gesture): the word goes into its memory (event word_heard) - a name proposal by trust comes with A1536 - and its understanding grows by understanding. Omitted = a naming does nothing.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("naming")]
+        public NamingEffect? Naming { get; set; } = default!;
 
     }
 

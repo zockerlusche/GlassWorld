@@ -59,5 +59,8 @@
     "respect": 0.0,
     "fear": -0.01,
     "every_minutes": 60
+  },
+  "naming": {
+    "understanding": 0.01
   }
 }

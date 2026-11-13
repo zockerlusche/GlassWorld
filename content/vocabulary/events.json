@@ -245,6 +245,10 @@
     {
       "id": "praised",
       "description": "The player's praise reached an inhabitant (A1538, B2678)."
+    },
+    {
+      "id": "word_heard",
+      "description": "An inhabitant heard the player's word for a thing it sees (A1617, B2678); target the type, detail the word."
     }
   ]
 }
