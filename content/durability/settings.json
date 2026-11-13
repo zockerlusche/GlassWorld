@@ -2,6 +2,21 @@
   "contract_version": "0.2",
   "classes": [
     {
+      "id": "firm_fruit",
+      "properties_all": [
+        "edible",
+        "firm",
+        "portable"
+      ],
+      "properties_none": [
+        "long_lasting",
+        "cooked"
+      ],
+      "base_hours": 216,
+      "wet_permille": 1000,
+      "heat_permille": 1000
+    },
+    {
       "id": "fresh_food",
       "properties_all": [
         "edible",

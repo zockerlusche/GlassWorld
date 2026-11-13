@@ -135,6 +135,10 @@
       "description": "Looks like a fruit, nut or berry; seen by looking."
     },
     {
+      "id": "firm",
+      "description": "Firm flesh that keeps a little longer than soft fruit."
+    },
+    {
       "id": "mushroom",
       "description": "Looks like a mushroom; seen by looking."
     },

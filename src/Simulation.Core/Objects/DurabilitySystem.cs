@@ -90,9 +90,10 @@ public sealed class DurabilitySystem : IWorldSystem, IOptionalWorldState
         var life = (long)hours * _ticksPerHour;
         var since = _placedAt.TryGetValue(thing.Id, out var placed) ? placed : -StartAge(thing.Id, life);
         var aged = now - since;
-        if (Nature is { } nature && since >= 0)
+        if (Nature is { } nature)
         {
-            var influences = nature.InfluencesSince(since, now);
+            // Start things went through the weather since the world began (review GW1 #382).
+            var influences = nature.InfluencesSince(Math.Max(since, 0), now);
             aged += ((influences.Wet * (material.WetPermille ?? 0)) + (influences.Frost * (material.FrostPermille ?? 0))
                 + (influences.Heat * (material.HeatPermille ?? 0)) + (influences.WetFrost * (material.WetFrostPermille ?? 0))) * nature.TaktTicks / 1000;
         }

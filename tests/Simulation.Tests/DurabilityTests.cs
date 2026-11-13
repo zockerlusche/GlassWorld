@@ -27,7 +27,7 @@ public sealed class DurabilityTests
         var far = host.Inhabitants.All.First().Position;
         var apple = host.Objects.Spawn("apple", new Position(far.X + 40, far.Z));
         var stone = host.Objects.Spawn("fieldstone", new Position(far.X + 41, far.Z));
-        var hours = Content.Value.Durability!.Classes.First(c => c.Id == "fresh_food").BaseHours!.Value;
+        var hours = Content.Value.Durability!.Classes.First(c => c.Id == "firm_fruit").BaseHours!.Value;
         var life = (long)hours * host.World.Calendar.Settings.TicksPerHour;
 
         // Wear is counted in permille and rain and heat age it faster - gone at the latest after its plain life.
