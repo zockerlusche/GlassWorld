@@ -95,6 +95,29 @@ public sealed class BedtimeTests
         Assert.Equal((int)(Wait * 60), host.World.Calendar.MinutesSinceNightfall(night.Tick)!.Value);
     }
 
+    [Fact]
+    public void OnceAllSleepTheNightHoldsEvenIfOneWakes()
+    {
+        // Review GW2 #339: the night is signalled when all sleep and holds until dawn, whoever wakes in between.
+        var port = new PhasePort();
+        var host = SimulationHost.CreateEmpty(ContentDirectory, 9, new MockDecisionPort(), "de", port);
+        var a = Person("inh-000001", new Position(0, 0));
+        var b = Person("inh-000002", new Position(20, 0));
+        host.Inhabitants.Add(a);
+        host.Inhabitants.Add(b);
+        var bedtime = FirstNightTick(host.World.Calendar) + (long)(Bedtime * host.World.Calendar.Settings.TicksPerHour);
+        host.World.Run(bedtime - host.World.Tick);
+        for (var i = 0; i < 4 * host.World.Calendar.Settings.TicksPerHour && port.Phases[^1].Phase != JobPhase.Night; i++)
+        {
+            host.World.Step();
+        }
+
+        Assert.Equal(JobPhase.Night, port.Phases[^1].Phase);
+        a.Activity = null; // woken
+        host.World.Run(host.World.Calendar.Settings.TicksPerHour / 2);
+        Assert.Equal(JobPhase.Night, port.Phases[^1].Phase);
+    }
+
     private static long FirstNightTick(GlassWorld.Simulation.Time.WorldCalendar calendar)
     {
         for (long t = 1; t < calendar.TicksPerDay * 2; t++)

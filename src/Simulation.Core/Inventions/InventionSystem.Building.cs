@@ -1102,8 +1102,11 @@ public sealed partial class InventionSystem
     private void SignalPhase(World world)
     {
         var phase = world.Calendar.At(world.Tick).Phase.ToString().ToLowerInvariant();
+        // Once the night is signalled it holds until the night phase ends (review GW2 #339): one woken by thirst
+        // does not turn the service's night back into day.
         var night = Build.NightPhases.Contains(phase)
-            && (Build.WaitForSleepersHours is not { } wait
+            && (_night == true
+                || Build.WaitForSleepersHours is not { } wait
                 || !world.Calendar.NightBeganInWorld(world.Tick)
                 || _inhabitants.All.All(_inhabitants.IsAsleep)
                 || world.Calendar.MinutesSinceNightfall(world.Tick) is not { } since
