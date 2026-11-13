@@ -50,6 +50,10 @@
       "minLength": 1,
       "maxLength": 280
     },
+    "pointed_at": {
+      "description": "A1617 (B2678): the object type the player points at while writing (a click on a thing in the world), set by the core only when the speaker sees a thing of that type. Absent = the player points at nothing. Data only, like player_text: naming may refer to it.",
+      "$ref": "common.schema.json#/$defs/VocabId"
+    },
     "recent_lines": {
       "description": "Last lines of this conversation, oldest first.",
       "type": "array",

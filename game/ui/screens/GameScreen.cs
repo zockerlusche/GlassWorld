@@ -76,6 +76,14 @@ public partial class GameScreen : CanvasLayer
     private Dictionary<string, string>? _activities;
     private Label? _cardQuestions;
     private LineEdit? _talkInput;
+
+    // A1617 (B2678): pointing while writing - the inhabitant whose card waits for a click into the world, the type
+    // pointed at for the next sentence, and the chip that shows it.
+    private string? _pointingFor;
+    private string? _pointedType;
+    private Button? _pointButton;
+    private HBoxContainer? _pointedChip;
+    private Label? _pointedLabel;
     private readonly Dictionary<string, bool> _cardFolded = new(StringComparer.Ordinal);
     private string _cardShape = string.Empty;
     private readonly GwToasts _toasts = new();
@@ -546,6 +554,15 @@ public partial class GameScreen : CanvasLayer
 
     public override void _UnhandledInput(InputEvent @event)
     {
+        if (@event.IsActionPressed("ui_cancel") && _pointingFor is not null)
+        {
+            // Esc first ends waiting for the pointing click (A1617).
+            _pointingFor = null;
+            UpdatePointing();
+            GetViewport().SetInputAsHandled();
+            return;
+        }
+
         if (@event.IsActionPressed("ui_cancel") && _placing is not null)
         {
             // Esc first ends placing a gift.
@@ -610,6 +627,26 @@ public partial class GameScreen : CanvasLayer
     /// <summary>A short left click into the world: places the gift being placed, else selects a figure or stops following.</summary>
     private void WorldClick(Vector2 position)
     {
+        if (_pointingFor is not null)
+        {
+            // A1617: the nearest thing to the clicked spot within the data's radius; the core keeps it only if
+            // the inhabitant sees it.
+            var radius = _style?.Tokens.Window.PointRadiusM ?? 2.5;
+            if (WorldPoint(position) is { } spot && _feed?.Snapshot is { } snapshot
+                && PointTarget.Nearest(snapshot.Objects, spot.X, spot.Z, radius) is { } thing)
+            {
+                _pointedType = thing.TypeId;
+            }
+            else
+            {
+                ShowHint(new ToastMessage("ui.card.point_nothing", new Dictionary<string, string>(), null));
+            }
+
+            _pointingFor = null;
+            UpdatePointing();
+            return;
+        }
+
         if (_placing is not null)
         {
             if (WorldPoint(position) is { } point)
@@ -2916,17 +2953,42 @@ public partial class GameScreen : CanvasLayer
             var send = new Button { Text = "ui.card.talk_send" };
             void Submit()
             {
-                if (Say(inhabitantId, input.Text))
+                if (Say(inhabitantId, input.Text, _pointedType))
                 {
                     input.Clear();
+                    _pointedType = null;
+                    UpdatePointing();
                 }
             }
 
             input.TextSubmitted += _ => Submit();
             send.Pressed += Submit;
+
+            // A1617 (B2678): 'Zeigen' - the next click into the world picks a thing the sentence points at.
+            _pointedType = null;
+            _pointingFor = null;
+            _pointButton = new Button { Text = "ui.card.point", TooltipText = "ui.card.point_tooltip", ToggleMode = true };
+            _pointButton.Pressed += () =>
+            {
+                _pointingFor = _pointingFor is null ? inhabitantId : null;
+                UpdatePointing();
+            };
             talkRow.AddChild(input);
+            talkRow.AddChild(_pointButton);
             talkRow.AddChild(send);
             content.AddChild(talkRow);
+            _pointedChip = new HBoxContainer { Visible = false };
+            _pointedLabel = new Label { AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, AutowrapMode = TextServer.AutowrapMode.WordSmart };
+            var unpoint = new Button { Text = "×", TooltipText = "ui.common.close" };
+            unpoint.Pressed += () =>
+            {
+                _pointedType = null;
+                _pointingFor = null;
+                UpdatePointing();
+            };
+            _pointedChip.AddChild(_pointedLabel);
+            _pointedChip.AddChild(unpoint);
+            content.AddChild(_pointedChip);
 
             // What occupies this inhabitant (W1726): its open questions, here too, with the whisper field.
             _cardQuestionEntries.Clear();
@@ -3084,6 +3146,33 @@ public partial class GameScreen : CanvasLayer
         }
     }
 
+    /// <summary>The name of an object type in the player's language: an invention by its own name, else its vocabulary word.</summary>
+    private string ThingName(string type) =>
+        _presenter?.Host?.Inventions.Invention(type) is { } invention
+            ? TranslationServer.GetLocale().StartsWith("en", StringComparison.OrdinalIgnoreCase) ? invention.Name.En : invention.Name.De
+            : Tr(VocabKeys.ObjectType(type));
+
+    /// <summary>The pointing button and chip as the state says (A1617): waiting for a click, or the thing pointed at.</summary>
+    private void UpdatePointing()
+    {
+        if (_pointButton is not null && IsInstanceValid(_pointButton))
+        {
+            _pointButton.SetPressedNoSignal(_pointingFor is not null);
+        }
+
+        if (_pointedChip is null || !IsInstanceValid(_pointedChip) || _pointedLabel is null)
+        {
+            return;
+        }
+
+        _pointedChip.Visible = _pointingFor is not null || _pointedType is not null;
+        _pointedLabel.Text = _pointingFor is not null
+            ? Tr("ui.card.point_waiting")
+            : _pointedType is { } type
+                ? TextFill.Fill(Tr("ui.card.pointed"), new Dictionary<string, string> { ["thing"] = ThingName(type) })
+                : string.Empty;
+    }
+
     /// <summary>Screenshots only: the card scrolled to its talk field with a sentence in it.</summary>
     public void ShowTalkForShots(string sentence)
     {
@@ -3097,14 +3186,15 @@ public partial class GameScreen : CanvasLayer
     /// The player says something to an inhabitant (send_text): the core checks it at once; a refusal or
     /// "no favour" shows its calm reason. Returns true when the sentence was taken.
     /// </summary>
-    public bool Say(string inhabitantId, string text)
+    public bool Say(string inhabitantId, string text, string? pointedType = null)
     {
         if (_presenter?.Host is not { } host)
         {
             return false;
         }
 
-        var result = host.Decisions.Submit(new PlayerCommand(Simulation.Player.ConversationSystem.SendText, inhabitantId) { Text = text });
+        // A1617: the type pointed at goes with the sentence (TypeId); the core keeps it only if the inhabitant sees it.
+        var result = host.Decisions.Submit(new PlayerCommand(Simulation.Player.ConversationSystem.SendText, inhabitantId) { Text = text, TypeId = pointedType });
         if (!result.Accepted)
         {
             ShowHint(new ToastMessage(result.ReasonKey ?? "msg.command.unknown", new Dictionary<string, string>(), null));

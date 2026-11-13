@@ -228,7 +228,7 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
         var text = command.Text!.Trim();
         _player.Spend(Intervention);
         var memory = MemoryOf(inhabitant.Id);
-        var request = Request(world, inhabitant, memory, text);
+        var request = Request(world, inhabitant, memory, text, command.TypeId);
         _memories[inhabitant.Id] = Remember(inhabitant.Id, memory, new ConversationLineState(true, world.Tick, _displayLocale, text));
         _open[request.RequestId] = new OpenConversation(request.RequestId, inhabitant.Id, world.Tick);
         var json = ContractSerializer.Serialize(request, ValidateRequests);
@@ -326,7 +326,7 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
         }
     }
 
-    private ConversationRequest Request(World world, Inhabitant inhabitant, ConversationMemory memory, string text)
+    private ConversationRequest Request(World world, Inhabitant inhabitant, ConversationMemory memory, string text, string? pointedType = null)
     {
         _counter++;
         var start = new Relation(_knowledge.RelationshipStart.Affection, _knowledge.RelationshipStart.Trust, _knowledge.RelationshipStart.Respect);
@@ -363,6 +363,10 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
                 SeesLabels = SeenLabels(inhabitant, seen),
             },
             PlayerText = text,
+
+            // A1617 (B2678): what the player points at while writing - only a thing the speaker sees; one it
+            // cannot see is dropped (the sentence still goes out), so naming never refers to something out of sight.
+            PointedAt = pointedType is not null && seen.Contains(pointedType) ? pointedType : null,
             RecentLines = [.. memory.Lines.Select(l => new ConversationLine
             {
                 Author = l.FromPlayer ? ConversationLineAuthor.Player : ConversationLineAuthor.Inhabitant,
