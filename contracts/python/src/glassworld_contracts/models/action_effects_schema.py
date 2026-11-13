@@ -52,6 +52,12 @@ class ActionTiming(BaseModel):
         None,
         description="B2681 (W1938): the action's effects work while it lasts - an equal share every tick - instead of all at its end (sleep: the value rises while sleeping, and one woken early keeps what it slept). Default false.",
     )
+    wake_after_minutes: int | None = Field(
+        None,
+        description='B2681: game minutes the action has run before a pressing need below its threshold can cut it short (sleep: no flicker between falling asleep exhausted and being woken). Omitted = at once.',
+        ge=0,
+        le=1440,
+    )
 
 
 class Effect(BaseModel):

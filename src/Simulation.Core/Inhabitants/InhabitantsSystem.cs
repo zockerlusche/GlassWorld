@@ -852,12 +852,6 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         return together;
     }
 
-    /// <summary>
-    /// Whether an inhabitant is asleep (the one definition, data: togetherness.sleep_action of the inhabitant
-    /// model, once that action has started): nobody addresses a sleeper (B2466), so the rule checker cancels
-    /// an action aimed at one, and the decider is neither offered such an action nor asked who a sleeper is.
-    /// Always false without the togetherness data.
-    /// </summary>
     /// <summary>Detail of a sleep started at bedtime (B2680).</summary>
     public const string Bedtime = "bedtime";
 
@@ -865,9 +859,17 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     public bool AtBedtime(World world)
     {
         ArgumentNullException.ThrowIfNull(world);
-        return _model.Togetherness?.BedtimeAfterNightfallHours is { } hours && world.Calendar.MinutesSinceNightfall(world.Tick) is { } since && since >= hours * 60;
+        // Only in a night that began in this world: a new world starts at midnight, and nobody is sent to bed at once.
+        return _model.Togetherness?.BedtimeAfterNightfallHours is { } hours && world.Calendar.MinutesSinceNightfall(world.Tick) is { } since && since >= hours * 60
+            && world.Calendar.NightBeganInWorld(world.Tick);
     }
 
+    /// <summary>
+    /// Whether an inhabitant is asleep (the one definition, data: togetherness.sleep_action of the inhabitant
+    /// model, once that action has started): nobody addresses a sleeper (B2466), so the rule checker cancels
+    /// an action aimed at one, and the decider is neither offered such an action nor asked who a sleeper is.
+    /// Always false without the togetherness data.
+    /// </summary>
     public bool IsAsleep(Inhabitant inhabitant)
     {
         ArgumentNullException.ThrowIfNull(inhabitant);

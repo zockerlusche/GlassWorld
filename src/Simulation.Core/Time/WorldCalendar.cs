@@ -113,6 +113,13 @@ public sealed class WorldCalendar
         return minute >= nightfall ? minute - nightfall : minute + (Settings.HoursPerDay * 60) - nightfall;
     }
 
+    /// <summary>
+    /// B2680: whether the night <paramref name="tick"/> lies in began at or after the world's first tick (a world that
+    /// starts at midnight is in a night that began before it). False outside the night.
+    /// </summary>
+    public bool NightBeganInWorld(long tick) =>
+        MinutesSinceNightfall(tick) is { } since && tick - ((long)since * Settings.TicksPerHour / 60) >= 0;
+
     /// <summary>Real seconds per tick at normal speed (for the game clock only, never for simulation state).</summary>
     public double RealSecondsPerTickAtNormalSpeed => (double)Settings.NormalRealSecondsPerDay / TicksPerDay;
 

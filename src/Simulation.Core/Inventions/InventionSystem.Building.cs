@@ -1104,6 +1104,7 @@ public sealed partial class InventionSystem
         var phase = world.Calendar.At(world.Tick).Phase.ToString().ToLowerInvariant();
         var night = Build.NightPhases.Contains(phase)
             && (Build.WaitForSleepersHours is not { } wait
+                || !world.Calendar.NightBeganInWorld(world.Tick)
                 || _inhabitants.All.All(_inhabitants.IsAsleep)
                 || world.Calendar.MinutesSinceNightfall(world.Tick) is not { } since
                 || since >= wait * 60);

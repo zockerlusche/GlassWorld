@@ -52,7 +52,25 @@ public sealed class BedtimeTests
         host.Inhabitants.Reported += events.Add;
 
         var bedtime = FirstNightTick(host.World.Calendar) + (long)(Bedtime * host.World.Calendar.Settings.TicksPerHour);
-        host.World.Run(bedtime - host.World.Tick + 30);
+        host.World.Run(bedtime - 1 - host.World.Tick);
+
+        // Just before bedtime: one rested and idle, one rested but thirsty.
+        foreach (var who in new[] { rested, thirsty })
+        {
+            foreach (var need in who.Needs.Keys.ToList())
+            {
+                who.Needs[need] = 1.0;
+            }
+
+            who.Activity = null;
+            who.Planned = null;
+        }
+
+        thirsty.Needs["thirst"] = 0.01;
+        events.Clear();
+
+        // Two hours: one busy with something lies down when that is done (still before the limit of the scene).
+        host.World.Run(2 * host.World.Calendar.Settings.TicksPerHour);
         var lay = events.Where(e => e.Kind == InhabitantsSystem.ActionStarted && e.Action == "sleep" && e.Tick >= bedtime).ToList();
         Assert.Contains(lay, e => e.InhabitantId == rested.Id && e.Detail == InhabitantsSystem.Bedtime);
         Assert.DoesNotContain(lay, e => e.InhabitantId == thirsty.Id);
@@ -74,7 +92,7 @@ public sealed class BedtimeTests
         // The thirsty one stays awake: night comes at the limit.
         host.World.Run((long)(Wait * host.World.Calendar.Settings.TicksPerHour));
         var night = port.Phases.Last(p => p.Phase == JobPhase.Night);
-        Assert.Equal((long)(Wait * 60), host.World.Calendar.MinutesSinceNightfall(night.Tick));
+        Assert.Equal((int)(Wait * 60), host.World.Calendar.MinutesSinceNightfall(night.Tick)!.Value);
     }
 
     private static long FirstNightTick(GlassWorld.Simulation.Time.WorldCalendar calendar)
