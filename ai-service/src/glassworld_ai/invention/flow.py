@@ -280,6 +280,25 @@ def parse_guard(raw: str, schema: dict[str, Any]) -> dict[str, Any]:
 # --- prompt values ---------------------------------------------------------------------------
 
 
+def _knowledge_text(payload: Any, settings: dict[str, Any]) -> str:
+    """v6 (A1582, R8): what the inhabitant believes about the things it sees - its own beliefs
+    with where they come from, never the truth (GW1 #372). Empty without the setting."""
+    words = settings.get("source_words")
+    if not isinstance(words, dict):
+        return ""
+    sources = {str(k): str(v) for k, v in cast(dict[object, object], words).items()}
+    lines = []
+    for entry in getattr(payload.inhabitant, "knowledge", None) or []:
+        if plain_id(entry.subject.kind) != "type":
+            continue
+        verb = "is" if entry.value else "is not"
+        how = sources.get(plain_id(entry.source), plain_id(entry.source))
+        lines.append(
+            f"- {plain_id(entry.subject.id)} {verb} {humanize(plain_id(entry.property))} ({how})"
+        )
+    return "\n".join(lines) or "- (nothing yet)"
+
+
 def _materials_text(payload: Any, names: dict[str, str] | None = None) -> str:
     """The materials by their ids (the answer must name them so); from v3 with the name the
     inhabitant has for a material that is itself an invention."""
@@ -341,6 +360,7 @@ def inventor_values(
         "why": why,
         "character": character,
         "materials": _materials_text(payload, _material_names(job, template)),
+        "knowledge": _knowledge_text(payload, settings),
         "tech_level": humanize(plain_id(payload.tech_level)),
         "processes": "\n".join(
             f"- {vocab_line(vocab, 'process', p)}" for p in vocab.ids("process")
