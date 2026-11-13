@@ -16,6 +16,10 @@ What the graph assumes (it is a check of the data, not a simulation):
   ``heat_min`` is a reachable heat level. Its result is the first input with the added and
   removed properties. The tech level of a rule is not a gate here: a tech level counts as
   reachable when a rule of that level can fire and all levels before it are reachable.
+- A processing rule fits a try of two things, as the core takes it (``ProcessRuleSet.Shaped``,
+  review GW1 #367): two inputs and no tool, or one input and a tool. One input without a tool
+  fits only when the rule needs heat - the burning thing is then the second thing (the heat-level
+  bridge, GW4). Any other shape can never fire, so it stays a gap.
 - Heat levels have no source in the data yet (no data says which thing gives which heat), so
   none is reachable; ``Sources.heat_levels`` is the place where that will plug in.
 
@@ -123,6 +127,8 @@ def analyse(content: Path, start: Sources) -> Reach:
                         things.add(catalog[created])
                         changed = True
         for rule in processes:
+            if not _shaped(rule):
+                continue
             heat = rule["heat_min"]
             if heat is not None and not _heat_reached(str(heat), start.heat_levels, heat_order):
                 continue
@@ -188,6 +194,17 @@ def analyse(content: Path, start: Sources) -> Reach:
         goals=frozenset(goals),
         gaps=tuple(sorted(gaps)),
     )
+
+
+def _shaped(rule: dict[str, Any]) -> bool:
+    """Whether a rule fits a try of two things (the core's shape; the fire counts as one)."""
+    inputs = len(cast(list[object], rule["inputs"]))
+    tool = rule["tool"] is not None
+    if inputs == 2:
+        return not tool
+    if inputs == 1:
+        return tool or rule["heat_min"] is not None
+    return False
 
 
 def _heat_reached(level: str, reached: frozenset[str], order: list[str]) -> bool:

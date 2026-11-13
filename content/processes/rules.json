@@ -1007,12 +1007,7 @@
           "properties_none": []
         }
       ],
-      "tool": {
-        "properties_all": [
-          "fibrous"
-        ],
-        "properties_none": []
-      },
+      "tool": null,
       "heat_min": null,
       "duration_ticks": 60,
       "tech_level": "tool",
@@ -1109,13 +1104,7 @@
           "properties_none": []
         }
       ],
-      "tool": {
-        "properties_all": [
-          "container",
-          "waterproof"
-        ],
-        "properties_none": []
-      },
+      "tool": null,
       "heat_min": "embers",
       "duration_ticks": 30,
       "tech_level": "tool",
@@ -1183,7 +1172,12 @@
           ]
         }
       ],
-      "tool": null,
+      "tool": {
+        "properties_all": [
+          "water"
+        ],
+        "properties_none": []
+      },
       "heat_min": null,
       "duration_ticks": 600,
       "tech_level": "wilderness",
@@ -1255,15 +1249,7 @@
           "properties_none": []
         }
       ],
-      "tool": {
-        "properties_all": [
-          "water",
-          "drinkable"
-        ],
-        "properties_none": [
-          "salty"
-        ]
-      },
+      "tool": null,
       "heat_min": null,
       "duration_ticks": 30,
       "tech_level": "hut",

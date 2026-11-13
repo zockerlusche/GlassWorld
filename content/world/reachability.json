@@ -9,6 +9,14 @@
     { "id": "light", "any_of": [ { "properties_all": ["luminous"], "properties_none": [] } ] }
   ],
   "known_gaps": [
+    { "gap": "process:braid_fibres_to_cord", "reason": "Needs a one-thing action (dry, soak, shape, braid or churn one thing by itself): a try is two things today (core ProcessRuleSet.Shaped, review GW1 #367; GW4 asked)." },
+    { "gap": "process:dry_fibres", "reason": "Needs a one-thing action (dry, soak, shape, braid or churn one thing by itself): a try is two things today (core ProcessRuleSet.Shaped, review GW1 #367; GW4 asked)." },
+    { "gap": "process:dry_fruit", "reason": "Needs a one-thing action (dry, soak, shape, braid or churn one thing by itself): a try is two things today (core ProcessRuleSet.Shaped, review GW1 #367; GW4 asked)." },
+    { "gap": "process:shape_clay", "reason": "Needs a one-thing action (dry, soak, shape, braid or churn one thing by itself): a try is two things today (core ProcessRuleSet.Shaped, review GW1 #367; GW4 asked)." },
+    { "gap": "process:churn_milk_to_butter", "reason": "Needs a one-thing action (dry, soak, shape, braid or churn one thing by itself): a try is two things today (core ProcessRuleSet.Shaped, review GW1 #367; GW4 asked)." },
+    { "gap": "process:dry_peat", "reason": "Needs a one-thing action (dry, soak, shape, braid or churn one thing by itself): a try is two things today (core ProcessRuleSet.Shaped, review GW1 #367; GW4 asked)." },
+    { "gap": "process:bind_edge_to_handle", "reason": "Three things (edge, handle, cord): a try is two things today (review GW1 #367)." },
+    { "gap": "property:smoulders", "reason": "Made by dry_peat (one-thing action) or char_wood (heat-level bridge)." },
     { "gap": "process:harden_stick_in_fire", "reason": "Needs a heat level from something burning or glowing in reach - the core's heat-level bridge (GW4, TL #23593); no rule with heat applies before it." },
     { "gap": "process:smoke_food", "reason": "Needs a heat level from something burning or glowing in reach - the core's heat-level bridge (GW4, TL #23593); no rule with heat applies before it." },
     { "gap": "process:desalinate_water", "reason": "Needs a heat level from something burning or glowing in reach - the core's heat-level bridge (GW4, TL #23593); no rule with heat applies before it." },

@@ -124,8 +124,8 @@ def test_without_the_spark_maker_fire_is_out_of_reach(tmp_path: Path) -> None:
     gaps = _gaps(content)
     assert {"type:pyrite", "type:spark", "type:fire"} <= gaps
     assert "combination:fire_from_spark_and_dry_grass" in gaps
-    # Warmth is something hot or something insulating: without sparks and fire a grass bed still keeps warm
-    # (D988 rule 8, lay_grass_bed), so the goal stays in reach.
+    # Warmth is something hot or something insulating: without sparks and fire a grass bed still
+    # keeps warm (D988 rule 8, lay_grass_bed), so the goal stays in reach.
     assert "goal:warmth" not in gaps
 
 
@@ -151,3 +151,17 @@ def test_a_tech_level_needs_the_levels_before_it(tmp_path: Path) -> None:
     _edit(content / "processes/rules.json", strip_tool_rules)
     gaps = _gaps(content)
     assert {"tech:tool", "tech:hut", "tech:workshop", "tech:metal"} <= gaps
+
+
+def test_only_rules_that_fit_a_two_thing_try_count() -> None:
+    """Review GW1 #367: the core takes a try of two things (ProcessRuleSet.Shaped) - two inputs,
+    or one input and a tool; one input without a tool only with heat (the fire is the second)."""
+    from glassworld_contracts.reachability import _shaped  # pyright: ignore[reportPrivateUsage]
+
+    one = {"properties_all": ["hard"], "properties_none": []}
+    assert _shaped({"inputs": [one, one], "tool": None, "heat_min": None})
+    assert _shaped({"inputs": [one], "tool": one, "heat_min": None})
+    assert _shaped({"inputs": [one], "tool": None, "heat_min": "embers"})
+    assert not _shaped({"inputs": [one], "tool": None, "heat_min": None})  # a one-thing action
+    assert not _shaped({"inputs": [one, one], "tool": one, "heat_min": None})  # three things
+    assert not _shaped({"inputs": [one, one, one], "tool": None, "heat_min": None})
