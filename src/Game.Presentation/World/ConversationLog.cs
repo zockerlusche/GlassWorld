@@ -8,7 +8,7 @@ public enum LogLineKind
     /// <summary>An inhabitant thought something.</summary>
     Thought,
 
-    /// <summary>An inhabitant said something (an answer to the player, or declining).</summary>
+    /// <summary>An inhabitant said something (an answer to the player, declining, or aloud to another inhabitant with a spoken action, A1510).</summary>
     Said,
 
     /// <summary>The player said something to an inhabitant.</summary>
