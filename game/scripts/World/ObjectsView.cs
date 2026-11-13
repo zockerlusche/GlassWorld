@@ -40,6 +40,7 @@ public partial class ObjectsView : Node3D
     private readonly Dictionary<string, (ObjectGlow Glow, Color Color)> _glows = new(StringComparer.Ordinal);
     private readonly Dictionary<string, List<OmniLight3D>> _lights = new(StringComparer.Ordinal);
     private readonly List<(OmniLight3D Light, float Energy, float Flicker, float Hz, float Phase)> _flicker = [];
+    private int _maxLights;
 
     /// <summary>Lights of glowing objects now (smoke and tests).</summary>
     public int Lights => _flicker.Count;
@@ -77,6 +78,7 @@ public partial class ObjectsView : Node3D
         var slots = tintSlots ?? SeasonSlots.From(palette);
         var view = new ObjectsView { Name = "Objects", _looks = new ObjectLooks(data, colors.Keys.ToHashSet(StringComparer.Ordinal)), _ground = ground, _decor = decor ?? [] };
         view._looks.UseStreamSources(streamSources ?? []);
+        view._maxLights = data.MaxLights ?? 8;
         foreach (var look in view._looks.Visuals.Where(v => v.Shape != ObjectLookShape.None))
         {
             (Color First, Color More) Weights(int role)
@@ -272,6 +274,8 @@ public partial class ObjectsView : Node3D
         IReadOnlyCollection<WorldObject> list = _decor.Count == 0 ? core : [.. core, .. _decor];
         var layout = _looks.Layout(list, _ground, type => GD.Print($"OBJECT_LOOK_FALLBACK type={type} (no entry in content/look/objects.json, drawn as the neutral marker)"));
         Drawn = 0;
+        var lightsLeft = _maxLights;
+        _flicker.Clear();
         foreach (var (id, layer) in _layers)
         {
             var placed = layout.TryGetValue(id, out var items) ? items : [];
@@ -293,7 +297,7 @@ public partial class ObjectsView : Node3D
 
             if (_glows.TryGetValue(id, out var glow))
             {
-                PlaceLights(id, glow.Glow, glow.Color, multi);
+                lightsLeft -= PlaceLights(id, glow.Glow, glow.Color, multi, placed, lightsLeft);
             }
 
             layer.Visible = placed.Count > 0;
@@ -303,8 +307,12 @@ public partial class ObjectsView : Node3D
         return true;
     }
 
-    /// <summary>One light per glowing object, above its foot and scaled with it; the flicker list follows.</summary>
-    private void PlaceLights(string visualId, ObjectGlow glow, Color color, MultiMesh multi)
+    /// <summary>
+    /// One light per glowing object (at most <paramref name="budget"/>, the data's max_lights over all looks), above its
+    /// foot and scaled with it; its flicker phase comes from the object id, so a replay wavers the same.
+    /// </summary>
+    /// <returns>Lights placed.</returns>
+    private int PlaceLights(string visualId, ObjectGlow glow, Color color, MultiMesh multi, List<GlassWorld.Presentation.World.ObjectPlacement> placed, int budget)
     {
         if (!_lights.TryGetValue(visualId, out var lights))
         {
@@ -312,7 +320,7 @@ public partial class ObjectsView : Node3D
             _lights[visualId] = lights;
         }
 
-        var wanted = glow.LightEnergy > 0 ? multi.InstanceCount : 0;
+        var wanted = glow.LightEnergy > 0 ? Math.Min(multi.InstanceCount, Math.Max(0, budget)) : 0;
         while (lights.Count > wanted)
         {
             lights[^1].QueueFree();
@@ -333,18 +341,24 @@ public partial class ObjectsView : Node3D
             lights[i].Position = at.Origin + (Vector3.Up * (float)glow.LightHeightM * scale);
             lights[i].OmniRange = (float)glow.LightRangeM * scale;
             lights[i].LightEnergy = (float)glow.LightEnergy;
+
+            // A phase of its own per object (from its id), so two fires never waver in step and a replay looks the same.
+            _flicker.Add((lights[i], (float)glow.LightEnergy, (float)glow.Flicker, (float)glow.FlickerHz, Phase(placed[i].ObjectId)));
         }
 
-        _flicker.Clear();
-        foreach (var (id, list) in _lights)
+        return lights.Count;
+    }
+
+    /// <summary>A fixed phase in [0, 2π) from an object id (FNV-1a; not string.GetHashCode, which changes per run).</summary>
+    private static float Phase(string objectId)
+    {
+        var hash = 2166136261u;
+        foreach (var c in objectId)
         {
-            var g = _glows[id].Glow;
-            for (var i = 0; i < list.Count; i++)
-            {
-                // A phase of its own per light, so two fires never waver in step.
-                _flicker.Add((list[i], (float)g.LightEnergy, (float)g.Flicker, (float)g.FlickerHz, 1.7f * i));
-            }
+            hash = (hash ^ c) * 16777619u;
         }
+
+        return hash % 6283 / 1000f;
     }
 
     /// <inheritdoc/>

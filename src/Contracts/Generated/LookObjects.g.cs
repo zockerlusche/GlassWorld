@@ -471,13 +471,13 @@ namespace GlassWorld.Contracts
         public double LightHeightM { get; set; } = default!;
 
         /// <summary>
-        /// Share of the strength that wavers (0 = steady).
+        /// Share of the strength that wavers (0 = steady; at most half, a calm waver, never a blink).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("flicker")]
         public double Flicker { get; set; } = default!;
 
         /// <summary>
-        /// How fast it wavers (calm: a few times a second at most).
+        /// How fast it wavers; at most 3 times a second (photosensitivity, WCAG 2.3.1: no more than three flashes per second).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("flicker_hz")]
         public double FlickerHz { get; set; } = default!;
@@ -546,6 +546,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("stream_sources")]
         public ObjectStreamSources? StreamSources { get; set; } = default!;
+
+        /// <summary>
+        /// At most this many glowing objects carry a light at once (the first in the drawing order); the others still glow. Keeps a row of fires cheap.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("max_lights")]
+        public int? MaxLights { get; set; } = default!;
 
     }
 }

@@ -199,15 +199,15 @@ class ObjectGlow(BaseModel):
     )
     flicker: float = Field(
         ...,
-        description='Share of the strength that wavers (0 = steady).',
+        description='Share of the strength that wavers (0 = steady; at most half, a calm waver, never a blink).',
         ge=0.0,
-        le=1.0,
+        le=0.5,
     )
     flicker_hz: float = Field(
         ...,
-        description='How fast it wavers (calm: a few times a second at most).',
+        description='How fast it wavers; at most 3 times a second (photosensitivity, WCAG 2.3.1: no more than three flashes per second).',
         ge=0.0,
-        le=12.0,
+        le=3.0,
     )
 
 
@@ -357,3 +357,9 @@ class LookObjects(BaseModel):
         max_length=32,
     )
     stream_sources: ObjectStreamSources | None = None
+    max_lights: int | None = Field(
+        None,
+        description='At most this many glowing objects carry a light at once (the first in the drawing order); the others still glow. Keeps a row of fires cheap.',
+        ge=0,
+        le=64,
+    )

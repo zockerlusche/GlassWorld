@@ -41,7 +41,7 @@ public sealed class IslandLookTests
             var glow = data.Visuals.Single(v => v.Id == look.VisualId).Glow;
             Assert.NotNull(glow);
             Assert.Contains(glow.LightColor, palette);
-            Assert.InRange(glow.FlickerHz, 0, 6);
+            Assert.InRange(glow.FlickerHz, 0, 3); // WCAG 2.3.1: at most three flashes a second
         }
 
         Assert.True(looks.For("fire").SizeM > looks.For("spark").SizeM);

@@ -75,6 +75,12 @@
     },
     "stream_sources": {
       "$ref": "#/$defs/ObjectStreamSources"
+    },
+    "max_lights": {
+      "description": "At most this many glowing objects carry a light at once (the first in the drawing order); the others still glow. Keeps a row of fires cheap.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 64
     }
   },
   "$defs": {
@@ -502,16 +508,16 @@
           "maximum": 4
         },
         "flicker": {
-          "description": "Share of the strength that wavers (0 = steady).",
+          "description": "Share of the strength that wavers (0 = steady; at most half, a calm waver, never a blink).",
           "type": "number",
           "minimum": 0,
-          "maximum": 1
+          "maximum": 0.5
         },
         "flicker_hz": {
-          "description": "How fast it wavers (calm: a few times a second at most).",
+          "description": "How fast it wavers; at most 3 times a second (photosensitivity, WCAG 2.3.1: no more than three flashes per second).",
           "type": "number",
           "minimum": 0,
-          "maximum": 12
+          "maximum": 3
         }
       }
     }
