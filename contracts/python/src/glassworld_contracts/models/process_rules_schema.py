@@ -74,7 +74,7 @@ class Physics(BaseModel):
     )
     examples: Examples = Field(
         ...,
-        description='Short English sentences for the judge (internal, never shown to players; ADR-0007): tries that work and tries that do not. They show the strictness, not a list of answers.',
+        description="Short English sentences for the judge (internal, never shown to players; ADR-0007): tries that work and tries that do not. They show the strictness, not a list of answers. They do name things of the world (water, wood, stone...): physics as data is Marcel's choice (F5297 = A), so the judge prompt itself names none, the rendered prompt does (review GW3 #337).",
     )
 
 

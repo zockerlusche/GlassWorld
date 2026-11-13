@@ -59,7 +59,7 @@ namespace GlassWorld.Contracts
         public System.Collections.Generic.IDictionary<string, System.Collections.Generic.ICollection<string>> MayRemove { get; set; } = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.ICollection<string>>();
 
         /// <summary>
-        /// Short English sentences for the judge (internal, never shown to players; ADR-0007): tries that work and tries that do not. They show the strictness, not a list of answers.
+        /// Short English sentences for the judge (internal, never shown to players; ADR-0007): tries that work and tries that do not. They show the strictness, not a list of answers. They do name things of the world (water, wood, stone...): physics as data is Marcel's choice (F5297 = A), so the judge prompt itself names none, the rendered prompt does (review GW3 #337).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("examples")]
         public Examples Examples { get; set; } = new Examples();
