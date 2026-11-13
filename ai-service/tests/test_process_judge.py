@@ -367,3 +367,16 @@ def test_a_process_that_can_change_nothing_is_not_feasible() -> None:
     )
     result = parse_judgement(_raw(), GenerationJob.model_validate(data), ctx)
     assert result["feasible"] is False and "cannot change anything" in result["rationale"]
+
+
+def test_judge_v1_refuses_a_combine_trial() -> None:
+    """B2687 K2: a combine trial (process null + candidates) is for judge v2; v1 refuses it."""
+    from glassworld_ai.process.judge import precheck
+
+    data = json.loads(
+        (REPO / "contracts/examples/valid/generation-job.process-combine-trial.json").read_text(
+            "utf-8"
+        )
+    )
+    with pytest.raises(JobFailedError, match="judge v2"):
+        precheck(GenerationJob.model_validate(data), CTX)

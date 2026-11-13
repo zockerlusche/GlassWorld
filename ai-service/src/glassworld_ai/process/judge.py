@@ -94,6 +94,9 @@ def _payload(job: GenerationJob) -> Any:
     payload = job.payload.process
     if payload is None:
         raise JobFailedError("bad_request", "process job without process payload", retryable=False)
+    if payload.process is None:
+        # B2687 K2: a combine trial (process null + candidates) is answered by judge v2, not by v1.
+        raise JobFailedError("bad_request", "combine trial needs judge v2", retryable=False)
     return payload
 
 
