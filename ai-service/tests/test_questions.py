@@ -481,7 +481,9 @@ def test_v4_names_properties_without_cause_and_effect(settings: Settings) -> Non
     assert "- sparks\n" in user and "- alkaline\n" in user and "- hard\n" in user
     assert "glass" not in user and "suitable stone" not in user
     v3 = load_prompt(settings.prompts_dir, "question/ask", 3)
-    assert "helps sand melt into glass" in v3.render(build_values(job, v3, vocab)).user  # as it was
+    assert (
+        "Feels soapy and bitter; cleans." in v3.render(build_values(job, v3, vocab)).user
+    )  # v3 still names descriptions (neutral since TH142)
 
 
 def test_v5_speaks_of_today_at_night_and_of_now_by_day(settings: Settings) -> None:

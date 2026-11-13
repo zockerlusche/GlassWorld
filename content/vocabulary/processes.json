@@ -4,7 +4,7 @@
   "entries": [
     {
       "id": "heat",
-      "description": "Make something hot over a fire."
+      "description": "Make something hot."
     },
     {
       "id": "soak",
@@ -16,11 +16,11 @@
     },
     {
       "id": "grind",
-      "description": "Rub or crush something into small pieces or powder."
+      "description": "Rub or crush something."
     },
     {
       "id": "mix",
-      "description": "Put several things together into one mass."
+      "description": "Stir several things together."
     },
     {
       "id": "strike",
@@ -32,15 +32,15 @@
     },
     {
       "id": "split",
-      "description": "Break something along its grain or layers into flat pieces."
+      "description": "Break something apart along its grain or layers."
     },
     {
       "id": "bind",
-      "description": "Tie things firmly together with fibres or cord."
+      "description": "Tie things firmly together."
     },
     {
       "id": "braid",
-      "description": "Weave or braid fibres into cord, mats or baskets."
+      "description": "Twist or weave strands over and under each other."
     },
     {
       "id": "shape",
@@ -52,7 +52,7 @@
     },
     {
       "id": "char",
-      "description": "Heat wood with little air until it turns to charcoal."
+      "description": "Heat something for long with little air."
     },
     {
       "id": "melt",
