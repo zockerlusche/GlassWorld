@@ -200,7 +200,8 @@ public sealed class ChronicleNightSystem : IWorldSystem, IOptionalWorldState
             return;
         }
 
-        var day = ((world.Tick - 1) / world.Calendar.TicksPerDay) + 1;
+        // The calendar day of the newest entry told (GW1 #373): right also when the night begins after midnight (B2680).
+        var day = (told[^1].Tick / world.Calendar.TicksPerDay) + 1;
         _counter++;
         var requestId = DecisionIds.RequestId(world.Seed, world.Tick, "chronicle/day", _counter);
         var job = new GenerationJob
