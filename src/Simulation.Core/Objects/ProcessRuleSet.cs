@@ -160,7 +160,7 @@ public sealed class ProcessRuleSet
             .Select(r =>
             {
                 var conditions = r.Tool is { } tool ? r.Inputs.Append(tool) : r.Inputs;
-                var met = conditions.Count(c => inputs.Any(i => Fits(c, i)));
+                var met = MostMet([.. conditions], inputs, 0, new bool[inputs.Count]);
                 var shared = conditions.Sum(c => c.PropertiesAll.Count(all.Contains));
                 return (met * 1000) + shared;
             })
@@ -235,6 +235,31 @@ public sealed class ProcessRuleSet
     {
         ArgumentNullException.ThrowIfNull(rule);
         return rule.Inputs.Count == 1 && rule.Tool is null && Fits(rule.Inputs.ElementAt(0), properties);
+    }
+
+    /// <summary>
+    /// The most conditions the things can meet, each thing for one condition only (review GW1 #376): the best
+    /// assignment, as <see cref="Fit"/> tries both orders. Small: at most four conditions and a few things.
+    /// </summary>
+    private static int MostMet(List<PropertyCondition> conditions, IReadOnlyList<FrozenSet<string>> things, int from, bool[] used)
+    {
+        if (from == conditions.Count)
+        {
+            return 0;
+        }
+
+        var best = MostMet(conditions, things, from + 1, used);
+        for (var i = 0; i < things.Count; i++)
+        {
+            if (!used[i] && Fits(conditions[from], things[i]))
+            {
+                used[i] = true;
+                best = Math.Max(best, 1 + MostMet(conditions, things, from + 1, used));
+                used[i] = false;
+            }
+        }
+
+        return best;
     }
 
     private static bool Fits(PropertyCondition condition, FrozenSet<string> properties) =>
