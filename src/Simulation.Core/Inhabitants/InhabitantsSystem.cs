@@ -529,6 +529,12 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     /// </summary>
     public const string NoWalkableStep = "no_walkable_step";
 
+    /// <summary>Detail of a cancelled action whose partner thing is gone or out of reach of its target (combine, B2687).</summary>
+    public const string PartnerGone = "partner_gone";
+
+    /// <summary>Event: something came of using things together (combine, B2687); target = the new thing, detail = the rule.</summary>
+    public const string Combined = "combined";
+
     /// <summary>Value ranges for the appearance of new inhabitants (null = no appearance, tests).</summary>
     public LookAppearance? Looks { get; init; }
 
@@ -1159,6 +1165,14 @@ public sealed partial class InhabitantsSystem : IWorldSystem
                 return;
             }
 
+            if (!PartnersReady(activity, target))
+            {
+                // B2687: the rule checker at the start - the partner thing must still lie within reach.
+                Report(new WorldEvent(ActionCancelled, world.Tick, inhabitant.Id, activity.Action, activity.TargetId) { Detail = PartnerGone });
+                inhabitant.Activity = null;
+                return;
+            }
+
             if (listener is not null)
             {
                 KeepConversationDistance(inhabitant, listener);
@@ -1205,6 +1219,15 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         if (remaining > 0)
         {
             inhabitant.Activity = activity with { RemainingTicks = remaining };
+            return;
+        }
+
+        if (!PartnersReady(activity, target))
+        {
+            // B2687: and again at the end - someone may have taken or eaten the partner meanwhile; then
+            // nothing is used up and nothing comes of it.
+            Report(new WorldEvent(ActionCancelled, world.Tick, inhabitant.Id, activity.Action, activity.TargetId) { Detail = PartnerGone });
+            inhabitant.Activity = null;
             return;
         }
 
@@ -1880,6 +1903,11 @@ public sealed partial class InhabitantsSystem : IWorldSystem
                 // B2594: a thing the inhabitant has used and that is still there is a place it knows, like
                 // one it has looked at: it finds its way back to it when the weather hides it.
                 inhabitant.RememberPlace(target.Id, new PlaceMemory(target.TypeId, target.Position, world.Tick), memory.PlaceMemoryMax);
+            }
+
+            if (activity.Partners is { Count: > 0 })
+            {
+                changed |= Combine(world, inhabitant, activity, target);
             }
         }
 

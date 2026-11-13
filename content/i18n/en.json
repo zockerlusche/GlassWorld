@@ -1799,6 +1799,10 @@
       "text": "someone"
     },
     {
+      "key": "vocab.event.combined",
+      "text": "Something came of it"
+    },
+    {
       "key": "vocab.event.discovered_process",
       "text": "Way of working discovered"
     },

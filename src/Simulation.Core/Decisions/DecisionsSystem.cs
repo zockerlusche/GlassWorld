@@ -18,7 +18,13 @@ namespace GlassWorld.Simulation.Decisions;
 /// <param name="AskedTick">Tick the question was asked.</param>
 /// <param name="Options">Options offered (option id → action, target), to check the answer against.</param>
 /// <param name="RetryAtTick">After a retryable error: tick at which the question is sent again (B2487).</param>
-public sealed record OpenQuestion(string Id, string InhabitantId, string Kind, string Subject, string RequestId, long AskedTick, IReadOnlyList<(string OptionId, string Action, string? TargetId)> Options, long? RetryAtTick = null);
+/// <param name="Partners">Option id → the things that option uses together with its target (combine, B2687); null when no option has any.</param>
+public sealed record OpenQuestion(string Id, string InhabitantId, string Kind, string Subject, string RequestId, long AskedTick, IReadOnlyList<(string OptionId, string Action, string? TargetId)> Options, long? RetryAtTick = null, IReadOnlyDictionary<string, IReadOnlyList<string>>? Partners = null)
+{
+    /// <summary>The things an option uses together with its target (combine, B2687); empty for all others.</summary>
+    public IReadOnlyList<string> PartnersOf(string optionId) =>
+        Partners is not null && Partners.TryGetValue(optionId, out var partners) ? partners : [];
+}
 
 /// <summary>A command from the player, checked by the core at the next tick (ADR-0005).</summary>
 /// <param name="Kind">Command kind (<c>inhabitant_clicked</c>, <c>place_gift</c>, ...).</param>
@@ -671,6 +677,17 @@ public sealed class DecisionsSystem : IWorldSystem
             foreach (var (optionId, action, target) in q.Options)
             {
                 hasher.Write(optionId).Write(action).Write(target ?? string.Empty);
+
+                // Partners (combine, B2687) only where an option has some, so questions without keep their hashes.
+                var partners = q.PartnersOf(optionId);
+                if (partners.Count > 0)
+                {
+                    hasher.Write("partners").Write(partners.Count);
+                    foreach (var partner in partners)
+                    {
+                        hasher.Write(partner);
+                    }
+                }
             }
         }
 
@@ -1159,12 +1176,13 @@ public sealed class DecisionsSystem : IWorldSystem
         probe?.Leave(PartRequestLook);
         probe?.Enter(PartRequestOptions);
         _passable.Clear();
+        IReadOnlyDictionary<string, IReadOnlyList<string>>? partners = null;
         var options = kind == BuildStuck && StuckOptions is { } stuck
             ? [.. stuck(inhabitant.Id, subject).Take(MaxOptions).Select((o, i) => (string.Create(CultureInfo.InvariantCulture, $"o{i + 1}"), o.Action, o.TargetId))]
-            : BuildOptions(inhabitant, target, world.Tick, others);
+            : BuildOptions(inhabitant, target, world.Tick, others, things, out partners);
         probe?.Leave(PartRequestOptions);
         probe?.Enter(PartRequestBuild);
-        var request = BuildRequest(world, inhabitant, requestId, options, others, things);
+        var request = BuildRequest(world, inhabitant, requestId, options, others, things, partners);
         if (kind == BuildStuck)
         {
             request.Building = StuckContext?.Invoke(inhabitant.Id, subject);
@@ -1195,7 +1213,7 @@ public sealed class DecisionsSystem : IWorldSystem
         Log.Add(new DecisionLogEntry(DecisionLogKind.Request, requestId, world.Tick, json, null));
         _port.Send(requestId, json);
         probe?.Leave(PartRequest);
-        return new OpenQuestion(questionId, inhabitant.Id, kind, subject, requestId, world.Tick, options);
+        return new OpenQuestion(questionId, inhabitant.Id, kind, subject, requestId, world.Tick, options, Partners: partners);
     }
 
     /// <summary>Sends a question again after a retryable error, with the current state and a new request id.</summary>
@@ -1248,17 +1266,17 @@ public sealed class DecisionsSystem : IWorldSystem
     /// kind from the action vocabulary), each only while the asker's needs suggest it (<see cref="Behaviour.UtilityBrain.NeedSuggests"/>)
     /// and it does not rest after repeats without effect (W1696).
     /// </summary>
-    private List<(string OptionId, string Action, string? TargetId)> BuildOptions(Inhabitant asker, WorldObject? target, long tick, List<Inhabitant> others)
+    private List<(string OptionId, string Action, string? TargetId)> BuildOptions(Inhabitant asker, WorldObject? target, long tick, List<Inhabitant> others, List<WorldObject> things, out IReadOnlyDictionary<string, IReadOnlyList<string>>? partners)
     {
         List<Inhabitant>? awake = null;
-        var raw = new List<(string Action, string? TargetId)>();
-        var passOn = new List<(string Action, string? TargetId)>();
-        var meeting = new List<(string Action, string? TargetId)>();
+        var raw = new List<(string Action, string? TargetId, string? Partner)>();
+        var passOn = new List<(string Action, string? TargetId, string? Partner)>();
+        var meeting = new List<(string Action, string? TargetId, string? Partner)>();
 
         // B2687 (review GW1 #333): the intention a free moment offers is an option even when the needs do not suggest
         // it (e.g. inspecting a thing no longer new), first so the limit never cuts it; Rests and HasPurpose still hold.
         var intended = _offering?.Action;
-        var first = new List<(string Action, string? TargetId)>();
+        var first = new List<(string Action, string? TargetId, string? Partner)>();
         foreach (var action in _actions.OfferedActions)
         {
             var isIntended = action == intended;
@@ -1273,12 +1291,26 @@ public sealed class DecisionsSystem : IWorldSystem
             switch (_actionTargets.GetValueOrDefault(action, VocabularyEntryTarget.None))
             {
                 case VocabularyEntryTarget.Object when target is not null && !Rests(asker, action, target.Id, tick):
-                    (isIntended ? first : raw).Add((action, target.Id));
+                    if (_actions.Timing(action) is { PartnerOptions: > 0 } withOthers)
+                    {
+                        // B2687: an action that uses a second thing (combine) once per thing within reach of the
+                        // subject, nearest first - never by whether a rule fits (R39): what comes of it is the
+                        // world's truth, whether one tries is the inhabitant's. Nothing near, no option.
+                        foreach (var partner in PartnersNear(target, things, withOthers))
+                        {
+                            (isIntended ? first : raw).Add((action, target.Id, partner));
+                        }
+                    }
+                    else
+                    {
+                        (isIntended ? first : raw).Add((action, target.Id, null));
+                    }
+
                     break;
                 case VocabularyEntryTarget.None when !Rests(asker, action, null, tick)
                     && (!_inhabitants.AtFrontier(action) || _inhabitants.FrontierOf?.Invoke(asker) is not null):
                     // An action at the frontier (B2-6 R14) only while unseen land can be reached on foot.
-                    (isIntended ? first : raw).Add((action, null));
+                    (isIntended ? first : raw).Add((action, null, null));
                     break;
                 case VocabularyEntryTarget.Inhabitant when Knowledge is { } knowledge:
                     // Passing on knowledge (B4a R4): offered towards someone in sight when the asker knows
@@ -1301,7 +1333,7 @@ public sealed class DecisionsSystem : IWorldSystem
 
                         if (purpose && !Rests(asker, action, other.Id, tick))
                         {
-                            (isIntended ? first : meetingOption is not null ? meeting : passOn).Add((action, other.Id));
+                            (isIntended ? first : meetingOption is not null ? meeting : passOn).Add((action, other.Id, null));
                         }
                     }
 
@@ -1320,14 +1352,30 @@ public sealed class DecisionsSystem : IWorldSystem
 
         // Meeting actions (B4a R8) are no knowledge passed on: they follow with the room that is left.
         raw.AddRange(meeting);
-        return [.. raw.Take(MaxOptions).Select((o, i) => (string.Create(CultureInfo.InvariantCulture, $"o{i + 1}"), o.Action, o.TargetId))];
+        var kept = raw.Take(MaxOptions).Select((o, i) => (OptionId: string.Create(CultureInfo.InvariantCulture, $"o{i + 1}"), o.Action, o.TargetId, o.Partner)).ToList();
+        partners = kept.Any(o => o.Partner is not null)
+            ? kept.Where(o => o.Partner is not null).ToDictionary(o => o.OptionId, o => (IReadOnlyList<string>)[o.Partner!], StringComparer.Ordinal)
+            : null;
+        return [.. kept.Select(o => (o.OptionId, o.Action, o.TargetId))];
     }
+
+    /// <summary>
+    /// Things in sight within the action's partner reach of the subject, nearest to it first (ties by id),
+    /// at most the data's number (B2687). The same in every run: the order depends on positions and ids only.
+    /// </summary>
+    private static IEnumerable<string> PartnersNear(WorldObject target, List<WorldObject> things, Behaviour.ActionTimingInfo timing) =>
+        things.Where(o => o.Id != target.Id)
+            .Select(o => (o.Id, Distance: Distance(target.Position, o.Position)))
+            .Where(o => o.Distance <= timing.PartnerReachM)
+            .OrderBy(o => o.Distance).ThenBy(o => o.Id, StringComparer.Ordinal)
+            .Take(timing.PartnerOptions)
+            .Select(o => o.Id);
 
     /// <summary>W1696: an action that rests after repeats without effect (for this target, or here) is not offered.</summary>
     private bool Rests(Inhabitant asker, string action, string? targetId, long tick) =>
         asker.Resting.Count > 0 && asker.Rests(action, targetId, asker.Position, tick, _brain.Weights.Repetition?.SamePlaceM ?? 0);
 
-    private DecisionRequest BuildRequest(World world, Inhabitant inhabitant, string requestId, List<(string OptionId, string Action, string? TargetId)> options, List<Inhabitant> others, List<WorldObject> things)
+    private DecisionRequest BuildRequest(World world, Inhabitant inhabitant, string requestId, List<(string OptionId, string Action, string? TargetId)> options, List<Inhabitant> others, List<WorldObject> things, IReadOnlyDictionary<string, IReadOnlyList<string>>? partners = null)
     {
         var seed = world.Random.Get("decisions/seed").NextInt(0, int.MaxValue);
         return new DecisionRequest
@@ -1362,7 +1410,14 @@ public sealed class DecisionsSystem : IWorldSystem
                         Called = i.Name is { } name && inhabitant.KnownNames.Contains(i.Id) ? new CalledAs { Name = name, Label = null } : null,
                     })],
             },
-            Options = [.. options.Select(o => new Option { OptionId = o.OptionId, Action = o.Action, Target = o.TargetId, Topic = TopicOf(inhabitant, o.Action, o.TargetId) })],
+            Options = [.. options.Select(o => new Option
+            {
+                OptionId = o.OptionId,
+                Action = o.Action,
+                Target = o.TargetId,
+                Partners = partners is not null && partners.TryGetValue(o.OptionId, out var with) ? [.. with.Order(StringComparer.Ordinal)] : [],
+                Topic = TopicOf(inhabitant, o.Action, o.TargetId),
+            })],
         };
     }
 
@@ -1510,7 +1565,8 @@ public sealed class DecisionsSystem : IWorldSystem
 
         Log.Add(new DecisionLogEntry(DecisionLogKind.Response, message.RequestId, world.Tick, message.Json, null));
         var destination = resolved?.Position ?? frontier ?? inhabitant.Position;
-        var decided = new Activity(action, targetId, destination, null, DecidedTick: world.Tick);
+        var with = question.PartnersOf(response.OptionId);
+        var decided = new Activity(action, targetId, destination, null, DecidedTick: world.Tick, Partners: with.Count > 0 ? with : null);
         if (inhabitant.Activity?.RemainingTicks is not null)
         {
             // An action is in progress (e.g. sleeping): the answer waits, it never breaks it off.

@@ -19,7 +19,8 @@
     { "action": "teach", "destination": "here", "duration_minutes": 5, "reach_m": 2 },
     { "action": "introduce", "destination": "here", "duration_minutes": 2, "reach_m": 2 },
     { "action": "approach", "destination": "here", "duration_minutes": 1, "reach_m": 2 },
-    { "action": "talk_to", "destination": "here", "duration_minutes": 10, "reach_m": 2 }
+    { "action": "talk_to", "destination": "here", "duration_minutes": 10, "reach_m": 2 },
+    { "action": "combine", "destination": "here", "duration_minutes": 10, "reach_m": 1.5, "partners": { "reach_m": 2.0, "max_options": 4 } }
   ],
   "rules": [
     { "action": "eat", "requires_property": "edible", "consumes_target": true, "effects": [
