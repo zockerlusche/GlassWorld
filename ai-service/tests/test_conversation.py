@@ -508,7 +508,7 @@ def test_v6_prompt_asks_what_the_words_are_and_v5_does_not(settings: Settings) -
 
 
 def test_naming_is_checked_for_when_it_is_switched_on() -> None:
-    """B2678: naming stays off in v6 (voice_sent); the check for it is ready for the pointing."""
+    """B2678/A1617: naming only while the voice points at a thing - that thing is named."""
     from glassworld_ai.conversation import checked_voice
 
     names = seen_names(DOING, TEXTS, {})
@@ -520,21 +520,20 @@ def test_naming_is_checked_for_when_it_is_switched_on() -> None:
     assert unpointed is None  # A1617: without pointing nothing is named
     other = next((t for t in names.values() if t != names[thing]), None)
     if other is not None:
-        request.pointed_at = other  # pointing at another thing: not this one
-        assert (
-            checked_voice(request, {"outcome": "reply", "voice": voice}, names, GUARD, on) is None
-        )
+        # The voice names what it points at, whatever thing the model wrote (L1355).
+        request.pointed_at = other
+        named = checked_voice(request, {"outcome": "reply", "voice": voice}, names, GUARD, on)
+        assert named == {"kind": "naming", "naming": {"type": other, "word": "Glitzerwasser"}}
     request.pointed_at = names[thing]
+    no_thing = {**voice, "thing": None}  # L1355: a naming without 'thing' - the pointing says it
+    assert checked_voice(request, {"outcome": "reply", "voice": no_thing}, names, GUARD, on)
     got = checked_voice(request, {"outcome": "reply", "voice": voice}, names, GUARD, on)
     assert got == {"kind": "naming", "naming": {"type": names[thing], "word": "Glitzerwasser"}}
     off = checked_voice(request, {"outcome": "reply", "voice": voice}, names, GUARD)
     assert off is None  # the default passes praise only
     missing = {**voice, "word": "Funkelsaft"}  # not in the voice's text
     assert checked_voice(request, {"outcome": "reply", "voice": missing}, names, GUARD, on) is None
-    elsewhere = {**voice, "thing": "Feuer"}  # not in sight
-    assert (
-        checked_voice(request, {"outcome": "reply", "voice": elsewhere}, names, GUARD, on) is None
-    )
+
     blocked = {**voice, "word": "Koks"}  # B2466: a word that lives on passes the content guard
     said = _said("Das ist Koks.")
     said.pointed_at = names[thing]

@@ -386,19 +386,19 @@ def checked_voice(
         return None
     if kind == "praise":
         return {"kind": "praise", "naming": None}
-    thing, word = voice.get("thing"), voice.get("word")
-    if not isinstance(thing, str) or not isinstance(word, str):
+    word = voice.get("word")
+    if not isinstance(word, str):
         return None
     word = " ".join(word.split()).strip(" .,!?;:'\"«»„“”")
-    type_id = names.get(thing)
     said = " ".join(request.player_text.split()).casefold()
     # B2678 (A1617): a name is taught only for the thing the voice points at - without pointing
-    # which thing was meant is a guess, so nothing is named.
+    # which thing was meant is a guess, so nothing is named. With pointing the thing is known:
+    # the core set it only for a thing the speaker sees, so the model's 'thing' is not needed
+    # (measurement L1355: a naming came without it).
     pointed: Any = getattr(request, "pointed_at", None)
+    type_id = plain_id(pointed) if pointed is not None else None
     if (
         type_id is None
-        or pointed is None
-        or type_id != plain_id(pointed)
         or not word
         or len(word) > VOICE_WORD_MAX
         or len(word.split()) > VOICE_WORDS_MAX
