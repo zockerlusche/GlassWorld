@@ -1302,7 +1302,13 @@ public sealed class DecisionsSystem : IWorldSystem
                         // B2687: an action that uses a second thing (combine) once per thing within reach of the
                         // subject, nearest first - never by whether a rule fits (R39): what comes of it is the
                         // world's truth, whether one tries is the inhabitant's. Nothing near, no option.
-                        foreach (var partner in PartnersNear(target, things, withOthers))
+                        // R39 (GW2 D979): with known_only only things the asker already believes something about.
+                        if (withOthers.KnownOnly && !asker.Beliefs.About(target.TypeId).Any())
+                        {
+                            break;
+                        }
+
+                        foreach (var partner in PartnersNear(target, things, withOthers, withOthers.KnownOnly ? asker : null))
                         {
                             (isIntended ? first : raw).Add((action, target.Id, partner));
                         }
@@ -1344,6 +1350,26 @@ public sealed class DecisionsSystem : IWorldSystem
                     }
 
                     break;
+                case VocabularyEntryTarget.Object when target is null && _actions.Timing(action) is { PartnerOptions: > 0, KnownOnly: true, Feeds: false } free:
+                    // R39, GW2 D979, TL TH142: without a subject (a free moment) pairs of things the asker already
+                    // believes something about, nearest to it first, each with its partners nearest to it - so
+                    // putting known things together comes up when there is time, not only at an unknown thing.
+                    var pairs = 0;
+                    foreach (var subject in things.Where(o => asker.Beliefs.About(o.TypeId).Any()))
+                    {
+                        if (pairs >= free.PartnerOptions || Rests(asker, action, subject.Id, tick))
+                        {
+                            continue;
+                        }
+
+                        foreach (var partner in PartnersNear(subject, things, free, asker).Take(free.PartnerOptions - pairs))
+                        {
+                            (isIntended ? first : raw).Add((action, subject.Id, partner));
+                            pairs++;
+                        }
+                    }
+
+                    break;
                 default:
                     // Other inhabitant actions follow with B3/B9; object actions need a subject.
                     break;
@@ -1372,8 +1398,8 @@ public sealed class DecisionsSystem : IWorldSystem
     /// <summary>Whether a thing is burning and takes fuel (A1379; set by the host from the fires), or null = never.</summary>
     public Func<WorldObject, bool>? TakesFuel { get; set; }
 
-    private static IEnumerable<string> PartnersNear(WorldObject target, List<WorldObject> things, Behaviour.ActionTimingInfo timing) =>
-        things.Where(o => o.Id != target.Id)
+    private static IEnumerable<string> PartnersNear(WorldObject target, List<WorldObject> things, Behaviour.ActionTimingInfo timing, Inhabitant? knower = null) =>
+        things.Where(o => o.Id != target.Id && (knower is null || knower.Beliefs.About(o.TypeId).Any()))
             .Select(o => (o.Id, Distance: Distance(target.Position, o.Position)))
             .Where(o => o.Distance <= timing.PartnerReachM)
             .OrderBy(o => o.Distance).ThenBy(o => o.Id, StringComparer.Ordinal)
