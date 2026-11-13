@@ -21,9 +21,10 @@ public sealed class NightReviewTests
     private static readonly Lazy<ContentSet> Content = new(() => ContentSet.Load(OwnContent.Value));
 
     [Fact]
-    public void TheShippedDataKeepTheLookBackOff()
+    public void TheShippedDataHaveTheLookBackOn()
     {
-        Assert.False(ContentSet.Load(ShippedContent).Knowledge.Review!.Enabled);
+        // B2698 (TL, D971): switched on with the night questions that ask without a notice.
+        Assert.True(ContentSet.Load(ShippedContent).Knowledge.Review!.Enabled);
     }
 
     [Fact]

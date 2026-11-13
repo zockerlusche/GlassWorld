@@ -162,20 +162,34 @@ public sealed class InventionNameInRequestsTests
         looker.Activity = new Activity("idle", null, looker.Position, 1_000_000);
         other.Activity = new Activity("idle", null, other.Position, 1_000_000);
         var limit = host.World.Tick + (2 * host.World.Calendar.TicksPerDay);
-        while (jobs.Submitted.Count(j => j.Kind == JobKind.Question && (j.Inhabitant == looker.Id || j.Inhabitant == other.Id)) < 2)
+        var failed = new HashSet<string>(StringComparer.Ordinal);
+        // D971: questions about other things nobody has looked at go out too; the test looks at the two about its things.
+        bool About(GenerationJob j, Inhabitant who, string type) => j.Kind == JobKind.Question && j.Inhabitant == who.Id && j.Payload.Question!.Subject.Id == type;
+        while (!jobs.Submitted.Any(j => About(j, looker, typeId)) || !jobs.Submitted.Any(j => About(j, other, stone.TypeId)))
         {
             Assert.True(host.World.Tick < limit, "no question jobs within two days");
+
+            // B2698: the night's look back goes first and the questions wait for it; failed, they go out.
+            foreach (var review in jobs.Submitted.Where(j => j.Kind == JobKind.Review && failed.Add(j.RequestId)).ToList())
+            {
+                var status = ContractSerializer.Deserialize<JobStatus>(File.ReadAllText(Path.Combine(TestData.Root, "contracts", "examples", "valid", "job-status.failed.json")));
+                status.JobId = review.RequestId;
+                status.Tick = review.Tick;
+                status.Kind = review.Kind;
+                jobs.Answer(review, status);
+            }
+
             host.World.Step();
         }
 
-        var about = jobs.Submitted.Single(j => j.Kind == JobKind.Question && j.Inhabitant == looker.Id);
+        var about = jobs.Submitted.Single(j => About(j, looker, typeId));
         var payload = about.Payload.Question!;
         Assert.Equal(typeId, payload.Subject.Id);
         Assert.Equal((name.De, name.En), (payload.Label!.De, payload.Label.En));
         Assert.Equal(name.En, payload.Inhabitant.Knowledge.First(k => k.Subject.Id == typeId).Label!.En);
         Assert.Empty(ContractValidator.Validate("generation-job", jobs.Json[about.RequestId]));
 
-        var plain = jobs.Submitted.Single(j => j.Kind == JobKind.Question && j.Inhabitant == other.Id);
+        var plain = jobs.Submitted.Single(j => About(j, other, stone.TypeId));
         Assert.Equal(stone.TypeId, plain.Payload.Question!.Subject.Id);
         Assert.Null(plain.Payload.Question.Label);
         Assert.All(plain.Payload.Question.Inhabitant.Knowledge, k => Assert.Null(k.Label));
