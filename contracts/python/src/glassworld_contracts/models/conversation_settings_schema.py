@@ -65,6 +65,13 @@ class PraiseEffect(BaseModel):
     )
 
 
+class NamingEffect(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    understanding: float = Field(..., ge=0.0, le=1.0)
+
+
 class ConversationSettings(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -123,4 +130,8 @@ class ConversationSettings(BaseModel):
     praise: PraiseEffect | None = Field(
         None,
         description="A1538 (B6 R21, B2678): what praise of the player does when the service classified the player's text as praise (conversation-response voice.kind 'praise') and the inhabitant understood it (reply or gesture) - on top of the outcome's own changes, at most once per every_minutes. Omitted = praise does nothing.",
+    )
+    naming: NamingEffect | None = Field(
+        None,
+        description='A1538/A1617 (B2678): what a naming does when the service passes one (the player pointed at a thing the inhabitant sees and wrote its word) and the inhabitant understood (reply or gesture): the word goes into its memory (event word_heard) - a name proposal by trust comes with A1536 - and its understanding grows by understanding. Omitted = a naming does nothing.',
     )
