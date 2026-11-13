@@ -229,6 +229,14 @@
     {
       "id": "night_questions",
       "description": "The compute night went through an inhabitant's open questions about things (Detail = 'asked=N,skipped=M'; skipped = nothing to guess from yet, the question waits)."
+    },
+    {
+      "id": "idea",
+      "description": "A nightly look back brought a new idea or let one grow (A1584, B2578)."
+    },
+    {
+      "id": "dreamed",
+      "description": "An inhabitant dreamed in the compute night (A1584, B2592)."
     }
   ]
 }

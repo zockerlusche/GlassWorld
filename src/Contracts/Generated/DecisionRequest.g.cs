@@ -229,6 +229,21 @@ namespace GlassWorld.Contracts
 
     }
 
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class MorningIntention
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("action")]
+        public string Action { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("about")]
+        public Subject? About { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("thought")]
+        public GeneratedText? Thought { get; set; } = default!;
+
+    }
+
     /// <summary>
     /// Core -&gt; AI service: one inhabitant asks the decider which of the offered options to take.
     /// </summary>
@@ -289,6 +304,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         [System.Text.Json.Serialization.JsonPropertyName("occasion")]
         public string? Occasion { get; set; } = default!;
+
+        /// <summary>
+        /// Only with occasion 'intention' (B2687, A1584): what the inhabitant meant to do this morning (from its nightly look back) - an action, what it is about, and the morning thought it had. The core makes sure that action on a thing of that kind is among the options; the AI may take it up or do something else (PR2). Absent otherwise, and from an older core.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("intention")]
+        public MorningIntention? Intention { get; set; } = default!;
 
     }
 }

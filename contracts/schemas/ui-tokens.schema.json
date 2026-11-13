@@ -329,6 +329,18 @@
           "minimum": 0,
           "maximum": 0.9
         },
+        "invention_icon_px": {
+          "description": "Size of an invention's icon before its name (A1603): its painted picture, else stripes in the kit colours of its plan. Omitted = 24.",
+          "type": "integer",
+          "minimum": 12,
+          "maximum": 96
+        },
+        "invention_icon_colors": {
+          "description": "How many kit colours the stand-in icon of an invention without a painted picture shows at most, the largest share first (A1603). Omitted = 3.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
+        },
         "faded_alpha": {
           "description": "Opacity of a card value shown greyed - a need an invention brought that has run empty (A1595); 1 = not greyed. Omitted = 0.5.",
           "type": "number",

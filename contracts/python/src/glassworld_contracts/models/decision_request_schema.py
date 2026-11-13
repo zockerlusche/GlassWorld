@@ -118,6 +118,20 @@ class CalledAs(BaseModel):
     label: common_schema.VocabId | None
 
 
+class MorningIntention(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    action: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    about: common_schema.Subject | None
+    thought: common_schema.GeneratedText | None
+
+
 class Option(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -234,4 +248,8 @@ class DecisionRequest(BaseModel):
         description="Why the core asks, when it is not something new or a stuck building (B2663): today only 'leisure' - the inhabitant is awake, no need presses and it is bored. A prompt may say so in a line of its own; it never tells which option to take. Absent otherwise, and from an older core.",
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    intention: MorningIntention | None = Field(
+        None,
+        description="Only with occasion 'intention' (B2687, A1584): what the inhabitant meant to do this morning (from its nightly look back) - an action, what it is about, and the morning thought it had. The core makes sure that action on a thing of that kind is among the options; the AI may take it up or do something else (PR2). Absent otherwise, and from an older core.",
     )

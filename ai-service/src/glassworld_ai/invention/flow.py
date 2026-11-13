@@ -315,9 +315,13 @@ def inventor_values(
     want = plain_id(payload.want)
     # v4 (B2668): a need is said with what it is about, so the idea can answer it.
     about = vocab.describe("need", want) if settings.get("want_about") is True else None
+    idea: Any = getattr(payload, "idea", None)
+    # v5 (B2687, R28): a ripe idea of its own - its English text is what it wants to make real.
+    own_idea = str(idea.text) if idea is not None and settings.get("idea_words") is True else ""
     why = (
         table(settings, "trigger_words")
         .get(trigger, "$want")
+        .replace("$idea", own_idea)
         .replace("$want", humanize(want) + (f" ({about.rstrip('.')})" if about else ""))
     )
     language = table(settings, "language_names").get(plain_id(job.display_locale))
@@ -375,8 +379,13 @@ def guard_values(
     reasons = [r for r in vocab.ids("guard_reason") if r not in bound or bound[r] in occasions]
     want = plain_id(payload.want)
     about = vocab.describe("need", want)
+    idea: Any = getattr(payload, "idea", None)
+    wanted = humanize(want) + (f" ({about.rstrip('.')})" if about else "")
+    if idea is not None and (settings or {}).get("idea_words") is True:
+        # v4 (B2687): a ripe idea is the want; the thing must make that idea real.
+        wanted = f"its own idea: {idea.text}"
     return {
-        "want": humanize(want) + (f" ({about.rstrip('.')})" if about else ""),
+        "want": wanted,
         "reasons": "\n".join(f"- {r}: {vocab.describe('guard_reason', r)}" for r in reasons),
         "safety": safety,
         "invention": "\n".join("> " + line for line in data.splitlines()),

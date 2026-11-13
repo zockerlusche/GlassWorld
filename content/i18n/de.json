@@ -1575,6 +1575,14 @@
       "text": "Freier Moment ohne Antwort"
     },
     {
+      "key": "vocab.event.idea",
+      "text": "Idee"
+    },
+    {
+      "key": "vocab.event.dreamed",
+      "text": "Geträumt"
+    },
+    {
       "key": "vocab.event.question_failed",
       "text": "Frage unbeantwortet"
     },

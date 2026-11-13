@@ -549,6 +549,10 @@ namespace GlassWorld.Contracts
         Model3d = 9,
 
 
+        [System.Text.Json.Serialization.JsonStringEnumMemberName("review")]
+        Review = 10,
+
+
     }
 
     /// <summary>

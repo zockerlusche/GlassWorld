@@ -115,6 +115,8 @@ class Settings(BaseSettings):
     process_prompt_version: int = Field(ge=1)
     dream_prompt: str = Field(pattern=r"^[a-z][a-z0-9_]*/[a-z][a-z0-9_-]*$")
     dream_prompt_version: int = Field(ge=1)
+    review_prompt: str = Field(pattern=r"^[a-z][a-z0-9_]*/[a-z][a-z0-9_-]*$")
+    review_prompt_version: int = Field(ge=1)
     help_prompt: str = Field(pattern=r"^[a-z][a-z0-9_]*/[a-z][a-z0-9_-]*$")
     help_prompt_version: int = Field(ge=1)
     conversation_prompt: str = Field(pattern=r"^[a-z][a-z0-9_]*/[a-z][a-z0-9_-]*$")

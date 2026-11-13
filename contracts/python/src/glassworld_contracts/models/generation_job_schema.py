@@ -180,6 +180,35 @@ class Model3dPayload(BaseModel):
     )
 
 
+class ReviewIdea(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    id: str = Field(
+        ...,
+        description='Id of an object or inhabitant instance in the world, assigned by the core.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_-]*$',
+    )
+    text: str = Field(..., max_length=160, min_length=1)
+    roots: list[common_schema.Subject] = Field(..., max_length=8)
+    strength: float = Field(..., ge=0.0, le=1.0)
+
+
+class InventionIdea(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    id: str = Field(
+        ...,
+        description='Id of an object or inhabitant instance in the world, assigned by the core.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_-]*$',
+    )
+    text: str = Field(..., max_length=160, min_length=1)
+    roots: list[common_schema.Subject] = Field(..., max_length=8, min_length=1)
+
+
 class QuestionPayload(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -208,7 +237,7 @@ class InventionPayload(BaseModel):
     trigger: Trigger
     want: str = Field(
         ...,
-        description='Need or action the inhabitant has no solution for (vocabulary need or action).',
+        description="Need or action the inhabitant has no solution for (vocabulary need or action). With trigger 'idea' it is only the least satisfied need for the record: the prompts (inventor v5, guard v4) take the idea as what is wanted and do not say this want (review GW1 #333).",
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
@@ -229,6 +258,10 @@ class InventionPayload(BaseModel):
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
     limits: InventionLimits
+    idea: InventionIdea | None = Field(
+        None,
+        description="Only with trigger 'idea' (B2578, B4b R28 ripe idea, A1585): the inhabitant's own idea that is ripe - its id, the short English text and what it is built on (subjects of its own knowledge). The inventor answers it and the guard checks the answer against it. Absent otherwise.",
+    )
 
 
 class BuildPlanPayload(BaseModel):
@@ -300,6 +333,57 @@ class MemoryPayload(BaseModel):
     )
 
 
+class ReviewPayload(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    events: list[MemoryFact] = Field(
+        ...,
+        description="The day's events, oldest first (as for memory and dream).",
+        max_length=32,
+        min_length=1,
+    )
+    memory: str = Field(
+        ...,
+        description='The current memory summary (English, internal; may be empty).',
+        max_length=1200,
+    )
+    memory_max_chars: int = Field(..., ge=100, le=1200)
+    dream_max_chars: int = Field(..., ge=40, le=280)
+    mood: common_schema.VocabId | None = Field(
+        ..., description='Strongest mood at the end of the day, or null.'
+    )
+    tones: list[common_schema.VocabId] = Field(
+        ..., description='Tones the dream may have (data).', max_length=8, min_length=1
+    )
+    knowledge: list[common_schema.KnowledgeEntry] = Field(
+        ...,
+        description='What the inhabitant believes (its Fundbuch, B2589), cut by relevance in the core; only beliefs, never the truth. Roots of ideas and the subjects of intentions must come from here.',
+        max_length=48,
+    )
+    ideas: list[ReviewIdea] = Field(
+        ..., description="The inhabitant's current ideas (may be empty).", max_length=12
+    )
+    needs: list[common_schema.LevelEntry] = Field(
+        ...,
+        description='Needs at the end of the day (0 = urgent, 1 = satisfied).',
+        max_length=32,
+    )
+    traits: list[common_schema.LevelEntry] = Field(
+        ...,
+        description='Character traits (creativity: how often and how bold; curiosity: trying out - B2578, no new trait).',
+        max_length=16,
+    )
+    actions: list[common_schema.VocabId] = Field(
+        ...,
+        description='Actions an intention may name (vocabulary, general ones).',
+        max_length=64,
+        min_length=1,
+    )
+    max_new_ideas: int = Field(..., ge=0, le=3)
+    max_intentions: int = Field(..., ge=0, le=3)
+
+
 class JobPayload(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -313,6 +397,7 @@ class JobPayload(BaseModel):
     image: ImagePayload | None = None
     dream: DreamPayload | None = None
     model3d: Model3dPayload | None = None
+    review: ReviewPayload | None = None
 
 
 class GenerationJob(BaseModel):

@@ -125,6 +125,20 @@ namespace GlassWorld.Contracts
         public double ModalDim { get; set; } = default!;
 
         /// <summary>
+        /// Size of an invention's icon before its name (A1603): its painted picture, else stripes in the kit colours of its plan. Omitted = 24.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("invention_icon_px")]
+        public int? InventionIconPx { get; set; } = default!;
+
+        /// <summary>
+        /// How many kit colours the stand-in icon of an invention without a painted picture shows at most, the largest share first (A1603). Omitted = 3.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("invention_icon_colors")]
+        public int? InventionIconColors { get; set; } = default!;
+
+        /// <summary>
         /// Opacity of a card value shown greyed - a need an invention brought that has run empty (A1595); 1 = not greyed. Omitted = 0.5.
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]

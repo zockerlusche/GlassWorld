@@ -48,6 +48,12 @@ class InventionTrigger(BaseModel):
     max_open: int = Field(
         ..., description='Open wishes in the whole world at the same time.', ge=1, le=64
     )
+    idea_ripe_at: float | None = Field(
+        None,
+        description="B2687 (B4b R28, A1585): an own idea whose strength reached this value and whose roots the inhabitant still believes becomes a wish (trigger 'idea') when no lack does; once per idea, with the same cooldown and open limit. Absent = ideas never become wishes.",
+        ge=0.0,
+        le=1.0,
+    )
 
 
 class InventionLimitSettings(BaseModel):

@@ -43,6 +43,13 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("max_open")]
         public int MaxOpen { get; set; } = default!;
 
+        /// <summary>
+        /// B2687 (B4b R28, A1585): an own idea whose strength reached this value and whose roots the inhabitant still believes becomes a wish (trigger 'idea') when no lack does; once per idea, with the same cooldown and open limit. Absent = ideas never become wishes.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("idea_ripe_at")]
+        public double? IdeaRipeAt { get; set; } = default!;
+
     }
 
     /// <summary>

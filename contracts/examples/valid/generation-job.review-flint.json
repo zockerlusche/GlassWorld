@@ -1,0 +1,103 @@
+{
+  "contract_version": "0.2",
+  "tick": 2600,
+  "seed": 4242,
+  "display_locale": "de",
+  "request_id": "5b2e8c1d-7f40-4a6e-9c31-2d8e4f6a1584",
+  "kind": "review",
+  "priority": 20,
+  "inhabitant": "inh-000002",
+  "object": null,
+  "payload": {
+    "review": {
+      "events": [
+        {
+          "tick": 1500,
+          "kind": "inspect",
+          "about": {
+            "kind": "type",
+            "id": "flint"
+          },
+          "formative": false,
+          "outcome": "found_out"
+        },
+        {
+          "tick": 1900,
+          "kind": "eat",
+          "about": {
+            "kind": "type",
+            "id": "hazelnut"
+          },
+          "formative": true,
+          "outcome": "done"
+        }
+      ],
+      "memory": "Woke on the beach. Met Mira. Spring water is good to drink.",
+      "memory_max_chars": 600,
+      "dream_max_chars": 220,
+      "mood": "joy",
+      "tones": [
+        "calm",
+        "joyful",
+        "curious",
+        "uneasy"
+      ],
+      "knowledge": [
+        {
+          "subject": {
+            "kind": "type",
+            "id": "flint"
+          },
+          "property": "sharp",
+          "value": true,
+          "confidence": 0.8,
+          "source": "seen",
+          "told_by": null,
+          "tick": 1500
+        },
+        {
+          "subject": {
+            "kind": "type",
+            "id": "hazelnut"
+          },
+          "property": "edible",
+          "value": true,
+          "confidence": 1.0,
+          "source": "experienced",
+          "told_by": null,
+          "tick": 1900
+        }
+      ],
+      "ideas": [],
+      "needs": [
+        {
+          "id": "hunger",
+          "value": 0.7
+        },
+        {
+          "id": "purpose",
+          "value": 0.4
+        }
+      ],
+      "traits": [
+        {
+          "id": "creativity",
+          "value": 0.7
+        },
+        {
+          "id": "curiosity",
+          "value": 0.6
+        }
+      ],
+      "actions": [
+        "inspect",
+        "show",
+        "teach",
+        "explore",
+        "use"
+      ],
+      "max_new_ideas": 1,
+      "max_intentions": 2
+    }
+  }
+}

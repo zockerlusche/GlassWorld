@@ -210,7 +210,16 @@ def _occasion(request: DecisionRequest, settings: dict[str, Any]) -> str:
     if not isinstance(words, dict):
         return ""
     table = {str(k): str(v) for k, v in cast(dict[object, object], words).items()}
-    return f"{table['heading']}\n{table['line']}\n\n"
+    line = table["line"]
+    intention: Any = getattr(request, "intention", None)
+    if "$intention" in line:
+        # v12 (B2687): what it meant to do this morning - its own morning thought, else the action.
+        if intention is None:
+            return ""
+        thought = intention.thought.text if intention.thought is not None else None
+        said = f'"{thought}"' if thought else _humanize(_id(intention.action))
+        line = line.replace("$intention", said)
+    return f"{table['heading']}\n{line}\n\n"
 
 
 def _labels(request: DecisionRequest, locale: str) -> dict[str, str]:
