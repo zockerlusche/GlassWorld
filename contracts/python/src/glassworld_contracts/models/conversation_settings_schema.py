@@ -42,6 +42,29 @@ class OutcomeChange(BaseModel):
     )
 
 
+class PraiseEffect(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    mood: str = Field(
+        ...,
+        description='The mood praise lifts (vocabulary mood).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    mood_delta: float = Field(..., ge=0.0, le=1.0)
+    affection: float = Field(..., ge=-1.0, le=1.0)
+    trust: float = Field(..., ge=-1.0, le=1.0)
+    respect: float = Field(..., ge=-1.0, le=1.0)
+    fear: float = Field(..., ge=-1.0, le=1.0)
+    every_minutes: int = Field(
+        ...,
+        description='Praise counts at most once in this many game minutes per inhabitant (calm world, B2466).',
+        ge=0,
+        le=10080,
+    )
+
+
 class ConversationSettings(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -96,4 +119,8 @@ class ConversationSettings(BaseModel):
         description='Most conversation log entries kept (newest first stay; those of sentences still waiting are always kept). Older ones leave the save, so a replay reaches back only this far (review GW1 #128).',
         ge=10,
         le=100000,
+    )
+    praise: PraiseEffect | None = Field(
+        None,
+        description="A1538 (B6 R21, B2678): what praise of the player does when the service classified the player's text as praise (conversation-response voice.kind 'praise') and the inhabitant understood it (reply or gesture) - on top of the outcome's own changes, at most once per every_minutes. Omitted = praise does nothing.",
     )

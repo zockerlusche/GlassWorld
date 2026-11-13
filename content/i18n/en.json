@@ -1583,6 +1583,10 @@
       "text": "Dreamed"
     },
     {
+      "key": "vocab.event.praised",
+      "text": "Praised"
+    },
+    {
       "key": "vocab.event.question_failed",
       "text": "Question unanswered"
     },

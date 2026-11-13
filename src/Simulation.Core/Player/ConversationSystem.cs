@@ -49,7 +49,11 @@ public sealed record ConversationLineState(bool FromPlayer, long Tick, string Lo
 /// <param name="Understanding">How well it understands the player (0..1, grows from gestures to sentences).</param>
 /// <param name="Fear">Fear of the player (trust and respect live in the relationships, other id "player").</param>
 /// <param name="Lines">Recent lines, oldest first, at most the data's count.</param>
-public sealed record ConversationMemory(double Understanding, double Fear, IReadOnlyList<ConversationLineState> Lines);
+public sealed record ConversationMemory(double Understanding, double Fear, IReadOnlyList<ConversationLineState> Lines)
+{
+    /// <summary>When praise last counted (A1538), or null: praise counts at most once per the data's minutes.</summary>
+    public long? LastPraiseTick { get; init; }
+}
 
 /// <summary>A sentence of the player waiting for an answer.</summary>
 /// <param name="RequestId">Request sent for it.</param>
@@ -262,6 +266,12 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
         foreach (var (id, memory) in _memories)
         {
             hasher.Write(id).Write(memory.Understanding).Write(memory.Fear).Write(memory.Lines.Count);
+            if (memory.LastPraiseTick is { } praised)
+            {
+                // A1538, only once praise counted: worlds without keep their hashes.
+                hasher.Write(praised);
+            }
+
             foreach (var line in memory.Lines)
             {
                 hasher.Write(line.FromPlayer ? 1 : 0).Write(line.Tick).Write(line.Locale).Write(line.Text);
@@ -511,6 +521,7 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
             _ => OutcomeChangeOutcome.Not_understood,
         };
         Change(inhabitant, outcome, reply is null ? null : new ConversationLineState(false, world.Tick, reply.Locale.ToString().ToLowerInvariant(), reply.Text));
+        Praise(world, inhabitant, response, outcome);
         switch (outcome)
         {
             case OutcomeChangeOutcome.Reply:
@@ -545,6 +556,46 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
 
         // A calm line instead of nothing (W1701): the text is a key, the game shows it in the player's language.
         _inhabitants.Report(new WorldEvent("no_answer", world.Tick, open.InhabitantId, null, null) { Text = NoAnswerKey });
+    }
+
+    /// <summary>Event: the player's praise reached an inhabitant (A1538).</summary>
+    public const string Praised = "praised";
+
+    /// <summary>The voice kind of praise (vocabulary voice_kind).</summary>
+    public const string PraiseKind = "praise";
+
+    /// <summary>
+    /// A1538 (B2678): praise works on the inhabitant - the service only says what the player's text IS; the effect
+    /// comes from the data, only when the inhabitant understood (reply or gesture), at most once per the data's
+    /// minutes (a calm world: praise is felt, not farmed).
+    /// </summary>
+    private void Praise(World world, Inhabitant inhabitant, ConversationResponse response, OutcomeChangeOutcome outcome)
+    {
+        if (_settings.Praise is not { } praise || response.Voice?.Kind != PraiseKind || outcome is not (OutcomeChangeOutcome.Reply or OutcomeChangeOutcome.Gesture))
+        {
+            return;
+        }
+
+        var memory = MemoryOf(inhabitant.Id);
+        var every = (long)praise.EveryMinutes * _ticksPerHour / 60;
+        if (memory.LastPraiseTick is { } last && world.Tick - last < every)
+        {
+            return;
+        }
+
+        _memories[inhabitant.Id] = memory with { Fear = Math.Clamp(memory.Fear + praise.Fear, 0, 1), LastPraiseTick = world.Tick };
+        if (inhabitant.Moods.TryGetValue(praise.Mood, out var mood))
+        {
+            inhabitant.Moods[praise.Mood] = Math.Clamp(mood + praise.MoodDelta, 0, 1);
+        }
+
+        var start = new Relation(_knowledge.RelationshipStart.Affection, _knowledge.RelationshipStart.Trust, _knowledge.RelationshipStart.Respect);
+        var r = inhabitant.Relationships.Get(PlayerId, start);
+        inhabitant.Relationships.Set(PlayerId, new Relation(
+            Math.Clamp(r.Affection + praise.Affection, 0, 1),
+            Math.Clamp(r.Trust + praise.Trust, 0, 1),
+            Math.Clamp(r.Respect + praise.Respect, 0, 1)));
+        _inhabitants.Report(new WorldEvent(Praised, world.Tick, inhabitant.Id, null, null));
     }
 
     /// <summary>Applies the data's changes for an outcome (never numbers from the answer, B2462).</summary>

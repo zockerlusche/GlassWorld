@@ -52,6 +52,39 @@ namespace GlassWorld.Contracts
 
     }
 
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class PraiseEffect
+    {
+
+        /// <summary>
+        /// The mood praise lifts (vocabulary mood).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("mood")]
+        public string Mood { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("mood_delta")]
+        public double MoodDelta { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("affection")]
+        public double Affection { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("trust")]
+        public double Trust { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("respect")]
+        public double Respect { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("fear")]
+        public double Fear { get; set; } = default!;
+
+        /// <summary>
+        /// Praise counts at most once in this many game minutes per inhabitant (calm world, B2466).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("every_minutes")]
+        public int EveryMinutes { get; set; } = default!;
+
+    }
+
     /// <summary>
     /// Talking with an inhabitant (B6 R13, A1342): limits of the exchange and how understanding and the relation to the player change by outcome. The core computes every change from these rules; the AI only proposes the answer (B2462). Values are placeholders until Marcel's word.
     /// </summary>
@@ -119,6 +152,13 @@ namespace GlassWorld.Contracts
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("log_max_entries")]
         public int LogMaxEntries { get; set; } = default!;
+
+        /// <summary>
+        /// A1538 (B6 R21, B2678): what praise of the player does when the service classified the player's text as praise (conversation-response voice.kind 'praise') and the inhabitant understood it (reply or gesture) - on top of the outcome's own changes, at most once per every_minutes. Omitted = praise does nothing.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("praise")]
+        public PraiseEffect? Praise { get; set; } = default!;
 
     }
 
