@@ -153,8 +153,17 @@ public sealed class ProcessRuleSet
             (heat is null && physics?.HeatProcesses.Contains(process) == true)
             || (physics?.NeedsAny is { } needs && needs.TryGetValue(process, out var anyOf) && !anyOf.Any(all.Contains))
             || (physics?.NeverIf is { } never && never.TryGetValue(process, out var not) && not.Any(all.Contains));
+        // How close a rule of the process comes (GW2 D999): first the conditions (inputs and tool) one of the things
+        // fully meets, then the required properties they share - so a rule with many inputs does not win by
+        // collecting single properties (two stones: strike and split before bind).
         int Promise(string process) => _rules.Where(r => r.Process == process)
-            .Select(r => r.Inputs.Sum(i => i.PropertiesAll.Count(all.Contains)))
+            .Select(r =>
+            {
+                var conditions = r.Tool is { } tool ? r.Inputs.Append(tool) : r.Inputs;
+                var met = conditions.Count(c => inputs.Any(i => Fits(c, i)));
+                var shared = conditions.Sum(c => c.PropertiesAll.Count(all.Contains));
+                return (met * 1000) + shared;
+            })
             .DefaultIfEmpty(0).Max();
         return [.. _processes.Where(p => !Ruled(p))
             .Select(p => (Process: p, Promise: Promise(p)))
