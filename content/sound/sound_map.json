@@ -56,7 +56,13 @@
     },
     {
       "action": "combine",
-      "sound": "action.combine"
+      "sound": "action.combine",
+      "group": "joining"
+    },
+    {
+      "action": "add_fuel",
+      "sound": "action.combine",
+      "group": "joining"
     },
     {
       "action": "use",

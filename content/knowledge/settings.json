@@ -117,6 +117,8 @@
       { "event": "knowledge_gained", "detail_ends_with": "/heard", "kind": "was_told", "formative": "first" },
       { "event": "combined", "formative": "always" },
       { "event": "word_heard", "formative": "always" },
+      { "event": "burned_out", "formative": "first" },
+      { "event": "put_out", "formative": "first" },
       { "event": "invented", "formative": "always" },
       { "event": "built", "formative": "always" },
       { "event": "first_use", "formative": "always" },

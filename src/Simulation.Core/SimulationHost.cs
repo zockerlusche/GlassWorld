@@ -369,6 +369,26 @@ public sealed class SimulationHost
         var fire = new FireSystem(content.Objects, objects, typeId => processes?.RootOf(typeId), world.Calendar.Settings.TicksPerHour) { AirAt = AirAt };
         inhabitants.HeatAt = fire.HeatAt;
 
+        // A1379: fuel into a fire; how warm it feels goes into the request; a fire's end is seen by those near.
+        decisions.TakesFuel = fire.TakesFuel;
+        inhabitants.Feeding = (w, _, fireId, fuelId) => fire.Feed(w, fireId, fuelId);
+        inhabitants.ComfortLevels = content.Vocabularies.TryGetValue(VocabularyKind.Comfort_level, out var comfortLevels)
+            ? [.. comfortLevels.Entries.Select(e => e.Id)]
+            : null;
+        fire.Ended = (w, thing, how) =>
+        {
+            var sight = inhabitants.SightRadiusM;
+            foreach (var seer in inhabitants.All.ToList())
+            {
+                var dx = seer.Position.X - thing.Position.X;
+                var dz = seer.Position.Z - thing.Position.Z;
+                if ((dx * dx) + (dz * dz) <= sight * sight)
+                {
+                    inhabitants.Report(new WorldEvent(how, w.Tick, seer.Id, null, thing.Id) { TargetType = thing.TypeId });
+                }
+            }
+        };
+
         var nightJobs = new Night.NightJobsSystem(content.Knowledge, content.Inventions.Build.NightPhases, types.PropertyVocabulary, content.Inventions.Guard, inhabitants, decisions, jobs, inventions.Log, displayLocale) { ValidateRequests = options.ValidateRequests };
         var chronicle = new ChronicleSystem(content.Chronicle);
         inhabitants.Reported += chronicle.Observe;

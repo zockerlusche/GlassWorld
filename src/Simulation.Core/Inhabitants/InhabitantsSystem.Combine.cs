@@ -24,6 +24,12 @@ public sealed partial class InhabitantsSystem
     public Func<World, Inhabitant, string, IReadOnlyList<WorldObject>, bool>? Processing { get; set; }
 
     /// <summary>
+    /// Feeding a fire (A1379): the target, the fuel; returns whether it burns longer now. Set by the host
+    /// from the fires; null = feeding does nothing.
+    /// </summary>
+    public Func<World, Inhabitant, string, string, bool>? Feeding { get; set; }
+
+    /// <summary>
     /// Whether every partner thing of the activity is still there, is not the target itself, appears once
     /// and lies within the action's partner reach of the target. True for activities without partners.
     /// </summary>

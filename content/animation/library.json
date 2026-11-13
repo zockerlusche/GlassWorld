@@ -309,6 +309,11 @@
     },
     {
       "kind": "action",
+      "id": "add_fuel",
+      "clip": "handle"
+    },
+    {
+      "kind": "action",
       "id": "use",
       "clip": "handle"
     },

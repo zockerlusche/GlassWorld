@@ -40,9 +40,25 @@ class ObjectParams(BaseModel):
     )
     burn_minutes: int | None = Field(
         None,
-        description='How long one piece burns as fuel, in game minutes (B5-2, R7, D634 R45).',
+        description='How long a thing of this type burns on its own once it is in the world, in game minutes; then it is gone (a fire, a spark; B2687 K3, R7, B2690).',
         ge=0,
         le=10080,
+    )
+    takes_fuel: bool | None = Field(
+        None,
+        description='A burning thing of this type can be fed (A1379): fuel put into it makes it burn longer. Only with burn_minutes. Omitted = false (a spark).',
+    )
+    burn_max_minutes: int | None = Field(
+        None,
+        description='Feeding makes it burn at most this long from now, in game minutes (a pile of grass gives no day-long fire). Only with takes_fuel.',
+        ge=1,
+        le=10080,
+    )
+    fuel_minutes: int | None = Field(
+        None,
+        description='How much longer a fire burns when a piece of this is put into it, in game minutes (A1379, D634 R45). It does not make the thing burn on its own.',
+        ge=1,
+        le=1440,
     )
     heat_tenth_c: int | None = Field(
         None,
