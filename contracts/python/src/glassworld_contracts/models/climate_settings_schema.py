@@ -163,6 +163,43 @@ class TemperatureBiomeOffset(BaseModel):
     offset_tenth_c: int = Field(..., ge=-1000, le=1000)
 
 
+class ClimateExtremeWeather(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    season: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    weather: str = Field(
+        ...,
+        description='A weather state of this climate.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    chance_permille: int = Field(..., ge=0, le=1000)
+    hours_min: int = Field(..., ge=1, le=240)
+    hours_max: int = Field(..., ge=1, le=240)
+
+
+class ClimateHeatWave(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    season: str = Field(
+        ...,
+        description='Language-neutral vocabulary id (English snake_case, dot-separated namespaces).',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
+    chance_permille: int = Field(..., ge=0, le=1000)
+    days_min: int = Field(..., ge=1, le=14)
+    days_max: int = Field(..., ge=1, le=14)
+    offset_tenth_c: int = Field(..., ge=0, le=200)
+
+
 class ClimateTransition(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -214,6 +251,20 @@ class ClimateTemperature(BaseModel):
         ge=0,
         le=1000,
     )
+
+
+class ClimateExtremes(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    cooldown_days: int = Field(
+        ...,
+        description='Whole days after an extreme ends before the next may begin (calm world).',
+        ge=0,
+        le=60,
+    )
+    weather: list[ClimateExtremeWeather] = Field(..., max_length=32)
+    heat_waves: list[ClimateHeatWave] = Field(..., max_length=12)
 
 
 class ClimateSeasonWeather(BaseModel):
@@ -293,6 +344,10 @@ class ClimateWeather(BaseModel):
         description='Game minutes between two gust key values (GW3): the wind swings smoothly between values drawn from the world seed and the tick, so the same seed gives the same wind. Placeholder.',
         ge=1,
         le=1440,
+    )
+    extremes: ClimateExtremes | None = Field(
+        None,
+        description="Rough days of this climate (A1382, spec R24, review GW1 #23950): extreme weather entered by the weather's own daily roll (stream weather/extreme), never set from outside. Omitted = none.",
     )
 
 
