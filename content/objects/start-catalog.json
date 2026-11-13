@@ -11,7 +11,7 @@
     { "id": "dry_wood", "description": "Dry fallen branches.", "properties": ["burnable", "building_material", "portable"], "params": { "fuel_minutes": 60 } },
     { "id": "dry_grass", "description": "A bundle of dry grass.", "properties": ["burnable", "fibrous", "portable"], "params": { "fuel_minutes": 10 } },
     { "id": "spark", "description": "A short-lived glowing spark.", "properties": ["hot"], "params": { "burn_minutes": 20 } },
-    { "id": "fire", "description": "A small fire with flames.", "properties": ["hot"], "params": { "burn_minutes": 90, "takes_fuel": true, "burn_max_minutes": 240, "heat_tenth_c": 80, "heat_radius_cm": 400 } },
+    { "id": "fire", "description": "A small fire with flames.", "properties": ["hot"], "params": { "burn_minutes": 90, "heat_level": "open_fire", "takes_fuel": true, "burn_max_minutes": 240, "heat_tenth_c": 80, "heat_radius_cm": 400 } },
     { "id": "rock_niche", "description": "A niche or cave mouth in the rock; no room inside (B2514 T3).", "properties": ["stone", "hard", "sheltering"] },
     { "id": "deciduous_tree", "description": "A broad-leaved tree with a thick trunk.", "properties": ["burnable", "building_material", "splittable"] },
     { "id": "conifer_tree", "description": "A tall tree with needles and cones.", "properties": ["burnable", "building_material", "splittable"] },

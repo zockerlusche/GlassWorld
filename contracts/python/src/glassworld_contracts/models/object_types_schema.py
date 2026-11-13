@@ -44,6 +44,12 @@ class ObjectParams(BaseModel):
         ge=0,
         le=10080,
     )
+    heat_level: str | None = Field(
+        None,
+        description='The heat level a burning thing of this type gives for processing (B2700, a heat level of content/processes/rules.json, e.g. open_fire): put together with it or near it, rules with heat_min up to this level apply. Only with burn_minutes.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
     takes_fuel: bool | None = Field(
         None,
         description='A burning thing of this type can be fed (A1379): fuel put into it makes it burn longer. Only with burn_minutes. Omitted = false (a spark).',
