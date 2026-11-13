@@ -237,7 +237,7 @@ class InventionPayload(BaseModel):
     trigger: Trigger
     want: str = Field(
         ...,
-        description='Need or action the inhabitant has no solution for (vocabulary need or action).',
+        description="Need or action the inhabitant has no solution for (vocabulary need or action). With trigger 'idea' it is only the least satisfied need for the record: the prompts (inventor v5, guard v4) take the idea as what is wanted and do not say this want (review GW1 #333).",
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )

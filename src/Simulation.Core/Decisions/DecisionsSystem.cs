@@ -159,8 +159,10 @@ public sealed class DecisionsSystem : IWorldSystem
     /// <summary>Occasion of a free moment that offers the morning's intention (B2687 step 2, decider v12).</summary>
     public const string IntentionOccasion = "intention";
 
-    // The intention a free moment offers while its request is built (Send reads it; empty otherwise).
+    // The intention a free moment offers while its request is built (Send reads it; empty otherwise), and whether
+    // the request that went out carried it (its action was among the options).
     private Intention? _offering;
+    private bool _offered;
 
     /// <summary>Question kind: a building is stuck and the builder asks what to do (A1373 step 2, D850); subject = invention type.</summary>
     public const string BuildStuck = "build_stuck";
@@ -644,10 +646,13 @@ public sealed class DecisionsSystem : IWorldSystem
                 var intention = inhabitant.Ideas.Intentions.FirstOrDefault(i => i.AboutId is null || things.Any(t => t.TypeId == i.AboutId));
                 var target = intention?.AboutId is { } typeId ? things.Where(t => t.TypeId == typeId).MinBy(t => ((t.Position.X - inhabitant.Position.X) * (t.Position.X - inhabitant.Position.X)) + ((t.Position.Z - inhabitant.Position.Z) * (t.Position.Z - inhabitant.Position.Z))) : null;
                 _offering = intention;
+                _offered = false;
                 Ask(world, inhabitant, Leisure, LeisureSubject, target);
                 _offering = null;
-                // Used up only when it really went out (a held-back question is asked later as a plain free moment).
-                if (intention is not null && _openOf.GetValueOrDefault(inhabitant.Id)?.Any(q => q.Kind == Leisure && q.AskedTick == world.Tick && q.RequestId.Length > 0) == true)
+
+                // Used up only when a request really went out with it (review GW1 #333): a held-back question is asked
+                // later as a plain free moment, and one whose action rests went out without it.
+                if (intention is not null && _offered)
                 {
                     inhabitant.Ideas.Use(intention);
                 }
@@ -1169,8 +1174,9 @@ public sealed class DecisionsSystem : IWorldSystem
         if (kind == Leisure)
         {
             request.Occasion = Leisure;
-            if (_offering is { } offered)
+            if (_offering is { } offered && options.Any(o => o.Action == offered.Action))
             {
+                _offered = true;
                 request.Occasion = IntentionOccasion;
                 request.Intention = new MorningIntention
                 {
@@ -1248,11 +1254,18 @@ public sealed class DecisionsSystem : IWorldSystem
         var raw = new List<(string Action, string? TargetId)>();
         var passOn = new List<(string Action, string? TargetId)>();
         var meeting = new List<(string Action, string? TargetId)>();
+
+        // B2687 (review GW1 #333): the intention a free moment offers is an option even when the needs do not suggest
+        // it (e.g. inspecting a thing no longer new), first so the limit never cuts it; Rests and HasPurpose still hold.
+        var intended = _offering?.Action;
+        var first = new List<(string Action, string? TargetId)>();
         foreach (var action in _actions.OfferedActions)
         {
+            var isIntended = action == intended;
+
             // Only what the asker's needs suggest (F5275 A): no sleep offered to someone wide awake, so a
             // queued answer cannot chain sleeps while thirsty.
-            if (!_brain.NeedSuggests(asker, action, target?.TypeId))
+            if (!isIntended && !_brain.NeedSuggests(asker, action, target?.TypeId))
             {
                 continue;
             }
@@ -1260,12 +1273,12 @@ public sealed class DecisionsSystem : IWorldSystem
             switch (_actionTargets.GetValueOrDefault(action, VocabularyEntryTarget.None))
             {
                 case VocabularyEntryTarget.Object when target is not null && !Rests(asker, action, target.Id, tick):
-                    raw.Add((action, target.Id));
+                    (isIntended ? first : raw).Add((action, target.Id));
                     break;
                 case VocabularyEntryTarget.None when !Rests(asker, action, null, tick)
                     && (!_inhabitants.AtFrontier(action) || _inhabitants.FrontierOf?.Invoke(asker) is not null):
                     // An action at the frontier (B2-6 R14) only while unseen land can be reached on foot.
-                    raw.Add((action, null));
+                    (isIntended ? first : raw).Add((action, null));
                     break;
                 case VocabularyEntryTarget.Inhabitant when Knowledge is { } knowledge:
                     // Passing on knowledge (B4a R4): offered towards someone in sight when the asker knows
@@ -1288,7 +1301,7 @@ public sealed class DecisionsSystem : IWorldSystem
 
                         if (purpose && !Rests(asker, action, other.Id, tick))
                         {
-                            (meetingOption is not null ? meeting : passOn).Add((action, other.Id));
+                            (isIntended ? first : meetingOption is not null ? meeting : passOn).Add((action, other.Id));
                         }
                     }
 
@@ -1301,6 +1314,7 @@ public sealed class DecisionsSystem : IWorldSystem
 
         // Passing knowledge on comes after the usual options and never pushes the request over the
         // contract's limit (review GW2 #103): at most the data's number, in a fixed order.
+        raw.InsertRange(0, first);
         var room = Math.Max(0, MaxOptions - raw.Count);
         raw.AddRange(passOn.Take(Math.Min(room, Knowledge?.MaxPassOnOptions ?? 0)));
 

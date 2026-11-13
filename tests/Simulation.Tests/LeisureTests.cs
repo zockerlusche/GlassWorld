@@ -127,6 +127,25 @@ public sealed class LeisureTests
         Assert.Empty(a.Ideas.Intentions);
     }
 
+    [Fact]
+    public void TheIntentionsActionIsAnOptionEvenWhenTheNeedsDoNotSuggestIt()
+    {
+        // Review GW1 #333: the request says what it meant to do, so that action must be among the options - even when
+        // the needs no longer suggest it (here: eating, with every need satisfied).
+        var (host, port, a) = Alone();
+        var near = host.Objects.Spawn("flint", new Position(2, 0));
+        a.Beliefs.Set("flint", "sharp", true, 0.8, KnowledgeSources.Seen, null, 0);
+        Assert.False(Content.Value.Brain.NeedSuggests(a, "eat", "flint"));
+        a.Ideas.Intend([new Intention("eat", "type", "flint", 0, null)]);
+
+        host.World.Step();
+
+        var request = Assert.Single(port.Requests);
+        Assert.Equal(DecisionsSystem.IntentionOccasion, request.Occasion);
+        Assert.Contains(request.Options, o => o.Action == "eat" && o.Target == near.Id);
+        Assert.Empty(a.Ideas.Intentions);
+    }
+
     private static (SimulationHost Host, CountingPort Port, Inhabitant A) Alone()
     {
         var port = new CountingPort();

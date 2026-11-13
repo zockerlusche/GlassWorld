@@ -366,6 +366,10 @@ def test_v5_and_guard_v4_take_a_ripe_idea_as_the_want(settings: Settings) -> Non
     g4 = load_prompt(settings.prompts_dir, "guard/invention", 4)
     guard = g4.render(guard_values(job, BOWL, 1, vocab, safety, g4.settings))
     assert "its own idea: The sharp stone might open a nut." in guard.user
+    # Review GW1 #333: with trigger idea the want (lowest need, for the record) is not said,
+    # so a good idea is never sent back for not helping that need.
+    assert "Purpose" not in guard.user
+    assert "Purpose" not in rendered.user
     g3 = load_prompt(settings.prompts_dir, "guard/invention", 3)
     old = g3.render(guard_values(job, BOWL, 1, vocab, safety, g3.settings))
     assert "its own idea" not in old.user

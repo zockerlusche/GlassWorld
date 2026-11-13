@@ -129,7 +129,7 @@ namespace GlassWorld.Contracts
         public InventionPayloadTrigger Trigger { get; set; } = default!;
 
         /// <summary>
-        /// Need or action the inhabitant has no solution for (vocabulary need or action).
+        /// Need or action the inhabitant has no solution for (vocabulary need or action). With trigger 'idea' it is only the least satisfied need for the record: the prompts (inventor v5, guard v4) take the idea as what is wanted and do not say this want (review GW1 #333).
         /// </summary>
         [System.Text.Json.Serialization.JsonPropertyName("want")]
         public string Want { get; set; } = default!;
