@@ -123,6 +123,26 @@
       "text": "Purpose"
     },
     {
+      "key": "ui.card.point",
+      "text": "Point"
+    },
+    {
+      "key": "ui.card.point_tooltip",
+      "text": "Then click a thing in the world: your sentence points at it."
+    },
+    {
+      "key": "ui.card.pointed",
+      "text": "pointing at: {thing}"
+    },
+    {
+      "key": "ui.card.point_nothing",
+      "text": "There is nothing to point at there."
+    },
+    {
+      "key": "ui.card.point_waiting",
+      "text": "Click a thing in the world …"
+    },
+    {
       "key": "ui.card.character",
       "text": "Character"
     },
@@ -2757,6 +2777,14 @@
     {
       "key": "ui.timeline.empty",
       "text": "Nothing has happened yet. Later this lists the seasons with their events - a click turns the chronicle to that page."
+    },
+    {
+      "key": "ui.night.learned.true",
+      "text": "{name}: {thing} – {property}?"
+    },
+    {
+      "key": "ui.night.learned.false",
+      "text": "{name}: {thing} – not {property}?"
     },
     {
       "key": "ui.night.title",

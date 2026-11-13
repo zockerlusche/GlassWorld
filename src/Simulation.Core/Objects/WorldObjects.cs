@@ -115,6 +115,29 @@ public sealed class WorldObjects : IWorldSystem
         return true;
     }
 
+    /// <summary>
+    /// Gives an object another type of the truth, keeping its id and place: a thing that was changed
+    /// (processed, B2687 K2) stays the same thing for everyone who knows it. False when it is not there.
+    /// </summary>
+    public bool ChangeType(string id, string typeId)
+    {
+        if (!Catalog.Contains(typeId))
+        {
+            throw new ArgumentException($"Unknown object type '{typeId}'.", nameof(typeId));
+        }
+
+        if (!_objects.TryGetValue(id, out var obj))
+        {
+            return false;
+        }
+
+        Remove(id);
+        var changed = obj with { TypeId = typeId };
+        _objects.Add(id, changed);
+        Index(changed);
+        return true;
+    }
+
     /// <summary>Restores an object with its original id (save games).</summary>
     public void Restore(WorldObject obj, long nextNumber)
     {

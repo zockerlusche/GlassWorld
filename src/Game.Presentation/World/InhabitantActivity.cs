@@ -67,11 +67,25 @@ public static class InhabitantActivity
     /// Where the inhabitant turns its whole body to (B2528, W1691): the position of the inhabitant the core
     /// says it faces (<see cref="InhabitantSnapshot.Facing"/>), or null (the figure faces where it walked).
     /// </summary>
-    public static Position? FacePoint(InhabitantSnapshot inhabitant, IReadOnlyList<InhabitantSnapshot> all)
+    public static Position? FacePoint(InhabitantSnapshot inhabitant, IReadOnlyList<InhabitantSnapshot> all) => FacePoint(inhabitant, all, null);
+
+    /// <summary>
+    /// As <see cref="FacePoint(InhabitantSnapshot, IReadOnlyList{InhabitantSnapshot})"/>, and (W1936, TL #23084) one that
+    /// stands - no gait - with an action on a thing turns to that thing: whoever looks at, picks or eats something
+    /// looks at it. Walking it faces where it walks.
+    /// </summary>
+    public static Position? FacePoint(InhabitantSnapshot inhabitant, IReadOnlyList<InhabitantSnapshot> all, IReadOnlyList<WorldObject>? objects)
     {
         ArgumentNullException.ThrowIfNull(inhabitant);
         ArgumentNullException.ThrowIfNull(all);
-        return inhabitant.Facing is { } id ? all.FirstOrDefault(o => o.Id == id)?.Position : null;
+        if (inhabitant.Facing is { } id)
+        {
+            return all.FirstOrDefault(o => o.Id == id)?.Position;
+        }
+
+        return inhabitant is { Gait: null, Action: not null, TargetId: { } target } && objects?.FirstOrDefault(o => o.Id == target) is { } thing
+            ? thing.Position
+            : null;
     }
 
     /// <summary>

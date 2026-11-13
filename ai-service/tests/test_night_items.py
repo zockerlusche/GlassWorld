@@ -162,3 +162,46 @@ def test_a_question_job_names_the_thing_it_is_about_and_a_memory_job_names_none(
     assert by_job[str(question.request_id)]["inhabitant"] is not None
     assert by_job[str(about_person.request_id)]["object_type"] is None  # a person is no thing type
     assert by_job[str(memory.request_id)]["object_type"] is None
+
+
+def test_a_done_question_shows_what_it_learned_as_ids_surest_first(settings: Settings) -> None:
+    """A1618 (B2683): the dream scene shows what a question job gave the inhabitant - its guesses
+    about the thing, ids only, surest first, at most 4 - and only once the job is done."""
+    data: dict[str, Any] = json.loads(
+        (EXAMPLES / "generation-job.question-berries.json").read_text("utf-8")
+    )
+    data["request_id"] = "00000000-0000-8000-8000-000000000006"
+    data["payload"]["question"]["subject"] = {"kind": "type", "id": "pyrite"}
+    question = GenerationJob.model_validate(data)
+    guesses = [
+        {"property": "sparks", "value": True, "confidence": 0.4},
+        {"property": "hard", "value": True, "confidence": 0.9},
+        {"property": "edible", "value": False, "confidence": 0.7},
+        {"property": "heavy", "value": True, "confidence": 0.2},
+        {"property": "shiny", "value": True, "confidence": 0.1},
+    ]
+    answer = {"understood": True, "guesses": guesses, "idea": None, "thought": None}
+
+    async def handler(job: GenerationJob) -> JobOutcome:
+        return JobOutcome({"question": {**answer, "rationale": "x"}}, "mock", "mock", None, 0, 1)
+
+    runner = JobRunner({"question": handler}, 8)
+
+    async def scenario() -> None:
+        runner.start_night(True)
+        runner.submit(question)
+        await asyncio.sleep(0.05)
+
+    asyncio.run(scenario())
+    items = runner.night_items(0)
+    assert all("learned" not in i for i in items if i["state"] != "done")
+    done = next(i for i in items if i["state"] == "done")
+    assert done["learned"] == [
+        {"subject": "pyrite", "property": "hard", "value": True},
+        {"subject": "pyrite", "property": "edible", "value": False},
+        {"subject": "pyrite", "property": "sparks", "value": True},
+        {"subject": "pyrite", "property": "heavy", "value": True},
+    ]
+    validator = ContractValidator(settings.schemas_dir)
+    body = {"contract_version": "0.2", "phase": "night", "session": runner.session, "items": items}
+    assert validator.errors("night-items", body) == []

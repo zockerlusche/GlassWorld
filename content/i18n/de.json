@@ -123,6 +123,26 @@
       "text": "Sinn"
     },
     {
+      "key": "ui.card.point",
+      "text": "Zeigen"
+    },
+    {
+      "key": "ui.card.point_tooltip",
+      "text": "Danach auf ein Ding in der Welt klicken: dein Satz zeigt darauf."
+    },
+    {
+      "key": "ui.card.pointed",
+      "text": "zeigt auf: {thing}"
+    },
+    {
+      "key": "ui.card.point_nothing",
+      "text": "Dort ist nichts, worauf du zeigen kannst."
+    },
+    {
+      "key": "ui.card.point_waiting",
+      "text": "Klick auf ein Ding in der Welt …"
+    },
+    {
       "key": "ui.card.character",
       "text": "Charakter"
     },
@@ -2757,6 +2777,14 @@
     {
       "key": "ui.timeline.empty",
       "text": "Noch ist nichts geschehen. Hier stehen später die Jahreszeiten mit ihren Ereignissen – ein Klick blättert die Chronik dorthin."
+    },
+    {
+      "key": "ui.night.learned.true",
+      "text": "{name}: {thing} – {property}?"
+    },
+    {
+      "key": "ui.night.learned.false",
+      "text": "{name}: {thing} – nicht {property}?"
     },
     {
       "key": "ui.night.title",

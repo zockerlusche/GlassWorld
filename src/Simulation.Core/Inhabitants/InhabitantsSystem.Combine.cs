@@ -17,6 +17,13 @@ public sealed partial class InhabitantsSystem
     public CombinationRuleSet? Combinations { get; set; }
 
     /// <summary>
+    /// What comes of things put together that no combination rule fits (B2687 K2: processing rules,
+    /// the world's judged rules, a job for an unknown try); set by the host. Returns whether anything
+    /// came of it. Null = nothing.
+    /// </summary>
+    public Func<World, Inhabitant, string, IReadOnlyList<WorldObject>, bool>? Processing { get; set; }
+
+    /// <summary>
     /// Whether every partner thing of the activity is still there, is not the target itself, appears once
     /// and lies within the action's partner reach of the target. True for activities without partners.
     /// </summary>
@@ -72,7 +79,9 @@ public sealed partial class InhabitantsSystem
         var matches = rules.Match(activity.Action, [.. things.Select(t => t.TypeId)]);
         if (matches.Count == 0)
         {
-            return false;
+            // No combination: maybe a processing (the target first, as the inhabitant chose it).
+            var tried = things.OrderBy(t => t.Id == target.Id ? 0 : 1).ToList();
+            return Processing?.Invoke(world, inhabitant, activity.Action, tried) ?? false;
         }
 
         var (rule, assignment) = matches[0];

@@ -355,6 +355,16 @@ public sealed class SimulationHost
         // night condenses it and guesses at open questions (dormant without a job port).
         var memory = new MemoryRecorder(content.Knowledge.Memory, inhabitants, objects, actions);
         inhabitants.Reported += memory.Observe;
+        // B2687 K2: what comes of things put together beyond the combination rules; its jobs go through the
+        // same router and into the same job log as the inventions'.
+        var processes = content.Processes is { } processRules
+            ? new ProcessSystem(processRules, types, objects, inhabitants, jobs, inventions.Log, content.Inventions.Settings.JobPriority, displayLocale) { ValidateRequests = options.ValidateRequests }
+            : null;
+        if (processes is not null)
+        {
+            inhabitants.Processing = processes.Try;
+        }
+
         var nightJobs = new Night.NightJobsSystem(content.Knowledge, content.Inventions.Build.NightPhases, types.PropertyVocabulary, content.Inventions.Guard, inhabitants, decisions, jobs, inventions.Log, displayLocale) { ValidateRequests = options.ValidateRequests };
         var chronicle = new ChronicleSystem(content.Chronicle);
         inhabitants.Reported += chronicle.Observe;
@@ -446,7 +456,14 @@ public sealed class SimulationHost
         }
 
         // The night jobs right after the inventions: both stay out of the hash while they hold nothing.
-        world.Add(player).Add(inventions).Add(nightJobs).Add(chronicle).Add(writing).Add(skills).Add(needs).Add(skillLevels).Add(mailbox).Add(favourites).Add(conversation).Add(lookEpoch);
+        world.Add(player).Add(inventions).Add(nightJobs);
+        if (processes is not null)
+        {
+            // Out of the hash while it holds nothing (worlds that never process keep their hashes).
+            world.Add(processes);
+        }
+
+        world.Add(chronicle).Add(writing).Add(skills).Add(needs).Add(skillLevels).Add(mailbox).Add(favourites).Add(conversation).Add(lookEpoch);
         var host = new SimulationHost(content, world, map, types, objects, decisions, inhabitants, player, inventions, chronicle, settings, writing, skills, mailbox)
         {
             WeatherSystem = weather,
@@ -456,6 +473,7 @@ public sealed class SimulationHost
             Options = options,
             SkillLevels = skillLevels,
             NightJobs = nightJobs,
+            Processes = processes,
             Conversation = conversation,
             Diary = diary,
             Favourites = favourites,
@@ -745,6 +763,9 @@ public sealed class SimulationHost
 
     /// <summary>The inhabitants' work of the compute night: memory jobs, then question jobs (B4a R5, B7).</summary>
     public Night.NightJobsSystem NightJobs { get; private init; } = null!;
+
+    /// <summary>Processing of things put together (B2687 K2); null without processing rules.</summary>
+    public ProcessSystem? Processes { get; private init; }
 
     private static Position Scatter(Random.Pcg32 rng, Position centre, double radius) =>
         new(centre.X + (((rng.NextDouble() * 2.0) - 1.0) * radius), centre.Z + (((rng.NextDouble() * 2.0) - 1.0) * radius));

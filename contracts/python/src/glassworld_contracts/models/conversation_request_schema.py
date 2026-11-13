@@ -190,6 +190,12 @@ class ConversationRequest(BaseModel):
         max_length=280,
         min_length=1,
     )
+    pointed_at: str | None = Field(
+        None,
+        description='A1617 (B2678): the object type the player points at while writing (a click on a thing in the world), set by the core only when the speaker sees a thing of that type. Absent = the player points at nothing. Data only, like player_text: naming may refer to it.',
+        max_length=64,
+        pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
+    )
     recent_lines: list[ConversationLine] = Field(
         ..., description='Last lines of this conversation, oldest first.', max_length=8
     )
