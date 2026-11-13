@@ -31,6 +31,13 @@ class Kind(StrEnum):
     knowledge_source = 'knowledge_source'
     soil = 'soil'
     voice_kind = 'voice_kind'
+    comfort_level = 'comfort_level'
+    light_level = 'light_level'
+    water_depth = 'water_depth'
+    direction = 'direction'
+    outline_size = 'outline_size'
+    vital = 'vital'
+    condition = 'condition'
 
 
 class Target(StrEnum):

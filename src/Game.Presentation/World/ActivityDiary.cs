@@ -8,7 +8,11 @@ namespace GlassWorld.Presentation.World;
 /// <param name="Day">Game day.</param>
 /// <param name="Time">Time of day as shown by the clock.</param>
 /// <param name="Text">The activity, in the player's language.</param>
-public sealed record DiaryLine(int Day, string Time, string Text);
+public sealed record DiaryLine(int Day, string Time, string Text)
+{
+    /// <summary>Type of the thing the activity was about, or null (for an invention's icon, A1603).</summary>
+    public string? TargetType { get; init; }
+}
 
 /// <summary>
 /// What each inhabitant did, one after the other (Marcel W1726: "eine Historie, was der jeweilige Charakter
@@ -98,7 +102,10 @@ public sealed class ActivityDiary(int shown, WorldCalendar calendar)
             return new DiaryLine(
                 time.DayOfSeason,
                 string.Create(CultureInfo.InvariantCulture, $"{time.Hour:00}:{time.Minute:00}"),
-                InhabitantActivity.Line(e.Action, other, e.Topic, e.TargetType, tr, nameOf));
+                InhabitantActivity.Line(e.Action, other, e.Topic, e.TargetType, tr, nameOf))
+            {
+                TargetType = e.TargetType,
+            };
         })];
     }
 }

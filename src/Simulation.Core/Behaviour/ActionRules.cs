@@ -10,7 +10,9 @@ namespace GlassWorld.Simulation.Behaviour;
 /// <param name="RandomNearby">True if an action without a target happens at a random spot nearby.</param>
 /// <param name="Offered">False for actions the decider may not offer (the core plans them itself).</param>
 /// <param name="Frontier">True if an action without a target happens where the land the inhabitant has not seen yet begins (B2-6 R14).</param>
-public readonly record struct ActionTimingInfo(long DurationTicks, double ReachM, bool RandomNearby, bool Offered = true, bool Frontier = false);
+/// <param name="Gradual">True if the effects work while the action lasts, a share every tick (B2681), instead of at its end.</param>
+/// <param name="WakeAfterTicks">Ticks the action has run before a pressing need can cut it short (B2681).</param>
+public readonly record struct ActionTimingInfo(long DurationTicks, double ReachM, bool RandomNearby, bool Offered = true, bool Frontier = false, bool Gradual = false, long WakeAfterTicks = 0);
 
 /// <summary>
 /// What actions do (content/effects/*.json). The effect of an action on a target is decided only by the
@@ -60,7 +62,7 @@ public sealed class ActionRules
             Require(
                 t.Destination != ActionTimingDestination.Frontier || actions.Entries.First(e => e.Id == t.Action).Target is null or VocabularyEntryTarget.None,
                 $"action '{t.Action}' has a target, so it cannot happen at the frontier");
-            Require(timing.TryAdd(t.Action, new ActionTimingInfo(Math.Max(1, (long)t.DurationMinutes * ticksPerHour / 60), t.ReachM, t.Destination == ActionTimingDestination.Random_nearby, t.DeciderOption ?? true, t.Destination == ActionTimingDestination.Frontier)), $"timing for '{t.Action}' defined twice");
+            Require(timing.TryAdd(t.Action, new ActionTimingInfo(Math.Max(1, (long)t.DurationMinutes * ticksPerHour / 60), t.ReachM, t.Destination == ActionTimingDestination.Random_nearby, t.DeciderOption ?? true, t.Destination == ActionTimingDestination.Frontier, t.Gradual ?? false, (long)(t.WakeAfterMinutes ?? 0) * ticksPerHour / 60)), $"timing for '{t.Action}' defined twice");
         }
 
         foreach (var rule in all.SelectMany(f => f.Rules))

@@ -58,6 +58,37 @@ public sealed class InventionTests : IDisposable
     }
 
     [Fact]
+    public void WithoutALackARipeIdeaWhoseRootsItStillBelievesBecomesAWishOnce()
+    {
+        // B2687 step 2 (R28): nothing lacks, but an own idea grew ripe - it becomes the wish (trigger idea) with the
+        // idea in the job; an unripe idea, or one built on something no longer believed, does not. Tried once only.
+        var port = new ScriptedJobPort();
+        var host = World(port, 13);
+        var inhabitant = host.Inhabitants.All.Single();
+        foreach (var need in inhabitant.Needs.Keys.ToList())
+        {
+            inhabitant.Needs[need] = 1.0;
+        }
+
+        var ripe = Content.Value.Inventions.Settings.Trigger.IdeaRipeAt!.Value;
+        var roots = new[] { new IdeaRoot(IdeaRootKinds.Type, "flint") };
+        inhabitant.Ideas.Take(null, "The sharp stone might cut grass.", roots, 0, ripe, 0.2, 8);
+        host.World.Step();
+        Assert.Empty(port.Submitted);
+
+        inhabitant.Beliefs.Set("flint", "sharp", true, 0.8);
+        host.World.Step();
+
+        var job = Assert.Single(port.Submitted);
+        Assert.Empty(ContractValidator.Validate("generation-job", port.Json[job.RequestId]));
+        var payload = job.Payload.Invention!;
+        Assert.Equal(InventionPayloadTrigger.Idea, payload.Trigger);
+        Assert.Equal(("idea-0001", "The sharp stone might cut grass.", "flint"), (payload.Idea!.Id, payload.Idea.Text, payload.Idea.Roots.Single().Id));
+        Assert.True(inhabitant.Ideas.Ideas.Single().Tried);
+        Assert.Equal("idea-0001", host.Inventions.Wants.Single().IdeaId);
+    }
+
+    [Fact]
     public void WithoutAJobPortTheSystemIsDormantAndStaysOutOfTheHash()
     {
         var host = World(null, 11);
@@ -434,8 +465,16 @@ public sealed class InventionTests : IDisposable
 
         public void Submit(string requestId, string jobJson)
         {
+            var job = ContractSerializer.Deserialize<GenerationJob>(jobJson);
+            if (job.Kind is JobKind.Memory or JobKind.Dream)
+            {
+                // The night's memory and dream jobs of the thirsty test inhabitant are not what these tests are
+                // about (B2681: kept awake by thirst it sleeps later and remembers more, so they can come first).
+                return;
+            }
+
             Json[requestId] = jobJson;
-            Submitted.Add(ContractSerializer.Deserialize<GenerationJob>(jobJson));
+            Submitted.Add(job);
         }
 
         public void Answer(GenerationJob job, JobStatus status) => _ready.Enqueue(new PortMessage(job.RequestId, ContractSerializer.Serialize(status), IsError: false));

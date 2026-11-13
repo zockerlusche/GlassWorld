@@ -104,6 +104,9 @@
         },
         "model3d": {
           "$ref": "#/$defs/Model3dPayload"
+        },
+        "review": {
+          "$ref": "#/$defs/ReviewPayload"
         }
       },
       "minProperties": 1,
@@ -202,7 +205,7 @@
           ]
         },
         "want": {
-          "description": "Need or action the inhabitant has no solution for (vocabulary need or action).",
+          "description": "Need or action the inhabitant has no solution for (vocabulary need or action). With trigger 'idea' it is only the least satisfied need for the record: the prompts (inventor v5, guard v4) take the idea as what is wanted and do not say this want (review GW1 #333).",
           "$ref": "common.schema.json#/$defs/VocabId"
         },
         "subject": {
@@ -234,6 +237,10 @@
         },
         "limits": {
           "$ref": "#/$defs/InventionLimits"
+        },
+        "idea": {
+          "description": "Only with trigger 'idea' (B2578, B4b R28 ripe idea, A1585): the inhabitant's own idea that is ripe - its id, the short English text and what it is built on (subjects of its own knowledge). The inventor answers it and the guard checks the answer against it. Absent otherwise.",
+          "$ref": "#/$defs/InventionIdea"
         }
       }
     },
@@ -279,7 +286,7 @@
       }
     },
     "ProcessPayload": {
-      "description": "An unknown try (B2537): no rule fits these inputs yet. Judged once; the result becomes a world rule.",
+      "description": "An unknown try (B2537): no rule fits these inputs yet. Judged once; the result becomes a world rule. A combine trial (B2687 K2, D932): the inhabitant puts things together without choosing a process - 'process' is null, the core lists the processes whose input/tool shape fits in 'candidates', and the judge says which of them happens, if any.",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -293,7 +300,15 @@
       ],
       "properties": {
         "process": {
-          "$ref": "common.schema.json#/$defs/VocabId"
+          "description": "The process the inhabitant applies; null for a combine trial (then 'candidates' is set).",
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/VocabId"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "inputs": {
           "type": "array",
@@ -333,6 +348,16 @@
         "signature": {
           "description": "Canonical signature of this try (true properties, set by the core); the service derives the world rule id from its hash.",
           "$ref": "common.schema.json#/$defs/ProcessSignature"
+        },
+        "candidates": {
+          "description": "Only for a combine trial (process null, B2687 K2): the processes whose input/tool shape fits, listed by the core in the schema's specificity order (more inputs, more properties, tool, heat, id). The judge picks one of them or none (ProcessResult unchanged: rule.process must be one of these). The signature's process is then 'combine', so the same trial is the same world rule whichever process happens. Absent otherwise.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          }
         }
       }
     },
@@ -601,6 +626,183 @@
           "type": "integer",
           "minimum": 12,
           "maximum": 50000
+        }
+      }
+    },
+    "ReviewIdea": {
+      "description": "An idea the inhabitant already has (B2578, B4b R28): its id in the core, a short English text (internal, never shown as is), its roots (subjects of its own knowledge, or other ideas by id) and how grown it is.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "text",
+        "roots",
+        "strength"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/EntityId"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "roots": {
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "$ref": "common.schema.json#/$defs/Subject"
+          }
+        },
+        "strength": {
+          "$ref": "common.schema.json#/$defs/UnitValue"
+        }
+      }
+    },
+    "ReviewPayload": {
+      "description": "The nightly look back of one inhabitant (A1584, B7 R18-R22, B2592, B2687): it replaces memory and dream. From the day's events, the memory, what the inhabitant knows (its Fundbuch, B2589) and its ideas, the AI writes the new memory summary, a dream, new or grown ideas, intentions for the morning and the morning mood. What ideas and intentions do the core decides from data; the review never changes the character (R19).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "events",
+        "memory",
+        "memory_max_chars",
+        "dream_max_chars",
+        "mood",
+        "tones",
+        "knowledge",
+        "ideas",
+        "needs",
+        "traits",
+        "actions",
+        "max_new_ideas",
+        "max_intentions"
+      ],
+      "properties": {
+        "events": {
+          "description": "The day's events, oldest first (as for memory and dream).",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "items": {
+            "$ref": "#/$defs/MemoryFact"
+          }
+        },
+        "memory": {
+          "description": "The current memory summary (English, internal; may be empty).",
+          "type": "string",
+          "maxLength": 1200
+        },
+        "memory_max_chars": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 1200
+        },
+        "dream_max_chars": {
+          "type": "integer",
+          "minimum": 40,
+          "maximum": 280
+        },
+        "mood": {
+          "description": "Strongest mood at the end of the day, or null.",
+          "anyOf": [
+            {
+              "$ref": "common.schema.json#/$defs/VocabId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tones": {
+          "description": "Tones the dream may have (data).",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          }
+        },
+        "knowledge": {
+          "description": "What the inhabitant believes (its Fundbuch, B2589), cut by relevance in the core; only beliefs, never the truth. Roots of ideas and the subjects of intentions must come from here.",
+          "type": "array",
+          "maxItems": 48,
+          "items": {
+            "$ref": "common.schema.json#/$defs/KnowledgeEntry"
+          }
+        },
+        "ideas": {
+          "description": "The inhabitant's current ideas (may be empty).",
+          "type": "array",
+          "maxItems": 12,
+          "items": {
+            "$ref": "#/$defs/ReviewIdea"
+          }
+        },
+        "needs": {
+          "description": "Needs at the end of the day (0 = urgent, 1 = satisfied).",
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "$ref": "common.schema.json#/$defs/LevelEntry"
+          }
+        },
+        "traits": {
+          "description": "Character traits (creativity: how often and how bold; curiosity: trying out - B2578, no new trait).",
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "$ref": "common.schema.json#/$defs/LevelEntry"
+          }
+        },
+        "actions": {
+          "description": "Actions an intention may name (vocabulary, general ones).",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          }
+        },
+        "max_new_ideas": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3
+        },
+        "max_intentions": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3
+        }
+      }
+    },
+    "InventionIdea": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "text",
+        "roots"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "common.schema.json#/$defs/EntityId"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "roots": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": {
+            "$ref": "common.schema.json#/$defs/Subject"
+          }
         }
       }
     }

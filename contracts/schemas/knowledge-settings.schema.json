@@ -113,6 +113,10 @@
     },
     "night_questions": {
       "$ref": "#/$defs/KnowledgeNightQuestions"
+    },
+    "review": {
+      "description": "The nightly look back (A1584/A1585, B7 R18-R22, B2687): when enabled, the night sends one review job per inhabitant instead of the memory job (same batch rule: due when memory.condense_at events wait). Absent or enabled false = memory jobs as before.",
+      "$ref": "#/$defs/KnowledgeReview"
     }
   },
   "$defs": {
@@ -737,6 +741,91 @@
             "boolean",
             "null"
           ]
+        }
+      }
+    },
+    "KnowledgeReview": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enabled",
+        "job_priority",
+        "knowledge_max",
+        "max_new_ideas",
+        "max_intentions",
+        "max_ideas",
+        "dream_max_chars",
+        "tones",
+        "idea_start",
+        "idea_grow",
+        "intention_actions"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "job_priority": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "knowledge_max": {
+          "description": "Most beliefs in the Fundbuch (experienced and heard first, newest first).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 48
+        },
+        "max_new_ideas": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3
+        },
+        "max_intentions": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3
+        },
+        "max_ideas": {
+          "description": "Most ideas an inhabitant keeps; beyond, the weakest is forgotten.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 12
+        },
+        "dream_max_chars": {
+          "type": "integer",
+          "minimum": 40,
+          "maximum": 280
+        },
+        "tones": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          }
+        },
+        "idea_start": {
+          "description": "Strength of a new idea.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "idea_grow": {
+          "description": "Strength an idea gains each time a look back takes it up.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "intention_actions": {
+          "description": "Actions an intention may name (vocabulary); the core offers an intention later only with these.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "common.schema.json#/$defs/VocabId"
+          }
         }
       }
     }

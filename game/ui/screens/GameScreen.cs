@@ -32,6 +32,9 @@ public partial class GameScreen : CanvasLayer
     private readonly Dictionary<string, Control> _dreamNodes = new(StringComparer.Ordinal);
     private readonly HashSet<string> _dreamFailed = new(StringComparer.Ordinal);
     private string _dreamFolder = string.Empty;
+
+    // A1603: the textures of invention icons, by type, with what they were made from (a new picture replaces stripes).
+    private readonly Dictionary<string, (string Made, Texture2D Texture)> _inventionIcons = new(StringComparer.Ordinal);
     private LookNight? _nightLook;
     private readonly Dictionary<string, Label> _zzz = new(StringComparer.Ordinal);
     private double _nightClock;
@@ -69,12 +72,19 @@ public partial class GameScreen : CanvasLayer
     private readonly List<(Button Button, TimeChoice Choice)> _timeButtons = [];
     private readonly Dictionary<string, ProgressBar> _cardBars = new(StringComparer.Ordinal);
     private Label? _cardAction;
+    private TextureRect? _cardActionIcon;
     private Dictionary<string, string>? _activities;
     private Label? _cardQuestions;
     private LineEdit? _talkInput;
     private readonly Dictionary<string, bool> _cardFolded = new(StringComparer.Ordinal);
     private string _cardShape = string.Empty;
     private readonly GwToasts _toasts = new();
+    private readonly List<Control> _restingUi = [];
+    private bool _worldHeld;
+    private bool _menuPaused;
+    private double _speedBeforeNight = 1;
+    private bool _cameraHeldBeforeNight;
+    private long? _nightfallTick;
     private PanelContainer? _topBar;
     private Label? _date;
     private Label? _favor;
@@ -195,6 +205,11 @@ public partial class GameScreen : CanvasLayer
         _toasts.Board = _board;
         _root.AddChild(_toasts);
 
+        // The hints grow upwards from the bottom edge (W1934, W1744): they were placed only on a new window
+        // size, when the area was empty, so every later hint hung below the screen edge with only its top
+        // border to see.
+        _toasts.MinimumSizeChanged += PlaceToasts;
+
         // Events never move the camera by themselves (TL #19976): a new thought is a hint, and only its
         // "look" button makes the camera follow that inhabitant (until the player moves it or presses Esc).
         presenter.Noticed += NoticeThought;
@@ -276,6 +291,28 @@ public partial class GameScreen : CanvasLayer
 
         ShowZoneState();
         ShowChronicleDay(_chronicleDay);
+    }
+
+    /// <summary>
+    /// Screenshots only (W1934): two hints in the hint area (<paramref name="on"/>), or none of them again.
+    /// </summary>
+    public void ShowHintsForShots(bool on)
+    {
+        if (_board is null)
+        {
+            return;
+        }
+
+        foreach (var toast in _board.Visible.Where(t => t.Message.Group is "shot-1" or "shot-2"))
+        {
+            _board.Dismiss(toast.Id);
+        }
+
+        if (on)
+        {
+            _board.Push(new ToastMessage("msg.mail.kind.knock", new Dictionary<string, string>(), "shot-1"), fastForward: false);
+            _board.Push(new ToastMessage("msg.mail.kind.knock", new Dictionary<string, string>(), "shot-2"), fastForward: false);
+        }
     }
 
     /// <summary>
@@ -527,6 +564,12 @@ public partial class GameScreen : CanvasLayer
             return;
         }
 
+        // B2680: in the compute night only Esc works - no time keys, no clicks into the world.
+        if (_worldHeld)
+        {
+            return;
+        }
+
         if (TimeKey(@event, beforeGui: false))
         {
             return;
@@ -548,7 +591,7 @@ public partial class GameScreen : CanvasLayer
     {
         // Moves and the release of a started press are read before the GUI, so a drag across a panel is
         // still a drag; nothing is consumed here (only a time key on a focused time button, GameScreen.Keys).
-        if (TimeKey(@event, beforeGui: true) || _click is not { Pressed: true } click)
+        if (_worldHeld || TimeKey(@event, beforeGui: true) || _click is not { Pressed: true } click)
         {
             return;
         }
@@ -614,6 +657,8 @@ public partial class GameScreen : CanvasLayer
     /// <summary>Time buttons on or off (off while the pause menu is open, GW1 review #50 K3).</summary>
     public void SetTimeControlsEnabled(bool enabled)
     {
+        // The pause menu calls this: while it is open the night scene's time stands too (a paused game holds the fade).
+        _menuPaused = !enabled;
         foreach (var (button, _) in _timeButtons)
         {
             button.Disabled = !enabled;
@@ -1028,6 +1073,76 @@ public partial class GameScreen : CanvasLayer
         return string.Empty;
     }
 
+    /// <summary>A small square for an invention's icon (A1603), the size of the data, kept in proportion.</summary>
+    private TextureRect IconRect() => new()
+    {
+        ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+        StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+        CustomMinimumSize = new Vector2(InventionIconPx, InventionIconPx),
+        SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
+        MouseFilter = Control.MouseFilterEnum.Ignore,
+        Visible = true,
+    };
+
+    private int InventionIconPx => (int)Math.Round((_style?.Tokens.Window.InventionIconPx ?? 24) * (_style?.ContentScaleFactor ?? 1));
+
+    /// <summary>
+    /// The icon of an invention (A1603) by its type id or the id of one of its objects: the painted picture of the
+    /// computing night, else stripes in the kit colours of its plan; null for anything else.
+    /// </summary>
+    private Texture2D? InventionIcon(string id)
+    {
+        if (_presenter?.Host is not { } host)
+        {
+            return null;
+        }
+
+        var type = host.Inventions.Invention(id) is not null ? id : host.Objects.TryGet(id, out var obj) ? obj.TypeId : null;
+        var source = InventionIconSource.Of(host.Inventions, host.Content.Inventions.Build.Kit, _dreamFolder, _style?.Tokens.Window.InventionIconColors ?? 3);
+        if (type is null || source.For(type) is not { } icon)
+        {
+            return null;
+        }
+
+        var made = icon.PicturePath ?? string.Join(',', icon.KitColors);
+        if (_inventionIcons.TryGetValue(type, out var known) && known.Made == made)
+        {
+            return known.Texture;
+        }
+
+        Texture2D? texture = null;
+        if (icon.PicturePath is { } path)
+        {
+            var picture = Image.LoadFromFile(path);
+            if (picture is not null && !picture.IsEmpty())
+            {
+                texture = ImageTexture.CreateFromImage(picture);
+            }
+        }
+
+        // No picture (or a broken one): one stripe per kit colour, the largest share first.
+        if (texture is null && icon.KitColors.Count > 0)
+        {
+            const int Size = 32;
+            var stripes = Image.CreateEmpty(Size, Size, false, Image.Format.Rgba8);
+            for (var x = 0; x < Size; x++)
+            {
+                var color = Color.FromHtml(icon.KitColors[Math.Min(icon.KitColors.Count - 1, x * icon.KitColors.Count / Size)]);
+                stripes.FillRect(new Rect2I(x, 0, 1, Size), color);
+            }
+
+            texture = ImageTexture.CreateFromImage(stripes);
+        }
+
+        if (texture is null)
+        {
+            return null;
+        }
+
+        _inventionIcons[type] = (made, texture);
+        return texture;
+    }
+
     private ChronicleNames ChronicleNamesNow() => new(
         NameOfId,
         id => _presenter?.Host is { } host
@@ -1160,6 +1275,13 @@ public partial class GameScreen : CanvasLayer
                 SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
                 TooltipText = "ui.chronicle.jump",
             };
+
+            // An invention named in the line shows its icon before it (A1603).
+            if (entry.TargetId is { } target && InventionIcon(target) is { } icon)
+            {
+                line.Icon = icon;
+                line.AddThemeConstantOverride("icon_max_width", InventionIconPx);
+            }
             var who = entry.InhabitantId;
             line.Pressed += () =>
             {
@@ -1428,6 +1550,15 @@ public partial class GameScreen : CanvasLayer
         foreach (var message in open)
         {
             var row = new HBoxContainer();
+
+            // A builder's knock shows the invention's icon (A1603), like the chronicle and the card.
+            if (message.SubjectType is { } subject && InventionIcon(subject) is { } subjectIcon)
+            {
+                var rect = IconRect();
+                rect.Texture = subjectIcon;
+                row.AddChild(rect);
+            }
+
             var text = new Label
             {
                 Text = MailText(message),
@@ -1742,6 +1873,88 @@ public partial class GameScreen : CanvasLayer
     /// day phase turns to night, shows how far the service is, and lets the morning fade in once it is done.
     /// Real time only: a paused game holds the fade.
     /// </summary>
+    /// <summary>
+    /// Real seconds for the night scene this frame: while the night holds the world it runs on its own clock
+    /// (the world's speed is 0 then), else only while the world runs; the pause menu stops it either way.
+    /// </summary>
+    private double NightDelta(double delta) =>
+        _menuPaused ? 0 : _worldHeld ? delta : _presenter?.Speed > 0 ? delta : 0;
+
+    /// <summary>
+    /// B2680 (Marcel W1939): in the compute night everything sleeps, only the AI works. While the scene stands the
+    /// world stands still (speed 0), the camera and the bars, side windows, card and hints rest; only Esc and the
+    /// pause menu stay. When the morning has faded in, all comes back as it was.
+    /// </summary>
+    private void HoldWorld(bool hold)
+    {
+        if (_presenter is null)
+        {
+            return;
+        }
+
+        if (hold == _worldHeld)
+        {
+            // Nothing else may start the world while it is held (a check run, a late button event).
+            if (hold && _presenter.Speed != 0 && !_menuPaused)
+            {
+                _presenter.Speed = 0;
+            }
+
+            return;
+        }
+
+        _worldHeld = hold;
+        if (hold)
+        {
+            _speedBeforeNight = _presenter.Speed;
+            _presenter.Speed = 0;
+            _cameraHeldBeforeNight = _presenter.CameraHeld;
+            _presenter.CameraHeld = true;
+            _restingUi.Clear();
+            foreach (var control in RestingControls().Where(c => c.Visible))
+            {
+                _restingUi.Add(control);
+                control.Visible = false;
+            }
+
+            return;
+        }
+
+        _presenter.CameraHeld = _cameraHeldBeforeNight;
+        if (!_menuPaused && _presenter.Speed == 0)
+        {
+            _presenter.Speed = _speedBeforeNight;
+        }
+
+        foreach (var control in _restingUi.Where(IsInstanceValid))
+        {
+            control.Visible = true;
+        }
+
+        _restingUi.Clear();
+    }
+
+    /// <summary>What rests in the compute night: the bars, the side windows (and the card) and the hints.</summary>
+    private IEnumerable<Control> RestingControls()
+    {
+        if (_topBar is not null)
+        {
+            yield return _topBar;
+        }
+
+        yield return _sideBar;
+        yield return _themeBar;
+        foreach (var panel in _sideBar.Panels)
+        {
+            yield return panel;
+        }
+
+        yield return _toasts;
+    }
+
+    /// <summary>Whether the compute night holds the world now (B2680).</summary>
+    public bool WorldHeldByNight => _worldHeld;
+
     private void UpdateNight(double delta)
     {
         if (_night is null || _feed is null || _presenter is null)
@@ -1766,7 +1979,15 @@ public partial class GameScreen : CanvasLayer
         }
 
         var done = NightScene.ServiceDone(_nightLook!, setup is not null, _nightStatus, _nightUnanswered);
-        _night.Update(night, done, _presenter.Speed > 0 ? delta : 0);
+
+        // B2680: the scene waits until everyone sleeps, at the latest the data's hours after nightfall.
+        var tick = _presenter.Host!.World.Tick;
+        _nightfallTick = night == true ? _nightfallTick ?? tick : null;
+        var hoursIntoNight = (tick - (_nightfallTick ?? tick)) / (double)Math.Max(1, _presenter.Host.World.Calendar.Settings.TicksPerHour);
+        var allAsleep = _feed.Snapshot.Inhabitants.All(i => i.Action is { } a && _nightLook!.SleepActions.Contains(a));
+        var sceneDelta = NightDelta(delta);
+        _night.Update(night, done, sceneDelta, allAsleep, hoursIntoNight);
+        HoldWorld(_night.HoldsWorld);
         _nightShade.Color = new Color(0, 0, 0, (float)_night.Darkness);
 
         // Only while the night is dark: by day the shade is invisible and the order does not matter, so the
@@ -1778,7 +1999,7 @@ public partial class GameScreen : CanvasLayer
 
         _nightText.Visible = _night.SceneShown;
         _nightText.Modulate = new Color(1, 1, 1, (float)Math.Clamp(_night.Darkness / Math.Max(_nightDarkness, 0.01), 0, 1));
-        ShowSleepers(_presenter.Speed > 0 ? delta : 0);
+        ShowSleepers(sceneDelta);
         if (_dreams is not null && _style is not null)
         {
             if (!_night.SceneShown)
@@ -1788,7 +2009,7 @@ public partial class GameScreen : CanvasLayer
             }
 
             var scene = (float)Math.Clamp(_night.Darkness / Math.Max(_nightDarkness, 0.01), 0, 1);
-            ShowDreams(_dreams.Update(_night.SceneShown && _presenter.Speed > 0 ? delta : 0, _style.Settings.ReduceMotion), scene);
+            ShowDreams(_dreams.Update(_night.SceneShown ? sceneDelta : 0, _style.Settings.ReduceMotion), scene);
         }
 
         if (_nightText.Visible)
@@ -2171,6 +2392,12 @@ public partial class GameScreen : CanvasLayer
             return chronicle;
         }
 
+        var hints = await CheckToastsInsideAsync();
+        if (hints.Length > 0)
+        {
+            return hints;
+        }
+
         // The theme must reach the screen below its CanvasLayer (frames, fonts, text size), not only the
         // root window (Godot does not pass themes through a CanvasLayer).
         if (UiSetup.CurrentTheme is { } theme && _card.GetThemeStylebox("panel", UiTheme.WindowPanel) != theme.GetStylebox("panel", UiTheme.WindowPanel))
@@ -2189,6 +2416,41 @@ public partial class GameScreen : CanvasLayer
         }
 
         return await CheckCardPlacementAsync();
+    }
+
+    /// <summary>
+    /// W1934/W1744: hints that come after the layout stand wholly inside the picture (they hung below the
+    /// bottom edge with only their top border to see). Pushes two hints, waits two frames, checks, closes them.
+    /// </summary>
+    private async Task<string> CheckToastsInsideAsync()
+    {
+        if (_board is null || _style is null)
+        {
+            return "hint board missing";
+        }
+
+        var before = _board.Visible.Select(t => t.Id).ToHashSet();
+        _board.Push(new ToastMessage("msg.mail.kind.knock", new Dictionary<string, string>(), "check-1"), fastForward: false);
+        _board.Push(new ToastMessage("msg.mail.kind.knock", new Dictionary<string, string>(), "check-2"), fastForward: false);
+        await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        var view = GetViewport().GetVisibleRect().Size;
+        var margin = _style.Tokens.Window.SafeMargin;
+        var rect = _toasts.GetRect();
+        var shown = _toasts.GetChildCount();
+        foreach (var toast in _board.Visible.Where(t => !before.Contains(t.Id)))
+        {
+            _board.Dismiss(toast.Id);
+        }
+
+        if (shown == 0 || rect.Size.Y <= 0)
+        {
+            return "the hint area shows no hint";
+        }
+
+        return rect.Position.Y >= margin - 1 && rect.End.Y <= view.Y - margin + 1 && rect.Position.X >= margin - 1 && rect.End.X <= view.X - margin + 1
+            ? string.Empty
+            : $"the hints leave the picture: {rect.Position}+{rect.Size} in {view} (safe margin {margin})";
     }
 
     /// <summary>
@@ -2410,9 +2672,7 @@ public partial class GameScreen : CanvasLayer
             panel.Dock(area, _style, _sideBar.GetCombinedMinimumSize().X + gap, contentPx: panel == list ? _inhabitants.WantedWidth : 0);
         }
 
-        var width = Math.Min(_style.Tokens.Window.SidePanelWidth, area.X - (2 * margin));
-        _toasts.Size = new Vector2(width, 0);
-        _toasts.Position = new Vector2(area.X - margin - width, area.Y - margin - _toasts.GetCombinedMinimumSize().Y);
+        PlaceToasts();
 
         // The card stays beside the side bar and its open panel and is re-fitted when the UI size changes.
         FitCard(area);
@@ -2443,10 +2703,27 @@ public partial class GameScreen : CanvasLayer
             }
         }
 
-        var width = Math.Min(_style!.Tokens.Window.SidePanelWidth, area.X - (2 * margin));
-        _toasts.Size = new Vector2(width, 0);
-        _toasts.Position = new Vector2(MathF.Floor((area.X - width) / 2), area.Y - margin - _toasts.GetCombinedMinimumSize().Y);
+        PlaceToasts();
         FitCard(area);
+    }
+
+    /// <summary>
+    /// The hints stand on the bottom edge inside the safe margin and grow upwards: at the bottom right in the
+    /// layout so far, at the bottom centre in the zones layout (D642 zone D).
+    /// </summary>
+    private void PlaceToasts()
+    {
+        if (_style is null)
+        {
+            return;
+        }
+
+        var area = GetViewport().GetVisibleRect().Size;
+        var margin = _style.Tokens.Window.SafeMargin;
+        var width = Math.Min(_style.Tokens.Window.SidePanelWidth, area.X - (2 * margin));
+        _toasts.Size = new Vector2(width, 0);
+        var x = _zones ? MathF.Floor((area.X - width) / 2) : area.X - margin - width;
+        _toasts.Position = new Vector2(x, area.Y - margin - _toasts.Size.Y);
     }
 
     /// <summary>Screen part the card is centred in (left of the side bar and its open panel, see <see cref="ScreenModel.CardRoom"/>).</summary>
@@ -2613,9 +2890,15 @@ public partial class GameScreen : CanvasLayer
             // Order of the card (W1688, TL #19983): first what the inhabitant does and the talk field, well
             // visible; the values below in sections the player can fold (the choice is kept while playing).
             Section("ui.card.doing");
-            _cardAction = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart };
+            _cardAction = new Label { AutowrapMode = TextServer.AutowrapMode.WordSmart, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
             _cardQuestions = new Label { AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled };
-            content.AddChild(_cardAction);
+
+            // An invention the inhabitant is busy with shows its icon before the line (A1603).
+            var doing = new HBoxContainer();
+            _cardActionIcon = IconRect();
+            doing.AddChild(_cardActionIcon);
+            doing.AddChild(_cardAction);
+            content.AddChild(doing);
             content.AddChild(_cardQuestions);
 
             // Talking (B6 R13): a sentence to this inhabitant; the core checks it and answers later.
@@ -2689,6 +2972,14 @@ public partial class GameScreen : CanvasLayer
         }
 
         var action = (_activities ?? Activities(_feed!.Inhabitants())).GetValueOrDefault(card.Row.Id) ?? Tr(InhabitantActivity.StandingKey);
+        if (_cardActionIcon is not null)
+        {
+            var target = _feed?.Snapshot?.Inhabitants.FirstOrDefault(i => i.Id == card.Row.Id)?.TargetId;
+            var icon = target is null ? null : InventionIcon(target);
+            _cardActionIcon.Texture = icon;
+            _cardActionIcon.Visible = icon is not null;
+        }
+
         if (_cardAction is not null && _cardAction.Text != action)
         {
             _cardAction.Text = action;
@@ -2718,12 +3009,28 @@ public partial class GameScreen : CanvasLayer
 
             foreach (var line in lines)
             {
-                _cardDiaryBox.AddChild(new Label
+                var text = new Label
                 {
                     Text = TextFill.Fill(Tr("ui.card.diary_line"), new Dictionary<string, string> { ["day"] = Number(line.Day), ["time"] = line.Time, ["text"] = line.Text }),
                     AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled,
                     AutowrapMode = TextServer.AutowrapMode.WordSmart,
-                });
+                    SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+                };
+
+                // A line about an invention shows its icon before it (A1603).
+                if (line.TargetType is { } type && InventionIcon(type) is { } icon)
+                {
+                    var row = new HBoxContainer();
+                    var rect = IconRect();
+                    rect.Texture = icon;
+                    row.AddChild(rect);
+                    row.AddChild(text);
+                    _cardDiaryBox.AddChild(row);
+                }
+                else
+                {
+                    _cardDiaryBox.AddChild(text);
+                }
             }
         }
 

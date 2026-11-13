@@ -244,6 +244,45 @@ class KnowledgePassing(BaseModel):
     )
 
 
+class KnowledgeReview(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    enabled: bool
+    job_priority: int = Field(..., ge=0, le=100)
+    knowledge_max: int = Field(
+        ...,
+        description='Most beliefs in the Fundbuch (experienced and heard first, newest first).',
+        ge=1,
+        le=48,
+    )
+    max_new_ideas: int = Field(..., ge=0, le=3)
+    max_intentions: int = Field(..., ge=0, le=3)
+    max_ideas: int = Field(
+        ...,
+        description='Most ideas an inhabitant keeps; beyond, the weakest is forgotten.',
+        ge=1,
+        le=12,
+    )
+    dream_max_chars: int = Field(..., ge=40, le=280)
+    tones: list[common_schema.VocabId] = Field(..., max_length=8, min_length=1)
+    idea_start: float = Field(
+        ..., description='Strength of a new idea.', ge=0.0, le=1.0
+    )
+    idea_grow: float = Field(
+        ...,
+        description='Strength an idea gains each time a look back takes it up.',
+        ge=0.0,
+        le=1.0,
+    )
+    intention_actions: list[common_schema.VocabId] = Field(
+        ...,
+        description='Actions an intention may name (vocabulary); the core offers an intention later only with these.',
+        max_length=32,
+        min_length=1,
+    )
+
+
 class KnowledgeMemoryEvent(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
@@ -529,3 +568,7 @@ class KnowledgeSettings(BaseModel):
     imprinting: KnowledgeImprinting | None = None
     memory: KnowledgeMemory | None = None
     night_questions: KnowledgeNightQuestions | None = None
+    review: KnowledgeReview | None = Field(
+        None,
+        description='The nightly look back (A1584/A1585, B7 R18-R22, B2687): when enabled, the night sends one review job per inhabitant instead of the memory job (same batch rule: due when memory.condense_at events wait). Absent or enabled false = memory jobs as before.',
+    )

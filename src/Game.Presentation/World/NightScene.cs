@@ -8,6 +8,12 @@ public enum NightStage
     /// <summary>The world as usual.</summary>
     Day,
 
+    /// <summary>
+    /// Night has fallen, but someone is still awake (B2680): the world goes on as usual until all sleep or the
+    /// data's limit after nightfall has passed.
+    /// </summary>
+    Waiting,
+
     /// <summary>The picture darkens into the dream scene.</summary>
     FadingOut,
 
@@ -44,13 +50,27 @@ public sealed class NightScene(LookNight data)
     public bool SceneShown => Stage is NightStage.FadingOut or NightStage.Dream or NightStage.FadingIn;
 
     /// <summary>
+    /// Whether the world stands still and the controls rest (B2680): from the first darkening until the morning
+    /// has faded in; only Esc / the pause menu stays.
+    /// </summary>
+    public bool HoldsWorld => SceneShown;
+
+    /// <summary>
     /// One frame. <paramref name="known"/>: the core's compute night runs (null: not decided yet for a new or
     /// loaded world - neither a start nor an end; the first known value is never taken as a change).
     /// <paramref name="serviceDone"/>: the service has nothing left this night (null: unknown - no service or no
     /// answer yet; then the scene ends after its minimum time). <paramref name="realSeconds"/>: real time since
     /// the last frame, 0 while paused.
     /// </summary>
-    public void Update(bool? known, bool? serviceDone, double realSeconds)
+    public void Update(bool? known, bool? serviceDone, double realSeconds) => Update(known, serviceDone, realSeconds, allAsleep: true, hoursIntoNight: 0);
+
+    /// <summary>
+    /// One frame, as <see cref="Update(bool?, bool?, double)"/>, and the scene waits for the sleepers (B2680):
+    /// <paramref name="allAsleep"/> - every inhabitant sleeps now; <paramref name="hoursIntoNight"/> - game hours
+    /// since the night phase began. The scene begins when all sleep or the hours reach <c>wait_for_sleepers_max_h</c>
+    /// (absent: at nightfall).
+    /// </summary>
+    public void Update(bool? known, bool? serviceDone, double realSeconds, bool allAsleep, double hoursIntoNight)
     {
         var dt = Math.Max(0, realSeconds);
         var night = known == true;
@@ -60,12 +80,17 @@ public sealed class NightScene(LookNight data)
             _wasNight = known;
         }
 
-        if (!night && Stage is NightStage.Awake)
+        if (!night && Stage is NightStage.Awake or NightStage.Waiting)
         {
             Stage = NightStage.Day;
         }
 
         if (began && Stage is NightStage.Day)
+        {
+            Enter(NightStage.Waiting);
+        }
+
+        if (Stage is NightStage.Waiting && (allAsleep || _data.WaitForSleepersMaxH is not { } limit || hoursIntoNight >= limit))
         {
             Enter(NightStage.FadingOut);
         }

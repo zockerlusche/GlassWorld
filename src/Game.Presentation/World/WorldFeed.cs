@@ -123,6 +123,9 @@ public sealed record MailRow(string Id, string? InhabitantId, int Number, string
     /// <summary>True for a builder's knock (A1602): the detail is properties, not a need.</summary>
     public bool AboutBuilding { get; init; }
 
+    /// <summary>The invented type a builder's knock is about (A1602), for its icon (A1603); null for other messages.</summary>
+    public string? SubjectType { get; init; }
+
     /// <summary>The text keys of the properties a stuck builder looks for (A1602), in the order of the detail.</summary>
     public IReadOnlyList<string> PropertyKeys => AboutBuilding && Detail is { Length: > 0 } detail
         ? [.. detail.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Select(p => "vocab.property." + p)]
@@ -258,6 +261,7 @@ public sealed class WorldFeed
             new(m.Id, m.InhabitantId, m.InhabitantId is null ? 0 : NumberOf(m.InhabitantId), m.Kind, m.TextKey, m.Detail, m.Urgency)
             {
                 AboutBuilding = m.Subject is not null,
+                SubjectType = m.Subject,
                 SubjectName = m.Subject is { } type && _host.Inventions.Invention(type) is { } invention ? (invention.Name.De, invention.Name.En) : null,
             };
         return ([.. _host.Mailbox.Open.Select(Row)], [.. _host.Mailbox.History.Take(historyCount).Select(Row)]);
@@ -293,11 +297,18 @@ public sealed class WorldFeed
     private List<CardValue> NeedValues(IReadOnlyDictionary<string, double> needs)
     {
         var runtime = _host.Needs.Added.ToDictionary(n => n.Id, StringComparer.Ordinal);
-        return [.. Values("need", needs).Zip(needs.OrderBy(v => v.Key, StringComparer.Ordinal)).Select(pair =>
+        return [.. needs.OrderBy(v => v.Key, StringComparer.Ordinal).Select(v => new CardValue(NeedBarKey(v.Key), Percent(v.Value))).Zip(needs.OrderBy(v => v.Key, StringComparer.Ordinal)).Select(pair =>
             runtime.TryGetValue(pair.Second.Key, out var info)
                 ? pair.First with { Name = (info.NameDe, info.NameEn), Faded = pair.Second.Value <= 0 }
                 : pair.First)];
     }
+
+    /// <summary>
+    /// The label of a need's bar on the card (W1938, rule of B2642): it names what the bar shows, how much of it
+    /// is there - 'Satt', 'Ausgeruht' - so a full bar reads as good. The need's own word (Hunger, Schlaf) stays
+    /// where a sentence means the need itself (a call for help, the mailbox).
+    /// </summary>
+    public static string NeedBarKey(string needId) => "ui.card.need." + needId;
 
     private static List<CardValue> Values(string kind, IReadOnlyDictionary<string, double> values) =>
         [.. values.OrderBy(v => v.Key, StringComparer.Ordinal).Select(v => new CardValue($"vocab.{kind}.{v.Key}", Percent(v.Value)))];

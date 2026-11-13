@@ -126,6 +126,17 @@ public sealed class RepetitionTests
 
         // The listener now holds it as surely as it would hear it again: nothing to pass, nothing offered.
         Assert.Null(InhabitantsSystem.PassableBelief(Content.Knowledge!, teller, listener, "teach"));
+
+        // A1624 (D921): teaching raised the listener's trust; heard from this teller it is still not taught again,
+        // even though it would now be heard more surely.
+        var trusted = listener.Relationships.Get(teller.Id, new Relation(0.5, 0.5, 0.5)) with { Trust = 1.0 };
+        listener.Relationships.Set(teller.Id, trusted);
+        Assert.Null(InhabitantsSystem.PassableBelief(Content.Knowledge!, teller, listener, "teach"));
+
+        // Another teller may still tell it, and a different value is news.
+        var other = inhabitants.Get("inh-000003");
+        other.Beliefs.Set("blue_berry", "edible", false, 0.95, KnowledgeSources.Experienced, null, 2);
+        Assert.NotNull(InhabitantsSystem.PassableBelief(Content.Knowledge!, other, listener, "teach"));
     }
 
     [Fact]
