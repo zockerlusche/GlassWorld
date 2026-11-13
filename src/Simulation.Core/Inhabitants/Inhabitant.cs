@@ -14,7 +14,8 @@ namespace GlassWorld.Simulation.Inhabitants;
 /// behind another action, the tick its turn came (so its walk has the whole time limit of the decider data).
 /// Null for everything the routine or another system chose. It stays with the activity while it waits, walks and runs.
 /// </param>
-public sealed record Activity(string Action, string? TargetId, Position Destination, long? RemainingTicks, IReadOnlyList<Position>? Route = null, long? DecidedTick = null);
+/// <param name="Partners">The things used together with the target (combine, B2687), in the order of the option; null for all other actions.</param>
+public sealed record Activity(string Action, string? TargetId, Position Destination, long? RemainingTicks, IReadOnlyList<Position>? Route = null, long? DecidedTick = null, IReadOnlyList<string>? Partners = null);
 
 /// <summary>
 /// The same action done again and again at one spot without any effect (W1696): which action on which
@@ -346,6 +347,16 @@ public sealed class Inhabitant
             if (a.DecidedTick is { } decided)
             {
                 hasher.Write("decided").Write(decided);
+            }
+
+            // The things used together with the target (combine, B2687) only where there are any.
+            if (a.Partners is { Count: > 0 } partners)
+            {
+                hasher.Write("partners").Write(partners.Count);
+                foreach (var partner in partners)
+                {
+                    hasher.Write(partner);
+                }
             }
         }
     }

@@ -288,6 +288,9 @@ public sealed class SimulationHost
             Knowledge = content.Knowledge,
             EventKinds = content.EventKinds,
 
+            // B2687: using things together, judged by the world's truth (runtime types included).
+            Combinations = content.Combinations.WithTruth(types),
+
             // Start clothing fits the season, the climate, the biome at the place and the tech level (F4).
             ClothingAt = (w, at) => new ClothingContext(
                 w.Now.SeasonId,

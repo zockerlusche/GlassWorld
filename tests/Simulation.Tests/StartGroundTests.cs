@@ -286,7 +286,7 @@ public sealed class StartGroundTests
     [Fact]
     public void WithoutDryGroundTheGeneratorIsVersionFour()
     {
-        const string golden = "484c966f2cd51655ae8c23b289e305fbd6424ee9206d7414ad2ef5a37d2acd2f";
+        const string golden = "4548de3716ce0b7cde86b0ce7d25e02d827457a04a1043a5a6f4af9646faa012";
         var content = ContentSet.Load(ContentDirectory);
         var preset = content.WorldGen.Presets[Preset];
         preset.Start.DryGround = null;

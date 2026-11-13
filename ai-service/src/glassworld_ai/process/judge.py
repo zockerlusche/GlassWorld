@@ -79,6 +79,7 @@ class JudgeContext:
         vocab: Vocabulary,
         guard: dict[str, Any] | None = None,
         combine: bool = False,
+        physics_from_data: bool = False,
     ) -> None:
         self.guard = validate_guard(guard or {}, vocab)
         self.vocab = vocab
@@ -88,6 +89,15 @@ class JudgeContext:
         self.living = set(cast(list[str], settings.get("living_properties", [])))
         self.properties = [p for p in vocab.ids("property") if p not in self.living]
         rules = json.loads((content_dir / "processes/rules.json").read_text(encoding="utf-8"))
+        physics = cast(dict[str, Any], rules.get("physics") or {})
+        # v3 (A1554): the physics table and its examples are data; earlier prompts bring their own.
+        self.examples = cast(dict[str, list[str]], physics.get("examples") or {})
+        if physics_from_data:
+            if not physics:
+                raise GuardError("the prompt reads physics from the data, but rules.json has none")
+            self.guard = validate_guard(
+                {k: v for k, v in physics.items() if k != "examples"}, vocab
+            )
         self.heat_levels = [str(h) for h in rules["heat_levels"]]  # lowest first (order matters)
         self.tech_levels = tech_levels(content_dir)
 
@@ -289,6 +299,9 @@ def build_values(job: GenerationJob, ctx: JudgeContext) -> dict[str, str]:
         "heat": humanize(heat) if heat else "(no heat)",
         "seen": ", ".join(humanize(plain_id(t.type)) for t in payload.inputs) or "(nothing)",
         "tech_level": humanize(plain_id(payload.tech_level)),
+        # v3 (A1554): the examples come from the data.
+        "works": "\n".join(f"  - {e}" for e in ctx.examples.get("works", [])),
+        "does_not": "\n".join(f"  - {e}" for e in ctx.examples.get("does_not", [])),
     }
 
 

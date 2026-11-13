@@ -125,6 +125,13 @@ namespace GlassWorld.Contracts
         public double ModalDim { get; set; } = default!;
 
         /// <summary>
+        /// A1617 (B2678): a click while pointing picks the nearest thing within this distance of the clicked ground point (metres).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("point_radius_m")]
+        public double? PointRadiusM { get; set; } = default!;
+
+        /// <summary>
         /// Size of an invention's icon before its name (A1603): its painted picture, else stripes in the kit colours of its plan. Omitted = 24.
         /// </summary>
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]

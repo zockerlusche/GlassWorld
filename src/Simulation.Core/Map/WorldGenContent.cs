@@ -248,6 +248,12 @@ public sealed class WorldGenContent
             }
 
             Range($"spawn {rule.Biome}/{rule.ObjectType} cluster", rule.Cluster.Min, rule.Cluster.Max, problems);
+
+            // W1936: a fruit grows on a plant that the table spawns itself (and that grows on nothing).
+            if (rule.GrowsOn is { } grows && !spawns.Spawns.Any(p => p.ObjectType == grows.ObjectType && p.GrowsOn is null))
+            {
+                problems.Add($"spawn rule '{rule.ObjectType}' grows on '{grows.ObjectType}', which no spawn rule places on its own");
+            }
         }
 
         Duplicates(spawns.Mandatory.Select(m => m.Id), "mandatory resource", problems);

@@ -408,6 +408,34 @@ public sealed class ConversationTests : IDisposable
         return (host, host.Inhabitants.All.OrderBy(i => i.Id, StringComparer.Ordinal).First().Id);
     }
 
+    [Fact]
+    public void WhatThePlayerPointsAtGoesWithTheSentenceOnlyWhenTheSpeakerSeesIt()
+    {
+        // A1617 (B2678): the click on a thing gives the sentence its type - only one the speaker sees.
+        var (host, id) = Host();
+        var port = new CapturePort();
+        host.Conversation.Port = port;
+        host.World.Run(1);
+        var speaker = host.Inhabitants.Get(id);
+        // The last of what it sees: even beyond the request's limit of listed sights it is listed (review of GW2 #341).
+        var seen = host.Decisions.PerceivedTypes(speaker)[^1];
+        Assert.True(host.Decisions.Submit(new PlayerCommand(ConversationSystem.SendText, id) { Text = "Was ist das?", TypeId = seen }).Accepted);
+        host.World.Run(1);
+        var pointed = ContractSerializer.Deserialize<ConversationRequest>(Assert.Single(port.Requests));
+        Assert.Equal(seen, pointed.PointedAt);
+        Assert.Contains(seen, pointed.Speaker.Sees!);
+
+        var (other, otherId) = Host();
+        var otherPort = new CapturePort();
+        other.Conversation.Port = otherPort;
+        other.World.Run(1);
+        Assert.True(other.Decisions.Submit(new PlayerCommand(ConversationSystem.SendText, otherId) { Text = "Was ist das?", TypeId = "rock_niche_never_seen_here" }).Accepted);
+        other.World.Run(1);
+        var json = Assert.Single(otherPort.Requests);
+        Assert.Empty(ContractValidator.Validate("conversation-request", json));
+        Assert.Null(ContractSerializer.Deserialize<ConversationRequest>(json).PointedAt);
+    }
+
     private static CommandResult Say(SimulationHost host, string id, string text) =>
         host.Decisions.Submit(new PlayerCommand(ConversationSystem.SendText, id) { Text = text });
 

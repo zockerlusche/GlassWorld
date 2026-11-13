@@ -123,6 +123,26 @@
       "text": "Sinn"
     },
     {
+      "key": "ui.card.point",
+      "text": "Zeigen"
+    },
+    {
+      "key": "ui.card.point_tooltip",
+      "text": "Danach auf ein Ding in der Welt klicken: dein Satz zeigt darauf."
+    },
+    {
+      "key": "ui.card.pointed",
+      "text": "zeigt auf: {thing}"
+    },
+    {
+      "key": "ui.card.point_nothing",
+      "text": "Dort ist nichts, worauf du zeigen kannst."
+    },
+    {
+      "key": "ui.card.point_waiting",
+      "text": "Klick auf ein Ding in der Welt …"
+    },
+    {
       "key": "ui.card.character",
       "text": "Charakter"
     },
@@ -1797,6 +1817,10 @@
     {
       "key": "ui.chronicle.someone",
       "text": "jemand"
+    },
+    {
+      "key": "vocab.event.combined",
+      "text": "Etwas entstanden"
     },
     {
       "key": "vocab.event.discovered_process",

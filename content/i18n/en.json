@@ -123,6 +123,26 @@
       "text": "Purpose"
     },
     {
+      "key": "ui.card.point",
+      "text": "Point"
+    },
+    {
+      "key": "ui.card.point_tooltip",
+      "text": "Then click a thing in the world: your sentence points at it."
+    },
+    {
+      "key": "ui.card.pointed",
+      "text": "pointing at: {thing}"
+    },
+    {
+      "key": "ui.card.point_nothing",
+      "text": "There is nothing to point at there."
+    },
+    {
+      "key": "ui.card.point_waiting",
+      "text": "Click a thing in the world …"
+    },
+    {
       "key": "ui.card.character",
       "text": "Character"
     },
@@ -1797,6 +1817,10 @@
     {
       "key": "ui.chronicle.someone",
       "text": "someone"
+    },
+    {
+      "key": "vocab.event.combined",
+      "text": "Something came of it"
     },
     {
       "key": "vocab.event.discovered_process",

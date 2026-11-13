@@ -81,6 +81,6 @@ public sealed class RockFaceGenTests
         preset.Start.DryGround = null;
         preset.GeneratorVersion = 3;
         var island = WorldGenerator.Generate(content.WorldGen, content.Objects, "start_island", 1);
-        Assert.Equal("d64e7fea4c0e163ad497d216220464dd20c067ff54245875cd3067e40e20c3a6", island.Hash());
+        Assert.Equal("98d0309ef337f7c129bc7eeac958033323ec28aad9a0eb90ecb3f1f0e12b216f", island.Hash());
     }
 }

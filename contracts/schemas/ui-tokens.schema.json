@@ -329,6 +329,12 @@
           "minimum": 0,
           "maximum": 0.9
         },
+        "point_radius_m": {
+          "description": "A1617 (B2678): a click while pointing picks the nearest thing within this distance of the clicked ground point (metres).",
+          "type": "number",
+          "minimum": 0.5,
+          "maximum": 10
+        },
         "invention_icon_px": {
           "description": "Size of an invention's icon before its name (A1603): its painted picture, else stripes in the kit colours of its plan. Omitted = 24.",
           "type": "integer",

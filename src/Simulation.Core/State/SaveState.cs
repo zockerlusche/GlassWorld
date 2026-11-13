@@ -57,8 +57,8 @@ public sealed record SavedIdeas(long Counter, IReadOnlyList<Idea> Ideas, IReadOn
 /// <summary>An open question as saved.</summary>
 public sealed record SavedQuestion(string Id, string InhabitantId, string Kind, string Subject, string RequestId, long AskedTick, IReadOnlyList<SavedOption> Options, long? RetryAtTick);
 
-/// <summary>An offered option as saved.</summary>
-public sealed record SavedOption(string OptionId, string Action, string? TargetId);
+/// <summary>An offered option as saved; <paramref name="Partners"/> = the things it uses with its target (combine, B2687), null for all others.</summary>
+public sealed record SavedOption(string OptionId, string Action, string? TargetId, IReadOnlyList<string>? Partners = null);
 
 /// <summary>
 /// The complete simulation state as plain data (no IO in the core). Simulation.Data stores it
@@ -199,7 +199,7 @@ public static class StateCodec
                 i.Memory.HasState ? new SavedMemory(i.Memory.Summary, i.Memory.LastSeq, [.. i.Memory.Events], [.. i.Memory.Firsts], i.Memory.SealedSeq) : null,
                 i.Ideas.HasState ? new SavedIdeas(i.Ideas.Counter, [.. i.Ideas.Ideas], [.. i.Ideas.Intentions]) : null))],
             counter,
-            [.. questions.Select(q => new SavedQuestion(q.Id, q.InhabitantId, q.Kind, q.Subject, q.RequestId, q.AskedTick, [.. q.Options.Select(o => new SavedOption(o.OptionId, o.Action, o.TargetId))], q.RetryAtTick))],
+            [.. questions.Select(q => new SavedQuestion(q.Id, q.InhabitantId, q.Kind, q.Subject, q.RequestId, q.AskedTick, [.. q.Options.Select(o => new SavedOption(o.OptionId, o.Action, o.TargetId, q.PartnersOf(o.OptionId) is { Count: > 0 } p ? p : null))], q.RetryAtTick))],
             lastAsked,
             [.. host.Decisions.Log.Entries],
             host.Map?.Island.PresetId,
@@ -341,7 +341,9 @@ public static class StateCodec
 
         host.Decisions.RestoreState(
             state.QuestionCounter,
-            state.Questions.Select(q => new OpenQuestion(q.Id, q.InhabitantId, q.Kind, q.Subject, q.RequestId, q.AskedTick, [.. q.Options.Select(o => (o.OptionId, o.Action, o.TargetId))], q.RetryAtTick)),
+            state.Questions.Select(q => new OpenQuestion(
+                q.Id, q.InhabitantId, q.Kind, q.Subject, q.RequestId, q.AskedTick, [.. q.Options.Select(o => (o.OptionId, o.Action, o.TargetId))], q.RetryAtTick,
+                q.Options.Any(o => o.Partners is { Count: > 0 }) ? q.Options.Where(o => o.Partners is { Count: > 0 }).ToDictionary(o => o.OptionId, o => o.Partners!, StringComparer.Ordinal) : null)),
             state.LastAsked,
             state.DecisionLog);
         host.Player.Restore(state.Player);

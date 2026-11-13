@@ -133,6 +133,12 @@ class Togetherness(BaseModel):
         max_length=64,
         pattern='^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)*$',
     )
+    bedtime_after_nightfall_hours: float | None = Field(
+        None,
+        description='B2680: game hours after nightfall from which an awake inhabitant lies down to sleep (unless a pressing need keeps it awake, B2681), so the compute night can begin. Omitted = no bedtime.',
+        ge=0.0,
+        le=12.0,
+    )
 
 
 class WillToLiveModel(BaseModel):

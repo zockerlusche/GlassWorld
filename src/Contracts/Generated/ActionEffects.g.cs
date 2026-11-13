@@ -81,6 +81,34 @@ namespace GlassWorld.Contracts
         [System.Text.Json.Serialization.JsonPropertyName("wake_after_minutes")]
         public int? WakeAfterMinutes { get; set; } = default!;
 
+        /// <summary>
+        /// Only for actions on an object that use further things together with it (combine, B2687): how the core offers them. Omitted = the action uses its target alone.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("partners")]
+        public ActionPartners? Partners { get; set; } = default!;
+
+    }
+
+    /// <summary>
+    /// Offer of an action with a partner thing (B2687, spec Bogen 30 R39): one option per thing within reach_m of the target, nearest to the target first (ties by id), at most max_options. The core never offers by whether a rule fits - what comes of it is the world's truth, whether one tries is the inhabitant's.
+    /// </summary>
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class ActionPartners
+    {
+
+        /// <summary>
+        /// Greatest distance of a partner thing from the target, at the offer and again when the action starts and ends.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("reach_m")]
+        public double ReachM { get; set; } = default!;
+
+        /// <summary>
+        /// At most this many options with a partner per question.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("max_options")]
+        public int MaxOptions { get; set; } = default!;
+
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
