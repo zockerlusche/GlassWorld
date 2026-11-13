@@ -137,6 +137,21 @@ public sealed class MilestoneTests
         Assert.DoesNotContain(InventionCheck.TechLevel, InventionCheck.Check(result, new HashSet<string>(), rules, higher));
     }
 
+    [Fact]
+    public void AProcessRuleAboveTheStartLevelAppliesOnceTheWorldReachedItsLevel()
+    {
+        // Review GW4 #356: the data's rules (Match) follow the reached level like the candidates do.
+        var processes = Content.Value.Processes!;
+        var levels = Content.Value.Inventions.TechLevels;
+        var start = IndexOf(levels, Content.Value.Inventions.Settings.TechLevel);
+        var data = ContractSerializer.Deserialize<ProcessRules>(File.ReadAllText(Path.Combine(ContentDirectory, "processes", "rules.json")));
+        var rule = data.Rules.First(r => r.HeatMin is null && IndexOf(levels, r.TechLevel) > start);
+        var level = IndexOf(levels, rule.TechLevel);
+        Assert.False(processes.Applies(rule));
+        Assert.False(processes.Applies(rule, start));
+        Assert.True(processes.Applies(rule, level));
+    }
+
     private static string? TypeWith(IEnumerable<string> properties) =>
         Content.Value.Objects.TypeIds.FirstOrDefault(t => properties.All(p => Content.Value.Objects.HasProperty(t, p)));
 

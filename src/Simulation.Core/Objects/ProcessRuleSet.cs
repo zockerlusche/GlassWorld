@@ -90,12 +90,14 @@ public sealed class ProcessRuleSet
     /// The most specific data rule that fits the try (things[0] = target, things[1] = partner, each with
     /// its true properties), or null.
     /// </summary>
-    public ProcessMatch? Match(IReadOnlyList<FrozenSet<string>> things)
+    /// <param name="things">The true properties of the things, target first.</param>
+    /// <param name="worldTech">The world's reached tech level as a number (A1625); null = the start level of the data.</param>
+    public ProcessMatch? Match(IReadOnlyList<FrozenSet<string>> things, int? worldTech = null)
     {
         ArgumentNullException.ThrowIfNull(things);
         foreach (var rule in _rules)
         {
-            if (Applies(rule) && Fit(rule, things) is { } match)
+            if (Applies(rule, worldTech) && Fit(rule, things) is { } match)
             {
                 return match;
             }

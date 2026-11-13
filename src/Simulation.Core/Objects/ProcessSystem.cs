@@ -117,7 +117,7 @@ public sealed class ProcessSystem : IWorldSystem, IOptionalWorldState
         }
 
         var truth = things.Select(t => _types.TrueProperties(t.TypeId)).ToList();
-        if (_data.Match(truth) is { } known)
+        if (_data.Match(truth, Milestones?.TechLevelIndex) is { } known)
         {
             return Apply(world, inhabitant, action, known, things, truth);
         }
