@@ -365,6 +365,10 @@ public sealed class SimulationHost
             inhabitants.Processing = processes.Try;
         }
 
+        // B2687 K3: burning things burn down or go out in the rain, and warm the air around them.
+        var fire = new FireSystem(content.Objects, objects, typeId => processes?.RootOf(typeId), world.Calendar.Settings.TicksPerHour) { AirAt = AirAt };
+        inhabitants.HeatAt = fire.HeatAt;
+
         var nightJobs = new Night.NightJobsSystem(content.Knowledge, content.Inventions.Build.NightPhases, types.PropertyVocabulary, content.Inventions.Guard, inhabitants, decisions, jobs, inventions.Log, displayLocale) { ValidateRequests = options.ValidateRequests };
         var chronicle = new ChronicleSystem(content.Chronicle);
         inhabitants.Reported += chronicle.Observe;
@@ -463,6 +467,9 @@ public sealed class SimulationHost
             world.Add(processes);
         }
 
+        // Out of the hash while nothing burns.
+        world.Add(fire);
+
         world.Add(chronicle).Add(writing).Add(skills).Add(needs).Add(skillLevels).Add(mailbox).Add(favourites).Add(conversation).Add(lookEpoch);
         var host = new SimulationHost(content, world, map, types, objects, decisions, inhabitants, player, inventions, chronicle, settings, writing, skills, mailbox)
         {
@@ -474,6 +481,7 @@ public sealed class SimulationHost
             SkillLevels = skillLevels,
             NightJobs = nightJobs,
             Processes = processes,
+            Fire = fire,
             Conversation = conversation,
             Diary = diary,
             Favourites = favourites,
@@ -766,6 +774,9 @@ public sealed class SimulationHost
 
     /// <summary>Processing of things put together (B2687 K2); null without processing rules.</summary>
     public ProcessSystem? Processes { get; private init; }
+
+    /// <summary>Burning things and the warmth around them (B2687 K3).</summary>
+    public FireSystem Fire { get; private init; } = null!;
 
     private static Position Scatter(Random.Pcg32 rng, Position centre, double radius) =>
         new(centre.X + (((rng.NextDouble() * 2.0) - 1.0) * radius), centre.Z + (((rng.NextDouble() * 2.0) - 1.0) * radius));

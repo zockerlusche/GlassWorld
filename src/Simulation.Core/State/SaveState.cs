@@ -160,6 +160,9 @@ public sealed record SaveState(
 
     /// <summary>The world's judged tries, open process jobs and variant types (B2687 K2); null = none.</summary>
     public Objects.ProcessState? Processes { get; init; }
+
+    /// <summary>Burning things with the tick they burn down (B2687 K3); null = none.</summary>
+    public IReadOnlyList<Objects.BurningThing>? Burning { get; init; }
 }
 
 /// <summary>Captures and restores the complete state of a <see cref="SimulationHost"/>.</summary>
@@ -230,6 +233,7 @@ public static class StateCodec
             DiaryVersion = host.Diary.Version,
             NightJobs = host.NightJobs.HasState ? host.NightJobs.Capture() : null,
             Processes = host.Processes is { HasState: true } processes ? processes.Capture() : null,
+            Burning = host.Fire.HasState ? host.Fire.Capture() : null,
         };
     }
 
@@ -380,6 +384,7 @@ public static class StateCodec
         host.Diary.Restore(state.Diary ?? [], state.DiaryVersion);
         host.NightJobs.Restore(state.NightJobs);
         host.Processes?.Restore(state.Processes);
+        host.Fire.Restore(state.Burning);
         host.UseLoggedPlayerSettings();
         return host;
     }

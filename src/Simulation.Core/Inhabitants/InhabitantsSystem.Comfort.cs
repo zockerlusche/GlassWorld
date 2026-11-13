@@ -25,6 +25,12 @@ public sealed partial class InhabitantsSystem
     public Func<World, Position, Air?>? AirAt { get; init; }
 
     /// <summary>
+    /// The warmth of heat sources around a place in tenths of a degree (a fire, B2687 K3 / spec R7), added to
+    /// the air the inhabitant feels; null = none. Set by the host.
+    /// </summary>
+    public Func<Position, int>? HeatAt { get; set; }
+
+    /// <summary>
     /// How far the inhabitant's comfort zone is shifted against the zone of the data, in tenths of a degree
     /// (B2582: every inhabitant's zone lies a little differently): a fixed value between minus and plus the
     /// data's <c>individual_shift_tenth_c</c>, drawn from the world seed and the inhabitant's id with an own
@@ -62,8 +68,9 @@ public sealed partial class InhabitantsSystem
         }
 
         var shift = ComfortShiftOf(world.Seed, inhabitant.Id);
-        var below = comfort.MinTenthC + shift - air.TemperatureTenthC;
-        var above = air.TemperatureTenthC - (comfort.MaxTenthC + shift);
+        var felt = air.TemperatureTenthC + (HeatAt?.Invoke(inhabitant.Position) ?? 0);
+        var below = comfort.MinTenthC + shift - felt;
+        var above = felt - (comfort.MaxTenthC + shift);
         if (below <= 0 && above <= 0)
         {
             inhabitant.Needs[comfort.Need] = Math.Min(1.0, value + PerTick(comfort.RecoverPerHour));
