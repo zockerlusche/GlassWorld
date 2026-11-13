@@ -12,6 +12,60 @@ namespace GlassWorld.Contracts
 {
     #pragma warning disable // Disable all warnings
 
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class Physics
+    {
+
+        /// <summary>
+        /// Processes that work by heat (vocabulary process): they need heat in reach and a heat_min.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("heat_processes")]
+        public System.Collections.Generic.ICollection<string> HeatProcesses { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// Properties a process gives only if an input already has them (never food or drink from nothing).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("no_new")]
+        public System.Collections.Generic.ICollection<string> NoNew { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// Properties no process takes away.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("never_remove")]
+        public System.Collections.Generic.ICollection<string> NeverRemove { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        /// <summary>
+        /// Per process: some input must have one of these properties. Keys are process ids (checked against the vocabulary when the service starts).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("needs_any")]
+        public System.Collections.Generic.IDictionary<string, System.Collections.Generic.ICollection<string>> NeedsAny { get; set; } = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.ICollection<string>>();
+
+        /// <summary>
+        /// Per process: no input may have any of these properties. Keys are process ids (checked against the vocabulary when the service starts).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("never_if")]
+        public System.Collections.Generic.IDictionary<string, System.Collections.Generic.ICollection<string>> NeverIf { get; set; } = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.ICollection<string>>();
+
+        /// <summary>
+        /// Per process: the only properties it can give (a process not listed: no limit). Keys are process ids (checked against the vocabulary when the service starts).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("may_add")]
+        public System.Collections.Generic.IDictionary<string, System.Collections.Generic.ICollection<string>> MayAdd { get; set; } = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.ICollection<string>>();
+
+        /// <summary>
+        /// Per process: the only properties it can take away (not listed: no limit). Keys are process ids (checked against the vocabulary when the service starts).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("may_remove")]
+        public System.Collections.Generic.IDictionary<string, System.Collections.Generic.ICollection<string>> MayRemove { get; set; } = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.ICollection<string>>();
+
+        /// <summary>
+        /// Short English sentences for the judge (internal, never shown to players; ADR-0007): tries that work and tries that do not. They show the strictness, not a list of answers.
+        /// </summary>
+        [System.Text.Json.Serialization.JsonPropertyName("examples")]
+        public Examples Examples { get; set; } = new Examples();
+
+    }
+
     /// <summary>
     /// Data file content/processes/rules.json (B2537): heat levels in order and the basic processing rules. AI-found rules are added per world at runtime (job process) in the same form. When several rules match one try, the most specific wins: more inputs, then more required properties (properties_all over all inputs), then a tool condition, then a heat condition; ties by rule id (ordinal). The core (P3) applies exactly this order.
     /// </summary>
@@ -30,6 +84,25 @@ namespace GlassWorld.Contracts
 
         [System.Text.Json.Serialization.JsonPropertyName("rules")]
         public System.Collections.Generic.ICollection<ProcessRule> Rules { get; set; } = new System.Collections.ObjectModel.Collection<ProcessRule>();
+
+        /// <summary>
+        /// Ground rules of physics for the judge of unknown tries (A1554, F5297 = A, B2616, D711): one place for all physics. The service checks every judgement against them and rules impossible tries out without a model call; the prompt reads the examples from here. Optional; absent = the prompt's own table (judge v1/v2).
+        /// </summary>
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        [System.Text.Json.Serialization.JsonPropertyName("physics")]
+        public Physics? Physics { get; set; } = default!;
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
+    public partial class Examples
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("works")]
+        public System.Collections.Generic.ICollection<string> Works { get; set; } = new System.Collections.ObjectModel.Collection<string>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("does_not")]
+        public System.Collections.Generic.ICollection<string> DoesNot { get; set; } = new System.Collections.ObjectModel.Collection<string>();
 
     }
 }

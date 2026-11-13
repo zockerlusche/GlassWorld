@@ -3,11 +3,79 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from . import common_schema
+
+type NeedsAny = Annotated[list[common_schema.VocabId], Field(..., max_length=32)]
+
+
+type NeverIf = Annotated[list[common_schema.VocabId], Field(..., max_length=32)]
+
+
+type MayAdd = Annotated[list[common_schema.VocabId], Field(..., max_length=32)]
+
+
+type MayRemove = Annotated[list[common_schema.VocabId], Field(..., max_length=32)]
+
+
+type Work = Annotated[str, Field(..., max_length=200, min_length=1)]
+
+
+type DoesNotItem = Annotated[str, Field(..., max_length=200, min_length=1)]
+
+
+class Examples(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    works: list[Work] = Field(..., max_length=8)
+    does_not: list[DoesNotItem] = Field(..., max_length=8)
+
+
+class Physics(BaseModel):
+    model_config = ConfigDict(
+        extra='forbid',
+    )
+    heat_processes: list[common_schema.VocabId] = Field(
+        ...,
+        description='Processes that work by heat (vocabulary process): they need heat in reach and a heat_min.',
+        max_length=32,
+    )
+    no_new: list[common_schema.VocabId] = Field(
+        ...,
+        description='Properties a process gives only if an input already has them (never food or drink from nothing).',
+        max_length=32,
+    )
+    never_remove: list[common_schema.VocabId] = Field(
+        ..., description='Properties no process takes away.', max_length=32
+    )
+    needs_any: dict[str, NeedsAny] = Field(
+        ...,
+        description='Per process: some input must have one of these properties. Keys are process ids (checked against the vocabulary when the service starts).',
+        max_length=32,
+    )
+    never_if: dict[str, NeverIf] = Field(
+        ...,
+        description='Per process: no input may have any of these properties. Keys are process ids (checked against the vocabulary when the service starts).',
+        max_length=32,
+    )
+    may_add: dict[str, MayAdd] = Field(
+        ...,
+        description='Per process: the only properties it can give (a process not listed: no limit). Keys are process ids (checked against the vocabulary when the service starts).',
+        max_length=32,
+    )
+    may_remove: dict[str, MayRemove] = Field(
+        ...,
+        description='Per process: the only properties it can take away (not listed: no limit). Keys are process ids (checked against the vocabulary when the service starts).',
+        max_length=32,
+    )
+    examples: Examples = Field(
+        ...,
+        description='Short English sentences for the judge (internal, never shown to players; ADR-0007): tries that work and tries that do not. They show the strictness, not a list of answers.',
+    )
 
 
 class ProcessRules(BaseModel):
@@ -25,3 +93,7 @@ class ProcessRules(BaseModel):
         min_length=1,
     )
     rules: list[common_schema.ProcessRule] = Field(..., max_length=512, min_length=1)
+    physics: Physics | None = Field(
+        None,
+        description="Ground rules of physics for the judge of unknown tries (A1554, F5297 = A, B2616, D711): one place for all physics. The service checks every judgement against them and rules impossible tries out without a model call; the prompt reads the examples from here. Optional; absent = the prompt's own table (judge v1/v2).",
+    )
