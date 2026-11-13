@@ -56,7 +56,7 @@ public sealed class InventionTests : IDisposable
 
         // R8 (A1582): the inventor knows what it believes about what it sees - its own beliefs, never the truth.
         Assert.Contains(payload.Inhabitant.Knowledge, k => k.Subject.Id == "flint" && k.Property == "burnable");
-        Assert.DoesNotContain(payload.Inhabitant.Knowledge, k => k.Subject.Id == "pyrite");
+        Assert.All(payload.Inhabitant.Knowledge, k => Assert.True(inhabitant.Beliefs.TryGet(k.Subject.Id, k.Property, out var b) && b.Value == k.Value));
         Assert.Contains(host.Inhabitants.EventsSince(0), e => e.Event.Kind == InventionSystem.Wanted && e.Event.Action == Need);
         Assert.Single(host.Inventions.Wants);
     }
