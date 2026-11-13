@@ -435,7 +435,9 @@ public sealed class ContentSet
 
         if (data.Looking is { } looking)
         {
-            problems.AddRange(LookingProblems(looking, data, actions, objects, effects));
+            // What a thing is by being made (the invention data's implied properties) is seen: a made thing looks made (TL #23489).
+            var made = ContractSerializer.Deserialize<InventionSettings>(File.ReadAllText(Path.Combine(contentDirectory, "invention", "settings.json"))).ImpliedProperties;
+            problems.AddRange(LookingProblems(looking, data, actions, objects, effects, made));
         }
 
         problems.AddRange(SocialProblems(data, actions, effects, model));
@@ -569,9 +571,9 @@ public sealed class ContentSet
 
     /// <summary>
     /// Looking (TL #19921) teaches what can be seen, never an effect: no visible property may be one an
-    /// action's effect depends on; what is seen is less sure than what is tried, a guess at most guessed_cap.
+    /// action's effect depends on - except what a thing is by being made (implied properties): a made thing looks made; what is seen is less sure than what is tried, a guess at most guessed_cap.
     /// </summary>
-    private static IEnumerable<string> LookingProblems(KnowledgeLooking looking, KnowledgeSettings data, Dictionary<string, VocabularyEntry> actions, ObjectCatalog objects, ActionRules effects)
+    private static IEnumerable<string> LookingProblems(KnowledgeLooking looking, KnowledgeSettings data, Dictionary<string, VocabularyEntry> actions, ObjectCatalog objects, ActionRules effects, ICollection<string> made)
     {
         if (!actions.TryGetValue(looking.Action, out var action) || action.Target != VocabularyEntryTarget.Object)
         {
@@ -585,7 +587,7 @@ public sealed class ContentSet
             {
                 yield return $"unknown visible property '{property}'";
             }
-            else if (effectProperties.Contains(property))
+            else if (effectProperties.Contains(property) && !made.Contains(property))
             {
                 yield return $"visible property '{property}' is an effect (learned only by trying, being told or asking)";
             }

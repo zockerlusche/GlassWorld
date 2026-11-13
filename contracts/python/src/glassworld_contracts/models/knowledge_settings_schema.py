@@ -346,6 +346,10 @@ class KnowledgeNightQuestions(BaseModel):
     model_config = ConfigDict(
         extra='forbid',
     )
+    ask_without_notice: bool | None = Field(
+        None,
+        description="D971: also ask about a thing the inhabitant believes nothing about (the day question unknown_object exists only for such things). The perception is then what it noticed by seeing the thing: the looking data's visible properties the thing has (never more than looking shows, not stored as a belief). Absent or false = such a question waits until the inhabitant has looked or tried.",
+    )
     job_priority: int = Field(
         ...,
         description='Priority of question jobs (generation-job: higher runs first).',

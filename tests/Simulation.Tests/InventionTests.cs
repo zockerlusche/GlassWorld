@@ -466,7 +466,7 @@ public sealed class InventionTests : IDisposable
         public void Submit(string requestId, string jobJson)
         {
             var job = ContractSerializer.Deserialize<GenerationJob>(jobJson);
-            if (job.Kind is JobKind.Memory or JobKind.Dream)
+            if (job.Kind is JobKind.Memory or JobKind.Dream or JobKind.Review)
             {
                 // The night's memory and dream jobs of the thirsty test inhabitant are not what these tests are
                 // about (B2681: kept awake by thirst it sleeps later and remembers more, so they can come first).
