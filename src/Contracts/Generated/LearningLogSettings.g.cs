@@ -31,7 +31,7 @@ namespace GlassWorld.Contracts
     }
 
     /// <summary>
-    /// The learning log per game day (B2685 part B, A1620, Marcel W1947): a readable Markdown file next to the save for each game day - what each inhabitant learned, discovered, built, taught and wished, with where it came from and when. Which core events count and how their line reads (text keys, DE/EN) is data; the log only reads along (no world state, no hash).
+    /// The learning log per game day (B2685 part B, A1620, Marcel W1947): a readable Markdown file next to the save for each game day - what each inhabitant learned, discovered, built, taught and wished, with where it came from and when. Which core events count and how their line reads (text keys, DE/EN) is data; the log only reads along (no world state, no hash, not saved: after a restart the day that was running starts its lines anew).
     /// </summary>
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "11.6.1.0 (Newtonsoft.Json v13.0.0.0)")]
     public partial class LearningLogSettings

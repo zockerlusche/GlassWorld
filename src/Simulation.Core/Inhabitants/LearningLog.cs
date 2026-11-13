@@ -19,7 +19,8 @@ public sealed record LearningEntry(long Tick, string InhabitantId, string Kind, 
 /// <summary>
 /// The learning log (B2685 part B, A1620): it reads along the core's event stream and keeps, per event kind named
 /// in the data, a language-neutral line until a writer takes the finished days. It is no world state: not hashed,
-/// not saved (a loaded world starts its log empty), and bounded.
+/// not saved (a loaded world starts its log empty: the lines of the day that ran when the game was closed are lost,
+/// a developer log - review GW1 #353), and bounded.
 /// </summary>
 public sealed class LearningLog
 {
@@ -83,7 +84,8 @@ public sealed class LearningLog
         _entries.Add(entry);
         if (_entries.Count > MaxEntries)
         {
-            _entries.RemoveAt(0);
+            // Over the bound (a long run without a writer): the oldest tenth goes at once, not one by one (review GW1 #353).
+            _entries.RemoveRange(0, _entries.Count - MaxEntries + (MaxEntries / 10));
         }
     }
 
