@@ -984,6 +984,15 @@ public sealed partial class InhabitantsSystem : IWorldSystem
     /// <summary>Reason of a queued answer dropped because a need fell below its neglect threshold while it waited.</summary>
     public const string NeedNeglected = "need_neglected";
 
+    /// <summary>Reason of a queued answer dropped because the needs no longer suggest its action when its turn comes (B2681: no second sleep when rested).</summary>
+    public const string NeedMet = "need_met";
+
+    /// <summary>Reason of a sleep not begun because a pressing need is below its neglect threshold (B2681).</summary>
+    public const string KeptAwakeBy = "kept_awake_by";
+
+    /// <summary>Reason of a sleep cut short because a pressing need fell below its neglect threshold (B2681, W1938).</summary>
+    public const string WokenByNeed = "woken_by_need";
+
     /// <summary>
     /// Whether an answer of the decider has gone stale by neglect (the one definition, F5275 B): a need of the
     /// inhabitant is below its neglect threshold (neglect_below of the inhabitant model) and the action - one
@@ -999,6 +1008,20 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             && !neglected.Any(need => _brain.Serves(action, need));
     }
 
+    /// <summary>
+    /// B2681 (W1938): the pressing need that keeps an inhabitant from sleeping (<paramref name="action"/>) or wakes
+    /// it: the first need with a neglect threshold (inhabitant model, data order) below it that the action does not
+    /// serve - unless the inhabitant is exhausted itself (a need the action serves is below its own threshold too):
+    /// then it sleeps until that is no longer so. Null when nothing keeps it awake.
+    /// </summary>
+    private string? PressingBelowNeglect(Inhabitant inhabitant, string action)
+    {
+        bool Below(Contracts.NeedModel n) => n.NeglectBelow > 0 && inhabitant.Needs.GetValueOrDefault(n.Id, 1.0) < n.NeglectBelow;
+        return _model.Needs.Any(n => Below(n) && _brain.Serves(action, n.Id))
+            ? null
+            : _model.Needs.FirstOrDefault(n => Below(n) && !_brain.Serves(action, n.Id))?.Id;
+    }
+
     private void Act(World world, Inhabitant inhabitant)
     {
         if (inhabitant.Activity is null && inhabitant.Planned is { } planned)
@@ -1012,6 +1035,15 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             if (StaleByNeglect(inhabitant, planned.Action))
             {
                 Report(new WorldEvent(AnswerExpired, world.Tick, inhabitant.Id, planned.Action, planned.TargetId) { Detail = NeedNeglected });
+            }
+            else if (planned.DecidedTick is not null && _actions.OfferedActions.Contains(planned.Action, StringComparer.Ordinal)
+                && _model.Needs.Any(n => n.NeglectBelow > 0 && _brain.Serves(planned.Action, n.Id))
+                && !_brain.NeedSuggests(inhabitant, planned.Action, planned.TargetId is { } id && ResolveTarget(id)?.Thing is { } thing ? thing.TypeId : null))
+            {
+                // B2681 (W1938): the same rule as for offering it (F5275 A), for actions that serve a body need -
+                // an answer asked for while sleepy is not carried out by one who has slept since; the routine or
+                // the decider decides anew. Looking and the like keep their answers (novelty changes by looking).
+                Report(new WorldEvent(AnswerExpired, world.Tick, inhabitant.Id, planned.Action, planned.TargetId) { Detail = NeedMet });
             }
             else
             {
@@ -1109,10 +1141,37 @@ public sealed partial class InhabitantsSystem : IWorldSystem
                 KeepConversationDistance(inhabitant, listener);
             }
 
+            if (string.Equals(activity.Action, _model.Togetherness?.SleepAction, StringComparison.Ordinal) && PressingBelowNeglect(inhabitant, activity.Action) is { } pressing)
+            {
+                // B2681: one with a pressing need below its threshold does not lie down, whoever chose the sleep.
+                Report(new WorldEvent(ActionCancelled, world.Tick, inhabitant.Id, activity.Action, null) { Detail = KeptAwakeBy + "/" + pressing });
+                inhabitant.Activity = null;
+                return;
+            }
+
             inhabitant.Activity = activity with { RemainingTicks = timing.DurationTicks, Route = null };
             Report(new WorldEvent(ActionStarted, world.Tick, inhabitant.Id, activity.Action, activity.TargetId) { TargetType = target?.TypeId });
             Imprint(world, inhabitant, activity, target, listener);
             return;
+        }
+
+        var timingNow = _actions.Timing(activity.Action);
+        if (timingNow.Gradual)
+        {
+            // B2681: the effects work while the action lasts, an equal share every tick (sleep rises while sleeping).
+            foreach (var share in _actions.Applying(activity.Action, target?.TypeId).SelectMany(r => r.Effects))
+            {
+                Apply(inhabitant, share, share.Delta / timingNow.DurationTicks);
+            }
+
+            if (IsAsleep(inhabitant) && timingNow.DurationTicks - activity.RemainingTicks.Value >= timingNow.WakeAfterTicks
+                && PressingBelowNeglect(inhabitant, activity.Action) is { } woken)
+            {
+                // B2681 (W1938): a pressing need the sleep does not serve wakes the sleeper; what it slept stays.
+                Report(new WorldEvent(ActionCancelled, world.Tick, inhabitant.Id, activity.Action, null) { Detail = WokenByNeed + "/" + woken });
+                inhabitant.Activity = null;
+                return;
+            }
         }
 
         var remaining = activity.RemainingTicks.Value - 1;
@@ -1123,7 +1182,7 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         }
 
         var seq = LastEventSeq;
-        var effect = Finish(world, inhabitant, activity, target);
+        var effect = Finish(world, inhabitant, activity, target, effectsDone: timingNow.Gradual);
         if (listener is not null)
         {
             Share(listener, activity.Action);
@@ -1441,8 +1500,12 @@ public sealed partial class InhabitantsSystem : IWorldSystem
 
         // W1595: what the inhabitant asked about is not eaten (or drunk …) before the answer comes.
         var waitFor = Knowledge is { WaitWhileQuestionOpen.Count: > 0 } knowledge && QuestionOpen is not null ? knowledge.WaitWhileQuestionOpen : null;
+        // B2681: a pressing need keeps it from lying down to sleep (it would be woken at once).
+        var sleepAction = _model.Togetherness?.SleepAction;
+        var keptAwake = sleepAction is not null && PressingBelowNeglect(inhabitant, sleepAction) is not null;
         bool Allowed(in Candidate o) =>
-            (!resting || (!Rests(inhabitant, o.Action, o.TargetId, world.Tick) && o.Score > 0))
+            !(keptAwake && string.Equals(o.Action, sleepAction, StringComparison.Ordinal))
+            && (!resting || (!Rests(inhabitant, o.Action, o.TargetId, world.Tick) && o.Score > 0))
             && (waitFor is null
                 || o.TargetId is null
                 || !waitFor.Contains(o.Action)
@@ -1757,15 +1820,19 @@ public sealed partial class InhabitantsSystem : IWorldSystem
 
     private static double Distance(Position a, Position b) => Math.Sqrt(((b.X - a.X) * (b.X - a.X)) + ((b.Z - a.Z) * (b.Z - a.Z)));
 
-    /// <summary>Applies the action's effects; true if a need, a mood or the will to live changed (by at least the data's min_effect) or the target was used up.</summary>
-    private bool Finish(World world, Inhabitant inhabitant, Activity activity, WorldObject? target)
+    /// <summary>
+    /// Applies the action's effects; true if a need, a mood or the will to live changed (by at least the data's min_effect) or the target was used up.
+    /// With <paramref name="effectsDone"/> (a gradual action, B2681) the effects were applied while it lasted; it counts as
+    /// changed when they are large enough to be an effect at all.
+    /// </summary>
+    private bool Finish(World world, Inhabitant inhabitant, Activity activity, WorldObject? target, bool effectsDone = false)
     {
         var applying = _actions.Applying(activity.Action, target?.TypeId);
         var changed = false;
         var least = Math.Max(_brain.Weights.Repetition?.MinEffect ?? 0, double.Epsilon);
         foreach (var effect in applying.SelectMany(r => r.Effects))
         {
-            changed |= Apply(inhabitant, effect, effect.Delta) >= least;
+            changed |= effectsDone ? Math.Abs(effect.Delta) >= least : Apply(inhabitant, effect, effect.Delta) >= least;
         }
 
         if (target is not null)
