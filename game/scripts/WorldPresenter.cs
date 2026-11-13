@@ -221,6 +221,12 @@ public partial class WorldPresenter : Node3D
                 {
                     Save();
                     AutoSaved?.Invoke();
+
+                    // A1620 (B2685): the learning log of the finished day, next to the save (GW3 #23238).
+                    if (Path.GetDirectoryName(SavePath) is { Length: > 0 } worldFolder)
+                    {
+                        LearningLogWriter.WriteFinishedDays(host, worldFolder, _contentDirectory);
+                    }
                 }
                 catch (Exception e) when (e is not OutOfMemoryException)
                 {

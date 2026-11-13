@@ -103,6 +103,9 @@ public sealed class ContentSet
     /// <summary>Invention settings, vocabularies and content guard for the core's final check (D471 D5).</summary>
     public InventionRules Inventions { get; }
 
+    /// <summary>The learning log per game day (content/learning/log.json, A1620), or null without the file.</summary>
+    public LearningLogSettings? LearningLog { get; init; }
+
     /// <summary>Which core events become chronicle entries (content/chronicle/kinds.json).</summary>
     public ChronicleKinds Chronicle { get; }
 
@@ -232,6 +235,7 @@ public sealed class ContentSet
             ContractSerializer.Deserialize<MessageKinds>(File.ReadAllText(Path.Combine(player, "message_kinds.json"))))
         {
             SkillLevels = LoadSkillLevels(contentDirectory),
+            LearningLog = LoadLearningLog(contentDirectory, events),
             Conversation = conversation,
             Processes = File.Exists(Path.Combine(contentDirectory, "processes", "rules.json"))
                 ? ProcessRuleSet.Create(
@@ -264,6 +268,24 @@ public sealed class ContentSet
     /// Reads the look epochs: at least one, every id once and in the vocabulary <c>epoch</c>, and a
     /// <c>tech_level</c> that is a position in the vocabulary <c>tech_level</c> (first = 0).
     /// </summary>
+    private static LearningLogSettings? LoadLearningLog(string contentDirectory, HashSet<string> events)
+    {
+        var path = Path.Combine(contentDirectory, "learning", "log.json");
+        if (!File.Exists(path))
+        {
+            return null;
+        }
+
+        var settings = ContractSerializer.Deserialize<LearningLogSettings>(File.ReadAllText(path));
+        var unknown = settings.Kinds.Where(k => !events.Contains(k.Event)).Select(k => k.Event).ToList();
+        if (unknown.Count > 0)
+        {
+            throw new InvalidDataException("Learning log names unknown events: " + string.Join(", ", unknown) + ".");
+        }
+
+        return settings;
+    }
+
     private static LookEpochs LoadLookEpochs(string contentDirectory, HashSet<string> epochs, int techLevels)
     {
         var data = ContractSerializer.Deserialize<LookEpochs>(File.ReadAllText(Path.Combine(contentDirectory, "look", "epochs.json")));
