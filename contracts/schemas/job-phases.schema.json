@@ -22,6 +22,12 @@
       "items": {
         "$ref": "common.schema.json#/$defs/VocabId"
       }
+    },
+    "wait_for_sleepers_hours": {
+      "description": "B2680 (Marcel W1939): the compute night begins when every inhabitant sleeps, at the latest this many game hours after nightfall (the start of the first night phase); the night scene of the game waits the same (look/night.json wait_for_sleepers_max_h). Omitted = at nightfall, as before.",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 12
     }
   }
 }

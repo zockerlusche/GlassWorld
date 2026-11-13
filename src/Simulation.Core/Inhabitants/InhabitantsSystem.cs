@@ -858,6 +858,18 @@ public sealed partial class InhabitantsSystem : IWorldSystem
         return together;
     }
 
+    /// <summary>Detail of a sleep started at bedtime (B2680).</summary>
+    public const string Bedtime = "bedtime";
+
+    /// <summary>B2680: whether it is past the data's bedtime after nightfall (inhabitant model, togetherness).</summary>
+    public bool AtBedtime(World world)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        // Only in a night that began in this world: a new world starts at midnight, and nobody is sent to bed at once.
+        return _model.Togetherness?.BedtimeAfterNightfallHours is { } hours && world.Calendar.MinutesSinceNightfall(world.Tick) is { } since && since >= hours * 60
+            && world.Calendar.NightBeganInWorld(world.Tick);
+    }
+
     /// <summary>Detail of an action_started event that is a first try (GW3 #22738): the actor knows nothing yet of what the action depends on.</summary>
     public const string Try = "try";
 
@@ -1190,7 +1202,8 @@ public sealed partial class InhabitantsSystem : IWorldSystem
             Report(new WorldEvent(ActionStarted, world.Tick, inhabitant.Id, activity.Action, activity.TargetId)
             {
                 TargetType = target?.TypeId,
-                Detail = target is not null && Tries(inhabitant, activity.Action, target.TypeId) ? Try : null,
+                Detail = target is not null && Tries(inhabitant, activity.Action, target.TypeId) ? Try
+                    : string.Equals(activity.Action, _model.Togetherness?.SleepAction, StringComparison.Ordinal) && AtBedtime(world) ? Bedtime : null,
             });
             Imprint(world, inhabitant, activity, target, listener);
             return;
@@ -1494,6 +1507,12 @@ public sealed partial class InhabitantsSystem : IWorldSystem
 
     private Activity? Choose(World world, Inhabitant inhabitant)
     {
+        // B2680: at bedtime an awake inhabitant lies down, unless a pressing need keeps it awake (B2681).
+        if (AtBedtime(world) && _model.Togetherness?.SleepAction is { } bed && PressingBelowNeglect(inhabitant, bed) is null)
+        {
+            return new Activity(bed, null, inhabitant.Position, null);
+        }
+
         // The radius of the data stays the measure for walking (distance falloff, a random spot nearby);
         // what the inhabitant can aim at ends where the weather lets it see, known places aside (B2594, InAim).
         var radius = _brain.Weights.PerceptionRadiusM;

@@ -287,8 +287,9 @@ public sealed partial class BuildingTests : IDisposable
         Assert.All(port.Phases.Skip(1), p => Assert.False(p.Force));
         foreach (var (phase, tick, _) in port.Phases)
         {
+            // B2680: night only in a night phase; a day signal also while the night waits for the sleepers.
             var isNight = night.Contains(host.World.Calendar.At(tick).Phase.ToString().ToLowerInvariant());
-            Assert.Equal(isNight ? JobPhase.Night : JobPhase.Day, phase);
+            Assert.True(phase == JobPhase.Night ? isNight : !isNight || Waiting(host.World.Calendar, tick), $"{phase} at tick {tick}");
         }
     }
 
@@ -428,7 +429,8 @@ public sealed partial class BuildingTests : IDisposable
 
         var (phase, tick, force) = Assert.Single(loadedPort.Phases);
         var isNight = Content.Value.Inventions.Build.NightPhases.Contains(loaded.World.Calendar.At(tick).Phase.ToString().ToLowerInvariant());
-        Assert.Equal((isNight ? JobPhase.Night : JobPhase.Day, true), (phase, force));
+        Assert.True(force);
+        Assert.True(phase == JobPhase.Night ? isNight : !isNight || Waiting(loaded.World.Calendar, tick));
     }
 
     [Fact]
@@ -589,6 +591,10 @@ public sealed partial class BuildingTests : IDisposable
     }
 
     /// <summary>Records submitted jobs and phase signals; outcomes are handed in by the test.</summary>
+    /// <summary>B2680: within the hours after nightfall the compute night waits for the sleepers (jobs/phases.json).</summary>
+    private static bool Waiting(GlassWorld.Simulation.Time.WorldCalendar calendar, long tick) =>
+        Content.Value.Inventions.Build.WaitForSleepersHours is { } wait && calendar.MinutesSinceNightfall(tick) is { } since && since < wait * 60;
+
     private sealed class ScriptedJobPort : IJobPort
     {
         private readonly Queue<PortMessage> _ready = new();

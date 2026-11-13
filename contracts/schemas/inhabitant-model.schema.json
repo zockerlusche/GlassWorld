@@ -113,7 +113,8 @@
         "distance_m": { "description": "Distance in metres; omitted = spacing.conversation_max_m of content/behaviour/gaits.json.", "type": "number", "minimum": 0, "maximum": 100 },
         "min_trust": { "type": "number", "minimum": 0, "maximum": 1 },
         "min_affection": { "type": "number", "minimum": 0, "maximum": 1 },
-        "sleep_action": { "description": "Action during which an inhabitant counts as asleep (once it has started).", "$ref": "common.schema.json#/$defs/VocabId" }
+        "sleep_action": { "description": "Action during which an inhabitant counts as asleep (once it has started).", "$ref": "common.schema.json#/$defs/VocabId" },
+        "bedtime_after_nightfall_hours": { "description": "B2680: game hours after nightfall from which an awake inhabitant lies down to sleep (unless a pressing need keeps it awake, B2681), so the compute night can begin. Omitted = no bedtime.", "type": "number", "minimum": 0, "maximum": 12 }
       }
     },
     "WillToLiveModel": {

@@ -197,6 +197,11 @@ public sealed class InhabitantTests
 
         // Something believed helpful in sight: the search is over, and may start again later.
         objects.Spawn("spring_water", new Position(thirsty.Position.X + 5, thirsty.Position.Z));
+
+        // B2680: the run is at night by now - thirsty enough to stay awake past bedtime, it chooses again and sees the water.
+        var neglect = Content.InhabitantModel.Needs.Single(n => n.Id == "thirst").NeglectBelow;
+        thirsty.Needs["thirst"] = neglect / 2;
+        thirsty.Activity = null;
         world.Run(ticksPerHour);
         Assert.Empty(thirsty.SearchSince);
     }

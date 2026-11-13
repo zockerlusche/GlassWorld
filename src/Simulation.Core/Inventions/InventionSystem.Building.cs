@@ -15,9 +15,10 @@ namespace GlassWorld.Simulation.Inventions;
 /// <param name="Kit">content/build/kit.json.</param>
 /// <param name="NeglectableNeeds">Needs with a neglect threshold; the inventor builds only while they are high enough.</param>
 /// <param name="NightPhases">Day phases that are the compute night of the AI service (content/jobs/phases.json).</param>
+/// <param name="WaitForSleepersHours">B2680: the compute night begins when all sleep, at the latest this many hours after nightfall; null = at nightfall.</param>
 /// <param name="Sound">Lengths, steps and priority of sound jobs (content/sound/generation.json).</param>
 /// <param name="Image">Sizes, style and priority of image jobs (content/image/generation.json; A1564); null = no picture jobs.</param>
-public sealed record BuildRules(BuildSettings Settings, BuildKit Kit, FrozenSet<string> NeglectableNeeds, FrozenSet<string> NightPhases, SoundGeneration Sound, ImageGeneration? Image = null);
+public sealed record BuildRules(BuildSettings Settings, BuildKit Kit, FrozenSet<string> NeglectableNeeds, FrozenSet<string> NightPhases, SoundGeneration Sound, ImageGeneration? Image = null, double? WaitForSleepersHours = null);
 
 /// <summary>The picture job of a new invention (A1564, B7 R7) and its result.</summary>
 /// <param name="TypeId">Runtime type the picture belongs to.</param>
@@ -1093,11 +1094,23 @@ public sealed partial class InventionSystem
         return true;
     }
 
-    /// <summary>Tells the AI service when the compute night begins and ends (only a signal; nothing in the world depends on it).</summary>
+    /// <summary>
+    /// Tells the AI service when the compute night begins and ends (only a signal; nothing in the world depends on it).
+    /// B2680: it begins when every inhabitant sleeps, at the latest the data's hours after nightfall - not at nightfall,
+    /// while inhabitants are still awake and need decisions; it ends with the night phase as before.
+    /// </summary>
     private void SignalPhase(World world)
     {
         var phase = world.Calendar.At(world.Tick).Phase.ToString().ToLowerInvariant();
-        var night = Build.NightPhases.Contains(phase);
+        // Once the night is signalled it holds until the night phase ends (review GW2 #339): one woken by thirst
+        // does not turn the service's night back into day.
+        var night = Build.NightPhases.Contains(phase)
+            && (_night == true
+                || Build.WaitForSleepersHours is not { } wait
+                || !world.Calendar.NightBeganInWorld(world.Tick)
+                || _inhabitants.All.All(_inhabitants.IsAsleep)
+                || world.Calendar.MinutesSinceNightfall(world.Tick) is not { } since
+                || since >= wait * 60);
         if (_night == night)
         {
             return;
