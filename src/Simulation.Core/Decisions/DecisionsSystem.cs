@@ -1354,18 +1354,24 @@ public sealed class DecisionsSystem : IWorldSystem
                     // R39, GW2 D979, TL TH142: without a subject (a free moment) pairs of things the asker already
                     // believes something about, nearest to it first, each with its partners nearest to it - so
                     // putting known things together comes up when there is time, not only at an unknown thing.
-                    var pairs = 0;
+                    // A pair counts once: B with A is not offered again after A with B (review GW1 #365).
+                    var offered = new HashSet<(string, string)>();
                     foreach (var subject in things.Where(o => asker.Beliefs.About(o.TypeId).Any()))
                     {
-                        if (pairs >= free.PartnerOptions || Rests(asker, action, subject.Id, tick))
+                        if (offered.Count >= free.PartnerOptions || Rests(asker, action, subject.Id, tick))
                         {
                             continue;
                         }
 
-                        foreach (var partner in PartnersNear(subject, things, free, asker).Take(free.PartnerOptions - pairs))
+                        foreach (var partner in PartnersNear(subject, things, free, asker))
                         {
+                            if (offered.Count >= free.PartnerOptions || offered.Contains((partner, subject.Id)))
+                            {
+                                continue;
+                            }
+
+                            offered.Add((subject.Id, partner));
                             (isIntended ? first : raw).Add((action, subject.Id, partner));
-                            pairs++;
                         }
                     }
 
