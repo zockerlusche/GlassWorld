@@ -199,6 +199,10 @@
       "description": "An inhabitant moved to live somewhere else (B8 R9; reported by the core once settlements exist)."
     },
     {
+      "id": "combined",
+      "description": "Something came of using things together (combine, B2687): target = the new thing, target type = its type, detail = the rule."
+    },
+    {
       "id": "discovered_process",
       "description": "An inhabitant discovered a new way of working, a process (B4b; action = the process; reported by the core once processes are discovered). The chronicle kind of the same name waited for it."
     },
