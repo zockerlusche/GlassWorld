@@ -332,6 +332,12 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
         var start = new Relation(_knowledge.RelationshipStart.Affection, _knowledge.RelationshipStart.Trust, _knowledge.RelationshipStart.Respect);
         var relation = inhabitant.Relationships.Get(PlayerId, start);
         var seen = _decisions.PerceivedTypes(inhabitant);
+
+        // A1617 (B2678): what the player points at - only a thing the speaker sees; one it cannot see is dropped
+        // (the sentence still goes out). A thing pointed at is always among the listed sights (at most SeesMax), so
+        // the service can find it there by name.
+        var pointed = pointedType is not null && seen.Contains(pointedType) ? pointedType : null;
+        var listed = pointed is null ? seen.Take(SeesMax) : seen.Where(t => t != pointed).Take(SeesMax - 1).Append(pointed);
         return new ConversationRequest
         {
             ContractVersion = ContractInfo.Version,
@@ -359,14 +365,11 @@ public sealed class ConversationSystem : IWorldSystem, IOptionalWorldState
                 // never the truth.
                 Doing = Doing(world, inhabitant),
                 Knowledge = Known(inhabitant, seen),
-                Sees = [.. seen.Take(SeesMax).Order(StringComparer.Ordinal)],
+                Sees = [.. listed.Order(StringComparer.Ordinal)],
                 SeesLabels = SeenLabels(inhabitant, seen),
             },
             PlayerText = text,
-
-            // A1617 (B2678): what the player points at while writing - only a thing the speaker sees; one it
-            // cannot see is dropped (the sentence still goes out), so naming never refers to something out of sight.
-            PointedAt = pointedType is not null && seen.Contains(pointedType) ? pointedType : null,
+            PointedAt = pointed,
             RecentLines = [.. memory.Lines.Select(l => new ConversationLine
             {
                 Author = l.FromPlayer ? ConversationLineAuthor.Player : ConversationLineAuthor.Inhabitant,

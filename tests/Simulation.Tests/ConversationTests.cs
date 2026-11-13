@@ -417,11 +417,13 @@ public sealed class ConversationTests : IDisposable
         host.Conversation.Port = port;
         host.World.Run(1);
         var speaker = host.Inhabitants.Get(id);
-        var seen = host.Decisions.PerceivedTypes(speaker).Order(StringComparer.Ordinal).First();
+        // The last of what it sees: even beyond the request's limit of listed sights it is listed (review of GW2 #341).
+        var seen = host.Decisions.PerceivedTypes(speaker)[^1];
         Assert.True(host.Decisions.Submit(new PlayerCommand(ConversationSystem.SendText, id) { Text = "Was ist das?", TypeId = seen }).Accepted);
         host.World.Run(1);
         var pointed = ContractSerializer.Deserialize<ConversationRequest>(Assert.Single(port.Requests));
         Assert.Equal(seen, pointed.PointedAt);
+        Assert.Contains(seen, pointed.Speaker.Sees!);
 
         var (other, otherId) = Host();
         var otherPort = new CapturePort();
