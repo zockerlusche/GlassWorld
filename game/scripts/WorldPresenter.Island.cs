@@ -313,6 +313,7 @@ public partial class WorldPresenter
         // The default quality level (B2-7 R30; which level a hardware tier uses is decided in B7).
         var quality = _quality = ReadQuality(content);
         _objectsView = ObjectsView.Create(objectLooks, palette, _ground, otherDecor, _nature.Season.Slots, TerrainMesher.StreamSources(ground, terrain), quality.HullOutline);
+        _objectsView.Looks.RootOf = typeId => _host?.Processes?.RootOf(typeId);
         AddChild(_objectsView);
         _inventionsView = Build.InventionsView.Create(Read<BuildKit>(content, "build", "kit.json"), _ground);
         AddChild(_inventionsView);

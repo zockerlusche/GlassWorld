@@ -115,6 +115,9 @@ public sealed class ContentSet
     /// <summary>Talking with an inhabitant: limits and changes by outcome (content/player/conversation.json, B6 R13).</summary>
     public ConversationSettings Conversation { get; init; } = new();
 
+    /// <summary>The basic processing rules (content/processes/rules.json, B2537) as a combine trial applies them (B2687 K2); null without the file.</summary>
+    public ProcessRuleSet? Processes { get; init; }
+
     /// <summary>Talent, forgetting and maximum of skill levels per inhabitant (content/skills/levels.json).</summary>
     public SkillLevelSettings SkillLevels { get; init; } = new();
 
@@ -223,6 +226,14 @@ public sealed class ContentSet
         {
             SkillLevels = LoadSkillLevels(contentDirectory),
             Conversation = ContractSerializer.Deserialize<ConversationSettings>(File.ReadAllText(Path.Combine(contentDirectory, "player", "conversation.json"))),
+            Processes = File.Exists(Path.Combine(contentDirectory, "processes", "rules.json"))
+                ? ProcessRuleSet.Create(
+                    ContractSerializer.Deserialize<ProcessRules>(File.ReadAllText(Path.Combine(contentDirectory, "processes", "rules.json"))),
+                    objects,
+                    inventions.Processes,
+                    inventions.TechLevels,
+                    inventions.Settings.TechLevel)
+                : null,
             Appearance = LoadAppearance(
                 contentDirectory,
                 [.. calendar.Settings.Seasons.Select(s => s.Id)],
